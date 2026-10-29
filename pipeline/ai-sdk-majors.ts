@@ -25,7 +25,9 @@ export interface SdkMajorStop {
 }
 
 export interface SdkMajorProposal {
-  provider: 'openai' | 'anthropic';
+  provider: 'openai' | 'anthropic' | 'gemini';
+  // An SDK swap replaces this package with `packageName` (Gemini's @google/generative-ai).
+  replaces?: string;
   packageName: string;
   // The release the root lockfile installs, else the declared range; null when neither is readable.
   installed: string | null;
@@ -1466,4 +1468,436 @@ export async function proposeAnthropicSdkMajor(
     rules: rules.filter((rule) => context.used.has(rule.rule)),
     calls: context.calls,
   };
+}
+
+const GEMINI_OLD = '@google/generative-ai';
+
+// @google/generative-ai → @google/genai (owner decision of 2026-10-29: Gemini edits with a quoted
+// source and request-level proof). Only the guide's one-to-one shapes are rewritten: the client,
+// a model from `getGenerativeModel({ model })` used only for `generateContent(prompt)` or
+// `generateContentStream(prompt)` in the same file, and `response.text()` reads. Anything else in a
+// file that uses the old package blocks the swap.
+export async function proposeGeminiSdkSwap(
+  directory: string,
+  tables: AiRuleTable[],
+): Promise<SdkMajorProposal | null> {
+  const rules = rulesOf(tables, 'gemini', 'sdk-major');
+  const target = rules.find((rule) => rule.family === 'gemini-swap-target');
+  if (!target) return null;
+  const repository = await readRepository(directory, GEMINI_OLD);
+  const installed = installedRelease(repository);
+  if (!repository.dependencies.some((item) => item.file === 'package.json')) return null;
+  const context: Context = {
+    repository,
+    rules: new Map(rules.map((rule) => [rule.rule, rule])),
+    used: new Set([target.rule]),
+    edits: [],
+    stops: [],
+    calls: [],
+  };
+  const block = (file: string, line: number, reason: string) =>
+    stop(context, file, line, 'gemini-swap-target', reason);
+  for (const file of repository.files) {
+    if (!SOURCE.test(file.path) || DECLARATION.test(file.path)) continue;
+    const imports = importsPackage(file.content, GEMINI_OLD);
+    if (!imports) {
+      // A model or result handed over from another file keeps its old methods.
+      if (
+        /\.response\.text\(\)|\.generateContent(?:Stream)?\(|getGenerativeModel\(/.test(
+          file.content,
+        )
+      )
+        block(
+          file.path,
+          lineOfText(
+            file.content,
+            file.content.match(
+              /\.response\.text\(\)|\.generateContent(?:Stream)?\(|getGenerativeModel\(/,
+            )![0],
+          ),
+          'Uses a Gemini model or result created in another file; Refit swaps only models it can follow within one file.',
+        );
+      continue;
+    }
+    geminiFile(context, file.path, file.content, block);
+  }
+  return {
+    provider: 'gemini',
+    packageName: target.data.package as string,
+    replaces: GEMINI_OLD,
+    installed,
+    major: majorOf(installed),
+    targetMajor: target.data.targetMajor as number,
+    edits: dedupe(context.edits),
+    stops: context.stops,
+    rules: rules.filter((rule) => context.used.has(rule.rule)),
+    calls: context.calls,
+  };
+}
+
+function geminiFile(
+  context: Context,
+  file: string,
+  content: string,
+  block: (file: string, line: number, reason: string) => void,
+) {
+  const { source, checker } = fileProgram(file, content);
+  const line = (node: ts.Node) => lineOf(source, node.getStart());
+  const symbolOf = (node: ts.Node) => checker.getSymbolAtLocation(node);
+  const usesOf = (name: ts.Identifier) => {
+    const symbol = symbolOf(name);
+    const uses: ts.Identifier[] = [];
+    const visit = (node: ts.Node) => {
+      if (
+        ts.isIdentifier(node) &&
+        node !== name &&
+        node.text === name.text &&
+        symbolOf(node) === symbol
+      )
+        uses.push(node);
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    return uses;
+  };
+  const constName = (node: ts.Node) => {
+    const declaration = node.parent;
+    return declaration &&
+      ts.isVariableDeclaration(declaration) &&
+      declaration.initializer === node &&
+      ts.isIdentifier(declaration.name) &&
+      declaration.parent.flags & ts.NodeFlags.Const
+      ? declaration.name
+      : undefined;
+  };
+  // Imports: only `GoogleGenerativeAI` is mapped.
+  const visitImports = (node: ts.Node) => {
+    if (
+      ts.isImportDeclaration(node) &&
+      ts.isStringLiteral(node.moduleSpecifier) &&
+      node.moduleSpecifier.text.startsWith(GEMINI_OLD)
+    ) {
+      const named = node.importClause?.namedBindings;
+      const names = named && ts.isNamedImports(named) ? named.elements : undefined;
+      if (
+        node.moduleSpecifier.text !== GEMINI_OLD ||
+        node.importClause?.name ||
+        !names ||
+        names.length !== 1 ||
+        names[0].propertyName ||
+        names[0].name.text !== 'GoogleGenerativeAI'
+      )
+        block(
+          file,
+          line(node),
+          `Imports ${node.importClause?.getText(source) ?? 'the module'} from ${node.moduleSpecifier.text}; the guide maps only GoogleGenerativeAI.`,
+        );
+      else
+        edit(
+          context,
+          file,
+          node.getStart(),
+          node.getEnd(),
+          `import { GoogleGenAI } from ${node.moduleSpecifier.getText(source).replace(GEMINI_OLD, '@google/genai')};`,
+          'gemini-swap-client',
+        );
+    }
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 'require' &&
+      node.arguments.length === 1 &&
+      ts.isStringLiteral(node.arguments[0]) &&
+      node.arguments[0].text.startsWith(GEMINI_OLD)
+    ) {
+      const declaration = node.parent;
+      const pattern =
+        ts.isVariableDeclaration(declaration) && ts.isObjectBindingPattern(declaration.name)
+          ? declaration.name
+          : undefined;
+      if (
+        node.arguments[0].text !== GEMINI_OLD ||
+        !pattern ||
+        pattern.elements.length !== 1 ||
+        pattern.elements[0].propertyName ||
+        !ts.isIdentifier(pattern.elements[0].name) ||
+        pattern.elements[0].name.text !== 'GoogleGenerativeAI'
+      )
+        block(
+          file,
+          line(node),
+          'The require of @google/generative-ai is not `const { GoogleGenerativeAI } = require(…)`.',
+        );
+      else {
+        edit(
+          context,
+          file,
+          pattern.getStart(),
+          pattern.getEnd(),
+          '{ GoogleGenAI }',
+          'gemini-swap-client',
+        );
+        edit(
+          context,
+          file,
+          node.arguments[0].getStart() + 1,
+          node.arguments[0].getEnd() - 1,
+          '@google/genai',
+          'gemini-swap-client',
+        );
+      }
+    }
+    ts.forEachChild(node, visitImports);
+  };
+  visitImports(source);
+  const handled = new Set<ts.Node>();
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isNewExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 'GoogleGenerativeAI'
+    ) {
+      handled.add(node.expression);
+      const client = constName(node);
+      if (node.arguments?.length !== 1 || !client) {
+        block(file, line(node), 'The client is not one `const` built from one API key argument.');
+      } else {
+        edit(
+          context,
+          file,
+          node.getStart(),
+          node.getEnd(),
+          `new GoogleGenAI({ apiKey: ${node.arguments[0].getText(source)} })`,
+          'gemini-swap-client',
+        );
+        for (const use of usesOf(client)) geminiClientUse(use, client.text);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  const geminiClientUse = (use: ts.Identifier, client: string) => {
+    const access = use.parent;
+    const call = access?.parent;
+    if (
+      !ts.isPropertyAccessExpression(access) ||
+      access.name.text !== 'getGenerativeModel' ||
+      !call ||
+      !ts.isCallExpression(call) ||
+      call.expression !== access
+    ) {
+      block(
+        file,
+        line(use),
+        `The client \`${client}\` is used other than to call getGenerativeModel.`,
+      );
+      return;
+    }
+    const [options] = call.arguments;
+    const modelProperty =
+      options && ts.isObjectLiteralExpression(options) && options.properties.length === 1
+        ? options.properties[0]
+        : undefined;
+    const modelValue =
+      modelProperty &&
+      ts.isPropertyAssignment(modelProperty) &&
+      ts.isIdentifier(modelProperty.name) &&
+      modelProperty.name.text === 'model'
+        ? modelProperty.initializer
+        : modelProperty &&
+            ts.isShorthandPropertyAssignment(modelProperty) &&
+            modelProperty.name.text === 'model'
+          ? modelProperty.name
+          : undefined;
+    const model = constName(call);
+    // The model is read again at each call, so it must not change in between.
+    const stable =
+      modelValue &&
+      (ts.isStringLiteralLike(modelValue) ||
+        (ts.isIdentifier(modelValue) &&
+          (() => {
+            const declaration = symbolOf(modelValue)?.valueDeclaration;
+            return Boolean(
+              declaration &&
+              ts.isVariableDeclaration(declaration) &&
+              declaration.parent.flags & ts.NodeFlags.Const,
+            );
+          })()));
+    if (call.arguments.length !== 1 || !modelValue || !stable || !model) {
+      block(
+        file,
+        line(call),
+        'getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools…), or its result is not one `const`; the guide maps those to another config shape.',
+      );
+      return;
+    }
+    const uses = usesOf(model);
+    const rewrites: (() => void)[] = [];
+    for (const modelUse of uses) {
+      const method = modelUse.parent;
+      const generate = method?.parent;
+      if (
+        !ts.isPropertyAccessExpression(method) ||
+        !['generateContent', 'generateContentStream'].includes(method.name.text) ||
+        !generate ||
+        !ts.isCallExpression(generate) ||
+        generate.expression !== method ||
+        generate.arguments.length !== 1
+      ) {
+        block(
+          file,
+          line(modelUse),
+          `The model \`${model.text}\` is used other than for one-argument generateContent or generateContentStream (chat, countTokens, embedContent and request objects have other shapes).`,
+        );
+        return;
+      }
+      const prompt = generate.arguments[0];
+      const promptOk =
+        ts.isStringLiteralLike(prompt) ||
+        ts.isTemplateExpression(prompt) ||
+        ts.isArrayLiteralExpression(prompt) ||
+        (ts.isIdentifier(prompt) &&
+          (() => {
+            const declaration = symbolOf(prompt)?.valueDeclaration;
+            const initializer =
+              declaration && ts.isVariableDeclaration(declaration)
+                ? declaration.initializer
+                : undefined;
+            return Boolean(
+              initializer &&
+              (ts.isStringLiteralLike(initializer) ||
+                ts.isTemplateExpression(initializer) ||
+                ts.isArrayLiteralExpression(initializer)),
+            );
+          })());
+      if (!promptOk) {
+        block(
+          file,
+          line(generate),
+          'The prompt is not a string, template or array Refit can see, so it may be a request object, whose shape differs.',
+        );
+        return;
+      }
+      const stream = method.name.text === 'generateContentStream';
+      const reads = geminiResultReads(generate, stream);
+      if ('reason' in reads) {
+        block(file, line(generate), reads.reason);
+        return;
+      }
+      rewrites.push(() => {
+        edit(
+          context,
+          file,
+          generate.getStart(),
+          generate.getEnd(),
+          `${client}.models.${method.name.text}({ model: ${modelValue.getText(source)}, contents: ${prompt.getText(source)} })`,
+          stream ? 'gemini-swap-stream' : 'gemini-swap-generate',
+        );
+        for (const read of reads.edits)
+          edit(context, file, read.start, read.end, read.text, 'gemini-swap-text');
+        if (!context.calls.some((item) => item.call === `models.${method.name.text}`))
+          context.calls.push({ call: `models.${method.name.text}`, stream });
+      });
+    }
+    for (const rewrite of rewrites) rewrite();
+    const statement = model.parent.parent.parent;
+    if (ts.isVariableStatement(statement) && statement.declarationList.declarations.length === 1) {
+      const range = statementRange(statement, content);
+      edit(context, file, range.start, range.end, '', 'gemini-swap-generate');
+    } else block(file, line(call), 'The model declaration shares its statement with others.');
+  };
+  // `result.response.text()` → `result.text`; for a stream, `for await (const c of result.stream)`
+  // → `of result` and `c.text()` → `c.text`.
+  const geminiResultReads = (
+    generate: ts.CallExpression,
+    stream: boolean,
+  ): { edits: { start: number; end: number; text: string }[] } | { reason: string } => {
+    let outer: ts.Node = generate;
+    while (ts.isParenthesizedExpression(outer.parent)) outer = outer.parent;
+    const awaited = ts.isAwaitExpression(outer.parent) ? outer.parent : undefined;
+    if (!awaited) return { reason: 'The result is not awaited where it is made.' };
+    const result = constName(awaited);
+    if (!result) return { reason: 'The awaited result is not held in one `const`.' };
+    const edits: { start: number; end: number; text: string }[] = [];
+    for (const use of usesOf(result)) {
+      const access = use.parent;
+      if (!stream) {
+        const text = access?.parent;
+        const call = text?.parent;
+        if (
+          ts.isPropertyAccessExpression(access) &&
+          access.name.text === 'response' &&
+          text &&
+          ts.isPropertyAccessExpression(text) &&
+          text.name.text === 'text' &&
+          call &&
+          ts.isCallExpression(call) &&
+          call.arguments.length === 0
+        ) {
+          edits.push({ start: use.getEnd(), end: call.getEnd(), text: '.text' });
+          continue;
+        }
+        return {
+          reason: `\`${result.text}\` is read other than as \`${result.text}.response.text()\`; the new response has other fields.`,
+        };
+      }
+      const loop = access?.parent;
+      if (
+        ts.isPropertyAccessExpression(access) &&
+        access.name.text === 'stream' &&
+        loop &&
+        ts.isForOfStatement(loop) &&
+        loop.awaitModifier &&
+        loop.expression === access &&
+        ts.isVariableDeclarationList(loop.initializer) &&
+        loop.initializer.declarations.length === 1 &&
+        ts.isIdentifier(loop.initializer.declarations[0].name)
+      ) {
+        edits.push({ start: use.getEnd(), end: access.getEnd(), text: '' });
+        for (const chunkUse of usesOf(loop.initializer.declarations[0].name)) {
+          const text = chunkUse.parent;
+          const call = text?.parent;
+          if (
+            ts.isPropertyAccessExpression(text) &&
+            text.name.text === 'text' &&
+            call &&
+            ts.isCallExpression(call) &&
+            call.arguments.length === 0
+          )
+            edits.push({ start: text.getEnd(), end: call.getEnd(), text: '' });
+          else return { reason: 'A stream chunk is read other than with `chunk.text()`.' };
+        }
+        continue;
+      }
+      return {
+        reason: `\`${result.text}\` is used other than in \`for await (… of ${result.text}.stream)\`.`,
+      };
+    }
+    return { edits };
+  };
+  visit(source);
+  // Anything left of the old SDK in this file blocks.
+  const leftovers = /\bGoogleGenerativeAI\b|getGenerativeModel\(/g;
+  for (const match of content.matchAll(leftovers)) {
+    const position = match.index!;
+    const covered = context.edits.some(
+      (item) => item.file === file && item.start <= position && position < item.end,
+    );
+    const node = findIdentifierAt(source, position);
+    if (!covered && !(node && handled.has(node)))
+      block(
+        file,
+        lineOf(source, position),
+        `\`${match[0]}\` is left in a form the swap does not map.`,
+      );
+  }
+}
+
+function findIdentifierAt(source: ts.SourceFile, position: number) {
+  let found: ts.Node | undefined;
+  const visit = (node: ts.Node) => {
+    if (node.getStart(source) === position && ts.isIdentifier(node)) found = node;
+    if (node.getStart(source) <= position && position < node.getEnd()) ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
 }

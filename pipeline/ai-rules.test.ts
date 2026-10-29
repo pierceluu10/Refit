@@ -87,7 +87,7 @@ it('refuses unofficial pages, editing Gemini rules, generated rules without prov
       }),
       'x',
     ),
-  ).toThrow(/Gemini is report only/);
+  ).toThrow(/limited to the documented SDK swap/);
   expect(() => parseAiRuleTable(table({}, [{ ...rule, origin: 'generated' }]), 'x')).toThrow(
     /generatedBy/,
   );

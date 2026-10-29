@@ -3,6 +3,7 @@ import { promisify } from 'node:util';
 import type { AiRuleTable } from './ai-rules.ts';
 import {
   proposeAnthropicSdkMajor,
+  proposeGeminiSdkSwap,
   proposeOpenAiSdkMajor,
   type SdkMajorProposal,
   type SdkRule,
@@ -66,6 +67,7 @@ export async function proposeAiMigrations(
     resolution: { image: options.image, before: options.before, resolve: options.resolve },
     release: options.release,
     companions: (companions?.data.packages as string[] | undefined) ?? [],
+    replaces: proposal.replaces,
   });
   if ('reason' in result)
     return { ...proposal, upgrade: null, upgradeRefusal: result.reason, patch: null };
@@ -85,6 +87,7 @@ export async function proposeSdkMajor(
   const proposers = [
     ['openai', proposeOpenAiSdkMajor],
     ['@anthropic-ai/sdk', proposeAnthropicSdkMajor],
+    ['@google/genai', proposeGeminiSdkSwap],
   ] as const;
   for (const [name, propose] of proposers) {
     if (packageName && packageName !== name) continue;
@@ -105,7 +108,8 @@ export interface RequestProof {
 }
 
 export function aiMigrationTitle(proposal: AiMigrationProposal, needsReview: boolean) {
-  return `${needsReview ? NEEDS_REVIEW_PREFIX : ''}fix(deps): upgrade ${proposal.packageName} to ${proposal.upgrade?.to ?? `${proposal.targetMajor}.x`} and migrate its calls`;
+  const to = proposal.upgrade?.to ?? `${proposal.targetMajor}.x`;
+  return `${needsReview ? NEEDS_REVIEW_PREFIX : ''}fix(deps): ${proposal.replaces ? `replace ${proposal.replaces} with ${proposal.packageName} ${to}` : `upgrade ${proposal.packageName} to ${to}`} and migrate its calls`;
 }
 
 // Proof levels are reported separately: (a) code, (b) request, (c) output shape. A level without
@@ -153,7 +157,7 @@ export function aiMigrationBody(options: {
             '',
           ]
         : []),
-      `## ${proposal.packageName} ${proposal.upgrade?.from ?? proposal.installed} → ${proposal.upgrade?.to ?? proposal.targetMajor}`,
+      `## ${proposal.replaces ? `${proposal.replaces} ${proposal.upgrade?.from ?? proposal.installed} → ${proposal.packageName}` : `${proposal.packageName} ${proposal.upgrade?.from ?? proposal.installed} →`} ${proposal.upgrade?.to ?? proposal.targetMajor}`,
       '',
       `Refit moved ${code(proposal.packageName)} to its current major and rewrote the calls whose shape changed, using only the mappings in the provider's own migration guides. **The new SDK can behave differently even where the code reads the same: outputs, defaults, errors and retries may differ. Please check the quality of the results before merging.**`,
       '',

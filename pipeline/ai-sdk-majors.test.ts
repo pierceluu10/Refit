@@ -3,7 +3,11 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { loadAiRuleTables } from './ai-rules.ts';
-import { proposeAnthropicSdkMajor, proposeOpenAiSdkMajor } from './ai-sdk-majors.ts';
+import {
+  proposeAnthropicSdkMajor,
+  proposeGeminiSdkSwap,
+  proposeOpenAiSdkMajor,
+} from './ai-sdk-majors.ts';
 import { applySourceEdits } from './patches.ts';
 
 const roots: string[] = [];
@@ -381,5 +385,115 @@ export interface Stored extends Anthropic.MessageParam { id: string }
     expect(proposal.stops).toEqual([
       expect.objectContaining({ rule: 'anthropic-ts-companions', blocking: true }),
     ]);
+  });
+});
+
+describe('@google/generative-ai to @google/genai', () => {
+  async function gemini(files: Record<string, string>) {
+    const root = await mkdtemp(join(tmpdir(), 'refit-ai-sdk-majors-'));
+    roots.push(root);
+    for (const [name, content] of Object.entries({
+      'package.json': JSON.stringify({
+        name: 'app',
+        dependencies: { '@google/generative-ai': '^0.24.1' },
+      }),
+      'package-lock.json': JSON.stringify({
+        name: 'app',
+        lockfileVersion: 3,
+        packages: {
+          '': { name: 'app' },
+          'node_modules/@google/generative-ai': { version: '0.24.1' },
+        },
+      }),
+      ...files,
+    })) {
+      await mkdir(dirname(join(root, name)), { recursive: true });
+      await writeFile(join(root, name), content);
+    }
+    const proposal = (await proposeGeminiSdkSwap(root, await loadAiRuleTables()))!;
+    const changed = Object.fromEntries(
+      Object.entries(files).map(([path, content]) => [
+        path,
+        applySourceEdits(
+          content,
+          proposal.edits.filter((item) => item.file === path),
+        ),
+      ]),
+    );
+    return { proposal, changed };
+  }
+
+  it('rewrites the documented client, generate, stream and text shapes', async () => {
+    const { proposal, changed } = await gemini({
+      'src/story.ts': `import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
+
+export async function story(prompt: string) {
+  const result = await model.generateContent(\`Tell me \${prompt}\`);
+  return result.response.text();
+}
+
+export async function stream() {
+  const result = await model.generateContentStream("Write a story.");
+  let text = "";
+  for await (const chunk of result.stream) text += chunk.text();
+  return text;
+}
+`,
+    });
+    expect(proposal.stops).toEqual([]);
+    expect(proposal.packageName).toBe('@google/genai');
+    expect(proposal.replaces).toBe('@google/generative-ai');
+    expect(changed['src/story.ts']).toBe(`import { GoogleGenAI } from "@google/genai";
+
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+
+export async function story(prompt: string) {
+  const result = await genAI.models.generateContent({ model: "gemini-3.8-flash", contents: \`Tell me \${prompt}\` });
+  return result.text;
+}
+
+export async function stream() {
+  const result = await genAI.models.generateContentStream({ model: "gemini-3.8-flash", contents: "Write a story." });
+  let text = "";
+  for await (const chunk of result) text += chunk.text;
+  return text;
+}
+`);
+    expect(proposal.calls.map((call) => call.call)).toEqual([
+      'models.generateContent',
+      'models.generateContentStream',
+    ]);
+  });
+
+  it('blocks on config, chat, request objects, other reads and models from another file', async () => {
+    const { proposal } = await gemini({
+      'a.js': `const { GoogleGenerativeAI } = require("@google/generative-ai");
+const genAI = new GoogleGenerativeAI(process.env.KEY);
+const tuned = genAI.getGenerativeModel({ model: "m", generationConfig: { temperature: 0 } });
+const plain = genAI.getGenerativeModel({ model: "m" });
+module.exports = {
+  chat: () => plain.startChat(),
+  tuned: () => tuned.generateContent("x"),
+};
+`,
+      'b.ts': `import { GoogleGenerativeAI, HarmCategory } from "@google/generative-ai";
+export const c = new GoogleGenerativeAI("k");
+`,
+      'c.ts': `import { GoogleGenerativeAI } from "@google/generative-ai";
+const genAI = new GoogleGenerativeAI("k");
+const model = genAI.getGenerativeModel({ model: "m" });
+export const f = async (request: any) => (await model.generateContent(request)).response.text();
+export const g = async () => { const r = await model.generateContent("x"); return r.response.candidates; };
+`,
+      'd.ts': `import { model } from './shared';\nexport const h = async () => (await model.generateContent('x')).response.text();\n`,
+    });
+    expect(proposal.stops.length).toBeGreaterThanOrEqual(5);
+    expect(proposal.stops.every((item) => item.blocking)).toBe(true);
+    expect(new Set(proposal.stops.map((item) => item.file))).toEqual(
+      new Set(['a.js', 'b.ts', 'c.ts', 'd.ts']),
+    );
   });
 });

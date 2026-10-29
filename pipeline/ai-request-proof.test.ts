@@ -79,3 +79,35 @@ it('redacts key-shaped text', () => {
     'key [redacted] and [redacted] and api_key: [redacted]',
   );
 });
+
+it('proves Gemini generateContent and its stream with @google/genai', async () => {
+  const seen: unknown[] = [];
+  class GoogleGenAI {
+    constructor(options: unknown) {
+      seen.push(options);
+    }
+    models = {
+      generateContent: async () => ({ text: 'ok' }),
+      generateContentStream: async () =>
+        (async function* () {
+          yield { text: 'o' };
+          yield { text: 'k' };
+        })(),
+    };
+  }
+  const proof = await proveRequests({
+    provider: 'gemini',
+    calls: [
+      { call: 'models.generateContent' },
+      { call: 'models.generateContentStream', stream: true },
+    ],
+    env: { GEMINI_API_KEY: 'test-key' },
+    load: async () => ({ GoogleGenAI }),
+  });
+  expect(proof.status).toBe('accepted');
+  expect(proof.calls.map((call) => call.detail)).toEqual([
+    'text parsed',
+    'stream parsed (2 chunks)',
+  ]);
+  expect(seen).toEqual([{ apiKey: 'test-key' }]);
+});

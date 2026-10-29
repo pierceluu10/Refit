@@ -15,6 +15,7 @@ const RUN = /^https:\/\/github\.com\/refit-dev\/refit-bench\/actions\/runs\/\d+$
 const PACKAGES: Record<string, ProofProvider> = {
   openai: 'openai',
   '@anthropic-ai/sdk': 'anthropic',
+  '@google/genai': 'gemini',
 };
 
 export interface SdkProofTarget extends ProofCall {

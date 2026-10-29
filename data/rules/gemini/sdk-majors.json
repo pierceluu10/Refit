@@ -12,6 +12,65 @@
   },
   "rules": [
     {
+      "rule": "gemini-swap-target",
+      "family": "gemini-swap-target",
+      "status": "auto",
+      "page": "migrate",
+      "quote": "import { GoogleGenAI } from \"@google/genai\";",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Replaces @google/generative-ai with the newest @google/genai 2.x release.",
+      "data": {
+        "package": "@google/genai",
+        "replaces": "@google/generative-ai",
+        "targetMajor": 2
+      }
+    },
+    {
+      "rule": "gemini-swap-client",
+      "family": "gemini-swap-client",
+      "status": "auto",
+      "page": "migrate",
+      "quote": "const ai = new GoogleGenAI({apiKey: \"GEMINI_API_KEY\"});",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`new GoogleGenerativeAI(key)` becomes `new GoogleGenAI({ apiKey: key })`.",
+      "data": {}
+    },
+    {
+      "rule": "gemini-swap-generate",
+      "family": "gemini-swap-generate",
+      "status": "auto",
+      "page": "migrate",
+      "quote": "const response = await ai.models.generateContent({ model: \"gemini-3.8-flash\", contents: \"Tell me a story in 300 words.\", });",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`genAI.getGenerativeModel({ model }).generateContent(prompt)` becomes `ai.models.generateContent({ model, contents: prompt })`; only a model option and a string or array prompt are mapped.",
+      "data": {}
+    },
+    {
+      "rule": "gemini-swap-stream",
+      "family": "gemini-swap-stream",
+      "status": "auto",
+      "page": "migrate",
+      "quote": "const response = await ai.models.generateContentStream({ model: \"gemini-3.8-flash\", contents: \"Write a story about a magic backpack.\", });",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`generateContentStream(prompt)` becomes `ai.models.generateContentStream({ model, contents })`, iterated directly instead of through `.stream`.",
+      "data": {}
+    },
+    {
+      "rule": "gemini-swap-text",
+      "family": "gemini-swap-text",
+      "status": "auto",
+      "page": "migrate",
+      "quote": "console.log(response.text);",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`result.response.text()` becomes `result.text`, and a stream chunk's `chunk.text()` becomes `chunk.text`.",
+      "data": {}
+    },
+    {
       "rule": "gemini-generative-ai-js",
       "family": "sdk-swap",
       "status": "report",
@@ -23,7 +82,10 @@
       "data": {
         "breaking": false,
         "match": {
-          "imports": ["@google/generative-ai", "@google/generative-ai/server"]
+          "imports": [
+            "@google/generative-ai",
+            "@google/generative-ai/server"
+          ]
         }
       }
     },

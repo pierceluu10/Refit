@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 import type { RequestProof } from './ai-migrations.ts';
@@ -215,10 +216,34 @@ const ANTHROPIC_PROBES: Record<string, Probe> = {
   },
 };
 
+const GEMINI_PROBES: Record<string, Probe> = {
+  'models.generateContent': async (client, model, call) => {
+    const response = (await invoke(client, call.call, {
+      model,
+      contents: 'Reply with the single word ok.',
+    })) as { text?: unknown };
+    expect(typeof response.text === 'string', 'no response.text');
+    return 'text parsed';
+  },
+  'models.generateContentStream': async (client, model, call) => {
+    const stream = (await invoke(client, call.call, {
+      model,
+      contents: 'Reply with the single word ok.',
+    })) as AsyncIterable<{ text?: unknown }>;
+    let chunks = 0;
+    for await (const chunk of stream) {
+      expect(chunk.text === undefined || typeof chunk.text === 'string', 'a chunk without text');
+      chunks++;
+    }
+    expect(chunks > 0, 'an empty stream');
+    return `stream parsed (${chunks} chunks)`;
+  },
+};
+
 const PROBES: Record<ProofProvider, Record<string, Probe>> = {
   openai: OPENAI_PROBES,
   anthropic: ANTHROPIC_PROBES,
-  gemini: {},
+  gemini: GEMINI_PROBES,
 };
 
 // The SDK is loaded from `sdkDirectory` (a directory where only the target release is installed),
@@ -244,21 +269,29 @@ export async function proveRequests(options: {
       `${key} is not set in this environment, so no request was sent to ${options.provider}. The proof runs only in refit-bench Actions with Refit's own test key.`,
     );
   const packageName =
-    options.packageName ?? (options.provider === 'anthropic' ? '@anthropic-ai/sdk' : 'openai');
+    options.packageName ??
+    { openai: 'openai', anthropic: '@anthropic-ai/sdk', gemini: '@google/genai' }[options.provider];
   const load =
     options.load ??
     ((name: string) =>
+      // Resolved from the SDK directory the way Node resolves it there (the package's exports).
       import(
         options.sdkDirectory
-          ? pathToFileURL(join(options.sdkDirectory, 'node_modules', name, 'index.js')).href
+          ? pathToFileURL(createRequire(join(options.sdkDirectory, 'package.json')).resolve(name))
+              .href
           : name
       ));
   const module = (await load(packageName)) as Record<string, unknown>;
-  const Constructor = (module.OpenAI ?? module.Anthropic ?? module.default) as new (
-    options: Record<string, unknown>,
-  ) => Client;
+  const Constructor = (module.OpenAI ??
+    module.Anthropic ??
+    module.GoogleGenAI ??
+    module.default) as new (options: Record<string, unknown>) => Client;
   // `apiKey` is passed from the environment variable; it is never logged.
-  const client = new Constructor({ apiKey: env[key], maxRetries: 1, timeout: 60_000 });
+  const client = new Constructor(
+    options.provider === 'gemini'
+      ? { apiKey: env[key] }
+      : { apiKey: env[key], maxRetries: 1, timeout: 60_000 },
+  );
   const model =
     env[PROOF_MODELS[options.provider].env]?.trim() || PROOF_MODELS[options.provider].model;
   const calls: RequestProof['calls'] = [];

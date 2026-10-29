@@ -20,11 +20,11 @@ import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 const USAGE = `Usage: refit ai-migrations --check-rules [--live] [--json]
-       refit ai-migrations [--repository <root>] [--package <openai|@anthropic-ai/sdk>] [--edits-only] [--output <patch>] [--json]
+       refit ai-migrations [--repository <root>] [--package <openai|@anthropic-ai/sdk|@google/genai>] [--edits-only] [--output <patch>] [--json]
        refit ai-migrations --validate [--repository <root>] [--package <name>] [--check <command>] [--image <image>] [--json]
        refit ai-migrations --review [--repository <root>] [--kind <api-surface|response-format|beta-feature|sdk-major>]... [--json]
        refit ai-migrations --prove-table --sdk-directory <dir> --releases <name@version,...> --run <url> --output <path>
-       refit ai-migrations --prove --provider <openai|anthropic> --calls <call>[,<call>...] [--stream] [--tools] [--json-output] [--sdk-directory <dir>] [--json]`;
+       refit ai-migrations --prove --provider <openai|anthropic|gemini> --calls <call>[,<call>...] [--stream] [--tools] [--json-output] [--sdk-directory <dir>] [--json]`;
 
 const HELP = `${USAGE}
 
@@ -187,7 +187,7 @@ try {
       );
   } else if (values.prove) {
     const provider = values.provider as ProofProvider;
-    if (!['openai', 'anthropic'].includes(provider) || !values.calls)
+    if (!['openai', 'anthropic', 'gemini'].includes(provider) || !values.calls)
       throw new PipelineInputError(USAGE);
     const proof = await proveRequests({
       provider,
