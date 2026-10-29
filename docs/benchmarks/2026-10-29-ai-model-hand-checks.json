@@ -1,0 +1,64 @@
+{
+  "formatVersion": 1,
+  "checkedAt": "2026-10-29",
+  "reviewer": "ai-models session (agent), for Furqan's review",
+  "set": "dev: the 59-repository seeded sample of docs/benchmarks/2026-10-22-ai-app-model-sites.json, the 20 with registry hits (19 distinct after de-duplication), at the commits in docs/benchmarks/2026-10-21-{openai,anthropic}-app-repos.json",
+  "refit": "2bcde6bc (feat/ai-model-decisions: #402 + #403 + #406 defaults: parameter changes, indirect sources, Gemini edits)",
+  "command": "node bin/refit.mjs deadlines --propose-model-fixes --repository <checkout> --json",
+  "totals": {
+    "repositories": 19,
+    "replacements": 1,
+    "parameterEdits": 0,
+    "stops": 58,
+    "unresolved": 70,
+    "alerts": 5
+  },
+  "edits": [
+    {
+      "repo": "AnyVM-Tech/AnyGPT",
+      "site": "apps/api/modules/keyChecker.ts:283",
+      "change": "claude-3-haiku-20240307 -> claude-haiku-4-5-20251001 (raw POST /v1/messages, max_tokens 1)",
+      "verdict": "correct",
+      "why": "A key check whose model retired on 2026-04-20, so the check fails today; the replacement is the page's and the request sets no sampling parameter."
+    }
+  ],
+  "alerts": [
+    {
+      "repo": "Aimagine-life/Betsy",
+      "sites": ["scripts/embed-conversation-history.mjs:37", "src/multi/memory/embeddings.ts:5"],
+      "kind": "embedding",
+      "model": "text-embedding-004",
+      "verdict": "correct"
+    },
+    {
+      "repo": "aeromechanic000/minecraft-ai",
+      "sites": ["src/models/gemini.js:148", "src/models/gemini.js:153"],
+      "kind": "embedding",
+      "model": "text-embedding-004",
+      "verdict": "correct"
+    },
+    {
+      "repo": "aeromechanic000/minecraft-ai",
+      "sites": ["profiles/gemini.json:4"],
+      "kind": "configuration",
+      "model": "gemini-2.0-flash",
+      "verdict": "correct"
+    }
+  ],
+  "falseAlertsFixed": [
+    {
+      "repo": "AnyVM-Tech/AnyGPT",
+      "count": 166,
+      "cause": "apps/api/models.json is a model catalog",
+      "fix": "b895dd34: files naming three or more models are catalogs"
+    },
+    {
+      "repo": "vual/lobe-chat-pro",
+      "count": 94,
+      "cause": "test and migration fixtures",
+      "fix": "51739303: TEST_PATH files are skipped"
+    }
+  ],
+  "stops": "All 58 reviewed by reason class: custom endpoints or base URLs (21), OpenRouter routes (20), non-text calls (5), unreadable tsconfig (2), untraced clients (2), shared request object (1), dynamic module (1), no concrete replacement (1), endpoint mentioned elsewhere (3), others (2). Every one is a pre-existing safety stop; none hides an edit that would be correct under the documented replacement.",
+  "notCovered": "No dev repository had a request shape the parameter-change table rewrites, or a Gemini text call with a retiring literal, so items 2 and Gemini edits have unit-test evidence only. The ai-bench dev sets (openai-dev-30, anthropic-dev-30, gemini-dev-15) were not frozen yet."
+}
