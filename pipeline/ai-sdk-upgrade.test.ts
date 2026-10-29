@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -61,7 +62,8 @@ it('re-resolves the lockfile and keeps it when only the SDK and what only it rea
   expect('upgrade' in result && result.upgrade.warning).toContain('nothing outside openai');
 });
 
-it('refuses when the re-resolved lockfile moves anything else', async () => {
+// npm also moved express; only openai's own tree is taken from its lockfile (scoped-lockfile.ts).
+it('keeps everything outside the SDK as committed when npm moves more', async () => {
   const resolve: Resolve = async (input) => ({
     lockfile: lock({
       '': { name: 'app', dependencies: { openai: '^6.49.0', express: '^4.0.0' } },
@@ -75,7 +77,32 @@ it('refuses when the re-resolved lockfile moves anything else', async () => {
     await project({ 'package.json': manifest, 'package-lock.json': before }),
     options(resolve),
   );
-  expect(result).toEqual({ reason: expect.stringContaining('node_modules/express') });
+  if (!('upgrade' in result)) throw new Error(result.reason);
+  const locked = JSON.parse(result.upgrade.files[1].after).packages;
+  expect(locked['node_modules/express']).toEqual({ version: '4.21.0' });
+  expect(locked['node_modules/openai']).toEqual({ version: '6.49.0' });
+  expect(locked['node_modules/axios']).toBeUndefined();
+});
+
+it('refuses when keeping the rest as committed would leave a range unmet', async () => {
+  const resolve: Resolve = async (input) => ({
+    lockfile: lock({
+      '': { name: 'app', dependencies: { openai: '^6.49.0', express: '^4.0.0' } },
+      'node_modules/openai': { version: '6.49.0', peerDependencies: { express: '^5.0.0' } },
+      'node_modules/express': { version: '5.1.0' },
+    }),
+    before: input.before,
+    late: {},
+  });
+  const result = await sdkMajorUpgrade(
+    await project({ 'package.json': manifest, 'package-lock.json': before }),
+    options(resolve),
+  );
+  expect(result).toEqual({
+    reason: expect.stringContaining(
+      'openai 6.49.0 declares express ^5.0.0; the project locks express 4.21.0',
+    ),
+  });
 });
 
 it('refuses other managers, workspaces and undeclared companions before resolving', async () => {
@@ -87,7 +114,7 @@ it('refuses other managers, workspaces and undeclared companions before resolvin
       await project({ 'package.json': manifest, 'pnpm-lock.yaml': 'lockfileVersion: 9' }),
       options(never),
     ),
-  ).toEqual({ reason: expect.stringContaining('pnpm-lock.yaml') });
+  ).toEqual({ reason: expect.stringContaining('not the top of a Git checkout') });
   expect(
     await sdkMajorUpgrade(
       await project({
@@ -207,4 +234,88 @@ it('moves declared platform packages to v1 with @anthropic-ai/sdk and guards the
   expect('upgrade' in result && result.upgrade.warning).toContain(
     'and @anthropic-ai/vertex-sdk to 1.1.0 with it',
   );
+});
+
+const INTEGRITY = `sha512-${Buffer.alloc(64).toString('base64')}`;
+async function committed(files: Record<string, string>) {
+  const root = await project(files);
+  const git = (...args: string[]) =>
+    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { cwd: root });
+  git('init', '-q');
+  git('add', '.');
+  git('commit', '-qm', 'init');
+  return root;
+}
+const pnpmLock = (version: string, spec: string) => `lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      openai:
+        specifier: ${spec}
+        version: ${version}
+
+packages:
+
+  openai@${version}:
+    resolution: {integrity: ${INTEGRITY}}
+
+snapshots:
+
+  openai@${version}: {}
+`;
+
+it("re-resolves a pnpm project's lockfile with its pinned pnpm and keeps the lockfile settings", async () => {
+  const seen: Parameters<Resolve>[0][] = [];
+  const resolve: Resolve = async (input) => {
+    seen.push(input);
+    return { lockfile: pnpmLock('6.49.0', '^6.49.0'), before: input.before, late: {} };
+  };
+  const root = await committed({
+    'package.json': JSON.stringify(
+      { name: 'app', packageManager: 'pnpm@9.15.9', dependencies: { openai: '^3.3.0' } },
+      null,
+      2,
+    ),
+    'pnpm-lock.yaml': pnpmLock('3.3.0', '^3.3.0'),
+  });
+  const result = await sdkMajorUpgrade(root, options(resolve));
+  if (!('upgrade' in result)) throw new Error(result.reason);
+  expect(seen[0]).toMatchObject({
+    manager: 'pnpm',
+    managerVersion: '9.15.9',
+    managerArguments: [
+      '--config.auto-install-peers=true',
+      '--config.exclude-links-from-lockfile=false',
+    ],
+    seed: pnpmLock('3.3.0', '^3.3.0'),
+  });
+  expect(result.upgrade).toMatchObject({ from: '3.3.0', to: '6.49.0' });
+  expect(result.upgrade.files.map((file) => file.path)).toEqual(['package.json', 'pnpm-lock.yaml']);
+  expect(result.upgrade.warning).toContain('pnpm 9.15.9, the release this project installs with');
+});
+
+it('refuses a pnpm re-resolution that moves another package, naming it', async () => {
+  const resolve: Resolve = async (input) => ({
+    lockfile: pnpmLock('6.49.0', '^6.49.0').replace(
+      '      openai:\n',
+      '      left-pad:\n        specifier: ^1.3.0\n        version: 1.3.0\n      openai:\n',
+    ),
+    before: input.before,
+    late: {},
+  });
+  const root = await committed({
+    'package.json': JSON.stringify({ name: 'app', dependencies: { openai: '^3.3.0' } }),
+    'pnpm-lock.yaml': pnpmLock('3.3.0', '^3.3.0'),
+  });
+  expect(await sdkMajorUpgrade(root, options(resolve))).toEqual({
+    reason: expect.stringMatching(
+      /^Upgrading openai with pnpm \S+ changes importer \., .* in pnpm-lock\.yaml, outside openai/,
+    ),
+  });
 });
