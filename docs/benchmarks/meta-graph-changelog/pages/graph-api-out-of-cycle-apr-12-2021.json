@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "graph-api-out-of-cycle-apr-12-2021",
+  "url": "https://developers.facebook.com/docs/graph-api/changelog/non-versioned-changes/apr-12-2021/",
+  "revision": "058b196d042588a437e59bbf5fe2c1a3f0430b9e382a239f297428c83fc5cfa6",
+  "hash": "058b196d042588a437e59bbf5fe2c1a3f0430b9e382a239f297428c83fc5cfa6",
+  "content": "Changelog\n\nUpgrade\n\nVersions\n\nOut-Of-Cycle Changes\n\nInstagram Graph API\n\nFixed a minor bug with reach metrics on story IG Media.",
+  "contentType": "text/html"
+}

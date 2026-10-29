@@ -15,7 +15,7 @@ import {
   type MetaGraphChange,
   type MetaGraphChanges,
 } from './meta-graph-changes.ts';
-import { applyRules, type MetaGraphRule } from './meta-graph-rules.ts';
+import { applyRules, type AppliedRule } from './meta-graph-rule-edits.ts';
 import { renderPatch } from './patches.ts';
 import { readRepository } from './repository.ts';
 import { META_SDK } from './deadline-exposure.ts';
@@ -102,6 +102,11 @@ function pathMatches(path: string, prefix: string) {
   const opaque = (segment: string) => runtime(segment) || /^(act_)?\d+$/.test(segment);
   if (wanted.length === 1 && runtime(wanted[0]))
     return segments.length === 1 && opaque(segments[0]);
+  // A root endpoint such as `/search` or `/instagram_oembed` is one literal word; a request whose
+  // path starts with a node ID (`/{pageId}/photos`) is not under it. Paths named like a path, which
+  // could hold one, are already unknown in the scan. A longer path such as `/me/accounts` still
+  // matches a runtime node, which may be `me`.
+  if (wanted.length === 1 && segments.length && runtime(segments[0])) return false;
   return (
     wanted.length <= segments.length &&
     wanted.every(
@@ -125,17 +130,23 @@ function samePath(a: string, b: string) {
   );
 }
 
-// The change-list entries a request uses: its edge or endpoint, a field it requests, a metric or a
-// parameter. A GET that names no fields gets the node's defaults, so any field change counts.
+// The change-list entries a request uses: its edge or endpoint, a field it requests, a metric, a
+// breakdown or a parameter. A GET that names no fields gets the node's defaults, so any field change
+// counts. Webhook changes follow the app's webhook version, not the request's, so no request uses
+// them; they stay alerts.
 export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
   const fields = call.fields ? fieldNames(call.fields) : new Set<string>();
+  const endpoint = (change: MetaGraphChange) =>
+    (change.edge !== null && change.edge === call.edge) ||
+    (change.path !== null && call.path !== null && pathMatches(call.path, change.path));
   return changes.filter((change) => {
     switch (change.kind) {
       case 'endpoint-removed':
-        return (
-          (change.edge !== null && change.edge === call.edge) ||
-          (change.path !== null && call.path !== null && pathMatches(call.path, change.path))
-        );
+      case 'endpoint-changed':
+      case 'parameter-required':
+      case 'error-changed':
+      case 'permission-changed':
+        return endpoint(change);
       case 'edge-removed':
       case 'edge-changed':
         return change.edge === call.edge;
@@ -152,6 +163,17 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
       case 'parameter-removed':
       case 'parameter-changed':
         return call.parameters?.includes(change.name!) ?? false;
+      // The values a request breaks down by are not traced, so any breakdown on insights counts.
+      case 'breakdown-removed':
+        return (
+          call.edge === 'insights' &&
+          (call.parameters?.some((name) => /^(action_)?breakdowns$/.test(name)) ?? false)
+        );
+      // A product shutdown names no endpoint a request could match; it stays an alert.
+      case 'product-removed':
+      case 'webhook-field-removed':
+      case 'webhook-field-changed':
+        return false;
     }
     return true;
   });
@@ -437,7 +459,7 @@ export async function proposeVersionMoves(
   changes: MetaGraphChanges,
   registry: DeadlineRegistry,
   now: Date,
-  rules: MetaGraphRule[] = [],
+  rules: AppliedRule[] = [],
 ): Promise<VersionMoveProposal> {
   if (!VERSION.test(target)) throw new PipelineInputError('--target must look like v24.0.');
   const records = new Map(changes.versions.map((entry) => [entry.version, entry]));
@@ -531,8 +553,12 @@ export async function proposeVersionMoves(
       reasons.push(
         `${unreviewed.join(', ')}: ${unreviewed.length === 1 ? 'this changelog is' : 'these changelogs are'} not reviewed in the Meta Graph API change list`,
       );
-    const inRange = changes.changes.filter((change) => crossed.includes(change.version));
-    const rulesInRange = rules.filter((rule) => crossed.includes(rule.version));
+    const inRange = changes.changes.filter(
+      (change) => change.version !== null && crossed.includes(change.version),
+    );
+    const rulesInRange = rules.filter(
+      (rule) => rule.version !== null && crossed.includes(rule.version),
+    );
     const ruleEdits: SourceEdit[] = [];
     const applied = new Set<string>();
     for (const call of calls) {
@@ -541,7 +567,7 @@ export async function proposeVersionMoves(
       ruleEdits.push(...outcome.edits);
       for (const edit of outcome.edits) applied.add(edit.changeId.replace('meta-graph-rule-', ''));
       for (const change of changesUsedBy(call, inRange))
-        if (!outcome.covers.includes(`${change.kind} ${change.name}`))
+        if (!outcome.covers.includes(change.id))
           reasons.push(
             `${call.file}:${call.line}: ${change.version} ${change.kind} ${change.id}: ${change.summary}`,
           );

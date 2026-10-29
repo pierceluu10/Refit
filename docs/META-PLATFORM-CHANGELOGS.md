@@ -1,10 +1,12 @@
 # WhatsApp and Messenger changelogs (FG7)
 
-`data/meta-graph-changes.json` reviews the Graph API changelogs from v14.0 to v26.0, but not the WhatsApp Business Platform or Messenger Platform changelogs. So `refit meta-graph --propose-version-moves` stops every request that belongs to either; see [Meta Graph API](META-GRAPH.md#propose-version-moves-review-only). This lane was meant to review those two changelogs version by version and add their changes, so that these requests no longer stop wholesale.
+`data/meta-graph/changes.json` reviews the Graph API changelogs from v14.0 to v26.0, but not the WhatsApp Business Platform or Messenger Platform changelogs. So `refit meta-graph --propose-version-moves` stops every request that belongs to either; see [Meta Graph API](META-GRAPH.md#propose-version-moves-review-only). This lane was meant to review those two changelogs version by version and add their changes, so that these requests no longer stop wholesale.
 
 Checked 2026-10-22. Nothing was installed or run, and Meta was never contacted.
 
 ## Blocked: the changelog pages could not be read
+
+**Resolved on 2026-10-29:** developers.facebook.com was reachable from a local machine, and both changelogs are saved and mined into `data/meta-graph/changes.json`; see [Meta Graph change table](META-GRAPH-CHANGES.md). The move rule still stops their requests.
 
 The cloud environment's egress proxy refuses developers.facebook.com. The first attempt and the one retry both failed (2026-10-22T11:54Z):
 
@@ -18,7 +20,7 @@ The web fetch tool fails as well (`getaddrinfo ENOTFOUND developers.facebook.com
 
 - The WhatsApp and Messenger versions stay unreviewed, and their requests keep stopping.
 - `--propose-version-moves` is not widened.
-- `data/meta-graph-changes.json` is unchanged.
+- `data/meta-graph/changes.json` is unchanged.
 
 **To unblock:**
 

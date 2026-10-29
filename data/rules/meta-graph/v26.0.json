@@ -1,0 +1,115 @@
+{
+  "formatVersion": 1,
+  "provider": "meta-graph",
+  "version": "v26.0",
+  "rules": [
+    {
+      "rule": "meta-graph-v26-0-field-removed-matched-reference-owner-2-replacement",
+      "family": "field-replacement",
+      "change": "meta-graph-v26-0-field-removed-matched-reference-owner-2",
+      "from": "matched_reference_owner",
+      "to": "matched_reference_owner_rh_owner",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+      "quote": "matched_reference_owner_rh_owner replaces matched_reference_owner.",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    },
+    {
+      "rule": "meta-graph-v26-0-field-removed-receiving-rights-holder-2-replacement",
+      "family": "field-replacement",
+      "change": "meta-graph-v26-0-field-removed-receiving-rights-holder-2",
+      "from": "receiving_rights_holder",
+      "to": "receiving_rights_holder_owner",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+      "quote": "receiving_rights_holder_owner replaces receiving_rights_holder.",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    },
+    {
+      "rule": "meta-graph-v26-0-field-removed-reference-owner-2-replacement",
+      "family": "field-replacement",
+      "change": "meta-graph-v26-0-field-removed-reference-owner-2",
+      "from": "reference_owner",
+      "to": "reference_owner_rh_owner",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+      "quote": "reference_owner_rh_owner replaces reference_owner.",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    },
+    {
+      "rule": "meta-graph-v26-0-field-removed-sending-rights-holder-2-replacement",
+      "family": "field-replacement",
+      "change": "meta-graph-v26-0-field-removed-sending-rights-holder-2",
+      "from": "sending_rights_holder",
+      "to": "sending_rights_holder_owner",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+      "quote": "sending_rights_holder_owner replaces sending_rights_holder.",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    },
+    {
+      "rule": "meta-graph-v26-0-metric-removed-page-impressions-unique-replacement",
+      "family": "metric-replacement",
+      "change": "meta-graph-v26-0-metric-removed-page-impressions-unique",
+      "from": "page_impressions_unique",
+      "to": "page_total_media_view_unique",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+      "quote": "page_impressions_unique (use page_total_media_view_unique to get total unique views on a page's media, and page_media_view to get breakdowns between paid and organic reach on a page's media)",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    },
+    {
+      "rule": "meta-graph-v26-0-metric-removed-page-story-impressions-by-story-id-replacement",
+      "family": "metric-replacement",
+      "change": "meta-graph-v26-0-metric-removed-page-story-impressions-by-story-id",
+      "from": "PAGE_STORY_IMPRESSIONS_BY_STORY_ID",
+      "to": "STORY_MEDIA_VIEW",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+      "quote": "PAGE_STORY_IMPRESSIONS_BY_STORY_ID (use STORY_MEDIA_VIEW to get breakdowns between paid and organic reach on a story's media)",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    },
+    {
+      "rule": "meta-graph-v26-0-metric-removed-page-story-impressions-by-story-id-unique-replacement",
+      "family": "metric-replacement",
+      "change": "meta-graph-v26-0-metric-removed-page-story-impressions-by-story-id-unique",
+      "from": "PAGE_STORY_IMPRESSIONS_BY_STORY_ID_UNIQUE",
+      "to": "STORY_TOTAL_MEDIA_VIEW_UNIQUE",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+      "quote": "PAGE_STORY_IMPRESSIONS_BY_STORY_ID_UNIQUE (use STORY_TOTAL_MEDIA_VIEW_UNIQUE to get total unique views on a story's media)",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    },
+    {
+      "rule": "meta-graph-v26-0-metric-removed-post-impressions-unique-replacement",
+      "family": "metric-replacement",
+      "change": "meta-graph-v26-0-metric-removed-post-impressions-unique",
+      "from": "post_impressions_unique",
+      "to": "post_total_media_view_unique",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+      "quote": "post_impressions_unique (use post_total_media_view_unique to get total unique views on a page post media, and post_media_view to get breakdowns between paid and organic reach on a page post's media)",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    },
+    {
+      "rule": "meta-graph-v26-0-parameter-changed-applink-treatment-2-replacement",
+      "family": "parameter-replacement",
+      "change": "meta-graph-v26-0-parameter-changed-applink-treatment-2",
+      "from": "applink_treatment",
+      "to": "automatic",
+      "source": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/marketing-api-changelog/version26.0",
+      "quote": "The `applink_treatment` field set to `web_only` is deprecated for Web and App campaigns. Use `automatic` or `deeplink_with_web_fallback` instead.",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    }
+  ]
+}

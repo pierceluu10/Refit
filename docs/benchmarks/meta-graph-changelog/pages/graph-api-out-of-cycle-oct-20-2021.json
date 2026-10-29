@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "graph-api-out-of-cycle-oct-20-2021",
+  "url": "https://developers.facebook.com/docs/graph-api/changelog/ooc-changes/oct-20-2021/",
+  "revision": "bf54b233cfee0dea4aaeb9f9719ae37666acae5becb4bc8969dad05ac3492fa1",
+  "hash": "bf54b233cfee0dea4aaeb9f9719ae37666acae5becb4bc8969dad05ac3492fa1",
+  "content": "Changelog\n\nUpgrade\n\nVersions\n\nOut-Of-Cycle Changes\n\nOctober 20, 2021\n\nOut-of-cycle changes.\n\nInstagram API\n\nIG Comments\n\nApplies to all versions.\n\nTwo new fields have been added to IG Comments:\n\nfrom — returns an object containing the IGSID (id) and username (username) of the comment creator.\n\nparent_id — returns the ID of the parent IG Comment if this comment was created on another IG Comment (i.e. a reply to another comment).\n\nInstagram Webhooks\n\nApplies to all versions.\n\nThe comments Instagram webhooks field now includes the following properties in the value field object:\n\nfrom.id — IGSID of the Instagram user who created the comment.\n\nfrom.username — Username of the Instagram user who created the comment\n\nmedia.id — ID of the IG Media upon which the comment was made.\n\nmedia.media_product_type — Surface (published location) of the IG Media upon which the comment was made.\n\nparent_id — ID of parent IG Comment if this comment was created on another IG Comment (i.e. a reply to another comment).",
+  "contentType": "text/html"
+}

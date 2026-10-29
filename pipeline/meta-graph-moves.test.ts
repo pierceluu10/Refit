@@ -14,7 +14,7 @@ import {
   type MetaGraphChanges,
 } from './meta-graph-changes.ts';
 import { changesUsedBy, fieldNames, proposeVersionMoves } from './meta-graph-moves.ts';
-import type { MetaGraphRule } from './meta-graph-rules.ts';
+import type { AppliedRule } from './meta-graph-rule-edits.ts';
 
 const execute = promisify(execFile);
 const CLI = fileURLToPath(new URL('../bin/refit.mjs', import.meta.url));
@@ -49,8 +49,11 @@ function change(
     edge: null,
     path: null,
     name: null,
+    replacement: null,
+    appliesToAll: null,
     summary: `${overrides.id} changes.`,
-    source: source(overrides.version),
+    quote: `${overrides.id} changes.`,
+    source: source(overrides.version!),
     checkedAt: '2026-10-20',
     ...overrides,
   };
@@ -69,6 +72,7 @@ function changes(
       .filter((version) => !omit.includes(version))
       .map((version) => ({
         version,
+        released: '2024-01-01',
         status: unread.includes(version) ? ('unread' as const) : ('reviewed' as const),
         source: source(version),
         checkedAt: '2026-10-20',
@@ -99,23 +103,20 @@ async function propose(
   files: Record<string, string>,
   list = changes(),
   target = 'v25.0',
-  rules: MetaGraphRule[] = [],
+  rules: AppliedRule[] = [],
 ) {
   return proposeVersionMoves(await repository(files), target, list, registry, NOW, rules);
 }
 
 function rule(
-  overrides: Partial<MetaGraphRule> & Pick<MetaGraphRule, 'rule' | 'family' | 'name'>,
-): MetaGraphRule {
+  overrides: Partial<AppliedRule> &
+    Pick<AppliedRule, 'rule' | 'change' | 'subject' | 'from' | 'to'>,
+): AppliedRule {
   return {
     version: 'v22.0',
+    replacement: true,
     edge: null,
-    node: null,
-    replacement: null,
-    value: null,
     source: source('v22.0'),
-    quote: 'Quoted.',
-    checkedAt: '2026-10-29',
     status: 'auto',
     ...overrides,
   };
@@ -453,7 +454,10 @@ fetch('https://graph.facebook.com/v18.0/oauth/access_token?client_id=1&client_se
   });
 
   it('moves safe requests and stops the rest with concrete reasons under the committed list', async () => {
-    const list = await loadMetaGraphChanges(DEFAULT_META_GRAPH_CHANGES, NOW);
+    const list = await loadMetaGraphChanges(
+      DEFAULT_META_GRAPH_CHANGES,
+      new Date('2026-10-29T12:00:00Z'),
+    );
     const proposal = await proposeVersionMoves(FIXTURE, 'v25.0', list, registry, NOW);
     const pinned = proposal.stops.filter((stop) => stop.from);
     // Every changelog from v14.0 to v25.0 is reviewed, so no stop is for an unread changelog.
@@ -502,6 +506,29 @@ describe('matching', () => {
     } as unknown as GraphCall;
     expect(changesUsedBy(accounts, [removed('/me/accounts')])).toHaveLength(1);
     expect(changesUsedBy(accounts, [removed('/me/businesses')])).toHaveLength(0);
+  });
+
+  it('matches new kinds by endpoint or breakdowns, and never by webhook changes', () => {
+    const insights = {
+      path: '/{adAccountId}/insights',
+      edge: 'insights',
+      fields: [],
+      parameters: ['fields', 'breakdowns'],
+    } as unknown as GraphCall;
+    const entry = (kind: MetaGraphChange['kind'], extra: Partial<MetaGraphChange> = {}) =>
+      change({ id: kind, version: 'v20.0', kind, name: 'x', ...extra });
+    expect(changesUsedBy(insights, [entry('breakdown-removed')])).toHaveLength(1);
+    expect(
+      changesUsedBy({ ...insights, parameters: ['fields'] }, [entry('breakdown-removed')]),
+    ).toHaveLength(0);
+    expect(
+      changesUsedBy(insights, [entry('parameter-required', { edge: 'insights' })]),
+    ).toHaveLength(1);
+    expect(changesUsedBy(insights, [entry('error-changed', { edge: 'messages' })])).toHaveLength(0);
+    expect(changesUsedBy(insights, [entry('permission-changed')])).toHaveLength(0);
+    expect(
+      changesUsedBy(insights, [entry('webhook-field-removed', { edge: 'insights' })]),
+    ).toHaveLength(0);
   });
 });
 
@@ -554,6 +581,28 @@ it('writes a patch for review from the CLI and leaves the repository unchanged',
 }, 60_000);
 
 describe('version moves with rules and new pins', () => {
+  it('never matches a root endpoint change to a request on a node', async () => {
+    const list = changes([
+      change({ id: 'search', version: 'v22.0', kind: 'endpoint-changed', path: '/search' }),
+    ]);
+    const node = await propose(
+      {
+        'a.js':
+          'export const p = (id) => fetch(`https://graph.facebook.com/v19.0/${id}/photos?fields=id`);',
+      },
+      list,
+    );
+    expect(node.moves).toHaveLength(1);
+    const root = await propose(
+      {
+        'a.js':
+          "export const s = () => fetch('https://graph.facebook.com/v19.0/search?type=adinterest&q=x');",
+      },
+      list,
+    );
+    expect(root.stops[0].reasons).toEqual([expect.stringContaining('endpoint-changed search')]);
+  });
+
   it('moves a test expectation with the live request it describes, and only then', async () => {
     const live = `export const media = (user) =>
   fetch(\`https://graph.facebook.com/v19.0/\${user}/media\`, { method: 'POST', body: JSON.stringify({ caption: 'hi' }) });
@@ -596,9 +645,10 @@ FB.api('/me', { fields: 'id,name' }, (response) => response);`,
     ]);
     const rename = rule({
       rule: 'rename',
-      family: 'field-rename',
-      name: 'old_field',
-      replacement: 'new_field',
+      change: 'renamed',
+      subject: 'field',
+      from: 'old_field',
+      to: 'new_field',
     });
     const clean = await propose(
       {
@@ -621,10 +671,12 @@ FB.api('/me', { fields: 'id,name' }, (response) => response);`,
       [rename],
     );
     expect(read.moves).toEqual([]);
+    // The rename is refused, so the change it answers stops the move too.
     expect(read.stops[0].reasons).toEqual([
       expect.stringContaining(
         '`old_field` also appears at a.ts:1, which may read the renamed response field',
       ),
+      expect.stringContaining('field-removed renamed'),
     ]);
     // Without the rule the change stops the move, as before.
     const unruled = await propose(
@@ -636,19 +688,21 @@ FB.api('/me', { fields: 'id,name' }, (response) => response);`,
     expect(unruled.stops[0].reasons).toEqual([expect.stringContaining('field-removed renamed')]);
   });
 
-  it('stops for a newly required parameter, and for rules marked for review', async () => {
-    const required = rule({
-      rule: 'needs-type',
-      family: 'parameter-required',
+  it('stops for rules marked for review and rules that are not field or metric renames', async () => {
+    const parameter = rule({
+      rule: 'message-text',
+      change: 'message',
+      subject: 'parameter',
       edge: 'feed',
-      name: 'type',
-      value: 'link',
+      from: 'message',
+      to: 'text',
     });
     const review = rule({
       rule: 'look',
-      family: 'field-rename',
-      name: 'id',
-      replacement: 'uid',
+      change: 'id',
+      subject: 'field',
+      from: 'id',
+      to: 'uid',
       status: 'review',
     });
     const proposal = await propose(
@@ -658,11 +712,13 @@ FB.api('/me', { fields: 'id,name' }, (response) => response);`,
       },
       changes(),
       'v25.0',
-      [required, review],
+      [parameter, review],
     );
     expect(proposal.stops[0].reasons).toEqual([
-      expect.stringContaining('requires the `type` parameter (documented value `link`)'),
-      expect.stringContaining('renames `id` to `uid` and is marked for review'),
+      expect.stringContaining(
+        'documents `text` in place of `message`; only fields and metrics are edited automatically',
+      ),
+      expect.stringContaining('documents `uid` in place of `id`; the rule is marked for review'),
     ]);
   });
 });

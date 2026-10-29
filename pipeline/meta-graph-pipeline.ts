@@ -11,7 +11,7 @@ import {
 } from './meta-graph-changes.ts';
 import { loadMetaPlatformAlerts, planMetaGraphFixes } from './meta-graph-fixes.ts';
 import { META_GRAPH_VERSION_RULE } from './meta-graph-moves.ts';
-import { loadMetaGraphRules } from './meta-graph-rules.ts';
+import { loadMetaGraphRules } from './meta-graph-rule-edits.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
 import { digest, META_GRAPH_CHANGELOG, parseObject } from './specifications.ts';
@@ -128,7 +128,7 @@ export async function runMetaGraphPipeline(options: {
   const plan = await planMetaGraphFixes(options.repository, target, {
     changes,
     registry: await loadDeadlineRegistry(undefined, now),
-    rules: await loadMetaGraphRules(),
+    rules: await loadMetaGraphRules(changes),
     alerts: await loadMetaPlatformAlerts(),
     now,
   });
@@ -172,6 +172,16 @@ export async function runMetaGraphPipeline(options: {
         confidence: 'review',
         reason: `${migration.plan.join(' ')} Sources: ${migration.sources.join(', ')}.`,
       });
+  for (const use of plan.outOfCycle)
+    findings.push({
+      file: use.file,
+      line: use.line,
+      column: 1,
+      changeId: `meta-graph-out-of-cycle:${use.change}`,
+      expression: use.change,
+      confidence: 'review',
+      reason: `Affected on every Graph API version, whatever this request pins: ${use.summary}${use.replacement ? ` Documented replacement: ${use.replacement}.` : ''} ${use.source}`,
+    });
   const review = findings.filter((finding) => finding.confidence === 'review');
   const alerts = plan.alerts.map(
     (alert) =>
@@ -275,6 +285,7 @@ export async function runMetaGraphPipeline(options: {
       changes: changes.changes
         .filter(
           (change) =>
+            change.version !== null &&
             compareVersions(change.version, options.before.document.info.version) > 0 &&
             compareVersions(change.version, target) <= 0,
         )

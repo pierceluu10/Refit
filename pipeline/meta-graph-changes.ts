@@ -2,12 +2,13 @@ import { readFile } from 'node:fs/promises';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 
-// A reviewed list of what each Meta Graph API version removes or changes, taken by hand from
-// Meta's changelog. Meta publishes a changelog page per version, not a machine-readable contract,
-// so every entry names the page it came from and the day someone read it.
+// A reviewed list of what each Meta Graph API version removes or changes, taken from Meta's
+// changelogs. Meta publishes prose changelogs, not a machine-readable contract, so every entry names
+// the page it came from, the day someone read it and the passage that states it; `refit rules
+// check` finds each quote in the saved page (docs/benchmarks/meta-graph-changelog/pages).
 
 export const DEFAULT_META_GRAPH_CHANGES = new URL(
-  '../data/meta-graph-changes.json',
+  '../data/meta-graph/changes.json',
   import.meta.url,
 );
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -16,7 +17,7 @@ const ENTRY_ID = /^[a-z0-9][a-z0-9-]{0,119}$/;
 // Changes may only cite Meta's developer documentation.
 const SOURCE = /^https:\/\/developers\.facebook\.com\/[^\s]*$/;
 const TOP_KEYS = ['formatVersion', 'provider', 'versions', 'changes'];
-const VERSION_KEYS = ['version', 'status', 'source', 'checkedAt', 'note'];
+const VERSION_KEYS = ['version', 'released', 'status', 'source', 'checkedAt', 'note'];
 const CHANGE_KEYS = [
   'id',
   'version',
@@ -25,12 +26,17 @@ const CHANGE_KEYS = [
   'edge',
   'path',
   'name',
+  'replacement',
+  'appliesToAll',
   'summary',
+  'quote',
   'source',
   'checkedAt',
 ];
 export const CHANGE_KINDS = [
   'endpoint-removed',
+  'endpoint-changed',
+  'product-removed',
   'edge-removed',
   'edge-changed',
   'field-removed',
@@ -39,6 +45,12 @@ export const CHANGE_KINDS = [
   'metric-changed',
   'parameter-removed',
   'parameter-changed',
+  'parameter-required',
+  'breakdown-removed',
+  'webhook-field-removed',
+  'webhook-field-changed',
+  'error-changed',
+  'permission-changed',
 ] as const;
 const STATUSES = ['reviewed', 'unread'] as const;
 
@@ -47,6 +59,9 @@ const STATUSES = ['reviewed', 'unread'] as const;
 // `changes`. `unread` means nobody could read the page; a version move across it must stop.
 export interface MetaGraphVersion {
   version: string;
+  // The day Meta released the version, as its changelog page prints it ("Released October 8,
+  // 2025"): when its changes start, the date an alert-only change gives when it has no other.
+  released: string;
   status: (typeof STATUSES)[number];
   source: string;
   checkedAt: string;
@@ -54,18 +69,24 @@ export interface MetaGraphVersion {
 }
 
 // One removal or change a version introduces. It applies to requests pinned to that version and
-// later ones. `node` is the node type as the changelog names it (`Page`, `IG Media`); `edge` is
-// the edge name in `/{id}/<edge>`; `path` is a root endpoint such as `/instagram_oembed`; `name`
-// is the field, metric or parameter.
+// later ones, and to every version from `appliesToAll` when Meta gives that date; an out-of-cycle
+// or platform change with no version applies to every version from that date, so no version move
+// crosses it. `node` is the node type as the changelog names it (`Page`, `IG Media`); `edge` is the
+// edge name in `/{id}/<edge>`; `path` is a root endpoint such as `/instagram_oembed`; `name` is the
+// field, metric, breakdown, parameter, webhook field, error code or permission. `replacement` is
+// what the changelog says to use instead, or null when it names nothing.
 export interface MetaGraphChange {
   id: string;
-  version: string;
+  version: string | null;
   kind: (typeof CHANGE_KINDS)[number];
   node: string | null;
   edge: string | null;
   path: string | null;
   name: string | null;
+  replacement: string | null;
+  appliesToAll: string | null;
   summary: string;
+  quote: string;
   source: string;
   checkedAt: string;
 }
@@ -149,6 +170,8 @@ export function checkMetaGraphChanges(
     if (typeof entry.source !== 'string' || !SOURCE.test(entry.source))
       errors.push(`${label}: source must be a developers.facebook.com https URL.`);
     checkDate(label, entry.checkedAt);
+    if (!validDate(entry.released))
+      errors.push(`${label}: released must be a real YYYY-MM-DD date.`);
     if (!optionalText(entry.note)) errors.push(`${label}: note must be text or null.`);
     if (entry.status === 'unread' && !entry.note)
       errors.push(`${label}: an unread version needs a note saying why.`);
@@ -172,8 +195,11 @@ export function checkMetaGraphChanges(
       errors.push(`${label}: id must be lowercase letters, digits and hyphens.`);
     else if (ids.has(entry.id)) errors.push(`${label}: duplicate id.`);
     else ids.add(entry.id);
-    if (typeof entry.version !== 'string' || !VERSION.test(entry.version))
-      errors.push(`${label}: version must look like v19.0.`);
+    if (entry.version === null) {
+      if (!validDate(entry.appliesToAll))
+        errors.push(`${label}: a change with no version needs the appliesToAll date.`);
+    } else if (typeof entry.version !== 'string' || !VERSION.test(entry.version))
+      errors.push(`${label}: version must look like v19.0 or be null.`);
     else if (!statuses.has(entry.version))
       errors.push(`${label}: ${entry.version} has no record in versions.`);
     // A change can only come from a page someone read.
@@ -181,20 +207,26 @@ export function checkMetaGraphChanges(
       errors.push(`${label}: ${entry.version} is not reviewed, so it cannot list changes.`);
     if (!CHANGE_KINDS.includes(entry.kind as never))
       errors.push(`${label}: kind must be one of ${CHANGE_KINDS.join(', ')}.`);
-    for (const key of ['node', 'edge', 'path', 'name'])
+    if (entry.appliesToAll !== null && !validDate(entry.appliesToAll))
+      errors.push(`${label}: appliesToAll must be a real YYYY-MM-DD date or null.`);
+    for (const key of ['node', 'edge', 'path', 'name', 'replacement'])
       if (key in entry && !optionalText(entry[key]))
         errors.push(`${label}: ${key} must be text or null.`);
     if (typeof entry.path === 'string' && !/^\/[\w/{}.-]+$/.test(entry.path))
       errors.push(`${label}: path must start with / and hold only path characters.`);
     const kind = String(entry.kind);
-    if (/^(field|metric|parameter)-/.test(kind) && !entry.name)
+    if (/^(field|metric|parameter|breakdown|webhook|error|permission)-/.test(kind) && !entry.name)
       errors.push(`${label}: a ${kind} change needs the ${kind.split('-')[0]} name.`);
     if (kind.startsWith('edge-') && !entry.edge)
       errors.push(`${label}: an edge change needs edge.`);
-    if (kind === 'endpoint-removed' && !entry.path && !entry.edge)
-      errors.push(`${label}: an endpoint removal needs a path or an edge.`);
+    if (kind.startsWith('endpoint-') && !entry.path && !entry.edge)
+      errors.push(`${label}: an endpoint change needs a path or an edge.`);
+    if (kind === 'product-removed' && !entry.name)
+      errors.push(`${label}: a product removal needs the product name.`);
     if (typeof entry.summary !== 'string' || !entry.summary.trim())
       errors.push(`${label}: summary is required.`);
+    if (typeof entry.quote !== 'string' || !entry.quote.trim())
+      errors.push(`${label}: quote is required.`);
     if (typeof entry.source !== 'string' || !SOURCE.test(entry.source))
       errors.push(`${label}: source must be a developers.facebook.com https URL.`);
     checkDate(label, entry.checkedAt);

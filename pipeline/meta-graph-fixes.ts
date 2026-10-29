@@ -4,8 +4,13 @@ import { daysUntil, type DeadlineRegistry } from './deadline-registry.ts';
 import { META_SDK, TEST_PATH } from './deadline-exposure.ts';
 import { scanGraphCalls, sourceOf, type GraphCall } from './meta-graph-calls.ts';
 import type { MetaGraphChanges } from './meta-graph-changes.ts';
-import { proposeVersionMoves, type VersionMoveProposal } from './meta-graph-moves.ts';
-import type { MetaGraphRule } from './meta-graph-rules.ts';
+import {
+  changesUsedBy,
+  fieldNames,
+  proposeVersionMoves,
+  type VersionMoveProposal,
+} from './meta-graph-moves.ts';
+import type { AppliedRule } from './meta-graph-rule-edits.ts';
 import { readRepository } from './repository.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError, type Repository } from './types.ts';
@@ -104,11 +109,54 @@ export interface ProductMigration {
   sources: string[];
 }
 
+// A live request that uses an out-of-cycle change: one Meta made to every version from a date, so
+// the request is affected whatever version it pins, and no move fixes it.
+export interface OutOfCycleUse {
+  file: string;
+  line: number;
+  change: string;
+  summary: string;
+  replacement: string | null;
+  source: string;
+}
+
 export interface MetaGraphFixPlan {
   target: string;
   proposal: VersionMoveProposal;
   migrations: ProductMigration[];
   alerts: AlertHit[];
+  outOfCycle: OutOfCycleUse[];
+}
+
+// Out-of-cycle changes a live request names explicitly: a field, metric or parameter it sends that
+// Meta removed, or replaced with a documented successor. Edge and endpoint changes, and behaviour
+// changes with no replacement, match too broadly on every version at once (a node-wide change
+// matches every read), so they stay with the version moves and alerts.
+function outOfCycleUses(calls: GraphCall[], changes: MetaGraphChanges): OutOfCycleUse[] {
+  const always = changes.changes.filter(
+    (change) =>
+      change.version === null &&
+      /^(field|metric|parameter)-/.test(change.kind) &&
+      (change.kind.endsWith('-removed') || change.replacement !== null),
+  );
+  return calls
+    .filter((call) => call.use === 'live')
+    .flatMap((call) =>
+      changesUsedBy(call, always)
+        .filter(
+          (change) =>
+            !change.kind.startsWith('field-') ||
+            fieldNames(call.fields ?? []).has(change.name ?? ''),
+        )
+        .map((change) => ({
+          file: call.file,
+          line: call.line,
+          change: change.id,
+          summary: change.summary,
+          replacement: change.replacement,
+          source: change.source,
+        })),
+    );
 }
 
 const CODE = /\.[cm]?[jt]sx?$/;
@@ -230,7 +278,7 @@ export async function planMetaGraphFixes(
   options: {
     changes: MetaGraphChanges;
     registry: DeadlineRegistry;
-    rules: MetaGraphRule[];
+    rules: AppliedRule[];
     alerts: MetaPlatformAlert[];
     now: Date;
   },
@@ -252,5 +300,6 @@ export async function planMetaGraphFixes(
     proposal,
     migrations,
     alerts: alertHits(options.alerts, scan.calls, found, migrations, options.now),
+    outOfCycle: outOfCycleUses(scan.calls, options.changes),
   };
 }

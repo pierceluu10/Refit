@@ -343,6 +343,15 @@ function metaChanges(meta) {
     'field-changed': 'semantic-change',
     'parameter-changed': 'semantic-change',
     'edge-changed': 'semantic-change',
+    'endpoint-changed': 'semantic-change',
+    'product-removed': 'endpoint-removed',
+    'metric-changed': 'semantic-change',
+    'breakdown-removed': 'request-value-removed',
+    'parameter-required': 'semantic-change',
+    'webhook-field-removed': 'field-removed',
+    'webhook-field-changed': 'semantic-change',
+    'error-changed': 'semantic-change',
+    'permission-changed': 'semantic-change',
   };
   return meta.changes.map((change) => {
     if (!shapes[change.kind]) throw new Error(`Unknown Meta change kind ${change.kind}.`);
@@ -350,7 +359,7 @@ function metaChanges(meta) {
       provider: 'meta-graph',
       key: change.id,
       shape: shapes[change.kind],
-      source: `meta-graph-changes.json#${change.id}`,
+      source: `meta-graph/changes.json#${change.id}`,
     };
   });
 }
@@ -421,7 +430,7 @@ export function collectChanges(read) {
     ...cloudflareChanges(cloudflare, owners.cloudflare),
     ...slackChanges(read('slack-methods.json')),
     ...paypalChanges(read('paypal-requests.json')),
-    ...metaChanges(read('meta-graph-changes.json')),
+    ...metaChanges(read('meta-graph/changes.json')),
     ...messagingChanges(read('messaging-deprecations.json'), read('messaging-endpoints.json')),
     ...cloudSdkChanges(read('aws-sdk-v2-clients.json'), read('azure-sdk-retirements.json')),
     ...deadlineChanges(read('deadlines.json').deadlines, owners),
