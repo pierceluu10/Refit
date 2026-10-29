@@ -882,7 +882,11 @@ function openAiV4(
     if (
       named &&
       applies(named) &&
-      (named.data.methods as string[]).includes(path) &&
+      // The renamed name too: `vectorStores.files.del(store, file)` becomes `.delete` and keeps its
+      // old argument order unless this stops it.
+      [path, rename?.data.new].some((name) =>
+        (named.data.methods as string[]).includes(name as string),
+      ) &&
       node.arguments.length >= 2 &&
       !ts.isObjectLiteralExpression(node.arguments[1])
     )

@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { findReviewSites } from './ai-review-sites.ts';
 import type { AiRuleTable } from './ai-rules.ts';
 import {
   proposeAnthropicSdkMajor,
@@ -52,6 +53,21 @@ export async function proposeAiMigrations(
 ): Promise<AiMigrationProposal | null> {
   const proposal = await proposeSdkMajor(directory, tables, options.packageName);
   if (!proposal) return null;
+  // Sites of the same provider that fail today for another reason (a shut-down API or beta) are
+  // listed in the draft too, so an SDK upgrade never reads as making those calls work.
+  for (const finding of await findReviewSites(directory, tables, [
+    'api-surface',
+    'beta-feature',
+    'response-format',
+  ]))
+    if (finding.provider === proposal.provider && finding.breaking && !finding.test)
+      proposal.stops.push({
+        file: finding.file,
+        line: finding.line,
+        rule: finding.rule,
+        reason: `${finding.summary}${finding.ambiguous ? ' The file imports two SDKs; the client is unclear.' : ''} The SDK upgrade does not change this.`,
+        blocking: false,
+      });
   const blocking = proposal.stops.filter((item) => item.blocking);
   if (blocking.length)
     return {

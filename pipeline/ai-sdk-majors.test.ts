@@ -271,6 +271,22 @@ export async function clean(id: string) {
     expect(changed['src/files.ts']).toContain(".on('functionToolCall'");
   });
 
+  it('stops on a renamed call that also moved to named path parameters', async () => {
+    const { proposal } = await propose('4.104.0', {
+      'v.ts': `import OpenAI from 'openai';
+const openai = new OpenAI();
+export const drop = (store: string, file: string) => openai.vectorStores.files.del(store, file);
+`,
+    });
+    expect(proposal.stops).toEqual([
+      expect.objectContaining({
+        rule: 'openai-node-v5-named-path-params',
+        line: 3,
+        blocking: true,
+      }),
+    ]);
+  });
+
   it('stops on runFunctions, fileFromPath and httpAgent', async () => {
     const { proposal } = await propose('4.20.0', {
       'a.ts': `import OpenAI from 'openai';

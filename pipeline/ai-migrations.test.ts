@@ -112,3 +112,19 @@ it('says outputs may differ, reports each proof level and needs review without r
   expect(body).toContain('https://github.com/openai/openai-node/discussions/217');
   expect(body).not.toMatch(/equivalent|same behaviou?r/i);
 });
+
+it('lists sites of the same provider that fail today, without blocking the upgrade', async () => {
+  const proposal = await proposeAiMigrations(
+    await project({
+      'ask.js': SOURCE,
+      'old.js':
+        "const { Configuration, OpenAIApi } = require('openai');\nconst openai = new OpenAIApi(new Configuration({ apiKey: 'k' }));\nmodule.exports = async () => (await openai.createCompletion({ model: 'davinci-002', prompt: 'x' })).data.choices[0].text;\n",
+    }),
+    await loadAiRuleTables(),
+    settings,
+  );
+  expect(proposal?.patch).toContain('openai.completions.create');
+  expect(proposal?.stops).toEqual([
+    expect.objectContaining({ rule: 'openai-legacy-completions', file: 'old.js', blocking: false }),
+  ]);
+});

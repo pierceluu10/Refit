@@ -155,7 +155,7 @@ try {
     else
       for (const item of findings)
         console.log(
-          `${item.file}:${item.line}  ${item.rule}  ${item.breaking ? 'breaking' : 'cleanup'}${item.status === 'report' ? ', report only' : ''}${item.ambiguous ? ', client unclear' : ''}  ${terminalText(item.text)}`,
+          `${item.file}:${item.line}  ${item.rule}  ${item.breaking ? 'breaking' : 'cleanup'}${item.status === 'report' ? ', report only' : ''}${item.ambiguous ? ', client unclear' : ''}${item.test ? ', test path' : ''}  ${terminalText(item.text)}`,
         );
   } else if (values['prove-table']) {
     // refit-bench Actions only: --releases names what --sdk-directory holds, as name@version,...

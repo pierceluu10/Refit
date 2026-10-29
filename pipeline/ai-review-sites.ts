@@ -8,6 +8,7 @@ import {
   type AiRuleTable,
 } from './ai-rules.ts';
 import { readRepository } from './repository.ts';
+import { TEST_PATH } from './source-paths.ts';
 
 // API surface migrations (item 3), response-format changes (item 5) and beta features (item 6):
 // where no provider page gives a one-to-one mapping, Refit finds the sites and explains what
@@ -48,6 +49,8 @@ export interface ReviewFinding {
   // The same call matched rules of two providers: the file imports both SDKs and Refit could not
   // tell which client the call is on.
   ambiguous?: true;
+  // A test, fixture or example path: listed, but a test asserting an old name is not a live call.
+  test?: true;
 }
 
 const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
@@ -126,6 +129,7 @@ export async function findReviewSites(
       text: short(text),
       summary: rule.summary,
       source: { url: page.url, capturedAt: page.capturedAt, quote: rule.quote },
+      ...(TEST_PATH.test(file) ? { test: true as const } : {}),
     });
   };
   for (const file of repository.files) {
