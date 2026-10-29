@@ -72,6 +72,8 @@ gh workflow run shopify.yml -R refit-dev/refit-bench \
   -f list=2026-10-16-shopify-fresh-repos.json -f offset=0 -f count=50 -f size=5
 ```
 
+The dev and blind sets ([Shopify dev and blind sets](BENCHMARKS.md#shopify-dev-and-blind-sets)) run the same way with `-f list=subsets/shopify-dev-60.json`. `subsets/shopify-blind-100.json` runs once, in the final combined benchmark. The benchmark runs each repository's tests with its root lockfile's manager (pnpm, then Yarn, then npm), as check selection does; before, only repositories with a `package-lock.json` were checked.
+
 ## Shards
 
 A run has `count / size` shards, rounded up. Which repositories each shard runs comes from their measured durations: the merge job of every run without AI keeps each repository's newest `seconds` in a cache (`refit-timings-v1-…`, shared by every list), the plan job fills repositories the cache lacks from recent runs' `merged` results (newest first, up to 50), and then `.github/scripts/plan-shards.mjs` in refit-bench assigns repositories longest first to the least-loaded shard, counting a repository without a timing as the median. It balances only when at least half of the slice has a timing; otherwise, and if the planner fails, shards are the contiguous slices runs always had. A balanced plan is reused for the same list slice (list content, offset, count and size) for 24 hours, so a rerun of a commit, or a run of a nearby one, gets the same shards and so the same per-shard caches. Each shard runs setup on a list file of its own entries; the merged results list rows shard by shard, as before. On run 40144503063's timings the plan's slowest shard is 1,341 seconds, one repository on its own, where the contiguous slices' slowest took 3,545.
