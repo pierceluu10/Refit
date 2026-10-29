@@ -1,5 +1,16 @@
 # Refit implementation checkpoints
 
+## October 29 checkpoint: progress-30 practice fixes (unreleased, after 0.39.0)
+
+Six held progress-30 rows (a practice set, opened on the founder's instruction), each fixed generally. Local Docker runs, no AI; before is refit-bench 40791364860.
+
+- cranberrymuffin/auditionwithme: validated (C). A version constant that also sets a webhook endpoint's `api_version` now moves when it sends the version Refit compared; the patch and the draft's checklist say endpoints the code creates afterwards receive the target's payloads. A JavaScript `const` list of string literals widened to `string[]`, every member of which the property's type accepts, is no longer an advisory type error (`pipeline/widened-literals.ts`).
+- bokkeh/distribution-portal: validated (C), see the unmapped sub-object proof below.
+- BitsToBoot/new-auto-DM: a version bump once the broken-baseline bump fix (#395) merges; verified locally on the two branches together. A failed bump now keeps its validation report as evidence.
+- chessco/icellshoppos: checks pass (C), held on 2 `.description` reads of a class method's own parameters that no proof follows yet. In-person methods move to `allowed_payment_method_types` on PaymentIntents and SetupIntents (endive changelog), `accounts.retrieve()` becomes `accounts.retrieveCurrent()` (stripe-node 23 declarations; no Stripe page states it), and typed clients the checker proves count for requests.
+- 0-CYBERDYNE-SYSTEMS-0/quorum: checks pass (B), held on a real change: `expand: ['latest_invoice.payment_intent']` and its `invoice.payment_intent` read, whose documented replacement (`confirmation_secret`) needs a code change no rule makes, and 16 `.type` reads of WebSocket JSON. Version-tolerant helper types now return `any` for an `any` receiver, and the scan-time type proof follows assertions that only add inline members.
+- buildproven/saas-starter-kit: held on real removals: a customer-wide upcoming-invoice preview and legacy usage records. `subscription_items` and `invoice_items` now map to `invoices.createPreview` as Stripe's basil page documents, and an `undefined` branch counts as sending nothing.
+
 ## October 28 checkpoint: rule coverage for contract stops (unreleased, after 0.39.0)
 
 An untraced call no longer blocks an operation the adapter does not map when it is known to request another operation, is a local webhook helper or sets up a test double ([census](MINED-RULES.md#rule-coverage-census-2026-10-28-branch-featrule-coverage)). New endive rules send `billing_cycle_anchor: 'now'`/`'unchanged'` on subscription update and resume as `{ type: … }`, as Stripe's changelog documents (`request-enum-value` with `discriminator`). The benchmark attaches the changelog pages that name a reached contract change to AI coverage requests. Measured offline only (scan without validation): heldout-30 moves MeiyuTech/AET-App from held to fixed; no benchmark was run.
