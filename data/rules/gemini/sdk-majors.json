@@ -23,7 +23,8 @@
       "data": {
         "package": "@google/genai",
         "replaces": "@google/generative-ai",
-        "targetMajor": 2
+        "targetMajor": 2,
+        "surface": "data/sdk-surfaces/google-genai-2.json"
       }
     },
     {

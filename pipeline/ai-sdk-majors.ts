@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import ts from 'typescript-compiler';
 import { analyzeRepository } from './analyzer.ts';
 import { rulesOf, type AiRule, type AiRulePage, type AiRuleTable } from './ai-rules.ts';
@@ -140,6 +142,39 @@ interface Context {
   edits: SdkMajorProposal['edits'];
   stops: SdkMajorStop[];
   calls: ProofCall[];
+  // The target release's client methods (data/sdk-surfaces), when the package-target rule names one.
+  surface?: { version: string; methods: Set<string> };
+}
+
+const SURFACE_RULE = 'sdk-surface';
+
+export function loadSurface(target: SdkRule) {
+  const file = target.data.surface;
+  if (typeof file !== 'string') return undefined;
+  const parsed = JSON.parse(
+    readFileSync(fileURLToPath(new URL(`../${file}`, import.meta.url)), 'utf8'),
+  );
+  return { version: String(parsed.version), methods: new Set<string>(parsed.methods) };
+}
+
+// A call the upgrade keeps or writes must exist on the target release's client. 0.x minors of
+// the AI SDKs broke too (removed beta namespaces), and no guide lists every one.
+function checkSurface(
+  context: Context,
+  file: string,
+  line: number,
+  path: string,
+  packageName: string,
+) {
+  if (!context.surface || context.surface.methods.has(path)) return true;
+  stop(
+    context,
+    file,
+    line,
+    SURFACE_RULE,
+    `\`client.${path}()\` does not exist in ${packageName} ${context.surface.version}, the release the upgrade moves to (data/sdk-surfaces).`,
+  );
+  return false;
 }
 
 // The request features of a call's first argument, when it is an object literal.
@@ -666,6 +701,7 @@ function rewriteV3Call(
     stop(context, file, line, rule.rule, rule.summary);
     return;
   }
+  if (!checkSurface(context, file, line, rule.data.new as string, 'openai')) return;
   if (rule.family === 'positional-to-object') {
     const parameters = rule.data.parameters as string[];
     if (call.arguments.length !== parameters.length) {
@@ -851,6 +887,14 @@ function openAiV4(
     tracedStarts.get(file.path)!.add(node.getStart());
     const rename = renames.find((rule) => rule.data.old === path);
     const removal = removed.find((rule) => (rule.data.old as string[]).includes(path));
+    if (!removal && !(rename?.status === 'review'))
+      checkSurface(
+        context,
+        file.path,
+        line,
+        (rename?.data.new as string | undefined) ?? path,
+        'openai',
+      );
     if (removal) stop(context, file.path, line, removal.rule, removal.summary);
     else if (rename?.status === 'review')
       stop(context, file.path, line, rename.rule, rename.summary);
@@ -1131,6 +1175,7 @@ export async function proposeOpenAiSdkMajor(
     edits: [],
     stops: [],
     calls: [],
+    surface: loadSurface(target),
   };
   if (major < (target.data.oldestMajor as number)) {
     stop(
@@ -1207,6 +1252,28 @@ const literalKey = (property: ts.ObjectLiteralElementLike) =>
   property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))
     ? property.name.text
     : undefined;
+
+// Every key an object literal can send, following spreads of literals and of conditionals whose
+// branches are literals (`...(beta ? { betas } : {})`); undefined when a spread is anything else.
+function literalKeys(literal: ts.ObjectLiteralExpression): Set<string> | undefined {
+  const keys = new Set<string>();
+  const add = (expression: ts.Expression): boolean => {
+    const value = unwrap(expression);
+    if (ts.isConditionalExpression(value)) return add(value.whenTrue) && add(value.whenFalse);
+    if (!ts.isObjectLiteralExpression(value)) return false;
+    for (const property of value.properties) {
+      if (ts.isSpreadAssignment(property)) {
+        if (!add(property.expression)) return false;
+        continue;
+      }
+      const key = literalKey(property);
+      if (key === undefined) return false;
+      keys.add(key);
+    }
+    return true;
+  };
+  return add(literal) ? keys : undefined;
+}
 
 // Message shapes 2026-10-21 rejects, in literal message arrays of a file with traced calls.
 function messageShapes(context: Context, file: string, source: ts.SourceFile) {
@@ -1314,6 +1381,7 @@ export async function proposeAnthropicSdkMajor(
     edits: [],
     stops: [],
     calls: [],
+    surface: loadSurface(target),
   };
   const [minor, patch] = (installed ?? '').split('.').slice(1).map(Number);
   const [, oldestMinor, oldestPatch] = String(target.data.oldestRelease).split('.').map(Number);
@@ -1353,6 +1421,9 @@ export async function proposeAnthropicSdkMajor(
       stop(context, file.path, line, removal.rule, removal.summary);
       continue;
     }
+    const movedPath =
+      moved && (moved.data.methods as string[]).includes(path) ? `beta.${path}` : undefined;
+    if (!checkSurface(context, file.path, line, path, packageName) && !movedPath) continue;
     const [body] = node.arguments;
     if (sampling && MESSAGE_CALLS.has(path)) {
       recordCall(context, node, path.replace(/^beta\./, '').replace('.batches', ''));
@@ -1364,14 +1435,19 @@ export async function proposeAnthropicSdkMajor(
           sampling.rule,
           'The request body is not an object literal, so Refit cannot show it sends none of temperature, top_p or top_k, which 2026-10-21 rejects.',
         );
-      else if (
-        body.properties.some(
-          (property) =>
-            ts.isSpreadAssignment(property) ||
-            (sampling.data.parameters as string[]).includes(literalKey(property) ?? ''),
-        )
-      )
-        stop(context, file.path, line, sampling.rule, sampling.summary);
+      else {
+        const keys = literalKeys(body);
+        if (!keys)
+          stop(
+            context,
+            file.path,
+            line,
+            sampling.rule,
+            'The request body spreads a value Refit cannot read, so it cannot show the request sends none of temperature, top_p or top_k, which 2026-10-21 rejects.',
+          );
+        else if ((sampling.data.parameters as string[]).some((name) => keys.has(name)))
+          stop(context, file.path, line, sampling.rule, sampling.summary);
+      }
     }
     if (moved && (moved.data.methods as string[]).includes(path)) {
       const options = node.arguments[path.endsWith('list') ? 0 : 1];
@@ -1441,11 +1517,9 @@ export async function proposeAnthropicSdkMajor(
         ) {
           const [body] = node.arguments;
           const literal = body && ts.isObjectLiteralExpression(body) ? body : undefined;
-          const sends =
-            literal?.properties.some((property) =>
-              (sampling.data.parameters as string[]).includes(literalKey(property) ?? ''),
-            ) ?? false;
-          const opaque = !literal || literal.properties.some(ts.isSpreadAssignment);
+          const keys = literal && literalKeys(literal);
+          const sends = (sampling.data.parameters as string[]).some((name) => keys?.has(name));
+          const opaque = !keys;
           if (sends || (imports && opaque))
             stop(
               context,
@@ -1498,6 +1572,7 @@ export async function proposeGeminiSdkSwap(
     edits: [],
     stops: [],
     calls: [],
+    surface: loadSurface(target),
   };
   const block = (file: string, line: number, reason: string) =>
     stop(context, file, line, 'gemini-swap-target', reason);

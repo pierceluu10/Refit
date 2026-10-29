@@ -37,7 +37,8 @@
         "package": "openai",
         "targetMajor": 6,
         "applyBelowMajor": 6,
-        "oldestMajor": 3
+        "oldestMajor": 3,
+        "surface": "data/sdk-surfaces/openai-6.json"
       }
     },
     {

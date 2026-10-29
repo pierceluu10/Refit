@@ -25,7 +25,8 @@
         "targetMajor": 1,
         "applyBelowMajor": 1,
         "oldestMajor": 0,
-        "oldestRelease": "0.5.0"
+        "oldestRelease": "0.5.0",
+        "surface": "data/sdk-surfaces/anthropic-sdk-1.json"
       }
     },
     {

@@ -287,6 +287,15 @@ export const drop = (store: string, file: string) => openai.vectorStores.files.d
     ]);
   });
 
+  it('blocks a v4 call the 6.x release no longer has', async () => {
+    const { proposal } = await propose('4.40.0', {
+      'v.ts': `import OpenAI from 'openai';\nconst openai = new OpenAI();\nexport const make = () => openai.beta.vectorStores.create({ name: 'x' });\n`,
+    });
+    expect(proposal.stops).toEqual([
+      expect.objectContaining({ rule: 'sdk-surface', line: 3, blocking: true }),
+    ]);
+  });
+
   it('stops on runFunctions, fileFromPath and httpAgent', async () => {
     const { proposal } = await propose('4.20.0', {
       'a.ts': `import OpenAI from 'openai';
@@ -387,6 +396,22 @@ export interface Stored extends Anthropic.MessageParam { id: string }
       'anthropic-ts-text-completions-removed',
     ]);
     expect(proposal.stops.filter((item) => item.file === 'b.js')).toHaveLength(1);
+  });
+
+  it('reads conditional spreads of literals, and blocks calls the 1.x release does not have', async () => {
+    const proposal = await anthropic('0.20.9', {
+      'a.ts': `import Anthropic from '@anthropic-ai/sdk';
+const client = new Anthropic();
+export const ok = (beta: boolean) => client.beta.messages.create({ model: 'm', max_tokens: 1, messages: [], ...(beta ? { betas: ['x'] } : {}) });
+export const hot = (beta: boolean) => client.messages.create({ model: 'm', max_tokens: 1, messages: [], ...(beta ? { temperature: 0 } : {}) });
+export const old = () => client.beta.tools.messages.create({ model: 'm', max_tokens: 1, messages: [], tools: [] });
+`,
+    });
+    expect(proposal.stops.map((item) => [item.line, item.rule])).toEqual([
+      [4, 'anthropic-2026-10-21-sampling'],
+      [5, 'sdk-surface'],
+    ]);
+    expect(proposal.stops[1].reason).toContain('does not exist in @anthropic-ai/sdk 1.3.0');
   });
 
   it('blocks on a declared platform package', async () => {
