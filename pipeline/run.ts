@@ -293,11 +293,22 @@ async function runOpenApiPipeline(options: {
       ? typeof targetVersion === 'string' && value < targetVersion
       : targetVersion !== applicationApiVersion && value === applicationApiVersion);
   // A pin the application does not send that is also a webhook endpoint's api_version stays, as
-  // moving it would move that endpoint; it is listed as unresolved with why.
+  // moving it would move that endpoint; it is listed as unresolved with why. One that sends the
+  // application's version moves (founder decision, 2026-10-28): Refit compared exactly that
+  // contract with the target, so the endpoint it creates gets the payloads the handlers were
+  // checked against, and the patch says so.
   const endpointPin = (entry: { value: string | null; endpoint?: true }) =>
     Boolean(
-      options.leaveReviewedFindings && entry.endpoint && entry.value && movesPin(entry.value),
+      options.leaveReviewedFindings &&
+      entry.endpoint &&
+      entry.value &&
+      entry.value !== applicationApiVersion &&
+      movesPin(entry.value),
     );
+  const movedEndpointPins = apiVersionLiterals.filter(
+    (literal: { value: string; endpoint?: true }) =>
+      literal.endpoint && movesPin(literal.value) && !endpointPin(literal),
+  );
   const apiVersionDeclarations = declaredVersions.map((entry) =>
     endpointPin(entry)
       ? { ...entry, status: 'unknown' as const, reason: ENDPOINT_PIN_REASON }
@@ -903,13 +914,30 @@ async function runOpenApiPipeline(options: {
         )
       )
         finding.webhook.migration = { rule: 'ai-version-tolerant' };
-  const completePatch =
-    'unresolvedFindings' in upgradedPatch && additionalOperationUsageCount > 0
+  const endpointPatch =
+    movedEndpointPins.length &&
+    'diff' in upgradedPatch &&
+    upgradedPatch.diff.includes(String(targetVersion))
       ? {
           ...upgradedPatch,
-          unresolvedFindings: upgradedPatch.unresolvedFindings + additionalOperationUsageCount,
+          warnings: [
+            ...('warnings' in upgradedPatch ? upgradedPatch.warnings : []),
+            `${movedEndpointPins
+              .map((literal) => literal.file)
+              .filter((file, index, all) => all.indexOf(file) === index)
+              .join(
+                ', ',
+              )} also ${movedEndpointPins.length === 1 ? 'sets' : 'set'} a webhook endpoint's api_version: endpoints this code creates after the patch receive ${String(targetVersion)} payloads. Existing endpoints keep their version until you change it in the Dashboard.`,
+          ],
         }
       : upgradedPatch;
+  const completePatch =
+    'unresolvedFindings' in endpointPatch && additionalOperationUsageCount > 0
+      ? {
+          ...endpointPatch,
+          unresolvedFindings: endpointPatch.unresolvedFindings + additionalOperationUsageCount,
+        }
+      : endpointPatch;
   const repositoryHash = digest(
     JSON.stringify({
       files: repository.files,

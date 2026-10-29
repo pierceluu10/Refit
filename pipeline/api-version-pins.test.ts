@@ -240,6 +240,27 @@ it.each(ENDPOINT_SHAPES)(
   },
 );
 
+// A setup script whose one constant pins both its client and the webhook endpoint it creates, at
+// the version every other client sends: Refit compared that contract, so the constant moves too.
+it('moves an endpoint constant that sends the compared version, and says so', async () => {
+  const files = {
+    'scripts/setup.mjs': `import Stripe from 'stripe';\nconst API_VERSION = '${BEFORE}';\nconst stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: API_VERSION });\nawait stripe.webhookEndpoints.create({ url: process.argv[2], enabled_events: ['*'], api_version: API_VERSION });\n`,
+    'src/stripe.js': client(BEFORE),
+    'checkout.js': checkout('./src/stripe.js', "['card']"),
+  };
+  const reviewed = await scan(files, true);
+  expect(changedFiles(reviewed)).toEqual(
+    expect.arrayContaining(['scripts/setup.mjs', 'src/stripe.js']),
+  );
+  const diff = 'diff' in reviewed.patch ? reviewed.patch.diff : '';
+  expect(diff).toContain(`+const API_VERSION = '${TARGET}';`);
+  expect('warnings' in reviewed.patch ? reviewed.patch.warnings : []).toContainEqual(
+    expect.stringContaining(`scripts/setup.mjs also sets a webhook endpoint's api_version`),
+  );
+  const reviews = publicationWaiver(passed(reviewed), true) ?? [];
+  expect(reviews.map(({ gate }) => gate)).not.toContain('api-version-untraced');
+});
+
 // Two shapes of a run whose only finding is a removed parameter with no reviewed replacement (an
 // in-person method): a Next.js route with its own client (lamp-bot) and a shared client.
 const PARAMETER_SHAPES: { files: Record<string, string>; call: string; changed: string[] }[] = [
