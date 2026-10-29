@@ -127,7 +127,8 @@ try {
       tables: await loadAiRuleTables(),
       ai: {
         apiKey: key,
-        model: process.env.OPENAI_MODEL?.trim() || 'gpt-5.6-luna',
+        // Refit's refit-bench OpenAI project allows only gpt-6.1-sol.
+        model: process.env.OPENAI_MODEL?.trim() || 'gpt-6.1-sol',
         budget: aiBudgetConfiguration(process.env),
       },
       checks: {

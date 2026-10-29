@@ -3096,16 +3096,44 @@ export async function validateSourcePatch(options: {
       readRepository(baselineDirectory),
       readRepository(candidateDirectory),
     ]);
+    // The root package.json and lockfiles are read apart from the sources, so an SDK upgrade's
+    // package move is published with them (or alone, when no call changes).
+    const packageFiles = await Promise.all(
+      PACKAGE_FILES.map(async (path) => ({
+        path,
+        before: await readFile(join(baselineDirectory, path), 'utf8').catch(() => undefined),
+        content: await readFile(join(candidateDirectory, path), 'utf8').catch(() => undefined),
+      })),
+    );
     const publicationFiles: PublicationFile[] = [];
-    for (const file of changed.files) {
-      const before = original.files.find((source) => source.path === file.path);
-      if (!before || before.content === file.content) continue;
+    for (const file of [
+      ...changed.files.map((file) => ({
+        ...file,
+        before: original.files.find((source) => source.path === file.path)?.content,
+      })),
+      ...packageFiles,
+    ]) {
+      if (file.before === undefined || file.content === undefined || file.before === file.content)
+        continue;
       publicationFiles.push({
         path: file.path,
-        mode: committedMode(entries, file.path, before.content),
+        mode: committedMode(entries, file.path, file.before),
         content: file.content,
       });
     }
+    // Every file the patch touches is published, or the patch stops: a draft never leaves part of
+    // its change behind.
+    const touched = [...diff.matchAll(/^diff --git a\/(\S+) b\/(\S+)$/gm)].flatMap((match) => [
+      match[1],
+      match[2],
+    ]);
+    const unpublished = [...new Set(touched)].filter(
+      (path) => !publicationFiles.some((file) => file.path === path),
+    );
+    if (unpublished.length)
+      throw new PipelineInputError(
+        `The proposed patch changes ${unpublished.slice(0, 3).join(', ')}${unpublished.length > 3 ? ` and ${unpublished.length - 3} more` : ''}, which ${unpublished.length === 1 ? 'is not a' : 'are not'} committed source, package.json or lockfile at the repository root that Refit publishes.`,
+      );
     if (!publicationFiles.length)
       throw new PipelineInputError('The proposed patch changes no committed source file.');
     let dependencies: string | undefined;
