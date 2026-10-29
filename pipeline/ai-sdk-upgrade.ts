@@ -47,6 +47,9 @@ export interface SdkUpgradeOptions {
   release?: string;
   // A swap: this declared package is replaced by `packageName` in the same section.
   replaces?: string;
+  // The Git checkout `root` was extracted from (validation proposes in an extracted copy); a pnpm,
+  // Yarn or Bun project's committed lockfiles are read from it. Defaults to `root`.
+  repository?: string;
 }
 
 const RELEASE = /^(\d+)\.(\d+)\.(\d+)$/;
@@ -183,7 +186,9 @@ export async function sdkMajorUpgrade(
   ]);
   if (manifestText === undefined) return { reason: 'The project has no root package.json.' };
   const present = OTHER_LOCKFILES.filter((_, index) => others[index] !== undefined);
-  const project = present.length ? await managedProject(root, manifestText) : { others: {} };
+  const project = present.length
+    ? await managedProject(options.repository ?? root, manifestText)
+    : { others: {} };
   if ('reason' in project) return project;
   const { managed } = project;
   // Lockfiles the rule did not pick keep their committed SDK; the draft says so.
