@@ -17,10 +17,11 @@ export const PROOF_KEYS: Record<ProofProvider, string> = {
   gemini: 'GEMINI_API_KEY',
 };
 
-// The cheapest model each probe uses unless the environment names another. Gemini's comes from
-// the deadline registry (proofGeminiModel), since Google retires its cheap models often.
+// The model each probe uses unless the environment names another. Refit's OpenAI proof project
+// allows only gpt-6.1-sol; Gemini's comes from the deadline registry (proofGeminiModel), since
+// Google retires its cheap models often.
 const PROOF_MODELS: Record<ProofProvider, { env: string; model?: string }> = {
-  openai: { env: 'REFIT_PROOF_OPENAI_MODEL', model: 'gpt-5.6-luna' },
+  openai: { env: 'REFIT_PROOF_OPENAI_MODEL', model: 'gpt-6.1-sol' },
   anthropic: { env: 'REFIT_PROOF_ANTHROPIC_MODEL', model: 'claude-haiku-5-5' },
   gemini: { env: 'REFIT_PROOF_GEMINI_MODEL' },
 };
@@ -84,6 +85,9 @@ export function redact(text: string) {
     .replace(/(project[_ ]?(?:id|number)\W{0,3})[\w-]+/gi, '$1[redacted]')
     .replace(/\b\d{9,}\b/g, '[redacted]');
 }
+
+// A probe that cannot send its request with the proof project's model stays pending, never failed.
+class ProofPending extends Error {}
 
 function expect(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -163,13 +167,12 @@ const OPENAI_PROBES: Record<string, Probe> = {
     expect(typeof response.output_text === 'string', 'no output_text');
     return 'text parsed';
   },
-  'embeddings.create': async (client, _model, call) => {
-    const response = (await invoke(client, call.call, {
-      model: 'text-embedding-3-small',
-      input: 'ok',
-    })) as { data?: { embedding?: unknown }[] };
-    expect(Array.isArray(response.data?.[0]?.embedding), 'no embedding');
-    return 'embedding parsed';
+  // Embeddings need an embedding model, and the proof project allows only its one chat model, so
+  // no request is sent and no other model is tried.
+  'embeddings.create': async (_client, model) => {
+    throw new ProofPending(
+      `project allows only ${model}, which is not an embedding model; no embeddings request was sent.`,
+    );
   },
   'moderations.create': async (client, _model, call) => {
     const response = (await invoke(client, call.call, { input: 'ok' })) as {
@@ -345,6 +348,20 @@ export async function proveRequests(options: {
       calls.push({ call: call.call, status: 'accepted', detail: await probe(client, model, call) });
     } catch (error) {
       const status = (error as { status?: unknown }).status;
+      if (error instanceof ProofPending) {
+        calls.push({ call: call.call, status: 'pending', detail: error.message });
+        continue;
+      }
+      // A 403 about the model means the proof project has not enabled it, not that the call shape
+      // is wrong.
+      if (status === 403 && error instanceof Error && /\bmodel/i.test(error.message)) {
+        calls.push({
+          call: call.call,
+          status: 'pending',
+          detail: `model not enabled for Refit's project (HTTP 403: ${redact(error.message).slice(0, 240)})`,
+        });
+        continue;
+      }
       calls.push({
         call: call.call,
         status: 'rejected',
@@ -359,7 +376,7 @@ export async function proveRequests(options: {
     reason: rejected.length
       ? rejected.map((call) => `${call.call}: ${call.detail}`).join('; ')
       : unproved.length
-        ? `No minimal request for ${unproved.map((call) => call.call).join(', ')}.`
+        ? unproved.map((call) => `${call.call}: ${call.detail}`).join('; ')
         : `Accepted with ${model}.`,
     calls,
   };

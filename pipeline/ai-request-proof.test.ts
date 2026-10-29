@@ -56,7 +56,7 @@ it('parses text, stream, tool and JSON output from the installed SDK', async () 
 
 it('reports a rejected request without the key it was sent with', async () => {
   class OpenAI {
-    embeddings = {
+    moderations = {
       create: async () => {
         throw Object.assign(new Error('Incorrect API key provided: sk-proj-abcd****wxyz.'), {
           status: 401,
@@ -66,7 +66,7 @@ it('reports a rejected request without the key it was sent with', async () => {
   }
   const proof = await proveRequests({
     provider: 'openai',
-    calls: [{ call: 'embeddings.create' }, { call: 'images.generate' }],
+    calls: [{ call: 'moderations.create' }, { call: 'images.generate' }],
     env: { OPENAI_API_KEY: 'test-key' },
     load: async () => ({ OpenAI }),
   });
@@ -103,12 +103,14 @@ it('redacts provider project, organization and account IDs', () => {
   );
 });
 
-it('keeps a provider project ID out of a 403 detail', async () => {
+it('reads a 403 for a model outside the project as pending, without its project ID', async () => {
+  const sent: unknown[] = [];
   class OpenAI {
     responses = {
-      create: async () => {
+      create: async (body: { model: string }) => {
+        sent.push(body.model);
         throw Object.assign(
-          new Error('Project `proj_AbC123xYz789` does not have access to model `gpt-5.6-luna`'),
+          new Error('Project `proj_AbC123xYz789` does not have access to model `gpt-6.1-sol`'),
           { status: 403 },
         );
       },
@@ -120,10 +122,86 @@ it('keeps a provider project ID out of a 403 detail', async () => {
     env: { OPENAI_API_KEY: 'test-key' },
     load: async () => ({ OpenAI }),
   });
+  expect(proof.status).toBe('pending');
   expect(proof.reason).not.toContain('proj_');
-  expect(proof.calls[0].detail).toBe(
-    'HTTP 403: Project `[redacted]` does not have access to model `gpt-5.6-luna`',
-  );
+  expect(proof.calls[0]).toEqual({
+    call: 'responses.create',
+    status: 'pending',
+    detail:
+      "model not enabled for Refit's project (HTTP 403: Project `[redacted]` does not have access to model `gpt-6.1-sol`)",
+  });
+  // No other model is tried.
+  expect(sent).toEqual(['gpt-6.1-sol']);
+});
+
+it('keeps a 403 that is not about the model a rejection', async () => {
+  class OpenAI {
+    responses = {
+      create: async () => {
+        throw Object.assign(new Error('Country, region, or territory not supported'), {
+          status: 403,
+        });
+      },
+    };
+  }
+  const proof = await proveRequests({
+    provider: 'openai',
+    calls: [{ call: 'responses.create' }],
+    env: { OPENAI_API_KEY: 'test-key' },
+    load: async () => ({ OpenAI }),
+  });
+  expect(proof.status).toBe('rejected');
+});
+
+it('sends OpenAI proofs with gpt-6.1-sol unless the environment names a model', async () => {
+  const sent: unknown[] = [];
+  let embedded = false;
+  class OpenAI {
+    responses = {
+      create: async (body: { model: string }) => {
+        sent.push(body.model);
+        return { output_text: 'ok' };
+      },
+    };
+    chat = {
+      completions: {
+        create: async (body: { model: string }) => {
+          sent.push(body.model);
+          return { choices: [{ message: { content: 'ok' } }] };
+        },
+      },
+    };
+    embeddings = {
+      create: async () => {
+        embedded = true;
+        return { data: [{ embedding: [0] }] };
+      },
+    };
+  }
+  const prove = (env: NodeJS.ProcessEnv) =>
+    proveRequests({
+      provider: 'openai',
+      calls: [
+        { call: 'responses.create' },
+        { call: 'chat.completions.create' },
+        { call: 'embeddings.create' },
+      ],
+      env: { OPENAI_API_KEY: 'test-key', ...env },
+      load: async () => ({ OpenAI }),
+    });
+  const proof = await prove({});
+  await prove({ REFIT_PROOF_OPENAI_MODEL: 'gpt-7-sol' });
+  expect(sent).toEqual(['gpt-6.1-sol', 'gpt-6.1-sol', 'gpt-7-sol', 'gpt-7-sol']);
+  // Embeddings stay pending: no request, and no embedding model is tried.
+  expect(embedded).toBe(false);
+  expect(proof.status).toBe('pending');
+  expect(proof.calls[2]).toEqual({
+    call: 'embeddings.create',
+    status: 'pending',
+    detail:
+      'project allows only gpt-6.1-sol, which is not an embedding model; no embeddings request was sent.',
+  });
+  expect(proof.reason).toContain('embeddings.create: project allows only gpt-6.1-sol');
 });
 
 const gemini = (versions: string[], replacement: string | null, date = '2026-01-01') =>
