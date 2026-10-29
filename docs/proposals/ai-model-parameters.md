@@ -31,3 +31,39 @@ Status: proposal, 2026-10-29. Nothing here is built or decided. It lists each cl
 ## Not in scope
 
 Pricing changes, rate limits and usage-policy changes: alert at most. None are fixed or alerted here.
+
+## Design: Python model fixes
+
+Python is detection only today. On ai-bench's openai-100 scan-only pass (aggregates only), about 20 of 100 affected repositories are Python, which makes it the largest remaining gap toward 90%. It needs its own owner decision as well as the work below. The 2026-10-22 language-tracer decision (`REPORT_ONLY_LANGUAGES` in `pipeline/tree-sitter.ts`, `proposeModelReplacements` throws on an edit outside JS/TS) says "do not … let a non-JS/TS tracer produce edits without a new recorded owner decision".
+
+**What exists.** `pipeline/python/models.ts` traces `openai`, `anthropic` and `google.genai` client calls through tree-sitter. For each `model` argument it records the literals with file, line and the path the value took (`via`), and it gives a named stop for anything it cannot follow. `pipeline/python/model-reports.ts` turns these into stops using the TypeScript rule's reasons and sensitive-parameter set (`call.options`). It never edits.
+
+**What to build, in order:**
+
+1. **Edits from the same sites.** Have `traceFiles` record each literal's byte range. Emit a `SourceEdit` only for the shapes the TypeScript rule edits by default:
+   - a string literal at the call;
+   - a module constant assigned once and used once;
+   - a function parameter default.
+
+   Keep quote style, including string prefixes (`r''`, `b''` stop). f-strings, `%`/`.format()` construction, `os.getenv('X', 'model')` defaults (stop like an env fallback until (c) covers them), dataclass and pydantic fields, class attributes, `**kwargs` request bodies, and anything a test path reaches all stop. `EDITABLE_FILE` and the REPORT_ONLY guard widen to `.py` only behind the decision.
+
+2. **Parameters.** `call.options` already lists keyword arguments. Apply `data/model-parameter-changes.json` with the same rules, keeping it honest: rename a keyword (`max_tokens=` → `max_completion_tokens=`), or remove `keyword=value` with its comma, never when a comment is in the range or the value is `**spread`. Python callers often pass parameters through `**params` dicts, and those stop.
+3. **Code-level proof in Docker.** This is the large part. Validation today prepares npm, pnpm and yarn workspaces. Python needs:
+   - an image chosen from `requires-python` / `.python-version` (`python:3.x-slim`);
+   - a networked install step that builds a wheel cache from a committed lock (`uv.lock`, `poetry.lock`, `requirements*.txt` with hashes; no lockfile → `[Needs review]`, the D-grade rule);
+   - then the repository's own tests offline (`pytest -q`, or the `test` target in `pyproject.toml`/`tox.ini`), before and after.
+
+   Without tests the only check is `python -m py_compile` on changed files. That compiles the code but does not test it, so the draft is grade D and `[Needs review]`. A typed check (`mypy`/`pyright` against the SDK stubs) could stand in later only under a D2a-style decision.
+
+4. **Request-level and output-shape proof.** No change: proofs are per replacement model and API family, not per language, so the existing table covers Python drafts too.
+5. **Gates.** The same as JS/TS:
+   - quoted source;
+   - request proof, or `[Needs review]` with the reason;
+   - tests pass on both sides;
+   - the diff touches only traced sites;
+   - drafts list stops and alerts;
+   - a wrong fix is worse than a stop.
+
+**Estimate.** Steps 1–2 take about a day with tests, reusing the existing tracer and conformance fixtures. Step 3 takes 2–3 days, because Python preparation is new infrastructure and shares the customer-image work from #364. Measure on dev sets only: openai-dev-30 has 9 Python repositories and anthropic-dev-30 has 9.
+
+**Decision asked.** Allow Python model-ID and parameter edits under the gates above, with the conformance suite and the tree-sitter limits unchanged.
