@@ -144,9 +144,10 @@ It also lists the `unread` versions, since a version move across them must stop 
 
 ### What the list holds today
 
-**v10.0 to v26.0 are `reviewed`, with 805 changes and 105 rules (2026-10-29).** The Graph API and Marketing API changelogs of every version, the Graph API out-of-cycle changes since 2021 and the Instagram Platform, WhatsApp Business Platform and Messenger Platform changelogs were saved and mined; see [Meta Graph change table](META-GRAPH-CHANGES.md) for the method, the coverage and what is still missing. Out-of-cycle and platform changes that apply to every version at once have `version: null` and the date in `appliesToAll`, so no version move crosses them.
+**v10.0 to v26.0 are `reviewed`, with 816 changes and 105 rules (2026-10-29).** The Graph API and Marketing API changelogs of every version, the Graph API out-of-cycle changes since 2021 and the Instagram Platform, WhatsApp Business Platform and Messenger Platform changelogs were saved and mined; see [Meta Graph change table](META-GRAPH-CHANGES.md) for the method, the coverage and what is still missing. Out-of-cycle and platform changes that apply to every version at once have `version: null` and the date in `appliesToAll`, so no version move crosses them.
 
-- **WhatsApp and Messenger.** Their changelogs are now in the list, but a request that belongs to them still stops every move: widening the move rule is an owner decision; see [the move conditions](#propose-version-moves-review-only).
+- **WhatsApp and Messenger.** Their changelogs are in the list (the WhatsApp page from 2021-10-21, the Messenger page from 2020-12-01), and their requests are matched against it like any other (founder mandate relayed 2026-10-29, `feat/meta-changelogs`). Only a move across a version released before 2021-10-21 still stops for them.
+- **WhatsApp On-Premises API.** Meta shut it down on 2025-10-23 ([sunset page](https://developers.facebook.com/docs/whatsapp/on-premises/sunset/), saved as `whatsapp-on-premises-sunset`). A client is found by its `/v1/users/login` endpoint in a file that names WhatsApp; it is listed as a product migration with an alert, never edited.
 - **Node-wide changes.** Some changes remove a whole node type, such as `GET /{offline-event-set-id}` or the Instagram v1.0 nodes. An opaque ID cannot reveal its node type, so these are recorded as a single placeholder path, and they stop every request to a single opaque node (a placeholder or numeric ID) whose version range crosses them. They never match a literal path such as `/me`.
 - **v26.0** has a record although the deadline registry, which lists sunsets only, does not list it.
 
@@ -166,9 +167,9 @@ Refit can propose moving a pinned Graph API version to `--target`, as a patch fo
 A version is often written once and used by many requests: a base constant feeds every URL built from it. So moves are decided per **pin**, the place the version is written, and a pin moves only when every one of these holds:
 
 - **Every request through the pin is fully known:** a request call was traced, and its path, HTTP method, `fields`, `metric` values and parameters were all read. A request through a project helper, or one with options built at runtime, stops.
-- **No request belongs to WhatsApp or Messenger.** Their changelogs are not in the list. A request belongs to them by its edge (`messages`, `message_templates`, `phone_numbers`, `whatsapp_business_profile`, `subscribed_apps`, `conversations`, `messenger_profile`, the thread-control edges and the like) or by a parameter only their send APIs take (`messaging_product`, `messaging_type`, `recipient`, `sender_action`). So a WhatsApp media upload stops, while an Instagram container creation on the same `/media` edge does not.
+- **A WhatsApp or Messenger request crosses only versions their changelogs cover.** Both are mined into the list; a version released before the WhatsApp changelog starts (2021-10-21) stops the move. A request belongs to them by its edge (`messages`, `message_templates`, `phone_numbers`, `whatsapp_business_profile`, `subscribed_apps`, `conversations`, `messenger_profile`, the thread-control edges and the like) or by a parameter only their send APIs take (`messaging_product`, `messaging_type`, `recipient`, `sender_action`).
 - **Every changelog crossed is reviewed.** That means each version after the current one up to and including the target. The versions checked are the change list's, the deadline registry's, and every whole major version in between, so a version missing from both lists still stops the move.
-- **No reviewed change between the two versions touches a request:** the request's edge, its path or an endpoint it is under, a field it requests (at any depth, so `posts{message}` names `posts` and `message`), a metric (compared regardless of case, since some pages print metric names in capitals), or a parameter. A GET that names no `fields` receives the node's default fields, so any field change in range stops it. A node-wide change stops every request to a single opaque node. A change introduced by the version the code already uses does not count; it already applies.
+- **No reviewed change between the two versions touches a request:** the request's edge, its path or an endpoint it is under, a field it requests (at any depth, so `posts{message}` names `posts` and `message`), a metric (compared regardless of case, since some pages print metric names in capitals), or a parameter. A GET that names no `fields` receives the node's default fields, so a field change in range stops it where the code reads that field (`.name`, `'name'` or a destructured `{ name }`). A changed error code stops only where the code names the code. A parameter change recorded on an edge or path matches only requests to it, and a change Meta records on another node type (the Page `messages` edge) never matches a WhatsApp Cloud API send (`messaging_product`). A node-wide change stops every request to a single opaque node. A change introduced by the version the code already uses does not count; it already applies, and so does a change whose `appliesToAll` date has passed: the pinned version already has it, so the fix plan lists it with the out-of-cycle changes.
 - **Changing the pin changes nothing else:**
   - The version is written once on that line, inside a string.
   - If a variable holds it, that variable is a `const` the file does not export.
@@ -303,7 +304,7 @@ The 33 Meta repositories of the deadline benchmark (not the blind set) were scan
 
 - send the target version, which is the one version every changed request sends;
 - have a known version, method, path, fields, metrics and parameters;
-- not be a WhatsApp Business Platform or Messenger Platform request, whose changelogs the table does not cover;
+- not be a WhatsApp Business Platform or Messenger Platform request that crosses a version released before their changelogs start;
 - cross only versions the table marks `reviewed`;
 - use no entry the table lists between the original request's version and the target (`changesUsedBy`, the same matching as version moves). Out-of-cycle entries (no version) apply before and after a move alike; the fix plan lists the requests they reach, and they are not part of the patch's proof.
 
@@ -385,7 +386,7 @@ Stops after this change, by blocker (repositories with it, and with it as their 
 | Pin newer than the target | 1 | 0 |
 
 - **Listed changes** are mostly node-wide removals (v22.0 Instagram v1.0 nodes, v24.0 custom audiences, custom conversions and Messenger lead templates), which match every request to a single opaque node, and the v22.0 Instagram v1.0 `comments` edge, which shares its name with Page post comments. The node type behind an opaque ID is not traced, so these stay stops.
-- **WhatsApp and Messenger** changelogs are now in the table (#413), but letting moves use them needs an owner decision.
+- **WhatsApp and Messenger** requests are matched against their mined changelogs since `feat/meta-changelogs`; see [Benchmarks](BENCHMARKS.md) for the dev-60 measurement.
 - **Unversioned URLs** follow the app's default version. Pinning one changes behaviour, so Refit does not add a version.
 - **Unknown parts** are mostly a WhatsApp library's class method helper, versions chosen by callers (`apiVersion ?? DEFAULT`) and options built at runtime.
 
@@ -393,7 +394,6 @@ Stops after this change, by blocker (repositories with it, and with it as their 
 
 The catalog entry for `meta-graph` keeps `adapter: null`. Request detection is one of the pieces a reviewed agent needs; these are still missing:
 
-1. **Product changelog moves.** The WhatsApp Business Platform and Messenger Platform changelogs are in the list since 2026-10-29, but their requests still stop every move until an owner decides the move rule may use them.
 2. **An owner decision on the version-move rule.** The [review-only rule](#propose-version-moves-review-only) exists. Wiring it into `refit run`, validation and drafts waits on the decision about whether a hand-maintained change list is enough evidence for an automatic edit.
 3. **More coverage.** URLs whose host comes from configuration at runtime, and responses: the fields code reads from a response are not traced, so a request with no `fields` relies on the node's defaults, and a field rename stops wherever the old name appears.
 4. **Enrollment.** `refit run` validates Meta plans, but enrollment and the hosted worker do not generate Meta configurations, and no AI repair rule targets undocumented response reads yet.

@@ -105,10 +105,13 @@ By source:
 | ---------------------------- | ------: |
 | Graph API version pages      |     580 |
 | Graph API out-of-cycle pages |     130 |
-| WhatsApp Business Platform   |      48 |
+| WhatsApp Business Platform   |      54 |
 | Instagram Platform           |      24 |
-| Messenger Platform           |      16 |
+| Messenger Platform           |      20 |
+| WhatsApp On-Premises sunset  |       1 |
 | Marketing API pages          |       7 |
+
+On 2026-10-29 (`feat/meta-changelogs`) two read-only agents reread the whole WhatsApp and Messenger pages against the table. 10 of their candidates were hand-checked and added (6 WhatsApp, 4 Messenger, all dated and none version-gated); additions, relaxations, pricing and Embedded Signup `extras` values were left out. The 11 v14.0 template-category entries now record the real `message_templates` edge (the page prints `/message_template`).
 
 The Marketing API and Instagram pages mostly repeat entries already on the Graph API pages, so most of their candidates were dropped as duplicates.
 
@@ -138,7 +141,7 @@ By kind:
 - **The 83 refused candidates.** The merge writes them, with reasons, to `refused.json` beside its input.
 - **Marketing API out-of-cycle changes.** The saved page only links to dated subpages, which were not captured.
 - **WhatsApp On-Premises client versions (v2.39 to v2.45).** The table has no field for a client version, so these stay out.
-- **No On-Premises shutdown entry.** The saved WhatsApp changelog starts in October 2021 and has no shutdown entry.
+- **On-Premises shutdown.** The WhatsApp changelog has no shutdown entry, so it is quoted from Meta's sunset page (`whatsapp-on-premises-sunset`), as `meta-graph-all-2025-10-23-product-removed-on-premises-api` and the `whatsapp-on-premises-api-shutdown` alert.
 - **No breakdown deprecations.** No page stated one, so no `breakdown-removed` entry exists. The kind is ready for one.
 - **Changes the pages never name.** Some entries use a printed prose name ("Handover Protocol", "TLS"), so they never match a request; they still alert.
 
@@ -151,5 +154,4 @@ By kind:
 
 ## Open owner decisions
 
-- **WhatsApp and Messenger requests still stop every move** (`separateChangelog` in `pipeline/meta-graph-moves.ts`), although their changelogs are now in the table. Letting the move rule use them widens it, which needs an owner decision.
 - **Mined-by-agent provenance.** Stripe's generated rules record the model and response ID. These record `origin: "mined"` and rely on the quote check. Rerunning `scripts/meta-graph-mine.mjs` with the OpenAI key would add a model-recorded pass.

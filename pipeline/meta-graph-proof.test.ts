@@ -163,12 +163,19 @@ describe('field-table proof', () => {
     expect(result.reasons).toEqual(['The patch changes no Graph API request Refit traced.']);
   });
 
-  it('refuses WhatsApp requests, whose changelog the table does not cover', async () => {
+  it('proves WhatsApp requests against their changelog, and refuses versions released before it', async () => {
     const send = (version: string) =>
-      `export const send = (id, token, body) => fetch(\`https://graph.facebook.com/${version}/\${id}/messages\`, { method: 'POST', headers: { Authorization: \`Bearer \${token}\` }, body });\n`;
-    const result = await proof(send('v18.0'), send('v21.0'));
+      `export const send = (id, to) => fetch(\`https://graph.facebook.com/${version}/\${id}/messages\`, { method: 'POST', body: JSON.stringify({ messaging_product: 'whatsapp', to }) });\n`;
+    expect((await proof(send('v18.0'), send('v21.0'))).proven).toBe(true);
+    const table = changes();
+    table.versions = table.versions.map((entry) =>
+      entry.version === 'v19.0' ? { ...entry, released: '2021-01-01' } : entry,
+    );
+    const result = await proof(send('v18.0'), send('v21.0'), table);
     expect(result.proven).toBe(false);
-    expect(result.reasons.join(' ')).toContain('WhatsApp Business Platform');
+    expect(result.reasons.join(' ')).toContain(
+      'WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which start after v19.0 was released',
+    );
   });
 
   it('keeps grade D when no check covers the changed files, saying the table passed', () => {
