@@ -346,6 +346,20 @@ export const other = async (p: string) => client.files.create({ file: await crea
     expect(proposal.stops.some((item) => item.file === 'up.ts')).toBe(false);
   });
 
+  it("leaves a fileFromPath that is not the SDK's alone", async () => {
+    const { proposal, changed } = await propose('4.40.0', {
+      'f.ts': `import OpenAI from 'openai';
+import { fileFromPath } from 'formdata-node/file-from-path';
+const client = new OpenAI();
+export const up = async (p: string) => client.files.create({ file: await fileFromPath(p), purpose: 'batch' });
+`,
+    });
+    expect(proposal.stops).toEqual([]);
+    expect(changed['f.ts']).toContain(
+      "import { fileFromPath } from 'formdata-node/file-from-path';",
+    );
+  });
+
   it('stops on runFunctions, fileFromPath and httpAgent', async () => {
     const { proposal } = await propose('4.20.0', {
       'a.ts': `import OpenAI from 'openai';
@@ -447,8 +461,8 @@ export interface Stored extends Anthropic.MessageParam { id: string }
       'anthropic-ts-one-credential',
       'anthropic-ts-text-completions-removed',
     ]);
-    // The literal temperature is an optional-upgrade stop: decision A keeps it on 0.x.
-    expect(proposal.stops.filter((item) => item.category === 'optional-upgrade')).toHaveLength(1);
+    // The literal temperature and the untraced top_k are optional-upgrade stops (decision A).
+    expect(proposal.stops.filter((item) => item.category === 'optional-upgrade')).toHaveLength(2);
     expect(proposal.stops.filter((item) => item.file === 'b.js')).toHaveLength(1);
   });
 
@@ -517,6 +531,35 @@ export const last = () => client.messages.create({ model: 'm', max_tokens: 1, me
         'SDK upgrade available, not required (would change outputs)',
       );
       expect(proposal.stops[0].reason).toContain('`temperature: t`, `top_k: 5`');
+    });
+
+    it('reads a const body, and a body nothing writes to; untraced literals are optional too', async () => {
+      const proposal = await anthropic('0.79.0', {
+        'a.ts': `import Anthropic from '@anthropic-ai/sdk';
+const client = new Anthropic();
+export async function one() {
+  const params = { model: 'm', max_tokens: 1, temperature: 0.2, messages: [] };
+  return client.messages.create(params);
+}
+export async function two() {
+  const params = { model: 'm', max_tokens: 1, messages: [] };
+  return client.messages.create(params);
+}
+export async function three(t: number) {
+  const params: any = { model: 'm', max_tokens: 1, messages: [] };
+  params.temperature = t;
+  return client.messages.create(params);
+}
+`,
+        'b.js': `module.exports = (holder) => holder.client.messages.create({ model: 'm', max_tokens: 1, top_p: 0.5, messages: [] });\n`,
+      });
+      expect(
+        proposal.stops.map((item) => [item.file, item.line, item.category ?? 'unknown']),
+      ).toEqual([
+        ['a.ts', 5, 'optional-upgrade'],
+        ['a.ts', 14, 'unknown'],
+        ['b.js', 1, 'optional-upgrade'],
+      ]);
     });
 
     it('needs both the flag and a quoted sunset notice to remove them', async () => {

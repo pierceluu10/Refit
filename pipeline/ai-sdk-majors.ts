@@ -1071,7 +1071,8 @@ function openAiV4Files(context: Context, fromMajor: number) {
     const { source } = fileProgram(file.path, file.content);
     const usesRunner = file.content.includes('.runTools(');
     // `fileFromPath(path)` → `createReadStream(path)` (v5 guide); identifiers it handled.
-    const streamed = fileFromPathStreams(context, file.path, file.content, source);
+    const openAiNames = openAiBindings(source);
+    const streamed = fileFromPathStreams(context, file.path, file.content, source, openAiNames);
     const visit = (node: ts.Node) => {
       const specifier =
         (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
@@ -1115,7 +1116,7 @@ function openAiV4Files(context: Context, fromMajor: number) {
             );
         }
       }
-      if (ts.isIdentifier(node) && !streamed.has(node))
+      if (ts.isIdentifier(node) && !streamed.has(node) && fromOpenAi(node, openAiNames))
         for (const rule of removedExports)
           if ((rule.data.names as string[]).includes(node.text))
             stop(context, file.path, lineOf(source, node.getStart()), rule.rule, rule.summary);
@@ -1177,11 +1178,61 @@ const FILE_STREAM = 'openai-node-v5-file-from-path-stream';
 // `createReadStream(p)` from node:fs, as the v5 guide shows; the import is added in the file's
 // module style and the openai import loses `fileFromPath`. Anything else is left to the review
 // stop. Returns the identifiers it rewrote.
+// Local names bound to the openai package: default, named and namespace imports and require
+// destructuring from `openai` or `openai/...`. `fileFromPath` from another package (formdata-node
+// has one) is not the SDK's.
+function openAiBindings(source: ts.SourceFile) {
+  const names = new Set<string>();
+  const fromOpenAi = (text: string) => text === 'openai' || text.startsWith('openai/');
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isImportDeclaration(node) &&
+      ts.isStringLiteral(node.moduleSpecifier) &&
+      fromOpenAi(node.moduleSpecifier.text)
+    ) {
+      const clause = node.importClause;
+      if (clause?.name) names.add(clause.name.text);
+      const bindings = clause?.namedBindings;
+      if (bindings && ts.isNamespaceImport(bindings)) names.add(bindings.name.text);
+      if (bindings && ts.isNamedImports(bindings))
+        for (const element of bindings.elements) names.add(element.name.text);
+    }
+    if (
+      ts.isVariableDeclaration(node) &&
+      node.initializer &&
+      ts.isCallExpression(node.initializer) &&
+      ts.isIdentifier(node.initializer.expression) &&
+      node.initializer.expression.text === 'require' &&
+      node.initializer.arguments[0] &&
+      ts.isStringLiteral(node.initializer.arguments[0]) &&
+      fromOpenAi(node.initializer.arguments[0].text)
+    ) {
+      if (ts.isIdentifier(node.name)) names.add(node.name.text);
+      if (ts.isObjectBindingPattern(node.name))
+        for (const element of node.name.elements)
+          if (ts.isIdentifier(element.name)) names.add(element.name.text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return names;
+}
+
+// An identifier the SDK provides: `fileFromPath` imported from openai, or `X.fileFromPath`
+// where X is bound to openai.
+function fromOpenAi(node: ts.Identifier, names: Set<string>) {
+  const parent = node.parent;
+  if (ts.isPropertyAccessExpression(parent) && parent.name === node)
+    return ts.isIdentifier(parent.expression) && names.has(parent.expression.text);
+  return names.has(node.text);
+}
+
 function fileFromPathStreams(
   context: Context,
   file: string,
   content: string,
   source: ts.SourceFile,
+  names: Set<string>,
 ) {
   const handled = new Set<ts.Node>();
   if (!context.rules.has(FILE_STREAM) || !content.includes('fileFromPath')) return handled;
@@ -1196,12 +1247,23 @@ function fileFromPathStreams(
         : ts.isIdentifier(callee)
           ? callee
           : undefined;
-      if (name?.text === 'fileFromPath') {
+      if (
+        name &&
+        ts.isIdentifier(name) &&
+        name.text === 'fileFromPath' &&
+        fromOpenAi(name, names)
+      ) {
         if (node.arguments.length === 1) calls.push(node);
         else other = true;
       }
     }
-    if (ts.isImportSpecifier(node) && node.name.text === 'fileFromPath' && !node.propertyName)
+    if (
+      ts.isImportSpecifier(node) &&
+      node.name.text === 'fileFromPath' &&
+      !node.propertyName &&
+      ts.isStringLiteral(node.parent.parent.parent.moduleSpecifier) &&
+      /^openai(?:\/|$)/.test(node.parent.parent.parent.moduleSpecifier.text)
+    )
       specifiers.push(node);
     ts.forEachChild(node, visit);
   };
@@ -1452,6 +1514,54 @@ function literalProperties(
   return add(literal) ? { keys, properties } : undefined;
 }
 
+// A request body held in a local `const` object literal that nothing writes to: every other use
+// is a call argument or a property read. Returns the literal, or the body itself when it is one.
+function requestBody(body: ts.Expression | undefined, program: ReturnType<typeof fileProgram>) {
+  if (!body) return undefined;
+  const value = unwrap(body);
+  if (ts.isObjectLiteralExpression(value)) return value;
+  if (!ts.isIdentifier(value)) return undefined;
+  const symbol = program.checker.getSymbolAtLocation(value);
+  const declaration = symbol?.valueDeclaration;
+  if (
+    !declaration ||
+    !ts.isVariableDeclaration(declaration) ||
+    !(declaration.parent.flags & ts.NodeFlags.Const) ||
+    !declaration.initializer ||
+    !ts.isObjectLiteralExpression(unwrap(declaration.initializer))
+  )
+    return undefined;
+  let written = false;
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isIdentifier(node) &&
+      node !== declaration.name &&
+      node.text === value.text &&
+      program.checker.getSymbolAtLocation(node) === symbol
+    ) {
+      const parent = node.parent;
+      const argument = ts.isCallExpression(parent) && parent.arguments.includes(node);
+      const read =
+        ts.isPropertyAccessExpression(parent) &&
+        parent.expression === node &&
+        !(ts.isBinaryExpression(parent.parent) && parent.parent.left === parent) &&
+        !ts.isDeleteExpression(parent.parent);
+      // Object.assign(body, …) and helpers that take the body could change it.
+      const assigned =
+        argument &&
+        ts.isCallExpression(parent) &&
+        parent.arguments[0] === node &&
+        !/\.(?:messages|batches)\.\w+$/.test(
+          parent.expression.getText(program.source).replace(/\s+/g, ''),
+        );
+      if (!(argument && !assigned) && !read) written = true;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(program.source);
+  return written ? undefined : (unwrap(declaration.initializer) as ts.ObjectLiteralExpression);
+}
+
 // A property's text with its trailing comma and the space after it, for deleting it.
 function propertyRange(property: ts.ObjectLiteralElementLike, content: string) {
   let end = property.getEnd();
@@ -1656,7 +1766,8 @@ export async function proposeAnthropicSdkMajor(
     const file = repository.files.find((item) => item.path === call.file);
     if (!file) continue;
     files.add(file.path);
-    const { source } = fileProgram(file.path, file.content);
+    const program = fileProgram(file.path, file.content);
+    const { source } = program;
     const node = callAt(source, call.line, call.column, call.expression);
     if (!node) continue;
     const path = `${call.resource}.${call.method}`;
@@ -1671,10 +1782,10 @@ export async function proposeAnthropicSdkMajor(
     const movedPath =
       moved && (moved.data.methods as string[]).includes(path) ? `beta.${path}` : undefined;
     if (!checkSurface(context, file.path, line, path, packageName) && !movedPath) continue;
-    const [body] = node.arguments;
+    const body = requestBody(node.arguments[0], program);
     if (sampling && MESSAGE_CALLS.has(path)) {
       recordCall(context, node, path.replace(/^beta\./, '').replace('.batches', ''));
-      if (!body || !ts.isObjectLiteralExpression(body))
+      if (!body)
         stop(
           context,
           file.path,
@@ -1788,7 +1899,8 @@ export async function proposeAnthropicSdkMajor(
       if (!/\.(?:messages|batches)\s*\.\s*(?:create|stream|countTokens)\s*\(/.test(file.content))
         continue;
       const imports = importsPackage(file.content, packageName);
-      const { source } = fileProgram(file.path, file.content);
+      const program = fileProgram(file.path, file.content);
+      const { source } = program;
       const visit = (node: ts.Node) => {
         if (
           ts.isCallExpression(node) &&
@@ -1798,20 +1910,29 @@ export async function proposeAnthropicSdkMajor(
           ['messages', 'batches'].includes(node.expression.expression.name.text) &&
           !traced.get(file.path)?.has(node.getStart())
         ) {
-          const [body] = node.arguments;
-          const literal = body && ts.isObjectLiteralExpression(body) ? body : undefined;
+          const literal = requestBody(node.arguments[0], program);
           const keys = literal && literalKeys(literal);
           const sends = (sampling.data.parameters as string[]).some((name) => keys?.has(name));
           const opaque = !keys;
-          if (sends || (imports && opaque))
+          // Parameters written in the call's own body are known even when its client is not:
+          // like a traced call, the upgrade is then optional and would change outputs.
+          if (sends)
             stop(
               context,
               file.path,
               lineOf(source, node.getStart()),
               sampling.rule,
-              sends
-                ? `${sampling.summary} Refit could not trace this call's client.`
-                : 'Refit could not trace this call to the client or read its body, so it cannot show the request sends none of temperature, top_p or top_k, which 2026-10-21 rejects.',
+              `SDK upgrade available, not required (would change outputs): the request sends ${(sampling.data.parameters as string[]).filter((name) => keys!.has(name)).join(', ')}, which API version 2026-10-21 rejects (its client is not traced). It works today on the current SDK and 2023-06-01.`,
+              true,
+              'optional-upgrade',
+            );
+          else if (imports && opaque)
+            stop(
+              context,
+              file.path,
+              lineOf(source, node.getStart()),
+              sampling.rule,
+              'Refit could not trace this call to the client or read its body, so it cannot show the request sends none of temperature, top_p or top_k, which 2026-10-21 rejects.',
             );
         }
         ts.forEachChild(node, visit);
