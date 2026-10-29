@@ -238,6 +238,12 @@ async function benchmark(entry: Selected, index: number) {
   try {
     repository = await readRepository(directory, 'stripe');
     result.read = 'ok';
+    if (
+      repository.dependencies.some(
+        (entry) => entry.file === 'package.json' && entry.section === 'peerDependencies',
+      )
+    )
+      result.library = true;
   } catch (error) {
     result.read = message(error);
     log('Refit cannot read repository');

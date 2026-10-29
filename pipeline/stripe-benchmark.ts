@@ -52,6 +52,22 @@ const clean = (value: unknown) =>
     .replace(/\|/g, '/')
     .slice(0, 140);
 
+// Stripe calls found but none traced to a client: unknown, never "not affected". A library (its
+// root package.json declares stripe as a peer dependency) gets its client from the application
+// that installs it.
+export function untracedOutcome(entry: Record<string, unknown>) {
+  if (!(Number(entry.sdkCalls) > 0) || entry.tracedCalls !== 0) return;
+  return entry.library
+    ? {
+        outcome: 'library',
+        reason: `${String(entry.sdkCalls)} Stripe calls on clients the consuming application creates; their API version is the application's.`,
+      }
+    : {
+        outcome: 'untraced',
+        reason: `${String(entry.sdkCalls)} Stripe calls, none traced to where their client is created; Refit cannot tell what the change breaks.`,
+      };
+}
+
 // The full contract diff on, through validation when the scan lets it run. It uses the benchmark's
 // SDK-spec adapter; `customerMode` records the built-in adapter a hosted worker scans with.
 // Rows from runs before production mode was recorded say so instead of guessing.
@@ -61,7 +77,7 @@ export function productionOutcome(entry: Record<string, unknown>) {
     { status?: string; stop?: string | null; error?: string } | undefined;
   if (production?.status)
     return { outcome: production.status, reason: production.error ?? production.reason };
-  if (!scan) return { outcome: 'not affected' };
+  if (!scan) return untracedOutcome(entry) ?? { outcome: 'not affected' };
   if (scan.error) return { outcome: 'error', reason: scan.error };
   if (scan.status !== 'affected') return { outcome: 'not affected' };
   if (!('stop' in scan)) return { outcome: 'not measured' };
@@ -80,15 +96,19 @@ export function summaryTable(entries: Record<string, unknown>[]) {
     const benchmarkAffected = Boolean(
       (entry.fullAdapter as { confirmed?: number } | undefined)?.confirmed,
     );
+    const untraced = untracedOutcome(entry);
     const outcome = publication?.url
       ? 'pull request'
-      : String(workflow?.status ?? (benchmarkAffected ? 'affected' : 'not affected'));
+      : String(
+          workflow?.status ??
+            (benchmarkAffected ? 'affected' : (untraced?.outcome ?? 'not affected')),
+        );
     // With the full diff on in the workflow itself, the customer's run is that same run.
     const production = workflow?.fullDiff === true ? { outcome } : productionOutcome(entry);
     // A published row needs no stop reason; the workflow's own reason predates publication.
     const benchmarkReason = publication?.url
       ? ''
-      : (publication?.error ?? workflow?.error ?? workflow?.reason ?? '');
+      : (publication?.error ?? workflow?.error ?? workflow?.reason ?? untraced?.reason ?? '');
     return {
       repo: String(entry.repo),
       affected: benchmarkAffected || production.outcome !== 'not affected',

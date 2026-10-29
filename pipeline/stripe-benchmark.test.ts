@@ -264,6 +264,28 @@ it('says production mode was not measured for rows from before it was recorded',
   expect(table).toContain('| a/one | not measured | validated |  |  |');
 });
 
+it('lists rows whose Stripe calls Refit traced to no client as untraced, or library, not unaffected', () => {
+  const commit = 'a'.repeat(40);
+  const row = { commit, outcomeClass: 'repository', calledMethods: 0, mappedMethods: 0 };
+  const table = summaryTable([
+    { repo: 'a/app', ...row, sdkCalls: 12, tracedCalls: 0 },
+    { repo: 'b/package', ...row, sdkCalls: 4, tracedCalls: 0, library: true },
+    { repo: 'c/quiet', ...row, sdkCalls: 0, tracedCalls: 0 },
+    { repo: 'd/partial', ...row, sdkCalls: 5, tracedCalls: 2 },
+  ]);
+  expect(table).toContain('Repositories: 4. Affected in either mode: 2.');
+  expect(table).toContain('| untraced | 1 | 1 |');
+  expect(table).toContain('| library | 1 | 1 |');
+  expect(table).toContain(
+    '| a/app | untraced | untraced |  | 12 Stripe calls, none traced to where their client is created; Refit cannot tell what the change breaks. |',
+  );
+  expect(table).toContain(
+    "| b/package | library | library |  | 4 Stripe calls on clients the consuming application creates; their API version is the application's. |",
+  );
+  expect(table).not.toContain('c/quiet');
+  expect(table).not.toContain('d/partial');
+});
+
 it('lists infrastructure errors apart from the counts and refuses rows that break the schema', () => {
   const commit = 'a'.repeat(40);
   const affected = {
