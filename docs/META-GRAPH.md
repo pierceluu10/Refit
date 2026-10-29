@@ -41,6 +41,9 @@ Values are read only from literal code. Anything built at runtime is reported as
 - **axios instances.** Requests made on `const graph = axios.create({ baseURL: 'https://graph.facebook.com/v20.0' })` in the same file, such as `graph.get('/me', { params })`, are read with the base's version and pin. Any other use of the instance (exported, passed to a function, stored) is listed as unknown on each request, since it may make requests the scan cannot see.
 - **Versions and paths.** `` `https://graph.facebook.com/${version}/…` `` has an unknown version, unless `version` is a `const` holding a literal such as `'v21.0'`, or the fallback of an environment variable (`process.env.GRAPH_VERSION || 'v21.0'`, also `??` and `import.meta.env`), reported as `env-default`. A base held as `process.env.GRAPH_URL ?? 'https://graph.facebook.com/v19.0'` is read the same way. The value deployed in the variable can differ; Refit reports and moves the version the code ships. A runtime segment after the node (`` `/${id}/${edge}` ``), or one named like a path (`${path}`, `${endpoint}`), makes the rest of the path unknown. A substitution that is a whole `fields` or `metric` value is read when it resolves to a literal list (`fields=${FIELDS.join(',')}` with `const FIELDS = ['id', 'caption']`); any other substitution inside a query value is unknown.
 - **Reassigned URLs.** A `let` assigned again, such as a pagination loop's `next = data.paging.next`, may hold another URL by the time of the request, so its path, edge, fields and parameters are unknown.
+- **URL objects, conditionals and returned URLs.** `new URL(graphUrl)` is read like the string it wraps, with `url.searchParams.set('fields', 'id')` and `append` calls on a literal name as query parameters; any other change to the object (`url.search = …`, a computed name, `searchParams` passed on) is unknown. `url.toString()`, `url.href` and `String(url)` are the same URL. Each branch of `cond ? urlA : urlB` is its own request. A URL a file-local, unexported function returns is followed to where that function's calls go. Bases are not followed through any of these.
+- **More helpers.** A helper that sends `{ ...init, signal, headers }` (only transport options added after the caller's options) reads the caller's options; a helper declared as a `const` inside another function is found; and a paging helper whose `let next = startUrl` is only ever assigned Meta's own `response.paging.next` is read with the first URL it is given. A body spread that adds an object conditionally (`...(cond ? { link } : {})`) adds its names; a `fields` or `metric` set that way is unknown.
+- **Imports through path aliases.** Helpers, bases and exported version constants (`export const GRAPH_VERSION = 'v21.0'`, also an environment variable's fallback) are followed through relative imports and through the repository's tsconfig or jsconfig `paths` and `baseUrl`. A version imported from another file pins the file that declares it. A move edits it only when every file that imports it by name uses it only where the scan reads it; a namespace or default import of that module, a re-export, or a whole-module `require` or `import()` stops the move.
 - **Bases.** A versioned base URL passed to a function, such as `createClient('https://graph.facebook.com/v18.0')`, is reported once with no request, since the requests built from it are not traced. An unversioned base says nothing about a version and is not reported.
 - **Comments never count**, and neither do other hosts (`api.instagram.com`, `b-graph.facebook.com`) or a bare host name used as an object key.
 
@@ -183,11 +186,11 @@ Business SDK requests always stop, because their version follows the `facebook-n
 
 The rule was run on the 33 Meta repositories of the [deadline benchmark](DEADLINE-BENCHMARK.md) with target v25.0, the newest version in the deadline registry ([results](benchmarks/2026-10-20-meta-graph-move-results.json)):
 
-| Change list | Pins moved | Pins stopped | Requests without a pinned version |
-|---|---:|---:|---:|
-| Every changelog unread (the list before this change) | 0 | 148 | 7 |
-| **Reviewed v14.0 to v26.0, 281 changes (2026-10-20 list)** | **35 (35 requests, 13 repositories)** | 113 | 7 |
-| Hypothetical: every version marked reviewed, with no changes | 100 (101 requests, 26 repositories) | 48 | 7 |
+| Change list                                                  |                            Pins moved | Pins stopped | Requests without a pinned version |
+| ------------------------------------------------------------ | ------------------------------------: | -----------: | --------------------------------: |
+| Every changelog unread (the list before this change)         |                                     0 |          148 |                                 7 |
+| **Reviewed v14.0 to v26.0, 281 changes (2026-10-20 list)**   | **35 (35 requests, 13 repositories)** |          113 |                                 7 |
+| Hypothetical: every version marked reviewed, with no changes |   100 (101 requests, 26 repositories) |           48 |                                 7 |
 
 - **With the reviewed list, 35 pins move** in 13 repositories: 23 from v19.0, 8 from v18.0, 3 from v20.0 and 1 from v21.0. Every moved request was checked by hand against the list. They are Instagram content publishing (`/media`, `/media_publish`), Instagram media reads that name their fields, ads insights and `/me/adaccounts` reads that name their fields, Page feed posts, Conversions API events and `/me`. No version-gated change in range touches any of them, and none is a WhatsApp or Messenger request.
 - **Why the other 113 pins stop** (a pin can have several reasons):
@@ -254,14 +257,14 @@ A Meta snapshot is the contract of a Meta Graph run: a Graph API version and the
 
 The 33 Meta repositories of the deadline benchmark (not the blind set) were scanned offline at their pinned commits, on `bench/combined-final` and on this change, with target v25.0:
 
-| Measure | Before | After |
-|---|---:|---:|
-| Requests in live code | 162 | 168 |
-| `fields` read | 113 | 155 |
-| Pins moved (requests) | 35 (35) | 53 (57) |
-| Pins stopped | 120 | 109 |
-| Basic Display migrations | – | 1 |
-| Alerts | – | 2 |
+| Measure                  |  Before |   After |
+| ------------------------ | ------: | ------: |
+| Requests in live code    |     162 |     168 |
+| `fields` read            |     113 |     155 |
+| Pins moved (requests)    | 35 (35) | 53 (57) |
+| Pins stopped             |     120 |     109 |
+| Basic Display migrations |       – |       1 |
+| Alerts                   |       – |       2 |
 
 - **Every changed request (52) was checked by hand against the code, and every value was right.** Most of the gain came from three things:
   - `metaFetch` pass-throughs in manypost/manypost-app;
@@ -330,13 +333,13 @@ What this does not do yet: AI-written behaviour tests that run the repository's 
 
 Scope: the 68 Meta repositories of every earlier list (the deadline benchmark, its fresh list and the Meta platform list), offline at their pinned commits with target v25.0, through `benchmark:meta --validate`, no AI. The candidates ME1's selector is still searching were not cloned, since the blind set will be drawn from them. 3 rows did not run: 2 no longer clone and novuhq/novu exceeds the scan limits. 6 make no Graph request.
 
-| | `4ecb0cbd` | After this change |
-|---|---:|---:|
-| Repositories with a patch | 18 | 22 |
-| Pins moved | 67 | 85 |
-| Proven by the change table (ME4) | 18 of 18 | 22 of 22 |
-| Validated with nothing left | 5 | 10 |
-| Grades (B / C / D) | 1 / 15 / 2 | 1 / 19 / 2 |
+|                                  | `4ecb0cbd` | After this change |
+| -------------------------------- | ---------: | ----------------: |
+| Repositories with a patch        |         18 |                22 |
+| Pins moved                       |         67 |                85 |
+| Proven by the change table (ME4) |   18 of 18 |          22 of 22 |
+| Validated with nothing left      |          5 |                10 |
+| Grades (B / C / D)               | 1 / 15 / 2 |        1 / 19 / 2 |
 
 Every patch changes only version text, and every new moved request was read by hand. Both fixes are general:
 
@@ -369,20 +372,36 @@ With this, 10 of the 22 drafts validate (6 before). The 4 newly validated rows a
 
 Stops after this change, by blocker (repositories with it, and with it as their only blocker):
 
-| Blocker | Repositories | Only blocker |
-|---|---:|---:|
-| A listed change the request uses | 35 | 9 |
-| WhatsApp or Messenger request | 21 | 0 |
-| URL names no version | 19 | 6 |
-| Unknown request part | 18 | 4 |
-| Only tests use the pin | 11 | 0 |
-| Version held where a move cannot edit it | 5 | 0 |
-| Pin newer than the target | 1 | 0 |
+| Blocker                                  | Repositories | Only blocker |
+| ---------------------------------------- | -----------: | -----------: |
+| A listed change the request uses         |           35 |            9 |
+| WhatsApp or Messenger request            |           21 |            0 |
+| URL names no version                     |           19 |            6 |
+| Unknown request part                     |           18 |            4 |
+| Only tests use the pin                   |           11 |            0 |
+| Version held where a move cannot edit it |            5 |            0 |
+| Pin newer than the target                |            1 |            0 |
 
 - **Listed changes** are mostly node-wide removals (v22.0 Instagram v1.0 nodes, v24.0 custom audiences, custom conversions and Messenger lead templates), which match every request to a single opaque node, and the v22.0 Instagram v1.0 `comments` edge, which shares its name with Page post comments. The node type behind an opaque ID is not traced, so these stay stops.
 - **WhatsApp and Messenger** changelogs are now in the table (#413), but letting moves use them needs an owner decision.
 - **Unversioned URLs** follow the app's default version. Pinning one changes behaviour, so Refit does not add a version.
 - **Unknown parts** are mostly a WhatsApp library's class method helper, versions chosen by callers (`apiVersion ?? DEFAULT`) and options built at runtime.
+
+### Measured on meta-dev-60, 2026-10-29
+
+ME1's dev set (`docs/benchmarks/subsets/meta-dev-60.json` on feat/meta-sets, 60 active repositories, target v26.0), run offline with `npm run benchmark:meta -- --validate` (no AI, no refit-bench run) at `466eb437` and at `d9224895`, which adds the tracing above. The blind set was never opened.
+
+|                           | `466eb437` | `d9224895` |
+| ------------------------- | ---------: | ---------: |
+| Repositories with a patch |         15 |         17 |
+| Pins moved (requests)     |    45 (50) |    67 (74) |
+| Proven (ME4)              |   15 of 15 |   17 of 17 |
+| Validated                 |          3 |          6 |
+| Grades (B / C / D)        | 0 / 11 / 4 | 1 / 12 / 4 |
+
+Nothing moved or validated before is lost. The 22 new pins were read by hand: each changes only the version text, on requests whose method, path and parameters are known (OAuth token exchanges, `/me/accounts`, `/{business-id}/owned_pages` and `client_pages` paging, Page feed posts and stories). CassieMarie0728/jekyll-forge, marioce12-bot/Chariow (grade B) and tareksalammohamed/socialpilot now validate, recorded `correct` in `docs/benchmarks/fix-reviews.json`.
+
+The other 43 repositories have no patch. Pins stop most often on listed changes matched through opaque node IDs (`GET /{id}` against node-wide removals such as the v26.0 Commerce Order Management nodes or the v24.0 custom audiences) or through a request with no `fields` against default-field changes, on WhatsApp and Messenger requests, and on requests the scan cannot read. Narrowing the first two needs an owner decision on the move rule; the hand-kept change table is ME2's.
 
 ## What a Meta agent still needs
 

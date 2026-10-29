@@ -25,6 +25,7 @@
   - Every changed request (52) and every new move (11) was checked by hand.
   - ME1's meta-dev-60 set was not frozen yet, so it was not measured.
   - Census of the 68 non-blind Meta repositories: 22 with a patch (18 before the default-field and helper fixes), all 22 proven by the change table, 10 validated (caution-only stops on versions Meta still serves are notes, not unresolved findings), grades B 1, C 19, D 2; [blockers](META-GRAPH.md#census-of-non-blind-meta-repositories-2026-10-29).
+  - meta-dev-60 (offline, no AI, target v26.0): the scan now follows `new URL(...)` objects and their `searchParams`, conditional and returned URLs, helpers that add transport options, paging helpers, nested helpers and versions imported through tsconfig path aliases. Patches 15 → 17, pins moved 45 → 67, validated 3 → 6, all proven, none lost; [details](META-GRAPH.md#measured-on-meta-dev-60-2026-10-29).
 - **Not done:**
   - enrollment and hosted-worker configurations for Meta;
   - AI repair;

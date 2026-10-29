@@ -3011,6 +3011,51 @@
         "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
         "wouldMerge": "yes"
       }
+    },
+    {
+      "repo": "CassieMarie0728/jekyll-forge",
+      "pullRequest": null,
+      "run": "Offline `benchmark:meta --validate` on feat/meta-fixes `d9224895` (meta-dev-60 from feat/meta-sets, target v26.0, no AI, no refit-bench run); no patch before (requests not traced), validated after. Read from moves.patch and run/report.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v18.0 to v26.0 on three POST OAuth `oauth/access_token` exchanges (`authorization_code` and token refresh); no listed change in range touches them.",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the reviewed change table from its own version to v26.0, and ME4's change-table proof marks every changed request valid at v26.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "Its own tests already fail before the change; the patch adds no failing test (proof-based baseline rule).",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "marioce12-bot/Chariow",
+      "pullRequest": null,
+      "run": "Offline `benchmark:meta --validate` on feat/meta-fixes `d9224895` (meta-dev-60 from feat/meta-sets, target v26.0, no AI, no refit-bench run); no patch before (requests not traced), validated after. Read from moves.patch and run/report.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v23.0 to v26.0 on the OAuth code exchange (a `URL` object with `searchParams`) and the `GET /me?fields=id` read, both through the `fetchMetaGraph` helper that only adds a timeout and cache option.",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the reviewed change table from its own version to v26.0, and ME4's change-table proof marks every changed request valid at v26.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "The `/me` version is the fallback of `META_GRAPH_VERSION`; a deployment that sets the variable keeps its own value.",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "tareksalammohamed/socialpilot",
+      "pullRequest": null,
+      "run": "Offline `benchmark:meta --validate` on feat/meta-fixes `d9224895` (meta-dev-60 from feat/meta-sets, target v26.0, no AI, no refit-bench run); no patch before (requests not traced), validated after. Read from moves.patch and run/report.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v21.0 to v26.0 on two `GRAPH` bases used for the OAuth code and long-lived token exchanges and `GET /me/accounts?fields=id,name,access_token,instagram_business_account{id,username}`; no listed change in range touches them.",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the reviewed change table from its own version to v26.0, and ME4's change-table proof marks every changed request valid at v26.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "Other requests (`GET /{providerId}` node reads, WhatsApp) stay on v21.0, served until 2027-01-21 per the deadline registry, and are listed as notes.",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
     }
   ]
 }
