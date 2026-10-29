@@ -13,6 +13,7 @@ import {
   startRun,
 } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
+import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { scanShopify, SHOPIFY_PACKAGES } from './shopify-analysis.ts';
@@ -188,6 +189,17 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
       after: snapshot(target),
       proposePatch: true,
       shopifySdkUpgrade: upgrade,
+      // As validation does: npm may re-resolve the lockfile for an SDK upgrade, as of the commit.
+      ...(upgrade && lockfileResolutionEnabled()
+        ? {
+            lockfileResolution: {
+              image: VALIDATION_IMAGE,
+              before: (
+                await execute('git', ['-C', directory, 'log', '-1', '--format=%cI'])
+              ).stdout.trim(),
+            },
+          }
+        : {}),
     })) as unknown as {
       status: string;
       findings: {

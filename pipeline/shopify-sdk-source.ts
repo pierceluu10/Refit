@@ -43,6 +43,8 @@ const CUSTOM_SHOP_DOMAINS =
   '@shopify/shopify-api 13.0.0 removed customShopDomains for domainTransformations, which takes { match, transform } rules (78c8968); rewrite it by hand.';
 const SUB_TOPIC =
   '@shopify/shopify-api 14.0.0 removed subTopic (84397d9): webhook registrations filter with `filter`, and metaobjects webhooks require one.';
+const REFRESH_TOKENS =
+  '@shopify/shopify-app-session-storage-prisma 8.0.0 stores refresh tokens (700377f), and this app turns on expiringOfflineAccessTokens: add refreshToken String? and refreshTokenExpires DateTime? to the Prisma Session model and run a migration first.';
 const EMBEDDED =
   '@shopify/shopify-app-react-router 2.0.0 serves embedded apps only (0dbb90c): AppProvider has no embedded prop and shopifyApp rejects isEmbeddedApp; a non-embedded app needs review.';
 
@@ -75,6 +77,8 @@ export function shopifySdkSourceChanges(
   const v13 = crosses(moves, '@shopify/shopify-api', 13);
   const v14 = crosses(moves, '@shopify/shopify-api', 14);
   const embeddedOnly = crosses(moves, '@shopify/shopify-app-react-router', 2);
+  // Optional new columns, backward-compatible unless the app asks for refresh tokens.
+  const refreshTokens = crosses(moves, '@shopify/shopify-app-session-storage-prisma', 8);
   const edits: SourceEdit[] = [];
   const stops: ShopifySdkSourceChanges['stops'] = [];
   for (const { path, content } of repository.files) {
@@ -229,6 +233,8 @@ export function shopifySdkSourceChanges(
       if (ts.isIdentifier(node) && !handled.has(node)) {
         if (v13 && node.text === 'customShopDomains') stop(node, CUSTOM_SHOP_DOMAINS);
         if (v14 && node.text === 'subTopic') stop(node, SUB_TOPIC);
+        if (refreshTokens && node.text === 'expiringOfflineAccessTokens')
+          stop(node, REFRESH_TOKENS);
         if (embeddedOnly && node.text === 'isEmbeddedApp') stop(node, EMBEDDED);
         if (node.text === 'LATEST_API_VERSION') latestUses.push(node);
         else if (CHANGED_APIS.has(node.text)) stop(node, CHANGED_APIS.get(node.text)!);

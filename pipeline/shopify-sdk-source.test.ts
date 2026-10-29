@@ -296,3 +296,22 @@ export const Other = () => <AppProvider embedded={false} apiKey="k">x</AppProvid
   // Without crossing those majors, none of it applies.
   expect(changes(files, ROUTER).stops).toEqual([]);
 });
+
+it('stops on refresh tokens across prisma session storage 8 only where the app turns them on', () => {
+  const PRISMA = '@shopify/shopify-app-session-storage-prisma';
+  const moves = [{ name: PRISMA, from: '6.0.0', to: '10.0.0' }];
+  const server = (flag: string) => `import { shopifyApp, ApiVersion } from '${REMIX}/server';
+export const shopify = shopifyApp({ apiVersion: ApiVersion.April26, future: { ${flag} } });
+`;
+  expect(
+    changes(
+      { 'app/shopify.server.ts': server('unstable_newEmbeddedAuthStrategy: true') },
+      REMIX,
+      moves,
+    ).reasons,
+  ).toEqual([]);
+  expect(
+    changes({ 'app/shopify.server.ts': server('expiringOfflineAccessTokens: true') }, REMIX, moves)
+      .reasons,
+  ).toEqual([expect.stringContaining('stores refresh tokens (700377f)')]);
+});

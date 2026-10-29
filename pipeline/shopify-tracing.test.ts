@@ -419,3 +419,29 @@ it('drops an argument whose rule value is JSON, and names rules a variable reach
     ).map((rule) => rule.rule),
   ).toEqual(['shopify-product-sort-title']);
 });
+
+it('treats pins Shopify serves as the same version as one pin', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/shopify.server.ts': `import { shopifyApi } from '@shopify/shopify-api';
+export const shopify = shopifyApi({ apiVersion: '2025-01' });
+`,
+    'scripts/sync.ts': `export const sync = (shop: string) =>
+  fetch(\`https://\${shop}/admin/api/2024-01/graphql.json\`, { method: 'POST', body: JSON.stringify({ query: \`query { shop { name } }\` }) });
+`,
+  });
+  const report = (await runPipeline({
+    repository: root,
+    ...(await snapshots(root)),
+    proposePatch: true,
+  })) as any;
+  expect(report.patch.status).toBe('proposed');
+  expect(report.apiVersion).toMatchObject({
+    application: '2026-01',
+    applicability: 'matches-before',
+  });
+  expect(report.patch.diff).toContain(
+    "+export const shopify = shopifyApi({ apiVersion: '2026-10' });",
+  );
+  expect(report.patch.diff).toContain('/admin/api/2026-10/graphql.json');
+});

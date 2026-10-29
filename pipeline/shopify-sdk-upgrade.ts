@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { readCommittedRepository } from './committed-repository.ts';
-import { chosenLockfile } from './dependency-inputs.ts';
+import { chosenLockfile, legacyPeerDeps } from './dependency-inputs.ts';
+import { changesOutside, resolveNpmLockfile } from './lockfile-resolution.ts';
 import { join } from 'node:path';
 import { minimumMajors, SHOPIFY_PACK } from './rule-pack.ts';
 import { readBoundedResponse, SpecificationUnavailableError } from './network.ts';
@@ -26,6 +27,9 @@ const APP_PACKAGES = Object.keys(SHOPIFY_SDK_MAJORS).filter((name) => name !== S
 const SDK_FAMILY =
   /^@shopify\/(?:shopify-api|shopify-app-(?:remix|react-router|express)|shopify-app-session-storage(?:-[a-z0-9-]+)?|admin-api-client|storefront-api-client|graphql-client)$/;
 const SESSION_STORAGE = '@shopify/shopify-app-session-storage';
+// The app frameworks Shopify's app packages build on. Decision (2026-10-29, AGENTS.md): when an SDK
+// major needs a newer release of them than the lockfile has, npm may re-resolve them.
+const FRAMEWORK = /^(?:@remix-run\/[a-z0-9.-]+|@react-router\/[a-z0-9.-]+|react-router(?:-dom)?)$/;
 const SESSION_ADAPTER = /^@shopify\/shopify-app-session-storage-[a-z0-9-]+$/;
 const REGISTRY = 'https://registry.npmjs.org/';
 const ABBREVIATED_METADATA = 'application/vnd.npm.install-v1+json';
@@ -69,12 +73,6 @@ const NEWEST_RULED_MAJOR = 14;
 const UNRULED_MAJORS: Record<string, [number, string][]> = {
   '@shopify/shopify-app-express': [
     [7, 'moves the app from Express 4 to Express 5 (0d4a3f7), a framework migration'],
-  ],
-  '@shopify/shopify-app-session-storage-prisma': [
-    [
-      8,
-      'stores refresh tokens, which needs new fields in the Prisma Session model and a migration',
-    ],
   ],
   '@shopify/shopify-app-session-storage-sqlite': [
     [6, 'replaces the onlineAccessInfo column with user columns through a data migration'],
@@ -567,8 +565,19 @@ async function resolvePlan(
   return blockers.size ? { blockers: [...blockers.values()] } : { plan };
 }
 
+// True when an SDK range installs `since` or a later release of its major: it admits `since`, or its
+// lowest version is in that major and not older.
+function installsSince(range: string | undefined, since: Triple) {
+  if (!range) return false;
+  const lowest = triple(/\d+\.\d+\.\d+/.exec(range)?.[0] ?? '');
+  return (
+    satisfies(since.join('.'), range) === true ||
+    Boolean(lowest && lowest[0] === since[0] && compare(lowest, since) >= 0)
+  );
+}
+
 // The planned moves that cross a major whose breaking change Refit does not migrate.
-function unruledMajors(plan: Plan, packages: Packages) {
+function unruledMajors(plan: Map<string, { version: string }>, packages: Packages) {
   return [...plan].flatMap(([name, release]) => {
     const was = triple(rootVersion(packages, name) ?? '');
     const now = triple(release.version)!;
@@ -581,6 +590,220 @@ function unruledMajors(plan: Plan, packages: Packages) {
   });
 }
 
+// The declared Shopify packages moved to the target: the newest release of the declared package in
+// the target major that brings the member, then the newest release of every other declared Shopify
+// package that fits it, with package.json rewritten where a declaration does not allow it.
+async function declaredUpgrade(
+  files: LockFiles,
+  primary: string,
+  major: number,
+  since: Triple,
+  lookup: (name: string) => Promise<Release[]>,
+): Promise<{ manifestText: string; chosen: Map<string, { version: string }> } | Refusal> {
+  const { manifest, packages } = files;
+  const declared = [
+    ...new Set(
+      ROOT_SECTIONS.flatMap((section) =>
+        isObject(manifest[section]) ? Object.keys(manifest[section]) : [],
+      ),
+    ),
+  ].filter((name) => SDK_FAMILY.test(name));
+  // The newest release of the declared package in the target major that brings the member, then
+  // the newest release of every other declared Shopify package that fits it.
+  // Never a release older than the one locked (or, without a lockfile, the lowest declared).
+  const lowestOf = (name: string) => triple(rootVersion(packages, name) ?? '0.0.0')!;
+  const brings = (release: Release) => {
+    const parsed = triple(release.version)!;
+    if (parsed[0] !== major || compare(parsed, lowestOf(primary)) < 0) return false;
+    if (primary === SHOPIFY_API) return compare(parsed, since) >= 0;
+    return installsSince(release.dependencies[SHOPIFY_API], since);
+  };
+  const target = (await lookup(primary)).find(brings);
+  if (!target)
+    return { reason: `No ${primary} ${major} release brings ${SHOPIFY_API} ${since.join('.')}.` };
+  const chosen = new Map<string, { version: string }>([[primary, target]]);
+  if (primary !== SHOPIFY_API) {
+    const api = (await lookup(SHOPIFY_API)).find(
+      (release) =>
+        triple(release.version)![0] === since[0] &&
+        satisfies(release.version, target.dependencies[SHOPIFY_API]) === true,
+    );
+    if (api) chosen.set(SHOPIFY_API, api);
+  }
+  for (const name of declared) {
+    if (chosen.has(name)) continue;
+    const fits = (await lookup(name)).find(
+      (release) =>
+        compare(triple(release.version)!, lowestOf(name)) >= 0 &&
+        [...Object.entries(release.dependencies), ...Object.entries(release.peers)].every(
+          ([dependency, range]) =>
+            !chosen.has(dependency) || satisfies(chosen.get(dependency)!.version, range) === true,
+        ),
+    );
+    if (!fits) return { reason: `No ${name} release works with ${primary} ${target.version}.` };
+    chosen.set(name, fits);
+  }
+  const crossed = unruledMajors(chosen, packages);
+  if (crossed.length) return { reason: crossed.join(' ') };
+  let manifestText = files.manifestText;
+  for (const [name, release] of chosen) {
+    const section = ROOT_SECTIONS.find(
+      (candidate) => isObject(manifest[candidate]) && typeof manifest[candidate][name] === 'string',
+    );
+    if (!section || satisfies(release.version, (manifest[section] as Record<string, string>)[name]))
+      continue;
+    const declaration = manifestDeclaration(manifest, manifestText, name);
+    if ('reason' in declaration) return declaration;
+    if (!declaration.unique) return { reason: `package.json declares ${name} more than once.` };
+    manifestText = declaration.rewrite(release.version, manifestText);
+  }
+  return { manifestText, chosen };
+}
+
+// No lockfile is committed: the upgrade rewrites package.json only. Validation resolves a lockfile
+// for its checks (pipeline/lockfile-resolution.ts), and that lockfile never reaches the patch.
+async function manifestUpgrade(
+  files: LockFiles,
+  primary: string,
+  major: number,
+  since: Triple,
+  lookup: (name: string) => Promise<Release[]>,
+): Promise<{ upgrade: ShopifySdkUpgrade } | Refusal> {
+  const declaration = await declaredUpgrade(files, primary, major, since, lookup);
+  if ('reason' in declaration) return declaration;
+  const changes = [...declaration.chosen]
+    .filter(([name]) => name === SHOPIFY_API || rootVersion(files.packages, name) !== undefined)
+    .map(([name, release]) => ({
+      name,
+      from: rootVersion(files.packages, name) ?? null,
+      to: release.version,
+    }));
+  return {
+    upgrade: {
+      primary,
+      from: rootVersion(files.packages, primary) ?? '',
+      to: declaration.chosen.get(primary)!.version,
+      apiRelease: declaration.chosen.get(SHOPIFY_API)?.version ?? since.join('.'),
+      packages: changes,
+      removed: [],
+      lockless: true,
+      // Empty when package.json already allows the target releases.
+      files: [
+        { path: 'package.json', before: files.manifestText, after: declaration.manifestText },
+      ].filter((file) => file.after !== file.before),
+    },
+  };
+}
+
+// Decision (2026-10-29, AGENTS.md): when the committed lockfile cannot take the upgrade as it is,
+// the declared Shopify packages move to the target major's releases and npm re-resolves the
+// committed package-lock.json from it in networked Docker (lifecycle scripts off, no repository
+// .npmrc). The result ships in the patch only when nothing outside the Shopify packages, the
+// Remix and React Router framework packages, and what only they reach changes.
+async function resolvedUpgrade(
+  root: string,
+  files: LockFiles,
+  primary: string,
+  major: number,
+  since: Triple,
+  lookup: (name: string) => Promise<Release[]>,
+  resolution: { image: string; before: string },
+): Promise<{ upgrade: ShopifySdkUpgrade } | Refusal> {
+  const { packages, lockText } = files;
+  const npmrc = await readFile(join(root, '.npmrc'), 'utf8').catch(() => '');
+  // Only the public registry (the Shopify app template names it for @shopify) and no credentials.
+  const registries = [...npmrc.matchAll(/^\s*(?:@[^:\s]+:)?registry\s*=\s*(\S+)/gm)].map((match) =>
+    match[1].replace(/\/$/, ''),
+  );
+  if (
+    /_auth/.test(npmrc) ||
+    registries.some(
+      (url) => url !== 'https://registry.npmjs.org' && url !== 'https://registry.yarnpkg.com',
+    )
+  )
+    return { reason: '.npmrc configures another registry or credentials.' };
+  const declaration = await declaredUpgrade(files, primary, major, since, lookup);
+  if ('reason' in declaration) return declaration;
+  const { manifestText } = declaration;
+  let resolved;
+  try {
+    resolved = await resolveNpmLockfile({
+      manifest: manifestText,
+      seed: lockText,
+      before: resolution.before,
+      legacyPeerDeps: legacyPeerDeps(npmrc),
+      image: resolution.image,
+    });
+  } catch (error) {
+    if (!(error instanceof PipelineInputError)) throw error;
+    return { reason: `npm could not re-resolve package-lock.json: ${error.message.slice(0, 400)}` };
+  }
+  const lock = parseJson(resolved.lockfile);
+  const after = isObject(lock) && isObject(lock.packages) ? lock.packages : {};
+  const names = [
+    ...new Set(
+      [...Object.keys(packages), ...Object.keys(after)]
+        .map((key) => ROOT_PACKAGE.exec(key)?.[1])
+        .filter((name): name is string =>
+          Boolean(name && (SDK_FAMILY.test(name) || FRAMEWORK.test(name))),
+        ),
+    ),
+  ];
+  const outside = changesOutside(lockText, resolved.lockfile, names);
+  if (outside.length)
+    return {
+      reason: `npm's re-resolved package-lock.json changes ${outside
+        .slice(0, 5)
+        .map((key) => key || 'the root record')
+        .join(
+          ', ',
+        )}${outside.length > 5 ? ` and ${outside.length - 5} more` : ''}, outside the Shopify and framework packages and what only they reach.`,
+    };
+  const apiRelease = rootVersion(after, SHOPIFY_API);
+  const primaryRelease = rootVersion(after, primary);
+  const apiParsed = triple(apiRelease ?? '');
+  if (
+    !apiParsed ||
+    apiParsed[0] !== since[0] ||
+    compare(apiParsed, since) < 0 ||
+    triple(primaryRelease ?? '')?.[0] !== major
+  )
+    return {
+      reason: `npm did not lock ${primary} ${major} with ${SHOPIFY_API} ${since.join('.')} or later.`,
+    };
+  const changes = names
+    .map((name) => ({
+      name,
+      from: rootVersion(packages, name) ?? null,
+      to: rootVersion(after, name),
+    }))
+    .filter((change): change is { name: string; from: string | null; to: string } =>
+      Boolean(change.to && change.to !== change.from),
+    );
+  return {
+    upgrade: {
+      primary,
+      from: rootVersion(packages, primary) ?? '',
+      to: primaryRelease!,
+      apiRelease: apiRelease!,
+      packages: changes,
+      removed: [],
+      resolved: {
+        before: resolution.before,
+        legacyPeerDeps: resolved.legacyPeerDeps === true,
+        frameworks: changes
+          .filter((change) => FRAMEWORK.test(change.name))
+          .map((change) => `${change.name} ${change.from ?? '(new)'} → ${change.to}`),
+      },
+      ...(files.otherLockfiles ? { otherLockfiles: files.otherLockfiles } : {}),
+      files: [
+        { path: 'package.json', before: files.manifestText, after: manifestText },
+        { path: 'package-lock.json', before: lockText, after: resolved.lockfile },
+      ].filter((file) => file.after !== file.before),
+    },
+  };
+}
+
 export interface ShopifySdkUpgrade extends PackageUpgrade {
   // The declared Shopify package moved to its target major; `from` and `to` are its releases.
   primary: string;
@@ -588,6 +811,10 @@ export interface ShopifySdkUpgrade extends PackageUpgrade {
   apiRelease: string;
   packages: { name: string; from: string | null; to: string }[];
   removed: string[];
+  // npm re-resolved package-lock.json (see resolvedUpgrade): when, and the framework packages it moved.
+  resolved?: { before: string; legacyPeerDeps: boolean; frameworks: string[] };
+  // No lockfile is committed, so only package.json changes.
+  lockless?: true;
   // Other root lockfiles left on the old release, because the documented lockfile choice
   // (pipeline/dependency-inputs.ts) picked package-lock.json: each with why it was not chosen.
   otherLockfiles?: Record<string, string>;
@@ -601,6 +828,8 @@ interface LockFiles {
   render: (lock: unknown) => string;
   packages: Packages;
   otherLockfiles?: Record<string, string>;
+  // No lockfile is committed: `packages` holds the lowest release each declaration allows.
+  lockless?: true;
 }
 
 async function applyPlan(
@@ -687,6 +916,36 @@ async function readLockFiles(root: string): Promise<LockFiles | Refusal> {
   const [manifestText, lockText, shrinkwrap, ...others] = await Promise.all(
     ['package.json', 'package-lock.json', 'npm-shrinkwrap.json', ...OTHER_LOCKFILES].map(read),
   );
+  if (
+    manifestText !== undefined &&
+    lockText === undefined &&
+    shrinkwrap === undefined &&
+    others.every((text) => text === undefined)
+  ) {
+    let manifest: unknown;
+    try {
+      manifest = parseJson(manifestText);
+    } catch {
+      return { reason: 'package.json is not valid JSON.' };
+    }
+    if (!isObject(manifest)) return { reason: 'package.json is not an object.' };
+    const packages: Packages = {};
+    for (const section of ROOT_SECTIONS)
+      if (isObject(manifest[section]))
+        for (const [name, spec] of Object.entries(manifest[section])) {
+          const lowest = typeof spec === 'string' ? /\d+\.\d+\.\d+/.exec(spec)?.[0] : undefined;
+          if (lowest) packages[`node_modules/${name}`] = { version: lowest };
+        }
+    return {
+      manifestText,
+      manifest,
+      lock: {},
+      lockText: '',
+      render: () => '',
+      packages,
+      lockless: true,
+    };
+  }
   if (manifestText === undefined || lockText === undefined || shrinkwrap !== undefined)
     return {
       reason:
@@ -743,6 +1002,8 @@ async function readLockFiles(root: string): Promise<LockFiles | Refusal> {
 export async function shopifySdkUpgrade(
   root: string,
   member: string,
+  // With lockfile resolution on (validation's networked step), npm may re-resolve the lockfile.
+  resolution?: { image: string; before: string },
 ): Promise<{ upgrade: ShopifySdkUpgrade } | Refusal> {
   const since = triple(SHOPIFY_API_ENUM_SINCE[member] ?? '');
   if (!since) return { reason: `No ${SHOPIFY_API} release is recorded for ApiVersion.${member}.` };
@@ -801,11 +1062,7 @@ export async function shopifySdkUpgrade(
         ? since[0]
         : (await lookup(primary))
             .map((release) => ({ release, parsed: triple(release.version)! }))
-            .filter(
-              ({ release }) =>
-                release.dependencies[SHOPIFY_API] &&
-                satisfies(since.join('.'), release.dependencies[SHOPIFY_API]) === true,
-            )
+            .filter(({ release }) => installsSince(release.dependencies[SHOPIFY_API], since))
             .map(({ parsed }) => parsed[0])
             .sort((a, b) => a - b)[0];
     if (major === undefined)
@@ -820,6 +1077,7 @@ export async function shopifySdkUpgrade(
       return {
         reason: `${primary} ${from.join('.')} is newer than major ${major}, which this upgrade targets.`,
       };
+    if (files.lockless) return await manifestUpgrade(files, primary, major, since, lookup);
     // The release with the fewest blockers, newest first on a tie, says what is missing.
     let closest: { version: string; blockers: string[] } | undefined;
     for (const candidate of await lookup(primary)) {
@@ -834,11 +1092,14 @@ export async function shopifySdkUpgrade(
       if (!closest || result.blockers.length < closest.blockers.length)
         closest = { version: candidate.version, blockers: result.blockers };
     }
-    return {
-      reason: closest
-        ? `The lockfile cannot take the ${primary} ${major} upgrade without npm resolving it again; the closest release, ${closest.version}: ${closest.blockers.join(' ')}`
-        : `No ${primary} ${major} release brings ${SHOPIFY_API} ${since.join('.')} or later.`,
-    };
+    const reason = closest
+      ? `The lockfile cannot take the ${primary} ${major} upgrade without npm resolving it again; the closest release, ${closest.version}: ${closest.blockers.join(' ')}`
+      : `No ${primary} ${major} release brings ${SHOPIFY_API} ${since.join('.')} or later.`;
+    if (!resolution || !closest) return { reason };
+    const resolved = await resolvedUpgrade(root, files, primary, major, since, lookup, resolution);
+    return 'upgrade' in resolved
+      ? resolved
+      : { reason: `${reason} npm re-resolution stopped too: ${resolved.reason}` };
   } catch (error) {
     if (!(error instanceof PipelineInputError)) throw error;
     return { reason: `Shopify SDK metadata could not be read: ${error.message}` };

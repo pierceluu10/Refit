@@ -99,3 +99,24 @@ it('records a declined rewrite without an edit', async () => {
     reason: 'The model declined: The list became a connection.',
   });
 });
+
+it('keeps every key of a document that already fails, under the type the target returns', () => {
+  // `legacyId` is already gone from `before` here: the original document fails on it.
+  const original = 'query P($id: ID!) { product(id: $id) { id legacyId } }';
+  const gone = buildSchema(`
+    type Product { id: ID! title: String }
+    type QueryRoot { product(id: ID!): Product }
+    schema { query: QueryRoot }
+  `);
+  expect(
+    rewriteProblem(original, 'query P($id: ID!) { product(id: $id) { id } }', gone, after),
+  ).toBe('The rewrite no longer returns query:P.product.legacyId.');
+  expect(
+    rewriteProblem(
+      original,
+      'query P($id: ID!) { product(id: $id) { id legacyId: numericId } }',
+      gone,
+      after,
+    ),
+  ).toBeUndefined();
+});

@@ -22,6 +22,7 @@ import { documentProof } from './shopify-proof.ts';
 // renamed fields at their old keys). The result is always [Needs review] (owner decision 8).
 
 const MAX_SCHEMA_TYPES = 40;
+const UNKNOWN = '(not in the original schema)';
 
 const INSTRUCTIONS = `You migrate one Shopify GraphQL document to a newer API version.
 The evidence holds the document, the validation errors it gets on the target version, and the SDL of the target types it touches.
@@ -67,11 +68,15 @@ export function responseShape(ast: DocumentNode, schema: GraphQLSchema) {
         enter(node) {
           path.push((node.alias ?? node.name).value);
           const type = info.getType();
-          if (type)
-            shape.set(
-              path.join('.'),
-              isCompositeType(getNamedType(type)) ? `${String(type)}{}` : String(type),
-            );
+          // A field the schema does not have (the original already fails) keeps its key, typeless.
+          shape.set(
+            path.join('.'),
+            !type
+              ? UNKNOWN
+              : isCompositeType(getNamedType(type))
+                ? `${String(type)}{}`
+                : String(type),
+          );
         },
         leave() {
           path.pop();
@@ -118,6 +123,9 @@ export function rewriteProblem(
   for (const [key, type] of was) {
     const next = now.get(key);
     if (next === undefined) return `The rewrite no longer returns ${key}.`;
+    // The original already fails here, so no response reached the code: the key must stay, under
+    // whatever type the target now returns.
+    if (type === UNKNOWN) continue;
     // A nullable value that becomes non-null only removes a case the code already handles.
     if (next !== type && next !== type.replace(/(\{\})?$/, '!$1'))
       return `The rewrite returns ${key} as ${next} where the code read ${type}.`;

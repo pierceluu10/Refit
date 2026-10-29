@@ -493,6 +493,13 @@ function sdkUpgradeNotes(packages: { name: string; from: string | null; to: stri
     Number((api?.to ?? '0').split('.')[0]),
   ];
   const crossed = (major: number) => from < major && to >= major;
+  const prisma = packages.find(
+    (entry) => entry.name === '@shopify/shopify-app-session-storage-prisma',
+  );
+  const prismaCrossed =
+    prisma &&
+    Number((prisma.from ?? '0').split('.')[0]) < 8 &&
+    Number(prisma.to.split('.')[0]) >= 8;
   return [
     to >= 14
       ? '@shopify/shopify-api 14 requires Node.js 22 or later (9fec7af); check the deployment runtime.'
@@ -500,6 +507,11 @@ function sdkUpgradeNotes(packages: { name: string; from: string | null; to: stri
     ...(crossed(13)
       ? [
           '@shopify/shopify-api 13 removed API versions 2022-10 to 2024-07 (0bb7837) and made WebhookFields a union keyed on webhookType (1eb863d); 13.1.0 signs OAuth and session cookies with a derived key, so merchants may need to sign in again.',
+        ]
+      : []),
+    ...(prismaCrossed
+      ? [
+          '@shopify/shopify-app-session-storage-prisma 8 can store OAuth refresh tokens (700377f). Shopify documents it as backward-compatible: the new Session fields are optional. To keep refresh tokens, add refreshToken String? and refreshTokenExpires DateTime? to the Prisma Session model and run a migration.',
         ]
       : []),
     ...(crossed(14)
@@ -521,7 +533,7 @@ function versionFindings(
   scan: ShopifyScan,
   versions: { before: string; after: string },
   sdkRelease: string | undefined,
-  upgrade?: { release: string } | { refusal: string },
+  upgrade?: { release: string; lockless?: boolean } | { refusal: string },
 ) {
   const stopped =
     upgrade && 'refusal' in upgrade ? ` The SDK upgrade stopped: ${upgrade.refusal}` : '';
@@ -531,20 +543,33 @@ function versionFindings(
   const runtime = scan.versions.filter((entry) => !CODEGEN_CONFIG.test(entry.file) && !entry.api);
   const member = enumFromVersion(versions.after)!;
   // LATEST_API_VERSION is fixed by the locked SDK release, so it counts as that release's pin.
-  const latest = sdkRelease ? latestApiVersion(sdkRelease) : undefined;
-  const declared = [
+  // Without a lockfile the installed release is unknown, but LATEST_API_VERSION exists only before
+  // @shopify/shopify-api 12, where every value is older than the oldest supported version, which
+  // Shopify serves instead. The upgrade that replaces it then moves from that version.
+  const latest = sdkRelease
+    ? latestApiVersion(sdkRelease)
+    : upgrade && 'release' in upgrade && upgrade.lockless
+      ? versions.before
+      : undefined;
+  // Pins compared by the version Shopify serves: every pin older than the oldest supported version
+  // gets that version, so they do not disagree.
+  const pinned = [
     ...new Set([
       ...runtime.map((entry) => entry.value),
       ...(latest && scan.unresolvedVersions.some((entry) => entry.latest) ? [latest] : []),
     ]),
   ];
+  const served = [
+    ...new Set(pinned.map((value) => (value < versions.before ? versions.before : value))),
+  ];
+  const declared = pinned.length > 1 ? served : pinned;
   for (const entry of scan.unresolvedVersions)
     findings.push(
       entry.latest && latest && upgradedRelease
         ? {
             ...entry,
             changeId: SHOPIFY_VERSION_RULE,
-            expression: `LATEST_API_VERSION (${latest} in @shopify/shopify-api ${sdkRelease}) → ApiVersion.${member}`,
+            expression: `LATEST_API_VERSION (${sdkRelease ? `${latest} in @shopify/shopify-api ${sdkRelease}` : `served as ${latest}; no lockfile`}) → ApiVersion.${member}`,
             confidence: 'confirmed',
             reason: `@shopify/shopify-api 12.0.0 removed LATEST_API_VERSION; the SDK upgrade to ${upgradedRelease} pins ApiVersion.${member}.`,
           }
@@ -693,6 +718,8 @@ type ShopifyRunOptions = {
   sdkUpgrade?: boolean;
   // With AI enabled, breaking documents no rule fixes are rewritten by the model (AI use 4).
   aiPatch?: AiOptions;
+  // Validation's networked lockfile resolution (pipeline/lockfile-resolution.ts), for SDK upgrades.
+  lockfileResolution?: { image: string; before: string };
   // The snapshot of another Admin API version, for the fallback below.
   snapshot?: (version: string) => Promise<Snapshot>;
 };
@@ -824,10 +851,12 @@ async function shopifyRun(options: ShopifyRunOptions) {
       !(rewritten && 'edits' in rewritten) &&
       result.findings.length &&
       !result.otherApi &&
+      // Breaks on the target, or a document that already fails on the oldest supported version.
       result.findings.every(
         (finding) =>
-          finding.reason.startsWith('Valid on') &&
-          !finding.changeId.startsWith('shopify-graphql-input:'),
+          (finding.reason.startsWith('Valid on') &&
+            !finding.changeId.startsWith('shopify-graphql-input:')) ||
+          finding.reason.startsWith('This document already'),
       ) &&
       segment.sourceText.slice(segment.sourceStart, segment.sourceStart + document.text.length) ===
         document.text
@@ -900,7 +929,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
     (scan.unresolvedVersions.some((entry) => entry.latest) ||
       scan.versions.some((entry) => entry.kind === 'enum' && !CODEGEN_CONFIG.test(entry.file))) &&
     !(sdkRelease && sdkHasEnumMember(sdkRelease, member))
-      ? await shopifySdkUpgrade(repository.root, member)
+      ? await shopifySdkUpgrade(repository.root, member, options.lockfileResolution)
       : undefined;
   const upgraded = upgradeResult && 'upgrade' in upgradeResult ? upgradeResult.upgrade : undefined;
   const source =
@@ -919,7 +948,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
     versions,
     sdkRelease,
     upgraded
-      ? { release: upgraded.apiRelease }
+      ? { release: upgraded.apiRelease, lockless: upgraded.lockless }
       : upgradeResult && 'reason' in upgradeResult
         ? { refusal: upgradeResult.reason }
         : undefined,
@@ -1032,7 +1061,11 @@ async function shopifyRun(options: ShopifyRunOptions) {
               warnings: [
                 ...(upgraded
                   ? [
-                      `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')} in package.json and package-lock.json from verified npm registry metadata (SHA-512 integrity)${upgraded.removed.length ? `, removing ${upgraded.removed.length} lock entries nothing requires any more` : ''}. Review it against the shopify-app-js changelogs and the v12 migration guide: ${SHOPIFY_MIGRATION_GUIDE}`,
+                      upgraded.lockless
+                        ? `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')} in package.json. No lockfile is committed, so the install resolves these ranges; Refit's checks ran against a lockfile it resolved in networked Docker, which is not part of this patch. Review it against the shopify-app-js changelogs: ${SHOPIFY_MIGRATION_GUIDE}`
+                        : upgraded.resolved
+                          ? `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')}. npm re-resolved package-lock.json from the committed one in networked Docker with lifecycle scripts off, as of ${upgraded.resolved.before}${upgraded.resolved.legacyPeerDeps ? ' with --legacy-peer-deps' : ''}, because the target SDK needs newer framework packages than the lockfile had${upgraded.resolved.frameworks.length ? ` (${upgraded.resolved.frameworks.join(', ')})` : ''}; nothing outside the Shopify and framework packages and what only they reach changed. Review it against the shopify-app-js changelogs: ${SHOPIFY_MIGRATION_GUIDE}`
+                          : `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')} in package.json and package-lock.json from verified npm registry metadata (SHA-512 integrity)${upgraded.removed.length ? `, removing ${upgraded.removed.length} lock entries nothing requires any more` : ''}. Review it against the shopify-app-js changelogs and the v12 migration guide: ${SHOPIFY_MIGRATION_GUIDE}`,
                       ...sdkUpgradeNotes(upgraded.packages),
                       ...Object.entries(upgraded.otherLockfiles ?? {}).map(
                         ([file, why]) =>
