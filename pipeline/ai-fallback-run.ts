@@ -364,15 +364,26 @@ export async function runFallbackOnRepository(options: {
             command: ['none'],
             reason: 'The repository has no test, build or type check.',
           };
-        const validation = await validateSourcePatch({
-          repository: directory,
-          image: options.image,
-          command: checks.command,
-          compareTypeErrors: checks.compareTypeErrors,
-          prepareDependencies: lockfiles.length > 0,
-          propose: async () => patch,
-          onProgress: options.onProgress,
-        });
+        // A patch validation refuses (one that changes no committed file, a failed preparation) fails
+        // the checks gate; it must not end the fallback, whose answer and cost are already in hand.
+        let validation: Awaited<ReturnType<typeof validateSourcePatch>>;
+        try {
+          validation = await validateSourcePatch({
+            repository: directory,
+            image: options.image,
+            command: checks.command,
+            compareTypeErrors: checks.compareTypeErrors,
+            prepareDependencies: lockfiles.length > 0,
+            propose: async () => patch,
+            onProgress: options.onProgress,
+          });
+        } catch (error) {
+          return {
+            status: 'error',
+            command: checks.command,
+            reason: `Validation refused the patch: ${error instanceof Error ? error.message.slice(0, 300) : 'failed'}`,
+          };
+        }
         const detail =
           'baseline' in validation
             ? `Baseline ${validation.baseline.status}, patched ${validation.patched.status}.`
