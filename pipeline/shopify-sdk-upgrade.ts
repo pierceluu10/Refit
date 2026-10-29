@@ -34,7 +34,9 @@ const FRAMEWORK = /^(?:@remix-run\/[a-z0-9.-]+|@react-router\/[a-z0-9.-]+|react-
 const SESSION_ADAPTER = /^@shopify\/shopify-app-session-storage-[a-z0-9-]+$/;
 const REGISTRY = 'https://registry.npmjs.org/';
 const ABBREVIATED_METADATA = 'application/vnd.npm.install-v1+json';
-const MAX_PACKUMENT_BYTES = 8 * 1024 * 1024;
+// Abbreviated metadata of prisma (23 MB) and @prisma/client (38 MB), measured 2026-10-29, which
+// the session-storage upgrade reads.
+const MAX_PACKUMENT_BYTES = 64 * 1024 * 1024;
 const MAX_RELEASE_BYTES = 1024 * 1024;
 const RELEASE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const COMPARATOR = /^(\^|~|>=|<=|>|<|=)?v?(\d+|[xX*])(?:\.(\d+|[xX*]))?(?:\.(\d+|[xX*]))?$/;
@@ -259,6 +261,20 @@ async function releases(name: string) {
     .map(([version, value]) => readRelease(version, value))
     .filter((entry): entry is Release => entry !== undefined)
     .sort((left, right) => compare(triple(right.version)!, triple(left.version)!));
+}
+
+// Every published release of a package, newest first, prereleases left out.
+async function publishedVersions(name: string) {
+  const document = await registryJson(
+    `${REGISTRY}${name}`,
+    ABBREVIATED_METADATA,
+    MAX_PACKUMENT_BYTES,
+  );
+  if (!isObject(document) || !isObject(document.versions))
+    throw new PipelineInputError(`The npm registry metadata for ${name} is unreadable.`);
+  return Object.keys(document.versions)
+    .filter((version) => RELEASE.test(version))
+    .sort((left, right) => compare(triple(right)!, triple(left)!));
 }
 
 // The lock entry npm writes for a release, from its full registry manifest, before dependency
@@ -760,10 +776,11 @@ async function declaredUpgrade(
         const range = moved.peers[dependency];
         if (!range || satisfies(rootVersion(packages, dependency) ?? '0.0.0', range) === true)
           continue;
-        // The newest release of the major the peer range names.
-        const release = (await lookup(dependency)).find(
-          (option) => satisfies(option.version, range) === true,
-        );
+        // The newest release of the major the peer range names. npm installs it, so releases the
+        // lockfile edit could not write (bin, install scripts) count too.
+        const release = (await publishedVersions(dependency))
+          .filter((version) => satisfies(version, range) === true)
+          .map((version) => ({ version }))[0];
         if (!release)
           return { reason: `No ${dependency} release satisfies ${name}'s peer ${range}.` };
         chosen.set(dependency, release);
