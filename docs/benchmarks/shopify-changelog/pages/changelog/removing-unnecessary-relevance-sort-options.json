@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "removing-unnecessary-relevance-sort-options",
+  "url": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options.md",
+  "revision": "a92790723500f2f2c1b281be33288c863beba52c33139f45cdfa83d151f0c083",
+  "hash": "a92790723500f2f2c1b281be33288c863beba52c33139f45cdfa83d151f0c083",
+  "content": "---\ntitle: Removing unnecessary RELEVANCE sort options - Shopify developer changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options\nmd: >-\nhttps://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options.md\nmetadata:\neffectiveApiVersion: 2025-04\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\n- displayName: Customer Account API\nhandle: customer-account-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Breaking API Change\nhandle: breaking-api-change\nindicatesActionRequired: false\ncreatedAt: '2024-12-20T11:45:07-05:00'\npostedAt: '2025-02-01T12:00:00-05:00'\nupdatedAt: '2024-12-30T15:56:29-05:00'\neffectiveAt: '2025-02-01T12:00:00-05:00'\n---\n\nFebruary 1, 2025\n\n# Removing unnecessary `RELEVANCE` sort options\n\nDateFebruary 1, 2025\n\nVersion[2025-04](https://shopify.dev/changelog?api_version=2025-04)\n\nFlags[Breaking API Change](https://shopify.dev/changelog?filter=breaking-api-change)\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)[Customer Account API](https://shopify.dev/changelog?api_type=customer-account-graphql)\n\n`RELEVANCE` will no longer be included in connection sort options by default as of `2025-04` API versions. This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort. Legitimate cases where this option provides unique capabilities and services regular traffic will not change.",
+  "contentType": "text/markdown"
+}

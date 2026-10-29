@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "link-any-product-metafields-of-type-list-metaobject-to-product-options",
+  "url": "https://shopify.dev/changelog/posts/link-any-product-metafields-of-type-list-metaobject-to-product-options.md",
+  "revision": "e308f0b3743f550b4a2fa14619eeea53c3732a299d0b76a49e37b3d4ad390ef4",
+  "hash": "e308f0b3743f550b4a2fa14619eeea53c3732a299d0b76a49e37b3d4ad390ef4",
+  "content": "---\ntitle: >-\nLink any product metafields of type list.metaobject to product options -\nShopify developer changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/link-any-product-metafields-of-type-list-metaobject-to-product-options\nmd: >-\nhttps://shopify.dev/changelog/posts/link-any-product-metafields-of-type-list-metaobject-to-product-options.md\nmetadata:\neffectiveApiVersion: ''\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Update\nhandle: update\nindicatesActionRequired: false\ncreatedAt: '2024-12-11T08:03:19-05:00'\npostedAt: '2025-01-01T00:00:00-05:00'\nupdatedAt: '2024-12-11T09:02:45-05:00'\neffectiveAt: '2025-01-01T00:00:00-05:00'\n---\n\nJanuary 1, 2025\n\n# Link any product metafields of type list.metaobject to product options\n\nDateJanuary 1, 2025\n\nFlagsUpdate\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nUp until now, merchants had the ability to link their options to category metafields, allowing them to use these option values across similar products. This release expands that functionality to include any metaobject reference list.\n\nMore details about this update can be found at [Shopify.dev](https://shopify.dev/docs/apps/build/graphql/migrate/new-product-model/metafield-linked).",
+  "contentType": "text/markdown"
+}

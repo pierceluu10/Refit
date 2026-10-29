@@ -8,14 +8,21 @@ export const MAX_SPECIFICATION_BYTES = 64 * 1024 * 1024;
 export const STRIPE_SPECIFICATION_ROOT = 'https://raw.githubusercontent.com/stripe/openapi/';
 export const STRIPE_SPECIFICATION_PATH = 'openapi/spec3.json';
 export const COMMIT_REVISION = /^[a-f0-9]{40}$/;
-// Shopify publishes each supported Admin API version's schema through its documentation proxy.
-const SHOPIFY_SCHEMA_ROOT = 'https://shopify.dev/admin-graphql-direct-proxy/';
+// Shopify publishes each supported Admin and Storefront API version's schema through its
+// documentation proxy.
+const SHOPIFY_SCHEMA_ROOTS = {
+  admin: 'https://shopify.dev/admin-graphql-direct-proxy/',
+  storefront: 'https://shopify.dev/storefront-graphql-direct-proxy/',
+};
 const SHOPIFY_VERSION = /^\d{4}-(?:01|04|07|10)$/;
 
-export function shopifySchemaUrl(version: string) {
+export function shopifySchemaUrl(
+  version: string,
+  api: keyof typeof SHOPIFY_SCHEMA_ROOTS = 'admin',
+) {
   if (!SHOPIFY_VERSION.test(version))
     throw new PipelineInputError('Shopify API version must be YYYY-01, -04, -07 or -10.');
-  return `${SHOPIFY_SCHEMA_ROOT}${version}`;
+  return `${SHOPIFY_SCHEMA_ROOTS[api]}${version}`;
 }
 
 export interface Snapshot {

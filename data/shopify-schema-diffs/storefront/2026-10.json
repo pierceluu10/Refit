@@ -1,0 +1,30 @@
+{
+  "formatVersion": 1,
+  "api": "storefront",
+  "previous": "2026-07",
+  "version": "2026-10",
+  "sha256": {
+    "2026-07": "f2502661f9350b620f127279a8573c12a38f47cd648c17ce62c975e16c52f3f5",
+    "2026-10": "fb17340b78682aa47788ea507cfc3e569d3cda73f4bdb5cc8d8d089938a61c89"
+  },
+  "changes": [
+    {
+      "id": "deprecated",
+      "coordinate": "Mutation.shopPayPaymentRequestSessionCreate(paymentRequest:)",
+      "text": "Mutation.shopPayPaymentRequestSessionCreate(paymentRequest:) is deprecated: This argument is deprecated and will be removed in a future version.",
+      "breaking": false
+    },
+    {
+      "id": "deprecated",
+      "coordinate": "ShopPayPaymentRequestSession.paymentRequest",
+      "text": "ShopPayPaymentRequestSession.paymentRequest is deprecated: This field is deprecated and will be removed in a future version.",
+      "breaking": false
+    },
+    {
+      "id": "field-type-changed",
+      "coordinate": "ShopPayPaymentRequestSession.paymentRequest",
+      "text": "ShopPayPaymentRequestSession.paymentRequest changed type from ShopPayPaymentRequest! to ShopPayPaymentRequest.",
+      "breaking": true
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "deprecation-of-draftordercreatemerchantcheckout-mutation",
+  "url": "https://shopify.dev/changelog/posts/deprecation-of-draftordercreatemerchantcheckout-mutation.md",
+  "revision": "2092e9e26e0819d2a135370e1289a6805232462bca54d054321e173402cb5331",
+  "hash": "2092e9e26e0819d2a135370e1289a6805232462bca54d054321e173402cb5331",
+  "content": "---\ntitle: >-\nDeprecation of draftOrderCreateMerchantCheckout mutation - Shopify developer\nchangelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/deprecation-of-draftordercreatemerchantcheckout-mutation\nmd: >-\nhttps://shopify.dev/changelog/posts/deprecation-of-draftordercreatemerchantcheckout-mutation.md\nmetadata:\neffectiveApiVersion: 2025-07\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Deprecation announcement\nhandle: deprecation-announcement\nindicatesActionRequired: false\ncreatedAt: '2025-03-31T19:11:53-04:00'\npostedAt: '2025-05-01T12:00:00-04:00'\nupdatedAt: '2025-04-29T09:54:28-04:00'\neffectiveAt: '2025-05-01T12:00:00-04:00'\n---\n\nMay 1, 2025\n\n# Deprecation of `draftOrderCreateMerchantCheckout` mutation\n\nDateMay 1, 2025\n\nVersion[2025-07](https://shopify.dev/changelog?api_version=2025-07)\n\nFlags[Deprecation announcement](https://shopify.dev/changelog?filter=deprecation-announcement)\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nAs of API version 2025-07, the `draftOrderCreateMerchantCheckout` mutation has been deprecated. Please use the `draftOrderComplete` mutation instead.\n\nFor more information, please visit our [help docs](https://shopify.dev/docs/api/admin-graphql/2025-07/mutations/draftOrderComplete).",
+  "contentType": "text/markdown"
+}

@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "shopify-payments-balance-transaction-graphql-type-supports-currency-conversion-type",
+  "url": "https://shopify.dev/changelog/posts/shopify-payments-balance-transaction-graphql-type-supports-currency-conversion-type.md",
+  "revision": "e71a228312c17ab98d8c4490121b4c2d44f968418c7c025cb1e3bceb95ccf4f2",
+  "hash": "e71a228312c17ab98d8c4490121b4c2d44f968418c7c025cb1e3bceb95ccf4f2",
+  "content": "---\ntitle: >-\nShopify Payments Balance Transaction GraphQL type supports currency conversion\ntype - Shopify developer changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/shopify-payments-balance-transaction-graphql-type-supports-currency-conversion-type\nmd: >-\nhttps://shopify.dev/changelog/posts/shopify-payments-balance-transaction-graphql-type-supports-currency-conversion-type.md\nmetadata:\neffectiveApiVersion: 2026-10\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Update\nhandle: update\nindicatesActionRequired: false\ncreatedAt: '2026-09-17T09:37:55-04:00'\npostedAt: '2026-09-25T09:00:00-04:00'\nupdatedAt: '2026-09-17T09:49:14-04:00'\neffectiveAt: '2026-09-25T09:00:00-04:00'\n---\n\nSeptember 25, 2026\n\n# Shopify Payments Balance Transaction GraphQL type supports currency conversion type\n\nDateSeptember 25, 2026\n\nVersion[2026-10](https://shopify.dev/changelog?api_version=2026-10)\n\nFlagsUpdate\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nAs of GraphQL Admin API version **2026-10**, ShopifyPaymentsTransactionType now includes `CURRENCY_CONVERSION` type.\n\nLearn more about `ShopifyPaymentsTransactionType` on [Shopify.dev](https://shopify.dev/docs/api/admin-graphql/2024-10/enums/ShopifyPaymentsTransactionType).",
+  "contentType": "text/markdown"
+}

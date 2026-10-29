@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "explicit-access-grants-for-metafields-full-deprecation",
+  "url": "https://shopify.dev/changelog/posts/explicit-access-grants-for-metafields-full-deprecation.md",
+  "revision": "817a309e519dcb9e896ee09fcefe6d67f68be4f5ca977a769bcebb86d4d0b138",
+  "hash": "817a309e519dcb9e896ee09fcefe6d67f68be4f5ca977a769bcebb86d4d0b138",
+  "content": "---\ntitle: Explicit access grants for metafields removed - Shopify developer changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/explicit-access-grants-for-metafields-full-deprecation\nmd: >-\nhttps://shopify.dev/changelog/posts/explicit-access-grants-for-metafields-full-deprecation.md\nmetadata:\neffectiveApiVersion: ''\naffectedApi: []\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Breaking API Change\nhandle: breaking-api-change\nindicatesActionRequired: true\ncreatedAt: '2025-02-13T17:00:20-05:00'\npostedAt: '2025-02-17T12:00:00-05:00'\nupdatedAt: '2025-02-14T10:47:36-05:00'\neffectiveAt: '2025-02-17T12:00:00-05:00'\n---\n\nFebruary 17, 2025\n\n# Explicit access grants for metafields removed\n\nDateFebruary 17, 2025\n\nFlags[Breaking API Change](https://shopify.dev/changelog?filter=breaking-api-change)[Action required](https://shopify.dev/changelog?action_required=true)\n\nSurfacesAPI\n\nCompleting the transition that began with the [deprecation of explicit grants](https://shopify.dev/changelog/deprecating-explicit-access-grants-for-app-owned-metafields), existing explicit grants in the system will stop working on February 24, 2025.",
+  "contentType": "text/markdown"
+}
