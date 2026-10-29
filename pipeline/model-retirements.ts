@@ -206,13 +206,18 @@ function rejectsSampling(provider: string, model: string) {
   const [major, minor] = [Number(match[1]), Number(match[2] ?? 0)];
   return major > 4 || (major === 4 && minor >= 7);
 }
-// OpenAI's GPT-6 migration guide (read 2026-10-29): "GPT-6 Sol and GPT-6 Luna support function
-// calling in Chat Completions only with `reasoning_effort: "none"`." A Chat Completions request
-// that sends tools to a GPT-6 replacement stops for review.
-const GPT_6 = /^gpt-6(?:[.-]|$)/;
+// OpenAI's migrate-to-Responses guide (read 2026-10-29): "Starting with GPT-5.4, Chat Completions
+// does not support tool calling with `reasoning_effort` values other than `none`." A Chat
+// Completions request that sends tools to a GPT-5.4 or later replacement stops for review.
+function chatToolsNeedNoReasoning(model: string) {
+  const match = /^gpt-(\d+)(?:\.(\d+))?(?:-|$)/.exec(model);
+  if (!match) return false;
+  const [major, minor] = [Number(match[1]), Number(match[2] ?? 0)];
+  return major > 5 || (major === 5 && minor >= 4);
+}
 // A stop reason that names the legacy function-calling parameters.
 const FUNCTION_STOP = /\bsets\b[^.]*\b(?:functions|function_call)\b/;
-const GPT_6_CHAT_TOOLS = new Set(['tools', 'tool_choice']);
+const CHAT_TOOLS = new Set(['tools', 'tool_choice']);
 export const MODEL_ID = /^[a-z0-9][a-z0-9.-]*$/;
 const MAX_CHAIN = 8;
 
@@ -2176,7 +2181,7 @@ export function rejectedParametersLeft(options: {
     const flagged =
       Boolean(change) ||
       heuristic.has(name) ||
-      (GPT_6.test(to) && GPT_6_CHAT_TOOLS.has(name) && api === 'chat.completions');
+      (chatToolsNeedNoReasoning(to) && CHAT_TOOLS.has(name) && api === 'chat.completions');
     if (!flagged) continue;
     const value = ts.isPropertyAssignment(item) ? numericLiteral(item.initializer) : undefined;
     const tabled = options.parameters?.models.some(
@@ -2635,8 +2640,8 @@ export async function proposeModelReplacements(
         const name = item.name && propertyName(item.name);
         return name &&
           (MODEL_PARAMETER_NAMES[request.provider]?.has(name) ||
-            (GPT_6.test(resolved.to) &&
-              GPT_6_CHAT_TOOLS.has(name) &&
+            (chatToolsNeedNoReasoning(resolved.to) &&
+              CHAT_TOOLS.has(name) &&
               proofApi(request.call) === 'chat.completions'))
           ? [{ item, name }]
           : [];
