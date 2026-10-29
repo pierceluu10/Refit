@@ -18117,6 +18117,262 @@
           "reason": "Part of the list name l2-push-249, not a measurement."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated, no AI | 84 | 84 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated, AI | 88 | 88 |",
+      "values": [
+        {
+          "says": "88",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "88",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated, AI | 11 | 11 |",
+      "values": [
+        {
+          "says": "11",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "11",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- Before, at `89f1c0ed`: l2-push-249 no AI [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392) and AI [40624062726](https://github.com/refit-dev/refit-bench/actions/runs/40624062726); heldout-30 no AI [40624360669](https://github.com/refit-dev/refit-bench/actions/runs/40624360669) and AI [40624075884](https://github.com/refit-dev/refit-bench/actions/runs/40624075884).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40624062726",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40624360669",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40624075884",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- After, at `d311ec37`: l2-push-249 no AI [40626081878](https://github.com/refit-dev/refit-bench/actions/runs/40626081878) and AI [40626090687](https://github.com/refit-dev/refit-bench/actions/runs/40626090687); heldout-30 no AI [40626098795](https://github.com/refit-dev/refit-bench/actions/runs/40626098795) and AI [40626107102](https://github.com/refit-dev/refit-bench/actions/runs/40626107102).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40626081878",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40626090687",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40626098795",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40626107102",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- AI spend: l2 $1.07 before and $1.10 after; heldout $0.16 both times.",
+      "values": [
+        {
+          "says": "$1.07",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "$1.10",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "$0.16",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **1 patch improves; it is not newly validated.** On Alex-Unnippillil/share-house-portal, the stripe-node 16.6.0 → 23.0.0 upgrade broke the type check with TS2322: the widened `Subscription.Status` was returned as the narrower Supabase status union. The patch therefore kept the old pin and package (`api-version-kept`).",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Other changed rows are run noise, none lost.** Without AI, 246 of 249 rows are identical in every compared field; with AI, also 246. Both heldout-30 pairs are identical on 30 of 30.",
+      "values": [
+        {
+          "says": "246",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "246",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- kondax-com/Bocker fails its own baseline in one run of each pair (a 288 ms timing test).",
+      "values": [
+        {
+          "says": "288",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- vinroger/onellm-frontend hit the 300-second dependency-preparation limit in the after run without AI.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "300",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- CRONANANI/EzanaFinance3 reached the 20-minute limit in the before run with AI.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "20",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- The patched type errors on l2-push-249 (79 on 12 rows in run 40591181316) are mostly removed fields, removed request parameters, arity changes, nullable widening and errors in JavaScript files. A type-only repair must not hide those.",
+      "values": [
+        {
+          "says": "79",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "12",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40591181316",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- Only Bocker shows the widened-enum shape (4 errors), beside 31 others.",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "31",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
     }
   ]
 }

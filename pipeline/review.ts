@@ -856,6 +856,11 @@ export function createReviewArtifacts(
               `Restores the known values of the Stripe enums that stripe-node 22.4.0 widened with ${code('OtherString')}, using ${code('Extract<…>')} types where the upgraded types rejected this code. Runtime code is unchanged: a value Stripe adds later still reaches this code unchecked, as it did before the upgrade.`,
             ]
           : []),
+        ...(validation.repair?.typeAssertions?.length
+          ? [
+              `Asserts the type this code expects at ${summaryList(validation.repair.typeAssertions.map((site) => code(`${site.file}:${site.line}`)))}, where the upgraded stripe-node types widened a value it assigns to a narrower type. Each file compiles to the same JavaScript as before (checked with TypeScript's ${code('transpileModule')}), so runtime behaviour is unchanged: a value outside the asserted type still reaches this code unchecked, as it did before the upgrade.`,
+            ]
+          : []),
         ...(typeCheckedReads.length
           ? [
               `Reads ${typeCheckedReads.length === 1 ? 'a subscription period' : `${typeCheckedReads.length} subscription periods`} at ${summaryList(typeCheckedReads.map((finding) => code(`${finding.file}:${finding.line}`)))} through the generated period helper: Refit's tracer did not reach ${typeCheckedReads.length === 1 ? 'this read' : 'these reads'}, but the upgraded stripe-node types reject ${typeCheckedReads.length === 1 ? 'it' : 'them'} on ${code('Subscription')}.`,
