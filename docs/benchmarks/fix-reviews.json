@@ -2636,6 +2636,66 @@
         "upgradeComplete": "yes: apiVersion 2024-12-18.acacia to 2026-09-30.endive and stripe ^20.4.1 to ^23.0.0 in package.json and package-lock.json.",
         "wouldMerge": "not yet: settled by reading create-checkout-session/route.js:145-165 and billing-summary/route.js:78 at commit 4666e5a9 to see whether the `.type` and `currency` reads are on Stripe objects, and by one test-mode checkout plus customer.subscription.updated event at endive."
       }
+    },
+    {
+      "repo": "mhaowork/warranty-watcher",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40628689742 (after, claude/refit-payment-method-types-9b09ad 7af4994d), subsets/l2-push-249.json, no AI; also subset 40628750627 (before, 9850ead) and 40628753242 (after, 4f3f9ce), subsets/pmt-version-path.json. Before: the card rename was withheld because another client's version is untraced, so the patch moved the pin and upgraded stripe-node with payment_method_types left in place and tsc failed with TS2561 (regression, not published); after: the renamed call's own client is the pinned getStripe() client, so the rename is kept and the checks pass. migration.patch from the shard artifact applied to a shallow clone at the pinned commit and read in full as git diff -w, lockfile skipped",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: checkout.sessions.create in lib/stripe/server.ts sends allowed_payment_method_types: ['card'] in place of payment_method_types: ['card'].",
+        "bothVersions": "not applicable: request parameters follow the pinned version, which moves in the same patch.",
+        "nothingUnrelated": "yes: the rename, getStripe()'s apiVersion and the stripe dependency with package-lock.json.",
+        "pleaseCheck": "The draft is [Needs review] for the untraced API version elsewhere; confirm cards stay enabled for the account, as the draft says.",
+        "upgradeComplete": "yes: getStripe()'s apiVersion moves from 2025-06-30.basil to 2026-09-30.endive and stripe from ^18.3.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes after the draft's review items: the changed lines are right and tsc passes on both sides."
+      }
+    },
+    {
+      "repo": "Bizgojo/drivetimetales",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40628689742 (after, claude/refit-payment-method-types-9b09ad 7af4994d), subsets/l2-push-249.json, no AI. Before: the card renames were withheld because app/api/checkout/route.ts:165 (customers.update with a spread) has an untraced version, the pin move failed tsc on payment_method_types, and the workflow kept the 2023-10-16 pins (api-version-kept); after: each renamed call's own client is a literal 2023-10-16 pin the patch moves, so the renames, every pin move and stripe 14.25.0 to 23.0.0 are kept and tsc passes on both sides (grade C). migration.patch from the shard artifact applied to a shallow clone at the pinned commit and read in full as git diff -w, lockfile skipped",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: five exact ['card'] lists move to allowed_payment_method_types on Checkout Session (app/api/checkout, app/api/subscription/change, lib/stripe.ts twice) and SetupIntent (app/api/create-setup-intent) creation; the period and invoice.subscription reads go through the generated helpers.",
+        "bothVersions": "yes for the reads: the generated helpers return the old field when the object has it and the new location otherwise.",
+        "nothingUnrelated": "yes: twelve apiVersion pins, the five renames, the period and invoice-subscription reads, the generated stripeSubscriptionPeriod.ts, and the stripe dependency with package-lock.json.",
+        "pleaseCheck": "The draft is [Needs review] for skipped unparseable files, the untraced customers.update at app/api/checkout/route.ts:165 and 190 reached contract changes no rule migrates; it lists each.",
+        "upgradeComplete": "yes: every traced 2023-10-16 pin moves to 2026-09-30.endive and stripe moves from ^14.25.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "not yet: the changed lines are right and tsc passes, but the draft's reached contract changes come first."
+      }
+    },
+    {
+      "repo": "hackerai-tech/hackerai",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40628689742 (after, claude/refit-payment-method-types-9b09ad 7af4994d), subsets/l2-push-249.json, no AI; also subset 40628750627 and 40628753242. Before: a scan stop on payment_method_types with no patch, because two other requests send versions Refit cannot trace; after: both Checkout Sessions use the lazily created module client, which sets no apiVersion, so the renames and stripe 22.6.2 to 23.0.0 are kept. Dependency preparation failed, so the patch is untested. migration.patch from the shard artifact applied to a shallow clone at the pinned commit and read in full as git diff -w, lockfile skipped",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: convex/extraUsageActions.ts and convex/teamExtraUsageActions.ts send allowed_payment_method_types: [\"card\"] on checkout.sessions.create.",
+        "bothVersions": "not applicable: the client sets no apiVersion, so the upgrade moves the version these calls send.",
+        "nothingUnrelated": "yes: the two renames and the stripe pin in package.json and pnpm-lock.yaml.",
+        "pleaseCheck": "The draft is [Needs review]: no checks ran, and lib/actions/keep-subscription.ts:168 and scripts/influencers.ts:106 send versions Refit cannot trace.",
+        "upgradeComplete": "yes: stripe 22.6.2 to 23.0.0 in package.json and pnpm-lock.yaml.",
+        "wouldMerge": "not as is: run the repository checks first; the changed lines are right."
+      }
+    },
+    {
+      "repo": "Sasu8823/Hairdresser_matching_service-backend",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624048377 (before, main 89f1c0ed) and 40628692513 (after, 7af4994d), subsets/heldout-30.json, no AI. Before: a scan stop on payment_method_types with no patch; after: the confirmed call in index.js renames on its own client, which sets no apiVersion, with stripe ^11.0.0 to 23.0.0; routes/stripe.js:26 is a review-confidence call and keeps payment_method_types, listed in the draft. No lockfile, so the patch is untested. migration.patch applied to a shallow clone at the pinned commit and read in full",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes for index.js: checkout.sessions.create sends allowed_payment_method_types: ['card'].",
+        "bothVersions": "not applicable: no client sets apiVersion; the upgrade moves the version both clients send.",
+        "nothingUnrelated": "yes: the one rename and the stripe dependency in package.json.",
+        "pleaseCheck": "routes/stripe.js:26 still sends payment_method_types after the upgrade; the draft says \"Don't merge until you change the calls below\" and names it.",
+        "upgradeComplete": "yes in package.json (no lockfile is committed).",
+        "wouldMerge": "not until routes/stripe.js:26 is changed by hand, as the draft says."
+      }
     }
   ]
 }

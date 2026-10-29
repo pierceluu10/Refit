@@ -17851,6 +17851,272 @@
           "reason": "A configured limit or setting, not a measurement."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: rows with a rename | 162 | 167 |",
+      "values": [
+        {
+          "says": "162",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "167",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: renamed call sites | 204 | 220 |",
+      "values": [
+        {
+          "says": "204",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "220",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: rows with a rename | 21 | 22 |",
+      "values": [
+        {
+          "says": "21",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "22",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| subset (9 rows): rows with a rename | 0 | 4 |",
+      "values": [
+        {
+          "says": "9",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "4",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** l2-push-249: before [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392), after [40628689742](https://github.com/refit-dev/refit-bench/actions/runs/40628689742) (`gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=7af4994dbf21f374460f54f557f7937f34af8f12 -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249`). heldout-30: before [40624048377](https://github.com/refit-dev/refit-bench/actions/runs/40624048377), after [40628692513](https://github.com/refit-dev/refit-bench/actions/runs/40628692513) (`-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30`). Subset `subsets/pmt-version-path.json`, the 9 l2-push-249 rows whose draft still sent `payment_method_types` with an untraced or kept API version on main (rule in the file): before [40628750627](https://github.com/refit-dev/refit-bench/actions/runs/40628750627) at `9850ead0` (main plus the list), after [40628753242](https://github.com/refit-dev/refit-bench/actions/runs/40628753242) at `4f3f9cec` (`-f list=subsets/pmt-version-path.json -f offset=0 -f size=1 -f count=9`). All rows came back in all six runs. Renames are counted as `+allowed_payment_method_types` lines in each `migration.patch`.",
+      "values": [
+        {
+          "says": "9",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40628689742",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40624048377",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40628692513",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40628750627",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40628753242",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **No outcome changed; nothing validated was lost.** `node scripts/stripe-benchmark-compare.mjs` finds the same outcome on 249 of 249 and 30 of 30 rows. 244 of 249 l2-push-249 rows and 29 of 30 heldout rows are identical in every compared field. No row lost a rename.",
+      "values": [
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "244",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "29",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **6 rows gain renames (17 call sites).**",
+      "values": [
+        {
+          "says": "6",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "17",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- Bizgojo/drivetimetales: 5 renames. Main kept the `2023-10-16` pins after the pin move failed `tsc` (`api-version-kept`); now every traced pin moves to endive with stripe 14.25.0 → 23.0.0 and `tsc` passes on both sides (grade C).",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- hackerai-tech/hackerai: 2 renames on a lazily created client with no `apiVersion`, plus stripe 22.6.2 → 23.0.0; was a scan stop with no patch, now an untested draft (dependency preparation fails).",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- Sasu8823/Hairdresser_matching_service-backend (heldout-30): the confirmed `index.js` call renames; `routes/stripe.js:26` is a review-confidence call and keeps stopping, named in the draft; untested (no lockfile).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- qesmsep/noir-crm-dashboard: 7 sites (literal lists with `card` and `us_bank_account`, `['us_bank_account']` and the computed `[payment_method_type]`); its baseline fails, as before.",
+      "values": [
+        {
+          "says": "7",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- kondax-com/Bocker: 1 rename; the subset pair shows the patch otherwise byte-identical. In the l2-push-249 after run its own timing test failed on the original code (`expected 199.07 to be less than 100`), so it ended `baseline-failed` instead of main's regression; neither validates.",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **What still stops.** On l2-push-249 the larger blockers are unchanged: stripe-node upgrades refused by dependency preparation (18 rows) and pin moves that fail the repository's checks (9). Getters that return a module client (puneethkotha/Zapd, geallenboy/ai-saas-template) and unconfirmed clients still stop.",
+      "values": [
+        {
+          "says": "18",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
     }
   ]
 }
