@@ -360,7 +360,7 @@
               "file": "src/actions/ana.ts",
               "line": 102,
               "rule": "gemini-swap-target",
-              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools\u2026), or its result is not one `const`; the guide maps those to another config shape.",
+              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools…), or its result is not one `const`; the guide maps those to another config shape.",
               "blocking": true
             },
             {
@@ -1288,14 +1288,14 @@
               "file": "functions/src/yggi/chat.ts",
               "line": 29,
               "rule": "gemini-swap-target",
-              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools\u2026), or its result is not one `const`; the guide maps those to another config shape.",
+              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools…), or its result is not one `const`; the guide maps those to another config shape.",
               "blocking": true
             },
             {
               "file": "functions/src/yggi/chat.ts",
               "line": 57,
               "rule": "gemini-swap-target",
-              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools\u2026), or its result is not one `const`; the guide maps those to another config shape.",
+              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools…), or its result is not one `const`; the guide maps those to another config shape.",
               "blocking": true
             },
             {
@@ -1323,21 +1323,21 @@
               "file": "lib/gemini/client.ts",
               "line": 8,
               "rule": "gemini-swap-target",
-              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools\u2026), or its result is not one `const`; the guide maps those to another config shape.",
+              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools…), or its result is not one `const`; the guide maps those to another config shape.",
               "blocking": true
             },
             {
               "file": "lib/gemini/client.ts",
               "line": 14,
               "rule": "gemini-swap-target",
-              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools\u2026), or its result is not one `const`; the guide maps those to another config shape.",
+              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools…), or its result is not one `const`; the guide maps those to another config shape.",
               "blocking": true
             },
             {
               "file": "lib/gemini/client.ts",
               "line": 28,
               "rule": "gemini-swap-target",
-              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools\u2026), or its result is not one `const`; the guide maps those to another config shape.",
+              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools…), or its result is not one `const`; the guide maps those to another config shape.",
               "blocking": true
             },
             {
@@ -2435,7 +2435,7 @@
               "file": "app/api/cases/[caseId]/generate-pack/route.ts",
               "line": 155,
               "rule": "gemini-swap-target",
-              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools\u2026), or its result is not one `const`; the guide maps those to another config shape.",
+              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools…), or its result is not one `const`; the guide maps those to another config shape.",
               "blocking": true
             },
             {
@@ -2463,7 +2463,7 @@
               "file": "app/api/router/assess/route.ts",
               "line": 51,
               "rule": "gemini-swap-target",
-              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools\u2026), or its result is not one `const`; the guide maps those to another config shape.",
+              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools…), or its result is not one `const`; the guide maps those to another config shape.",
               "blocking": true
             },
             {
@@ -2491,7 +2491,7 @@
               "file": "app/api/router/classify/route.ts",
               "line": 82,
               "rule": "gemini-swap-target",
-              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools\u2026), or its result is not one `const`; the guide maps those to another config shape.",
+              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools…), or its result is not one `const`; the guide maps those to another config shape.",
               "blocking": true
             },
             {
@@ -2519,7 +2519,7 @@
               "file": "app/api/router/questions/route.ts",
               "line": 50,
               "rule": "gemini-swap-target",
-              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools\u2026), or its result is not one `const`; the guide maps those to another config shape.",
+              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools…), or its result is not one `const`; the guide maps those to another config shape.",
               "blocking": true
             },
             {
@@ -2547,7 +2547,7 @@
               "file": "app/api/transcribe/route.ts",
               "line": 32,
               "rule": "gemini-swap-target",
-              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools\u2026), or its result is not one `const`; the guide maps those to another config shape.",
+              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools…), or its result is not one `const`; the guide maps those to another config shape.",
               "blocking": true
             },
             {
@@ -2879,7 +2879,7 @@
               "file": "src/lib/gemini.ts",
               "line": 20,
               "rule": "gemini-swap-target",
-              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools\u2026), or its result is not one `const`; the guide maps those to another config shape.",
+              "reason": "getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools…), or its result is not one `const`; the guide maps those to another config shape.",
               "blocking": true
             },
             {

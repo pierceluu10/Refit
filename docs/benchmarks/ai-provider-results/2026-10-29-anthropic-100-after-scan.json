@@ -403,7 +403,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -422,7 +422,7 @@
               "family": "credentials",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "`headers: { \"X-Api-Key\": otherKey }` in a request\u2019s options no longer replaces the client\u2019s key: both keys go out.",
+              "quote": "`headers: { \"X-Api-Key\": otherKey }` in a request’s options no longer replaces the client’s key: both keys go out.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "v1 sends the API key as `Authorization: Bearer`; code that sets or clears `X-Api-Key` stops for review.",
@@ -885,7 +885,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -939,7 +939,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/release-notes/api",
               "capturedAt": "2026-10-29",
-              "quote": "We\u2019ve retired the 1M token context window beta (`context-1m-2025-08-07`) for Claude Sonnet 4.5 and Claude Sonnet 4."
+              "quote": "We’ve retired the 1M token context window beta (`context-1m-2025-08-07`) for Claude Sonnet 4.5 and Claude Sonnet 4."
             }
           },
           {
@@ -1019,7 +1019,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -1038,7 +1038,7 @@
               "family": "credentials",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "`headers: { \"X-Api-Key\": otherKey }` in a request\u2019s options no longer replaces the client\u2019s key: both keys go out.",
+              "quote": "`headers: { \"X-Api-Key\": otherKey }` in a request’s options no longer replaces the client’s key: both keys go out.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "v1 sends the API key as `Authorization: Bearer`; code that sets or clears `X-Api-Key` stops for review.",
@@ -1221,7 +1221,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don\u2019t support it."
+              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don’t support it."
             }
           }
         ],
@@ -1418,7 +1418,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -1515,7 +1515,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -1569,7 +1569,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don\u2019t support it."
+              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don’t support it."
             }
           }
         ],
@@ -1610,7 +1610,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don\u2019t support it."
+              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don’t support it."
             },
             "ambiguous": true
           }
@@ -1722,7 +1722,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don\u2019t support it."
+              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don’t support it."
             }
           },
           {
@@ -1738,7 +1738,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don\u2019t support it."
+              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don’t support it."
             }
           }
         ],
@@ -1872,7 +1872,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don\u2019t support it."
+              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don’t support it."
             },
             "ambiguous": true
           },
@@ -1889,7 +1889,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don\u2019t support it."
+              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don’t support it."
             },
             "ambiguous": true
           },
@@ -1906,7 +1906,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don\u2019t support it."
+              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don’t support it."
             },
             "ambiguous": true
           },
@@ -1923,7 +1923,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don\u2019t support it."
+              "quote": "The legacy Text Completions API is removed from the TypeScript, Go, Java, and Ruby SDKs and from the CLI. Newer models and features don’t support it."
             },
             "ambiguous": true
           }
@@ -2178,7 +2178,7 @@
               "family": "credentials",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "`headers: { \"X-Api-Key\": otherKey }` in a request\u2019s options no longer replaces the client\u2019s key: both keys go out.",
+              "quote": "`headers: { \"X-Api-Key\": otherKey }` in a request’s options no longer replaces the client’s key: both keys go out.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "v1 sends the API key as `Authorization: Bearer`; code that sets or clears `X-Api-Key` stops for review.",
@@ -2318,7 +2318,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -2565,7 +2565,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -3157,7 +3157,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -3304,7 +3304,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -3493,7 +3493,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -3928,7 +3928,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -4050,7 +4050,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -4404,7 +4404,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -4905,7 +4905,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -5326,7 +5326,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -5429,7 +5429,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/release-notes/api",
               "capturedAt": "2026-10-29",
-              "quote": "We\u2019ve retired the 1M token context window beta (`context-1m-2025-08-07`) for Claude Sonnet 4.5 and Claude Sonnet 4."
+              "quote": "We’ve retired the 1M token context window beta (`context-1m-2025-08-07`) for Claude Sonnet 4.5 and Claude Sonnet 4."
             }
           },
           {
@@ -5461,7 +5461,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/release-notes/api",
               "capturedAt": "2026-10-29",
-              "quote": "We\u2019ve retired the 1M token context window beta (`context-1m-2025-08-07`) for Claude Sonnet 4.5 and Claude Sonnet 4."
+              "quote": "We’ve retired the 1M token context window beta (`context-1m-2025-08-07`) for Claude Sonnet 4.5 and Claude Sonnet 4."
             }
           }
         ],
@@ -5606,7 +5606,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -5625,7 +5625,7 @@
               "family": "credentials",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "`headers: { \"X-Api-Key\": otherKey }` in a request\u2019s options no longer replaces the client\u2019s key: both keys go out.",
+              "quote": "`headers: { \"X-Api-Key\": otherKey }` in a request’s options no longer replaces the client’s key: both keys go out.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "v1 sends the API key as `Authorization: Bearer`; code that sets or clears `X-Api-Key` stops for review.",
@@ -5805,7 +5805,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -5999,7 +5999,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -6223,7 +6223,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -6733,7 +6733,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/release-notes/api",
               "capturedAt": "2026-10-29",
-              "quote": "We\u2019ve retired the 1M token context window beta (`context-1m-2025-08-07`) for Claude Sonnet 4.5 and Claude Sonnet 4."
+              "quote": "We’ve retired the 1M token context window beta (`context-1m-2025-08-07`) for Claude Sonnet 4.5 and Claude Sonnet 4."
             }
           },
           {
@@ -6765,7 +6765,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/release-notes/api",
               "capturedAt": "2026-10-29",
-              "quote": "We\u2019ve retired the 1M token context window beta (`context-1m-2025-08-07`) for Claude Sonnet 4.5 and Claude Sonnet 4."
+              "quote": "We’ve retired the 1M token context window beta (`context-1m-2025-08-07`) for Claude Sonnet 4.5 and Claude Sonnet 4."
             }
           }
         ],
@@ -6910,7 +6910,7 @@
               "family": "removed-parameter",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter\u2019s default value.",
+              "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
@@ -6929,7 +6929,7 @@
               "family": "credentials",
               "status": "review",
               "page": "anthropic-2026-10-21",
-              "quote": "`headers: { \"X-Api-Key\": otherKey }` in a request\u2019s options no longer replaces the client\u2019s key: both keys go out.",
+              "quote": "`headers: { \"X-Api-Key\": otherKey }` in a request’s options no longer replaces the client’s key: both keys go out.",
               "checkedAt": "2026-10-29",
               "origin": "docs",
               "summary": "v1 sends the API key as `Authorization: Bearer`; code that sets or clears `X-Api-Key` stops for review.",
@@ -7180,7 +7180,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           }
         ],
@@ -7215,7 +7215,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7231,7 +7231,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7247,7 +7247,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7258,12 +7258,12 @@
             "breaking": true,
             "file": "LLM.py",
             "line": 57,
-            "text": "def complete_text_claude(prompt, stop_sequences=[anthropic.HUMAN_PROMPT], model=\"claude-v1\", max_tokens_to_sample = 2000, temperature=0.5, log_file=None, **kwa\u2026",
+            "text": "def complete_text_claude(prompt, stop_sequences=[anthropic.HUMAN_PROMPT], model=\"claude-v1\", max_tokens_to_sample = 2000, temperature=0.5, log_file=None, **kwa…",
             "summary": "Python calls Text Completions. Python is report only.",
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7279,7 +7279,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7295,7 +7295,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7311,7 +7311,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             },
             "ambiguous": true
           },
@@ -7328,7 +7328,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7344,7 +7344,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             },
             "ambiguous": true
           },
@@ -7361,7 +7361,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7377,7 +7377,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7393,7 +7393,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7409,7 +7409,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7425,7 +7425,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7441,7 +7441,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7457,7 +7457,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           }
         ],
@@ -7659,7 +7659,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7675,7 +7675,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7691,7 +7691,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           },
           {
@@ -7707,7 +7707,7 @@
             "source": {
               "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21",
               "capturedAt": "2026-10-29",
-              "quote": "Newer models and features don\u2019t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
+              "quote": "Newer models and features don’t support it. Use the [Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages) instead."
             }
           }
         ],

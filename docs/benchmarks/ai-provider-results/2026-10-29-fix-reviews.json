@@ -176,5 +176,9 @@
   ],
   "corrections": [
     "2026-10-29: one verdict changed from wrong to correct; the review script now prints replacements[].parameters."
-  ]
+  ],
+  "recheckedAt": {
+    "commit": "27ad6393 (bench/ai-provider-after-4)",
+    "result": "15 of the 16 sampled rows produce the identical fix (14 correct, 1 partial, 0 wrong); the OpenAI partial (legacy functions flow) now stops instead of proposing a fix."
+  }
 }

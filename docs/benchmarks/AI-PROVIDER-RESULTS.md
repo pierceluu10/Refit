@@ -1,5 +1,28 @@
 # AI-provider benchmark results
 
+## October 29, later: after-4 re-run (latest engine heads)
+
+This is the same scan-only harness (no validation, no AI) on `bench/ai-provider-after-4` (`27ad6393`). It holds the before commit with #402 `8b0f6fb6`, #403 `df0b070b`, #404 `c5dd595f` and #406 `3d615602` (ai-models), and `feat/ai-gemini-swap` `2bf68181` (ai-surfaces, carrying #407 and #412). Per owner decision A, an Anthropic SDK upgrade blocked only by sampling parameters is now reported as **"SDK upgrade available, not required (would change outputs)"** (`optional-upgrade`). It is neither a failure nor a stop, and it is left out of the affected denominator. All earlier passes were recounted with the same outcome rule (`rowOutcome`), and nothing changed for them. Rows: `ai-provider-results/2026-10-29-*-after4-scan.json`.
+
+|                                              | openai-100 after → after-4 | anthropic-100 | gemini-30 |
+| -------------------------------------------- | -------------------------- | ------------- | --------- |
+| Fix proposed (JS/TS)                         | 19 → 18                    | 12 → 12       | 2 → 2     |
+| Needs review                                 | 40 → 41                    | 32 → 29       | 14 → 14   |
+| **SDK upgrade available, not required**      | 0                          | **0 → 3**     | 0         |
+| Detection only (Python) / unaffected / error | 24 / 14 / 3                | 17 / 33 / 6   | 7 / 6 / 1 |
+| Affected, without optional upgrades          | 83                         | 58            | 23        |
+| **Upper bound: proposed / affected**         | **22%**                    | **21%**       | **9%**    |
+| Upper bound: proposed / affected JS/TS       | 31%                        | 29%           | 12%       |
+
+- **OpenAI 19 → 18** is the earlier partial verdict fixed as intended. A legacy `functions`/`function_call` flow now stops as a whole instead of swapping only its follow-up call.
+- **Anthropic.** The `anthropic-ts-x-api-key-header` blocker is gone (10 → 0). 26 sampling stops are now optional upgrades, and 3 rows move from needs-review to optional upgrade. 42 sampling stops still block 19 rows, because their bodies are untraced or opaque, so it is unknown whether they send the parameters. No Anthropic SDK migration produces edits yet.
+- **OpenAI SDK migrations are unchanged** (16 rows, 72 edits, 10 blocked). `openai-node-v5-file-from-path` still blocks 16 times, so these sites are not the one-argument `fileFromPath(p)` form that is now mapped. `v5-web-response` blocks 7 times (it was 5).
+- **Gemini is unchanged.** `gemini-swap-target` blocks the same 12 rows (89 stops, up from 77), and the sampled swap still keeps `gemini-pro`, which is not in the registry.
+- **Hand-check re-verified at after-4.** The 15 sampled fixes still proposed are identical to the ones reviewed below: 14 correct, 1 partial (the Gemini swap that keeps `gemini-pro`), **0 wrong**. The old OpenAI partial no longer produces a fix.
+- **Alerts are unchanged:** 19 `ft:` and 4 configuration (OpenAI), 12 configuration (Anthropic), 10 embedding (Gemini). **AI cost: $0.** The new `ai-migrations --ai-surfaces` lane for OpenAI Completions and Assistants runs only on Actions with `ai=true`, so it is not in these numbers.
+
+Updated ranking (each item is designed on the dev sets): (1) merge refit-bench #12, #10 and #11 and run validation; (2) the 19 Anthropic rows still blocked by sampling on untraced bodies; (3) Gemini `gemini-swap-target` (12 rows) plus `gemini-pro` and Gemini 1.0 in the registry; (4) custom-endpoint and base-URL stops (owner decision, held for Furqan); (5) the 16 OpenAI `fileFromPath` forms that are not mapped yet; (6) measure the Completions/Assistants AI lane on Actions.
+
 ## October 29: scan-only before and after passes
 
 The first runs of the measurement sets in `AI-PROVIDER-SETS.md`: `openai-100`, `anthropic-100` and `gemini-30`. Rows, verdicts and harness records are in `ai-provider-results/`.
