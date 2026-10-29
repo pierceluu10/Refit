@@ -404,6 +404,28 @@ it('names the declaration a pnpm lockfile has not caught up with', () => {
     'zod is in package.json dependencies but not in pnpm-lock.yaml.',
   );
 });
+it('reads a name declared in two sections as pnpm records it, once under the higher section', () => {
+  // pnpm keeps a dependency also listed in devDependencies only under dependencies, and an
+  // optional one only under optionalDependencies, whatever the lower section's range says.
+  const both = scenario();
+  both.manifest.devDependencies = { stripe: '^10.0.0' };
+  expect(validate(both)).toMatchObject({ packages: 1 });
+  const optional = scenario();
+  optional.manifest.optionalDependencies = { stripe: '10.17.0' };
+  optional.lock.importers['.'] = {
+    optionalDependencies: optional.lock.importers['.'].dependencies,
+  };
+  expect(validate(optional)).toMatchObject({ packages: 1 });
+  // The higher section is still checked: its range must be the one the lockfile records.
+  const higher = scenario();
+  higher.manifest.devDependencies = { stripe: '10.17.0' };
+  higher.manifest.dependencies.stripe = '^10.17.0';
+  expect(() => validate(higher)).toThrow('stripe is "^10.17.0" in package.json');
+  // A name only in devDependencies must still be recorded there.
+  const dev = scenario();
+  dev.manifest.devDependencies = { zod: '3.23.8' };
+  expect(() => validate(dev)).toThrow('zod is in package.json devDependencies but not in');
+});
 it('names the unsupported pnpm setting and where it is set', () => {
   const sample = scenario();
   sample.manifest.pnpm = {
