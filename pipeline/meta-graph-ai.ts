@@ -326,14 +326,30 @@ export async function reconstructGraphCalls(
     if (!sites.has(`${call.file}:${call.line}`)) sites.set(`${call.file}:${call.line}`, call);
   const results: GraphReconstruction[] = [];
   for (const call of sites.values())
-    results.push(
-      await aiReconstructGraphCall({
-        call,
-        sources: reconstructionSources(files, call.file),
-        ai,
-        request,
-      }),
-    );
+    try {
+      results.push(
+        await aiReconstructGraphCall({
+          call,
+          sources: reconstructionSources(files, call.file),
+          ai,
+          request,
+        }),
+      );
+    } catch (error) {
+      // An unreachable model or a spent budget leaves the scan's own result: every site not yet
+      // read is recorded with the error, and the run goes on without AI.
+      const reason = error instanceof Error ? error.message : String(error);
+      for (const rest of [...sites.values()].slice(results.length))
+        results.push({
+          file: rest.file,
+          line: rest.line,
+          status: 'error',
+          model: ai.model,
+          costUsd: null,
+          reason,
+        });
+      break;
+    }
   return results;
 }
 

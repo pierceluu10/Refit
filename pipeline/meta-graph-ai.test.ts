@@ -174,3 +174,22 @@ describe('AI reconstruction of unread Graph requests', () => {
     expect(sources.map((source) => source.path)).toEqual(['src/a.ts', 'src/lib/b.ts']);
   });
 });
+
+describe('an unreachable model', () => {
+  it('records every remaining site as an error and keeps the scan result', async () => {
+    const { reconstructGraphCalls } = await import('./meta-graph-ai.ts');
+    const results = await reconstructGraphCalls(
+      files,
+      [unread(), unread({ line: 5 })],
+      AI,
+      (async () => {
+        throw new Error('HTTP 429 (credit_balance_exhausted)');
+      }) as never,
+    );
+    expect(results.map((item) => [item.line, item.status])).toEqual([
+      [3, 'error'],
+      [5, 'error'],
+    ]);
+    expect(applyReconstructions([unread()], results)[0].path).toBeNull();
+  });
+});
