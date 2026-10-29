@@ -611,7 +611,11 @@ export async function runWorkflow(options: {
     if (!publication && versionBump && report.patch.generator === 'deterministic')
       return await finish(
         'version-bump',
-        `Baseline and patched checks passed for the version bump${needsReview ? ', and its draft is [Needs review] for its evidence' : ''}. Review artifacts are ready; publication was not requested.`,
+        `${
+          report.validation.status === 'passed'
+            ? 'Baseline and patched checks passed for the version bump'
+            : `The tests already failed on the original code and the version bump adds no failure to them; evidence grade ${proofLevel(report)} covers its changes`
+        }${needsReview ? ', and its draft is [Needs review] for its evidence' : ''}. Review artifacts are ready; publication was not requested.`,
         runId,
       );
     if (!publication && needsReview)

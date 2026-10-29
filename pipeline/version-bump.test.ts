@@ -370,6 +370,9 @@ it('ends a bump whose tests already failed as version-bump only when it adds no 
     allowUnresolved: true,
   });
   expect(proven.manifest.status).toBe('version-bump');
+  expect(proven.manifest.reason).toMatch(
+    /^The tests already failed on the original code and the version bump adds no failure to them; evidence grade C covers its changes\./,
+  );
   for (const [newFailures, letter] of [
     [['× sends the receipt'], 'C'],
     [null, 'C'],
