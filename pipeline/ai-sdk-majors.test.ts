@@ -144,9 +144,23 @@ module.exports = { openai };
     expect(changed['routes/audio.js']).toContain('return response.text;');
   });
 
+  it('maps organization and basePath to the v4 client options', async () => {
+    const { proposal, changed } = await propose('3.3.0', {
+      'c.js': `const { Configuration, OpenAIApi } = require('openai');
+const basePath = process.env.OPENAI_PROXY;
+const openai = new OpenAIApi(new Configuration({ apiKey: process.env.K, organization: 'org-1', basePath }));
+module.exports = async () => (await openai.listModels()).data.data;
+`,
+    });
+    expect(proposal.stops).toEqual([]);
+    expect(changed['c.js']).toContain(
+      "const openai = new OpenAI({ apiKey: process.env.K, organization: 'org-1', baseURL: basePath });",
+    );
+  });
+
   it('stops where the guide gives no mapping, and never edits those sites', async () => {
     const source = `import { Configuration, OpenAIApi, ChatCompletionRequestMessage } from 'openai';
-const openai = new OpenAIApi(new Configuration({ apiKey: 'k', basePath: 'https://proxy' }));
+const openai = new OpenAIApi(new Configuration({ apiKey: 'k', baseOptions: { timeout: 1 } }));
 export async function run(messages: ChatCompletionRequestMessage[]) {
   const response = await openai.createChatCompletion({ model: 'gpt-4o', messages }, { responseType: 'stream' });
   try {
@@ -604,17 +618,51 @@ export const forward = (key: string) => fetch('https://example.test', { headers:
     ]);
   });
 
-  it('blocks on a declared platform package', async () => {
-    const proposal = await anthropic(
+  it('moves a declared platform package with the upgrade, and stops on what v1 rejects there', async () => {
+    const declared = await anthropic(
       '0.79.0',
       {
         'a.ts':
-          "import { AnthropicVertex } from '@anthropic-ai/vertex-sdk';\nexport const c = new AnthropicVertex();\n",
+          "import { AnthropicVertex } from '@anthropic-ai/vertex-sdk';\nexport const c = new AnthropicVertex({ region: 'us-east5' });\n",
       },
       { '@anthropic-ai/vertex-sdk': '^0.14.0' },
     );
-    expect(proposal.stops).toEqual([
-      expect.objectContaining({ rule: 'anthropic-ts-companions', blocking: true }),
+    expect(declared.stops).toEqual([]);
+    expect(declared.together).toEqual(['@anthropic-ai/vertex-sdk']);
+    const undeclared = await anthropic('0.79.0', {
+      'a.ts':
+        "import { AnthropicBedrock } from '@anthropic-ai/bedrock-sdk';\nexport const c = new AnthropicBedrock();\n",
+    });
+    expect(undeclared.stops).toEqual([
+      expect.objectContaining({
+        rule: 'anthropic-ts-companions',
+        blocking: true,
+        reason: expect.stringContaining('not declared'),
+      }),
+    ]);
+    const credentials = await anthropic(
+      '0.79.0',
+      {
+        'a.ts':
+          "import { AnthropicVertex } from '@anthropic-ai/vertex-sdk';\nexport const c = new AnthropicVertex({ apiKey: 'k' });\n",
+      },
+      { '@anthropic-ai/vertex-sdk': '^0.14.0' },
+    );
+    const opts = await anthropic(
+      '0.79.0',
+      {
+        'a.ts':
+          "import { AnthropicVertex } from '@anthropic-ai/vertex-sdk';\nconst opts: Record<string, string> = { region: 'us-east5' };\nif (process.env.P) opts.projectId = process.env.P;\nexport const c = new AnthropicVertex(opts);\n",
+      },
+      { '@anthropic-ai/vertex-sdk': '^0.14.0' },
+    );
+    expect(opts.stops).toEqual([]);
+    expect(credentials.stops).toEqual([
+      expect.objectContaining({
+        rule: 'anthropic-ts-platform-credentials',
+        blocking: true,
+        line: 2,
+      }),
     ]);
   });
 });

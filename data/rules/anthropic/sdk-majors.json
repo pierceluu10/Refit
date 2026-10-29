@@ -32,12 +32,12 @@
     {
       "rule": "anthropic-ts-companions",
       "family": "companion-packages",
-      "status": "review",
+      "status": "auto",
       "page": "anthropic-2026-10-21",
       "quote": "v1 of `@anthropic-ai/bedrock-sdk`, `@anthropic-ai/vertex-sdk`, `@anthropic-ai/foundry-sdk`, `@anthropic-ai/aws-sdk`, and `@anthropic-ai/google-cloud-sdk` needs v1 of `@anthropic-ai/sdk`",
       "checkedAt": "2026-10-29",
       "origin": "docs",
-      "summary": "A platform client package must move to v1 in the same upgrade; Refit does not move them together yet, so the upgrade stops.",
+      "summary": "A platform client package declared at the root moves to its newest v1 in the same upgrade, as v1 of each needs v1 of @anthropic-ai/sdk.",
       "data": {
         "packages": [
           "@anthropic-ai/bedrock-sdk",
@@ -45,6 +45,25 @@
           "@anthropic-ai/foundry-sdk",
           "@anthropic-ai/aws-sdk",
           "@anthropic-ai/google-cloud-sdk"
+        ]
+      }
+    },
+    {
+      "rule": "anthropic-ts-platform-credentials",
+      "family": "credentials",
+      "status": "review",
+      "page": "anthropic-2026-10-21",
+      "quote": "The AWS, Bedrock, and Foundry clients and `AnthropicVertex` throw an `AnthropicError` for a credential option they don’t authenticate with",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "A platform client given a credential option may throw in v1, which accepts only its platform’s credentials; Refit does not judge which ones that platform takes, so it stops",
+      "data": {
+        "options": [
+          "apiKey",
+          "authToken",
+          "credentials",
+          "config",
+          "profile"
         ]
       }
     },

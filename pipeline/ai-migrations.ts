@@ -109,6 +109,7 @@ export async function proposeAiMigrations(
     resolution: { image: options.image, before: options.before, resolve: options.resolve },
     release: options.release,
     companions: (companions?.data.packages as string[] | undefined) ?? [],
+    together: proposal.together,
     replaces: proposal.replaces,
   });
   if ('reason' in result)

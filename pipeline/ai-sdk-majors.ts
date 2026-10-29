@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript-compiler';
 import { analyzeRepository } from './analyzer.ts';
@@ -35,6 +37,8 @@ export interface SdkMajorProposal {
   provider: 'openai' | 'anthropic' | 'gemini';
   // An SDK swap replaces this package with `packageName` (Gemini's @google/generative-ai).
   replaces?: string;
+  // Packages that move to the target major in the same upgrade (Anthropic's platform SDKs).
+  together?: string[];
   packageName: string;
   // The release the root lockfile installs, else the declared range; null when neither is readable.
   installed: string | null;
@@ -441,7 +445,21 @@ function rewriteV3Clients(context: Context, file: string, content: string) {
   // The options object moves to where `new OpenAIApi(` stood: its lines keep their shape, shifted
   // so the closing brace lines up with the statement, as it would have been written there.
   const placed = (options: ts.ObjectLiteralExpression, at: ts.Node) => {
-    const text = options.getText(source);
+    // v3 option names become v4's (`basePath` → `baseURL`), renamed where they are written.
+    const names = (context.rules.get(V3_CLIENT)?.data.options as Record<string, string>) ?? {};
+    const base = options.getStart(source);
+    let text = options.getText(source);
+    for (const property of [...options.properties].reverse()) {
+      const name = property.name && ts.isIdentifier(property.name) ? property.name.text : '';
+      const renamed = names[name];
+      if (!renamed || renamed === name) continue;
+      const start = property.name!.getStart(source) - base;
+      const end = property.name!.getEnd() - base;
+      const replacement = ts.isShorthandPropertyAssignment(property)
+        ? `${renamed}: ${name}`
+        : renamed;
+      text = text.slice(0, start) + replacement + text.slice(end);
+    }
     const lines = text.split('\n');
     if (lines.length === 1) return text;
     const from = /^[ \t]*/.exec(lines.at(-1)!)![0];
@@ -496,7 +514,7 @@ function rewriteV3Clients(context: Context, file: string, content: string) {
             file,
             line,
             V3_CLIENT,
-            'The Configuration sets options other than `apiKey`, or none; the v4 guide maps only `apiKey`, and a v4 client without one reads OPENAI_API_KEY and throws when it is missing.',
+            'The Configuration sets options other than `apiKey`, `organization` and `basePath`, or none; only those map to v4, and a v4 client without a key reads OPENAI_API_KEY and throws when it is missing.',
           );
         }
       } else if (ts.isIdentifier(inner)) {
@@ -540,7 +558,7 @@ function rewriteV3Clients(context: Context, file: string, content: string) {
             file,
             line,
             V3_CLIENT,
-            'The Configuration is not one local `const` that sets only `apiKey` and is used only by this client.',
+            'The Configuration is not one local `const` that sets only `apiKey`, `organization` or `basePath` and is used only by this client.',
           );
         } else {
           const range = statementRange(statement, content);
@@ -1738,13 +1756,77 @@ function sdkHeaderKey(node: ts.Node, header: string) {
   );
 }
 
+// The keys an options argument can hold: an object literal's, or a local `const` holding one plus
+// the keys assigned to it (`opts.region = …`); undefined when it is spread, passed elsewhere or
+// otherwise out of sight.
+function optionKeys(options: ts.Expression, program: ReturnType<typeof fileProgram>) {
+  const value = unwrap(options);
+  if (ts.isObjectLiteralExpression(value))
+    return literalKeys(value) ? [...literalKeys(value)!] : undefined;
+  if (!ts.isIdentifier(value)) return undefined;
+  const symbol = program.checker.getSymbolAtLocation(value);
+  const declaration = symbol?.valueDeclaration;
+  const initializer =
+    declaration &&
+    ts.isVariableDeclaration(declaration) &&
+    declaration.parent.flags & ts.NodeFlags.Const
+      ? declaration.initializer && unwrap(declaration.initializer)
+      : undefined;
+  if (!initializer || !ts.isObjectLiteralExpression(initializer)) return undefined;
+  const keys = literalKeys(initializer);
+  if (!keys) return undefined;
+  let hidden = false;
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isIdentifier(node) &&
+      node !== (declaration as ts.VariableDeclaration).name &&
+      node.text === value.text &&
+      program.checker.getSymbolAtLocation(node) === symbol
+    ) {
+      const parent = node.parent;
+      if (
+        ts.isPropertyAccessExpression(parent) &&
+        parent.expression === node &&
+        ts.isBinaryExpression(parent.parent) &&
+        parent.parent.left === parent &&
+        parent.parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
+      )
+        keys.add(parent.name.text);
+      else if (!(ts.isNewExpression(parent) && parent.arguments?.includes(node))) hidden = true;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(program.source);
+  return hidden ? undefined : [...keys];
+}
+
 // Client options and headers v1 handles differently (one credential, Bearer key).
 function anthropicClients(context: Context, file: string, source: ts.SourceFile) {
+  const program = fileProgram(file, source.getFullText());
   const credentials = context.rules.get('anthropic-ts-one-credential');
   const header = context.rules.get('anthropic-ts-x-api-key-header');
   const compaction = context.rules.get('anthropic-ts-compaction-control');
   const union = context.rules.get('anthropic-ts-message-param-union');
+  const platform = context.rules.get('anthropic-ts-platform-credentials');
   const visit = (node: ts.Node) => {
+    if (
+      platform &&
+      ts.isNewExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      /^Anthropic(?:Bedrock|Vertex|Foundry|AWS|GoogleCloud)/.test(node.expression.text)
+    ) {
+      const [options] = node.arguments ?? [];
+      const keys = options ? optionKeys(options, program) : [];
+      const given = (platform.data.options as string[]).filter((name) => keys?.includes(name));
+      if (given.length || !keys)
+        stop(
+          context,
+          file,
+          lineOf(source, node.getStart()),
+          platform.rule,
+          `${platform.summary} (\`${node.expression.text}\` is given ${given.length ? given.join(', ') : 'options Refit cannot read'}).`,
+        );
+    }
     const line = () => lineOf(source, node.getStart());
     if (
       credentials &&
@@ -1820,10 +1902,30 @@ export async function proposeAnthropicSdkMajor(
       target.rule,
       `${packageName} ${installed} predates ${String(target.data.oldestRelease)}, the rewrite whose API the 1.0 guide starts from.`,
     );
+  // Platform packages declared at the root move to v1 in the same upgrade, as the guide says; one
+  // imported without a root declaration cannot be moved, so it stops.
   const companions = context.rules.get('anthropic-ts-companions');
-  for (const name of (companions?.data.packages as string[]) ?? [])
-    if (repository.files.some((file) => importsPackage(file.content, name)))
-      stop(context, 'package.json', 1, companions!.rule, `${name}: ${companions!.summary}`);
+  const manifest = await readFile(join(directory, 'package.json'), 'utf8')
+    .then((text) => JSON.parse(text) as Record<string, Record<string, string> | undefined>)
+    .catch(() => ({}) as Record<string, Record<string, string> | undefined>);
+  const rootDeclares = (name: string) =>
+    ['dependencies', 'devDependencies'].some(
+      (section) => typeof manifest[section]?.[name] === 'string',
+    );
+  const together: string[] = [];
+  for (const name of (companions?.data.packages as string[]) ?? []) {
+    if (rootDeclares(name)) {
+      together.push(name);
+      context.used.add(companions!.rule);
+    } else if (repository.files.some((file) => importsPackage(file.content, name)))
+      stop(
+        context,
+        'package.json',
+        1,
+        companions!.rule,
+        `${name} is imported but not declared in the root package.json, so it cannot move to v1 with @anthropic-ai/sdk.`,
+      );
+  }
   const analysis = analyzeRepository(repository, [], anthropicAdapter(), {}, [], [], [], [], {
     modelFixClients: true,
   });
@@ -1945,7 +2047,12 @@ export async function proposeAnthropicSdkMajor(
   }
   for (const file of repository.files) {
     if (!SOURCE.test(file.path) || DECLARATION.test(file.path)) continue;
-    if (!files.has(file.path) && !importsPackage(file.content, packageName)) continue;
+    const platforms = (companions?.data.packages as string[] | undefined) ?? [];
+    if (
+      !files.has(file.path) &&
+      ![packageName, ...platforms].some((name) => importsPackage(file.content, name))
+    )
+      continue;
     const { source } = fileProgram(file.path, file.content);
     messageShapes(context, file.path, source);
     anthropicClients(context, file.path, source);
@@ -2019,6 +2126,7 @@ export async function proposeAnthropicSdkMajor(
     stops: context.stops,
     rules: rules.filter((rule) => context.used.has(rule.rule)),
     calls: context.calls,
+    together,
   };
 }
 

@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 29 checkpoint: Anthropic platform packages and v3 client options (unreleased, after 0.39.0)
+
+The `@anthropic-ai/sdk` 1.x upgrade moves declared Anthropic platform packages to v1 with it (2026-10-21 guide), guarded together in the re-resolved lockfile; the openai v3 client rewrite maps `organization` and `basePath` (to `baseURL`), quoted from the v3 `configuration.ts`/`base.ts` and v4 `ClientOptions` sources. Reproduced on DEV: an Anthropic repository declaring the Bedrock and Vertex SDKs now upgrades with no stop; an OpenAI v3 repository's `organization` Configuration now maps. `fileFromPath(path, name)` maps to `toFile(createReadStream(path), name)` (README), and the Gemini swap maps safety settings, chat and countTokens (Google's guide).
+
 ## October 29 checkpoint: AI lane for shut-down OpenAI surfaces, sampling removal, Gemini models (unreleased, after 0.39.0)
 
 Decisions of the coordinating session on Furqan's delegation (2026-10-29). `refit ai-migrations --ai-surfaces` drafts the move of legacy Completions and Assistants calls to Responses with AI, in GitHub Actions only, under deterministic guards and the gates in `docs/AI-MIGRATIONS.md`; unit tests use a mocked model, and no measurement has run. The `@anthropic-ai/sdk` 1.x upgrade does not remove `temperature`, `top_p` or `top_k` (decision A): such repositories work on 0.x and 2023-06-01, so they are reported as "SDK upgrade available, not required (would change outputs)", neither failures nor hidden; the removal exists behind `--remove-sampling` and a quoted Anthropic sunset notice, which no table has yet. The Gemini swap replaces a retired model with the registry's quoted replacement and stops where none is named.
