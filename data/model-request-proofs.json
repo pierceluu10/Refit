@@ -6,139 +6,139 @@
       "provider": "openai",
       "model": "gpt-4.1",
       "api": "chat.completions",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-4.1",
       "api": "responses",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-4o",
       "api": "chat.completions",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-4o",
       "api": "responses",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-5-codex-mini",
       "api": "chat.completions",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-5-codex-mini",
       "api": "responses",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-5.6-luna",
       "api": "chat.completions",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-5.6-luna",
       "api": "responses",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-5.6-sol",
       "api": "chat.completions",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-5.6-sol",
       "api": "responses",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-5.6-terra",
       "api": "chat.completions",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-5.6-terra",
       "api": "responses",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-6-luna",
       "api": "chat.completions",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-6-luna",
       "api": "responses",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-6-sol",
       "api": "chat.completions",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "openai",
       "model": "gpt-6-sol",
       "api": "responses",
-      "reason": "Not run yet: scripts/model-request-proof.mjs has not run in refit-bench Actions for this model."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "anthropic",
       "model": "claude-haiku-4-5-20251001",
       "api": "messages",
-      "reason": "Blocked: refit-dev/refit-bench has no ANTHROPIC_API_KEY repository secret, so Refit cannot send the request with its own key."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "anthropic",
       "model": "claude-opus-4-8",
       "api": "messages",
-      "reason": "Blocked: refit-dev/refit-bench has no ANTHROPIC_API_KEY repository secret, so Refit cannot send the request with its own key."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "anthropic",
       "model": "claude-sonnet-5-5",
       "api": "messages",
-      "reason": "Blocked: refit-dev/refit-bench has no ANTHROPIC_API_KEY repository secret, so Refit cannot send the request with its own key."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "gemini",
       "model": "gemini-3.1-pro-preview",
       "api": "generateContent",
-      "reason": "Blocked: refit-dev/refit-bench has no GEMINI_API_KEY repository secret, so Refit cannot send the request with its own key."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "gemini",
       "model": "gemini-3.5-flash-lite",
       "api": "generateContent",
-      "reason": "Blocked: refit-dev/refit-bench has no GEMINI_API_KEY repository secret, so Refit cannot send the request with its own key."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "gemini",
       "model": "gemini-3.6-flash",
       "api": "generateContent",
-      "reason": "Blocked: refit-dev/refit-bench has no GEMINI_API_KEY repository secret, so Refit cannot send the request with its own key."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     },
     {
       "provider": "gemini",
       "model": "gemini-3.8-flash",
       "api": "generateContent",
-      "reason": "Blocked: refit-dev/refit-bench has no GEMINI_API_KEY repository secret, so Refit cannot send the request with its own key."
+      "reason": "Not run yet: refit-dev/refit-bench#10 (model-proof.yml) must be on refit-bench main before the proof can be dispatched."
     }
   ]
 }
