@@ -37,19 +37,23 @@ async function repository(files: Record<string, string>) {
 const source = (version: string) =>
   `https://developers.facebook.com/docs/graph-api/changelog/version${version.slice(1)}`;
 
+// The casts keep these fixtures valid for ME2's table shape too (nullable version, replacement,
+// appliesToAll, quote and released).
 function change(
-  overrides: Partial<MetaGraphChange> & Pick<MetaGraphChange, 'id' | 'version' | 'kind'>,
+  overrides: Pick<MetaGraphChange, 'id' | 'kind' | 'name'> & { version: string },
 ): MetaGraphChange {
   return {
     node: null,
     edge: null,
     path: null,
-    name: null,
+    replacement: null,
+    appliesToAll: null,
+    quote: 'Quoted.',
     summary: `${overrides.id} changes.`,
     source: source(overrides.version),
     checkedAt: '2026-10-20',
     ...overrides,
-  };
+  } as MetaGraphChange;
 }
 
 // Hypothetical: v18.0 to v25.0, all reviewed unless named.
@@ -63,7 +67,8 @@ function changes(entries: MetaGraphChange[] = [], unread: string[] = []): MetaGr
       source: source(version),
       checkedAt: '2026-10-20',
       note: unread.includes(version) ? 'Not read.' : null,
-    })),
+      released: '2024-01-01',
+    })) as MetaGraphChanges['versions'],
     changes: entries,
   };
 }

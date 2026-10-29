@@ -151,7 +151,10 @@ export function proveGraphRequests(
   const requests = changed.map(({ call, original }): MetaGraphRequestProof => {
     const from = original?.version ?? null;
     const crossed = resolved ? crossedVersions(changes, from, resolved) : [];
-    const inRange = changes.changes.filter((change) => crossed.includes(change.version));
+    // A change with no version applies at every version, the target included.
+    const inRange = changes.changes.filter(
+      (change) => change.version === null || crossed.includes(change.version),
+    );
     const problems = [...unknownParts(call), ...separateChangelog(call)];
     if (resolved && call.version !== null && call.version !== resolved)
       problems.push(`${where(call)}: sends ${call.version}, not the target ${resolved}`);
