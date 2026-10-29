@@ -33,6 +33,7 @@ import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
 import { shopifyProof } from './shopify-proof.ts';
 import { shopifySchema } from './shopify-schemas.ts';
+import { META_GRAPH_PROVIDER, metaGraphEvidence } from './meta-graph-proof.ts';
 import {
   apiVersionSourceBlocked,
   compareApiVersion,
@@ -3286,7 +3287,7 @@ export async function validateMigration(options: {
               : {}),
           })
         : undefined;
-    const grade = ownGrade
+    const checksGrade = ownGrade
       ? validationStatus === 'passed' || !generated
         ? ownGrade
         : {
@@ -3347,7 +3348,7 @@ export async function validateMigration(options: {
                 version: report.apiVersion.after ?? '',
                 schema: shopifySchema(String(afterSpecification.document.graphqlIntrospection)),
               },
-              own: grade,
+              own: checksGrade,
               regression: validationStatus === 'regression',
               diff: proposal.diff,
               summary: 'summary' in proposal ? String(proposal.summary) : '',
@@ -3357,6 +3358,22 @@ export async function validateMigration(options: {
             }),
           )
         : undefined;
+    // Meta Graph patches (meta-graph-proof.ts): the reviewed change table decides whether the checks'
+    // grade stands, read-only calls with Refit's test app can raise it to A, and an advisory AI
+    // review is recorded with its cost.
+    const metaGraph =
+      report.provider === META_GRAPH_PROVIDER && candidateSources
+        ? await metaGraphEvidence({
+            original: originalSources,
+            patched: candidateSources,
+            grade: checksGrade,
+            checksUsable: validationStatus === 'passed' || validationStatus === 'untested',
+            diff: proposal.diff,
+            ai: options.assessment ?? options.aiPatch,
+            environment: process.env,
+          })
+        : undefined;
+    const grade = metaGraph ? metaGraph.grade : checksGrade;
     const typeOracle = await runTypeOracle({
       compareTypeErrors: options.compareTypeErrors,
       command: options.command,
@@ -3516,6 +3533,7 @@ export async function validateMigration(options: {
       ...(signedEvents ? { signedEvents } : {}),
       ...(shopify ? { grade: shopify.grade } : grade ? { grade } : {}),
       ...(shopify ? { shopifyProof: shopify.record } : {}),
+      ...(metaGraph ? { metaGraph: metaGraph.record } : {}),
       attempts,
       repair,
       ...(options.aiPatch ? { aiCostUsd } : {}),
