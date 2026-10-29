@@ -548,9 +548,9 @@ const scopedCheck = (command: readonly string[]) =>
   command[0] === 'sh' &&
   [SCOPED_TSCONFIG, CHECKJS_TSCONFIG].some((name) => (command[2] ?? '').includes(name));
 
-// Whether a clean checkJs type check, on Stripe code the coverage proof shows TypeScript typed,
-// stands in for tests for type-visible contract changes (D2a's rule applied to checked JavaScript).
-// While false, it is recorded as evidence and the draft stays [Needs review] at grade D.
+// Owner decision D2c (Furqan, 2026-10-28): a clean checkJs type check, on Stripe code the coverage
+// proof shows TypeScript typed, stands in for tests for type-visible contract changes, as D2a lets a
+// TypeScript one. False would record it as evidence only, at grade D on a [Needs review] draft.
 export const CHECKJS_STANDS_IN_FOR_TESTS = true;
 
 // A checkJs type check (selectCheck): its result counts only with the coverage proof.
