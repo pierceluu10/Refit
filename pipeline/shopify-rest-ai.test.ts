@@ -132,6 +132,52 @@ describe('AI REST mappings', () => {
     ]);
   });
 
+  it.each([
+    [
+      'an id without gid-number',
+      {
+        fields: [
+          { rest: 'first_name', graphql: 'firstName', convert: '' },
+          { rest: 'id', graphql: 'id', convert: '' },
+        ],
+      },
+      'gid-number',
+    ],
+    [
+      'an enum value',
+      { fields: [{ rest: 'state', graphql: 'state', convert: 'lowercase' }] },
+      'enum',
+    ],
+    ['arguments in the root field', { root: 'customer(id: "gid://shopify/Customer/1")' }, 'root'],
+    ['a dropped path placeholder', { arguments: [] }, 'path:id'],
+    [
+      'a nested object',
+      {
+        fields: [
+          { rest: 'default_address', graphql: 'defaultAddress', convert: '' },
+          { rest: 'default_address.city', graphql: 'city', convert: '' },
+        ],
+      },
+      'nested',
+    ],
+    [
+      'a field argument other than first: 250',
+      { fields: [{ rest: 'first_name', graphql: 'metafield(key: "x").value', convert: '' }] },
+      'arguments',
+    ],
+  ])('refuses %s', async (_, overrides, reason) => {
+    answer.content = mapping(overrides);
+    const { proposals } = await run(
+      source.replace(
+        'customer.first_name',
+        'customer.first_name + customer.id + customer.state + customer.default_address?.city',
+      ),
+    );
+    expect(proposals).toMatchObject([
+      { status: 'refused', reason: expect.stringContaining(reason) },
+    ]);
+  });
+
   it('records a declined proposal', async () => {
     answer.content = mapping({ decline: true, explanation: 'Different rows.' });
     const { proposals } = await run(source);

@@ -41,7 +41,7 @@ Conversions are explicit in the rule:
 - `lowercase`: an enum becomes REST's lower case;
 - `join-comma`: tags become `"a, b"`.
 
-A REST client whose every call was rewritten is removed, and a URL `const` used once moves into the call. REST writes (POST, PUT, DELETE, resource `save()`) are never rewritten.
+A REST client whose every call is rewritten becomes a GraphQL client in its own declaration, so the session is read where and when it was; if any use stays REST, none of its calls are rewritten. A URL `const` used once moves into the call only when both sit in one function and nothing reassigns or redeclares the names it reads. A response held in a `var`, a callback that reads `arguments`, and a dynamic key into a nested object stop the rewrite. REST writes (POST, PUT, DELETE, resource `save()`) are never rewritten.
 
 ## Behaviour differences the draft lists
 
@@ -53,12 +53,13 @@ A REST client whose every call was rewritten is removed, and a URL `const` used 
 
 ## AI for endpoints without a rule
 
-With `--ai-patch`, a GET that Refit understands but no rule covers goes to the model. The model proposes a mapping in the rule format; it writes no code. Refit keeps the mapping only when all of these hold:
+With `--ai-patch`, a GET that Refit understands but no rule covers goes to the model. The model proposes a mapping in the rule format; it writes no code. A kept mapping may rewrite any call in the file that it fully covers, under the same per-call gates as a documented rule. Refit keeps the mapping only when all of these hold:
 
 - the REST resource is in `data/shopify-rest-resources.json`, the field types of `@shopify/shopify-api` 15.0.1's REST resources, generated from the verified tarball by `scripts/shopify-rest-resources.mjs`;
 - every GraphQL path exists on both schemas, and every conversion fits its GraphQL type;
 - every mapped value has the type the REST resource declares. Ids accept numbers, because REST JSON sends numbers where the SDK declares `string`;
-- it sends no constant argument except `null`, since a constant could filter the records;
+- it sends no constant argument except `null`, puts no arguments in its root field, uses no field arguments other than `first: 250`, and takes arguments only from path placeholders, each used exactly once. Any of these could change which records come back;
+- it maps no enum values (REST and GraphQL differ in case) and no nested objects (Refit has no REST types for them), and every numeric REST id read from a GraphQL `ID` converts with `gid-number`;
 - re-running the file with the mapping rewrites that call, with every read produced and the document valid on both schemas.
 
 The repository's type check then runs in validation like any other check. Attempts and costs are recorded under `shopify.restAi`.

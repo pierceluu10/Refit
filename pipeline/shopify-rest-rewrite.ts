@@ -92,7 +92,7 @@ type Transport =
   | { kind: 'fetch'; prefix: Part[]; options?: ts.ObjectLiteralExpression }
   | { kind: 'axios'; prefix: Part[]; receiver: string; config?: ts.ObjectLiteralExpression }
   | { kind: 'remix'; admin: string }
-  | { kind: 'client'; factory: string; session: string; declaration?: ts.VariableStatement }
+  | { kind: 'client'; variable: string; declaration: ts.VariableStatement }
   | { kind: 'resource-remix'; admin: string; operation: string }
   | { kind: 'resource'; factory: string; session: string; operation: string };
 
@@ -116,7 +116,7 @@ export interface RestRewrite {
   edits: SourceEdit[];
   document: string;
   reads: string[];
-  // The REST client declaration this rewrite removed, when every use of it was rewritten.
+  // The REST client construction this rewrite turned into a GraphQL client.
   removedClient?: { line: number };
 }
 
@@ -403,19 +403,28 @@ function declarationScope(node: ts.Node) {
     !ts.isFunctionLike(scope)
   )
     scope = scope.parent;
-  return scope;
+  // A `case` clause's declarations belong to the whole switch.
+  return scope && ts.isCaseClause(scope) ? scope.parent : scope;
 }
 
-const ARRAY_ELEMENT_CALLBACKS = new Set([
+// Array methods whose callback receives elements, those that return an element, and those that
+// return elements of the same array.
+const ARRAY_CALLBACKS = new Set([
   'map',
   'forEach',
   'some',
   'every',
   'flatMap',
   'findIndex',
+  'findLastIndex',
+  'find',
+  'findLast',
+  'filter',
+  'sort',
+  'toSorted',
 ]);
-const ARRAY_ELEMENT_RESULT = new Set(['find', 'at', 'pop', 'shift']);
-const ARRAY_SAME_RESULT = new Set(['filter', 'slice', 'reverse', 'sort', 'concat']);
+const ARRAY_ELEMENT_RESULT = new Set(['find', 'findLast', 'at', 'pop', 'shift']);
+const ARRAY_SAME_RESULT = new Set(['filter', 'slice', 'reverse', 'sort', 'toSorted', 'toReversed']);
 const EXISTENCE_OPERATORS = new Set([
   ts.SyntaxKind.EqualsEqualsEqualsToken,
   ts.SyntaxKind.ExclamationEqualsEqualsToken,
@@ -425,6 +434,29 @@ const EXISTENCE_OPERATORS = new Set([
 
 type Value =
   { kind: 'response' | 'axios' | 'client' | 'resource-all' } | { kind: 'body'; path: string[] };
+
+// Whether an identifier is written: `x = …`, `x += …`, `x++`, or a destructuring target.
+function assigned(use: ts.Identifier) {
+  let node: ts.Node = use;
+  while (
+    ts.isParenthesizedExpression(node.parent) ||
+    ts.isShorthandPropertyAssignment(node.parent) ||
+    ts.isPropertyAssignment(node.parent) ||
+    ts.isArrayLiteralExpression(node.parent) ||
+    ts.isObjectLiteralExpression(node.parent)
+  )
+    node = node.parent;
+  const parent = node.parent;
+  return (
+    (ts.isBinaryExpression(parent) &&
+      parent.left === node &&
+      parent.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+      parent.operatorToken.kind <= ts.SyntaxKind.LastAssignment) ||
+    ((ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
+      (parent.operator === ts.SyntaxKind.PlusPlusToken ||
+        parent.operator === ts.SyntaxKind.MinusMinusToken))
+  );
+}
 
 // Follows the value `node` holds (or a promise of it) to every place the code reads it.
 function follow(
@@ -529,24 +561,34 @@ function follow(
       case 'body': {
         if (called) {
           if (
-            ARRAY_ELEMENT_CALLBACKS.has(name) ||
+            ARRAY_CALLBACKS.has(name) ||
             ARRAY_ELEMENT_RESULT.has(name) ||
-            name === 'filter' ||
-            name === 'find'
+            ARRAY_SAME_RESULT.has(name)
           ) {
             const callback = called.arguments[0] && unwrap(called.arguments[0]);
-            if (callback && (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback))) {
-              const parameter = callback.parameters[0];
-              if (parameter) element(parameter, [...value.path, '[]']);
-              if (ARRAY_ELEMENT_CALLBACKS.has(name))
-                trace.reads.push({ path: value.path, whole: false });
+            if (callback && ARRAY_CALLBACKS.has(name)) {
+              if (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback))
+                return whole('');
+              const element = [...value.path, '[]'];
+              const { parameters } = callback;
+              if (
+                parameters.some((parameter) => parameter.dotDotDotToken) ||
+                /\barguments\b/.test(callback.body.getText())
+              )
+                return void trace.stops.push(
+                  'An array callback reads its arguments in a way Refit does not follow.',
+                );
+              // `sort` compares two elements; other callbacks get (element, index, array).
+              if (parameters[0]) bind(parameters[0], element);
+              if (parameters[1] && name.endsWith('ort')) bind(parameters[1], element);
+              if (parameters[2]) bind(parameters[2], value.path);
             } else if (callback) return whole('');
+            trace.reads.push({ path: value.path, whole: false });
             if (ARRAY_ELEMENT_RESULT.has(name))
               return next(called, { kind: 'body', path: [...value.path, '[]'] });
-            if (name === 'filter') return next(called, value);
+            if (ARRAY_SAME_RESULT.has(name)) return next(called, value);
             return;
           }
-          if (ARRAY_SAME_RESULT.has(name) && name !== 'concat') return next(called, value);
           // A method of a value Refit maps whole (a string's `split`, `toLowerCase`).
           return whole('');
         }
@@ -572,7 +614,7 @@ function follow(
       return void trace.stops.push(
         'A for-of loop over the response assigns to an outside variable.',
       );
-    return element(declaration, [...value.path, '[]']);
+    return bind(declaration, [...value.path, '[]']);
   }
   if (ts.isBinaryExpression(parent)) {
     const operator = parent.operatorToken.kind;
@@ -619,18 +661,15 @@ function follow(
 
   function variable(declaration: ts.VariableDeclaration, to: Value, isPromise: boolean) {
     const list = declaration.parent;
+    // A `var` belongs to the whole function, not the block Refit would search.
+    if (!(list.flags & ts.NodeFlags.BlockScoped))
+      return void trace.stops.push('The response is held in a `var`.');
     if (ts.isIdentifier(declaration.name)) {
       const uses = references(declaration.name, declarationScope(list));
       if (!uses)
         return void trace.stops.push(`Another declaration shadows \`${declaration.name.text}\`.`);
-      if (!(list.flags & ts.NodeFlags.Const))
-        for (const use of uses)
-          if (
-            ts.isBinaryExpression(use.parent) &&
-            use.parent.left === use &&
-            use.parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
-          )
-            return void trace.stops.push(`\`${declaration.name.text}\` is reassigned.`);
+      if (uses.some(assigned))
+        return void trace.stops.push(`\`${declaration.name.text}\` is reassigned.`);
       for (const use of uses) next(use, to, isPromise);
       return;
     }
@@ -645,6 +684,7 @@ function follow(
         declarationScope(ts.findAncestor(pattern, ts.isVariableDeclarationList) ?? pattern),
       );
       if (!uses) return void trace.stops.push(`Another declaration shadows \`${pattern.text}\`.`);
+      if (uses.some(assigned)) return void trace.stops.push(`\`${pattern.text}\` is reassigned.`);
       for (const use of uses) next(use, to);
       return;
     }
@@ -688,7 +728,7 @@ function follow(
     }
   }
 
-  function element(declaration: ts.ParameterDeclaration | ts.VariableDeclaration, path: string[]) {
+  function bind(declaration: ts.ParameterDeclaration | ts.VariableDeclaration, path: string[]) {
     binding(declaration.name, { kind: 'body', path });
   }
 }
@@ -761,8 +801,11 @@ function mapped(rule: RestRule, path: string[]) {
     rest = rest.slice(1);
     if (field.fields) {
       fields = field.fields;
-      if (rest[0] === '[]') rest = rest.slice(1);
-      else if (rest.length) return undefined;
+      // Only a connection's nodes are indexed; an object's dynamic key is not a mapped field.
+      if (rest[0] === '[]') {
+        if (!isList(field)) return undefined;
+        rest = rest.slice(1);
+      } else if (isList(field) && rest.length) return undefined;
     } else leaf = true;
   }
   return { leaf: leaf || false };
@@ -853,6 +896,8 @@ function mapper(
           ? `${value}?.map((${item}${any}) => (${nested}))`
           : `((${item}${any}) => (${item} == null ? ${item} : ${nested}))(${value})`;
       }
+      // REST sends null where a nested GraphQL object is missing; optional chaining gives undefined.
+      if (field.fields || field.graphql.includes('.')) value = `(${value} ?? null)`;
       if (field.convert) {
         used.add(field.convert);
         value = `refit${field.convert.replace(/(^|-)(\w)/g, (_, __, letter: string) => letter.toUpperCase())}(${value})`;
@@ -940,7 +985,13 @@ export function documentProblem(
   schemas: { version: string; schema: GraphQLSchema }[],
 ) {
   for (const { version, schema } of schemas) {
-    const errors = validate(schema, parse(text));
+    let ast;
+    try {
+      ast = parse(text);
+    } catch (error) {
+      return `The GraphQL rewrite does not parse: ${(error as Error).message}`;
+    }
+    const errors = validate(schema, ast);
     if (errors.length)
       return `The GraphQL rewrite does not validate on Admin API ${version}: ${errors[0].message}`;
   }
@@ -1148,7 +1199,7 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
       reads: readText,
     };
     let client: ts.VariableDeclaration | undefined;
-    if (transport.kind === 'client' && transport.declaration) {
+    if (transport.kind === 'client') {
       client = transport.declaration.declarationList.declarations[0];
       const calls =
         references(
@@ -1161,29 +1212,36 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
     }
     pending.push({ result, client });
   }
-  // A REST client every use of which was rewritten is removed; its construction no longer stops.
+  // A REST client becomes a GraphQL client, built where and when it was, only when every use of it
+  // is a rewritten call; otherwise its calls stay REST.
   for (const { result, client } of pending) {
-    if (client) {
-      const record = clientCalls.get(client)!;
-      if (record.rewritten === record.calls.length) {
-        const statement = client.parent.parent as ts.VariableStatement;
-        if (!result.edits.some((edit) => edit.changeId === 'shopify-rest-client')) {
-          const first = pending.find((entry) => entry.client === client)!.result;
-          if (first === result) {
-            const start = statement.getFullStart();
-            result.edits.push({
-              file: result.entry.file,
-              start,
-              end: statement.getEnd(),
-              replacement: '',
-              changeId: 'shopify-rest-client',
-            });
-            result.removedClient = {
-              line: source.getLineAndCharacterOfPosition(statement.getStart()).line + 1,
-            };
-          }
-        }
-      }
+    if (!client) {
+      results.push(result);
+      continue;
+    }
+    const record = clientCalls.get(client)!;
+    if (record.rewritten !== record.calls.length) {
+      results.push({
+        status: 'stopped',
+        entry: result.entry,
+        reason:
+          'The REST client is also used by calls Refit did not rewrite, so its calls stay REST.',
+      });
+      continue;
+    }
+    const construction = unwrap(client.initializer!) as ts.NewExpression;
+    const factory = construction.expression as ts.PropertyAccessExpression;
+    if (pending.find((entry) => entry.client === client)!.result === result) {
+      result.edits.push({
+        file: result.entry.file,
+        start: factory.name.getStart(),
+        end: factory.name.getEnd(),
+        replacement: 'Graphql',
+        changeId: 'shopify-rest-client',
+      });
+      result.removedClient = {
+        line: source.getLineAndCharacterOfPosition(construction.getStart()).line + 1,
+      };
     }
     results.push(result);
   }
@@ -1191,8 +1249,11 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
   for (const entry of options.entries) {
     const node = findNode(source, offset(entry), entry.expression);
     if (!node || !ts.isNewExpression(node)) continue;
-    const removed = pending.some(
-      ({ result }) => result.removedClient && result.removedClient.line === entry.line,
+    const removed = results.some(
+      (result) =>
+        result.status === 'rewritten' &&
+        result.removedClient &&
+        result.removedClient.line === entry.line,
     );
     if (!removed)
       results.push({
@@ -1255,6 +1316,38 @@ function indentOf(source: ts.SourceFile, position: number) {
 
 const SIMPLE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
 
+// Why a URL const's substitutions cannot be evaluated where its single use is instead: the const
+// must sit in the same function as the use, each substitution must be a name or property chain, and
+// no name it starts from may be assigned in that function or declared again between the two.
+function movableUrl(literal: ts.Expression, use: ts.Identifier) {
+  const fn = ts.findAncestor(literal, ts.isFunctionLike);
+  if (!fn || ts.findAncestor(use, ts.isFunctionLike) !== fn)
+    return 'The REST URL constant is declared outside the function that sends it.';
+  const roots = new Set<string>();
+  if (ts.isTemplateExpression(literal))
+    for (const span of literal.templateSpans) {
+      const text = span.expression.getText();
+      if (!SIMPLE.test(text))
+        return 'The REST URL constant computes part of its URL, which Refit would evaluate later.';
+      roots.add(text.split('.')[0]);
+    }
+  let conflict: string | undefined;
+  const visit = (node: ts.Node) => {
+    if (conflict) return;
+    if (ts.isIdentifier(node) && roots.has(node.text) && assigned(node))
+      conflict = `${node.text} is assigned in the function that sends the REST URL.`;
+    const between =
+      node.pos <= use.pos &&
+      use.end <= node.end &&
+      !(node.pos <= literal.pos && literal.end <= node.end);
+    if (between && [...roots].some((root) => declaresDirectly(node, root)))
+      conflict = 'A name in the REST URL is declared again before the request.';
+    ts.forEachChild(node, visit);
+  };
+  visit(fn);
+  return conflict;
+}
+
 function recognize(
   node: ts.Node,
   entry: ShopifyScan['rest'][number],
@@ -1276,10 +1369,13 @@ function recognize(
       const uses = references(declaration.name, declarationScope(declaration.parent));
       if (!uses || uses.length !== 1) return 'The REST URL constant is used more than once.';
       if (
-        (declaration.parent as ts.VariableDeclarationList).declarations.length === 1 &&
-        ts.isVariableStatement(declaration.parent.parent)
+        (declaration.parent as ts.VariableDeclarationList).declarations.length !== 1 ||
+        !ts.isVariableStatement(declaration.parent.parent)
       )
-        removable = declaration.parent.parent;
+        return 'The REST URL constant shares its declaration with other variables.';
+      removable = declaration.parent.parent;
+      const moved = movableUrl(literal, uses[0]);
+      if (moved) return moved;
       literal = unwrapParent(uses[0]) as ts.Expression;
     }
     const call = literal.parent;
@@ -1405,18 +1501,23 @@ function recognize(
         if (apiMajor === undefined)
           return 'Refit cannot tell which @shopify/shopify-api release the repository locks, so it cannot pick the GraphQL client call.';
         const statement = declaration.parent.parent;
+        const receiver = node.expression.expression;
+        if (
+          !ts.isVariableStatement(statement) ||
+          (declaration.parent as ts.VariableDeclarationList).declarations.length !== 1 ||
+          !(declaration.parent.flags & ts.NodeFlags.Const) ||
+          !references(
+            declaration.name as ts.Identifier,
+            declarationScope(declaration.parent),
+          )?.includes(receiver)
+        )
+          return 'The REST client is not a const Refit can follow to this call.';
         return {
           call: node,
           transport: {
             kind: 'client',
-            factory: factory[1],
-            session: session.getText(),
-            declaration:
-              ts.isVariableStatement(statement) &&
-              (declaration.parent as ts.VariableDeclarationList).declarations.length === 1 &&
-              declaration.parent.flags & ts.NodeFlags.Const
-                ? statement
-                : undefined,
+            variable: receiver.text,
+            declaration: statement,
           } as Transport,
           request,
           initial: { kind: 'client' } as Value,
@@ -1517,6 +1618,7 @@ function generate(input: {
       out.push(`const body = { count: result.${rule.root.replace(/\(.*$/, '')}?.count };`);
     else if (rule.kind === 'list')
       out.push(
+        `if (!result.${responseKey(rule.root)}) ${missing}`,
         `const body = { ${rule.envelope}: result.${responseKey(rule.root)}.nodes.map((${node}${any}) => (${record})) };`,
       );
     else {
@@ -1556,7 +1658,7 @@ function generate(input: {
       lines.push(
         `const response = await fetch(${partsSource([...transport.prefix, { text: 'graphql.json' }])}, { ${[...kept, 'method: "POST"', `headers: ${headers}`, `body: JSON.stringify({ query: ${queryText}, variables: ${variables} })`].join(', ')} });`,
         `const json${any} = response.ok ? await response.json() : undefined;`,
-        `if (!json?.data) return new Response(JSON.stringify({ errors: json?.errors ?? response.statusText }), { status: response.ok ? 400 : response.status, statusText: response.statusText });`,
+        `if (!json?.data || json.errors) return new Response(JSON.stringify({ errors: json?.errors ?? response.statusText }), { status: response.ok ? 400 : response.status, statusText: response.statusText });`,
         'const result = json.data;',
         ...bodyLines(
           `return new Response(JSON.stringify({ errors: "Not Found" }), { status: 404 });`,
@@ -1586,7 +1688,7 @@ function generate(input: {
         return 'The request sends no headers, so it carries no access token Refit can reuse.';
       lines.push(
         `const response${any} = await ${transport.receiver}.post(${partsSource([...transport.prefix, { text: 'graphql.json' }])}, { query: ${queryText}, variables: ${variables} }, { ${[...kept, `headers: ${headers}`].join(', ')} });`,
-        'if (!response.data?.data) throw new Error(`Shopify GraphQL request failed: ${JSON.stringify(response.data?.errors)}`);',
+        'if (!response.data?.data || response.data.errors) throw new Error(`Shopify GraphQL request failed: ${JSON.stringify(response.data?.errors)}`);',
         'const result = response.data.data;',
         ...bodyLines('throw new Error("Not Found");'),
         'return { ...response, data: body };',
@@ -1614,8 +1716,12 @@ function generate(input: {
       const major = input.apiMajor;
       if (major === undefined)
         return 'Refit cannot tell which @shopify/shopify-api release the repository locks.';
+      // A client call uses the REST client's own declaration, turned into a GraphQL client; a
+      // resource call builds one from the session its own options pass.
       lines.push(
-        `const graphql = new ${transport.factory}.clients.Graphql({ session: ${transport.session} });`,
+        transport.kind === 'client'
+          ? `const graphql = ${transport.variable};`
+          : `const graphql = new ${transport.factory}.clients.Graphql({ session: ${transport.session} });`,
       );
       if (major >= 9)
         lines.push(
@@ -1670,10 +1776,7 @@ function headerText(entry: ts.ObjectLiteralElementLike) {
     return ts.isStringLiteralLike(contentType) && contentType.text === 'application/json'
       ? object.getText()
       : undefined;
-  const text = object.getText();
-  return object.properties.length
-    ? `${text.replace(/\s*\}$/, '').replace(/,\s*$/, '')}, "Content-Type": "application/json" }`
-    : '{ "Content-Type": "application/json" }';
+  return `{ ...${object.getText()}, "Content-Type": "application/json" }`;
 }
 
 type Category = 'string' | 'number' | 'boolean' | 'array' | 'object' | 'unknown';
@@ -1757,6 +1860,22 @@ export function loadShopifyRestContract(): RestContract {
 // does not fit, or a value whose type differs from what the REST resource declares.
 export function ruleProblems(rule: RestRule, schema: GraphQLSchema, contract: RestContract) {
   const problems: string[] = [];
+  const ai = rule.origin === 'ai';
+  // Every path placeholder feeds exactly one argument, so no request detail is dropped.
+  const placeholders = [...rule.path.matchAll(/\{(\w+)\}/g)].map((match) => `path:${match[1]}`);
+  const sources = Object.values(rule.arguments ?? {}).flatMap((argument) =>
+    argument.from ? [argument.from] : [],
+  );
+  for (const placeholder of placeholders)
+    if (sources.filter((from) => from === placeholder).length !== 1)
+      problems.push(`${rule.id}: ${placeholder} must feed exactly one argument`);
+  if (ai) {
+    if (!/^\w+$/.test(rule.root)) problems.push(`${rule.id}: the root field carries arguments`);
+    for (const [name, argument] of Object.entries(rule.arguments ?? {}))
+      if (argument.from && !argument.from.startsWith('path:'))
+        problems.push(`${rule.id}: argument ${name} comes from ${argument.from}, not a path`);
+  }
+  if (problems.length) return problems;
   const query = schema.getQueryType()!;
   const root = query.getFields()[responseKey(rule.root)];
   if (!root) return [`QueryRoot.${rule.root} does not exist`];
@@ -1772,8 +1891,7 @@ export function ruleProblems(rule: RestRule, schema: GraphQLSchema, contract: Re
   }
   const className = rule.resource?.class ?? rule.restResource;
   const resource = className ? contract.resources[className] : undefined;
-  if (rule.origin === 'ai' && !resource)
-    return [`${rule.id}: no REST resource types to check against`];
+  if (ai && !resource) return [`${rule.id}: no REST resource types to check against`];
   const check = (
     fields: Record<string, RestField>,
     typeName: string,
@@ -1785,7 +1903,28 @@ export function ruleProblems(rule: RestRule, schema: GraphQLSchema, contract: Re
         problems.push(`${rule.id} ${name}: ${category}`);
         continue;
       }
-      if (field.fields) continue;
+      const leaf = leafType(schema, typeName, field)!;
+      if (
+        ai &&
+        field.graphql.split('.').some((segment) => !/^\w+(?:\(first: 250\))?$/.test(segment))
+      )
+        problems.push(`${rule.id} ${name}: a field path carries arguments other than first: 250`);
+      if (field.fields) {
+        if (ai) problems.push(`${rule.id} ${name}: Refit has no REST types for nested fields`);
+        else check(field.fields, leaf.name);
+        continue;
+      }
+      // A numeric REST id read from a GraphQL ID must convert the gid.
+      if (
+        /^(?:id|\w+_id)$/.test(name) &&
+        name !== 'admin_graphql_api_id' &&
+        leaf.name === 'ID' &&
+        field.convert !== 'gid-number'
+      )
+        problems.push(`${rule.id} ${name}: a GraphQL ID needs gid-number for the numeric REST id`);
+      // Enum case differs between REST values; only documented rules map enums.
+      if (ai && isEnumType(leaf))
+        problems.push(`${rule.id} ${name}: model mappings may not map enum values`);
       const rest = declared?.[name];
       if (declared && rest === undefined)
         problems.push(`${rule.id} ${name}: the REST resource declares no such field`);
@@ -1797,6 +1936,17 @@ export function ruleProblems(rule: RestRule, schema: GraphQLSchema, contract: Re
   };
   check(rule.fields, node.name, resource?.fields);
   return problems;
+}
+
+// The named type at the end of a field's GraphQL path.
+function leafType(schema: GraphQLSchema, typeName: string, field: RestField) {
+  let type: GraphQLType | undefined = schema.getType(typeName) as GraphQLType | undefined;
+  for (const segment of field.graphql.split('.')) {
+    const named = type && getNamedType(type);
+    if (!named || (!isObjectType(named) && !isInterfaceType(named))) return undefined;
+    type = named.getFields()[responseKey(segment)]?.type;
+  }
+  return type && getNamedType(type);
 }
 
 // A mapping the model proposed for a stop, already checked against the schemas and REST types.
@@ -1873,24 +2023,14 @@ export async function shopifyRestRewrites(
         proposals.push({ ...proposal, file, line: stop.entry.line });
         if (proposal.status === 'kept') kept.push(proposal.rule!);
       }
+      // Every call the kept mappings cover passes the same per-call gates as a documented rule.
       if (kept.length) {
-        const retried = run(kept);
-        // A model mapping counts only where it rewrites the call it was proposed for.
-        const first = fileResults;
-        fileResults = retried.map((result) => {
-          const proposal = proposals.find(
-            (entry) => entry.file === file && entry.line === result.entry.line && entry.rule,
-          );
-          if (
-            result.status === 'rewritten' &&
-            result.rule.origin === 'ai' &&
-            proposal?.rule !== result.rule
-          )
-            return first.find((entry) => entry.entry === result.entry) ?? result;
-          if (proposal && result.status === 'stopped')
+        fileResults = run(kept);
+        for (const proposal of proposals.filter((entry) => entry.file === file && entry.rule)) {
+          const result = fileResults.find((entry) => entry.entry.line === proposal.line);
+          if (result?.status === 'stopped')
             proposal.reason += ` Refit did not keep it: ${result.reason}`;
-          return result;
-        });
+        }
       }
     }
     results.push(...fileResults);

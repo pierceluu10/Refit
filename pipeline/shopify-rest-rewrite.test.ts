@@ -76,7 +76,7 @@ const RULES: RestRule[] = [
 
 const outcome = (result: { status: string; reason?: string }) => result.reason ?? result.status;
 
-function rewrite(content: string, file = 'app/shop.ts', apiMajor?: number) {
+function rewrite(content: string, file = 'app/shop.ts', apiMajor?: number, rules = RULES) {
   const repository = {
     root: '/repo',
     files: [{ path: file, content }],
@@ -89,7 +89,7 @@ function rewrite(content: string, file = 'app/shop.ts', apiMajor?: number) {
     file,
     content,
     entries: scan.rest,
-    rules: RULES,
+    rules,
     schemas,
     apiMajor,
   });
@@ -270,7 +270,7 @@ describe('Shopify REST → GraphQL rewrites', () => {
     expect(variables).toEqual({ id: 'gid://shopify/Product/7' });
   });
 
-  it('removes a REST client whose every call is rewritten, using the GraphQL client of the locked release', () => {
+  it('turns a REST client whose every call is rewritten into a GraphQL client built where it was', () => {
     const source = `export async function check(session: any) {
   const client = new shopify.clients.Rest({ session });
   const { body } = await client.get({ path: 'products/count' });
@@ -280,7 +280,8 @@ describe('Shopify REST → GraphQL rewrites', () => {
     const { results, patched } = rewrite(source, 'app/check.ts', 11);
     expect(results.map(outcome)).toEqual(['rewritten']);
     expect(patched).not.toContain('clients.Rest');
-    expect(patched).toContain('new shopify.clients.Graphql({ session: session })');
+    expect(patched).toContain('const client = new shopify.clients.Graphql({ session });');
+    expect(patched).toContain('const graphql = client;');
     expect(patched).toContain('graphql.request(');
   });
 
@@ -309,6 +310,134 @@ describe('Shopify REST → GraphQL rewrites', () => {
 }
 `);
     expect(results.map(outcome)).toEqual([expect.stringContaining('products.[].vendor_code')]);
+  });
+
+  describe('reads that must not be missed', () => {
+    const shipped = loadShopifyRestRules();
+    const list = (body: string) =>
+      rewrite(
+        `export async function f(shop: string, token: string) {
+  const response = await fetch(\`https://\${shop}/admin/api/2025-01/products.json\`, { headers: { 'X-Shopify-Access-Token': token } });
+  const { products } = await response.json();
+  ${body}
+}
+`,
+        'app/f.ts',
+        undefined,
+        shipped,
+      );
+    const document = (result: ReturnType<typeof rewrite>) =>
+      result.results.flatMap((entry) => (entry.status === 'rewritten' ? [entry.document] : []))[0];
+
+    it('selects the fields a sort comparator reads', () => {
+      const result = list(
+        'return products.sort((a: any, b: any) => Date.parse(b.created_at) - Date.parse(a.created_at)).map((p: any) => p.title);',
+      );
+      expect(document(result)).toContain('createdAt');
+    });
+
+    it('selects the fields read through a callback array parameter', () => {
+      const result = list(
+        "let out = 0; products.forEach((p: any, i: number, all: any[]) => { if (all[i].vendor === 'x') out++; }); return out;",
+      );
+      expect(document(result)).toContain('vendor');
+    });
+
+    it('stops when a callback reads arguments', () => {
+      const result = list('return products.map(function () { return arguments[0].vendor; });');
+      expect(result.results[0].status).toBe('stopped');
+    });
+
+    it('stops on a response held in a var', () => {
+      const { results } = rewrite(
+        `export async function f(shop: string, token: string, id: number) {
+  if (shop) { var res = await fetch(\`https://\${shop}/admin/api/2025-01/products/\${id}.json\`, { headers: { 'X-Shopify-Access-Token': token } }); }
+  const data = await res!.json();
+  return data.product.title;
+}
+`,
+        'app/f.ts',
+        undefined,
+        shipped,
+      );
+      expect(results.map(outcome)).toEqual([expect.stringContaining('var')]);
+    });
+
+    it('stops on a dynamic key into a nested object', () => {
+      const { results } = rewrite(
+        `export async function f(shop: string, token: string, id: number, k: string) {
+  const res = await fetch(\`https://\${shop}/admin/api/2025-01/orders/\${id}.json\`, { headers: { 'X-Shopify-Access-Token': token } });
+  const { order } = await res.json();
+  return order.customer[k];
+}
+`,
+        'app/f.ts',
+        undefined,
+        shipped,
+      );
+      expect(results[0].status).toBe('stopped');
+    });
+
+    it('stops when the URL const is declared outside the function that sends it', () => {
+      const { results } = rewrite(
+        `declare const shop: string;
+declare const id: string;
+const url = \`https://\${shop}/admin/api/2025-01/products/\${id}.json\`;
+export async function f(id: string, token: string) {
+  const res = await fetch(url, { headers: { 'X-Shopify-Access-Token': token } });
+  const { product } = await res.json();
+  return product.title;
+}
+`,
+        'app/f.ts',
+        undefined,
+        shipped,
+      );
+      expect(results.map(outcome)).toEqual([expect.stringContaining('outside the function')]);
+    });
+  });
+
+  it('gives null, as REST does, where a nested GraphQL object is missing', async () => {
+    const source = `export async function productIds(shop: string, token: string, id: number) {
+  const res = await fetch(\`https://\${shop}/admin/api/2025-01/orders/\${id}.json\`, { headers: { 'X-Shopify-Access-Token': token } });
+  const { order } = await res.json();
+  return order.line_items.map((item: any) => item.product_id);
+}
+`;
+    const { results, patched } = rewrite(source, 'app/f.ts', undefined, loadShopifyRestRules());
+    expect(results.map(outcome)).toEqual(['rewritten']);
+    const fetch = async () =>
+      new Response(
+        JSON.stringify({
+          data: {
+            order: {
+              lineItems: {
+                nodes: [{ product: { id: 'gid://shopify/Product/5' } }, { product: null }],
+              },
+            },
+          },
+        }),
+      );
+    const wrapped = patched.replace(
+      'export async function productIds(shop: string, token: string, id: number)',
+      'module.exports.productIds = async function (shop = "s", token = "t", id = 1)',
+    );
+    await expect(run(wrapped, 'productIds', { fetch })).resolves.toEqual([5, null]);
+  });
+
+  it('builds the GraphQL client where the REST client was built, not from a name at the call', () => {
+    const source = `declare const shopify: any;
+declare const session: any;
+const client = new shopify.clients.Rest({ session });
+export async function f(session: any) {
+  const res = await client.get({ path: 'shop' });
+  return res.body.shop.name;
+}
+`;
+    const { results, patched } = rewrite(source, 'app/f.ts', 11);
+    expect(results.map(outcome)).toEqual(['rewritten']);
+    expect(patched).toContain('const client = new shopify.clients.Graphql({ session });');
+    expect(patched).not.toContain('session: session');
   });
 
   it('never rewrites a write', () => {
