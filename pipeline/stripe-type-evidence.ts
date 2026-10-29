@@ -105,7 +105,8 @@ export function addTypeEvidence(
 // checker proves read the changed schema's own stripe-node type, each with the change it reads. The
 // receiver's type, nullish parts left out, must be exactly that schema's class (stripe-sdk-metadata),
 // and the value must have got it honestly: no type assertion (JavaScript's `/** @type */ (…)`
-// included) and no `any` anywhere on the path it took. The path is followed through variables and
+// included; one that only intersects the value's own type with inline members is followed) and no
+// `any` anywhere on the path it took. The path is followed through variables and
 // every write to them, destructuring, array elements, inserts and the callbacks that receive them,
 // the returns of the repository's functions and the argument every call in the repository passes
 // to a parameter, and ends at a stripe-node declaration (an SDK response, a webhook event) or at an
@@ -280,7 +281,30 @@ function provenInProgram(
       const symbol = resolved(checker.getSymbolAtLocation(expression));
       return Boolean(symbol && honestSymbol(symbol));
     }
-    // Anything else, a type assertion included, proves nothing.
+    // `value as Own & { extra?: … }`: an assertion that keeps the value's own type and only adds
+    // members the repository writes inline keeps where the value came from (quorum's
+    // `invoice as Stripe.Invoice & { payment_intent?: … }`).
+    if (ts.isAsExpression(expression) || ts.isTypeAssertionExpression(expression)) {
+      const operand = checker.getNonNullableType(checker.getTypeAtLocation(expression.expression));
+      const asserted = checker.getTypeFromTypeNode(expression.type);
+      return (
+        asserted.isIntersection() &&
+        asserted.types.includes(operand) &&
+        asserted.types.every(
+          (member) =>
+            member === operand ||
+            Boolean(
+              member.flags & ts.TypeFlags.Object &&
+              (member as ts.ObjectType).objectFlags & ts.ObjectFlags.Anonymous &&
+              member.symbol?.declarations?.every(
+                (declaration) => ts.isTypeLiteralNode(declaration) && own(declaration),
+              ),
+            ),
+        ) &&
+        honest(expression.expression)
+      );
+    }
+    // Anything else, another type assertion included, proves nothing.
     return false;
   }
   const symbols = new Map<ts.Symbol, boolean>();
