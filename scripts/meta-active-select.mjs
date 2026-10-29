@@ -19,8 +19,17 @@ import { activeSince, ACTIVE_DAYS, SIZE_RANGES } from './stripe-active-select.mj
 
 const execute = promisify(execFile);
 const METADATA_CONCURRENCY = 2;
+const PRESCAN_CONCURRENCY = 4;
 const MAX_DISK_KB = 50 * 1024;
 const MIN_AUTHORS = 2;
+// Activity rules, strictest first. A looser rule applies only while the blind set is short of its
+// size, in this order (prompt generation session, 2026-10-29); the Graph-usage and affected
+// checks never loosen.
+export const TIERS = [
+  { days: ACTIVE_DAYS, authors: MIN_AUTHORS, step: null },
+  { days: 180, authors: MIN_AUTHORS, step: 'activity window widened from 90 to 180 days' },
+  { days: 180, authors: 1, step: 'human commit authors lowered from 2 to 1' },
+];
 // A version retiring within this many days of frozenAt counts as soon-retiring.
 export const SOON_DAYS = 365;
 const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'];
@@ -199,7 +208,11 @@ async function main() {
     process.exit(values.help ? 0 : 1);
   }
   const frozenAt = values['frozen-at'];
-  const since = activeSince(frozenAt);
+  activeSince(frozenAt);
+  const windowStart = (days) =>
+    new Date(Date.parse(frozenAt) - days * 86_400_000).toISOString().slice(0, 19) + 'Z';
+  // Metadata is read once over the widest window; each tier counts within its own.
+  const since = windowStart(Math.max(...TIERS.map((tier) => tier.days)));
   const work = resolve(values.work);
   await mkdir(join(work, 'prescan'), { recursive: true });
   const excluded = await benchmarkRepositories(values.benchmarks, [
@@ -246,7 +259,7 @@ async function main() {
           // Other selections share the token's code-search quota, so waits stay short.
           retry = Math.min(Number(response.headers.get('retry-after')) || 60, 120) + 1;
           failure = `GitHub ${response.status}`;
-        } else if (response.status >= 500) {
+        } else if (response.status >= 500 || response.status === 408) {
           retry = 15;
           failure = `GitHub ${response.status}`;
         } else throw new Error(`GitHub ${path} returned ${response.status}: ${text}`);
@@ -311,27 +324,29 @@ async function main() {
     return !list;
   });
 
-  function humanAuthors(commit) {
+  function humanAuthors(commit, from) {
     return new Set(
       (commit?.history?.nodes ?? [])
+        .filter((node) => node.committedDate >= from)
         .map((node) => node.author?.user?.login ?? node.author?.email)
         .filter((author) => author && !BOT.test(author)),
     );
   }
 
-  function ineligibility(record) {
+  function ineligibility(record, tier) {
     const commit = record?.defaultBranchRef?.target;
     const locks = LOCKFILES.filter((_, index) => record?.[`lock${index}`]);
+    const from = windowStart(tier.days);
     return !record
       ? 'unavailable'
       : record.isArchived || record.isFork
         ? 'archived or fork'
         : record.diskUsage >= MAX_DISK_KB
           ? 'over 50 MB'
-          : !commit || commit.committedDate < since
-            ? `no commit in ${ACTIVE_DAYS} days`
-            : humanAuthors(commit).size < MIN_AUTHORS
-              ? `fewer than ${MIN_AUTHORS} human authors in ${ACTIVE_DAYS} days`
+          : !commit || commit.committedDate < from
+            ? `no commit in ${tier.days} days`
+            : humanAuthors(commit, from).size < tier.authors
+              ? `fewer than ${tier.authors} human authors in ${tier.days} days`
               : !record.workflows?.entries?.length
                 ? 'no GitHub Actions workflow'
                 : !record.manifest
@@ -394,7 +409,7 @@ async function main() {
           defaultBranchRef { target { ... on Commit {
             oid committedDate
             history(since: ${JSON.stringify(since)}, first: 100) {
-              totalCount nodes { author { email user { login } } }
+              totalCount nodes { committedDate author { email user { login } } }
             }
           } } }
           workflows: object(expression: "HEAD:.github/workflows") { ... on Tree { entries { name } } }
@@ -405,12 +420,14 @@ async function main() {
     return Object.fromEntries(candidates.map((repo) => [repo, full[repo] ?? light[repo]]));
   });
 
+  // Each repository records the strictest tier it meets; reasons are the loosest tier's.
   const reasons = {};
   const eligible = [];
   for (const repo of candidates) {
     const record = metadata[repo];
-    const reason = ineligibility(record);
-    if (reason) {
+    const tier = TIERS.findIndex((rule) => !ineligibility(record, rule));
+    if (tier < 0) {
+      const reason = ineligibility(record, TIERS.at(-1));
       reasons[reason] = (reasons[reason] ?? 0) + 1;
       continue;
     }
@@ -426,7 +443,12 @@ async function main() {
       stars: record.stargazerCount,
       commit: commit.oid,
       owner: record.owner.__typename,
-      authors90d: humanAuthors(commit).size,
+      authors90d: humanAuthors(commit, windowStart(ACTIVE_DAYS)).size,
+      authors180d: humanAuthors(commit, windowStart(180)).size,
+      lastCommit: commit.committedDate.slice(0, 10),
+      // The strictest activity rule this repository meets.
+      activity: { days: TIERS[tier].days, authors: TIERS[tier].authors },
+      tier,
       packageManager: {
         'package-lock.json': 'npm',
         'pnpm-lock.yaml': 'pnpm',
@@ -437,7 +459,6 @@ async function main() {
     });
   }
   eligible.sort((a, b) => b.stars - a.stars || a.repo.localeCompare(b.repo));
-  const scanned = eligible.slice(0, Number(values.limit));
 
   // 3. Pre-scan with Refit's own Meta scan, offline: `refit meta-graph --json` and
   // `--propose-version-moves --target <target> --json` on a shallow clone, plus the text signals
@@ -453,13 +474,13 @@ async function main() {
       ).stdout,
     );
   const prescan = {};
-  for (const [index, entry] of scanned.entries()) {
+  const scanOne = async (entry, label) => {
     const path = join(work, 'prescan', `${entry.repo.replace('/', '__')}.json`);
     if (existsSync(path)) {
       prescan[entry.repo] = JSON.parse(await readFile(path, 'utf8'));
-      continue;
+      return;
     }
-    console.error(`[${index + 1}/${scanned.length}] ${entry.repo}`);
+    console.error(`${label} ${entry.repo}`);
     const clones = join(work, 'repos');
     let result;
     try {
@@ -503,43 +524,73 @@ async function main() {
     }
     await writeFile(path, `${JSON.stringify(result, null, 2)}\n`);
     prescan[entry.repo] = result;
-  }
-
-  const notAffected = {};
-  const affected = [];
-  for (const entry of scanned) {
-    const result = prescan[entry.repo];
-    const reason = result.error
-      ? 'clone or scan failed'
-      : !result.liveCalls && !result.text.fbInit.length && !result.text.basicDisplay
-        ? 'no live Graph request found by the scan'
-        : !result.reasons.length
-          ? 'only supported versions, no listed change'
-          : null;
-    if (reason) {
-      notAffected[reason] = (notAffected[reason] ?? 0) + 1;
-      continue;
+  };
+  const sort = (entries) => {
+    const notAffected = {};
+    const affected = [];
+    for (const { tier, ...entry } of entries) {
+      const result = prescan[entry.repo];
+      const reason = result.error
+        ? 'clone or scan failed'
+        : !result.liveCalls && !result.text.fbInit.length && !result.text.basicDisplay
+          ? 'no live Graph request found by the scan'
+          : !result.reasons.length
+            ? 'only supported versions, no listed change'
+            : null;
+      if (reason) {
+        notAffected[reason] = (notAffected[reason] ?? 0) + 1;
+        continue;
+      }
+      affected.push({
+        ...entry,
+        versions: result.versions,
+        fbInit: result.text.fbInit,
+        ...(result.sdk ? { businessSdk: result.sdk } : {}),
+        affected: result.reasons,
+      });
     }
-    affected.push({
-      ...entry,
-      versions: result.versions,
-      fbInit: result.text.fbInit,
-      ...(result.sdk ? { businessSdk: result.sdk } : {}),
-      affected: result.reasons,
-    });
-  }
+    return { notAffected, affected };
+  };
 
-  // 4. Freeze. Blind first, so the blind set never depends on the dev set's size. With fewer
-  // affected repositories than both sizes, the dev set keeps its size and the blind set takes the
-  // rest; the shortfall is recorded in both lists, never hidden.
+  // Scan the strictest tier; loosen to the next only while the affected repositories are fewer
+  // than the blind set needs.
   const requested = Number(values['blind-size']);
   const devSize = Number(values['dev-size']);
-  const blindSize = Math.min(requested, Math.max(0, affected.length - devSize));
-  const { blind, dev } = splitSets(affected, values.seed, blindSize, devSize);
+  const tiers = [];
+  let scanned, notAffected, affected;
+  for (const [level, tier] of TIERS.entries()) {
+    scanned = eligible.filter((entry) => entry.tier <= level).slice(0, Number(values.limit));
+    // A few clones at once; each result is cached on its own, so the order does not matter.
+    let next = 0;
+    const worker = async () => {
+      while (next < scanned.length) {
+        const index = next++;
+        await scanOne(scanned[index], `[tier ${level}, ${index + 1}/${scanned.length}]`);
+      }
+    };
+    await Promise.all(Array.from({ length: PRESCAN_CONCURRENCY }, worker));
+    ({ notAffected, affected } = sort(scanned));
+    tiers.push({ ...tier, eligible: scanned.length, affected: affected.length });
+    if (affected.length >= requested) break;
+  }
+  const loosening = tiers.map((tier) => tier.step).filter(Boolean);
+
+  // 4. Freeze. The blind set comes first and takes up to its size; the dev set takes the next
+  // affected repositories and is dropped when fewer than its size remain. A short blind set is
+  // recorded with its exact count, never hidden.
+  const { blind, dev: rest } = splitSets(affected, values.seed, requested, devSize);
+  const dev = rest.length === devSize ? rest : [];
   const shortfall =
-    blindSize < requested
-      ? `Only ${affected.length} affected repositories qualified, fewer than the ${requested + devSize} a ${requested}-repository blind set and a ${devSize}-repository dev set need, so the blind set has ${blind.length} and the dev set ${dev.length}.`
-      : null;
+    [
+      blind.length < requested
+        ? `Only ${affected.length} affected repositories qualified after every allowed loosening, so the blind set has ${blind.length} of the ${requested} requested.`
+        : null,
+      dev.length < devSize
+        ? `${rest.length} affected repositories remained after the blind set, fewer than the dev set's ${devSize}, so no dev set was frozen; the Meta repositories of the earlier lists serve as the dev set.`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(' ') || null;
   const fileHash = async (path) =>
     createHash('sha256')
       .update(await readFile(join(REFIT, path)))
@@ -558,7 +609,7 @@ async function main() {
     refitCommit: (await execute('git', ['-C', REFIT, 'rev-parse', 'HEAD'])).stdout.trim(),
   };
   const command = `node scripts/meta-active-select.mjs --work <dir> --dev ${values.dev} --blind ${values.blind} --frozen-at ${frozenAt} --dev-size ${values['dev-size']} --blind-size ${values['blind-size']} --limit ${values.limit} --seed ${values.seed}`;
-  const criteria = `GitHub code search (${QUERIES.length} queries; one with more than 1,000 results also run once per file-size range: ${SIZE_RANGES.join(', ')} bytes) for graph.facebook.com/v URLs, facebook-nodejs-business-sdk, FB.init with a version, graph.instagram.com and WhatsApp Cloud API messages, excluding every repository named in any JSON file under ${values.benchmarks}/ (${excluded.size} repositories). Kept: not archived, not a fork, under 50 MB; a default-branch commit since ${since.slice(0, 10)} with at least ${MIN_AUTHORS} distinct human commit authors in that window (bots excluded); a .github/workflows directory; a root package.json and exactly one root lockfile (${LOCKFILES.join(', ')}). The ${scanned.length} most starred were cloned at their default-branch HEAD, scanned offline with \`refit meta-graph --json\` and \`refit meta-graph --propose-version-moves --target ${target} --json\` and a text search for FB.init versions and Instagram Basic Display scopes (user_profile, user_media) in live files, then deleted. Affected: a live request or FB.init on a Graph API version retired by ${frozenAt} (data/deadlines.json, or older than its oldest entry) or retiring within ${SOON_DAYS} days, a live request a reviewed change in ${CHANGES} removes or changes on the way to ${target}, or Instagram Basic Display scopes (product shut down 2024-12-04). Affected repositories are ordered by SHA-256 of "${values.seed}:<owner/name>" (lower-cased); the first ${blindSize} (of ${requested} requested; fewer only when the dev set's ${devSize} would not fit) are the blind set and the next ${devSize} the dev set.`;
+  const criteria = `GitHub code search (${QUERIES.length} queries; one with more than 1,000 results also run once per file-size range: ${SIZE_RANGES.join(', ')} bytes) for graph.facebook.com/v URLs, facebook-nodejs-business-sdk, FB.init with a version, graph.instagram.com and WhatsApp Cloud API messages, excluding every repository named in any JSON file under ${values.benchmarks}/ (${excluded.size} repositories). Kept: not archived, not a fork, under 50 MB; a default-branch commit within ${ACTIVE_DAYS} days of ${frozenAt} with at least ${MIN_AUTHORS} distinct human commit authors in that window (bots excluded), loosened only while the blind set was short, first to 180 days and then to 1 author (loosening lists the steps applied; each repository's activity names the strictest rule it meets); a .github/workflows directory; a root package.json and exactly one root lockfile (${LOCKFILES.join(', ')}). Up to ${values.limit} of the most starred were cloned at their default-branch HEAD, scanned offline with \`refit meta-graph --json\` and \`refit meta-graph --propose-version-moves --target ${target} --json\` and a text search for FB.init versions and Instagram Basic Display scopes (user_profile, user_media) in live files, then deleted. Affected: a live request or FB.init on a Graph API version retired by ${frozenAt} (data/deadlines.json, or older than its oldest entry) or retiring within ${SOON_DAYS} days, a live request a reviewed change in ${CHANGES} removes or changes on the way to ${target}, or Instagram Basic Display scopes (product shut down 2024-12-04). Affected repositories are ordered by SHA-256 of "${values.seed}:<owner/name>" (lower-cased); the first ${requested} are the blind set and the next ${devSize} the dev set, which is not frozen when fewer remain.`;
   const summary = {
     queries,
     repositories: found.length,
@@ -569,6 +620,8 @@ async function main() {
     scanned: scanned.length,
     notAffected,
     affected: affected.length,
+    tiers,
+    loosening,
     shortfall,
   };
   const write = (path, repos, purpose) =>
@@ -589,15 +642,16 @@ async function main() {
         2,
       )}\n`,
     );
-  await write(
-    values.dev,
-    dev,
-    'Meta Graph dev set: active repositories affected by a retired or retiring Graph API version, a removed or changed field or edge, or a shut-down product. Agents tune Refit offline on these.',
-  );
+  if (dev.length)
+    await write(
+      values.dev,
+      dev,
+      'Meta Graph dev set: active repositories affected by a retired or retiring Graph API version, a removed or changed field or edge, or a shut-down product. Agents tune Refit offline on these.',
+    );
   await write(
     values.blind,
     blind,
-    'Meta Graph blind set: the same selection as the dev set, no overlap. Nobody opens, traces or debugs these repositories; they run only in the combined Meta benchmark at the end.',
+    'Meta Graph blind set: active repositories affected by a retired or retiring Graph API version, a removed or changed field or edge, or a shut-down product, none in an earlier list or the dev set. Nobody opens, traces or debugs these repositories; they run only in the combined Meta benchmark at the end.',
   );
   console.log(
     JSON.stringify(
