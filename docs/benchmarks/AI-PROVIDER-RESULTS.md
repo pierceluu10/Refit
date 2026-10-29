@@ -1,5 +1,116 @@
 # AI-provider benchmark results
 
+## Baseline, October 29 (after-10, AI on)
+
+This is THE baseline: one after pass with the AI fallback on for all three providers, and no before pass.
+
+- **Engine:** `bench/ai-provider-after-10` (`aabf29a5`). That is after-9 plus four plain merges:
+  - #420 ai-fallback at `738fbbd0`
+  - #423 scoped SDK lockfiles at `87ec462b`
+  - #414 at `2714595a`
+  - #403 at `8439f3ac`
+- **Merge conflicts:** these were resolved as a union of both sides. #403 conflicted in `deadlines-cli.ts`, `model-fixes.ts` and `model-retirements.ts`; #420 conflicted in the imports of `ai-migrations-cli.ts`.
+- **Checks:** typecheck and the full suite passed (3,879 tests).
+- **Run settings:** `ai=true`, `model=gpt-6.1-sol`, `--parameter-changes data/model-parameter-changes.json`, size 10.
+
+| Set           | Run         | AI cap |
+| ------------- | ----------- | ------ |
+| openai-100    | 40947045957 | $10    |
+| anthropic-100 | 40947050520 | $6     |
+| gemini-30     | 40952100619 | $2     |
+
+The rows are in `ai-provider-results/2026-10-29-*-baseline.json`, and the AI hand-checks are in `2026-10-29-baseline-ai-reviews.json`.
+
+|                                                     | openai-100 | anthropic-100 | gemini-30 |
+| --------------------------------------------------- | ---------- | ------------- | --------- |
+| **Validated by Refit**                              | **4**      | **15**        | **1**     |
+| **Validated by the AI fallback** (draft for review) | **10**     | **8**         | 0         |
+| **Validated / set**                                 | **14%**    | **23%**       | **3%**    |
+| AI-validated, hand-checked wrong                    | 0          | 1             | –         |
+| Needs review                                        | 31         | 18            | 14        |
+| SDK upgrade available, not required                 | –          | 2             | –         |
+| Validation failed                                   | 10         | 8             | 1         |
+| No checks                                           | 8          | 9             | 1         |
+| Detection only (Python)                             | 24         | 17            | 7         |
+| Error                                               | 4          | 8             | 1         |
+| Unaffected                                          | 9          | 15            | 5         |
+| Rows with a stop                                    | 44         | 32            | 13        |
+| AI attempted (a patch came back)                    | 63         | 36            | 0         |
+| AI requested, no usable answer                      | 14         | 18            | 0         |
+| AI unavailable (HTTP 429)                           | 2          | 0             | **23**    |
+| Miss records                                        | 541        | 211           | 0         |
+| AI cost                                             | $5.23      | $2.73         | $0        |
+
+**Against the 90% target: 14%, 23% and 3%.** Before this round the after-8 numbers were 1%, 2% and 3%.
+
+- **Refit's own fixes rose from 1 to 4 (OpenAI) and from 2 to 15 (Anthropic).** The scoped-lockfile work (#423) and the request-proof updates let more model swaps and SDK upgrades through validation.
+- **The AI fallback added 18 drafts that passed every gate:** output, secrets, scope, rescan, checks and request proof.
+
+**AI unavailable on Gemini.** The OpenAI key ran out of credits during the round. The SDK proof run reports "429 You have no credits remaining". So all 23 Gemini fallback requests, 2 OpenAI ones and most OpenAI request proofs got HTTP 429. Gemini's 0 AI is a key problem, not a result. These rows are AI unavailable, not misses.
+
+**AI cost:** $7.96 in total ($5.23 OpenAI, $2.73 Anthropic).
+
+- OpenAI spent about $5.10 on the fallback and $0.14 on the SDK-migration AI lane.
+- Anthropic's $6 cap held. 3 of its 10 shards reached or nearly reached their $0.60 share, and 9 rows got "AI budget exhausted".
+
+### Hand-check of every AI-validated row (18)
+
+I read every source diff in full and skimmed the lockfile changes. I also checked rows 15 and 16 in a shallow clone, deleted afterwards.
+
+| Verdict                              | Count | Rows                                                                                                                                                                                                                                                                              |
+| ------------------------------------ | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Correct                              | 11    | Model swaps and SDK upgrades. Includes three Completions → Responses streaming migrations, a Text Completions → Messages streaming migration, and an eight-route Responses migration (only its typecheck counted, because its tests and build already failed).                    |
+| Correct, but with out-of-scope edits | 3     | One renames a `createCompletion` helper, which silences Refit's legacy-endpoint review. One removes an unrelated chart dependency. One deletes an unused DeepSeek client and changes URL image inputs.                                                                            |
+| Partial                              | 3     | Saved `gpt-4` selections are not migrated (the AI listed this as unresolved). Embedding metadata labels were rewritten, though they are never sent to a provider. A tool-enabled request moved to `claude-sonnet-5-5`, whose tools proof fails.                                   |
+| **Wrong**                            | **1** | **Anthropic.** It moves `claude-2`/Claude 3 calls to Messages but replaces the model IDs with a new optional constructor argument that throws when missing. No caller passes it, so every Anthropic call fails at runtime. The typecheck passed because the argument is optional. |
+
+So 14 of 18 AI drafts are correct, 3 are partial and 1 is wrong. The gates miss three things:
+
+- **Behaviour the checks don't run.** A runtime throw behind an optional argument passes the typecheck.
+- **Tool use in the request proof.** The fallback's proof sent no tools for a tool-enabled call.
+- **Out-of-scope edits.** The scope gate counts lines and lockfiles, not intent.
+
+The Refit-validated rows were not hand-checked this round.
+
+### Top blockers (miss records, whole set)
+
+**OpenAI (541 misses in 77 rows):**
+
+1. Assistants API calls: 202 misses. The API shut down, so these need the Responses migration; there is no mapping.
+2. SDK-major sites with no documented mapping: 149.
+3. Legacy Completions: 44.
+4. Untraced model values (object values and assignments): about 45.
+5. Custom-endpoint stops: 22 (held for Furqan).
+6. Raw-response and other unedited calls: 30.
+
+**Anthropic (211 misses in 54 rows):**
+
+1. Custom-endpoint stops: 27, and base-URL stops: 11.
+2. Calls Refit cannot trace or whose body it cannot read: 21.
+3. Text Completions: 17 for retired models, plus 7 for SDK v1.
+4. Model fixes that ended no-checks: 10, and models set in configuration: 9.
+
+**Why the AI fallback stopped short:**
+
+- 20 drafts are unchecked because Refit has no offline Python runner.
+- 11 drafts changed dependencies in a pnpm or Yarn project.
+- About 9 drafts hit checks that already fail on the original code.
+- 18 requests ended on `max_output_tokens`.
+- 11 requests ran out of budget.
+
+**Gemini:** there is no AI data. The `gemini-swap-target` stops still hold 12 rows.
+
+### Proofs on after-10
+
+- **Model proof (run 40952582293):**
+  - Anthropic is unchanged: `claude-haiku-4-5-20251001` and `claude-opus-4-8` pass request, tools and stream. `claude-sonnet-5-5` fails tools (HTTP 400).
+  - Gemini: `gemini-3.5-flash-lite` and `gemini-3.6-flash` now pass every check. `gemini-3.1-pro-preview` (429) and `gemini-3.8-flash` (timeout) are still pending.
+  - **OpenAI: every model is pending on HTTP 429, because the key has no credits.** `gpt-5-codex-mini` is the one exception, still a 404. The full-access proofs (run 40940798473 on `836dedb5`) still stand for the OpenAI models.
+- **SDK proof (run 40953054622):**
+  - Accepted: openai `moderations.create`, `models.list` and `models.retrieve`; all three `@anthropic-ai/sdk` 1.x shapes; `@google/genai` 2.x `generateContent` and its stream.
+  - The OpenAI Chat, Responses and embeddings proofs got HTTP 429 (no credits). The proof records these as "rejected", but they should be pending.
+  - No project or organization IDs appear in the log or artifact.
+
 ## October 29, Actions: first validated passes (engine-only, AI effectively unavailable)
 
 These are the first runs with validation in Docker, on refit-bench `ai-providers.yml` with `ai=true`. They are the baseline for the current engine, before the AI fallback (#420).
