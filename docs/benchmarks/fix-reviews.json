@@ -3101,6 +3101,96 @@
         "pleaseCheck": "Both Left Unchanged reads are real gaps: with the pin moved, the expand of invoice.payment_intent fails at runtime.",
         "wouldMerge": "no: the draft says not to merge until the two subscribe/route.js reads are migrated and stripe is upgraded."
       }
+    },
+    {
+      "repo": "dalemoncayo/express-stripe",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40806735877 (before, main efcb91ed) and 40806747841 (after, feat/checkjs-type-check 3ee00eb2), subsets/l2-push-249.json, no AI. Before: \"No check can run\" (no test script; stripe loaded with require()), grade D; after: the checkJs type check runs and its coverage proof types the changed request key with stripe-node 23.0.0's declarations, grade C under owner decision D2c. migration.patch from the shard-0 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile included",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] (app.js:24) renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).",
+        "bothVersions": "not needed: request parameters only, sent at the version the same patch moves to endive; no webhook or response read is changed.",
+        "nothingUnrelated": "yes: the renamed key in app.js, the stripe dependency and its package-lock.json entries (version, integrity, engines, peer @types/node; qs and @types/node dependencies dropped as stripe 23 declares). No other line changes.",
+        "pleaseCheck": "Validated in 40806747841. The unpatched code fails the same checkJs check with TS2561 on payment_method_types, so the check does catch the removed parameter. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^15.6.0 to ^23.0.0 in package.json and the lockfile; the code sets no apiVersion, so stripe-node 23 sends 2026-09-30.endive.",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
+      "repo": "mdalmamunit427/yoga-master-server",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40806735877 (before, main efcb91ed) and 40806747841 (after, feat/checkjs-type-check 3ee00eb2), subsets/l2-push-249.json, no AI. Before: \"No check can run\" (no test script; stripe loaded with require()), grade D; after: the checkJs type check runs and its coverage proof types the changed request key with stripe-node 23.0.0's declarations, grade C under owner decision D2c. migration.patch from the shard-1 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile included",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 PaymentIntent payment_method_types: ['card'] (index.js:276) renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/removes-the-payment-method-types-parameter-from-payment-intents-and-setup-intents).",
+        "bothVersions": "not needed: request parameters only, sent at the version the same patch moves to endive; no webhook or response read is changed.",
+        "nothingUnrelated": "yes: the renamed key in index.js, the stripe dependency and its package-lock.json entries (both the v2 packages record and the v1 dependencies record). No other line changes.",
+        "pleaseCheck": "Validated in 40806747841; the coverage proof types allowed_payment_method_types on PaymentIntentCreateParams. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^12.9.0 to ^23.0.0 in package.json and the lockfile; the code sets no apiVersion, so stripe-node 23 sends 2026-09-30.endive.",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
+      "repo": "manfraio/stripe_elements_customized_card_form",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40806735877 (before, main efcb91ed) and 40806747841 (after, feat/checkjs-type-check 3ee00eb2), subsets/l2-push-249.json, no AI. Before: \"No check can run\" (no test script; stripe loaded with require()), grade D; after: the checkJs type check runs and its coverage proof types the changed request key with stripe-node 23.0.0's declarations, grade C under owner decision D2c. migration.patch from the shard-2 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile included",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 PaymentIntent payment_method_types: ['card'] (index.js:44) renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/removes-the-payment-method-types-parameter-from-payment-intents-and-setup-intents).",
+        "bothVersions": "not needed: request parameters only, sent at the version the same patch moves to endive; no webhook or response read is changed.",
+        "nothingUnrelated": "yes: the renamed key in index.js, the stripe dependency and its package-lock.json entries. No other line changes.",
+        "pleaseCheck": "Validated in 40806747841; the coverage proof types allowed_payment_method_types on PaymentIntentCreateParams. The paymentMethods.attach and customers.update calls are unchanged and send no removed parameter. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^16.2.0 to ^23.0.0 in package.json and the lockfile; the code sets no apiVersion, so stripe-node 23 sends 2026-09-30.endive.",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
+      "repo": "samiamjidkhan/dota2-helper",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40806735877 (before, main efcb91ed) and 40806747841 (after, feat/checkjs-type-check 3ee00eb2), subsets/l2-push-249.json, no AI. Before: \"No check can run\" (no test script; stripe loaded with require()), grade D; after: the checkJs type check runs and its coverage proof types the changed request key with stripe-node 23.0.0's declarations, grade C under owner decision D2c. migration.patch from the shard-5 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile included",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 subscription-mode Checkout Session payment_method_types: ['card'] (server.js:291) renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions). The client is `STRIPE_SECRET_KEY ? new Stripe(...) : null`, which TypeScript types as Stripe | null, so the proof holds.",
+        "bothVersions": "not needed: request parameters only, sent at the version the same patch moves to endive; no webhook or response read is changed.",
+        "nothingUnrelated": "yes: the renamed key in server.js, the stripe dependency and its package-lock.json entries (version, integrity, node and @types/node engines >=20). No other line changes.",
+        "pleaseCheck": "Grade C, but the draft stays needs-review for its 2 untraced reads (server.js:105 and :106 .description). Both are false alarms: they read Dota hero facets (`heroAbilitiesData.facets ... f.description`), not a Stripe object. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^22.0.0 to ^23.0.0 in package.json and the lockfile; the code sets no apiVersion, so stripe-node 23 sends 2026-09-30.endive.",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
+    },
+    {
+      "repo": "RescuePC/Donation-Link",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40806735877 (before, main efcb91ed) and 40806747841 (after, feat/checkjs-type-check 3ee00eb2), subsets/l2-push-249.json, no AI. Before: \"No check can run\" (no test script; stripe loaded with require()), grade D; after: the checkJs type check runs and its coverage proof types the changed request key with stripe-node 23.0.0's declarations, grade C under owner decision D2c. migration.patch from the shard-7 artifact applied to a shallow clone at the pinned commit and read in full as git diff, lockfile included",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] (server.js:13) renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).",
+        "bothVersions": "not needed: request parameters only, sent at the version the same patch moves to endive; no webhook or response read is changed.",
+        "nothingUnrelated": "yes: the renamed key in server.js, the stripe dependency and its package-lock.json entries. server.js is CRLF and stays CRLF; no other line changes.",
+        "pleaseCheck": "Grade C, but the draft stays needs-review for the waived submodules gate (Donation-Link-Clean is a gitlink). server.js was already broken before Refit ran (`app` used before its declaration, `path` never required); the patch leaves that alone. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^17.4.0 to ^23.0.0 in package.json and the lockfile; the code sets no apiVersion, so stripe-node 23 sends 2026-09-30.endive.",
+        "wouldMerge": "yes for the patch itself, after one test-mode checkout; the server's pre-existing startup errors are the maintainer's to fix."
+      }
+    },
+    {
+      "repo": "aionarae/amazon-beta",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40821431837 (before, main 6161f020) and 40821435089 (after, feat/checkjs-type-check ce1f168f, main merged), subsets/l2-push-249.json, no AI. Before: \"No check can run\" (no test script; stripe loaded with require()), grade D; after: the checkJs type check runs against the package-lock.json Refit resolves (the repository commits none) and its coverage proof types the changed request key with stripe-node 23.0.0's declarations, grade C under owner decision D2c; the draft stays needs-review for contract changes. migration.patch from the shard-8 artifact applied to a shallow clone at the pinned commit and read in full as git diff",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] (server/schemas/resolvers.js:77) renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).",
+        "bothVersions": "not needed: request parameters only, sent at the version the same patch moves to endive; no webhook or response read is changed.",
+        "nothingUnrelated": "yes: the renamed key and the stripe dependency in package.json. No lockfile is committed, so none changes.",
+        "pleaseCheck": "The draft lists line_items description becoming nullable or optional (resolvers.js:67) and an untraced .price read (resolvers.js:70). All are false alarms: both read the app's own args.products while building line_items, not a Stripe response. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^16.6.0 to 23.0.0 in package.json (an exact pin, as Refit writes for a repository without a lockfile); the code sets no apiVersion, so stripe-node 23 sends 2026-09-30.endive.",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
     }
   ]
 }

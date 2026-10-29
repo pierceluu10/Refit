@@ -1352,6 +1352,14 @@ export function createReviewArtifacts(
               '- Validated by type check, no tests: every contract change the AI patch handles is visible to the type check against the target stripe-node, which shows no new error in the TypeScript files it changed.',
             ]
           : []),
+        // The checkJs check stood in for tests (D2a's rule on JavaScript TypeScript proved typed).
+        ...(validation.checkJs?.counts
+          ? [
+              `- Validated by type check (checkJs), no tests: every contract change the patch handles is type-visible, and tsc with checkJs shows no new error against the target stripe-node. ${plainText(validation.checkJs.reason)}.`,
+            ]
+          : validation.checkJs
+            ? [`- checkJs type check, not counted: ${plainText(validation.checkJs.reason)}.`]
+            : []),
         ...(legacyPeerDeps
           ? [
               `- Dependency Installation: \`npm ci\` rejected the ${resolvedLockfiles.length ? 'resolved' : 'committed'} lockfile's peer dependencies, so Refit installed the same lockfile with \`--legacy-peer-deps\`. Check that your own install uses the same setting.`,

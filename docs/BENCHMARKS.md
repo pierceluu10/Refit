@@ -718,6 +718,22 @@ Generated stripe-mock checks call exported functions around each finding, and mo
 - **Generated clients.** Type checks lose the missing-client errors in 71 of 73 l2 rows and change their error counts in 10 heldout rows, with no introduced error added; brandbite/brandbite's test baseline passes, and its draft stays `[Needs review]` for its other blockers.
 - **Not measured:** AI patches, publication, behaviour tests and the hosted worker.
 
+## checkJs type check for require()-only JavaScript (October 29)
+
+`feat/checkjs-type-check` type-checks JavaScript that loads stripe only with `require()` and has no test script, with a generated `tsconfig` (`checkJs`, `node16` module resolution). Under owner decision D2c the check stands in for tests, at grade C, only where TypeScript types every changed Stripe expression with the target stripe-node's declarations and every contract change the patch handles is type-visible.
+
+| Set (no AI, default flags)                        | Before | After |
+| ------------------------------------------------- | -----: | ----: |
+| l2-push-249: production validated                 |     86 |    89 |
+| l2-push-249: rows that stop on "No check can run" |      6 |     0 |
+| l2-push-249 merged with main, 224 rows: validated |     91 |    93 |
+
+- **Runs.** Before, main at `efcb91ed`: [40806735877](https://github.com/refit-dev/refit-bench/actions/runs/40806735877). After, at `3ee00eb2`: [40806747841](https://github.com/refit-dev/refit-bench/actions/runs/40806747841). All rows came back in both. On the tree merged with main: main at `6161f020` [40821431837](https://github.com/refit-dev/refit-bench/actions/runs/40821431837), whose shard 2 failed, and this branch at `ce1f168f` [40821435089](https://github.com/refit-dev/refit-bench/actions/runs/40821435089); the merged row compares the 224 rows both returned.
+- **5 rows move from D to C.** `dalemoncayo/express-stripe`, `mdalmamunit427/yoga-master-server` and `manfraio/stripe_elements_customized_card_form` validate. `samiamjidkhan/dota2-helper` stays a draft for untraced reads of Dota data, and `RescuePC/Donation-Link` for a submodule. Each patch is the card rule and the stripe-node upgrade, byte-identical on the merged tree. There `aionarae/amazon-beta`, which main now prepares, also reaches C and stays a draft for contract changes.
+- **Reviews.** Every grade C patch was read in full against [FIX-REVIEW.md](FIX-REVIEW.md): 6 correct, 0 wrong ([fix-reviews.json](benchmarks/fix-reviews.json)). The unpatched express-stripe code fails the same check on `payment_method_types`, so it catches the removed parameter.
+- **What still stops.** `App-4-Dat-LLC/LandLORDER-rp` now gets the check but stops on dependency preparation, since its lockfile does not lock stripe at the root. `SimplerDevelopment/SimplerDevelopment` differs between runs only because it hit the workflow time limit on busy runners.
+- **Not measured:** AI patches, publication and the hosted worker. No held-out or holdout set was run.
+
 ## Before and after the overnight merges (October 22)
 
 Two sets were run with the real CLI from pinned worktrees of `main`: once at `7b2c86a`, before the overnight merges, and once at `7360e3c`, after the last of them. Both runs used deterministic rules and offline Docker validation (`node:22-alpine`, generated `stripe-mock` checks), with no AI and no publication. They ran on a laptop, because AWS EC2 launches were denied by an organization policy, so timings are noisy; compare outcomes. Per-repository results: Stripe [before](benchmarks/2026-10-22-stripe-heldout-baseline-results.json) and [after](benchmarks/2026-10-23-stripe-heldout-rerun-results.json), Shopify [before](benchmarks/2026-10-22-shopify-baseline-results.json) and [after](benchmarks/2026-10-23-shopify-rerun-results.json). The runs after the merges also commit their harness record, with the image digest ([Stripe](benchmarks/2026-10-23-stripe-heldout-rerun-harness.json), [Shopify](benchmarks/2026-10-23-shopify-rerun-harness.json)).
