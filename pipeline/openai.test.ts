@@ -1,7 +1,8 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { MAX_OUTPUT_TOKENS, requestStructuredOutput } from './openai.ts';
+import { assessmentConfiguration } from './assessment.ts';
+import { checkAiModel, MAX_OUTPUT_TOKENS, requestStructuredOutput } from './openai.ts';
 
-const OPTIONS = { apiKey: 'test-key', model: 'configured-test-model' };
+const OPTIONS = { apiKey: 'test-key', model: 'gpt-6.1-sol' };
 const REQUEST = { evidence: { files: [] }, instructions: 'Return JSON.', name: 'test', schema: {} };
 
 afterEach(() => vi.unstubAllGlobals());
@@ -47,4 +48,37 @@ it('names why a response is incomplete, such as running out of output tokens whi
   await expect(requestStructuredOutput(REQUEST, OPTIONS)).rejects.toThrow(
     'OpenAI response was incomplete or invalid (max_output_tokens).',
   );
+});
+
+it('runs AI work only on gpt-6.1-sol unless an override names the model', async () => {
+  expect(checkAiModel('gpt-6.1-sol', {})).toBe('gpt-6.1-sol');
+  expect(() => checkAiModel('gpt-5.6-luna', {})).toThrow(
+    "The AI model is gpt-5.6-luna; Refit's AI work runs only on gpt-6.1-sol. Set OPENAI_MODEL=gpt-6.1-sol, or REFIT_AI_MODEL_OVERRIDE=gpt-5.6-luna to use gpt-5.6-luna on purpose.",
+  );
+  expect(checkAiModel('gpt-5.6-luna', { REFIT_AI_MODEL_OVERRIDE: 'gpt-5.6-luna' })).toBe(
+    'gpt-5.6-luna',
+  );
+  // A misconfigured override fails, even for gpt-6.1-sol.
+  expect(() => checkAiModel('gpt-6.1-sol', { REFIT_AI_MODEL_OVERRIDE: 'gpt-5.6-luna' })).toThrow(
+    'REFIT_AI_MODEL_OVERRIDE is gpt-5.6-luna but the AI model is gpt-6.1-sol; they must name the same model.',
+  );
+  // The request path refuses before anything is sent.
+  const fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+  await expect(
+    requestStructuredOutput(
+      { evidence: {}, instructions: 'x', name: 'x', schema: {} },
+      { apiKey: 'test-key', model: 'gpt-5.6-luna' },
+    ),
+  ).rejects.toThrow("Refit's AI work runs only on gpt-6.1-sol");
+  expect(fetch).not.toHaveBeenCalled();
+});
+
+it('refuses an AI configuration on another model before any work starts', () => {
+  expect(() =>
+    assessmentConfiguration(true, { OPENAI_API_KEY: 'k', OPENAI_MODEL: 'gpt-5.4-mini' }),
+  ).toThrow("Refit's AI work runs only on gpt-6.1-sol");
+  expect(
+    assessmentConfiguration(true, { OPENAI_API_KEY: 'k', OPENAI_MODEL: 'gpt-6.1-sol' })?.model,
+  ).toBe('gpt-6.1-sol');
 });
