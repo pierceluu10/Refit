@@ -3,7 +3,6 @@ import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-rou
 import { PagePosition } from './components/Layout';
 import { Demo } from './pages/Demo';
 import { Docs } from './pages/Docs';
-import { Mockups } from './pages/mockups/Mockups';
 import { Waitlist } from './pages/Waitlist';
 import { Workspace } from './pages/Workspace';
 
@@ -18,7 +17,6 @@ export function App() {
         <Route path="/" element={<Waitlist />} />
         <Route path="/demo" element={<Demo />} />
         <Route path="/docs" element={<Docs />} />
-        <Route path="/mockups/:hero?/:section?" element={<Mockups />} />
         <Route path="/sample/*" element={<Workspace />} />
         <Route path="/app/*" element={<SampleRedirect />} />
         <Route path="*" element={<NotFound />} />

@@ -1,13 +1,16 @@
 import { AgentDemo } from '../components/AgentDemo';
 import { AsciiWordmark } from '../components/AsciiWordmark';
+import { DotHorizon } from '../components/DotHorizon';
 import { Header } from '../components/Layout';
 import { ParticleField } from '../components/ParticleField';
-import { Progression } from '../components/Progression';
+import { StackSection } from '../components/Stack';
+import { VersusSection } from '../components/Versus';
 import { WaitlistForm } from '../components/WaitlistForm';
 import './waitlist.css';
 
-// The waitlist page: a split hero with the signup beside the Refit Agent demo on a drafting
-// sheet, the stages on a rail, and a blue band with the glinting ASCII logo to close.
+// The waitlist page: the signup over a plane of dots with the Refit Agent demo standing up from
+// it, Refit against a coding agent, the stages as a 3D stack, and a blue band with the glinting
+// ASCII logo to close.
 export function Waitlist() {
   return (
     <div className="waitlist-theme launch">
@@ -18,49 +21,37 @@ export function Waitlist() {
           <LaunchHero />
         </main>
       </div>
-      <LaunchSteps />
+      <VersusSection />
+      <StackSection />
       <LaunchClose />
     </div>
   );
 }
 
-export function LaunchHero() {
+// The demo lies tilted on the plane and stands up as the page scrolls, so the first screen
+// shows its top edge rising over the horizon.
+function LaunchHero() {
   return (
-    <section className="launch-hero" id="waitlist">
-      <div className="launch-copy">
-        <div data-field-avoid>
-          <AsciiWordmark columns={44} word={false} className="launch-mark" />
-        </div>
-        <h1 data-field-avoid>Stop chasing API changelogs.</h1>
-        <p data-field-avoid>
-          When an API changes, Refit finds what breaks and drafts the fix as a pull request.
-        </p>
-        <div data-field-avoid>
-          <WaitlistForm />
-        </div>
+    <section className="launch-horizon" id="waitlist">
+      <div className="launch-horizon-copy" data-field-avoid>
+        <AsciiWordmark columns={44} word={false} className="launch-horizon-mark" />
+        <h1>Stop chasing API changelogs.</h1>
+        <p>When an API changes, Refit finds what breaks and drafts the fix as a pull request.</p>
+        <WaitlistForm />
       </div>
-      <div className="launch-demo" data-field-avoid>
-        <div className="launch-frame">
-          <AgentDemo />
+      <div className="launch-horizon-stage" data-field-avoid>
+        <DotHorizon className="launch-horizon-plane" />
+        <div className="launch-horizon-tilt">
+          <div className="launch-frame">
+            <AgentDemo />
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
-export function LaunchSteps() {
-  return (
-    <section className="launch-steps" aria-labelledby="steps-title">
-      <div className="launch-steps-heading" data-field-avoid>
-        <h2 id="steps-title">What Refit Agent does when an API moves.</h2>
-        <p>Breaking changes first. Anything ambiguous stops for a person.</p>
-      </div>
-      <Progression />
-    </section>
-  );
-}
-
-export function LaunchClose() {
+function LaunchClose() {
   return (
     <section className="launch-close" aria-labelledby="close-title">
       <h2 id="close-title">Be ready for the next breaking change.</h2>

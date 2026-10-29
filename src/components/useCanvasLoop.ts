@@ -15,7 +15,8 @@ export type Draw = (
 export function useCanvasLoop(canvas: RefObject<HTMLCanvasElement | null>, draw: Draw) {
   useEffect(() => {
     const element = canvas.current!;
-    const context = element.getContext('2d')!;
+    const context = element.getContext('2d');
+    if (!context) return;
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let width = 0;
     let height = 0;

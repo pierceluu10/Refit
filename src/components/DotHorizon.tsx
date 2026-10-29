@@ -1,6 +1,6 @@
 import { useRef } from 'react';
-import { useCanvasLoop } from '../../components/useCanvasLoop';
-import type { Draw } from '../../components/useCanvasLoop';
+import { useCanvasLoop } from './useCanvasLoop';
+import type { Draw } from './useCanvasLoop';
 
 // World units: the plane spans COLUMNS dots either side of the centre, ROWS deep.
 const COLUMNS = 34;

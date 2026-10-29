@@ -1,6 +1,6 @@
 import { useRef } from 'react';
-import { useCanvasLoop } from '../../components/useCanvasLoop';
-import type { Draw } from '../../components/useCanvasLoop';
+import { useCanvasLoop } from './useCanvasLoop';
+import type { Draw } from './useCanvasLoop';
 
 const POINTS = 900;
 // Every HIT_EVERY-th point is a call site: it pulses blue.

@@ -1,17 +1,47 @@
 import { ArrowUpRight } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { BENCHMARK_URL, comparison } from './data';
 import { DotGlobe } from './DotGlobe';
+
+// The coding agent's figures are from the October 21 comparison in main's docs/BENCHMARKS.md:
+// 1 of 8 patches that passed validation was correct, and 17 runs cost $6.45. Refit's are the
+// owner's launch targets, not measurements; replace them before this ships.
+const BENCHMARK_URL =
+  'https://github.com/pierceluu10/Refit/blob/main/docs/BENCHMARKS.md#a-coding-agent-on-the-repositories-refit-did-not-fix-october-21';
+
+const comparison = {
+  correct: {
+    title: 'Patches that were right after review',
+    headline: '7.9× more often',
+    rows: [
+      { label: 'A coding agent', value: 12.5, display: '12.5%' },
+      { label: 'Refit', value: 98.4, display: '98.4%' },
+    ],
+    note: 'The agent’s wrong patches all passed their checks. Each one dropped payment_method_types, so Checkout quietly changed what it accepts.',
+  },
+  cost: {
+    title: 'AI spend per repository',
+    headline: '2,900× cheaper',
+    rows: [
+      { label: 'A coding agent', value: 100, display: '$0.38' },
+      { label: 'Refit', value: 0.4, display: '$0.00013' },
+    ],
+    note: 'Refit’s deterministic rules write the patch. A model only drafts the explanation.',
+  },
+  stats: [
+    { value: '0', label: 'silent behaviour changes', detail: 'against 7 of 8 agent patches' },
+    { value: '381 / 381', label: 'repeat runs identical', detail: 'same input, same pull request' },
+  ],
+};
 
 // Refit against a coding agent, after Latent's comparison: a question and its answer, two race
 // cards whose bars run out when they scroll into view, and a tinted band for teams that keep
 // their agent.
 export function VersusSection() {
   return (
-    <section className="mock-versus" aria-labelledby="versus-title">
-      <DotGlobe className="mock-versus-globe" />
-      <div className="mock-versus-head" data-field-avoid>
+    <section className="launch-versus" aria-labelledby="versus-title">
+      <DotGlobe className="launch-versus-globe" />
+      <div className="launch-versus-head" data-field-avoid>
         <h2 id="versus-title">Why not ask a coding agent to do it?</h2>
         <p>
           You can. It reads the changelog, edits what it finds and gets your tests to pass. Then a
@@ -19,11 +49,11 @@ export function VersusSection() {
           knows which edits change behaviour and stops on those.
         </p>
       </div>
-      <div className="mock-versus-cards" data-field-avoid>
+      <div className="launch-versus-cards" data-field-avoid>
         <RaceCard {...comparison.correct} />
         <RaceCard {...comparison.cost} />
       </div>
-      <div className="mock-versus-band" data-field-avoid>
+      <div className="launch-versus-band" data-field-avoid>
         <div>
           <h3>Keeping your agent?</h3>
           <p>
@@ -32,14 +62,14 @@ export function VersusSection() {
           </p>
         </div>
         {comparison.stats.map((stat) => (
-          <div key={stat.label} className="mock-versus-stat">
+          <div key={stat.label} className="launch-versus-stat">
             <strong>{stat.value}</strong>
             <span>{stat.label}</span>
             <span>{stat.detail}</span>
           </div>
         ))}
       </div>
-      <p className="mock-footnote" data-field-avoid>
+      <p className="launch-footnote" data-field-avoid>
         Agent figures are from Refit’s October 21 benchmark of OpenAI’s Codex CLI.{' '}
         <a href={BENCHMARK_URL} target="_blank" rel="noreferrer">
           Read the method <ArrowUpRight size={12} />
@@ -78,22 +108,22 @@ function RaceCard({
   }, []);
 
   return (
-    <article ref={card} className="mock-race" data-shown={shown || undefined}>
+    <article ref={card} className="launch-race" data-shown={shown || undefined}>
       <h3>{title}</h3>
-      <strong className="mock-race-headline">{headline}</strong>
+      <strong className="launch-race-headline">{headline}</strong>
       <dl>
         {rows.map((row) => (
           <div
             key={row.label}
-            className="mock-race-row"
+            className="launch-race-row"
             data-refit={row.label === 'Refit' || undefined}
           >
             <dt>{row.label}</dt>
             <dd>
-              <span className="mock-race-track">
+              <span className="launch-race-track">
                 <span style={{ '--value': row.value / 100 } as CSSProperties} />
               </span>
-              <span className="mock-race-value">{row.display}</span>
+              <span className="launch-race-value">{row.display}</span>
             </dd>
           </div>
         ))}
