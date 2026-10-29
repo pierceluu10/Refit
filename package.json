@@ -32,6 +32,7 @@
     "deadlines:check": "node bin/refit.mjs deadlines --check-registry",
     "deadlines:check-sources": "node bin/refit.mjs deadlines --check-sources",
     "model-parameters:check": "node bin/refit.mjs deadlines --check-parameters",
+    "model-parameter-changes:check": "node bin/refit.mjs deadlines --check-parameter-changes",
     "meta-graph:check": "node bin/refit.mjs meta-graph --check-changes",
     "shopify-rest:check": "node bin/refit.mjs shopify-rest --check-deprecations",
     "benchmark:shopify": "tsx pipeline/shopify-benchmark-cli.ts"
