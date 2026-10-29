@@ -11,6 +11,7 @@ import {
   modelLiterals,
   openItems,
   quotedSources,
+  TEST_PATH,
   withRegistryTargets,
   runAiFallback,
   type FallbackResult,
@@ -138,6 +139,52 @@ export async function loadSourceContext(now: Date) {
       : [],
     tables: await loadAiRuleTables(),
   };
+}
+
+const SCRIPT_FILE = /\.(?:[cm]?[jt]sx?)$/;
+const SETTINGS_FILE = /\.(?:json|ya?ml|toml|ini)$|(?:^|\/)\.env(?:\.[\w.-]+)?$/;
+const NOT_SETTINGS =
+  /(?:^|\/)(?:package(?:-lock)?\.json|tsconfig[^/]*\.json|pnpm-lock\.yaml|composer\.lock|node_modules\/)/;
+
+// Saved model settings (JSON, YAML, TOML, INI and .env files) that still name a model an item's
+// deadline retires, as items: a patch that migrates the code and leaves the setting is partial.
+export async function savedModelSettings(
+  root: string,
+  files: string[],
+  items: OpenItem[],
+): Promise<OpenItem[]> {
+  const retired = new Map<string, { ref: string; provider: string }>();
+  for (const item of items)
+    for (const model of item.retired ?? [])
+      retired.set(model, { ref: item.ref, provider: item.provider });
+  if (!retired.size) return [];
+  const found: OpenItem[] = [];
+  for (const path of files) {
+    if (!SETTINGS_FILE.test(path) || NOT_SETTINGS.test(path) || TEST_PATH.test(path)) continue;
+    const content = await readFile(join(root, path), 'utf8').catch(() => '');
+    if (!content || content.length > 512 * 1024) continue;
+    const lines = content.split('\n');
+    for (const [model, owner] of retired) {
+      const pattern = new RegExp(
+        `(?:^|[\\s"'=:\\[,/])${model.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[\\s"',\\]#])`,
+      );
+      const at = lines.findIndex((line) => pattern.test(line));
+      if (at >= 0)
+        found.push({
+          id: `model-alert:${owner.ref}:${path}:${at + 1}`,
+          kind: 'model-alert',
+          provider: owner.provider,
+          ref: owner.ref,
+          changeType: 'retired-model',
+          file: path,
+          line: at + 1,
+          text: model,
+          reason: `A saved model setting still names the retired model ${model}.`,
+          target: null,
+        });
+    }
+  }
+  return found;
 }
 
 async function committedFiles(directory: string) {
@@ -311,6 +358,14 @@ export async function runFallbackOnRepository(options: {
     ai: options.ai,
     repositoryModels,
     exists: async (path) => committed.has(path),
+    repositoryFiles: async () => {
+      const scripts: Array<{ path: string; content: string }> = [];
+      for (const path of files.filter((name) => SCRIPT_FILE.test(name)).slice(0, 4000)) {
+        const content = await readFile(join(directory, path), 'utf8').catch(() => '');
+        if (content.length < 512 * 1024) scripts.push({ path, content });
+      }
+      return scripts;
+    },
     environment,
     dependencies: {
       render: async (changed) => {
@@ -342,15 +397,16 @@ export async function runFallbackOnRepository(options: {
         return { patch: await renderPatch(all), refusal };
       },
       rescan: (patch) =>
-        withPatched(patch, async (copy) =>
-          openItems(
+        withPatched(patch, async (copy) => [
+          ...openItems(
             await scanBundle(copy, {
               provider,
               language,
               parameterChanges: options.parameterChanges,
             }),
           ),
-        ),
+          ...(await savedModelSettings(copy, files, input.items)),
+        ]),
       validate: async (patch) => {
         if (!checks.length)
           return {
