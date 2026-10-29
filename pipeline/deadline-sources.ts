@@ -15,6 +15,8 @@ export const STALE_PAGE_DAYS = 30;
 
 export interface SavedPage {
   provider: SourceProvider;
+  // A changelog that records shutdowns the deprecations page no longer lists, such as Gemini 1.5.
+  role?: 'changelog';
   url: string;
   fetchedAt: string;
   sha256: string;
@@ -45,7 +47,13 @@ export interface SourceCheck {
 }
 
 const sha256 = (text: string) => createHash('sha256').update(text).digest('hex');
-const pageFile = (provider: SourceProvider) => new URL(`${provider}.md`, DEPRECATION_PAGES);
+const pageFile = (provider: SourceProvider, role?: 'changelog') =>
+  new URL(`${provider}${role ? `-${role}` : ''}.md`, DEPRECATION_PAGES);
+// Changelogs entries may cite for models the deprecations page has dropped. Such an entry names no
+// replacement (the changelog gives none), so it only ever stops or alerts.
+export const SHUTDOWN_CHANGELOGS: Partial<Record<SourceProvider, string>> = {
+  gemini: 'https://ai.google.dev/gemini-api/docs/changelog',
+};
 const INDEX = new URL('index.json', DEPRECATION_PAGES);
 
 function parseIndex(text: string): SourceIndex {
@@ -60,7 +68,8 @@ function parseIndex(text: string): SourceIndex {
       typeof page.fetchedAt !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(page.fetchedAt) ||
       typeof page.sha256 !== 'string' ||
-      !/^[0-9a-f]{64}$/.test(page.sha256)
+      !/^[0-9a-f]{64}$/.test(page.sha256) ||
+      (Object.hasOwn(page, 'role') && page.role !== 'changelog')
     )
       throw new PipelineInputError(`Deprecation page index entry ${index} is malformed.`);
     return page as unknown as SavedPage;
@@ -107,13 +116,14 @@ export function checkSources(
   pages: Partial<Record<SourceProvider, string>>,
   now: Date,
   providers: readonly SourceProvider[] = SOURCE_PROVIDERS,
+  changelogs: Partial<Record<SourceProvider, string>> = {},
 ): SourceCheck {
   const errors: string[] = [];
   const warnings: string[] = [];
   const evidence: EntryEvidence[] = [];
   for (const provider of providers) {
     const source = DEPRECATION_SOURCES[provider];
-    const saved = index.pages.find((page) => page.provider === provider);
+    const saved = index.pages.find((page) => page.provider === provider && !page.role);
     const text = pages[provider];
     if (!saved || text === undefined) {
       errors.push(`${source.name}: no saved deprecation page; run --sync ${provider} --write.`);
@@ -136,6 +146,12 @@ export function checkSources(
       (entry): entry is DeadlineEntry => entry.provider === provider && entry.kind === 'model',
     );
     for (const entry of entries) {
+      if (entry.source && entry.source === SHUTDOWN_CHANGELOGS[provider]) {
+        const quotes = changelogShutdown(index, changelogs[provider], provider, entry, errors);
+        if (quotes)
+          evidence.push({ id: entry.id, provider, quotes, aliases: {}, chosenAmong: null });
+        continue;
+      }
       if (entry.source !== source.page) {
         errors.push(`${entry.id}: cites ${entry.source}, not ${source.page}.`);
         continue;
@@ -179,7 +195,47 @@ export function checkSources(
 export async function loadSourcePages() {
   const index = await readSourceIndex();
   const pages: Partial<Record<SourceProvider, string>> = {};
+  const changelogs: Partial<Record<SourceProvider, string>> = {};
   for (const page of index.pages)
-    pages[page.provider] = await readFile(pageFile(page.provider), 'utf8');
-  return { index, pages };
+    (page.role ? changelogs : pages)[page.provider] = await readFile(
+      pageFile(page.provider, page.role),
+      'utf8',
+    );
+  return { index, pages, changelogs };
+}
+
+// An entry citing a changelog: the saved changelog must match its hash, the entry must name no
+// replacement (the changelog gives none), and every model must be listed in backticks within six
+// lines under a line that says the models are shut down.
+function changelogShutdown(
+  index: SourceIndex,
+  text: string | undefined,
+  provider: SourceProvider,
+  entry: DeadlineEntry,
+  errors: string[],
+): Record<string, string> | undefined {
+  const saved = index.pages.find((page) => page.provider === provider && page.role === 'changelog');
+  if (!saved || text === undefined)
+    return void errors.push(`${entry.id}: cites the ${provider} changelog, which is not saved.`);
+  if (sha256(text) !== saved.sha256)
+    return void errors.push(
+      `${entry.id}: the saved ${provider} changelog does not match its SHA-256.`,
+    );
+  if (entry.replacement !== null)
+    return void errors.push(
+      `${entry.id}: a changelog names no replacement, so the entry must not.`,
+    );
+  const lines = text.split('\n');
+  const quotes: Record<string, string> = {};
+  for (const model of entry.versions) {
+    const at = lines.findIndex((line) => line.trim() === `- \`${model}\``);
+    const window = at < 0 ? [] : lines.slice(Math.max(0, at - 6), at);
+    const heading = [...window].reverse().find((line) => /now shut down/.test(line));
+    if (!heading)
+      errors.push(
+        `${entry.id}: the saved ${provider} changelog does not list ${model} as shut down.`,
+      );
+    else quotes[model] = heading.trim();
+  }
+  return quotes;
 }

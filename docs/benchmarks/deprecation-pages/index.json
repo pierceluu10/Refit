@@ -18,6 +18,13 @@
       "url": "https://developers.openai.com/api/docs/deprecations.md",
       "fetchedAt": "2026-10-29",
       "sha256": "3fddf4c625d689e43e559c236bcdd675de8a3b3d035070ba205827d8ad0a2fc2"
+    },
+    {
+      "provider": "gemini",
+      "role": "changelog",
+      "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+      "fetchedAt": "2026-10-29",
+      "sha256": "2f7dc1c4a33f1050e3dbf3ba482764c16b4d3b93962db33ebf099891a637d3b4"
     }
   ]
 }

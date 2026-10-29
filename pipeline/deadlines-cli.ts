@@ -149,8 +149,8 @@ try {
     }
   } else if (values['check-sources']) {
     const registry = await loadDeadlineRegistry(registryPath);
-    const { index, pages } = await loadSourcePages();
-    const report = checkSources(registry, index, pages, now);
+    const { index, pages, changelogs } = await loadSourcePages();
+    const report = checkSources(registry, index, pages, now, undefined, changelogs);
     if (values.json) console.log(JSON.stringify(report));
     else {
       for (const error of report.errors) console.log(`  error    ${terminalText(error)}`);
