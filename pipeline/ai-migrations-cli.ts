@@ -10,6 +10,7 @@ import {
   type AiMigrationProposal,
 } from './ai-migrations.ts';
 import { proveRequests, type ProofProvider } from './ai-request-proof.ts';
+import { repositoryChecks } from './check-gate.ts';
 import { findReviewSites } from './ai-review-sites.ts';
 import { AI_RULE_KINDS, checkAiRuleTables, loadAiRuleTables, type AiRuleKind } from './ai-rules.ts';
 import { loadSdkProofTable, proveSdkTable } from './sdk-request-proofs.ts';
@@ -147,17 +148,12 @@ try {
     );
   } else if (values.validate) {
     // Benchmarks: the proposal validated with the repository's own checks before and after, in
-    // offline Docker, with nothing published. `--check` names the command; otherwise `npm test`
-    // when the repository has a real test script, else `npm run build`.
+    // offline Docker, with nothing published. `--check` names one command; otherwise the
+    // repository's tests, build and type check run as separate checks (check-gate.ts).
     const root = resolve(values.repository!);
-    const scripts = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).scripts ?? {};
-    const command = values.check
-      ? values.check.split(/\s+/).filter(Boolean)
-      : typeof scripts.test === 'string' && !/no test specified/.test(scripts.test)
-        ? ['npm', 'test']
-        : typeof scripts.build === 'string'
-          ? ['npm', 'run', 'build']
-          : undefined;
+    const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
+    const separate = values.check ? [] : repositoryChecks(root, manifest);
+    const command = values.check ? values.check.split(/\s+/).filter(Boolean) : separate[0]?.command;
     const result = command
       ? await runAiMigrations({
           repository: root,
@@ -167,13 +163,14 @@ try {
           checks: {
             image: values.image!,
             command,
+            ...(separate.length ? { checks: separate } : {}),
             prepareDependencies: ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'].some((name) =>
               existsSync(join(root, name)),
             ),
           },
           onProgress: (message) => console.error(`  ${message}`),
         })
-      : { status: 'no-checks', reason: 'No --check, test or build script.' };
+      : { status: 'no-checks', reason: 'No --check, test or build script, or type check.' };
     console.log(
       values.json
         ? JSON.stringify(result, null, 2)

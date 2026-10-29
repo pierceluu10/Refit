@@ -135,23 +135,31 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
       await git('checkout', '--', '.');
       return diff;
     };
-    const validate = async (diff: string, compareBaselineTests: boolean) =>
+    const validate = async (diff: string, gated: boolean) =>
       validateSourcePatch({
         repository,
         propose: async () => diff,
         image: process.env.REFIT_DOCKER_IMAGE!,
         command: ['npm', 'test'],
-        compareBaselineTests,
+        ...(gated ? { checks: [{ name: 'tests' as const, command: ['npm', 'test'] }] } : {}),
       });
     const kept = await patch('module.exports = (a, b) => b + a;\n');
     expect(await validate(kept, false)).toMatchObject({ status: 'baseline-failed' });
     expect(await validate(kept, true)).toMatchObject({
       status: 'passed',
-      baselineTests: { status: 'kept', alreadyFailing: ['already broken'], passed: 1 },
+      gate: {
+        checks: [
+          {
+            name: 'tests',
+            outcome: 'kept',
+            tests: { status: 'kept', alreadyFailing: ['already broken'], passed: 1 },
+          },
+        ],
+      },
     });
     expect(await validate(await patch('module.exports = (a, b) => a - b;\n'), true)).toMatchObject({
       status: 'regression',
-      baselineTests: { status: 'regressed', reason: expect.stringContaining('first adds') },
+      gate: { reason: expect.stringContaining('first adds') },
     });
   },
   600_000,

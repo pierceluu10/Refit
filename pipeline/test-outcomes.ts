@@ -132,13 +132,3 @@ export function compareBaselineTests(
     passed: after.passed,
   };
 }
-
-// What a draft says about tests that already failed on the original code; empty otherwise.
-export function alreadyFailingNote(record?: BaselineTests) {
-  if (record?.status !== 'kept') return '';
-  const count = record.alreadyFailing.length;
-  const listed = record.alreadyFailing
-    .slice(0, 5)
-    .map((title) => `\`${title.replaceAll('`', "'")}\``);
-  return ` ${count} test${count === 1 ? '' : 's'} already failed on the original code and ${count === 1 ? 'is' : 'are'} not counted: ${listed.join(', ')}${count > 5 ? ` and ${count - 5} more` : ''}. Every test that passed there (${record.passed}) passes on the patch, and the rest of the check passed.`;
-}

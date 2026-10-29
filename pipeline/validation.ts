@@ -116,7 +116,7 @@ import {
   unavailableTypeCheck,
   ungradedEvidence,
 } from './check-selection.ts';
-import { compareBaselineTests, testOutcomes } from './test-outcomes.ts';
+import { checkGate, type NamedCheck } from './check-gate.ts';
 import {
   behaviourTestSkip,
   writeBehaviourTests,
@@ -3065,9 +3065,9 @@ export async function validateSourcePatch(options: {
   checkTimeoutSeconds?: number;
   prepareDependencies?: boolean;
   compareTypeErrors?: boolean;
-  // With tests already failing on the original code, compare test by test (test-outcomes.ts):
-  // every test that passed before must pass on the patch, and the rest of the check must pass.
-  compareBaselineTests?: boolean;
+  // The tests, build and type check as separate checks, run on both sides and decided by the
+  // shared gate (check-gate.ts); without them, `command` is one check that must pass before and after.
+  checks?: NamedCheck[];
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -3154,6 +3154,78 @@ export async function validateSourcePatch(options: {
       environment = await snapshotDependencies(prepared, dependencies);
     }
     options.signal?.throwIfAborted();
+    const common = {
+      revision,
+      image,
+      runtime,
+      ...(environment ? { environment } : {}),
+      archiveHash,
+      diff,
+      patchHash: digest(diff),
+      publicationFiles,
+      limits: validationLimits(sandbox.timeoutMs),
+    };
+    const candidate = async () => {
+      if (!options.prepareDependencies || !packageDiff(diff)) return { dependencies };
+      return prepareCandidateDependencies(candidateDirectory, root, image, options);
+    };
+    // Separate checks: each runs on both sides and the shared gate decides (check-gate.ts).
+    if (options.checks?.length) {
+      const run = (directory: string, command: string[], installed?: string) =>
+        containerCheck({
+          directory,
+          image,
+          command,
+          dependencies: installed,
+          signal: options.signal,
+          ...sandbox,
+        });
+      options.onProgress?.('Running baseline checks in offline Docker...');
+      const before: CheckResult[] = [];
+      for (const check of options.checks)
+        before.push(
+          await run(baselineDirectory, validateCheckCommand(check.command), dependencies),
+        );
+      options.signal?.throwIfAborted();
+      const prepared = await candidate();
+      options.onProgress?.('Running patched checks in offline Docker...');
+      const after: CheckResult[] = [];
+      for (const check of options.checks)
+        after.push(await run(candidateDirectory, check.command, prepared.dependencies));
+      const gate = checkGate(
+        options.checks.map((check, index) => ({
+          name: check.name,
+          baseline: before[index],
+          patched: after[index],
+        })),
+      );
+      const joined = (runs: CheckResult[]): CheckResult => ({
+        status: runs.every((item) => item.status === 'passed') ? 'passed' : 'failed',
+        exitCode: runs.find((item) => item.exitCode !== 0)?.exitCode ?? 0,
+        stdout: runs
+          .map((item, index) => `Refit: ${options.checks![index].name} check.\n${item.stdout}`)
+          .join('\n'),
+        stderr: runs.map((item) => item.stderr).join('\n'),
+      });
+      return {
+        ...common,
+        status: gate.status,
+        ...('environment' in prepared && prepared.environment
+          ? { candidateEnvironment: prepared.environment as Record<string, unknown> }
+          : {}),
+        command: options.command,
+        baselineCommand,
+        baseline: joined(before),
+        patched: joined(after),
+        gate,
+        ...namedBaselineStop(gate.status, joined(before)),
+        checks: options.checks.map((check, index) => ({
+          ...check,
+          baseline: before[index],
+          patched: after[index],
+        })),
+      };
+    }
     options.onProgress?.('Running baseline checks in offline Docker...');
     const baselineRun = await containerCheck({
       directory: baselineDirectory,
@@ -3168,75 +3240,38 @@ export async function validateSourcePatch(options: {
       options.compareTypeErrors,
       advisoryTypeError(options.command),
     );
-    // Failing tests on the original code: the rest of the check must still pass on it.
-    const testsBroken =
-      options.compareBaselineTests &&
-      baseline.status === 'failed' &&
-      Boolean(testOutcomes(baselineRun)?.failed.size) &&
-      compared(withoutFailedTests(baselineRun)).status === 'passed';
     let patched: CheckResult = NOT_RUN;
-    let patchedRun: CheckResult = NOT_RUN;
     let candidateEnvironment: Record<string, unknown> | undefined;
-    if (baseline.status === 'passed' || testsBroken) {
+    if (baseline.status === 'passed') {
       options.signal?.throwIfAborted();
-      let candidateDependencies = dependencies;
-      if (options.prepareDependencies && packageDiff(diff))
-        ({ dependencies: candidateDependencies, environment: candidateEnvironment } =
-          await prepareCandidateDependencies(candidateDirectory, root, image, options));
+      const prepared = await candidate();
+      if ('environment' in prepared)
+        candidateEnvironment = prepared.environment as Record<string, unknown> | undefined;
       options.onProgress?.('Running patched checks in offline Docker...');
-      patchedRun = await containerCheck({
-        directory: candidateDirectory,
-        image,
-        command: options.command,
-        dependencies: candidateDependencies,
-        signal: options.signal,
-        ...sandbox,
-      });
-      patched = compared(patchedRun);
+      patched = compared(
+        await containerCheck({
+          directory: candidateDirectory,
+          image,
+          command: options.command,
+          dependencies: prepared.dependencies,
+          signal: options.signal,
+          ...sandbox,
+        }),
+      );
     }
-    let status = checkStatus(baseline, patched);
-    const baselineTests =
-      testsBroken && patched.status !== 'error'
-        ? compareBaselineTests(baselineRun, patchedRun)
-        : undefined;
-    if (baselineTests) {
-      const rest = compared(withoutFailedTests(patchedRun));
-      status =
-        baselineTests.status === 'kept' && rest.status === 'passed'
-          ? 'passed'
-          : baselineTests.status === 'regressed' || rest.status !== 'passed'
-            ? 'regression'
-            : 'baseline-failed';
-    }
+    const status = checkStatus(baseline, patched);
     return {
+      ...common,
       status,
-      revision,
-      image,
-      runtime,
-      ...(environment ? { environment } : {}),
       ...(candidateEnvironment ? { candidateEnvironment } : {}),
       command: options.command,
       baselineCommand,
-      archiveHash,
-      diff,
-      patchHash: digest(diff),
       baseline,
       patched,
-      publicationFiles,
-      ...(baselineTests ? { baselineTests } : {}),
       ...namedBaselineStop(status, baselineRun),
       ...checkFailures(baselineCommand, options.command, baseline, patched),
-      limits: validationLimits(sandbox.timeoutMs),
     };
   } finally {
     await rm(root, { recursive: true, force: true });
   }
-}
-
-// A run with its failed tests set aside, so only the rest of its check decides: in a check chain,
-// without the failed-tests marker; a check that is only tests passes.
-function withoutFailedTests(run: CheckResult): CheckResult {
-  return run.stdout.includes(TESTS_FAILED)
-    ? { ...run, stdout: run.stdout.replace(TESTS_FAILED, '') }
-    : { ...run, status: 'passed', exitCode: 0 };
 }
