@@ -2152,6 +2152,50 @@ export type ReportOnlySource = (
 // its reason instead of under unresolved; it is never edited.
 const REPORT_ONLY_SOURCES: ReportOnlySource[] = [modelWrapperStops, modelHostStops];
 
+// The final check before any swap is kept, independent of the rule that planned it: after the
+// planned parameter edits, the request's own object literal must not still set a parameter the
+// replacement is documented to rename, reject or stop on, or one the heuristic says it may reject
+// (unless the sourced table accepts that exact numeric literal). A swap that would leave one is a
+// stop. Returns the stop reason, or undefined when the request is clean.
+export function rejectedParametersLeft(options: {
+  object: ts.ObjectLiteralExpression;
+  provider: string;
+  to: string;
+  call: string;
+  edits: readonly { item: ts.ObjectLiteralElementLike; change: ParameterChange }[];
+  changes?: ParameterChangeTable;
+  parameters?: ModelParameterTable;
+}): string | undefined {
+  const { object, provider, to, call } = options;
+  const api = proofApi(call);
+  const handled = new Set(options.edits.map((edit) => edit.item));
+  const heuristic = rejectsSampling(provider, to)
+    ? (MODEL_PARAMETER_NAMES[provider] ?? new Set<string>())
+    : new Set<string>();
+  const left: string[] = [];
+  for (const item of object.properties) {
+    if (handled.has(item)) continue;
+    const name = item.name && propertyName(item.name);
+    if (!name) continue;
+    const change = options.changes && parameterChange(options.changes, provider, to, api, name);
+    const flagged =
+      Boolean(change) ||
+      heuristic.has(name) ||
+      (GPT_6.test(to) && GPT_6_CHAT_TOOLS.has(name) && api === 'chat.completions');
+    if (!flagged) continue;
+    const value = ts.isPropertyAssignment(item) ? numericLiteral(item.initializer) : undefined;
+    const tabled = options.parameters?.models.some(
+      (entry) => entry.provider === provider && entry.model === to,
+    );
+    if (!change && tabled && parameterVerdict(options.parameters!, provider, to, name, value).ok)
+      continue;
+    left.push(name);
+  }
+  return left.length
+    ? `After the swap the request would still set ${left.join(', ')}, which ${to} is documented or may be expected to reject; change it by hand to ${to}.`
+    : undefined;
+}
+
 interface PlannedParameterEdit {
   item: ts.ObjectLiteralElementLike;
   name: string;
@@ -2493,6 +2537,8 @@ export async function proposeModelReplacements(
       reasons: string[];
       requests: (typeof requests)[number][];
       parameterEdits: PlannedParameterEdit[];
+      // Each request's own object literal, for the final parameter check.
+      objects: { object: ts.ObjectLiteralExpression; call: string }[];
     }
   >();
   const stops: ModelReplacementStop[] = [];
@@ -2720,9 +2766,11 @@ export async function proposeModelReplacements(
         reasons: [],
         requests: [],
         parameterEdits: [],
+        objects: [],
       };
       decisions.set(site.literal, decision);
       decision.requests.push(request);
+      decision.objects.push({ object: found.object, call: request.call });
       decision.reasons.push(reason ?? '');
       if (!reason && changed) decision.parameterEdits.push(...changed.edits);
     }
@@ -2751,6 +2799,19 @@ export async function proposeModelReplacements(
     };
     const blocking =
       decision.reasons.find(Boolean) ??
+      decision.objects
+        .map(({ object, call }) =>
+          rejectedParametersLeft({
+            object,
+            provider: decision.entry.provider,
+            to: decision.to,
+            call,
+            edits: decision.parameterEdits,
+            changes: parameterChanges,
+            parameters,
+          }),
+        )
+        .find(Boolean) ??
       (decision.requests.some((request) => flows.has(flowKey(request, decision.entry)))
         ? `Another request in this file sends ${literal.text} with functions or function_call, which stops; moving one call of a function-calling flow leaves the other on the retired model, so change them together by hand to ${decision.to}.`
         : undefined);
