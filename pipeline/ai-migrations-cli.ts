@@ -3,7 +3,8 @@ import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { proposeAiMigrations, proposeSdkMajor, type AiMigrationProposal } from './ai-migrations.ts';
 import { proveRequests, type ProofProvider } from './ai-request-proof.ts';
-import { checkAiRuleTables, loadAiRuleTables } from './ai-rules.ts';
+import { findReviewSites } from './ai-review-sites.ts';
+import { AI_RULE_KINDS, checkAiRuleTables, loadAiRuleTables, type AiRuleKind } from './ai-rules.ts';
 import { loadSdkProofTable, proveSdkTable } from './sdk-request-proofs.ts';
 import type { SdkMajorProposal } from './ai-sdk-majors.ts';
 import { cliErrorMessage } from './cli-errors.ts';
@@ -14,6 +15,7 @@ import { terminalText } from './workflow-presentation.ts';
 
 const USAGE = `Usage: refit ai-migrations --check-rules [--live] [--json]
        refit ai-migrations [--repository <root>] [--package <openai|@anthropic-ai/sdk>] [--edits-only] [--output <patch>] [--json]
+       refit ai-migrations --review [--repository <root>] [--kind <api-surface|response-format|beta-feature|sdk-major>]... [--json]
        refit ai-migrations --prove-table --sdk-directory <dir> --releases <name@version,...> --run <url> --output <path>
        refit ai-migrations --prove --provider <openai|anthropic> --calls <call>[,<call>...] [--stream] [--tools] [--json-output] [--sdk-directory <dir>] [--json]`;
 
@@ -25,6 +27,10 @@ its saved page under docs/ai-docs/pages. --live also reads every page from the p
 Default: proposes the AI SDK major upgrade for a repository: the documented rewrites, the sites left
 for review and the package upgrade. The upgrade re-resolves package-lock.json in networked Docker;
 --edits-only skips it and lists the code edits and stops only.
+
+--review: lists API surface migrations, response-format changes and beta features with no
+documented one-to-one mapping (and report-only Python and Gemini sites), each with its rule, quote
+and page. Nothing is edited.
 
 --prove: sends the smallest request for each call with the SDK installed in --sdk-directory and the
 key from OPENAI_API_KEY or ANTHROPIC_API_KEY (refit-bench Actions secrets). Without the key nothing
@@ -40,6 +46,8 @@ const { values } = parseArgs({
     output: { type: 'string' },
     prove: { type: 'boolean' },
     'prove-table': { type: 'boolean' },
+    review: { type: 'boolean' },
+    kind: { type: 'string', multiple: true },
     run: { type: 'string' },
     releases: { type: 'string' },
     provider: { type: 'string' },
@@ -91,6 +99,22 @@ try {
         console.log(`  ${problem.table} ${problem.rule}: ${terminalText(problem.problem)}`);
     }
     process.exitCode = problems.length ? 1 : 0;
+  } else if (values.review) {
+    const kinds = (values.kind ?? AI_RULE_KINDS) as AiRuleKind[];
+    if (kinds.some((kind) => !AI_RULE_KINDS.includes(kind))) throw new PipelineInputError(USAGE);
+    const findings = await findReviewSites(
+      resolve(values.repository!),
+      await loadAiRuleTables(),
+      kinds,
+    );
+    if (values.json) console.log(JSON.stringify(findings, null, 2));
+    else if (!findings.length)
+      console.log('No API surface, response-format or beta-feature site to review.');
+    else
+      for (const item of findings)
+        console.log(
+          `${item.file}:${item.line}  ${item.rule}  ${item.breaking ? 'breaking' : 'cleanup'}${item.status === 'report' ? ', report only' : ''}${item.ambiguous ? ', client unclear' : ''}  ${terminalText(item.text)}`,
+        );
   } else if (values['prove-table']) {
     // refit-bench Actions only: --releases names what --sdk-directory holds, as name@version,...
     if (!values['sdk-directory'] || !values.run || !values.releases || !values.output)

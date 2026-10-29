@@ -35,3 +35,14 @@ Every draft reports three levels separately and never claims the new SDK behaves
 - (c) Output shape: the same requests parse their text, stream, tool call and JSON output where the migrated call uses them.
 
 Run locally with `refit ai-migrations --repository <root> --edits-only` to list the edits and stops without Docker.
+
+## API surfaces, response formats and beta features
+
+`refit ai-migrations --review [--kind api-surface|response-format|beta-feature|sdk-major]` lists the sites whose change has no documented one-to-one mapping, each with its rule, the quoted page and whether it breaks today. Nothing is edited.
+
+- API surfaces (`data/rules/*/api-surfaces.json`): OpenAI Assistants (shut down 2026-08-26) and legacy Completions (every model shut down 2026-09-28), Anthropic Text Completions, Google PaLM (report only).
+- Response formats (`response-formats.json`): Anthropic Admin and Analytics field renames on 2026-10-21, `BetaSkill` renamed `BetaContainerSkill`, Gemini `response.text()` (report only).
+- Beta features (`beta-features.json`): OpenAI `realtime=v1` (removed 2026-05-12) and `assistants=v1`, Anthropic's retired `context-1m-2025-08-07`, and graduated Anthropic betas (listed as cleanups, which still work).
+- SDK swaps that are report only: Python openai 0.x, `@google/generative-ai` and `google-generativeai`.
+
+Python sites, including beta names in Python strings, are always report only. When a file imports both SDKs and a call matches both providers' rules, the finding says the client is unclear. What a fix for these would need is in `docs/proposals/ai-surface-migrations.md`.
