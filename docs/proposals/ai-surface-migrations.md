@@ -12,7 +12,7 @@ Found on DEV repositories (`docs/benchmarks/ai-surfaces/review-hand-checks.json`
 - OpenAI Realtime beta (`OpenAI-Beta: realtime=v1`, removed 2026-05-12): the session and event shapes differ.
 
 **Proposed feature:** an AI patch per site, as Stripe's coverage AI does (decisions D2, D2a, D2b): the rules' context and the provider guide as evidence, the target SDK installed, the type oracle with zero new errors, the repository's tests offline, request-level proof of the new call shape, and only traced sites touched. These patches always ship `[Needs review]`. A new model is part of every one of these moves, so the model comes from the deadline registry's replacement, never from the AI.
-**Decision needed:** may AI propose provider-API moves for OpenAI and Anthropic (D2 is Stripe-only)?
+**Status (2026-10-29):** decided for OpenAI legacy Completions and Assistants and built (`--ai-surfaces`, Actions only, unmeasured). Anthropic Text Completions and the Realtime beta remain open.
 
 ## 2. Python SDK majors (openai 0.x → 1.x, google-generativeai, Anthropic Python)
 
@@ -29,7 +29,7 @@ The Gemini migration guide gives the client and call mapping (`getGenerativeMode
 
 An `@anthropic-ai/sdk` 1.x upgrade sends API version 2026-10-21, which rejects `temperature`, `top_p` and `top_k`. Today the upgrade blocks on them.
 **Proposed feature:** run the upgrade after ai-models' parameter rule removes them, in one draft.
-**Decision needed:** whether removing a sampling parameter, which can change outputs, may ship with a dependency upgrade.
+**Status (2026-10-29):** decided and built: literal parameters in traced calls are removed with the upgrade; untraceable ones still stop.
 
 ## 5. Lockfiles and packages the upgrade refuses
 

@@ -47,3 +47,13 @@ Run locally with `refit ai-migrations --repository <root> --edits-only` to list 
 - SDK swaps that are report only: Python openai 0.x, `@google/generative-ai` and `google-generativeai`.
 
 Python sites, including beta names in Python strings, are always report only. When a file imports both SDKs and a call matches both providers' rules, the finding says the client is unclear. What a fix for these would need is in `docs/proposals/ai-surface-migrations.md`.
+
+## AI lane for shut-down OpenAI surfaces
+
+Decision (main session on Furqan's delegation, 2026-10-29): legacy Completions and Assistants calls, which OpenAI shut down and documents no one-to-one mapping for, get an AI-drafted migration under the D1 gates. `refit ai-migrations --ai-surfaces` (`pipeline/ai-surface-lane.ts`) runs only in GitHub Actions (refit-bench), with Refit's `OPENAI_API_KEY` and the AI budget.
+
+- The model sees only the flagged calls, the files that hold them and the JavaScript parts of OpenAI's two migration guides. It is told which model each site must send: the original, or for a retired model the replacement the deadline registry quotes from OpenAI. With no named replacement, nothing is sent.
+- Its output is kept only if every changed file parses, it changes no other file and no line outside the statements holding the flagged calls (imports aside), no legacy call remains, every new call exists in openai 6 (`data/sdk-surfaces`), and every model string is the original or its registry replacement. A rejected answer is never used; its cost is recorded.
+- The SDK major upgrade runs first when one is due; the AI works on its result.
+- It is validated only when the repository's checks run code and pass, every new call shape has an accepted request proof (`data/sdk-request-proofs.json`) and every flagged site moved. Otherwise the draft is `[Needs review]` with each reason. Every draft lists the AI-written lines, the model, response ID and cost, and says outputs may differ.
+- Anthropic Text Completions is not in the lane yet.

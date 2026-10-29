@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 29 checkpoint: AI lane for shut-down OpenAI surfaces, sampling removal, Gemini models (unreleased, after 0.39.0)
+
+Decisions of the coordinating session on Furqan's delegation (2026-10-29). `refit ai-migrations --ai-surfaces` drafts the move of legacy Completions and Assistants calls to Responses with AI, in GitHub Actions only, under deterministic guards and the gates in `docs/AI-MIGRATIONS.md`; unit tests use a mocked model, and no measurement has run. The `@anthropic-ai/sdk` 1.x upgrade removes `temperature`, `top_p` and `top_k` written in a traced call's literal, as the 2026-10-21 guide says, and names each removed value in the draft. The Gemini swap replaces a retired model with the registry's quoted replacement and stops where none is named.
+
 ## October 29 checkpoint: Gemini SDK swap (unreleased, after 0.39.0)
 
 Under the owner decision of 2026-10-29 (Gemini edits with a quoted source and request-level proof, otherwise `[Needs review]`), `refit ai-migrations` replaces `@google/generative-ai` with `@google/genai` 2.x for the migration guide's one-to-one JavaScript shapes (client, `getGenerativeModel({ model })` with `generateContent`/`generateContentStream` in one file, `response.text()`), and blocks on everything else. Request proofs for `models.generateContent` and its stream are pending in `data/sdk-request-proofs.json` until refit-bench's `sdk-proof.yml` runs. Hand-checks wait for ai-bench's `gemini-dev-15` DEV set.

@@ -6,6 +6,7 @@ import {
   proposeAiMigrations,
   proposeSdkMajor,
   runAiMigrations,
+  runAiSurfaceMigrations,
   type AiMigrationProposal,
 } from './ai-migrations.ts';
 import { proveRequests, type ProofProvider } from './ai-request-proof.ts';
@@ -13,6 +14,7 @@ import { findReviewSites } from './ai-review-sites.ts';
 import { AI_RULE_KINDS, checkAiRuleTables, loadAiRuleTables, type AiRuleKind } from './ai-rules.ts';
 import { loadSdkProofTable, proveSdkTable } from './sdk-request-proofs.ts';
 import type { SdkMajorProposal } from './ai-sdk-majors.ts';
+import { aiBudgetConfiguration } from './ai-budget.ts';
 import { cliErrorMessage } from './cli-errors.ts';
 import { readBoundedResponse } from './network.ts';
 import { isObject, parseJson } from './specifications.ts';
@@ -22,6 +24,7 @@ import { terminalText } from './workflow-presentation.ts';
 const USAGE = `Usage: refit ai-migrations --check-rules [--live] [--json]
        refit ai-migrations [--repository <root>] [--package <openai|@anthropic-ai/sdk|@google/genai>] [--edits-only] [--output <patch>] [--json]
        refit ai-migrations --validate [--repository <root>] [--package <name>] [--check <command>] [--image <image>] [--json]
+       refit ai-migrations --ai-surfaces [--repository <root>] [--check <command>] [--image <image>] [--json]   (GitHub Actions only)
        refit ai-migrations --review [--repository <root>] [--kind <api-surface|response-format|beta-feature|sdk-major>]... [--json]
        refit ai-migrations --prove-table --sdk-directory <dir> --releases <name@version,...> --run <url> --output <path>
        refit ai-migrations --prove --provider <openai|anthropic|gemini> --calls <call>[,<call>...] [--stream] [--tools] [--json-output] [--sdk-directory <dir>] [--json]`;
@@ -55,6 +58,7 @@ const { values } = parseArgs({
     'prove-table': { type: 'boolean' },
     review: { type: 'boolean' },
     validate: { type: 'boolean' },
+    'ai-surfaces': { type: 'boolean' },
     check: { type: 'string' },
     kind: { type: 'string', multiple: true },
     run: { type: 'string' },
@@ -108,6 +112,37 @@ try {
         console.log(`  ${problem.table} ${problem.rule}: ${terminalText(problem.problem)}`);
     }
     process.exitCode = problems.length ? 1 : 0;
+  } else if (values['ai-surfaces']) {
+    // refit-bench Actions only (the run refuses elsewhere): the AI lane for shut-down OpenAI
+    // Completions and Assistants calls, with OPENAI_API_KEY, OPENAI_MODEL and the AI budget.
+    const key = process.env.OPENAI_API_KEY?.trim();
+    if (!key)
+      throw new PipelineInputError(
+        'The AI surface lane needs OPENAI_API_KEY (a refit-bench secret).',
+      );
+    const root = resolve(values.repository!);
+    const result = await runAiSurfaceMigrations({
+      repository: root,
+      tables: await loadAiRuleTables(),
+      ai: {
+        apiKey: key,
+        model: process.env.OPENAI_MODEL?.trim() || 'gpt-5.6-luna',
+        budget: aiBudgetConfiguration(process.env),
+      },
+      checks: {
+        image: values.image!,
+        command: values.check ? values.check.split(/\s+/).filter(Boolean) : ['npm', 'test'],
+        prepareDependencies: ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'].some((name) =>
+          existsSync(join(root, name)),
+        ),
+      },
+      onProgress: (message) => console.error(`  ${message}`),
+    });
+    console.log(
+      values.json
+        ? JSON.stringify(result, null, 2)
+        : `${result.status}: ${terminalText(result.reason)}`,
+    );
   } else if (values.validate) {
     // Benchmarks: the proposal validated with the repository's own checks before and after, in
     // offline Docker, with nothing published. `--check` names the command; otherwise `npm test`
