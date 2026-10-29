@@ -192,14 +192,30 @@ async function main() {
   )
     .then(() => true)
     .catch(() => false);
-  const PACKAGE: Record<string, string> = { openai: 'openai', anthropic: '@anthropic-ai/sdk' };
+  const PACKAGE: Record<string, string> = {
+    openai: 'openai',
+    anthropic: '@anthropic-ai/sdk',
+    gemini: '@google/genai',
+  };
   const MIGRATION_TIMEOUT_MS = 45 * 60 * 1000;
   async function migrate(directory: string, entry: Entry) {
     if (!migrations) return null;
-    const review = await refit(['ai-migrations', '--review', '--repository', directory]);
+    const review = (
+      (await refit(['ai-migrations', '--review', '--repository', directory])) as Array<{
+        provider?: string;
+      }>
+    ).filter(counted);
+    if (entry.language === 'py') return { review, proposal: null, validation: null };
+    const pkg = provider && PACKAGE[provider] ? ['--package', PACKAGE[provider]] : [];
+    // Without --validate, only the edits and stops (no Docker); with it, the patch is checked.
+    const proposal = values.validate
+      ? null
+      : ((await refit(['ai-migrations', '--edits-only', '--repository', directory, ...pkg])) as {
+          edits: unknown[];
+          stops: Array<{ blocking?: boolean }>;
+        } | null);
     let validation: Record<string, unknown> | null = null;
-    if (values.validate && entry.language !== 'py') {
-      const pkg = provider && PACKAGE[provider] ? ['--package', PACKAGE[provider]] : [];
+    if (values.validate) {
       const { stdout } = await execute(
         process.execPath,
         [
@@ -223,12 +239,17 @@ async function main() {
       );
       validation = JSON.parse(stdout);
     }
-    return { review, validation };
+    return { review, proposal, validation };
   }
-  const reviewFindings = (review: unknown) => {
-    const value = review as { findings?: unknown[]; sites?: unknown[] } | null;
-    return (value?.findings ?? value?.sites ?? []).length;
-  };
+  // The lane a migration result adds: its validation status, or, scan-only, whether it proposed edits.
+  function migrationLane(migrated: Awaited<ReturnType<typeof migrate>>): LaneStatus | null {
+    if (!migrated) return null;
+    if (migrated.validation) return (migrated.validation as { status: LaneStatus }).status;
+    const proposal = migrated.proposal;
+    if (!proposal) return null;
+    if (proposal.stops.some((stop) => stop.blocking)) return 'needs-review';
+    return proposal.edits.length ? 'proposed' : proposal.stops.length ? 'needs-review' : null;
+  }
 
   const counted = (item: { provider?: string; deadline?: { provider?: string } }) =>
     !provider || (item.provider ?? item.deadline?.provider) === provider;
@@ -342,7 +363,8 @@ async function main() {
       if (validation) lanes.push(validation.status as LaneStatus);
       else if (found.replacements.length)
         lanes.push(entry.language === 'py' ? 'needs-review' : 'proposed');
-      if (migrated?.validation) lanes.push((migrated.validation as { status: LaneStatus }).status);
+      const lane = migrationLane(migrated);
+      if (lane) lanes.push(lane);
       row = {
         ...base,
         exposures: found.exposures.map((item) => item.deadline.id),
@@ -359,7 +381,7 @@ async function main() {
           found.exposures.length +
           found.stops.length +
           found.alerts.length +
-          reviewFindings(migrated?.review ?? null),
+          (migrated?.review.length ?? 0),
         lanes,
       });
     } catch (error) {
