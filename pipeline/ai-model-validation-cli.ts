@@ -6,6 +6,7 @@ import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
+import { repositoryChecks } from './check-gate.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { runModelFixes } from './model-fixes.ts';
 
@@ -31,15 +32,11 @@ const registry = await loadDeadlineRegistry(undefined, now);
 
 async function checks(directory: string) {
   const manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'));
-  const scripts = manifest.scripts ?? {};
-  const command =
-    typeof scripts.test === 'string' && !/no test specified/.test(scripts.test)
-      ? ['npm', 'test']
-      : typeof scripts.build === 'string'
-        ? ['npm', 'run', 'build']
-        : undefined;
+  // The tests, build and type check as separate checks, decided by the shared gate.
+  const separate = repositoryChecks(directory, manifest);
   return {
-    command,
+    command: separate[0]?.command,
+    checks: separate,
     prepareDependencies: LOCKFILES.some((name) => existsSync(join(directory, name))),
   };
 }
@@ -50,9 +47,13 @@ for (const entry of benchmark.results.filter(
 )) {
   const directory = join(values.root, entry.repo.replace('/', '__'));
   console.error(`${entry.repo}`);
-  const { command, prepareDependencies } = await checks(directory);
+  const { command, checks: separate, prepareDependencies } = await checks(directory);
   if (!command) {
-    validated.push({ repo: entry.repo, status: 'no-checks', reason: 'No test or build script.' });
+    validated.push({
+      repo: entry.repo,
+      status: 'no-checks',
+      reason: 'No test or build script, or type check.',
+    });
     continue;
   }
   try {
@@ -60,7 +61,7 @@ for (const entry of benchmark.results.filter(
       repository: directory,
       registry,
       now,
-      checks: { image: values.image, command, prepareDependencies },
+      checks: { image: values.image, command, checks: separate, prepareDependencies },
       onProgress: (message) => console.error(`  ${message}`),
     });
     validated.push({

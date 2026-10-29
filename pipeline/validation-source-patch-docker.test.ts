@@ -90,3 +90,77 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_NPM_PREPARE)(
   },
   600_000,
 );
+
+// Node's own test runner, so the repository needs no dependencies: one test already fails on the
+// original code, and a patch either keeps every other test passing or breaks one.
+it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
+  'compares tests one by one when some already fail on the original code',
+  async () => {
+    const repository = await mkdtemp(join(tmpdir(), 'refit-source-patch-docker-'));
+    roots.push(repository);
+    await writeFile(
+      join(repository, 'package.json'),
+      `${JSON.stringify({ name: 'app', private: true, scripts: { test: 'node --test' } }, null, 2)}\n`,
+    );
+    await writeFile(join(repository, 'index.js'), 'module.exports = (a, b) => a + b;\n');
+    await writeFile(
+      join(repository, 'index.test.js'),
+      [
+        "const test = require('node:test');",
+        "const assert = require('node:assert');",
+        "const add = require('./index.js');",
+        "test('adds', () => assert.equal(add(1, 2), 3));",
+        "test('already broken', () => assert.equal(1, 2));",
+        '',
+      ].join('\n'),
+    );
+    const git = (...args: string[]) =>
+      execute('git', [
+        '-C',
+        repository,
+        '-c',
+        'user.name=Refit Test',
+        '-c',
+        'user.email=test@example.invalid',
+        '-c',
+        'commit.gpgsign=false',
+        ...args,
+      ]);
+    await git('init', '-q');
+    await git('add', '.');
+    await git('commit', '-q', '-m', 'test: seed');
+    const patch = async (source: string) => {
+      await writeFile(join(repository, 'index.js'), source);
+      const diff = (await git('diff')).stdout;
+      await git('checkout', '--', '.');
+      return diff;
+    };
+    const validate = async (diff: string, gated: boolean) =>
+      validateSourcePatch({
+        repository,
+        propose: async () => diff,
+        image: process.env.REFIT_DOCKER_IMAGE!,
+        command: ['npm', 'test'],
+        ...(gated ? { checks: [{ name: 'tests' as const, command: ['npm', 'test'] }] } : {}),
+      });
+    const kept = await patch('module.exports = (a, b) => b + a;\n');
+    expect(await validate(kept, false)).toMatchObject({ status: 'baseline-failed' });
+    expect(await validate(kept, true)).toMatchObject({
+      status: 'passed',
+      gate: {
+        checks: [
+          {
+            name: 'tests',
+            outcome: 'kept',
+            tests: { status: 'kept', alreadyFailing: ['already broken'], passed: 1 },
+          },
+        ],
+      },
+    });
+    expect(await validate(await patch('module.exports = (a, b) => a - b;\n'), true)).toMatchObject({
+      status: 'regression',
+      gate: { reason: expect.stringContaining('first adds') },
+    });
+  },
+  600_000,
+);

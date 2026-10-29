@@ -33,6 +33,7 @@ import { loadSdkProofTable, storedRequestProof } from './sdk-request-proofs.ts';
 import { digest } from './specifications.ts';
 import type { PackageUpgrade } from './stripe-package-upgrade.ts';
 import { PipelineInputError } from './types.ts';
+import { gateNote, type CheckGate } from './check-gate.ts';
 import { validateSourcePatch } from './validation.ts';
 
 // AI provider migrations (SDK majors first): proposes the documented rewrites and the package
@@ -175,6 +176,7 @@ export function aiMigrationBody(options: {
     compareTypeErrors?: boolean;
     baseline: { status: string; exitCode: number | null; stdout: string; stderr: string };
     patched: { status: string; exitCode: number | null; stdout: string; stderr: string };
+    gate?: CheckGate;
   };
   requestProof: RequestProof;
 }) {
@@ -223,6 +225,7 @@ export function aiMigrationBody(options: {
       '## Proof',
       '',
       `- **(a) Code:** the repository's approved checks ran on ${code(validation.revision.slice(0, 12))} in offline Docker (${code(validation.image)}). Baseline ${code(validation.baselineCommand.join(' '))}: ${validation.baseline.status}. Patched ${code(validation.command.join(' '))}: ${validation.patched.status}${existing ? `; the type check ${existing}` : ''}.`,
+      ...gateNote(validation.gate).map((line) => `  ${line}`),
       `- **(b) Request:** ${requestProof.status === 'accepted' ? `the smallest request for each migrated call was accepted by the provider with Refit's own test key (${requestProof.calls.map((item) => code(item.call)).join(', ')}).` : `${requestProof.status}. ${requestProof.reason}`}`,
       `- **(c) Output shape:** ${requestProof.calls.length ? requestProof.calls.map((item) => `${code(item.call)} ${item.status}: ${item.detail}`).join('; ') : 'not checked, because no request was sent.'}`,
       '',
