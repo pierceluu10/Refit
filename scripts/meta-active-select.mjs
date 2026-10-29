@@ -3,7 +3,7 @@
 // when affected, then split into a dev set and a blind set with no overlap.
 // Usage: GITHUB_TOKEN=… node scripts/meta-active-select.mjs --work <dir>
 //          --dev <dev.json> --blind <blind.json> [--frozen-at YYYY-MM-DD] [--dev-size 60]
-//          [--blind-size 30] [--limit 600] [--seed <text>]
+//          [--blind-size 100] [--limit 2000] [--seed <text>]
 // The token is read from GITHUB_TOKEN, or from `gh auth token` when unset. Each phase caches its
 // result in --work (pre-scan results per repository), so an interrupted selection resumes. Cloned
 // code is only read by `refit meta-graph`, never installed or run, and deleted after the scan.
@@ -179,9 +179,9 @@ async function main() {
       work: { type: 'string' },
       dev: { type: 'string' },
       blind: { type: 'string' },
-      limit: { type: 'string', default: '600' },
+      limit: { type: 'string', default: '2000' },
       'dev-size': { type: 'string', default: '60' },
-      'blind-size': { type: 'string', default: '30' },
+      'blind-size': { type: 'string', default: '100' },
       'frozen-at': { type: 'string', default: new Date().toISOString().slice(0, 10) },
       seed: { type: 'string', default: 'meta-sets' },
       benchmarks: { type: 'string', default: 'docs/benchmarks' },
@@ -190,7 +190,7 @@ async function main() {
   });
   if (values.help || !values.work || !values.dev || !values.blind) {
     console.log(
-      'Usage: node scripts/meta-active-select.mjs --work <dir> --dev <dev.json> --blind <blind.json> [--frozen-at YYYY-MM-DD] [--dev-size 60] [--blind-size 30] [--limit 600] [--seed <text>]',
+      'Usage: node scripts/meta-active-select.mjs --work <dir> --dev <dev.json> --blind <blind.json> [--frozen-at YYYY-MM-DD] [--dev-size 60] [--blind-size 100] [--limit 2000] [--seed <text>]',
     );
     process.exit(values.help ? 0 : 1);
   }
@@ -527,13 +527,17 @@ async function main() {
     });
   }
 
-  // 4. Freeze. Blind first, so the blind set never depends on the dev set's size.
-  const { blind, dev } = splitSets(
-    affected,
-    values.seed,
-    Number(values['blind-size']),
-    Number(values['dev-size']),
-  );
+  // 4. Freeze. Blind first, so the blind set never depends on the dev set's size. With fewer
+  // affected repositories than both sizes, the dev set keeps its size and the blind set takes the
+  // rest; the shortfall is recorded in both lists, never hidden.
+  const requested = Number(values['blind-size']);
+  const devSize = Number(values['dev-size']);
+  const blindSize = Math.min(requested, Math.max(0, affected.length - devSize));
+  const { blind, dev } = splitSets(affected, values.seed, blindSize, devSize);
+  const shortfall =
+    blindSize < requested
+      ? `Only ${affected.length} affected repositories qualified, fewer than the ${requested + devSize} a ${requested}-repository blind set and a ${devSize}-repository dev set need, so the blind set has ${blind.length} and the dev set ${dev.length}.`
+      : null;
   const fileHash = async (path) =>
     createHash('sha256')
       .update(await readFile(join(REFIT, path)))
@@ -552,7 +556,7 @@ async function main() {
     refitCommit: (await execute('git', ['-C', REFIT, 'rev-parse', 'HEAD'])).stdout.trim(),
   };
   const command = `node scripts/meta-active-select.mjs --work <dir> --dev ${values.dev} --blind ${values.blind} --frozen-at ${frozenAt} --dev-size ${values['dev-size']} --blind-size ${values['blind-size']} --limit ${values.limit} --seed ${values.seed}`;
-  const criteria = `GitHub code search (${QUERIES.length} queries; one with more than 1,000 results also run once per file-size range: ${SIZE_RANGES.join(', ')} bytes) for graph.facebook.com/v URLs, facebook-nodejs-business-sdk, FB.init with a version, graph.instagram.com and WhatsApp Cloud API messages, excluding every repository named in any JSON file under ${values.benchmarks}/ (${excluded.size} repositories). Kept: not archived, not a fork, under 50 MB; a default-branch commit since ${since.slice(0, 10)} with at least ${MIN_AUTHORS} distinct human commit authors in that window (bots excluded); a .github/workflows directory; a root package.json and exactly one root lockfile (${LOCKFILES.join(', ')}). The ${scanned.length} most starred were cloned at their default-branch HEAD, scanned offline with \`refit meta-graph --json\` and \`refit meta-graph --propose-version-moves --target ${target} --json\` and a text search for FB.init versions and Instagram Basic Display scopes (user_profile, user_media) in live files, then deleted. Affected: a live request or FB.init on a Graph API version retired by ${frozenAt} (data/deadlines.json, or older than its oldest entry) or retiring within ${SOON_DAYS} days, a live request a reviewed change in data/meta-graph-changes.json removes or changes on the way to ${target}, or Instagram Basic Display scopes (product shut down 2024-12-04). Affected repositories are ordered by SHA-256 of "${values.seed}:<owner/name>" (lower-cased); the first ${values['blind-size']} are the blind set and the next ${values['dev-size']} the dev set.`;
+  const criteria = `GitHub code search (${QUERIES.length} queries; one with more than 1,000 results also run once per file-size range: ${SIZE_RANGES.join(', ')} bytes) for graph.facebook.com/v URLs, facebook-nodejs-business-sdk, FB.init with a version, graph.instagram.com and WhatsApp Cloud API messages, excluding every repository named in any JSON file under ${values.benchmarks}/ (${excluded.size} repositories). Kept: not archived, not a fork, under 50 MB; a default-branch commit since ${since.slice(0, 10)} with at least ${MIN_AUTHORS} distinct human commit authors in that window (bots excluded); a .github/workflows directory; a root package.json and exactly one root lockfile (${LOCKFILES.join(', ')}). The ${scanned.length} most starred were cloned at their default-branch HEAD, scanned offline with \`refit meta-graph --json\` and \`refit meta-graph --propose-version-moves --target ${target} --json\` and a text search for FB.init versions and Instagram Basic Display scopes (user_profile, user_media) in live files, then deleted. Affected: a live request or FB.init on a Graph API version retired by ${frozenAt} (data/deadlines.json, or older than its oldest entry) or retiring within ${SOON_DAYS} days, a live request a reviewed change in data/meta-graph-changes.json removes or changes on the way to ${target}, or Instagram Basic Display scopes (product shut down 2024-12-04). Affected repositories are ordered by SHA-256 of "${values.seed}:<owner/name>" (lower-cased); the first ${blindSize} (of ${requested} requested; fewer only when the dev set's ${devSize} would not fit) are the blind set and the next ${devSize} the dev set.`;
   const summary = {
     queries,
     repositories: found.length,
@@ -563,6 +567,7 @@ async function main() {
     scanned: scanned.length,
     notAffected,
     affected: affected.length,
+    shortfall,
   };
   const write = (path, repos, purpose) =>
     writeFile(
@@ -593,7 +598,11 @@ async function main() {
     'Meta Graph blind set: the same selection as the dev set, no overlap. Nobody opens, traces or debugs these repositories; they run only in the combined Meta benchmark at the end.',
   );
   console.log(
-    JSON.stringify({ ...summary, dev: dev.length, blind: blind.length, target }, null, 2),
+    JSON.stringify(
+      { ...summary, dev: dev.length, blindRequested: requested, blind: blind.length, target },
+      null,
+      2,
+    ),
   );
 }
 

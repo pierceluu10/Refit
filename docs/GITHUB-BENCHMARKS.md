@@ -74,7 +74,7 @@ gh workflow run shopify.yml -R refit-dev/refit-bench \
 
 ## Meta Graph
 
-`.github/workflows/meta.yml` (refit-bench branch `feat/meta-benchmark` until merged) runs `npm run benchmark:meta` on a frozen Meta list, `subsets/meta-dev-60.json` or, only for the combined run at the end, `subsets/meta-blind-30.json`. It has the same plan, shard and merge jobs and inputs, no Docker and no secret but `REFIT_READ_TOKEN`. Each shard runs:
+`.github/workflows/meta.yml` (refit-bench branch `feat/meta-benchmark` until merged) runs `npm run benchmark:meta` on a frozen Meta list, `subsets/meta-dev-60.json` or, only for the combined run at the end, `subsets/meta-blind-100.json`. It has the same plan, shard and merge jobs and inputs, no Docker and no secret but `REFIT_READ_TOKEN`. Each shard runs:
 
 ```sh
 node scripts/meta-benchmark-setup.mjs --root <root> --list docs/benchmarks/<list> --offset <start> --limit <size>
