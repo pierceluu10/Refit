@@ -344,6 +344,21 @@ refit-bench `shopify.yml` on branch `shopify-ai`, commit `8bc3d97f`, `--sdk-upgr
   - REST mappings: 10 requests. One proposal was kept but did not produce what the code reads, so it was not used.
 - No patch reached AI repair. Every patched row's baseline failed or its checks passed, so no build break was left to repair.
 
+#### Versioned REST contract (2026-10-29, feat/shopify-rest-contract)
+
+refit-bench `shopify.yml` on branch `shopify-ai`, `--sdk-upgrade`, `size=1`, schemas read 2026-10-29 (2026-01 `b0e01280b220`, 2026-04 `70db95021c1f`, 2026-07 `9cf7ccbb5b38`, 2026-10 `9af82bcd6c84`). Before is `31532666` (bench/iter1-shopify-meta with #424 and #425 merged); after is `c3304055`.
+
+| Set                                               | Runs (before → after)     | AI              | Validated | Needs review | Rows stopped on REST |
+| ------------------------------------------------- | ------------------------- | --------------- | --------- | ------------ | -------------------- |
+| dev-60                                            | 40950502043 → 40950547981 | yes, budget 300 | 3 → 3     | 12 → 13      | 14 → 12              |
+| practice 50 (`2026-10-16-shopify-repos.json`)     | 40950519023 → 40950561596 | yes, budget 300 | 1 → 1     | 10 → 10      | 8 → 7                |
+| fresh 200 (`2026-10-16-shopify-fresh-repos.json`) | 40953240143 → 40953254697 | no              | 6 → 6     | 43 → 44      | 44 → 32              |
+
+- The fresh-200 AI pair (40950533927 → 40950575885) is not comparable: the OpenAI account ran out of credit during the after run, and 36 rows ended with `HTTP 429 (credit_balance_exhausted)`. In that run danyn/shopify-app-rr showed as validated only because its live proof, which failed before, did not run; it is not a new validation. The pair was rerun without AI.
+- 13 of the 52 rows on the 250 practice repositories that stopped on REST no longer do (dev-60 is drawn from them). None validates yet, because each meets another gate: `LATEST_API_VERSION` that only an SDK upgrade moves (Ascensyo/addlee-now, NINE15Team/Finally-Back-In-Stock, Stephnn0/remix-youtube-tutorial), an SDK upgrade the lockfile cannot take (AB-Insightful/ab-insightful, atsuki-sakai/shopify-point-app, sourav-backend-dev/crypto-shopify-app), a document that already fails on 2026-01 (dza59/remix-chat-tutorial), an unresolved `this.apiVersion` (shoptether/shoptether) or no pin (kevinjmosley93/the-best-shopify-theme-toolkit).
+- arslanramay/shopify-custom-app-boilerplate moves from the REST stop to a patch (SDK 11.0.0 to 14.0.1, three proven count calls) that is untested, because it has no checks. Priyadharshini29-M/Combo-page-app moves from an error to `[Needs review]` at grade D: its proven `products.json` call is no longer rewritten, so the rewrite no longer conflicts with the version edits.
+- No row is newly validated, so `docs/benchmarks/fix-reviews.json` gains no entry. Offline, the contract proves 66 of 181 REST calls on the 250 repositories, and every REST call in 16 of the 55 that use REST.
+
 ## API deadlines
 
 The hand-labelled [deadline benchmark](DEADLINE-BENCHMARK.md) covers 100 repositories, 32 labelled line by line. Refit flags 28 of 28 exposed repositories at 28/28 repository precision, with 83% OpenAI line precision from live-only evidence.
