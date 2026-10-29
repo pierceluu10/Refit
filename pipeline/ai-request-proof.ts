@@ -1,0 +1,330 @@
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
+import { join } from 'node:path';
+import type { RequestProof } from './ai-migrations.ts';
+
+// Request-level proof (b) and output-shape proof (c) for a migrated AI call: the smallest request
+// of each migrated call shape, sent with the upgraded SDK and Refit's own test key. Keys come only
+// from the environment (refit-bench repository secrets); a missing key marks the proof pending
+// with its name, and no request is sent. Nothing here reads or sends repository code or data.
+
+export type ProofProvider = 'openai' | 'anthropic' | 'gemini';
+
+export const PROOF_KEYS: Record<ProofProvider, string> = {
+  openai: 'OPENAI_API_KEY',
+  anthropic: 'ANTHROPIC_API_KEY',
+  gemini: 'GEMINI_API_KEY',
+};
+
+// The cheapest model each probe uses unless the environment names another.
+const PROOF_MODELS: Record<ProofProvider, { env: string; model: string }> = {
+  openai: { env: 'REFIT_PROOF_OPENAI_MODEL', model: 'gpt-5.6-luna' },
+  anthropic: { env: 'REFIT_PROOF_ANTHROPIC_MODEL', model: 'claude-haiku-5-5' },
+  gemini: { env: 'REFIT_PROOF_GEMINI_MODEL', model: 'gemini-2.5-flash-lite' },
+};
+
+// What a migrated call's request uses, so the output shapes it parses are probed too.
+export interface ProofCall {
+  call: string;
+  stream?: boolean;
+  tools?: boolean;
+  json?: boolean;
+}
+
+type Client = Record<string, unknown>;
+type Probe = (client: Client, model: string, call: ProofCall) => Promise<string>;
+
+const at = (client: Client, path: string) =>
+  path
+    .split('.')
+    .reduce<unknown>((value, key) => (value as Record<string, unknown>)?.[key], client);
+
+async function invoke(client: Client, path: string, body: unknown) {
+  const parts = path.split('.');
+  const owner = at(client, parts.slice(0, -1).join('.')) as Record<string, unknown>;
+  const method = owner?.[parts.at(-1)!];
+  if (typeof method !== 'function') throw new Error(`the SDK has no ${path}`);
+  return (method as (body: unknown) => Promise<unknown>).call(owner, body);
+}
+
+// Provider errors can echo part of a key ("Incorrect API key provided: sk-...abcd"); refit-bench
+// logs are public, so anything key-shaped is removed before a message is kept.
+export function redact(text: string) {
+  return text
+    .replace(/\b(?:sk|rk|pk)-[A-Za-z0-9_*.-]{2,}/g, '[redacted]')
+    .replace(/\bsk-ant-[A-Za-z0-9_*.-]+/g, '[redacted]')
+    .replace(/\bAIza[0-9A-Za-z_*-]{4,}/g, '[redacted]')
+    .replace(/(api[_ -]?key[^:]*:\s*)\S+/gi, '$1[redacted]');
+}
+
+function expect(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(message);
+}
+
+const TOOL = {
+  type: 'function',
+  function: {
+    name: 'record',
+    description: 'Record a word.',
+    parameters: {
+      type: 'object',
+      properties: { word: { type: 'string' } },
+      required: ['word'],
+      additionalProperties: false,
+    },
+  },
+};
+
+const OPENAI_PROBES: Record<string, Probe> = {
+  'chat.completions.create': async (client, model, call) => {
+    const messages = [{ role: 'user', content: 'Reply with the single word ok.' }];
+    const done: string[] = [];
+    const response = (await invoke(client, call.call, {
+      model,
+      messages,
+      max_completion_tokens: 256,
+    })) as { choices?: { message?: { content?: unknown } }[] };
+    expect(typeof response.choices?.[0]?.message?.content === 'string', 'no message content');
+    done.push('text parsed');
+    if (call.stream) {
+      const stream = (await invoke(client, call.call, {
+        model,
+        messages,
+        max_completion_tokens: 256,
+        stream: true,
+      })) as AsyncIterable<{ choices?: { delta?: unknown }[] }>;
+      let chunks = 0;
+      for await (const chunk of stream) {
+        expect(Array.isArray(chunk.choices), 'a stream chunk without choices');
+        chunks++;
+      }
+      expect(chunks > 0, 'an empty stream');
+      done.push(`stream parsed (${chunks} chunks)`);
+    }
+    if (call.tools) {
+      const tooled = (await invoke(client, call.call, {
+        model,
+        messages: [{ role: 'user', content: 'Record the word ok.' }],
+        tools: [TOOL],
+        tool_choice: { type: 'function', function: { name: 'record' } },
+        max_completion_tokens: 512,
+      })) as { choices?: { message?: { tool_calls?: { function?: { arguments?: string } }[] } }[] };
+      const argumentsText = tooled.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+      expect(typeof argumentsText === 'string', 'no tool call');
+      expect(typeof JSON.parse(argumentsText).word === 'string', 'tool arguments lack `word`');
+      done.push('tool call parsed');
+    }
+    if (call.json) {
+      const json = (await invoke(client, call.call, {
+        model,
+        messages: [{ role: 'user', content: 'Return {"word": "ok"} as JSON.' }],
+        response_format: { type: 'json_object' },
+        max_completion_tokens: 512,
+      })) as { choices?: { message?: { content?: string } }[] };
+      JSON.parse(json.choices?.[0]?.message?.content ?? '');
+      done.push('JSON parsed');
+    }
+    return done.join(', ');
+  },
+  'responses.create': async (client, model, call) => {
+    const response = (await invoke(client, call.call, {
+      model,
+      input: 'Reply with the single word ok.',
+      max_output_tokens: 256,
+    })) as { output_text?: unknown };
+    expect(typeof response.output_text === 'string', 'no output_text');
+    return 'text parsed';
+  },
+  'embeddings.create': async (client, _model, call) => {
+    const response = (await invoke(client, call.call, {
+      model: 'text-embedding-3-small',
+      input: 'ok',
+    })) as { data?: { embedding?: unknown }[] };
+    expect(Array.isArray(response.data?.[0]?.embedding), 'no embedding');
+    return 'embedding parsed';
+  },
+  'moderations.create': async (client, _model, call) => {
+    const response = (await invoke(client, call.call, { input: 'ok' })) as {
+      results?: { flagged?: unknown }[];
+    };
+    expect(typeof response.results?.[0]?.flagged === 'boolean', 'no moderation result');
+    return 'result parsed';
+  },
+  'models.list': async (client, _model, call) => {
+    const page = (await invoke(client, call.call, undefined)) as { data?: unknown };
+    expect(Array.isArray(page.data), 'no model list');
+    return 'list parsed';
+  },
+  'models.retrieve': async (client, model, call) => {
+    const parts = call.call.split('.');
+    const owner = at(client, parts[0]) as { retrieve: (id: string) => Promise<{ id?: unknown }> };
+    const response = await owner.retrieve(model);
+    expect(response.id === model, 'a different model came back');
+    return 'model parsed';
+  },
+};
+
+const ANTHROPIC_PROBES: Record<string, Probe> = {
+  'messages.create': async (client, model, call) => {
+    const done: string[] = [];
+    const response = (await invoke(client, call.call, {
+      model,
+      max_tokens: 16,
+      messages: [{ role: 'user', content: 'Reply with the single word ok.' }],
+    })) as { content?: { type?: string; text?: unknown }[] };
+    expect(
+      response.content?.some((block) => block.type === 'text' && typeof block.text === 'string'),
+      'no text block',
+    );
+    done.push('text parsed');
+    if (call.stream) {
+      const stream = (await invoke(client, call.call, {
+        model,
+        max_tokens: 16,
+        stream: true,
+        messages: [{ role: 'user', content: 'Reply with the single word ok.' }],
+      })) as AsyncIterable<{ type?: string }>;
+      const types = new Set<string>();
+      for await (const event of stream) types.add(String(event.type));
+      expect(types.has('message_stop'), 'the stream did not end with message_stop');
+      done.push('stream parsed');
+    }
+    if (call.tools) {
+      const tooled = (await invoke(client, call.call, {
+        model,
+        max_tokens: 256,
+        tools: [
+          {
+            name: 'record',
+            description: 'Record a word.',
+            input_schema: TOOL.function.parameters,
+          },
+        ],
+        tool_choice: { type: 'tool', name: 'record' },
+        messages: [{ role: 'user', content: 'Record the word ok.' }],
+      })) as { content?: { type?: string; input?: { word?: unknown } }[] };
+      const use = tooled.content?.find((block) => block.type === 'tool_use');
+      expect(typeof use?.input?.word === 'string', 'no tool_use input');
+      done.push('tool call parsed');
+    }
+    return done.join(', ');
+  },
+  'models.list': async (client, _model, call) => {
+    const page = (await invoke(client, call.call, undefined)) as { data?: unknown };
+    expect(Array.isArray(page.data), 'no model list');
+    return 'list parsed';
+  },
+};
+
+const GEMINI_PROBES: Record<string, Probe> = {
+  'models.generateContent': async (client, model, call) => {
+    const response = (await invoke(client, call.call, {
+      model,
+      contents: 'Reply with the single word ok.',
+    })) as { text?: unknown };
+    expect(typeof response.text === 'string', 'no response.text');
+    return 'text parsed';
+  },
+  'models.generateContentStream': async (client, model, call) => {
+    const stream = (await invoke(client, call.call, {
+      model,
+      contents: 'Reply with the single word ok.',
+    })) as AsyncIterable<{ text?: unknown }>;
+    let chunks = 0;
+    for await (const chunk of stream) {
+      expect(chunk.text === undefined || typeof chunk.text === 'string', 'a chunk without text');
+      chunks++;
+    }
+    expect(chunks > 0, 'an empty stream');
+    return `stream parsed (${chunks} chunks)`;
+  },
+};
+
+const PROBES: Record<ProofProvider, Record<string, Probe>> = {
+  openai: OPENAI_PROBES,
+  anthropic: ANTHROPIC_PROBES,
+  gemini: GEMINI_PROBES,
+};
+
+// The SDK is loaded from `sdkDirectory` (a directory where only the target release is installed),
+// so the proof exercises the release the patch moves to, not Refit's own dependencies.
+export async function proveRequests(options: {
+  provider: ProofProvider;
+  calls: ProofCall[];
+  sdkDirectory?: string;
+  packageName?: string;
+  env?: NodeJS.ProcessEnv;
+  load?: (packageName: string) => Promise<unknown>;
+}): Promise<RequestProof> {
+  const env = options.env ?? process.env;
+  const key = PROOF_KEYS[options.provider];
+  const pending = (reason: string): RequestProof => ({
+    status: 'pending',
+    reason,
+    calls: options.calls.map((call) => ({ call: call.call, status: 'pending', detail: reason })),
+  });
+  if (!options.calls.length) return pending('No migrated call has a request to prove.');
+  if (!env[key]?.trim())
+    return pending(
+      `${key} is not set in this environment, so no request was sent to ${options.provider}. The proof runs only in refit-bench Actions with Refit's own test key.`,
+    );
+  const packageName =
+    options.packageName ??
+    { openai: 'openai', anthropic: '@anthropic-ai/sdk', gemini: '@google/genai' }[options.provider];
+  const load =
+    options.load ??
+    ((name: string) =>
+      // Resolved from the SDK directory the way Node resolves it there (the package's exports).
+      import(
+        options.sdkDirectory
+          ? pathToFileURL(createRequire(join(options.sdkDirectory, 'package.json')).resolve(name))
+              .href
+          : name
+      ));
+  const module = (await load(packageName)) as Record<string, unknown>;
+  const Constructor = (module.OpenAI ??
+    module.Anthropic ??
+    module.GoogleGenAI ??
+    module.default) as new (options: Record<string, unknown>) => Client;
+  // `apiKey` is passed from the environment variable; it is never logged.
+  const client = new Constructor(
+    options.provider === 'gemini'
+      ? { apiKey: env[key] }
+      : { apiKey: env[key], maxRetries: 1, timeout: 60_000 },
+  );
+  const model =
+    env[PROOF_MODELS[options.provider].env]?.trim() || PROOF_MODELS[options.provider].model;
+  const calls: RequestProof['calls'] = [];
+  for (const call of options.calls) {
+    const probe = PROBES[options.provider][call.call];
+    if (!probe) {
+      calls.push({
+        call: call.call,
+        status: 'pending',
+        detail: 'Refit has no minimal request for this call yet.',
+      });
+      continue;
+    }
+    try {
+      calls.push({ call: call.call, status: 'accepted', detail: await probe(client, model, call) });
+    } catch (error) {
+      const status = (error as { status?: unknown }).status;
+      calls.push({
+        call: call.call,
+        status: 'rejected',
+        detail: `${typeof status === 'number' ? `HTTP ${status}: ` : ''}${error instanceof Error ? redact(error.message).slice(0, 300) : 'failed'}`,
+      });
+    }
+  }
+  const rejected = calls.filter((call) => call.status === 'rejected');
+  const unproved = calls.filter((call) => call.status === 'pending');
+  return {
+    status: rejected.length ? 'rejected' : unproved.length ? 'pending' : 'accepted',
+    reason: rejected.length
+      ? rejected.map((call) => `${call.call}: ${call.detail}`).join('; ')
+      : unproved.length
+        ? `No minimal request for ${unproved.map((call) => call.call).join(', ')}.`
+        : `Accepted with ${model}.`,
+    calls,
+  };
+}
