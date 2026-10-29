@@ -21,7 +21,8 @@ import {
   type OpenItem,
   type ScanBundle,
 } from './ai-fallback.ts';
-import { fallbackCommand, proofEnvironment } from './ai-fallback-run.ts';
+import { fallbackCommand, proofEnvironment, savedModelSettings } from './ai-fallback-run.ts';
+import { hiddenFindings, runtimeRequirements, unprovable } from './ai-fallback-shape.ts';
 import type { RequestProof } from './ai-migrations.ts';
 
 const roots: string[] = [];
@@ -620,6 +621,193 @@ describe('checks command', () => {
   });
 });
 
+describe('gate gaps found by the October 29 baseline review (synthetic fixtures)', () => {
+  // The baseline round's hand-checked rows are measurement data and never fixtures
+  // (docs/benchmarks/AI-PROVIDER-SETS.md); these reproduce each failure class on made-up code.
+  const CLIENT_BEFORE = `import Anthropic from '@anthropic-ai/sdk';
+
+export class Assistant {
+  client = new Anthropic();
+  constructor() {}
+
+  async ask(prompt: string) {
+    const result = await this.client.completions.create({ model: 'claude-2.1', prompt, max_tokens_to_sample: 300 });
+    return result.completion;
+  }
+}
+`;
+  const CALLER = `import { Assistant } from './assistant';\nexport const assistant = new Assistant();\n`;
+
+  it('1: refuses a fix that needs a constructor option no caller passes', () => {
+    const wrong = CLIENT_BEFORE.replace(
+      'constructor() {}',
+      `model: string;
+  constructor(options?: { model?: string }) {
+    if (!options?.model) throw new Error('model is required');
+    this.model = options.model;
+  }`,
+    ).replace(
+      "model: 'claude-2.1', prompt, max_tokens_to_sample: 300",
+      'model: this.model, max_tokens: 300, messages: [{ role: "user", content: prompt }]',
+    );
+    const problems = runtimeRequirements(
+      [{ path: 'src/assistant.ts', before: CLIENT_BEFORE, after: wrong }],
+      [{ path: 'src/index.ts', content: CALLER }],
+    );
+    expect(problems.join(' ')).toContain(
+      'Assistant now takes 1 parameter, and no call site passes more than 0',
+    );
+    expect(problems.join(' ')).toContain('the patch throws when `!options?.model`');
+    // The same fix with the caller updated still trips the throw check, which asks for review.
+    const right = CLIENT_BEFORE.replace(
+      "model: 'claude-2.1', prompt, max_tokens_to_sample: 300",
+      "model: 'claude-sonnet-5-5', max_tokens: 300, messages: [{ role: 'user', content: prompt }]",
+    );
+    expect(
+      runtimeRequirements(
+        [{ path: 'src/assistant.ts', before: CLIENT_BEFORE, after: right }],
+        [{ path: 'src/index.ts', content: CALLER }],
+      ),
+    ).toEqual([]);
+  });
+
+  it('2: proves a tool call with its tools, and refuses a shape the probe cannot send', () => {
+    const before = `const r = await client.messages.create({ model: 'claude-2.1', max_tokens: 9, messages });\n`;
+    const after = `const r = await client.messages.create({ model: 'claude-sonnet-5-5', max_tokens: 9, messages, tools, tool_choice: { type: 'auto' } });\n`;
+    const [shape] = writtenCalls(
+      { files: [], calls: [], notes: [], unresolved: [], patterns: [] },
+      [{ path: 'a.ts', before, after }],
+    );
+    expect(shape).toEqual({ call: 'messages.create', stream: false, tools: true, json: false });
+    expect(unprovable('anthropic', shape)).toBe(null);
+    const responses = writtenCalls(
+      { files: [], calls: [], notes: [], unresolved: [], patterns: [] },
+      [
+        {
+          path: 'b.ts',
+          before: '',
+          after: `const r = await openai.responses.create({ model: 'gpt-5.6-terra', input, tools });\n`,
+        },
+      ],
+    );
+    expect(unprovable('openai', responses[0])).toContain('cannot send tools');
+    const spread = writtenCalls({ files: [], calls: [], notes: [], unresolved: [], patterns: [] }, [
+      {
+        path: 'c.ts',
+        before: '',
+        after: `await openai.chat.completions.create({ ...params, model: 'gpt-5.6-terra' });\n`,
+      },
+    ]);
+    expect(unprovable('openai', spread[0])).toContain('could not read the request');
+  });
+
+  it('3: refuses a rename that hides a finding, a removed dependency and an emptied file', () => {
+    const items: OpenItem[] = [
+      {
+        id: 'review:anthropic-text-completions:src/ask.ts:5',
+        kind: 'review',
+        provider: 'anthropic',
+        ref: 'anthropic-text-completions',
+        changeType: 'legacy-endpoint',
+        file: 'src/ask.ts',
+        line: 5,
+        text: 'client.completions.create({',
+        reason: 'legacy',
+        target: null,
+      },
+    ];
+    const renamed = LEGACY.replace(
+      'const client = new Anthropic();',
+      'const ai = new Anthropic();',
+    ).replace('client.completions.create', 'ai.completions.create');
+    expect(hiddenFindings(items, [], new Map([['src/ask.ts', renamed]]))).toEqual([
+      "src/ask.ts: `completions.create` is still called, but Refit's rule anthropic-text-completions no longer matches it.",
+    ]);
+    expect(hiddenFindings(items, [], new Map([['src/ask.ts', FIXED]]))).toEqual([]);
+    const context = {
+      repositoryModels: new Set(['claude-2.1']),
+      targets: new Set(['claude-sonnet-5-5']),
+    };
+    const manifest = '{"dependencies":{"@anthropic-ai/sdk":"^0.30.0","zod":"^3.0.0"}}';
+    expect(
+      scopeGate(
+        [
+          {
+            path: 'package.json',
+            before: manifest,
+            after: '{"dependencies":{"@anthropic-ai/sdk":"^1.2.0"}}',
+          },
+        ],
+        context,
+      ).detail,
+    ).toBe('The patch removes zod from package.json, which no finding is about.');
+    expect(
+      scopeGate(
+        [
+          {
+            path: 'package.json',
+            before: '{"dependencies":{"@google/generative-ai":"^0.1.0"}}',
+            after: '{"dependencies":{"@google/genai":"^2.0.0"}}',
+          },
+        ],
+        context,
+      ).status,
+    ).toBe('passed');
+    expect(
+      scopeGate([{ path: 'src/util.ts', before: 'export const a = 1;\n', after: '' }], context)
+        .detail,
+    ).toBe('The patch deletes the contents of src/util.ts.');
+  });
+
+  it('4: refuses relabelled metadata and fails the rescan on a saved setting left behind', async () => {
+    const items = withRegistryTargets(openItems(bundle), [
+      {
+        id: 'anthropic-claude-2',
+        provider: 'anthropic',
+        kind: 'model',
+        versions: ['claude-2.1'],
+        date: '2025-07-21',
+        summary: 's',
+        replacement: 'claude-sonnet-5-5',
+        source: null,
+        checkedAt: '2026-10-29',
+      },
+    ]);
+    const labels = `export const MODELS = [\n  { id: 'x', label: 'claude-2.1' },\n];\n`;
+    expect(
+      scopeGate(
+        [
+          {
+            path: 'src/labels.ts',
+            before: labels,
+            after: labels.replace('claude-2.1', 'claude-sonnet-5-5'),
+          },
+        ],
+        {
+          repositoryModels: new Set(['claude-2.1']),
+          targets: new Set(['claude-sonnet-5-5']),
+          items,
+        },
+      ).detail,
+    ).toBe(
+      'The patch changes the model string claude-2.1 at src/labels.ts:2, which no finding names.',
+    );
+    const root = await mkdtemp(join(tmpdir(), 'refit-fallback-settings-'));
+    roots.push(root);
+    await writeFile(join(root, '.env.example'), 'ANTHROPIC_MODEL=claude-2.1\n');
+    await writeFile(join(root, 'config.json'), '{"model": "claude-sonnet-5-5"}\n');
+    const left = await savedModelSettings(
+      root,
+      ['.env.example', 'config.json', 'package.json'],
+      items,
+    );
+    expect(left.map((item) => `${item.file}:${item.line} ${item.ref}`)).toEqual([
+      '.env.example:1 anthropic-claude-2',
+    ]);
+    expect(resolvesGate(items, left).status).toBe('failed');
+  });
+});
+
 describe('runAiFallback', () => {
   const input: FallbackInput = {
     provider: 'anthropic',
@@ -687,6 +875,7 @@ describe('runAiFallback', () => {
       'output passed',
       'secrets passed',
       'scope passed',
+      'runtime passed',
       'resolves passed',
       'checks passed',
       'request-proof passed',
@@ -782,11 +971,31 @@ describe('runAiFallback', () => {
   });
 
   it('never validates Python, which has no check runner yet', async () => {
-    const result = await run(
-      reply([{ path: 'app.py', content: 'def f():\n    return 1\n' }]),
-      dependencies(),
-      'py',
-    );
+    const python = `import anthropic\nclient = anthropic.Anthropic()\nreply = client.completions.create(model="claude-2.1", prompt=p)\n`;
+    const result = await runAiFallback({
+      input: {
+        ...input,
+        language: 'py',
+        items: [{ ...input.items[0], file: 'app.py', line: 3, text: '' }],
+        files: [{ path: 'app.py', content: python }],
+      },
+      ai: { apiKey: 'k', model: 'gpt-6.1-sol' },
+      repositoryModels: new Set(['claude-2.1']),
+      exists: async () => false,
+      environment: {},
+      dependencies: {
+        ...dependencies(),
+        request: reply([
+          {
+            path: 'app.py',
+            content: python
+              .replace('completions.create', 'messages.create')
+              .replace('claude-2.1', 'claude-sonnet-5-5')
+              .replace('prompt=p', 'max_tokens=300, messages=m'),
+          },
+        ]),
+      },
+    });
     expect(result.status).toBe('needs-review');
     expect(result.gates.find((gate) => gate.gate === 'checks')!.detail).toContain(
       'no offline Python',

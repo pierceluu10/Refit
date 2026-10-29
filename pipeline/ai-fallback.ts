@@ -8,6 +8,12 @@ import type { AiRuleTable } from './ai-rules.ts';
 import { changedOldLines } from './ai-surface-lane.ts';
 import type { DeadlineEntry } from './deadline-registry.ts';
 import { UnusableAiResponse, requestStructuredOutput } from './openai.ts';
+import {
+  hiddenFindings,
+  requestShapes,
+  runtimeRequirements,
+  unprovable,
+} from './ai-fallback-shape.ts';
 import { NO_OP_CHECK } from './review.ts';
 import { PipelineInputError } from './types.ts';
 import { loadParser, parseWithin } from './tree-sitter.ts';
@@ -65,6 +71,9 @@ export interface OpenItem {
   target: string | null;
   // Every replacement model the provider's quoted page names, when it offers a choice.
   options?: string[];
+  // The model IDs the item's registry deadline retires, so a patch that leaves one in the file
+  // has not fixed it.
+  retired?: string[];
 }
 
 export interface QuotedSource {
@@ -385,6 +394,7 @@ export function withRegistryTargets(
       ...item,
       target: item.target ?? single,
       ...(named.size ? { options: [...named].sort() } : {}),
+      ...(entry.kind === 'model' ? { retired: entry.versions } : {}),
     };
   });
 }
@@ -616,7 +626,8 @@ export function applyAnswerEdits(
   };
 }
 
-export type GateName = 'output' | 'secrets' | 'scope' | 'resolves' | 'checks' | 'request-proof';
+export type GateName =
+  'output' | 'secrets' | 'scope' | 'runtime' | 'resolves' | 'checks' | 'request-proof';
 export interface Gate {
   gate: GateName;
   status: 'passed' | 'failed' | 'not-applicable';
@@ -768,7 +779,7 @@ const LOCKFILES = new Set([
   'Pipfile.lock',
   'uv.lock',
 ]);
-const TEST_PATH =
+export const TEST_PATH =
   /(?:^|\/)(?:__tests__|__mocks__|tests?|spec|e2e|fixtures?)\/|\.(?:test|spec)\.[cm]?[jt]sx?$|(?:^|\/)test_[^/]*\.py$|_test\.py$|(?:^|\/)conftest\.py$/;
 const CHECK_CONFIG =
   /(?:^|\/)(?:\.github\/|\.gitlab-ci|\.circleci\/|\.refit[^/]*$|tsconfig[^/]*\.json$|jest\.config|vitest\.config|\.eslintrc|eslint\.config|pytest\.ini$|tox\.ini$|setup\.cfg$|\.husky\/)/;
@@ -783,12 +794,29 @@ const MAX_CHANGED_LINES = 600;
 // the code sends and Refit never lets an AI choose one.
 export function scopeGate(
   changed: Array<{ path: string; before: string | null; after: string }>,
-  context: { repositoryModels: Set<string>; targets: Set<string> },
+  context: {
+    repositoryModels: Set<string>;
+    targets: Set<string>;
+    // With the items, a model string changed at a line no item names is out of scope (a label
+    // or a setting the finding never sent).
+    items?: OpenItem[];
+  },
 ): Gate {
   const fail = (detail: string): Gate => ({ gate: 'scope', status: 'failed', detail });
   let lines = 0;
   for (const file of changed) {
     const name = file.path.split('/').at(-1)!;
+    if (file.before !== null && file.before.trim() && !file.after.trim())
+      return fail(`The patch deletes the contents of ${file.path}.`);
+    if (name === 'package.json' && file.before !== null) {
+      const removed = removedDependencies(file.before, file.after).filter(
+        (dependency) => !PROVIDER_PACKAGE.test(dependency),
+      );
+      if (removed.length)
+        return fail(
+          `The patch removes ${removed.join(', ')} from ${file.path}, which no finding is about.`,
+        );
+    }
     if (LOCKFILES.has(name))
       return fail(`The patch edits ${file.path}; only Refit may re-resolve a lockfile.`);
     // A new test can only add checks; editing an existing one can make the checks prove nothing.
@@ -808,6 +836,19 @@ export function scopeGate(
         );
     }
     const diff = changedOldLines(file.before ?? '', file.after);
+    if (context.items && file.before !== null) {
+      const old = file.before.split('\n');
+      const named = context.items
+        .filter((item) => item.file === file.path)
+        .map((item) => item.line);
+      for (const line of diff.removed) {
+        const literals = [...(old[line - 1] ?? '').matchAll(MODEL_LITERAL)];
+        if (literals.length && !named.some((at) => Math.abs(at - line) <= 2))
+          return fail(
+            `The patch changes the model string ${literals[0][1]} at ${file.path}:${line}, which no finding names.`,
+          );
+      }
+    }
     lines += diff.added.length + diff.removed.length;
   }
   if (lines > MAX_CHANGED_LINES)
@@ -817,6 +858,28 @@ export function scopeGate(
     status: 'passed',
     detail: `${lines} changed lines in application code and dependency versions; no test, check, CI or lockfile change; no new model ID.`,
   };
+}
+
+// Provider SDKs a migration may drop or swap (Gemini's @google/generative-ai for @google/genai).
+const PROVIDER_PACKAGE =
+  /^(?:openai|@anthropic-ai\/[\w.-]+|@google\/generative-ai|@google\/genai|@google-ai\/generativelanguage)$/;
+
+function removedDependencies(before: string, after: string) {
+  try {
+    const [a, b] = [JSON.parse(before), JSON.parse(after)];
+    const sections = [
+      'dependencies',
+      'devDependencies',
+      'optionalDependencies',
+      'peerDependencies',
+    ];
+    const kept = new Set(sections.flatMap((section) => Object.keys(b[section] ?? {})));
+    return sections.flatMap((section) =>
+      Object.keys(a[section] ?? {}).filter((name) => !kept.has(name)),
+    );
+  } catch {
+    return [];
+  }
 }
 
 function scriptsChanged(before: string, after: string) {
@@ -840,7 +903,15 @@ export function modelLiterals(content: string) {
 
 // Items are compared by kind and ref per file, since the patch moves lines. The gate fails when
 // any item group is still found or the patch creates a group that was not there.
-export function resolvesGate(before: OpenItem[], after: OpenItem[]): Gate {
+// A finding the rescan no longer reports but whose deprecated call or retired model is still in its
+// file (hiddenFindings in pipeline/ai-fallback-shape.ts) was hidden, not fixed.
+export function resolvesGate(before: OpenItem[], after: OpenItem[], hidden: string[] = []): Gate {
+  if (hidden.length)
+    return {
+      gate: 'resolves',
+      status: 'failed',
+      detail: `The patch hides findings instead of fixing them: ${hidden.slice(0, 3).join(' ')}`,
+    };
   const key = (item: OpenItem) => `${item.kind}:${item.ref}:${item.file}`;
   const was = new Set(before.map(key));
   const left = after.filter((item) => was.has(key(item)));
@@ -867,20 +938,51 @@ export function resolvesGate(before: OpenItem[], after: OpenItem[]): Gate {
 const CALL =
   /\.((?:beta\.)?(?:chat\.completions|responses|messages|completions|models|embeddings|batches|files)\.(?:create|parse|stream|generateContent|generateContentStream|countTokens|embedContent))\s*\(/g;
 
-// The call shapes a patch writes: what the AI reports, plus each provider call on an added line.
+// The call shapes a patch writes, read from the patched code (requestShapes: tools, JSON output
+// and streaming as the request argument sends them), merged with what the AI reports. Outside
+// JavaScript and TypeScript, each provider call on an added line.
 export function writtenCalls(
   answer: AiAnswer,
   changed: Array<{ path: string; before: string | null; after: string }>,
 ) {
-  const calls = new Map<string, ProofCall>();
-  for (const call of answer.calls) calls.set(call.call, call);
-  for (const file of changed)
+  const calls = new Map<string, ProofCall & { unreadable?: boolean }>();
+  const merge = (call: ProofCall & { unreadable?: boolean }) => {
+    const known = calls.get(call.call);
+    calls.set(
+      call.call,
+      known
+        ? {
+            call: call.call,
+            stream: Boolean(known.stream || call.stream),
+            tools: Boolean(known.tools || call.tools),
+            json: Boolean(known.json || call.json),
+            ...(known.unreadable || call.unreadable ? { unreadable: true } : {}),
+          }
+        : { ...call },
+    );
+  };
+  for (const file of changed) {
+    if (/\.(?:[cm]?[jt]sx?)$/.test(file.path)) {
+      for (const shape of requestShapes(file.path, file.before ?? '', file.after))
+        merge({
+          call: shape.call,
+          stream: shape.stream,
+          tools: shape.tools,
+          json: shape.json,
+          ...(shape.unreadable ? { unreadable: true } : {}),
+        });
+      continue;
+    }
     for (const line of addedLines(file.before ?? '', file.after))
-      for (const match of line.matchAll(CALL)) {
-        const call = match[1].replace(/^beta\./, '');
-        if (!calls.has(call))
-          calls.set(call, { call, stream: /stream/i.test(line), tools: false, json: false });
-      }
+      for (const match of line.matchAll(CALL))
+        merge({
+          call: match[1].replace(/^beta\./, ''),
+          stream: /stream/i.test(line),
+          tools: false,
+          json: false,
+        });
+  }
+  for (const call of answer.calls) if (calls.has(call.call)) merge(call);
   return [...calls.values()];
 }
 
@@ -958,6 +1060,8 @@ export async function runAiFallback(options: {
   repositoryModels: Set<string>;
   // Whether each file outside the input exists, for the output gate.
   exists: (path: string) => Promise<boolean>;
+  // The repository's JavaScript and TypeScript files, for the runtime gate's call sites.
+  repositoryFiles?: () => Promise<Array<{ path: string; content: string }>>;
   environment?: NodeJS.ProcessEnv;
   dependencies: FallbackDependencies;
 }): Promise<FallbackResult> {
@@ -1072,11 +1176,38 @@ export async function runAiFallback(options: {
   const patch = rendered.patch;
   const calls = writtenCalls(parsed, changed);
   const targets = new Set(input.targets.map((item) => item.target));
-  gates.push(scopeGate(changed, { repositoryModels: options.repositoryModels, targets }));
+  gates.push(
+    scopeGate(changed, {
+      repositoryModels: options.repositoryModels,
+      targets,
+      items: input.items,
+    }),
+  );
   if (rendered.refusal) gates.push({ gate: 'checks', status: 'failed', detail: rendered.refusal });
   // Every gate runs while the earlier ones pass; a failure keeps the patch as a suggestion.
   const failed = () => gates.find((gate) => gate.status === 'failed');
-  if (!failed()) gates.push(resolvesGate(input.items, await options.dependencies.rescan(patch)));
+  if (!failed() && input.language === 'js') {
+    const problems = runtimeRequirements(changed, (await options.repositoryFiles?.()) ?? []);
+    gates.push(
+      problems.length
+        ? {
+            gate: 'runtime',
+            status: 'failed',
+            detail: `The patch adds a value required at runtime that no caller supplies: ${problems.slice(0, 3).join(' ')}`,
+          }
+        : {
+            gate: 'runtime',
+            status: 'passed',
+            detail: 'No new parameter without a caller and no new throw on a missing value.',
+          },
+    );
+  }
+  if (!failed()) {
+    const after = await options.dependencies.rescan(patch);
+    const patched = new Map(input.files.map((file) => [file.path, file.content]));
+    for (const file of changed) patched.set(file.path, file.after);
+    gates.push(resolvesGate(input.items, after, hiddenFindings(input.items, after, patched)));
+  }
   if (!failed()) {
     if (input.language === 'py')
       gates.push({
@@ -1101,18 +1232,29 @@ export async function runAiFallback(options: {
     const models = [...changed.flatMap((file) => [...modelLiterals(file.after)])].filter((model) =>
       targets.has(model),
     );
+    // The proof sends each call's real shape; a shape Refit cannot read or send is unproven, and a
+    // target model with no changed call Refit can read reaches a request no proof can follow.
+    const shapeless =
+      input.language === 'js' && models.length && !calls.length
+        ? `The patch writes ${models.join(', ')} but changes no provider call Refit can read, so the request that model reaches is unproven.`
+        : null;
+    const unsent = calls
+      .map((call) => unprovable(input.provider, call))
+      .find((reason): reason is string => Boolean(reason));
     gates.push(
-      requestProofGate(
-        calls.length || models.length ? await options.dependencies.prove(calls, models) : null,
-        input.language,
-      ),
+      shapeless || unsent
+        ? { gate: 'request-proof', status: 'failed', detail: (shapeless ?? unsent)! }
+        : requestProofGate(
+            calls.length || models.length ? await options.dependencies.prove(calls, models) : null,
+            input.language,
+          ),
     );
   }
   const failure = failed();
   if (failure) return stop(`AI attempt kept as a suggestion: ${failure.detail}`, patch, { calls });
   return result(
     'validated',
-    'Every gate passed: output, secrets, scope, rescan, checks and request proof.',
+    'Every gate passed: output, secrets, scope, runtime inputs, rescan, checks and request proof.',
     { gates, patch, suggestion: false, calls },
   );
 }
