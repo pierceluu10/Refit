@@ -509,6 +509,41 @@ export async function stream() {
     ]);
   });
 
+  it('follows a response alias and moves a documented generationConfig to config', async () => {
+    const { proposal, changed } = await gemini({
+      'a.js': `const { GoogleGenerativeAI } = require("@google/generative-ai");
+const genAI = new GoogleGenerativeAI(process.env.KEY);
+const model = genAI.getGenerativeModel({ model: "m", generationConfig: { temperature: 0.2, maxOutputTokens: 100 } });
+async function ask(prompt) {
+  const p = \`Q: \${prompt}\`;
+  const result = await model.generateContent(p);
+  const response = await result.response;
+  return (await response.text()).trim();
+}
+// const old = genAI.getGenerativeModel({ model: "x", safetySettings });
+module.exports = { ask };
+`,
+    });
+    expect(proposal.stops).toEqual([]);
+    expect(changed['a.js']).toContain(
+      'const result = await genAI.models.generateContent({ model: "m", contents: p, config: { temperature: 0.2, maxOutputTokens: 100 } });',
+    );
+    expect(changed['a.js']).toContain('const response = await result;');
+    expect(changed['a.js']).toContain('return (await response.text).trim();');
+    expect(proposal.rules.map((rule) => rule.rule)).toContain('gemini-swap-config');
+  });
+
+  it('keeps blocking on systemInstruction, safetySettings and other config keys', async () => {
+    const { proposal } = await gemini({
+      'a.ts': `import { GoogleGenerativeAI } from "@google/generative-ai";
+const genAI = new GoogleGenerativeAI("k");
+const model = genAI.getGenerativeModel({ model: "m", systemInstruction: "be brief", generationConfig: { responseMimeType: "application/json" } });
+export const f = async () => (await model.generateContent("x")).response.text();
+`,
+    });
+    expect(proposal.stops.some((item) => item.reason.includes('systemInstruction'))).toBe(true);
+  });
+
   it('blocks on config, chat, request objects, other reads and models from another file', async () => {
     const { proposal } = await gemini({
       'a.js': `const { GoogleGenerativeAI } = require("@google/generative-ai");

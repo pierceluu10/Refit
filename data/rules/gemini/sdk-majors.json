@@ -72,6 +72,24 @@
       "data": {}
     },
     {
+      "rule": "gemini-swap-config",
+      "family": "gemini-swap-config",
+      "status": "auto",
+      "page": "migrate",
+      "quote": "contents: \"Tell me a story about a magic backpack.\", config: { candidateCount: 1, stopSequences: [\"x\"], maxOutputTokens: 20, temperature: 1.0, },",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "A literal `generationConfig` of candidateCount, stopSequences, maxOutputTokens and temperature on the model becomes `config` on each call.",
+      "data": {
+        "keys": [
+          "candidateCount",
+          "stopSequences",
+          "maxOutputTokens",
+          "temperature"
+        ]
+      }
+    },
+    {
       "rule": "gemini-generative-ai-js",
       "family": "sdk-swap",
       "status": "report",

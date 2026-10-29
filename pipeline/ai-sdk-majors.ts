@@ -1772,21 +1772,45 @@ function geminiFile(
       return;
     }
     const [options] = call.arguments;
-    const modelProperty =
-      options && ts.isObjectLiteralExpression(options) && options.properties.length === 1
-        ? options.properties[0]
-        : undefined;
+    // `{ model }`, optionally with a `generationConfig` of the keys the guide maps to `config`.
+    const properties =
+      options && ts.isObjectLiteralExpression(options) ? options.properties : undefined;
+    const named = (name: string) =>
+      properties?.find(
+        (property) =>
+          (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
+          ts.isIdentifier(property.name) &&
+          property.name.text === name,
+      );
+    const modelProperty = named('model');
+    const configProperty = named('generationConfig');
     const modelValue =
-      modelProperty &&
-      ts.isPropertyAssignment(modelProperty) &&
-      ts.isIdentifier(modelProperty.name) &&
-      modelProperty.name.text === 'model'
+      modelProperty && ts.isPropertyAssignment(modelProperty)
         ? modelProperty.initializer
-        : modelProperty &&
-            ts.isShorthandPropertyAssignment(modelProperty) &&
-            modelProperty.name.text === 'model'
+        : modelProperty && ts.isShorthandPropertyAssignment(modelProperty)
           ? modelProperty.name
           : undefined;
+    const configKeys = (context.rules.get('gemini-swap-config')?.data.keys as string[]) ?? [];
+    const literal = (value: ts.Expression): boolean =>
+      ts.isNumericLiteral(value) ||
+      ts.isStringLiteralLike(value) ||
+      (ts.isPrefixUnaryExpression(value) && ts.isNumericLiteral(value.operand)) ||
+      (ts.isArrayLiteralExpression(value) && value.elements.every(literal));
+    const configValue =
+      configProperty &&
+      ts.isPropertyAssignment(configProperty) &&
+      ts.isObjectLiteralExpression(configProperty.initializer) &&
+      configProperty.initializer.properties.every(
+        (property) =>
+          ts.isPropertyAssignment(property) &&
+          ts.isIdentifier(property.name) &&
+          configKeys.includes(property.name.text) &&
+          literal(property.initializer),
+      )
+        ? configProperty.initializer
+        : undefined;
+    const extra =
+      (properties?.length ?? 0) - Number(Boolean(modelProperty)) - Number(Boolean(configProperty));
     const model = constName(call);
     // The model is read again at each call, so it must not change in between.
     const stable =
@@ -1801,11 +1825,18 @@ function geminiFile(
               declaration.parent.flags & ts.NodeFlags.Const,
             );
           })()));
-    if (call.arguments.length !== 1 || !modelValue || !stable || !model) {
+    if (
+      call.arguments.length !== 1 ||
+      !modelValue ||
+      !stable ||
+      !model ||
+      extra !== 0 ||
+      (configProperty && !configValue)
+    ) {
       block(
         file,
         line(call),
-        'getGenerativeModel takes options beyond a constant `model` (generationConfig, safetySettings, systemInstruction, tools…), or its result is not one `const`; the guide maps those to another config shape.',
+        `getGenerativeModel takes options beyond a constant \`model\` and a literal generationConfig of ${configKeys.join(', ')} (safetySettings, systemInstruction, tools…), or its result is not one \`const\`; the guide shows no one-to-one JavaScript mapping for those.`,
       );
       return;
     }
@@ -1868,11 +1899,12 @@ function geminiFile(
           file,
           generate.getStart(),
           generate.getEnd(),
-          `${client}.models.${method.name.text}({ model: ${modelValue.getText(source)}, contents: ${prompt.getText(source)} })`,
+          `${client}.models.${method.name.text}({ model: ${modelValue.getText(source)}, contents: ${prompt.getText(source)}${configValue ? `, config: ${configValue.getText(source)}` : ''} })`,
           stream ? 'gemini-swap-stream' : 'gemini-swap-generate',
         );
         for (const read of reads.edits)
           edit(context, file, read.start, read.end, read.text, 'gemini-swap-text');
+        if (configValue) context.used.add('gemini-swap-config');
         if (!context.calls.some((item) => item.call === `models.${method.name.text}`))
           context.calls.push({ call: `models.${method.name.text}`, stream });
       });
@@ -1914,6 +1946,41 @@ function geminiFile(
         ) {
           edits.push({ start: use.getEnd(), end: call.getEnd(), text: '.text' });
           continue;
+        }
+        // `const response = result.response` (or `await result.response`), read only as
+        // `response.text()`: the same mapping, split across a const.
+        let holder: ts.Node | undefined = access?.parent;
+        if (holder && ts.isAwaitExpression(holder)) holder = holder.parent;
+        const alias =
+          ts.isPropertyAccessExpression(access) &&
+          access.name.text === 'response' &&
+          holder &&
+          ts.isVariableDeclaration(holder) &&
+          ts.isIdentifier(holder.name) &&
+          holder.parent.flags & ts.NodeFlags.Const
+            ? holder.name
+            : undefined;
+        if (alias) {
+          const aliasEdits: typeof edits = [];
+          const aliasOk = usesOf(alias).every((aliasUse) => {
+            const text = aliasUse.parent;
+            const call = text?.parent;
+            if (
+              ts.isPropertyAccessExpression(text) &&
+              text.name.text === 'text' &&
+              call &&
+              ts.isCallExpression(call) &&
+              call.arguments.length === 0
+            ) {
+              aliasEdits.push({ start: text.getEnd(), end: call.getEnd(), text: '' });
+              return true;
+            }
+            return false;
+          });
+          if (aliasOk) {
+            edits.push({ start: use.getEnd(), end: access.getEnd(), text: '' }, ...aliasEdits);
+            continue;
+          }
         }
         return {
           reason: `\`${result.text}\` is read other than as \`${result.text}.response.text()\`; the new response has other fields.`,
@@ -1962,7 +2029,8 @@ function geminiFile(
       (item) => item.file === file && item.start <= position && position < item.end,
     );
     const node = findIdentifierAt(source, position);
-    if (!covered && !(node && handled.has(node)))
+    // A match with no identifier at it is in a comment or string, which runs nothing.
+    if (!covered && node && !handled.has(node))
       block(
         file,
         lineOf(source, position),
