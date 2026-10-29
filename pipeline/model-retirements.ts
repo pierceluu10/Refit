@@ -210,6 +210,8 @@ function rejectsSampling(provider: string, model: string) {
 // calling in Chat Completions only with `reasoning_effort: "none"`." A Chat Completions request
 // that sends tools to a GPT-6 replacement stops for review.
 const GPT_6 = /^gpt-6(?:[.-]|$)/;
+// A stop reason that names the legacy function-calling parameters.
+const FUNCTION_STOP = /\bsets\b[^.]*\b(?:functions|function_call)\b/;
 const GPT_6_CHAT_TOOLS = new Set(['tools', 'tool_choice']);
 export const MODEL_ID = /^[a-z0-9][a-z0-9.-]*$/;
 const MAX_CHAIN = 8;
@@ -2698,6 +2700,15 @@ export async function proposeModelReplacements(
   const replacements: ModelReplacement[] = [];
   const edits: SourceEdit[] = [];
   const editedParameters = new Set<ts.Node>();
+  // A function-calling flow (`functions` on one request, the `function` role reply on the next)
+  // moves together or not at all: when a request in a file stops on `functions` or `function_call`,
+  // every other request in that file sending the same retiring model stops too.
+  const flowKey = (request: (typeof requests)[number], entry: DeadlineEntry) =>
+    `${program.path(request.node)}\t${entry.id}`;
+  const flows = new Set<string>();
+  for (const decision of decisions.values())
+    if (decision.reasons.some((reason) => FUNCTION_STOP.test(reason)))
+      for (const request of decision.requests) flows.add(flowKey(request, decision.entry));
   for (const [literal, decision] of decisions) {
     const request = decision.requests[0];
     const base = {
@@ -2707,7 +2718,11 @@ export async function proposeModelReplacements(
       line: program.line(request.node),
       call: request.call,
     };
-    const blocking = decision.reasons.find(Boolean);
+    const blocking =
+      decision.reasons.find(Boolean) ??
+      (decision.requests.some((request) => flows.has(flowKey(request, decision.entry)))
+        ? `Another request in this file sends ${literal.text} with functions or function_call, which stops; moving one call of a function-calling flow leaves the other on the retired model, so change them together by hand to ${decision.to}.`
+        : undefined);
     if (blocking) {
       stops.push({
         ...base,
