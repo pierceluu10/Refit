@@ -359,6 +359,23 @@ refit-bench `shopify.yml` on branch `shopify-ai`, `--sdk-upgrade`, `size=1`, sch
 - arslanramay/shopify-custom-app-boilerplate moves from the REST stop to a patch (SDK 11.0.0 to 14.0.1, three proven count calls) that is untested, because it has no checks. Priyadharshini29-M/Combo-page-app moves from an error to `[Needs review]` at grade D: its proven `products.json` call is no longer rewritten, so the rewrite no longer conflicts with the version edits.
 - No row is newly validated, so `docs/benchmarks/fix-reviews.json` gains no entry. Offline, the contract proves 66 of 181 REST calls on the 250 repositories, and every REST call in 16 of the 55 that use REST.
 
+#### REST residue (2026-10-29, feat/shopify-rest-residue, SH14)
+
+Same workflow and flags, no AI (the OpenAI credit is exhausted). Before is `1de287fe` (bench/iter1-shopify-meta); after is `a9752609`: saved records, unused REST client providers, const bodies, `text()`, the `errors` envelope and scoped client declarations ([Shopify REST](SHOPIFY-REST.md#what-a-proof-needs)).
+
+| Set                                               | Runs (before → after)     | Validated | Needs review | Rows stopped on REST |
+| ------------------------------------------------- | ------------------------- | --------- | ------------ | -------------------- |
+| dev-60                                            | 40966783635 → 40966793498 | 3 → 3     | 10 → 10      | 12 → 9               |
+| practice 50 (`2026-10-16-shopify-repos.json`)     | 40966803463 → 40966812848 | 1 → 1     | 3 → 3        | 7 → 5                |
+| fresh 200 (`2026-10-16-shopify-fresh-repos.json`) | 40966822386 → 40966831940 | 6 → 6     | 18 → 20      | 32 → 24              |
+
+- 11 distinct rows leave the REST stop (dev-60 is drawn from the other two sets). Their next stop:
+  - SDK and version gates: `LATEST_API_VERSION` that only an SDK upgrade moves (tungbinzzz/instagram-app-shopify, chandandadhekar/ListAI-V2, michaelwang11394/sales-associate), an SDK upgrade that stops (Liroo/emilievizcano.com), a version read from `SHOPIFY_API_VERSION` (CABlank/referrd-react-app-shopify) or no pin (german-zarate/shopify-node-express-mongodb-app);
+  - a GraphQL document that already fails on 2026-01: hasan-araav/shopify-order-sync.
+- Three rows now get a patch. antho8101/RefSpring moves seven REST URL versions; its type check passes on both sides but covers none of the changed files, so it is grade D, `[Needs review]`. snoryder8019/rw_socket's own tests already fail before the patch. Santho-sh/shopify-product-bundler-app has no checks. All three diffs are version moves on calls the contract proves, read by hand.
+- No row is newly validated, so `docs/benchmarks/fix-reviews.json` gains no entry. Offline, the contract now proves 108 of 181 REST calls on the 250 repositories (67 before). 10 of the 31 rows whose first stop was REST have every REST call proven.
+- The REST stops that remain are real: the Checkout resource; parameters (`phone`, `customer_id`) and fields (Product `type` and `image`, a misspelled Variant field) the contract does not list; DraftOrder `use_customer_default_address`, which shopify.dev shows only in examples, not in its Properties; a delete response used; `createAdminRestApiClient` clients; and a NestJS `useFactory` provider.
+
 ## API deadlines
 
 The hand-labelled [deadline benchmark](DEADLINE-BENCHMARK.md) covers 100 repositories, 32 labelled line by line. Refit flags 28 of 28 exposed repositories at 28/28 repository precision, with 83% OpenAI line precision from live-only evidence.
