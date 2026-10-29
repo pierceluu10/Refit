@@ -5,6 +5,7 @@ import type { ModelParameterTable } from './model-parameters.ts';
 import {
   EMPTY_REQUEST_PROOFS,
   loadRequestProofs,
+  unavailableTargets,
   requestProof,
   type RequestProof,
   type RequestProofTable,
@@ -349,6 +350,7 @@ export async function runModelFixes(options: {
 }): Promise<ModelFixResult> {
   let proposal: Awaited<ReturnType<typeof proposeModelReplacements>> | undefined;
   let alerts: ModelAlert[] = [];
+  const proofs = options.proofs ?? (await loadRequestProofs());
   const validation = await validateSourcePatch({
     repository: options.repository,
     ...options.checks,
@@ -358,6 +360,7 @@ export async function runModelFixes(options: {
       proposal = await proposeModelReplacements(directory, options.registry, options.now, {
         parameters: options.parameters,
         parameterChanges: options.parameterChanges,
+        unavailable: unavailableTargets(proofs),
       });
       alerts = (await modelAlerts(directory, options.registry, options.now)).alerts;
       return proposal.patch;
@@ -411,7 +414,6 @@ export async function runModelFixes(options: {
       'Baseline and patched checks passed; draft publication is not enabled.',
     );
   const checked = { ...validation, compareTypeErrors: options.checks.compareTypeErrors };
-  const proofs = options.proofs ?? (await loadRequestProofs());
   const review =
     noOpChecked(validation) || requestEvidence(replacements, proofs).some((item) => item.pending);
   const published = await publishFiles(options.publication, {

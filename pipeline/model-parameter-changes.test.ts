@@ -12,6 +12,7 @@ import {
 } from './model-parameter-changes.ts';
 import { modelFixBody } from './model-fixes.ts';
 import { proposeModelReplacements } from './model-retirements.ts';
+import { loadRequestProofs, unavailableTargets } from './model-request-proofs.ts';
 
 const NOW = new Date('2026-10-29T00:00:00Z');
 const roots: string[] = [];
@@ -220,6 +221,100 @@ describe('sourced parameter changes applied with the swap', () => {
     const older = await propose(openai("{ model: 'gpt-4-turbo', tools: [], messages }"));
     expect(older.replacements.map((item) => item.to)).toEqual(['gpt-5.3-chat-latest']);
     expect(older.stops).toEqual([]);
+  });
+
+  // Request proof (refit-bench run 40940798473): Chat Completions on each of these answered
+  // max_tokens, temperature and top_p with HTTP 400 and took max_completion_tokens. Each rule
+  // below rests on its quoted page; the run only confirms the behaviour.
+  describe('on every GPT-5.6 and GPT-6 target the request proof covered', () => {
+    const targets = ['gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-6-luna', 'gpt-6-sol'];
+    const proven: DeadlineRegistry = {
+      formatVersion: 1,
+      deadlines: targets.map((to, index) =>
+        entry(`openai-old-${index}`, 'openai', [`gpt-4-old-${index}`], to),
+      ),
+    };
+    const run = async (body: (model: string) => string, withChanges = true) => {
+      const files = Object.fromEntries(
+        targets.map((_, index) => [`src/ai${index}.ts`, openai(body(`gpt-4-old-${index}`))]),
+      );
+      return proposeModelReplacements(await repository(files), proven, NOW, {
+        parameterChanges: withChanges ? await loadParameterChanges() : undefined,
+      });
+    };
+
+    it('renames max_tokens only through the sourced table, and stops without it', async () => {
+      const body = (model: string) => `{ model: '${model}', max_tokens: 300, messages }`;
+      const sourced = await run(body);
+      expect(sourced.stops).toEqual([]);
+      expect(sourced.replacements.map((item) => item.to).sort()).toEqual(targets);
+      for (const item of sourced.replacements)
+        expect(item.parameters).toEqual([
+          expect.objectContaining({ name: 'max_tokens', change: 'openai-chat-max-tokens' }),
+        ]);
+      expect(sourced.patch).not.toMatch(/^\+.*\bmax_tokens\b/m);
+      const without = await run(body, false);
+      expect(without.replacements).toEqual([]);
+      expect(without.stops).toHaveLength(targets.length);
+    });
+
+    it('removes temperature and top_p for GPT-6 as sourced, and stops for GPT-5.6, which no page covers', async () => {
+      for (const name of ['temperature', 'top_p']) {
+        const proposal = await run((model) => `{ model: '${model}', ${name}: 0.2, messages }`);
+        expect(proposal.replacements.map((item) => item.to).sort()).toEqual([
+          'gpt-6-luna',
+          'gpt-6-sol',
+        ]);
+        expect(proposal.patch).not.toMatch(new RegExp(`^\\+.*\\b${name}\\b`, 'm'));
+        expect(proposal.stops.map((stop) => stop.reason).sort()).toEqual(
+          ['gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra'].map(
+            (to) => `The request sets ${name}, which ${to} may reject or treat differently.`,
+          ),
+        );
+      }
+    });
+
+    it('stops Chat Completions tools without offering reasoning_effort none as a sure fix', async () => {
+      const proposal = await run((model) => `{ model: '${model}', tools: [], messages }`);
+      expect(proposal.replacements).toEqual([]);
+      expect(proposal.stops).toHaveLength(targets.length);
+      for (const stop of proposal.stops) {
+        expect(stop.reason).toContain('Not every model accepts `"none"`');
+        expect(stop.reason).toContain('Responses API');
+      }
+      // Setting reasoning_effort: 'none' does not make Refit swap either.
+      const none = await run(
+        (model) => `{ model: '${model}', tools: [], reasoning_effort: 'none', messages }`,
+      );
+      expect(none.replacements).toEqual([]);
+    });
+  });
+
+  it('stops instead of swapping to a replacement a request proof got HTTP 404 for', async () => {
+    const codex: DeadlineRegistry = {
+      formatVersion: 1,
+      deadlines: [
+        entry('openai-codex-mini-latest', 'openai', ['codex-mini-latest'], 'gpt-5-codex-mini'),
+      ],
+    };
+    const source = [
+      "import OpenAI from 'openai';",
+      'const client = new OpenAI();',
+      'export async function ask(input: string) {',
+      "  return client.responses.create({ model: 'codex-mini-latest', input });",
+      '}',
+    ].join('\n');
+    const root = await repository({ 'src/ai.ts': source });
+    const unavailable = unavailableTargets(await loadRequestProofs());
+    const proposal = await proposeModelReplacements(root, codex, NOW, { unavailable });
+    expect(proposal.replacements).toEqual([]);
+    expect(proposal.patch).toBeNull();
+    expect(proposal.stops[0].reason).toBe(
+      "The provider's deprecations page names gpt-5-codex-mini as the replacement, but Refit's request to gpt-5-codex-mini through responses returned HTTP 404 (https://github.com/refit-dev/refit-bench/actions/runs/40940798473), so Refit does not swap to it; check which model the provider serves for this call and change it by hand.",
+    );
+    // Without the proof result the same call is swapped, so the stop comes from the 404 alone.
+    const swapped = await proposeModelReplacements(root, codex, NOW);
+    expect(swapped.replacements.map((item) => item.to)).toEqual(['gpt-5-codex-mini']);
   });
 
   it('stops every request of a function-calling flow together', async () => {

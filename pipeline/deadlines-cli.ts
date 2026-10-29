@@ -36,6 +36,7 @@ import {
 import { modelAlerts } from './model-alerts.ts';
 import { loadParameterChanges } from './model-parameter-changes.ts';
 import { proposeModelReplacements } from './model-retirements.ts';
+import { loadRequestProofs, unavailableTargets } from './model-request-proofs.ts';
 import { DEPRECATION_SOURCES, syncDeadlines, type SyncProvider } from './deadline-sync.ts';
 import {
   checkSources,
@@ -224,6 +225,7 @@ try {
     const proposal = await proposeModelReplacements(root, registry, now, {
       parameters,
       parameterChanges,
+      unavailable: unavailableTargets(await loadRequestProofs()),
     });
     // Embedding, fine-tuned and configuration uses: listed, never edited.
     const { alerts, truncated } = await modelAlerts(root, registry, now);
