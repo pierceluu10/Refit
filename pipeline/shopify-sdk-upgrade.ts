@@ -1,7 +1,14 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { readCommittedRepository } from './committed-repository.ts';
-import { chosenLockfile, legacyPeerDeps } from './dependency-inputs.ts';
-import { changesOutside, resolveNpmLockfile } from './lockfile-resolution.ts';
+import { chosenLockfile, legacyPeerDeps, readPreparationInputs } from './dependency-inputs.ts';
+import { lockChangesOutside, lockedReleases, type LockedProject } from './lockfile-graph.ts';
+import {
+  RESOLUTION_LOCKFILES,
+  resolveNpmLockfile,
+  type ResolutionManager,
+} from './lockfile-resolution.ts';
+import { parsePnpmLock } from './pnpm-lock.ts';
+import { CLASSIC_HEADER } from './yarn-lock.ts';
 import { join } from 'node:path';
 import { minimumMajors, SHOPIFY_PACK } from './rule-pack.ts';
 import { readBoundedResponse, SpecificationUnavailableError } from './network.ts';
@@ -68,6 +75,10 @@ const NPM_KEY_ORDER = [
 ];
 const FLAGS = ['dev', 'optional', 'devOptional', 'peer'] as const;
 const OTHER_LOCKFILES = ['pnpm-lock.yaml', 'yarn.lock', 'bun.lockb', 'bun.lock'];
+// Bun for a project that does not pin it in packageManager: the newest release at least two weeks
+// old. Source: npm registry, bun versions (1.4.3 published 2026-10-10), 2026-10-29.
+const DEFAULT_BUN_VERSION = '1.4.3';
+const BUN_PIN = /^bun@(\d+\.\d+\.\d+)(?:\+|$)/;
 // The newest @shopify/shopify-api major whose documented breaking changes Refit applies or stops on
 // (pipeline/shopify-sdk-source.ts): migrating-to-v12.md and the 13.0.0 and 14.0.0 changelogs.
 const NEWEST_RULED_MAJOR = 14;
@@ -859,7 +870,10 @@ async function resolvedUpgrade(
   lookup: (name: string) => Promise<Release[]>,
   resolution: { image: string; before: string },
 ): Promise<{ upgrade: ShopifySdkUpgrade } | Refusal> {
-  const { packages, lockText } = files;
+  const { lockText, managed } = files;
+  const manager: ResolutionManager = managed?.manager ?? 'npm';
+  const lockfile = RESOLUTION_LOCKFILES[manager];
+  const label = managed ? `${managed.manager.replace('-berry', '')} ${managed.version}` : 'npm';
   const npmrc = await readFile(join(root, '.npmrc'), 'utf8').catch(() => '');
   // Only the public registry (the Shopify app template names it for @shopify) and no credentials.
   const registries = [...npmrc.matchAll(/^\s*(?:@[^:\s]+:)?registry\s*=\s*(\S+)/gm)].map((match) =>
@@ -878,81 +892,110 @@ async function resolvedUpgrade(
   const asOf = new Date().toISOString();
   let resolved;
   try {
+    const workspaces = managed
+      ? managed.workspaces
+      : files.manifest.workspaces !== undefined
+        ? await workspaceManifests(root, files.manifest.workspaces)
+        : undefined;
     resolved = await resolveNpmLockfile({
       manifest: manifestText,
-      ...(files.manifest.workspaces !== undefined
-        ? { workspaces: await workspaceManifests(root, files.manifest.workspaces) }
+      ...(workspaces && (workspaces.length || files.manifest.workspaces !== undefined)
+        ? { workspaces }
         : {}),
       seed: lockText,
       // As of now: the target releases are newer than the commit, and the committed lockfile seeds
       // the resolution, so only packages the upgrade newly needs take today's versions.
       before: asOf,
-      legacyPeerDeps: legacyPeerDeps(npmrc),
+      legacyPeerDeps: manager === 'npm' && legacyPeerDeps(npmrc),
+      manager,
+      ...(managed
+        ? {
+            managerVersion: managed.version,
+            managerArguments: managed.arguments,
+            ...(managed.pnpmWorkspace !== undefined
+              ? { pnpmWorkspace: managed.pnpmWorkspace }
+              : {}),
+          }
+        : {}),
       image: resolution.image,
     });
   } catch (error) {
     if (!(error instanceof PipelineInputError)) throw error;
-    return { reason: `npm could not re-resolve package-lock.json: ${error.message.slice(0, 400)}` };
+    return {
+      reason: `${label} could not re-resolve ${lockfile}: ${error.message.slice(0, 120)} … ${error.message.slice(-300)}`,
+    };
   }
-  const lock = parseJson(resolved.lockfile);
-  const after = isObject(lock) && isObject(lock.packages) ? lock.packages : {};
-  const names = [
-    ...new Set(
-      [...Object.keys(packages), ...Object.keys(after)]
-        .map((key) => ROOT_PACKAGE.exec(key)?.[1])
-        .filter((name): name is string =>
-          Boolean(
-            name &&
-            (SDK_FAMILY.test(name) ||
-              FRAMEWORK.test(name) ||
-              // Prisma's packages, when session storage moves prisma (decision of 2026-10-29).
-              (declaration.chosen.has('prisma') && /^(?:prisma|@prisma\/[a-z0-9-]+)$/.test(name))),
-          ),
-        ),
-    ),
-  ];
-  const outside = changesOutside(lockText, resolved.lockfile, names);
+  const manifests = managed?.manifests ?? { '.': files.manifest };
+  const before: LockedProject = { lockfile: lockText, manifests };
+  const after: LockedProject = {
+    lockfile: resolved.lockfile,
+    manifests: { ...manifests, '.': parseJson(manifestText) as Record<string, unknown> },
+  };
+  let outside: string[], was: ReturnType<typeof lockedReleases>, now: typeof was;
+  try {
+    [was, now] = [lockedReleases(manager, before), lockedReleases(manager, after)];
+    const names = [...new Set([...was.all.keys(), ...now.all.keys()])].filter(
+      (name) =>
+        SDK_FAMILY.test(name) ||
+        FRAMEWORK.test(name) ||
+        // Prisma's packages, when session storage moves prisma (decision of 2026-10-29).
+        (declaration.chosen.has('prisma') && /^(?:prisma|@prisma\/[a-z0-9-]+)$/.test(name)),
+    );
+    outside = lockChangesOutside(manager, before, after, names).map(
+      (key) => key || 'the root record',
+    );
+  } catch (error) {
+    if (!(error instanceof PipelineInputError)) throw error;
+    return { reason: `Refit could not compare the re-resolved ${lockfile}: ${error.message}` };
+  }
   if (outside.length)
     return {
-      reason: `npm's re-resolved package-lock.json changes ${outside
-        .slice(0, 5)
-        .map((key) => key || 'the root record')
-        .join(
-          ', ',
-        )}${outside.length > 5 ? ` and ${outside.length - 5} more` : ''}, outside the Shopify and framework packages and what only they reach.`,
+      reason: `${label}'s re-resolved ${lockfile} changes ${outside.slice(0, 5).join(', ')}${
+        outside.length > 5 ? ` and ${outside.length - 5} more` : ''
+      }, outside the Shopify and framework packages and what only they reach.`,
     };
-  const apiRelease = rootVersion(after, SHOPIFY_API);
-  const primaryRelease = rootVersion(after, primary);
-  const apiParsed = triple(apiRelease ?? '');
+  // The release a project installs: the root declaration's, else the only one locked.
+  const release = (releases: typeof was, name: string): string | undefined => {
+    const all = [...(releases.all.get(name) ?? [])];
+    return releases.root[name] ?? (all.length === 1 ? all[0] : undefined);
+  };
+  // Every copy of the SDK, nested ones included, must be the target's.
+  const apiCopies = [...(now.all.get(SHOPIFY_API) ?? [])];
+  const primaryRelease = release(now, primary);
+  const apiRelease = release(now, SHOPIFY_API);
   if (
-    !apiParsed ||
-    apiParsed[0] !== since[0] ||
-    compare(apiParsed, since) < 0 ||
+    !apiCopies.length ||
+    !apiCopies.every((version) => {
+      const parsed = triple(version);
+      return parsed !== undefined && parsed[0] === since[0] && compare(parsed, since) >= 0;
+    }) ||
+    !apiRelease ||
     triple(primaryRelease ?? '')?.[0] !== major
   )
     return {
-      reason: `npm did not lock ${primary} ${major} with ${SHOPIFY_API} ${since.join('.')} or later.`,
+      reason: `${label} did not lock ${primary} ${major} with ${SHOPIFY_API} ${since.join('.')} or later everywhere (it locks ${SHOPIFY_API} ${apiCopies.join(', ') || 'nowhere'}).`,
     };
+  const names = [...new Set([...was.all.keys(), ...now.all.keys()])].filter(
+    (name) => SDK_FAMILY.test(name) || FRAMEWORK.test(name),
+  );
   const changes = names
-    .map((name) => ({
-      name,
-      from: rootVersion(packages, name) ?? null,
-      to: rootVersion(after, name),
-    }))
+    .map((name) => ({ name, from: release(was, name) ?? null, to: release(now, name) }))
     .filter((change): change is { name: string; from: string | null; to: string } =>
       Boolean(change.to && change.to !== change.from),
     );
   return {
     upgrade: {
       primary,
-      from: rootVersion(packages, primary) ?? '',
+      from: release(was, primary) ?? '',
       to: primaryRelease!,
-      apiRelease: apiRelease!,
+      apiRelease,
       packages: changes,
       removed: [],
       resolved: {
         before: asOf,
         legacyPeerDeps: resolved.legacyPeerDeps === true,
+        manager: label,
+        lockfile,
         frameworks: changes
           .filter((change) => FRAMEWORK.test(change.name))
           .map((change) => `${change.name} ${change.from ?? '(new)'} → ${change.to}`),
@@ -960,7 +1003,7 @@ async function resolvedUpgrade(
       ...(files.otherLockfiles ? { otherLockfiles: files.otherLockfiles } : {}),
       files: [
         { path: 'package.json', before: files.manifestText, after: manifestText },
-        { path: 'package-lock.json', before: lockText, after: resolved.lockfile },
+        { path: lockfile, before: lockText, after: resolved.lockfile },
       ].filter((file) => file.after !== file.before),
     },
   };
@@ -973,12 +1016,19 @@ export interface ShopifySdkUpgrade extends PackageUpgrade {
   apiRelease: string;
   packages: { name: string; from: string | null; to: string }[];
   removed: string[];
-  // npm re-resolved package-lock.json (see resolvedUpgrade): when, and the framework packages it moved.
-  resolved?: { before: string; legacyPeerDeps: boolean; frameworks: string[] };
+  // The project's package manager re-resolved its lockfile (see resolvedUpgrade): when, which
+  // manager and release, the lockfile, and the framework packages it moved.
+  resolved?: {
+    before: string;
+    legacyPeerDeps: boolean;
+    manager: string;
+    lockfile: string;
+    frameworks: string[];
+  };
   // No lockfile is committed, so only package.json changes.
   lockless?: true;
   // Other root lockfiles left on the old release, because the documented lockfile choice
-  // (pipeline/dependency-inputs.ts) picked package-lock.json: each with why it was not chosen.
+  // (pipeline/dependency-inputs.ts) picked another: each with why it was not chosen.
   otherLockfiles?: Record<string, string>;
 }
 
@@ -993,6 +1043,102 @@ interface LockFiles {
   // No lockfile is committed: `packages` holds the lowest release each declaration allows.
   lockless?: true;
   root?: string;
+  // A pnpm, Yarn or Bun project: the upgrade re-resolves its lockfile with the release of the
+  // manager preparation installs with, and `packages` holds what each root declaration installs.
+  managed?: {
+    manager: ResolutionManager;
+    version: string;
+    manifests: Record<string, Record<string, unknown>>;
+    workspaces: { path: string; content: string }[];
+    pnpmWorkspace?: string;
+    arguments: string[];
+  };
+}
+
+// A root pnpm, Yarn or Bun project, read as preparation reads it (readPreparationInputs): the same
+// lockfile choice, package-manager release and workspaces, refused where preparation refuses.
+async function managedLockFiles(
+  root: string,
+  manifestText: string,
+  bunBinary: boolean,
+): Promise<LockFiles | Refusal> {
+  let prepared;
+  try {
+    prepared = await readPreparationInputs(await readCommittedRepository(root));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      reason: bunBinary
+        ? 'The repository commits only the binary bun.lockb, which Refit cannot read or review.'
+        : `Preparation cannot read the committed lockfile, so the Shopify SDK upgrade cannot either: ${message.slice(0, 300)}`,
+    };
+  }
+  const { inputs, workspaceContents } = prepared;
+  const pnpmWorkspace = prepared.files.get('pnpm-workspace.yaml');
+  if (inputs.patchHashes && Object.keys(inputs.patchHashes).length)
+    return {
+      reason: 'pnpm-lock.yaml records patched dependencies, which re-resolution does not apply.',
+    };
+  const manifest = parseJson(manifestText) as Record<string, unknown>;
+  let manager: ResolutionManager, version: string;
+  if (inputs.manager === 'pnpm' || inputs.manager === 'yarn') {
+    manager = inputs.manager;
+    version = inputs.managerVersion!;
+  } else if (inputs.bunLockHash) {
+    manager = 'bun';
+    const pin =
+      typeof manifest.packageManager === 'string' ? BUN_PIN.exec(manifest.packageManager) : null;
+    version = pin?.[1] ?? DEFAULT_BUN_VERSION;
+  } else
+    return { reason: 'The repository installs from package-lock.json, which Refit read as npm.' };
+  const lockText = await readFile(join(root, RESOLUTION_LOCKFILES[manager]), 'utf8');
+  if (manager === 'yarn' && !CLASSIC_HEADER.test(lockText)) manager = 'yarn-berry';
+  // pnpm writes these settings into the lockfile; the resolution keeps the committed ones.
+  const settings = manager === 'pnpm' ? parsePnpmLock(lockText).document.settings : undefined;
+  const managerArguments = isObject(settings)
+    ? [
+        ['autoInstallPeers', 'auto-install-peers'],
+        ['excludeLinksFromLockfile', 'exclude-links-from-lockfile'],
+      ].flatMap(([key, flag]) =>
+        typeof settings[key] === 'boolean' ? [`--config.${flag}=${String(settings[key])}`] : [],
+      )
+    : [];
+  const manifests: Record<string, Record<string, unknown>> = { '.': manifest };
+  for (const [directory, content] of workspaceContents)
+    manifests[directory] = parseJson(content) as Record<string, unknown>;
+  const project = { lockfile: lockText, manifests };
+  let releases;
+  try {
+    releases = lockedReleases(manager, project);
+  } catch (error) {
+    if (!(error instanceof PipelineInputError)) throw error;
+    return { reason: `Refit could not read ${RESOLUTION_LOCKFILES[manager]}: ${error.message}` };
+  }
+  return {
+    manifestText,
+    manifest,
+    lock: {},
+    lockText,
+    render: () => '',
+    packages: Object.fromEntries(
+      Object.entries(releases.root).map(([name, release]) => [
+        `node_modules/${name}`,
+        { version: release },
+      ]),
+    ),
+    ...(inputs.lockfileChoice ? { otherLockfiles: inputs.lockfileChoice.others } : {}),
+    managed: {
+      manager,
+      version,
+      manifests,
+      workspaces: [...workspaceContents].map(([directory, content]) => ({
+        path: `${directory}/package.json`,
+        content,
+      })),
+      ...(pnpmWorkspace !== undefined ? { pnpmWorkspace } : {}),
+      arguments: managerArguments,
+    },
+  };
 }
 
 async function applyPlan(
@@ -1110,23 +1256,24 @@ async function readLockFiles(root: string): Promise<LockFiles | Refusal> {
       root,
     };
   }
-  if (manifestText === undefined || lockText === undefined || shrinkwrap !== undefined)
+  if (manifestText === undefined || shrinkwrap !== undefined)
     return {
       reason:
-        'The Shopify SDK upgrade covers root npm projects that install from package-lock.json.',
+        'The Shopify SDK upgrade covers root projects with a package.json and no npm-shrinkwrap.json.',
     };
+  const bunBinary = others[OTHER_LOCKFILES.indexOf('bun.lockb')] !== undefined;
+  if (lockText === undefined) return managedLockFiles(root, manifestText, bunBinary);
   // Several committed lockfiles: the one preparation installs decides, as for stripe-node.
   let otherLockfiles: Record<string, string> | undefined;
   if (others.some((text) => text !== undefined)) {
     const choice = await readCommittedRepository(root)
       .then((snapshot) => chosenLockfile(snapshot))
       .catch(() => undefined);
-    if (choice?.lockfile !== 'package-lock.json')
+    if (!choice)
       return {
-        reason: choice
-          ? `The repository installs from ${choice.lockfile} (${choice.because}); the Shopify SDK upgrade edits package-lock.json only.`
-          : 'The repository commits several lockfiles and no documented rule picks package-lock.json.',
+        reason: 'The repository commits several lockfiles and no documented rule picks one.',
       };
+    if (choice.lockfile !== 'package-lock.json') return managedLockFiles(root, manifestText, false);
     otherLockfiles = choice.others;
   }
   let manifest: unknown, lock: unknown;
@@ -1187,15 +1334,16 @@ export async function shopifySdkUpgrade(
   const primary = apps[0] ?? (declared(SHOPIFY_API) ? SHOPIFY_API : undefined);
   if (!primary)
     return { reason: `package.json declares neither ${SHOPIFY_API} nor a Shopify app package.` };
+  // A nested copy of the SDK is moved only by npm's own re-resolution.
+  let nested: string | undefined;
   for (const name of [primary, SHOPIFY_API, SESSION_STORAGE]) {
-    const nested = Object.keys(packages).filter((key) => key.endsWith(`/node_modules/${name}`));
-    if (nested.length)
-      return {
-        reason: `package-lock.json nests ${name} under ${nested
-          .map((key) => describe(packages, key.slice(0, key.lastIndexOf('/node_modules/'))))
-          .join(', ')}.`,
-      };
+    const keys = Object.keys(packages).filter((key) => key.endsWith(`/node_modules/${name}`));
+    if (keys.length && !nested)
+      nested = `package-lock.json nests ${name} under ${keys
+        .map((key) => describe(packages, key.slice(0, key.lastIndexOf('/node_modules/'))))
+        .join(', ')}.`;
   }
+  if (nested && !resolution) return { reason: nested };
   const from = triple(rootVersion(packages, primary) ?? '');
   if (!from) return { reason: `package-lock.json does not lock ${primary} at the project root.` };
   // Node.js the target needs, against the range the project declares.
@@ -1243,6 +1391,24 @@ export async function shopifySdkUpgrade(
         reason: `${primary} ${from.join('.')} is newer than major ${major}, which this upgrade targets.`,
       };
     if (files.lockless) return await manifestUpgrade(files, primary, major, since, lookup);
+    // pnpm, Yarn and Bun lockfiles, and npm lockfiles with nested SDK copies, take the upgrade
+    // only through their own manager's re-resolution.
+    if (files.managed || nested) {
+      const why =
+        nested ?? `The repository installs from ${RESOLUTION_LOCKFILES[files.managed!.manager]}.`;
+      if (!resolution)
+        return { reason: `${why} Its upgrade needs lockfile resolution, which is off.` };
+      const resolved = await resolvedUpgrade(
+        root,
+        files,
+        primary,
+        major,
+        since,
+        lookup,
+        resolution,
+      );
+      return 'upgrade' in resolved ? resolved : { reason: `${why} ${resolved.reason}` };
+    }
     // The release with the fewest blockers, newest first on a tie, says what is missing.
     let closest: { version: string; blockers: string[] } | undefined;
     for (const candidate of await lookup(primary)) {
