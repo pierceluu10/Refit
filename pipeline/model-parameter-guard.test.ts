@@ -83,6 +83,30 @@ describe('rejectedParametersLeft', () => {
     ).toBeUndefined();
   });
 
+  it('flags Chat Completions tools from GPT-5.4 on, by version, without the table', () => {
+    const left = (to: string, call = 'chat.completions.create') =>
+      rejectedParametersLeft({
+        object: object(`{ model: '${to}', tool_choice: 'auto' }`),
+        provider: 'openai',
+        to,
+        call,
+        edits: [],
+      });
+    for (const to of [
+      'gpt-5.4',
+      'gpt-5.4-nano',
+      'gpt-5.6-terra',
+      'gpt-6',
+      'gpt-6.1-sol',
+      'gpt-7-x',
+    ])
+      expect(left(to)).toContain('tool_choice');
+    for (const to of ['gpt-5', 'gpt-5.3-chat-latest', 'gpt-4o', 'gpt-4.1'])
+      expect(left(to)).toBeUndefined();
+    // The Responses API takes tools with reasoning.
+    expect(left('gpt-6-luna', 'responses.create')).toBeUndefined();
+  });
+
   it('flags Chat Completions tools moving to GPT-6 and sampling on any OpenAI target', () => {
     expect(
       rejectedParametersLeft({

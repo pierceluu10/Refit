@@ -58,6 +58,8 @@ const registry: DeadlineRegistry = {
   deadlines: [
     entry('openai-gpt-4', 'openai', ['gpt-4'], 'gpt-5.6-sol'),
     entry('openai-gpt-4o-2024-08-06', 'openai', ['gpt-4o-2024-08-06'], 'gpt-6-luna'),
+    entry('openai-gpt-4-turbo', 'openai', ['gpt-4-turbo'], 'gpt-5.3-chat-latest'),
+    entry('openai-gpt-4-0613', 'openai', ['gpt-4-0613'], 'gpt-5.4-nano'),
     entry(
       'anthropic-claude-3-5-sonnet',
       'anthropic',
@@ -198,17 +200,26 @@ describe('sourced parameter changes applied with the swap', () => {
     );
   });
 
-  it('stops a Chat Completions request with tools moving to GPT-6, with or without the table', async () => {
-    const body = "{ model: 'gpt-4o-2024-08-06', tools: [], messages }";
-    expect((await propose(openai(body))).stops[0].reason).toContain(
-      'only with `reasoning_effort: \"none\"`',
-    );
-    expect((await propose(openai(body), false)).stops[0].reason).toBe(
-      'The request sets tools, which gpt-6-luna may reject or treat differently.',
-    );
-    // A GPT-5.6 replacement takes tools in Chat Completions as before.
-    const sol = await propose(openai("{ model: 'gpt-4', tools: [], messages }"), false);
-    expect(sol.replacements.map((item) => item.to)).toEqual(['gpt-5.6-sol']);
+  it('stops a Chat Completions request with tools moving to GPT-5.4 or later, with or without the table', async () => {
+    for (const [model, to] of [
+      ['gpt-4o-2024-08-06', 'gpt-6-luna'],
+      ['gpt-4', 'gpt-5.6-sol'],
+      ['gpt-4-0613', 'gpt-5.4-nano'],
+    ]) {
+      const body = `{ model: '${model}', tools: [], tool_choice: 'auto', messages }`;
+      const sourced = await propose(openai(body));
+      expect(sourced.replacements).toEqual([]);
+      expect(sourced.stops[0].reason).toContain(
+        'from GPT-5.4 on, Chat Completions calls tools only with `reasoning_effort: "none"`',
+      );
+      expect((await propose(openai(body), false)).stops[0].reason).toBe(
+        `The request sets tools, tool_choice, which ${to} may reject or treat differently.`,
+      );
+    }
+    // Before GPT-5.4, Chat Completions takes tools with reasoning as before.
+    const older = await propose(openai("{ model: 'gpt-4-turbo', tools: [], messages }"));
+    expect(older.replacements.map((item) => item.to)).toEqual(['gpt-5.3-chat-latest']);
+    expect(older.stops).toEqual([]);
   });
 
   it('stops every request of a function-calling flow together', async () => {
@@ -299,7 +310,7 @@ it('ships a table whose every quote is on its saved page', async () => {
     'openai-chat-max-tokens',
     'openai-gpt-6-sampling',
     'anthropic-sampling-4-7',
-    'openai-gpt-6-chat-tools',
+    'openai-chat-tools-5-4',
     'openai-chat-functions',
   ]);
   expect(JSON.parse(await readFile(DEFAULT_PARAMETER_CHANGES, 'utf8')).formatVersion).toBe(1);
