@@ -3011,6 +3011,51 @@
         "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
         "wouldMerge": "yes"
       }
+    },
+    {
+      "repo": "ingridandrade-ctrl/arthea",
+      "pullRequest": null,
+      "run": "refit-bench 40970560104 (meta.yml, subsets/meta-dev-60.json, size 1, no AI) at 3f3937dc on feat/meta-changelogs; no patch at affb6e8a (40955443390), validated after. Read from a local `refit meta-graph --propose-version-moves --target v26.0` on the same commit.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the file-local GRAPH_API_VERSION v21.0 to v26.0, which feeds one axios instance for WhatsApp Cloud API `/{phone}/messages` sends and `/{waba}/message_templates` create, read (name,status,rejected_reason,quality_score) and delete; no change from v22.0 to v26.0 touches them. Template creation already uses UTILITY, MARKETING or AUTHENTICATION with sample values.",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the change table, including the mined WhatsApp and Messenger changelogs, from its own version to v26.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "src/lib/meta/api.ts keeps `process.env.META_GRAPH_VERSION || \"v21.0\"` for OAuth requests the scan cannot trace; it is listed as a note. Error 131059 (v24.0, bad template pagination cursor) is not handled by name, as before.",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "symbiosika/symbiosika-framework",
+      "pullRequest": null,
+      "run": "refit-bench 40970560104 (meta.yml, subsets/meta-dev-60.json, size 1, no AI) at 3f3937dc on feat/meta-changelogs; no patch at affb6e8a (40955443390), validated after. Read from a local `refit meta-graph --propose-version-moves --target v26.0` on the same commit.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v22.0 to v26.0 on WABA `subscribed_apps` (POST, GET), phone number `/register` (messaging_product, pin), WABA `/phone_numbers` and phone number `/messages`; no change from v23.0 to v26.0 touches them (the v21.0 data_localization_region removal is not crossed and the code does not send it).",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the change table, including the mined WhatsApp and Messenger changelogs, from its own version to v26.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "The repository's tests already fail before the patch; the patch adds no failure. A `/{custom-audience-id}`-shaped request in index.ts stays on v22.0 as a node-wide caution note.",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "mkyousafali/Aqura",
+      "pullRequest": null,
+      "run": "refit-bench 40970560104 (meta.yml, subsets/meta-dev-60.json, size 1, no AI) at 3f3937dc on feat/meta-changelogs; no patch at affb6e8a (40955443390), validated after. Read from a local `refit meta-graph --propose-version-moves --target v26.0` on the same commit.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v22.0 to v26.0 on WhatsApp Cloud API `/messages`, `/block_users`, `/whatsapp_business_profile` and the resumable `app/uploads` session, plus the GRAPH_API_VERSION const in attendance-no-show; no change from v23.0 to v26.0 touches them.",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the change table, including the mined WhatsApp and Messenger changelogs, from its own version to v26.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "The whatsapp-webhook function reads status webhooks; the v24.0 `conversation` omission follows the app's webhook version, not these request pins, so the move does not change it. Six pins whose requests the scan cannot read stay on v22.0 as notes.",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
     }
   ]
 }
