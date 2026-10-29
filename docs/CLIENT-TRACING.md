@@ -66,3 +66,14 @@ One rule covers factories, dependency injection (NestJS and others), `ctx.stripe
 - **Reports.** `sdkCalls` and `calls` carry `traceSource`; the Stripe benchmark records `tracedCallsBySource` and the compare script compares it.
 
 Tests: `pipeline/type-clients.test.ts` (one case per pattern above, six lying casts, the JavaScript factory, the trust guard and the size limit).
+
+## Removed-field reads proven by type
+
+The same decision applies to the objects a client returns. A removed-field read Refit's analyzer left for review (a declared type it could not follow, a mutated or helper-returned response, an untraced read) is analyzed again as confirmed where TypeScript's checker proves its receiver is the changed schema's stripe-node class (`typeProvenReads` in `pipeline/stripe-type-evidence.ts`, on the programs `type-clients.ts` builds):
+
+- every non-nullish part of the receiver's type is that one class (`stripe-sdk-metadata.json`); a union with a local type or `any` proves nothing;
+- the value's whole path is honest: no `as`, `<T>`, JSDoc cast or `any`, followed through variables and every write to them, destructuring, array elements, `push`/`unshift`/`splice` inserts and the array callbacks that receive them, stripe-node properties (`list.data`, `event.data.object`) and their writes, the returns of the repository's functions, and the argument every call in the repository passes to a parameter; it ends at a stripe-node declaration (an SDK response, a webhook event) or at an annotated parameter of a function the repository never calls;
+- a function the repository passes as a value rather than calling it proves nothing about its parameters, and where an annotation takes a value the value's type must be assignable to it;
+- the code never writes, deletes or `Object.assign`s the removed field on that Stripe type.
+
+A proven read has `typeProven` and is migrated like a declared-type read: only the version-tolerant helpers edit it, since it may be a webhook payload of either version. Everything else keeps its stop; in particular a type assertion anywhere on the path keeps the "Declared Stripe types" or "TypeScript types confirm reads" stop. Tests: `pipeline/scan-type-proof.test.ts` (four honest paths, four lying ones: a cast, a caller's cast, an `any` insert, a replaced `list.data`, a function passed as a value, a JavaScript cast of an Invoice to a Subscription and a union with a local type).
