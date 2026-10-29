@@ -13,6 +13,12 @@ export const PREPARATION_STOPS = [
     action: `${CUSTOM_IMAGE} Dependencies inside the image do not count against the sandbox workspace.`,
   },
   {
+    reason: 'git-dependency',
+    pattern: / from Git \(/,
+    summary: 'a dependency is installed from Git, which Refit does not fetch',
+    action: `Depend on a version published to registry.npmjs.org, or on the repository's release archive (a github.com/…/archive/….tar.gz URL, which npm locks with its integrity), instead. Or: ${CUSTOM_IMAGE}`,
+  },
+  {
     reason: 'non-registry-dependency',
     pattern:
       /^Automatic preparation supports public npm registry dependencies only|^Package tarballs must use public registry\.npmjs\.org|^Every pnpm package needs a registry name|^pnpm declarations must use public registry|^pnpm dependencies must resolve to recorded registry packages/,

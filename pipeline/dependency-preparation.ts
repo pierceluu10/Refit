@@ -12,6 +12,7 @@ import {
   realpath,
   rename,
   rm,
+  statfs,
   utimes,
   writeFile,
 } from 'node:fs/promises';
@@ -22,6 +23,7 @@ import { readCommittedRepository } from './committed-repository.ts';
 import {
   DOCKER_IMAGE_ID,
   dockerSandboxArguments,
+  emptyInstallerCache,
   MAX_VALIDATION_ARCHIVE_BYTES,
   preparationProfile,
   validationProfile,
@@ -42,6 +44,7 @@ import {
   YARN_INSTALL_COMMAND,
   YARN_SKIP_PLATFORM_PACKAGES,
 } from './manager-install.ts';
+import { completedYarnLockSnapshot, RegistryUnreachableError } from './lockfile-completion.ts';
 import {
   LockfileResolutionError,
   lockfileResolutionEnabled,
@@ -59,10 +62,12 @@ const RECIPE_VERSION = 6;
 const LEGACY_PEER_DEPS_MARKER = 'REFIT_LEGACY_PEER_DEPS=1';
 const PRUNED_GLIBC_MARKER = 'REFIT_PRUNED_GLIBC_PACKAGES';
 // --replace-registry-host=always fetches every locked tarball from registry.npmjs.org, including
-// ones a lockfile resolved through a public mirror (npm-lock.ts); integrity still decides.
-const npmCi = (binary: string) =>
+// ones a lockfile resolved through a public mirror (npm-lock.ts); integrity still decides. A
+// lockfile with code-host archives has no mirror records (npm-lock.ts), and replaces only
+// registry.npmjs.org itself, so those archives come from their own host, checked by integrity.
+const npmCi = (binary: string, remoteTarballs = false) =>
   `${binary} ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ` +
-  '--registry=https://registry.npmjs.org --replace-registry-host=always --cache=/workspace/.npm-cache';
+  `--registry=https://registry.npmjs.org --replace-registry-host=${remoteTarballs ? 'npmjs' : 'always'} --cache=/workspace/.npm-cache`;
 const DEFAULT_INSTALL_TIMEOUT_SECONDS = 300;
 const MIN_INSTALL_TIMEOUT_SECONDS = 60;
 const MAX_INSTALL_TIMEOUT_SECONDS = 1800;
@@ -168,10 +173,16 @@ export const npmCiWithPeerRetry = (ci: string, log = '/workspace/.refit-npm-ci.l
   `printf "${LEGACY_PEER_DEPS_MARKER}\\n" >&2; ${ci} --legacy-peer-deps >&2; cat ${log} >&2; ` +
   `else cat ${log} >&2; exit 1; fi; `;
 function installCommand(
-  { manager, managerVersion, legacyPeerDeps, platformPackages }: PreparationIdentity,
+  {
+    manager,
+    managerVersion,
+    legacyPeerDeps,
+    platformPackages,
+    remoteTarballs,
+  }: PreparationIdentity,
   platformPackageMode?: 'skip' | 'install',
 ) {
-  const NPM_CI = npmCi(managerVersion ? '"$refit_tool"' : 'npm');
+  const NPM_CI = npmCi(managerVersion ? '"$refit_tool"' : 'npm', Boolean(remoteTarballs));
   return [
     'sh',
     '-c',
@@ -349,6 +360,13 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
       `Update \`${lockfile}\` so it matches \`package.json\` (run your package manager's install), commit it, then rerun your checks on this branch.`,
   },
   {
+    reason: 'git-dependency',
+    pattern: / from Git \(/,
+    summary: 'a dependency is installed from Git, which Refit does not fetch',
+    action: () =>
+      'Depend on a version published to registry.npmjs.org, or on its release archive URL, then rerun your checks on this branch; Refit ran none.',
+  },
+  {
     reason: 'lockfile-integrity',
     pattern:
       /^Every npm package requires a registry URL, version and SHA-256-or-stronger integrity|^package-lock\.json records .+ without a version, registry "resolved" URL and SHA-256-or-stronger "integrity"|^Every pnpm package needs a registry name\/version and SHA-256-or-stronger integrity|^Every yarn\.lock entry must resolve an exact version to a public registry tarball/,
@@ -391,6 +409,18 @@ const HOST_FAILURE =
   /Cannot connect to the Docker daemon|error during connect|Mounts denied|overlay[\s\S]*(?:ENOSPC|no space left)/i;
 const REGISTRY_UNREACHABLE =
   /\b(?:EAI_AGAIN|ENOTFOUND|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|ERR_SOCKET_TIMEOUT)\b|socket hang up/;
+
+// A code-host archive the lockfile pins (npm-lock.ts) that is gone, or whose bytes changed, is the
+// repository's to fix; an unreachable host stays a host failure, retried like the registry.
+const CODE_HOST_URL = /https:\/\/(?:codeload\.)?(?:github|gitlab)\.com\/\S+/;
+export function codeHostFailure(stderr: string) {
+  const url = CODE_HOST_URL.exec(stderr)?.[0];
+  if (/\bE40[34]\b|\b40[34] Not Found\b/.test(stderr) && url)
+    return `npm could not download ${url.replace(/[)'",]+$/, '')}, a code-host archive package-lock.json pins: the host no longer serves it.`;
+  if (/^npm (?:ERR!|error) code EINTEGRITY$/m.test(stderr))
+    return `npm refused a downloaded package whose bytes differ from the integrity package-lock.json records (EINTEGRITY)${url ? `; the lockfile pins a code-host archive (${url.replace(/[)'",]+$/, '')}), whose bytes the host may have changed` : ''}.`;
+  return undefined;
+}
 
 export class PreparationHostError extends PipelineInputError {
   override name = 'PreparationHostError';
@@ -452,12 +482,23 @@ export function preparationFailure(error: unknown) {
   };
 }
 
+// The installer cache is on a shared host disk without a quota of its own, so an install stops
+// before the cache leaves less than this much of that disk free.
+export const INSTALLER_CACHE_FREE_BYTES = 2 * GIB;
+const INSTALLER_CACHE_POLL_MS = 2_000;
+
+async function freeBytes(directory: string) {
+  const { bavail, bsize } = await statfs(directory);
+  return bavail * bsize;
+}
+
 async function installDependencies(
   argumentsList: string[],
   output: string,
   inputs: PreparationIdentity,
   timeoutSeconds: number,
   signal?: AbortSignal,
+  installerCache?: string,
 ) {
   signal?.throwIfAborted();
   const child = spawn('docker', argumentsList, { stdio: ['ignore', 'pipe', 'pipe'], signal });
@@ -472,6 +513,19 @@ async function installDependencies(
     timedOut = true;
     child.kill('SIGKILL');
   }, timeoutSeconds * 1000);
+  let hostDiskLow = false;
+  const diskWatch = installerCache
+    ? setInterval(() => {
+        freeBytes(installerCache).then(
+          (bytes) => {
+            if (bytes >= INSTALLER_CACHE_FREE_BYTES || hostDiskLow) return;
+            hostDiskLow = true;
+            child.kill('SIGKILL');
+          },
+          () => undefined,
+        );
+      }, INSTALLER_CACHE_POLL_MS)
+    : undefined;
   let bytes = 0;
   const { archiveBytes } = validationProfile();
   const hash = createHash('sha256');
@@ -505,10 +559,17 @@ async function installDependencies(
   const tasks = [archive, logs, exited] as const;
   try {
     const [, stderr, result] = await Promise.all(tasks);
+    if (hostDiskLow)
+      throw new DependencyPreparationError(
+        `${inputs.manager} dependency preparation stopped: its package cache left less than ${INSTALLER_CACHE_FREE_BYTES / GIB} GiB free on the host disk that holds Refit's temporary files.`,
+      );
     if (timedOut)
       throw new DependencyPreparationError(
         `Dependency preparation exceeded ${timeoutSeconds} seconds. Set REFIT_DEPENDENCY_TIMEOUT_SECONDS (up to ${MAX_INSTALL_TIMEOUT_SECONDS}) for a larger dependency tree.`,
       );
+    const archive =
+      result.code !== 0 && inputs.remoteTarballs ? codeHostFailure(stderr) : undefined;
+    if (archive) throw new DependencyPreparationError(archive);
     const host = result.code !== 0 ? hostInstallFailure(inputs.manager, result, stderr) : undefined;
     if (host) throw host;
     const { workspace } = preparationProfile();
@@ -517,9 +578,7 @@ async function installDependencies(
         `${inputs.manager} dependency preparation ran out of space in its ${workspace} workspace (ENOSPC).${
           inputs.manager !== 'yarn'
             ? ''
-            : inputs.managerVersion?.startsWith('1.')
-              ? " Yarn 1 also downloads other platforms' optional binaries."
-              : ' Yarn 2+ keeps a zip of every package in its cache beside the unpacked tree.'
+            : " Yarn's package cache is kept outside the workspace, so the unpacked tree alone did not fit."
         }${
           workspace === '4g'
             ? ''
@@ -570,6 +629,7 @@ async function installDependencies(
     throw error;
   } finally {
     clearTimeout(timeout);
+    clearInterval(diskWatch);
   }
 }
 
@@ -619,6 +679,28 @@ async function withResolvedLockfile(
 ) {
   const failure = preparationFailure(error);
   if (!failure || !(error instanceof Error)) throw error;
+  const completed = await completedYarnLockSnapshot(snapshot, error, options).catch((cause) => {
+    if (cause instanceof RegistryUnreachableError)
+      throw new PreparationHostError(cause.message, { cause });
+    if (!(cause instanceof PipelineInputError)) throw cause;
+    throw new DependencyPreparationError(
+      `${error.message} Refit could not complete it from the registry: ${cause.message}`,
+      { cause },
+    );
+  });
+  if (completed) {
+    const result = await readPreparationInputs(
+      completed.snapshot,
+      snapshot.entries,
+      options.lockfileChoice,
+    ).catch((refused) => {
+      throw new DependencyPreparationError(
+        `${error.message} Refit completed ${completed.record.records.length} records from ${completed.record.registry}, and the lockfile was refused again: ${refused instanceof Error ? refused.message : String(refused)}`,
+        { cause: refused },
+      );
+    });
+    return { ...result, inputs: { ...result.inputs, completedLockfile: completed.record } };
+  }
   let resolved;
   try {
     resolved = await resolvedLockfileSnapshot(snapshot, failure.reason, {
@@ -770,9 +852,19 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0], refus
     const input = await mkdtemp(join(tmpdir(), 'refit-npm-input-'));
     const name = `refit-dependencies-${randomUUID()}`;
     const preparation = preparationProfile();
+    // Only the sandbox user writes the cache; its private parent keeps other host users out.
+    const cacheParent =
+      inputs.manager === 'yarn'
+        ? await mkdtemp(join(tmpdir(), 'refit-installer-cache-'))
+        : undefined;
+    const installerCache = cacheParent && join(cacheParent, 'cache');
     try {
       await mkdir(staging, { mode: 0o700 });
       await chmod(input, 0o755);
+      if (installerCache) {
+        await mkdir(installerCache);
+        await chmod(installerCache, 0o777);
+      }
       for (const [file, content] of files) {
         await mkdir(resolve(input, file, '..'), { recursive: true, mode: 0o755 });
         await writeFile(join(input, file), content, { mode: 0o444 });
@@ -805,11 +897,13 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0], refus
           network: 'bridge',
           timeoutMs: timeoutSeconds * 1000,
           preparation,
+          installerCache,
         }),
         join(staging, ARCHIVE),
         inputs,
         timeoutSeconds,
         options.signal,
+        installerCache,
       );
       options.signal?.throwIfAborted();
       const environment = {
@@ -843,6 +937,7 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0], refus
           registry: 'https://registry.npmjs.org',
           timeoutMs: timeoutSeconds * 1000,
           ...preparation,
+          ...(installerCache ? { packageCache: 'host-disk' } : {}),
         },
         validation: { network: 'none' },
       };
@@ -882,6 +977,14 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0], refus
         rm(input, { recursive: true, force: true }),
         rm(staging, { recursive: true, force: true }),
       ]);
+      if (cacheParent)
+        cleanup.push(
+          ...(await Promise.allSettled([
+            (installerCache ? emptyInstallerCache(image, installerCache) : Promise.resolve()).then(
+              () => rm(cacheParent, { recursive: true, force: true }),
+            ),
+          ])),
+        );
       for (const result of cleanup) if (result.status === 'rejected') throw result.reason;
     }
   });
