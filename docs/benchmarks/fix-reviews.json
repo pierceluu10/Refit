@@ -3071,6 +3071,36 @@
         "upgradeComplete": "n/a: no package changes.",
         "wouldMerge": "yes"
       }
+    },
+    {
+      "repo": "Hujjat/easy-product-recommendations",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40966481779/40966491852 (1de287fe, the 250 practice lists, --sdk-upgrade, no AI) against 40967527548/40967536624 (2c89270a): stopped on an unreadable Admin document before, patched and [Needs review] after (baseline-failed: the repository type check fails on the original code, grade D, schema proof proven). Shards upload no patch, so the diff was read from a local runPipeline census at 2c89270a.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.October25 to ApiVersion.April26 in app/shopify.server.js (shopifyApp and the exported apiVersion) and the .graphqlrc.js codegen project; the newest version the locked SDK names.",
+        "bothVersions": "n/a: an Admin API version move; all 12 traced Admin documents validate on 2026-01 and the target with graphql-js, including the document SH13 now reads (metaobjects query with optional after and query arguments, 4 variants).",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the ApiVersion member (the files are CRLF, so the raw diff shows whole files).",
+        "pleaseCheck": "The repository type check already fails on the original code, so Refit could not run the patched checks.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes, once the repository fixes its own type errors"
+      }
+    },
+    {
+      "repo": "alirafat2024/25_oct-shopify_functions",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40966481779/40966491852 (1de287fe, the 250 practice lists, --sdk-upgrade, no AI) against 40967527548/40967536624 (2c89270a): stopped on an unreadable Admin document before, patched and [Needs review] after (baseline-failed: the repository type check fails on the original code, grade D, schema proof proven). Shards upload no patch, so the diff was read from a local runPipeline census at 2c89270a.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.October25 to ApiVersion.January26 in app/shopify.server.js (shopifyApp and the exported apiVersion) and the .graphqlrc.js codegen project; the SDK upgrade stops because @shopify/shopify-app-react-router 2 serves embedded apps only, so Refit falls back to the newest version the locked SDK can take.",
+        "bothVersions": "n/a: an Admin API version move; all 8 traced Admin documents validate on 2026-01 and the target with graphql-js, including the document SH13 now reads (metaobjectCreate and metaobjectUpdate with a fields list built by map().join(), one element per variant).",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the ApiVersion member (the files are CRLF, so the raw diff shows whole files).",
+        "pleaseCheck": "The repository type check already fails on the original code, so Refit could not run the patched checks.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes, once the repository fixes its own type errors"
+      }
     }
   ]
 }
