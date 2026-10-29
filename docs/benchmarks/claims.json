@@ -18373,6 +18373,230 @@
         }
       ],
       "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated | 84 | 84 | 84 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: rows whose generated check ran | 5 | 25 | 25 |",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "25",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "25",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: rows with `@prisma/client` TS2305 | 73 | 73 | 2 |",
+      "values": [
+        {
+          "says": "73",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "73",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "2",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated | 10 | 10 | 10 |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: rows whose generated check ran | 1 | 6 | 6 |",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "6",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "6",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** l2-push-249 (`-f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249`): before [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392), stand-ins [40638303426](https://github.com/refit-dev/refit-bench/actions/runs/40638303426), with `-f flags=--generate-clients` [40638306398](https://github.com/refit-dev/refit-bench/actions/runs/40638306398). heldout-30 (`-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30`): before [40624360669](https://github.com/refit-dev/refit-bench/actions/runs/40624360669), stand-ins [40695266609](https://github.com/refit-dev/refit-bench/actions/runs/40695266609), with generated clients [40695271902](https://github.com/refit-dev/refit-bench/actions/runs/40695271902). Compared with `scripts/stripe-benchmark-compare.mjs`. `6be912a2` makes generation the default with no other change, so the flagged runs measure it.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40638303426",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40638306398",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40624360669",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40695266609",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40695271902",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Nothing lost, nothing newly validated.** Outcomes are identical on all 249 and all 30 rows in every run, so no new `migration.patch` needed a review label. Patches are byte-identical except kondax-com/Bocker on l2, whose own timing test (`expected 100.7 to be less than 100`) failed its baseline in both after runs, with and without generation, so its patched checks did not run.",
+      "values": [
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Stand-ins.** 17 of the 25 l2 rows whose generated check passes used a stand-in (`validation.generated.standIns`): Prisma 9, PostgREST 7, Clerk 9 (some rows several); 8 rows reach the PostgREST stand-in and still stop later. No generated check counted a regression. Generated checks never raise the grade above D, so grades are unchanged.",
+      "values": [
+        {
+          "says": "17",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "25",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "7",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "8",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Generated clients.** Type checks lose the missing-client errors in 71 of 73 l2 rows and change their error counts in 10 heldout rows, with no introduced error added; brandbite/brandbite's test baseline passes, and its draft stays `[Needs review]` for its other blockers.",
+      "values": [
+        {
+          "says": "71",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "73",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
     }
   ]
 }

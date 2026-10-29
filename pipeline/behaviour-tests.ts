@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { structuredPatch } from 'diff';
 import ts from 'typescript-compiler';
 import { STRIPE_IMPORT, type BehaviourEvidence } from './check-selection.ts';
+import type { RuntimeStandIns } from './runtime-stand-ins.ts';
 import {
   generatedEnvironment,
   generatedImportMap,
@@ -291,6 +292,7 @@ export async function writeBehaviourHarness(
   tests: readonly BehaviourTest[],
   changed: Record<Side, LinesByFile>,
   sources: Record<Side, Repository>,
+  standIns: RuntimeStandIns = {},
 ) {
   await writeHarness(
     directory,
@@ -298,6 +300,7 @@ export async function writeBehaviourHarness(
     behaviourImportMap(sources.original, tests),
     behaviourImportMap(sources.patched, tests),
     generatedEnvironment(sources.original, sources.patched),
+    standIns,
   );
   await writeFile(join(directory, 'reporter.mjs'), REPORTER, { mode: 0o444 });
   await writeFile(join(directory, 'behaviour.mjs'), RUNNER, { mode: 0o444 });
