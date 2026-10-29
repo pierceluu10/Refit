@@ -1,5 +1,22 @@
 # AI-provider benchmark results
 
+## October 29, night: after-6 re-run (ai-surfaces' stable head)
+
+This is the same scan-only harness (no validation, no AI) on `bench/ai-provider-after-6` (`9a3b3372`). It holds the same ai-models heads as after-4 and `feat/ai-gemini-swap` `ec1a22bc`, which ai-surfaces named as its stable head for the night. Rows: `ai-provider-results/2026-10-29-*-after6-scan.json`.
+
+**No row changes outcome from after-4**, on any set. Proposed fixes stay at 18 / 12 / 2, and optional Anthropic upgrades at 3. The upper bounds stay at 22% / 21% / 9% (31% / 29% / 12% of affected JS/TS). The sampled fixes are unchanged (14 correct, 1 partial, 0 wrong). The rule-level fixes landed, but every row they touched is still held by another blocker:
+
+|                                                       | after-4 | after-6                                                                                           |
+| ----------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------- |
+| OpenAI `openai-node-v5-file-from-path` blocking stops | 16      | **0**                                                                                             |
+| OpenAI rows with a blocking migration stop            | 10      | 10 (`v5-web-response` 7, `v4-client` 6, `v4-response-data` 2, untraced v3 or renamed calls 4)     |
+| Anthropic sampling stops: blocking / optional         | 42 / 26 | **36 / 32**                                                                                       |
+| Anthropic rows with a blocking migration stop         | 19      | 17 (sampling on unknown bodies, `text-completions-removed` 9, `companions` 7, `one-credential` 3) |
+| Anthropic SDK migrations with edits                   | 0       | 0                                                                                                 |
+| Gemini migration edits / blocked rows                 | 51 / 12 | 56 / 12 (`gemini-swap-target` 97 stops)                                                           |
+
+Where to look next, for row movement, not stop counts: (1) OpenAI `v5-web-response` and `v4-client` in the same 10 rows; (2) Anthropic: rows whose only remaining blockers are `text-completions-removed` or `companions`; (3) Gemini: the swap-target forms still unmapped (`systemInstruction`, request objects, `candidates` reads, lazily built clients). Each would be measured on the dev sets first.
+
 ## October 29, later: after-4 re-run (latest engine heads)
 
 This is the same scan-only harness (no validation, no AI) on `bench/ai-provider-after-4` (`27ad6393`). It holds the before commit with #402 `8b0f6fb6`, #403 `df0b070b`, #404 `c5dd595f` and #406 `3d615602` (ai-models), and `feat/ai-gemini-swap` `2bf68181` (ai-surfaces, carrying #407 and #412). Per owner decision A, an Anthropic SDK upgrade blocked only by sampling parameters is now reported as **"SDK upgrade available, not required (would change outputs)"** (`optional-upgrade`). It is neither a failure nor a stop, and it is left out of the affected denominator. All earlier passes were recounted with the same outcome rule (`rowOutcome`), and nothing changed for them. Rows: `ai-provider-results/2026-10-29-*-after4-scan.json`.
