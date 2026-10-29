@@ -66,6 +66,12 @@ const KEY_VALUE =
 // Quoted or bare IDs of the providers' model families, to tell a catalog file.
 const MODEL_LIKE =
   /(?<![A-Za-z0-9.-])((?:models\/|openai\/|anthropic\/|google\/)?(?:gpt-[0-9a-z.-]+|o[1-9](?:-[a-z0-9-]+)?|claude-[0-9a-z.-]+|gemini-[0-9a-z.-]+|text-embedding-[0-9a-z-]+|embedding-[0-9a-z-]+|chatgpt-[0-9a-z.-]+))(?![A-Za-z0-9.-])/g;
+// A key that names a cloud deployment or another host's model (an Azure deployment, a Bedrock or
+// Vertex model ID, a gateway route), whose lifecycle is not the provider's.
+const HOSTED_KEY = /azure|deployment|bedrock|vertex|openrouter|ollama|litellm/i;
+// A configuration file that sets retiring models on more lines than this holds records (a data
+// export or a cache), not settings a deployment reads.
+const MAX_CONFIGURATION_VALUES = 3;
 // Gemini's `models/` prefix and gateway prefixes such as `openai/` name the same model.
 const unprefixed = (model: string) => model.replace(/^(?:models|openai|anthropic|google)\//, '');
 
@@ -206,7 +212,7 @@ export async function modelAlerts(
       // `"key": "model"`, `key: model`), so model lists, prose and catalogs never count.
       const value = configuration ? (env ? ENV_VALUE : KEY_VALUE).exec(text) : null;
       const candidates = configuration
-        ? value
+        ? value && !HOSTED_KEY.test(value[1])
           ? [{ model: unprefixed(value[2]), key: value[1] }]
           : []
         : [...text.matchAll(QUOTED)].map((match) => ({
@@ -233,8 +239,15 @@ export async function modelAlerts(
       }
     });
   }
+  const perFile = new Map<string, number>();
+  for (const alert of alerts)
+    if (alert.kind === 'configuration') perFile.set(alert.file, (perFile.get(alert.file) ?? 0) + 1);
+  const kept = alerts.filter(
+    (alert) =>
+      alert.kind !== 'configuration' || (perFile.get(alert.file) ?? 0) <= MAX_CONFIGURATION_VALUES,
+  );
   return {
-    alerts: alerts.sort(
+    alerts: kept.sort(
       (a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.model.localeCompare(b.model),
     ),
     truncated,

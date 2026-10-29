@@ -90,6 +90,10 @@ describe('modelAlerts', () => {
       'config/models.json': '["gpt-4o-2024-08-06", "gpt-6-luna"]\n',
       'package-lock.json': '{ "model": "gpt-4o-2024-08-06" }',
       'src/env.ts': 'export const model = process.env.OPENAI_MODEL;\n',
+      '.env.azure': 'AZURE_OPENAI_DEPLOYMENT=gpt-4o-2024-08-06\n',
+      'scripts/cache.json': Array.from({ length: 4 }, () => '  "model": "gpt-4o-2024-08-06",').join(
+        '\n',
+      ),
     });
     const { alerts } = await modelAlerts(root, registry, NOW);
     expect(
