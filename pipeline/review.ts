@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import { structuredPatch } from 'diff';
 import ts from 'typescript-compiler';
 import { digest, isObject, type AddedProperty } from './specifications.ts';
+import type { LockfileChoice } from './dependency-inputs.ts';
 import { CURRENCY_CODE_RULE, PASSING_REACH } from './operation-reach.ts';
 import { affectedFields } from './report-fields.ts';
 import { PipelineInputError, type Finding } from './types.ts';
@@ -624,12 +625,21 @@ export function createReviewArtifacts(
           message: string;
         }[])
       : [];
+  // Webhook events both the original and the patched code handle differently in the new API
+  // version (signed-events.ts): the patch did not cause it, and did not fix it.
+  const unresolvedEvents =
+    'signedEvents' in validation &&
+    validation.signedEvents &&
+    'unresolved' in validation.signedEvents
+      ? (validation.signedEvents.unresolved as { id: string; error: string }[])
+      : [];
   const needsReview = Boolean(
     reviews?.length ||
     patch.unresolvedFindings ||
     keptProperties.length ||
     unchecked ||
-    advisoryTypeErrors.length,
+    advisoryTypeErrors.length ||
+    unresolvedEvents.length,
   );
   const prefix = needsReview ? NEEDS_REVIEW_PREFIX : '';
   const full = `${prefix}fix(${scope}): ${versionTitle ?? description}`;
@@ -685,8 +695,22 @@ export function createReviewArtifacts(
   const fromBunLock = [validation.environment, validation.patchedEnvironment].some(
     (environment) => typeof environment?.bunLockHash === 'string',
   );
-  const lockfileChoice = validation.environment?.lockfileChoice as
-    { lockfile: string; outOfSync: Record<string, string> } | undefined;
+  const lockfileChoice = validation.environment?.lockfileChoice as LockfileChoice | undefined;
+  const otherLockfiles = Object.entries(lockfileChoice?.others ?? {});
+  // Lockfiles a patch that upgrades stripe leaves as committed (stripe-package-upgrade.ts).
+  const unchangedLockfiles = /^diff --git "a\/package\.json"/m.test(patch.diff)
+    ? otherLockfiles
+        .map(([file]) => file)
+        .filter((file) => !patch.diff.includes(`diff --git "a/${file}"`))
+    : [];
+  type ResolvedLockfile = {
+    reason: string;
+    before: string;
+    late?: Record<string, { spec: string; published: string }>;
+  };
+  const resolvedLockfiles = [validation.environment, validation.patchedEnvironment]
+    .map((environment) => environment?.resolvedLockfile as ResolvedLockfile | undefined)
+    .filter((entry) => entry !== undefined);
   const prunedGlibcPackages = Math.max(
     0,
     ...[validation.environment, validation.patchedEnvironment].map((environment) => {
@@ -736,8 +760,17 @@ export function createReviewArtifacts(
     typeof patch.sdkUpgrade === 'object' &&
     'to' in patch.sdkUpgrade &&
     'from' in patch.sdkUpgrade
-      ? (patch.sdkUpgrade as { from: string; to: string })
+      ? (patch.sdkUpgrade as {
+          from: string;
+          to: string;
+          raised?: { name: string; from: string; to: string; range: string }[];
+        })
       : undefined;
+  const raisedPeers = summaryList(
+    (upgrade?.raised ?? []).map(
+      ({ name, from, to }) => `${code(name)} from ${code(from)} to ${code(to)}`,
+    ),
+  );
   const pinFrom = report.apiVersion.application;
   const pinTo = report.apiVersion.after;
   const movesPin = (file: FileChange) =>
@@ -803,7 +836,7 @@ export function createReviewArtifacts(
               : []),
             ...(upgrade && (/(?:^|\/)package\.json$/.test(file.path) || LOCKFILE.test(file.path))
               ? [
-                  `Upgrades ${code(report.adapter.packageName)} from ${code(upgrade.from)} to ${code(upgrade.to)}.`,
+                  `Upgrades ${code(report.adapter.packageName)} from ${code(upgrade.from)} to ${code(upgrade.to)}${raisedPeers ? ` and raises ${raisedPeers}` : ''}.`,
                 ]
               : []),
           ].join(' ') || `Updates ${plainText(provider)} API usage for the new contract.`;
@@ -856,6 +889,11 @@ export function createReviewArtifacts(
               `Restores the known values of the Stripe enums that stripe-node 22.4.0 widened with ${code('OtherString')}, using ${code('Extract<…>')} types where the upgraded types rejected this code. Runtime code is unchanged: a value Stripe adds later still reaches this code unchecked, as it did before the upgrade.`,
             ]
           : []),
+        ...(validation.repair?.typeAssertions?.length
+          ? [
+              `Asserts the type this code expects at ${summaryList(validation.repair.typeAssertions.map((site) => code(`${site.file}:${site.line}`)))}, where the upgraded stripe-node types widened a value it assigns to a narrower type. Each file compiles to the same JavaScript as before (checked with TypeScript's ${code('transpileModule')}), so runtime behaviour is unchanged: a value outside the asserted type still reaches this code unchecked, as it did before the upgrade.`,
+            ]
+          : []),
         ...(typeCheckedReads.length
           ? [
               `Reads ${typeCheckedReads.length === 1 ? 'a subscription period' : `${typeCheckedReads.length} subscription periods`} at ${summaryList(typeCheckedReads.map((finding) => code(`${finding.file}:${finding.line}`)))} through the generated period helper: Refit's tracer did not reach ${typeCheckedReads.length === 1 ? 'this read' : 'these reads'}, but the upgraded stripe-node types reject ${typeCheckedReads.length === 1 ? 'it' : 'them'} on ${code('Subscription')}.`,
@@ -893,6 +931,13 @@ export function createReviewArtifacts(
             .join('; ')}.`,
         ]
       : []),
+    ...(unresolvedEvents.length
+      ? [
+          `**Webhook events of the new API version.** Refit sent signed test events of both versions to your webhook handler, offline. The original and the patched code both handle ${unresolvedEvents.length === 1 ? 'this event' : 'these events'} differently when ${unresolvedEvents.length === 1 ? 'it arrives' : 'they arrive'} in the new version, so the handler is not ready for an endpoint on that version: ${unresolvedEvents
+            .map((event) => `${code(event.id)} (${plainText(event.error)})`)
+            .join('; ')}. The webhook endpoint's own version is unchanged.`,
+        ]
+      : []),
     ...(shopify?.deprecated ?? []).map(
       (entry) =>
         `Deprecated on ${after}, still served: ${code(entry.split(':')[0])}${plainText(entry.slice(entry.indexOf(':')))}`,
@@ -922,6 +967,11 @@ export function createReviewArtifacts(
     upgrade.from.split('.')[0] !== upgrade.to.split('.')[0]
       ? [
           `Upgrades ${code('stripe')} across major versions, ${code(upgrade.from)} to ${code(upgrade.to)}; [its changelog](${STRIPE_NODE_CHANGELOG}) lists type and behavior changes the checks may not cover.`,
+        ]
+      : []),
+    ...(upgrade?.raised?.length
+      ? [
+          `Raises ${raisedPeers} with it: stripe ${code(upgrade.to)} declares ${summaryList(upgrade.raised.map(({ name, range }) => `${code(name)} ${code(range)}`))} as an optional peer, and Refit takes the lowest version in that range. Newer types can reject code that compiled before; check your own type check and editor.`,
         ]
       : []),
     ...movedExpressions.map(
@@ -1216,7 +1266,8 @@ export function createReviewArtifacts(
               ? `**Refit did not run any checks on this patch.** ${commandText(validation.baselineCommand)} passed on the original code, but ${dependency.failure.reason === OTHER_DEPENDENCY_FAILURE.reason ? 'Refit could not install the upgraded lockfile this patch writes in its sandbox' : `the upgraded lockfile this patch writes could not be installed because ${plainText(dependency.failure.summary)}`}, so the patched code was not built or tested. Nothing in this patch is verified.`
               : `**Refit did not run any checks on this patch.** Preparing the repository's dependencies failed because ${plainText(dependency.failure.summary)}, so neither the original nor the patched code was built or tested. Nothing in this patch is verified.`,
             `> ${plainText(dependency.failure.message.length > MAX_QUOTE ? `${dependency.failure.message.slice(0, MAX_QUOTE)}...` : dependency.failure.message)}`,
-            `**What to do:** ${dependency.failure.action} Don't merge until they pass.`,
+            // A stop names what Refit could not do, never a task (founder decision, 2026-10-28).
+            `**What Refit could not do:** ${dependency.failure.action}`,
           ]
         : []),
       ...(parameterGate
@@ -1303,7 +1354,7 @@ export function createReviewArtifacts(
             : []),
         ...(legacyPeerDeps
           ? [
-              "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies, so Refit installed the same lockfile with `--legacy-peer-deps`. Check that your own install uses the same setting.",
+              `- Dependency Installation: \`npm ci\` rejected the ${resolvedLockfiles.length ? 'resolved' : 'committed'} lockfile's peer dependencies, so Refit installed the same lockfile with \`--legacy-peer-deps\`. Check that your own install uses the same setting.`,
             ]
           : []),
         ...(fromBunLock
@@ -1313,7 +1364,12 @@ export function createReviewArtifacts(
           : []),
         ...(lockfileChoice
           ? [
-              `- Dependency Installation: the repository commits ${[lockfileChoice.lockfile, ...Object.keys(lockfileChoice.outOfSync)].map(code).join(' and ')}. Refit installed ${code(lockfileChoice.lockfile)}, the only one in sync with \`package.json\`, and did not read ${Object.keys(lockfileChoice.outOfSync).length === 1 ? 'the other' : 'the others'}: ${Object.values(lockfileChoice.outOfSync).map(plainText).join(' ')} Delete the lockfile your package manager does not use.`,
+              `- Dependency Installation: the repository commits ${[lockfileChoice.lockfile, ...otherLockfiles.map(([file]) => file)].map(code).join(' and ')}. Refit installed ${code(lockfileChoice.lockfile)}, ${lockfileChoice.because}, and did not read ${otherLockfiles.length === 1 ? 'the other' : 'the others'}${otherLockfiles.every(([, note]) => note === 'not read') ? '.' : `: ${otherLockfiles.map(([, note]) => plainText(note)).join(' ')}`}${unchangedLockfiles.length ? ` This patch upgrades stripe in ${code(lockfileChoice.lockfile)} only and leaves ${unchangedLockfiles.map(code).join(' and ')} as committed, still locking the older stripe.` : ''} Delete the lockfile your package manager does not use.`,
+            ]
+          : []),
+        ...(resolvedLockfiles.length
+          ? [
+              `- Dependency Installation: the checks ran against a \`package-lock.json\` Refit resolved, not one the repository commits (${{ 'no-lockfile': 'it commits none', 'lockfile-out-of-sync': 'the committed one is out of sync with `package.json`', 'lockfile-integrity': 'the committed one has entries without integrity hashes' }[resolvedLockfiles[0].reason] ?? resolvedLockfiles[0].reason}). npm resolved it with lifecycle scripts off from registry.npmjs.org as of ${resolvedLockfiles[0].before}, the last commit date${[...new Set(resolvedLockfiles.flatMap((entry) => Object.entries(entry.late ?? {}).map(([name, pin]) => `${code(`${name}@${pin.spec}`)} as of ${pin.published}`)))].map((pin, index) => `${index ? ', ' : '; '}${pin}`).join('')}, and installed it with \`npm ci\`. It is not part of this pull request; commit your own lockfile and rerun your checks.`,
             ]
           : []),
         ...(prunedGlibcPackages

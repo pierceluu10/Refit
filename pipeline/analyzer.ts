@@ -315,6 +315,8 @@ export function analyzeRepository(
   const origins = new Map<ts.Symbol, ts.CallExpression>();
   const wrappedResponses = new Map<ts.Symbol, ts.Symbol>();
   const edits: SourceEdit[] = [];
+  // The creation calls each payment-method rename's body reaches, for its API-version path.
+  const renameCalls = new Map<SourceEdit, ts.CallExpression[]>();
   const nodes: ts.Node[] = [];
   const locations = new Map(
     [...sources.keys()].map((path, index) => [path, repository.files[index].path]),
@@ -1344,7 +1346,7 @@ export function analyzeRepository(
         });
       if (confirmed && removal.cardReplacement && rule) {
         const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
-        edits.push({
+        const edit = {
           file: location(property).file,
           start: property.name.getStart(),
           end: property.name.getEnd(),
@@ -1353,7 +1355,9 @@ export function analyzeRepository(
             : `${quote}${removal.cardReplacement}${quote}`,
           changeId: removal.id,
           rule,
-        });
+        };
+        edits.push(edit);
+        renameCalls.set(edit, [node]);
       }
       findings.push({
         ...location(property),
@@ -1404,7 +1408,7 @@ export function analyzeRepository(
   }
   // A removed parameter set outside every traced SDK body stops for review, unless it is an exact
   // `['card']` in a local body only confirmed card-rule calls receive (request-migration.ts).
-  for (const { property, removal, rule } of untracedRemovedParameters(
+  for (const { property, removal, rule, calls: bodyCalls } of untracedRemovedParameters(
     nodes,
     requestParameterRemovals,
     (node) => {
@@ -1423,7 +1427,7 @@ export function analyzeRepository(
     const rename = Boolean(rule);
     if (rule && (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property))) {
       const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
-      edits.push({
+      const edit = {
         file: location(property).file,
         start: property.name.getStart(),
         end: property.name.getEnd(),
@@ -1432,7 +1436,9 @@ export function analyzeRepository(
           : `${quote}${removal.cardReplacement}${quote}`,
         changeId: removal.id,
         rule,
-      });
+      };
+      edits.push(edit);
+      renameCalls.set(edit, bodyCalls ?? []);
     }
     findings.push({
       ...location(property),
@@ -2417,42 +2423,82 @@ export function analyzeRepository(
       }
     }
   }
+  const versionPaths = {
+    clients: new Map<ts.Symbol, number[]>(),
+    calls: new Map<ts.CallExpression, number[]>(),
+  };
+  const apiVersionDeclarations = declaredApiVersions({
+    nodes,
+    mutationNodes,
+    initialUnsafe: versionUnsafe,
+    checker,
+    provider,
+    clients,
+    creation: sdk.creation,
+    constructorBinding: sdk.binding,
+    clientBinding: (node) =>
+      ts.isVariableDeclaration(node.parent) && ts.isIdentifier(node.parent.name)
+        ? symbol(node.parent.name)
+        : (classBindings!.creations.get(node) ??
+          helperBindings.creations.get(node) ??
+          factoryBindings!.creations.get(node) ??
+          (ts.isExportAssignment(node.parent)
+            ? modules.inlineDefaults.get(node.parent)
+            : undefined)),
+    sdkCall: (node) => {
+      const call = sdkCall(node);
+      return provider.packageName === 'stripe' && call?.resource === 'webhooks' ? undefined : call;
+    },
+    symbol,
+    canonical,
+    location,
+    references: { ...clientReferences, localArgument: helperBindings.visibleArgument },
+    literals: apiVersionLiterals,
+    paths: versionPaths,
+  });
+  // The constructors of a client binding, through `const` aliases such as `const stripe = getStripe()`.
+  const constructorsOf = (
+    binding: ts.Symbol,
+    seen = new Set<ts.Symbol>(),
+  ): number[] | undefined => {
+    const recorded = versionPaths.clients.get(binding);
+    if (recorded || seen.has(binding)) return recorded;
+    const declaration = binding.valueDeclaration;
+    if (
+      !declaration ||
+      !ts.isVariableDeclaration(declaration) ||
+      !declaration.initializer ||
+      !ts.isVariableDeclarationList(declaration.parent) ||
+      !(declaration.parent.flags & ts.NodeFlags.Const)
+    )
+      return undefined;
+    const next = clientBinding(declaration.initializer);
+    return next && constructorsOf(next, new Set([...seen, binding]));
+  };
+  // The declarations that decide the version each rename's calls send: the call's own request
+  // options and every constructor of its client. Undefined when one of them is not recorded.
+  const renamePaths = new Map<SourceEdit, number[] | undefined>();
+  for (const [edit, targets] of renameCalls) {
+    const path = targets.flatMap((call) => {
+      const traced = sdkCall(call);
+      const binding = traced && clientBinding(traced.client);
+      const constructors = binding && constructorsOf(binding);
+      const request = versionPaths.calls.get(call);
+      return constructors && request ? [...constructors, ...request] : [undefined];
+    });
+    renamePaths.set(
+      edit,
+      path.length && path.every((index) => index !== undefined) ? (path as number[]) : undefined,
+    );
+  }
   return {
     imports,
     calls,
     sdkCalls,
     clientMethodCalls,
     expandedFields: [...expandedFields()].sort(),
-    apiVersionDeclarations: declaredApiVersions({
-      nodes,
-      mutationNodes,
-      initialUnsafe: versionUnsafe,
-      checker,
-      provider,
-      clients,
-      creation: sdk.creation,
-      constructorBinding: sdk.binding,
-      clientBinding: (node) =>
-        ts.isVariableDeclaration(node.parent) && ts.isIdentifier(node.parent.name)
-          ? symbol(node.parent.name)
-          : (classBindings!.creations.get(node) ??
-            helperBindings.creations.get(node) ??
-            factoryBindings!.creations.get(node) ??
-            (ts.isExportAssignment(node.parent)
-              ? modules.inlineDefaults.get(node.parent)
-              : undefined)),
-      sdkCall: (node) => {
-        const call = sdkCall(node);
-        return provider.packageName === 'stripe' && call?.resource === 'webhooks'
-          ? undefined
-          : call;
-      },
-      symbol,
-      canonical,
-      location,
-      references: { ...clientReferences, localArgument: helperBindings.visibleArgument },
-      literals: apiVersionLiterals,
-    }),
+    apiVersionDeclarations,
+    renamePaths,
     apiVersionLiterals,
     findings,
     enumChecks,

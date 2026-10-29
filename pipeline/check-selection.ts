@@ -2,6 +2,8 @@ import { existsSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 import ts from 'typescript-compiler';
+import { readCommittedRepository } from './committed-repository.ts';
+import { chosenLockfile } from './dependency-inputs.ts';
 import { baselineStop } from './preparation-stops.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import { parseObject } from './specifications.ts';
@@ -318,12 +320,23 @@ async function manifestScripts(root: string) {
   };
 }
 
-function packageManager(root: string) {
-  return existsSync(join(root, 'pnpm-lock.yaml'))
-    ? 'pnpm'
-    : existsSync(join(root, 'yarn.lock'))
-      ? 'yarn'
-      : 'npm';
+const LOCKFILE_MANAGERS: Record<string, string> = {
+  'pnpm-lock.yaml': 'pnpm',
+  'yarn.lock': 'yarn',
+  'package-lock.json': 'npm',
+};
+
+// With several root lockfiles the tests run with the manager of the one preparation installs
+// (chosenLockfile); otherwise pnpm, then Yarn, then npm.
+async function packageManager(root: string, nested: boolean) {
+  const present = Object.keys(LOCKFILE_MANAGERS).filter((file) => existsSync(join(root, file)));
+  const choice =
+    !nested && present.length > 1
+      ? await readCommittedRepository(root)
+          .then((snapshot) => chosenLockfile(snapshot))
+          .catch(() => undefined)
+      : undefined;
+  return LOCKFILE_MANAGERS[choice?.lockfile ?? present[0] ?? 'package-lock.json'];
 }
 
 // The one check enrollment, the hosted worker and the benchmark run. A real test script always runs.
@@ -391,7 +404,7 @@ export async function selectCheck(
     stripeFiles.every((path) => JAVASCRIPT_FILE.test(path));
   const base = scoped || checkJs ? baseConfiguration(root, stripeFiles.map(local)) : undefined;
   const configurationFile = checkJs ? CHECKJS_TSCONFIG : SCOPED_TSCONFIG;
-  const manager = packageManager(root);
+  const manager = await packageManager(root, Boolean(packageDirectory));
   // npm passes script arguments only after `--`; pnpm and Yarn pass them as given.
   const fileOptions = [
     ...(manager === 'npm' ? ['--'] : []),
@@ -685,6 +698,10 @@ export async function gradeEvidence(options: {
   // A checkJs check's coverage proof and contract-change gate (validation.ts): without `counts`
   // its JavaScript files do not count as type-checked, and `reason` says why.
   checkJs?: { counts: boolean; reason: string };
+  // Webhook handler files signed events of both API versions ran on both sides with every changed
+  // line run and the same behaviour (signed-events.ts). Offline evidence, like a type check: it can
+  // make a file count for grade C, never B or A (founder decision, Otabek, 2026-10-28).
+  signedEvents?: readonly string[];
 }): Promise<EvidenceGrade> {
   if (options.behaviour?.passed && options.behaviour.coversEveryChangedLine)
     return { letter: 'A', level: 'behaviour-tests', reason: options.behaviour.reason };
@@ -748,16 +765,18 @@ export async function gradeEvidence(options: {
     ? reach(graph, listed.length ? listed : testFiles(options.repository).filter(check.inside))
     : new Set<string>();
   const typed = kinds.has('typecheck') ? typeChecked() : new Set<string>();
+  const signed = new Set(options.signedEvents ?? []);
   const reached = changed.filter((path) => tested.has(path));
   const untested = changed.filter((path) => !tested.has(path));
-  const unchecked = untested.filter((path) => !typed.has(path));
+  const unchecked = untested.filter((path) => !typed.has(path) && !signed.has(path));
+  const signedOnly = untested.filter((path) => !typed.has(path) && signed.has(path));
   if (changed.length && !untested.length)
     return {
       letter: 'B',
       level: 'stripe-tests',
       reason: withNotes(`The repository's tests reach every changed file (${list(changed)}).`),
     };
-  if (changed.length && !unchecked.length && checkJsCounts)
+  if (changed.length && !unchecked.length && !signedOnly.length && checkJsCounts)
     return {
       letter: 'C',
       level: 'type-check',
@@ -776,7 +795,15 @@ export async function gradeEvidence(options: {
             : reached.length
               ? `The tests reach ${list(reached)} but not ${list(untested)}. `
               : 'The tests pass but reach none of the changed files. '
-        }tsc type-checks ${list(untested)}; no test ran that code.`,
+        }${
+          signedOnly.length < untested.length
+            ? `tsc type-checks ${list(untested.filter((path) => !signedOnly.includes(path)))}; no test ran that code.`
+            : ''
+        }${signedOnly.length < untested.length && signedOnly.length ? ' ' : ''}${
+          signedOnly.length
+            ? `Signed webhook events of both API versions ran every changed line of ${list(signedOnly)} on the original and the patched code, and the patched handler behaved the same way on both.`
+            : ''
+        }`,
       ),
     };
   // Only functions that ran on both sides count; an unavailable generated check adds nothing.

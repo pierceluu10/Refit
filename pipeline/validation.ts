@@ -1,3 +1,5 @@
+import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
+import { chosenLockfile, type LockfileChoice } from './dependency-inputs.ts';
 import { aiSafetyStop, migrationReviewReason, unresolvedSites } from './migration-review.ts';
 import { diffLines } from 'diff';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
@@ -29,12 +31,26 @@ import {
 } from './validation-options.ts';
 import { committedFiles, sdkPackageDirectory } from './preparation-packages.ts';
 import { CONTRACT_CHANGE, proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
-import { droppedRequestPaths, untouchedCalls, untracedEdits } from './ai-patch-policies.ts';
+import {
+  droppedRequestPaths,
+  emitOptions,
+  typeOnlyRepairFailures,
+  untouchedCalls,
+  untracedEdits,
+} from './ai-patch-policies.ts';
 import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, preparationFailure } from './dependency-preparation.ts';
+import { prepareEnvironment } from './repository-environment.ts';
 import { baselineStop } from './preparation-stops.ts';
+import { runtimeStandIns } from './runtime-stand-ins.ts';
+import {
+  declaredGenerators,
+  generatorExits,
+  generatorsEnabled,
+  withGenerators,
+} from './declared-generators.ts';
 import { typeErrorKeys, typeErrors } from './type-errors.ts';
 import { baselineCheck } from './validation-baseline-cache.ts';
 import { inspectArtifactFile } from './verification.ts';
@@ -69,12 +85,15 @@ import {
   writeBehaviourHarness,
   type BehaviourTest,
 } from './behaviour-tests.ts';
+import { compareSignedEvents, prepareSignedEvents } from './signed-events.ts';
+import { stripeSignedEventAdapter } from './stripe-signed-events.ts';
 import { compactPatch, renderPatch } from './patches.ts';
 import {
   crossesOpenEnums,
   crossesTypeRemovals,
   KEEP_UNTYPED_REQUEST_PROPERTIES,
   OPEN_ENUM_REPAIR,
+  TYPE_ASSERTION_REPAIR,
   OPEN_ENUM_RULE,
   keepsPartialRestore,
   openEnumRepair,
@@ -125,9 +144,14 @@ const execute = promisify(execFile);
 const PROCESS_TIMEOUT_MS = 30_000;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const MAX_COMMAND_OUTPUT_BYTES = 50 * 1024 * 1024;
-// Committed source is copied into the validation workspace beside the unpacked dependency archive.
-// The 4 GiB workspace holds a 2 GiB archive and 256 MiB of source; smaller profiles keep 50 MiB.
-const sourceArchiveBytes = () => (validationProfile().workspace === '4g' ? 256 : 50) * 1024 * 1024;
+// Committed source is copied into the validation workspace beside the unpacked dependency archive,
+// and buffered once on the host to hash it. Founders' decision (2026-10-27): the 4 GiB workspace
+// holds a 2 GiB archive and 512 MiB of source, leaving 1.5 GiB for build and test output; the 2 GiB
+// one holds a 1 GiB archive and 256 MiB. The largest committed tree on the frozen Stripe lists is
+// 155.5 MiB (docs/DEPENDENCY-BLOCKERS.md). Smaller profiles keep 50 MiB.
+const SOURCE_ARCHIVE_MIB: Record<string, number> = { '4g': 512, '2g': 256 };
+const sourceArchiveBytes = () =>
+  (SOURCE_ARCHIVE_MIB[validationProfile().workspace] ?? 50) * 1024 * 1024;
 const MAX_REPAIR_LOG_CHARACTERS = 4096;
 
 export interface ValidationAttempt {
@@ -350,6 +374,13 @@ export interface CheckResult {
   stdout: string;
   stderr: string;
   error?: string;
+  // Generated files recreated offline before the checks (see declared-generators.ts).
+  generators?: {
+    name: string;
+    command: string[];
+    environment?: Record<string, string>;
+    exitCode: number | null;
+  }[];
 }
 const NOT_RUN: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
 
@@ -482,6 +513,14 @@ export function compareTypeCheck(
 const typeCheckFinished = (run: CheckResult) =>
   !['error', 'not-run'].includes(run.status) && (run.exitCode === 0 || typeErrors(run).length > 0);
 
+// The type check the oracle runs on the original code: the check's own type check part.
+function oracleCommand(command: string[]) {
+  const kinds = checkKinds(command, {});
+  return (
+    typeCheckCommand(command) ?? (kinds.size === 1 && kinds.has('typecheck') ? command : undefined)
+  );
+}
+
 // The type oracle (stripe-type-evidence.ts TypeOracle): only where the final patch installs a
 // stripe-node upgrade of its own and the check compares type errors. The original code is checked
 // once more, with only the patch's package files applied and its prepared dependencies.
@@ -510,10 +549,7 @@ export async function runTypeOracle(options: {
   if (!options.compareTypeErrors || !to || !options.packages || !options.dependencies)
     return undefined;
   const sdk = { from: options.upgrade?.from ?? null, to };
-  const kinds = checkKinds(options.command, {});
-  const command =
-    typeCheckCommand(options.command) ??
-    (kinds.size === 1 && kinds.has('typecheck') ? options.command : undefined);
+  const command = oracleCommand(options.command);
   const prefix = options.packageDirectory ? `${options.packageDirectory}/` : '';
   const compare = (run: CheckResult | undefined, side: string): OracleComparison => {
     if (options.typeCheckUnavailable)
@@ -617,6 +653,13 @@ async function containerCheck({
   signal?: AbortSignal;
 } & CheckSandbox): Promise<CheckResult> {
   const name = `refit-${randomUUID()}`;
+  // Only prepared dependencies skip the repository's install steps; a custom image ran its own.
+  const generators =
+    dependencies && generatorsEnabled()
+      ? await declaredGenerators(join(directory, packageDirectory ?? ''))
+      : [];
+  const withExit = (result: CheckResult): CheckResult =>
+    generators.length ? { ...result, ...generatorExits(generators, result.stderr) } : result;
   await removeExpiredSandboxContainers();
   try {
     const result = await execute(
@@ -625,7 +668,7 @@ async function containerCheck({
         name,
         directory,
         image,
-        command: argumentsList,
+        command: generators.length ? withGenerators(generators, argumentsList) : argumentsList,
         network: 'none',
         timeoutMs,
         dependencies,
@@ -642,7 +685,7 @@ async function containerCheck({
         signal,
       },
     );
-    return { status: 'passed', exitCode: 0, ...result };
+    return withExit({ status: 'passed', exitCode: 0, ...result });
   } catch (error) {
     signal?.throwIfAborted();
     if (!(error instanceof Error)) throw error;
@@ -653,7 +696,7 @@ async function containerCheck({
       stderr?: string;
     };
     const exitCode = typeof failure.code === 'number' ? failure.code : null;
-    return {
+    return withExit({
       status: exitCode !== null && !failure.killed && exitCode < 125 ? 'failed' : 'error',
       exitCode,
       stdout: failure.stdout ?? '',
@@ -664,7 +707,7 @@ async function containerCheck({
           : failure.killed
             ? `Check exceeded ${timeoutMs / 1000} seconds; the container was stopped.`
             : failure.message,
-    };
+    });
   } finally {
     // A killed Docker client does not necessarily stop the container it started.
     await removeDockerContainer(name);
@@ -781,10 +824,15 @@ async function prepareCandidateDependencies(
     signal?: AbortSignal;
     onProgress?: (message: string) => void;
     packageDirectory?: string;
+    // The original repository's commit date: a lockfile resolved for the candidate is cut off there.
+    committedAt?: string;
+    lockfileChoice?: LockfileChoice;
   },
 ) {
   await command('git', ['init', '-q'], candidateDirectory);
-  await command('git', ['add', '-A'], candidateDirectory);
+  // The directory holds only the revision's archived files and the patch; --force keeps a tracked
+  // lockfile the repository's .gitignore also lists.
+  await command('git', ['add', '-A', '--force'], candidateDirectory);
   // A large tree would make the commit start `git gc --auto` in the background, which can still be
   // writing packs when the .git directory is removed below (ENOTEMPTY).
   await command(
@@ -808,10 +856,12 @@ async function prepareCandidateDependencies(
     candidateDirectory,
   );
   const dependencies = join(root, `${basename(candidateDirectory)}-dependencies.tar`);
-  const prepared = await prepareDependencies({
+  const prepared = await prepareEnvironment({
     repository: candidateDirectory,
     image,
     packageDirectory: options.packageDirectory,
+    committedAt: options.committedAt,
+    lockfileChoice: options.lockfileChoice,
     copyArchiveTo: dependencies,
     signal: options.signal,
     onProgress: options.onProgress,
@@ -1094,6 +1144,7 @@ async function runGeneratedStripeChecks(
     generatedImportMap(options.original),
     generatedImportMap(options.patched),
     generatedEnvironment(options.original, options.patched),
+    await runtimeStandIns(join(options.runs[0].directory, options.sandbox.packageDirectory ?? '')),
   );
   // Each side runs in its own offline sandbox with its own stripe-mock, so both may run at once.
   const generatedRun = async (run: (typeof options.runs)[number]) => {
@@ -1152,7 +1203,15 @@ export async function runBehaviourTests(options: {
     before: options.original.contract,
     after: options.patched.contract,
   });
-  await writeBehaviourHarness(tools, options.tests, changed, sources);
+  await writeBehaviourHarness(
+    tools,
+    options.tests,
+    changed,
+    sources,
+    await runtimeStandIns(
+      join(options.original.directory, options.sandbox?.packageDirectory ?? ''),
+    ),
+  );
   const run = (side: 'before' | 'after') => {
     const input = side === 'before' ? options.original : options.patched;
     options.onProgress?.(
@@ -1177,6 +1236,88 @@ export async function runBehaviourTests(options: {
     inputs: mock.inputs,
     ...compareBehaviourRuns({ tests: options.tests, changed, sources, original, patched }),
   };
+}
+
+// Signed webhook checks (signed-events.ts) with Stripe's adapter: the handlers the patch can affect
+// get signed events of both API versions, built from each version's fixtures, on the original and
+// the patched code, in the behaviour-test sandbox. Setup problems are unavailable, never a failure.
+async function signedEventEvidence(
+  options: Omit<Parameters<typeof runBehaviourTests>[0], 'settings' | 'tests'> & {
+    settings?: GeneratedChecks;
+    versions: [string, string];
+    specification: unknown;
+  },
+) {
+  try {
+    if (!options.settings)
+      throw new PipelineInputError(
+        "Signed webhook checks need generatedChecks settings: a local stripe-mock image and both versions' fixtures.",
+      );
+    const [beforeFixtures, afterFixtures] = await Promise.all(
+      [options.settings.beforeFixtures, options.settings.afterFixtures].map(async (path) =>
+        JSON.parse(await readFile(path, 'utf8')),
+      ),
+    );
+    const adapter = stripeSignedEventAdapter({
+      beforeFixtures,
+      afterFixtures,
+      beforeVersion: options.versions[0],
+      afterVersion: options.versions[1],
+      beforeSpecification: options.specification,
+    });
+    const changed = changedStripeLines(
+      options.original.repository,
+      options.patched.repository,
+      options.findings,
+    );
+    const changedFiles = [
+      ...new Set([...Object.keys(changed.original), ...Object.keys(changed.patched)]),
+    ];
+    const prepared = prepareSignedEvents({
+      adapter,
+      original: options.original.repository,
+      patched: options.patched.repository,
+      findings: (options.findings ?? []) as Finding[],
+      changedFiles,
+    });
+    if (!prepared.test)
+      return {
+        status: 'not-runnable' as const,
+        reason: 'No webhook handler the patch can affect could be called.',
+        skipped: prepared.skipped,
+        regressions: [],
+      };
+    const run = await runBehaviourTests({
+      ...options,
+      settings: options.settings,
+      tests: [prepared.test],
+    });
+    if (run.status === 'unavailable')
+      return {
+        status: 'unavailable' as const,
+        reason: run.reason ?? 'The sandbox did not finish.',
+        skipped: prepared.skipped,
+        regressions: [],
+      };
+    return {
+      ...compareSignedEvents({
+        sites: prepared.sites,
+        original: run.sides.original.records ?? [],
+        patched: run.sides.patched.records ?? [],
+        missing: run.coverage.missing,
+        changedFiles,
+      }),
+      ...(prepared.skipped.length ? { skipped: prepared.skipped } : {}),
+      test: { path: prepared.test.path, sha256: digest(prepared.test.content) },
+    };
+  } catch (error) {
+    options.signal?.throwIfAborted();
+    return {
+      status: 'unavailable' as const,
+      reason: `Signed webhook checks could not run: ${setupError(error)}`,
+      regressions: [],
+    };
+  }
 }
 
 // Behaviour tests that cannot be set up or run are reported as unavailable, never as a failure.
@@ -1257,6 +1398,9 @@ export async function validateMigration(options: {
   // --write-behaviour-tests: without behaviourTests, one model request writes them from the
   // original code (behaviour-test-writer.ts); --write-behaviour-tests-dry-run only builds it.
   behaviourTestWriter?: BehaviourTestWriter;
+  // --webhook-checks: signed events of both API versions sent to the webhook handlers the patch can
+  // affect (signed-events.ts); they need generatedChecks' stripe-mock image and fixtures.
+  signedEventChecks?: boolean;
   // Owner decision 1: see runPipeline.
   leaveReviewedFindings?: boolean;
   keepApiVersion?: boolean;
@@ -1309,6 +1453,15 @@ export async function validateMigration(options: {
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
   const { revision, entries } = snapshot;
+  const committedAt = (await git(['show', '-s', '--format=%cI', revision])).stdout.trim();
+  // Of several committed lockfiles, the one installed for the original commit; the candidate and
+  // the stripe-node upgrade use it too, since a candidate's own one-commit history cannot date it.
+  const lockfileChoice = packageDirectory
+    ? undefined
+    : await chosenLockfile(snapshot).catch((error) => {
+        if (error instanceof PipelineInputError) return undefined;
+        throw error;
+      });
   const runtime = await selectValidationRuntime(snapshot, options.image);
   const image = await resolveDockerImage(runtime.image);
   const root = await mkdtemp(join(tmpdir(), 'refit-validation-'));
@@ -1346,6 +1499,10 @@ export async function validateMigration(options: {
           ...options,
           repository: baselineDirectory,
           proposePatch: true,
+          lockfileResolution: lockfileResolutionEnabled()
+            ? { image, before: committedAt }
+            : undefined,
+          lockfile: lockfileChoice?.lockfile,
           aiPatch: baselinePassed ? options.aiPatch : undefined,
           assessment: baselinePassed ? options.assessment : undefined,
           onProgress: baselinePassed ? options.onProgress : undefined,
@@ -1361,6 +1518,8 @@ export async function validateMigration(options: {
             prepareCandidateDependencies(directory, root, image, {
               ...options,
               packageDirectory,
+              committedAt,
+              lockfileChoice,
               signal,
             }),
           )),
@@ -1394,7 +1553,7 @@ export async function validateMigration(options: {
     if (options.prepareDependencies)
       try {
         prepared = await timed('preparation', () =>
-          prepareDependencies({
+          prepareEnvironment({
             repository,
             image,
             packageDirectory,
@@ -1733,6 +1892,10 @@ export async function validateMigration(options: {
       keptProperties?: string[];
       // The restore kept only such properties and changed no enum types.
       enumsUnchanged?: boolean;
+      // Upgrade-introduced type errors repaired by an assertion at their site (TYPE_ASSERTION_REPAIR).
+      typeAssertions?: { file: string; line: number; code: string }[];
+      // Why a type repair was refused by the type-only gate (typeOnlyRepairFailures).
+      typeOnlyGate?: { repair: 'deterministic' | 'ai'; failures: string[] };
     } = {
       limit: repairLimit,
       requested: 0,
@@ -1747,6 +1910,58 @@ export async function validateMigration(options: {
           : 'baseline-failed',
       error: null,
     };
+    // The type oracle's run of the original code with the target stripe-node, once per package
+    // diff: the type repairs below need it before runTypeOracle records it.
+    const oracleRuns = new Map<string, Promise<CheckResult>>();
+    const oracleCheck = (diff: string, command: string[], dependencies: string) => {
+      // Every install of one package diff installs the same lockfile, so it is checked once.
+      const key = `${digest(diff)} ${command.join(' ')}`;
+      if (!oracleRuns.has(key))
+        oracleRuns.set(
+          key,
+          timed('typeOracle', async () => {
+            const directory = await sandboxInput(root, 'oracle-');
+            await applyPatch(archive, directory, `${directory}.patch`, diff);
+            options.onProgress?.('Type-checking the original code with the target stripe-node...');
+            return containerCheck({
+              directory,
+              image,
+              command,
+              dependencies,
+              signal: options.signal,
+              ...sandbox,
+            });
+          }),
+        );
+      return oracleRuns.get(key)!;
+    };
+    // Of `errors`, the ones the target stripe-node introduces into the original code: by file, code
+    // and message, and no more of each than the oracle's run has, so the same error a rule's edit
+    // repeats elsewhere does not count. None when the oracle cannot run on this candidate.
+    const upgradeErrors = async <T extends { key: string }>(errors: T[]) => {
+      const command = oracleCommand(options.command);
+      if (
+        !command ||
+        !options.compareTypeErrors ||
+        typeCheckUnavailable ||
+        !typeCheckFinished(baselineRun) ||
+        !candidateDependencies ||
+        candidateDependencies === dependencies
+      )
+        return [];
+      const run = await oracleCheck(
+        packageDiff(proposal.diff, packageDirectory),
+        command,
+        candidateDependencies,
+      ).catch(() => undefined);
+      if (!run || !typeCheckFinished(run)) return [];
+      const count = (list: { key: string }[], key: string) =>
+        list.filter((error) => error.key === key).length;
+      const upgrade = introducedTypeErrors(baselineRun, run);
+      return errors.filter((error) => count(errors, error.key) <= count(upgrade, error.key));
+    };
+    const inPackage = <T extends { file: string }>(error: T) =>
+      packageDirectory ? { ...error, file: `${packageDirectory}/${error.file}` } : error;
     // stripe-node 22.4.0 widened open response enums with OtherString. Before any AI repair, a
     // deterministic repair restores their known literals where the upgraded types reject them. It
     // is kept when every introduced error is that shape and the checks then pass, or, before an AI
@@ -1787,6 +2002,10 @@ export async function validateMigration(options: {
           ...options,
           repository: baselineDirectory,
           proposePatch: true,
+          lockfileResolution: lockfileResolutionEnabled()
+            ? { image, before: committedAt }
+            : undefined,
+          lockfile: lockfileChoice?.lockfile,
           aiPatch: undefined,
           assessment: undefined,
           onProgress: undefined,
@@ -1919,6 +2138,127 @@ export async function validateMigration(options: {
           repair.openEnumRestored = true;
           // The restore is a rule edit, so the AI guards do not count it as the model's.
           ruleSources = prepared.sources.files;
+        }
+      }
+    }
+    // Founders' decision (2026-10-27): type errors the stripe-node upgrade introduces, where a
+    // Stripe type it widened is assigned to a narrower type, get an assertion to that type at the
+    // site (stripe-open-enums.ts assertionSite). Only errors the type oracle shows the upgrade
+    // introduced into the original code qualify, and the repair must pass the type-only gate:
+    // statements with such an error only, the same JavaScript per file. It is kept when the checks
+    // then pass, which a type check comparing errors shows as zero new errors, or, before an AI
+    // repair of a rules proposal, when they fail only on the errors it left alone.
+    // shortcut: without AI, a candidate mixing restore and assertion shapes gets neither; upgrade
+    // by selecting the restorable errors of both when a measured row needs it.
+    const assertionCandidates =
+      baseline.status === 'passed' &&
+      patched.status === 'failed' &&
+      options.compareTypeErrors &&
+      candidateSources &&
+      sdkUpgrade?.to
+        ? introducedTypeErrors(baselineRun, patched)
+        : [];
+    // The oracle runs only where some error has an assertion shape at all.
+    const fromUpgrade =
+      candidateSources &&
+      restorableOpenEnumErrors(
+        candidateSources.files,
+        assertionCandidates.map(inPackage),
+        undefined,
+        true,
+      ).length
+        ? (await upgradeErrors(assertionCandidates)).map(inPackage)
+        : [];
+    const assertionErrors =
+      candidateSources && fromUpgrade.length
+        ? options.aiPatch && ruleSources
+          ? restorableOpenEnumErrors(candidateSources.files, fromUpgrade, undefined, true)
+          : fromUpgrade.length === assertionCandidates.length
+            ? fromUpgrade
+            : []
+        : [];
+    const assertionFiles =
+      candidateSources && assertionErrors.length
+        ? openEnumRepair(candidateSources.files, assertionErrors, undefined, true)
+        : undefined;
+    if (assertionFiles?.length && candidateSources) {
+      const sources = candidateSources;
+      const current = new Map(sources.files.map((file) => [file.path, file.content]));
+      const repaired = new Map(assertionFiles.map((file) => [file.path, file.content]));
+      const failures = typeOnlyRepairFailures({
+        before: sources,
+        after: {
+          ...sources,
+          files: sources.files.map((file) => ({
+            ...file,
+            content: repaired.get(file.path) ?? file.content,
+          })),
+        },
+        errors: assertionErrors,
+        compilerOptions: (path) => emitOptions(sources.root, path),
+      });
+      if (failures.length) repair.typeOnlyGate = { repair: 'deterministic', failures };
+      else {
+        const diff =
+          proposal.diff +
+          renderPatch(
+            {
+              ...sources,
+              files: assertionFiles.map((file) => ({
+                path: file.path,
+                content: current.get(file.path)!,
+              })),
+            },
+            assertionFiles.map((file) => ({
+              file: file.path,
+              start: 0,
+              end: current.get(file.path)!.length,
+              replacement: file.content,
+              changeId: OPEN_ENUM_RULE,
+            })),
+          );
+        options.onProgress?.(
+          'Asserting the types the stripe-node upgrade widened; running checks in offline Docker...',
+        );
+        const prepared = await prepareCandidate(diff, originalSources, report);
+        const check = compared(
+          await timed('patchedChecks', () =>
+            containerCheck({
+              directory: prepared.directory,
+              image,
+              command: options.command,
+              dependencies: prepared.dependencies,
+              signal: options.signal,
+              ...sandbox,
+            }),
+          ),
+        );
+        if (
+          check.status === 'passed' ||
+          (check.status === 'failed' &&
+            options.aiPatch &&
+            keepsPartialRestore(
+              assertionCandidates,
+              assertionErrors,
+              introducedTypeErrors(baselineRun, check),
+            ))
+        ) {
+          proposal = { ...proposal, diff };
+          publicationFiles = prepared.publicationFiles;
+          candidateDirectory = prepared.directory;
+          candidateSources = prepared.sources;
+          candidateDependencies = prepared.dependencies;
+          candidateEnvironment = prepared.environment;
+          patched = check;
+          recordAttempt();
+          repair.typeAssertions = assertionErrors.map(({ file, line, code }) => ({
+            file,
+            line,
+            code,
+          }));
+          if (check.status === 'passed') repair.stopReason = TYPE_ASSERTION_REPAIR;
+          // The assertions are a rule edit, so the AI guards do not count them as the model's.
+          else ruleSources = prepared.sources.files;
         }
       }
     }
@@ -2083,6 +2423,8 @@ export async function validateMigration(options: {
         coverage.error = `${error.name}: ${error.message}`;
       }
     }
+    let typeRepair:
+      { base: Repository; errors: { file: string; line: number; column: number }[] } | undefined;
     while (
       baseline.status === 'passed' &&
       patched.status === 'failed' &&
@@ -2124,6 +2466,18 @@ export async function validateMigration(options: {
         repair.error = `Stripe moved subscription billing periods onto subscription items, and ${periodReads.map((error) => `${error.file}:${error.line}`).join(', ')} still ${periodReads.length === 1 ? 'reads one' : 'read them'} from the subscription. Choosing an item is a reviewed rule (stripeSubscriptionPeriods), so it stops for review.`;
         break;
       }
+      // Founders' decision (2026-10-27): when every error left is one the stripe-node upgrade
+      // introduced into the original code, the AI repairs types only, under the same type-only
+      // gate as the deterministic assertions, and ships [Needs review] (decision 8).
+      // Once it applies, it holds for every later round, against the candidate it first applied to.
+      if (
+        !typeRepair &&
+        introduced.length &&
+        candidateSources &&
+        !(rules && coverage?.outcome === 'checks-failed') &&
+        (await upgradeErrors(introduced)).length === introduced.length
+      )
+        typeRepair = { base: candidateSources, errors: introduced.map(inPackage) };
       repair.requested++;
       options.onProgress?.(
         `Patched checks failed. Requesting AI repair ${repair.requested} of ${repairLimit}...`,
@@ -2207,6 +2561,20 @@ export async function validateMigration(options: {
         if (dropped.length) {
           repair.stopReason = 'review-required';
           repair.error = `AI repair drops removed request parameter ${dropped.join(', ')}; it stops for review.`;
+          break;
+        }
+        const typeOnly = typeRepair
+          ? typeOnlyRepairFailures({
+              before: typeRepair.base,
+              after: preparedCandidate.sources,
+              errors: typeRepair.errors,
+              compilerOptions: (path) => emitOptions(preparedCandidate.sources.root, path),
+            })
+          : [];
+        if (typeOnly.length) {
+          repair.typeOnlyGate = { repair: 'ai', failures: typeOnly };
+          repair.stopReason = 'review-required';
+          repair.error = `AI repair of the type errors the stripe-node upgrade introduced is not type-only: ${typeOnly[0]}`;
           break;
         }
         options.onProgress?.('Running repaired checks in offline Docker...');
@@ -2387,16 +2755,51 @@ export async function validateMigration(options: {
             }),
           )
         : undefined;
+    const signedEvents =
+      options.signedEventChecks && !behaviourBlocked
+        ? await timed('signedEvents', () =>
+            signedEventEvidence({
+              settings: options.generatedChecks,
+              versions: [beforeSpecification, afterSpecification].map((specification) =>
+                String(
+                  (specification.document as { info?: { version?: unknown } }).info?.version ?? '',
+                ),
+              ) as [string, string],
+              specification: beforeSpecification.document,
+              image,
+              root,
+              original: {
+                directory: baselineDirectory,
+                contract: options.before,
+                repository: originalSources,
+                dependencies: stripeOnly?.dependencies?.original ?? dependencies,
+              },
+              patched: {
+                directory: candidateDirectory!,
+                contract: options.after,
+                repository: candidateSources!,
+                dependencies:
+                  stripeOnly?.dependencies?.patched ?? candidateDependencies ?? dependencies,
+              },
+              findings: report.findings,
+              sandbox,
+              onProgress: options.onProgress,
+              signal: options.signal,
+            }),
+          )
+        : options.signedEventChecks
+          ? { status: 'not-run' as const, reason: behaviourBlocked!, regressions: [] }
+          : undefined;
     const currentRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
     const currentStatus = (await git(['status', '--porcelain', '--untracked-files=all'])).stdout;
     const validationStatus =
       currentRevision !== revision || currentStatus
         ? 'stale'
         : dependencyFailure || noCheck
-          ? behaviour?.regressions.length
+          ? behaviour?.regressions.length || signedEvents?.regressions.length
             ? 'regression'
             : 'untested'
-          : checkStatus(baseline, patched, generated, behaviour);
+          : checkStatus(baseline, patched, generated, behaviour, signedEvents);
     const failures = checkFailures(
       baselineCommand,
       options.command,
@@ -2404,6 +2807,7 @@ export async function validateMigration(options: {
       patched,
       generated,
       behaviour,
+      signedEvents,
     );
     const introducedByPatch = brokenTestsTypeCheck
       ? introducedTypeErrors(baselineRun, brokenTestsTypeCheck).filter(
@@ -2490,6 +2894,9 @@ export async function validateMigration(options: {
             packageDirectory,
             testsFoundNone: noTests,
             ...(checkJs ? { checkJs: { counts: checkJs.counts, reason: checkJs.reason } } : {}),
+            ...(signedEvents && 'covered' in signedEvents && signedEvents.covered.length
+              ? { signedEvents: signedEvents.covered }
+              : {}),
           })
         : undefined;
     const grade = ownGrade
@@ -2556,20 +2963,7 @@ export async function validateMigration(options: {
       before: beforeSpecification.document as Record<string, unknown>,
       files: originalSources.files,
       packageDirectory,
-      check: (diff, command, dependencies) =>
-        timed('typeOracle', async () => {
-          const directory = await sandboxInput(root, 'oracle-');
-          await applyPatch(archive, directory, `${directory}.patch`, diff);
-          options.onProgress?.('Type-checking the original code with the target stripe-node...');
-          return containerCheck({
-            directory,
-            image,
-            command,
-            dependencies,
-            signal: options.signal,
-            ...sandbox,
-          });
-        }),
+      check: oracleCheck,
     });
     options.signal?.throwIfAborted();
     if (rules && coverage?.outcome === 'kept' && candidateSources) {
@@ -2667,6 +3061,7 @@ export async function validateMigration(options: {
       ...(stripeOnly ? { stripeOnly: stripeOnly.record } : {}),
       ...(written ? { behaviourTestWriter: written.record } : {}),
       ...(behaviour ? { behaviour } : {}),
+      ...(signedEvents ? { signedEvents } : {}),
       ...(grade ? { grade } : {}),
       attempts,
       repair,
@@ -2768,7 +3163,7 @@ export async function validateSourcePatch(options: {
     let environment: Record<string, unknown> | undefined;
     if (options.prepareDependencies) {
       dependencies = join(root, 'dependencies.tar');
-      const prepared = await prepareDependencies({
+      const prepared = await prepareEnvironment({
         repository: snapshot.directory,
         image,
         copyArchiveTo: dependencies,

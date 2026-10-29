@@ -78,6 +78,7 @@ export function checkFailures(
   patched: CheckResult,
   generated?: { regressions: { id: string; error: string }[] },
   behaviour?: { regressions: { id: string; error: string }[] },
+  signedEvents?: { regressions: { id: string; error: string }[] },
 ) {
   const counted = (
     evidence: { regressions: { id: string; error: string }[] } | undefined,
@@ -94,6 +95,10 @@ export function checkFailures(
     checkFailure('patched', command, patched),
     ...counted(generated, 'generated stripe-mock check, which completed on the original code'),
     ...counted(behaviour, 'behaviour test, which passed on the original code'),
+    ...counted(
+      signedEvents,
+      'signed webhook event, which the original code handled the same way in both API versions',
+    ),
   ].filter((failure) => failure !== undefined);
   return failures.length ? { checkFailures: failures } : {};
 }
