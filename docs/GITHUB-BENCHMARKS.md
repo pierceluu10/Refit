@@ -72,6 +72,8 @@ gh workflow run shopify.yml -R refit-dev/refit-bench \
   -f list=2026-10-16-shopify-fresh-repos.json -f offset=0 -f count=50 -f size=5
 ```
 
+The dev and blind sets ([Shopify dev and blind sets](BENCHMARKS.md#shopify-dev-and-blind-sets)) run the same way with `-f list=subsets/shopify-dev-60.json`. `subsets/shopify-blind-100.json` runs once, in the final combined benchmark. The benchmark runs each repository's tests with its root lockfile's manager (pnpm, then Yarn, then npm), as check selection does; before, only repositories with a `package-lock.json` were checked.
+
 ## Meta Graph
 
 `.github/workflows/meta.yml` (refit-bench branch `feat/meta-benchmark` until merged) runs `npm run benchmark:meta` on a frozen Meta list, `subsets/meta-dev-60.json` or, only for the combined run at the end, `subsets/meta-blind-100.json`. It has the same plan, shard and merge jobs and inputs, no Docker and no secret but `REFIT_READ_TOKEN`. Each shard runs:

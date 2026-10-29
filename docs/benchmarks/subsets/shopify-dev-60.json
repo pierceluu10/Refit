@@ -1,0 +1,512 @@
+{
+  "frozenAt": "2026-10-29",
+  "purpose": "Development set for the Shopify engine: agents may open, trace and debug these repositories offline.",
+  "criteria": "GitHub code search (6 queries, each split into 5 file-size ranges; listed in search.queries), excluding every owner/name any file under docs/benchmarks names at HEAD and origin/main. Kept: not archived, not a fork, under 512 MB on GitHub; a default-branch commit since 2026-07-31 with at least 2 distinct human commit authors in that window (bots excluded); a .github/workflows directory; a root package.json and at least one root lockfile (package-lock.json, pnpm-lock.yaml, yarn.lock, bun.lock, bun.lockb). With fewer than 100 affected repositories, shopify-blind-100 loosens in order (founder, 2026-10-29): the activity window to 180 days, then 1 human author; each loosened stage is pre-scanned in seeded order only until the set is full, and each repository records the filters loosened for it (loosened). CI, lockfile, Shopify usage and affected checks never loosen. Pre-scan, offline, at the recorded commit: Refit's Shopify scan (pipeline/shopify-analysis.ts) and runPipeline from the pinned version's supported schema (the oldest supported, 2026-01, for older pins) to 2026-10. Affected when the oldest runtime pin (codegen configs excluded; LATEST_API_VERSION resolved through the locked SDK) is unsupported (before 2026-01) or retiring soonest (2026-01), the code calls the REST Admin API, a GraphQL document fails on 2026-10 or already fails (removed fields), or such a failing document is a product or variant mutation (product model). Split: affected repositories in the order of SHA-256(\"refit-shopify-2026-10-29\\n\" + lower-cased name). shopify-blind-100 takes up to 100 of the search's 100 affected repositories; shopify-dev-60 takes up to 60 affected repositories with a root lockfile from the already-open lists docs/benchmarks/2026-10-16-shopify-repos.json, docs/benchmarks/2026-10-16-shopify-fresh-repos.json, pre-scanned the same way at their frozen commits without the activity filters (145 of 250 affected). Command: GITHUB_TOKEN=… npx tsx scripts/shopify-select.mjs --work <dir> --frozen-at 2026-10-29 --seed refit-shopify-2026-10-29 --dev-from docs/benchmarks/2026-10-16-shopify-repos.json --dev-from docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+  "seed": "refit-shopify-2026-10-29",
+  "target": "2026-10",
+  "supported": ["2026-01", "2026-04", "2026-07", "2026-10"],
+  "schemas": {
+    "source": "https://shopify.dev/admin-graphql-direct-proxy/<version> (public documentation proxy; introspection with descriptions and deprecated input values, no store or credentials)",
+    "note": "Shopify serves requests for unsupported versions with the oldest supported version, so 2026-01 is the effective before contract for older pins. Shopify changes published schemas in place; refit-bench's contracts=current records the hashes each run reads.",
+    "versions": [
+      {
+        "version": "2026-01",
+        "sha256": "b0e01280b2203f01dfe5328837421f671c2e1b991708755ea00ca91326917ed8"
+      },
+      {
+        "version": "2026-04",
+        "sha256": "976b0243a750107d87d3eec912f83fb361622d54e82e656cef80b315204d3c85"
+      },
+      {
+        "version": "2026-07",
+        "sha256": "e926f80ae0b3c2adc4a5d19e389d4a3ca8bb10f6676c767d41c73c0f83ee5045"
+      },
+      {
+        "version": "2026-10",
+        "sha256": "9af82bcd6c84151c1cb1cdd107adad44471a59948fc6a407fa71c89380bb8f59"
+      }
+    ]
+  },
+  "repos": [
+    {
+      "repo": "meisbobzheng/pinpoint-archive",
+      "stars": 1,
+      "commit": "24f900a4703dee0bc431e46ed30149d72038ae0d",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["yarn.lock"],
+      "categories": ["unsupported-version", "deprecated-rest"]
+    },
+    {
+      "repo": "kevinjmosley93/the-best-shopify-theme-toolkit",
+      "stars": 3,
+      "commit": "a390c7e164fb26c201b039adaf9b7c97e8f58055",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json", "bun.lockb"],
+      "categories": ["deprecated-rest"]
+    },
+    {
+      "repo": "sachin21kumar/Infinite-bundler",
+      "stars": 2,
+      "commit": "97af7f111cc8ab4c54c77b3bc0e66831fc97dd2c",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "Bushra-KB/subscriptions-ref-app",
+      "stars": 1,
+      "commit": "a3b3029a5bce42bf5ced7fff7441730a845a1d0e",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "newideasacct-lab/ai-peacemaker",
+      "stars": 1,
+      "commit": "a795f3299e6681f3a27e448292137e352aa19f90",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "rcisneros138/shopify-sync-app",
+      "stars": 2,
+      "commit": "29053f1f3a24cd439165f134ab75c9d00c06fd0b",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"]
+    },
+    {
+      "repo": "AbsoluteWebServices/shopify-app-react-cf",
+      "stars": 1,
+      "commit": "96df4983927aecf4a3b7cc3da001ce557500f158",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "samikaran/fullstack-ecommerce-nextjs-shopify",
+      "stars": 5,
+      "commit": "8d65eec424ef73fc81cb9fd63903ca8ae7571f2b",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"]
+    },
+    {
+      "repo": "AntonVasylchenko/shopify-node-app",
+      "stars": 1,
+      "commit": "a08a905f2318caf46e336cb275a352727bd309d1",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "Priyadharshini29-M/Combo-page-app",
+      "stars": 1,
+      "commit": "df3fad97e6fa3a85b1d9daaf866f0220f41e96b2",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"]
+    },
+    {
+      "repo": "dcam9586/scout-source2",
+      "stars": 1,
+      "commit": "badf7080a1fe79f6881b9db166012568536341e7",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "darongmean/shopify-on-cloudflare",
+      "stars": 1,
+      "commit": "7f5b49e41c9b3b651de774a070312bcf32ae32fd",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "Nuraveda/shopify-agentic-seo-app",
+      "stars": 5,
+      "commit": "f40b395b84fc16744549648890e2bd120f4a679a",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "Shopify/example-storefronts--customer-account-api-authentication--javascript",
+      "stars": 1,
+      "commit": "e8cf1b7774f40cf95d34db94f5accc9bb0568a91",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json", "pnpm-lock.yaml"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "jadenScali/Aeo-Optimizer",
+      "stars": 1,
+      "commit": "c666f310a1377c583251afe092911b8765672649",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "tmtuan04/qr-code-product-remix",
+      "stars": 2,
+      "commit": "14bee1e1a601a10507a8a95412cac3a0757d0f1d",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "LazerTechnologies/shopify-app-development-course",
+      "stars": 1,
+      "commit": "93cb55752c3024257cd2ca5c0edb99520fd94b58",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "umxr/shopify-product-reviews",
+      "stars": 2,
+      "commit": "974daab7d5b5e9786bee68a7f32b282ba28b5a0c",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "hasan-araav/shopify-order-sync",
+      "stars": 6,
+      "commit": "09006dd369772f5b7942bb2cd6351809faa66097",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"]
+    },
+    {
+      "repo": "SGFGOV/medusa-plugin-shopify-ts",
+      "stars": 3,
+      "commit": "32d0549ecc3b5b6144b5cedde48a2ff1d2d9d0c4",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["yarn.lock"],
+      "categories": ["unsupported-version", "deprecated-rest"]
+    },
+    {
+      "repo": "AB-Insightful/ab-insightful",
+      "stars": 4,
+      "commit": "c61723cf1d3ca4fe39e4f453d57e71da3c820403",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"]
+    },
+    {
+      "repo": "sabbir-noyon/wishkit-app-shopify",
+      "stars": 7,
+      "commit": "2ae31f5db616baf7071212119018b1723a494022",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "hookdeck/shopify-festive-notifications",
+      "stars": 5,
+      "commit": "a250e19f2eac1a4ba34cc87409d88cacdf264c2d",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "Greenstand/POS-Shopify-Extension",
+      "stars": 2,
+      "commit": "cdb14808aee5fe1a6c65f1024d720d5b2050157e",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["deprecated-rest"]
+    },
+    {
+      "repo": "ksyp-7/shopify-theme-app-extension-vite-react",
+      "stars": 2,
+      "commit": "cbe05e07ea6a2be54c6b0fb40a64f4afd7574b0e",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "removed-fields"]
+    },
+    {
+      "repo": "speedcubing-ireland/speedcubingireland.com",
+      "stars": 3,
+      "commit": "1b6869ad195d4b2508c37d724e932cb7a2e82315",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["bun.lockb"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "intentionull/Shopify-RemixJS-Cloudflare-Workers-Template",
+      "stars": 18,
+      "commit": "811df94e7fd9d64ac7cc632284e39521ca48b609",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "matheuscpatricio/omafit",
+      "stars": 1,
+      "commit": "444ce6d0790d1bdcc7f2496cc9cbbe51f7a09aa9",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "removed-fields"]
+    },
+    {
+      "repo": "iqbaldp/shopify-promotion-agent",
+      "stars": 1,
+      "commit": "9040b49bf13af9c33c3cfef11c43b9dc6a8ca63d",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["yarn.lock"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "omakatse-dev/omakatse",
+      "stars": 1,
+      "commit": "87a6d512625c3e70c3f10742360bd15e8e96bdaa",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "iamgenesistech-hub/IAGT_AI_VIRAL_ENGINE",
+      "stars": 1,
+      "commit": "c4b3d3599dd7753de552eed183091d073c69285c",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"]
+    },
+    {
+      "repo": "aaronarrays/shopify-vercel-app",
+      "stars": 19,
+      "commit": "41ca20587779dfd0b07a4e184d8d1af69ccb466d",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "tungbinzzz/instagram-app-shopify",
+      "stars": 3,
+      "commit": "e1b0e4a05c0a4207a348625e4f0f81d18210e6f5",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"]
+    },
+    {
+      "repo": "psydao/psydao-io",
+      "stars": 5,
+      "commit": "a7e5714ebd792eb1530ef2955489a2249846d38f",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["yarn.lock"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "mssalemi/b-is-for-bundles",
+      "stars": 1,
+      "commit": "68b29197723431c9490f59d275f98b9c7af8f400",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "sanjeev744/smart-bundle",
+      "stars": 1,
+      "commit": "6dad888d5eb45d819c07a099b01a10445840d4dc",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "removed-fields"]
+    },
+    {
+      "repo": "peterwalker-svg/pos-ui",
+      "stars": 1,
+      "commit": "5ffcf71fae5a67bcd0169f80fa3522c85f3e40e5",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "Shopify/editions-dev-2025-workshop-customer-account",
+      "stars": 4,
+      "commit": "7300cc889ac2770eec0e67b99e3fdc152f60f722",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json", "yarn.lock"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "jahmedabeer/Shopify-Storefront-AI-agent",
+      "stars": 1,
+      "commit": "b31263a477f7f8e859fba4c063c45747c6c5c2c5",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "jamalsoueidan/booking-api",
+      "stars": 1,
+      "commit": "c64c5dcfd87a9e301280058ad0bb8304c896c0dd",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"]
+    },
+    {
+      "repo": "drizzle-team/tento",
+      "stars": 133,
+      "commit": "632a318b4ffcb9dead06e33b44a5cba1f572165a",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "lnmjkessel-code/v13",
+      "stars": 1,
+      "commit": "a12f77fdb5f45289da604759f589ee62b4b40924",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "alistairmartin/honey-birdette-checkout-amd",
+      "stars": 1,
+      "commit": "293d32151ae9d7aac3bf4ccae143470cf21ee79c",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["retiring-soonest"]
+    },
+    {
+      "repo": "polidario/weeklyhow-remix-app",
+      "stars": 1,
+      "commit": "d0b9792920071daf5f19ae079ba0194427af3435",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "removed-fields"]
+    },
+    {
+      "repo": "kellyannclark/subscription-sync",
+      "stars": 1,
+      "commit": "31b5437563c37508837468c0b151577b209dc700",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "Shopify/example-app--qr-code--remix",
+      "stars": 90,
+      "commit": "6ed425cab13f9e8d1e64dc23de0da6711531650c",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "jgasimli04/marketoracle",
+      "stars": 1,
+      "commit": "1eaffbdb5cf8a8d538d54a16e03b2bab992378ed",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "gruntlord5/cloudflare-react-router7-shopify-d1",
+      "stars": 12,
+      "commit": "828ad7c9194e946ecaa8e474c54e6e0d03ea4ef5",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["bun.lock"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "othman4dev/SEOMASTER",
+      "stars": 1,
+      "commit": "2a2891aa3c3084d0dcd7b0efdac96c2174bcd2b2",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "Rakesh161rausahn/promo-banner-app",
+      "stars": 1,
+      "commit": "2feddb3c73f5c717c6f8fa93ad065880d9736bb4",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "Shopify/loyalty-extension-example",
+      "stars": 4,
+      "commit": "45cb20bbd8e54913d3ad04a83325f2df500c9338",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "Manuel1996-coder/shoppulseai",
+      "stars": 1,
+      "commit": "4853ca07acc357106ad7035b428f80114ffe9da4",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "ArseniyX/taskly",
+      "stars": 1,
+      "commit": "b947d739331b4e3fac6564a15b039bd4f9a5949b",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "removed-fields"]
+    },
+    {
+      "repo": "sanjeev744/smart-slidecart",
+      "stars": 1,
+      "commit": "65a4c562603f6d9731252f1ff276241ea649fa1c",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"]
+    },
+    {
+      "repo": "Naqi-Haider/Hype-Counter",
+      "stars": 1,
+      "commit": "475aebb5d1f3ceda2ec1d432e6963aef57056cb2",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "brunaszarin/spotlight-manager",
+      "stars": 2,
+      "commit": "831dcf922acd48387571ace353bf1ba08cf6e089",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "chandandadhekar/ListAI-V2",
+      "stars": 2,
+      "commit": "4918509b1a3bd7e1d6b99b838e43d70328b62145",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"]
+    },
+    {
+      "repo": "mdrahbar21/shopifyApp",
+      "stars": 2,
+      "commit": "009718809752a31da054d50afb8001de8ad5ed8b",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"]
+    },
+    {
+      "repo": "Shopify/shop-chat-agent",
+      "stars": 150,
+      "commit": "3ea3f21d312b89e67b10170561f852b6ddbb6764",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    },
+    {
+      "repo": "hak193/i-devr-code",
+      "stars": 1,
+      "commit": "c16223d4562980db7af0a95f653ca7743595d558",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"]
+    }
+  ]
+}
