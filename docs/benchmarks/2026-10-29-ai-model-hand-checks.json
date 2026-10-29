@@ -104,5 +104,66 @@
     ],
     "wrong": 0,
     "notCovered": "No request in the set sets a parameter the change table rewrites; no alerts fired (no embedding, ft: or configuration uses in the 21)."
+  },
+  "anthropicDev30": {
+    "set": "ai-bench anthropic-dev-30 (PR #415, bench/ai-provider-sets 0b4805bf), the 21 JS/TS repositories; SIGKITTEN/claude-code exceeds Refit's scan limits (10,000 files) and was not scanned",
+    "refit": "864dda5e (feat/ai-model-decisions)",
+    "edits": [
+      {
+        "repo": "elnazar535-coder/eleko-bot",
+        "site": "ai.js:33",
+        "change": "claude-sonnet-4-20250514 -> claude-sonnet-5-5 (messages.create, max_tokens, no sampling)",
+        "verdict": "correct"
+      },
+      {
+        "repo": "smartflow-systems/smartflow-hub",
+        "site": "src/lib/ai.ts:14",
+        "change": "claude-sonnet-4-20250514 -> claude-sonnet-5-5",
+        "verdict": "correct"
+      },
+      {
+        "repo": "souravdas2003/Chatbot-Using-Anthropic-Api-Key",
+        "site": "server.js:50",
+        "change": "claude-3-haiku-20240307 -> claude-haiku-4-5-20251001",
+        "verdict": "correct"
+      },
+      {
+        "repo": "nikolaev-gd/splitting-to-components-v0",
+        "site": "app/lib/openAIProvider.ts:18",
+        "change": "gpt-4 -> gpt-5.6-sol (chat.completions.create, no sampling)",
+        "verdict": "correct"
+      },
+      {
+        "repo": "saxllc/journey-intelligence",
+        "sites": [
+          "api/ekyc-chunk.js:89",
+          "api/journey-chunk.js:137",
+          "scripts/generate-cache.js:142",
+          "scripts/generate-chunks.js:121",
+          "scripts/generate-ekyc-chunks.js:68",
+          "scripts/seed-cache.js:120",
+          "scripts/seed-umang-chunks.js:111"
+        ],
+        "change": "claude-sonnet-4-5 -> claude-sonnet-5-5 (raw fetch /v1/messages, anthropic-version 2023-06-01, max_tokens only)",
+        "verdict": "correct",
+        "why": "The alias retires with claude-sonnet-4-5-20250929 on 2026-11-30 (alias proven by the dated row on the saved page)."
+      }
+    ],
+    "wrong": 0,
+    "falseAlertsFixed": [
+      {
+        "repo": "jdbrucecpa/jd-notes-things",
+        "count": 1,
+        "cause": "AZURE_OPENAI_DEPLOYMENT=gpt-5-mini is an Azure deployment name",
+        "fix": "keys naming a deployment or another host are skipped"
+      },
+      {
+        "repo": "saxllc/journey-intelligence",
+        "count": 446,
+        "cause": "scripts/*-backup.json are data exports with one model per record",
+        "fix": "a configuration file with more than 3 matching values is data, not settings"
+      }
+    ],
+    "notCovered": "Of the 8 repositories tagged parameter-change, the 3 in JS/TS send their models through the Vercel AI SDK, OpenRouter or config.get(), which stop or stay unresolved; no request reached a parameter rewrite. Item 2 still has unit-test evidence only."
   }
 }
