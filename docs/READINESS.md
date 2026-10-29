@@ -12,6 +12,31 @@ Shopify patches are now graded by proof ([Shopify proof](SHOPIFY-PROOF.md)). Eve
 ## October 29 checkpoint: Meta Graph proof (unreleased, after 0.39.0)
 
 A Meta Graph patch that reaches validation is graded by the reviewed change table: every changed request must be valid at one reviewed target version, and the type check or tests must pass, for grade C or B; read-only calls with Refit's own `META_TEST_TOKEN` (an app access token, so only app-level reads; user and page requests keep the offline proof) raise it to A, and a target version the Graph API refuses drops it to D; where the checks prove nothing but did not fail, a patch that changes only request strings, or JavaScript checkJs fully types, is grade C too; otherwise it is grade D and `[Needs review]` with the reason ([Meta Graph proof](META-GRAPH.md#proof)). With AI enabled, an advisory second-opinion review is recorded with its cost. Unit tests, and a hand-check of ME3's patches on the 13 non-blind dev repositories that get one (all proven, every changed line read; [Meta Graph proof](META-GRAPH.md#proof)). No benchmark was run.
+## October 29 checkpoint: Shopify documents built at runtime (unreleased, after 0.39.0)
+
+Shopify tracing reads more of the GraphQL documents apps build at runtime or send through other clients ([Shopify](SHOPIFY.md#what-refit-reads)):
+
+- constant numbers and booleans folded in;
+- `let` bindings, through every value assigned to them;
+- values repository functions return, and wrapper templates (`` `#graphql\n${query}` ``);
+- options parameters, by property, and class field initializers no code reassigns;
+- private methods, members of local `const` objects, and destructured `import()`;
+- graphql-request, `@shopify/graphql-client`, urql and Apollo clients built for an Admin `graphql.json` URL;
+- raw `fetch` bodies through `const`s, ternaries and `application/graphql`.
+
+A local function nothing calls sends nothing. Every new path stops where a value can escape: an unknown client member, a field set anywhere, `this` taken apart, a returned or exported client, or a use of the endpoint Refit cannot read beside one it can. Storefront documents Refit cannot read no longer stop the Admin move; they are listed with the Storefront documents and left out of the schema proof. The SDK upgrade now stops where `LATEST_API_VERSION` sets a Storefront client's version, which it used to move to the Admin member unchecked. A versioned URL whose whole path is a substitution counts as REST.
+
+- **Measured** with SH3's census (`runPipeline`, `--sdk-upgrade`, npm re-resolution on, no AI) on the 250 non-blind Shopify repositories of the 2026-10-16 lists, base `871d3f4d` against this branch:
+  - Documents read rose from 1,810 to 1,857, and traced ones from 1,235 to 1,288.
+  - Unreadable sites fell from 99 to 58, and repositories with one from 44 to 32.
+  - Proposed patches rose from 28 to 32, and the 28 earlier patches are byte-identical.
+- **New patches.** All four new patches (Akmal1255553/startup1, LazerTechnologies/shopify-app-development-course, dave1725/xeno-shopify-app, ibabalola89/Unoir_Render) were checked by hand.
+  - The newly read documents are exact: constants folded, every caller traced.
+  - The version and SDK moves are the existing fallback.
+  - omakatse-dev/omakatse no longer stops on its Storefront documents. It now stops on the Storefront `LATEST_API_VERSION` instead of getting an unchecked move.
+- **Not covered.** These still stop: runtime field lists and arguments, CLI and proxy pass-through, command tables of functions, clients returned from factories, and documents chosen per element of a `for…of` over a constant array.
+- **Not validated.** No benchmark run was made, so nothing here was validated in Docker.
+
 ## October 29 checkpoint: Shopify proof (unreleased, after 0.39.0)
 
 Shopify patches are now graded by proof ([Shopify proof](SHOPIFY-PROOF.md)). Every traced GraphQL document is validated offline with graphql-js: the original documents against the original version's schema, the patched documents against the target's. Selected fields that change type, and variable input types that break, count as failures. Committed codegen types count only when nothing the documents use differs between the versions. Without that schema proof, a Shopify patch is grade D and `[Needs review]`; with it, the repository's tests (B) or type check (C) keep their grade. Live proof runs the patched operations on Refit's own Partner development store when `SHOPIFY_TEST_STORE` and `SHOPIFY_TEST_TOKEN` are set, and gives grade A. Queries are always allowed; mutations run only on objects the run created, with AI-written cases. An AI second opinion on every Shopify patch is advisory and its cost is recorded. Unit tests only: no benchmark was run, and live proof has not been run against a real store.

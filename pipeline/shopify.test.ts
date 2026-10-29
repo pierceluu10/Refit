@@ -516,13 +516,13 @@ await runQuery({}, \`query Fixture { shop { name } }\`);
     ],
   );
   // The recursive call passes the same parameter and the test's spy reaches a mocked client; neither
-  // stops, and the test's document is checked as a fixture. The dynamic import, the object
-  // property, the third-party callee and the method stop.
+  // stops, and the test's document is checked as a fixture. The function the dynamic import
+  // returns to unknown callers, the object property, the third-party callee and the method stop.
   expect(scan.unreadable.map((entry) => [entry.file, entry.line, entry.reason])).toEqual([
     [
       'app/lib/helpers.server.ts',
-      6,
-      'A module defining a function that sends Admin GraphQL documents is loaded dynamically here, so Refit cannot follow its callers.',
+      7,
+      'A function that sends Admin GraphQL documents is returned from an exported function nothing in the repository calls, so Refit cannot follow the documents it receives.',
     ],
     [
       'app/routes/app.ts',
