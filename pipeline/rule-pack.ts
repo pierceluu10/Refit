@@ -110,8 +110,8 @@ export interface RulePack {
 
 export const FIELD_FAMILIES = new Set(['moved-value', 'moved-id', 'period-helper']);
 export const REQUEST_FAMILIES = new Set(['request-rename', 'request-wrap', 'request-enum-value']);
-const ENUM_VALUE = /^[A-Za-z0-9_.-]+$/;
-const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+export const ENUM_VALUE = /^[A-Za-z0-9_.-]+$/;
+export const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const SOURCE = /^https:\/\/\S+$/;
 const RELEASE = /^\d+\.\d+\.\d+$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -355,7 +355,8 @@ export function loadRulePack(url: URL): RulePack {
 // Owner decision D3 (2026-10-27): a rule is `auto` only with a verified quote, a matching diff entry
 // and a benchmark run with zero wrong patches, which `benchmark` names.
 export const RULE_STATUSES = ['auto', 'review-only'] as const;
-export const RULE_ORIGINS = ['generated', 'hand-written'] as const;
+// `learned` rules come from proven AI fixes (founder decision, 2026-10-28; pipeline/learning.ts).
+export const RULE_ORIGINS = ['generated', 'hand-written', 'learned'] as const;
 const MAX_QUOTE_LENGTH = 1000;
 
 export interface RuleProvenance {
@@ -367,6 +368,9 @@ export interface RuleProvenance {
   origin: (typeof RULE_ORIGINS)[number];
   generatedBy?: { model: string; responseId: string };
   benchmark?: string;
+  // A learned rule's proven fixes, and why it was rolled back (pipeline/learning.ts).
+  learnedFrom?: { repo: string; run: string; grade: string | null }[];
+  demoted?: { at: string; reason: string };
   // Further pages behind one field move, such as one page per object a helper reads, each verified
   // like the rule's own source.
   also?: Evidence[];
@@ -434,7 +438,14 @@ export function parseRuleTable(value: unknown, file: string, rules = new Set<str
     if (!RULE_STATUSES.includes(entry.status as RuleProvenance['status']))
       fail(file, `${name} status must be auto or review-only.`);
     if (!RULE_ORIGINS.includes(entry.origin as RuleProvenance['origin']))
-      fail(file, `${name} origin must be generated or hand-written.`);
+      fail(file, `${name} origin must be generated, hand-written or learned.`);
+    if (
+      entry.origin === 'learned' &&
+      (!Array.isArray(entry.learnedFrom) ||
+        new Set(entry.learnedFrom.map((item) => (isObject(item) ? String(item.repo) : ''))).size <
+          3)
+    )
+      fail(file, `${name} is learned and needs learnedFrom with at least 3 repositories.`);
     const generatedBy = entry.generatedBy;
     if (
       entry.origin === 'generated' &&
@@ -451,8 +462,7 @@ export function parseRuleTable(value: unknown, file: string, rules = new Set<str
   return value as unknown as RuleTable;
 }
 
-export function loadRuleTables(directory: URL): RuleTable[] {
-  const rules = new Set<string>();
+export function loadRuleTables(directory: URL, rules = new Set<string>()): RuleTable[] {
   return readdirSync(directory)
     .filter((name) => name.endsWith('.json'))
     .sort()
@@ -480,8 +490,13 @@ export function withRuleTables(pack: RulePack, tables: RuleTable[]): RulePack {
 }
 
 export const STRIPE_RULE_TABLES = loadRuleTables(new URL('../data/rules/stripe/', import.meta.url));
+// Rules the autonomous loop promoted, in their own pack (pipeline/learning.ts).
+export const STRIPE_LEARNED_TABLES = loadRuleTables(
+  new URL('../data/learning/rules/stripe/', import.meta.url),
+  new Set(STRIPE_RULE_TABLES.flatMap((table) => table.rules.map((rule) => rule.rule))),
+);
 export const STRIPE_PACK = withRuleTables(
   loadRulePack(new URL('../data/packs/stripe.json', import.meta.url)),
-  STRIPE_RULE_TABLES,
+  [...STRIPE_RULE_TABLES, ...STRIPE_LEARNED_TABLES],
 );
 export const SHOPIFY_PACK = loadRulePack(new URL('../data/packs/shopify.json', import.meta.url));

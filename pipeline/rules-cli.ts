@@ -26,7 +26,13 @@ import {
   type Candidate,
   type PageGeneration,
 } from './rule-generation.ts';
-import { STRIPE_PACK, STRIPE_RULE_TABLES, type RuleTable, type TableRule } from './rule-pack.ts';
+import {
+  STRIPE_LEARNED_TABLES,
+  STRIPE_PACK,
+  STRIPE_RULE_TABLES,
+  type RuleTable,
+  type TableRule,
+} from './rule-pack.ts';
 import { responseRemovals, verifyRule } from './rule-verification.ts';
 import { breakingPages } from './stripe-release.ts';
 import { PipelineInputError } from './types.ts';
@@ -72,7 +78,8 @@ else throw new PipelineInputError(USAGE);
 async function check() {
   const pages = await capturedPages();
   let failures = 0;
-  for (const table of STRIPE_RULE_TABLES) {
+  const tables = [...STRIPE_RULE_TABLES, ...STRIPE_LEARNED_TABLES];
+  for (const table of tables) {
     if (table.previous !== previousStripeVersion(table.version))
       throw new PipelineInputError(
         `The ${table.version} rule table must compare against ${previousStripeVersion(table.version)}, not ${table.previous}.`,
@@ -88,9 +95,7 @@ async function check() {
     }
   }
   if (failures) throw new PipelineInputError(`${failures} rules are not backed by their evidence.`);
-  console.log(
-    `${STRIPE_RULE_TABLES.reduce((total, table) => total + table.rules.length, 0)} rules verified.`,
-  );
+  console.log(`${tables.reduce((total, table) => total + table.rules.length, 0)} rules verified.`);
 }
 
 // The saved page, or a fresh capture saved next to the others.
