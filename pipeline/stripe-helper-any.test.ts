@@ -21,7 +21,10 @@ function typeErrors(usage: string) {
   const read = host.getSourceFile.bind(host);
   host.getSourceFile = (file, version) =>
     file === name ? ts.createSourceFile(file, text, version) : read(file, version);
-  host.fileExists = ((exists) => (file: string) => file === name || exists(file))(host.fileExists);
+  host.fileExists = (
+    (exists) => (file: string) =>
+      file === name || exists(file)
+  )(host.fileExists);
   const program = ts.createProgram([name], options, host);
   return ts
     .getPreEmitDiagnostics(program)
