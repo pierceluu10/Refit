@@ -8,16 +8,27 @@ import {
   DEFAULT_META_GRAPH_CHANGES,
   loadMetaGraphChanges,
 } from './meta-graph-changes.ts';
-import { proposeVersionMoves } from './meta-graph-moves.ts';
+import { proposeVersionMoves, type VersionMoveProposal } from './meta-graph-moves.ts';
+import { loadMetaGraphRules } from './meta-graph-rule-edits.ts';
+import { metaGraphSnapshot } from './meta-graph-pipeline.ts';
+import {
+  loadMetaPlatformAlerts,
+  planMetaGraphFixes,
+  type MetaGraphFixPlan,
+} from './meta-graph-fixes.ts';
 import { parseObject } from './specifications.ts';
 import { terminalText } from './workflow-presentation.ts';
 import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE = `Usage: refit meta-graph [--repository <root>] [--json]
        refit meta-graph --propose-version-moves --target <version> [--repository <root>] [--output <patch>] [--changes <path>] [--json]
+       refit meta-graph --fix --target <version> [--repository <root>] [--output <patch>] [--changes <path>] [--rules <dir>] [--alerts <path>] [--json]
        refit meta-graph --check-changes [--changes <path>] [--json]
+       refit meta-graph --snapshot <version> --output <new-snapshot.json> [--changes <path>]
 Lists the Meta Graph API requests a repository makes: raw graph.facebook.com calls through fetch, axios and helpers, and facebook-nodejs-business-sdk resource-class calls. Each shows file:line, the pinned version, the path and edge, and the requested fields and metrics where they are written literally. Values built at runtime are marked unknown, with the reason.
 --propose-version-moves proposes moving each pinned Graph API version to --target only where every request through it is fully known and every changelog crossed is reviewed and lists nothing those requests use; every other pin stops for review with the exact reasons. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
+--fix adds the documented rules in data/rules/meta-graph to those moves (a field or metric renamed in a literal list moves with the version; every other rule, and any rule marked for review, stops the move with its source), lists product migrations that need a person with Meta's documented plan (Instagram Basic Display), and lists dated alerts for permission, product and policy changes from data/meta-platform-alerts.json, which never edit code. It prints the patch, or writes it to --output; it never applies, validates or publishes it.
+--snapshot writes a refit run contract: the Graph API version and the reviewed change table, pinned by its hash. Use one at the version the code pins as --before and one at the target as --after.
 --check-changes validates the reviewed per-version change list in data/meta-graph/changes.json, lists versions whose changelog was not read, and versions the deadline registry has that the list does not. It exits 1 on any error.
 Review only: nothing is changed, installed, run or sent to Meta.`;
 
@@ -30,12 +41,34 @@ try {
       target: { type: 'string' },
       output: { type: 'string' },
       changes: { type: 'string' },
+      fix: { type: 'boolean' },
+      snapshot: { type: 'string' },
+      rules: { type: 'string' },
+      alerts: { type: 'string' },
       json: { type: 'boolean' },
       help: { type: 'boolean' },
     },
   });
   if (values.help) console.log(USAGE);
   else if (values['check-changes']) await checkChanges(values.changes, values.json);
+  else if (values.snapshot !== undefined) {
+    if (!values.output) throw new TypeError('--snapshot requires --output.');
+    const snapshot = await metaGraphSnapshot(
+      values.snapshot,
+      values.changes ? resolve(values.changes) : undefined,
+    );
+    await writeFile(resolve(values.output), `${JSON.stringify(snapshot)}\n`, { flag: 'wx' });
+    console.log(`Wrote ${terminalText(resolve(values.output))} (${snapshot.version}).`);
+  } else if (values.fix)
+    await fix(
+      resolve(values.repository ?? '.'),
+      values.target,
+      values.changes,
+      values.rules,
+      values.alerts,
+      values.output,
+      values.json,
+    );
   else if (values['propose-version-moves'])
     await proposeMoves(
       resolve(values.repository ?? '.'),
@@ -173,11 +206,64 @@ async function proposeMoves(
   console.log(
     'Review only: nothing was applied or validated. Whether a hand-kept change list is enough evidence for an automatic edit is an owner decision; apply a move on a branch and run your checks.',
   );
+  printProposal(target, proposal, output);
+}
+
+async function fix(
+  root: string,
+  target: string | undefined,
+  changesPath: string | undefined,
+  rulesPath: string | undefined,
+  alertsPath: string | undefined,
+  output: string | undefined,
+  json: boolean | undefined,
+) {
+  if (!target) throw new TypeError('--fix requires --target, such as v24.0.');
+  const now = new Date();
+  const changes = await loadMetaGraphChanges(
+    changesPath ? resolve(changesPath) : DEFAULT_META_GRAPH_CHANGES,
+    now,
+  );
+  const plan: MetaGraphFixPlan = await planMetaGraphFixes(root, target, {
+    changes,
+    registry: await loadDeadlineRegistry(undefined, now),
+    rules: await loadMetaGraphRules(changes, rulesPath ? resolve(rulesPath) : undefined),
+    alerts: await loadMetaPlatformAlerts(alertsPath ? resolve(alertsPath) : undefined),
+    now,
+  });
+  if (output && plan.proposal.patch) await writeFile(resolve(output), plan.proposal.patch);
+  if (json) {
+    console.log(JSON.stringify({ repository: root, checkedAt: now.toISOString(), ...plan }));
+    return;
+  }
+  console.log(`Refit Meta Graph API fixes for ${terminalText(target)}  ${terminalText(root)}`);
+  console.log('Nothing was applied, validated or sent to Meta.');
+  printProposal(target, plan.proposal, output);
+  for (const migration of plan.migrations) {
+    console.log(`\nProduct migration needs review: ${migration.product}`);
+    for (const use of migration.uses)
+      console.log(`  ${terminalText(`${use.file}:${use.line}`)}  ${terminalText(use.evidence)}`);
+    for (const step of migration.plan) console.log(`  - ${terminalText(step)}`);
+    for (const source of migration.sources) console.log(`  Source  ${terminalText(source)}`);
+  }
+  if (plan.outOfCycle.length) console.log('\nAffected on every version (no move fixes these):');
+  for (const use of plan.outOfCycle)
+    console.log(
+      `  ${terminalText(`${use.file}:${use.line}`)}  ${terminalText(use.summary)}${use.replacement ? ` Replacement: ${terminalText(use.replacement)}.` : ''}`,
+    );
+  if (plan.alerts.length) console.log('\nAlerts (never edited):');
+  for (const alert of plan.alerts)
+    console.log(
+      `  ${terminalText(`${alert.file}:${alert.line}`)}  ${alert.effective ?? 'undated'} ${alert.status}  ${terminalText(alert.matched)}: ${terminalText(alert.summary)}${alert.replacement ? ` Replacement: ${terminalText(alert.replacement.join(', '))}.` : ''} ${terminalText(alert.source)}`,
+    );
+}
+
+function printProposal(target: string, proposal: VersionMoveProposal, output: string | undefined) {
   if (!proposal.moves.length && !proposal.stops.length)
     console.log('\nNo request pins a Graph API version older than the target.');
   for (const move of proposal.moves)
     console.log(
-      `\n${terminalText(`${move.file}:${move.line}`)}  ${move.from} to ${move.to}\n  Crosses      ${terminalText(move.crossed.join(', '))}\n  Requests     ${terminalText(move.requests.map((item) => `${item.file}:${item.line}`).join(' '))}`,
+      `\n${terminalText(`${move.file}:${move.line}`)}  ${move.from} to ${move.to}\n  Crosses      ${terminalText(move.crossed.join(', '))}\n  Requests     ${terminalText(move.requests.map((item) => `${item.file}:${item.line}`).join(' '))}${move.rules.length ? `\n  Rules        ${terminalText(move.rules.join(', '))}` : ''}`,
     );
   if (proposal.stops.length) console.log('\nStopped for review:');
   for (const stop of proposal.stops) {

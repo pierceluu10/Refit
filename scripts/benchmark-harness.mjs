@@ -255,6 +255,7 @@ export function classifyRow(format, row) {
         break;
       case 'ai-model-results':
       case 'deadline-results':
+      case 'meta-graph-results':
         if (typeof row.error === 'string' && row.error.startsWith('checkout: '))
           infrastructure = { kind: 'clone', message: row.error.slice(0, 300) };
         break;

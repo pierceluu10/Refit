@@ -1,4 +1,4 @@
-// Merges a refit-bench Stripe run's shard artifacts into what its `merge` job uploads as `merged`:
+// Merges a refit-bench Stripe or Meta Graph run's shard artifacts into what its `merge` job uploads as `merged`:
 // results.json, expected.txt, present.txt, missing.txt, unexpected.txt, duplicated.txt, images.txt
 // and summary.md. The workflow runs it; a laptop runs it when that job stays queued
 // (docs/GITHUB-BENCHMARKS.md). The list is read at --commit, so the working tree may differ;
@@ -48,7 +48,10 @@ const listText = await promisify(execFile)(
     );
   },
 );
-const repos = JSON.parse(listText).repos;
+const list = JSON.parse(listText);
+const repos = list.repos;
+// Meta Graph lists (docs/benchmarks/subsets/meta-*.json) have their own summary table.
+const meta = list.provider === 'meta-graph';
 const offset = Number(values.offset);
 const end = values.end ?? String(repos.length);
 
@@ -117,17 +120,20 @@ for (const row of results) {
   classes.set(key, (classes.get(key) ?? 0) + 1);
 }
 // Loaded through tsx, as bin/refit.mjs does: pipeline modules use syntax type stripping rejects.
-const { summaryTable } = await tsImport('../pipeline/stripe-benchmark.ts', {
-  parentURL: import.meta.url,
-  tsconfig: false,
-});
+const { summaryTable } = await tsImport(
+  meta ? '../pipeline/meta-benchmark.ts' : '../pipeline/stripe-benchmark.ts',
+  {
+    parentURL: import.meta.url,
+    tsconfig: false,
+  },
+);
 const spend = results.reduce(
   (total, row) => total + ((row?.workflow?.aiCostUsd ?? 0) + (row?.ai?.costUsd ?? 0)),
   0,
 );
 const incomplete = missing.length || unexpected.length || duplicated.length;
 const summary = [
-  `# Merged Stripe benchmark: ${results.length} of ${expected.length} repositories`,
+  `# Merged ${meta ? 'Meta Graph' : 'Stripe'} benchmark: ${results.length} of ${expected.length} repositories`,
   '',
   `Commit \`${values.commit}\`, list \`${values.list}\`, repositories ${values.offset} to ${end}. Images: ${imageLines.join(' ')}`,
   '',

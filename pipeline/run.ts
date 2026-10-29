@@ -56,6 +56,11 @@ import {
   runShopifyPipeline,
 } from './shopify-pipeline.ts';
 import {
+  isMetaGraphSnapshot,
+  isMetaGraphSnapshotFile,
+  runMetaGraphPipeline,
+} from './meta-graph-pipeline.ts';
+import {
   requestRenameEvidence,
   validateRequestPropertyRenames,
 } from './provider-request-renames.ts';
@@ -1029,13 +1034,32 @@ async function runOpenApiPipeline(options: {
 export type PipelineReport = Awaited<ReturnType<typeof runOpenApiPipeline>>;
 
 // Shopify contracts are GraphQL schemas, not OpenAPI documents, so Shopify snapshots run the Shopify
-// pipeline. Its report carries every report field, with the OpenAPI-only ones empty.
+// pipeline, and Meta Graph snapshots (a version and the reviewed change table) the Meta pipeline.
+// Their reports carry every report field, with the OpenAPI-only ones empty.
 export const ENDPOINT_PIN_REASON =
   "This version also sets a webhook endpoint's api_version, so moving it would change the version that endpoint receives.";
 
 export async function runPipeline(
   options: Parameters<typeof runOpenApiPipeline>[0],
 ): Promise<PipelineReport> {
+  const meta = await Promise.all([options.before, options.after].map(isMetaGraphSnapshotFile));
+  if (meta.some(Boolean)) {
+    const [before, after] = await Promise.all([
+      readSpecification(options.before),
+      readSpecification(options.after),
+    ]);
+    if (!isMetaGraphSnapshot(before) || !isMetaGraphSnapshot(after) || options.providerConfig)
+      throw new PipelineInputError(
+        'Meta Graph runs need Meta Graph snapshots for both contracts and the built-in adapter.',
+      );
+    return (await runMetaGraphPipeline({
+      repository: options.repository,
+      before: before as never,
+      after: after as never,
+      proposePatch: options.proposePatch,
+      apiVersionPolicy: validateApiVersionPolicy(options.apiVersionPolicy),
+    })) as unknown as PipelineReport;
+  }
   const kinds = await Promise.all([options.before, options.after].map(isShopifySnapshotFile));
   if (!kinds.some(Boolean)) {
     const report = await runOpenApiPipeline(options);
