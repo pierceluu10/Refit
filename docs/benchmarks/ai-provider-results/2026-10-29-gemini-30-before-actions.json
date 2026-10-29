@@ -1,0 +1,799 @@
+[
+  {
+    "repo": "RaiAnsar/Ultimate-MCP",
+    "commit": "49f33edc6b8314dd7c803cfd89581858f912e712",
+    "language": "js",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major",
+      "response-parsing"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generative-ai"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "MohanMahesh10/BestHire",
+    "commit": "eeab657c734656f8f67ad1eb2fc4273e1c06612a",
+    "language": "js",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major",
+      "embeddings-fine-tunes"
+    ],
+    "exposures": [
+      "gemini-2026-01-14-text-embedding-004"
+    ],
+    "replacements": [],
+    "stops": [
+      {
+        "deadline": "gemini-2026-01-14-text-embedding-004",
+        "provider": "gemini",
+        "file": "src/lib/gemini.ts",
+        "line": 74,
+        "call": "models.embedContent",
+        "at": {
+          "file": "src/lib/gemini.ts",
+          "line": 75
+        },
+        "model": "text-embedding-004",
+        "reason": "Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-embedding-2."
+      }
+    ],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "brandonrlj-dev/Ancla",
+    "commit": "1a326b9df56b3b4cebd475ca09057dc054c6aa1f",
+    "language": "js",
+    "changeTypes": [
+      "parameter-change",
+      "old-sdk-major",
+      "response-parsing",
+      "embeddings-fine-tunes"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generative-ai"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "Ranjan-Mayank/BrandBrain---AI",
+    "commit": "bfabc32088c00d66f058c772df5a881e3ebc39d8",
+    "language": "js",
+    "changeTypes": [
+      "retired-model",
+      "parameter-change",
+      "old-sdk-major"
+    ],
+    "exposures": [
+      "gemini-2026-03-09-gemini-3-pro-preview"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [
+      {
+        "deadline": "gemini-2026-03-09-gemini-3-pro-preview",
+        "provider": "gemini",
+        "file": "constants.ts",
+        "line": 4,
+        "model": "gemini-3-pro-preview",
+        "to": "gemini-3.1-pro-preview",
+        "reason": "No traced request sends it as its model; it is assigned to `GEMINI_MODEL_REASONING`. Check where it is used and change it by hand if it reaches the API."
+      }
+    ],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "tranquangluan/BE-Capstone2",
+    "commit": "9af8cb292f3797ccf2fb20450add47d4af963e6f",
+    "language": "js",
+    "changeTypes": [
+      "retired-model",
+      "legacy-endpoint",
+      "old-sdk-major",
+      "response-parsing"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generative-ai"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "vidhip222/FittedDemo",
+    "commit": "3ccb079d439cd3e8acc8a12b2ccf89d0398b7e0b",
+    "language": "js",
+    "changeTypes": [
+      "retired-model",
+      "legacy-endpoint",
+      "old-sdk-major",
+      "response-parsing"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generative-ai"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "astrayama/yggdrasil",
+    "commit": "ed767f7a317b403dcaaaf876b237c8904535471e",
+    "language": "js",
+    "changeTypes": [
+      "retired-model",
+      "legacy-endpoint",
+      "old-sdk-major",
+      "response-parsing",
+      "beta-header",
+      "embeddings-fine-tunes"
+    ],
+    "exposures": [
+      "gemini-2025-10-30-embedding-001",
+      "gemini-2025-11-30-google-generative-ai",
+      "gemini-2026-06-01-gemini-2-0-flash",
+      "gemini-2028-05-14-gemini-embedding-001"
+    ],
+    "replacements": [],
+    "stops": [
+      {
+        "deadline": "gemini-2026-06-01-gemini-2-0-flash",
+        "provider": "gemini",
+        "file": "lib/gemini/client.ts",
+        "line": 8,
+        "call": "getGenerativeModel",
+        "at": {
+          "file": "lib/gemini/client.ts",
+          "line": 7
+        },
+        "model": "gemini-2.0-flash",
+        "reason": "Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-3.6-flash."
+      },
+      {
+        "deadline": "gemini-2026-06-01-gemini-2-0-flash",
+        "provider": "gemini",
+        "file": "lib/gemini/client.ts",
+        "line": 14,
+        "call": "getGenerativeModel",
+        "at": {
+          "file": "lib/gemini/client.ts",
+          "line": 13
+        },
+        "model": "gemini-2.0-flash",
+        "reason": "Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-3.6-flash."
+      },
+      {
+        "deadline": "gemini-2025-10-30-embedding-001",
+        "provider": "gemini",
+        "file": "lib/gemini/client.ts",
+        "line": 28,
+        "call": "getGenerativeModel",
+        "at": {
+          "file": "lib/gemini/client.ts",
+          "line": 28
+        },
+        "model": "gemini-embedding-exp",
+        "reason": "Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-embedding-2."
+      },
+      {
+        "deadline": "gemini-2026-06-01-gemini-2-0-flash",
+        "provider": "gemini",
+        "file": "app/api/reflect/route.ts",
+        "line": 131,
+        "call": "getGenerativeModel",
+        "at": {
+          "file": "app/api/reflect/route.ts",
+          "line": 132
+        },
+        "model": "gemini-2.0-flash",
+        "reason": "Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-3.6-flash."
+      },
+      {
+        "deadline": "gemini-2025-10-30-embedding-001",
+        "provider": "gemini",
+        "file": "functions/runBackfill.js",
+        "line": 11,
+        "call": "getGenerativeModel",
+        "at": {
+          "file": "functions/runBackfill.js",
+          "line": 11
+        },
+        "model": "gemini-embedding-exp",
+        "reason": "Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-embedding-2."
+      },
+      {
+        "deadline": "gemini-2028-05-14-gemini-embedding-001",
+        "provider": "gemini",
+        "file": "functions/src/lib/gemini.ts",
+        "line": 90,
+        "call": "getGenerativeModel",
+        "at": {
+          "file": "functions/src/lib/gemini.ts",
+          "line": 26
+        },
+        "model": "gemini-embedding-001",
+        "reason": "Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-embedding-2."
+      },
+      {
+        "deadline": "gemini-2025-10-30-embedding-001",
+        "provider": "gemini",
+        "file": "functions/src/yggi/chat.ts",
+        "line": 29,
+        "call": "getGenerativeModel",
+        "at": {
+          "file": "functions/src/yggi/chat.ts",
+          "line": 30
+        },
+        "model": "gemini-embedding-exp",
+        "reason": "Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-embedding-2."
+      },
+      {
+        "deadline": "gemini-2026-06-01-gemini-2-0-flash",
+        "provider": "gemini",
+        "file": "functions/src/yggi/chat.ts",
+        "line": 57,
+        "call": "getGenerativeModel",
+        "at": {
+          "file": "functions/src/yggi/chat.ts",
+          "line": 58
+        },
+        "model": "gemini-2.0-flash",
+        "reason": "Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-3.6-flash."
+      }
+    ],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "xkazm04/pof",
+    "commit": "fb4beaf8ae0e76367a4378bb464990329ca7e684",
+    "language": "js",
+    "changeTypes": [
+      "retired-model",
+      "parameter-change",
+      "beta-header"
+    ],
+    "error": "timed out (killed after the scan limit)",
+    "outcome": "error"
+  },
+  {
+    "repo": "iloveinteger/solid-fiesta-discordbot",
+    "commit": "b3a755288e4100522eb7061fafcc77dd1e682c15",
+    "language": "js",
+    "changeTypes": [
+      "response-parsing"
+    ],
+    "exposures": [],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "unaffected"
+  },
+  {
+    "repo": "jakub-pelka/rekwizytor",
+    "commit": "d94eacbd54889fedf4264f8741a60852ae106c45",
+    "language": "js",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major",
+      "response-parsing",
+      "embeddings-fine-tunes"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generative-ai",
+      "gemini-2026-01-14-text-embedding-004"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [
+      {
+        "deadline": "gemini-2026-01-14-text-embedding-004",
+        "provider": "gemini",
+        "file": "utils/embeddings.ts",
+        "line": 33,
+        "model": "text-embedding-004",
+        "to": "gemini-embedding-2",
+        "reason": "No traced request sends it as its model; it is the default of the parameter `modelName`. Check where it is used and change it by hand if it reaches the API."
+      },
+      {
+        "deadline": "gemini-2026-01-14-text-embedding-004",
+        "provider": "gemini",
+        "file": "utils/gemini.ts",
+        "line": 10,
+        "model": "text-embedding-004",
+        "to": "gemini-embedding-2",
+        "reason": "No traced request sends it as its model; it is the `model` value of an object. Check where it is used and change it by hand if it reaches the API."
+      }
+    ],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "weaverwhale/ai-playground",
+    "commit": "b02f047e54bd6b61418c58d30de48b34ce1e7ad7",
+    "language": "js",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major",
+      "response-parsing"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generative-ai"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "Tushar-Dewalkar/lumina-crm",
+    "commit": "ee4b3a456127c10d81b839e4524e048475c464bb",
+    "language": "js",
+    "changeTypes": [],
+    "exposures": [
+      "gemini-2027-05-07-gemini-3-1-flash-lite"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [
+      {
+        "deadline": "gemini-2027-05-07-gemini-3-1-flash-lite",
+        "provider": "gemini",
+        "file": "server.ts",
+        "line": 43,
+        "model": "gemini-3.1-flash-lite",
+        "to": "gemini-3.5-flash-lite",
+        "reason": "No traced request sends it as its model; it is an entry in a list. Check where it is used and change it by hand if it reaches the API."
+      }
+    ],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "KUMARAGAS/KnowFusionAIBE",
+    "commit": "6a022275ae2b367b0c86efb7b5919b9fca0caaba",
+    "language": "js",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major",
+      "response-parsing",
+      "embeddings-fine-tunes"
+    ],
+    "exposures": [
+      "gemini-2025-10-30-embedding-001",
+      "gemini-2025-11-30-google-generative-ai",
+      "gemini-2026-01-14-text-embedding-004"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [
+      {
+        "deadline": "gemini-2025-10-30-embedding-001",
+        "provider": "gemini",
+        "file": "src/application/chatController.ts",
+        "line": 23,
+        "model": "embedding-001",
+        "to": "gemini-embedding-2",
+        "reason": "No traced request sends it as its model; it is part of a longer string, such as a template. Check where it is used and change it by hand if it reaches the API."
+      },
+      {
+        "deadline": "gemini-2026-01-14-text-embedding-004",
+        "provider": "gemini",
+        "file": "src/application/chatController.ts",
+        "line": 23,
+        "model": "text-embedding-004",
+        "to": "gemini-embedding-2",
+        "reason": "No traced request sends it as its model; it is an entry in a list. Check where it is used and change it by hand if it reaches the API."
+      }
+    ],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "elenaokhonko-eng/cursor-guidebuoy-ai-sg",
+    "commit": "05948e7c38d7bea6f484092561e9cfb2000f6ac3",
+    "language": "js",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major",
+      "response-parsing"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generative-ai"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "RishikarthikVelliangiri/Geneologist-AI",
+    "commit": "9004fb026041b57ccafd0c72861972841a1762bb",
+    "language": "js",
+    "changeTypes": [
+      "legacy-endpoint",
+      "old-sdk-major",
+      "response-parsing"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generative-ai"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "PradhumnAgarwal/BookBeacon",
+    "commit": "4fdaee535bcba252f9d8e8e03acfacaa5668a05a",
+    "language": "js",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major",
+      "response-parsing",
+      "embeddings-fine-tunes"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generative-ai",
+      "gemini-2026-01-14-text-embedding-004"
+    ],
+    "replacements": [],
+    "stops": [
+      {
+        "deadline": "gemini-2026-01-14-text-embedding-004",
+        "provider": "gemini",
+        "file": "convex/notes.ts",
+        "line": 18,
+        "call": "getGenerativeModel",
+        "at": {
+          "file": "convex/notes.ts",
+          "line": 18
+        },
+        "model": "text-embedding-004",
+        "reason": "Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-embedding-2."
+      }
+    ],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "romaninrome/Svobobot",
+    "commit": "60ce726c000f4fa0f29bd5d5a6d6fa9ce1108ebf",
+    "language": "js",
+    "changeTypes": [
+      "response-parsing"
+    ],
+    "exposures": [],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "unaffected"
+  },
+  {
+    "repo": "dotdvn/Dotbot",
+    "commit": "62079bfabede6959309cb74e3294d650affe2b7c",
+    "language": "js",
+    "changeTypes": [],
+    "exposures": [],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "unaffected"
+  },
+  {
+    "repo": "sst-inc/openhouseapp",
+    "commit": "048320b62e60f1456c50c3a373935b36b8334395",
+    "language": "js",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major",
+      "response-parsing"
+    ],
+    "exposures": [
+      "gemini-2026-06-01-gemini-2-0-flash"
+    ],
+    "replacements": [],
+    "stops": [
+      {
+        "deadline": "gemini-2026-06-01-gemini-2-0-flash",
+        "provider": "gemini",
+        "file": "chatbot.js",
+        "line": 34,
+        "call": "models.generateContent",
+        "at": {
+          "file": "chatbot.js",
+          "line": 35
+        },
+        "model": "gemini-2.0-flash",
+        "reason": "Gemini is report only, so Refit never edits its models (an owner decision); change it by hand to gemini-3.6-flash."
+      }
+    ],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "kuttysoftmy/Thinking-Space",
+    "commit": "ea3c627f08df0dfc4c99abff3ffc6ecb4ba2f9c6",
+    "language": "js",
+    "changeTypes": [
+      "parameter-change",
+      "old-sdk-major"
+    ],
+    "exposures": [],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "unaffected"
+  },
+  {
+    "repo": "Neerajkaushik07/BharatDarshan",
+    "commit": "818407443cfeb7fe7255f57dd729070c2fc18701",
+    "language": "js",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major",
+      "response-parsing"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generative-ai"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "needs-review"
+  },
+  {
+    "repo": "Abhisach687/bot-to-generate-MCQ-based-on-uploaded-pdf-webpage",
+    "commit": "fe989b06c87649fdf95c774d66d75d86c96c8024",
+    "language": "py",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major",
+      "embeddings-fine-tunes"
+    ],
+    "exposures": [
+      "gemini-2025-10-30-embedding-001",
+      "gemini-2025-11-30-google-generativeai-python"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [
+      {
+        "deadline": "gemini-2025-10-30-embedding-001",
+        "provider": "gemini",
+        "file": "app.py",
+        "line": 26,
+        "model": "embedding-001",
+        "to": "gemini-embedding-2",
+        "reason": "No Python file imports the `google-genai` package, so the model may reach the API through another library or a wrapper (it is the `model` argument of GoogleGenerativeAIEmbeddings()). Check where it is used and change it by hand if it reaches the API."
+      },
+      {
+        "deadline": "gemini-2025-10-30-embedding-001",
+        "provider": "gemini",
+        "file": "app.py",
+        "line": 40,
+        "model": "embedding-001",
+        "to": "gemini-embedding-2",
+        "reason": "No Python file imports the `google-genai` package, so the model may reach the API through another library or a wrapper (it is the `model` argument of GoogleGenerativeAIEmbeddings()). Check where it is used and change it by hand if it reaches the API."
+      }
+    ],
+    "alerts": [],
+    "validation": null,
+    "outcome": "detection-only"
+  },
+  {
+    "repo": "NctimeAza/Prisma-Gemini-DeepThink-API",
+    "commit": "019f30dab81616fcd5dc68578a7b2f18e0510fd5",
+    "language": "py",
+    "changeTypes": [
+      "parameter-change",
+      "old-sdk-major",
+      "response-parsing"
+    ],
+    "exposures": [],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "unaffected"
+  },
+  {
+    "repo": "Rigava/PETCARE",
+    "commit": "a97ad87158f15865d8f9c34d1501578044123c07",
+    "language": "py",
+    "changeTypes": [
+      "retired-model",
+      "legacy-endpoint",
+      "old-sdk-major"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generativeai-python"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "detection-only"
+  },
+  {
+    "repo": "free-marine/training_no_fee4mllm",
+    "commit": "709928a376e7448722e264e36f9f607596a1443d",
+    "language": "py",
+    "changeTypes": [
+      "old-sdk-major",
+      "response-parsing",
+      "beta-header"
+    ],
+    "exposures": [],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "unaffected"
+  },
+  {
+    "repo": "yihong0618/tg_bing_dalle",
+    "commit": "9d0866cdb1f7de468b9e3009cbd8a8740f81b22f",
+    "language": "py",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generativeai-python"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "detection-only"
+  },
+  {
+    "repo": "beresneuegor-design/telegram-support-agent",
+    "commit": "d54262a01b16c7377703f881e79e5ac4cddefae8",
+    "language": "py",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major",
+      "embeddings-fine-tunes"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generativeai-python",
+      "gemini-2026-01-14-text-embedding-004"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [
+      {
+        "deadline": "gemini-2026-01-14-text-embedding-004",
+        "provider": "gemini",
+        "file": "bot.py",
+        "line": 208,
+        "model": "text-embedding-004",
+        "to": "gemini-embedding-2",
+        "reason": "No Python file imports the `google-genai` package, so the model may reach the API through another library or a wrapper (it is the `embedding_model` argument of SimpleRAG()). Check where it is used and change it by hand if it reaches the API."
+      }
+    ],
+    "alerts": [],
+    "validation": null,
+    "outcome": "detection-only"
+  },
+  {
+    "repo": "Chinna2244/Gen-AI-construction-site-monitoring",
+    "commit": "4cbaa0109797d31483537af15fb1c09a4ad79db1",
+    "language": "py",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generativeai-python"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "detection-only"
+  },
+  {
+    "repo": "mohitjain0810/GemBot",
+    "commit": "98eff940eb6f24ac0b2fa2f0c8c7f0fe12fffbc5",
+    "language": "py",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major"
+    ],
+    "exposures": [
+      "gemini-2025-11-18-gemini-2-5-flash-preview-05-20",
+      "gemini-2025-11-30-google-generativeai-python"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [
+      {
+        "deadline": "gemini-2025-11-18-gemini-2-5-flash-preview-05-20",
+        "provider": "gemini",
+        "file": "main.py",
+        "line": 22,
+        "model": "gemini-2.5-flash-preview-05-20",
+        "to": "gemini-3.6-flash",
+        "reason": "No Python file imports the `google-genai` package, so the model may reach the API through another library or a wrapper (it is passed to gen_ai.GenerativeModel()). Check where it is used and change it by hand if it reaches the API."
+      }
+    ],
+    "alerts": [],
+    "validation": null,
+    "outcome": "detection-only"
+  },
+  {
+    "repo": "zerx1307/EcoTrackerAI-with-Auth",
+    "commit": "bf6de8abdceade59b974f94f3c50f44256b066ff",
+    "language": "py",
+    "changeTypes": [
+      "retired-model",
+      "old-sdk-major"
+    ],
+    "exposures": [
+      "gemini-2025-11-30-google-generativeai-python"
+    ],
+    "replacements": [],
+    "stops": [],
+    "unresolved": [],
+    "alerts": [],
+    "validation": null,
+    "outcome": "detection-only"
+  }
+]

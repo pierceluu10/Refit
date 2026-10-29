@@ -1,5 +1,90 @@
 # AI-provider benchmark results
 
+## October 29, Actions: first validated passes (engine-only, AI effectively unavailable)
+
+These are the first runs with validation in Docker, on refit-bench `ai-providers.yml` with `ai=true`. They are the baseline for the current engine, before the AI fallback (#420).
+
+- **Before:** `c010f67f` is the sets branch with main merged in (#399, the preparation fallbacks).
+- **After:** `2e40086c` (`bench/ai-provider-after-8`) is after-7 with that merge. The after passes add `--parameter-changes data/model-parameter-changes.json`.
+
+The rows are in `ai-provider-results/2026-10-29-*-actions.json`.
+
+| Set           | Before run  | After run   |
+| ------------- | ----------- | ----------- |
+| openai-100    | 40931460055 | 40930402266 |
+| anthropic-100 | 40926760667 | 40926766539 |
+| gemini-30     | 40929121548 | 40929126592 |
+
+The two runs on each 100-repository set had 10 shards; gemini-30 had 3. OpenAI before ran with `ai=false`.
+
+**Void, not results:**
+
+- **Anthropic runs 40923495655 and 40923500278.** A workflow bug kept `umask 077` set for the harness, so the Docker sandboxes could not read Refit's inputs; refit-dev/refit-bench#13 fixes it. On after-8, 19 SDK upgrades failed with `Permission denied` and never ran.
+- **Gemini run 40926159255.** It was cancelled for the same reason.
+
+**AI was effectively unavailable.** Until the key was fixed, the refit-bench OpenAI project answered 403 for every model. It now allows only `gpt-6.1-sol`. The AI lane exists only for OpenAI on after-8. Anthropic and Gemini have no AI lane, so they are engine-only. An OpenAI fix whose replacement model the key cannot call is counted as **Needs review ("replacement model not provable with Refit's key")**, never as validated.
+
+|                                      | openai-100 before → after | anthropic-100 before → after | gemini-30 before → after |
+| ------------------------------------ | ------------------------- | ---------------------------- | ------------------------ |
+| **Validated fix**                    | 0 → **0**                 | 2 → **2**                    | 0 → **1**                |
+| Tests pass, replacement not provable | 1 → 1                     | –                            | –                        |
+| Validation failed                    | 5 → 7                     | 5 → 5                        | 0 → 0                    |
+| Needs review                         | 29 → 43                   | 19 → 33                      | 16 → 15                  |
+| SDK upgrade available, not required  | –                         | 0 → 2                        | –                        |
+| No checks                            | 2 → 10                    | 2 → 10                       | 0 → 1                    |
+| Detection only (Python)              | 20 → 24                   | 13 → 17                      | 7 → 7                    |
+| Error                                | 3 → 6                     | 7 → 16                       | 1 → 1                    |
+| Unaffected                           | 40 → 9                    | 52 → 15                      | 6 → 5                    |
+| Rows with a model-fix stop           | 32 → 39                   | 18 → 14                      | 4 → 4                    |
+| AI attempted / succeeded             | 0 / 0 → **3 / 0**         | – (no AI lane)               | – (no AI lane)           |
+| AI cost                              | $0 → **$0.0746**          | $0                           | $0                       |
+| **Validated / set**                  | **0%**                    | **2%**                       | **3%**                   |
+
+**Against the 90% target: 0%, 2% and 3%.** All three validated fixes are model swaps with full request proof:
+
+- Two are Anthropic Haiku 3 → `claude-haiku-4-5-20251001`. The proof passed the request, tools and stream checks.
+- One is Gemini `gemini-2.0-flash` → `gemini-3.6-flash`. The proof passed the request, tools and stream checks; its JSON check is pending on a 503.
+
+No SDK-major migration validated in any set. The OpenAI row whose tests pass moves `gpt-3.5-turbo` to `gpt-5.6-terra`, which the key cannot call.
+
+**What stops the rest (after pass, whole-set counts):**
+
+1. **Baseline failures.** Validation failed on 5 Anthropic and 7 OpenAI rows. For 4 and 6 of them, the repository's own checks already fail before the patch, so a fix cannot be shown to work.
+2. **Lockfiles Refit cannot re-resolve.** Refit re-resolves only npm's `package-lock.json`.
+   - SDK upgrades stopped because the project commits a pnpm, yarn or bun lockfile: 18 OpenAI, 6 Anthropic. One more OpenAI upgrade failed npm resolution (ERESOLVE).
+   - Upgrades that would change other packages in `package-lock.json` (for example `zod`, `ws`, `@opentelemetry/api`): 15 OpenAI, 12 Anthropic, 1 Gemini.
+3. **Sites with no documented mapping.** OpenAI: 6 rows (`v5-web-response` 7 stops, v4 response data, untraced calls). Anthropic: 13 rows. The sampling rule holds 14 rows (43 stops), and removed Text Completions holds 4. Gemini: `gemini-swap-target` blocks 12 rows (97 stops). There, 11 swaps produced 56 edits, but no row is free of stops.
+4. **A new engine error.** In 3 OpenAI and 8 Anthropic rows, `refit ai-migrations` fails with "The proposed patch changes no committed source file." It shows up now that lockfile re-resolution works on Actions. It is reported by count only, for reproduction on a dev set.
+5. **No checks:** 10 OpenAI, 10 Anthropic and 1 Gemini rows have no test or build script.
+6. **The AI lane did not help.**
+   - Of the 64 OpenAI rows it ran on, 61 ended before any AI call. 16 had no flagged site, and the rest stopped on a lockfile or another stop first.
+   - The 3 rows that did call the AI are legacy Completions sites. The prescribed replacement, `gpt-3.5-turbo-instruct`, supports only Completions, so the AI rightly left them unchanged.
+7. **Model-fix stops unchanged:** custom endpoints and base URLs (held for Furqan), untraceable clients, and Python (detection only).
+
+**Proofs, on Refit's own keys:**
+
+- **Model proof:** run 40923057757 on `2e40086c`, with a Gemini retry, run 40932922473.
+  - Passed: Anthropic `claude-haiku-4-5-20251001` (request, tools, stream). `claude-opus-4-8` passed the same checks and rejects `temperature`, `top_p` and `top_k`. `claude-sonnet-5-5` passed request and stream but failed tools (HTTP 400), and rejects the same sampling parameters.
+  - Passed: Gemini `gemini-3.5-flash-lite` (all four checks) and `gemini-3.6-flash` (JSON pending on a 503).
+  - Pending: `gemini-3.1-pro-preview` (429) and `gemini-3.8-flash` (503, then a timeout), after one retry. All OpenAI replacement models other than `gpt-6.1-sol`, because the project cannot call them.
+- **SDK proof:** run 40928850584 on `100d7937`.
+  - Accepted: openai 6.49.0 `chat.completions.create`, `responses.create`, `models.list` and `models.retrieve` on `gpt-6.1-sol`; `@anthropic-ai/sdk` 1.3.0 `messages.create`, with a stream and tools, and `models.list`; `@google/genai` 2.32.0 `generateContent` and its stream.
+  - Pending: Chat with tools plus `reasoning_effort` (HTTP 400 on `gpt-6.1-sol`), moderations (403 for the project), embeddings (no embedding model in the project) and Completions (no minimal request yet).
+  - The run's logs and artifacts contain no project or organization IDs.
+
+**Alerts:** OpenAI after raised 19 fine-tune and 4 configuration alerts, and Gemini after raised 10 embedding alerts.
+
+**AI spend this round:** $0.0746 in the benchmark, plus a few dozen minimal proof requests.
+
+**Where to improve, ranked by rows it would move:**
+
+1. Baseline-failed checks (10 rows): validate against the checks that pass at baseline, not the whole suite.
+2. Non-npm lockfile re-resolution and SDK-only lockfile changes (52 rows).
+3. The "patch changes no committed source file" error (11 rows).
+4. Anthropic sampling on unreadable bodies (14 rows).
+5. Gemini swap forms (12 rows).
+6. A chat-compatible replacement for legacy Completions models, so the AI lane can act (proposal 2).
+
 ## October 29, final: after-7 (last scan-only pass before Actions)
 
 This is the same scan-only harness (no validation, no AI) on `bench/ai-provider-after-7` (`bf702822`): ai-models #402 `8b0f6fb6`, #403 `df0b070b`, #404 `c5dd595f` and #406 `3d615602`, and `feat/ai-gemini-swap` `f14dd20b`, ai-surfaces' final head. That head adds two mappings the owner approved: companion platform packages move to v1 with the Anthropic SDK, and openai v3 `Configuration` `organization` and `basePath` map to v4 client options. Rows: `ai-provider-results/2026-10-29-*-after7-scan.json`. This is the engine the Actions passes will measure.
