@@ -326,6 +326,40 @@ A live call that refuses a changed request, or a target version the Graph API re
 
 What this does not do yet: AI-written behaviour tests that run the repository's own code against the test app (the #386 harness needs a Graph adapter for its proxy, which reads the token from the query string and has no version header), and recorded responses replayed offline.
 
+### Census of non-blind Meta repositories, 2026-10-29
+
+Scope: the 68 Meta repositories of every earlier list (the deadline benchmark, its fresh list and the Meta platform list), offline at their pinned commits with target v25.0, through `benchmark:meta --validate`, no AI. The candidates ME1's selector is still searching were not cloned, since the blind set will be drawn from them. 3 rows did not run: 2 no longer clone and novuhq/novu exceeds the scan limits. 6 make no Graph request.
+
+| | `4ecb0cbd` | After this change |
+|---|---:|---:|
+| Repositories with a patch | 18 | 22 |
+| Pins moved | 67 | 85 |
+| Proven by the change table (ME4) | 18 of 18 | 22 of 22 |
+| Validated with nothing left | 5 | 6 |
+| Grades (B / C / D) | 1 / 15 / 2 | 1 / 19 / 2 |
+
+Every patch changes only version text, and every new moved request was read by hand. Both fixes are general:
+
+- A GET that names no `fields` counted every field change in range. Token endpoints (`/oauth/access_token`, `/debug_token`, Instagram's `/access_token` and `/refresh_access_token`) return no node. A change recorded on an edge's objects reaches only reads of that edge. A plain `/me` read returns the token's User or Page. These three cases no longer match; 15 OAuth token exchanges and a `/me` read move.
+- Helpers that write their own `fetch` options (`headers`, a literal `method`, `body` from one parameter) are read like `fetch`.
+
+Stops after this change, by blocker (repositories with it, and with it as their only blocker):
+
+| Blocker | Repositories | Only blocker |
+|---|---:|---:|
+| A listed change the request uses | 35 | 9 |
+| WhatsApp or Messenger request | 21 | 0 |
+| URL names no version | 19 | 6 |
+| Unknown request part | 18 | 4 |
+| Only tests use the pin | 11 | 0 |
+| Version held where a move cannot edit it | 5 | 0 |
+| Pin newer than the target | 1 | 0 |
+
+- **Listed changes** are mostly node-wide removals (v22.0 Instagram v1.0 nodes, v24.0 custom audiences, custom conversions and Messenger lead templates), which match every request to a single opaque node, and the v22.0 Instagram v1.0 `comments` edge, which shares its name with Page post comments. The node type behind an opaque ID is not traced, so these stay stops.
+- **WhatsApp and Messenger** changelogs are now in the table (#413), but letting moves use them needs an owner decision.
+- **Unversioned URLs** follow the app's default version. Pinning one changes behaviour, so Refit does not add a version.
+- **Unknown parts** are mostly a WhatsApp library's class method helper, versions chosen by callers (`apiVersion ?? DEFAULT`) and options built at runtime.
+
 ## What a Meta agent still needs
 
 The catalog entry for `meta-graph` keeps `adapter: null`. Request detection is one of the pieces a reviewed agent needs; these are still missing:
