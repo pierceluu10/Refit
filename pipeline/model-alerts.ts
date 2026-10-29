@@ -62,6 +62,9 @@ const ENV_VALUE =
   /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*["']?([a-z0-9][a-z0-9./-]*)["']?\s*(?:#.*)?$/;
 const KEY_VALUE =
   /^\s*(?:-\s+)?["']?([A-Za-z_][A-Za-z0-9_.-]*)["']?\s*[:=]\s*["']?([a-z0-9][a-z0-9./-]*)["']?\s*,?\s*(?:#.*)?$/;
+// Quoted or bare IDs of the providers' model families, to tell a catalog file.
+const MODEL_LIKE =
+  /(?<![A-Za-z0-9.-])((?:models\/|openai\/|anthropic\/|google\/)?(?:gpt-[0-9a-z.-]+|o[1-9](?:-[a-z0-9-]+)?|claude-[0-9a-z.-]+|gemini-[0-9a-z.-]+|text-embedding-[0-9a-z-]+|embedding-[0-9a-z-]+|chatgpt-[0-9a-z.-]+))(?![A-Za-z0-9.-])/g;
 // Gemini's `models/` prefix and gateway prefixes such as `openai/` name the same model.
 const unprefixed = (model: string) => model.replace(/^(?:models|openai|anthropic|google)\//, '');
 
@@ -166,6 +169,12 @@ export async function modelAlerts(
     });
   };
   for (const file of files) {
+    // A file that names three or more distinct models is a catalog (a model list, pricing table or
+    // provider registry), like the exposure scanner's `catalog` use: its IDs are not what a request
+    // sends, so only fine-tuned IDs are read from it.
+    const catalog =
+      new Set([...file.content.matchAll(MODEL_LIKE)].map((match) => unprefixed(match[1]))).size >=
+      3;
     const configuration = !SOURCE_FILE.test(file.path);
     const env = /(?:^|\/)\.env[^/]*$|\.env$/.test(file.path);
     file.content.split('\n').forEach((text, index) => {
@@ -201,7 +210,7 @@ export async function modelAlerts(
             model: unprefixed(match[1]),
             key: undefined,
           }));
-      for (const { model, key } of candidates) {
+      for (const { model, key } of catalog ? [] : candidates) {
         const entry = byModel.get(model);
         if (!entry) continue;
         const embedding = isEmbeddingModel(model);
