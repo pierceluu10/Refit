@@ -1,3 +1,4 @@
+import { widenedLiteralErrors } from './widened-literals.ts';
 import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
 import { chosenLockfile, type LockfileChoice } from './dependency-inputs.ts';
 import { aiSafetyStop, migrationReviewReason, unresolvedSites } from './migration-review.ts';
@@ -3247,12 +3248,28 @@ export async function validateMigration(options: {
         )
       : [];
     // Errors the patch introduced in JavaScript only Refit's generated check reads: advisory.
-    const advisoryErrors =
+    const advisoryIntroduced =
       advisory && !typeCheckUnavailable
         ? introducedTypeErrors(baselineRun, brokenTestsTypeCheck ?? patched).filter((error) =>
             advisory(error.file),
           )
         : [];
+    // A JavaScript `const` list of literals the types accept, widened only because JavaScript has
+    // no `as const`, is not an error in what the code sends.
+    const widened =
+      advisoryIntroduced.length && candidateSources
+        ? await withDependencyTypes(
+            root,
+            join(candidateSources.root, packageDirectory ?? ''),
+            candidateDependencies ?? dependencies,
+            () =>
+              widenedLiteralErrors(
+                join(candidateSources.root, packageDirectory ?? ''),
+                advisoryIntroduced,
+              ),
+          )
+        : [];
+    const advisoryErrors = advisoryIntroduced.filter((error) => !widened.includes(error));
     const advisoryGrade = advisoryErrors.map((error) => ({
       file: error.file,
       text: formatTypeError(error),
