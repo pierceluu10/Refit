@@ -1,0 +1,60 @@
+{
+  "formatVersion": 1,
+  "id": "openai-legacy-endpoint-review-deda96fa",
+  "status": "needs-fix-example",
+  "provider": "openai",
+  "changeType": "legacy-endpoint",
+  "kind": "review",
+  "pattern": "Calls legacy Completions (<code> / <code>). Every model it served (<model>, babbage-<n>, <model>) shut down on <date>, so the call needs a new model and a new API. OpenAI's Responses migration guide covers Chat Completions only; <code>, <code>, <code>, <code> and <code> have no documented mapping, so Refit lists it for review.",
+  "match": "^Calls legacy Completions \\(.+? / .+?\\)\\. Every model it served \\(.+?, babbage-.+?, .+?\\) shut down on .+?, so the call needs a new model and a new API\\. OpenAI's Responses migration guide covers Chat Completions only; .+?, .+?, .+?, .+? and .+? have no documented mapping, so Refit lists it for review\\.$",
+  "shapes": ["<id>.completions.create", "<id>.createCompletion"],
+  "refs": ["openai-legacy-completions"],
+  "sources": [
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "quote": "Access to these models was shut down on September 28, 2026."
+    }
+  ],
+  "repositories": 4,
+  "sites": 4,
+  "fixtures": [
+    {
+      "repo": "ravi-aman/pureFeedback",
+      "commit": "5121b3eca9cc48cbcbed94e52130e08e8a62d22c",
+      "file": "src/app/api/suggestMessages/route.ts",
+      "line": 17,
+      "stopReason": "Calls legacy Completions (`completions.create` / `createCompletion`). Every model it served (gpt-3.5-turbo-instruct, babbage-002, davinci-002) shut down on 2026-09-28, so the call needs a new model and a new API. OpenAI's Responses migration guide covers Chat Completions only; `prompt`, `suffix`, `echo`, `best_of` and `logprobs` have no documented mapping, so Refit lists it for review.",
+      "diff": null
+    },
+    {
+      "repo": "MRwangqi/chatGPT-nodejs",
+      "commit": "820401fae534fc6c734b7b90068bedb79d966194",
+      "file": "index.js",
+      "line": 22,
+      "stopReason": "Calls legacy Completions (`completions.create` / `createCompletion`). Every model it served (gpt-3.5-turbo-instruct, babbage-002, davinci-002) shut down on 2026-09-28, so the call needs a new model and a new API. OpenAI's Responses migration guide covers Chat Completions only; `prompt`, `suffix`, `echo`, `best_of` and `logprobs` have no documented mapping, so Refit lists it for review.",
+      "diff": null
+    },
+    {
+      "repo": "adeojoemmanuel/EDD-Kafka-Rest-Api",
+      "commit": "55e43330f26066273a71b0563e301bf8d6343420",
+      "file": "src/openai-chat/src/service/chat.service.ts",
+      "line": 17,
+      "stopReason": "Calls legacy Completions (`completions.create` / `createCompletion`). Every model it served (gpt-3.5-turbo-instruct, babbage-002, davinci-002) shut down on 2026-09-28, so the call needs a new model and a new API. OpenAI's Responses migration guide covers Chat Completions only; `prompt`, `suffix`, `echo`, `best_of` and `logprobs` have no documented mapping, so Refit lists it for review.",
+      "diff": null
+    },
+    {
+      "repo": "kkb2849/nextjs-1zdevcamp-template",
+      "commit": "0865bb268b395abac07042d6d6e627f92f24b159",
+      "file": "src/app/api/openai/completion/route.ts",
+      "line": 21,
+      "stopReason": "Calls legacy Completions (`completions.create` / `createCompletion`). Every model it served (gpt-3.5-turbo-instruct, babbage-002, davinci-002) shut down on 2026-09-28, so the call needs a new model and a new API. OpenAI's Responses migration guide covers Chat Completions only; `prompt`, `suffix`, `echo`, `best_of` and `logprobs` have no documented mapping, so Refit lists it for review.",
+      "diff": null
+    }
+  ],
+  "aiPatterns": [],
+  "ai": {
+    "attempted": 4,
+    "validated": 0,
+    "costUsd": 0.138938
+  }
+}

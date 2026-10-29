@@ -1,0 +1,69 @@
+{
+  "formatVersion": 1,
+  "id": "openai-retired-model-model-unresolved-24852531",
+  "status": "needs-fix-example",
+  "provider": "openai",
+  "changeType": "retired-model",
+  "kind": "model-unresolved",
+  "pattern": "No traced request sends it as its model; it is an entry in a list. Check where it is used and change it by hand if it reaches the API.",
+  "match": "^No traced request sends it as its model; it is an entry in a list\\. Check where it is used and change it by hand if it reaches the API\\.$",
+  "shapes": ["<id>", "<id>-<n>-<id>", "<id>-<n>-<n>-<id>", "<id>-<n>"],
+  "refs": [
+    "openai-2026-10-23-gpt-3-5-turbo",
+    "openai-2026-10-23-gpt-4",
+    "openai-2026-12-11-gpt-5-2025-08-07",
+    "openai-2027-01-06-tts-1"
+  ],
+  "sources": [
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "quote": "| October 23, 2026 | `gpt-4-0613` \\| `gpt-4`, `gpt-4-0613-completions`, `gpt-4-completions` | `gpt-5.6-sol`                                     |"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "quote": "| Dec 11, 2026  | `gpt-5` \\| `gpt-5-2025-08-07`           | `gpt-5.6-sol`                         |"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "quote": "| October 23, 2026 | `gpt-3.5-turbo-0125` \\| `gpt-3.5-turbo`, `gpt-3.5-turbo-completions`   | `gpt-5.6-terra`                                   |"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "quote": "| Jan 6, 2027   | `tts-1`                                           | `gpt-realtime-2.1-mini` |"
+    }
+  ],
+  "repositories": 3,
+  "sites": 8,
+  "fixtures": [
+    {
+      "repo": "crlny/lobe-chat",
+      "commit": "62043bba74ddd43020d5162d1acbedeb95300067",
+      "file": "src/libs/agent-runtime/github/index.ts",
+      "line": 46,
+      "stopReason": "No traced request sends it as its model; it is an entry in a list. Check where it is used and change it by hand if it reaches the API.",
+      "diff": null
+    },
+    {
+      "repo": "Jeffansah/whop-ai-chat",
+      "commit": "b2cc335859a12d359ac662e3ff3f10b8b6bfe227",
+      "file": "convex/seed.ts",
+      "line": 32,
+      "stopReason": "No traced request sends it as its model; it is an entry in a list. Check where it is used and change it by hand if it reaches the API.",
+      "diff": null
+    },
+    {
+      "repo": "lissettecarlr/chat-openai-streamlit",
+      "commit": "330234738cc4c68f4aa3f4d870702028527d001b",
+      "file": "src/pages/assistants.py",
+      "line": 78,
+      "stopReason": "No traced request sends it as its model; it is an entry in a list. Check where it is used and change it by hand if it reaches the API.",
+      "diff": null
+    }
+  ],
+  "aiPatterns": [],
+  "ai": {
+    "attempted": 3,
+    "validated": 0,
+    "costUsd": 0.252674
+  }
+}

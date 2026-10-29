@@ -1,0 +1,44 @@
+{
+  "formatVersion": 1,
+  "id": "openai-parameter-change-model-unresolved-13b0af79",
+  "status": "needs-fix-example",
+  "provider": "openai",
+  "changeType": "parameter-change",
+  "kind": "model-unresolved",
+  "pattern": "No traced request sends it as its model; it is the default of the parameter <code>. Check where it is used and change it by hand if it reaches the API.",
+  "match": "^No traced request sends it as its model; it is the default of the parameter .+?\\. Check where it is used and change it by hand if it reaches the API\\.$",
+  "shapes": ["<id>-<n>-<id>-<n>"],
+  "refs": ["openai-2024-09-13-gpt-3-5-turbo-0613"],
+  "sources": [
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "quote": "| 2024-09-13    | `gpt-3.5-turbo-0613`     | $1.50 / 1M input tokens + $2.00 / 1M output tokens | `gpt-3.5-turbo`         |"
+    }
+  ],
+  "repositories": 2,
+  "sites": 10,
+  "fixtures": [
+    {
+      "repo": "lissettecarlr/chat-openai-streamlit",
+      "commit": "330234738cc4c68f4aa3f4d870702028527d001b",
+      "file": "src/pages/chat.py",
+      "line": 9,
+      "stopReason": "No traced request sends it as its model; it is the default of the parameter `model`. Check where it is used and change it by hand if it reaches the API.",
+      "diff": null
+    },
+    {
+      "repo": "UW-Madison-Lee-Lab/TAPE",
+      "commit": "98f1aa7044cc8cea34583b2952dad9262587e95d",
+      "file": "src/llms/anthropic_utils_old.py",
+      "line": 166,
+      "stopReason": "No traced request sends it as its model; it is the default of the parameter `model`. Check where it is used and change it by hand if it reaches the API.",
+      "diff": null
+    }
+  ],
+  "aiPatterns": [],
+  "ai": {
+    "attempted": 2,
+    "validated": 0,
+    "costUsd": 0.134872
+  }
+}

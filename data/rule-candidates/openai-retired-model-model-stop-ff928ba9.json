@@ -1,0 +1,106 @@
+{
+  "formatVersion": 1,
+  "id": "openai-retired-model-model-stop-ff928ba9",
+  "status": "needs-fix-example",
+  "provider": "openai",
+  "changeType": "retired-model",
+  "kind": "model-stop",
+  "pattern": "<code> is not a call Refit edits; <model> may change formats or parameters; change it by hand to <model>.",
+  "match": "^.+? is not a call Refit edits; .+? may change formats or parameters; change it by hand to .+?\\.$",
+  "shapes": [
+    "<id>.create",
+    "<id>.jobs.create",
+    "<id>",
+    "<id>.transcriptions.create",
+    "<id>.chat.completions.runTools"
+  ],
+  "refs": [
+    "openai-2024-01-04-text-ada-001",
+    "openai-2026-05-12-dall-e-2",
+    "openai-2026-09-28-gpt-3-5-turbo-instruct",
+    "openai-2026-10-23-gpt-3-5-turbo",
+    "openai-2027-01-06-tts-1",
+    "openai-2027-01-14-gpt-4o-2024-08-06",
+    "openai-2027-02-26-whisper-1"
+  ],
+  "sources": [
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "quote": "| 2026-09-28    | `gpt-3.5-turbo-instruct` | `gpt-5.6-terra`         |"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "quote": "| October 23, 2026 | `gpt-3.5-turbo-0125` \\| `gpt-3.5-turbo`, `gpt-3.5-turbo-completions`   | `gpt-5.6-terra`                                   |"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "quote": "| 2024-01-04    | `text-ada-001`     | $0.40 / 1M tokens      | `gpt-3.5-turbo-instruct` |"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "quote": "| Feb 26, 2027  | `whisper-1`                                                     | `gpt-live-transcribe` or `gpt-transcribe` |"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "quote": "| January 14, 2027 | GPT-4o (`gpt-4o-2024-08-06`, `gpt-4o-2024-11-20`) | `gpt-6-luna`            |"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "quote": "| 2026-05-12    | `dall-e-2`     | `gpt-image-2`, `gpt-image-1`, or `gpt-image-1-mini` |"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "quote": "| Jan 6, 2027   | `tts-1`                                           | `gpt-realtime-2.1-mini` |"
+    }
+  ],
+  "repositories": 9,
+  "sites": 12,
+  "fixtures": [
+    {
+      "repo": "ravi-aman/pureFeedback",
+      "commit": "5121b3eca9cc48cbcbed94e52130e08e8a62d22c",
+      "file": "src/app/api/suggestMessages/route.ts",
+      "line": 18,
+      "stopReason": "`completions.create` is not a call Refit edits; gpt-5.6-terra may change formats or parameters; change it by hand to gpt-5.6-terra.",
+      "diff": null
+    },
+    {
+      "repo": "AyeletHillel/fine-tune",
+      "commit": "4ee956be046af38a59475ea0a8a01e6191f1f01d",
+      "file": "src/index.ts",
+      "line": 28,
+      "stopReason": "`fineTuning.jobs.create` is not a call Refit edits; gpt-5.6-terra may change formats or parameters; change it by hand to gpt-5.6-terra.",
+      "diff": null
+    },
+    {
+      "repo": "MRwangqi/chatGPT-nodejs",
+      "commit": "820401fae534fc6c734b7b90068bedb79d966194",
+      "file": "index.js",
+      "line": 24,
+      "stopReason": "`createCompletion` is not a call Refit edits; gpt-5.6-terra may change formats or parameters; change it by hand to gpt-5.6-terra.",
+      "diff": null
+    },
+    {
+      "repo": "adeojoemmanuel/EDD-Kafka-Rest-Api",
+      "commit": "55e43330f26066273a71b0563e301bf8d6343420",
+      "file": "src/openai-chat/src/service/chat.service.ts",
+      "line": 18,
+      "stopReason": "`completions.create` is not a call Refit edits; gpt-5.6-terra may change formats or parameters; change it by hand to gpt-5.6-terra.",
+      "diff": null
+    },
+    {
+      "repo": "kkb2849/nextjs-1zdevcamp-template",
+      "commit": "0865bb268b395abac07042d6d6e627f92f24b159",
+      "file": "src/app/api/openai/completion/route.ts",
+      "line": 22,
+      "stopReason": "`completions.create` is not a call Refit edits; gpt-5.6-terra may change formats or parameters; change it by hand to gpt-5.6-terra.",
+      "diff": null
+    }
+  ],
+  "aiPatterns": [],
+  "ai": {
+    "attempted": 8,
+    "validated": 0,
+    "costUsd": 0.519266
+  }
+}
