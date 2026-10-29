@@ -26,6 +26,7 @@ import {
 } from './ai-request-proof.ts';
 import type { RequestProof } from './ai-migrations.ts';
 import { loadAiRuleTables } from './ai-rules.ts';
+import { gateNote, repositoryChecks } from './check-gate.ts';
 import { checkSources, loadSourcePages } from './deadline-sources.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { resolveNpmLockfile } from './lockfile-resolution.ts';
@@ -280,7 +281,10 @@ export async function runFallbackOnRepository(options: {
   const lockfiles = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'].filter((name) =>
     existsSync(join(directory, name)),
   );
-  const checks = fallbackCommand(manifest);
+  // The rule lane's checks and gate (check-gate.ts): tests, build and type check run separately on
+  // both sides; a check that fails on the original code is not counted, one that passed must still
+  // pass, and the tests or the type check must count.
+  const checks = repositoryChecks(directory, manifest);
   // The manifest the patch leaves, for the request proof's SDK release.
   let patchedManifest = JSON.stringify(manifest);
 
@@ -347,12 +351,14 @@ export async function runFallbackOnRepository(options: {
           ),
         ),
       validate: async (patch) => {
-        if (!checks)
+        if (!checks.length)
           return {
             status: 'no-checks',
             command: ['none'],
-            reason: 'The repository has no test or build script.',
+            reason: 'The repository has no test, build or type check.',
           };
+        // One line naming every check, for the gate's detail.
+        const command = [checks.map((check) => check.command.join(' ')).join('; ')];
         // A patch validation refuses (one that changes no committed file, a failed preparation) fails
         // the checks gate; it must not end the fallback, whose answer and cost are already in hand.
         let validation: Awaited<ReturnType<typeof validateSourcePatch>>;
@@ -360,7 +366,8 @@ export async function runFallbackOnRepository(options: {
           validation = await validateSourcePatch({
             repository: directory,
             image: options.image,
-            command: checks.command,
+            command: checks[0].command,
+            checks,
             prepareDependencies: lockfiles.length > 0,
             propose: async () => patch,
             onProgress: options.onProgress,
@@ -368,15 +375,17 @@ export async function runFallbackOnRepository(options: {
         } catch (error) {
           return {
             status: 'error',
-            command: checks.command,
+            command,
             reason: `Validation refused the patch: ${error instanceof Error ? error.message.slice(0, 300) : 'failed'}`,
           };
         }
         const detail =
-          'baseline' in validation
-            ? `Baseline ${validation.baseline.status}, patched ${validation.patched.status}.`
-            : '';
-        return { status: validation.status, command: checks.command, reason: detail };
+          'gate' in validation && validation.gate
+            ? `${validation.gate.reason} ${gateNote(validation.gate).join(' ')}`
+            : 'baseline' in validation
+              ? `Baseline ${validation.baseline.status}, patched ${validation.patched.status}.`
+              : '';
+        return { status: validation.status, command, reason: detail.trim() };
       },
       prove: (calls, models) =>
         proveFallback({
