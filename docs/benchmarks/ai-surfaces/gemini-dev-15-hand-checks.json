@@ -1,0 +1,186 @@
+{
+  "formatVersion": 1,
+  "date": "2026-10-29",
+  "set": "docs/benchmarks/subsets/gemini-dev-15.json (ai-bench, PR #415, DEV only)",
+  "method": "refit ai-migrations --edits-only --package @google/genai (JS/TS) and --review (all); every diff, stop and finding read at its source. This round added the response alias, documented generationConfig keys and comment-safe leftover checks. Package re-resolution, offline validation and request proof not run locally.",
+  "rows": [
+    {
+      "repo": "ShamWuo/Prasic",
+      "commit": "99690dd831fda1d0bac47834b92df147e6e8db98",
+      "language": "js",
+      "sdk": {
+        "@google/generative-ai": "0.24.1"
+      },
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "verdict": "correct-stop",
+      "note": "systemInstruction on the model, and models returned from helper functions; no one-to-one JavaScript mapping in the guide."
+    },
+    {
+      "repo": "XDTerminated/t2-chat-t3c-2025",
+      "commit": "89102edbbb3f10dd78f1483cfb5aa3dba73880ed",
+      "language": "js",
+      "sdk": {
+        "@google/genai": "1.35.0",
+        "@google/generative-ai": "0.24.1"
+      },
+      "changeTypes": ["retired-model", "parameter-change", "old-sdk-major", "response-parsing"],
+      "verdict": "correct-stop",
+      "note": "Already declares @google/genai; also imports HarmCategory and passes request objects with safetySettings."
+    },
+    {
+      "repo": "PRIYESHSINGH24/buddy_connect",
+      "commit": "4e5e7e7bd7c9645d5a889f4c9ad51dc9b3917f03",
+      "language": "js",
+      "sdk": {
+        "@google/generative-ai": "0.24.1"
+      },
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major", "response-parsing"],
+      "verdict": "correct-stop",
+      "note": "Client built lazily into a `let` inside a function. PaLM model name listed in review."
+    },
+    {
+      "repo": "WeWake1/BSOMS",
+      "commit": "8053651d1cf4db4b11d3cdc7621654115deff84e",
+      "language": "js",
+      "sdk": {
+        "@google/genai": "1.51.0"
+      },
+      "changeTypes": ["retired-model", "old-sdk-major", "beta-header"],
+      "verdict": "n/a (already on @google/genai)",
+      "note": ""
+    },
+    {
+      "repo": "djnightmare9909/Dungeon-master-OS-WFGY",
+      "commit": "c684edaa0df21272fd65954be3255fa33996354b",
+      "language": "js",
+      "sdk": {
+        "@google/genai": "1.48.0"
+      },
+      "changeTypes": [
+        "retired-model",
+        "old-sdk-major",
+        "response-parsing",
+        "embeddings-fine-tunes"
+      ],
+      "verdict": "n/a (already on @google/genai)",
+      "note": ""
+    },
+    {
+      "repo": "saurabhbisht95/ai-career-coach",
+      "commit": "9cb184c4efca809ced17dfd06da7de4705995fb4",
+      "language": "js",
+      "sdk": {
+        "@google/generative-ai": "0.24.1"
+      },
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "verdict": "correct",
+      "note": "Full swap after fixes: 5 files, 31 edits, read in full (client, model moved into each call, response alias, text reads). Before the fixes it blocked on the `const response = result.response` alias and on matches inside comments; both are now handled and tested."
+    },
+    {
+      "repo": "kousalyaChintha/InfiniteCode",
+      "commit": "7c1cf590f549584a4fa3f4f4000687bc2f18e092",
+      "language": "js",
+      "sdk": {
+        "@google/genai": "1.7.0"
+      },
+      "changeTypes": ["retired-model", "old-sdk-major"],
+      "verdict": "n/a (already on @google/genai)",
+      "note": ""
+    },
+    {
+      "repo": "InnovateTechWorld/remotion-auto-explainer",
+      "commit": "4834b7f154fb8875f322bfbc056e65c9590db2c5",
+      "language": "js",
+      "sdk": {
+        "@google/genai": "0.9.0"
+      },
+      "changeTypes": ["parameter-change", "old-sdk-major", "response-parsing"],
+      "verdict": "n/a (already on @google/genai)",
+      "note": ""
+    },
+    {
+      "repo": "SamirAkhtar7/AI-Healthcare-Bot-System",
+      "commit": "0f37f139afdd1e3da050a5187d927757b892d0cf",
+      "language": "js",
+      "sdk": {
+        "@google/generative-ai": "0.24.1"
+      },
+      "changeTypes": ["old-sdk-major"],
+      "verdict": "correct-stop",
+      "note": "systemInstruction on the model."
+    },
+    {
+      "repo": "zhangsgithub04/lddebate",
+      "commit": "80e650c1a1ce0cd4639ab5df9f8bc04ba2d97362",
+      "language": "js",
+      "sdk": {
+        "@google/generative-ai": "0.24.1"
+      },
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "verdict": "correct-stop",
+      "note": "Prompts built by helper functions (could be request objects); conservative."
+    },
+    {
+      "repo": "AravindKVishwanath/uplyticBackend",
+      "commit": "0077f61a34f4fb76b90bf4d5b353925b2c3ab1d9",
+      "language": "js",
+      "sdk": {
+        "@google/generative-ai": "0.21.0"
+      },
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "verdict": "correct-stop",
+      "note": "Reads response.candidates[0].content.parts directly; the new response shape differs."
+    },
+    {
+      "repo": "KajamHamza/pdf-chat",
+      "commit": "73a8cf464e4396ea28761acf7f938e2f8a1c0535",
+      "language": "py",
+      "sdk": {
+        "google-generativeai": ""
+      },
+      "changeTypes": ["retired-model", "old-sdk-major", "embeddings-fine-tunes"],
+      "verdict": "correct (review, report only)",
+      "note": "Python google-generativeai imports listed."
+    },
+    {
+      "repo": "sriyaa-p/heritage-vanguards",
+      "commit": "beb4080dcc12b5a2a5a340a188b6741b14b72935",
+      "language": "py",
+      "sdk": {
+        "google-genai": "",
+        "google-generativeai": ""
+      },
+      "changeTypes": ["parameter-change", "old-sdk-major"],
+      "verdict": "correct (silent)",
+      "note": "Declares google-generativeai but imports only google-genai; nothing listed."
+    },
+    {
+      "repo": "Pittawat2542/null-shot-prompting",
+      "commit": "a736bc25bd6867bdc3f82757db2b05895f2e9b63",
+      "language": "py",
+      "sdk": {
+        "google-generativeai": "~=0.3.2"
+      },
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major"],
+      "verdict": "correct (review, report only)",
+      "note": "Python PaLM (palm alias, text-bison-001, chat-bison-001) and google-generativeai listed."
+    },
+    {
+      "repo": "NateviratYungram/crypto-stream-ai",
+      "commit": "afc0aae51977bc8f74632d3be5c674fc5ce0a1e5",
+      "language": "py",
+      "sdk": {
+        "google-genai": ""
+      },
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "response-parsing",
+        "beta-header",
+        "embeddings-fine-tunes"
+      ],
+      "verdict": "n/a (already on google-genai)",
+      "note": ""
+    }
+  ]
+}
