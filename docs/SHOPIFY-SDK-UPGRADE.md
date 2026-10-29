@@ -184,6 +184,21 @@ The run still changes evidence for some of those apps. Apps that use `LATEST_API
 | Lockfile version 2                                                                     | 1    |
 | Upgrade planned, but the app stops for another reason (5 remix, 4 api, 4 react-router) | 13   |
 
+## pnpm, Yarn and Bun lockfiles (2026-10-29)
+
+Measured offline with SH3's census (`runPipeline` with `--sdk-upgrade` and re-resolution on, no AI, no validation, no benchmark run) on the 250 non-blind repositories of the 2026-10-16 Shopify lists, against SH3's run at `871d3f4d`:
+
+- Proposed patches: 28 → 30. Nothing else changed outcome, and the 28 earlier patches are byte-identical.
+- The two new patches are pnpm projects: grocco/flarify (remix 3.8.2 → 5.0.1, `@shopify/shopify-api` 14.0.1, KV session storage 7.0.1, `@remix-run/server-runtime` 2.17.5 added) and kampfire-dev/bulkify (`@shopify/shopify-api` 11.6.0 → 14.0.1 with its client packages). Both lockfile diffs were read in full: only the Shopify family, `isbot` and the framework packages move, and the `jsonwebtoken`/`node-fetch`/`uuid` chain that only `@shopify/shopify-api` 11 needed is dropped. pnpm also refreshed `deprecated` notices on a few other entries; the graph check ignores those, since the release and integrity are unchanged. Each patched repository then installed with Refit's own preparation (pnpm 9.15.9, frozen lockfile, scripts off).
+- Of the 42 repositories this blocker stopped, the other 40 now stop on their next real blocker or a named lockfile stop:
+  - Prisma or Drizzle session storage (peers outside the decision, or Drizzle's schema migration): 8.
+  - remix 2 or `@shopify/shopify-api` older than 11, below the oldest migratable major: 7.
+  - Preparation refusals (pnpm patches, workspace names, unsupported pnpm settings, non-registry tarballs, a Yarn record without integrity, a workspace `bun.lock`): 7.
+  - Other findings (documents, REST, react-router 2's embedded-only change), with the SDK upgrade itself succeeding: 5.
+  - npm re-resolution of a nested SDK copy adds optional platform packages (`@esbuild/*`, `@parcel/watcher-*`) the committed lockfile lacks: 3.
+  - The re-resolution changed something else, a correct stop: 2 (a Yarn 1 lockfile missing a descriptor Polaris needs; a pnpm 10.33 re-resolution that also moved 24 other packages).
+  - Several lockfiles no rule picks: 2; two Shopify app packages: 1; binary `bun.lockb`: 2; npm lockfile version 1 or 2: 2; Yarn 1 running out of the 4 GiB workspace while installing (it has no lockfile-only mode): 1.
+
 ## Contract drift
 
 The four published Admin schemas changed after the 2026-10-16 freeze. These runs used the schemas read on 2026-10-22; their hashes are in the frozen list. The default-off comparison used the same snapshots on both commits.
