@@ -18944,6 +18944,841 @@
         }
       ],
       "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "`subsets/holdout-100.json` (100 repositories) and `subsets/holdout-30b.json` (30) are the Stripe agent's measurement-only sets, frozen on October 28. `heldout-30` has been run many times since October 24, so it may already be tuned to; these two are repositories nobody working on Refit has seen.",
+      "values": [
+        {
+          "says": "100",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "30",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": []
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| | holdout-100 | holdout-30b | heldout-30 |",
+      "values": [],
+      "ignore": [
+        {
+          "token": "100",
+          "reason": "Part of a set's name."
+        },
+        {
+          "token": "30",
+          "reason": "Part of a set's name."
+        },
+        {
+          "token": "30",
+          "reason": "Part of a set's name."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| API version from 2022 | 6 | 4 | 1 |",
+      "values": [
+        {
+          "says": "6",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2022-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "4",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2022-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "1",
+          "query": {
+            "results": ["docs/benchmarks/subsets/heldout-30.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2022-"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| from 2023 | 19 | 11 | 9 |",
+      "values": [
+        {
+          "says": "19",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2023-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "11",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2023-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "9",
+          "query": {
+            "results": ["docs/benchmarks/subsets/heldout-30.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2023-"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| from 2024 | 33 | 8 | 12 |",
+      "values": [
+        {
+          "says": "33",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2024-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "8",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2024-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "12",
+          "query": {
+            "results": ["docs/benchmarks/subsets/heldout-30.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2024-"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| from 2025 | 26 | 6 | 7 |",
+      "values": [
+        {
+          "says": "26",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2025-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "6",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2025-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "7",
+          "query": {
+            "results": ["docs/benchmarks/subsets/heldout-30.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2025-"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| from 2026 | 16 | 1 | 1 |",
+      "values": [
+        {
+          "says": "16",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2026-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "1",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2026-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "1",
+          "query": {
+            "results": ["docs/benchmarks/subsets/heldout-30.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2026-"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| Most common version | 2023-10-16 (16) | 2023-10-16 (9) | 2023-10-16 (7) |",
+      "values": [
+        {
+          "says": "16",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "equals": "2023-10-16"
+              }
+            ]
+          }
+        },
+        {
+          "says": "9",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "equals": "2023-10-16"
+              }
+            ]
+          }
+        },
+        {
+          "says": "7",
+          "query": {
+            "results": ["docs/benchmarks/subsets/heldout-30.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "equals": "2023-10-16"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| Version from an `apiVersion` pin / from stripe-node | 61 / 39 | 23 / 7 | |",
+      "values": [
+        {
+          "says": "61",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "beforeSource",
+                "matches": "^apiVersion pin"
+              }
+            ]
+          }
+        },
+        {
+          "says": "39",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "beforeSource",
+                "equals": "SDK version"
+              }
+            ]
+          }
+        },
+        {
+          "says": "23",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "beforeSource",
+                "matches": "^apiVersion pin"
+              }
+            ]
+          }
+        },
+        {
+          "says": "7",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "beforeSource",
+                "equals": "SDK version"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| npm / pnpm / Yarn / several lockfiles / none | 79 / 10 / 0 / 5 / 6 | 22 / 3 / 3 / 1 / 1 | |",
+      "values": [
+        {
+          "says": "79",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "npm"
+              }
+            ]
+          }
+        },
+        {
+          "says": "10",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "pnpm"
+              }
+            ]
+          }
+        },
+        {
+          "says": "0",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "yarn"
+              }
+            ]
+          }
+        },
+        {
+          "says": "5",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "several"
+              }
+            ]
+          }
+        },
+        {
+          "says": "6",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "none"
+              }
+            ]
+          }
+        },
+        {
+          "says": "22",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "npm"
+              }
+            ]
+          }
+        },
+        {
+          "says": "3",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "pnpm"
+              }
+            ]
+          }
+        },
+        {
+          "says": "3",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "yarn"
+              }
+            ]
+          }
+        },
+        {
+          "says": "1",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "several"
+              }
+            ]
+          }
+        },
+        {
+          "says": "1",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "none"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| Median stars | 0 | 0 | 5 |",
+      "values": [
+        {
+          "says": "0",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [],
+            "measure": "median",
+            "field": "stars"
+          }
+        },
+        {
+          "says": "0",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [],
+            "measure": "median",
+            "field": "stars"
+          }
+        },
+        {
+          "says": "5",
+          "query": {
+            "results": ["docs/benchmarks/subsets/heldout-30.json"],
+            "rows": "/repos",
+            "where": [],
+            "measure": "median",
+            "field": "stars"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "holdout-100 spans 25 API versions, from 2022-11-15 to 2026-08-26.dahlia; holdout-30b spans 15, from 2022-08-01 to 2026-04-22.dahlia. They have fewer stars than `heldout-30`, because the earlier sets took the most-starred repositories from the same searches and these are a random draw from what was left.",
+      "values": [
+        {
+          "says": "25",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [],
+            "measure": "distinct",
+            "field": "before"
+          }
+        },
+        {
+          "says": "15",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [],
+            "measure": "distinct",
+            "field": "before"
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "100",
+          "reason": "Part of a set's name."
+        },
+        {
+          "token": "30",
+          "reason": "Part of a set's name."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "**How they were selected.** `scripts/stripe-holdout-select.mjs` draws from the same population as every tuned Stripe set, and so from the same population as `heldout-30` and `l2-push-249`. Those two come from `push-279-affected.json`, which keeps the affected rows of the four tuned sets, which come from the fresh set's 13 GitHub code searches for stripe-node use. The script:",
+      "values": [
+        {
+          "says": "13",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/search.json"],
+            "rows": "/queries"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "1. reruns those 13 searches (`holdout-selection/search.json`: 6,700 repositories on October 28);",
+      "values": [
+        {
+          "says": "13",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/search.json"],
+            "rows": "/queries"
+          }
+        },
+        {
+          "says": "6,700",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/search.json"],
+            "rows": "/repositories"
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "1",
+          "reason": "List item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "2. drops every `owner/name` that any tracked Refit file mentions at `efcb91ed`: every frozen list and subset, every result, review and note (523 of the 6,700);",
+      "values": [
+        {
+          "says": "523",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/candidates.json"],
+            "value": "/named"
+          }
+        },
+        {
+          "says": "6,700",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/search.json"],
+            "rows": "/repositories"
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "2",
+          "reason": "List item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "3. keeps the fresh set's filters: not archived or a fork, under 50 MB, pushed since 2024-01-01, and `stripe` declared in the root `package.json` (2,830 eligible; 1,585 do not declare `stripe` at the root, 1,032 are over 50 MB, 730 were not pushed since 2024);",
+      "values": [
+        {
+          "says": "2,830",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/candidates.json"],
+            "rows": "/order"
+          }
+        },
+        {
+          "says": "1,585",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/candidates.json"],
+            "value": "/excluded/stripe not in root package.json"
+          }
+        },
+        {
+          "says": "1,032",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/candidates.json"],
+            "value": "/excluded/over 50 MB"
+          }
+        },
+        {
+          "says": "730",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/candidates.json"],
+            "value": "/excluded/no push since 2024-01-01"
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "3",
+          "reason": "List item number."
+        },
+        {
+          "token": "50",
+          "reason": "The fresh set's size limit (50 MB)."
+        },
+        {
+          "token": "50",
+          "reason": "The fresh set's size limit (50 MB)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "4. orders those by SHA-256 of the seed `refit-holdout-2026-10-28`, a newline and the lower-cased name (`holdout-selection/candidates.json`). The seed was fixed before any candidate was seen;",
+      "values": [],
+      "ignore": [
+        {
+          "token": "4",
+          "reason": "List item number."
+        },
+        {
+          "token": "256",
+          "reason": "Part of the hash name SHA-256."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "5. walks that order in batches of at most 50 shallow clones at the default-branch HEAD. Each clone is read only for its API version and its Stripe use, then deleted (`holdout-selection/checks.json`). A repository is kept when an application file (not a test, spec, fixture or mock) imports `stripe` and constructs a client, and its API version has a pinned spec in `data/stripe-openapi-versions.json` and is older than `2026-09-30.endive`. The API version is read as for the fresh set: the oldest literal `apiVersion` pin, else the locked stripe-node release. The first 150 in seeded order were checked: 130 kept, 9 with no readable API version, 8 with no Stripe client in application code, 3 on a version without a pinned spec, and none failed to clone;",
+      "values": [
+        {
+          "says": "150",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "value": "/selection/walked"
+          }
+        },
+        {
+          "says": "130",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "value": "/selection/kept"
+          }
+        },
+        {
+          "says": "9",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "value": "/selection/dropped/no API version"
+          }
+        },
+        {
+          "says": "8",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "value": "/selection/dropped/no Stripe SDK client in application code"
+          }
+        },
+        {
+          "says": "3",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "value": "/selection/dropped/API version without a pinned spec"
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "5",
+          "reason": "List item number."
+        },
+        {
+          "token": "50",
+          "reason": "The script's batch limit (at most 50 clones), a configured limit."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "6. fills `holdout-100` with the first 100 kept, in seeded order, and `holdout-30b` with the next 30.",
+      "values": [
+        {
+          "says": "100",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "30",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": []
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "6",
+          "reason": "List item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "Each entry is pinned to the full commit that was checked. Rerun it with `node scripts/stripe-holdout-select.mjs --work <dir> --names-at efcb91ed`. GitHub's search index moves, so the committed inputs are the record. `candidates.json` holds the 2,830 eligible repositories in seeded order, so the order can be recomputed from the seed without GitHub (`seededOrder` in the script, tested in `pipeline/stripe-holdout-select.test.ts`).",
+      "values": [
+        {
+          "says": "2,830",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/candidates.json"],
+            "rows": "/order"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- Held-out repositories may be named only in their own lists, in `docs/benchmarks/holdout-selection/` and in milestone results under `docs/benchmarks/holdout-results/`. `pipeline/holdout-integrity.test.ts` fails `npm test` if any other tracked file names one, shipped source in `src/`, `pipeline/`, `bin/` and `scripts/` included (owner decision D5). It also checks that both lists are disjoint from each other and from every other list in `docs/benchmarks/subsets/` and `docs/benchmarks/*-repos.json`, and that every entry has a full 40-character commit and an API version older than the target with a pinned spec.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40",
+          "reason": "The length of a full commit SHA, a format rule."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "**One difference from `heldout-30`.** `heldout-30` keeps only rows a refit-bench run had already found `affected`. These sets are frozen before any Refit run, as the original, held-out 50 and fresh sets were, so some rows will be unaffected; in the fresh set it was 55%. Report a milestone as validated over affected rows, as `heldout-30` is, and give the affected count and the whole set's outcomes beside it. Never filter the list itself.",
+      "values": [
+        {
+          "says": "55%",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-16-stripe-fresh-results.json"],
+            "rows": "/rows",
+            "where": [],
+            "measure": "rate",
+            "part": [
+              {
+                "field": "outcome",
+                "in": ["not-affected", "no-mapped-methods", "no-sdk-calls", "exceeds-scan-limits"]
+              }
+            ]
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "50",
+          "reason": "Part of a set's name (the held-out 50)."
+        }
+      ]
     }
   ]
 }
