@@ -58,3 +58,7 @@ Every such patch ships as [Needs review], with a "What the AI changed and why" s
 ## Then
 
 Merge P and Q into `bench/all-feats-2026-10-28` and rerun progress-30 once, with AI and test mode. The question is whether its two build-breaking patches come back repaired, as [Needs review] PRs with passing checks.
+
+## Shopify
+
+The same loop repairs Shopify patches whose checks fail, usually on type errors the `@shopify/*` SDK upgrade introduced. The model gets Shopify instructions (never edit `apiVersion`, `ApiVersion` members, package versions or GraphQL documents, which the schema proof judges), and on a repeated proposal the installed `@shopify/*` declarations the errors name (`archivedShopifyTypes` in `pipeline/repair-context.ts`). The substitution guard and every other guard are unchanged. `npm run benchmark:shopify -- --ai --env <file>` turns repair on with the hosted worker's attempt count.

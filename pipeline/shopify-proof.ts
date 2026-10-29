@@ -305,15 +305,41 @@ export function shopifySchemaProof(options: {
   before: ShopifyVersionedSchema;
   after: ShopifyVersionedSchema;
   scans?: { original: ShopifyScan; patched: ShopifyScan };
+  // Documents the model read from calls Refit cannot read (AI use 5), at their patched lines.
+  reconstructed?: { file: string; line: number; document: string }[];
 }): ShopifySchemaProof {
   const original = options.scans?.original ?? scanShopify(options.original);
   const patched = options.scans?.patched ?? scanShopify(options.patched);
   const originalFailures: ShopifyProofFailure[] = [];
   const failures: ShopifyProofFailure[] = [];
+  const read = (entry: { file: string; line: number }) =>
+    options.reconstructed?.find((item) => item.file === entry.file && item.line === entry.line);
   // Storefront clients keep their own version and contract; the Admin proof leaves them out.
   const unreadable: string[] = patched.unreadable
-    .filter((entry) => !entry.api)
+    .filter((entry) => !entry.api && !read(entry))
     .map((entry) => `${entry.file}:${entry.line} (${entry.reason})`);
+  const reconstructed = patched.unreadable.flatMap((entry) => {
+    const found = !entry.api && read(entry);
+    return found
+      ? [
+          {
+            ...entry,
+            text: found.document,
+            // Errors in a reconstruction point at the call's line; its text is not in the source.
+            segments: [
+              {
+                documentStart: 0,
+                documentEnd: found.document.length,
+                file: entry.file,
+                sourceStart: entry.line - 1,
+                sourceText: '\n'.repeat(entry.line - 1),
+              },
+            ],
+            traced: true,
+          } satisfies AdminDocument,
+        ]
+      : [];
+  });
   const otherApi: string[] = [];
   const widened: string[] = [];
   // Fragments defined in another file or .graphql document are inlined, as the scan does.
@@ -330,7 +356,7 @@ export function shopifySchemaProof(options: {
   }
   const originalTexts = new Set(original.documents.map((document) => document.text));
   let checkedPatched = 0;
-  for (const document of patched.documents) {
+  for (const document of [...patched.documents, ...reconstructed]) {
     if (document.api) continue;
     const result = checkDocument(
       withFragments(document, patchedPool),
@@ -395,7 +421,7 @@ export function shopifySchemaProof(options: {
   return {
     ...base,
     status: 'proven',
-    reason: `Every traced Shopify GraphQL document (${checkedPatched}) validates against the Admin API ${options.after.version} schema with graphql-js, and no selected field or variable input type changes between ${options.before.version} and ${options.after.version}.${codegen ? ` ${codegen.reason}` : ''}`,
+    reason: `Every traced Shopify GraphQL document (${checkedPatched}${reconstructed.length ? `, ${reconstructed.length} read by AI from code Refit could not read and checked to name only what that code writes` : ''}) validates against the Admin API ${options.after.version} schema with graphql-js, and no selected field or variable input type changes between ${options.before.version} and ${options.after.version}.${codegen ? ` ${codegen.reason}` : ''}`,
   };
 }
 
@@ -542,6 +568,7 @@ export async function shopifyProof(options: {
   ai?: AiOptions;
   environment: Record<string, string | undefined>;
   fetch?: typeof fetch;
+  reconstructed?: { file: string; line: number; document: string }[];
 }) {
   const scans = {
     original: scanShopify(options.original, options.graphql?.original),

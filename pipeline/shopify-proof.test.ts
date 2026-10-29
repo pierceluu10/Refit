@@ -103,6 +103,30 @@ it('stays unproven when the code sends a document Refit cannot read', () => {
   expect(proof.status).toBe('unproven');
 });
 
+it('validates an AI reconstruction of that document at its call, and fails one that breaks', () => {
+  const patched = repository({
+    'app/routes/product.ts':
+      "export async function loader({ admin, request }) {\n  return admin.graphql('query { ' + request.field + ' }');\n}\n",
+  });
+  const read = (document: string, line = 2) =>
+    shopifySchemaProof({
+      original: repository({}),
+      patched,
+      before,
+      after,
+      reconstructed: [{ file: 'app/routes/product.ts', line, document }],
+    });
+  const proof = read('query { shop { name } }');
+  expect(proof).toMatchObject({ status: 'proven', checked: { patched: 1 } });
+  expect(proof.reason).toContain('1 read by AI');
+  expect(read('query { product(id: "1") { legacyCode } }')).toMatchObject({
+    status: 'failed',
+    failures: [{ file: 'app/routes/product.ts', line: 2 }],
+  });
+  // A reconstruction for another line proves nothing about this call.
+  expect(read('query { shop { name } }', 3).status).toBe('unproven');
+});
+
 it('trusts committed codegen types only when nothing the documents select widens', () => {
   const codegen = {
     '.graphqlrc.ts': "import { shopifyApiProject } from '@shopify/api-codegen-preset';\n",
