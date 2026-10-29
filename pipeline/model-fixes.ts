@@ -24,6 +24,7 @@ import {
   NO_OP_REVIEW,
   wrap,
 } from './review.ts';
+import { gateNote, type CheckGate, type NamedCheck } from './check-gate.ts';
 import { validateSourcePatch } from './validation.ts';
 
 // The repository's approved checks, from its enrolled Refit configuration.
@@ -34,6 +35,8 @@ export interface ModelFixChecks {
   checkTimeoutSeconds?: number;
   prepareDependencies?: boolean;
   compareTypeErrors?: boolean;
+  // Tests, build and type check as separate checks, decided by the shared gate (check-gate.ts).
+  checks?: NamedCheck[];
 }
 
 export type ModelFixStatus =
@@ -120,6 +123,7 @@ export function modelFixBody(options: {
     compareTypeErrors?: boolean;
     baseline: { status: string; exitCode: number | null; stdout: string; stderr: string };
     patched: { status: string; exitCode: number | null; stdout: string; stderr: string };
+    gate?: CheckGate;
   };
 }) {
   const { replacements, stops, validation } = options;
@@ -209,6 +213,7 @@ export function modelFixBody(options: {
       '',
       `- Baseline ${code(validation.baselineCommand.join(' '))}: ${validation.baseline.status}`,
       `- Patched ${code(validation.command.join(' '))}: ${validation.patched.status}${existing ? `; the type check ${existing}` : ''}`,
+      ...gateNote(validation.gate),
       '',
       '## Not Verified',
       '',
