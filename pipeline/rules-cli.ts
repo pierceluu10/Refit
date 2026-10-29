@@ -33,6 +33,12 @@ import {
   type RuleTable,
   type TableRule,
 } from './rule-pack.ts';
+import { loadMetaGraphChanges } from './meta-graph-changes.ts';
+import {
+  checkMetaGraphEvidence,
+  readMetaGraphEvidence,
+  type MetaGraphRuleTable,
+} from './meta-graph-rules.ts';
 import { responseRemovals, verifyRule } from './rule-verification.ts';
 import { digest } from './specifications.ts';
 import { breakingPages } from './stripe-release.ts';
@@ -86,7 +92,10 @@ const { values, positionals } = parseArgs({
 if (values.help) {
   console.log(`${USAGE}
 
-check: verifies every rule in data/rules/stripe. Each rule's quote must be in its saved changelog
+check: verifies data/meta-graph/changes.json and every rule in data/rules/meta-graph: each quote must
+be in its saved Meta changelog page (docs/benchmarks/meta-graph-changelog/pages) and name its
+identifier and replacement, and every change that names a replacement has exactly one rule. It then
+verifies every rule in data/rules/stripe. Each rule's quote must be in its saved changelog
 page (docs/benchmarks/stripe-changelog/pages) verbatim, its oasdiff entry must be in the changelog
 between the table's two pinned contracts and be the change the rule answers, and the rule must
 agree with both contracts. Contracts missing from --contracts are downloaded at their pinned
@@ -129,6 +138,7 @@ else if (positionals[0] === 'generate') await generate();
 else throw new PipelineInputError(USAGE);
 
 async function check() {
+  await checkMetaGraph();
   const pages = await capturedPages();
   let failures = 0;
   const tables = [...STRIPE_RULE_TABLES, ...STRIPE_LEARNED_TABLES];
@@ -218,6 +228,26 @@ async function checkShopify() {
         2,
       )}\n`,
     );
+}
+
+// Meta publishes no contract, so its rules are checked against the change table and the saved
+// changelog pages alone.
+async function checkMetaGraph() {
+  const { changes } = await loadMetaGraphChanges();
+  const { pages, tables } = await readMetaGraphEvidence();
+  const problems = checkMetaGraphEvidence(changes, tables, pages);
+  for (const problem of problems) console.log(`FAIL meta-graph ${problem}`);
+  if (problems.length)
+    throw new PipelineInputError(
+      `${problems.length} Meta Graph quotes or rules are not backed by their pages.`,
+    );
+  const rules = tables.reduce(
+    (total, { table }) => total + (table as MetaGraphRuleTable).rules.length,
+    0,
+  );
+  console.log(
+    `${changes.length} Meta Graph changes and ${rules} rules verified against their saved pages.`,
+  );
 }
 
 // The saved page, or a fresh capture saved next to the others.

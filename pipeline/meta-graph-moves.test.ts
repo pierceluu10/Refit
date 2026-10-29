@@ -48,8 +48,11 @@ function change(
     edge: null,
     path: null,
     name: null,
+    replacement: null,
+    appliesToAll: null,
     summary: `${overrides.id} changes.`,
-    source: source(overrides.version),
+    quote: `${overrides.id} changes.`,
+    source: source(overrides.version!),
     checkedAt: '2026-10-20',
     ...overrides,
   };
@@ -68,6 +71,7 @@ function changes(
       .filter((version) => !omit.includes(version))
       .map((version) => ({
         version,
+        released: '2024-01-01',
         status: unread.includes(version) ? ('unread' as const) : ('reviewed' as const),
         source: source(version),
         checkedAt: '2026-10-20',
@@ -429,7 +433,10 @@ fetch('https://graph.facebook.com/v18.0/oauth/access_token?client_id=1&client_se
   });
 
   it('moves safe requests and stops the rest with concrete reasons under the committed list', async () => {
-    const list = await loadMetaGraphChanges(DEFAULT_META_GRAPH_CHANGES, NOW);
+    const list = await loadMetaGraphChanges(
+      DEFAULT_META_GRAPH_CHANGES,
+      new Date('2026-10-29T12:00:00Z'),
+    );
     const proposal = await proposeVersionMoves(FIXTURE, 'v25.0', list, registry, NOW);
     const pinned = proposal.stops.filter((stop) => stop.from);
     // Every changelog from v14.0 to v25.0 is reviewed, so no stop is for an unread changelog.
@@ -478,6 +485,29 @@ describe('matching', () => {
     } as unknown as GraphCall;
     expect(changesUsedBy(accounts, [removed('/me/accounts')])).toHaveLength(1);
     expect(changesUsedBy(accounts, [removed('/me/businesses')])).toHaveLength(0);
+  });
+
+  it('matches new kinds by endpoint or breakdowns, and never by webhook changes', () => {
+    const insights = {
+      path: '/{adAccountId}/insights',
+      edge: 'insights',
+      fields: [],
+      parameters: ['fields', 'breakdowns'],
+    } as unknown as GraphCall;
+    const entry = (kind: MetaGraphChange['kind'], extra: Partial<MetaGraphChange> = {}) =>
+      change({ id: kind, version: 'v20.0', kind, name: 'x', ...extra });
+    expect(changesUsedBy(insights, [entry('breakdown-removed')])).toHaveLength(1);
+    expect(
+      changesUsedBy({ ...insights, parameters: ['fields'] }, [entry('breakdown-removed')]),
+    ).toHaveLength(0);
+    expect(
+      changesUsedBy(insights, [entry('parameter-required', { edge: 'insights' })]),
+    ).toHaveLength(1);
+    expect(changesUsedBy(insights, [entry('error-changed', { edge: 'messages' })])).toHaveLength(0);
+    expect(changesUsedBy(insights, [entry('permission-changed')])).toHaveLength(0);
+    expect(
+      changesUsedBy(insights, [entry('webhook-field-removed', { edge: 'insights' })]),
+    ).toHaveLength(0);
   });
 });
 

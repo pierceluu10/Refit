@@ -1,0 +1,19 @@
+{
+  "formatVersion": 1,
+  "provider": "meta-graph",
+  "version": "v16.0",
+  "rules": [
+    {
+      "rule": "meta-graph-v16-0-error-changed-error-subcodes-replacement",
+      "family": "error-migration",
+      "change": "meta-graph-v16-0-error-changed-error-subcodes",
+      "from": "Error subcodes",
+      "to": "details",
+      "source": "https://developers.facebook.com/documentation/business-messaging/whatsapp/changelog",
+      "quote": "Error subcodes, which are rarely used and should not be relied upon, will no longer be included in v16.0+ error responses. Use `code` and `details` instead.",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    }
+  ]
+}

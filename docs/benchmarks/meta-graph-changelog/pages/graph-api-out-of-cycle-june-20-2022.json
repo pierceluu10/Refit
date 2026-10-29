@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "graph-api-out-of-cycle-june-20-2022",
+  "url": "https://developers.facebook.com/docs/graph-api/changelog/out-of-cycle-changes/june-20-2022/",
+  "revision": "b852a595d493acb14bd374a4e804da9ae639af84406f11fb206a00909db41c4b",
+  "hash": "b852a595d493acb14bd374a4e804da9ae639af84406f11fb206a00909db41c4b",
+  "content": "Changelog\n\nUpgrade\n\nVersions\n\nOut-Of-Cycle Changes\n\nJune 20, 2022\n\nOut-of-cycle changes.\n\nInstagram Graph API\n\nProduct Tagging\n\nApplies to all versions.\n\nYou can now create and manage Instagram Shopping Product Tags on an Instagram Business's published media. Refer to the Product Tagging guide to learn how.",
+  "contentType": "text/html"
+}
