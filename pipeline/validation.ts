@@ -32,7 +32,7 @@ import {
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
 import { shopifyProof } from './shopify-proof.ts';
-import { shopifySchema } from './shopify-schemas.ts';
+import { shopifySchema, shopifySnapshotPath } from './shopify-schemas.ts';
 import {
   apiVersionSourceBlocked,
   compareApiVersion,
@@ -2029,10 +2029,21 @@ export async function validateMigration(options: {
     const configuredRequestProposal = initialReport.requestChanges?.some(
       (change) => change.usages.length > 0,
     );
-    const [beforeSpecification, afterSpecification] = await Promise.all([
+    const [beforeSpecification, configuredAfter] = await Promise.all([
       readSpecification(options.before),
       readSpecification(options.after),
     ]);
+    // A Shopify patch may move to an earlier supported version than the configured target
+    // (pipeline/shopify-pipeline.ts); it is checked against that version's snapshot.
+    const shopifyAfter =
+      initialReport.provider === SHOPIFY.id &&
+      initialReport.apiVersion.after &&
+      configuredAfter.hash !== initialReport.snapshots.after
+        ? await readSpecification(
+            await shopifySnapshotPath(initialReport.apiVersion.after, options.after),
+          )
+        : undefined;
+    const afterSpecification = shopifyAfter ?? configuredAfter;
     if (beforeSpecification.hash !== initialReport.snapshots.before)
       throw new PipelineInputError('Baseline specification changed during validation.');
     if (afterSpecification.hash !== initialReport.snapshots.after)

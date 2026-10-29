@@ -44,6 +44,7 @@ import {
   SHOPIFY_API_ENUM_SINCE,
   sdkHasEnumMember,
 } from './shopify-versions.ts';
+import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { digest, isObject } from './specifications.ts';
 import { proposeRestRule } from './shopify-rest-ai.ts';
 import {
@@ -68,6 +69,10 @@ const SHOPIFY_MIGRATION_GUIDE =
   'https://github.com/Shopify/shopify-app-js/blob/main/packages/apps/shopify-api/docs/migrating-to-v12.md';
 const UNKNOWN_FRAGMENT = /^Unknown fragment "/;
 const MAX_EVIDENCE_TEXT = 300;
+const VERSIONING = 'https://shopify.dev/docs/api/usage/versioning';
+// Version findings that only an SDK the app does not have can clear: the target ApiVersion member
+// is missing, or LATEST_API_VERSION stays until an SDK upgrade.
+const SDK_BOUND = new WeakSet<Finding>();
 const SKIPPED_DIRECTORIES = new Set(['node_modules', '.git', 'dist', 'build', '.cache', '.next']);
 const MAX_EXTRA_BYTES = 2 * 1024 * 1024;
 const WEBHOOK_VERSION = /^\s*api_version\s*=\s*["'](\d{4}-\d{2}|unstable)["']/m;
@@ -464,6 +469,37 @@ export function shopifyVersionDeclarations(repository: Repository) {
   return versionDeclarations(scanShopify(repository));
 }
 
+// What the draft says about each @shopify/shopify-api major the upgrade crosses, from its
+// CHANGELOG.md in Shopify/shopify-app-js (read 2026-10-29). Type changes are left to the type check.
+function sdkUpgradeNotes(packages: { name: string; from: string | null; to: string }[]) {
+  const api = packages.find((entry) => entry.name === '@shopify/shopify-api');
+  const [from, to] = [
+    Number((api?.from ?? '0').split('.')[0]),
+    Number((api?.to ?? '0').split('.')[0]),
+  ];
+  const crossed = (major: number) => from < major && to >= major;
+  return [
+    to >= 14
+      ? '@shopify/shopify-api 14 requires Node.js 22 or later (9fec7af); check the deployment runtime.'
+      : '@shopify/shopify-api 12 requires Node.js 20.10 or later (dc41d09); check the deployment runtime.',
+    ...(crossed(13)
+      ? [
+          '@shopify/shopify-api 13 removed API versions 2022-10 to 2024-07 (0bb7837) and made WebhookFields a union keyed on webhookType (1eb863d); 13.1.0 signs OAuth and session cookies with a derived key, so merchants may need to sign in again.',
+        ]
+      : []),
+    ...(crossed(14)
+      ? [
+          '@shopify/shopify-api 14 hardens App Proxy validation and the OAuth callback can throw different errors (b1bcc27); check error handling around them.',
+        ]
+      : []),
+  ];
+}
+
+function sdkBound(finding: Finding) {
+  SDK_BOUND.add(finding);
+  return finding;
+}
+
 // `upgrade` is the opt-in SDK upgrade: the release it moves @shopify/shopify-api to, or why it
 // stopped.
 function versionFindings(
@@ -498,7 +534,7 @@ function versionFindings(
             reason: `@shopify/shopify-api 12.0.0 removed LATEST_API_VERSION; the SDK upgrade to ${upgradedRelease} pins ApiVersion.${member}.`,
           }
         : entry.latest && latest
-          ? {
+          ? sdkBound({
               ...entry,
               changeId: SHOPIFY_VERSION_RULE,
               expression: `LATEST_API_VERSION (${latest} in @shopify/shopify-api ${sdkRelease})`,
@@ -512,7 +548,7 @@ function versionFindings(
                   ? `This SDK has ApiVersion.${member}; pin it explicitly to upgrade.`
                   : `ApiVersion.${member} first ships in ${SHOPIFY_API_ENUM_SINCE[member] ?? 'an unknown release'}, a separate, reviewed SDK upgrade.`
               }${stopped}`,
-            }
+            })
           : {
               ...entry,
               changeId: SHOPIFY_VERSION_RULE,
@@ -552,7 +588,7 @@ function versionFindings(
         changeId: SHOPIFY_VERSION_RULE,
       });
     if (codegen) continue;
-    findings.push({
+    const finding: Finding = {
       ...entry,
       changeId: SHOPIFY_VERSION_RULE,
       expression: `${entry.text} → ${entry.kind === 'enum' ? `ApiVersion.${member}` : versions.after}`,
@@ -566,7 +602,8 @@ function versionFindings(
             contractReview: `@shopify/shopify-api ${sdkRelease ?? '(version not found in the lockfile)'} has no ApiVersion.${member}; it first ships in ${SHOPIFY_API_ENUM_SINCE[member] ?? 'an unknown release'}. Upgrading the SDK is a separate, reviewed change.${stopped}`,
           }
         : {}),
-    });
+    };
+    findings.push(missing ? sdkBound(finding) : finding);
   }
   if (!runtime.length && scan.adminCalls && !scan.unresolvedVersions.length)
     findings.push({
@@ -625,7 +662,7 @@ function rewriteBreakingDocument(
   };
 }
 
-export async function runShopifyPipeline(options: {
+type ShopifyRunOptions = {
   repository: string;
   before: Snapshot;
   after: Snapshot;
@@ -636,7 +673,64 @@ export async function runShopifyPipeline(options: {
   sdkUpgrade?: boolean;
   // With AI enabled, breaking documents no rule fixes are rewritten by the model (AI use 4).
   aiPatch?: AiOptions;
-}) {
+  // The snapshot of another Admin API version, for the fallback below.
+  snapshot?: (version: string) => Promise<Snapshot>;
+};
+
+// Supported quarterly versions from `after` back to `before`, newest first, `after` excluded.
+function versionsBetween(before: string, after: string) {
+  const found: string[] = [];
+  let [year, month] = after.split('-').map(Number);
+  for (;;) {
+    [year, month] = month > 3 ? [year, month - 3] : [year - 1, month + 9];
+    const version = `${year}-${String(month).padStart(2, '0')}`;
+    if (version < before) return found;
+    found.push(version);
+  }
+}
+
+// When only the SDK the app has, or documents that break on the target itself, stop the move to the
+// target, the newest supported version the app can move to instead (each stays supported for about
+// a year), with the version and SDK moved together as for the target.
+export async function runShopifyPipeline(options: ShopifyRunOptions) {
+  const report = await shopifyRun(options);
+  if (
+    !options.proposePatch ||
+    !options.snapshot ||
+    report.patch.status !== 'not-generated' ||
+    !report.findings.some((finding) => finding.contractReview) ||
+    !report.findings.every(
+      (finding) =>
+        !finding.contractReview ||
+        SDK_BOUND.has(finding) ||
+        finding.changeId === SHOPIFY_SDK_RULE ||
+        finding.reason.startsWith('Valid on'),
+    )
+  )
+    return report;
+  const target = report.apiVersion.after ?? '';
+  const why = report.findings.find((finding) => finding.contractReview)!.contractReview!;
+  for (const version of versionsBetween(report.apiVersion.before ?? target, target)) {
+    const fallback = await shopifyRun({ ...options, after: await options.snapshot(version) });
+    if (fallback.patch.status !== 'proposed') continue;
+    const deadline = (await loadDeadlineRegistry()).deadlines.find(
+      (entry) => entry.id === `shopify-admin-${version}`,
+    )?.date;
+    const note = `Moves to ${version}, not ${target}: ${why} ${version} is the newest supported version this app can take now${deadline ? `, and Shopify serves it until ${deadline}` : ''} (${VERSIONING}).`;
+    return {
+      ...fallback,
+      fallback: { target, version, reason: why },
+      patch: {
+        ...fallback.patch,
+        summary: `${note} ${'summary' in fallback.patch ? fallback.patch.summary : ''}`,
+        warnings: [note, ...('warnings' in fallback.patch ? fallback.patch.warnings : [])],
+      },
+    };
+  }
+  return report;
+}
+
+async function shopifyRun(options: ShopifyRunOptions) {
   const manifestPath = join(options.repository, 'package.json');
   const manifest: unknown = existsSync(manifestPath)
     ? JSON.parse(await readFile(manifestPath, 'utf8'))
@@ -816,7 +910,8 @@ export async function runShopifyPipeline(options: {
       ? await shopifySdkUpgrade(repository.root, member)
       : undefined;
   const upgraded = upgradeResult && 'upgrade' in upgradeResult ? upgradeResult.upgrade : undefined;
-  const source = upgraded && shopifySdkSourceChanges(repository, upgraded.primary, member!);
+  const source =
+    upgraded && shopifySdkSourceChanges(repository, upgraded.primary, member!, upgraded.packages);
   for (const stop of source ? source.stops : [])
     findings.push({
       ...stop,
@@ -947,7 +1042,7 @@ export async function runShopifyPipeline(options: {
                 ...(upgraded
                   ? [
                       `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')} in package.json and package-lock.json from verified npm registry metadata (SHA-512 integrity)${upgraded.removed.length ? `, removing ${upgraded.removed.length} lock entries nothing requires any more` : ''}. Review it against the shopify-app-js changelogs and the v12 migration guide: ${SHOPIFY_MIGRATION_GUIDE}`,
-                      '@shopify/shopify-api 12 requires Node.js 20.10 or later (dc41d09); check the deployment runtime.',
+                      ...sdkUpgradeNotes(upgraded.packages),
                       ...Object.entries(upgraded.otherLockfiles ?? {}).map(
                         ([file, why]) =>
                           `${file} still locks the older Shopify packages: the repository installs from package-lock.json (${why}). Delete the lockfile your package manager does not use.`,

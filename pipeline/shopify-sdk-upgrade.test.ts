@@ -30,6 +30,7 @@ const RELEASES: Releases = {
     },
     '12.4.0-rc.0': {},
     '13.1.0': { dependencies: { [ADMIN]: '^1.1.1' } },
+    '14.0.0': { dependencies: { [ADMIN]: '^1.1.1' }, engines: { node: '>=22.0.0' } },
   },
   [ADMIN]: {
     '1.0.8': { dependencies: { [GRAPHQL]: '^1.3.0' } },
@@ -40,6 +41,8 @@ const RELEASES: Releases = {
   [EXPRESS]: {
     '5.0.17': { dependencies: { [API]: '^11.14.1' } },
     '6.0.5': { dependencies: { [API]: '^12.3.0' } },
+    '7.0.0': { dependencies: { [API]: '^13.0.0' } },
+    '8.0.0': { dependencies: { [API]: '^14.0.0' } },
   },
 };
 
@@ -370,6 +373,37 @@ it('upgrades package-lock.json when the documented lockfile choice picks it, nam
   });
 });
 
+it('moves several majors to the release that ships the member, unless a documented break stops it', async () => {
+  registry();
+  const result = await shopifySdkUpgrade(await project(), 'October26');
+  expect(result).toMatchObject({ upgrade: { primary: API, from: '11.14.1', to: '14.0.0' } });
+  const root = await project();
+  const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
+  await writeFile(
+    join(root, 'package.json'),
+    `${JSON.stringify({ ...manifest, engines: { node: '>=20 <22' } }, null, 2)}\n`,
+  );
+  expect(await shopifySdkUpgrade(root, 'October26')).toEqual({
+    reason: `${API} 14 needs Node.js 22.0.0 or later, and package.json declares engines.node >=20 <22.`,
+  });
+  await writeFile(
+    join(root, 'package.json'),
+    `${JSON.stringify({ ...manifest, engines: { node: '22.14.0' } }, null, 2)}\n`,
+  );
+  expect(await shopifySdkUpgrade(root, 'October26')).toMatchObject({ upgrade: { to: '14.0.0' } });
+  // @shopify/shopify-app-express 8 is the first on 14; crossing 7 moves the app to Express 5.
+  const express = await project({
+    declared: { [EXPRESS]: '^5.0.17' },
+    entries: {
+      ...API_ENTRIES,
+      [EXPRESS]: locked(EXPRESS, '5.0.17', { license: 'MIT', dependencies: { [API]: '^11.14.1' } }),
+    },
+  });
+  expect(await shopifySdkUpgrade(express, 'October26')).toEqual({
+    reason: `${EXPRESS} 7.0.0 moves the app from Express 4 to Express 5 (0d4a3f7), a framework migration; the upgrade to 8.0.0 stops for review.`,
+  });
+});
+
 it('refuses registry metadata it cannot verify and reports registry failures', async () => {
   const withRelease = (fields: Manifest) => ({
     ...RELEASES,
@@ -416,7 +450,7 @@ it('refuses projects and targets outside the upgrade before reading the registry
     [
       'two majors behind',
       project({ entries: { ...API_ENTRIES, [API]: locked(API, '10.0.0') } }),
-      `${API} 10.0.0 is more than one major behind 12; the migration guides for the majors in between are not applied automatically.`,
+      `${API} 10.0.0 is older than 11, the oldest major whose migration Refit applies.`,
     ],
     [
       'newer major',
@@ -447,9 +481,6 @@ it('refuses projects and targets outside the upgrade before reading the registry
   ];
   for (const [label, root, reason] of cases)
     expect([label, await shopifySdkUpgrade(await root, 'April26')]).toEqual([label, { reason }]);
-  expect(await shopifySdkUpgrade(await project(), 'July26')).toEqual({
-    reason: `ApiVersion.July26 first ships in ${API} 13.1.0; the upgrade moves only to ${API} 12, the oldest major that serves a supported version.`,
-  });
   expect(await shopifySdkUpgrade(await project(), 'Someday99')).toEqual({
     reason: `No ${API} release is recorded for ApiVersion.Someday99.`,
   });
@@ -477,6 +508,8 @@ async function snapshots(root: string) {
     );
     return path;
   };
+  // The fallback reads other versions beside the target snapshot; 2026-01 is the only one here.
+  await write('2026-01', '2026-01');
   return { before: await write('before', '2026-01'), after: await write('after', '2026-04') };
 }
 

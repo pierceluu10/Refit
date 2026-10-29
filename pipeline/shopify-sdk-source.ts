@@ -37,6 +37,26 @@ const REMOVED_FLAGS = new Map([
   ['v10_lineItemBilling', BILLING_CHANGE],
 ]);
 
+// Breaking changes of @shopify/shopify-api 13.0.0 and 14.0.0 and @shopify/shopify-app-react-router
+// 2.0.0 (each package's CHANGELOG.md in the shopify-app-js repository, read 2026-10-29) that code shows.
+const CUSTOM_SHOP_DOMAINS =
+  '@shopify/shopify-api 13.0.0 removed customShopDomains for domainTransformations, which takes { match, transform } rules (78c8968); rewrite it by hand.';
+const SUB_TOPIC =
+  '@shopify/shopify-api 14.0.0 removed subTopic (84397d9): webhook registrations filter with `filter`, and metaobjects webhooks require one.';
+const EMBEDDED =
+  '@shopify/shopify-app-react-router 2.0.0 serves embedded apps only (0dbb90c): AppProvider has no embedded prop and shopifyApp rejects isEmbeddedApp; a non-embedded app needs review.';
+
+// The majors an upgrade crosses: each package's locked and upgraded release.
+export type SdkMoves = { name: string; from: string | null; to: string }[];
+
+const crosses = (moves: SdkMoves, name: string, major: number) =>
+  moves.some(
+    (move) =>
+      move.name === name &&
+      Number((move.from ?? '0').split('.')[0]) < major &&
+      Number(move.to.split('.')[0]) >= major,
+  );
+
 export interface ShopifySdkSourceChanges {
   edits: SourceEdit[];
   stops: (Location & { reason: string })[];
@@ -50,7 +70,11 @@ export function shopifySdkSourceChanges(
   repository: Repository,
   primary: string,
   member: string,
+  moves: SdkMoves = [],
 ): ShopifySdkSourceChanges {
+  const v13 = crosses(moves, '@shopify/shopify-api', 13);
+  const v14 = crosses(moves, '@shopify/shopify-api', 14);
+  const embeddedOnly = crosses(moves, '@shopify/shopify-app-react-router', 2);
   const edits: SourceEdit[] = [];
   const stops: ShopifySdkSourceChanges['stops'] = [];
   for (const { path, content } of repository.files) {
@@ -174,7 +198,38 @@ export function shopifySdkSourceChanges(
         )
           stop(node, API_VERSION_REQUIRED);
       }
+      // `isEmbeddedApp: true` goes; any other value stops.
+      if (
+        embeddedOnly &&
+        ts.isPropertyAssignment(node) &&
+        node.name.getText().replace(/['"]/g, '') === 'isEmbeddedApp' &&
+        inConfig(node) &&
+        ts.isObjectLiteralExpression(node.parent)
+      ) {
+        handled.add(node.name);
+        if (node.initializer.kind === ts.SyntaxKind.TrueKeyword)
+          remove(node, node.parent.properties, node.parent);
+        else stop(node, EMBEDDED);
+      }
+      // `<AppProvider embedded>` and `embedded={true}` lose the prop; any other value stops.
+      if (
+        embeddedOnly &&
+        ts.isJsxAttribute(node) &&
+        node.name.getText() === 'embedded' &&
+        /(?:^|\.)AppProvider$/.test(node.parent.parent.tagName.getText())
+      ) {
+        const value = node.initializer;
+        if (
+          !value ||
+          (ts.isJsxExpression(value) && value.expression?.kind === ts.SyntaxKind.TrueKeyword)
+        )
+          edit(node.getFullStart(), node.getEnd());
+        else stop(node, EMBEDDED);
+      }
       if (ts.isIdentifier(node) && !handled.has(node)) {
+        if (v13 && node.text === 'customShopDomains') stop(node, CUSTOM_SHOP_DOMAINS);
+        if (v14 && node.text === 'subTopic') stop(node, SUB_TOPIC);
+        if (embeddedOnly && node.text === 'isEmbeddedApp') stop(node, EMBEDDED);
         if (node.text === 'LATEST_API_VERSION') latestUses.push(node);
         else if (CHANGED_APIS.has(node.text)) stop(node, CHANGED_APIS.get(node.text)!);
         else if (node.text === 'removeRest')

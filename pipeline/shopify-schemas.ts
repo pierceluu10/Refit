@@ -1,4 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { mkdir, rename, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { buildClientSchema, getIntrospectionQuery, type GraphQLSchema } from 'graphql';
 import { readBoundedResponse } from './network.ts';
@@ -148,4 +151,25 @@ export function normalizedIntrospection(text: string) {
   const content = JSON.stringify({ data: { __schema: data.__schema } });
   shopifySchema(content);
   return content;
+}
+
+// Where the snapshot of one Admin API version lives for a run whose target snapshot is `afterPath`:
+// `<version>.json` beside it (the benchmark's snapshots directory), else Refit's cached copy,
+// downloaded once from Shopify's public documentation proxy.
+export async function shopifySnapshotPath(
+  version: string,
+  afterPath: string,
+  contracts = join(homedir(), '.refit', 'contracts', 'shopify'),
+) {
+  if (!/^\d{4}-\d{2}$/.test(version))
+    throw new PipelineInputError(`${version} is not a dated Shopify API version.`);
+  const sibling = join(dirname(afterPath), `${version}.json`);
+  if (existsSync(sibling)) return sibling;
+  const cached = join(contracts, `${version}.json`);
+  if (existsSync(cached)) return cached;
+  await mkdir(contracts, { recursive: true });
+  const partial = `${cached}.${process.pid}.partial`;
+  await writeFile(partial, JSON.stringify(await fetchShopifySnapshot(version)));
+  await rename(partial, cached);
+  return cached;
 }
