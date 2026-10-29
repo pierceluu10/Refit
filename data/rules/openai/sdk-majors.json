@@ -1,0 +1,1047 @@
+{
+  "formatVersion": 1,
+  "provider": "openai",
+  "kind": "sdk-major",
+  "pages": {
+    "openai-node-v4": {
+      "url": "https://github.com/openai/openai-node/discussions/217",
+      "raw": "https://api.github.com/repos/openai/openai-node/discussions/217",
+      "file": "docs/ai-docs/pages/openai-node-v4-migration.md",
+      "capturedAt": "2026-10-29"
+    },
+    "openai-node-v5": {
+      "url": "https://github.com/openai/openai-node/blob/master/MIGRATION.md",
+      "raw": "https://raw.githubusercontent.com/openai/openai-node/master/MIGRATION.md",
+      "file": "docs/ai-docs/pages/openai-node-v5-migration.md",
+      "capturedAt": "2026-10-29"
+    },
+    "openai-node-6.0.0": {
+      "url": "https://github.com/openai/openai-node/blob/master/CHANGELOG.md",
+      "raw": "https://raw.githubusercontent.com/openai/openai-node/master/CHANGELOG.md",
+      "file": "docs/ai-docs/pages/openai-node-changelog-6.0.0.md",
+      "capturedAt": "2026-10-29",
+      "excerpt": "the 6.0.0 section"
+    },
+    "openai-node-readme": {
+      "url": "https://github.com/openai/openai-node/blob/master/README.md",
+      "raw": "https://raw.githubusercontent.com/openai/openai-node/master/README.md",
+      "file": "docs/ai-docs/pages/openai-node-readme-file-uploads.md",
+      "capturedAt": "2026-10-29",
+      "excerpt": "the File uploads section"
+    }
+  },
+  "rules": [
+    {
+      "rule": "openai-node-target-6",
+      "family": "package-target",
+      "status": "auto",
+      "page": "openai-node-6.0.0",
+      "quote": "### ⚠ BREAKING CHANGES",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Moves the openai package to the newest 6.x release. 6.x has no runtime dependencies; 7.0.0 only adds a Node.js 22 requirement, which Refit does not impose on a repository.",
+      "data": {
+        "package": "openai",
+        "targetMajor": 6,
+        "applyBelowMajor": 6,
+        "oldestMajor": 3,
+        "surface": "data/sdk-surfaces/openai-6.json"
+      }
+    },
+    {
+      "rule": "openai-node-v4-client",
+      "family": "client-constructor",
+      "status": "auto",
+      "page": "openai-node-v4",
+      "quote": "const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY // This is also the default, can be omitted });",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Replaces `new OpenAIApi(new Configuration({ apiKey }))` with `new OpenAI({ apiKey })`.",
+      "data": {
+        "fromMajor": 3,
+        "oldClasses": [
+          "Configuration",
+          "OpenAIApi"
+        ],
+        "newClass": "OpenAI",
+        "options": {
+          "apiKey": "apiKey"
+        }
+      }
+    },
+    {
+      "rule": "openai-node-v4-create-chat-completion",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v4",
+      "quote": "- `createChatCompletion` -> `chat.completions.create`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`createChatCompletion` becomes `chat.completions.create`.",
+      "data": {
+        "fromMajor": 3,
+        "old": "createChatCompletion",
+        "new": "chat.completions.create",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v4-create-completion",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v4",
+      "quote": "- `createCompletion` -> `completions.create`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`createCompletion` becomes `completions.create`.",
+      "data": {
+        "fromMajor": 3,
+        "old": "createCompletion",
+        "new": "completions.create",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v4-create-embedding",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v4",
+      "quote": "- `createEmbedding` -> `embeddings.create`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`createEmbedding` becomes `embeddings.create`.",
+      "data": {
+        "fromMajor": 3,
+        "old": "createEmbedding",
+        "new": "embeddings.create",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v4-create-moderation",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v4",
+      "quote": "- `createModeration` -> `moderations.create`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`createModeration` becomes `moderations.create`.",
+      "data": {
+        "fromMajor": 3,
+        "old": "createModeration",
+        "new": "moderations.create",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v4-create-image",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v4",
+      "quote": "- `createImage` -> `images.generate`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`createImage` becomes `images.generate`.",
+      "data": {
+        "fromMajor": 3,
+        "old": "createImage",
+        "new": "images.generate",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v4-list-models",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v4",
+      "quote": "- `listModels` -> `models.list`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`listModels` becomes `models.list`.",
+      "data": {
+        "fromMajor": 3,
+        "old": "listModels",
+        "new": "models.list",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v4-retrieve-model",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v4",
+      "quote": "- `retrieveModel` -> `models.retrieve`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`retrieveModel` becomes `models.retrieve`.",
+      "data": {
+        "fromMajor": 3,
+        "old": "retrieveModel",
+        "new": "models.retrieve",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v4-retrieve-file",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v4",
+      "quote": "- `retrieveFile` -> `files.retrieve`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`retrieveFile` becomes `files.retrieve`.",
+      "data": {
+        "fromMajor": 3,
+        "old": "retrieveFile",
+        "new": "files.retrieve",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v4-list-files",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v4",
+      "quote": "- `listFiles` -> `files.list`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`listFiles` becomes `files.list`.",
+      "data": {
+        "fromMajor": 3,
+        "old": "listFiles",
+        "new": "files.list",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v4-delete-file",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v4",
+      "quote": "- `deleteFile` -> `files.del`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`deleteFile` becomes `files.del` (v4), named `files.delete` since v5.",
+      "data": {
+        "fromMajor": 3,
+        "old": "deleteFile",
+        "new": "files.delete",
+        "arguments": "same",
+        "via": "openai-node-v5-delete"
+      }
+    },
+    {
+      "rule": "openai-node-v4-delete-model",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v4",
+      "quote": "- `deleteModel` -> `models.del`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`deleteModel` becomes `models.del` (v4), named `models.delete` since v5.",
+      "data": {
+        "fromMajor": 3,
+        "old": "deleteModel",
+        "new": "models.delete",
+        "arguments": "same",
+        "via": "openai-node-v5-delete"
+      }
+    },
+    {
+      "rule": "openai-node-v4-create-transcription",
+      "family": "positional-to-object",
+      "status": "auto",
+      "page": "openai-node-v4",
+      "quote": "const response = await openai.audio.transcriptions.create({ model: 'whisper-1', file: fs.createReadStream('audio.mp3'), });",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`createTranscription(file, model)` becomes `audio.transcriptions.create({ model, file })`. Calls with more than these two arguments stop.",
+      "data": {
+        "fromMajor": 3,
+        "old": "createTranscription",
+        "new": "audio.transcriptions.create",
+        "parameters": [
+          "file",
+          "model"
+        ]
+      }
+    },
+    {
+      "rule": "openai-node-v4-response-data",
+      "family": "response-unwrap",
+      "status": "auto",
+      "page": "openai-node-v4",
+      "quote": "console.log(chatCompletion.choices[0].message);",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "v4 returns the response body itself, so `result.data.x` becomes `result.x`. A result used any other way (headers, status, passed on whole) stops.",
+      "data": {
+        "fromMajor": 3
+      }
+    },
+    {
+      "rule": "openai-node-v4-create-translation",
+      "family": "method-rename",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "- `createTranslation` -> `audio.translations.create`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`createTranslation` becomes `audio.translations.create`, but v3 took positional arguments the guide does not map to v4 parameters, so the call stops for review.",
+      "data": {
+        "fromMajor": 3,
+        "old": "createTranslation",
+        "new": "audio.translations.create",
+        "arguments": "positional"
+      }
+    },
+    {
+      "rule": "openai-node-v4-create-image-edit",
+      "family": "method-rename",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "- `createImageEdit` -> `images.edit`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`createImageEdit` becomes `images.edit`, but v3 took positional arguments the guide does not map to v4 parameters, so the call stops for review.",
+      "data": {
+        "fromMajor": 3,
+        "old": "createImageEdit",
+        "new": "images.edit",
+        "arguments": "positional"
+      }
+    },
+    {
+      "rule": "openai-node-v4-create-image-variation",
+      "family": "method-rename",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "- `createImageVariation` -> `images.createVariation`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`createImageVariation` becomes `images.createVariation`, but v3 took positional arguments the guide does not map to v4 parameters, so the call stops for review.",
+      "data": {
+        "fromMajor": 3,
+        "old": "createImageVariation",
+        "new": "images.createVariation",
+        "arguments": "positional"
+      }
+    },
+    {
+      "rule": "openai-node-v4-create-file",
+      "family": "method-rename",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "- `createFile` -> `files.create`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`createFile` becomes `files.create`, but v3 took positional arguments the guide does not map to v4 parameters, so the call stops for review.",
+      "data": {
+        "fromMajor": 3,
+        "old": "createFile",
+        "new": "files.create",
+        "arguments": "positional"
+      }
+    },
+    {
+      "rule": "openai-node-v4-download-file",
+      "family": "method-rename",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "- `downloadFile` -> `files.retrieveContent`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`downloadFile` became `files.retrieveContent`, which 6.x no longer has; `files.content` returns a fetch `Response` instead of the text, so the call stops for review.",
+      "data": {
+        "fromMajor": 3,
+        "old": "downloadFile",
+        "new": "files.content",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v4-create-fine-tune",
+      "family": "removed-method",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "- `createFineTune` -> `fineTunes.create`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`createFineTune` became `fineTunes.create` in v4, and 6.x no longer has `fineTunes`: the legacy endpoint is gone, so the call stops for review.",
+      "data": {
+        "fromMajor": 3,
+        "old": "createFineTune"
+      }
+    },
+    {
+      "rule": "openai-node-v4-cancel-fine-tune",
+      "family": "removed-method",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "- `cancelFineTune` -> `fineTunes.cancel`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`cancelFineTune` became `fineTunes.cancel` in v4, and 6.x no longer has `fineTunes`: the legacy endpoint is gone, so the call stops for review.",
+      "data": {
+        "fromMajor": 3,
+        "old": "cancelFineTune"
+      }
+    },
+    {
+      "rule": "openai-node-v4-retrieve-fine-tune",
+      "family": "removed-method",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "- `retrieveFineTune` -> `fineTunes.retrieve`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`retrieveFineTune` became `fineTunes.retrieve` in v4, and 6.x no longer has `fineTunes`: the legacy endpoint is gone, so the call stops for review.",
+      "data": {
+        "fromMajor": 3,
+        "old": "retrieveFineTune"
+      }
+    },
+    {
+      "rule": "openai-node-v4-list-fine-tunes",
+      "family": "removed-method",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "- `listFineTunes` -> `fineTunes.list`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`listFineTunes` became `fineTunes.list` in v4, and 6.x no longer has `fineTunes`: the legacy endpoint is gone, so the call stops for review.",
+      "data": {
+        "fromMajor": 3,
+        "old": "listFineTunes"
+      }
+    },
+    {
+      "rule": "openai-node-v4-list-fine-tune-events",
+      "family": "removed-method",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "- `listFineTuneEvents` -> `fineTunes.listEvents`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`listFineTuneEvents` became `fineTunes.listEvents` in v4, and 6.x no longer has `fineTunes`: the legacy endpoint is gone, so the call stops for review.",
+      "data": {
+        "fromMajor": 3,
+        "old": "listFineTuneEvents"
+      }
+    },
+    {
+      "rule": "openai-node-v4-create-edit",
+      "family": "removed-method",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "- `createEdit` -> `edits.create`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`createEdit` became `edits.create` in v4, and 6.x no longer has `edits`: the legacy endpoint is gone, so the call stops for review.",
+      "data": {
+        "fromMajor": 3,
+        "old": "createEdit"
+      }
+    },
+    {
+      "rule": "openai-node-v4-removed",
+      "family": "removed-method",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "Removed: - `createAnswer()` - `createClassification()` - `createSearch()` - `listEngines()` - `retrieveEngine()`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "These v3 methods have no v4 replacement; a call stops for review.",
+      "data": {
+        "fromMajor": 3,
+        "old": [
+          "createAnswer",
+          "createClassification",
+          "createSearch",
+          "listEngines",
+          "retrieveEngine"
+        ]
+      }
+    },
+    {
+      "rule": "openai-node-v4-errors",
+      "family": "error-shape",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "if (error instanceof OpenAI.APIError) {",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "v3 errors carried the HTTP response (`error.response.status`, `error.response.data`); v4 errors are `OpenAI.APIError` with `status`, `message`, `code` and `type`. A `.response` read on a caught error in a file with a migrated call stops for review.",
+      "data": {
+        "fromMajor": 3
+      }
+    },
+    {
+      "rule": "openai-node-v4-request-options",
+      "family": "request-options",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "### Creating a streaming chat completion (new) ```typescript // Old // Not supported",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "A v3 call with a second (axios) options argument, such as `responseType: \"stream\"`, has no mapped v4 form, so it stops for review.",
+      "data": {
+        "fromMajor": 3
+      }
+    },
+    {
+      "rule": "openai-node-v4-types",
+      "family": "removed-export",
+      "status": "review",
+      "page": "openai-node-v4",
+      "quote": "v4 is a complete rewrite of the SDK.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "v3 type and enum exports (such as `ChatCompletionRequestMessage`) are not in v4 and the guide does not map them; files importing them stop for review.",
+      "data": {
+        "fromMajor": 3,
+        "keep": [
+          "Configuration",
+          "OpenAIApi"
+        ]
+      }
+    },
+    {
+      "rule": "openai-node-v5-chat-completions-del",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.chat.completions.delete();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`chat.completions.del` is named `chat.completions.delete` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "chat.completions.del",
+        "new": "chat.completions.delete",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-files-del",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.files.delete();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`files.del` is named `files.delete` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "files.del",
+        "new": "files.delete",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-models-del",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.models.delete();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`models.del` is named `models.delete` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "models.del",
+        "new": "models.delete",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-fine-tuning-checkpoints-permissions-del",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.fineTuning.checkpoints.permissions.delete();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`fineTuning.checkpoints.permissions.del` is named `fineTuning.checkpoints.permissions.delete` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "fineTuning.checkpoints.permissions.del",
+        "new": "fineTuning.checkpoints.permissions.delete",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-vector-stores-del",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.vectorStores.delete();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`vectorStores.del` is named `vectorStores.delete` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "vectorStores.del",
+        "new": "vectorStores.delete",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-vector-stores-files-del",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.vectorStores.files.delete();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`vectorStores.files.del` is named `vectorStores.files.delete` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "vectorStores.files.del",
+        "new": "vectorStores.files.delete",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-beta-assistants-del",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.beta.assistants.delete();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`beta.assistants.del` is named `beta.assistants.delete` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "beta.assistants.del",
+        "new": "beta.assistants.delete",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-beta-threads-del",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.beta.threads.delete();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`beta.threads.del` is named `beta.threads.delete` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "beta.threads.del",
+        "new": "beta.threads.delete",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-beta-threads-messages-del",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.beta.threads.messages.delete();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`beta.threads.messages.del` is named `beta.threads.messages.delete` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "beta.threads.messages.del",
+        "new": "beta.threads.messages.delete",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-responses-del",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.responses.delete();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`responses.del` is named `responses.delete` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "responses.del",
+        "new": "responses.delete",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-evals-del",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.evals.delete();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`evals.del` is named `evals.delete` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "evals.del",
+        "new": "evals.delete",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-evals-runs-del",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.evals.runs.delete();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`evals.runs.del` is named `evals.runs.delete` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "evals.runs.del",
+        "new": "evals.runs.delete",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-containers-del",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.containers.delete();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`containers.del` is named `containers.delete` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "containers.del",
+        "new": "containers.delete",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-containers-files-del",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.containers.files.delete();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`containers.files.del` is named `containers.files.delete` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "containers.files.del",
+        "new": "containers.files.delete",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-beta-chat-parse",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.chat.completions.parse();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`beta.chat.completions.parse` moved to `chat.completions.parse` in v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "beta.chat.completions.parse",
+        "new": "chat.completions.parse",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-beta-chat-stream",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.chat.completions.stream();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`beta.chat.completions.stream` moved to `chat.completions.stream` in v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "beta.chat.completions.stream",
+        "new": "chat.completions.stream",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-beta-chat-run-tools",
+      "family": "method-rename",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.chat.completions.runTools();",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`beta.chat.completions.runTools` moved to `chat.completions.runTools` in v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "beta.chat.completions.runTools",
+        "new": "chat.completions.runTools",
+        "arguments": "same"
+      }
+    },
+    {
+      "rule": "openai-node-v5-beta-chat-types",
+      "family": "import-path",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "import { ParsedChatCompletion, ParsedChoice, ParsedFunction } from 'openai/resources/chat/completions';",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Types imported from `openai/resources/beta/chat/completions` come from `openai/resources/chat/completions` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "openai/resources/beta/chat/completions",
+        "new": "openai/resources/chat/completions",
+        "names": [
+          "ParsedChatCompletion",
+          "ParsedChoice",
+          "ParsedFunction"
+        ]
+      }
+    },
+    {
+      "rule": "openai-node-v5-src",
+      "family": "import-path",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "If you have any `openai/src/*` imports, you will need to replace them with `openai/*`.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`openai/src/...` imports become `openai/...`.",
+      "data": {
+        "fromMajor": 4,
+        "oldPrefix": "openai/src",
+        "newPrefix": "openai"
+      }
+    },
+    {
+      "rule": "openai-node-v5-event-function-call",
+      "family": "runner-event",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "- `functionCall` → `functionToolCall`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "The tool runner event `functionCall` is `functionToolCall` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "functionCall",
+        "new": "functionToolCall"
+      }
+    },
+    {
+      "rule": "openai-node-v5-event-function-call-result",
+      "family": "runner-event",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "- `functionCallResult` → `functionToolCallResult`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "The tool runner event `functionCallResult` is `functionToolCallResult` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "functionCallResult",
+        "new": "functionToolCallResult"
+      }
+    },
+    {
+      "rule": "openai-node-v5-event-final-function-call",
+      "family": "runner-event",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "- `finalFunctionCall` → `finalFunctionToolCall`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "The tool runner event `finalFunctionCall` is `finalFunctionToolCall` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "finalFunctionCall",
+        "new": "finalFunctionToolCall"
+      }
+    },
+    {
+      "rule": "openai-node-v5-event-final-function-call-result",
+      "family": "runner-event",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "- `finalFunctionCallResult` → `finalFunctionToolCallResult`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "The tool runner event `finalFunctionCallResult` is `finalFunctionToolCallResult` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "finalFunctionCallResult",
+        "new": "finalFunctionToolCallResult"
+      }
+    },
+    {
+      "rule": "openai-node-v5-runner-final-function-call",
+      "family": "runner-method",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "- `runner.finalFunctionCall()` → `runner.finalFunctionToolCall()`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`runner.finalFunctionCall()` is `runner.finalFunctionToolCall()` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "finalFunctionCall",
+        "new": "finalFunctionToolCall"
+      }
+    },
+    {
+      "rule": "openai-node-v5-runner-final-function-call-result",
+      "family": "runner-method",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "- `runner.finalFunctionCallResult()` → `runner.finalFunctionToolCallResult()`",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`runner.finalFunctionCallResult()` is `runner.finalFunctionToolCallResult()` since v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "finalFunctionCallResult",
+        "new": "finalFunctionToolCallResult"
+      }
+    },
+    {
+      "rule": "openai-node-v5-run-functions",
+      "family": "removed-method",
+      "status": "review",
+      "page": "openai-node-v5",
+      "quote": "The deprecated `client.chat.completions.runFunctions()` method and all of it's surrounding types have been removed, instead you should use `client.chat.completions.runTools()`.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`runFunctions` is gone and `runTools` takes tools, not functions; the call stops for review.",
+      "data": {
+        "fromMajor": 4,
+        "old": [
+          "chat.completions.runFunctions",
+          "beta.chat.completions.runFunctions"
+        ]
+      }
+    },
+    {
+      "rule": "openai-node-v5-file-from-path-stream",
+      "family": "file-stream",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "OpenAI.fileFromPath('path/to/file'); // After import fs from 'fs'; fs.createReadStream('path/to/file');",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`fileFromPath(path)` with one argument becomes `createReadStream(path)` from node:fs.",
+      "data": {
+        "fromMajor": 4
+      }
+    },
+    {
+      "rule": "openai-node-v5-file-from-path-named",
+      "family": "file-named",
+      "status": "auto",
+      "page": "openai-node-readme",
+      "quote": "// `toFile()` creates a web File, so it must buffer stream inputs before sending them.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`fileFromPath(path, name[, options])` becomes `toFile(createReadStream(path), name[, options])`: the same named web File, built from a Node stream.",
+      "data": {
+        "fromMajor": 4
+      }
+    },
+    {
+      "rule": "openai-node-v5-file-from-path",
+      "family": "removed-export",
+      "status": "review",
+      "page": "openai-node-v5",
+      "quote": "The deprecated `fileFromPath` helper has been removed in favor of native Node.js streams:",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`fileFromPath` with more than the path, or used other than as a call, has no mapped form; a use stops for review.",
+      "data": {
+        "fromMajor": 4,
+        "names": [
+          "fileFromPath"
+        ]
+      }
+    },
+    {
+      "rule": "openai-node-v5-http-agent",
+      "family": "removed-option",
+      "status": "review",
+      "page": "openai-node-v5",
+      "quote": "The `httpAgent` client option has been removed in favor of a [platform-specific `fetchOptions` property](https://github.com/openai/openai-node#fetch-options).",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "A client built with `httpAgent` stops for review.",
+      "data": {
+        "fromMajor": 4,
+        "option": "httpAgent"
+      }
+    },
+    {
+      "rule": "openai-node-v5-shims",
+      "family": "removed-import",
+      "status": "review",
+      "page": "openai-node-v5",
+      "quote": "The `openai/shims` imports have been removed.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "An `openai/shims/...` import stops for review.",
+      "data": {
+        "fromMajor": 4,
+        "prefix": "openai/shims"
+      }
+    },
+    {
+      "rule": "openai-node-v5-named-path-params",
+      "family": "named-path-parameters",
+      "status": "review",
+      "page": "openai-node-v5",
+      "quote": "only the _last_ path parameter is positional and the rest must be passed as named arguments.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Methods with several path parameters take only the last one positionally since v5; a call with two or more leading arguments to one of them stops for review.",
+      "data": {
+        "fromMajor": 4,
+        "methods": [
+          "fineTuning.checkpoints.permissions.delete",
+          "vectorStores.files.retrieve",
+          "vectorStores.files.update",
+          "vectorStores.files.delete",
+          "vectorStores.files.content",
+          "vectorStores.fileBatches.retrieve",
+          "vectorStores.fileBatches.cancel",
+          "vectorStores.fileBatches.listFiles"
+        ]
+      }
+    },
+    {
+      "rule": "openai-node-v5-web-response",
+      "family": "web-response",
+      "status": "review",
+      "page": "openai-node-v5",
+      "quote": "if you wrote code that used `withResponse` or `asResponse` and then accessed `node-fetch`-specific properties on the result, you will need to switch to standardized alternatives.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`withResponse()` and `asResponse()` return Web fetch objects since v5; a use stops for review.",
+      "data": {
+        "fromMajor": 4,
+        "methods": [
+          "withResponse",
+          "asResponse"
+        ]
+      }
+    },
+    {
+      "rule": "openai-node-v6-tool-output",
+      "family": "output-type",
+      "status": "review",
+      "page": "openai-node-6.0.0",
+      "quote": "`ResponseFunctionToolCallOutputItem.output` and `ResponseCustomToolCallOutput.output` now return `string | Array<ResponseInputText | ResponseInputImage | ResponseInputFile>` instead of `string` only.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "A tool call output item's `output` may be an array since 6.0.0; the type check decides, and a draft that passes says so.",
+      "data": {
+        "fromMajor": 5
+      }
+    }
+  ]
+}
