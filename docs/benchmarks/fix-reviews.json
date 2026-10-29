@@ -3161,6 +3161,21 @@
         "upgradeComplete": "yes: stripe ^17.4.0 to ^23.0.0 in package.json and the lockfile; the code sets no apiVersion, so stripe-node 23 sends 2026-09-30.endive.",
         "wouldMerge": "yes for the patch itself, after one test-mode checkout; the server's pre-existing startup errors are the maintainer's to fix."
       }
+    },
+    {
+      "repo": "aionarae/amazon-beta",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40821431837 (before, main 6161f020) and 40821435089 (after, feat/checkjs-type-check ce1f168f, main merged), subsets/l2-push-249.json, no AI. Before: \"No check can run\" (no test script; stripe loaded with require()), grade D; after: the checkJs type check runs against the package-lock.json Refit resolves (the repository commits none) and its coverage proof types the changed request key with stripe-node 23.0.0's declarations, grade C under owner decision D2c; the draft stays needs-review for contract changes. migration.patch from the shard-8 artifact applied to a shallow clone at the pinned commit and read in full as git diff",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: 1 Checkout Session payment_method_types: ['card'] (server/schemas/resolvers.js:77) renamed to allowed_payment_method_types with the value kept, case A of the owner-approved card rule (https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).",
+        "bothVersions": "not needed: request parameters only, sent at the version the same patch moves to endive; no webhook or response read is changed.",
+        "nothingUnrelated": "yes: the renamed key and the stripe dependency in package.json. No lockfile is committed, so none changes.",
+        "pleaseCheck": "The draft lists line_items description becoming nullable or optional (resolvers.js:67) and an untraced .price read (resolvers.js:70). All are false alarms: both read the app's own args.products while building line_items, not a Stripe response. Keep cards enabled in the Dashboard (the draft says so).",
+        "upgradeComplete": "yes: stripe ^16.6.0 to 23.0.0 in package.json (an exact pin, as Refit writes for a repository without a lockfile); the code sets no apiVersion, so stripe-node 23 sends 2026-09-30.endive.",
+        "wouldMerge": "yes, after one test-mode checkout."
+      }
     }
   ]
 }
