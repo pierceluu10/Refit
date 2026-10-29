@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
+import { CHECKJS_TSCONFIG } from './check-selection.ts';
 import {
   proposalContent,
   proposalSummary,
@@ -215,21 +216,16 @@ exports.handler = async (event, context) => {
 };
 `,
   };
-  // As committed: no test script and no TypeScript, so nothing would check a change.
+  // As committed: no test script and no TypeScript, so only a checkJs type check can run, and it
+  // counts only where the coverage proof shows TypeScript typed the changed Stripe code.
   const committed = await proposeStripeConfiguration(
     await repository({ ...files, 'package.json': manifest('^18.2.1') }),
   );
-  expect(committed).toEqual({
-    proposal: null,
-    stops: [
-      {
-        id: 'no-checks',
-        detail:
-          'This repository has no test script and no TypeScript type check, so Refit has nothing that shows a change still works.',
-        action:
-          'Add a "test" script to package.json, or a tsconfig.json with typescript in devDependencies.',
-      },
-    ],
+  expect(committed.stops).toEqual([]);
+  expect(committed.proposal?.checks).toMatchObject({
+    kind: 'typecheck',
+    source:
+      'tsc with checkJs over the JavaScript Stripe code, counted only where TypeScript types the changed Stripe calls',
   });
   const tested = await proposeStripeConfiguration(
     await repository({ ...files, 'package.json': manifest('^18.2.1', TESTS) }),
@@ -658,7 +654,8 @@ it('proposes a configuration without a lockfile or checks only when asked, keepi
     'No .refit.json is committed, so Refit generated one: Stripe API version 2026-04-22.dahlia (set at src/lib/stripe.ts:3), moving to 2026-09-30.endive, checked by the test script in package.json, run with npm. No test imports Stripe code, so the tests show only that the rest of the code still works. TypeScript is not installed, so no type check runs with them. Each draft Refit opens with it is titled [Needs review]: Refit installs dependencies only from a committed lockfile, and this repository has none at its root. Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
   );
 
-  // No test script, and a client only require() loads, which no type check can cover.
+  // No test script, and a client only require() loads: a checkJs type check runs, counted only
+  // where TypeScript types the changed Stripe code.
   const unchecked = await repository({
     'package.json': manifest('^22.1.1'),
     'package-lock.json': npmLock('22.1.1'),
@@ -667,25 +664,22 @@ it('proposes a configuration without a lockfile or checks only when asked, keepi
       'const Stripe = require("stripe");',
     ),
   });
-  expect((await proposeStripeConfiguration(unchecked)).proposal).toBeNull();
-  const noop = (await proposeStripeConfiguration(unchecked, { allowUntested: true })).proposal!;
-  // The no-op check is the one the draft names as testing nothing (pipeline/publication.ts).
-  expect(noop.configuration.integrations[0]).toEqual({
+  const checkJs = (await proposeStripeConfiguration(unchecked)).proposal!;
+  expect(checkJs.configuration.integrations[0]).toMatchObject({
     id: 'stripe',
-    before: './refit/stripe-2026-04-22.dahlia.json',
-    after: './refit/stripe-2026-09-30.endive.json',
     apiVersion: '2026-04-22.dahlia',
-    image: 'node:22-alpine',
     prepareDependencies: true,
-    command: ['node', '-e', '0'],
+    compareTypeErrors: true,
+    command: [
+      'sh',
+      '-c',
+      expect.stringContaining(CHECKJS_TSCONFIG),
+      'refit-check',
+      expect.any(String),
+    ],
   });
-  expect(noop.checks).toEqual({
-    kind: 'none',
-    source: 'node -e 0, which tests nothing',
-    reason:
-      'There is no test script. Stripe is loaded with require() (src/lib/stripe.js), which TypeScript leaves untyped, so no type check can cover the Stripe code.',
-  });
-  expect(noop.reviews.map((stop) => stop.id)).toEqual(['no-checks']);
+  expect(checkJs.checks).toMatchObject({ kind: 'typecheck' });
+  expect(checkJs.reviews).toEqual([]);
 });
 
 it('still refuses an untested repository for any other reason, and names every reason', async () => {

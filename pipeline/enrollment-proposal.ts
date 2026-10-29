@@ -642,7 +642,9 @@ export async function proposeStripeConfiguration(
       ? 'tsc over tsconfig.json, failing only on new type errors'
       : check.typeCheck === 'scoped'
         ? 'tsc over the Stripe code, failing only on new type errors'
-        : undefined;
+        : check.typeCheck === 'checkjs'
+          ? 'tsc with checkJs over the JavaScript Stripe code, counted only where TypeScript types the changed Stripe calls'
+          : undefined;
   // Owner decision 1: without any check the command is a no-op the draft names (untested).
   const checked = check.kind
     ? [

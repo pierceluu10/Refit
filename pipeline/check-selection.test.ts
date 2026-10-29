@@ -592,8 +592,9 @@ it('never selects a no-op', async () => {
     reason:
       'There is no test script. No file imports stripe, so no type check can cover the Stripe code.',
   });
-  // dalemoncayo/express-stripe at a18c6d3: `require('stripe')(key)` is untyped to TypeScript, so a
-  // type check would pass without checking a single Stripe call.
+  // dalemoncayo/express-stripe at a18c6d3: TypeScript types `require('stripe')(key)` only with
+  // checkJs, Node's module resolution and a stripe-node whose typings make it callable, so the check
+  // is a checkJs one that counts only with the coverage proof (checkjs-coverage.test.ts).
   expect(
     await selectCheck(
       await repository({
@@ -607,11 +608,11 @@ it('never selects a no-op', async () => {
       }),
     ),
   ).toMatchObject({
-    kind: null,
-    command: null,
+    kind: 'typecheck',
+    typeCheck: 'checkjs',
     stripeFiles: ['app.js'],
     reason:
-      'There is no test script. Stripe is loaded with require() (app.js), which TypeScript leaves untyped, so no type check can cover the Stripe code.',
+      "There is no test script. Stripe is loaded with require() (app.js), so a generated tsconfig type-checks that JavaScript and every file importing it with checkJs and Node's module resolution, with Refit's own TypeScript because the repository installs none; it counts only where TypeScript types the changed Stripe calls with the installed stripe-node.",
   });
 });
 
