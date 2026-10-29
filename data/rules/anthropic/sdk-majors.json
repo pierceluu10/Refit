@@ -56,7 +56,24 @@
       "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.",
       "checkedAt": "2026-10-29",
       "origin": "docs",
-      "summary": "The request sends temperature, top_p or top_k, which API version 2026-10-21 rejects. Removing them can change outputs, so it is a parameter decision (the model-parameter rules), not part of the SDK upgrade.",
+      "summary": "The request may send temperature, top_p or top_k, which API version 2026-10-21 rejects, and Refit cannot see or remove them where they are written (an untraced client, a body built elsewhere or an opaque spread).",
+      "data": {
+        "parameters": [
+          "temperature",
+          "top_p",
+          "top_k"
+        ]
+      }
+    },
+    {
+      "rule": "anthropic-2026-10-21-sampling-remove",
+      "family": "remove-parameter",
+      "status": "auto",
+      "page": "anthropic-2026-10-21",
+      "quote": "Remove the three parameters from your requests.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Without them a request samples with the defaults (temperature 1.0), so answers can be more or less varied than with the value the code set. Guide tone and consistency in the prompt instead, and check the quality of the answers.",
       "data": {
         "parameters": [
           "temperature",

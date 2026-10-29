@@ -1393,6 +1393,8 @@ function anthropicAdapter(): ProviderAdapter {
   };
 }
 
+const SAMPLING_REMOVE = 'anthropic-2026-10-21-sampling-remove';
+
 const MESSAGE_CALLS = new Set([
   'messages.create',
   'messages.stream',
@@ -1412,7 +1414,15 @@ const literalKey = (property: ts.ObjectLiteralElementLike) =>
 // Every key an object literal can send, following spreads of literals and of conditionals whose
 // branches are literals (`...(beta ? { betas } : {})`); undefined when a spread is anything else.
 function literalKeys(literal: ts.ObjectLiteralExpression): Set<string> | undefined {
+  return literalProperties(literal)?.keys;
+}
+
+// The same walk, keeping each property node so a rule can remove it where it is written.
+function literalProperties(
+  literal: ts.ObjectLiteralExpression,
+): { keys: Set<string>; properties: ts.ObjectLiteralElementLike[] } | undefined {
   const keys = new Set<string>();
+  const properties: ts.ObjectLiteralElementLike[] = [];
   const add = (expression: ts.Expression): boolean => {
     const value = unwrap(expression);
     if (ts.isConditionalExpression(value)) return add(value.whenTrue) && add(value.whenFalse);
@@ -1425,10 +1435,37 @@ function literalKeys(literal: ts.ObjectLiteralExpression): Set<string> | undefin
       const key = literalKey(property);
       if (key === undefined) return false;
       keys.add(key);
+      properties.push(property);
     }
     return true;
   };
-  return add(literal) ? keys : undefined;
+  return add(literal) ? { keys, properties } : undefined;
+}
+
+// A property's text with its trailing comma and the space after it, for deleting it.
+function propertyRange(property: ts.ObjectLiteralElementLike, content: string) {
+  let end = property.getEnd();
+  let cursor = end;
+  while (cursor < content.length && /[ \t]/.test(content[cursor])) cursor++;
+  if (content[cursor] === ',') {
+    end = cursor + 1;
+    while (end < content.length && /[ \t]/.test(content[end])) end++;
+    if (content[end] === '\r') end++;
+    if (content[end] === '\n') {
+      end++;
+      // A property alone on its line goes with its indentation.
+      let start = property.getStart();
+      while (start > 0 && /[ \t]/.test(content[start - 1])) start--;
+      if (start === 0 || content[start - 1] === '\n') return { start, end };
+    }
+    return { start: property.getStart(), end };
+  }
+  // The last property: remove the comma before it instead.
+  let start = property.getStart();
+  let before = start - 1;
+  while (before >= 0 && /\s/.test(content[before])) before--;
+  if (content[before] === ',') start = before;
+  return { start, end };
 }
 
 // Message shapes 2026-10-21 rejects, in literal message arrays of a file with traced calls.
@@ -1642,8 +1679,29 @@ export async function proposeAnthropicSdkMajor(
             sampling.rule,
             'The request body spreads a value Refit cannot read, so it cannot show the request sends none of temperature, top_p or top_k, which 2026-10-21 rejects.',
           );
-        else if ((sampling.data.parameters as string[]).some((name) => keys.has(name)))
-          stop(context, file.path, line, sampling.rule, sampling.summary);
+        else if ((sampling.data.parameters as string[]).some((name) => keys.has(name))) {
+          // The 2026-10-21 guide: "Remove the three parameters from your requests." Applied where
+          // every one is written in this call's own literal (or a literal branch of a spread).
+          const remove = context.rules.get(SAMPLING_REMOVE);
+          const found = literalProperties(body)!.properties.filter((property) =>
+            (sampling.data.parameters as string[]).includes(literalKey(property) ?? ''),
+          );
+          if (!remove) stop(context, file.path, line, sampling.rule, sampling.summary);
+          else {
+            for (const property of found) {
+              const range = propertyRange(property, file.content);
+              edit(context, file.path, range.start, range.end, '', remove.rule);
+            }
+            stop(
+              context,
+              file.path,
+              line,
+              remove.rule,
+              `Removed ${found.map((property) => `\`${property.getText(source).replace(/\s+/g, ' ')}\``).join(', ')}: API version 2026-10-21 rejects them. ${remove.summary}`,
+              false,
+            );
+          }
+        }
       }
     }
     if (moved && (moved.data.methods as string[]).includes(path)) {
@@ -2092,19 +2150,23 @@ function geminiFile(
         block(file, line(generate), reads.reason);
         return;
       }
+      const modelText = geminiModel(context, file, line(generate), modelValue, source, symbolOf);
+      if ('reason' in modelText) {
+        block(file, line(generate), modelText.reason);
+        return;
+      }
       rewrites.push(() => {
         edit(
           context,
           file,
           generate.getStart(),
           generate.getEnd(),
-          `${client}.models.${method.name.text}({ model: ${modelValue.getText(source)}, contents: ${prompt.getText(source)}${configValue ? `, config: ${configValue.getText(source)}` : ''} })`,
+          `${client}.models.${method.name.text}({ model: ${modelText.text}, contents: ${prompt.getText(source)}${configValue ? `, config: ${configValue.getText(source)}` : ''} })`,
           stream ? 'gemini-swap-stream' : 'gemini-swap-generate',
         );
         for (const read of reads.edits)
           edit(context, file, read.start, read.end, read.text, 'gemini-swap-text');
         if (configValue) context.used.add('gemini-swap-config');
-        retiredModel(context, file, line(generate), modelValue, source);
         if (!context.calls.some((item) => item.call === `models.${method.name.text}`))
           context.calls.push({ call: `models.${method.name.text}`, stream });
       });
@@ -2241,6 +2303,27 @@ function geminiFile(
     return { edits };
   };
   visit(source);
+  // Model references are swapped together: any other string naming a retired Gemini model in a
+  // migrated file blocks, so no file ends with one call moved and another still on a dead model.
+  if (context.models && context.edits.some((item) => item.file === file)) {
+    const literals = (node: ts.Node) => {
+      if (ts.isStringLiteralLike(node) && !ts.isImportDeclaration(node.parent)) {
+        const entry = geminiDeadline(context, node.text);
+        const covered = context.edits.some(
+          (item) =>
+            item.file === file && item.start <= node.getStart() && node.getEnd() <= item.end,
+        );
+        if (entry && isRetired(context, entry) && !covered)
+          block(
+            file,
+            lineOf(source, node.getStart()),
+            `\`${node.getText(source)}\` names a model Google retired on ${entry.date}, outside a call the swap migrates; Refit swaps every model reference in a file together or none.`,
+          );
+      }
+      ts.forEachChild(node, literals);
+    };
+    literals(source);
+  }
   // Anything left of the old SDK in this file blocks.
   const leftovers = /\bGoogleGenerativeAI\b|getGenerativeModel\(/g;
   for (const match of content.matchAll(leftovers)) {
@@ -2259,30 +2342,83 @@ function geminiFile(
   }
 }
 
-// A swapped call keeps its model. When the deadline registry lists that model as retired or
-// retiring, the draft says so: the swap does not make a retired model's requests work.
-function retiredModel(
+const MODEL_ID = /^[a-z0-9][a-z0-9.-]*$/;
+
+function geminiDeadline(context: Context, model: string) {
+  const id = model.replace(/^models\//, '');
+  return context.models?.entries.find(
+    (item) => item.provider === 'gemini' && item.kind === 'model' && item.versions.includes(id),
+  );
+}
+
+const isRetired = (context: Context, entry: DeadlineEntry) =>
+  Date.parse(`${entry.date}T00:00:00Z`) <= context.models!.now.getTime();
+
+// The model a swapped call sends. A model the deadline registry lists as retired is replaced by
+// the replacement Google's page names (the registry quotes it), followed while that one is retired
+// too; with no named replacement the swap stops. A retiring model is kept and listed. A model held
+// in a `const` is replaced where the const is written, so every use moves together.
+function geminiModel(
   context: Context,
   file: string,
   line: number,
   model: ts.Expression,
   source: ts.SourceFile,
-) {
-  if (!context.models || !ts.isStringLiteralLike(model)) return;
-  const id = model.text.replace(/^models\//, '');
-  const entry = context.models.entries.find(
-    (item) => item.provider === 'gemini' && item.kind === 'model' && item.versions.includes(id),
-  );
-  if (!entry) return;
-  const retired = Date.parse(`${entry.date}T00:00:00Z`) <= context.models.now.getTime();
+  symbolOf: (node: ts.Node) => ts.Symbol | undefined,
+): { text: string } | { reason: string } {
+  const original = { text: model.getText(source) };
+  if (!context.models) return original;
+  let literal: ts.StringLiteralLike | undefined = ts.isStringLiteralLike(model) ? model : undefined;
+  if (!literal && ts.isIdentifier(model)) {
+    const declaration = symbolOf(model)?.valueDeclaration;
+    const initializer =
+      declaration && ts.isVariableDeclaration(declaration) ? declaration.initializer : undefined;
+    if (initializer && ts.isStringLiteralLike(initializer)) literal = initializer;
+  }
+  if (!literal) return original;
+  let entry = geminiDeadline(context, literal.text);
+  if (!entry) return original;
+  if (!isRetired(context, entry)) {
+    stop(
+      context,
+      file,
+      line,
+      'gemini-model-deadline',
+      `\`${literal.getText(source)}\` retires on ${entry.date} (${entry.source}); the swap keeps it.${entry.replacement ? ` Google names ${entry.replacement}.` : ''}`,
+      false,
+    );
+    return original;
+  }
+  const first = entry;
+  const chain: string[] = [];
+  let replacement: string | null = null;
+  for (let hop = 0; hop < 4 && entry; hop++) {
+    replacement = entry.replacement && MODEL_ID.test(entry.replacement) ? entry.replacement : null;
+    if (!replacement) break;
+    chain.push(replacement);
+    const next = geminiDeadline(context, replacement);
+    entry = next && isRetired(context, next) ? next : undefined;
+    if (!entry) break;
+    replacement = null;
+  }
+  if (!replacement)
+    return {
+      reason: `\`${literal.getText(source)}\` was retired on ${first.date} (${first.source}) and Google names no single replacement model, so Refit cannot choose one; the swap stops.`,
+    };
+  const quote = literal.getText(source)[0];
+  const prefix = literal.text.startsWith('models/') ? 'models/' : '';
+  const text = `${quote}${prefix}${replacement}${quote}`;
   stop(
     context,
     file,
     line,
     'gemini-model-deadline',
-    `\`${model.getText(source)}\` ${retired ? 'was retired' : 'retires'} on ${entry.date} (${entry.source}); the SDK swap keeps it, so ${retired ? 'the request still fails after this change' : 'it still needs replacing'}${entry.replacement ? `. The provider names ${entry.replacement}` : ''}. Changing the model is the model-retirement rule's decision.`,
+    `\`${literal.getText(source)}\` was retired on ${first.date} (${first.source}); the swap sends ${text}, the replacement Google names${chain.length > 1 ? ` (via ${chain.slice(0, -1).join(', ')})` : ''}. Answers, cost and limits can differ; check their quality.`,
     false,
   );
+  if (literal === model) return { text };
+  edit(context, file, literal.getStart(), literal.getEnd(), text, 'gemini-model-deadline');
+  return original;
 }
 
 function findIdentifierAt(source: ts.SourceFile, position: number) {

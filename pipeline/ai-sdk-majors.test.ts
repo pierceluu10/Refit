@@ -437,13 +437,19 @@ export interface Stored extends Anthropic.MessageParam { id: string }
       },
       { '@anthropic-ai/vertex-sdk': '^0.14.0' },
     );
-    expect(proposal.stops.every((item) => item.blocking)).toBe(true);
-    expect([...new Set(proposal.stops.map((item) => item.rule))].sort()).toEqual([
+    // The literal temperature on a traced call is removed (non-blocking); the opaque body and the
+    // untraced call with top_k still block.
+    expect(
+      [...new Set(proposal.stops.filter((item) => item.blocking).map((item) => item.rule))].sort(),
+    ).toEqual([
       'anthropic-2026-10-21-assistant-documents',
       'anthropic-2026-10-21-sampling',
       'anthropic-ts-message-param-union',
       'anthropic-ts-one-credential',
       'anthropic-ts-text-completions-removed',
+    ]);
+    expect(proposal.stops.filter((item) => !item.blocking).map((item) => item.rule)).toEqual([
+      'anthropic-2026-10-21-sampling-remove',
     ]);
     expect(proposal.stops.filter((item) => item.file === 'b.js')).toHaveLength(1);
   });
@@ -458,10 +464,42 @@ export const old = () => client.beta.tools.messages.create({ model: 'm', max_tok
 `,
     });
     expect(proposal.stops.map((item) => [item.line, item.rule])).toEqual([
-      [4, 'anthropic-2026-10-21-sampling'],
+      [4, 'anthropic-2026-10-21-sampling-remove'],
       [5, 'sdk-surface'],
     ]);
     expect(proposal.stops[1].reason).toContain('does not exist in @anthropic-ai/sdk 1.3.0');
+  });
+
+  it('removes literal sampling parameters with the upgrade, as the 2026-10-21 guide says', async () => {
+    const source = `import Anthropic from '@anthropic-ai/sdk';
+const client = new Anthropic();
+export const ask = (t: number) =>
+  client.messages.create({
+    model: 'claude-sonnet-5-5',
+    max_tokens: 100,
+    temperature: t,
+    top_k: 5,
+    messages: [],
+  });
+export const inline = () => client.messages.create({ model: 'm', max_tokens: 1, top_p: 0.9, messages: [] });
+export const last = () => client.messages.create({ model: 'm', max_tokens: 1, messages: [], temperature: 0 });
+`;
+    const proposal = await anthropic('0.79.0', { 'a.ts': source });
+    expect(proposal.stops.every((item) => !item.blocking)).toBe(true);
+    expect(proposal.stops[0].reason).toContain('Removed `temperature: t`, `top_k: 5`');
+    expect(proposal.stops[0].reason).toContain('answers can be more or less varied');
+    expect(applySourceEdits(source, proposal.edits))
+      .toBe(`import Anthropic from '@anthropic-ai/sdk';
+const client = new Anthropic();
+export const ask = (t: number) =>
+  client.messages.create({
+    model: 'claude-sonnet-5-5',
+    max_tokens: 100,
+    messages: [],
+  });
+export const inline = () => client.messages.create({ model: 'm', max_tokens: 1, messages: [] });
+export const last = () => client.messages.create({ model: 'm', max_tokens: 1, messages: [] });
+`);
   });
 
   it('stops on X-Api-Key only where the SDK sends it', async () => {
@@ -599,38 +637,100 @@ module.exports = { ask };
     expect(proposal.rules.map((rule) => rule.rule)).toContain('gemini-swap-config');
   });
 
-  it('says when a swapped call keeps a retired model', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'refit-ai-sdk-majors-'));
-    roots.push(root);
-    await writeFile(
-      join(root, 'package.json'),
-      JSON.stringify({ dependencies: { '@google/generative-ai': '^0.24.1' } }),
-    );
-    await writeFile(
-      join(root, 'a.ts'),
-      `import { GoogleGenerativeAI } from "@google/generative-ai";\nconst genAI = new GoogleGenerativeAI("k");\nconst model = genAI.getGenerativeModel({ model: "gemini-pro" });\nexport const f = async () => (await model.generateContent("x")).response.text();\n`,
-    );
-    const proposal = (await proposeGeminiSdkSwap(root, await loadAiRuleTables(), {
+  describe('retired models', () => {
+    const entry = (id: string, date: string, replacement: string | null) => ({
+      id,
+      provider: 'gemini' as const,
+      kind: 'model' as const,
+      versions: [id],
+      date,
+      summary: 'retires',
+      replacement,
+      source: 'https://ai.google.dev/gemini-api/docs/deprecations',
+      checkedAt: '2026-10-29',
+    });
+    const models = {
       now: new Date('2026-10-29T00:00:00Z'),
       entries: [
-        {
-          id: 'gemini-pro',
-          provider: 'gemini',
-          kind: 'model',
-          versions: ['gemini-pro'],
-          date: '2025-02-15',
-          summary: 'retired',
-          replacement: 'gemini-2.5-flash',
-          source: 'https://ai.google.dev/gemini-api/docs/deprecations',
-          checkedAt: '2026-10-29',
-        },
+        entry('gemini-pro', '2025-02-15', 'gemini-1.5-flash'),
+        entry('gemini-1.5-flash', '2025-09-24', 'gemini-2.5-flash'),
+        entry('gemini-1.0-pro-vision', '2025-01-01', null),
+        entry('gemini-2.5-flash', '2027-06-01', 'gemini-3.8-flash'),
       ],
-    }))!;
-    expect(proposal.stops).toEqual([
-      expect.objectContaining({ rule: 'gemini-model-deadline', blocking: false, line: 4 }),
-    ]);
-    expect(proposal.stops[0].reason).toContain('was retired on 2025-02-15');
-    expect(proposal.edits.length).toBeGreaterThan(0);
+    };
+    async function swap(files: Record<string, string>) {
+      const root = await mkdtemp(join(tmpdir(), 'refit-ai-sdk-majors-'));
+      roots.push(root);
+      await writeFile(
+        join(root, 'package.json'),
+        JSON.stringify({ dependencies: { '@google/generative-ai': '^0.24.1' } }),
+      );
+      for (const [name, content] of Object.entries(files))
+        await writeFile(join(root, name), content);
+      const proposal = (await proposeGeminiSdkSwap(root, await loadAiRuleTables(), models))!;
+      return {
+        proposal,
+        changed: Object.fromEntries(
+          Object.entries(files).map(([path, content]) => [
+            path,
+            applySourceEdits(
+              content,
+              proposal.edits.filter((item) => item.file === path),
+            ),
+          ]),
+        ),
+      };
+    }
+    const header =
+      'import { GoogleGenerativeAI } from "@google/generative-ai";\nconst genAI = new GoogleGenerativeAI("k");\n';
+
+    it('replaces a retired model with the replacement Google names, followed while retired', async () => {
+      const { proposal, changed } = await swap({
+        'a.ts': `${header}const model = genAI.getGenerativeModel({ model: "gemini-pro" });\nexport const f = async () => (await model.generateContent("x")).response.text();\n`,
+      });
+      expect(proposal.stops.filter((item) => item.blocking)).toEqual([]);
+      expect(changed['a.ts']).toContain(
+        'genAI.models.generateContent({ model: "gemini-2.5-flash", contents: "x" })',
+      );
+      const note = proposal.stops.find((item) => item.rule === 'gemini-model-deadline')!;
+      expect(note.blocking).toBe(false);
+      expect(note.reason).toContain('was retired on 2025-02-15');
+      expect(note.reason).toContain('(via gemini-1.5-flash)');
+      expect(note.reason).toContain('check their quality');
+    });
+
+    it('replaces a model const where it is written', async () => {
+      const { changed } = await swap({
+        'a.ts': `${header}const MODEL = 'gemini-pro';\nconst model = genAI.getGenerativeModel({ model: MODEL });\nexport const f = async () => (await model.generateContent("x")).response.text();\n`,
+      });
+      expect(changed['a.ts']).toContain("const MODEL = 'gemini-2.5-flash';");
+      expect(changed['a.ts']).toContain(
+        'genAI.models.generateContent({ model: MODEL, contents: "x" })',
+      );
+    });
+
+    it('stops where Google names no replacement, or a retired model is named elsewhere in the file', async () => {
+      const none = await swap({
+        'a.ts': `${header}const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro-vision" });\nexport const f = async () => (await model.generateContent("x")).response.text();\n`,
+      });
+      expect(none.proposal.stops.every((item) => item.blocking)).toBe(true);
+      expect(none.proposal.stops[0].reason).toContain('names no single replacement');
+      const elsewhere = await swap({
+        'a.ts': `${header}const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });\nexport const f = async () => (await model.generateContent("x")).response.text();\nexport const fallback = "gemini-pro";\n`,
+      });
+      expect(elsewhere.proposal.stops.filter((item) => item.blocking)).toEqual([
+        expect.objectContaining({
+          line: 5,
+          reason: expect.stringContaining('swaps every model reference in a file together'),
+        }),
+      ]);
+      // gemini-2.5-flash retires later: kept, and listed.
+      expect(
+        elsewhere.proposal.stops.some(
+          (item) => !item.blocking && item.reason.includes('retires on 2027-06-01'),
+        ),
+      ).toBe(true);
+    });
   });
 
   it('keeps blocking on systemInstruction, safetySettings and other config keys', async () => {
