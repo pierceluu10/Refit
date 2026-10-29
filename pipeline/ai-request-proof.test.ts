@@ -134,11 +134,11 @@ it('reads a 403 for a model outside the project as pending, without its project 
   expect(sent).toEqual(['gpt-6.1-sol']);
 });
 
-it('keeps a 403 that is not about the model a rejection', async () => {
+it('reads any 403 from the proof project as pending, even without a model named', async () => {
   class OpenAI {
-    responses = {
+    moderations = {
       create: async () => {
-        throw Object.assign(new Error('Country, region, or territory not supported'), {
+        throw Object.assign(new Error('You are not allowed to make this request.'), {
           status: 403,
         });
       },
@@ -146,11 +146,41 @@ it('keeps a 403 that is not about the model a rejection', async () => {
   }
   const proof = await proveRequests({
     provider: 'openai',
-    calls: [{ call: 'responses.create' }],
+    calls: [{ call: 'moderations.create' }],
     env: { OPENAI_API_KEY: 'test-key' },
     load: async () => ({ OpenAI }),
   });
-  expect(proof.status).toBe('rejected');
+  expect(proof.status).toBe('pending');
+  expect(proof.calls[0].detail).toBe(
+    "request not enabled for Refit's project (HTTP 403: You are not allowed to make this request.)",
+  );
+});
+
+it('sends reasoning_effort none only with Chat tools', async () => {
+  const requests: Record<string, unknown>[] = [];
+  class OpenAI {
+    chat = {
+      completions: {
+        create: async (body: Record<string, unknown>) => {
+          requests.push(body);
+          return body.tools
+            ? {
+                choices: [
+                  { message: { tool_calls: [{ function: { arguments: '{"word":"ok"}' } }] } },
+                ],
+              }
+            : { choices: [{ message: { content: 'ok' } }] };
+        },
+      },
+    };
+  }
+  await proveRequests({
+    provider: 'openai',
+    calls: [{ call: 'chat.completions.create', tools: true }],
+    env: { OPENAI_API_KEY: 'test-key' },
+    load: async () => ({ OpenAI }),
+  });
+  expect(requests.map((body) => body.reasoning_effort)).toEqual([undefined, 'none']);
 });
 
 it('sends OpenAI proofs with gpt-6.1-sol unless the environment names a model', async () => {

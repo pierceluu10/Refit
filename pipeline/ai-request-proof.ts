@@ -134,11 +134,15 @@ const OPENAI_PROBES: Record<string, Probe> = {
       done.push(`stream parsed (${chunks} chunks)`);
     }
     if (call.tools) {
+      // "Starting with GPT-5.4, Chat Completions does not support tool calling with
+      // `reasoning_effort` values other than `none`" (docs/ai-docs/pages/openai-migrate-to-responses.md),
+      // and the default is not `none`, so the tool request says it.
       const tooled = (await invoke(client, call.call, {
         model,
         messages: [{ role: 'user', content: 'Record the word ok.' }],
         tools: [TOOL],
         tool_choice: { type: 'function', function: { name: 'record' } },
+        reasoning_effort: 'none',
         max_completion_tokens: 512,
       })) as { choices?: { message?: { tool_calls?: { function?: { arguments?: string } }[] } }[] };
       const argumentsText = tooled.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
@@ -352,13 +356,14 @@ export async function proveRequests(options: {
         calls.push({ call: call.call, status: 'pending', detail: error.message });
         continue;
       }
-      // A 403 about the model means the proof project has not enabled it, not that the call shape
-      // is wrong.
-      if (status === 403 && error instanceof Error && /\bmodel/i.test(error.message)) {
+      // The proof keys belong to Refit's own restricted projects, so a 403 means the project has
+      // not enabled the model or endpoint, not that the call shape is wrong.
+      if (status === 403) {
+        const message = error instanceof Error ? redact(error.message).slice(0, 240) : '';
         calls.push({
           call: call.call,
           status: 'pending',
-          detail: `model not enabled for Refit's project (HTTP 403: ${redact(error.message).slice(0, 240)})`,
+          detail: `${error instanceof Error && /\bmodel/i.test(error.message) ? 'model' : 'request'} not enabled for Refit's project (HTTP 403${message ? `: ${message}` : ''})`,
         });
         continue;
       }
