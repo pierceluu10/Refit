@@ -389,6 +389,9 @@ export default function Auth() {
 export const a = <AppProvider embedded={false} i18n={x}><p /></AppProvider>;
 export const b = <AppProvider embedded={false}><p /></AppProvider>;
 `,
+      'app/routes/app.tsx': `import { AppProvider as ShopifyAppProvider } from '${ROUTER}/react';
+export const app = <ShopifyAppProvider embedded apiKey={key}><p /></ShopifyAppProvider>;
+`,
     },
     ROUTER,
     moves,
@@ -404,6 +407,8 @@ export default function Auth() {
   );
 }
 `);
+  // An aliased import is the same component.
+  expect(result.after('app/routes/app.tsx')).toContain('<ShopifyAppProvider apiKey={key}>');
   // Another prop stops, and the import stays while an element still uses it.
   expect(result.after('app/routes/other.tsx')).toContain(`import { AppProvider, other }`);
   expect(result.stops).toEqual([
@@ -510,4 +515,33 @@ const shopify = shopifyApp({
       'app/routes/app.tsx': `import { authenticate } from '../shopify.server';\nexport const loader = async ({ request }) => (await authenticate.admin(request)).billing.require({});\n`,
     }),
   ).toContain('uses billing');
+});
+
+it('drops the template restResources crossing remix 4 when no code reads .rest', () => {
+  const moves = [{ name: REMIX, from: '3.8.2', to: '5.0.1' }];
+  const server = `import { shopifyApp } from '${REMIX}/server';
+import { restResources } from '${API}/rest/admin/2024-07';
+export const shopify = shopifyApp({
+  apiVersion: ApiVersion.April26,
+  restResources,
+  future: {},
+});
+`;
+  const result = changes({ 'app/shopify.server.ts': server }, REMIX, moves);
+  expect(result.after('app/shopify.server.ts')).toBe(`import { shopifyApp } from '${REMIX}/server';
+export const shopify = shopifyApp({
+  apiVersion: ApiVersion.April26,
+  future: {},
+});
+`);
+  // A `.rest` read anywhere keeps it, and REST stops elsewhere.
+  const rest = changes(
+    {
+      'app/shopify.server.ts': server,
+      'app/routes/app.tsx': `export const count = (admin) => admin.rest.resources.Product.count({});\n`,
+    },
+    REMIX,
+    moves,
+  );
+  expect(rest.edits).toEqual([]);
 });

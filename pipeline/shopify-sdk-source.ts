@@ -59,6 +59,7 @@ const CUSTOM_DOMAIN_NOTE =
 // What <AppProvider embedded={false}> rendered in @shopify/shopify-app-react-router 1.x
 // (dist/esm/react/components/AppProvider/AppProvider.mjs, 1.1.1): the Polaris script and the
 // children. 2.0.0 (0dbb90c) says to remove it; the template does exactly this (89f43482).
+const ROUTER_REACT = '@shopify/shopify-app-react-router/react';
 const POLARIS_SCRIPT = '<script src="https://cdn.shopify.com/shopifycloud/polaris.js" />';
 // The remix and React Router adapters' billing context passes returnObject: true to
 // @shopify/shopify-api (server/authenticate/admin/billing/*.mjs, remix 3.8.2), so 12.0.0's
@@ -96,6 +97,11 @@ export function shopifySdkSourceChanges(
   const v13 = crosses(moves, '@shopify/shopify-api', 13);
   const v14 = crosses(moves, '@shopify/shopify-api', 14);
   const embeddedOnly = crosses(moves, '@shopify/shopify-app-react-router', 2);
+  // @shopify/shopify-app-remix 4.0.0 removed REST entirely (d7bd799). An app that reads no `.rest`
+  // anywhere used `restResources` only to fill admin.rest.resources, so the key and its import go.
+  const withoutRest =
+    crosses(moves, '@shopify/shopify-app-remix', 4) &&
+    !repository.files.some(({ path, content }) => SOURCE.test(path) && /\.rest\b/.test(content));
   // Optional new columns, backward-compatible unless the app asks for refresh tokens.
   const refreshTokens = crosses(moves, '@shopify/shopify-app-session-storage-prisma', 8);
   const prismaSix = crosses(moves, 'prisma', 6);
@@ -201,6 +207,21 @@ export function shopifySdkSourceChanges(
     const latestUses: ts.Identifier[] = [];
     // Tag names of the <AppProvider embedded={false}> elements replaced above.
     const providers: ts.Node[] = [];
+    // restResources bindings whose config key went.
+    const restBindings = new Set<string>();
+    // Local names of the React Router package's AppProvider, aliases included.
+    const providerNames = new Set(['AppProvider']);
+    for (const statement of file.statements)
+      if (
+        ts.isImportDeclaration(statement) &&
+        ts.isStringLiteral(statement.moduleSpecifier) &&
+        statement.moduleSpecifier.text === ROUTER_REACT &&
+        statement.importClause?.namedBindings &&
+        ts.isNamedImports(statement.importClause.namedBindings)
+      )
+        for (const element of statement.importClause.namedBindings.elements)
+          if ((element.propertyName ?? element.name).text === 'AppProvider')
+            providerNames.add(element.name.text);
     const visit = (node: ts.Node) => {
       if (
         (ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) &&
@@ -225,6 +246,17 @@ export function shopifySdkSourceChanges(
         )
           stop(node, API_VERSION_REQUIRED);
       }
+      if (
+        withoutRest &&
+        (ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) &&
+        node.name.getText() === 'restResources' &&
+        inConfig(node) &&
+        ts.isObjectLiteralExpression(node.parent)
+      ) {
+        handled.add(node.name);
+        remove(node, node.parent.properties, node.parent);
+        if (ts.isShorthandPropertyAssignment(node)) restBindings.add(node.name.text);
+      }
       // `isEmbeddedApp: true` goes; any other value stops.
       if (
         embeddedOnly &&
@@ -243,7 +275,7 @@ export function shopifySdkSourceChanges(
         embeddedOnly &&
         ts.isJsxAttribute(node) &&
         node.name.getText() === 'embedded' &&
-        /(?:^|\.)AppProvider$/.test(node.parent.parent.tagName.getText())
+        providerNames.has(node.parent.parent.tagName.getText().replace(/^.*\./, ''))
       ) {
         const value = node.initializer;
         const opening = node.parent.parent;
@@ -309,24 +341,45 @@ export function shopifySdkSourceChanges(
       ts.forEachChild(node, visit);
     };
     visit(file);
+    // An `@shopify/shopify-api/rest/admin/<version>` import goes with its last use.
+    for (const statement of file.statements) {
+      const named =
+        ts.isImportDeclaration(statement) &&
+        ts.isStringLiteral(statement.moduleSpecifier) &&
+        /^@shopify\/shopify-api\/rest\/admin\//.test(statement.moduleSpecifier.text) &&
+        !statement.importClause?.name &&
+        statement.importClause?.namedBindings &&
+        ts.isNamedImports(statement.importClause.namedBindings)
+          ? statement.importClause.namedBindings
+          : undefined;
+      if (!named) continue;
+      const gone = named.elements.filter((element) => restBindings.has(element.name.text));
+      const uses = (name: string) => content.match(new RegExp(`\\b${name}\\b`, 'g'))!.length;
+      // The import and the removed shorthand are the only two mentions.
+      const unused = gone.filter((element) => uses(element.name.text) === 2);
+      if (unused.length === named.elements.length) remove(statement, file.statements, file);
+      else for (const element of unused) remove(element, named.elements, named);
+    }
     // AppProvider goes from the import once no element uses it.
     if (providers.length)
       for (const statement of file.statements) {
         if (
           !ts.isImportDeclaration(statement) ||
           !ts.isStringLiteral(statement.moduleSpecifier) ||
-          statement.moduleSpecifier.text !== '@shopify/shopify-app-react-router/react'
+          statement.moduleSpecifier.text !== ROUTER_REACT
         )
           continue;
         const named = statement.importClause?.namedBindings;
         const specifier =
           named && ts.isNamedImports(named)
-            ? named.elements.find((element) => element.name.text === 'AppProvider')
+            ? named.elements.find(
+                (element) => (element.propertyName ?? element.name).text === 'AppProvider',
+              )
             : undefined;
         if (!named || !ts.isNamedImports(named) || !specifier) continue;
         const uses: ts.Node[] = [];
         const find = (child: ts.Node): void => {
-          if (ts.isIdentifier(child) && child.text === 'AppProvider') uses.push(child);
+          if (ts.isIdentifier(child) && child.text === specifier.name.text) uses.push(child);
           ts.forEachChild(child, find);
         };
         find(file);
