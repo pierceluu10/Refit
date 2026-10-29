@@ -1772,7 +1772,8 @@ export function ruleProblems(rule: RestRule, schema: GraphQLSchema, contract: Re
   }
   const className = rule.resource?.class ?? rule.restResource;
   const resource = className ? contract.resources[className] : undefined;
-  if (rule.origin === 'ai' && !resource) return [`${rule.id}: no REST resource types to check against`];
+  if (rule.origin === 'ai' && !resource)
+    return [`${rule.id}: no REST resource types to check against`];
   const check = (
     fields: Record<string, RestField>,
     typeName: string,
