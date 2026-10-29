@@ -165,5 +165,21 @@
       }
     ],
     "notCovered": "Of the 8 repositories tagged parameter-change, the 3 in JS/TS send their models through the Vercel AI SDK, OpenRouter or config.get(), which stop or stay unresolved; no request reached a parameter rewrite. Item 2 still has unit-test evidence only."
+  },
+  "geminiDev15": {
+    "set": "ai-bench gemini-dev-15 (PR #415, bench/ai-provider-sets 8e2ecc75), the 11 JS/TS repositories",
+    "refit": "949efedb (feat/ai-model-decisions, Gemini edits on)",
+    "edits": [
+      {
+        "repo": "InnovateTechWorld/remotion-auto-explainer",
+        "site": "components/generateVideo.js:98",
+        "change": "gemini-2.5-flash-image -> gemini-3.1-flash-lite-image (models.generateContent returning inlineData images)",
+        "verdict": "wrong class (should stop)",
+        "why": "The page's replacement, but an image-generation model: the output format can change with the model, and Refit never edits OpenAI image calls for that reason. Fixed in #406 (Gemini image, audio, TTS, live, video and embedding models now stop); not a published draft, found by hand-check."
+      }
+    ],
+    "wrong": 1,
+    "stops": "18 reviewed: custom base URLs (5), endpoint mentioned elsewhere (3), Vercel AI SDK (1), live.connect (1), no concrete replacement for TTS (1), shared constants and parameters (3), temperature on gpt-5.6-sol with no page statement (4). All correct.",
+    "notCovered": "No Gemini text-model literal reached an edit on the set, so Gemini text edits have unit-test evidence only; no embedding or ft: alerts fired in the JS/TS repositories."
   }
 }
