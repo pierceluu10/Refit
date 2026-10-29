@@ -80,6 +80,14 @@ describe('Meta Graph fix plans', () => {
 });
 
 describe('out-of-cycle changes', () => {
+  it('scopes a field change to its endpoint and never guesses parameter values', async () => {
+    const result = await plan({
+      'media.ts': `export const media = (id: string) => fetch(\`https://graph.facebook.com/v22.0/\${id}/media?fields=id,thumbnail_url\`);
+export const carousel = (id: string) => fetch(\`https://graph.facebook.com/v22.0/\${id}/media\`, { method: 'POST', body: JSON.stringify({ media_type: 'CAROUSEL' }) });`,
+    });
+    expect(result.outOfCycle).toEqual([]);
+  });
+
   it('lists a request that names a metric Meta replaced on every version, and nothing broader', async () => {
     const changes = await loadMetaGraphChanges(undefined, NOW);
     const change = changes.changes.find(

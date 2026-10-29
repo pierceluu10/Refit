@@ -90,7 +90,7 @@ it('makes a row from the scan and proposal', () => {
     ).outcome,
   ).toBe('no-graph-usage');
   const table = summaryTable([
-    { ...row, outcomeClass: 'repository' },
+    { ...row, outcomeClass: 'repository', workflow: { status: 'validated', grade: 'C' } },
     { outcomeClass: 'infrastructure' },
     { error: 'boom', outcomeClass: 'repository' },
   ]);
@@ -99,6 +99,8 @@ it('makes a row from the scan and proposal', () => {
     '| infrastructure | 1 |',
     '| needs-review | 1 |',
     '| unversioned | 1 |',
+    '| validated | 1 |',
+    '| C | 1 |',
   ])
     expect(table).toContain(line);
 });

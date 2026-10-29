@@ -19,7 +19,7 @@
   - Retired permissions, Page Insights metrics and oEmbed requests get dated alerts from `data/meta-platform-alerts.json`. Each entry quotes a developers.facebook.com page read on 2026-10-29.
 - **Measured** offline on the 33 non-blind Meta repositories of the deadline benchmark, at target v25.0:
   - live requests 162 → 168, `fields` read 113 → 155;
-  - pins moved 35 → 51 (requests 35 → 55), none lost; test expectations move with the live requests they describe;
+  - pins moved 35 → 53 (requests 35 → 57) with ME2's change table, none lost; test expectations move with the live requests they describe;
   - `refit run` on the 13 repositories with a move: 13 drafts, 3 validated with nothing left, 9 `[Needs review]` for requests that stay, 1 failing baseline; every patch changes only version text;
   - 1 Basic Display migration and 2 alerts.
   - Every changed request (52) and every new move (11) was checked by hand.

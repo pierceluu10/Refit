@@ -1,8 +1,9 @@
+import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseArgs } from 'node:util';
+import { parseArgs, promisify } from 'node:util';
 import {
   checkoutError,
   classifyRow,
@@ -18,14 +19,22 @@ import { META_SDK } from './deadline-exposure.ts';
 import { scanGraphCalls } from './meta-graph-calls.ts';
 import { DEFAULT_META_GRAPH_CHANGES, loadMetaGraphChanges } from './meta-graph-changes.ts';
 import { proposeVersionMoves } from './meta-graph-moves.ts';
+import { loadMetaGraphRules } from './meta-graph-rule-edits.ts';
+import { writeMetaGraphRun } from './meta-graph-workflow.ts';
+import { readEvidence } from './state-files.ts';
+import { HOSTED_REPAIR_ATTEMPTS, validateRepairAttempts } from './validation-options.ts';
 import { readRepository } from './repository.ts';
 import { PipelineInputError } from './types.ts';
 
 // Runs Refit's Meta Graph engine on a frozen Meta list (docs/benchmarks/subsets/meta-*.json):
-// the request scan and the version-move proposal to the list's target, per repository. Code is
-// read, never installed or run, and Meta is never contacted.
+// the request scan and the version-move proposal to the list's target, per repository. With
+// --validate, a repository with a patch then runs `refit run` as a customer's would
+// (writeMetaGraphRun): its checks offline in Docker, AI patches and repair with --ai, and the draft
+// artifacts. Meta is never contacted.
 const USAGE =
-  'Usage: npm run benchmark:meta -- --root <benchmark-dir> --list <frozen.json> --output <new-dir> [--resume] [--allow-dirty] [--limit N]';
+  'Usage: npm run benchmark:meta -- --root <benchmark-dir> --list <frozen.json> --output <new-dir> [--validate [--env .env] [--ai [--repair-attempts 0-4]]] [--resume] [--allow-dirty] [--limit N]';
+const VALIDATION_TIMEOUT_MS = 30 * 60 * 1000;
+const execute = promisify(execFile);
 const { values } = parseArgs({
   options: {
     root: { type: 'string' },
@@ -33,10 +42,23 @@ const { values } = parseArgs({
     list: { type: 'string' },
     limit: { type: 'string' },
     resume: { type: 'boolean' },
+    validate: { type: 'boolean' },
+    ai: { type: 'boolean' },
+    'repair-attempts': { type: 'string' },
+    env: { type: 'string' },
     'allow-dirty': { type: 'boolean' },
   },
 });
 if (!values.root || !values.output || !values.list) throw new PipelineInputError(USAGE);
+if (values.ai && !values.validate) throw new PipelineInputError('--ai needs --validate.');
+const repairAttempts = validateRepairAttempts(
+  Number(values['repair-attempts'] ?? (values.ai ? HOSTED_REPAIR_ATTEMPTS : 0)),
+  Boolean(values.ai),
+);
+if (values.env) process.loadEnvFile(values.env);
+// Benchmark runs never send Slack notices.
+const CHILD_ENV = { ...process.env };
+delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
 const root = resolve(values.root);
 const output = resolve(values.output);
 const list = values.list;
@@ -55,7 +77,7 @@ const { rows: previous } = await openRunDirectory(
     format: 'meta-graph-results',
     refitRoot: fileURLToPath(new URL('..', import.meta.url)),
     list: { path: list, file: list },
-    options: { target, limit: values.limit },
+    options: { target, limit: values.limit, validate: values.validate, ai: values.ai },
     allowDirty: values['allow-dirty'],
   }),
   { resume: values.resume },
@@ -66,8 +88,61 @@ const changesText = await readFile(DEFAULT_META_GRAPH_CHANGES, 'utf8');
 const changesSha256 = createHash('sha256').update(changesText).digest('hex');
 const changes = await loadMetaGraphChanges(DEFAULT_META_GRAPH_CHANGES, now);
 const registry = await loadDeadlineRegistry(undefined, now);
+const rules = await loadMetaGraphRules(changes);
+const recorded = new Set(changes.versions.map((record) => record.version));
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 const results: Record<string, unknown>[] = [];
+
+// `refit run` on the repository, as a customer's worker runs it, and what it ended with.
+async function validate(directory: string, work: string, before: string, version: string) {
+  const { config, selection } = await writeMetaGraphRun({
+    repository: directory,
+    directory: work,
+    before,
+    target: version,
+  });
+  const bundle = join(work, 'run');
+  try {
+    await execute(
+      process.execPath,
+      [
+        fileURLToPath(new URL('../bin/refit.mjs', import.meta.url)),
+        'run',
+        '--config',
+        config,
+        '--output',
+        bundle,
+        '--quiet',
+        '--json',
+        ...(values.ai ? ['--ai-patch', '--repair-attempts', String(repairAttempts)] : []),
+      ],
+      { env: CHILD_ENV, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
+    );
+  } catch {
+    // Non-zero exits are recorded outcomes (needs-review, validation-failed, error).
+  }
+  const manifest = JSON.parse(
+    await readFile(join(bundle, 'manifest.json'), 'utf8').catch(() => '{}'),
+  );
+  const report = JSON.parse((await readEvidence(bundle, 'report.json')) ?? '{}');
+  return {
+    status: String(manifest.status ?? 'missing-manifest'),
+    ...(manifest.stage ? { stage: String(manifest.stage) } : {}),
+    ...(manifest.reason ? { reason: String(manifest.reason) } : {}),
+    ...(manifest.error?.message ? { error: String(manifest.error.message) } : {}),
+    checks: selection.kind ?? 'none',
+    ...(report.validation?.status ? { validation: String(report.validation.status) } : {}),
+    ...(report.validation?.grade?.letter ? { grade: String(report.validation.grade.letter) } : {}),
+    ...(report.validation?.metaGraph?.proof
+      ? { proven: Boolean(report.validation.metaGraph.proof.proven) }
+      : {}),
+    unresolved: Number(report.patch?.unresolvedFindings ?? 0),
+    pullRequest: await readFile(join(bundle, 'pull-request.md'), 'utf8').then(
+      () => true,
+      () => false,
+    ),
+  };
+}
 
 for (const [index, entry] of repos.entries()) {
   if (finishedRow(previous[index], entry)) {
@@ -90,12 +165,19 @@ for (const [index, entry] of repos.entries()) {
     try {
       const repository = await readRepository(directory, META_SDK);
       const scan = await scanGraphCalls(directory, { repository });
-      const proposal = await proposeVersionMoves(directory, target, changes, registry, now);
+      const proposal = await proposeVersionMoves(directory, target, changes, registry, now, rules);
       const { patch, ...row } = metaRow(scan, proposal);
       Object.assign(result, row, { patch: patch !== null });
       await writeFile(join(work, 'scan.json'), json(scan));
       await writeFile(join(work, 'proposal.json'), json(proposal));
       if (patch) await writeFile(join(work, 'moves.patch'), patch);
+      if (patch && values.validate)
+        result.workflow = await validate(
+          directory,
+          work,
+          row.versions.find((version) => recorded.has(version)) ?? target,
+          target,
+        );
     } catch (error) {
       result.error = message(error);
     }

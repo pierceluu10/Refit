@@ -258,8 +258,8 @@ The 33 Meta repositories of the deadline benchmark (not the blind set) were scan
 |---|---:|---:|
 | Requests in live code | 162 | 168 |
 | `fields` read | 113 | 155 |
-| Pins moved (requests) | 35 (35) | 51 (55) |
-| Pins stopped | 120 | 111 |
+| Pins moved (requests) | 35 (35) | 53 (57) |
+| Pins stopped | 120 | 109 |
 | Basic Display migrations | – | 1 |
 | Alerts | – | 2 |
 
@@ -271,7 +271,7 @@ The 33 Meta repositories of the deadline benchmark (not the blind set) were scan
 - **The migration and the alerts:**
   - savarkavi/instagram-profile-test links to the Basic Display authorize URL with `user_profile,user_media`, so it is listed as a migration and alerted.
   - icekidtech/social-snap calls `/instagram_oembed`, so it gets the 2025-11-03 oEmbed alert.
-- **Tests that follow live moves** add 5 more pins in ericlyfan/auto_portfolio: its tests assert the exact URL of each mocked request. That makes 51 pins moved (55 requests).
+- **Tests that follow live moves** add 5 more pins in ericlyfan/auto_portfolio: its tests assert the exact URL of each mocked request. That makes 51 pins moved (55 requests). With ME2's change table (#413), whose `/search` changes no longer match every request that sends `type`, EzekielClervo/BOOSTING's two reaction posts move too: 53 pins (57 requests). No request uses an out-of-cycle change that Refit lists: a field or metric removed or replaced, or a parameter removed, on every version.
 - **`refit run`** was run offline in Docker on the 13 repositories with a move, through `writeMetaGraphRun` with no AI:
   - 13 of 13 produced a patch and a draft.
   - 3 validated with no request left: adilzhanshukenov/quiz-forma, carlosechale/echale-dashboard and maplewing/nopicnic.

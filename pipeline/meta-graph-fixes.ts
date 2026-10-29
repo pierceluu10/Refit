@@ -7,6 +7,7 @@ import type { MetaGraphChanges } from './meta-graph-changes.ts';
 import {
   changesUsedBy,
   fieldNames,
+  pathMatches,
   proposeVersionMoves,
   type VersionMoveProposal,
 } from './meta-graph-moves.ts';
@@ -128,16 +129,19 @@ export interface MetaGraphFixPlan {
   outOfCycle: OutOfCycleUse[];
 }
 
-// Out-of-cycle changes a live request names explicitly: a field, metric or parameter it sends that
-// Meta removed, or replaced with a documented successor. Edge and endpoint changes, and behaviour
-// changes with no replacement, match too broadly on every version at once (a node-wide change
-// matches every read), so they stay with the version moves and alerts.
+// Out-of-cycle changes a live request names explicitly: a field or metric it requests that Meta
+// removed or swapped for another identifier, or a parameter it sends that Meta removed, on the
+// change's own edge or endpoint when the change names one. Parameter value changes (`VIDEO` no
+// longer accepted for `media_type`) need the value, which is not traced; edge and endpoint changes,
+// and behaviour changes with no replacement, match too broadly on every version at once. Those stay
+// with the version moves and alerts.
 function outOfCycleUses(calls: GraphCall[], changes: MetaGraphChanges): OutOfCycleUse[] {
   const always = changes.changes.filter(
     (change) =>
       change.version === null &&
-      /^(field|metric|parameter)-/.test(change.kind) &&
-      (change.kind.endsWith('-removed') || change.replacement !== null),
+      (/^(field|metric)-removed$/.test(change.kind) ||
+        (/^(field|metric)-changed$/.test(change.kind) && change.replacement !== null) ||
+        change.kind === 'parameter-removed'),
   );
   return calls
     .filter((call) => call.use === 'live')
@@ -145,8 +149,10 @@ function outOfCycleUses(calls: GraphCall[], changes: MetaGraphChanges): OutOfCyc
       changesUsedBy(call, always)
         .filter(
           (change) =>
-            !change.kind.startsWith('field-') ||
-            fieldNames(call.fields ?? []).has(change.name ?? ''),
+            (change.edge === null || change.edge === call.edge) &&
+            (change.path === null || (call.path !== null && pathMatches(call.path, change.path))) &&
+            (!change.kind.startsWith('field-') ||
+              fieldNames(call.fields ?? []).has(change.name ?? '')),
         )
         .map((change) => ({
           file: call.file,

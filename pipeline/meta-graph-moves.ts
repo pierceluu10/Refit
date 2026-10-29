@@ -94,7 +94,7 @@ export function fieldNames(fields: string[]) {
 // `/{offline-event-set-id}`, names a node type an opaque ID cannot reveal: it matches every request
 // to a single opaque node (a placeholder or a numeric ID), and never a longer path or a literal one
 // such as `/me`.
-function pathMatches(path: string, prefix: string) {
+export function pathMatches(path: string, prefix: string) {
   const segments = path.split('/').filter(Boolean);
   const wanted = prefix.split('/').filter(Boolean);
   const runtime = (segment: string) => segment.includes('{');

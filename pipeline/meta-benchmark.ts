@@ -83,6 +83,12 @@ export function summaryTable(rows: Record<string, unknown>[]) {
     ),
   );
   const kinds = count(rows.flatMap((row) => Object.keys((row.stopKinds as object) ?? {})));
+  // `refit run` outcomes and grades, for rows run with --validate.
+  const workflows = rows.flatMap((row) =>
+    row.workflow ? [row.workflow as { status: string; grade?: string }] : [],
+  );
+  const statuses = count(workflows.map((workflow) => workflow.status));
+  const grades = count(workflows.map((workflow) => workflow.grade ?? 'none'));
   return [
     '| Meta outcome | Repositories |',
     '|---|---|',
@@ -92,5 +98,17 @@ export function summaryTable(rows: Record<string, unknown>[]) {
     '|---|---|',
     ...kinds.map(([kind, total]) => `| ${kind} | ${total} |`),
     '',
+    ...(workflows.length
+      ? [
+          '| refit run | Repositories |',
+          '|---|---|',
+          ...statuses.map(([status, total]) => `| ${status} | ${total} |`),
+          '',
+          '| Grade | Repositories |',
+          '|---|---|',
+          ...grades.map(([grade, total]) => `| ${grade} | ${total} |`),
+          '',
+        ]
+      : []),
   ].join('\n');
 }
