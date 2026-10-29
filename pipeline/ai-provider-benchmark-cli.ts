@@ -205,13 +205,20 @@ async function main() {
   }
 
   // ai-migrations exists only on commits that have it (SDK majors, API surfaces, betas).
-  const migrations = await execute(
+  const help = await execute(
     process.execPath,
     [join(REFIT, 'bin', 'refit.mjs'), 'ai-migrations', '--help'],
     { cwd: REFIT },
   )
-    .then(() => true)
-    .catch(() => false);
+    .then(({ stdout }) => stdout)
+    .catch(() => null);
+  const migrations = help !== null;
+  // The AI lane for OpenAI legacy Completions and Assistants runs only in Actions with --ai, and
+  // only on commits that have it; the command itself refuses outside GITHUB_ACTIONS.
+  const aiSurfaces =
+    Boolean(help?.includes('--ai-surfaces')) &&
+    Boolean(values.ai && values.validate) &&
+    process.env.GITHUB_ACTIONS === 'true';
   const PACKAGE: Record<string, string> = {
     openai: 'openai',
     anthropic: '@anthropic-ai/sdk',
@@ -225,7 +232,7 @@ async function main() {
         provider?: string;
       }>
     ).filter(counted);
-    if (entry.language === 'py') return { review, proposal: null, validation: null };
+    if (entry.language === 'py') return { review, proposal: null, validation: null, ai: null };
     const pkg = provider && PACKAGE[provider] ? ['--package', PACKAGE[provider]] : [];
     // Without --validate, only the edits and stops (no Docker); with it, the patch is checked.
     const proposal = values.validate
@@ -259,7 +266,31 @@ async function main() {
       );
       validation = JSON.parse(stdout);
     }
-    return { review, proposal, validation };
+    let ai: Record<string, unknown> | null = null;
+    if (aiSurfaces && provider === 'openai') {
+      const { stdout } = await execute(
+        process.execPath,
+        [
+          join(REFIT, 'bin', 'refit.mjs'),
+          'ai-migrations',
+          '--ai-surfaces',
+          '--repository',
+          directory,
+          '--image',
+          values.image!,
+          '--json',
+        ],
+        {
+          cwd: REFIT,
+          env: childEnvironment,
+          maxBuffer: 64 * 1024 * 1024,
+          timeout: MIGRATION_TIMEOUT_MS,
+          killSignal: 'SIGKILL',
+        },
+      );
+      ai = JSON.parse(stdout);
+    }
+    return { review, proposal, validation, ai };
   }
   // The lane a migration result adds: its validation status, or, scan-only, whether it proposed edits.
   function migrationLane(migrated: Awaited<ReturnType<typeof migrate>>): LaneStatus | null {
@@ -324,6 +355,11 @@ async function main() {
       ranAt: new Date().toISOString(),
       harness,
       summary: counts,
+      // What the AI lane's responses report, summed over rows (USD).
+      aiCostUsd: results.reduce((total, row) => {
+        const ai = (row.migrations as { ai?: { ai?: { costUsd?: number } } } | undefined)?.ai;
+        return total + (ai?.ai?.costUsd ?? 0);
+      }, 0),
       results,
     };
   };
@@ -385,6 +421,11 @@ async function main() {
         lanes.push(entry.language === 'py' ? 'needs-review' : 'proposed');
       const lane = migrationLane(migrated);
       if (lane) lanes.push(lane);
+      // The AI lane counts only when it proposed edits; a published draft counts as validated.
+      const aiLane = migrated?.ai as
+        { status?: string; lane?: { edits?: unknown[] } } | null | undefined;
+      if (aiLane?.lane?.edits?.length)
+        lanes.push(aiLane.status === 'draft-created' ? 'validated' : (aiLane.status as LaneStatus));
       row = {
         ...base,
         exposures: found.exposures.map((item) => item.deadline.id),
