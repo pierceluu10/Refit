@@ -485,6 +485,8 @@ function literalValues(node: ts.Expression, depth = 0): ts.StringLiteralLike[] |
   if (depth > MAX_TRACE_DEPTH) return 'unknown';
   const value = unwrap(node);
   if (ts.isStringLiteralLike(value)) return [value];
+  // stripe-node leaves an `undefined` parameter out of the request, so that branch sends nothing.
+  if (ts.isIdentifier(value) && value.text === 'undefined' && !declarationOf(value)) return [];
   let candidates: ts.Expression[] | undefined;
   if (ts.isConditionalExpression(value)) candidates = [value.whenTrue, value.whenFalse];
   else if (ts.isIdentifier(value)) {

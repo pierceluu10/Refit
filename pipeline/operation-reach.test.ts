@@ -1424,6 +1424,19 @@ describe('an enum successor sent as an object (endive billing_cycle_anchor)', ()
       "billing_cycle_anchor: reset ? { type: 'now' } : { type: 'unchanged' }",
     );
     expect(conditional.reach).toEqual(['handled', 'handled', 'handled', 'handled']);
+    // stripe-node leaves an undefined parameter out of the request.
+    const optional = run(
+      "export const go = (id, yearly) => stripe.subscriptions.update(id, { billing_cycle_anchor: yearly ? 'now' : undefined });",
+    );
+    expect(optional.patched).toContain(
+      "billing_cycle_anchor: yearly ? { type: 'now' } : undefined",
+    );
+    expect(optional.reach).toEqual(['handled', 'unused', 'handled', 'handled']);
+    // A local named `undefined` is a value Refit cannot read.
+    const shadowed = run(
+      "export const go = (id, yearly, undefined) => stripe.subscriptions.update(id, { billing_cycle_anchor: yearly ? 'now' : undefined });",
+    );
+    expect(shadowed.patched).not.toContain('type:');
   });
 
   it('keeps stopping where the value is not a literal in the call', () => {

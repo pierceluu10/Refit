@@ -1,6 +1,7 @@
 import ts from 'typescript-compiler';
 import { listOpenApiOperations } from './openapi-operations.ts';
 import { local } from './request-removals.ts';
+import { formatsEqual } from './schema-equivalence.ts';
 import { isObject } from './specifications.ts';
 
 // Stripe 2025-03-31.basil removed GET /v1/invoices/upcoming (stripe-node
@@ -42,7 +43,9 @@ function accepts(
     return a.anyOf.every((option) => accepts(option, next, before, after, depth + 1));
   if (Array.isArray(b.anyOf))
     return b.anyOf.some((option) => accepts(old, option, before, after, depth + 1));
-  if (a.type !== b.type || a.format !== b.format) return false;
+  // A format that only names the rule the field already had (owner decision D4, such as endive's
+  // `currency` on items' price_data.currency) accepts the same values.
+  if (a.type !== b.type || !formatsEqual(a, b)) return false;
   if (Array.isArray(a.enum) || Array.isArray(b.enum))
     return (
       Array.isArray(a.enum) &&
@@ -166,6 +169,18 @@ export function invoicePreviewEdits(
     };
   const keys = plainKeys(literal);
   if (!keys) return { reason: `${REMOVED} Spreads, computed or repeated parameters need review.` };
+  // create_preview gives `currency` the `currency` format, a lowercase three-letter ISO code
+  // (https://docs.stripe.com/currencies); a literal the call visibly sends outside it stays (D4).
+  const invalidCurrency = (node: ts.Node): boolean =>
+    (ts.isPropertyAssignment(node) &&
+      staticName(node.name) === 'currency' &&
+      ts.isStringLiteralLike(node.initializer) &&
+      !/^[a-z]{3}$/.test(node.initializer.text)) ||
+    Boolean(ts.forEachChild(node, (child) => invalidCurrency(child) || undefined));
+  if (invalidCurrency(literal))
+    return {
+      reason: `${REMOVED} It sends a currency create_preview does not accept as written (a lowercase three-letter ISO code, https://docs.stripe.com/currencies); it needs review.`,
+    };
   const detailsLiteral = keys.get('subscription_details');
   const detailKeys =
     detailsLiteral &&
