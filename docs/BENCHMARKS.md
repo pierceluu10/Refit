@@ -325,6 +325,25 @@ Run the dev set on GitHub Actions with `-f list=subsets/shopify-dev-60.json` ([G
 
 The 250 practice repositories (`2026-10-16-shopify-repos.json` and `2026-10-16-shopify-fresh-repos.json`, size 5, same flags and schemas): 40943642717 and 40943654787 (before, `1712c55f`), 40942682023 and 40942694636 (after, `33beeb94`). Validated 4 → 8, none lost: the three dev-60 rows above (they come from these lists) and Akmal1255553/startup1 (grade B; its tests reach `app/shopify.server.ts`), reviewed `correct`. dcam9586/scout-source2 moves from D to C and keeps its `submodules` gate; no other row changed. The one dependency-preparation stop, aargonlab/Self-Service-Returns, declared `"workspaces": []`, which npm leaves out of the root lockfile record; `dc552d8a` accepts it as `npm ci` does, and 40945140339 prepares it and passes its tests on both sides, still grade D because no test reaches `app/shopify.server.ts`.
 
+#### Dev set with and without AI (2026-10-29)
+
+refit-bench `shopify.yml` on branch `shopify-ai`, commit `8bc3d97f`, `--sdk-upgrade`, `size=1`, schemas read 2026-10-29 (2026-04 and 2026-07 differ from the frozen hashes), the development store set in both runs. Without AI: run 40942065975. With AI (`ai=true`, `ai_budget=300`, gpt-6.1-sol): run 40942081474.
+
+|                                                                                  | No AI  | AI     |
+| -------------------------------------------------------------------------------- | ------ | ------ |
+| Validated                                                                        | 0      | 0      |
+| Needs review                                                                     | 12     | 12     |
+| Error (`Combo-page-app`: the proposal changes the verified version declarations) | 1      | 1      |
+| Stopped at scan                                                                  | 47     | 47     |
+| Grade A / D among the 12                                                         | 0 / 12 | 1 / 11 |
+
+- One row changes: jadenScali/Aeo-Optimizer moves from grade D to A. The model wrote the variable inputs the live proof lacked, and all 7 operations ran on the development store at both versions. It stays `[Needs review]` because its own tests fail on the original code. Its patch is deterministic and identical in both runs.
+- 32 scan-time AI requests cost $0.43; the AI child runs spent more on assessments and live cases (recorded per row as `workflow.aiCostUsd`).
+  - Document rewrites: 8 requests, 3 kept, none shipped (those repositories stop on REST calls or SDK limits). The sanjeev744/smart-bundle rewrite was kept only by adding a selection under `@skip(if: true)`. The gate now refuses that.
+  - Reconstructions: 14 requests, 2 kept, both hand-checked correct (alistairmartin/honey-birdette-checkout-amd, whose `GROUPS` holds only the CUSTOMER `size_preference` group). The other 12 were declined correctly: queries from CLI flags, request bodies or caller parameters. That repository still stops on its other unreadable calls and its SDK.
+  - REST mappings: 10 requests. One proposal was kept but did not produce what the code reads, so it was not used.
+- No patch reached AI repair. Every patched row's baseline failed or its checks passed, so no build break was left to repair.
+
 ## API deadlines
 
 The hand-labelled [deadline benchmark](DEADLINE-BENCHMARK.md) covers 100 repositories, 32 labelled line by line. Refit flags 28 of 28 exposed repositories at 28/28 repository precision, with 83% OpenAI line precision from live-only evidence.
