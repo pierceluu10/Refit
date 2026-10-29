@@ -803,7 +803,13 @@ export function requestProofGate(proof: RequestProof | null, language: 'js' | 'p
 
 // --- The run -------------------------------------------------------------------------------------
 
-export type FallbackStatus = 'validated' | 'needs-review' | 'no-attempt';
+// `ai-unavailable`: the provider refused Refit's own key (HTTP 401 or 403) or its quota or rate
+// (429). That says nothing about the repository, so it is never a miss and never feeds a rule.
+export type FallbackStatus = 'validated' | 'needs-review' | 'no-attempt' | 'ai-unavailable';
+
+export function aiUnavailable(message: string) {
+  return /\bHTTP (?:401|403|429)\b/.test(message);
+}
 
 export interface FallbackResult {
   status: FallbackStatus;
@@ -878,6 +884,14 @@ export async function runAiFallback(options: {
     );
   } catch (error) {
     const budget = error instanceof UnusableAiResponse ? error.budget : null;
+    const message = error instanceof Error ? error.message : String(error);
+    if (aiUnavailable(message))
+      return {
+        ...empty,
+        status: 'ai-unavailable',
+        reason: `AI unavailable, not a miss: ${message}`,
+        ai: null,
+      };
     return {
       ...empty,
       status: 'no-attempt',

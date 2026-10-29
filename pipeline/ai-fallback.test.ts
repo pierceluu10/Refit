@@ -594,6 +594,20 @@ describe('runAiFallback', () => {
     expect(result.reason).toContain('AI budget exhausted');
   });
 
+  it('marks a refused key, model access or quota as AI unavailable, not a failure', async () => {
+    for (const status of [401, 403, 429]) {
+      const result = await run((async () => {
+        throw new Error(`OpenAI response request failed with HTTP ${status}. No retry was made.`);
+      }) as never);
+      expect(result.status).toBe('ai-unavailable');
+      expect(result.reason).toContain('not a miss');
+    }
+    const other = await run((async () => {
+      throw new Error('OpenAI response request failed with HTTP 500. No retry was made.');
+    }) as never);
+    expect(other.status).toBe('no-attempt');
+  });
+
   it('does not call the AI when nothing is open or no file fits', async () => {
     let called = false;
     const request = (async () => {

@@ -119,6 +119,8 @@ export function missRecords(
   sources: QuotedSource[],
   fallback: FallbackResult | null,
 ): MissRecord[] {
+  // A key or quota problem is Refit's, not the repository's: no miss.
+  if (fallback?.status === 'ai-unavailable') return [];
   return items.map((item) => ({
     formatVersion: 1,
     repo: row.repo,
@@ -213,6 +215,7 @@ export function patternMatcher(pattern: string) {
 export function ruleCandidates(records: MissRecord[]): RuleCandidate[] {
   const groups = new Map<string, MissRecord[]>();
   for (const record of records) {
+    if (record.ai.status === 'ai-unavailable') continue;
     const key = [record.provider, record.changeType, record.kind, record.pattern].join('\u0000');
     groups.set(key, [...(groups.get(key) ?? []), record]);
   }

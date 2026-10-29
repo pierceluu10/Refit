@@ -14,7 +14,13 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
 import { checkoutError, json, startRun } from '../scripts/benchmark-harness.mjs';
-import { fallbackEligible, openItems, quotedSources, type ScanBundle } from './ai-fallback.ts';
+import {
+  aiUnavailable,
+  fallbackEligible,
+  openItems,
+  quotedSources,
+  type ScanBundle,
+} from './ai-fallback.ts';
 import { exposureSites, loadSourceContext } from './ai-fallback-run.ts';
 import { missRecords } from './ai-misses.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
@@ -204,9 +210,12 @@ export function parseEnvFile(text: string) {
 // What the AI fallback did over a run's rows.
 export function fallbackCounts(rows: Array<Record<string, unknown>>) {
   const statuses = rows.map((row) => (row.fallback as { status?: string } | null)?.status);
-  const eligible = rows.filter((row) => Array.isArray(row.misses) && row.misses.length).length;
+  const eligible = rows.filter(
+    (row, index) =>
+      (Array.isArray(row.misses) && row.misses.length) || statuses[index] === 'ai-unavailable',
+  ).length;
   return {
-    // Rows Refit left open (each has miss records).
+    // Rows Refit left open (each has miss records, unless the AI was unavailable).
     eligible,
     // Rows where a model answered (validated or kept as a suggestion).
     attempted: statuses.filter((status) => status === 'validated' || status === 'needs-review')
@@ -215,6 +224,8 @@ export function fallbackCounts(rows: Array<Record<string, unknown>>) {
     suggestions: rows.filter((row) => (row.fallback as { suggestion?: boolean } | null)?.suggestion)
       .length,
     noAttempt: statuses.filter((status) => status === 'no-attempt').length,
+    // Key, access or quota refusals (401, 403, 429): neither attempts nor misses.
+    unavailable: statuses.filter((status) => status === 'ai-unavailable').length,
   };
 }
 
@@ -338,6 +349,9 @@ async function main() {
     Boolean(values.ai && values.validate) &&
     process.env.GITHUB_ACTIONS === 'true';
   const sourceContext = await loadSourceContext(now);
+  // After one key, access or quota refusal the shard stops asking: every later row would fail the
+  // same way and none of it is a miss.
+  let unavailable: string | null = null;
   const PACKAGE: Record<string, string> = {
     openai: 'openai',
     anthropic: '@anthropic-ai/sdk',
@@ -551,7 +565,12 @@ async function main() {
           findings: (migrated?.review ?? []) as never,
         });
         let attempt: { fallback: Record<string, unknown>; misses: unknown[] } | null = null;
-        if (fallback) {
+        if (fallback && unavailable)
+          attempt = {
+            fallback: { status: 'ai-unavailable', reason: unavailable, ai: null, gates: [] },
+            misses: [],
+          };
+        else if (fallback) {
           const file = join(root, `${entry.repo.replace('/', '__')}.row.json`);
           await writeFile(
             file,
@@ -585,28 +604,39 @@ async function main() {
             );
             attempt = JSON.parse(stdout);
           } catch (error) {
+            const reason = errorSummary(error);
             attempt = {
-              fallback: { status: 'no-attempt', reason: errorSummary(error), ai: null, gates: [] },
+              fallback: {
+                status: aiUnavailable(reason) ? 'ai-unavailable' : 'no-attempt',
+                reason,
+                ai: null,
+                gates: [],
+              },
               misses: [],
             };
           } finally {
             await rm(file, { force: true });
           }
+          if (attempt?.fallback.status === 'ai-unavailable')
+            unavailable = String(attempt.fallback.reason);
         }
         row.fallback = attempt?.fallback ?? null;
-        row.misses = attempt?.misses.length
-          ? attempt.misses
-          : missRecords(
-              {
-                repo: entry.repo,
-                commit: entry.commit,
-                provider: provider ?? '',
-                language: entry.language,
-              },
-              items,
-              sources,
-              (attempt?.fallback as never) ?? null,
-            );
+        row.misses =
+          attempt?.fallback.status === 'ai-unavailable'
+            ? []
+            : attempt?.misses.length
+              ? attempt.misses
+              : missRecords(
+                  {
+                    repo: entry.repo,
+                    commit: entry.commit,
+                    provider: provider ?? '',
+                    language: entry.language,
+                  },
+                  items,
+                  sources,
+                  (attempt?.fallback as never) ?? null,
+                );
         row.outcome = rowOutcome(row as Parameters<typeof rowOutcome>[0]);
       }
     } catch (error) {

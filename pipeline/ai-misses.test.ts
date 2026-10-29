@@ -153,6 +153,18 @@ describe('miss records and rule candidates', () => {
       expect(new RegExp(rule.match).test(fixture.stopReason)).toBe(true);
   });
 
+  it('records no miss and proposes no rule when the AI was unavailable', () => {
+    const unavailable = { ...fallback('needs-review', null), status: 'ai-unavailable' as const };
+    expect(records('dev/one', 'a.ts', 'a', unavailable)).toEqual([]);
+    const stale = records('dev/one', 'a.ts', 'a', null).map((record) => ({
+      ...record,
+      ai: { ...record.ai, status: 'ai-unavailable' as const },
+    }));
+    expect(
+      ruleCandidates([...stale, ...stale.map((record) => ({ ...record, repo: 'dev/two' }))]),
+    ).toEqual([]);
+  });
+
   it('withholds a group no saved quote backs', () => {
     const candidates = ruleCandidates([
       ...records('dev/one', 'a.ts', 'a', null, false),
@@ -195,8 +207,16 @@ describe('benchmark rows', () => {
         { misses: [{}, {}], fallback: { status: 'needs-review', suggestion: true } },
         { misses: [{}], fallback: { status: 'no-attempt' } },
         { misses: [{}], fallback: null },
+        { misses: [], fallback: { status: 'ai-unavailable' } },
         { outcome: 'unaffected' },
       ]),
-    ).toEqual({ eligible: 4, attempted: 2, validated: 1, suggestions: 1, noAttempt: 1 });
+    ).toEqual({
+      eligible: 5,
+      attempted: 2,
+      validated: 1,
+      suggestions: 1,
+      noAttempt: 1,
+      unavailable: 1,
+    });
   });
 });
