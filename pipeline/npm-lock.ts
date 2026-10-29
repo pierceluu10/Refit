@@ -64,7 +64,7 @@ export function isRegistrySource(source: unknown): source is string {
 // A published package's own declarations reach the lockfile as its record's dependencies. npm reads
 // an empty range there as "*" (@tabler/icons-react 3.36.1 declares "@tabler/icons": ""), and the
 // lockfile still pins what it installs.
-function dependencySources(value: Record<string, unknown>, file: string, published = false) {
+export function dependencySources(value: Record<string, unknown>, file: string, published = false) {
   for (const section of DEPENDENCY_SECTIONS) {
     const dependencies = value[section];
     if (dependencies === undefined) continue;

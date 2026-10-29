@@ -19779,6 +19779,276 @@
           "reason": "Part of a set's name (the held-out 50)."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l4-lockfile-resolution (40 rows) | | |",
+      "values": [
+        {
+          "says": "40",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| — production validated | 0 | 8 |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "8",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| — checks passed | 1 | 18 |",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "18",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| — refused for a lockfile reason | 38 | 14 |",
+      "values": [
+        {
+          "says": "38",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "14",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated | 84 | 92 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "92",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: checks passed | 161 | 178 |",
+      "values": [
+        {
+          "says": "161",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "178",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: checks passed | 19 | 19 |",
+      "values": [
+        {
+          "says": "19",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "19",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Subset.** `docs/benchmarks/subsets/l4-lockfile-resolution.json`, chosen by rule: every repository of `subsets/push-279-affected.json` whose row in run 40591181316 (l2-push-249) or 40591185819 (heldout-30), both at main `63646f2a`, names a `no-lockfile`, `lockfile-out-of-sync` or `lockfile-integrity` refusal or a stripe-node upgrade refused with \"upgrade it first\".",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40591181316",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40591185819",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before: subset [40626037555](https://github.com/refit-dev/refit-bench/actions/runs/40626037555) (`cdff5f05` = main `89f1c0ed` + the subset), l2-push-249 [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392) and heldout-30 [40624360669](https://github.com/refit-dev/refit-bench/actions/runs/40624360669) (main `89f1c0ed`). After, at `45601b1b`: subset [40734300846](https://github.com/refit-dev/refit-bench/actions/runs/40734300846) and heldout-30 [40734329431](https://github.com/refit-dev/refit-bench/actions/runs/40734329431). l2-push-249 after is [40677583831](https://github.com/refit-dev/refit-bench/actions/runs/40677583831) at `6c7bdc4c`: the founder cancelled the l2-push-249 rerun at `45601b1b` (40734315567) and paused further runs. The two commits between them only keep the committed lockfile's root names in a re-resolved lockfile and name the raised peer in the draft; on the subset and heldout-30, `6c7bdc4c` (40677546968, 40677593801) and `45601b1b` have the same outcome in every row, and every `migration.patch` is byte-identical except lamp-bot's lockfile name.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40626037555",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40624360669",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40734300846",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40734329431",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40677583831",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40734315567",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40677546968",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40677593801",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **17 rows newly pass their checks, 8 newly validate.** Every `migration.patch` was read in full, lockfile hunks checked for scope: 11 `correct` and 6 `correct-partial` (3 kept their API version after the endive pin failed the type check; ele's multi-period subscription case and 10 unmigrated usages; minhthuong's webhook version; Chivo's advisory JavaScript error) in [fix-reviews.json](benchmarks/fix-reviews.json). None is wrong.",
+      "values": [
+        {
+          "says": "17",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "8",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "11",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "6",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "3",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Types-only peer.** liamstamper/lamp-bot was refused because stripe 23.0.0 declares `@types/node >=20` as an optional peer and it pins 18.11.18. It now raises `@types/node` to 20.0.0 with stripe, its lockfile changes only stripe, `@types/node`, `undici-types` and the four packages stripe 23 no longer reaches, `tsc -p .` shows no new errors, and it validates at C.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "23",
+          "reason": "A version or release in a name (a package, runtime or tool), not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **What still stops (subset).** No lockfile for a project whose package.json npm cannot resolve as of its commit date: UNC-GDSC/Micro-SaaS-Starter-Kit (E404), RicardoGEsteves/next-digital-marketplace and baifan1366/project-management-system (ERESOLVE). Workspaces (Traviseric/arxmint), pnpm (Suhaib3100/online-compiler, nishantharkut/Uproot.AI), `EBADENGINE` (thematters/matters-server, MikPoik/next13-ai-companion) and 7 projects that also commit a binary `bun.lockb` (Rohit19060/stripe_hono, mageshyt/Nextjs-saas-starter, rishabhsingroha/MusicListeningPlatform, LDAWoo/webprodigies-plura, blefnk/all-in-one-nextjs-template, duggal1/flux-io, michaelshimeles/goshenpay-backend). Four rows now reach their checks and fail them on the original code; helloworld9912/Stripe-Account-Migration's patch fails its checks and is not published.",
+      "values": [
+        {
+          "says": "7",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Not measured.** `9fe02248`, after the measured commit, resolves lockfiles for npm projects that also commit `bun.lockb`, which reaches the 7 rows above; it has unit tests only, and the benchmark rerun waits for the founder. AI patches, publication and the hosted worker were not measured.",
+      "values": [
+        {
+          "says": "7",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
     }
   ]
 }

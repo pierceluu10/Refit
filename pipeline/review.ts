@@ -696,6 +696,14 @@ export function createReviewArtifacts(
   );
   const lockfileChoice = validation.environment?.lockfileChoice as
     { lockfile: string; outOfSync: Record<string, string> } | undefined;
+  type ResolvedLockfile = {
+    reason: string;
+    before: string;
+    late?: Record<string, { spec: string; published: string }>;
+  };
+  const resolvedLockfiles = [validation.environment, validation.patchedEnvironment]
+    .map((environment) => environment?.resolvedLockfile as ResolvedLockfile | undefined)
+    .filter((entry) => entry !== undefined);
   const prunedGlibcPackages = Math.max(
     0,
     ...[validation.environment, validation.patchedEnvironment].map((environment) => {
@@ -745,8 +753,17 @@ export function createReviewArtifacts(
     typeof patch.sdkUpgrade === 'object' &&
     'to' in patch.sdkUpgrade &&
     'from' in patch.sdkUpgrade
-      ? (patch.sdkUpgrade as { from: string; to: string })
+      ? (patch.sdkUpgrade as {
+          from: string;
+          to: string;
+          raised?: { name: string; from: string; to: string; range: string }[];
+        })
       : undefined;
+  const raisedPeers = summaryList(
+    (upgrade?.raised ?? []).map(
+      ({ name, from, to }) => `${code(name)} from ${code(from)} to ${code(to)}`,
+    ),
+  );
   const pinFrom = report.apiVersion.application;
   const pinTo = report.apiVersion.after;
   const movesPin = (file: FileChange) =>
@@ -812,7 +829,7 @@ export function createReviewArtifacts(
               : []),
             ...(upgrade && (/(?:^|\/)package\.json$/.test(file.path) || LOCKFILE.test(file.path))
               ? [
-                  `Upgrades ${code(report.adapter.packageName)} from ${code(upgrade.from)} to ${code(upgrade.to)}.`,
+                  `Upgrades ${code(report.adapter.packageName)} from ${code(upgrade.from)} to ${code(upgrade.to)}${raisedPeers ? ` and raises ${raisedPeers}` : ''}.`,
                 ]
               : []),
           ].join(' ') || `Updates ${plainText(provider)} API usage for the new contract.`;
@@ -943,6 +960,11 @@ export function createReviewArtifacts(
     upgrade.from.split('.')[0] !== upgrade.to.split('.')[0]
       ? [
           `Upgrades ${code('stripe')} across major versions, ${code(upgrade.from)} to ${code(upgrade.to)}; [its changelog](${STRIPE_NODE_CHANGELOG}) lists type and behavior changes the checks may not cover.`,
+        ]
+      : []),
+    ...(upgrade?.raised?.length
+      ? [
+          `Raises ${raisedPeers} with it: stripe ${code(upgrade.to)} declares ${summaryList(upgrade.raised.map(({ name, range }) => `${code(name)} ${code(range)}`))} as an optional peer, and Refit takes the lowest version in that range. Newer types can reject code that compiled before; check your own type check and editor.`,
         ]
       : []),
     ...movedExpressions.map(
@@ -1317,7 +1339,7 @@ export function createReviewArtifacts(
           : []),
         ...(legacyPeerDeps
           ? [
-              "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies, so Refit installed the same lockfile with `--legacy-peer-deps`. Check that your own install uses the same setting.",
+              `- Dependency Installation: \`npm ci\` rejected the ${resolvedLockfiles.length ? 'resolved' : 'committed'} lockfile's peer dependencies, so Refit installed the same lockfile with \`--legacy-peer-deps\`. Check that your own install uses the same setting.`,
             ]
           : []),
         ...(fromBunLock
@@ -1328,6 +1350,11 @@ export function createReviewArtifacts(
         ...(lockfileChoice
           ? [
               `- Dependency Installation: the repository commits ${[lockfileChoice.lockfile, ...Object.keys(lockfileChoice.outOfSync)].map(code).join(' and ')}. Refit installed ${code(lockfileChoice.lockfile)}, the only one in sync with \`package.json\`, and did not read ${Object.keys(lockfileChoice.outOfSync).length === 1 ? 'the other' : 'the others'}: ${Object.values(lockfileChoice.outOfSync).map(plainText).join(' ')} Delete the lockfile your package manager does not use.`,
+            ]
+          : []),
+        ...(resolvedLockfiles.length
+          ? [
+              `- Dependency Installation: the checks ran against a \`package-lock.json\` Refit resolved, not one the repository commits (${{ 'no-lockfile': 'it commits none', 'lockfile-out-of-sync': 'the committed one is out of sync with `package.json`', 'lockfile-integrity': 'the committed one has entries without integrity hashes' }[resolvedLockfiles[0].reason] ?? resolvedLockfiles[0].reason}). npm resolved it with lifecycle scripts off from registry.npmjs.org as of ${resolvedLockfiles[0].before}, the last commit date${[...new Set(resolvedLockfiles.flatMap((entry) => Object.entries(entry.late ?? {}).map(([name, pin]) => `${code(`${name}@${pin.spec}`)} as of ${pin.published}`)))].map((pin, index) => `${index ? ', ' : '; '}${pin}`).join('')}, and installed it with \`npm ci\`. It is not part of this pull request; commit your own lockfile and rerun your checks.`,
             ]
           : []),
         ...(prunedGlibcPackages

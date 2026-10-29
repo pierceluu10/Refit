@@ -33,6 +33,7 @@ import {
 } from './stripe-benchmark.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
 import { validationProfile } from './docker-sandbox.ts';
+import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
 import { HOSTED_REPAIR_ATTEMPTS, validateRepairAttempts } from './validation-options.ts';
 import { AiPolicyStop } from './ai-patches.ts';
 import { behaviourTestSkip, DRY_RUN_MODEL } from './behaviour-test-writer.ts';
@@ -51,7 +52,7 @@ import { NO_OP_CHECK } from './review.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--webhook-checks] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--skip-generated-clients] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--webhook-checks] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--skip-generated-clients] [--resolve-lockfiles] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 // Above validation's own limits at their defaults: two preparations (300 s each), a baseline and a
 // patched check (600 s each), and the retry without the API-version move (another preparation and
@@ -109,6 +110,8 @@ const { values } = parseArgs({
     // Skips recreating the Prisma client and next-env.d.ts before every check
     // (REFIT_GENERATE_CLIENTS=0; declared-generators.ts).
     'skip-generated-clients': { type: 'boolean' },
+    // Sets REFIT_LOCKFILE_RESOLUTION=on explicitly; it is the default, so runs before it was stay reproducible.
+    'resolve-lockfiles': { type: 'boolean' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
@@ -125,6 +128,7 @@ if (values['validation-workspace']) {
   process.env.REFIT_VALIDATION_WORKSPACE = values['validation-workspace'];
 }
 if (values['skip-generated-clients']) process.env.REFIT_GENERATE_CLIENTS = '0';
+if (values['resolve-lockfiles']) process.env.REFIT_LOCKFILE_RESOLUTION = 'on';
 if (values['behaviour-tests'] && (!values.env || !values.validate))
   throw new PipelineInputError(
     '--behaviour-tests needs --validate and --env with OPENAI_API_KEY and OPENAI_MODEL.',
@@ -468,7 +472,7 @@ async function benchmark(entry: Selected, index: number) {
   const locked = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'].some((lockfile) =>
     existsSync(join(checkRoot, lockfile)),
   );
-  const checkable = locked && Boolean(declared.stripe);
+  const checkable = (locked || lockfileResolutionEnabled()) && Boolean(declared.stripe);
   // Owner decision 1: a project that commits no lockfile runs the workflow as a customer's generated
   // configuration does; preparation refuses, and the patch is kept untested, graded D.
   const unlocked = !locked && Boolean(declared.stripe);

@@ -477,6 +477,26 @@ it('says which of several committed lockfiles Refit installed and why it did not
   );
 });
 
+it('says when the checks ran against a lockfile Refit resolved, and as of which date', async () => {
+  const value = await report();
+  expect(createReviewArtifacts(value).files['pull-request.md']).not.toContain('Refit resolved');
+  value.validation.environment = {
+    installation: {},
+    resolvedLockfile: { reason: 'no-lockfile', before: '2026-09-15T00:00:00Z' },
+  };
+  value.validation.patchedEnvironment = {
+    installation: {},
+    resolvedLockfile: {
+      reason: 'no-lockfile',
+      before: '2026-09-15T00:00:00Z',
+      late: { stripe: { spec: '23.0.0', published: '2026-10-01T00:52:07.438Z' } },
+    },
+  };
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    '- Dependency Installation: the checks ran against a `package-lock.json` Refit resolved, not one the repository commits (it commits none). npm resolved it with lifecycle scripts off from registry.npmjs.org as of 2026-09-15T00:00:00Z, the last commit date; `stripe@23.0.0` as of 2026-10-01T00:52:07.438Z, and installed it with `npm ci`. It is not part of this pull request; commit your own lockfile and rerun your checks.',
+  );
+});
+
 it('says how many glibc-only packages Refit removed after the verified npm install', async () => {
   const value = await report();
   expect(createReviewArtifacts(value).files['pull-request.md']).not.toContain('glibc');
@@ -1073,4 +1093,40 @@ it('pads inline code whose content starts or ends with a backtick', () => {
   expect(code('a`b')).toBe('``a`b``');
   expect(code('`start')).toBe('`` `start ``');
   expect(code('end`')).toBe('`` end` ``');
+});
+
+it('names a types-only peer raised with the stripe-node upgrade', async () => {
+  const value = await report();
+  if (!('diff' in value.patch)) throw new Error('Expected fixture patch');
+  // Run reports carry the upgrade beside the patch fields.
+  const upgrade = {
+    sdkUpgrade: {
+      from: '18.1.0',
+      to: '23.0.0',
+      raised: [{ name: '@types/node', from: '18.11.18', to: '20.0.0', range: '>=20' }],
+    },
+  };
+  value.patch = {
+    ...value.patch,
+    ...upgrade,
+    diff: `${value.patch.diff}diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@ -1,4 +1,4 @@
+ {
+-  "dependencies": { "stripe": "^18.0.0" },
+-  "devDependencies": { "@types/node": "18.11.18" }
++  "dependencies": { "stripe": "^23.0.0" },
++  "devDependencies": { "@types/node": "20.0.0" }
+ }
+`,
+  };
+  if ('diff' in value.patch) value.validation.patchHash = digest(value.patch.diff);
+  const body = createReviewArtifacts(value).files['pull-request.md'];
+  expect(body).toContain(
+    '- `package.json`: Upgrades `stripe` from `18.1.0` to `23.0.0` and raises `@types/node` from `18.11.18` to `20.0.0`.',
+  );
+  expect(body).toContain(
+    'Raises `@types/node` from `18.11.18` to `20.0.0` with it: stripe `23.0.0` declares `@types/node` `>=20` as an optional peer',
+  );
 });
