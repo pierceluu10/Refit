@@ -1010,5 +1010,40 @@
         "Not mapped: body_html (the REST reference names Page.bodyHtml, which neither pinned schema has; Page.body exists but is not named by the reference), author (no GraphQL field), shop_id."
       ]
     }
+  ],
+  "nonEquivalent": [
+    {
+      "method": "GET",
+      "path": "orders.json",
+      "reason": "REST lists only open orders unless the request sends status; GraphQL orders returns orders of every status, so the rows differ.",
+      "source": "https://shopify.dev/docs/api/admin-rest/2025-01/resources/order",
+      "quote": "Filter orders by their status."
+    },
+    {
+      "method": "GET",
+      "path": "orders/count.json",
+      "reason": "REST counts only open orders unless the request sends status; GraphQL ordersCount counts every status.",
+      "source": "https://shopify.dev/docs/api/admin-rest/2025-01/resources/order",
+      "quote": "Filter orders by their status."
+    },
+    {
+      "method": "GET",
+      "path": "locations.json",
+      "reason": "GraphQL locations returns only active locations by default, while REST lists every location.",
+      "source": "https://shopify.dev/docs/api/admin-graphql/2026-01/queries/locations",
+      "quote": "Returns only active locations by default."
+    },
+    {
+      "method": "GET",
+      "path": "custom_collections.json",
+      "reason": "GraphQL collections returns custom and smart collections together, so the rows differ from REST custom_collections.",
+      "source": "https://shopify.dev/docs/api/admin-rest/2025-01/resources/customcollection"
+    },
+    {
+      "method": "GET",
+      "path": "smart_collections.json",
+      "reason": "GraphQL collections returns custom and smart collections together, so the rows differ from REST smart_collections.",
+      "source": "https://shopify.dev/docs/api/admin-rest/2025-01/resources/smartcollection"
+    }
   ]
 }

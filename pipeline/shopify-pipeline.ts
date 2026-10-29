@@ -45,7 +45,13 @@ import {
   sdkHasEnumMember,
 } from './shopify-versions.ts';
 import { digest, isObject } from './specifications.ts';
-import { restRewriteNotes, shopifyRestRewrites } from './shopify-rest-rewrite.ts';
+import { proposeRestRule } from './shopify-rest-ai.ts';
+import {
+  loadShopifyRestContract,
+  loadShopifyRestRefusals,
+  restRewriteNotes,
+  shopifyRestRewrites,
+} from './shopify-rest-rewrite.ts';
 import type { Finding, Repository, SourceEdit } from './types.ts';
 
 export const SHOPIFY: ProviderAdapter = {
@@ -748,7 +754,7 @@ export async function runShopifyPipeline(options: {
       contractReview: `Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API ${versions.after}.`,
     });
   const sdkRelease = await lockedShopifyApi(repository.root);
-  const rest = shopifyRestRewrites(
+  const restRun = await shopifyRestRewrites(
     repository,
     scan,
     [
@@ -756,7 +762,23 @@ export async function runShopifyPipeline(options: {
       { version: versions.after, schema: after },
     ],
     sdkRelease,
+    options.aiPatch
+      ? {
+          propose: (stop) =>
+            proposeRestRule({
+              stop,
+              contract: loadShopifyRestContract(),
+              refusals: loadShopifyRestRefusals(),
+              schemas: [
+                { version: versions.before, schema: before },
+                { version: versions.after, schema: after },
+              ],
+              ai: options.aiPatch!,
+            }),
+        }
+      : {},
   );
+  const rest = restRun.results;
   const restRewrites = rest.filter((result) => result.status === 'rewritten');
   const restEdits = restRewrites.flatMap((result) => result.edits);
   for (const result of rest) {
@@ -1005,7 +1027,7 @@ export async function runShopifyPipeline(options: {
       adminCalls: scan.adminCalls,
       unreadable: scan.unreadable.length,
       rest: scan.rest.length,
-      // Each REST Admin call for review. Refit reports them and never rewrites them as GraphQL.
+      // Each REST Admin call; reads a rule maps are rewritten as GraphQL (docs/SHOPIFY-REST.md).
       restCalls: scan.rest.map((entry) => ({
         file: entry.file,
         line: entry.line,
@@ -1019,6 +1041,15 @@ export async function runShopifyPipeline(options: {
       storefrontDocuments: storefront.map((document) => `${document.file}:${document.line}`),
       webhookApiVersions: webhookVersions,
       ruleEdits: documentEdits.size,
+      restRewrites: restRewrites.length,
+      restAi: restRun.proposals.map((proposal) => ({
+        file: proposal.file,
+        line: proposal.line,
+        status: proposal.status,
+        model: proposal.model,
+        costUsd: proposal.costUsd,
+        reason: proposal.reason,
+      })),
       ai: aiAttempts.map((attempt) => ({
         file: attempt.file,
         line: attempt.line,
@@ -1037,7 +1068,7 @@ export async function runShopifyPipeline(options: {
     assessment: { status: 'not-requested' as const },
     coverage: {
       specification: `Shopify Admin GraphQL schemas ${versions.before} and ${versions.after}, compared by introspection.`,
-      code: 'Admin GraphQL documents passed to admin.graphql, createAdminApiClient().request and clients.Graphql().query, resolved from literals, constants, imported and re-exported constants, constant fragments, constant arrays and objects, and helper parameters followed through every call, callback and closure factory, plus #graphql literals. ApiVersion enum members, apiVersion strings and /admin/api/<version>/ URLs are read as pins. Runtime-built documents, sending functions Refit cannot follow, REST calls and unresolved pins stop for review.',
+      code: 'Admin GraphQL documents passed to admin.graphql, createAdminApiClient().request and clients.Graphql().query, resolved from literals, constants, imported and re-exported constants, constant fragments, constant arrays and objects, and helper parameters followed through every call, callback and closure factory, plus #graphql literals. ApiVersion enum members, apiVersion strings and /admin/api/<version>/ URLs are read as pins. REST Admin reads are rewritten as GraphQL where a documented or checked mapping produces every field the code reads. Runtime-built documents, sending functions Refit cannot follow, other REST calls and unresolved pins stop for review.',
       decision:
         'No finding is not proof of no impact: documents Refit cannot read and behavior that validation cannot see (semantics, rate limits, webhook payload versions) remain outside this check.',
     },

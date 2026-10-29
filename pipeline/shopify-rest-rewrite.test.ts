@@ -298,6 +298,19 @@ describe('Shopify REST → GraphQL rewrites', () => {
     );
   });
 
+  it('follows for-of elements and ignores a same-named variable in a nested function', () => {
+    const { results } = rewrite(`export async function titles(shop: string, token: string) {
+  const response = await fetch(\`https://\${shop}/admin/api/2024-07/products.json\`, { headers: { 'X-Shopify-Access-Token': token } });
+  const helper = (response: { plan_name: string }) => response.plan_name;
+  const { products } = await response.json();
+  const out: string[] = [];
+  for (const product of products) out.push(product.vendor_code);
+  return [out, helper];
+}
+`);
+    expect(results.map(outcome)).toEqual([expect.stringContaining('products.[].vendor_code')]);
+  });
+
   it('never rewrites a write', () => {
     const { results } = rewrite(`export async function create(shop: string, token: string) {
   const response = await fetch(\`https://\${shop}/admin/api/2024-07/products.json\`, { method: 'POST', headers: { 'X-Shopify-Access-Token': token }, body: '{}' });

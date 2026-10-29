@@ -35,6 +35,8 @@ export interface RestRule {
   method: string;
   path: string;
   resource?: { class: string; operation: string };
+  // The SDK REST resource whose field types the mapping must match, when `resource` is not set.
+  restResource?: string;
   kind: 'single' | 'list' | 'count';
   envelope: string;
   root: string;
@@ -50,12 +52,29 @@ export interface RestRule {
 
 const RULES_FILE = new URL('../data/shopify-rest-graphql.json', import.meta.url);
 
-export function loadShopifyRestRules(): RestRule[] {
-  if (!existsSync(RULES_FILE)) return [];
-  const table = JSON.parse(readFileSync(RULES_FILE, 'utf8')) as {
+// An endpoint whose GraphQL counterpart Shopify documents with different rows (a default filter
+// one side applies), so neither a rule nor the model may rewrite it.
+export interface RestRefusal {
+  method: string;
+  path: string;
+  reason: string;
+  source: string;
+  quote?: string;
+}
+
+function restTable() {
+  if (!existsSync(RULES_FILE)) return { formatVersion: 1, rules: [], nonEquivalent: [] };
+  return JSON.parse(readFileSync(RULES_FILE, 'utf8')) as {
     formatVersion: number;
     rules: RestRule[];
+    nonEquivalent?: RestRefusal[];
   };
+}
+
+export const loadShopifyRestRefusals = () => restTable().nonEquivalent ?? [];
+
+export function loadShopifyRestRules(): RestRule[] {
+  const table = restTable();
   if (table.formatVersion !== 1) throw new Error('data/shopify-rest-graphql.json: unknown format');
   return table.rules.map((rule) => ({ ...rule, origin: rule.origin ?? 'documented' }));
 }
@@ -295,12 +314,63 @@ function constantValue(name: ts.Identifier, file: ts.SourceFile) {
   return found && literalParts(found) ? found : undefined;
 }
 
-// The identifiers in `scope` that name the variable `name` declares, or undefined when another
-// declaration of the same name could shadow it.
+// Whether a block, function or loop declares `text` itself, so names inside it are its own.
+function declaresDirectly(node: ts.Node, text: string): boolean {
+  const binds = (name: ts.BindingName): boolean =>
+    ts.isIdentifier(name)
+      ? name.text === text
+      : name.elements.some((entry) => !ts.isOmittedExpression(entry) && binds(entry.name));
+  const listBinds = (list: ts.VariableDeclarationList) =>
+    list.declarations.some((declaration) => binds(declaration.name));
+  if (ts.isFunctionLike(node))
+    return (
+      node.parameters.some((parameter) => binds(parameter.name)) ||
+      (ts.isFunctionExpression(node) && node.name?.text === text)
+    );
+  if (ts.isBlock(node) || ts.isCaseClause(node) || ts.isDefaultClause(node))
+    return node.statements.some(
+      (statement) =>
+        (ts.isVariableStatement(statement) && listBinds(statement.declarationList)) ||
+        ((ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) &&
+          statement.name?.text === text),
+    );
+  if (ts.isForStatement(node) || ts.isForOfStatement(node) || ts.isForInStatement(node))
+    return Boolean(
+      node.initializer &&
+      ts.isVariableDeclarationList(node.initializer) &&
+      listBinds(node.initializer),
+    );
+  if (ts.isCatchClause(node))
+    return Boolean(node.variableDeclaration && binds(node.variableDeclaration.name));
+  return false;
+}
+
+// The identifiers in `scope` that name the variable `name` declares, skipping nested scopes that
+// declare the same name; undefined when the name is declared again in this scope.
 function references(name: ts.Identifier, scope: ts.Node) {
   const found: ts.Identifier[] = [];
   let shadowed = false;
   const visit = (node: ts.Node) => {
+    if (
+      node !== scope &&
+      !(node.pos <= name.pos && name.end <= node.end) &&
+      declaresDirectly(node, name.text)
+    ) {
+      // A `var` in a nested block belongs to the enclosing function, so it is not a new scope.
+      const hoisted =
+        ts.isBlock(node) &&
+        node.statements.some(
+          (statement) =>
+            ts.isVariableStatement(statement) &&
+            !(statement.declarationList.flags & ts.NodeFlags.BlockScoped) &&
+            statement.declarationList.declarations.some(
+              (declaration) =>
+                ts.isIdentifier(declaration.name) && declaration.name.text === name.text,
+            ),
+        );
+      if (hoisted) shadowed = true;
+      else return;
+    }
     if (ts.isIdentifier(node) && node !== name && node.text === name.text) {
       const parent = node.parent;
       const declares =
@@ -882,6 +952,7 @@ export interface RestRewriteOptions {
   content: string;
   entries: ShopifyScan['rest'];
   rules: RestRule[];
+  refusals?: RestRefusal[];
   schemas: { version: string; schema: GraphQLSchema }[];
   // The locked @shopify/shopify-api major: 9 and later send GraphQL with `request`.
   apiMajor?: number;
@@ -942,7 +1013,14 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
     const description = {
       method: request.method,
       path:
-        entry.resource ?? request.path.map((part) => ('text' in part ? part.text : '{…}')).join(''),
+        entry.resource ??
+        (() => {
+          let index = 0;
+          const path = request.path
+            .map((part) => ('text' in part ? part.text : `{p${index++}}`))
+            .join('');
+          return /\.json$/.test(path) ? path : `${path}.json`;
+        })(),
       query: [...request.query.keys()],
       reads: readText,
       transport: transport.kind,
@@ -952,6 +1030,25 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
         stop(
           `Refit rewrites only REST reads; ${request.method} changes data and needs a reviewed mutation.`,
           description,
+        ),
+      );
+      continue;
+    }
+    const refusal = matchRule(
+      request,
+      (options.refusals ?? []).map((entry) => ({
+        ...entry,
+        id: entry.path,
+        kind: 'single' as const,
+        envelope: '',
+        root: '',
+        fields: {},
+      })),
+    );
+    if (refusal) {
+      results.push(
+        stop(
+          `${(refusal.rule as unknown as RestRefusal).reason} (${(refusal.rule as unknown as RestRefusal).source})`,
         ),
       );
       continue;
@@ -1459,7 +1556,7 @@ function generate(input: {
       lines.push(
         `const response = await fetch(${partsSource([...transport.prefix, { text: 'graphql.json' }])}, { ${[...kept, 'method: "POST"', `headers: ${headers}`, `body: JSON.stringify({ query: ${queryText}, variables: ${variables} })`].join(', ')} });`,
         `const json${any} = response.ok ? await response.json() : undefined;`,
-        `if (!json?.data) return new Response(JSON.stringify({ errors: json?.errors ?? response.statusText }), { status: response.ok ? 400 : response.status });`,
+        `if (!json?.data) return new Response(JSON.stringify({ errors: json?.errors ?? response.statusText }), { status: response.ok ? 400 : response.status, statusText: response.statusText });`,
         'const result = json.data;',
         ...bodyLines(
           `return new Response(JSON.stringify({ errors: "Not Found" }), { status: 404 });`,
@@ -1673,7 +1770,9 @@ export function ruleProblems(rule: RestRule, schema: GraphQLSchema, contract: Re
     const count = isObjectType(node) ? node.getFields().count : undefined;
     return count ? [] : [`${rule.root} has no count`];
   }
-  const resource = rule.resource && contract.resources[rule.resource.class];
+  const className = rule.resource?.class ?? rule.restResource;
+  const resource = className ? contract.resources[className] : undefined;
+  if (rule.origin === 'ai' && !resource) return [`${rule.id}: no REST resource types to check against`];
   const check = (
     fields: Record<string, RestField>,
     typeName: string,
@@ -1699,34 +1798,103 @@ export function ruleProblems(rule: RestRule, schema: GraphQLSchema, contract: Re
   return problems;
 }
 
-// Every REST call the scan found, rewritten where a rule and the traced reads allow.
-export function shopifyRestRewrites(
+// A mapping the model proposed for a stop, already checked against the schemas and REST types.
+export interface RestProposal {
+  status: 'kept' | 'refused' | 'error';
+  model: string;
+  costUsd: number | null;
+  reason: string;
+  rule?: RestRule;
+}
+
+// Stops the model may help with: Refit understands the call and its reads, but no documented rule
+// produces them.
+const proposable = (
+  result: RestRewrite | RestStop,
+): result is RestStop & { request: NonNullable<RestStop['request']> } =>
+  result.status === 'stopped' &&
+  Boolean(result.request) &&
+  result.request!.method === 'GET' &&
+  /^No documented GraphQL equivalent|which the documented GraphQL mapping does not produce/.test(
+    result.reason,
+  );
+
+// Every REST call the scan found, rewritten where a rule and the traced reads allow. With `propose`,
+// stops no rule covers get a model-proposed mapping, kept only when the file re-run with it rewrites
+// that call under every gate.
+export async function shopifyRestRewrites(
   repository: { files: { path: string; content: string }[] },
   scan: Pick<ShopifyScan, 'rest'>,
   schemas: { version: string; schema: GraphQLSchema }[],
   sdkRelease: string | undefined,
-  rules = loadShopifyRestRules(),
+  options: {
+    rules?: RestRule[];
+    refusals?: RestRefusal[];
+    propose?: (
+      stop: RestStop & { request: NonNullable<RestStop['request']> },
+    ) => Promise<RestProposal>;
+  } = {},
 ) {
+  const rules = options.rules ?? loadShopifyRestRules();
+  const refusals = options.refusals ?? loadShopifyRestRefusals();
   const major = sdkRelease ? Number.parseInt(sdkRelease, 10) : Number.NaN;
   const byFile = new Map<string, ShopifyScan['rest']>();
   for (const entry of scan.rest) byFile.set(entry.file, [...(byFile.get(entry.file) ?? []), entry]);
-  return [...byFile].flatMap(([file, entries]) => {
+  const results: (RestRewrite | RestStop)[] = [];
+  const proposals: (RestProposal & { file: string; line: number })[] = [];
+  for (const [file, entries] of byFile) {
     const content = repository.files.find((entry) => entry.path === file)?.content;
-    if (content === undefined)
-      return entries.map((entry): RestStop => ({
-        status: 'stopped',
-        entry,
-        reason: 'Refit could not read the file again.',
-      }));
-    return rewriteRestCalls({
-      file,
-      content,
-      entries,
-      rules,
-      schemas,
-      ...(Number.isFinite(major) ? { apiMajor: major } : {}),
-    });
-  });
+    if (content === undefined) {
+      results.push(
+        ...entries.map((entry): RestStop => ({
+          status: 'stopped',
+          entry,
+          reason: 'Refit could not read the file again.',
+        })),
+      );
+      continue;
+    }
+    const run = (extra: RestRule[]) =>
+      rewriteRestCalls({
+        file,
+        content,
+        entries,
+        rules: [...rules, ...extra],
+        refusals,
+        schemas,
+        ...(Number.isFinite(major) ? { apiMajor: major } : {}),
+      });
+    let fileResults = run([]);
+    if (options.propose) {
+      const kept: RestRule[] = [];
+      for (const stop of fileResults.filter(proposable)) {
+        const proposal = await options.propose(stop);
+        proposals.push({ ...proposal, file, line: stop.entry.line });
+        if (proposal.status === 'kept') kept.push(proposal.rule!);
+      }
+      if (kept.length) {
+        const retried = run(kept);
+        // A model mapping counts only where it rewrites the call it was proposed for.
+        const first = fileResults;
+        fileResults = retried.map((result) => {
+          const proposal = proposals.find(
+            (entry) => entry.file === file && entry.line === result.entry.line && entry.rule,
+          );
+          if (
+            result.status === 'rewritten' &&
+            result.rule.origin === 'ai' &&
+            proposal?.rule !== result.rule
+          )
+            return first.find((entry) => entry.entry === result.entry) ?? result;
+          if (proposal && result.status === 'stopped')
+            proposal.reason += ` Refit did not keep it: ${result.reason}`;
+          return result;
+        });
+      }
+    }
+    results.push(...fileResults);
+  }
+  return { results, proposals };
 }
 
 // The draft's "what changed" lines for each rewrite.
