@@ -319,6 +319,10 @@ The dev set comes from the 250 already-open 2026-10-16 lists, because the search
 
 Run the dev set on GitHub Actions with `-f list=subsets/shopify-dev-60.json` ([GitHub benchmarks](GITHUB-BENCHMARKS.md#shopify)).
 
+#### Proof gate (2026-10-29, feat/shopify-proof-gate)
+
+`shopify.yml` on dev-60 with `-f flags=--sdk-upgrade`, size 1, no AI, current schemas (2026-01 `b0e01280b220`, 2026-04 `70db95021c1f`, 2026-07 `9cf7ccbb5b38`, 2026-10 `9af82bcd6c84`): 40939897777 (before, `1712c55f`) and 40942668604 (after, `33beeb94`). Validated 0 → 3, all grade C, each hand-checked `correct` in `docs/benchmarks/fix-reviews.json`: sabbir-noyon/wishkit-app-shopify and lnmjkessel-code/v13 (a `.graphqlrc.ts` pin left to the schema proof; lnmjkessel commits no generated types, so codegen no longer counts as stale) and jgasimli04/marketoracle (no Admin request). 9 patched rows stay `[Needs review]`: 4 at grade D whose changed files no check covers (LazerTechnologies, newideasacct-lab/ai-peacemaker and Rakesh161rausahn change JavaScript tsc does not check; brunaszarin/spotlight-manager runs only tests, which reach nothing changed), 4 at grade D whose baseline check fails (TS18003, TS2688 or failing tests), and dcam9586/scout-source2, now grade C, keeps its `submodules` gate. Priyadharshini29-M/Combo-page-app errors as before; no other row changed.
+
 ## API deadlines
 
 The hand-labelled [deadline benchmark](DEADLINE-BENCHMARK.md) covers 100 repositories, 32 labelled line by line. Refit flags 28 of 28 exposed repositories at 28/28 repository precision, with 83% OpenAI line precision from live-only evidence.
