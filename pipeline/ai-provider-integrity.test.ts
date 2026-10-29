@@ -59,9 +59,29 @@ it('freezes every set at its size and language split, at full commits, with know
   }
 });
 
-it('shares no repository between sets or with any other benchmark list', () => {
+it('keeps dev sets apart from every measurement set, and each provider its own sets', () => {
+  const slugs = (purpose: string, provider?: string) =>
+    lists
+      .filter(
+        ({ spec, list }) => spec.purpose === purpose && (!provider || list.provider === provider),
+      )
+      .flatMap(({ list }) => list.repos.map((entry) => entry.repo.toLowerCase()));
+  // A dev repository is debugged on, so it must never be measured, for any provider.
+  const dev = slugs('dev');
+  expect(new Set(dev).size).toBe(dev.length);
+  expect(dev.filter((slug) => measurementSlugs.has(slug))).toEqual([]);
+  // A repository using two SDKs may be measured once per provider (selected independently per
+  // provider); within a provider, sets never share one.
+  for (const provider of Object.keys(SETS)) {
+    const own = [...slugs('measurement', provider), ...slugs('dev', provider)];
+    expect(new Set(own).size, provider).toBe(own.length);
+  }
+  const measured = slugs('measurement');
+  expect(measured.length - new Set(measured).size).toBeLessThanOrEqual(10);
+});
+
+it('shares no repository with any other benchmark list', () => {
   const all = lists.flatMap(({ list }) => list.repos.map((entry) => entry.repo.toLowerCase()));
-  expect(new Set(all).size).toBe(all.length);
   const ours = new Set(specs.map((spec) => `${spec.name}.json`));
   const others = [
     ...readdirSync(join(root, SUBSETS))

@@ -899,7 +899,13 @@ async function main() {
     const assigned = new Map(
       sets.flatMap((set) => set.repos.map((entry) => [entry.repo, set.name])),
     );
-    await write(join(inputs, `${provider}-search.json`), search);
+    // Repositories Refit already names (other benchmark lists, holdouts included) are counted, not
+    // listed, so the record names nothing outside the population it was drawn from.
+    await write(join(inputs, `${provider}-search.json`), {
+      ...search,
+      namedHits: Object.keys(search.repositories).length - unnamed.length,
+      repositories: Object.fromEntries(unnamed.map((repo) => [repo, search.repositories[repo]])),
+    });
     await write(join(inputs, `${provider}-candidates.json`), {
       seed,
       namesAt,
