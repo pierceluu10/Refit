@@ -5,9 +5,9 @@
   "pass": "after (engine stack 412963ef), scan-only proposals, before validation",
   "sample": "The first proposed rows in list (seeded) order: 8 of 19 OpenAI, 6 of 12 Anthropic, 2 of 2 Gemini. Code read only at the edited sites.",
   "summary": {
-    "correct": 13,
+    "correct": 14,
     "partial": 2,
-    "wrong": 1
+    "wrong": 0
   },
   "reviews": [
     {
@@ -121,8 +121,8 @@
         "old-sdk-major",
         "response-parsing"
       ],
-      "verdict": "wrong",
-      "note": "A raw fetch to /v1/messages sends temperature 0.7; the swap to claude-sonnet-5-5 (temperature default-only in data/model-parameters.json) makes the request likely to be rejected. The SDK path stops on this parameter; the fetch path did not check it."
+      "verdict": "correct",
+      "note": "A raw fetch to /v1/messages sends temperature 0.7; the proposal swaps claude-3-sonnet to claude-sonnet-5-5 and removes the temperature line (replacements[].parameters, change anthropic-sampling-4-7), as Anthropic's page says to omit it. Corrected 2026-10-29: the first review marked this wrong because the review script did not print replacements[].parameters."
     },
     {
       "list": "subsets/anthropic-100.json",
@@ -173,5 +173,8 @@
       "verdict": "correct",
       "note": "gemini-2.0-flash to gemini-3.6-flash in parameter defaults behind env fallbacks; the blocked SDK swap is not part of the fix."
     }
+  ],
+  "corrections": [
+    "2026-10-29: one verdict changed from wrong to correct; the review script now prints replacements[].parameters."
   ]
 }

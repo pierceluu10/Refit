@@ -89,15 +89,15 @@ Every model-fix and SDK-migration draft without stored request proof is `[Needs 
 
 | Verdict                                                    | Rows  |
 | ---------------------------------------------------------- | ----- |
-| Correct                                                    | 13    |
+| Correct                                                    | 14    |
 | Partial (the edits are right, but the request still fails) | 2     |
-| **Wrong**                                                  | **1** |
+| **Wrong**                                                  | **0** |
 
-- **Wrong (1, parameter-change, Anthropic).** A raw `fetch` to `/v1/messages` sends `temperature: 0.7`. The model swap to `claude-sonnet-5-5` makes the request likely to be rejected, because `data/model-parameters.json` records temperature as default-only for that model. The SDK path stops on this parameter; the `fetch` path did not check it. Per the integrity rules this is reproduced and fixed on a dev set, not on the measurement repository.
+- **Correction (same day).** The first version of this review counted one wrong fix: a raw `fetch` to `/v1/messages` that sends `temperature: 0.7`, swapped to `claude-sonnet-5-5`. That was a review error. The proposal also removes the `temperature` line (`replacements[].parameters`, change `anthropic-sampling-4-7`), which the first review script did not print. The fix is correct, and the review script now prints parameter edits.
 - **Partial (2).**
   - OpenAI: only the follow-up call of a legacy `functions`/`function_call` flow was swapped, and the first call still sends the retired model.
   - Gemini: the `@google/generative-ai` → `@google/genai` swap maps the client correctly, but it keeps the retired `gemini-pro`, which Refit's registry does not cover.
-- **Correct (13):** 9 model swaps and 4 SDK migrations (openai v3 → v6 client and response shape, `files.del` → `files.delete`, `beta.chat.completions.parse` → `chat.completions.parse`, and one Gemini default swap).
+- **Correct (14):** 10 model swaps (one with a parameter removal) and 4 SDK migrations (openai v3 → v6 client and response shape, `files.del` → `files.delete`, `beta.chat.completions.parse` → `chat.completions.parse`, and one Gemini default swap).
 
 ### Alerts raised
 
@@ -117,6 +117,5 @@ Each item comes from aggregate stop and outcome counts on these runs. Each is to
 4. **Legacy endpoints are never edited (OpenAI `completions.create` 8 and `createCompletion` 7 stops; 19 legacy-endpoint rows need review).** Completions and Assistants have no rule-based migration. Product proposal: a Completions-to-Chat mapping for single-prompt calls, and Assistants as report-only with a guide.
 5. **Gemini `gemini-swap-target` (77 blocking stops in 12 rows) and retired Gemini 1.x models missing from the registry.** The swap blocks when the target cannot be proven, and a successful swap still keeps `gemini-pro` (the partial verdict above). Registry entries for `gemini-pro`, `gemini-1.0-*` and `gemini-1.5-*` from Google's deprecations page, plus a replacement during the swap, would turn swaps into whole fixes.
 6. **OpenAI v5 `openai-node-v5-file-from-path` (16 blocking) and `v5-web-response` (5).** File uploads through `fileFromPath` block the migration. A documented mapping to `fs.createReadStream` or `toFile` would unblock them.
-7. **The raw `fetch` parameter check (the wrong fix).** Apply the same sampling-parameter table to request bodies built for `fetch` and `axios` as to SDK calls. It is one row in this sample, but it is the only wrong edit found.
-8. **Python is detection only (24 + 17 + 7 affected rows).** By decision 3 these can never validate. Report Python separately, or take a decision on Python edits for literal model swaps (`docs/proposals/`).
-9. **Robustness: invalid JSON and parse errors in fixture or unrelated files fail the whole scan (2 rows).** Skip unreadable fixture manifests and unparsable files with a stop, as for `.d.ts`. The scan-limit and heap failures (3 rows) should be checked on Actions first.
+7. **Python is detection only (24 + 17 + 7 affected rows).** By decision 3 these can never validate. Report Python separately, or take a decision on Python edits for literal model swaps (`docs/proposals/`).
+8. **Robustness: invalid JSON and parse errors in fixture or unrelated files fail the whole scan (2 rows).** Skip unreadable fixture manifests and unparsable files with a stop, as for `.d.ts`. The scan-limit and heap failures (3 rows) should be checked on Actions first.
