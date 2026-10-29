@@ -3,15 +3,33 @@
 ## October 29 checkpoint: Shopify pinned schemas, diffs and rules (unreleased, after 0.39.0)
 
 Admin (2025-01, 2026-01 to 2026-10) and Storefront (2024-10, 2025-01, 2025-07, 2025-10, 2026-01 to 2026-10) schemas are pinned by SHA-256 with their source and saved in the repository. Deterministic diffs between consecutive pins are committed and checked by `refit rules check`. 67 rules and 238 alerts quote Shopify's changelog and REST reference verbatim and agree with the diffs; `refit rules mine-shopify` mined 20 of the rules and 198 of the alerts on refit-bench Actions ($1.70). Under the founder's "proof decides" decision of 2026-10-29, 44 rules are `auto` (renames within one type and argument drops, which keep every response key; each edited document must validate on the target schema), and the rest are review-only. No Shopify benchmark has run on them. Coverage and limits: [Shopify contracts and rules](SHOPIFY-RULES.md).
+
 ## October 29 checkpoint: Shopify proof (unreleased, after 0.39.0)
 
 Shopify patches are now graded by proof ([Shopify proof](SHOPIFY-PROOF.md)). Every traced GraphQL document is validated offline with graphql-js: the original documents against the original version's schema, the patched documents against the target's. Selected fields that change type, and variable input types that break, count as failures. Committed codegen types count only when nothing the documents use differs between the versions. Without that schema proof, a Shopify patch is grade D and `[Needs review]`; with it, the repository's tests (B) or type check (C) keep their grade. Live proof runs the patched operations on Refit's own Partner development store when `SHOPIFY_TEST_STORE` and `SHOPIFY_TEST_TOKEN` are set, and gives grade A. Queries are always allowed; mutations run only on objects the run created, with AI-written cases. An AI second opinion on every Shopify patch is advisory and its cost is recorded. Unit tests only: no benchmark was run, and live proof has not been run against a real store.
+
+## October 29 checkpoint: Meta Graph tracing and AI reconstruction (unreleased, after 0.39.0)
+
+The Meta Graph scan now reads more request shapes:
+
+- `new URL(...)` with `searchParams`;
+- conditional URLs;
+- same-file URL builders;
+- fetch wrappers that spread their options;
+- injected fetch parameters.
+
+With AI on, it also reconstructs requests it cannot read. A reconstruction is kept only when every name is written in the code, it agrees with every traced part, and a runtime version is written on the line the model names. It then goes through the change table, the move stops and the proof like a traced request ([Meta Graph API](META-GRAPH.md)).
+
+Measured on meta-dev-60 without AI: validated 3 → 5, none lost ([benchmarks](BENCHMARKS.md#meta-graph-tracing-on-meta-dev-60-october-29)). The AI path is unit-tested only. OpenAI credit was exhausted on 2026-10-29, so no AI run measured it.
+
 ## October 29 checkpoint: Meta Graph change table and rules (unreleased, after 0.39.0)
 
 `data/meta-graph/changes.json` (moved from `data/meta-graph-changes.json`) now covers Graph API v10.0 to v26.0, the Graph API out-of-cycle changes since 2021, and the Instagram Platform, WhatsApp Business Platform and Messenger Platform changelogs: 805 changes, each with the passage that states it. `data/rules/meta-graph/` holds 105 review-only rules for every change whose changelog names a replacement; the other 700 changes are alert-only, each dated. `refit rules check` verifies every quote against the saved page in `docs/benchmarks/meta-graph-changelog/pages` before the Stripe rules. New kinds (`endpoint-changed`, `product-removed`, `parameter-required`, `breakdown-removed`, webhook, error and permission changes) stop version moves only where a request uses the endpoint, parameter or breakdown; webhook and product changes stay alerts. Nothing applies the rules yet, and no benchmark was run. See [Meta Graph change table](META-GRAPH-CHANGES.md).
+
 ## October 29 checkpoint: Meta Graph proof (unreleased, after 0.39.0)
 
 A Meta Graph patch that reaches validation is graded by the reviewed change table: every changed request must be valid at one reviewed target version, and the type check or tests must pass, for grade C or B; read-only calls with Refit's own `META_TEST_TOKEN` (an app access token, so only app-level reads; user and page requests keep the offline proof) raise it to A, and a target version the Graph API refuses drops it to D; where the checks prove nothing but did not fail, a patch that changes only request strings, or JavaScript checkJs fully types, is grade C too; otherwise it is grade D and `[Needs review]` with the reason ([Meta Graph proof](META-GRAPH.md#proof)). With AI enabled, an advisory second-opinion review is recorded with its cost. Unit tests, and a hand-check of ME3's patches on the 13 non-blind dev repositories that get one (all proven, every changed line read; [Meta Graph proof](META-GRAPH.md#proof)). No benchmark was run.
+
 ## October 29 checkpoint: Shopify documents built at runtime (unreleased, after 0.39.0)
 
 Shopify tracing reads more of the GraphQL documents apps build at runtime or send through other clients ([Shopify](SHOPIFY.md#what-refit-reads)):
@@ -44,6 +62,7 @@ Shopify patches are now graded by proof ([Shopify proof](SHOPIFY-PROOF.md)). Eve
 ## October 29 checkpoint: Shopify pinned schemas, diffs and rules (unreleased, after 0.39.0)
 
 Admin (2025-01, 2026-01 to 2026-10) and Storefront (2024-10, 2025-01, 2025-07, 2025-10, 2026-01 to 2026-10) schemas are pinned by SHA-256 with their source and saved in the repository. Deterministic diffs between consecutive pins are committed and checked by `refit rules check`. 67 rules and 238 alerts quote Shopify's changelog and REST reference verbatim and agree with the diffs; `refit rules mine-shopify` mined 20 of the rules and 198 of the alerts on refit-bench Actions ($1.70). Under the founder's "proof decides" decision of 2026-10-29, 44 rules are `auto` (renames within one type and argument drops, which keep every response key; each edited document must validate on the target schema), and the rest are review-only. No Shopify benchmark has run on them. Coverage and limits: [Shopify contracts and rules](SHOPIFY-RULES.md).
+
 ## October 29 checkpoint: Shopify REST → GraphQL rewrites (unreleased, after 0.39.0)
 
 REST Admin reads that a quoted rule covers (12 GET endpoints in `data/shopify-rest-graphql.json`) are rewritten as GraphQL Admin queries behind an adapter local to the call, which rebuilds only the REST fields the code reads ([REST rewrites](SHOPIFY-REST.md)). Calls through `fetch`, axios, Remix `admin.rest`, `shopify.clients.Rest` and the resource classes' `all`, `find` and `count` are recognised. Writes, endpoints Shopify documents as returning other rows, untraced reads and unmapped parameters stop. With AI, the model proposes mappings and Refit keeps them only under the schema, REST-type and read gates. Every rewrite is `[Needs review]`. Measured offline without AI on the 250 non-blind repositories: 15 of 180 REST calls rewritten, all read by hand and correct; AI not measured.
@@ -55,6 +74,7 @@ Shopify patches are now graded by proof ([Shopify proof](SHOPIFY-PROOF.md)). Eve
 ## October 29 checkpoint: Shopify pinned schemas, diffs and rules (unreleased, after 0.39.0)
 
 Admin (2025-01, 2026-01 to 2026-10) and Storefront (2024-10, 2025-01, 2025-07, 2025-10, 2026-01 to 2026-10) schemas are pinned by SHA-256 with their source and saved in the repository. Deterministic diffs between consecutive pins are committed and checked by `refit rules check`. 27 hand-written rules and 40 alerts quote Shopify's changelog and REST reference verbatim and agree with the diffs; all are review-only and none edits code yet. `refit rules mine-shopify` proposes more from the changelog with OpenAI and keeps only verified ones. Coverage and limits: [Shopify contracts and rules](SHOPIFY-RULES.md).
+
 ## October 29 checkpoint: Meta Graph tracing, fix plans and dated alerts (unreleased, after 0.39.0)
 
 `refit meta-graph` traces more of how Meta integrations are written, and `refit meta-graph --fix --target <version>` turns the review-only version moves into a fix plan ([Meta Graph API](META-GRAPH.md#fix-plans)). `refit run` with Meta snapshots (`refit meta-graph --snapshot`) validates that plan and writes the draft, like Stripe and Shopify runs ([run](META-GRAPH.md#run-meta-graph-fixes-with-refit-run)). The `meta-graph` catalog entry keeps `adapter: null`.

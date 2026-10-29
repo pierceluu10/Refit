@@ -3011,6 +3011,36 @@
         "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
         "wouldMerge": "yes"
       }
+    },
+    {
+      "repo": "FreeForCharity/FFC-IN-FFC_Single_Page_Template",
+      "pullRequest": null,
+      "run": "refit-bench meta.yml 40963544288 (59965322, subsets/meta-dev-60.json, size=1, no AI) against 40955599826 (affb6e8a); no patch before, validated after. Read from the shard artifact moves.patch and results.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the const GRAPH_API_VERSION v23.0 to v26.0 in src/lib/events/parsers/facebook.ts, which only GET /{pageId}/events uses (new URL with searchParams fields id,name,description,start_time,end_time,place,cover,is_online, time_filter, limit, access_token, sent through the injected fetcher); no change between v23.0 and v26.0 in the reviewed table touches it.",
+        "bothVersions": "n/a: a Graph API version move checked against the reviewed change table from v23.0 to v26.0; the change-table proof marks the changed request valid at v26.0.",
+        "nothingUnrelated": "yes: the only changed line is the version const.",
+        "pleaseCheck": "scripts/fetch-events.mjs keeps its own v23.0 URL, since its pagination loop reassigns the URL; the draft lists it as a note.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "tareksalammohamed/socialpilot",
+      "pullRequest": null,
+      "run": "refit-bench meta.yml 40963544288 (59965322, subsets/meta-dev-60.json, size=1, no AI) against 40955599826 (affb6e8a); no patch before, validated after. Read from the shard artifact moves.patch and results.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: const GRAPH v21.0 to v26.0 in supabase/functions/_shared/metaRefresh.ts (one GET /oauth/access_token fb_exchange_token) and supabase/functions/meta-oauth-callback/index.ts (two GET /oauth/access_token exchanges and GET /me/accounts with fields id,name,access_token,instagram_business_account{id,username}); no change in range touches them.",
+        "bothVersions": "n/a: a Graph API version move checked against the reviewed change table from v21.0 to v26.0; the change-table proof marks every changed request valid at v26.0.",
+        "nothingUnrelated": "yes: each changed line differs only in the version text.",
+        "pleaseCheck": "the WhatsApp and runtime-versioned requests elsewhere stay on their versions and are listed as notes.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes"
+      }
     }
   ]
 }

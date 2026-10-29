@@ -185,11 +185,11 @@ Business SDK requests always stop, because their version follows the `facebook-n
 
 The rule was run on the 33 Meta repositories of the [deadline benchmark](DEADLINE-BENCHMARK.md) with target v25.0, the newest version in the deadline registry ([results](benchmarks/2026-10-20-meta-graph-move-results.json)):
 
-| Change list | Pins moved | Pins stopped | Requests without a pinned version |
-|---|---:|---:|---:|
-| Every changelog unread (the list before this change) | 0 | 148 | 7 |
-| **Reviewed v14.0 to v26.0, 281 changes (2026-10-20 list)** | **35 (35 requests, 13 repositories)** | 113 | 7 |
-| Hypothetical: every version marked reviewed, with no changes | 100 (101 requests, 26 repositories) | 48 | 7 |
+| Change list                                                  |                            Pins moved | Pins stopped | Requests without a pinned version |
+| ------------------------------------------------------------ | ------------------------------------: | -----------: | --------------------------------: |
+| Every changelog unread (the list before this change)         |                                     0 |          148 |                                 7 |
+| **Reviewed v14.0 to v26.0, 281 changes (2026-10-20 list)**   | **35 (35 requests, 13 repositories)** |          113 |                                 7 |
+| Hypothetical: every version marked reviewed, with no changes |   100 (101 requests, 26 repositories) |           48 |                                 7 |
 | Change list                                                  |                            Pins moved | Pins stopped | Requests without a pinned version |
 | ------------------------------------------------------------ | ------------------------------------: | -----------: | --------------------------------: |
 | Every changelog unread (the list before this change)         |                                     0 |          148 |                                 7 |
@@ -261,14 +261,14 @@ A Meta snapshot is the contract of a Meta Graph run: a Graph API version and the
 
 The 33 Meta repositories of the deadline benchmark (not the blind set) were scanned offline at their pinned commits, on `bench/combined-final` and on this change, with target v25.0:
 
-| Measure | Before | After |
-|---|---:|---:|
-| Requests in live code | 162 | 168 |
-| `fields` read | 113 | 155 |
-| Pins moved (requests) | 35 (35) | 53 (57) |
-| Pins stopped | 120 | 109 |
-| Basic Display migrations | – | 1 |
-| Alerts | – | 2 |
+| Measure                  |  Before |   After |
+| ------------------------ | ------: | ------: |
+| Requests in live code    |     162 |     168 |
+| `fields` read            |     113 |     155 |
+| Pins moved (requests)    | 35 (35) | 53 (57) |
+| Pins stopped             |     120 |     109 |
+| Basic Display migrations |       – |       1 |
+| Alerts                   |       – |       2 |
 
 - **Every changed request (52) was checked by hand against the code, and every value was right.** Most of the gain came from three things:
   - `metaFetch` pass-throughs in manypost/manypost-app;
@@ -339,13 +339,13 @@ What this does not do yet: AI-written behaviour tests that run the repository's 
 
 Scope: the 68 Meta repositories of every earlier list (the deadline benchmark, its fresh list and the Meta platform list), offline at their pinned commits with target v25.0, through `benchmark:meta --validate`, no AI. The candidates ME1's selector is still searching were not cloned, since the blind set will be drawn from them. 3 rows did not run: 2 no longer clone and novuhq/novu exceeds the scan limits. 6 make no Graph request.
 
-| | `4ecb0cbd` | After this change |
-|---|---:|---:|
-| Repositories with a patch | 18 | 22 |
-| Pins moved | 67 | 85 |
-| Proven by the change table (ME4) | 18 of 18 | 22 of 22 |
-| Validated with nothing left | 5 | 10 |
-| Grades (B / C / D) | 1 / 15 / 2 | 1 / 19 / 2 |
+|                                  | `4ecb0cbd` | After this change |
+| -------------------------------- | ---------: | ----------------: |
+| Repositories with a patch        |         18 |                22 |
+| Pins moved                       |         67 |                85 |
+| Proven by the change table (ME4) |   18 of 18 |          22 of 22 |
+| Validated with nothing left      |          5 |                10 |
+| Grades (B / C / D)               | 1 / 15 / 2 |        1 / 19 / 2 |
 
 Every patch changes only version text, and every new moved request was read by hand. Both fixes are general:
 
@@ -378,15 +378,15 @@ With this, 10 of the 22 drafts validate (6 before). The 4 newly validated rows a
 
 Stops after this change, by blocker (repositories with it, and with it as their only blocker):
 
-| Blocker | Repositories | Only blocker |
-|---|---:|---:|
-| A listed change the request uses | 35 | 9 |
-| WhatsApp or Messenger request | 21 | 0 |
-| URL names no version | 19 | 6 |
-| Unknown request part | 18 | 4 |
-| Only tests use the pin | 11 | 0 |
-| Version held where a move cannot edit it | 5 | 0 |
-| Pin newer than the target | 1 | 0 |
+| Blocker                                  | Repositories | Only blocker |
+| ---------------------------------------- | -----------: | -----------: |
+| A listed change the request uses         |           35 |            9 |
+| WhatsApp or Messenger request            |           21 |            0 |
+| URL names no version                     |           19 |            6 |
+| Unknown request part                     |           18 |            4 |
+| Only tests use the pin                   |           11 |            0 |
+| Version held where a move cannot edit it |            5 |            0 |
+| Pin newer than the target                |            1 |            0 |
 
 - **Listed changes** are mostly node-wide removals (v22.0 Instagram v1.0 nodes, v24.0 custom audiences, custom conversions and Messenger lead templates), which match every request to a single opaque node, and the v22.0 Instagram v1.0 `comments` edge, which shares its name with Page post comments. The node type behind an opaque ID is not traced, so these stay stops.
 - **WhatsApp and Messenger** changelogs are now in the table (#413), but letting moves use them needs an owner decision.

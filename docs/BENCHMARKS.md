@@ -334,6 +334,26 @@ The hand-labelled [deadline benchmark](DEADLINE-BENCHMARK.md) covers 100 reposit
 
 These counts are a lower bound for Shopify: the registry starts at `2025-04`, and many apps pin older versions.
 
+## Meta Graph tracing on meta-dev-60 (October 29)
+
+refit-bench `meta.yml` on `subsets/meta-dev-60.json` (size 1, all 60 rows, target v26.0, no AI) compared affb6e8a (run 40955599826) with feat/meta-tracing-ai 59965322 (run 40963544288). The change: URL objects with `searchParams`, conditional URLs, same-file URL builders, fetch wrappers that spread options, injected fetch parameters, and `encodeURIComponent(id)` as a node.
+
+|                                         | affb6e8a  | 59965322       |
+| --------------------------------------- | --------- | -------------- |
+| Validated                               | 3         | 5              |
+| Needs review (patch)                    | 12        | 12             |
+| No patch                                | 45        | 43             |
+| Grades                                  | C 11, D 4 | B 1, C 12, D 4 |
+| Repositories with unknown-request stops | 47        | 46             |
+| unversioned / version-holder            | 22 / 13   | 22 / 13        |
+| AI spend                                | $0        | $0             |
+
+- FreeForCharity/FFC-IN-FFC_Single_Page_Template (B) and tareksalammohamed/socialpilot (C) moved from no patch to validated. Both diffs were read and labelled `correct` in `benchmarks/fix-reviews.json`.
+- Totex-Motors/Totexgest hit the 30-minute validation timeout in 40963544288. Alone in 40970287411 (same commit), it is needs-review / D in 666 s, as on the base (unresolved 30 → 28).
+- 9 newly moved pins across 5 repositories were read in context offline.
+- Nothing validated before was lost.
+- The AI reconstruction path (`pipeline/meta-graph-ai.ts`) is not measured. Probe run 40963591790 still got HTTP 429 `credit_balance_exhausted` from OpenAI.
+
 ## Meta Graph API requests (October 20)
 
 `refit meta-graph` was run over the 33 Meta repositories of the deadline benchmark, and each of the 162 requests it reports in live code was read in context ([labels](benchmarks/2026-10-20-meta-graph-call-labels.json), [results](benchmarks/2026-10-20-meta-graph-call-results.json)). All 162 are real Graph API requests or endpoints, and no reported version, path, edge, field, metric or method disagrees with the code. The version was read for 157 (the other 5 are unversioned), the path for 158, the edge for 116, and `fields` for 113. A request was found at 62 of the 63 live Graph pins labelled in the deadline benchmark; the miss is a browser `FB.init`. Labels are one reviewer's single pass. See [Meta Graph API](META-GRAPH.md#measured-on-the-deadline-benchmark).
