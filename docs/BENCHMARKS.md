@@ -385,7 +385,6 @@ dev-60 plus the 250 practice repositories (practice-50 and fresh-200), refit-ben
   - an error and an unrun patch: 2
 - The AI run validates fewer rows, and not because of the patches. Its development-store run failed on stand-in Function IDs, a store locale, rate limits and app ownership, on the before version (2026-01) as well, and that set five rows that pass every check to grade D (danyn/shopify-app-rr, cornerstone-report/x-money-shopify, ersinkoc/CouponEngine, mssalemi/b-is-for-bundles, Stephnn0/shipping-discounts-shopify-app). Two rows validate only with AI (IliasHad/shopify-app-template-remix-cloudflare-workers, SankaiAI/iHeard.ai).
 
-<<<<<<< HEAD
 ### Development-store environment (2026-10-30, fix/shopify-store-proof)
 
 refit-bench `shopify.yml` on `shopify-ai`, `--sdk-upgrade`. Before is main `57ce145f`; after is `915fd860` (store-environment checks and rate-limit retries in `pipeline/shopify-live-proof.ts`).
@@ -400,7 +399,7 @@ refit-bench `shopify.yml` on `shopify-ai`, `--sdk-upgrade`. Before is main `57ce
 - Every row has the same status, grade and live-proof status before and after. No row is newly validated, so `docs/benchmarks/fix-reviews.json` gains no entry.
 - The five rows SH12 round 3 graded D on store failures already validate on main, because #435 records those failures as not run: danyn/shopify-app-rr, cornerstone-report/x-money-shopify, mssalemi/b-is-for-bundles and Stephnn0/shipping-discounts-shopify-app at C, ersinkoc/CouponEngine at B.
 - The AI pair does not exercise the change. The $10 cap splits into about $0.17 per shard; scan-time requests used it, 9 rows per run stopped with `AI budget exhausted`, and no row reached the live-case writer (`aiCostUsd` 0 on every patched row). mssalemi/b-is-for-bundles, for example, records `no value for required variable $functionId`. Measuring the function and locale checks needs an AI run that reaches case writing.
-=======
+
 ### Shopify SDK and preparation stops (2026-10-30)
 
 dev-60, practice-50 and fresh-200 on refit-bench `shopify.yml` (`shopify-ai`), `--sdk-upgrade`, no AI. Admin schemas were read on 2026-10-30.
@@ -423,7 +422,6 @@ dev-60, practice-50 and fresh-200 on refit-bench `shopify.yml` (`shopify-ai`), `
   - Twenty more rows that the upgrade would have patched with the same defect now stop instead.
 - gruntlord5/cloudflare-react-router7-shopify-d1 (dev and practice) no longer stops on React Router's `unstable_newEmbeddedAuthStrategy` flag, which no release reads, but now stops on its Bun lockfile, with no code change. hak193/i-devr-code now prepares and passes on both sides, and stays `[Needs review]` for its submodules.
 - Shopify/subscriptions-reference-app's Admin URL `LATEST_API_VERSION` pin applies at `a744b0b2`. At `08f5df4e` the upgrade stops on its Session model.
->>>>>>> origin/main
 
 ### Shopify dev and blind sets
 
