@@ -1610,6 +1610,8 @@ export async function validateMigration(options: {
   // Owner decision 1: see runPipeline.
   leaveReviewedFindings?: boolean;
   keepApiVersion?: boolean;
+  // docs/VERSION-BUMP-PRS.md: see runPipeline.
+  versionBump?: boolean;
   keepListedPaymentMethods?: boolean;
   shopifySdkUpgrade?: boolean;
   // Owner decision 1: when dependency preparation refuses, or the baseline checks fail and so give
@@ -2005,7 +2007,7 @@ export async function validateMigration(options: {
       (!initialReport.patch.diff && (baseline.status === 'passed' || dependencyFailure))
     )
       throw new PipelineInputError(
-        'No supported patch proposal is available for this committed revision.',
+        `No supported patch proposal is available for this committed revision.${options.versionBump && 'reason' in initialReport.patch ? ` ${initialReport.patch.reason}` : ''}`,
       );
     // A type-checked period-read restore below may replace it with a new proposal.
     let report: ProposedReport = initialReport;

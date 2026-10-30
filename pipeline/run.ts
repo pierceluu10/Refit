@@ -16,6 +16,7 @@ import {
   isFieldMove,
   proposePatch,
   renderFileReplacements,
+  renderPatch,
 } from './patches.ts';
 import { stripePackageUpgrade } from './stripe-package-upgrade.ts';
 import { INVOICE_PREVIEW_RULE, invoicePreviewMove } from './stripe-invoice-preview.ts';
@@ -101,6 +102,9 @@ async function runOpenApiPipeline(options: {
   // the patch keeps only edits that work under either version (the workflow's retry after a
   // regression).
   keepApiVersion?: boolean;
+  // docs/VERSION-BUMP-PRS.md: the workflow found every Stripe call traced and none reaching what the
+  // target changes, so the patch only moves every pin and upgrades stripe-node, together or not at all.
+  versionBump?: boolean;
   // The repository's opt-in to keep listed payment methods (`stripePaymentMethodTypes`).
   keepListedPaymentMethods?: boolean;
   // Validation only: the networked lockfile resolver a types-only peer bump uses
@@ -620,51 +624,111 @@ async function runOpenApiPipeline(options: {
     options.onProgress?.('Requesting an AI migration proposal...');
   else if (deterministicRequested && !reviewReason)
     options.onProgress?.('Generating a deterministic migration proposal...');
+  const versionBump =
+    options.versionBump &&
+    options.proposePatch &&
+    !options.keepApiVersion &&
+    provider.packageName === STRIPE.packageName &&
+    typeof targetVersion === 'string' &&
+    !analysis.findings.length &&
+    !analyzedEdits.length &&
+    !kept.length &&
+    everyPinMoves &&
+    (versionEdits.length > 0 || sdkDefault)
+      ? await stripePackageUpgrade(
+          repository.root,
+          targetVersion,
+          options.lockfileResolution,
+          options.lockfile,
+        )
+      : undefined;
+  // Its own expression, so its fields do not widen the other patches' types.
+  const versionBumpStop =
+    options.versionBump && options.proposePatch && (!versionBump || 'reason' in versionBump)
+      ? {
+          status: 'not-generated' as const,
+          reason: versionBump
+            ? `The version bump moves the pin only together with stripe-node, which cannot be upgraded: ${versionBump.reason}`
+            : 'A version bump needs no finding or rule edit and every Stripe client version traced.',
+        }
+      : undefined;
+  const versionBumpPatch =
+    versionBump && 'upgrade' in versionBump
+      ? {
+          generator: 'deterministic' as const,
+          versionBump: true as const,
+          summary: `Update the pinned Stripe API version to ${String(targetVersion)} and upgrade stripe from ${versionBump.upgrade.from} to ${versionBump.upgrade.to}.`,
+          status: 'proposed' as const,
+          edits: versionEdits.length + versionBump.upgrade.files.length,
+          unresolvedFindings: 0,
+          unresolvedSites: [] as ReturnType<typeof unresolvedSites>,
+          diff:
+            renderPatch(repository, versionEdits) +
+            renderFileReplacements(repository, versionBump.upgrade.files, 'stripe-package'),
+          validation: 'not-run',
+          warnings: [
+            versionBump.upgrade.warning ??
+              `Upgrades stripe from ${versionBump.upgrade.from} to ${versionBump.upgrade.to} in ${versionBump.upgrade.files.map((file) => file.path).join(' and ')}, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
+            'Webhook endpoints keep the API version set in the Stripe Dashboard; this patch does not change them.',
+          ],
+          sdkUpgrade: {
+            from: versionBump.upgrade.from,
+            to: versionBump.upgrade.to,
+            ...(versionBump.upgrade.raised ? { raised: versionBump.upgrade.raised } : {}),
+          },
+          // AI repairs start again from the original code and must keep these edits.
+          ruleEdits: versionEdits,
+        }
+      : undefined;
   const patch = reviewReason
     ? { status: 'not-generated' as const, reason: reviewReason! }
-    : useAi
-      ? operationImpacts.length
-        ? {
-            status: 'not-generated' as const,
-            reason:
-              'AI generation is blocked because the adapter maps code to unresolved breaking API changes without a verified migration rule.',
-          }
-        : await proposeAiPatch(
-            repository,
-            changes,
-            analysis.findings,
-            options.aiPatch!,
-            provider,
-            before.schemas,
-            undefined,
-            options.documentationSnapshots,
-            after.schemas,
-            [...ruleEdits, ...versionEdits],
-            undefined,
-            parameterRemovals,
-          )
-      : deterministicRequested
-        ? {
-            ...proposePatch(
-              repository,
-              movesVersion ? [...edits, ...versionEdits] : edits,
-              unresolvedFindings.length,
-              provider,
-              replacements,
-              requestRenames,
-            ),
-            ...(unresolvedFindings.length
-              ? { unresolvedSites: unresolvedSites(unresolvedFindings) }
-              : {}),
-            // AI repairs start again from the original code and must keep these rule edits.
-            ...(movesVersion ? { ruleEdits: [...ruleEdits, ...versionEdits] } : {}),
-            ...(options.keepApiVersion ? { keptApiVersion: true as const } : {}),
-          }
-        : {
-            status: 'not-generated' as const,
-            reason:
-              'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
-          };
+    : versionBumpStop
+      ? versionBumpStop
+      : versionBumpPatch
+        ? versionBumpPatch
+        : useAi
+          ? operationImpacts.length
+            ? {
+                status: 'not-generated' as const,
+                reason:
+                  'AI generation is blocked because the adapter maps code to unresolved breaking API changes without a verified migration rule.',
+              }
+            : await proposeAiPatch(
+                repository,
+                changes,
+                analysis.findings,
+                options.aiPatch!,
+                provider,
+                before.schemas,
+                undefined,
+                options.documentationSnapshots,
+                after.schemas,
+                [...ruleEdits, ...versionEdits],
+                undefined,
+                parameterRemovals,
+              )
+          : deterministicRequested
+            ? {
+                ...proposePatch(
+                  repository,
+                  movesVersion ? [...edits, ...versionEdits] : edits,
+                  unresolvedFindings.length,
+                  provider,
+                  replacements,
+                  requestRenames,
+                ),
+                ...(unresolvedFindings.length
+                  ? { unresolvedSites: unresolvedSites(unresolvedFindings) }
+                  : {}),
+                // AI repairs start again from the original code and must keep these rule edits.
+                ...(movesVersion ? { ruleEdits: [...ruleEdits, ...versionEdits] } : {}),
+                ...(options.keepApiVersion ? { keptApiVersion: true as const } : {}),
+              }
+            : {
+                status: 'not-generated' as const,
+                reason:
+                  'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
+              };
   // TypeScript projects need the stripe-node release for the new API version: its apiVersion
   // literal type and the moved fields' types. An SDK-pinned version moves only with the upgrade.
   // The upgrade is added only when the patch bumps the version.
