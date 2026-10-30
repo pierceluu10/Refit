@@ -1251,6 +1251,10 @@ export function createReviewArtifacts(
     `Refit changed nothing outside this repository${stripe ? ': no Stripe Dashboard, webhook endpoint or account setting' : ''}.`,
   ];
   const checklist = [
+    // A moved version constant that also creates webhook endpoints (run.ts names it in a warning).
+    ...(patch.warnings ?? []).filter((warning) =>
+      warning.includes("a webhook endpoint's api_version: endpoints this code creates"),
+    ),
     ...(versionBump
       ? [
           "Check each webhook endpoint's API version in the Stripe Dashboard (Developers > Webhooks). Endpoints have their own version, which this pull request does not change.",
