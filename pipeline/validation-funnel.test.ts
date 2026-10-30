@@ -151,17 +151,17 @@ it('groups preparation refusals by the message Refit raises', () => {
   ).toBe('non-registry-source');
   expect(
     preparationGroup(
-      'Unsupported pnpm lockfile settings, patches or graph metadata need the repository install.',
+      'Unsupported pnpm lockfile settings, patches or graph metadata require a custom image.',
     ),
   ).toBe('unsupported-pnpm-settings');
   expect(
     preparationGroup(
-      'Workspace bins, nested workspace declarations and workspace pnpm settings need the repository install.',
+      'Workspace bins, nested workspace declarations and workspace pnpm settings require a custom validation image.',
     ),
   ).toBe('unsupported-workspace-layout');
   expect(
     preparationGroup(
-      'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations other than { packages: [...] } need the repository install.',
+      'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations other than { packages: [...] } require a custom image.',
     ),
   ).toBe('unsupported-workspace-layout');
   expect(preparationGroup('something new')).toBe('other');
@@ -217,7 +217,7 @@ it('places untested patches at the preparation refusal that kept them untested',
         dependencyFailure: {
           reason: 'preparation-failed',
           message:
-            'Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks need the repository install. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.',
+            'Tracked node_modules, conflicting lockfiles, shrinkwrap or pnpm hooks require a custom validation image. The repository commits package-lock.json and pnpm-lock.yaml; keep only the lockfile of the package manager you use.',
         },
       }),
     },

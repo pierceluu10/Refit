@@ -48,7 +48,9 @@ function assessment(id: string) {
 
 afterEach(() => vi.unstubAllGlobals());
 
-it('refuses advisory webhook assessment before making a paid request', async () => {
+// Founder decision (2026-10-28): the webhook payload policy no longer blocks the advisory
+// assessment, but evidence without traced provenance still does.
+it('refuses advisory assessment of untraced evidence before making a paid request', async () => {
   const input = await evidence();
   input.findings[0].webhook = {
     schema: 'payment_intent',
@@ -56,9 +58,11 @@ it('refuses advisory webhook assessment before making a paid request', async () 
     origin: { file: 'handler.ts', line: 1, column: 1 },
     apiVersion: 'unverified',
   };
+  input.findings[0].declaredType = { schema: 'payment_intent' };
+  input.findings[0].confidence = 'review';
   const fetch = vi.fn();
   vi.stubGlobal('fetch', fetch);
-  await expect(assessMigration(input, OPTIONS)).rejects.toThrow(/migration-policy/);
+  await expect(assessMigration(input, OPTIONS)).rejects.toThrow(/^Declared Stripe types/);
   expect(fetch).not.toHaveBeenCalled();
 });
 

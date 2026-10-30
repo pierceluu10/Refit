@@ -662,6 +662,137 @@ it('stops a type-error fix that drops the request parameter the new types reject
   expect(fetch).toHaveBeenCalledTimes(1);
 });
 
+// Founder decision (2026-10-28): a repair where a policy used to stop.
+const POLICY_REPAIR = {
+  attempt: 1,
+  policies: ["Removed request parameters: the upgraded types reject 'trial_from_plan'."],
+  failedPatch: '',
+  check: { exitCode: 2, stdout: '', stderr: '', truncated: false },
+};
+const TRIAL_REPLACEMENT = {
+  ...TRIAL_EDIT,
+  replacement: 'trial_period_days: 14,\n      metadata,',
+  source: 'https://docs.stripe.com/payments/checkout/free-trials',
+};
+
+it('lets a policy repair replace a rejected request parameter it explains and cites', async () => {
+  const { repository, report, findings, findingId } = await typeErrorFixture();
+  const why =
+    'Replaces trial_from_plan, which the new types reject, with trial_period_days; the trial length is now fixed.';
+  respond([{ ...TRIAL_REPLACEMENT, why, findingId }]);
+  const proposal = await proposeAiPatch(
+    repository,
+    report.changes,
+    findings,
+    OPTIONS,
+    undefined,
+    undefined,
+    POLICY_REPAIR,
+  );
+  expect(proposal.diff).toContain('+      trial_period_days: 14,');
+  expect(proposal.explanations).toEqual([
+    {
+      file: 'checkout.ts',
+      line: 6,
+      error:
+        "TS2322: Type '{ trial_from_plan: true; }' is not assignable to type 'SubscriptionData'.",
+      why,
+      source: TRIAL_REPLACEMENT.source,
+    },
+  ]);
+  const [request] = vi.mocked(fetch).mock.calls;
+  expect(String(request[1]?.body)).toContain('repair.policies names the owner policies');
+});
+
+it('lets a policy repair past a contract review that stops other AI requests', async () => {
+  const { repository, report, findings, findingId } = await typeErrorFixture();
+  const reviewed = findings.map((finding, index) =>
+    index
+      ? finding
+      : { ...finding, contractReview: 'Stripe removed this operation; it needs review.' },
+  );
+  respond([{ ...TRIAL_EDIT, why: 'Keeps trial_from_plan.', source: 'none', findingId }]);
+  await expect(proposeAiPatch(repository, report.changes, reviewed, OPTIONS)).rejects.toThrow(
+    'Stripe removed this operation; it needs review.',
+  );
+  const proposal = await proposeAiPatch(
+    repository,
+    report.changes,
+    reviewed,
+    OPTIONS,
+    undefined,
+    undefined,
+    POLICY_REPAIR,
+  );
+  expect(proposal.diff).toContain('+      metadata: { ...metadata },');
+});
+
+it('lets a policy repair replace a removed operation it names, and only then', async () => {
+  const { repository, report, findings, findingId } = await typeErrorFixture();
+  const replaced = {
+    file: 'checkout.ts',
+    original: "await stripe.checkout.sessions.create({\n    mode: 'subscription',",
+    replacement: "await stripe.checkout.sessions.createPreview({\n    mode: 'subscription',",
+    source: 'https://docs.stripe.com/changelog',
+    findingId,
+  };
+  respond([{ ...replaced, why: 'Calls createPreview because the version removed create.' }]);
+  const proposal = await proposeAiPatch(
+    repository,
+    report.changes,
+    findings,
+    OPTIONS,
+    undefined,
+    undefined,
+    POLICY_REPAIR,
+  );
+  expect(proposal.diff).toContain('+  await stripe.checkout.sessions.createPreview({');
+  respond([{ ...replaced, why: 'Calls the documented replacement.' }]);
+  await expect(
+    proposeAiPatch(
+      repository,
+      report.changes,
+      findings,
+      OPTIONS,
+      undefined,
+      undefined,
+      POLICY_REPAIR,
+    ),
+  ).rejects.toThrow('AI patch drops or changes');
+});
+
+it('still stops a policy repair that changes a request parameter without naming it', async () => {
+  const { repository, report, findings, findingId } = await typeErrorFixture();
+  respond([{ ...TRIAL_REPLACEMENT, why: 'Uses a fixed trial.', findingId }]);
+  await expect(
+    proposeAiPatch(
+      repository,
+      report.changes,
+      findings,
+      OPTIONS,
+      undefined,
+      undefined,
+      POLICY_REPAIR,
+    ),
+  ).rejects.toThrow('AI patch drops or changes subscription_data.trial_from_plan');
+});
+
+it('rejects a policy repair edit without its reason and source', async () => {
+  const { repository, report, findings, findingId } = await typeErrorFixture();
+  respond([{ ...TRIAL_EDIT, findingId }]);
+  await expect(
+    proposeAiPatch(
+      repository,
+      report.changes,
+      findings,
+      OPTIONS,
+      undefined,
+      undefined,
+      POLICY_REPAIR,
+    ),
+  ).rejects.toThrow('AI patch contains an invalid or unchanged replacement.');
+});
+
 it('stops a type-error fix that silences the error with a cast', async () => {
   const { repository, report, findings, findingId } = await typeErrorFixture();
   respond([
@@ -857,7 +988,7 @@ it('stops an AI patch that changes a line the rules wrote, and keeps one that re
     );
   };
   await expect(propose(client)).rejects.toThrow(
-    "AI patch changes billing.ts:3, which the deterministic rules already changed; a rule's edit changes only with its rule, so it stops for review.",
+    "AI patch changes billing.ts:3, which the deterministic rules already changed, and drops what the rule introduced there; a rule's edit may be adjusted only while its new field, parameter or version stays, so it stops for review.",
   );
   expect(fetch).toHaveBeenCalledTimes(1);
   const proposal = await propose(bumped);

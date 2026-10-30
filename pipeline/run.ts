@@ -1,12 +1,19 @@
 import {
-  migrationReviewReason,
+  assessmentReviewReason,
   migrationReviewReasons,
   reviewBlocksAi,
   unresolvedSites,
 } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
-import { annotateReach, currencyCodeEdits, enumValueEdits } from './operation-reach.ts';
+import {
+  annotateReach,
+  currencyCodeEdits,
+  enumValueEdits,
+  REQUEST_OPTIONS_RULE,
+  REQUEST_OPTIONS_SINCE,
+  requestOptionEdits,
+} from './operation-reach.ts';
 import { measureCoverage } from './sdk-coverage.ts';
 import { proposeAiPatch } from './ai-patches.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
@@ -16,8 +23,14 @@ import {
   isFieldMove,
   proposePatch,
   renderFileReplacements,
+  renderPatch,
+  REQUEST_OPTIONS_WARNING,
 } from './patches.ts';
-import { stripePackageUpgrade } from './stripe-package-upgrade.ts';
+import {
+  PACKAGE_FILES,
+  STRIPE_SDK_RELEASES,
+  stripePackageUpgrade,
+} from './stripe-package-upgrade.ts';
 import { INVOICE_PREVIEW_RULE, invoicePreviewMove } from './stripe-invoice-preview.ts';
 import { REQUEST_MOVE_RULES } from './request-move-families.ts';
 import { STRIPE_PACK } from './rule-pack.ts';
@@ -58,10 +71,15 @@ import {
   validateApiVersionPolicy,
   type ApiVersionPolicy,
 } from './api-version.ts';
-import { PipelineInputError, type SourceEdit } from './types.ts';
+import { PipelineInputError, type Finding, type Repository, type SourceEdit } from './types.ts';
 import { digest, findRemovedProperties, isObject, readSpecification } from './specifications.ts';
 import { stripeAdapterFor } from './stripe-operations.ts';
-import { addTypeEvidence, stripePackageDirectory } from './stripe-type-evidence.ts';
+import {
+  addTypeEvidence,
+  stripePackageDirectory,
+  typeProvenReads,
+} from './stripe-type-evidence.ts';
+import { typedStripeClients } from './type-clients.ts';
 import {
   HELPER_RULES,
   SUBSCRIPTION_PERIOD_RULE,
@@ -101,6 +119,11 @@ async function runOpenApiPipeline(options: {
   // the patch keeps only edits that work under either version (the workflow's retry after a
   // regression).
   keepApiVersion?: boolean;
+  // Why stripe-node could not be upgraded with the pin, when that kept every pin (set by runPipeline).
+  pinBlocked?: string;
+  // docs/VERSION-BUMP-PRS.md: the workflow found every Stripe call traced and none reaching what the
+  // target changes, so the patch only moves every pin and upgrades stripe-node, together or not at all.
+  versionBump?: boolean;
   // The repository's opt-in to keep listed payment methods (`stripePaymentMethodTypes`).
   keepListedPaymentMethods?: boolean;
   // Validation only: the networked lockfile resolver a types-only peer bump uses
@@ -123,6 +146,12 @@ async function runOpenApiPipeline(options: {
   ]);
   const configured = await readProviderAdapter(options.providerConfig);
   const repository = await readRepository(options.repository, configured.packageName);
+  // Stripe calls whose client the checker types as stripe-node's (docs/CLIENT-TRACING.md).
+  const typed =
+    configured.packageName === STRIPE.packageName
+      ? typedStripeClients(repository, options.stripePackage)
+      : undefined;
+  const typedClients = typed?.clients;
   // The built-in Stripe adapter grows to cover every Stripe method the application calls.
   const provider =
     configured === STRIPE
@@ -130,9 +159,9 @@ async function runOpenApiPipeline(options: {
           STRIPE,
           before.document,
           new Set(
-            analyzeRepository(repository, [], STRIPE).sdkCalls.map(
-              (call) => `${call.resource}.${call.method}`,
-            ),
+            analyzeRepository(repository, [], STRIPE, {}, [], [], [], [], {
+              typedClients,
+            }).sdkCalls.map((call) => `${call.resource}.${call.method}`),
           ),
         )
       : configured;
@@ -149,6 +178,17 @@ async function runOpenApiPipeline(options: {
     before.document,
     after.document,
   );
+  // Founder decision (2026-10-28): reads TypeScript's checker proves read the change's Stripe type
+  // are analyzed again as confirmed, so the rules migrate them as they would a traced read.
+  const withTypeProof = <T extends { findings: Finding[] }>(
+    snapshot: Repository,
+    analyze: (proven?: ReturnType<typeof typeProvenReads>) => T,
+  ) => {
+    const analyzed = analyze();
+    if (provider.packageName !== STRIPE.packageName) return analyzed;
+    const proven = typeProvenReads(snapshot, changes, analyzed.findings, options.stripePackage);
+    return proven.length ? analyze(proven) : analyzed;
+  };
   const removed = findRemovedProperties(before.schemas, after.schemas, provider.id);
   const changes =
     provider.packageName === STRIPE.packageName
@@ -192,16 +232,23 @@ async function runOpenApiPipeline(options: {
     clientMethodCalls: _clientMethodCalls,
     renamePaths,
     ...analysis
-  } = analyzeRepository(
-    repository,
-    changes,
-    provider,
-    before.schemas,
-    replacements,
-    requestRenames,
-    moves,
-    parameterRemovals,
-    { invoicePreview, typeCheckedPeriodReads: options.typeCheckedPeriodReads },
+  } = withTypeProof(repository, (typeProvenReads) =>
+    analyzeRepository(
+      repository,
+      changes,
+      provider,
+      before.schemas,
+      replacements,
+      requestRenames,
+      moves,
+      parameterRemovals,
+      {
+        invoicePreview,
+        typeCheckedPeriodReads: options.typeCheckedPeriodReads,
+        typedClients,
+        typeProvenReads,
+      },
+    ),
   );
   // Documented enum successors are request moves: they ride the pin and the stripe-node upgrade.
   const analyzedEdits = [
@@ -212,6 +259,13 @@ async function runOpenApiPipeline(options: {
           { repository, calls: analysis.calls, mappings: operationMappings },
           STRIPE_PACK.requestMoves,
         )
+      : []),
+    // Only where the target's stripe-node release reads arguments by position.
+    ...(provider.packageName === STRIPE.packageName &&
+    isObject(after.document.info) &&
+    Number(STRIPE_SDK_RELEASES[String(after.document.info.version)]?.split('.')[0]) >=
+      REQUEST_OPTIONS_SINCE
+      ? requestOptionEdits({ repository, calls: analysis.calls, mappings: operationMappings })
       : []),
   ];
   const stripePackage =
@@ -272,7 +326,7 @@ async function runOpenApiPipeline(options: {
       : [];
   // Every client omits the version option and no request overrides it, so stripe-node 12+ sends
   // the API version its release pins: upgrading the package is the version bump, in any language.
-  // `apiVersion: null` (the account default) is unknown, not absent, and never counts.
+  // `apiVersion: null` is absent too: stripe-node sends `apiVersion || DEFAULT_API_VERSION`.
   const constructors = apiVersionDeclarations.filter((entry) => entry.kind === 'constructor');
   // The upgrade moves at least one client that omits the option: enough for a payment-method
   // rename whose own path holds only such clients (below).
@@ -309,7 +363,8 @@ async function runOpenApiPipeline(options: {
       (edit) =>
         PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '') ||
         REQUEST_MOVE_RULES.has(edit.rule ?? '') ||
-        edit.rule === INVOICE_PREVIEW_RULE,
+        edit.rule === INVOICE_PREVIEW_RULE ||
+        edit.rule === REQUEST_OPTIONS_RULE,
     ) &&
     (bumpsVersion || sdkDefault) &&
     (upgradeRequired || preview) &&
@@ -328,6 +383,10 @@ async function runOpenApiPipeline(options: {
   const everyPinMoves = apiVersionDeclarations.every(
     (entry) => entry.status !== 'unknown' || (entry.kind === 'constructor' && entry.absent),
   );
+  // A deployment environment variable can override a moved default, so request edits that need
+  // the target version do not ride on it; the version move itself does.
+  const everyPinReaches =
+    everyPinMoves && apiVersionDeclarations.every((entry) => !entry.environment);
   const operationChanges = operationReplacementEvidence(
     replacements,
     analysis.calls,
@@ -345,7 +404,7 @@ async function runOpenApiPipeline(options: {
   // the same patch, so they never ride a configured migration's patch, which has neither.
   movedTo[CARD_PAYMENT_METHOD_RULE] =
     bumpsVersion &&
-    everyPinMoves &&
+    everyPinReaches &&
     (!patchRequested || !upgradeRequired || upgraded) &&
     !configuredMigrationProposal;
   // Founders' decision (2026-10-27): a payment-method rename also stands when every declaration on
@@ -365,11 +424,13 @@ async function runOpenApiPipeline(options: {
         provider.packageName === STRIPE.packageName &&
         Boolean(applicationApiVersion)));
   const reaches = (entry: (typeof apiVersionDeclarations)[number]) =>
-    entry.status === 'literal'
-      ? pinReaches(entry.value!)
-      : entry.kind === 'request'
-        ? entry.status === 'inherited'
-        : Boolean(entry.absent);
+    entry.environment
+      ? false
+      : entry.status === 'literal'
+        ? pinReaches(entry.value!)
+        : entry.kind === 'request'
+          ? entry.status === 'inherited'
+          : Boolean(entry.absent);
   const pathMoves = (edit: SourceEdit) =>
     renameMoves &&
     Boolean(renamePaths.get(edit)?.every((index) => reaches(apiVersionDeclarations[index])));
@@ -377,7 +438,12 @@ async function runOpenApiPipeline(options: {
   movedTo[MOVED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   for (const rule of REQUEST_MOVE_RULES) movedTo[rule] = movedTo[CARD_PAYMENT_METHOD_RULE];
   movedTo[INVOICE_PREVIEW_RULE] =
-    bumpsVersion && everyPinMoves && (!patchRequested || upgraded) && !configuredMigrationProposal;
+    bumpsVersion &&
+    everyPinReaches &&
+    (!patchRequested || upgraded) &&
+    !configuredMigrationProposal;
+  // Request options move only together with the stripe-node release that needs them last.
+  movedTo[REQUEST_OPTIONS_RULE] = movedTo[INVOICE_PREVIEW_RULE];
   // The period helper reads either API version, so it does not depend on the version pin.
   const kept = [
     ...analyzedEdits.filter(
@@ -435,19 +501,22 @@ async function runOpenApiPipeline(options: {
   const edits = kept.filter(
     (edit) => !reviewed.some((finding) => editCovers(repository, [edit], finding)),
   );
+  // Request options moved last ride the other rule edits or the version bump, never alone.
+  const optionEdits = edits.filter((edit) => edit.rule === REQUEST_OPTIONS_RULE);
   const ruleEdits = edits.filter(isFieldMove);
   // The pin and the stripe-node upgrade ride the rules' edits. Under owner decision 1 they also
   // make the patch when a removed request parameter is left for review, as the #88 waiver does:
   // the parameter stays in place and the draft names it.
   const movesVersion =
     !configuredMigrationProposal &&
-    (ruleEdits.length > 0 ||
+    (ruleEdits.length > optionEdits.length ||
       (Boolean(options.leaveReviewedFindings) &&
         reviewed.some((finding) => finding.requestParameter)));
   // A dropped payment-method rename tells the customer which gate dropped it (F2).
   const renames = analyzedEdits.filter((edit) => PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? ''));
   const untraced = (entry: (typeof apiVersionDeclarations)[number]) =>
-    entry.status === 'unknown' && !(entry.kind === 'constructor' && entry.absent);
+    Boolean(entry.environment) ||
+    (entry.status === 'unknown' && !(entry.kind === 'constructor' && entry.absent));
   const dropped = renames.filter((edit) => !kept.includes(edit));
   const onPath = dropped
     .flatMap((edit) => renamePaths.get(edit) ?? [])
@@ -457,24 +526,28 @@ async function runOpenApiPipeline(options: {
   // a dropped rename's path is not known.
   const unresolved =
     onPath.find(untraced) ??
-    (dropped.some((edit) => !renamePaths.get(edit)) && !everyPinMoves
+    (dropped.some((edit) => !renamePaths.get(edit)) && !everyPinReaches
       ? apiVersionDeclarations.find(untraced)
       : undefined);
   const gate = !dropped.length
     ? undefined
-    : options.keepApiVersion
-      ? 'the patch that moved the API version failed the repository checks, so this one leaves every pin unchanged'
-      : configuredMigrationProposal
-        ? 'this patch applies a configured migration, which does not move the API version'
-        : unresolved
-          ? `Refit cannot resolve the API version the ${unresolved.kind === 'constructor' ? 'client created' : 'request'} at ${unresolved.file}:${unresolved.line} sends, so it cannot move every client to ${targetVersion}`
-          : unmoved
-            ? `the ${unmoved.kind === 'constructor' ? 'client created' : 'request'} at ${unmoved.file}:${unmoved.line} pins ${unmoved.value}, which this patch does not move to ${targetVersion}`
-            : !bumpsVersion && !sdkDefault
-              ? `no client pins a literal apiVersion that the patch can move to ${targetVersion}`
-              : cardUpgrade && 'reason' in cardUpgrade
-                ? `the stripe package cannot be upgraded to a release whose types have allowed_payment_method_types: ${cardUpgrade.reason.replace(/\.$/, '')}`
-                : undefined;
+    : options.pinBlocked
+      ? `the stripe package cannot be upgraded with the pin, so this patch leaves every pin unchanged: ${options.pinBlocked.replace(/\.$/, '')}`
+      : options.keepApiVersion
+        ? 'the patch that moved the API version failed the repository checks, so this one leaves every pin unchanged'
+        : configuredMigrationProposal
+          ? 'this patch applies a configured migration, which does not move the API version'
+          : unresolved?.environment
+            ? `the ${unresolved.kind === 'constructor' ? 'client created' : 'request'} at ${unresolved.file}:${unresolved.line} reads its API version from the deployment environment variable ${unresolved.environment}, so Refit cannot confirm it sends ${targetVersion}`
+            : unresolved
+              ? `Refit cannot resolve the API version the ${unresolved.kind === 'constructor' ? 'client created' : 'request'} at ${unresolved.file}:${unresolved.line} sends, so it cannot move every client to ${targetVersion}`
+              : unmoved
+                ? `the ${unmoved.kind === 'constructor' ? 'client created' : 'request'} at ${unmoved.file}:${unmoved.line} pins ${unmoved.value}, which this patch does not move to ${targetVersion}`
+                : !bumpsVersion && !sdkDefault
+                  ? `no client pins a literal apiVersion that the patch can move to ${targetVersion}`
+                  : cardUpgrade && 'reason' in cardUpgrade
+                    ? `the stripe package cannot be upgraded to a release whose types have allowed_payment_method_types: ${cardUpgrade.reason.replace(/\.$/, '')}`
+                    : undefined;
   if (gate)
     for (const finding of analysis.findings)
       if (finding.requestParameter && editCovers(repository, renames, finding))
@@ -491,16 +564,32 @@ async function runOpenApiPipeline(options: {
       calls: analysis.calls,
       mappings: operationMappings,
       untracedCalls: () =>
-        (untraced ??= measureCoverage(repository, 'stripe')
+        (untraced ??= measureCoverage(repository, 'stripe', {
+          typeTracing: true,
+          stripePackage: options.stripePackage,
+        })
           .filter((site) => site.likelySdk && !site.traced)
           .map((site) => site.expression)),
       readFindings: (removals) =>
-        analyzeRepository(repository, removals, provider, before.schemas).findings,
+        analyzeRepository(repository, removals, provider, before.schemas, [], [], [], [], {
+          typedClients,
+        }).findings,
       removals: changes,
       edited: (file, offset) =>
         edits.some((edit) => edit.file === file && edit.start <= offset && offset < edit.end),
     });
   }
+  // An untraced client's literal pin that the patch moves is listed as moved, not as left alone.
+  if (movesVersion || options.aiPatch)
+    for (const literal of apiVersionLiterals)
+      if (
+        literal.declaration !== undefined &&
+        versionEdits.some((edit) => edit.file === literal.file && edit.start === literal.start)
+      )
+        apiVersionDeclarations[literal.declaration] = {
+          ...apiVersionDeclarations[literal.declaration],
+          moved: literal.value,
+        };
   const apiVersion = compareApiVersion(
     applicationApiVersion,
     before.document,
@@ -576,27 +665,35 @@ async function runOpenApiPipeline(options: {
   const deterministicRequested =
     options.proposePatch ||
     (options.aiPatch && !useAi && (configuredMigrationProposal || ruleEdits.length > 0));
-  const unresolvedFindings = deterministicRequested
-    ? analyzeRepository(
-        {
-          ...repository,
-          files: repository.files.map((file) => ({
-            ...file,
-            content: applySourceEdits(
-              file.content,
-              edits.filter((edit) => edit.file === file.path),
-            ),
-          })),
-        },
-        changes,
-        replacementAnalysisAdapter(provider, replacements),
-        before.schemas,
-        replacements,
-        requestRenames,
-        moves,
-        parameterRemovals,
-        { invoicePreview },
-        // Untraced reads stay unresolved (owner decision, 2026-10-20): the draft needs review.
+  const patchedRepository = deterministicRequested && {
+    ...repository,
+    files: repository.files.map((file) => ({
+      ...file,
+      content: applySourceEdits(
+        file.content,
+        edits.filter((edit) => edit.file === file.path),
+      ),
+    })),
+  };
+  const unresolvedFindings = patchedRepository
+    ? withTypeProof(patchedRepository, (typeProvenReads) =>
+        analyzeRepository(
+          patchedRepository,
+          changes,
+          replacementAnalysisAdapter(provider, replacements),
+          before.schemas,
+          replacements,
+          requestRenames,
+          moves,
+          parameterRemovals,
+          {
+            invoicePreview,
+            typedClients:
+              typed && typedStripeClients(patchedRepository, options.stripePackage).clients,
+            typeProvenReads,
+          },
+          // Untraced reads stay unresolved (owner decision, 2026-10-20): the draft needs review.
+        ),
       ).findings
     : [];
   const reviews = migrationReviewReasons(reviewEvidence, true, true, useAi).map(
@@ -604,56 +701,123 @@ async function runOpenApiPipeline(options: {
   );
   // Under decision 1 every reason is recorded and none stops the rules' patch.
   const reviewReason = options.leaveReviewedFindings ? undefined : reviews[0];
-  const advisoryReviewReason = migrationReviewReason({ findings: analysis.findings, skippedFiles });
+  const advisoryReviewReason = assessmentReviewReason({
+    findings: analysis.findings,
+    skippedFiles,
+  });
   if (useAi && !operationImpacts.length && !reviewReason)
     options.onProgress?.('Requesting an AI migration proposal...');
   else if (deterministicRequested && !reviewReason)
     options.onProgress?.('Generating a deterministic migration proposal...');
+  const versionBump =
+    options.versionBump &&
+    options.proposePatch &&
+    !options.keepApiVersion &&
+    provider.packageName === STRIPE.packageName &&
+    typeof targetVersion === 'string' &&
+    !analysis.findings.length &&
+    analyzedEdits.every((edit) => edit.rule === REQUEST_OPTIONS_RULE) &&
+    kept.every((edit) => edit.rule === REQUEST_OPTIONS_RULE) &&
+    everyPinMoves &&
+    (versionEdits.length > 0 || sdkDefault)
+      ? await stripePackageUpgrade(
+          repository.root,
+          targetVersion,
+          options.lockfileResolution,
+          options.lockfile,
+        )
+      : undefined;
+  // Its own expression, so its fields do not widen the other patches' types.
+  const versionBumpStop =
+    options.versionBump && options.proposePatch && (!versionBump || 'reason' in versionBump)
+      ? {
+          status: 'not-generated' as const,
+          reason: versionBump
+            ? `The version bump moves the pin only together with stripe-node, which cannot be upgraded: ${versionBump.reason}`
+            : 'A version bump needs no finding or rule edit and every Stripe client version traced.',
+        }
+      : undefined;
+  const versionBumpPatch =
+    versionBump && 'upgrade' in versionBump
+      ? {
+          generator: 'deterministic' as const,
+          versionBump: true as const,
+          summary: `Update the pinned Stripe API version to ${String(targetVersion)} and upgrade stripe from ${versionBump.upgrade.from} to ${versionBump.upgrade.to}.`,
+          status: 'proposed' as const,
+          edits: versionEdits.length + optionEdits.length + versionBump.upgrade.files.length,
+          unresolvedFindings: 0,
+          unresolvedSites: [] as ReturnType<typeof unresolvedSites>,
+          diff:
+            renderPatch(repository, [...versionEdits, ...optionEdits]) +
+            renderFileReplacements(repository, versionBump.upgrade.files, 'stripe-package'),
+          validation: 'not-run',
+          warnings: [
+            versionBump.upgrade.warning ??
+              `Upgrades stripe from ${versionBump.upgrade.from} to ${versionBump.upgrade.to} in ${versionBump.upgrade.files.map((file) => file.path).join(' and ')}, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
+            'Webhook endpoints keep the API version set in the Stripe Dashboard; this patch does not change them.',
+            ...(optionEdits.length ? [REQUEST_OPTIONS_WARNING] : []),
+          ],
+          sdkUpgrade: {
+            from: versionBump.upgrade.from,
+            to: versionBump.upgrade.to,
+            ...(versionBump.upgrade.raised ? { raised: versionBump.upgrade.raised } : {}),
+          },
+          // AI repairs start again from the original code and must keep these edits.
+          ruleEdits: [...versionEdits, ...optionEdits],
+        }
+      : undefined;
   const patch = reviewReason
     ? { status: 'not-generated' as const, reason: reviewReason! }
-    : useAi
-      ? operationImpacts.length
-        ? {
-            status: 'not-generated' as const,
-            reason:
-              'AI generation is blocked because the adapter maps code to unresolved breaking API changes without a verified migration rule.',
-          }
-        : await proposeAiPatch(
-            repository,
-            changes,
-            analysis.findings,
-            options.aiPatch!,
-            provider,
-            before.schemas,
-            undefined,
-            options.documentationSnapshots,
-            after.schemas,
-            [...ruleEdits, ...versionEdits],
-            undefined,
-            parameterRemovals,
-          )
-      : deterministicRequested
-        ? {
-            ...proposePatch(
-              repository,
-              movesVersion ? [...edits, ...versionEdits] : edits,
-              unresolvedFindings.length,
-              provider,
-              replacements,
-              requestRenames,
-            ),
-            ...(unresolvedFindings.length
-              ? { unresolvedSites: unresolvedSites(unresolvedFindings) }
-              : {}),
-            // AI repairs start again from the original code and must keep these rule edits.
-            ...(movesVersion ? { ruleEdits: [...ruleEdits, ...versionEdits] } : {}),
-            ...(options.keepApiVersion ? { keptApiVersion: true as const } : {}),
-          }
-        : {
-            status: 'not-generated' as const,
-            reason:
-              'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
-          };
+    : versionBumpStop
+      ? versionBumpStop
+      : versionBumpPatch
+        ? versionBumpPatch
+        : useAi
+          ? operationImpacts.length
+            ? {
+                status: 'not-generated' as const,
+                reason:
+                  'AI generation is blocked because the adapter maps code to unresolved breaking API changes without a verified migration rule.',
+              }
+            : await proposeAiPatch(
+                repository,
+                changes,
+                analysis.findings,
+                options.aiPatch!,
+                provider,
+                before.schemas,
+                undefined,
+                options.documentationSnapshots,
+                after.schemas,
+                [...ruleEdits, ...versionEdits],
+                undefined,
+                parameterRemovals,
+              )
+          : deterministicRequested
+            ? {
+                ...proposePatch(
+                  repository,
+                  movesVersion
+                    ? [...edits, ...versionEdits]
+                    : edits.filter((edit) => edit.rule !== REQUEST_OPTIONS_RULE),
+                  unresolvedFindings.length,
+                  provider,
+                  replacements,
+                  requestRenames,
+                ),
+                ...(unresolvedFindings.length
+                  ? { unresolvedSites: unresolvedSites(unresolvedFindings) }
+                  : {}),
+                // AI repairs start again from the original code and must keep these rule edits.
+                ...(movesVersion ? { ruleEdits: [...ruleEdits, ...versionEdits] } : {}),
+                ...(options.keepApiVersion ? { keptApiVersion: true as const } : {}),
+                ...(options.pinBlocked ? { pinBlocked: options.pinBlocked } : {}),
+              }
+            : {
+                status: 'not-generated' as const,
+                reason:
+                  'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
+              };
   // TypeScript projects need the stripe-node release for the new API version: its apiVersion
   // literal type and the moved fields' types. An SDK-pinned version moves only with the upgrade.
   // The upgrade is added only when the patch bumps the version.
@@ -675,6 +839,23 @@ async function runOpenApiPipeline(options: {
           options.lockfile,
         )))
       : undefined;
+  // Founder decision (Otabek, 2026-10-28): TypeScript checks a pin against the installed
+  // stripe-node's apiVersion type, so a rules' pin moves only with the upgrade. When the upgrade is
+  // refused, runPipeline scans again with every pin kept and the draft names the blocker
+  // (api-version-kept). An AI proposal is not asked again.
+  const pinWithoutUpgrade =
+    upgrade &&
+    'reason' in upgrade &&
+    typescript &&
+    movesVersion &&
+    versionEdits.length > 0 &&
+    'generator' in patch &&
+    patch.generator !== 'openai' &&
+    !/ is already (?:locked|declared)\.$/.test(upgrade.reason) &&
+    // With several root lockfiles, validation chooses one (chosenLockfile) and upgrades that one
+    // alone; until it has, a refusal of them all together does not hold the pin.
+    (options.lockfile !== undefined ||
+      repository.lockfiles.filter((entry) => PACKAGE_FILES.includes(entry.file)).length < 2);
   const upgradedPatch =
     upgrade && 'diff' in patch
       ? 'upgrade' in upgrade
@@ -699,7 +880,10 @@ async function runOpenApiPipeline(options: {
           }
         : {
             ...patch,
-            sdkUpgrade: { skipped: upgrade.reason },
+            sdkUpgrade: {
+              skipped: upgrade.reason,
+              ...(pinWithoutUpgrade ? { pinMoved: true as const } : {}),
+            },
             warnings: [
               `The stripe package was not upgraded: ${upgrade.reason}`,
               ...('warnings' in patch ? patch.warnings : []),
@@ -782,6 +966,11 @@ async function runOpenApiPipeline(options: {
     ...(requestChanges.length ? { requestChanges } : {}),
     warnings: [
       ...repository.warnings,
+      ...(typed?.skipped === 'too-large'
+        ? [
+            'The repository has too many source files to type-check, so Stripe calls were traced only through the analyzer, not by their client type.',
+          ]
+        : []),
       ...sourceWarnings,
       ...(options.leaveReviewedFindings ? reviews : reviews.slice(0, 1)),
       ...skippedFiles.map(
@@ -847,7 +1036,16 @@ export async function runPipeline(
   options: Parameters<typeof runOpenApiPipeline>[0],
 ): Promise<PipelineReport> {
   const kinds = await Promise.all([options.before, options.after].map(isShopifySnapshotFile));
-  if (!kinds.some(Boolean)) return runOpenApiPipeline(options);
+  if (!kinds.some(Boolean)) {
+    const report = await runOpenApiPipeline(options);
+    const upgrade =
+      'sdkUpgrade' in report.patch
+        ? (report.patch.sdkUpgrade as { skipped?: string; pinMoved?: true } | undefined)
+        : undefined;
+    return upgrade?.pinMoved
+      ? runOpenApiPipeline({ ...options, keepApiVersion: true, pinBlocked: upgrade.skipped })
+      : report;
+  }
   const [before, after] = await Promise.all([
     readSpecification(options.before),
     readSpecification(options.after),

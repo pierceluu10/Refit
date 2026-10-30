@@ -228,6 +228,58 @@ it('keeps the configured image and reports whether it satisfies the declarations
   });
 });
 
+it('moves to the newest allowed image a root engines.node accepts, pulling it when missing', async () => {
+  const binary = await mkdtemp(join(tmpdir(), 'refit-runtime-docker-'));
+  roots.push(binary);
+  const pulls = join(binary, 'pulls');
+  // node:20-alpine is pulled on demand; node:18-alpine cannot be pulled.
+  await writeFile(
+    join(binary, 'docker'),
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+const versions = { 'node:22-alpine': '22.23.3', 'node:24-alpine': '24.11.1' };
+const pullable = { 'node:20-alpine': '20.20.2' };
+const pulls = ${JSON.stringify(pulls)};
+const pulled = fs.existsSync(pulls) ? fs.readFileSync(pulls, 'utf8').split('\\n') : [];
+for (const image of pulled) if (pullable[image]) versions[image] = pullable[image];
+const image = process.argv.at(-1);
+if (process.argv[2] === 'pull' && pullable[image]) { fs.appendFileSync(pulls, image + '\\n'); process.exit(0); }
+if (process.argv[2] !== 'image' || !(image in versions)) {
+  process.stderr.write('Error response from daemon: No such image: ' + image + '\\n');
+  process.exit(1);
+}
+console.log(JSON.stringify(['NODE_VERSION=' + versions[image]]));
+`,
+  );
+  await chmod(join(binary, 'docker'), 0o755);
+  vi.stubEnv('PATH', binary + delimiter + process.env.PATH);
+  const select = async (engines: string, files: Record<string, string> = {}) =>
+    selectValidationRuntime(
+      await snapshot({ 'package.json': JSON.stringify({ engines: { node: engines } }), ...files }),
+      'node:22-alpine',
+    );
+  expect(await select('>=24')).toMatchObject({
+    configured: 'node:22-alpine',
+    image: 'node:24-alpine',
+    nodeVersion: '24.11.1',
+    reason:
+      'engines.node ">=24" excludes Node.js 22.23.3 on node:22-alpine, so Refit prepares and checks the repository on node:24-alpine (Node.js 24.11.1), the newest official image it accepts, for validation only.',
+  });
+  await expect(readFile(pulls, 'utf8')).rejects.toThrow();
+  expect(await select('^18 || ^20')).toMatchObject({
+    image: 'node:20-alpine',
+    nodeVersion: '20.20.2',
+  });
+  expect(await readFile(pulls, 'utf8')).toBe('node:20-alpine\n');
+  // No allowed image that Docker has or can pull accepts it, so the configured image stays.
+  expect(await select('18.x')).toMatchObject({
+    image: 'node:22-alpine',
+    reason: expect.stringMatching(/^The configured image does not satisfy engines\.node "18\.x"/),
+  });
+  // Only engines.node switches the image; .nvmrc alone is reported.
+  expect(await select('>=18', { '.nvmrc': '24\n' })).toMatchObject({ image: 'node:22-alpine' });
+});
+
 it('does not read declarations for a custom image', async () => {
   expect(
     await selectValidationRuntime(

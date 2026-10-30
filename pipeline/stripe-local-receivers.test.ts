@@ -22,6 +22,9 @@ declare class Stripe {
 export = Stripe;
 `;
 
+// The removed field the reads name: line_item.price.
+const CHANGES = [{ id: 'line-item-price', schema: 'line_item' }];
+
 const directories: string[] = [];
 afterEach(async () => {
   await Promise.all(directories.splice(0).map((path) => rm(path, { recursive: true })));
@@ -59,6 +62,7 @@ function read(content: string, file: string, receiver: string) {
     line: line + 1,
     column: lines[line].indexOf(`${receiver}.price`) + 1,
     expression: '.price',
+    changeId: 'line-item-price',
   };
 }
 
@@ -71,7 +75,10 @@ async function proof(
   options: LocalReceiverOptions = { typeChecked: () => true },
 ) {
   const repository = await checkout({ [file]: content, ...extra });
-  return localReceiverReads(repository, [read(content, file, receiver)], options)[0]?.proof;
+  return localReceiverReads(repository, [read(content, file, receiver)], {
+    changes: CHANGES,
+    ...options,
+  })[0]?.proof;
 }
 
 async function cleared(file: string, content: string, receiver: string, extra = {}) {
@@ -196,7 +203,9 @@ export async function load(stripe: Stripe, id: string) {
   expect(
     await cleared('src/helper.ts', helper('await stripe.invoiceItems.retrieve(id)'), 'line'),
   ).toBe(false);
-  expect(await cleared('src/local.ts', helper("{ price: { id: 'p' } }"), 'line')).toBe(true);
+  // Since a line item fits `Line`, a Stripe object could reach it by any write tsc accepts, so
+  // even a helper whose only caller passes a literal stays held.
+  expect(await cleared('src/local.ts', helper("{ price: { id: 'p' } }"), 'line')).toBe(false);
   // Callers outside the repository are not seen.
   expect(
     await cleared('src/exported.ts', helper("{ price: { id: 'p' } }", 'export '), 'line'),
@@ -216,9 +225,11 @@ export async function load(stripe: Stripe, id: string) {
 
 it('keeps a Stripe object asserted to a repository type anywhere on its way', async () => {
   // createdbymax/Loopletter: `event.data.object as StripeInvoice` passed through two helpers.
+  // `source` keeps Stripe's InvoiceLineItem from being assignable to Line, so only the path decides.
   const chain = (origin: string, after = '') => `import Stripe from 'stripe';
 interface Line {
   price: { id: string } | null;
+  source: 'local';
 }
 function store(line: Line) {
   return line.price;
@@ -234,7 +245,7 @@ ${after}`;
   const retrieved = 'const line = (await stripe.invoiceItems.retrieve(id)) as Line;';
   expect(await cleared('src/chain.ts', chain(retrieved), 'line')).toBe(false);
   const either =
-    'const line = id ? ((await stripe.invoiceItems.retrieve(id)) as Line) : { price: null };';
+    "const line = id ? ((await stripe.invoiceItems.retrieve(id)) as Line) : ({ price: null, source: 'local' } satisfies Line);";
   expect(await cleared('src/either.ts', chain(either), 'line')).toBe(false);
   const fetchLine = `async function fetchLine(stripe: Stripe, id: string) {
   return (await stripe.invoiceItems.retrieve(id)) as Line;
@@ -242,9 +253,13 @@ ${after}`;
 `;
   const returned = chain('const line = await fetchLine(stripe, id);', fetchLine);
   expect(await cleared('src/returned.ts', returned, 'line')).toBe(false);
-  expect(await cleared('src/literal.ts', chain('const line = { price: null };'), 'line')).toBe(
-    true,
-  );
+  expect(
+    await cleared(
+      'src/literal.ts',
+      chain("const line: Line = { price: null, source: 'local' };"),
+      'line',
+    ),
+  ).toBe(true);
 });
 
 it('keeps a union with a Stripe type and a read traced to Stripe in the same function', async () => {

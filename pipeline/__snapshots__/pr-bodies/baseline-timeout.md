@@ -132,6 +132,7 @@ Refit could not trace these reads of removed field names to a Stripe object, so 
 ## Reviewer Checklist
 
 - [ ] Read each change under Code Changes against the provider page linked in Overview.
+- [ ] Set each webhook endpoint's API version to `2026-09-30.endive` when you deploy. The generated helpers read the old and the new payload, so the handlers work before and after.
 - [ ] Check each read under Left Unchanged.
 - [ ] Migrate the 24 usages Refit left unmigrated (see Left Unchanged).
 - [ ] Confirm the selected item is the one whose period this code needs when items bill on different periods (see Key Changes).

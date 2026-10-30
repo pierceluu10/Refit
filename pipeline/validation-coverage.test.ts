@@ -747,7 +747,7 @@ function periodContract(version: string) {
 it('asks AI to finish an untraced period read through the helper the rules wrote, and keeps it (shagunmistry/FlowCraft)', async () => {
   // FlowCraft's adapter maps subscriptions.retrieve but not subscriptions.list, so the rules
   // migrate the retrieved subscription, with the item its function reads, and leave the listed
-  // one's read untraced.
+  // one's read untraced. The cast keeps the checker's scan proof (typeProvenReads) off that read.
   const shape: Shape = {
     name: 'shagunmistry/FlowCraft',
     contract: periodContract,
@@ -768,7 +768,7 @@ it('asks AI to finish an untraced period read through the helper the rules wrote
   return { item: subscription.items.data[0].id, ends: subscription.current_period_end * 1000 };
 }
 export async function recover(customer: string) {
-  const subs = await stripe.subscriptions.list({ customer, status: 'all', limit: 10 });
+  const subs = (await stripe.subscriptions.list({ customer, status: 'all', limit: 10 })) as Stripe.ApiList<Stripe.Subscription>;
   return subs.data.find((s) => s.cancel_at_period_end && s.current_period_end * 1000 > Date.now());
 }
 `,

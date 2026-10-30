@@ -8,11 +8,14 @@ import {
   CURRENCY_CODE_RULE,
   currencyCodeEdits,
   enumValueEdits,
+  REQUEST_OPTIONS_RULE,
+  requestOptionEdits,
   responsePropertyOwner,
 } from './operation-reach.ts';
 import { applySourceEdits } from './patches.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
+import { STRIPE_PACK } from './rule-pack.ts';
 import { FORMAT_ANNOTATION } from './schema-equivalence.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
@@ -39,6 +42,12 @@ const before = {
           '200': { content: { 'application/json': { schema: ref('checkout.session') } } },
           default: { content: { 'application/json': { schema: ref('error') } } },
         },
+      },
+    },
+    '/v1/promotion_codes': {
+      post: {
+        operationId: 'PostPromotionCodes',
+        responses: { '200': { content: { 'application/json': { schema: ref('product') } } } },
       },
     },
     '/v1/products': {
@@ -137,6 +146,12 @@ const provider: ProviderAdapter = {
       operationId: 'PostCheckoutSessions',
     },
     { resource: 'products', method: 'create', schema: 'product', operationId: 'PostProducts' },
+    {
+      resource: 'promotionCodes',
+      method: 'create',
+      schema: 'product',
+      operationId: 'PostPromotionCodes',
+    },
     { resource: 'prices', method: 'list', schema: 'price_list', operationId: 'GetPrices' },
     {
       resource: 'invoices',
@@ -471,6 +486,31 @@ it('blocks a newly required nested property only for calls that send its parent'
   ).toBe('reached');
 });
 
+it('credits a newly required property to the kept request move that sends it', () => {
+  const required = () => ({
+    id: 'new-required-request-property',
+    level: 3,
+    operation: 'POST',
+    path: '/v1/promotion_codes',
+    text: 'added the new required request property `promotion`',
+  });
+  const source =
+    "export const go = (coupon: string) => stripe.promotionCodes.create({ coupon, code: 'SAVE' });";
+  const offset = (CLIENT + source).indexOf('coupon,');
+  const coupon = (_file: string, at: number) => at === offset;
+  expect(reach(source, [required()], [], coupon)[0][0]).toBe('handled');
+  // Without the kept edit, or for a property no move replaces, the call still must send it.
+  expect(reach(source, [required()])[0][0]).toBe('reached');
+  expect(
+    reach(
+      source,
+      [{ ...required(), text: 'added the new required request property `code2`' }],
+      [],
+      coupon,
+    )[0][0],
+  ).toBe('reached');
+});
+
 it('treats an operation an untraced call may request as unknown', () => {
   expect(
     reach(
@@ -484,6 +524,31 @@ it('treats an operation an untraced call may request as unknown', () => {
       'The untraced call `payments.checkout.sessions.create` may request `checkout.sessions.create` with `line_items/items/dynamic_tax_rates`.',
     ],
   ]);
+});
+
+it('rules out untraced calls known to request another operation for an unmapped one', () => {
+  const resume = () => ({
+    id: 'new-required-request-property',
+    level: 3,
+    operation: 'POST',
+    path: '/v1/subscriptions/{subscription}/resume',
+    operationId: 'PostSubscriptionsSubscriptionResume',
+    text: 'added the new required request property `billing_cycle_anchor/type`',
+  });
+  // blefnk/all-in-one-nextjs-template and MeiyuTech/AET-App stopped on calls like these.
+  const elsewhere = [
+    'mockStripe.webhooks.constructEvent.mockReturnValue',
+    'stripe.webhooks.constructEvent',
+    'stripe.products.create',
+    'stripe.subscriptions.update',
+  ];
+  expect(reach(AI_COMPANION, [resume()], elsewhere)).toEqual([
+    ['unused', 'No traced call requests `/v1/subscriptions/{subscription}/resume`.'],
+  ]);
+  for (const call of ['stripe.subscriptions.resume', 'billing.client.fetch'])
+    expect(reach(AI_COMPANION, [resume()], [...elsewhere, call])[0][1]).toBe(
+      `The untraced call \`${call}\` may request \`/v1/subscriptions/{subscription}/resume\` with \`billing_cycle_anchor/type\`.`,
+    );
 });
 
 it('names the Stripe object that owns a changed response property', () => {
@@ -1304,5 +1369,118 @@ describe('a documented enum successor', () => {
       'app/api/checkout/route.test.ts',
     );
     expect(test.edits).toEqual([]);
+  });
+});
+
+describe('an enum successor sent as an object (endive billing_cycle_anchor)', () => {
+  const moves = STRIPE_PACK.requestMoves.filter(
+    (move) => move.parameter === 'billing_cycle_anchor',
+  );
+  const changes = () =>
+    [
+      [
+        'request-property-enum-value-removed',
+        'removed the enum value `now` of the request property `billing_cycle_anchor`',
+      ],
+      [
+        'request-property-enum-value-removed',
+        'removed the enum value `unchanged` of the request property `billing_cycle_anchor`',
+      ],
+      [
+        'request-property-type-changed',
+        'the `billing_cycle_anchor` request property `type` changed from `string` to `object`',
+      ],
+      [
+        'new-required-request-property',
+        'added the new required request property `billing_cycle_anchor/type`',
+      ],
+    ].map(([id, text]) => ({
+      id,
+      level: 3,
+      operation: 'POST',
+      path: '/v1/subscriptions/{subscription_exposed_id}',
+      text,
+    }));
+  const run = (source: string) => {
+    const context = traced(source);
+    const edits = enumValueEdits(changes(), context, moves);
+    const annotated: Record<string, unknown>[] = changes();
+    annotateReach(annotated, {
+      ...context,
+      untracedCalls: () => [],
+      edited: (file, offset) =>
+        edits.some((edit) => edit.file === file && edit.start <= offset && offset < edit.end),
+      removals: [],
+    });
+    return {
+      patched: applySourceEdits(context.repository.files[0].content, edits),
+      reach: annotated.map((change) => change.reach),
+    };
+  };
+
+  it('sends the documented object and passes every change it answers', () => {
+    // stopinder/helio-therapist api/billing/annual.js, shortened.
+    const literal = run(
+      "export const go = (id) => stripe.subscriptions.update(id, { billing_cycle_anchor: 'now', proration_behavior: 'create_prorations' });",
+    );
+    expect(moves.map((move) => move.rule).sort()).toEqual([
+      'stripe-billing-cycle-anchor-now',
+      'stripe-billing-cycle-anchor-unchanged',
+    ]);
+    expect(literal.patched).toContain("billing_cycle_anchor: { type: 'now' }");
+    expect(literal.reach).toEqual(['handled', 'unused', 'handled', 'handled']);
+    const conditional = run(
+      "export const go = (id, reset) => stripe.subscriptions.update(id, { billing_cycle_anchor: reset ? 'now' : 'unchanged' });",
+    );
+    expect(conditional.patched).toContain(
+      "billing_cycle_anchor: reset ? { type: 'now' } : { type: 'unchanged' }",
+    );
+    expect(conditional.reach).toEqual(['handled', 'handled', 'handled', 'handled']);
+  });
+
+  it('keeps stopping where the value is not a literal in the call', () => {
+    const constant = run(
+      "const ANCHOR = 'now';\nexport const go = (id) => stripe.subscriptions.update(id, { billing_cycle_anchor: ANCHOR });",
+    );
+    expect(constant.patched).not.toContain('type:');
+    expect(constant.reach).toEqual(['reached', 'unused', 'reached', 'reached']);
+  });
+});
+
+describe('request options passed as params (stripe-node 22)', () => {
+  const moved = (source: string, path?: string) => {
+    const context = traced(source, path);
+    const edits = requestOptionEdits(context);
+    return {
+      edits,
+      patched: applySourceEdits(context.repository.files[0].content, edits).slice(CLIENT.length),
+    };
+  };
+
+  it('moves an options-only last argument after an explicit undefined', () => {
+    const { edits, patched } = moved(`export const go = (id: string, account: string) =>
+  stripe.subscriptions.update(id, { stripeAccount: account, idempotencyKey: 'k' });
+export const make = (stripeAccount: string) => stripe.checkout.sessions.create({ stripeAccount });`);
+    expect(edits.map((edit) => edit.rule)).toEqual([REQUEST_OPTIONS_RULE, REQUEST_OPTIONS_RULE]);
+    expect(patched).toBe(`export const go = (id: string, account: string) =>
+  stripe.subscriptions.update(id, undefined, { stripeAccount: account, idempotencyKey: 'k' });
+export const make = (stripeAccount: string) => stripe.checkout.sessions.create(undefined, { stripeAccount });`);
+  });
+
+  it('leaves params, mixed keys, spreads, explicit options and test files alone', () => {
+    const source = `export const a = (id: string) => stripe.subscriptions.update(id, { metadata: {} });
+export const b = (id: string, account: string) =>
+  stripe.subscriptions.update(id, { stripeAccount: account, metadata: {} });
+export const c = (id: string, options: object) => stripe.subscriptions.update(id, { ...options });
+export const d = (id: string, account: string) =>
+  stripe.subscriptions.update(id, {}, { stripeAccount: account });
+export const e = () => stripe.checkout.sessions.create({});`;
+    expect(moved(source).edits).toEqual([]);
+    expect(
+      moved(
+        `export const t = (s: string) => stripe.checkout.sessions.create({ stripeAccount: s });`,
+        'app/checkout.test.ts',
+      ).edits,
+    ).toEqual([]);
   });
 });

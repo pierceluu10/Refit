@@ -65,7 +65,9 @@ export function requestMove(
 // Whether both contracts agree with a move: a rename needs the same shape under the new name; a
 // wrap needs a required string in the before body, and an after body whose replacement holds that
 // string beside a `type` accepting the discriminator; an enum value needs a parameter whose before
-// enum has the value and whose after enum has the replacement and not the value.
+// enum has the value and whose after enum has the replacement and not the value, or, with a
+// discriminator, whose after schema is an object (no enum) whose discriminator enum has the
+// replacement.
 export function requestMoveMatches(move: RequestMove, before: Contract, after: Contract) {
   const old = isObject(before.schema.properties)
     ? before.schema.properties[move.parameter]
@@ -73,6 +75,17 @@ export function requestMoveMatches(move: RequestMove, before: Contract, after: C
   const target = isObject(after.schema.properties) ? after.schema.properties : {};
   if (move.family === 'request-enum-value') {
     const [was, now] = [local(old, before.document), local(target[move.parameter], after.document)];
+    if (move.discriminator) {
+      const type = local(properties(now, after.document)?.[move.discriminator], after.document);
+      return Boolean(
+        Array.isArray(was?.enum) &&
+        was.enum.includes(move.value) &&
+        now &&
+        !now.enum &&
+        Array.isArray(type?.enum) &&
+        type.enum.includes(move.replacement),
+      );
+    }
     return Boolean(
       Array.isArray(was?.enum) &&
       Array.isArray(now?.enum) &&
