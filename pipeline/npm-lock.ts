@@ -51,6 +51,59 @@ export function hasStrongIntegrity(value: unknown): value is string {
   );
 }
 
+// Release archives of public code hosts, which npm records with the integrity of the bytes it
+// downloaded. With a SHA-256-or-stronger integrity they are as verifiable as a registry tarball:
+// npm ci refuses any other bytes. Only these hosts are fetched, never an arbitrary or private one.
+const CODE_HOST_ARCHIVES: Record<string, RegExp> = {
+  'github.com': /^\/[\w.-]+\/[\w.-]+\/archive\/[\w./-]+\.(?:tar\.gz|tgz)$/,
+  'codeload.github.com': /^\/[\w.-]+\/[\w.-]+\/tar\.gz\/[\w./-]+$/,
+  'gitlab.com': /^\/[\w.-]+(?:\/[\w.-]+)+\/-\/archive\/[\w./-]+\.(?:tar\.gz|tgz)$/,
+};
+
+export function codeHostTarball(source: unknown): source is string {
+  if (typeof source !== 'string') return false;
+  let url;
+  try {
+    url = new URL(source);
+  } catch {
+    return false;
+  }
+  return (
+    // Only a URL written as npm will request it: no dot segments or other normalisation.
+    url.href === source &&
+    url.protocol === 'https:' &&
+    !url.port &&
+    !url.username &&
+    !url.password &&
+    !url.search &&
+    !url.hash &&
+    Boolean(CODE_HOST_ARCHIVES[url.hostname]?.test(url.pathname))
+  );
+}
+
+// Names the repository and commit a Git source installs, for a refusal: Refit's install sandbox
+// has no git, and a Git checkout carries no SHA-256-or-stronger integrity of its own.
+export function gitSource(source: unknown) {
+  if (typeof source !== 'string') return undefined;
+  const at = (ref: string | undefined) =>
+    !ref ? '' : /^[a-f0-9]{40}$/.test(ref) ? ` at commit ${ref.slice(0, 7)}` : ` at ${ref}`;
+  const url =
+    /^git(?:\+(?:ssh|https?))?:\/\/(?:[^@/]+@)?([^/:]+)[/:](.+?)(?:\.git)?(?:#(.*))?$/.exec(source);
+  if (url) return `${url[1]}/${url[2]}${at(url[3])}`;
+  const shortcut = /^(?:(github|gitlab|bitbucket):)?([\w.-]+\/[\w.-]+?)(?:\.git)?(?:#(.*))?$/.exec(
+    source,
+  );
+  if (shortcut && (shortcut[1] || !source.includes(':')) && !/^[@./]/.test(source))
+    return `${shortcut[1] === 'gitlab' ? 'gitlab.com' : shortcut[1] === 'bitbucket' ? 'bitbucket.org' : 'github.com'}/${shortcut[2]}${at(shortcut[3])}`;
+  // pnpm keys and tarballs for a commit: github.com/o/r/<sha>, codeload.github.com/o/r/tar.gz/<sha>.
+  const commit =
+    /^(?:https:\/\/codeload\.)?github\.com\/([\w.-]+\/[\w.-]+)\/(?:tar\.gz\/)?([a-f0-9]{40})$/.exec(
+      source,
+    );
+  if (commit) return `github.com/${commit[1]}${at(commit[2])}`;
+  return undefined;
+}
+
 export function isRegistrySource(source: unknown): source is string {
   return (
     typeof source === 'string' &&
@@ -69,11 +122,16 @@ export function dependencySources(value: Record<string, unknown>, file: string, 
     const dependencies = value[section];
     if (dependencies === undefined) continue;
     if (!isObject(dependencies)) throw new PipelineInputError(`npm ${section} must be an object.`);
-    for (const [name, source] of Object.entries(dependencies))
-      if (!(published && source === '') && !isRegistrySource(source))
-        throw new PipelineInputError(
-          `Automatic preparation supports public npm registry dependencies only; ${file} declares ${name} as ${quotedSource(source)}. Local, Git and URL dependencies need the repository install.`,
-        );
+    for (const [name, source] of Object.entries(dependencies)) {
+      if ((published && source === '') || isRegistrySource(source) || codeHostTarball(source))
+        continue;
+      const git = gitSource(source);
+      throw new PipelineInputError(
+        git
+          ? `Automatic preparation supports public npm registry dependencies only; ${file} declares ${name} from Git (${git}), which Refit's own preparation does not fetch: its install sandbox has no git, and a Git checkout has no SHA-256-or-stronger integrity to verify. Local, Git and URL dependencies need the repository install.`
+          : `Automatic preparation supports public npm registry dependencies only; ${file} declares ${name} as ${quotedSource(source)}. Local, Git and URL dependencies need the repository install.`,
+      );
+    }
   }
 }
 
@@ -273,6 +331,8 @@ export function validateNpmLock(
       );
   }
   const workspaceLinks: Record<string, string> = {};
+  const remoteTarballs: string[] = [];
+  let mirrored = false;
   for (const [path, record] of Object.entries(lock.packages)) {
     if (!isObject(record))
       throw new PipelineInputError('npm lockfile package records must be objects.');
@@ -359,12 +419,24 @@ export function validateNpmLock(
         `package-lock.json records ${path}${others ? ` and ${others} more packages` : ''} without a version, registry "resolved" URL and SHA-256-or-stronger "integrity", so Refit cannot verify what it would install. Reinstall against registry.npmjs.org so npm records them (delete node_modules and run npm install; if entries stay incomplete, regenerate package-lock.json) and commit the lockfile.`,
       );
     }
+    if (codeHostTarball(record.resolved)) {
+      remoteTarballs.push(path);
+      continue;
+    }
     assertRegistryTarball(record.resolved as string, path, true);
+    mirrored ||= new URL(record.resolved as string).hostname !== 'registry.npmjs.org';
   }
+  // npm fetches a mirror-resolved record from registry.npmjs.org only by replacing every host,
+  // which would also send a code host's archive to the registry.
+  if (remoteTarballs.length && mirrored)
+    throw new PipelineInputError(
+      `package-lock.json resolves ${remoteTarballs[0]} from a code host and other packages from a registry mirror; Refit fetches registry packages only from registry.npmjs.org, which npm cannot do while it also downloads a code host's archive. Reinstall against registry.npmjs.org and commit the lockfile.`,
+    );
   return {
     packageHash: digest(packageContent),
     lockHash: digest(lockContent),
     packages: Object.keys(lock.packages).length - 1,
+    ...(remoteTarballs.length ? { remoteTarballs: remoteTarballs.length } : {}),
     ...(workspaces.size
       ? {
           workspaceHashes: Object.fromEntries(
@@ -388,6 +460,11 @@ export function assertRegistryTarball(source: string, path?: string, mirrors = f
   } catch (cause) {
     throw new PipelineInputError('Package registry URL is invalid.', { cause });
   }
+  const git = gitSource(source);
+  if (git)
+    throw new PipelineInputError(
+      `Package tarballs must use public registry.npmjs.org HTTPS URLs without credentials or parameters${path ? `; package-lock.json installs ${path} from Git (${git})` : `; a dependency comes from Git (${git})`}, which Refit's own preparation does not fetch: its install sandbox has no git, and a Git checkout has no SHA-256-or-stronger integrity to verify.`,
+    );
   if (
     url.protocol !== 'https:' ||
     (url.hostname !== 'registry.npmjs.org' &&

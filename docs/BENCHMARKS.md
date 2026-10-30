@@ -97,6 +97,19 @@ gh workflow run benchmark.yml -R refit-dev/refit-bench \
 
 No run has been dispatched yet.
 
+## Preparation fallbacks (October 29)
+
+#399 adds general fallbacks for four dependency-preparation stops: pnpm 7's lockfile 5.4, code-host archive dependencies, Yarn 1 records without integrity, and Yarn's cache running out of the workspace ([Preparation failures](PREPARATION-FAILURES.md#preparation-fallbacks-october-28)). Runs are refit-bench `benchmark.yml` with `-f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249`, no flags and no AI, compared with `node scripts/stripe-benchmark-compare.mjs --details` and `scripts/validation-funnel.mjs`.
+
+| Run                | Commit     | Preparation refused | Validated (funnel) |
+| ------------------ | ---------- | ------------------: | -----------------: |
+| 40812216438 (main) | `6161f020` |                  28 |                185 |
+| 40812228030 (#399) | `8de26a7b` |                  26 |            **186** |
+
+- 246 of 249 rows are identical in every compared field. `Librum-Reader/Librum-Website` moves from a preparation stop to validated, after its one version-only `yarn.lock` record is completed from the registry. Its patch is the same as before. It was read in full and labelled `correct-partial`: stripe stays at ^13 and two `invoice.payment_intent` reads are left, as the draft says. No patch is labelled `wrong`.
+- Stops named more precisely, not outcome changes: taxonomy (pnpm 7) and link-flame (GitHub archive) now pass every input check and stop at install on `--engine-strict` Node engine ranges. onix gets past Yarn's ENOSPC and stops on the 2 GiB archive limit. Four rows (artisan-roast, Schematic, Uproot.AI, slackify) are named `git-dependency`.
+- Noise: `SimplerDevelopment/SimplerDevelopment` hit the 45-minute job limit with every stage slower than the before run, including the scans before preparation. `kondax-com/Bocker`'s baseline failed in the after run only, as it did once in lane A's run.
+
 ## Conflicting lockfiles chosen by rule (October 28)
 
 `feat/conflicting-lockfiles` (built on lane A's `feat/lockfile-resolution`) installs one of several committed lockfiles by rule and upgrades stripe in the chosen one when the others cannot follow ([Preparation failures](PREPARATION-FAILURES.md#conflicting-lockfiles-one-chosen-by-rule-october-28)). Every run is refit-bench `benchmark.yml`, no AI, compared with `node scripts/stripe-benchmark-compare.mjs <before>/results.json <after>/results.json --details`.
@@ -704,6 +717,22 @@ Generated stripe-mock checks call exported functions around each finding, and mo
 - **Stand-ins.** 17 of the 25 l2 rows whose generated check passes used a stand-in (`validation.generated.standIns`): Prisma 9, PostgREST 7, Clerk 9 (some rows several); 8 rows reach the PostgREST stand-in and still stop later. No generated check counted a regression. Generated checks never raise the grade above D, so grades are unchanged.
 - **Generated clients.** Type checks lose the missing-client errors in 71 of 73 l2 rows and change their error counts in 10 heldout rows, with no introduced error added; brandbite/brandbite's test baseline passes, and its draft stays `[Needs review]` for its other blockers.
 - **Not measured:** AI patches, publication, behaviour tests and the hosted worker.
+
+## checkJs type check for require()-only JavaScript (October 29)
+
+`feat/checkjs-type-check` type-checks JavaScript that loads stripe only with `require()` and has no test script, with a generated `tsconfig` (`checkJs`, `node16` module resolution). Under owner decision D2c the check stands in for tests, at grade C, only where TypeScript types every changed Stripe expression with the target stripe-node's declarations and every contract change the patch handles is type-visible.
+
+| Set (no AI, default flags)                        | Before | After |
+| ------------------------------------------------- | -----: | ----: |
+| l2-push-249: production validated                 |     86 |    89 |
+| l2-push-249: rows that stop on "No check can run" |      6 |     0 |
+| l2-push-249 merged with main, 224 rows: validated |     91 |    93 |
+
+- **Runs.** Before, main at `efcb91ed`: [40806735877](https://github.com/refit-dev/refit-bench/actions/runs/40806735877). After, at `3ee00eb2`: [40806747841](https://github.com/refit-dev/refit-bench/actions/runs/40806747841). All rows came back in both. On the tree merged with main: main at `6161f020` [40821431837](https://github.com/refit-dev/refit-bench/actions/runs/40821431837), whose shard 2 failed, and this branch at `ce1f168f` [40821435089](https://github.com/refit-dev/refit-bench/actions/runs/40821435089); the merged row compares the 224 rows both returned.
+- **5 rows move from D to C.** `dalemoncayo/express-stripe`, `mdalmamunit427/yoga-master-server` and `manfraio/stripe_elements_customized_card_form` validate. `samiamjidkhan/dota2-helper` stays a draft for untraced reads of Dota data, and `RescuePC/Donation-Link` for a submodule. Each patch is the card rule and the stripe-node upgrade, byte-identical on the merged tree. There `aionarae/amazon-beta`, which main now prepares, also reaches C and stays a draft for contract changes.
+- **Reviews.** Every grade C patch was read in full against [FIX-REVIEW.md](FIX-REVIEW.md): 6 correct, 0 wrong ([fix-reviews.json](benchmarks/fix-reviews.json)). The unpatched express-stripe code fails the same check on `payment_method_types`, so it catches the removed parameter.
+- **What still stops.** `App-4-Dat-LLC/LandLORDER-rp` now gets the check but stops on dependency preparation, since its lockfile does not lock stripe at the root. `SimplerDevelopment/SimplerDevelopment` differs between runs only because it hit the workflow time limit on busy runners.
+- **Not measured:** AI patches, publication and the hosted worker. No held-out or holdout set was run.
 
 ## Before and after the overnight merges (October 22)
 

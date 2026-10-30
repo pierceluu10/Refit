@@ -648,6 +648,7 @@ it('explains running out of installer space by package manager', async () => {
     `#!/usr/bin/env node
 const args = process.argv.slice(2);
 if (args[0] === 'image') { console.log('sha256:${'a'.repeat(64)}'); process.exit(0); }
+if (args[0] === 'run' && args.includes('--rm')) process.exit(0);
 if (args[0] === 'run') { process.stderr.write('ENOSPC: no space left on device, write\\n'); process.exit(1); }
 `,
   );
@@ -689,7 +690,7 @@ if (args[0] === 'run') { process.stderr.write('ENOSPC: no space left on device, 
       cacheDirectory: join(root, 'cache'),
     }),
   ).rejects.toThrow(
-    'yarn dependency preparation ran out of space in its 4g workspace (ENOSPC). Yarn 2+ keeps a zip of every package in its cache beside the unpacked tree. The installed dependencies do not fit',
+    "yarn dependency preparation ran out of space in its 4g workspace (ENOSPC). Yarn's package cache is kept outside the workspace, so the unpacked tree alone did not fit. The installed dependencies do not fit",
   );
   // Under a smaller operator profile the message names the default 4 GiB one.
   vi.stubEnv('REFIT_VALIDATION_WORKSPACE', '2g');

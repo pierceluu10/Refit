@@ -105,6 +105,8 @@ import { selectValidationRuntime } from './validation-runtime.ts';
 import { checkFailures, checkFailureText, INTRODUCED_TYPE_ERRORS } from './check-failures.ts';
 import {
   advisoryTypeError,
+  CHECKJS_STANDS_IN_FOR_TESTS,
+  checkJsCheck,
   checkKinds,
   gradeEvidence,
   runsTests,
@@ -122,6 +124,7 @@ import {
   type BehaviourTestWriter,
 } from './behaviour-test-writer.ts';
 import { stripeOnlyImports, stripeOnlyProject } from './dependency-stripe-only.ts';
+import { checkJsCoverage, type CheckJsCoverage } from './checkjs-coverage.ts';
 import {
   dockerSandboxArguments,
   preparationProfile,
@@ -2832,6 +2835,52 @@ export async function validateMigration(options: {
     // never vetoes a correct patch. A regression is never graded A.
     const behaviourA =
       behaviour?.grade === 'A' && !['stale', 'regression'].includes(validationStatus);
+    // A checkJs check (check-selection.ts) counts only where TypeScript typed the changed Stripe code
+    // with the target stripe-node (checkjs-coverage.ts) and, as under D2a, only for type-visible
+    // contract changes: every change the patch handles or reaches is a removed field, a changed type
+    // or a removed enum value.
+    let checkJs: (CheckJsCoverage & { counts: boolean; behavioural: string[] }) | undefined;
+    if (checkJsCheck(options.command) && candidateSources && validationStatus === 'passed') {
+      const upgrade =
+        'sdkUpgrade' in proposal
+          ? (proposal.sdkUpgrade as { from?: string; to?: string } | undefined)
+          : undefined;
+      const coverage = await timed('checkJsCoverage', () =>
+        checkJsCoverage({
+          original: originalSources,
+          patched: candidateSources!,
+          command: options.command,
+          changedFiles: publicationFiles.map((file) => file.path),
+          dependencies:
+            !dependencyFailure && candidateDependencies !== dependencies
+              ? candidateDependencies
+              : undefined,
+          sdk: upgrade?.to,
+          packageDirectory,
+        }),
+      );
+      const behavioural = [
+        ...new Set(
+          (report.specificationDiff.changes as Record<string, unknown>[])
+            .filter((change) => change.reach === 'reached' || change.reach === 'handled')
+            .map((change) => String(change.id))
+            .filter((id) => !TYPE_VISIBLE_CHANGES.has(id)),
+        ),
+      ];
+      const counts = coverage.proven && !behavioural.length && CHECKJS_STANDS_IN_FOR_TESTS;
+      checkJs = {
+        ...coverage,
+        counts,
+        behavioural,
+        reason: !coverage.proven
+          ? coverage.reason
+          : behavioural.length
+            ? `${behavioural.slice(0, MAX_GATE_SITES).join(', ')} ${behavioural.length === 1 ? 'is' : 'are'} not type-visible, so only tests could show the patch handles ${behavioural.length === 1 ? 'it' : 'them'}`
+            : counts
+              ? coverage.reason
+              : `${coverage.reason}, but a checkJs result does not yet stand in for tests without an owner decision, so it is evidence only`,
+      };
+    }
     const ownGrade =
       (validationStatus === 'passed' || ownChecksPassed || behaviourA) && candidateSources
         ? await gradeEvidence({
@@ -2844,6 +2893,7 @@ export async function validateMigration(options: {
             typeCheckUnavailable,
             packageDirectory,
             testsFoundNone: noTests,
+            ...(checkJs ? { checkJs: { counts: checkJs.counts, reason: checkJs.reason } } : {}),
             ...(signedEvents && 'covered' in signedEvents && signedEvents.covered.length
               ? { signedEvents: signedEvents.covered }
               : {}),
@@ -3023,6 +3073,7 @@ export async function validateMigration(options: {
         : {}),
       ...(typeCheckUnavailable ? { typeCheckUnavailable } : {}),
       ...(typeOracle ? { typeOracle } : {}),
+      ...(checkJs ? { checkJs } : {}),
       ...namedBaselineStop(validationStatus, baselineRun),
       ...(brokenTestsTypeCheck
         ? { brokenTestsTypeCheck: { command: brokenTestsCommand, patched: brokenTestsTypeCheck } }

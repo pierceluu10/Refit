@@ -53,7 +53,7 @@ it.each(['npm:other@10.17.0', 'workspace:*', 'file:../sdk', 'link:../sdk'])(
 );
 it('does not infer a missing/stale importer, package or peer snapshot', () => {
   const samples: Record<string, unknown>[] = [
-    { ...lock(), lockfileVersion: '5.4' },
+    { ...lock(), lockfileVersion: '5.3' },
     { ...lock(), packages: {} },
     { ...lock(), snapshots: {} },
     { ...lock(), importers: {} },

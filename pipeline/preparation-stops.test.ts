@@ -25,7 +25,9 @@ it('names the dependency that comes from outside the public registry', () => {
     { ...manifest, dependencies: { '@nanostores/react': 'github:ai/react' } },
     { '': { ...manifest, dependencies: { '@nanostores/react': 'github:ai/react' } } },
   );
-  expect(declared).toContain('package.json declares @nanostores/react as "github:ai/react".');
+  expect(declared).toContain(
+    "package.json declares @nanostores/react from Git (github.com/ai/react), which Refit's own preparation does not fetch",
+  );
   const nested = refusal(manifest, {
     '': manifest,
     'node_modules/stripe': stripe,
@@ -38,8 +40,33 @@ it('names the dependency that comes from outside the public registry', () => {
     },
   });
   expect(nested).toContain(
-    'package-lock.json record node_modules/@electron/rebuild declares @electron/node-gyp as "git+https://github.com/electron/node-gyp.git#06b29aa".',
+    'package-lock.json record node_modules/@electron/rebuild declares @electron/node-gyp from Git (github.com/electron/node-gyp at 06b29aa)',
   );
+  // The lockfile record itself, as npm writes a Git dependency it resolved to a commit.
+  const locked = refusal(manifest, {
+    '': manifest,
+    'node_modules/stripe': stripe,
+    'node_modules/sdk': {
+      ...stripe,
+      resolved: `git+ssh://git@github.com/acme/sdk.git#${'a'.repeat(40)}`,
+    },
+  });
+  expect(locked).toContain(
+    'package-lock.json installs node_modules/sdk from Git (github.com/acme/sdk at commit aaaaaaa)',
+  );
+  // A local path is not described as Git.
+  expect(
+    refusal(
+      { ...manifest, dependencies: { sdk: './vendor/sdk' } },
+      { '': { ...manifest, dependencies: { sdk: './vendor/sdk' } } },
+    ),
+  ).toContain('package.json declares sdk as "./vendor/sdk".');
+  for (const message of [declared, nested, locked])
+    expect(preparationStop(message)).toMatchObject({
+      reason: 'git-dependency',
+      summary: "a dependency is installed from Git, which Refit's own preparation does not fetch",
+      action: expect.stringContaining("Refit's own preparation and its build"),
+    });
   const privateRegistry = refusal(manifest, {
     '': manifest,
     'node_modules/stripe': {
@@ -50,7 +77,7 @@ it('names the dependency that comes from outside the public registry', () => {
   expect(privateRegistry).toContain(
     'package-lock.json resolves node_modules/stripe from npm.pkg.github.com',
   );
-  for (const message of [declared, nested, privateRegistry])
+  for (const message of [privateRegistry])
     expect(preparationStop(message)).toMatchObject({
       reason: 'non-registry-dependency',
       action: expect.stringContaining(
