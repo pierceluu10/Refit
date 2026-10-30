@@ -181,11 +181,11 @@ Business SDK requests always stop, because their version follows the `facebook-n
 
 The rule was run on the 33 Meta repositories of the [deadline benchmark](DEADLINE-BENCHMARK.md) with target v25.0, the newest version in the deadline registry ([results](benchmarks/2026-10-20-meta-graph-move-results.json)):
 
-| Change list | Pins moved | Pins stopped | Requests without a pinned version |
-|---|---:|---:|---:|
-| Every changelog unread (the list before this change) | 0 | 148 | 7 |
-| **Reviewed v14.0 to v26.0, 281 changes (committed)** | **35 (35 requests, 13 repositories)** | 113 | 7 |
-| Hypothetical: every version marked reviewed, with no changes | 100 (101 requests, 26 repositories) | 48 | 7 |
+| Change list                                                  |                            Pins moved | Pins stopped | Requests without a pinned version |
+| ------------------------------------------------------------ | ------------------------------------: | -----------: | --------------------------------: |
+| Every changelog unread (the list before this change)         |                                     0 |          148 |                                 7 |
+| **Reviewed v14.0 to v26.0, 281 changes (committed)**         | **35 (35 requests, 13 repositories)** |          113 |                                 7 |
+| Hypothetical: every version marked reviewed, with no changes |   100 (101 requests, 26 repositories) |           48 |                                 7 |
 
 - **With the reviewed list, 35 pins move** in 13 repositories: 23 from v19.0, 8 from v18.0, 3 from v20.0 and 1 from v21.0. Every moved request was checked by hand against the list. They are Instagram content publishing (`/media`, `/media_publish`), Instagram media reads that name their fields, ads insights and `/me/adaccounts` reads that name their fields, Page feed posts, Conversions API events and `/me`. No version-gated change in range touches any of them, and none is a WhatsApp or Messenger request.
 - **Why the other 113 pins stop** (a pin can have several reasons):
@@ -205,6 +205,49 @@ The rule was run on the 33 Meta repositories of the [deadline benchmark](DEADLIN
   - **1** is in an exported constant.
   - A pin can have more than one reason, so the counts overlap.
   - The other 17 stopped pins are used only by tests and examples.
+
+## Proof
+
+`pipeline/meta-graph-proof.ts` grades a Meta Graph patch inside `validateMigration` whenever the report's provider is `meta-graph`. Meta publishes no machine-readable contract, so proof comes from the reviewed change table and, where Refit has one, its own test app. Levels follow [Proof decides, not caution](PROOF-BASED-VALIDATION.md):
+
+| Level | What proves it                                                                                                                                                                                                                                                                                 |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A     | Everything for C or B, and read-only calls with Refit's test app token at the target version: the Graph API accepted every changed request and returned every top-level field it asks for. With an app token this is reachable only for app-level reads.                                       |
+| B     | Every changed request is valid at the target in the change table, and the repository's tests reach every changed file.                                                                                                                                                                         |
+| C     | Every changed request is valid at the target in the change table, and either the type check covers the changed files with no new errors, or, where the checks prove nothing but did not fail, a checkJs check types every name on the changed lines or the patch changes only request strings. |
+| D     | The change table does not prove a changed request, or no passing check covers the changed files. The draft is `[Needs review]` and names each reason.                                                                                                                                          |
+
+**Field-table proof (offline).** Both sides are scanned with `scanGraphCalls`. A changed request is one whose version, method, path, fields, metrics, parameters or line differs from the request at the same place in the original code (same file, same position; a file whose request count changed pairs nothing, so every request in it is checked against the whole table up to the target). Each changed request must:
+
+- send the target version, which is the one version every changed request sends;
+- have a known version, method, path, fields, metrics and parameters;
+- not be a WhatsApp Business Platform or Messenger Platform request, whose changelogs the table does not cover;
+- cross only versions the table marks `reviewed`;
+- use no entry the table lists between the original request's version and the target (`changesUsedBy`, the same matching as version moves). Out-of-cycle entries (no version) apply before and after a move alike; the fix plan lists the requests they reach, and they are not part of the patch's proof.
+
+Requests in test and example files send nothing, so what Refit cannot read in them is listed but does not stop the proof.
+
+The entries the original request used are recorded as what the patch fixed. The table is `data/meta-graph/changes.json` when it exists, else `data/meta-graph-changes.json`. A table that fails its own checks proves nothing.
+
+**Live proof.** Only where Refit's own environment holds `META_TEST_TOKEN`, which a customer never sets; a customer's token is never read. The refit-bench secret is an **app access token** (`app_id|app_secret`) of a development-mode test app with no user permissions, because Meta issues no user token without a product use case. The token goes in the `Authorization` header, never a URL, and is redacted from every recorded message, and no workflow input or log carries it.
+
+- First, `GET /{target}/app?fields=id` checks that the Graph API serves the target version. A refusal there makes the patch grade D, since the provider itself rejects the version. An unreachable API changes nothing.
+- Then each changed request the app token can read is sent: `GET` on the app's own node (`/app` and its edges) whose only parameters are `fields`, `access_token` and `appsecret_proof`. Grade A needs every changed request sent, accepted, and returning every top-level field it asks for.
+- Requests on user, page or business objects need permissions the test app does not hold, so they are not sent and the offline field-table proof stands (B or C). The same goes for writes, object IDs from the customer's code, metrics and other parameters. With a test user token (`EA…`) instead, `/me` reads are sent too.
+- Responses are recorded as status and missing field names, never values.
+
+**Where the checks prove nothing** (no tests, no type check, or plain JavaScript), and they did not fail (validation `passed` or `untested`), two offline proofs can still give grade C. Founder instruction (2026-10-29, relayed by the coordinating session under "proof decides"); `pipeline/meta-graph-code-proof.ts`:
+
+- **Request strings.** Original and patched files are parsed and compared token by token, ignoring comments. Every difference must be the text of a string literal or template piece. Each changed string must sit on a changed request's version pin, or reach a changed request's call as an argument (through templates, concatenation, `??`/`||` and option objects) or the constant on that call's line. Any other change counts as a change to logic or response handling: an added statement, a changed name, a manifest, an added or deleted file, or a string that builds no changed request. Those still need a type check or tests.
+- **checkJs.** TypeScript checks the changed JavaScript files with `allowJs`, `checkJs` and the ES2022 and DOM libraries, reading the repository from memory with no packages installed. It counts only when the patch adds no checkJs error and TypeScript types every name on the changed lines. A name typed `any`, such as a parsed JSON response, an untyped parameter or an import from an uninstalled package, proves nothing (the approach of owner decision D2c for Stripe). TypeScript files are left to the repository's own type check.
+
+A live call that refuses a changed request, or a target version the Graph API refuses, gives grade D whatever else passed. With A to C proof, a Meta draft is validated even where no check ran or dependencies could not be prepared, since the proof does not come from those checks (`metaGraphProven` in `pipeline/publication.ts`).
+
+**Hand-check (2026-10-29).** ME3's `refit meta-graph --fix --target v25.0` patches were checked on the 33 non-blind deadline-benchmark Meta repositories (ME3's list at their pinned commits, merged with feat/meta-fixes and ME2's 805-entry table; no blind repository was opened). 13 repositories get a patch, and every changed line in all 13 was read: each one changes only the `vNN.N` segment of a Graph URL. The field table proves all 13 (61 changed requests) and the request-string proof holds for all 13, a correct verdict on each. checkJs proves none of them, because every changed line holds names TypeScript cannot type (`PAGE`, `userId`, `axios` from an uninstalled package), so it never counted where it should not have. Before the out-of-cycle and test-file corrections, 7 of 13 stopped on entries that do not depend on the version (iOS 14 insights, `like_count`, oEmbed `thumbnail_url`, `media_type` VIDEO) or on a test assertion's URL.
+
+**Second-opinion AI review.** With AI enabled (`--assess` or `--ai-patch`), every Meta patch gets one advisory review: verdict, summary and concerns, recorded with its model, response id and cost in `validation.metaGraph.review`. It never changes the grade or the publication decision, and a failed review is recorded, not raised.
+
+What this does not do yet: AI-written behaviour tests that run the repository's own code against the test app (the #386 harness needs a Graph adapter for its proxy, which reads the token from the query string and has no version header), and recorded responses replayed offline.
 
 ## What a Meta agent still needs
 

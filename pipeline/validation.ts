@@ -32,6 +32,7 @@ import {
 } from './repair-context.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
+import { META_GRAPH_PROVIDER, metaGraphEvidence } from './meta-graph-proof.ts';
 import {
   apiVersionSourceBlocked,
   compareApiVersion,
@@ -3269,7 +3270,7 @@ export async function validateMigration(options: {
               : {}),
           })
         : undefined;
-    const grade = ownGrade
+    const checksGrade = ownGrade
       ? validationStatus === 'passed' || !generated
         ? ownGrade
         : {
@@ -3313,6 +3314,22 @@ export async function validateMigration(options: {
                       ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
                       : `Validation returned ${validationStatus}.`),
             );
+    // Meta Graph patches (meta-graph-proof.ts): the reviewed change table decides whether the checks'
+    // grade stands, read-only calls with Refit's test app can raise it to A, and an advisory AI
+    // review is recorded with its cost.
+    const metaGraph =
+      report.provider === META_GRAPH_PROVIDER && candidateSources
+        ? await metaGraphEvidence({
+            original: originalSources,
+            patched: candidateSources,
+            grade: checksGrade,
+            checksUsable: validationStatus === 'passed' || validationStatus === 'untested',
+            diff: proposal.diff,
+            ai: options.assessment ?? options.aiPatch,
+            environment: process.env,
+          })
+        : undefined;
+    const grade = metaGraph ? metaGraph.grade : checksGrade;
     const typeOracle = await runTypeOracle({
       compareTypeErrors: options.compareTypeErrors,
       command: options.command,
@@ -3471,6 +3488,7 @@ export async function validateMigration(options: {
       ...(behaviour ? { behaviour } : {}),
       ...(signedEvents ? { signedEvents } : {}),
       ...(grade ? { grade } : {}),
+      ...(metaGraph ? { metaGraph: metaGraph.record } : {}),
       attempts,
       repair,
       ...(options.aiPatch ? { aiCostUsd } : {}),

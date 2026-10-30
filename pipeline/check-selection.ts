@@ -75,7 +75,13 @@ export interface CheckSelection {
 }
 
 export type EvidenceLevel =
-  'behaviour-tests' | 'stripe-tests' | 'type-check' | 'generated-check' | 'none';
+  | 'behaviour-tests'
+  | 'live-requests'
+  | 'request-strings'
+  | 'stripe-tests'
+  | 'type-check'
+  | 'generated-check'
+  | 'none';
 
 // A: behaviour tests cover every changed Stripe line; B: the repository's tests reach every changed
 // file; C: a type check covers the rest; D: some changed file has no check, or no check passed.

@@ -182,7 +182,7 @@ const SEPARATE_CHANGELOG_PARAMETERS = new Set([
   'phone_number_id',
 ]);
 
-function separateChangelog(call: GraphCall) {
+export function separateChangelog(call: GraphCall) {
   // A root endpoint such as `/message_template_library` is a path with no node before it.
   const root = call.path !== null && /^\/[a-z_]+$/.test(call.path) ? call.path.slice(1) : null;
   return (call.edge !== null && SEPARATE_CHANGELOG_EDGES.has(call.edge)) ||
