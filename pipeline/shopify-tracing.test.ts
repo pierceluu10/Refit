@@ -446,6 +446,240 @@ export const shopify = shopifyApi({ apiVersion: '2025-01' });
   expect(report.patch.diff).toContain('/admin/api/2026-10/graphql.json');
 });
 
+it('reads documents folded from constants, let bindings, returned literals and options parameters', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/queries.ts': `const PAGE_SIZE = 50;
+export const PRODUCTS = \`#graphql
+query Products { products(first: \${PAGE_SIZE}, reverse: \${true}) { id } }\`;
+export function productQuery(id: string) {
+  const gid = \`gid://shopify/Product/\${id}\`;
+  return \`query { product(id: "\${gid}") { title } }\`;
+}
+`,
+    'app/send.ts': `import { PRODUCTS, productQuery } from './queries';
+async function send({ query, variables }: { query: string; variables?: object }, admin: any) {
+  return admin.graphql(query, { variables });
+}
+async function wrap(admin: any, options: { document: string }) {
+  return admin.graphql(\`#graphql\\n\${options.document}\`);
+}
+async function unused(admin: any, query: string) {
+  return admin.graphql(query);
+}
+export async function loader(admin: any, id: string, flag: boolean) {
+  let query = PRODUCTS;
+  if (query === PRODUCTS && flag) query = \`query Shop { shop { name } }\`;
+  await admin.graphql(query);
+  await admin.graphql(productQuery(id));
+  await send({ query: \`query Named { shop { name } }\` }, admin);
+  await wrap(admin, { document: \`query Wrapped { shop { name } }\` });
+  let built = 'query { ';
+  built += 'shop { name } }';
+  await admin.graphql(built);
+}
+`,
+    'app/send.test.ts': `export const fixture = (admin: any, name: string) =>
+  admin.graphql(\`#graphql
+query \${name} { shop { name } }\`);
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-api'));
+  expect(scan.documents.map((entry) => [entry.file, entry.text.trim(), entry.traced])).toEqual([
+    [
+      'app/queries.ts',
+      '#graphql\nquery Products { products(first: 50, reverse: true) { id } }',
+      true,
+    ],
+    ['app/queries.ts', 'query { product(id: "x") { title } }', true],
+    ['app/send.ts', 'query Shop { shop { name } }', true],
+    ['app/send.ts', 'query Named { shop { name } }', true],
+    ['app/send.ts', 'query Wrapped { shop { name } }', true],
+  ]);
+  // `+=` builds the document at runtime; the test's fixture and the uncalled helper send nothing.
+  expect(scan.unreadable.map((entry) => [entry.file, entry.line, entry.reason])).toEqual([
+    [
+      'app/send.ts',
+      20,
+      'The document is built at runtime; Refit only reads literal or constant documents.',
+    ],
+  ]);
+});
+
+it('follows clients built for the Admin endpoint, class fields, stored wrappers and Storefront calls', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/clients.ts': `import { GraphQLClient } from 'graphql-request';
+import { createStorefrontApiClient } from '@shopify/storefront-api-client';
+const client = new GraphQLClient(\`https://\${process.env.SHOP}/admin/api/2026-01/graphql.json\`, { headers: {} });
+export const clientShop = () => client.request(\`query ClientShop { shop { name } }\`);
+export class Repository {
+  LIST = \`query Field { shop { name } }\`;
+  private async run(query: string) {
+    return client.request(query);
+  }
+  list() {
+    return this.run(this.LIST);
+  }
+}
+async function raw(shop: string, query: string) {
+  const headers = { 'Content-Type': 'application/graphql' };
+  return fetch(\`https://\${shop}/admin/api/2026-01/graphql.json\`, { method: 'POST', headers, body: query });
+}
+export async function stored(shop: string) {
+  const adminClient = { graphql: async (query: string) => raw(shop, query) };
+  return adminClient.graphql(\`query Stored { shop { name } }\`);
+}
+export async function sendDocument(admin: any, query: string) {
+  return admin.graphql(query);
+}
+export const rest = (shop: string, path: string) => fetch(\`https://\${shop}/admin/api/2026-01/\${path}\`);
+const storefront = createStorefrontApiClient({ storeDomain: 'x', apiVersion: '2026-01', publicAccessToken: 't' });
+export const search = (term: string) => storefront.request(term);
+`,
+    'app/lazy.ts': `export async function lazy(admin: any) {
+  const { sendDocument } = await import('./clients');
+  return sendDocument(admin, \`query Lazy { shop { name } }\`);
+}
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-api'));
+  expect(scan.documents.map((entry) => [entry.file, entry.text])).toEqual([
+    ['app/clients.ts', 'query ClientShop { shop { name } }'],
+    ['app/clients.ts', 'query Field { shop { name } }'],
+    ['app/clients.ts', 'query Stored { shop { name } }'],
+    ['app/lazy.ts', 'query Lazy { shop { name } }'],
+  ]);
+  // The Storefront document stays unread but is marked, so it never stops an Admin move.
+  expect(scan.unreadable).toMatchObject([{ file: 'app/clients.ts', line: 27, api: 'storefront' }]);
+  expect(scan.rest).toMatchObject([{ file: 'app/clients.ts', line: 25, path: '{path}' }]);
+});
+
+it('stops on a client or loaded module Refit cannot follow, and on a field code may reassign', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/clients.ts': `import { createGraphQLClient } from '@shopify/graphql-client';
+export function adminClient(shop: string) {
+  return createGraphQLClient({ url: \`https://\${shop}/admin/api/2026-01/graphql.json\` });
+}
+export class Repository {
+  LIST = \`query Field { shop { name } }\`;
+  constructor(admin: any) {
+    this.admin = admin;
+  }
+  list() {
+    return this.admin.graphql(this.LIST);
+  }
+}
+export async function sendDocument(admin: any, query: string) {
+  return admin.graphql(query);
+}
+`,
+    'app/use.ts': `import { Repository } from './clients';
+export async function use(admin: any) {
+  const repository = new Repository(admin);
+  repository.LIST = 'query Other { shop { name } }';
+  const module = await import('./clients');
+  return module.sendDocument(admin, 'query Lazy { shop { name } }');
+}
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-api'));
+  expect(
+    scan.unreadable.map((entry) => [entry.file, entry.line, entry.reason.slice(0, 60)]),
+  ).toEqual([
+    ['app/clients.ts', 3, 'A GraphQL client for the Admin endpoint is used here in a wa'],
+    ['app/clients.ts', 11, 'The document is built at runtime; Refit only reads literal o'],
+    ['app/use.ts', 5, 'A module defining a function that sends Admin GraphQL docume'],
+  ]);
+});
+
+it('moves the Admin pin past a Storefront document it cannot read', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/shopify.server.ts': `import { shopifyApi } from '@shopify/shopify-api';
+import { createStorefrontApiClient } from '@shopify/storefront-api-client';
+export const shopify = shopifyApi({ apiVersion: '2026-01' });
+const storefront = createStorefrontApiClient({ storeDomain: 'x', apiVersion: '2024-04', publicAccessToken: 't' });
+export const search = (term: string) => storefront.request(term);
+export const shop = (admin: any) => admin.graphql(\`query { shop { name } }\`);
+`,
+  });
+  const report = (await runPipeline({
+    repository: root,
+    ...(await snapshots(root)),
+    proposePatch: true,
+  })) as any;
+  expect(report.patch.status).toBe('proposed');
+  expect(report.shopify.storefrontDocuments).toEqual(['app/shopify.server.ts:5']);
+  expect(report.patch.warnings.join('\n')).toContain(
+    'Refit could not read app/shopify.server.ts:5.',
+  );
+});
+
+it('never drops a document an Admin call can still send', async () => {
+  const URL = 'https://x.myshopify.com/admin/api/2026-01/graphql.json';
+  const cases: Record<string, string> = {
+    // A client member Refit does not read.
+    'app/fetch.ts': `import { createGraphQLClient } from '@shopify/graphql-client';
+const client = createGraphQLClient({ url: '${URL}' });
+export const shop = () => client.fetch('query { shop { name } }');
+`,
+    // A literal both a Storefront and an Admin call send counts as Admin.
+    'app/shared.ts': `const Q = \`query { shop { name \${dyn} } }\`;
+export const a = (storefront: any) => storefront.query(Q);
+export const b = (admin: any) => admin.graphql(Q);
+`,
+    // A readonly field the constructor can replace.
+    'app/field.ts': `export class Repository {
+  readonly q = 'query { shop { name } }';
+  constructor(admin: any, q?: string) {
+    if (q) this.q = q;
+    this.admin = admin;
+  }
+  run() {
+    return this.admin.graphql(this.q);
+  }
+}
+`,
+    // A private method taken out of \`this\`.
+    'app/private.ts': `export class Service {
+  private send(q: string, admin: any) {
+    return admin.graphql(q);
+  }
+  run(admin: any, q: string) {
+    const { send } = this;
+    return send(q, admin);
+  }
+}
+`,
+    // A subclass reading the client field.
+    'app/subclass.ts': `import { GraphQLClient } from 'graphql-request';
+class Base {
+  constructor() {
+    this.client = new GraphQLClient('${URL}');
+  }
+}
+export class Child extends Base {
+  go(q: string) {
+    return this.client.request(q);
+  }
+}
+`,
+    // A use of the endpoint Refit cannot read beside one it can.
+    'app/raw.ts': `const ENDPOINT = '${URL}';
+export const one = () => fetch(ENDPOINT, { method: 'POST', body: JSON.stringify({ query: 'query { shop { name } }' }) });
+export const two = (init: RequestInit) => fetch(ENDPOINT, init);
+`,
+  };
+  for (const [file, content] of Object.entries(cases)) {
+    const root = await directory({ 'package.json': MANIFEST, [file]: content });
+    const scan = scanShopify(await readRepository(root, '@shopify/shopify-api'));
+    const admin = scan.unreadable.filter((entry) => !entry.api);
+    expect(admin.length, file).toBeGreaterThan(0);
+  }
+});
+
 it('moves defaults in code, and notes environment-only and unstable versions without stopping', async () => {
   const root = await directory({
     'package.json': MANIFEST,

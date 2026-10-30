@@ -1,5 +1,6 @@
 import ts from 'typescript-compiler';
 import { SHOPIFY_PACK } from './rule-pack.ts';
+import { STOREFRONT_CLIENT_FACTORY } from './shopify-analysis.ts';
 import type { Location, Repository, SourceEdit } from './types.ts';
 
 export const SHOPIFY_SDK_RULE = 'shopify-sdk-upgrade';
@@ -271,6 +272,26 @@ export function shopifySdkSourceChanges(
       stop(
         latestUses.find((use) => !settable.includes(use)) ?? latestUses[0],
         'LATEST_API_VERSION, removed in the upgraded SDK, is used where Refit cannot pin a dated ApiVersion (outside an apiVersion setting, or without its import).',
+      );
+      continue;
+    }
+    // A Storefront client or codegen project keeps its own version, which no Admin check covers.
+    const storefront = settable.find((use) => {
+      const options = use.parent.parent as ts.ObjectLiteralExpression;
+      const factory = options.parent;
+      return (
+        ((ts.isCallExpression(factory) || ts.isNewExpression(factory)) &&
+          STOREFRONT_CLIENT_FACTORY.test(factory.expression.getText())) ||
+        options.properties.some(
+          (property) =>
+            property.name?.getText() === 'apiType' && /Storefront/.test(property.getText()),
+        )
+      );
+    });
+    if (storefront) {
+      stop(
+        storefront,
+        'LATEST_API_VERSION, removed in the upgraded SDK, sets a Storefront API version here; Refit checks only Admin documents, so it does not choose a Storefront version.',
       );
       continue;
     }
