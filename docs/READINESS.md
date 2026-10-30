@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 29 checkpoint: Shopify REST → GraphQL rewrites (unreleased, after 0.39.0)
+
+REST Admin reads that a quoted rule covers (12 GET endpoints in `data/shopify-rest-graphql.json`) are rewritten as GraphQL Admin queries behind an adapter local to the call, which rebuilds only the REST fields the code reads ([REST rewrites](SHOPIFY-REST.md)). Calls through `fetch`, axios, Remix `admin.rest`, `shopify.clients.Rest` and the resource classes' `all`, `find` and `count` are recognised. Writes, endpoints Shopify documents as returning other rows, untraced reads and unmapped parameters stop. With AI, the model proposes mappings and Refit keeps them only under the schema, REST-type and read gates. Every rewrite is `[Needs review]`. Measured offline without AI on the 250 non-blind repositories: 15 of 180 REST calls rewritten, all read by hand and correct; AI not measured.
+
 ## October 29 checkpoint: Shopify pinned schemas, diffs and rules (unreleased, after 0.39.0)
 
 Admin (2025-01, 2026-01 to 2026-10) and Storefront (2024-10, 2025-01, 2025-07, 2025-10, 2026-01 to 2026-10) schemas are pinned by SHA-256 with their source and saved in the repository. Deterministic diffs between consecutive pins are committed and checked by `refit rules check`. 67 rules and 238 alerts quote Shopify's changelog and REST reference verbatim and agree with the diffs; `refit rules mine-shopify` mined 20 of the rules and 198 of the alerts on refit-bench Actions ($1.70). Under the founder's "proof decides" decision of 2026-10-29, 44 rules are `auto` (renames within one type and argument drops, which keep every response key; each edited document must validate on the target schema), and the rest are review-only. No Shopify benchmark has run on them. Coverage and limits: [Shopify contracts and rules](SHOPIFY-RULES.md).
