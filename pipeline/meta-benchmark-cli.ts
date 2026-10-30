@@ -92,7 +92,15 @@ const { rows: previous } = await openRunDirectory(
     refitRoot: fileURLToPath(new URL('..', import.meta.url)),
     list: { path: list, file: list },
     options: { target, limit: values.limit, validate: values.validate, ai: values.ai },
-    environment: ai ? ['OPENAI_MODEL', 'OPENAI_REASONING_EFFORT', 'REFIT_AI_BUDGET_USD'] : [],
+    environment: ai
+      ? [
+          'REFIT_AI_PROVIDER',
+          'OPENAI_MODEL',
+          'ANTHROPIC_MODEL',
+          'OPENAI_REASONING_EFFORT',
+          'REFIT_AI_BUDGET_USD',
+        ]
+      : [],
     allowDirty: values['allow-dirty'],
   }),
   { resume: values.resume },
