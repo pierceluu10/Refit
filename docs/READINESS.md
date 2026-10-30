@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 30 checkpoint: Shopify store-environment cases (unreleased, after 0.39.0)
+
+The development-store live proof checks a case's Shopify Function IDs and locales against the store before sending it ([Shopify proof](SHOPIFY-PROOF.md#live-proof-optional)). A function the store's app has not released, or a locale the store has not enabled, fails identically on both versions, so the operation is recorded as not run with the store's own values named, and the grade comes from the other evidence. An original that fails on the original version names the store cause (function, locale, merchant-owned app on the Billing API, rate limit). Rate limits, including `Too many attempts` user errors, are retried five times using Shopify's `Retry-After` or query-cost refill. #435 had already stopped store-side failures from grading rows D; on main the five rows of SH12 round 3 validate at B or C. Benchmarks show no outcome change on dev-60, practice-50 or fresh-200 (`docs/BENCHMARKS.md`). The AI dev-60 runs at a $10 cap never reached the live-case writer, so live proof on AI-written cases is not measured by this change.
+
 ## October 29 checkpoint: Shopify retired-version migrations (unreleased, after 0.39.0)
 
 Documents that already fail on the oldest supported Admin version (Shopify serves it to retired pins today) are now fixed where a documented migration applies, instead of stopping: `productVariantUpdate` becomes `productVariantsBulkUpdate` with the call's variables and response reads rewritten (rule `shopify-product-variant-update-to-bulk-update`, quoting Shopify's own app-template change), and unused variable declarations are removed. A patch that changes a document's variables is graded above D only when the development store ran the operation; the migration writes that case. See [Shopify rules](SHOPIFY-RULES.md#migrations). Benchmark evidence is in `docs/BENCHMARKS.md`.

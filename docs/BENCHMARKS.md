@@ -385,6 +385,21 @@ dev-60 plus the 250 practice repositories (practice-50 and fresh-200), refit-ben
   - an error and an unrun patch: 2
 - The AI run validates fewer rows, and not because of the patches. Its development-store run failed on stand-in Function IDs, a store locale, rate limits and app ownership, on the before version (2026-01) as well, and that set five rows that pass every check to grade D (danyn/shopify-app-rr, cornerstone-report/x-money-shopify, ersinkoc/CouponEngine, mssalemi/b-is-for-bundles, Stephnn0/shipping-discounts-shopify-app). Two rows validate only with AI (IliasHad/shopify-app-template-remix-cloudflare-workers, SankaiAI/iHeard.ai).
 
+### Development-store environment (2026-10-30, fix/shopify-store-proof)
+
+refit-bench `shopify.yml` on `shopify-ai`, `--sdk-upgrade`. Before is main `57ce145f`; after is `915fd860` (store-environment checks and rate-limit retries in `pipeline/shopify-live-proof.ts`).
+
+| Set                  | Runs (before → after)     | AI                              | Validated | Needs review | Live proof passed |
+| -------------------- | ------------------------- | ------------------------------- | --------- | ------------ | ----------------- |
+| dev-60 (size 1)      | 41132449226 → 41133273810 | no                              | 10 → 10   | 24 → 24      | 1 → 1             |
+| dev-60 (size 1)      | 41132846019 → 41133282871 | Claude Sonnet 5.5, $10 cap each | 10 → 10   | 24 → 24      | 1 → 1             |
+| practice 50 (size 5) | 41132451966 → 41133277344 | no                              | 7 → 7     | 15 → 15      | 0 → 0             |
+| fresh 200 (size 5)   | 41132455018 → 41133280282 | no                              | 17 → 17   | 57 → 57      | 5 → 5             |
+
+- Every row has the same status, grade and live-proof status before and after. No row is newly validated, so `docs/benchmarks/fix-reviews.json` gains no entry.
+- The five rows SH12 round 3 graded D on store failures already validate on main, because #435 records those failures as not run: danyn/shopify-app-rr, cornerstone-report/x-money-shopify, mssalemi/b-is-for-bundles and Stephnn0/shipping-discounts-shopify-app at C, ersinkoc/CouponEngine at B.
+- The AI pair does not exercise the change. The $10 cap splits into about $0.17 per shard; scan-time requests used it, 9 rows per run stopped with `AI budget exhausted`, and no row reached the live-case writer (`aiCostUsd` 0 on every patched row). mssalemi/b-is-for-bundles, for example, records `no value for required variable $functionId`. Measuring the function and locale checks needs an AI run that reaches case writing.
+
 ### Shopify dev and blind sets
 
 Frozen on 2026-10-29 by `scripts/shopify-select.mjs`; nothing has been run on them. The exact criteria and command are in each list's `criteria`, and the search results, per-repository pre-scan counts and totals are in `docs/benchmarks/shopify-selection/`.
