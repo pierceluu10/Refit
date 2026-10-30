@@ -389,6 +389,71 @@ it('upgrades the package when a pinned and an unpinned client share a JavaScript
   expect(report.patch).toMatchObject({ status: 'proposed', sdkUpgrade: { to: '23.0.0' } });
 });
 
+// hackerai-tech/hackerai: a lazy factory's unpinned client, while a request on another file sends
+// options Refit cannot read.
+const lazyCheckout = `import Stripe from 'stripe';
+let instance = null;
+function getStripe() {
+  if (!instance) instance = new Stripe(process.env.STRIPE_KEY);
+  return instance;
+}
+export const checkout = () => {
+  const stripe = getStripe();
+  return stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });
+};
+`;
+const pinnedUpdate = `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+export const update = (id, options) => stripe.customers.update(id, {}, options);
+`;
+
+it('moves a lazy client rename with the upgrade while another request is untraced', async () => {
+  registry();
+  const report = await run({
+    ...npmProject,
+    'checkout.js': lazyCheckout,
+    'update.js': pinnedUpdate,
+  });
+  expect(report.patch).toMatchObject({ status: 'proposed', sdkUpgrade: { to: '23.0.0' } });
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  expect(report.patch.diff).toContain("allowed_payment_method_types: ['card']");
+  expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
+});
+
+it('keeps an account-default client on the path a stop while another client is pinned', async () => {
+  registry();
+  const report = await run({
+    ...npmProject,
+    'checkout.js': lazyCheckout.replace(
+      'new Stripe(process.env.STRIPE_KEY)',
+      'new Stripe(process.env.STRIPE_KEY, { apiVersion: null })',
+    ),
+    'update.js': pinnedUpdate,
+  });
+  expect(report.patch).toMatchObject({ status: 'not-generated' });
+  expect(report.findings).toMatchObject([
+    {
+      requestParameter: { parameter: 'payment_method_types' },
+      reason: expect.stringContaining('the client created at checkout.js:4 sends'),
+    },
+  ]);
+});
+
+it('says which pin the patch leaves when the path pins another version', async () => {
+  const report = await run({
+    'checkout.js': checkout("['card']", "{ apiVersion: '2025-03-31.basil' }"),
+  });
+  expect(report.patch).toMatchObject({ status: 'not-generated' });
+  expect(report.findings).toMatchObject([
+    {
+      requestParameter: { parameter: 'payment_method_types' },
+      reason: expect.stringContaining(
+        'the client created at checkout.js:2 pins 2025-03-31.basil, which this patch does not move to 2026-09-30.endive',
+      ),
+    },
+  ]);
+});
+
 it('lets an AI repair keep the card-only renames without counting them as dropped parameters', () => {
   const original = [
     {
@@ -620,13 +685,19 @@ ${code}
   );
   expect(report.patch).toMatchObject({ status: 'not-generated' });
 });
-it('keeps the stop when another client sets a version the patch cannot move', async () => {
+// Founders' decision (2026-10-27): the pinned client's call is renamed; only the call whose own
+// client sets a version the patch cannot move keeps the stop.
+it('keeps the stop only on the call whose client sets a version the patch cannot move', async () => {
   const report = await run({
     'pinned.js': checkout("['card']"),
     'dynamic.js': checkout("['card']", '{ apiVersion: process.env.STRIPE_VERSION }'),
   });
-  expect('diff' in report.patch && report.patch.diff).not.toContain('allowed_payment_method_types');
-  expect(report.findings.filter((finding) => finding.requestParameter)).toHaveLength(2);
+  expect(report.findings.filter((finding) => finding.requestParameter)).toMatchObject([
+    {
+      file: 'dynamic.js',
+      reason: expect.stringContaining('the client created at dynamic.js:2 sends'),
+    },
+  ]);
 });
 
 // Real shapes from the benchmark repositories (noorjsdivs/tulos_yt actions/createCheckoutSession.ts,
@@ -833,6 +904,64 @@ it('says which client keeps the card rename from riding with the pin', async () 
       reason: expect.stringContaining(
         'The owner-approved rename to allowed_payment_method_types applies to this value, but Refit cannot resolve the API version the client created at checkout.js:2 sends, so it cannot move every client to 2026-09-30.endive.',
       ),
+    },
+  ]);
+});
+
+// Founders' decision (2026-10-27): only the declarations on the renamed call's own path decide.
+// nirholas/memescope-monday hands a second client to an auth plugin; hackerai-tech/hackerai sends
+// a dynamic per-request override on another call.
+const otherClient = `import Stripe from 'stripe';
+export const billing = new Stripe(process.env.STRIPE_KEY, { apiVersion: process.env.STRIPE_API_VERSION });
+`;
+const otherRequest = `export const update = (id, options) => stripe.customers.update(id, {}, options);
+`;
+
+it('renames a card list whose own client is traced while another client is not', async () => {
+  const report = await run({ 'checkout.js': checkout("['card']"), 'billing.js': otherClient });
+  expect(report.patch).toMatchObject({ status: 'proposed', generator: 'deterministic' });
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  expect(report.patch.diff).toContain("allowed_payment_method_types: ['card']");
+  expect(report.patch.diff).toContain("apiVersion: '2026-09-30.endive'");
+  expect(report.patch.diff).not.toContain('billing.js');
+  expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
+});
+
+it('renames a card list while another request on the same client sends a dynamic override', async () => {
+  const report = await run({ 'checkout.js': checkout("['card']") + otherRequest });
+  expect(report.patch).toMatchObject({ status: 'proposed' });
+  if (!('diff' in report.patch)) throw new Error('Expected a patch');
+  expect(report.patch.diff).toContain("allowed_payment_method_types: ['card']");
+  expect(report.findings.filter((finding) => finding.requestParameter)).toEqual([]);
+});
+
+it('still stops when the renamed call itself sends a dynamic override', async () => {
+  const report = await run({
+    'checkout.js': `import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2026-08-26.dahlia' });
+export const checkout = (options) => stripe.checkout.sessions.create({ mode: 'subscription', payment_method_types: ['card'] }, options);
+`,
+  });
+  expect(report.patch).toMatchObject({ status: 'not-generated' });
+  expect(report.findings).toMatchObject([
+    {
+      requestParameter: { parameter: 'payment_method_types' },
+      reason: expect.stringContaining('the request at checkout.js:3 sends'),
+    },
+  ]);
+});
+
+it('still stops when the client is mutated through setApiVersion anywhere', async () => {
+  const report = await run({
+    'checkout.js': checkout("['card']"),
+    'billing.js': `${otherClient}billing.setApiVersion('2026-08-26.dahlia');
+`,
+  });
+  expect(report.patch).toMatchObject({ status: 'not-generated' });
+  expect(report.findings).toMatchObject([
+    {
+      requestParameter: { parameter: 'payment_method_types' },
+      reason: expect.stringContaining('the client created at checkout.js:2 sends'),
     },
   ]);
 });

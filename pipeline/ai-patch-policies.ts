@@ -1,4 +1,5 @@
-import { diffLines } from 'diff';
+import { diffChars, diffLines } from 'diff';
+import { dirname, join, relative } from 'node:path';
 import ts from 'typescript-compiler';
 import { analyzeRepository } from './analyzer.ts';
 import { applySourceEdits } from './patches.ts';
@@ -880,4 +881,159 @@ export function newShapeOnlyReads(
       .map(({ line, schema, property }) => ({ file: edit.file, line, schema, property }));
   });
   return [...rewritten, ...dropped];
+}
+
+// Founders' decision (2026-10-27): a repair of type errors the stripe-node upgrade introduces may
+// change types only. `typeOnlyRepairFailures` says why a repair from `before` (the rules' code) to
+// `after` is not type-only; none means it is. Every changed file must be TypeScript, transpile to
+// the same JavaScript under the repository's compiler options, touch no enum, namespace or
+// decorator, and change only statements that hold one of `errors` (positions in `before` of errors
+// the upgrade introduced). The oracle and the checks are the caller's half of the gate.
+const TYPED_SOURCE = /\.(?:[cm]?ts|tsx)$/;
+const EMITTING = (node: ts.Node) =>
+  ts.isEnumDeclaration(node) || ts.isModuleDeclaration(node) || ts.isDecorator(node);
+
+// The compiler options of the tsconfig.json nearest to `path`, inside the repository, without the
+// options that only stop or redirect emit. Undefined when there is none or it does not resolve
+// completely (an `extends` Refit cannot read), since the defaults may emit differently.
+// shortcut: an `extends` from an installed package is not read in the sandbox and so refuses;
+// upgrade by resolving it from the prepared dependencies if a measured row needs it.
+export function emitOptions(root: string, path: string): ts.CompilerOptions | undefined {
+  const config = ts.findConfigFile(dirname(join(root, path)), ts.sys.fileExists);
+  if (!config || relative(root, config).startsWith('..')) return;
+  const parsed = ts.readConfigFile(config, ts.sys.readFile);
+  if (parsed.error) return;
+  const content = ts.parseJsonConfigFileContent(parsed.config, ts.sys, dirname(config));
+  // TS18003: no input files matched, which says nothing about the options.
+  if (content.errors.some((error) => error.code !== 18003)) return;
+  const {
+    noEmit,
+    emitDeclarationOnly,
+    declaration,
+    declarationMap,
+    composite,
+    incremental,
+    ...options
+  } = content.options;
+  return options;
+}
+
+// Changed ranges of `before`, merged where a removal and an insertion touch.
+function changedRanges(before: string, after: string) {
+  const ranges: { start: number; end: number }[] = [];
+  let offset = 0;
+  for (const part of diffChars(before, after)) {
+    if (part.added || part.removed) {
+      const end = offset + (part.removed ? part.value.length : 0);
+      const last = ranges.at(-1);
+      if (last && last.end === offset) last.end = end;
+      else ranges.push({ start: offset, end });
+    }
+    if (!part.added) offset += part.value.length;
+  }
+  return ranges;
+}
+
+export function typeOnlyRepairFailures(options: {
+  before: Repository;
+  after: Repository;
+  errors: readonly { file: string; line: number; column: number }[];
+  compilerOptions: (path: string) => ts.CompilerOptions | undefined;
+}) {
+  const failures: string[] = [];
+  const paths = new Set([...options.before.files, ...options.after.files].map((file) => file.path));
+  for (const path of paths) {
+    const before = contentOf(options.before, path);
+    const after = contentOf(options.after, path);
+    if (before === after) continue;
+    if (before === undefined || after === undefined) {
+      failures.push(`${path}: the repair ${before === undefined ? 'adds' : 'deletes'} the file.`);
+      continue;
+    }
+    if (!TYPED_SOURCE.test(path) || path.endsWith('.d.ts')) {
+      failures.push(`${path}: the repair changes a file that is not TypeScript source.`);
+      continue;
+    }
+    const compilerOptions = options.compilerOptions(path);
+    if (!compilerOptions) {
+      failures.push(`${path}: the repository's compiler options for the file cannot be read.`);
+      continue;
+    }
+    const emit = (content: string) =>
+      ts.transpileModule(content, { fileName: path, compilerOptions, reportDiagnostics: false })
+        .outputText;
+    if (emit(before) !== emit(after))
+      failures.push(`${path}: the repair changes the JavaScript the file compiles to.`);
+    const original = parse(path, before);
+    const repaired = parse(path, after);
+    const ranges = changedRanges(before, after);
+    const touchesEmitting = (source: ts.SourceFile, start: number, end: number) => {
+      let found = false;
+      const visit = (node: ts.Node) => {
+        if (found || node.getEnd() < start || node.getStart(source) > end) return;
+        if (EMITTING(node)) found = true;
+        else ts.forEachChild(node, visit);
+      };
+      visit(source);
+      return found;
+    };
+    if (
+      changedRanges(after, before).some((range) =>
+        touchesEmitting(repaired, range.start, range.end),
+      )
+    )
+      failures.push(`${path}: the repair writes an enum, a namespace or a decorator.`);
+    const lineStarts = original.getLineStarts();
+    const errorOffsets = options.errors
+      .filter((error) => error.file === path)
+      .map((error) => (lineStarts[error.line - 1] ?? NaN) + error.column - 1);
+    for (const range of ranges) {
+      const line = original.getLineAndCharacterOfPosition(range.start).line + 1;
+      if (touchesEmitting(original, range.start, range.end)) {
+        failures.push(`${path}:${line}: the repair changes an enum, a namespace or a decorator.`);
+        continue;
+      }
+      const statement = enclosingStatement(original, range.start, range.end);
+      if (!statement) {
+        failures.push(`${path}:${line}: the repair adds or removes a statement.`);
+        continue;
+      }
+      if (
+        !errorOffsets.some(
+          (offset) => offset >= statement.getStart(original) && offset < statement.getEnd(),
+        )
+      )
+        failures.push(
+          `${path}:${line}: the repair changes a statement with no type error the stripe-node upgrade introduced.`,
+        );
+    }
+  }
+  return failures;
+}
+
+// The innermost statement that holds [start, end), or undefined when the range lies between the
+// statements of a block, a clause or the file, so that an edit there adds or removes one.
+function enclosingStatement(source: ts.SourceFile, start: number, end: number) {
+  let deepest: ts.Node = source;
+  const visit = (node: ts.Node) => {
+    if (node.getStart(source) <= start && end <= node.getEnd()) {
+      deepest = node;
+      ts.forEachChild(node, visit);
+    }
+  };
+  ts.forEachChild(source, visit);
+  for (let node: ts.Node | undefined = deepest; node; node = node.parent) {
+    if (
+      ts.isBlock(node) ||
+      ts.isSourceFile(node) ||
+      ts.isModuleBlock(node) ||
+      ts.isCaseOrDefaultClause(node) ||
+      ts.isClassLike(node)
+    )
+      return undefined;
+    // Text inserted where a statement starts is a statement of its own. A class member counts as
+    // one, so that an error in one method does not open the whole class.
+    if (ts.isStatement(node) || ts.isClassElement(node))
+      return start === end && start === node.getStart(source) ? undefined : node;
+  }
 }

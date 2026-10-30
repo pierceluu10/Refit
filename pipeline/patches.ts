@@ -254,14 +254,19 @@ export function proposePatch(
       fieldMoves.filter((edit) => REQUEST_MOVE_RULES.has(edit.rule!)).map((edit) => edit.rule!),
     ),
   ];
+  const enumValues = requestMoves.some(
+    (rule) => requestMoveFor(rule)!.family === 'request-enum-value',
+  );
+  const parameterMoves = requestMoves.some(
+    (rule) => requestMoveFor(rule)!.family !== 'request-enum-value',
+  );
   const preview = fieldMoves.some((edit) => edit.rule === INVOICE_PREVIEW_RULE);
   const currency = fieldMoves.some((edit) => edit.rule === CURRENCY_CODE_RULE);
   // Request-side rules, with the reads and renames that share their patch.
   const requestSummary = [
     preview ? 'replace the removed upcoming invoice call with invoices.createPreview' : '',
-    requestMoves.length
-      ? 'move removed Stripe request parameters to their documented replacements'
-      : '',
+    parameterMoves ? 'move removed Stripe request parameters to their documented replacements' : '',
+    enumValues ? 'replace removed Stripe request enum values with their documented successors' : '',
     reads.length ? 'move removed field reads to their documented new locations' : '',
     cardRename ? 'replace payment_method_types with allowed_payment_method_types' : '',
     currency ? 'lowercase uppercase currency codes' : '',

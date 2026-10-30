@@ -35,7 +35,6 @@ const RELEASE = /^(\d+)\.(\d+)\.(\d+)$/;
 const FIRST_PINNING_MAJOR = 12;
 const MAX_PLACES = 3;
 const MAX_QUOTED = 60;
-const OWN_CONFIGURATION = `or commit a ${REPOSITORY_CONFIGURATION} that sets it (docs/REPOSITORY-SETUP.md)`;
 // Stops after which a configuration can still run (owner decision 1, #300), each a reason every
 // draft is titled [Needs review]: without a lockfile preparation fails, without checks the command
 // is a no-op, and an API version Refit cannot read, or several, is assumed or moved together.
@@ -49,7 +48,7 @@ const REVIEWED_STOPS = new Set([
   'api-version-assumed',
 ]);
 
-// Why Refit cannot propose a configuration: one plain sentence and the exact change that fixes it.
+// Why Refit cannot propose a configuration: one plain sentence and what Refit could not do.
 export interface EnrollmentStop {
   id: string;
   detail: string;
@@ -283,12 +282,12 @@ function unreadableRequest(
     return {
       id: 'api-version-unreadable',
       detail: `${uses}: ${options ? `it sets ${options.text}, which Refit cannot trace to one version` : UNREAD}.`,
-      action: `Write the request's apiVersion at ${at(request)} as a string literal, or remove it so the request uses the client's version, ${OWN_CONFIGURATION}.`,
+      action: `Refit cannot read the request's apiVersion at ${at(request)} as one version; check which version that request sends before merging a draft.`,
     };
   return {
     id: 'api-version-unreadable',
     detail: `${uses}: it passes ${options.text}, and Refit cannot tell whether that sets apiVersion.`,
-    action: `If ${options.text} sets no apiVersion, commit a ${REPOSITORY_CONFIGURATION} that sets ${used.length === 1 ? `"apiVersion": "${used[0]}", the version your clients send` : 'the version your clients send'} (docs/REPOSITORY-SETUP.md).`,
+    action: `If ${options.text} sets no apiVersion, the request sends ${used.length === 1 ? `${used[0]}, the version the clients send` : 'the version the clients send'}; check this before merging a draft.`,
   };
 }
 
@@ -383,7 +382,7 @@ function applicationVersion(
         : {
             id: 'no-stripe-client',
             detail: 'Refit found no new Stripe(...) client in this repository that it can follow.',
-            action: `Create the client with new Stripe(secretKey, { apiVersion: '<your API version>' }) in your server code, ${OWN_CONFIGURATION}.`,
+            action: `Refit follows a client created with new Stripe(secretKey, { apiVersion: '<your API version>' }), so it has no Stripe calls to check here.`,
           },
     ];
   }
@@ -402,7 +401,7 @@ function applicationVersion(
         const unreadable = {
           id: 'api-version-unreadable',
           detail: `Refit cannot tell which Stripe API version the client at ${at(declaration)} uses: ${written.unread}.`,
-          action: `Write the apiVersion at ${at(declaration)} as a string literal, for example new Stripe(secretKey, { apiVersion: '<your API version>' }), ${OWN_CONFIGURATION}.`,
+          action: `Refit reads an apiVersion only as a string literal, such as new Stripe(secretKey, { apiVersion: '<your API version>' }); check the version the client at ${at(declaration)} sends before merging a draft.`,
         };
         if (!allowUntested) return [unreadable];
         reviews.push(unreadable);
@@ -424,24 +423,24 @@ function applicationVersion(
         ? {
             id: 'stripe-not-locked',
             detail: `The Stripe client at ${at(client)} sets no apiVersion, and Refit reads only the root lockfile, which does not install ${dependency.file}, so it cannot tell which stripe-node release sends the default.`,
-            action: `Set apiVersion at ${at(client)}.`,
+            action: `Refit cannot tell which API version the client at ${at(client)} sends; check it before merging a draft.`,
           }
         : {
             id: 'stripe-not-locked',
             detail: `The Stripe client at ${at(client)} sets no apiVersion, and no committed lockfile records which stripe-node release sends the default.`,
-            action: `Set apiVersion at ${at(client)}, or commit your lockfile.`,
+            action: `Without a lockfile Refit cannot tell which API version the client at ${at(client)} sends; check it before merging a draft.`,
           }
       : !value
         ? Number(RELEASE.exec(release)?.[1] ?? 0) >= FIRST_PINNING_MAJOR
           ? {
               id: 'api-version-account-default',
               detail: `The Stripe client at ${at(client)} sets no apiVersion, so it sends the API version stripe-node ${release} pins, and Refit's table of stripe-node releases does not record which one that is.`,
-              action: `Set apiVersion at ${at(client)} to the version stripe-node ${release} pins (its changelog names it), ${OWN_CONFIGURATION}.`,
+              action: `Refit cannot tell which version stripe-node ${release} pins for the client at ${at(client)} (its changelog names it); check it before merging a draft.`,
             }
           : {
               id: 'api-version-account-default',
               detail: `The Stripe client at ${at(client)} sets no apiVersion, and Refit does not know which version stripe-node ${release} sends by default, so requests may use your Stripe account's default version.`,
-              action: `Set apiVersion at ${at(client)} to the version your account uses, ${OWN_CONFIGURATION}.`,
+              action: `Refit cannot tell which version the client at ${at(client)} sends, which may be the Stripe account's default; check it before merging a draft.`,
             }
         : undefined;
     if (unknown && !allowUntested) return [unknown];
@@ -480,7 +479,7 @@ function applicationVersion(
         )})${allowUntested ? `. The configuration starts from the oldest, ${oldest}, and each draft moves every pin it can trace to ${latestStripeContract().version} and lists them` : ', and Refit moves one version at a time'}.`,
       action: allowUntested
         ? 'Check each pin the draft lists before merging it.'
-        : 'Use the same apiVersion for every Stripe client and request, then Refit moves them together.',
+        : 'Refit moves one API version at a time, so it cannot move these clients and requests together.',
     });
   if (!allowUntested && stops.length) return stops;
   reviews.push(...stops);
@@ -510,8 +509,7 @@ function applicationVersion(
   reviews.push({
     id: 'api-version-assumed',
     detail: `Refit could not read ${used.length ? 'every' : 'which'} Stripe API version this code sends, so the configuration assumes ${value}, ${why}. Refit compares the ${value} contract with ${latestStripeContract().version}; if the code sends another version, what needs migrating can differ.`,
-    action:
-      'Confirm the version your code and Stripe account use before merging a draft, and set apiVersion in the code.',
+    action: 'Check the version the code and Stripe account use before merging a draft.',
   });
   return { value, source: used.length ? source : `assumed: ${why}`, reviews };
 }
@@ -548,13 +546,14 @@ export async function proposeStripeConfiguration(
                 id: 'no-stripe-dependency',
                 detail: 'The root package.json does not declare the stripe package.',
                 action:
-                  'Add stripe to the root package.json dependencies if this repository calls Stripe from Node.',
+                  'Refit found no stripe dependency in the root package.json, so it has no Stripe code to check here.',
               }
             : {
                 id: 'no-package-json',
                 detail:
                   'This repository has no package.json at its root, so Refit cannot tell how to install and check it.',
-                action: `Commit the package.json at the root, ${OWN_CONFIGURATION} with the checks to run.`,
+                action:
+                  'Refit installs and checks only from a package.json at the root, so it cannot check this repository.',
               },
         ],
       };
@@ -574,7 +573,7 @@ export async function proposeStripeConfiguration(
         {
           id: 'nested-project',
           detail: `stripe is declared in ${listed(outside)}, ${manifest ? `which the root lockfile does not install, so Refit cannot prepare ${projects}` : 'and this repository has no package.json at its root'}.`,
-          action: `Refit installs and checks only from the root package.json and its lockfile: make ${projects} a workspace of the root and commit the lockfile, or commit a ${REPOSITORY_CONFIGURATION} with a custom image (docs/DEPENDENCIES.md).`,
+          action: `Refit installs and checks only from the root package.json and its lockfile, so it cannot prepare or check ${projects}.`,
         },
       ],
     };
@@ -585,7 +584,7 @@ export async function proposeStripeConfiguration(
       detail:
         'Refit installs dependencies only from a committed lockfile, and this repository has none at its root.',
       action:
-        'Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
+        'Without a committed lockfile Refit cannot install dependencies, so it cannot run the checks on a draft.',
     });
   const manager = existsSync(join(directory, PNPM_LOCKFILE))
     ? 'pnpm'
@@ -599,7 +598,7 @@ export async function proposeStripeConfiguration(
       detail:
         'This repository has no test script and no TypeScript type check, so Refit has nothing that shows a change still works.',
       action:
-        'Add a "test" script to package.json, or a tsconfig.json with typescript in devDependencies.',
+        'Refit has no test script or type check to run, so a draft is untested; check its changes before merging.',
     });
   let analysis: ReturnType<typeof analyzeRepository>;
   try {
@@ -609,7 +608,7 @@ export async function proposeStripeConfiguration(
     stops.push({
       id: 'source-does-not-parse',
       detail: `${error.file} imports stripe but does not parse (${error.diagnostic}), so Refit cannot read its Stripe calls or the API version it sends.`,
-      action: `Fix the syntax error in ${error.file} and commit it.`,
+      action: `Refit cannot read the Stripe calls in ${error.file} until it parses, so it stops here.`,
     });
     return { proposal: null, stops };
   }
@@ -624,7 +623,7 @@ export async function proposeStripeConfiguration(
     stops.push({
       id: 'api-version-no-contract',
       detail: `Your code uses Stripe API version ${version.value}, and Refit has no contract for it.`,
-      action: `Move the client to ${latestStripeContract().version} yourself, ${OWN_CONFIGURATION} with contracts for ${version.value}.`,
+      action: `Without a contract for ${version.value} Refit cannot compare it with ${latestStripeContract().version}, so it stops here.`,
     });
   // Generation for stripe only in workspace packages is withheld under the decision bar (P5, #270):
   // no measured repository generates this way, nothing shows the root check covers the package, and
@@ -633,7 +632,7 @@ export async function proposeStripeConfiguration(
     stops.push({
       id: 'workspace-package',
       detail: `stripe is declared in ${listed([...new Set(repository.dependencies.map((dependency) => dependency.file))])}, not in the root package.json, and Refit does not yet generate a configuration that checks a workspace package from the root.`,
-      action: `Commit a ${REPOSITORY_CONFIGURATION} whose checks run that package's tests from the root (docs/REPOSITORY-SETUP.md).`,
+      action: "Refit cannot run that package's tests from the root, so it stops here.",
     });
   if (blocking().length || Array.isArray(version)) return { proposal: null, stops };
   const target = latestStripeContract().version;
@@ -642,7 +641,9 @@ export async function proposeStripeConfiguration(
       ? 'tsc over tsconfig.json, failing only on new type errors'
       : check.typeCheck === 'scoped'
         ? 'tsc over the Stripe code, failing only on new type errors'
-        : undefined;
+        : check.typeCheck === 'checkjs'
+          ? 'tsc with checkJs over the JavaScript Stripe code, counted only where TypeScript types the changed Stripe calls'
+          : undefined;
   // Owner decision 1: without any check the command is a no-op the draft names (untested).
   const checked = check.kind
     ? [

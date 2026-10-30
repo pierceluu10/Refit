@@ -40,10 +40,15 @@ export function linkStaysInside(path: string, links: Map<string, string>) {
 }
 
 export async function readCommittedFile(
-  snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
+  // `replaced` holds files Refit wrote in place of committed ones (a resolved lockfile).
+  snapshot: Awaited<ReturnType<typeof readCommittedRepository>> & {
+    replaced?: ReadonlyMap<string, string>;
+  },
   path: string,
   maximumBytes: number,
 ) {
+  const replaced = snapshot.replaced?.get(path);
+  if (replaced !== undefined) return replaced;
   if (
     !snapshot.entries.some(
       (entry) => REGULAR_ENTRY.test(entry) && entry.slice(entry.indexOf('\t') + 1) === path,

@@ -98,7 +98,7 @@ it('records the named stop for a baseline that fails for a setup reason', async 
     status: 'baseline-failed',
     baselineStop: {
       reason: 'no-tests-found',
-      action: expect.stringContaining('In .refit.json, set "command" and "baselineCommand"'),
+      action: expect.stringContaining('found no tests'),
     },
   });
 });

@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import { typeOnlyRepairFailures } from './ai-patch-policies.ts';
 import {
   crossesOpenEnums,
   crossesTypeRemovals,
@@ -255,4 +256,90 @@ it('keeps untyped properties only on an upgrade across stripe-node 13.0.0', () =
   expect(crossesTypeRemovals('12.18.0', '23.0.0')).toBe(true);
   expect(crossesTypeRemovals('13.0.0', '23.0.0')).toBe(false);
   expect(crossesTypeRemovals('12.8.0', '12.18.0')).toBe(false);
+});
+
+// Rebuilt from kondax-com/Bocker's `normalizeSubscriptionStatus` (type oracle, run 40591181316)
+// and a price row typed by the application's own column union.
+const sync = `import Stripe from 'stripe';
+import type { SubscriptionStatus } from './db';
+type Interval = 'day' | 'week' | 'month' | 'year';
+export function normalize(subscription: Stripe.Subscription): SubscriptionStatus {
+  const status = subscription.status;
+  return status;
+}
+export function row(price: Stripe.Price) {
+  const interval: Interval | undefined = price.recurring?.interval;
+  save({ interval: price.recurring!.interval, name: price.nickname });
+  return interval;
+}
+`;
+const widened = (search: string, message: string, code = 'TS2322') => ({
+  ...at(sync, 'sync.ts', search, code),
+  message,
+});
+const returned = widened(
+  'return status;',
+  "Type 'Status' is not assignable to type 'SubscriptionStatus'.",
+);
+const declared = widened(
+  'interval: Interval',
+  "Type 'Interval | undefined' is not assignable to type 'Interval | undefined'.",
+);
+const argument = widened(
+  'price.recurring!.interval,',
+  `Type 'Interval' is not assignable to type '"day" | "week" | "month" | "year"'.`,
+);
+
+it('asserts the target type at each site where the upgrade widened a Stripe type', () => {
+  const sources = [{ path: 'sync.ts', content: sync }];
+  const [repaired] = openEnumRepair(sources, [returned, declared], undefined, true)!;
+  expect(repaired.content).toContain('  return (status as SubscriptionStatus);\n');
+  expect(repaired.content).toContain(
+    '  const interval: Interval | undefined = (price.recurring?.interval as Interval | undefined);\n',
+  );
+  const property = {
+    ...at(sync, 'sync.ts', 'interval: price.recurring!', 'TS2322'),
+    message: argument.message,
+  };
+  expect(openEnumRepair(sources, [property], undefined, true)![0].content).toContain(
+    `save({ interval: (price.recurring!.interval as "day" | "week" | "month" | "year"), name`,
+  );
+  // Off by default: the restores alone know none of these shapes.
+  expect(openEnumRepair(sources, [returned])).toBeUndefined();
+});
+
+it('asserts nothing that drops null or names a type the file cannot write', () => {
+  const sources = [{ path: 'sync.ts', content: sync }];
+  const nullable = {
+    ...at(sync, 'sync.ts', 'name: price.nickname', 'TS2322'),
+    message: "Type 'string | null' is not assignable to type 'string | undefined'.",
+  };
+  const foreign = { ...returned, message: "Type 'Status' is not assignable to type 'Plan'." };
+  const truncated = {
+    ...returned,
+    message:
+      'Type \'Status\' is not assignable to type \'"active" | "canceled" | ... 3 more ...\'.',
+  };
+  for (const error of [nullable, foreign, truncated])
+    expect(openEnumRepair(sources, [error], undefined, true)).toBeUndefined();
+});
+
+it('passes the type-only gate: the assertions compile to the same JavaScript', () => {
+  const sources = [{ path: 'sync.ts', content: sync }];
+  const repository = (files: typeof sources) => ({
+    root: '/repository',
+    files,
+    dependencies: [],
+    lockfiles: [],
+    warnings: [],
+  });
+  const errors = [returned, declared];
+  expect(
+    typeOnlyRepairFailures({
+      before: repository(sources),
+      after: repository(openEnumRepair(sources, errors, undefined, true)!),
+      errors,
+      compilerOptions: () => ({ target: 99, module: 99 }),
+    }),
+  ).toEqual([]);
 });

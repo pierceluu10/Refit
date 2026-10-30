@@ -106,6 +106,46 @@ export async function removeDockerContainer(name: string) {
   }
 }
 
+// Package managers that keep a cache beside the unpacked tree (Yarn) write it here instead of the
+// tmpfs workspace: a host directory on the disk that holds Refit's temporary files (the Fly volume
+// in production, through TMPDIR), so the cache counts against neither the workspace nor memory.
+export const INSTALLER_CACHE = '/installer-cache';
+
+// The installer writes its cache as the sandbox user, so the host may not be able to remove what it
+// left; the same user empties it, offline, before the host removes the directory.
+export async function emptyInstallerCache(image: string, directory: string) {
+  if (directory.includes(','))
+    throw new PipelineInputError('Docker bind-mount paths must not contain commas.');
+  await execute(
+    'docker',
+    [
+      'run',
+      '--rm',
+      '--pull',
+      'never',
+      '--network',
+      'none',
+      '--log-driver',
+      'none',
+      '--read-only',
+      '--user',
+      CONTAINER_USER,
+      '--cap-drop',
+      'ALL',
+      '--security-opt',
+      'no-new-privileges',
+      '--mount',
+      `type=bind,src=${directory},dst=${INSTALLER_CACHE}`,
+      '--entrypoint',
+      '/bin/sh',
+      image,
+      '-c',
+      `chmod -R u+w ${INSTALLER_CACHE} 2>/dev/null; find ${INSTALLER_CACHE} -mindepth 1 -delete`,
+    ],
+    { timeout: 10 * PROCESS_TIMEOUT_MS, maxBuffer: MAX_OUTPUT_BYTES },
+  );
+}
+
 export function dockerSandboxArguments(options: {
   name: string;
   directory: string;
@@ -119,6 +159,8 @@ export function dockerSandboxArguments(options: {
   readOnlyMounts?: { source: string; target: string }[];
   // A nested package's checks run in its directory, where its own dependencies unpack.
   packageDirectory?: string;
+  // A host directory mounted writable at INSTALLER_CACHE (dependency preparation only).
+  installerCache?: string;
 }) {
   const mounts = options.readOnlyMounts ?? [];
   const { memory, workspace } = options.preparation ?? validationProfile();
@@ -126,6 +168,7 @@ export function dockerSandboxArguments(options: {
     [
       options.directory,
       options.dependencies,
+      options.installerCache,
       ...mounts.flatMap((mount) => [mount.source, mount.target]),
     ].some((path) => path?.includes(','))
   )
@@ -187,6 +230,9 @@ export function dockerSandboxArguments(options: {
       '--mount',
       `type=bind,src=${mount.source},dst=${mount.target},readonly`,
     ]),
+    ...(options.installerCache
+      ? ['--mount', `type=bind,src=${options.installerCache},dst=${INSTALLER_CACHE}`]
+      : []),
     '--workdir',
     '/workspace',
     // Test runners such as vitest and jest default to watch mode without CI and never exit.

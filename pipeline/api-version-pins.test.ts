@@ -337,7 +337,14 @@ function registry() {
 
 // Two shapes of a version Refit cannot trace beside a literal pin (dev set: an environment
 // variable on a route, and a config object). The card-only rename needs every pin moved, so it stays for review.
-const UNTRACED_SHAPES: { files: Record<string, string>; untraced: string; moved: string[] }[] = [
+// `renamed`: founders' decision (2026-10-27): the card list on a call whose own client is traced is
+// renamed even though another client's version is not.
+const UNTRACED_SHAPES: {
+  files: Record<string, string>;
+  untraced: string;
+  moved: string[];
+  renamed?: true;
+}[] = [
   {
     files: {
       'lib/stripe.ts': client(BEFORE),
@@ -345,7 +352,8 @@ const UNTRACED_SHAPES: { files: Record<string, string>; untraced: string; moved:
       'app/api/refund/route.ts': `import Stripe from 'stripe';\nconst stripe = new Stripe(process.env.STRIPE_KEY!, { apiVersion: process.env.STRIPE_API_VERSION as Stripe.LatestApiVersion });\nexport const POST = () => stripe.checkout.sessions.create({ mode: 'payment' });\n`,
     },
     untraced: 'app/api/refund/route.ts:2',
-    moved: ['lib/stripe.ts'],
+    moved: ['checkout.ts', 'lib/stripe.ts'],
+    renamed: true,
   },
   {
     files: {
@@ -366,7 +374,7 @@ it.each(UNTRACED_SHAPES)(
     registry();
     const files = { ...npmProject('22.6.2'), ...shape.files };
     const stopped = await scan(files, false);
-    expect(stopped.patch.status).not.toBe('proposed');
+    expect(stopped.patch.status === 'proposed').toBe(Boolean(shape.renamed));
 
     const reviewed = await scan(files, true);
     expect(reviewed.patch).toMatchObject({
@@ -377,12 +385,18 @@ it.each(UNTRACED_SHAPES)(
     expect(changedFiles(reviewed)).toEqual(
       [...shape.moved, 'package-lock.json', 'package.json'].sort(),
     );
-    // Pin-dependent rules keep stopping, listed with why (owner answer (c)).
-    expect(diff).not.toContain('allowed_payment_method_types');
+    // Pin-dependent rules on the untraced client's path keep stopping, listed with why (owner
+    // answer (c)).
     const parameter = reviewed.findings.find((finding) => finding.requestParameter);
-    expect(parameter?.reason).toContain(
-      `Refit cannot resolve the API version the client created at ${shape.untraced} sends`,
-    );
+    if (shape.renamed) {
+      expect(diff).toContain("allowed_payment_method_types: ['card']");
+      expect(parameter).toBeUndefined();
+    } else {
+      expect(diff).not.toContain('allowed_payment_method_types');
+      expect(parameter?.reason).toContain(
+        `Refit cannot resolve the API version the client created at ${shape.untraced} sends`,
+      );
+    }
 
     const report = passed(reviewed);
     const reviews = publicationWaiver(report, true)!;
@@ -395,7 +409,9 @@ it.each(UNTRACED_SHAPES)(
     expect(untraced && 'sites' in untraced ? untraced.sites : []).toEqual([
       { file, line: Number(line) },
     ]);
-    expect(reviews.map(({ gate }) => gate)).toContain('removed-request-parameter');
+    expect(reviews.map(({ gate }) => gate).includes('removed-request-parameter')).toBe(
+      !shape.renamed,
+    );
     const { manifest, files: artifacts } = createReviewArtifacts(
       report,
       'github',

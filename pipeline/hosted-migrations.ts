@@ -1,3 +1,4 @@
+import { PULL_OUTCOMES_TABLE } from './pull-outcomes.ts';
 import type { Pool, PoolClient } from 'pg';
 import { transaction } from './hosted-database.ts';
 import { PipelineInputError } from './types.ts';
@@ -342,6 +343,12 @@ CREATE TABLE IF NOT EXISTS refit_watch_targets (
 );
 ALTER TABLE refit_watch_targets ENABLE ROW LEVEL SECURITY;
 `),
+  },
+  {
+    version: 13,
+    name: 'Refit pull request outcomes',
+    // How each Refit pull request ended, for the beta merge and wrong-fix rates (pull-outcomes.ts).
+    up: (client) => client.query(PULL_OUTCOMES_TABLE),
   },
 ];
 

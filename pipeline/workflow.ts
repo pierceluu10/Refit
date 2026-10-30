@@ -182,6 +182,7 @@ export async function runWorkflow(options: {
   assessment?: AiOptions;
   aiPatch?: AiOptions;
   behaviourTestWriter?: BehaviourTestWriter;
+  signedEventChecks?: boolean;
   documentationSnapshots?: readonly string[];
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
@@ -404,6 +405,7 @@ export async function runWorkflow(options: {
         // shortcut: the retry without the API-version move writes no behaviour tests, so it never
         // pays for a second identical request; reuse the first run's tests if that retry needs grade A.
         behaviourTestWriter: keepApiVersion ? undefined : options.behaviourTestWriter,
+        signedEventChecks: options.signedEventChecks,
         documentationSnapshots: options.documentationSnapshots,
         repairAttempts: options.repairAttempts,
         leaveReviewedFindings: allowUnresolved,

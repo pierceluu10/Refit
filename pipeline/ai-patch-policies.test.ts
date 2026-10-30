@@ -7,6 +7,7 @@ import {
   editedTestFiles,
   newShapeOnlyReads,
   rewrittenRuleLines,
+  typeOnlyRepairFailures,
 } from './ai-patch-policies.ts';
 import { applySourceEdits } from './patches.ts';
 import { STRIPE } from './providers.ts';
@@ -1102,4 +1103,133 @@ it('passes a legitimate AI patch: a helper read on top of the rules', () => {
   expect(addedTypeEscapes(rules, after, edited)).toEqual([]);
   expect(editedTestFiles(edited)).toEqual([]);
   expect(rewrittenRuleLines(original, rules, after, edited)).toEqual([]);
+});
+
+// stripe-node 23 widens Price.Recurring.Interval with OtherString; the application's column type
+// keeps the four literals, so the assignment stops compiling (rebuilt from the type oracle shape).
+const SYNC = `import Stripe from 'stripe';
+type Interval = 'day' | 'week' | 'month' | 'year';
+export function row(price: Stripe.Price) {
+  const interval: Interval | undefined = price.recurring?.interval;
+  return { id: price.id, interval };
+}
+`;
+const errorAt = (content: string, search: string) => {
+  const before = content.slice(0, content.indexOf(search)).split('\n');
+  return { file: 'src/sync.ts', line: before.length, column: before.at(-1)!.length + 1 };
+};
+const typeOnly = (after: string, errors = [errorAt(SYNC, 'interval:')], path = 'src/sync.ts') =>
+  typeOnlyRepairFailures({
+    before: repository(path, SYNC),
+    after: repository(path, after),
+    errors: errors.map((error) => ({ ...error, file: path })),
+    compilerOptions: () => ({}),
+  });
+
+it('accepts a type assertion at the statement the upgrade broke', () => {
+  expect(
+    typeOnly(
+      SYNC.replace(
+        'price.recurring?.interval;',
+        'price.recurring?.interval as Interval | undefined;',
+      ),
+    ),
+  ).toEqual([]);
+});
+
+it('refuses a runtime change dressed as a type fix', () => {
+  // A default changes the value the row stores when the price has no interval.
+  expect(
+    typeOnly(
+      SYNC.replace(
+        'price.recurring?.interval;',
+        "(price.recurring?.interval ?? 'month') as Interval;",
+      ),
+    ),
+  ).toEqual(['src/sync.ts: the repair changes the JavaScript the file compiles to.']);
+});
+
+it('refuses an assertion on a statement without an introduced error', () => {
+  expect(
+    typeOnly(SYNC.replace('id: price.id,', 'id: price.id as string,'), [
+      errorAt(SYNC, 'interval:'),
+    ]),
+  ).toEqual([
+    'src/sync.ts:5: the repair changes a statement with no type error the stripe-node upgrade introduced.',
+  ]);
+});
+
+it('refuses a new statement, even one that only declares a type', () => {
+  expect(
+    typeOnly(SYNC.replace('  const interval', '  type Wide = string;\n  const interval')),
+  ).toEqual(['src/sync.ts:4: the repair adds or removes a statement.']);
+});
+
+it('refuses enums, namespaces and JavaScript files', () => {
+  expect(
+    typeOnly(
+      SYNC.replace("type Interval = 'day' | 'week' | 'month' | 'year';", 'enum Interval { day }'),
+      [errorAt(SYNC, 'type Interval')],
+    ),
+  ).toContain('src/sync.ts: the repair writes an enum, a namespace or a decorator.');
+  expect(
+    typeOnly(
+      SYNC.replace('price.recurring?.interval;', 'price.recurring?.interval;'),
+      [],
+      'src/sync.js',
+    ),
+  ).toEqual([]);
+  expect(typeOnly(`${SYNC}\n`, [], 'src/sync.js')).toEqual([
+    'src/sync.js: the repair changes a file that is not TypeScript source.',
+  ]);
+});
+
+it('holds an AI type repair to the same gate as the deterministic one', () => {
+  // A non-null assertion and a `satisfies` are types only; a guard the model adds is not.
+  expect(
+    typeOnly(SYNC.replace('price.recurring?.interval;', 'price.recurring!.interval as Interval;')),
+  ).toEqual(['src/sync.ts: the repair changes the JavaScript the file compiles to.']);
+  expect(
+    typeOnly(
+      SYNC.replace(
+        'const interval: Interval | undefined = price.recurring?.interval;',
+        'const interval = price.recurring?.interval as Interval | undefined satisfies Interval | undefined;',
+      ),
+    ),
+  ).toEqual([]);
+  expect(
+    typeOnly(
+      SYNC.replace(
+        '  const interval: Interval | undefined = price.recurring?.interval;',
+        "  if (!price.recurring) throw new Error('one-time price');\n  const interval: Interval | undefined = price.recurring.interval as Interval;",
+      ),
+    ),
+  ).toContain('src/sync.ts:4: the repair adds or removes a statement.');
+});
+
+it('refuses a class field next to the method that holds the error, and unread compiler options', () => {
+  // Emitted under useDefineForClassFields, `q;` resets what the base constructor set.
+  const before = `import Stripe from 'stripe';
+type Interval = 'month' | 'year';
+class Sync extends Base {
+  row(price: Stripe.Price) {
+    const interval: Interval = price.recurring!.interval;
+  }
+}
+`;
+  const after = before.replace(
+    'class Sync extends Base {\n',
+    'class Sync extends Base {\n  q: string;\n',
+  );
+  const gate = (compilerOptions: () => Record<string, never> | undefined) =>
+    typeOnlyRepairFailures({
+      before: repository('src/sync.ts', before),
+      after: repository('src/sync.ts', after),
+      errors: [{ file: 'src/sync.ts', line: 5, column: 11 }],
+      compilerOptions,
+    });
+  expect(gate(() => ({}))).toEqual(['src/sync.ts:4: the repair adds or removes a statement.']);
+  expect(gate(() => undefined)).toEqual([
+    "src/sync.ts: the repository's compiler options for the file cannot be read.",
+  ]);
 });
