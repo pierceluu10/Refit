@@ -31,6 +31,7 @@
     "benchmark:stripe-score": "tsx pipeline/stripe-benchmark-score.ts",
     "deadlines:check": "node bin/refit.mjs deadlines --check-registry",
     "rules:check": "node bin/refit.mjs rules check",
+    "deadlines:check-sources": "node bin/refit.mjs deadlines --check-sources",
     "model-parameters:check": "node bin/refit.mjs deadlines --check-parameters",
     "meta-graph:check": "node bin/refit.mjs meta-graph --check-changes",
     "shopify-rest:check": "node bin/refit.mjs shopify-rest --check-deprecations",

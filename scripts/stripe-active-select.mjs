@@ -20,7 +20,7 @@ const MIN_AUTHORS = 2;
 const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
 const BOT = /\[bot\]|^(dependabot|renovate|github-actions|actions-user|vercel|netlify)/i;
 // The same 13 queries as the fresh set (docs/benchmarks/2026-10-16-stripe-fresh-repos.json).
-const QUERIES = [
+export const QUERIES = [
   '"new Stripe(" apiVersion language:TypeScript',
   '"new Stripe(" apiVersion language:JavaScript',
   '"new Stripe(" "process.env" language:TypeScript',

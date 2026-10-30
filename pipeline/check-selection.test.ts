@@ -596,8 +596,9 @@ it('never selects a no-op', async () => {
     reason:
       'There is no test script. No file imports stripe, so no type check can cover the Stripe code.',
   });
-  // dalemoncayo/express-stripe at a18c6d3: `require('stripe')(key)` is untyped to TypeScript, so a
-  // type check would pass without checking a single Stripe call.
+  // dalemoncayo/express-stripe at a18c6d3: TypeScript types `require('stripe')(key)` only with
+  // checkJs, Node's module resolution and a stripe-node whose typings make it callable, so the check
+  // is a checkJs one that counts only with the coverage proof (checkjs-coverage.test.ts).
   expect(
     await selectCheck(
       await repository({
@@ -611,11 +612,11 @@ it('never selects a no-op', async () => {
       }),
     ),
   ).toMatchObject({
-    kind: null,
-    command: null,
+    kind: 'typecheck',
+    typeCheck: 'checkjs',
     stripeFiles: ['app.js'],
     reason:
-      'There is no test script. Stripe is loaded with require() (app.js), which TypeScript leaves untyped, so no type check can cover the Stripe code.',
+      "There is no test script. Stripe is loaded with require() (app.js), so a generated tsconfig type-checks that JavaScript and every file importing it with checkJs and Node's module resolution, with Refit's own TypeScript because the repository installs none; it counts only where TypeScript types the changed Stripe calls with the installed stripe-node.",
   });
 });
 
@@ -1118,6 +1119,33 @@ it('grades a scoped type check by the files its generated configuration covers',
   ).toBe('D');
 });
 
+it('lets signed webhook events cover a handler for grade C, never B or A', async () => {
+  const embedbase = await repository(EMBEDBASE);
+  const options = {
+    repository: embedbase,
+    command: ['node', '-e', '0'],
+    changedFiles: ['dashboard/pages/api/webhooks.ts'],
+    packageDirectory: 'dashboard',
+  };
+  await expect(gradeEvidence(options)).resolves.toMatchObject({ letter: 'D' });
+  await expect(
+    gradeEvidence({ ...options, signedEvents: ['dashboard/pages/api/webhooks.ts'] }),
+  ).resolves.toEqual({
+    letter: 'C',
+    level: 'type-check',
+    reason:
+      'Signed webhook events of both API versions ran every changed line of dashboard/pages/api/webhooks.ts on the original and the patched code, and the patched handler behaved the same way on both.',
+  });
+  // A changed file the events did not cover keeps the grade at D.
+  await expect(
+    gradeEvidence({
+      ...options,
+      changedFiles: [...options.changedFiles, 'dashboard/utils/stripe.ts'],
+      signedEvents: ['dashboard/pages/api/webhooks.ts'],
+    }),
+  ).resolves.toMatchObject({ letter: 'D' });
+});
+
 it('runs the tests with the manager of the lockfile preparation installs', async () => {
   // Shaped like Ankit-Sharma1011/Quill: pnpm-lock.yaml beside package-lock.json. Without Git
   // history the choice is unknown, so pnpm runs the tests as before; a committed npm pin picks npm.
@@ -1150,31 +1178,4 @@ it('runs the tests with the manager of the lockfile preparation installs', async
     'test: fixture',
   ]);
   expect((await selectCheck(pinned)).command).toEqual(['npm', 'test']);
-});
-
-it('lets signed webhook events cover a handler for grade C, never B or A', async () => {
-  const embedbase = await repository(EMBEDBASE);
-  const options = {
-    repository: embedbase,
-    command: ['node', '-e', '0'],
-    changedFiles: ['dashboard/pages/api/webhooks.ts'],
-    packageDirectory: 'dashboard',
-  };
-  await expect(gradeEvidence(options)).resolves.toMatchObject({ letter: 'D' });
-  await expect(
-    gradeEvidence({ ...options, signedEvents: ['dashboard/pages/api/webhooks.ts'] }),
-  ).resolves.toEqual({
-    letter: 'C',
-    level: 'type-check',
-    reason:
-      'Signed webhook events of both API versions ran every changed line of dashboard/pages/api/webhooks.ts on the original and the patched code, and the patched handler behaved the same way on both.',
-  });
-  // A changed file the events did not cover keeps the grade at D.
-  await expect(
-    gradeEvidence({
-      ...options,
-      changedFiles: [...options.changedFiles, 'dashboard/utils/stripe.ts'],
-      signedEvents: ['dashboard/pages/api/webhooks.ts'],
-    }),
-  ).resolves.toMatchObject({ letter: 'D' });
 });
