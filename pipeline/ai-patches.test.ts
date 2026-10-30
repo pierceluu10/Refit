@@ -1,3 +1,4 @@
+import { SHOPIFY } from './shopify-pipeline.ts';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1050,4 +1051,17 @@ it('sends one request when no stronger step is configured or the first answer ha
   const escalated = { ...OPTIONS, escalation: { model: 'strong-model', reasoningEffort: 'high' } };
   await proposeAiPatch(repository, report.changes, report.findings, escalated);
   expect(vi.mocked(fetch).mock.calls).toHaveLength(1);
+});
+
+it('gives a Shopify repair Shopify instructions and a Stripe one none', async () => {
+  const { repository, report } = await fixture();
+  respond([]);
+  await proposeAiPatch(repository, report.changes, report.findings, OPTIONS);
+  expect(modelEvidence().body.instructions).not.toContain('This is a Shopify app.');
+  vi.unstubAllGlobals();
+  respond([]);
+  await proposeAiPatch(repository, report.changes, report.findings, OPTIONS, SHOPIFY);
+  const { instructions } = modelEvidence().body;
+  expect(instructions).toContain('This is a Shopify app.');
+  expect(instructions).toContain('Do not edit GraphQL documents');
 });

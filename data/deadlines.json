@@ -93,6 +93,32 @@
       "checkedAt": "2026-10-15"
     },
     {
+      "id": "shopify-2025-08-28-checkout-liquid",
+      "provider": "shopify",
+      "kind": "feature",
+      "versions": [
+        "checkout.liquid"
+      ],
+      "date": "2025-08-28",
+      "summary": "checkout.liquid and additional scripts were sunset for the Thank you and Order status pages on 2025-08-28 for every store, and checkout.liquid is unsupported for the Information, Shipping and Payment steps (the page gives no date for those). Script tags on the Thank you and Order status pages were sunset for Plus stores on 2025-08-28 and are sunset for non-Plus stores on 2026-08-26. A committed checkout.liquid layout renders all of these pages, so the earliest date, 2025-08-28, applies. The marker is a file named checkout.liquid (usually layout/checkout.liquid), found by pipeline/shopify-checkout-alerts.ts; Refit never edits it.",
+      "replacement": "Checkout Extensibility (checkout UI extensions, Shopify Functions, pixels)",
+      "source": "https://shopify.dev/docs/storefronts/themes/architecture/layouts/checkout-liquid",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "shopify-2026-06-30-scripts",
+      "provider": "shopify",
+      "kind": "feature",
+      "versions": [
+        "Shopify Scripts"
+      ],
+      "date": "2026-06-30",
+      "summary": "Shopify Scripts was deprecated on 2026-06-30; Scripts still published on a store were deactivated and no longer run. The marker is a Ruby file that reads Input.cart, Input.shipping_rates or Input.payment_gateways and assigns the matching Output, found by pipeline/shopify-checkout-alerts.ts; Refit never edits it.",
+      "replacement": "Shopify Functions",
+      "source": "https://help.shopify.com/en/manual/checkout-settings/script-editor/migrating",
+      "checkedAt": "2026-10-29"
+    },
+    {
       "id": "meta-graph-v13-0",
       "provider": "meta-graph",
       "kind": "api-version",

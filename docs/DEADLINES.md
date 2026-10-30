@@ -143,6 +143,19 @@ The rules live in `pipeline/workspace-attribution.ts` (`EXCLUSIONS`, `OUTSIDE_AP
 
 A glob matches a file or any directory above it (Node's `path.matchesGlob`), relative to the root, with no leading `/`, `.` or `..` (at most 100 entries; a reason is at most 500 characters). Ignored matches are not counted, but they are still listed: `refit deadlines` prints them under **Ignored by repository config (.refit-ignore-paths.json, not counted)** with the reason, `--json` puts them in `ignoredPaths`, and `refit report` lists them too. A deadline matched only on ignored paths becomes a mention. A file that is present but malformed (not JSON, an unknown key, a missing or empty reason, a parent or absolute path, too many entries, a symlink or over 2 MiB) stops the scan with an error naming it; it is never skipped. Without the file, every match counts.
 
+### Shopify checkout.liquid and Shopify Scripts (alerts only)
+
+Two Shopify `feature` deadlines are matched outside JavaScript and TypeScript, by `pipeline/shopify-checkout-alerts.ts`:
+
+| Entry                                | Date       | What matches                                                                                                                                           |
+| ------------------------------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `shopify-2025-08-28-checkout-liquid` | 2025-08-28 | A file named `checkout.liquid` (usually `layout/checkout.liquid`), reported at its first non-empty line                                                |
+| `shopify-2026-06-30-scripts`         | 2026-06-30 | A Ruby file that reads `Input.cart`, `Input.shipping_rates` or `Input.payment_gateways` and assigns the matching `Output`, reported at that assignment |
+
+The checkout.liquid date is the earliest that applies to a committed layout: it was sunset for the Thank you and Order status pages on 2025-08-28 for every store; the entry's summary gives the other dates (script tags for non-Plus stores on 2026-08-26, no date for the Information, Shipping and Payment steps). Matches in test and example paths are listed as `test`. The scan skips `node_modules/`, `.git/`, `vendor/`, `.bundle/` and build output, and files over 2 MiB.
+
+Both are report only, like every `feature` entry: they are listed by `refit deadlines` and `refit report`, never fail `--fail-within` and never open an alert issue. Refit never edits a checkout.liquid layout or a Script; moving to Checkout Extensibility or Shopify Functions is the developer's work. The marker text in JavaScript or TypeScript (a string `'checkout.liquid'`) is not a match.
+
 ## Fail a CI build before a deadline
 
 ```sh

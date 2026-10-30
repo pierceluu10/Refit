@@ -219,6 +219,24 @@ function checkDocument(
   };
 }
 
+// One document's proof on its own, as the patch proof judges it: the errors it gets on the target
+// schema, then every selected field or variable input type that changes from the original version.
+// Undefined when the document spreads a fragment it does not define.
+export function documentProof(text: string, after: GraphQLSchema, before: GraphQLSchema) {
+  const document: AdminDocument = {
+    file: '',
+    line: 1,
+    column: 1,
+    text,
+    segments: [
+      { documentStart: 0, documentEnd: text.length, file: '', sourceStart: 0, sourceText: text },
+    ],
+    traced: true,
+  };
+  const result = checkDocument(document, after, before);
+  return result.unreadable ? undefined : result.errors.map((error) => error.text);
+}
+
 // Shopify's codegen preset (and graphql-codegen) write result types for the version they were
 // generated against. They are current for the target when no selected field, variable input type,
 // enum or union the documents use differs between the versions; otherwise the type check ran
