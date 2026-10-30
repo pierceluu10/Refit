@@ -529,6 +529,14 @@ The same 279 affected Stripe repositories (`subsets/push-279-affected.json`), no
 
 Nobody runs Refit on this set or reads its repositories' code before the final run, so the list stays unseen while Refit is tuned.
 
+## New set (frozen October 28)
+
+[`2026-10-28-stripe-new-repos.json`](benchmarks/2026-10-28-stripe-new-repos.json) holds 30 repositories that appear in no earlier Stripe list, so neither Refit nor its model has seen them. It was selected and committed before any run, with `stripe-active-select.mjs --frozen-at 2026-10-28 --limit 61` and one `--exclude` for each of the seven earlier Stripe lists (original, held out, fresh, active, the basil and endive replays, night):
+
+- **Search.** The same 13 code searches in 5 size ranges found 26,525 repositories. 650 belong to the earlier lists, leaving 25,875.
+- **Criteria.** The active-teams criteria, with the 90-day window ending 2026-10-28. 266 qualified. 16,833 had no commit in 90 days, 4,196 were over 50 MB, and 3,593 had one human author.
+- **Kept.** The 61 most starred were shallow-cloned only to read their API version, then deleted. The limit is the smallest that keeps 30. 31 were dropped: 19 already on endive, 7 with an API version that has no pinned spec, 4 with no derivable version and 1 that could not be cloned. 25 of the 30 pin a 2025–2026 API version. 5 are owned by organisations, and the median repository has 0 stars.
+
 ## P4 draft lifecycle stack on the dev set (October 24)
 
 Laptop 1's review of the P4 stack (#251 to #275) ran the 30-repository `subsets/dev-30.json` once at the stack head `c27f2dc`, which has `main` at `2143ee5` merged in: GitHub Actions run 40147129332 on `refit-dev/refit-bench`, `benchmark.yml` with `list=subsets/dev-30.json offset=0 size=2 count=30`, no AI, no publication. Each repository's row was compared with its row in run 40117208880 (`604cb81`, `subsets/f5-tuned-sets.json`).
