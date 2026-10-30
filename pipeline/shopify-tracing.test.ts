@@ -844,6 +844,34 @@ export const api = (domain: string) => ({ baseURL: \`https://\${domain}/admin/ap
   ]);
 });
 
+it('counts REST paths after a substituted version and stops on a version a Storefront URL shares', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/shop.ts': `const API_VERSION = process.env.SHOPIFY_API_VERSION || '2025-01';
+const OTHER = '2025-04';
+export const token = (shop: string) =>
+  fetch(\`https://\${shop}/admin/api/\${API_VERSION}/storefront_access_tokens.json\`, { method: 'POST' });
+export const admin = (shop: string) => fetch(\`https://\${shop}/admin/api/\${OTHER}/graphql.json\`);
+export const storefront = (shop: string) => fetch(\`https://\${shop}/api/\${API_VERSION}/graphql.json\`);
+export const own = (shop: string) => fetch(\`https://\${shop}/api/\${'2024-01'}/graphql.json\`);
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-api'));
+  expect(scan.rest).toMatchObject([
+    { line: 4, method: 'POST', expression: '/storefront_access_tokens.json' },
+  ]);
+  expect(scan.versions.map((pin) => pin.value)).toEqual(['2025-01', '2025-04']);
+  expect(scan.unresolvedVersions).toEqual([
+    {
+      file: 'app/shop.ts',
+      line: 6,
+      column: expect.any(Number),
+      reason:
+        "The Admin API version '2025-01' also sets this Storefront API URL; moving it would move the Storefront API version too, which Refit does not prove.",
+    },
+  ]);
+});
+
 it('moves the Admin pin past a Storefront document it cannot read', async () => {
   const root = await directory({
     'package.json': MANIFEST,

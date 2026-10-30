@@ -2333,6 +2333,8 @@ export function scanShopify(
     return found;
   };
   const versionKeys = new Set<string>();
+  // Version literals Storefront API URLs take, checked against the Admin pins once all are read.
+  const storefrontVersionSources: { literal: ts.Node; at: ts.Node }[] = [];
   const pushVersion = (entry: VersionDeclaration) => {
     const key = `${entry.file}:${entry.start}`;
     if (versionKeys.has(key)) return;
@@ -2624,7 +2626,23 @@ export function scanShopify(
       if (ts.isTemplateExpression(node))
         node.templateSpans.forEach((span, index) => {
           const before = index ? node.templateSpans[index - 1].literal.text : node.head.text;
-          if (!/\/admin\/api\/$/.test(before) || !span.literal.text.startsWith('/')) return;
+          if (!span.literal.text.startsWith('/')) return;
+          // A Storefront API URL (`/api/${version}/graphql.json`): its version source must not
+          // also be an Admin pin, which the move would change too.
+          if (/(?<!\/admin)\/api\/$/.test(before) && /^\/graphql\.json\b/.test(span.literal.text)) {
+            const source = versionSource(span.expression, absolute);
+            if (source && typeof source === 'object' && 'literal' in source)
+              storefrontVersionSources.push({ literal: source.literal, at: span.expression });
+            return;
+          }
+          if (!/\/admin\/api\/$/.test(before)) return;
+          // `/admin/api/${version}/orders.json`: REST usage, as with a literal version.
+          if (!/^\/graphql\.json\b/.test(span.literal.text) && span.literal.text !== '/')
+            scan.rest.push({
+              ...location(span.literal),
+              expression: span.literal.text.slice(0, 120),
+              ...restUrl(span.literal),
+            });
           if (!versionFrom(span.expression, absolute, 'url', false))
             scan.unresolvedVersions.push({
               ...location(span.expression),
@@ -2678,6 +2696,17 @@ export function scanShopify(
         traced: false,
       });
   scan.documents.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
+  // A version literal both an Admin pin and a Storefront API URL use: moving it would move the
+  // Storefront version, which Refit does not prove, so the Admin move stops.
+  for (const { literal, at } of storefrontVersionSources) {
+    const file = pathOf.get(literal.getSourceFile().fileName);
+    const start = literal.getStart() + 1;
+    if (scan.versions.some((pin) => pin.file === file && pin.start === start && !pin.api))
+      scan.unresolvedVersions.push({
+        ...location(at),
+        reason: `The Admin API version ${literal.getText()} also sets this Storefront API URL; moving it would move the Storefront API version too, which Refit does not prove.`,
+      });
+  }
   return scan;
 }
 
