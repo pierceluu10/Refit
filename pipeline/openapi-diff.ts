@@ -190,7 +190,8 @@ export function unmappedBreakingChanges(
 export async function compareOpenApi(
   before: object,
   after: object,
-  options: { openResponseEnums?: boolean } = {},
+  // Rule generation diffs years-apart Stripe versions, which take longer than a run's pair.
+  options: { openResponseEnums?: boolean; timeoutMs?: number } = {},
 ) {
   const directory = await mkdtemp(join(tmpdir(), 'refit-oasdiff-'));
   try {
@@ -204,7 +205,7 @@ export async function compareOpenApi(
     const { stdout } = await execute(
       'oasdiff',
       ['changelog', base, revision, '--format', 'json', '--allow-external-refs=false'],
-      { timeout: DIFF_TIMEOUT_MS, maxBuffer: MAX_DIFF_BYTES },
+      { timeout: options.timeoutMs ?? DIFF_TIMEOUT_MS, maxBuffer: MAX_DIFF_BYTES },
     );
     const changes: unknown = JSON.parse(stdout);
     if (

@@ -1,12 +1,13 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { analyzeRepository } from './analyzer.ts';
 import {
   annotateReach,
   CURRENCY_CODE_RULE,
   currencyCodeEdits,
+  enumValueEdits,
   responsePropertyOwner,
 } from './operation-reach.ts';
 import { applySourceEdits } from './patches.ts';
@@ -50,6 +51,12 @@ const before = {
       get: {
         operationId: 'GetPrices',
         responses: { '200': { content: { 'application/json': { schema: ref('price_list') } } } },
+      },
+    },
+    '/v1/invoices/upcoming': {
+      get: {
+        operationId: 'GetInvoicesUpcoming',
+        responses: { '200': { content: { 'application/json': { schema: ref('product') } } } },
       },
     },
     '/v1/subscriptions/{subscription_exposed_id}': {
@@ -131,6 +138,12 @@ const provider: ProviderAdapter = {
     },
     { resource: 'products', method: 'create', schema: 'product', operationId: 'PostProducts' },
     { resource: 'prices', method: 'list', schema: 'price_list', operationId: 'GetPrices' },
+    {
+      resource: 'invoices',
+      method: 'retrieveUpcoming',
+      schema: 'product',
+      operationId: 'GetInvoicesUpcoming',
+    },
     {
       resource: 'subscriptions',
       method: 'update',
@@ -1042,3 +1055,193 @@ export const redirect = () => stripe.checkout.sessions.create({ mode: "subscript
     );
   },
 );
+
+it('names the owner of a property called items that is not an array', () => {
+  const document = {
+    paths: {
+      '/v1/subscriptions': {
+        get: {
+          responses: {
+            '200': {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: { data: { type: 'array', items: ref('subscription') } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        subscription: {
+          type: 'object',
+          properties: {
+            items: {
+              type: 'object',
+              properties: { data: { type: 'array', items: ref('subscription_item') } },
+            },
+          },
+        },
+        subscription_item: { type: 'object', properties: { price: ref('price') } },
+        price: {
+          type: 'object',
+          properties: { product: { anyOf: [{ type: 'string' }, ref('product')] } },
+        },
+        product: { type: 'object', properties: { features: { type: 'array' } } },
+      },
+    },
+  };
+  expect(
+    responsePropertyOwner(
+      {
+        operation: 'GET',
+        path: '/v1/subscriptions',
+        text: 'removed the required property `data/items/items/data/items/price/product/anyOf[subschema #2: Product]/features` from the response with the `200` status',
+      },
+      document,
+    ),
+  ).toEqual({ schema: 'product', property: 'features' });
+});
+
+describe('a removed operation', () => {
+  const removed = () => ({
+    id: 'api-path-removed-without-deprecation',
+    level: 3,
+    operation: 'GET',
+    path: '/v1/invoices/upcoming',
+    text: 'api path removed without deprecation',
+  });
+  const UPCOMING =
+    'export const preview = (customer, subscription) => stripe.invoices.retrieveUpcoming({ customer, subscription });';
+  const source = `${CLIENT}${UPCOMING}`;
+  const name = source.indexOf('retrieveUpcoming');
+  // The createPreview rule replaces the method name (stripe-invoice-preview.ts).
+  const previewEdit = (file: string, offset: number) =>
+    file === 'app/api/checkout/route.ts' && offset >= name && offset < name + 16;
+
+  it('passes when no traced call requests it', () => {
+    expect(reach(AI_COMPANION, [removed()])).toEqual([
+      ['unused', 'No traced call requests the removed `invoices.retrieveUpcoming`.'],
+    ]);
+  });
+
+  it('is reached by a traced call and handled where a kept edit replaces every call', () => {
+    expect(reach(UPCOMING, [removed()])).toEqual([
+      ['reached', 'app/api/checkout/route.ts:3 calls the removed `invoices.retrieveUpcoming`.'],
+    ]);
+    expect(reach(UPCOMING, [removed()], [], previewEdit)).toEqual([
+      [
+        'handled',
+        'A kept rule edit replaces every traced `invoices.retrieveUpcoming` call, first in app/api/checkout/route.ts:3.',
+      ],
+    ]);
+    // A second call the edit does not cover still reaches it.
+    const second = `${UPCOMING}\nexport const again = () => stripe.invoices.retrieveUpcoming({ customer: 'cus_1' });`;
+    expect(reach(second, [removed()], [], previewEdit)[0][0]).toBe('reached');
+  });
+
+  it('stays unknown where an untraced call or a raw request may name it', () => {
+    expect(reach(AI_COMPANION, [removed()], ['billing.stripe.invoices.retrieveUpcoming'])).toEqual([
+      [
+        'unknown',
+        'The untraced call `billing.stripe.invoices.retrieveUpcoming` may request the removed `invoices.retrieveUpcoming`.',
+      ],
+    ]);
+    const raw = `${AI_COMPANION}\nexport const upcoming = () => fetch('https://api.stripe.com/v1/invoices/upcoming?customer=' + id);`;
+    expect(reach(raw, [removed()])).toEqual([
+      [
+        'unknown',
+        'app/api/checkout/route.ts writes the removed path `/v1/invoices/upcoming`, which Refit cannot trace.',
+      ],
+    ]);
+  });
+});
+
+describe('a documented enum successor', () => {
+  const move = {
+    rule: 'stripe-checkout-ui-mode-embedded',
+    family: 'request-enum-value' as const,
+    operations: ['PostCheckoutSessions'],
+    parameter: 'ui_mode',
+    value: 'embedded',
+    replacement: 'embedded_page',
+    source:
+      'https://docs.stripe.com/changelog/dahlia/2026-03-25/updates-available-checkout-session-ui-modes',
+    warning: 'Sends embedded_page.',
+  };
+  const removed = () =>
+    checkout(
+      'removed the enum value `embedded` of the request property `ui_mode`',
+      'request-property-enum-value-removed',
+    );
+  const run = (source: string, path?: string) => {
+    const context = traced(source, path);
+    const edits = enumValueEdits([removed()], context, [move]);
+    const change: Record<string, unknown> = removed();
+    annotateReach([change], {
+      ...context,
+      untracedCalls: () => [],
+      edited: (file, offset) =>
+        edits.some((edit) => edit.file === file && edit.start <= offset && offset < edit.end),
+      removals: [],
+    });
+    const file = context.repository.files[0];
+    return {
+      edits,
+      patched: applySourceEdits(file.content, edits),
+      reach: [change.reach, change.reachReason],
+    };
+  };
+
+  it('replaces the literal the call sends and passes the change', () => {
+    const embedded = run(
+      'export const go = () => stripe.checkout.sessions.create({ mode: "payment", ui_mode: "embedded" });',
+    );
+    expect(embedded.patched).toContain('ui_mode: "embedded_page"');
+    expect(embedded.reach).toEqual([
+      'handled',
+      'A kept rule edit rewrites `ui_mode` in every traced `checkout.sessions.create` call that sends it, first in app/api/checkout/route.ts.',
+    ]);
+    // Both sides of a conditional written in the call.
+    const conditional = run(
+      "export const go = (inline) => stripe.checkout.sessions.create({ ui_mode: inline ? 'embedded' : 'hosted' });",
+    );
+    expect(conditional.patched).toContain("ui_mode: inline ? 'embedded_page' : 'hosted'");
+    expect(conditional.reach[0]).toBe('handled');
+  });
+
+  it('leaves constants, other rules and test files for review', () => {
+    const constant = run(
+      "const MODE = 'embedded';\nexport const go = () => stripe.checkout.sessions.create({ ui_mode: MODE });",
+    );
+    expect(constant.edits).toEqual([]);
+    expect(constant.reach[0]).toBe('reached');
+    const computed = run(
+      'export const go = (mode) => stripe.checkout.sessions.create({ ui_mode: mode });',
+    );
+    expect(computed.edits).toEqual([]);
+    expect(computed.reach[0]).toBe('unknown');
+    // No rule for this value: nothing is edited.
+    const other = enumValueEdits(
+      [
+        checkout(
+          'removed the enum value `hosted` of the request property `ui_mode`',
+          'request-property-enum-value-removed',
+        ),
+      ],
+      traced("export const go = () => stripe.checkout.sessions.create({ ui_mode: 'hosted' });"),
+      [move],
+    );
+    expect(other).toEqual([]);
+    const test = run(
+      "export const go = () => stripe.checkout.sessions.create({ ui_mode: 'embedded' });",
+      'app/api/checkout/route.test.ts',
+    );
+    expect(test.edits).toEqual([]);
+  });
+});

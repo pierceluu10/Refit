@@ -20179,6 +20179,154 @@
           "reason": "A refit-bench run id, not a measurement."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated | 86 | 89 |",
+      "values": [
+        {
+          "says": "86",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        },
+        {
+          "says": "89",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: rows that stop on \"No check can run\" | 6 | 0 |",
+      "values": [
+        {
+          "says": "6",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249 merged with main, 224 rows: validated | 91 | 93 |",
+      "values": [
+        {
+          "says": "224",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        },
+        {
+          "says": "91",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        },
+        {
+          "says": "93",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before, main at `efcb91ed`: [40806735877](https://github.com/refit-dev/refit-bench/actions/runs/40806735877). After, at `3ee00eb2`: [40806747841](https://github.com/refit-dev/refit-bench/actions/runs/40806747841). All rows came back in both. On the tree merged with main: main at `6161f020` [40821431837](https://github.com/refit-dev/refit-bench/actions/runs/40821431837), whose shard 2 failed, and this branch at `ce1f168f` [40821435089](https://github.com/refit-dev/refit-bench/actions/runs/40821435089); the merged row compares the 224 rows both returned.",
+      "values": [
+        {
+          "says": "224",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "40806735877",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40806747841",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40821431837",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "2",
+          "reason": "A shard index, not a measurement."
+        },
+        {
+          "token": "40821435089",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **5 rows move from D to C.** `dalemoncayo/express-stripe`, `mdalmamunit427/yoga-master-server` and `manfraio/stripe_elements_customized_card_form` validate. `samiamjidkhan/dota2-helper` stays a draft for untraced reads of Dota data, and `RescuePC/Donation-Link` for a submodule. Each patch is the card rule and the stripe-node upgrade, byte-identical on the merged tree. There `aionarae/amazon-beta`, which main now prepares, also reaches C and stays a draft for contract changes.",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Reviews.** Every grade C patch was read in full against [FIX-REVIEW.md](FIX-REVIEW.md): 6 correct, 0 wrong ([fix-reviews.json](benchmarks/fix-reviews.json)). The unpatched express-stripe code fails the same check on `payment_method_types`, so it catches the removed parameter.",
+      "values": [
+        {
+          "says": "6",
+          "query": {
+            "results": ["docs/benchmarks/fix-reviews.json"],
+            "rows": "/reviews",
+            "where": [
+              {
+                "field": "run",
+                "matches": "40806747841|40821435089"
+              },
+              {
+                "field": "verdict",
+                "equals": "correct"
+              }
+            ]
+          }
+        },
+        {
+          "says": "0",
+          "query": {
+            "results": ["docs/benchmarks/fix-reviews.json"],
+            "rows": "/reviews",
+            "where": [
+              {
+                "field": "run",
+                "matches": "40806747841|40821435089"
+              },
+              {
+                "field": "verdict",
+                "equals": "wrong"
+              }
+            ]
+          }
+        }
+      ],
+      "ignore": []
     }
   ]
 }
