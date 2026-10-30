@@ -250,6 +250,7 @@ export function untracedRemovedParameters(
     property: ts.Node;
     removal: RequestParameterRemoval;
     rule?: PaymentMethodRule;
+    calls?: ts.CallExpression[];
   }[] = [];
   for (const node of nodes) {
     // `params.payment_method_types = …` onto a local body: never renamed, and a stop unless that
@@ -301,7 +302,11 @@ export function untracedRemovedParameters(
             checker,
           })
         : undefined;
-    sites.push({ property: node, removal: targets?.[0] ?? removal, ...(rule ? { rule } : {}) });
+    sites.push({
+      property: node,
+      removal: targets?.[0] ?? removal,
+      ...(rule ? { rule, calls } : {}),
+    });
   }
   return sites;
 }

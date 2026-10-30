@@ -1,0 +1,217 @@
+{
+  "frozenAt": "2026-10-27",
+  "purpose": "Rows the API-version path rule for payment_method_types renames can reach.",
+  "criteria": "Every subsets/l2-push-249.json repository whose payment_method_types rename was dropped by an API-version gate (\"Refit cannot resolve the API version\") in refit-bench run 40553722899 (ae6127f7) or, for rows that stopped before writing a report, in a scan at main 89f1c0ed; entries unchanged, in list order.",
+  "specs": [
+    {
+      "version": "2022-08-01",
+      "tag": "v174"
+    },
+    {
+      "version": "2022-11-15",
+      "tag": "v208"
+    },
+    {
+      "version": "2023-08-16",
+      "tag": "v466"
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940"
+    },
+    {
+      "version": "2024-06-20",
+      "tag": "v1095"
+    },
+    {
+      "version": "2024-09-30.acacia",
+      "tag": "v1268"
+    },
+    {
+      "version": "2024-10-28.acacia",
+      "tag": "v1319"
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "tag": "v1347"
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412"
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-03-31.basil",
+      "tag": "v1642"
+    },
+    {
+      "version": "2025-04-30.basil",
+      "tag": "v1719"
+    },
+    {
+      "version": "2025-05-28.basil",
+      "tag": "v1773"
+    },
+    {
+      "version": "2025-06-30.basil",
+      "tag": "v1819"
+    },
+    {
+      "version": "2025-07-30.basil",
+      "tag": "v1868"
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932"
+    },
+    {
+      "version": "2025-09-30.clover",
+      "tag": "v2031"
+    },
+    {
+      "version": "2025-10-29.clover",
+      "tag": "v2104"
+    },
+    {
+      "version": "2025-11-17.clover",
+      "tag": "v2124"
+    },
+    {
+      "version": "2025-12-15.clover",
+      "tag": "v2133"
+    },
+    {
+      "version": "2026-01-28.clover",
+      "tag": "v2160"
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "tag": "v2277"
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "tag": "v2324"
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349"
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ],
+  "repos": [
+    {
+      "repo": "geallenboy/ai-saas-template",
+      "stars": 40,
+      "commit": "e890ff0e5406585f27712bd9754c8d49a17865c8",
+      "before": "2026-03-25.dahlia",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "hackerai-tech/hackerai",
+      "stars": 794,
+      "commit": "49c12ea6b7e0ff2b0485b9b978e758f1d9f6b2ab",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "22.6.2",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "thematters/matters-server",
+      "stars": 77,
+      "commit": "12adb2dfd346dff705a47bbc1439a6b94c5d3b50",
+      "before": "2022-11-15",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^12.11.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "mhaowork/warranty-watcher",
+      "stars": 22,
+      "commit": "689c4620aa9d0a51be0a34105f527d1d0060c251",
+      "before": "2025-06-30.basil",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^18.3.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "nirholas/memescope-monday",
+      "stars": 13,
+      "commit": "367237f545d1775e8b5de71e405193c80ca7b0d4",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^17.7.0",
+      "packageManager": "none"
+    },
+    {
+      "repo": "puneethkotha/Zapd",
+      "stars": 3,
+      "commit": "1fcb469def3651f83a90b5ba5b07dc8fc829b9d5",
+      "before": "2024-09-30.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.2.0",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "Seann-Michael/Local-GMB-Booster",
+      "stars": 2,
+      "commit": "b461c2a82144564257627428daecbe52d44c1ff4",
+      "before": "2022-11-15",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^12.10.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "kondax-com/Bocker",
+      "stars": 1,
+      "commit": "084bfee71fa441fac8850a11b5ade649e9005bb4",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^17.7.0"
+    },
+    {
+      "repo": "qesmsep/noir-crm-dashboard",
+      "stars": 1,
+      "commit": "1f59675a9636716b8efc028c9a637c9568e8fb8e",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2023-08-16",
+      "beforeSource": "apiVersion pin (oldest of 3)",
+      "stripeDependency": "^18.1.0"
+    }
+  ]
+}

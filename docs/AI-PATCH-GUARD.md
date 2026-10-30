@@ -258,6 +258,25 @@ Known gaps:
 - A request through a client the tracer cannot follow, such as the cached factory above, is not checked.
 - An invented field the after contract does not define still depends on validation and review.
 
+## Type-only repairs of upgrade-introduced type errors (October 27)
+
+Founders' decision (2026-10-27): type errors the stripe-node upgrade introduces may be repaired by changing types only. Any such repair, deterministic or AI, must pass the type-only gate (`typeOnlyRepairFailures` in `pipeline/ai-patch-policies.ts`):
+
+| Condition | How it is checked |
+|---|---|
+| Edits only statements that hold an error the upgrade introduced | The type oracle's run of the original code on the target stripe-node lists the upgrade's errors by file, code and message. Each changed range of the rules' code must sit inside one statement that holds such an error. A range between statements, which adds or removes one, is refused, even a new `type` alias. A class member counts as a statement, so an error in one method does not open the class. An error counts as the upgrade's only up to the number of times the oracle's run has it, so a rule's own repeat of the same message elsewhere does not. |
+| Every changed file compiles to the same JavaScript | `ts.transpileModule` with the compiler options of the nearest `tsconfig.json` in the repository, before and after, compared per file. A tsconfig that is missing or does not resolve completely (an `extends` Refit cannot read) refuses, because the defaults may emit differently (`useDefineForClassFields`, decorator metadata). Only TypeScript files qualify: an assertion in JavaScript is a JSDoc comment, which changes the output. |
+| No enums, namespaces or decorators | A changed range that touches one, on either side, is refused, as their output depends on more than the file. |
+| Zero new errors and passing checks | The repository's own checks run on the repair in offline Docker. Their type check compares errors with the original code, so a pass is the oracle's zero new errors on the repaired code. |
+
+**Deterministic repair.** `openEnumRepair(…, assertions = true)` in `pipeline/stripe-open-enums.ts` handles TS2322 and TS2345 errors whose message names both types. It wraps the value at the site (a property or variable initializer, a returned or assigned value, or a call argument) as `(value as Target)`, where `Target` is the type the message names. It runs only where the file can write `Target`: literals, primitives, and names the file declares or imports. It never drops `null` or `undefined` that the value's type has, so a value Stripe now types as possibly missing still stops. It is generic (owner decision D5): it reads only the error and the file. It runs after the existing open-enum restore, and only on errors the oracle attributes to the upgrade. A repair that passes the gate and the checks publishes like any rules' patch (`repair.stopReason: type-assertion-repair`, `repair.typeAssertions`), and the draft names each site and says the JavaScript is unchanged.
+
+**AI fallback.** When every error left on a candidate is one the upgrade introduced, the AI repair is held to the same gate before its checks run, and the gate stays on for every later repair round, measured against that first candidate. A repair that fails the gate stops for review (`repair.typeOnlyGate`), and one that passes ships `[Needs review]` with its lines marked (decision 8). AI repairs of other errors are unchanged.
+
+**What stops.** Removed properties and methods, removed or unknown request parameters, arity changes, untraced API-version literals, null widening, targets the file cannot name, and every error in JavaScript. These were most of the errors the type oracle recorded on l2-push-249 (run 40591181316): 79 errors on 12 rows, of which only the 4 `Subscription.Status` assignments on kondax-com/Bocker have the widened-enum shape, and that row has 31 other errors.
+
+**Measured (October 28).** On l2-push-249 and heldout-30, with and without AI, no row changed outcome. Alex-Unnippillil/share-house-portal's patch now keeps its pin move and stripe-node upgrade through one deterministic assertion (reviewed `correct`), and its draft stays `[Needs review]` for an untraced read. No AI repair reached the gate. Runs and details: [benchmarks](BENCHMARKS.md#type-only-repair-of-upgrade-introduced-type-errors-october-28).
+
 ## Known limitations
 
 - Reads the analyzer cannot trace are invisible to the guard: destructuring (`const { id } = model`), computed access (`model['id']`), or a response passed through helper functions. These already reduce scanner confidence elsewhere.

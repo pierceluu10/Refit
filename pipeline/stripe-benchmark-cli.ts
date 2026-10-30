@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { signedEventSummary } from './signed-events.ts';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -32,6 +33,7 @@ import {
 } from './stripe-benchmark.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
 import { validationProfile } from './docker-sandbox.ts';
+import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
 import { HOSTED_REPAIR_ATTEMPTS, validateRepairAttempts } from './validation-options.ts';
 import { AiPolicyStop } from './ai-patches.ts';
 import { behaviourTestSkip, DRY_RUN_MODEL } from './behaviour-test-writer.ts';
@@ -50,9 +52,12 @@ import { NO_OP_CHECK } from './review.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--webhook-checks] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--skip-generated-clients] [--resolve-lockfiles] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
-const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
+// Above validation's own limits at their defaults: two preparations (300 s each), a baseline and a
+// patched check (600 s each), and the retry without the API-version move (another preparation and
+// check), so a repository's limits decide its outcome, not the benchmark's.
+const VALIDATION_TIMEOUT_MS = 45 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
 const MAX_RECORDED_CHANGES = 500;
 const reportedTypeErrorKeys = (check: { stdout?: string; stderr?: string } | undefined) =>
@@ -82,6 +87,9 @@ const { values } = parseArgs({
     // Builds each behaviour-test request without sending it, and records per repository whether
     // the real run would send it, why not, and its estimated tokens and cost. No key needed.
     'behaviour-tests-dry-run': { type: 'boolean' },
+    // Sends signed webhook events of both API versions to the handlers a patch can affect
+    // (signed-events.ts), offline; no key needed.
+    'webhook-checks': { type: 'boolean' },
     validate: { type: 'boolean' },
     offset: { type: 'string' },
     limit: { type: 'string' },
@@ -99,6 +107,11 @@ const { values } = parseArgs({
     'allow-dirty': { type: 'boolean' },
     // Sandbox profile for every repository (REFIT_VALIDATION_WORKSPACE), e.g. 4g on a large runner.
     'validation-workspace': { type: 'string' },
+    // Skips recreating the Prisma client and next-env.d.ts before every check
+    // (REFIT_GENERATE_CLIENTS=0; declared-generators.ts).
+    'skip-generated-clients': { type: 'boolean' },
+    // Sets REFIT_LOCKFILE_RESOLUTION=on explicitly; it is the default, so runs before it was stay reproducible.
+    'resolve-lockfiles': { type: 'boolean' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
@@ -114,6 +127,8 @@ if (values['validation-workspace']) {
   validationProfile(values['validation-workspace']);
   process.env.REFIT_VALIDATION_WORKSPACE = values['validation-workspace'];
 }
+if (values['skip-generated-clients']) process.env.REFIT_GENERATE_CLIENTS = '0';
+if (values['resolve-lockfiles']) process.env.REFIT_LOCKFILE_RESOLUTION = 'on';
 if (values['behaviour-tests'] && (!values.env || !values.validate))
   throw new PipelineInputError(
     '--behaviour-tests needs --validate and --env with OPENAI_API_KEY and OPENAI_MODEL.',
@@ -457,7 +472,7 @@ async function benchmark(entry: Selected, index: number) {
   const locked = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'].some((lockfile) =>
     existsSync(join(checkRoot, lockfile)),
   );
-  const checkable = locked && Boolean(declared.stripe);
+  const checkable = (locked || lockfileResolutionEnabled()) && Boolean(declared.stripe);
   // Owner decision 1: a project that commits no lockfile runs the workflow as a customer's generated
   // configuration does; preparation refuses, and the patch is kept untested, graded D.
   const unlocked = !locked && Boolean(declared.stripe);
@@ -540,6 +555,7 @@ async function benchmark(entry: Selected, index: number) {
               : values['behaviour-tests-dry-run']
                 ? ['--write-behaviour-tests-dry-run']
                 : []),
+            ...(values['webhook-checks'] ? ['--webhook-checks'] : []),
             ...(leaveReviewedFindings ? [] : ['--publish-validated-only']),
             '--quiet',
             '--json',
@@ -596,6 +612,9 @@ async function benchmark(entry: Selected, index: number) {
       behaviourTestWriter: report.validation?.behaviourTestWriter,
       stripeOnly: report.validation?.stripeOnly,
       advisoryTypeErrors: report.validation?.advisoryTypeErrors?.length,
+      ...(report.validation?.signedEvents
+        ? { signedEvents: signedEventSummary(report.validation.signedEvents) }
+        : {}),
       typeCheckUnavailable: report.validation?.typeCheckUnavailable,
       ...(report.validation?.typeOracle
         ? {

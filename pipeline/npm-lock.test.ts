@@ -40,6 +40,48 @@ it('retains exact committed input hashes and accepts public scoped packages and 
   });
 });
 
+it('accepts a sha1 hash beside a SHA-512 one, which npm checks instead, and a leftover extraneous directory record', () => {
+  const lockContent = JSON.stringify({
+    ...lock,
+    packages: {
+      ...lock.packages,
+      'node_modules/stripe': {
+        ...record,
+        integrity: `sha1-${Buffer.alloc(20).toString('base64')} ${STRONG_INTEGRITY}`,
+      },
+      engines: { extraneous: true },
+    },
+  });
+  expect(validateNpmLock(JSON.stringify(manifest), lockContent)).toMatchObject({ packages: 2 });
+});
+
+it.each([
+  { ...record, integrity: `sha1-${Buffer.alloc(20).toString('base64')}` },
+  { ...record, integrity: `sha1-YWJjZA== ${STRONG_INTEGRITY}` },
+  { ...record, integrity: `${STRONG_INTEGRITY} md5-${Buffer.alloc(16).toString('base64')}` },
+])('refuses integrity without a well-formed SHA-256-or-stronger hash: %j', (value) => {
+  expect(() =>
+    validateNpmLock(
+      JSON.stringify(manifest),
+      JSON.stringify({ ...lock, packages: { '': manifest, 'node_modules/stripe': value } }),
+    ),
+  ).toThrow(/SHA-256-or-stronger/);
+});
+
+it.each([
+  { engines: { extraneous: true, resolved: 'https://registry.npmjs.org/a/-/a-1.0.0.tgz' } },
+  { engines: { extraneous: true, link: true, resolved: 'engines' } },
+  { engines: { version: '1.0.0' } },
+  { 'engines/node_modules/a': { extraneous: true } },
+])('refuses directory records npm could install from: %j', (extra) => {
+  expect(() =>
+    validateNpmLock(
+      JSON.stringify(manifest),
+      JSON.stringify({ ...lock, packages: { ...lock.packages, ...extra } }),
+    ),
+  ).toThrow();
+});
+
 it.each([
   { ...record, resolved: 'https://secret@registry.npmjs.org/stripe/-/stripe.tgz' },
   { ...record, resolved: 'https://registry.npmjs.org/stripe/-/stripe.tgz?token=secret' },
@@ -369,8 +411,77 @@ it('never repeats a source URL credential in a refusal', () => {
       }),
       JSON.stringify(lock),
     );
-  expect(refusal).toThrow(
-    'package.json declares stripe as "git+https://***@github.com/acme/stripe.git"',
-  );
-  expect(refusal).not.toThrow(/secret-token/);
+  expect(refusal).toThrow('package.json declares stripe from Git (github.com/acme/stripe)');
+  expect(refusal).not.toThrow(/secret-token|user/);
+  const tarball = () =>
+    validateNpmLock(
+      JSON.stringify({
+        ...manifest,
+        dependencies: { stripe: 'https://user:secret-token@example.com/stripe.tgz' },
+      }),
+      JSON.stringify(lock),
+    );
+  expect(tarball).toThrow('package.json declares stripe as "https://***@example.com/stripe.tgz"');
+  expect(tarball).not.toThrow(/secret-token/);
+});
+
+it('accepts a public code host release archive npm locked with its integrity, and nothing looser', () => {
+  const archive = 'https://github.com/acme/kit/archive/refs/tags/v0.1.2.tar.gz';
+  const declared = { ...manifest, dependencies: { ...manifest.dependencies, kit: archive } };
+  const kit = { version: '0.1.2', resolved: archive, integrity: STRONG_INTEGRITY };
+  const validate = (resolved: string, extra: Record<string, unknown> = {}) =>
+    validateNpmLock(
+      JSON.stringify({ ...declared, dependencies: { ...declared.dependencies, kit: resolved } }),
+      JSON.stringify({
+        ...lock,
+        packages: {
+          ...lock.packages,
+          '': { ...declared, dependencies: { ...declared.dependencies, kit: resolved } },
+          'node_modules/kit': { ...kit, resolved },
+          ...extra,
+        },
+      }),
+    );
+  expect(validate(archive)).toMatchObject({ packages: 2, remoteTarballs: 1 });
+  expect(validate(`https://codeload.github.com/acme/kit/tar.gz/${'a'.repeat(40)}`)).toMatchObject({
+    remoteTarballs: 1,
+  });
+  expect(validate('https://gitlab.com/acme/kit/-/archive/v1/kit-v1.tar.gz')).toMatchObject({
+    remoteTarballs: 1,
+  });
+  // Other hosts, credentials, ports, queries and non-archive paths stay refused.
+  for (const url of [
+    'https://example.com/kit.tgz',
+    'http://github.com/acme/kit/archive/v1.tar.gz',
+    'https://token@github.com/acme/kit/archive/v1.tar.gz',
+    'https://github.com:444/acme/kit/archive/v1.tar.gz',
+    'https://github.com/acme/kit/archive/v1.tar.gz?x=1',
+    'https://github.com/acme/kit/releases/download/v1/kit.tgz',
+    'https://github.com/acme/kit/archive/../../evil/archive/v1.tar.gz',
+  ])
+    expect(() => validate(url), url).toThrow();
+  // Without a SHA-256-or-stronger integrity it is unverifiable, as any other record.
+  expect(() =>
+    validateNpmLock(
+      JSON.stringify(declared),
+      JSON.stringify({
+        ...lock,
+        packages: {
+          ...lock.packages,
+          '': declared,
+          'node_modules/kit': { ...kit, integrity: 'sha1-AAAAAAAAAAAAAAAAAAAAAAAAAAA=' },
+        },
+      }),
+    ),
+  ).toThrow('without a version, registry "resolved" URL and SHA-256-or-stronger "integrity"');
+  // npm can fetch it from its host only when no record needs a mirror replaced.
+  expect(() =>
+    validate(archive, {
+      'node_modules/ms': {
+        version: '2.1.3',
+        resolved: 'https://registry.yarnpkg.com/ms/-/ms-2.1.3.tgz',
+        integrity: STRONG_INTEGRITY,
+      },
+    }),
+  ).toThrow('from a code host and other packages from a registry mirror');
 });

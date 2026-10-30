@@ -79,14 +79,14 @@ it('sends a new user to refit agents when the repository has no .refit.json', as
       status: 'blocked',
       detail: `No .refit.json in ${app} yet, and Refit found no Stripe package to generate one for.`,
       action:
-        'Run refit agents to see which provider agents apply, then refit agents --add <id> to write .refit.json.',
+        'Refit generates a configuration only for Stripe code, so it has nothing to check here.',
     },
   ]);
   const lines = renderReadiness(report).split('\n');
   // Before: "could not access a required file or executable" and four lines of caveats.
   expect(lines[0]).toBe('Refit setup needs attention: 1 of 1 check blocked');
   expect(lines[1]).toBe(
-    'Next: Run refit agents to see which provider agents apply, then refit agents --add <id> to write .refit.json.',
+    'Next: Refit generates a configuration only for Stripe code, so it has nothing to check here.',
   );
   // Before: "Configuration  <app>/.refit.json", a file that does not exist.
   expect(lines[3]).toBe('Configuration  this repository commits no .refit.json');
@@ -242,12 +242,12 @@ it('tells a configured Stripe app where the removed parameter is sent and which 
     detail:
       'Code sets a request parameter that API version 2026-09-30.endive removes, and Refit leaves it in place: payment_method_types at checkout.js:3.',
     action:
-      'Remove or replace it yourself. docs/STRIPE-PAYMENT-METHOD-TYPES.md says which payment_method_types values Refit replaces, and the API version and SDK changes that replacement needs.',
+      'Refit does not remove or replace it; check it before merging a draft. docs/STRIPE-PAYMENT-METHOD-TYPES.md says which payment_method_types values Refit replaces, and the API version and SDK changes that replacement needs.',
   });
   // Before: "Verify the application client/account version and configure an exact
   // before-contract API-version pin."
   expect(report.checks.find((check) => check.id === 'api-version')?.action).toBe(
-    'Confirm your client and account use 2026-08-26.dahlia, then add "apiVersion": "2026-08-26.dahlia" to the stripe integration in .refit.json.',
+    'Refit could not confirm that the client and account use 2026-08-26.dahlia, the version the stripe integration starts from; check the version before merging a draft.',
   );
 });
 
@@ -297,7 +297,7 @@ it('names every removed parameter Refit leaves, including a card list the versio
     detail:
       'Code sets request parameters that API version 2026-09-30.endive removes, and Refit leaves them in place: payment_method_types at billing.js:3 and coupon at billing.js:4.',
     action:
-      'Remove or replace each one yourself. docs/STRIPE-PAYMENT-METHOD-TYPES.md says which payment_method_types values Refit replaces, and the API version and SDK changes that replacement needs.',
+      'Refit does not remove or replace them; check each one before merging a draft. docs/STRIPE-PAYMENT-METHOD-TYPES.md says which payment_method_types values Refit replaces, and the API version and SDK changes that replacement needs.',
   });
 });
 
@@ -335,7 +335,7 @@ it('tells the person which changes Refit cannot migrate, without asking for an a
     detail:
       'The contracts list 1 breaking change from API version 2026-08-26.dahlia to 2026-09-30.endive that no Refit rule migrates, including changes to 1 operation the code calls: POST /v1/checkout/sessions at checkout.js:3.',
     action:
-      'Run refit run --human to see each change and where the code reaches it, and migrate those calls by hand. Refit has no reviewed rule for these changes, so it stops before validation.',
+      'Refit has no reviewed rule for these changes, so it stops before validation and leaves those calls unchanged; refit run --human lists each change and where the code reaches it.',
   });
 });
 
@@ -371,7 +371,7 @@ export const auth = betterAuth({ plugins: [stripe({ stripeClient })] })
     detail:
       'Refit traced no stripe API call in this code, so it cannot tell what the migration changes. Calls made inside another library, or through a client Refit cannot follow, are not counted.',
     action:
-      'If the code reaches stripe only through another library, upgrade that library instead. Otherwise run refit run --human to see which clients Refit found, and call the API through one it can follow.',
+      'Refit cannot see stripe calls made inside another library or through a client it cannot follow, so it has nothing to migrate here; refit run --human lists the clients Refit found.',
   });
 });
 
@@ -471,7 +471,7 @@ export async function GET(request: NextRequest) {
     detail:
       'Refit traced 3 stripe API calls, and it maps none of their methods to an operation in the contracts: invoices.list at app/api/payment/route.ts:13, subscriptionSchedules.list at app/api/payment/route.ts:15.',
     action:
-      'Check these calls against the stripe changes from 2026-08-26.dahlia to 2026-09-30.endive by hand. Refit cannot tell what the migration changes for a method it does not map, so it stops before validation.',
+      'Refit cannot tell what the migration changes for a method it does not map, so it stops before validation; these calls need checking against the stripe changes from 2026-08-26.dahlia to 2026-09-30.endive before merging a draft.',
   });
 });
 
@@ -513,8 +513,7 @@ it('tells the person to commit or remove a submodule, not to commit or stash fil
     status: 'blocked',
     detail:
       'Validation does not accept submodules; vendor/plugin is one. Refit checks committed files only, so commit its files to the repository or remove the submodule.',
-    action:
-      "Commit the submodule's files into this repository, or remove the submodule, then run refit doctor again.",
+    action: "Refit cannot check a submodule's files, so it stops here.",
   }); // Owner decision 1: the root is checked without the submodule, and the check says so.
   expect(
     (await inspectRepositoryReadiness({ repository: app, allowUntested: true })).checks.find(

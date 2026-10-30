@@ -17305,6 +17305,3028 @@
           "reason": "Part of the list name l2-push-249, not a measurement."
         }
       ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated |                      84 |                86 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        },
+        {
+          "says": "86",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before, main at `6c6ff6a9` (after the spec-noise and API-version merges): l2-push-249 [40621425780](https://github.com/refit-dev/refit-bench/actions/runs/40621425780), heldout-30 [40621428835](https://github.com/refit-dev/refit-bench/actions/runs/40621428835). After, at `d5b75c9f`: l2-push-249 [40619980162](https://github.com/refit-dev/refit-bench/actions/runs/40619980162), heldout-30 [40619983267](https://github.com/refit-dev/refit-bench/actions/runs/40619983267). `d5b75c9f` branches from `d9217cac`, before the API-version merge, so the rows whose only difference is an `api-version-untraced` or `webhook-api-version` stop (compasstio-ai, build-it, branded, mern-vsms, RealEstateBrokerageMarket) come from that merge, not this branch. heldout-30 matches main on 30 of 30 rows.",
+      "values": [
+        {
+          "says": "30",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40621425780",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40621428835",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40619980162",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40619983267",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Two regressions found and fixed.** The first heldout-30 run at `78e0c291` ([40554003990](https://github.com/refit-dev/refit-bench/actions/runs/40554003990)) moved VishalRaut2106/HackMate_AI's two `invoice.subscription` reads from confirmed to review: the helper parameter rule also covered `invoice: Stripe.Invoice`. `17e30256` keeps a declared Stripe type on its declared-type trace. The local suite then showed reads through a transparent wrapper and a helper with a declared Stripe return type downgraded to review (`nested-sdk.test.ts`, `stripe-types.test.ts`); `d5b75c9f` keeps those confirmed. Each has a test.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40554003990",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **2 repositories newly validate, none lost.** samarbadriddin0v/notion-clone and shagunmistry/FlowCraft stopped only on 14 removals of Product `features` nested under subscription items in customer responses, which the code never reads. Each `migration.patch` was applied to a clone and read in full: 2 `correct` in [fix-reviews.json](benchmarks/fix-reviews.json). Their results at `d5b75c9f` match `17e30256` in every compared field, diff included.",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        },
+        {
+          "says": "14",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        },
+        {
+          "says": "2",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **What still stops.** Chivo1530/CHIVITO-AI-DEV loses its contract-change stop and gr8monk3ys/link-flame its source-evidence stop, but both keep a dependency-preparation stop. aresjinwoo94-cpu/EliteVault gains 2 confirmed period reads in `scripts/sync-stripe-plan.mjs`, on a client already pinned at basil, so the patch correctly leaves them; its draft stays `[Needs review]`. kondax-com/Bocker's baseline tests failed in this run (and in the preparation run) and passed on main with the same dependency archive: a flaky test in the repository, `[Needs review]` either way.",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40619980162, 40619983267, 40554003990 and 40582675661, which are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "`feat/preparation-failures` accepts what npm and pnpm themselves accept in four lockfile and workspace shapes from the l2-push-249 triage ([preparation failures](PREPARATION-FAILURES.md#preparation-coverage-triage-2026-10-27)): an integrity that lists `sha1` beside a stronger hash, a lockfile record outside every `node_modules` directory, workspace negations after every positive pattern, and a pnpm workspace `bin` no importer links to.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated                   |                      84 |                84 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40621391261 and 40621394549, which are not committed; Node 24 is the engine isbinaryfile 6.0.0 declares."
+        },
+        {
+          "says": "84",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40621391261 and 40621394549, which are not committed; Node 24 is the engine isbinaryfile 6.0.0 declares."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: rows stopped on dependency preparation |                      53 |                51 |",
+      "values": [
+        {
+          "says": "53",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40621391261 and 40621394549, which are not committed; Node 24 is the engine isbinaryfile 6.0.0 declares."
+        },
+        {
+          "says": "51",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40621391261 and 40621394549, which are not committed; Node 24 is the engine isbinaryfile 6.0.0 declares."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before, main at `6c6ff6a9`: l2-push-249 [40621425780](https://github.com/refit-dev/refit-bench/actions/runs/40621425780), heldout-30 [40621428835](https://github.com/refit-dev/refit-bench/actions/runs/40621428835). After, at `b884fe3e` (this branch with `6c6ff6a9` merged): l2-push-249 [40621391261](https://github.com/refit-dev/refit-bench/actions/runs/40621391261), heldout-30 [40621394549](https://github.com/refit-dev/refit-bench/actions/runs/40621394549).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40621425780",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40621428835",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40621391261",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40621394549",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **2 rows now prepare, none validates.** Shobhnik13/SynthAI passes both checks and keeps other stops; tomsoderlund/login-as-a-service's baseline fails. Small-Web-Co/tinypivot and inventashif/hackerai pass the fixed checks and stop on real lockfile drift and a Node 24 engine requirement. No patch newly validates.",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40621391261 and 40621394549, which are not committed; Node 24 is the engine isbinaryfile 6.0.0 declares."
+        },
+        {
+          "says": "24",
+          "notCheckable": "From the merged results of refit-bench runs 40621425780, 40621428835, 40621391261 and 40621394549, which are not committed; Node 24 is the engine isbinaryfile 6.0.0 declares."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "A census of every blocker on every row of main `89f1c0ed`, and the committed-source limit raised to 512 MiB under `4g` and 256 MiB under `2g` (founders' decision, 2026-10-27). The table and how to read it are in [Dependency blockers](DEPENDENCY-BLOCKERS.md); the per-row census is `benchmarks/2026-10-27-blocker-census.json`.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "512",
+          "reason": "A configured limit or setting, not a measurement."
+        },
+        {
+          "token": "256",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249, no AI | [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392) | main `89f1c0ed` | 84 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249, AI ($200 cap) | [40624062726](https://github.com/refit-dev/refit-bench/actions/runs/40624062726) | main `89f1c0ed` | 88 |",
+      "values": [
+        {
+          "says": "88",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "$200",
+          "reason": "The run's configured AI budget cap, not a measurement."
+        },
+        {
+          "token": "40624062726",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30, no AI | [40624069371](https://github.com/refit-dev/refit-bench/actions/runs/40624069371) | main `89f1c0ed` | 10 |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40624069371",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30, AI ($30 cap) | [40624075884](https://github.com/refit-dev/refit-bench/actions/runs/40624075884) | main `89f1c0ed` | 11 |",
+      "values": [
+        {
+          "says": "11",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "$30",
+          "reason": "The run's configured AI budget cap, not a measurement."
+        },
+        {
+          "token": "40624075884",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249, no AI, after | [40625964049](https://github.com/refit-dev/refit-bench/actions/runs/40625964049) | `2d6f499c` | 84 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40625964049",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30, no AI, after | [40625971542](https://github.com/refit-dev/refit-bench/actions/runs/40625971542) | `2d6f499c` | 10 |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40625971542",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| source-limit-50 (16), `2g`, before | [40625949948](https://github.com/refit-dev/refit-bench/actions/runs/40625949948) | `fffa3ad5` | 0 |",
+      "values": [
+        {
+          "says": "16",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "50",
+          "reason": "Part of the list name source-limit-50, not a measurement."
+        },
+        {
+          "token": "40625949948",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| source-limit-50 (16), `2g`, after | [40625956831](https://github.com/refit-dev/refit-bench/actions/runs/40625956831) | `2d6f499c` | 1 |",
+      "values": [
+        {
+          "says": "16",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "1",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "50",
+          "reason": "Part of the list name source-limit-50, not a measurement."
+        },
+        {
+          "token": "40625956831",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Commands.** `gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=<full sha> -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249` (and `-f ai=true -f ai_budget=200`); heldout-30 with `-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30` (and `-f ai=true -f ai_budget=30`); the subset with `-f list=subsets/source-limit-50.json -f offset=0 -f size=2 -f count=16 -f flags=\"--validation-workspace 2g\"`. The census: `node scripts/validation-funnel.mjs <merged>/results.json --all-blockers --artifacts <download dir> --json`; comparisons with `scripts/stripe-benchmark-compare.mjs`.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Baseline ids.** The l2-push-249 no-AI baseline is [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392), an identical run at the same commit: the one this lane dispatched (40624056119) was cancelled with other duplicates to clear the queue.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40624056119",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **`4g`: no change.** 0 outcome changes on 249 and 30 rows. Every heldout-30 patch is byte-identical, and 233 of 234 l2-push-249 patches; kondax-com/Bocker's own tests are flaky (a regression in [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392), a baseline failure in [40624062726](https://github.com/refit-dev/refit-bench/actions/runs/40624062726) at the same commit), and its patch differs only in where the period helper is written. At `4g` the old 256 MiB limit stopped none of the 597 tuned repositories (the largest tree is 155.5 MiB).",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "233",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "234",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "597",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "155.5",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40624062726",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "256",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **`2g`: 8 rows pass the source check.** Before, 8 of the 16 rows over 50 MiB were refused with the 50 MiB message; after, none. Shefaul-22/AgriFlow validates (C). mouhamedanflosse/digitalHome and shivamm-55/HippoSphere (C) and CRONANANI/EzanaFinance3 (D) pass their checks and stay `[Needs review]`. Traviseric/arxmint and Eziox-Development/eziox-web stop at lockfile integrity and lockfile drift, RaulRicco/CashBack's preparation fails, and SimplerDevelopment/SimplerDevelopment writes no manifest, as at `4g`. The four passing patches were read in full: AgriFlow, digitalHome and HippoSphere `correct`, EzanaFinance3 `unsure` (untraced reads in files the patch does not touch), in `benchmarks/fix-reviews.json`.",
+      "values": [
+        {
+          "says": "8",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "8",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "16",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "22",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        },
+        {
+          "says": "55",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624069371, 40624075884, 40625964049, 40625971542, 40625949948, 40625956831, 40624056119 (section \"Dependency blocker census and the committed-source limit (October 27)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "50",
+          "reason": "A configured limit or setting, not a measurement."
+        },
+        {
+          "token": "50",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Not measured:** host memory while buffering a source tree near 512 MiB on the Fly worker, publication and the night set.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "512",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: rows with a rename | 162 | 167 |",
+      "values": [
+        {
+          "says": "162",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "167",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: renamed call sites | 204 | 220 |",
+      "values": [
+        {
+          "says": "204",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "220",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: rows with a rename | 21 | 22 |",
+      "values": [
+        {
+          "says": "21",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "22",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| subset (9 rows): rows with a rename | 0 | 4 |",
+      "values": [
+        {
+          "says": "9",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "4",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** l2-push-249: before [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392), after [40628689742](https://github.com/refit-dev/refit-bench/actions/runs/40628689742) (`gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=7af4994dbf21f374460f54f557f7937f34af8f12 -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249`). heldout-30: before [40624048377](https://github.com/refit-dev/refit-bench/actions/runs/40624048377), after [40628692513](https://github.com/refit-dev/refit-bench/actions/runs/40628692513) (`-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30`). Subset `subsets/pmt-version-path.json`, the 9 l2-push-249 rows whose draft still sent `payment_method_types` with an untraced or kept API version on main (rule in the file): before [40628750627](https://github.com/refit-dev/refit-bench/actions/runs/40628750627) at `9850ead0` (main plus the list), after [40628753242](https://github.com/refit-dev/refit-bench/actions/runs/40628753242) at `4f3f9cec` (`-f list=subsets/pmt-version-path.json -f offset=0 -f size=1 -f count=9`). All rows came back in all six runs. Renames are counted as `+allowed_payment_method_types` lines in each `migration.patch`.",
+      "values": [
+        {
+          "says": "9",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40628689742",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40624048377",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40628692513",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40628750627",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40628753242",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **No outcome changed; nothing validated was lost.** `node scripts/stripe-benchmark-compare.mjs` finds the same outcome on 249 of 249 and 30 of 30 rows. 244 of 249 l2-push-249 rows and 29 of 30 heldout rows are identical in every compared field. No row lost a rename.",
+      "values": [
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "244",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "29",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **6 rows gain renames (17 call sites).**",
+      "values": [
+        {
+          "says": "6",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "17",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- Bizgojo/drivetimetales: 5 renames. Main kept the `2023-10-16` pins after the pin move failed `tsc` (`api-version-kept`); now every traced pin moves to endive with stripe 14.25.0 → 23.0.0 and `tsc` passes on both sides (grade C).",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- hackerai-tech/hackerai: 2 renames on a lazily created client with no `apiVersion`, plus stripe 22.6.2 → 23.0.0; was a scan stop with no patch, now an untested draft (dependency preparation fails).",
+      "values": [
+        {
+          "says": "2",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- Sasu8823/Hairdresser_matching_service-backend (heldout-30): the confirmed `index.js` call renames; `routes/stripe.js:26` is a review-confidence call and keeps stopping, named in the draft; untested (no lockfile).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- qesmsep/noir-crm-dashboard: 7 sites (literal lists with `card` and `us_bank_account`, `['us_bank_account']` and the computed `[payment_method_type]`); its baseline fails, as before.",
+      "values": [
+        {
+          "says": "7",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- kondax-com/Bocker: 1 rename; the subset pair shows the patch otherwise byte-identical. In the l2-push-249 after run its own timing test failed on the original code (`expected 199.07 to be less than 100`), so it ended `baseline-failed` instead of main's regression; neither validates.",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **What still stops.** On l2-push-249 the larger blockers are unchanged: stripe-node upgrades refused by dependency preparation (18 rows) and pin moves that fail the repository's checks (9). Getters that return a module client (puneethkotha/Zapd, geallenboy/ai-saas-template) and unconfirmed clients still stop.",
+      "values": [
+        {
+          "says": "18",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From refit-bench runs 40624045392, 40628689742, 40624048377, 40628692513, 40628750627, 40628753242 (section \"`payment_method_types` on its own API-version path (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated, no AI | 84 | 84 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated, AI | 88 | 88 |",
+      "values": [
+        {
+          "says": "88",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "88",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated, AI | 11 | 11 |",
+      "values": [
+        {
+          "says": "11",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "11",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- Before, at `89f1c0ed`: l2-push-249 no AI [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392) and AI [40624062726](https://github.com/refit-dev/refit-bench/actions/runs/40624062726); heldout-30 no AI [40624360669](https://github.com/refit-dev/refit-bench/actions/runs/40624360669) and AI [40624075884](https://github.com/refit-dev/refit-bench/actions/runs/40624075884).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40624062726",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40624360669",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40624075884",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- After, at `d311ec37`: l2-push-249 no AI [40626081878](https://github.com/refit-dev/refit-bench/actions/runs/40626081878) and AI [40626090687](https://github.com/refit-dev/refit-bench/actions/runs/40626090687); heldout-30 no AI [40626098795](https://github.com/refit-dev/refit-bench/actions/runs/40626098795) and AI [40626107102](https://github.com/refit-dev/refit-bench/actions/runs/40626107102).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40626081878",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40626090687",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40626098795",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40626107102",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- AI spend: l2 $1.07 before and $1.10 after; heldout $0.16 both times.",
+      "values": [
+        {
+          "says": "$1.07",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "$1.10",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "$0.16",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **1 patch improves; it is not newly validated.** On Alex-Unnippillil/share-house-portal, the stripe-node 16.6.0 → 23.0.0 upgrade broke the type check with TS2322: the widened `Subscription.Status` was returned as the narrower Supabase status union. The patch therefore kept the old pin and package (`api-version-kept`).",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Other changed rows are run noise, none lost.** Without AI, 246 of 249 rows are identical in every compared field; with AI, also 246. Both heldout-30 pairs are identical on 30 of 30.",
+      "values": [
+        {
+          "says": "246",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "246",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- kondax-com/Bocker fails its own baseline in one run of each pair (a 288 ms timing test).",
+      "values": [
+        {
+          "says": "288",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- vinroger/onellm-frontend hit the 300-second dependency-preparation limit in the after run without AI.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "300",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- CRONANANI/EzanaFinance3 reached the 20-minute limit in the before run with AI.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "20",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- The patched type errors on l2-push-249 (79 on 12 rows in run 40591181316) are mostly removed fields, removed request parameters, arity changes, nullable widening and errors in JavaScript files. A type-only repair must not hide those.",
+      "values": [
+        {
+          "says": "79",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "12",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40591181316",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- Only Bocker shows the widened-enum shape (4 errors), beside 31 others.",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "31",
+          "notCheckable": "From refit-bench runs 40624045392, 40624062726, 40624360669, 40624075884, 40626081878, 40626090687, 40626098795, 40626107102, 40591181316 (section \"Type-only repair of upgrade-introduced type errors (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated | 84 | 84 | 84 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: rows whose generated check ran | 5 | 25 | 25 |",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "25",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "25",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: rows with `@prisma/client` TS2305 | 73 | 73 | 2 |",
+      "values": [
+        {
+          "says": "73",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "73",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "2",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: production validated | 10 | 10 | 10 |",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: rows whose generated check ran | 1 | 6 | 6 |",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "6",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "6",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** l2-push-249 (`-f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249`): before [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392), stand-ins [40638303426](https://github.com/refit-dev/refit-bench/actions/runs/40638303426), with `-f flags=--generate-clients` [40638306398](https://github.com/refit-dev/refit-bench/actions/runs/40638306398). heldout-30 (`-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30`): before [40624360669](https://github.com/refit-dev/refit-bench/actions/runs/40624360669), stand-ins [40695266609](https://github.com/refit-dev/refit-bench/actions/runs/40695266609), with generated clients [40695271902](https://github.com/refit-dev/refit-bench/actions/runs/40695271902). Compared with `scripts/stripe-benchmark-compare.mjs`. `6be912a2` makes generation the default with no other change, so the flagged runs measure it.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40638303426",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40638306398",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40624360669",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40695266609",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40695271902",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Nothing lost, nothing newly validated.** Outcomes are identical on all 249 and all 30 rows in every run, so no new `migration.patch` needed a review label. Patches are byte-identical except kondax-com/Bocker on l2, whose own timing test (`expected 100.7 to be less than 100`) failed its baseline in both after runs, with and without generation, so its patched checks did not run.",
+      "values": [
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Stand-ins.** 17 of the 25 l2 rows whose generated check passes used a stand-in (`validation.generated.standIns`): Prisma 9, PostgREST 7, Clerk 9 (some rows several); 8 rows reach the PostgREST stand-in and still stop later. No generated check counted a regression. Generated checks never raise the grade above D, so grades are unchanged.",
+      "values": [
+        {
+          "says": "17",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "25",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "7",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "8",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Generated clients.** Type checks lose the missing-client errors in 71 of 73 l2 rows and change their error counts in 10 heldout rows, with no introduced error added; brandbite/brandbite's test baseline passes, and its draft stays `[Needs review]` for its other blockers.",
+      "values": [
+        {
+          "says": "71",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "73",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40638303426, 40638306398, 40624360669, 40695266609, 40695271902 (section \"Runtime stand-ins and generated clients (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: grade changes | | 0 |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: grade changes | | 0 |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before: l2-push-249 [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392) (the brief's 40624345477 was cancelled in the queue; this run is the same main commit), heldout-30 [40624360669](https://github.com/refit-dev/refit-bench/actions/runs/40624360669). After, at `9f8936a7` with `-f flags=--webhook-checks`: l2-push-249 [40639445000](https://github.com/refit-dev/refit-bench/actions/runs/40639445000) (`-f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249`), heldout-30 [40700945574](https://github.com/refit-dev/refit-bench/actions/runs/40700945574) (`-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30`). Compared with `scripts/stripe-benchmark-compare.mjs`: 0 outcome changes on either set. Again at `09029e5f`, after the cross-mock boolean fix below: heldout-30 [40703117794](https://github.com/refit-dev/refit-bench/actions/runs/40703117794) (0 outcome, grade or patch changes; inboxradarai's event now passes) and l2-push-249 [40703112108](https://github.com/refit-dev/refit-bench/actions/runs/40703112108), whose shards 3 and 9 were cancelled with every other queued refit-bench run at 17:11Z: its 236 rows have 0 outcome, grade or patch changes against main (81 validated of those rows before and after). None of the 13 missing rows had an unresolved event at `9f8936a7`, and the fix can only turn an unresolved event into a passed one, so their `9f8936a7` results stand.",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "3",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "17",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "11",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "236",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "81",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "13",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40624345477",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40624360669",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40639445000",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40700945574",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40703117794",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40703112108",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **No grade rises.** The check covered handler files on 55 l2-push-249 rows and 8 heldout-30 rows, but every one was already type-checked (grade C, or B from tests), and signed events never give more than C. Where they could matter, the D rows, 53 l2-push-249 rows and 7 heldout-30 rows could not prepare their dependencies, so the handler cannot load.",
+      "values": [
+        {
+          "says": "55",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "8",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "53",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "7",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Nothing lost, no new review labels.** No patch validates newly, so `docs/benchmarks/fix-reviews.json` is unchanged. The one patch that differs on l2-push-249, kondax-com/Bocker, follows its own flaky baseline: its tests failed on the original code in 40553722899, 40638303426, 40638306398 and this run, and passed only in 40624045392. Neither run validates it.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40553722899",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40638303426",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40638306398",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Unresolved events, all on rows already `[Needs review]`.** createdbymax/Loopletter-Open-source-email-marketing-platform reads `invoice.payment_intent` on `invoice.paid`, which the new version drops (the patch leaves it). 4NDR3S-01/TuSuerteEC fetches `PaymentIntent.invoice`, which the new version drops. raumildhandhukia/inboxradarai's `cancel_at_period_end` and Loopletter's `billing_thresholds` came from a subscription each side retrieved from its own version's mock, not from the patch; booleans no longer differ across sides since `09029e5f`, and `billing_thresholds` (null against an object) still does.",
+      "values": [
+        {
+          "says": "4",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "01",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **What stays out of reach.** On l2-push-249: 98 rows have no handler the patch affects that the harness can call (Pages Router, Express and Convex handlers, secrets from a validated `env` object), 53 cannot prepare dependencies, and 9 fail their patched checks before the signed events run. 0 regressions on either set.",
+      "values": [
+        {
+          "says": "98",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "53",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "9",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40624345477, 40624360669, 40639445000, 40700945574, 40703117794, 40703112108, 40553722899, 40638303426, 40638306398 (section \"Signed webhook events of both API versions (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "PR #364, under the founder decision of 2026-10-28 ([customer environment](CUSTOMER-ENVIRONMENT.md)). The runs were on refit-bench, no AI, `subsets/l2-push-249.json`, offset 0, size 25, count 249, compared with `scripts/stripe-benchmark-compare.mjs`.",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "25",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Before:** main `89f1c0ed59809eedfd247526f7f1a770af7447d6`, run 40624045392.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **After:** `6d6ecd9130ccf3de6ddd74875fae0751a099235e`, run 40639926011.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40639926011",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "All 12 jobs passed in both runs, and both runs report 249 repositories. **Outcome changes: 0.** The same outcome holds for 249 of 249 repositories.",
+      "values": [
+        {
+          "says": "12",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "249",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "The build sandbox ran on the 15 rows where Refit's own preparation refused for a reason it may fall back on. All 15 installs failed, so nothing was newly validated and no `migration.patch` needed a label in `docs/benchmarks/fix-reviews.json`. These rows stay untested, as before. Their causes, read from the results and reproduced locally for three of them:",
+      "values": [
+        {
+          "says": "15",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "15",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **A lockfile Refit's default pnpm 10 refuses, with no `packageManager` pin:** Miguel07Alm/text2question, an `ERR_PNPM_INVALID_DEPENDENCY_NAME` alias `react@latest`.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "10",
+          "reason": "A version or release in a name (a package, runtime or tool), not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **The other 10** (pnpm and Yarn rows, and one `npm ci` from a Dockerfile): the benchmark's stored message had been filled by proxy-agent warnings before the error. After the measured commit, `installFailure` puts the error lines first. That change touches messages only, not outcomes.",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40639926011 (section \"Refit builds the environment from the repository's own install (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "`subsets/holdout-100.json` (100 repositories) and `subsets/holdout-30b.json` (30) are the Stripe agent's measurement-only sets, frozen on October 28. `heldout-30` has been run many times since October 24, so it may already be tuned to; these two are repositories nobody working on Refit has seen.",
+      "values": [
+        {
+          "says": "100",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "30",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": []
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| | holdout-100 | holdout-30b | heldout-30 |",
+      "values": [],
+      "ignore": [
+        {
+          "token": "100",
+          "reason": "Part of a set's name."
+        },
+        {
+          "token": "30",
+          "reason": "Part of a set's name."
+        },
+        {
+          "token": "30",
+          "reason": "Part of a set's name."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| API version from 2022 | 6 | 4 | 1 |",
+      "values": [
+        {
+          "says": "6",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2022-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "4",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2022-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "1",
+          "query": {
+            "results": ["docs/benchmarks/subsets/heldout-30.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2022-"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| from 2023 | 19 | 11 | 9 |",
+      "values": [
+        {
+          "says": "19",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2023-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "11",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2023-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "9",
+          "query": {
+            "results": ["docs/benchmarks/subsets/heldout-30.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2023-"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| from 2024 | 33 | 8 | 12 |",
+      "values": [
+        {
+          "says": "33",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2024-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "8",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2024-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "12",
+          "query": {
+            "results": ["docs/benchmarks/subsets/heldout-30.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2024-"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| from 2025 | 26 | 6 | 7 |",
+      "values": [
+        {
+          "says": "26",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2025-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "6",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2025-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "7",
+          "query": {
+            "results": ["docs/benchmarks/subsets/heldout-30.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2025-"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| from 2026 | 16 | 1 | 1 |",
+      "values": [
+        {
+          "says": "16",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2026-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "1",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2026-"
+              }
+            ]
+          }
+        },
+        {
+          "says": "1",
+          "query": {
+            "results": ["docs/benchmarks/subsets/heldout-30.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "matches": "^2026-"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| Most common version | 2023-10-16 (16) | 2023-10-16 (9) | 2023-10-16 (7) |",
+      "values": [
+        {
+          "says": "16",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "equals": "2023-10-16"
+              }
+            ]
+          }
+        },
+        {
+          "says": "9",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "equals": "2023-10-16"
+              }
+            ]
+          }
+        },
+        {
+          "says": "7",
+          "query": {
+            "results": ["docs/benchmarks/subsets/heldout-30.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "before",
+                "equals": "2023-10-16"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| Version from an `apiVersion` pin / from stripe-node | 61 / 39 | 23 / 7 | |",
+      "values": [
+        {
+          "says": "61",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "beforeSource",
+                "matches": "^apiVersion pin"
+              }
+            ]
+          }
+        },
+        {
+          "says": "39",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "beforeSource",
+                "equals": "SDK version"
+              }
+            ]
+          }
+        },
+        {
+          "says": "23",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "beforeSource",
+                "matches": "^apiVersion pin"
+              }
+            ]
+          }
+        },
+        {
+          "says": "7",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "beforeSource",
+                "equals": "SDK version"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| npm / pnpm / Yarn / several lockfiles / none | 79 / 10 / 0 / 5 / 6 | 22 / 3 / 3 / 1 / 1 | |",
+      "values": [
+        {
+          "says": "79",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "npm"
+              }
+            ]
+          }
+        },
+        {
+          "says": "10",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "pnpm"
+              }
+            ]
+          }
+        },
+        {
+          "says": "0",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "yarn"
+              }
+            ]
+          }
+        },
+        {
+          "says": "5",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "several"
+              }
+            ]
+          }
+        },
+        {
+          "says": "6",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "none"
+              }
+            ]
+          }
+        },
+        {
+          "says": "22",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "npm"
+              }
+            ]
+          }
+        },
+        {
+          "says": "3",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "pnpm"
+              }
+            ]
+          }
+        },
+        {
+          "says": "3",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "yarn"
+              }
+            ]
+          }
+        },
+        {
+          "says": "1",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "several"
+              }
+            ]
+          }
+        },
+        {
+          "says": "1",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [
+              {
+                "field": "packageManager",
+                "equals": "none"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| Median stars | 0 | 0 | 5 |",
+      "values": [
+        {
+          "says": "0",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [],
+            "measure": "median",
+            "field": "stars"
+          }
+        },
+        {
+          "says": "0",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [],
+            "measure": "median",
+            "field": "stars"
+          }
+        },
+        {
+          "says": "5",
+          "query": {
+            "results": ["docs/benchmarks/subsets/heldout-30.json"],
+            "rows": "/repos",
+            "where": [],
+            "measure": "median",
+            "field": "stars"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "holdout-100 spans 25 API versions, from 2022-11-15 to 2026-08-26.dahlia; holdout-30b spans 15, from 2022-08-01 to 2026-04-22.dahlia. They have fewer stars than `heldout-30`, because the earlier sets took the most-starred repositories from the same searches and these are a random draw from what was left.",
+      "values": [
+        {
+          "says": "25",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": [],
+            "measure": "distinct",
+            "field": "before"
+          }
+        },
+        {
+          "says": "15",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": [],
+            "measure": "distinct",
+            "field": "before"
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "100",
+          "reason": "Part of a set's name."
+        },
+        {
+          "token": "30",
+          "reason": "Part of a set's name."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "**How they were selected.** `scripts/stripe-holdout-select.mjs` draws from the same population as every tuned Stripe set, and so from the same population as `heldout-30` and `l2-push-249`. Those two come from `push-279-affected.json`, which keeps the affected rows of the four tuned sets, which come from the fresh set's 13 GitHub code searches for stripe-node use. The script:",
+      "values": [
+        {
+          "says": "13",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/search.json"],
+            "rows": "/queries"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "1. reruns those 13 searches (`holdout-selection/search.json`: 6,700 repositories on October 28);",
+      "values": [
+        {
+          "says": "13",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/search.json"],
+            "rows": "/queries"
+          }
+        },
+        {
+          "says": "6,700",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/search.json"],
+            "rows": "/repositories"
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "1",
+          "reason": "List item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "2. drops every `owner/name` that any tracked Refit file mentions at `efcb91ed`: every frozen list and subset, every result, review and note (523 of the 6,700);",
+      "values": [
+        {
+          "says": "523",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/candidates.json"],
+            "value": "/named"
+          }
+        },
+        {
+          "says": "6,700",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/search.json"],
+            "rows": "/repositories"
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "2",
+          "reason": "List item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "3. keeps the fresh set's filters: not archived or a fork, under 50 MB, pushed since 2024-01-01, and `stripe` declared in the root `package.json` (2,830 eligible; 1,585 do not declare `stripe` at the root, 1,032 are over 50 MB, 730 were not pushed since 2024);",
+      "values": [
+        {
+          "says": "2,830",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/candidates.json"],
+            "rows": "/order"
+          }
+        },
+        {
+          "says": "1,585",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/candidates.json"],
+            "value": "/excluded/stripe not in root package.json"
+          }
+        },
+        {
+          "says": "1,032",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/candidates.json"],
+            "value": "/excluded/over 50 MB"
+          }
+        },
+        {
+          "says": "730",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/candidates.json"],
+            "value": "/excluded/no push since 2024-01-01"
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "3",
+          "reason": "List item number."
+        },
+        {
+          "token": "50",
+          "reason": "The fresh set's size limit (50 MB)."
+        },
+        {
+          "token": "50",
+          "reason": "The fresh set's size limit (50 MB)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "4. orders those by SHA-256 of the seed `refit-holdout-2026-10-28`, a newline and the lower-cased name (`holdout-selection/candidates.json`). The seed was fixed before any candidate was seen;",
+      "values": [],
+      "ignore": [
+        {
+          "token": "4",
+          "reason": "List item number."
+        },
+        {
+          "token": "256",
+          "reason": "Part of the hash name SHA-256."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "5. walks that order in batches of at most 50 shallow clones at the default-branch HEAD. Each clone is read only for its API version and its Stripe use, then deleted (`holdout-selection/checks.json`). A repository is kept when an application file (not a test, spec, fixture or mock) imports `stripe` and constructs a client, and its API version has a pinned spec in `data/stripe-openapi-versions.json` and is older than `2026-09-30.endive`. The API version is read as for the fresh set: the oldest literal `apiVersion` pin, else the locked stripe-node release. The first 150 in seeded order were checked: 130 kept, 9 with no readable API version, 8 with no Stripe client in application code, 3 on a version without a pinned spec, and none failed to clone;",
+      "values": [
+        {
+          "says": "150",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "value": "/selection/walked"
+          }
+        },
+        {
+          "says": "130",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "value": "/selection/kept"
+          }
+        },
+        {
+          "says": "9",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "value": "/selection/dropped/no API version"
+          }
+        },
+        {
+          "says": "8",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "value": "/selection/dropped/no Stripe SDK client in application code"
+          }
+        },
+        {
+          "says": "3",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "value": "/selection/dropped/API version without a pinned spec"
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "5",
+          "reason": "List item number."
+        },
+        {
+          "token": "50",
+          "reason": "The script's batch limit (at most 50 clones), a configured limit."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "6. fills `holdout-100` with the first 100 kept, in seeded order, and `holdout-30b` with the next 30.",
+      "values": [
+        {
+          "says": "100",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-100.json"],
+            "rows": "/repos",
+            "where": []
+          }
+        },
+        {
+          "says": "30",
+          "query": {
+            "results": ["docs/benchmarks/subsets/holdout-30b.json"],
+            "rows": "/repos",
+            "where": []
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "6",
+          "reason": "List item number."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "Each entry is pinned to the full commit that was checked. Rerun it with `node scripts/stripe-holdout-select.mjs --work <dir> --names-at efcb91ed`. GitHub's search index moves, so the committed inputs are the record. `candidates.json` holds the 2,830 eligible repositories in seeded order, so the order can be recomputed from the seed without GitHub (`seededOrder` in the script, tested in `pipeline/stripe-holdout-select.test.ts`).",
+      "values": [
+        {
+          "says": "2,830",
+          "query": {
+            "results": ["docs/benchmarks/holdout-selection/candidates.json"],
+            "rows": "/order"
+          }
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- Held-out repositories may be named only in their own lists, in `docs/benchmarks/holdout-selection/` and in milestone results under `docs/benchmarks/holdout-results/`. `pipeline/holdout-integrity.test.ts` fails `npm test` if any other tracked file names one, shipped source in `src/`, `pipeline/`, `bin/` and `scripts/` included (owner decision D5). It also checks that both lists are disjoint from each other and from every other list in `docs/benchmarks/subsets/` and `docs/benchmarks/*-repos.json`, and that every entry has a full 40-character commit and an API version older than the target with a pinned spec.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40",
+          "reason": "The length of a full commit SHA, a format rule."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "**One difference from `heldout-30`.** `heldout-30` keeps only rows a refit-bench run had already found `affected`. These sets are frozen before any Refit run, as the original, held-out 50 and fresh sets were, so some rows will be unaffected; in the fresh set it was 55%. Report a milestone as validated over affected rows, as `heldout-30` is, and give the affected count and the whole set's outcomes beside it. Never filter the list itself.",
+      "values": [
+        {
+          "says": "55%",
+          "query": {
+            "results": ["docs/benchmarks/2026-10-16-stripe-fresh-results.json"],
+            "rows": "/rows",
+            "where": [],
+            "measure": "rate",
+            "part": [
+              {
+                "field": "outcome",
+                "in": ["not-affected", "no-mapped-methods", "no-sdk-calls", "exceeds-scan-limits"]
+              }
+            ]
+          }
+        }
+      ],
+      "ignore": [
+        {
+          "token": "50",
+          "reason": "Part of a set's name (the held-out 50)."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l4-lockfile-resolution (40 rows) | | |",
+      "values": [
+        {
+          "says": "40",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| — production validated | 0 | 8 |",
+      "values": [
+        {
+          "says": "0",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "8",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| — checks passed | 1 | 18 |",
+      "values": [
+        {
+          "says": "1",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "18",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| — refused for a lockfile reason | 38 | 14 |",
+      "values": [
+        {
+          "says": "38",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "14",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated | 84 | 92 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "92",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: checks passed | 161 | 178 |",
+      "values": [
+        {
+          "says": "161",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "178",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| heldout-30: checks passed | 19 | 19 |",
+      "values": [
+        {
+          "says": "19",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "19",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Subset.** `docs/benchmarks/subsets/l4-lockfile-resolution.json`, chosen by rule: every repository of `subsets/push-279-affected.json` whose row in run 40591181316 (l2-push-249) or 40591185819 (heldout-30), both at main `63646f2a`, names a `no-lockfile`, `lockfile-out-of-sync` or `lockfile-integrity` refusal or a stripe-node upgrade refused with \"upgrade it first\".",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40591181316",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40591185819",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before: subset [40626037555](https://github.com/refit-dev/refit-bench/actions/runs/40626037555) (`cdff5f05` = main `89f1c0ed` + the subset), l2-push-249 [40624045392](https://github.com/refit-dev/refit-bench/actions/runs/40624045392) and heldout-30 [40624360669](https://github.com/refit-dev/refit-bench/actions/runs/40624360669) (main `89f1c0ed`). After, at `45601b1b`: subset [40734300846](https://github.com/refit-dev/refit-bench/actions/runs/40734300846) and heldout-30 [40734329431](https://github.com/refit-dev/refit-bench/actions/runs/40734329431). l2-push-249 after is [40677583831](https://github.com/refit-dev/refit-bench/actions/runs/40677583831) at `6c7bdc4c`: the founder cancelled the l2-push-249 rerun at `45601b1b` (40734315567) and paused further runs. The two commits between them only keep the committed lockfile's root names in a re-resolved lockfile and name the raised peer in the draft; on the subset and heldout-30, `6c7bdc4c` (40677546968, 40677593801) and `45601b1b` have the same outcome in every row, and every `migration.patch` is byte-identical except lamp-bot's lockfile name.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "40626037555",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40624360669",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40734300846",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40734329431",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40677583831",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        },
+        {
+          "token": "40734315567",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40677546968",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40677593801",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **17 rows newly pass their checks, 8 newly validate.** Every `migration.patch` was read in full, lockfile hunks checked for scope: 11 `correct` and 6 `correct-partial` (3 kept their API version after the endive pin failed the type check; ele's multi-period subscription case and 10 unmigrated usages; minhthuong's webhook version; Chivo's advisory JavaScript error) in [fix-reviews.json](benchmarks/fix-reviews.json). None is wrong.",
+      "values": [
+        {
+          "says": "17",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "8",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "11",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "6",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "3",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Types-only peer.** liamstamper/lamp-bot was refused because stripe 23.0.0 declares `@types/node >=20` as an optional peer and it pins 18.11.18. It now raises `@types/node` to 20.0.0 with stripe, its lockfile changes only stripe, `@types/node`, `undici-types` and the four packages stripe 23 no longer reaches, `tsc -p .` shows no new errors, and it validates at C.",
+      "values": [],
+      "ignore": [
+        {
+          "token": "23",
+          "reason": "A version or release in a name (a package, runtime or tool), not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **What still stops (subset).** No lockfile for a project whose package.json npm cannot resolve as of its commit date: UNC-GDSC/Micro-SaaS-Starter-Kit (E404), RicardoGEsteves/next-digital-marketplace and baifan1366/project-management-system (ERESOLVE). Workspaces (Traviseric/arxmint), pnpm (Suhaib3100/online-compiler, nishantharkut/Uproot.AI), `EBADENGINE` (thematters/matters-server, MikPoik/next13-ai-companion) and 7 projects that also commit a binary `bun.lockb` (Rohit19060/stripe_hono, mageshyt/Nextjs-saas-starter, rishabhsingroha/MusicListeningPlatform, LDAWoo/webprodigies-plura, blefnk/all-in-one-nextjs-template, duggal1/flux-io, michaelshimeles/goshenpay-backend). Four rows now reach their checks and fail them on the original code; helloworld9912/Stripe-Account-Migration's patch fails its checks and is not published.",
+      "values": [
+        {
+          "says": "7",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Not measured.** `9fe02248`, after the measured commit, resolves lockfiles for npm projects that also commit `bun.lockb`, which reaches the 7 rows above; it has unit tests only, and the benchmark rerun waits for the founder. AI patches, publication and the hosted worker were not measured.",
+      "values": [
+        {
+          "says": "7",
+          "notCheckable": "From refit-bench runs 40591181316, 40591185819, 40626037555, 40624045392, 40624360669, 40734300846, 40734329431, 40677583831, 40734315567, 40677546968, 40677593801 (section \"Lockfile resolution and types-only peers (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| 40624045392 (main) | `89f1c0ed` | `-f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249` | 84 |",
+      "values": [
+        {
+          "says": "84",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "40624045392",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| 40626067947 (lane A) | `622951a0` | the same, `-f flags=--resolve-lockfiles` | 90 |",
+      "values": [
+        {
+          "says": "90",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "40626067947",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| 40634781011 (this change) | `17b831d8` | the same, `-f flags=--resolve-lockfiles` | **96** |",
+      "values": [
+        {
+          "says": "96",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "40634781011",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| 40634774301 (subset, this change) | `17b831d8` | `-f list=subsets/l3-conflicting-lockfiles.json -f offset=0 -f size=4 -f count=7`, the flag | 3 of 7 |",
+      "values": [
+        {
+          "says": "3",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "7",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "40634774301",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- Against lane A, 6 repositories move from needs-review to validated and none is lost: the three conflicting-lockfile rows of the subset (Quill, avikalp987/quill, tldr-app), `omar99elnemr/Docubot` and `saidMounaim/tick-event` (their one in-sync lockfile now takes the stripe upgrade), and `r0ld3x/DocTalk`, which commits no lockfile and validates because its install was not killed this time (Docker SIGKILL in both earlier runs). The six patches are read and labelled `correct` in `docs/benchmarks/fix-reviews.json`; the subset's three are byte-identical to a local offline Docker run.",
+      "values": [
+        {
+          "says": "6",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- Not outcome changes: `LucasKlemke/doctor-reborn` now upgrades stripe and its own `@ts-expect-error` becomes unused, so its patch fails tsc and is not published (before, the pin moved on stripe 18 and passed); `passion-27/QuotesAI` now has the upgrade in its patch and still stops on its `link:` dependency; `vignesh-gupta/digibee-marketplace` (one `yarn.lock`, a byte-identical patch) timed out installing the candidate after 300 seconds; rerun locally in offline Docker at `17b831d8`, the same patch passes its type check (grade C).",
+      "values": [],
+      "ignore": [
+        {
+          "token": "18",
+          "reason": "A version or release in a name (a package, runtime or tool), not a measurement."
+        },
+        {
+          "token": "300",
+          "reason": "A configured limit or setting, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- heldout-30, run only after the above: 40624360669 (main `89f1c0ed`, 10 validated) → 40682647162 (`ce5755ac`, `-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30 -f flags=--resolve-lockfiles`, **12**), none lost, 27 of 30 rows identical. `ItusiAI/Open-Magiviz` and `VishalRaut2106/HackMate_AI` install `package-lock.json` because their workflows install with npm and validate (labelled `correct`); `DarkInventor/QuotesAI` gains the stripe upgrade and still stops on its `link:` dependency. Nothing was tuned on this set.",
+      "values": [
+        {
+          "says": "10",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "12",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "27",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        },
+        {
+          "says": "30",
+          "notCheckable": "From refit-bench runs 40624045392, 40626067947, 40634781011, 40634774301, 40624360669, 40682647162 (section \"Conflicting lockfiles chosen by rule (October 28)\"), whose merged results are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "30",
+          "reason": "Part of the list name heldout-30, not a measurement."
+        },
+        {
+          "token": "40624360669",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40682647162",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: production validated | 86 | 89 |",
+      "values": [
+        {
+          "says": "86",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        },
+        {
+          "says": "89",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249: rows that stop on \"No check can run\" | 6 | 0 |",
+      "values": [
+        {
+          "says": "6",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        },
+        {
+          "says": "0",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "| l2-push-249 merged with main, 224 rows: validated | 91 | 93 |",
+      "values": [
+        {
+          "says": "224",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        },
+        {
+          "says": "91",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        },
+        {
+          "says": "93",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "249",
+          "reason": "Part of the list name l2-push-249, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Runs.** Before, main at `efcb91ed`: [40806735877](https://github.com/refit-dev/refit-bench/actions/runs/40806735877). After, at `3ee00eb2`: [40806747841](https://github.com/refit-dev/refit-bench/actions/runs/40806747841). All rows came back in both. On the tree merged with main: main at `6161f020` [40821431837](https://github.com/refit-dev/refit-bench/actions/runs/40821431837), whose shard 2 failed, and this branch at `ce1f168f` [40821435089](https://github.com/refit-dev/refit-bench/actions/runs/40821435089); the merged row compares the 224 rows both returned.",
+      "values": [
+        {
+          "says": "224",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        }
+      ],
+      "ignore": [
+        {
+          "token": "40806735877",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40806747841",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "40821431837",
+          "reason": "A refit-bench run id, not a measurement."
+        },
+        {
+          "token": "2",
+          "reason": "A shard index, not a measurement."
+        },
+        {
+          "token": "40821435089",
+          "reason": "A refit-bench run id, not a measurement."
+        }
+      ]
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **5 rows move from D to C.** `dalemoncayo/express-stripe`, `mdalmamunit427/yoga-master-server` and `manfraio/stripe_elements_customized_card_form` validate. `samiamjidkhan/dota2-helper` stays a draft for untraced reads of Dota data, and `RescuePC/Donation-Link` for a submodule. Each patch is the card rule and the stripe-node upgrade, byte-identical on the merged tree. There `aionarae/amazon-beta`, which main now prepares, also reaches C and stays a draft for contract changes.",
+      "values": [
+        {
+          "says": "5",
+          "notCheckable": "From the merged results of refit-bench runs 40806735877, 40806747841, 40821431837 and 40821435089, which are not committed."
+        }
+      ],
+      "ignore": []
+    },
+    {
+      "doc": "docs/BENCHMARKS.md",
+      "quote": "- **Reviews.** Every grade C patch was read in full against [FIX-REVIEW.md](FIX-REVIEW.md): 6 correct, 0 wrong ([fix-reviews.json](benchmarks/fix-reviews.json)). The unpatched express-stripe code fails the same check on `payment_method_types`, so it catches the removed parameter.",
+      "values": [
+        {
+          "says": "6",
+          "query": {
+            "results": ["docs/benchmarks/fix-reviews.json"],
+            "rows": "/reviews",
+            "where": [
+              {
+                "field": "run",
+                "matches": "40806747841|40821435089"
+              },
+              {
+                "field": "verdict",
+                "equals": "correct"
+              }
+            ]
+          }
+        },
+        {
+          "says": "0",
+          "query": {
+            "results": ["docs/benchmarks/fix-reviews.json"],
+            "rows": "/reviews",
+            "where": [
+              {
+                "field": "run",
+                "matches": "40806747841|40821435089"
+              },
+              {
+                "field": "verdict",
+                "equals": "wrong"
+              }
+            ]
+          }
+        }
+      ],
+      "ignore": []
     }
   ]
 }

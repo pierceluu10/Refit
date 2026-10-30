@@ -18,3 +18,21 @@ export function funnel(rows: Record<string, unknown>[]): {
   noCheck: Record<string, number>;
   repositories: ({ repo: string } & FunnelStage)[];
 };
+export const BLOCKERS: string[];
+export interface RowBlocker {
+  blocker: string;
+  evidence: string;
+}
+export function rowBlockers(row: Record<string, unknown>, report?: unknown): RowBlocker[];
+export function artifactReports(directory: string): Map<string, unknown>;
+export function blockerCensus(
+  rows: Record<string, unknown>[],
+  reports?: Map<string, unknown>,
+): {
+  rows: number;
+  affected: number;
+  unblocked: number;
+  reports: number;
+  blockers: Record<string, { rows: number; only: number; repos: string[] }>;
+  repositories: { repo: string; stage: string; blockers: RowBlocker[] }[];
+};

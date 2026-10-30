@@ -196,7 +196,7 @@ gated(
         image: process.env.REFIT_DOCKER_IMAGE!,
         cacheDirectory: join(pnp.root, 'cache'),
       }),
-    ).rejects.toThrow("Yarn Plug'n'Play requires a custom validation image");
+    ).rejects.toThrow("Yarn Plug'n'Play needs the repository install");
   },
   60_000,
 );
