@@ -171,17 +171,38 @@ export const needsCase = (text: string) =>
 
 // Only the object each root field's payload returns directly (`productCreate.product.id`): IDs of
 // existing objects selected deeper in the payload (a location, the shop) never count as created.
+// The one exception is a created product's own variants, which Shopify creates with it.
 function createdIds(data: unknown, operation: OperationDefinitionNode) {
   return rootFields(operation).flatMap((field) => {
     const payload = isObject(data) ? data[field] : undefined;
     return isObject(payload)
       ? Object.values(payload).flatMap((value) =>
           isObject(value) && typeof value.id === 'string' && GLOBAL_ID.test(value.id)
-            ? [value.id]
+            ? [value.id, ...(value.id.startsWith(PRODUCT) ? productVariantIds(value) : [])]
             : [],
         )
       : [];
   });
+}
+
+const PRODUCT = 'gid://shopify/Product/';
+
+// `variants { nodes { id } }` or `variants { edges { node { id } } }` of a product.
+function productVariantIds(product: Record<string, unknown>) {
+  const variants = isObject(product.variants) ? product.variants : undefined;
+  const nodes = [
+    ...(Array.isArray(variants?.nodes) ? variants.nodes : []),
+    ...(Array.isArray(variants?.edges)
+      ? variants.edges.map((edge) => (isObject(edge) ? edge.node : undefined))
+      : []),
+  ];
+  return nodes.flatMap((node) =>
+    isObject(node) &&
+    typeof node.id === 'string' &&
+    node.id.startsWith('gid://shopify/ProductVariant/')
+      ? [node.id]
+      : [],
+  );
 }
 
 const onlyFields = (operation: OperationDefinitionNode, suffix: string) =>
@@ -381,7 +402,9 @@ export async function liveShopifyProof(options: {
             stepResults[`setup.${index}`] = result.data;
             for (const id of createdIds(result.data, setup)) {
               ids.add(id);
-              created.push({ id, deleted: false });
+              // A variant goes with its product, which cleanup deletes.
+              if (!id.startsWith('gid://shopify/ProductVariant/'))
+                created.push({ id, deleted: false });
             }
           }
           if (entry.status !== 'passed') break;
