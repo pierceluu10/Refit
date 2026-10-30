@@ -442,6 +442,8 @@ export function subscriptionPeriodHelperModule(
   const exported = kind === 'cjs' || inline ? '' : 'export ';
   const parameters = typed ? 'subscription: object, planItem?: PlanItem' : 'subscription, planItem';
   const result = typed ? ': number' : '';
+  // `unknown extends T` holds only for `any`: an untyped receiver stays `any`, as the read it
+  // replaces was (`0 extends 1 & T` is simplified away under `T extends object`).
   const sections: [string, string][] = [
     [
       PERIOD_HELPERS.current_period_start,
@@ -462,7 +464,9 @@ export function subscriptionPeriodHelperModule(
       `${
         typed
           ? `// Typed like the removed field under old stripe types, like the new location under new ones.
-type InvoiceSubscription<T> = T extends { subscription: infer S }
+type InvoiceSubscription<T> = unknown extends T
+  ? any
+  : T extends { subscription: infer S }
   ? S
   : T extends { parent: infer P }
     ? NonNullable<P> extends { subscription_details: infer D }
@@ -509,7 +513,9 @@ ${exported}function getInvoicePriceId(line${t(': object')})${t(': string | undef
       `${
         typed
           ? `// Typed like the removed field under old stripe types, like the new location under new ones.
-type CheckoutShippingDetails<T> = T extends { shipping_details: infer S }
+type CheckoutShippingDetails<T> = unknown extends T
+  ? any
+  : T extends { shipping_details: infer S }
   ? S
   : T extends { collected_information: infer C }
     ? NonNullable<C> extends { shipping_details: infer S }
@@ -553,7 +559,9 @@ ${exported}function getCouponId(value${t(': object')})${t(': string | undefined'
       `${
         typed
           ? `// Typed like the removed field under old stripe types, like the new name under new ones.
-type ProductMarketingFeatures<T> = T extends { features: infer F }
+type ProductMarketingFeatures<T> = unknown extends T
+  ? any
+  : T extends { features: infer F }
   ? F
   : T extends { marketing_features: infer M }
     ? M

@@ -11,6 +11,9 @@ import {
   currencyCodeEdits,
   enumValueEdits,
   REQUEST_OPTIONS_RULE,
+  SDK_SIGNATURE_RULES,
+  ACCOUNT_RETRIEVE_CURRENT_RULE,
+  accountRetrieveCurrentEdits,
   REQUEST_OPTIONS_SINCE,
   requestOptionEdits,
 } from './operation-reach.ts';
@@ -25,6 +28,7 @@ import {
   renderFileReplacements,
   renderPatch,
   REQUEST_OPTIONS_WARNING,
+  ACCOUNT_RETRIEVE_CURRENT_WARNING,
 } from './patches.ts';
 import {
   PACKAGE_FILES,
@@ -271,7 +275,10 @@ async function runOpenApiPipeline(options: {
     isObject(after.document.info) &&
     Number(STRIPE_SDK_RELEASES[String(after.document.info.version)]?.split('.')[0]) >=
       REQUEST_OPTIONS_SINCE
-      ? requestOptionEdits({ repository, calls: analysis.calls, mappings: operationMappings })
+      ? [
+          ...requestOptionEdits({ repository, calls: analysis.calls, mappings: operationMappings }),
+          ...accountRetrieveCurrentEdits({ repository, calls: analysis.calls }),
+        ]
       : []),
   ];
   const stripePackage =
@@ -299,11 +306,22 @@ async function runOpenApiPipeline(options: {
       ? typeof targetVersion === 'string' && value < targetVersion
       : targetVersion !== applicationApiVersion && value === applicationApiVersion);
   // A pin the application does not send that is also a webhook endpoint's api_version stays, as
-  // moving it would move that endpoint; it is listed as unresolved with why.
+  // moving it would move that endpoint; it is listed as unresolved with why. One that sends the
+  // application's version moves (founder decision, 2026-10-28): Refit compared exactly that
+  // contract with the target, so the endpoint it creates gets the payloads the handlers were
+  // checked against, and the patch says so.
   const endpointPin = (entry: { value: string | null; endpoint?: true }) =>
     Boolean(
-      options.leaveReviewedFindings && entry.endpoint && entry.value && movesPin(entry.value),
+      options.leaveReviewedFindings &&
+      entry.endpoint &&
+      entry.value &&
+      entry.value !== applicationApiVersion &&
+      movesPin(entry.value),
     );
+  const movedEndpointPins = apiVersionLiterals.filter(
+    (literal: { value: string; endpoint?: true }) =>
+      literal.endpoint && movesPin(literal.value) && !endpointPin(literal),
+  );
   const apiVersionDeclarations = declaredVersions.map((entry) =>
     endpointPin(entry)
       ? { ...entry, status: 'unknown' as const, reason: ENDPOINT_PIN_REASON }
@@ -370,7 +388,7 @@ async function runOpenApiPipeline(options: {
         PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '') ||
         REQUEST_MOVE_RULES.has(edit.rule ?? '') ||
         edit.rule === INVOICE_PREVIEW_RULE ||
-        edit.rule === REQUEST_OPTIONS_RULE,
+        SDK_SIGNATURE_RULES.has(edit.rule ?? ''),
     ) &&
     (bumpsVersion || sdkDefault) &&
     (upgradeRequired || preview) &&
@@ -386,8 +404,19 @@ async function runOpenApiPipeline(options: {
   // Every client that may send the renamed field must reach the target version: a dynamic or
   // unresolved pin can keep one on the version that rejects allowed_payment_method_types. A
   // client without the option moves with the stripe-node upgrade.
+  // An untraced client's own literal pin moves with versionEdits too (declared-api-versions.ts).
+  const movedUntraced = (entry: (typeof apiVersionDeclarations)[number]) =>
+    Boolean(entry.untracedPin) &&
+    apiVersionLiterals.some(
+      (literal) =>
+        apiVersionDeclarations[literal.declaration ?? -1] === entry &&
+        versionEdits.some((edit) => edit.file === literal.file && edit.start === literal.start),
+    );
   const everyPinMoves = apiVersionDeclarations.every(
-    (entry) => entry.status !== 'unknown' || (entry.kind === 'constructor' && entry.absent),
+    (entry) =>
+      entry.status !== 'unknown' ||
+      (entry.kind === 'constructor' && entry.absent) ||
+      movedUntraced(entry),
   );
   // A deployment environment variable can override a moved default, so request edits that need
   // the target version do not ride on it; the version move itself does.
@@ -449,7 +478,7 @@ async function runOpenApiPipeline(options: {
     (!patchRequested || upgraded) &&
     !configuredMigrationProposal;
   // Request options move only together with the stripe-node release that needs them last.
-  movedTo[REQUEST_OPTIONS_RULE] = movedTo[INVOICE_PREVIEW_RULE];
+  for (const rule of SDK_SIGNATURE_RULES) movedTo[rule] = movedTo[INVOICE_PREVIEW_RULE];
   // The period helper reads either API version, so it does not depend on the version pin.
   const kept = [
     ...analyzedEdits.filter(
@@ -508,7 +537,7 @@ async function runOpenApiPipeline(options: {
     (edit) => !reviewed.some((finding) => editCovers(repository, [edit], finding)),
   );
   // Request options moved last ride the other rule edits or the version bump, never alone.
-  const optionEdits = edits.filter((edit) => edit.rule === REQUEST_OPTIONS_RULE);
+  const optionEdits = edits.filter((edit) => SDK_SIGNATURE_RULES.has(edit.rule ?? ''));
   const ruleEdits = edits.filter(isFieldMove);
   // The pin and the stripe-node upgrade ride the rules' edits. Under owner decision 1 they also
   // make the patch when a removed request parameter is left for review, as the #88 waiver does:
@@ -567,6 +596,7 @@ async function runOpenApiPipeline(options: {
     annotateReach(specificationDiff.changes, {
       repository,
       before: before.document,
+      after: after.document,
       calls: analysis.calls,
       mappings: operationMappings,
       untracedCalls: () =>
@@ -722,8 +752,8 @@ async function runOpenApiPipeline(options: {
     provider.packageName === STRIPE.packageName &&
     typeof targetVersion === 'string' &&
     !analysis.findings.length &&
-    analyzedEdits.every((edit) => edit.rule === REQUEST_OPTIONS_RULE) &&
-    kept.every((edit) => edit.rule === REQUEST_OPTIONS_RULE) &&
+    analyzedEdits.every((edit) => SDK_SIGNATURE_RULES.has(edit.rule ?? '')) &&
+    kept.every((edit) => SDK_SIGNATURE_RULES.has(edit.rule ?? '')) &&
     everyPinMoves &&
     (versionEdits.length > 0 || sdkDefault)
       ? await stripePackageUpgrade(
@@ -761,7 +791,12 @@ async function runOpenApiPipeline(options: {
             versionBump.upgrade.warning ??
               `Upgrades stripe from ${versionBump.upgrade.from} to ${versionBump.upgrade.to} in ${versionBump.upgrade.files.map((file) => file.path).join(' and ')}, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
             'Webhook endpoints keep the API version set in the Stripe Dashboard; this patch does not change them.',
-            ...(optionEdits.length ? [REQUEST_OPTIONS_WARNING] : []),
+            ...(optionEdits.some((edit) => edit.rule === REQUEST_OPTIONS_RULE)
+              ? [REQUEST_OPTIONS_WARNING]
+              : []),
+            ...(optionEdits.some((edit) => edit.rule === ACCOUNT_RETRIEVE_CURRENT_RULE)
+              ? [ACCOUNT_RETRIEVE_CURRENT_WARNING]
+              : []),
           ],
           sdkUpgrade: {
             from: versionBump.upgrade.from,
@@ -805,7 +840,7 @@ async function runOpenApiPipeline(options: {
                   repository,
                   movesVersion
                     ? [...edits, ...versionEdits]
-                    : edits.filter((edit) => edit.rule !== REQUEST_OPTIONS_RULE),
+                    : edits.filter((edit) => !SDK_SIGNATURE_RULES.has(edit.rule ?? '')),
                   unresolvedFindings.length,
                   provider,
                   replacements,
@@ -909,13 +944,30 @@ async function runOpenApiPipeline(options: {
         )
       )
         finding.webhook.migration = { rule: 'ai-version-tolerant' };
-  const completePatch =
-    'unresolvedFindings' in upgradedPatch && additionalOperationUsageCount > 0
+  const endpointPatch =
+    movedEndpointPins.length &&
+    'diff' in upgradedPatch &&
+    upgradedPatch.diff.includes(String(targetVersion))
       ? {
           ...upgradedPatch,
-          unresolvedFindings: upgradedPatch.unresolvedFindings + additionalOperationUsageCount,
+          warnings: [
+            ...('warnings' in upgradedPatch ? upgradedPatch.warnings : []),
+            `${movedEndpointPins
+              .map((literal) => literal.file)
+              .filter((file, index, all) => all.indexOf(file) === index)
+              .join(
+                ', ',
+              )} also ${movedEndpointPins.length === 1 ? 'sets' : 'set'} a webhook endpoint's api_version: endpoints this code creates after the patch receive ${String(targetVersion)} payloads. Existing endpoints keep their version until you change it in the Dashboard.`,
+          ],
         }
       : upgradedPatch;
+  const completePatch =
+    'unresolvedFindings' in endpointPatch && additionalOperationUsageCount > 0
+      ? {
+          ...endpointPatch,
+          unresolvedFindings: endpointPatch.unresolvedFindings + additionalOperationUsageCount,
+        }
+      : endpointPatch;
   const repositoryHash = digest(
     JSON.stringify({
       files: repository.files,

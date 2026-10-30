@@ -68,7 +68,7 @@ import { pinnedShopifyVersions, SHOPIFY_APIS } from './shopify-schemas.ts';
 import { PipelineInputError } from './types.ts';
 
 const USAGE = `Usage: refit rules check [--contracts <directory>] [--provider shopify] [--coverage <shopify-coverage.json>]
-       refit rules save-page --url <https://shopify.dev/....md> [--url ...]
+       refit rules save-page --url <https://shopify.dev/....md | https://raw.githubusercontent.com/Shopify/<repo>/<commit>/....md> [--url ...]
        refit rules mine-shopify --output <new-directory> [--write] [--limit <entries>] [--entry <slug> ...]
        refit rules generate --version <api-version> [--version ...] --output <new-directory> [--write] [--contracts <directory>]`;
 const CHANGELOG = { label: 'stripe-changelog', url: 'https://docs.stripe.com/changelog.md' };
@@ -298,9 +298,15 @@ async function savedPage(version: string, slug: string, url: string) {
 
 // A Shopify page saved for rules to quote: changelog entries under changelog/, guides under docs/.
 async function savedShopifyPage(url: string) {
-  const match = /^https:\/\/shopify\.dev\/(changelog\/posts|docs)\/(.+)\.md$/.exec(url);
-  if (!match) throw new PipelineInputError(`${url} is not a shopify.dev Markdown page.`);
-  const group = match[1] === 'docs' ? 'docs' : 'changelog';
+  // A Shopify GitHub file pinned to a commit counts too, such as an app template's CHANGELOG.md.
+  const match =
+    /^https:\/\/shopify\.dev\/(changelog\/posts|docs)\/(.+)\.md$/.exec(url) ??
+    /^https:\/\/raw\.githubusercontent\.com\/(Shopify)\/([\w.-]+\/[0-9a-f]{40}\/.+)\.md$/.exec(url);
+  if (!match)
+    throw new PipelineInputError(
+      `${url} is not a shopify.dev Markdown page or a Shopify GitHub Markdown file at a commit.`,
+    );
+  const group = match[1] === 'docs' ? 'docs' : match[1] === 'Shopify' ? 'github' : 'changelog';
   const slug = match[2].replace(/[^a-z0-9]+/gi, '-').toLowerCase();
   const path = join(SHOPIFY_PAGES, group, `${slug}.json`);
   if (existsSync(path)) {

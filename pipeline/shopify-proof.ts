@@ -7,6 +7,7 @@ import {
   isNonNullType,
   NoUnusedFragmentsRule,
   parse,
+  print,
   specifiedRules,
   TypeInfo,
   typeFromAST,
@@ -33,6 +34,7 @@ import {
   needsCase,
   shopifyAccessToken,
   shopifyTestStore,
+  type ShopifyLiveCase,
   type ShopifyLiveProof,
 } from './shopify-live-proof.ts';
 import { proveShopifyRest } from './shopify-rest-contract.ts';
@@ -454,6 +456,9 @@ export function shopifyGrade(
   schema: ShopifySchemaProof,
   live?: { status: string; reason: string },
   codegenPins: readonly string[] = [],
+  // Patched operations whose variables differ from the original's and that the development store
+  // did not run: the schema proof cannot see whether the code sends what they now declare.
+  uncovered: readonly string[] = [],
 ): EvidenceGrade {
   const pins = codegenPins.length
     ? ` The patch changes only the version pin of ${codegenPins.join(', ')}, which selects only the schema codegen generates types from; the schema proof covers that schema.`
@@ -469,6 +474,12 @@ export function shopifyGrade(
       letter: 'D',
       level: 'none',
       reason: `The development store run failed: ${live.reason}`,
+    };
+  if (uncovered.length)
+    return {
+      letter: 'D',
+      level: 'none',
+      reason: `The patch changes the variables of ${uncovered.join(', ')}, and the development store did not run ${uncovered.length === 1 ? 'it' : 'them'}${live ? ` (${live.reason})` : ' (no development store is configured)'}; schema validation cannot see what the code sends. ${schema.reason}`,
     };
   if (live?.status === 'passed')
     return { letter: 'A', level: 'behaviour-tests', reason: `${live.reason} ${schema.reason}` };
@@ -590,6 +601,8 @@ export async function shopifyProof(options: {
   environment: Record<string, string | undefined>;
   fetch?: typeof fetch;
   reconstructed?: { file: string; line: number; document: string }[];
+  // Cases the migrations wrote for documents whose variables they changed, at their patched lines.
+  cases?: ShopifyLiveCase[];
 }) {
   const scans = {
     original: scanShopify(options.original, options.graphql?.original),
@@ -597,6 +610,52 @@ export async function shopifyProof(options: {
   };
   const schema = shopifySchemaProof({ ...options, scans });
   const versions = { before: options.before.version, after: options.after.version };
+  // The original document at the same position in the same file.
+  const originalOf = (document: AdminDocument) => {
+    const inFile = (scan: ShopifyScan) =>
+      scan.documents.filter((entry) => entry.file === document.file);
+    return inFile(scans.original)[inFile(scans.patched).indexOf(document)];
+  };
+  const variableSignature = (text: string) => {
+    try {
+      return parse(text)
+        .definitions.flatMap((definition) =>
+          definition.kind === 'OperationDefinition'
+            ? [
+                `${definition.name?.value ?? ''}(${(definition.variableDefinitions ?? [])
+                  .map((entry) => print(entry))
+                  .join(',')})`,
+              ]
+            : [],
+        )
+        .join(';');
+    } catch {
+      return undefined;
+    }
+  };
+  // Patched operations whose variables differ from the original's; each must run on the store.
+  const changedVariables = scans.patched.documents.flatMap((document) => {
+    const original = originalOf(document);
+    if (document.api || !original || original.text === document.text) return [];
+    if (variableSignature(original.text) === variableSignature(document.text)) return [];
+    return parse(document.text).definitions.flatMap((definition) =>
+      definition.kind === 'OperationDefinition'
+        ? [{ id: documentId(document), operationName: definition.name?.value ?? null }]
+        : [],
+    );
+  });
+  const uncoveredBy = (live: ShopifyLiveProof | undefined) =>
+    changedVariables
+      .filter(
+        (entry) =>
+          !live?.operations.some(
+            (operation) =>
+              operation.document === entry.id &&
+              operation.operationName === entry.operationName &&
+              operation.status === 'passed',
+          ),
+      )
+      .map((entry) => `${entry.id}${entry.operationName ? ` (${entry.operationName})` : ''}`);
   const store = shopifyTestStore(options.environment);
   let live: ShopifyLiveProof | undefined;
   let liveCases: Awaited<ReturnType<typeof writeShopifyLiveCases>>['record'] | undefined;
@@ -625,17 +684,23 @@ export async function shopifyProof(options: {
     const documents = scans.patched.documents
       .filter((document) => !skipped.has(documentId(document)))
       .map((document) => {
-        // The original document at the same position in the same file, for the original version.
-        const inFile = (scan: ShopifyScan) =>
-          scan.documents.filter((entry) => entry.file === document.file);
-        const original = inFile(scans.original)[inFile(scans.patched).indexOf(document)];
+        // The original document, for the original version, unless it already fails there: Shopify
+        // serves the target's predecessor today, so the patched document runs on both versions.
+        const original = originalOf(document);
         return {
           id: documentId(document),
-          original: original?.text ?? null,
+          original:
+            original && !checkDocument(original, options.before.schema).errors.length
+              ? original.text
+              : null,
           patched: document.text,
         };
       });
-    const needsInput = documents.filter((document) => needsCase(document.patched));
+    const given = options.cases ?? [];
+    const needsInput = documents.filter(
+      (document) =>
+        needsCase(document.patched) && !given.some((entry) => entry.document === document.id),
+    );
     const written =
       options.ai && needsInput.length
         ? await writeShopifyLiveCases({
@@ -649,7 +714,7 @@ export async function shopifyProof(options: {
       store: resolved,
       versions,
       documents,
-      cases: written?.cases,
+      cases: [...given, ...(written?.cases ?? [])],
       fetch: options.fetch,
     });
   }
@@ -670,7 +735,7 @@ export async function shopifyProof(options: {
       (value): value is number => typeof value === 'number',
     );
     return {
-      grade: shopifyGrade(options.own, schema, live, options.codegenPins),
+      grade: shopifyGrade(options.own, schema, live, options.codegenPins, uncoveredBy(live)),
       record: {
         schema,
         ...(live ? { live } : {}),
