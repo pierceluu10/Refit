@@ -10,6 +10,7 @@ import {
   splitQuery,
   splitSets,
   textSignals,
+  TIERS,
   versionStatus,
 } from '../scripts/meta-active-select.mjs';
 
@@ -107,4 +108,12 @@ it('splits sets by seeded hash, blind first, with no overlap', () => {
   expect(blind.filter((entry) => dev.includes(entry))).toEqual([]);
   expect(splitSets([...repos].reverse(), 'seed', 3, 5)).toEqual({ blind, dev });
   expect(splitSets(repos, 'seed', 3, 50).blind).toEqual(blind);
+});
+
+it('loosens activity only in the agreed order: 180 days, then one author', () => {
+  expect(TIERS.map(({ days, authors }) => [days, authors])).toEqual([
+    [90, 2],
+    [180, 2],
+    [180, 1],
+  ]);
 });
