@@ -18,13 +18,13 @@ export function movedValueEdit(
 ): SourceEdit[] | undefined {
   if (!ts.isPropertyAccessExpression(node) || node.name.text !== move.property) return;
   const parent = node.parent;
+  // Writes and deletes stay for review: a helper call cannot be assigned to.
   if (
-    move.readsOnly &&
-    ((ts.isBinaryExpression(parent) &&
+    (ts.isBinaryExpression(parent) &&
       parent.left === node &&
       parent.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
       parent.operatorToken.kind <= ts.SyntaxKind.LastAssignment) ||
-      ts.isDeleteExpression(parent))
+    ts.isDeleteExpression(parent)
   )
     return;
   const dropped = (read: ts.PropertyAccessExpression) =>

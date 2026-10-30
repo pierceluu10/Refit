@@ -61,7 +61,8 @@ it.each([
   ['a flag set to false', (pack: any) => (pack.fieldMoves[1].narrowTested = false), /must be true/],
   [
     'a wrap without discriminator',
-    (pack: any) => delete pack.requestMoves[0].discriminator,
+    (pack: any) =>
+      delete pack.requestMoves.find((move: any) => move.family === 'request-wrap').discriminator,
     /discriminator/,
   ],
   [

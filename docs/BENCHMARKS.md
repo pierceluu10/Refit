@@ -579,6 +579,22 @@ An `apiVersion` pin was `api-version-untraced` whenever its client could escape 
 - **What still stops.** 16 l2-push-249 rows keep an untraced version, from clients passed to helpers Refit cannot read, class bindings, or ambiguous aliases. Webhook endpoint versions are unchanged by this lane, and failed pin-move errors on `api-version-kept` drafts are still not recorded.
 - **Not measured:** AI patches, publication and the hosted worker.
 
+## Documented-replacement rules (October 28)
+
+`feat/stripe-generated-rules` (#357) adds a reach rule for removed API operations, walks oasdiff `items` segments as array members where the schema is an array (so `Subscription.items` reads as a property), and adds the `request-enum-value` rule family with dahlia's three Checkout `ui_mode` successors ([rules](MINED-RULES.md#documented-replacement-rules-2026-10-28)).
+
+| Set (no AI, default flags)                    | Before: main `89f1c0ed` | After: `a4438b81` |
+| --------------------------------------------- | ----------------------: | ----------------: |
+| l2-push-249: production validated             |                      84 |                86 |
+| l2-push-249: rows with a contract-change stop |                      86 |                83 |
+
+- **Runs.** `gh workflow run benchmark.yml --repo refit-dev/refit-bench -f commit=<sha> -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249`. Before: [40688452206](https://github.com/refit-dev/refit-bench/actions/runs/40688452206) at main `89f1c0ed`; the brief's before run 40624345477 was cancelled with 108 of 249 rows, so it was run again. After: [40637566055](https://github.com/refit-dev/refit-bench/actions/runs/40637566055) at `a4438b810c3f9930f997c77fc1d44273a70a17df`. Compared with `scripts/stripe-benchmark-compare.mjs`: 247 of 249 outcomes identical, 245 identical in every compared field.
+- **2 repositories newly validate, none lost.** samarbadriddin0v/notion-clone and shagunmistry/FlowCraft stopped only on `removed the required property …/items/data/items/price/product/anyOf[…: Product]/features`, which the old path walk could not attribute to a Stripe object. It is now `Product.features`, which neither repository reads. Both `migration.patch` files are byte-identical to the before run's, were applied to a clone and read in full: 2 `correct` in [fix-reviews.json](benchmarks/fix-reviews.json). FlowCraft's checks did not run in the before run (dependency preparation) and passed in the after run; that difference is run noise.
+- **Stops cleared but not counted.** `GET /v1/invoices/upcoming` blocks 6 rows instead of 20; each of the 6 has an untraced Stripe call that may request it, so it stays `unknown`. Product.features blocks 0 rows instead of 5. Chivo1530/CHIVITO-AI-DEV loses its contract-change stop and keeps its dependency-preparation stop. Strata-Labs/BitScript's checks ran in the before run and not in the after run (dependency preparation, run noise; the same patch).
+- **The `ui_mode` rules edited nothing.** All 5 rows that send `ui_mode` build the request with spreads, through an untraced client or in a body Refit cannot read, so each stays a stop, as designed. The rules have 0 wrong patches on this set, and no row exercised them; they are covered by tests only.
+- **heldout-30 not run.** Run [40727895025](https://github.com/refit-dev/refit-bench/actions/runs/40727895025) was cancelled on the founder's instruction (2026-10-28) to stop every heldout-30 and l2-push-249 run.
+- **Not measured:** AI patches, publication and the hosted worker.
+
 ## Lockfile resolution and types-only peers (October 28)
 
 Founders' decisions of 2026-10-27: a networked lockfile-resolution step may run before, and separate from, the offline validation, and a types-only peer (`@types/*` devDependency) may be raised together with stripe-node. `feat/lockfile-resolution` (`pipeline/lockfile-resolution.ts`, [details](DEPENDENCIES.md#lockfile-resolution-for-validation)) resolves a `package-lock.json` for a root npm project refused as `no-lockfile`, `lockfile-out-of-sync` or `lockfile-integrity`, as of its last commit date, with scripts off, no repository `.npmrc` and the registry pinned to registry.npmjs.org. Every resolved package then passes the existing checks and installs frozen offline. The resolved lockfile is not part of the pull request, and the draft says the checks ran against it and as of which date. It is on by default (`REFIT_LOCKFILE_RESOLUTION=off` turns it off); the benchmark's `--resolve-lockfiles` sets it explicitly.
