@@ -1,9 +1,11 @@
 import type { DeadlineRegistry } from './deadline-registry.ts';
 import { modelAlerts, type ModelAlert } from './model-alerts.ts';
+import { loadParameterChanges, type ParameterChangeTable } from './model-parameter-changes.ts';
 import type { ModelParameterTable } from './model-parameters.ts';
 import {
   EMPTY_REQUEST_PROOFS,
   loadRequestProofs,
+  unavailableTargets,
   requestProof,
   type RequestProof,
   type RequestProofTable,
@@ -169,6 +171,19 @@ export function modelFixBody(options: {
         'Where the registry replacement retires too, Refit followed the registry to a model that does not.',
         '',
       );
+    const parameterEdits = replacements.flatMap((item) => item.parameters ?? []);
+    if (parameterEdits.length)
+      lines.push(
+        '## Request parameters changed with the model',
+        '',
+        "The replacement renames or rejects these parameters, as the provider's page states; Refit changed them in the same request:",
+        '',
+        ...parameterEdits.map(
+          (edit) =>
+            `- ${code(`${edit.file}:${edit.line}`)} ${edit.action === 'rename' ? `${code(edit.name)} → ${code(edit.to ?? '')}` : `removed ${code(edit.name)}`} (${code(edit.change)}): ${edit.note}`,
+        ),
+        '',
+      );
     lines.push(
       '## Outputs may differ',
       '',
@@ -203,7 +218,9 @@ export function modelFixBody(options: {
       '',
       '## Rollback',
       '',
-      'Revert this pull request. It changes only the model IDs in the table above: no dependency, configuration or environment variable.',
+      replacements.some((item) => item.parameters?.length)
+        ? 'Revert this pull request. It changes only the model IDs in the table above and the request parameters listed with them: no dependency, configuration or environment variable.'
+        : 'Revert this pull request. It changes only the model IDs in the table above: no dependency, configuration or environment variable.',
       '',
       '## Reviewer Checklist',
       '',
@@ -318,6 +335,11 @@ export async function runModelFixes(options: {
   repository: string;
   registry: DeadlineRegistry;
   parameters?: ModelParameterTable;
+  // Sourced parameter changes applied with each swap: the shipped table unless one is passed, and
+  // none with `null` (owner decision, 2026-10-29).
+  parameterChanges?: ParameterChangeTable | null;
+  // Edit indirect model sources too (owner decision, 2026-10-29); `false` keeps direct sites only.
+  indirect?: boolean;
   // Request-level proofs for replacement models; a draft with an unproven one is [Needs review].
   proofs?: RequestProofTable;
   now: Date;
@@ -331,6 +353,7 @@ export async function runModelFixes(options: {
 }): Promise<ModelFixResult> {
   let proposal: Awaited<ReturnType<typeof proposeModelReplacements>> | undefined;
   let alerts: ModelAlert[] = [];
+  const proofs = options.proofs ?? (await loadRequestProofs());
   const validation = await validateSourcePatch({
     repository: options.repository,
     ...options.checks,
@@ -339,6 +362,12 @@ export async function runModelFixes(options: {
     propose: async (directory) => {
       proposal = await proposeModelReplacements(directory, options.registry, options.now, {
         parameters: options.parameters,
+        parameterChanges:
+          options.parameterChanges === null
+            ? undefined
+            : (options.parameterChanges ?? (await loadParameterChanges())),
+        indirect: options.indirect ?? true,
+        unavailable: unavailableTargets(proofs),
       });
       alerts = (await modelAlerts(directory, options.registry, options.now)).alerts;
       return proposal.patch;
@@ -392,7 +421,6 @@ export async function runModelFixes(options: {
       'Baseline and patched checks passed; draft publication is not enabled.',
     );
   const checked = { ...validation, compareTypeErrors: options.checks.compareTypeErrors };
-  const proofs = options.proofs ?? (await loadRequestProofs());
   const review =
     noOpChecked(validation) || requestEvidence(replacements, proofs).some((item) => item.pending);
   const published = await publishFiles(options.publication, {

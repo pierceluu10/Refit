@@ -569,7 +569,11 @@ it('names the Stripe object that owns a changed response property', () => {
       'removed the required property `items/data/items/price` from the response with the `200` status',
       '/v1/subscriptions/{subscription_exposed_id}',
     ),
-  ).toMatchObject({ schema: 'subscription_item', property: 'price' });
+  ).toEqual({
+    schema: 'subscription_item',
+    property: 'price',
+    links: [{ schema: 'subscription', property: 'items' }],
+  });
   expect(
     owner(
       "the `custom_text/submit/anyOf[subschema #1: PaymentPagesCheckoutSessionCustomTextPosition]/message` response property's maxLength was increased from `500` to `1200` for the response status `200`",
@@ -1219,7 +1223,15 @@ it('names the owner of a property called items that is not an array', () => {
       },
       document,
     ),
-  ).toMatchObject({ schema: 'product', property: 'features' });
+  ).toEqual({
+    schema: 'product',
+    property: 'features',
+    links: [
+      { schema: 'subscription', property: 'items' },
+      { schema: 'subscription_item', property: 'price' },
+      { schema: 'price', property: 'product' },
+    ],
+  });
 });
 
 describe('a removed operation', () => {
