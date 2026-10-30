@@ -4183,19 +4183,6 @@
       }
     },
     {
-<<<<<<< HEAD
-      "repo": "shxhid-dev/shxhid-chat-agent",
-      "pullRequest": null,
-      "run": "refit-bench shopify.yml 41135598187 (36443a25, 2026-10-16-shopify-fresh-repos.json, size=5, --sdk-upgrade, no AI) against main 57ce145f run 41132455018. Read from the shard-39 artifact run/migration.patch and pull-request.md, checked against the source at the frozen commit.",
-      "reviewedAt": "2026-10-30",
-      "verdict": "wrong",
-      "checks": {
-        "rightReplacement": "no: the patch moved `API_VERSION = process.env.SHOPIFY_API_VERSION || '2025-01'` in app/shopify-storefront.js to 2026-10, but the same constant sets the Storefront API URL `/api/${API_VERSION}/graphql.json` (line 223) and an Admin REST URL `/admin/api/${API_VERSION}/storefront_access_tokens.json` (line 102) that the scan did not list as REST. The Storefront version moved without any proof.",
-        "bothVersions": "no: the Storefront documents were never checked on 2026-10.",
-        "nothingUnrelated": "no: the Storefront API version moved.",
-        "pleaseCheck": "Fixed in 8b0928c1: REST paths after a substituted version are REST usage, and a version literal a Storefront URL also uses stops the move. Run 41137299973 stops the row there; the patch is never produced.",
-        "upgradeComplete": "n/a: the row now stops before the SDK upgrade is proposed.",
-=======
       "repo": "alexCevi/shopify-metaform-os",
       "pullRequest": null,
       "run": "refit-bench shopify.yml 41140411942/41140424261/41140435896 (08f5df4e, dev-60, practice-50 and fresh-200, --sdk-upgrade, no AI) against 41132449226/41132451966/41132455018 (main 57ce145f): patched and untested before (dependencies-unavailable: npm workspaces refused lockfile resolution), validated C after (resolution with the committed extensions/* workspace manifests). Same diff as at a744b0b2.",
@@ -4507,7 +4494,21 @@
         "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
         "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e the upgrade stops and the draft falls back to the dated '2026-10' string pin on the locked SDK, [Needs review] at grade D. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
         "upgradeComplete": "no: it needs a Session migration Refit never writes.",
->>>>>>> origin/main
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "shxhid-dev/shxhid-chat-agent",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41135598187 (36443a25, 2026-10-16-shopify-fresh-repos.json, size=5, --sdk-upgrade, no AI) against main 57ce145f run 41132455018. Read from the shard-39 artifact run/migration.patch and pull-request.md, checked against the source at the frozen commit.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the patch moved `API_VERSION = process.env.SHOPIFY_API_VERSION || '2025-01'` in app/shopify-storefront.js to 2026-10, but the same constant sets the Storefront API URL `/api/${API_VERSION}/graphql.json` (line 223) and an Admin REST URL `/admin/api/${API_VERSION}/storefront_access_tokens.json` (line 102) that the scan did not list as REST. The Storefront version moved without any proof.",
+        "bothVersions": "no: the Storefront documents were never checked on 2026-10.",
+        "nothingUnrelated": "no: the Storefront API version moved.",
+        "pleaseCheck": "Fixed in 8b0928c1: REST paths after a substituted version are REST usage, and a version literal a Storefront URL also uses stops the move. Run 41137299973 stops the row there; the patch is never produced.",
+        "upgradeComplete": "n/a: the row now stops before the SDK upgrade is proposed.",
         "wouldMerge": "no"
       }
     }
