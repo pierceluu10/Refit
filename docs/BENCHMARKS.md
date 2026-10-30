@@ -359,6 +359,23 @@ refit-bench `shopify.yml` on branch `shopify-ai`, `--sdk-upgrade`, `size=1`, sch
 - arslanramay/shopify-custom-app-boilerplate moves from the REST stop to a patch (SDK 11.0.0 to 14.0.1, three proven count calls) that is untested, because it has no checks. Priyadharshini29-M/Combo-page-app moves from an error to `[Needs review]` at grade D: its proven `products.json` call is no longer rewritten, so the rewrite no longer conflicts with the version edits.
 - No row is newly validated, so `docs/benchmarks/fix-reviews.json` gains no entry. Offline, the contract proves 66 of 181 REST calls on the 250 repositories, and every REST call in 16 of the 55 that use REST.
 
+#### Retired-version migrations (2026-10-29, feat/shopify-migrations)
+
+refit-bench `shopify.yml` on branch `shopify-ai`, `--sdk-upgrade`, `size=1`, no AI, same schemas as above. Both sides include the lockless-validation fix to the harness (`b75dd0d9`): before is `4e2db08f` (`1de287fe` plus that fix), after is `b75dd0d9`.
+
+| Set                                               | Runs (before → after)     | Validated | Needs review | Rows stopped on "already fails" |
+| ------------------------------------------------- | ------------------------- | --------- | ------------ | ------------------------------- |
+| dev-60                                            | 40987872842 → 40982064263 | 3 → 3     | 10 → 10      | 5 → 2                           |
+| practice 50 (`2026-10-16-shopify-repos.json`)     | 40981299500 → 40982073035 | 1 → 1     | 5 → 5        | 5 → 4                           |
+| fresh 200 (`2026-10-16-shopify-fresh-repos.json`) | 40981309100 → 40982087176 | 6 → 6     | 25 → 28      | 24 → 13                         |
+
+- Of the 33 target rows (29 repositories; 4 appear in two sets), 15 now pass the "already fails" stop. 12 stop on the SDK: `ApiVersion.October26` needs `@shopify/shopify-api` 14, and those rows use `LATEST_API_VERSION`, an enum the locked SDK lacks, or a lockfile that nests the SDK (SH12's lane). 3 become `[Needs review]` drafts at grade D with the schema proof holding: benzookapi/shopify-gcp-demo, lukeclifton/shopify-app-template-remix-cloudflare and ratul-pointerflow/wishlist. They commit no lockfile, so dependency preparation refuses them. The store run needs a case for the template's other mutation (`populateProduct`), which only the AI case writer provides. benzookapi's patch was read: it matches Shopify's own template change, with `variant` kept as an object.
+- 18 still stop on "already fails". Each sends a field no rule covers: `Shop` policy fields, `Order.financialStatus` and `fulfillmentStatus`, `Customer.ordersCount`, `ProductVariant` weight fields, `AppPlanV2` spreads, `Shop.primaryLocale`, `metafieldDelete`, `inventoryAdjustQuantity`, `discountsAllocatorFunctionRegister`, `webPixels`, `cartCreate` (a Storefront mutation sent to Admin), and others. Shopify no longer publishes quotable Markdown pages for these changes, so they need AI repair.
+- No row is newly validated, so `docs/benchmarks/fix-reviews.json` gains no entry.
+- The harness fix: the Shopify benchmark skipped validation for repositories that commit no lockfile. They now run with npm, as Stripe's benchmark has since #338.
+- **AI runs with Claude are not comparable yet.** The pairs used `claude-sonnet-5-5` with budget 300 (before `dde26f87` = #431 plus the harness and variant fixes, after `ed026a00` = this branch merged with #431): dev-60 40988042473 → 40988067551, practice 50 40988051253 → 40988076014, fresh 200 40988059842 → 40988084253. Validated went 3 → 3, 1 → 1 and 5 → 6. Up to 34 rows per run ended with `Anthropic token counting failed with HTTP 400 (invalid_request_error)`. The requests are byte-identical at both commits (checked by recording them offline), and a rerun of the before commit (40990579751) fails on 12 dev-60 rows the same way, so the failure is on the Anthropic account, not in either commit. The fresh-200 +1 (cornerstone-report/x-money-shopify, grade D to C) is an artifact: its live-case writer hit the 400, so the store run that failed before did not run.
+- The development-store case for the bulk update was refused in a first AI run (40982706076): the variant it updates comes from the product the case created, but only the product's own ID counted as created. A created product's own variants now count (`3b31fd95`); other nested IDs still do not.
+
 ## API deadlines
 
 The hand-labelled [deadline benchmark](DEADLINE-BENCHMARK.md) covers 100 repositories, 32 labelled line by line. Refit flags 28 of 28 exposed repositories at 28/28 repository precision, with 83% OpenAI line precision from live-only evidence.
