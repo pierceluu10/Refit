@@ -1277,6 +1277,22 @@ export function scanShopify(
       )
         node = node.parent;
       const parent = node.parent;
+      // `{ ...defaults, ...overrides }`: the copy holds the member unless a later one replaces it.
+      if (ts.isSpreadAssignment(parent) && ts.isObjectLiteralExpression(parent.parent))
+        return valueUses(parent.parent, path, property, reason);
+      // Passed to a repository function: followed through its parameter.
+      if (ts.isCallExpression(parent) && parent.arguments.some((entry) => entry === node)) {
+        const index = parent.arguments.indexOf(node as ts.Expression);
+        const parameter = calledFunction(parent.expression)?.parameters[index];
+        if (
+          !parameter ||
+          parameter.dotDotDotToken ||
+          !ts.isIdentifier(parameter.name) ||
+          parent.arguments.slice(0, index).some(ts.isSpreadElement)
+        )
+          return escape(node, reason);
+        return holderUses(parameter.name, path, property, reason);
+      }
       if (ts.isPropertyAccessExpression(parent) && parent.expression === node) {
         if (parent.name.text !== path[0]) return;
         return path.length === 1
@@ -1306,19 +1322,49 @@ export function scanShopify(
       }
       escape(node, reason);
     };
+    // Holders already followed for a key path: a function passing its parameter on to itself.
+    const held = new Set<string>();
     const holderUses = (name: ts.Identifier, path: string[], property: ts.Node, reason: string) => {
+      const key = `${name.getSourceFile().fileName}:${name.pos}:${path.join('.')}`;
+      if (held.has(key)) return;
+      held.add(key);
       const binding = declarationOf(name);
       if (!binding) return escape(property, reason);
       for (const reference of referencesIn(binding.scope, name.text))
         valueUses(reference, path, property, reason);
     };
     // The names `const { a, b } = await import('./module')` takes from a loaded module, with the
-    // binding each one gets; undefined for any other use of the loaded module.
+    // binding each one gets; `({ a } = await import('./module'))` names them with no binding
+    // Refit follows. A `const mod = await import('./module')` is a namespace, read through
+    // `mod.a`. Undefined for any other use of the loaded module.
     const loadedNames = (load: ts.CallExpression) => {
       let node: ts.Node = load;
       while (ts.isAwaitExpression(node.parent) || ts.isParenthesizedExpression(node.parent))
         node = node.parent;
       const parent = node.parent;
+      if (
+        ts.isVariableDeclaration(parent) &&
+        parent.initializer === node &&
+        ts.isIdentifier(parent.name) &&
+        parent.parent.flags & ts.NodeFlags.Const
+      )
+        return { namespace: parent.name };
+      if (
+        ts.isBinaryExpression(parent) &&
+        parent.right === node &&
+        parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
+      ) {
+        const left = unwrap(parent.left);
+        if (!ts.isObjectLiteralExpression(left)) return undefined;
+        const names: [string, undefined][] = [];
+        for (const member of left.properties) {
+          if (!ts.isShorthandPropertyAssignment(member) && !ts.isPropertyAssignment(member))
+            return undefined;
+          if (!ts.isIdentifier(member.name) && !ts.isStringLiteral(member.name)) return undefined;
+          names.push([member.name.text, undefined]);
+        }
+        return { names };
+      }
       const pattern =
         ts.isVariableDeclaration(parent) && parent.initializer === node ? parent.name : undefined;
       if (!pattern || !ts.isObjectBindingPattern(pattern)) return undefined;
@@ -1329,7 +1375,7 @@ export function scanShopify(
           return undefined;
         names.push([name.text, ts.isIdentifier(element.name) ? element.name : undefined]);
       }
-      return names;
+      return { names };
     };
     // Passed as an argument: followed into the called function's parameter.
     const passed = (call: ts.CallExpression, index: number) => {
@@ -1391,10 +1437,21 @@ export function scanShopify(
         if (!same(load.file, name) && !same(load.file, target.name)) continue;
         const LOADED =
           'A module defining a function that sends Admin GraphQL documents is loaded dynamically here, so Refit cannot follow its callers.';
-        const names = loadedNames(load.node);
-        if (!names) escape(load.node, LOADED);
-        else
-          for (const [exportName, binding] of names)
+        const loaded = loadedNames(load.node);
+        if (!loaded) escape(load.node, LOADED);
+        else if (loaded.namespace) {
+          const space = loaded.namespace;
+          for (const reference of referencesIn(declarationOf(space)!.scope, space.text)) {
+            const access = outermost(reference).parent;
+            if (
+              ts.isPropertyAccessExpression(access) &&
+              access.expression === outermost(reference)
+            ) {
+              if (same(load.file, access.name.text)) uses(access);
+            } else escape(reference, LOADED);
+          }
+        } else
+          for (const [exportName, binding] of loaded.names!)
             if (same(load.file, exportName))
               if (binding) bound(binding);
               else escape(load.node, LOADED);
@@ -2051,23 +2108,97 @@ export function scanShopify(
       ? creation
       : undefined;
   };
-  // Every request a client for the Admin endpoint sends: through the `const` holding it or
-  // `this.client` in its class. Any other use of the client stops for review.
+  // Where a client value goes: a member use in place (`client.request(…)`), through `const`
+  // bindings, and into repository functions as an argument or as an object member the parameter
+  // destructures (`sync({ client })`). Member uses go to `uses`, every other use to `escapes`.
+  const clientFlow = (
+    value: ts.Node,
+    uses: ts.Node[],
+    escapes: ts.Node[],
+    seen = new Set<ts.Node>(),
+  ): void => {
+    let node = outermost(value);
+    while (ts.isAwaitExpression(node.parent)) node = outermost(node.parent);
+    const parent = node.parent;
+    const into = (name: ts.Identifier) => {
+      if (seen.has(name)) return;
+      seen.add(name);
+      const binding = declarationOf(name);
+      if (!binding) return escapes.push(node);
+      for (const reference of referencesIn(binding.scope, name.text))
+        clientFlow(reference, uses, escapes, seen);
+    };
+    // The parameter of the repository function `call` names that receives argument `argument`.
+    const parameterOf = (call: ts.CallExpression, argument: ts.Node) => {
+      const index = call.arguments.indexOf(argument as ts.Expression);
+      const parameter = calledFunction(call.expression)?.parameters[index];
+      return parameter &&
+        !parameter.dotDotDotToken &&
+        !call.arguments.slice(0, index).some(ts.isSpreadElement)
+        ? parameter
+        : undefined;
+    };
+    if (ts.isPropertyAccessExpression(parent) && parent.expression === node) uses.push(node);
+    else if (
+      ts.isVariableDeclaration(parent) &&
+      parent.initializer === node &&
+      ts.isIdentifier(parent.name) &&
+      parent.parent.flags & ts.NodeFlags.Const &&
+      !hasModifier(parent.parent.parent, ts.SyntaxKind.ExportKeyword)
+    )
+      into(parent.name);
+    else if (ts.isCallExpression(parent) && parent.arguments.some((entry) => entry === node)) {
+      const parameter = parameterOf(parent, node);
+      if (parameter && ts.isIdentifier(parameter.name)) into(parameter.name);
+      else escapes.push(node);
+    } else if (
+      ((ts.isShorthandPropertyAssignment(parent) && parent.name === node) ||
+        (ts.isPropertyAssignment(parent) && parent.initializer === node)) &&
+      (ts.isIdentifier(parent.name) || ts.isStringLiteral(parent.name))
+    ) {
+      // `sync({ client })` into `function sync({ client }: …)`.
+      const object = outermost(parent.parent);
+      const call = object.parent;
+      const parameter =
+        ts.isCallExpression(call) && call.arguments.some((entry) => entry === object)
+          ? parameterOf(call, object)
+          : undefined;
+      if (!parameter || !ts.isObjectBindingPattern(parameter.name)) return void escapes.push(node);
+      const key = parent.name.text;
+      for (const element of parameter.name.elements) {
+        const name = element.propertyName ?? element.name;
+        if (element.dotDotDotToken || !(ts.isIdentifier(name) || ts.isStringLiteral(name)))
+          return void escapes.push(node);
+        if (name.text !== key) continue;
+        if (ts.isIdentifier(element.name)) into(element.name);
+        else escapes.push(node);
+      }
+    } else escapes.push(node);
+  };
   const clientRequests = (creation: ts.Node, file: string) => {
     const node = outermost(creation);
     const holder = node.parent;
     const ESCAPED =
       'A GraphQL client for the Admin endpoint is used here in a way Refit cannot follow, so the documents it sends are not read.';
-    let references: ts.Node[];
+    const factory = ts.isReturnStatement(holder)
+      ? ts.findAncestor(holder, ts.isFunctionLike)
+      : ts.isArrowFunction(holder) && holder.body === node
+        ? holder
+        : undefined;
+    const references: ts.Node[] = [];
+    const escapes: ts.Node[] = [];
     if (
-      ts.isVariableDeclaration(holder) &&
-      holder.initializer === node &&
-      ts.isIdentifier(holder.name) &&
-      holder.parent.flags & ts.NodeFlags.Const &&
-      !hasModifier(holder.parent.parent, ts.SyntaxKind.ExportKeyword)
-    )
-      references = referencesIn(declarationOf(holder.name)!.scope, holder.name.text);
-    else if (
+      factory &&
+      (ts.isFunctionDeclaration(factory) ||
+        ts.isArrowFunction(factory) ||
+        ts.isFunctionExpression(factory))
+    ) {
+      // `const client = createClient(…)` or `createClient(…).request(…)` at every call.
+      const flows = functionFlows(factory);
+      if (flows.escapes.length || (!flows.calls.length && flows.open))
+        return unreadable(creation, ESCAPED);
+      for (const call of flows.calls) clientFlow(call, references, escapes);
+    } else if (
       ts.isBinaryExpression(holder) &&
       holder.right === node &&
       holder.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
@@ -2094,7 +2225,6 @@ export function scanShopify(
         })
       )
         return unreadable(creation, ESCAPED);
-      references = [];
       const visit = (child: ts.Node) => {
         if (
           child !== assigned &&
@@ -2102,11 +2232,12 @@ export function scanShopify(
           child.expression.kind === ts.SyntaxKind.ThisKeyword &&
           child.name.text === name
         )
-          references.push(child);
+          clientFlow(child, references, escapes);
         ts.forEachChild(child, visit);
       };
       visit(owner);
-    } else return unreadable(creation, ESCAPED);
+    } else clientFlow(creation, references, escapes);
+    for (const escape of escapes) unreadable(escape, ESCAPED);
     for (const reference of references) {
       const at = outermost(reference);
       const access = at.parent;

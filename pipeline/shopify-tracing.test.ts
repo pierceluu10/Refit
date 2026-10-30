@@ -699,11 +699,11 @@ export async function sendDocument(admin: any, query: string) {
 }
 `,
     'app/use.ts': `import { Repository } from './clients';
-export async function use(admin: any) {
+export async function use(admin: any, name: 'sendDocument') {
   const repository = new Repository(admin);
   repository.LIST = 'query Other { shop { name } }';
   const module = await import('./clients');
-  return module.sendDocument(admin, 'query Lazy { shop { name } }');
+  return module[name](admin, 'query Lazy { shop { name } }');
 }
 `,
   });
@@ -713,7 +713,105 @@ export async function use(admin: any) {
   ).toEqual([
     ['app/clients.ts', 3, 'A GraphQL client for the Admin endpoint is used here in a wa'],
     ['app/clients.ts', 11, 'The document `this.LIST` is built at runtime; Refit only rea'],
-    ['app/use.ts', 5, 'A module defining a function that sends Admin GraphQL docume'],
+    ['app/use.ts', 6, 'A module defining a function that sends Admin GraphQL docume'],
+  ]);
+});
+
+it('follows clients from factories, into helpers, through spread defaults and loaded namespaces', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/client.ts': `import { createGraphQLClient } from '@shopify/graphql-client';
+export const createClient = ({ shop }: { shop: string }) => {
+  return createGraphQLClient({ url: \`https://\${shop}/admin/api/2026-01/graphql.json\` });
+};
+`,
+    'app/sync.ts': `import { createClient } from './client';
+async function count({ client, first }: { client: any; first: number }) {
+  return client.request(\`query Count { shop { name } }\`, { variables: { first } });
+}
+async function names(client: any) {
+  return client.request(\`query Names { shop { name } }\`);
+}
+export async function sync(shop: string) {
+  const client = createClient({ shop });
+  await count({ client, first: 1 });
+  await names(client);
+  return (await createClient({ shop })).request(\`query Direct { shop { name } }\`);
+}
+`,
+    'app/check.ts': `const defaults = {
+  call: (admin: any, query: string) => admin.graphql(query),
+};
+export async function check(admin: any, overrides: Partial<typeof defaults> = {}) {
+  const { call } = { ...defaults, ...overrides };
+  return call(admin, \`query Check { shop { name } }\`);
+}
+async function run(api: typeof defaults, admin: any) {
+  return api.call(admin, \`query Passed { shop { name } }\`);
+}
+export const passed = (admin: any) => run(defaults, admin);
+`,
+    'app/lazy.ts': `export async function send(admin: any, query: string) {
+  return admin.graphql(query);
+}
+export const other = 1;
+`,
+    'app/load.ts': `export async function load(admin: any) {
+  const mod = await import('./lazy');
+  let send: any;
+  ({ other: send } = await import('./lazy'));
+  return mod.send(admin, \`query Namespace { shop { name } }\`);
+}
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-api'));
+  expect(scan.unreadable).toEqual([]);
+  expect(scan.documents.map((entry) => [entry.file, entry.text]).sort()).toEqual([
+    ['app/check.ts', 'query Check { shop { name } }'],
+    ['app/check.ts', 'query Passed { shop { name } }'],
+    ['app/load.ts', 'query Namespace { shop { name } }'],
+    ['app/sync.ts', 'query Count { shop { name } }'],
+    ['app/sync.ts', 'query Direct { shop { name } }'],
+    ['app/sync.ts', 'query Names { shop { name } }'],
+  ]);
+});
+
+it('stops on a factory client or loaded namespace that leaves code Refit follows', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/client.ts': `import { createGraphQLClient } from '@shopify/graphql-client';
+import { register } from 'some-package';
+export const createClient = (shop: string) =>
+  createGraphQLClient({ url: \`https://\${shop}/admin/api/2026-01/graphql.json\` });
+async function rest({ ...options }: any) {
+  return options.client.request(\`query Rest { shop { name } }\`);
+}
+export async function sync(shop: string) {
+  const client = createClient(shop);
+  register(client);
+  await rest({ client });
+  return client.request(\`query Kept { shop { name } }\`);
+}
+`,
+    'app/lazy.ts': `export async function send(admin: any, query: string) {
+  return admin.graphql(query);
+}
+`,
+    'app/load.ts': `export async function load(admin: any) {
+  let send: any;
+  ({ send } = await import('./lazy'));
+  return send(admin, 'query Lazy { shop { name } }');
+}
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-api'));
+  expect(scan.documents.map((entry) => entry.text)).toEqual(['query Kept { shop { name } }']);
+  expect(
+    scan.unreadable.map((entry) => [entry.file, entry.line, entry.reason.slice(0, 60)]),
+  ).toEqual([
+    ['app/client.ts', 10, 'A GraphQL client for the Admin endpoint is used here in a wa'],
+    ['app/client.ts', 11, 'A GraphQL client for the Admin endpoint is used here in a wa'],
+    ['app/load.ts', 3, 'A module defining a function that sends Admin GraphQL docume'],
   ]);
 });
 
