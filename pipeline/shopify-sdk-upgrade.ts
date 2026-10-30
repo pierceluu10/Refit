@@ -35,6 +35,7 @@ const APP_PACKAGES = Object.keys(SHOPIFY_SDK_MAJORS).filter((name) => name !== S
 const SDK_FAMILY =
   /^@shopify\/(?:shopify-api|shopify-app-(?:remix|react-router|express)|shopify-app-session-storage(?:-[a-z0-9-]+)?|admin-api-client|storefront-api-client|graphql-client)$/;
 const SESSION_STORAGE = '@shopify/shopify-app-session-storage';
+const PRISMA_SESSION_STORAGE = `${SESSION_STORAGE}-prisma`;
 // The app frameworks Shopify's app packages build on. Decision (2026-10-29, AGENTS.md): when an SDK
 // major needs a newer release of them than the lockfile has, npm may re-resolve them.
 const PRISMA = ['prisma', '@prisma/client'];
@@ -718,6 +719,33 @@ function installable(entry: unknown, peer: string) {
   return Boolean(range && lowest && satisfies(lowest, range) === true);
 }
 
+async function prismaSchema(files: LockFiles) {
+  const configured =
+    isObject(files.manifest.prisma) && typeof files.manifest.prisma.schema === 'string'
+      ? files.manifest.prisma.schema
+      : 'prisma/schema.prisma';
+  const schema = files.root
+    ? await readFile(join(files.root, configured), 'utf8').catch(() => undefined)
+    : undefined;
+  return { configured, schema };
+}
+
+// Session storage 8.0.0 (700377f) writes refreshToken and refreshTokenExpires on every store, null
+// or not (10.0.1 dist/esm/prisma.mjs sessionToRow), and Prisma rejects an argument the model lacks.
+// The changelog calls the fields optional, but the model must have them before the upgrade.
+async function sessionModelStop(files: LockFiles, chosen: Map<string, { version: string }>) {
+  const to = triple(chosen.get(PRISMA_SESSION_STORAGE)?.version ?? '');
+  const from = triple(rootVersion(files.packages, PRISMA_SESSION_STORAGE) ?? '');
+  if (!to || !from || from[0] >= 8 || to[0] < 8) return undefined;
+  const { configured, schema } = await prismaSchema(files);
+  const model = schema && /^model\s+Session\s*\{([^}]*)\}/m.exec(schema)?.[1];
+  const missing = ['refreshToken', 'refreshTokenExpires'].filter(
+    (field) => !model || !new RegExp(`^\\s*${field}\\s`, 'm').test(model),
+  );
+  if (!missing.length) return undefined;
+  return `${PRISMA_SESSION_STORAGE} 8.0.0 writes refreshToken and refreshTokenExpires on every session it stores (700377f), and the Session model in ${configured} ${model ? `lacks ${missing.join(', ')}` : 'cannot be read'}: add refreshToken String? and refreshTokenExpires DateTime? and run a migration first.`;
+}
+
 // Prisma's documented 5 to 6 changes (prisma.io/docs/orm/more/upgrade-guides/upgrading-versions/
 // upgrading-to-prisma-6, read 2026-10-29) that need a person: Refit never writes migrations or
 // edits the data model. Code that catches NotFoundError stops in pipeline/shopify-sdk-source.ts.
@@ -728,13 +756,7 @@ async function prismaUpgradeStops(files: LockFiles, chosen: Map<string, { versio
   const typescript = triple(rootVersion(files.packages, 'typescript') ?? '');
   if (typescript && compare(typescript, [5, 1, 0]) < 0)
     return `Prisma 6 needs TypeScript 5.1 or later, and the project has ${typescript.join('.')}.`;
-  const configured =
-    isObject(files.manifest.prisma) && typeof files.manifest.prisma.schema === 'string'
-      ? files.manifest.prisma.schema
-      : 'prisma/schema.prisma';
-  const schema = files.root
-    ? await readFile(join(files.root, configured), 'utf8').catch(() => undefined)
-    : undefined;
+  const { configured, schema } = await prismaSchema(files);
   if (schema === undefined)
     return `Prisma 6 changes need checking against the schema, and Refit cannot read ${configured}.`;
   const postgres = /provider\s*=\s*"(?:postgresql|postgres)"/.test(schema);
@@ -893,7 +915,8 @@ async function declaredUpgrade(
       };
     chosen.set(name, (fits ?? moved)!);
   }
-  const prismaStop = await prismaUpgradeStops(files, chosen);
+  const prismaStop =
+    (await sessionModelStop(files, chosen)) ?? (await prismaUpgradeStops(files, chosen));
   if (prismaStop) return { reason: prismaStop };
   const crossed = unruledMajors(chosen, packages);
   if (crossed.length) return { reason: crossed.join(' ') };

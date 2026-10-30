@@ -836,7 +836,7 @@ it('moves prisma with the session storage that needs it, and stops on Prisma 6 s
     ...RELEASES,
     [PRISMA_STORAGE]: {
       '5.0.2': { peerDependencies: { [API]: '^11.0.0', prisma: '^5.0.0' } },
-      '7.0.0': {
+      '8.0.0': {
         peerDependencies: { [API]: '^12.0.0', prisma: '^6.15.0', '@prisma/client': '^6.15.0' },
       },
     },
@@ -858,13 +858,20 @@ it('moves prisma with the session storage that needs it, and stops on Prisma 6 s
     'package.json': `${JSON.stringify(manifest, null, 2)}\n`,
     'prisma/schema.prisma': schema('  shop String\n'),
   });
+  // Session storage 8 writes both refresh-token fields on every store, and Prisma rejects an
+  // argument the model lacks.
+  expect(await shopifySdkUpgrade(root, 'April26')).toEqual({
+    reason: `${PRISMA_STORAGE} 8.0.0 writes refreshToken and refreshTokenExpires on every session it stores (700377f), and the Session model in prisma/schema.prisma lacks refreshToken, refreshTokenExpires: add refreshToken String? and refreshTokenExpires DateTime? and run a migration first.`,
+  });
+  const columns = '  refreshToken String?\n  refreshTokenExpires DateTime?\n';
+  await writeFile(join(root, 'prisma/schema.prisma'), schema(`  shop String\n${columns}`));
   const result = await shopifySdkUpgrade(root, 'April26');
   expect(result).toMatchObject({ upgrade: { primary: REMIX, to: '4.1.1', lockless: true } });
   const after = 'upgrade' in result ? result.upgrade.files[0].after : '';
   expect(after).toContain('"prisma": "^6.19.0"');
   expect(after).toContain('"@prisma/client": "^6.19.0"');
-  expect(after).toContain(`"${PRISMA_STORAGE}": "^7.0.0"`);
-  await writeFile(join(root, 'prisma/schema.prisma'), schema('  data Bytes\n'));
+  expect(after).toContain(`"${PRISMA_STORAGE}": "^8.0.0"`);
+  await writeFile(join(root, 'prisma/schema.prisma'), schema(`  data Bytes\n${columns}`));
   expect(await shopifySdkUpgrade(root, 'April26')).toEqual({
     reason:
       'Prisma 6 returns Bytes fields as Uint8Array instead of Buffer, and the schema has a Bytes field.',
