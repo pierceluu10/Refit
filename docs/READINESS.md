@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 30 checkpoint: Shopify removed fields named (unreleased, after 0.39.0)
+
+A Shopify document that already fails because it sends a member Shopify removed before Admin 2025-01 now stops with a named reason, not a bare "already fails": the documented removal and its page (`metafieldDelete`, `discountsAllocatorFunctionRegister`), a Storefront document sent with an Admin client (when the whole document validates on the pinned Storefront schema), or a member no pinned Admin schema has and no saved Shopify page replaces. No rule covers `Customer.ordersCount`, `Order.financialStatus`, the variant weight fields, `inventoryAdjustQuantity` or the `Shop` policy fields: their changelog entries return 404, so there is no page to quote. Benchmarks on the three Shopify lists show no outcome change ([Shopify rules](SHOPIFY-RULES.md#migrations), `docs/BENCHMARKS.md`).
+
 ## October 29 checkpoint: Shopify retired-version migrations (unreleased, after 0.39.0)
 
 Documents that already fail on the oldest supported Admin version (Shopify serves it to retired pins today) are now fixed where a documented migration applies, instead of stopping: `productVariantUpdate` becomes `productVariantsBulkUpdate` with the call's variables and response reads rewritten (rule `shopify-product-variant-update-to-bulk-update`, quoting Shopify's own app-template change), and unused variable declarations are removed. A patch that changes a document's variables is graded above D only when the development store ran the operation; the migration writes that case. See [Shopify rules](SHOPIFY-RULES.md#migrations). Benchmark evidence is in `docs/BENCHMARKS.md`.
