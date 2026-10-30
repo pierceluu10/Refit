@@ -385,6 +385,44 @@ dev-60 plus the 250 practice repositories (practice-50 and fresh-200), refit-ben
   - an error and an unrun patch: 2
 - The AI run validates fewer rows, and not because of the patches. Its development-store run failed on stand-in Function IDs, a store locale, rate limits and app ownership, on the before version (2026-01) as well, and that set five rows that pass every check to grade D (danyn/shopify-app-rr, cornerstone-report/x-money-shopify, ersinkoc/CouponEngine, mssalemi/b-is-for-bundles, Stephnn0/shipping-discounts-shopify-app). Two rows validate only with AI (IliasHad/shopify-app-template-remix-cloudflare-workers, SankaiAI/iHeard.ai).
 
+### Development-store environment (2026-10-30, fix/shopify-store-proof)
+
+refit-bench `shopify.yml` on `shopify-ai`, `--sdk-upgrade`. Before is main `57ce145f`; after is `915fd860` (store-environment checks and rate-limit retries in `pipeline/shopify-live-proof.ts`).
+
+| Set                  | Runs (before → after)     | AI                              | Validated | Needs review | Live proof passed |
+| -------------------- | ------------------------- | ------------------------------- | --------- | ------------ | ----------------- |
+| dev-60 (size 1)      | 41132449226 → 41133273810 | no                              | 10 → 10   | 24 → 24      | 1 → 1             |
+| dev-60 (size 1)      | 41132846019 → 41133282871 | Claude Sonnet 5.5, $10 cap each | 10 → 10   | 24 → 24      | 1 → 1             |
+| practice 50 (size 5) | 41132451966 → 41133277344 | no                              | 7 → 7     | 15 → 15      | 0 → 0             |
+| fresh 200 (size 5)   | 41132455018 → 41133280282 | no                              | 17 → 17   | 57 → 57      | 5 → 5             |
+
+- Every row has the same status, grade and live-proof status before and after. No row is newly validated, so `docs/benchmarks/fix-reviews.json` gains no entry.
+- The five rows SH12 round 3 graded D on store failures already validate on main, because #435 records those failures as not run: danyn/shopify-app-rr, cornerstone-report/x-money-shopify, mssalemi/b-is-for-bundles and Stephnn0/shipping-discounts-shopify-app at C, ersinkoc/CouponEngine at B.
+- The AI pair does not exercise the change. The $10 cap splits into about $0.17 per shard; scan-time requests used it, 9 rows per run stopped with `AI budget exhausted`, and no row reached the live-case writer (`aiCostUsd` 0 on every patched row). mssalemi/b-is-for-bundles, for example, records `no value for required variable $functionId`. Measuring the function and locale checks needs an AI run that reaches case writing.
+
+### Shopify SDK and preparation stops (2026-10-30)
+
+dev-60, practice-50 and fresh-200 on refit-bench `shopify.yml` (`shopify-ai`), `--sdk-upgrade`, no AI. Admin schemas were read on 2026-10-30.
+
+| Run                                           | Commit     | dev-60 validated | practice-50 validated | fresh-200 validated | Needs review (all) | Stopped (all) |
+| --------------------------------------------- | ---------- | ---------------: | --------------------: | ------------------: | -----------------: | ------------: |
+| Before: 41132449226, 41132451966, 41132455018 | `57ce145f` |               10 |                     7 |                  17 |                 96 |           170 |
+| 41134862193, 41134865076, 41134868010         | `a744b0b2` |               10 |                     9 |                  20 |                 94 |           167 |
+| After: 41140411942, 41140424261, 41140435896  | `08f5df4e` |                4 |                     4 |                  13 |                 92 |           188 |
+
+- **Gained, 6 repositories (6 rows), every diff read and labelled `correct`:**
+  - alexCevi/shopify-metaform-os (practice), Shabir300/QRCode-generator-react-router-app-v7-shopify and safwanadnan/shopiflare (fresh). These are npm projects with `workspaces: ["extensions/*"]` that lockfile resolution refused, and now resolve with their committed workspace manifests.
+  - Shopify/shopify-app-template-remix, shopsavvy/shopify-shopsavvy and lukeclifton/shopify-app-template-remix-cloudflare (fresh), which needed two more fixes:
+    - lockfile resolution now accepts an `.npmrc` line that names `https://registry.npmjs.org` itself (the template's `@shopify:registry=…`);
+    - the late-pin pass of lockfile resolution now moves its cutoff to a dependency a late pin needs that was published after it. `@shopify/shopify-app-remix` 5.0.1 was published 24 seconds before the `@shopify/shopify-api` 14.0.1 it requires (registry times, read 2026-10-30).
+- **Lost, 13 repositories (19 rows): a wrong upgrade that main counted as validated.** Each crossed `@shopify/shopify-app-session-storage-prisma` 8 (from 5.x or 6.x to 10.0.1) with a Prisma `Session` model that lacks `refreshToken` and `refreshTokenExpires`.
+  - Session storage 8.0.0 to 10.0.1 sends both fields on every store, as `null` when absent. Prisma rejects an argument the model does not declare (`Unknown argument \`refreshToken\``, checked locally with Prisma 6.19.3), so the upgraded app cannot store a session. The type check cannot see this, which is how it graded C.
+  - The upgrade now stops there (`sessionModelStop`), and these repositories fall back to the dated `'2026-10'` string pin on their locked SDK, `[Needs review]` at grade D.
+  - The 13 are labelled `wrong` in `fix-reviews.json`; 11 of them had earlier `correct` labels. ratul-pointerflow/wishlist and markusvoigt/market_discount_full_app validated at `a744b0b2` for the same reason and are labelled `wrong` too.
+  - Twenty more rows that the upgrade would have patched with the same defect now stop instead.
+- gruntlord5/cloudflare-react-router7-shopify-d1 (dev and practice) no longer stops on React Router's `unstable_newEmbeddedAuthStrategy` flag, which no release reads, but now stops on its Bun lockfile, with no code change. hak193/i-devr-code now prepares and passes on both sides, and stays `[Needs review]` for its submodules.
+- Shopify/subscriptions-reference-app's Admin URL `LATEST_API_VERSION` pin applies at `a744b0b2`. At `08f5df4e` the upgrade stops on its Session model.
+
 ### Shopify dev and blind sets
 
 Frozen on 2026-10-29 by `scripts/shopify-select.mjs`; nothing has been run on them. The exact criteria and command are in each list's `criteria`, and the search results, per-repository pre-scan counts and totals are in `docs/benchmarks/shopify-selection/`.
@@ -499,6 +537,24 @@ Same workflow and flags, no AI (the OpenAI credit is exhausted). Before is `1de2
 - Three rows now get a patch, each a version move only: antho8101/RefSpring moves seven REST URL versions and passes its type check on both sides at grade D (`[Needs review]`); snoryder8019/rw_socket moves one `apiVersion` and its own tests already fail before the patch; Santho-sh/shopify-product-bundler-app moves `ApiVersion.January23` and has no checks. The findings were read; the diffs themselves were not downloaded.
 - No row is newly validated, so `docs/benchmarks/fix-reviews.json` gains no entry. Offline, the contract now proves 108 of 181 REST calls on the 250 repositories (67 before). 10 of the 31 rows whose first stop was REST have every REST call proven.
 - The REST stops that remain are real: the Checkout resource; parameters (`phone`, `customer_id`) and fields (Product `type` and `image`, a misspelled Variant field) the contract does not list; DraftOrder `use_customer_default_address`, which shopify.dev shows only in examples, not in its Properties; a delete response used; `createAdminRestApiClient` clients; and a NestJS `useFactory` provider.
+
+#### Document tracing and REST detection (2026-10-30, fix/shopify-tracing-rest)
+
+refit-bench `shopify.yml` on branch `shopify-ai`, `--sdk-upgrade`, no AI, schemas read 2026-10-30 (2026-01 `76bdd5e5583c`, 2026-04 `a8b5a7a55eae`, 2026-07 `90cc3c6275fa`, 2026-10 `3ef749850e5d`) on both sides. Before is main `57ce145f`; after is `8b0928c1`.
+
+| Set                                               | Runs (before → after)     | Validated | Needs review | Unreadable calls | Rows stopped first on unreadable | Rows stopped first on REST |
+| ------------------------------------------------- | ------------------------- | --------- | ------------ | ---------------- | -------------------------------- | -------------------------- |
+| dev-60                                            | 41132449226 → 41137277696 | 10 → 10   | 24 → 24      | 9 → 9            | 5 → 5                            | 8 → 8                      |
+| practice 50 (`2026-10-16-shopify-repos.json`)     | 41132451966 → 41137288908 | 7 → 7     | 15 → 15      | 7 → 11           | 3 → 2                            | 3 → 3                      |
+| fresh 200 (`2026-10-16-shopify-fresh-repos.json`) | 41132455018 → 41137299973 | 17 → 17   | 57 → 57      | 40 → 35          | 12 → 10                          | 21 → 24                    |
+
+- Tracing follows Admin clients returned from factories (to every call), clients passed into repository functions directly or as a destructured member, object members copied with spread or passed to a repository function, and loaded namespaces (`const mod = await import(…)`). Rapid-CRM and shxhid-dev clear every unreadable call; Yespo-CDP/yespo-shopify reads 13 more documents and now stops on one that already fails on 2026-01 (its 5 remaining unreadable calls build aliases at runtime).
+- REST detection widened, so more rows stop, by design: a base URL ending at its version (`https://${shop}/admin/api/2024-01`, path joined elsewhere) and REST paths after a substituted version (`/admin/api/${VERSION}/shop.json`) were invisible before, so a version move could leave or move them unproven. alucardislit-coder/shopify-stripe-backend, CABlank/referrd-react-app-shopify and luffytaroZ/Tracker (previously "no Admin usage") now stop on them, and 7 other already-stopped rows list more REST calls.
+- An intermediate commit (`36443a25`, runs 41135575190, 41135586901, 41135598187) patched shxhid-dev/shxhid-chat-agent. The diff was read and labelled `wrong` in `fix-reviews.json`: it moved a version constant that also sets the app's Storefront API URL and an unlisted REST URL. `8b0928c1` stops a version a Storefront URL shares, so the row now stops with that reason.
+- No row is newly validated or patched at `8b0928c1`, and nothing validated before is lost.
+- What still stops:
+  - Unreadable documents (runtime by design): CLI, MCP and GraphiQL pass-through (Nuraveda, psydao, alistairmartin, ArseniyX's model-built queries), aliases and argument lists built from runtime IDs (flwrdev, Yespo, BillyND, lisandrophan), `Effect.fn` and `Object.assign` wrappers (mw10013, drizzle-team), class-method senders (carlosrebelo14-ai, madeburo), exported functions nothing calls (rrichie551), library exports (yan-ad), and a client threaded through callback return values (aura-historia).
+  - REST: fields and parameters the contract does not list (SGFGOV, iamgenesistech, mdrahbar21, samikaran, mwakidenis), responses returned whole to callers or a frontend (Greenstand), delete responses used (Stephnn0), a spread of runtime paging options (Shopify/editions-dev-2k-variants), `createAdminRestApiClient` clients (CJBiohacker, jamalsoueidan, Jessdanie94), URL constants sent twice with different methods (JehielL) or through wrappers (amm10090, evigauge), REST client providers (NguyenThoNgocIT, raj84908), base URLs whose path is joined elsewhere, and a test file that only asserts URLs while the adapter's own base URL has no trailing slash (mikelaurenzo7-collab). None has a deterministic GraphQL equivalent that this branch could add without guessing.
 
 ## API deadlines
 

@@ -368,12 +368,28 @@ it('runs read-only queries on both versions and records failures without the tok
         )
       : limited.fetch(url, init),
   );
+  vi.useFakeTimers({ toFake: ['setTimeout'] });
+  try {
+    const pending = liveShopifyProof({
+      store,
+      versions,
+      documents,
+      fetch: busy as unknown as typeof fetch,
+    });
+    await vi.runAllTimersAsync();
+    expect(await pending).toMatchObject({
+      status: 'not-run',
+      reason: expect.stringContaining('did not answer on 2026-10'),
+    });
+  } finally {
+    vi.useRealTimers();
+  }
+  // The rate limit is retried before giving up: 1 attempt plus 5 retries.
   expect(
-    await liveShopifyProof({ store, versions, documents, fetch: busy as unknown as typeof fetch }),
-  ).toMatchObject({
-    status: 'not-run',
-    reason: expect.stringContaining('did not answer on 2026-10'),
-  });
+    busy.mock.calls.filter(
+      ([url, init]) => url.includes('2026-10') && String(init.body).includes('Shop'),
+    ),
+  ).toHaveLength(6);
 });
 
 const CREATE = 'mutation { productCreate(input: { title: "Refit" }) { product { id } } }';
@@ -434,6 +450,145 @@ it('refuses mutations without a case or on objects the run did not create', asyn
   expect(foreign.status).toBe('not-run');
   expect(foreign.reason).toContain('which this run did not create');
   expect(fake.calls.some((call) => call.query === UPDATE)).toBe(false);
+});
+
+// A development store whose app has released one function and which has enabled only English. Each
+// store-environment failure of SH12 round 3 is answered identically on both versions.
+function environmentStore() {
+  const sent: { url: string; query: string; variables: Record<string, unknown> }[] = [];
+  let throttles = 2;
+  const fetch = vi.fn(async (url: string, init: RequestInit) => {
+    const { query, variables } = JSON.parse(String(init.body));
+    sent.push({ url, query, variables });
+    const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+    if (query.includes('partnerDevelopment'))
+      return json({ data: { shop: { plan: { partnerDevelopment: true } } } });
+    if (query.includes('shopifyFunctions'))
+      return json({ data: { shopifyFunctions: { nodes: [{ id: 'fn-1', handle: 'bundle' }] } } });
+    if (query.includes('shopLocales')) return json({ data: { shopLocales: [{ locale: 'en' }] } });
+    if (query.includes('appSubscriptionCreate'))
+      return json({
+        data: {
+          appSubscriptionCreate: {
+            userErrors: [
+              {
+                field: null,
+                message:
+                  'Validation failed: It appears that this application is currently owned by a Shop. It must be migrated to the Shopify partners area before it can create.',
+              },
+            ],
+          },
+        },
+      });
+    if (query.includes('Throttled') && throttles-- > 0)
+      return json({
+        errors: [{ message: 'Throttled', extensions: { code: 'THROTTLED' } }],
+        extensions: {
+          cost: {
+            requestedQueryCost: 10,
+            throttleStatus: { maximumAvailable: 100, currentlyAvailable: 0, restoreRate: 50 },
+          },
+        },
+      });
+    if (query.includes('cartTransformCreate'))
+      return json({
+        data: {
+          cartTransformCreate: {
+            cartTransform: { id: 'gid://shopify/CartTransform/1' },
+            userErrors: [],
+          },
+        },
+      });
+    return json({ data: { shop: { name: 'Refit' } } });
+  });
+  return { sent, fetch: fetch as unknown as typeof globalThis.fetch };
+}
+
+it('never fails or grades down on what the store environment cannot run, and retries rate limits', async () => {
+  const cart =
+    'mutation Cart($functionId: String!) { cartTransformCreate(functionId: $functionId) { cartTransform { id } userErrors { message } } }';
+  const translate =
+    'mutation Translate($id: ID!, $translations: [TranslationInput!]!) { translationsRegister(resourceId: $id, translations: $translations) { userErrors { message } } }';
+  const bill =
+    'mutation Bill { appSubscriptionCreate(name: "Refit", returnUrl: "https://example.com", lineItems: []) { userErrors { message } } }';
+  const caseFor = (operationName: string, variables: Record<string, unknown>) => ({
+    document: `${operationName}.ts:1`,
+    operationName,
+    variables,
+    setup: [],
+    cleanup: [],
+  });
+  const store_ = environmentStore();
+  const pending = (() => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    return liveShopifyProof({
+      store,
+      versions,
+      documents: [
+        { id: 'Cart.ts:1', original: null, patched: cart },
+        { id: 'Translate.ts:1', original: null, patched: translate },
+        { id: 'Bill.ts:1', original: null, patched: bill },
+        { id: 'Throttled.ts:1', original: null, patched: 'query Throttled { shop { name } }' },
+      ],
+      cases: [
+        caseFor('Cart', { functionId: 'refit-test-function-id' }),
+        caseFor('Translate', {
+          id: 'gid://shopify/Product/1',
+          translations: [{ locale: 'fr', key: 'title', value: 'Bonjour' }],
+        }),
+        caseFor('Bill', {}),
+      ],
+      fetch: store_.fetch,
+    });
+  })();
+  let proof: Awaited<typeof pending>;
+  try {
+    await vi.runAllTimersAsync();
+    proof = await pending;
+  } finally {
+    vi.useRealTimers();
+  }
+  const reasons = Object.fromEntries(
+    proof.operations.map((entry) => [entry.operationName, [entry.status, entry.reason]]),
+  );
+  // A stand-in Function ID and a locale the store lacks are never sent; the reason names what the
+  // store has instead.
+  expect(reasons.Cart).toEqual([
+    'not-run',
+    expect.stringContaining('Shopify Function refit-test-function-id, which is not one the app'),
+  ]);
+  expect(reasons.Cart[1]).toContain('(fn-1, bundle)');
+  expect(reasons.Translate).toEqual([
+    'not-run',
+    expect.stringContaining('locale fr, which is not one the store has enabled (en)'),
+  ]);
+  expect(
+    store_.sent.some((call) => /cartTransformCreate|translationsRegister/.test(call.query)),
+  ).toBe(false);
+  // The Billing API on a merchant-owned app fails on the original version too, and says why.
+  expect(reasons.Bill).toEqual([
+    'not-run',
+    expect.stringContaining(
+      'fails on 2026-01 too (the app Refit uses on the store is merchant-owned',
+    ),
+  ]);
+  // THROTTLED twice, then answered: the query ran on both versions.
+  expect(reasons.Throttled).toEqual(['passed', undefined]);
+  // Each probe is asked once per run.
+  expect(store_.sent.filter((call) => call.query.includes('shopifyFunctions'))).toHaveLength(1);
+  expect(proof.status).toBe('not-run');
+  // Not run keeps the checks' grade: C from the type check, never D.
+  const typeCheck = { letter: 'C' as const, level: 'type-check' as const, reason: 'tsc.' };
+  expect(shopifyGrade(typeCheck, prove('query { shop { name } }'), proof).letter).toBe('C');
+  // A real function the app released does run.
+  const real = await liveShopifyProof({
+    store,
+    versions,
+    documents: [{ id: 'Cart.ts:1', original: null, patched: cart }],
+    cases: [caseFor('Cart', { functionId: 'fn-1' })],
+    fetch: environmentStore().fetch,
+  });
+  expect(real.status).toBe('passed');
 });
 
 it('records the AI second opinion and its cost without changing the grade', async () => {

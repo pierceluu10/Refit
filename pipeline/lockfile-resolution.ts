@@ -17,6 +17,7 @@ import {
   isRegistrySource,
   MAX_LOCK_BYTES,
   MAX_PACKAGE_BYTES,
+  npmWorkspaceDirectories,
 } from './npm-lock.ts';
 import { DEFAULT_PNPM_10_VERSION, PNPM_WORKSPACE } from './pnpm-inputs.ts';
 import { PNPM_LOCKFILE } from './pnpm-lock.ts';
@@ -78,7 +79,8 @@ export function lockfileResolutionEnabled(value = process.env.REFIT_LOCKFILE_RES
 // because its lowest version is newer (the stripe release a patch pins, a raised peer) is left out
 // of a first pass and added back in a second, seeded with the first pass's lockfile and cut off at
 // its publication time, so only those packages and what they newly need resolve later than the
-// cutoff. npm's peer conflict (ERESOLVE) is retried once with --legacy-peer-deps and recorded.
+// cutoff, and a dependency they need that was published later moves that cutoff again. npm's peer
+// conflict (ERESOLVE) is retried once with --legacy-peer-deps and recorded.
 export const RESOLVE_SCRIPT = `
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -152,8 +154,20 @@ for (let pass = 0; ; pass++) {
 }
 if (Object.keys(late).length) {
   writeFileSync("package.json", text);
-  const before = Object.values(late).map((entry) => entry.published).sort().at(-1);
-  if (resolve(before).status !== 0) process.exit(1);
+  let before = Object.values(late).map((entry) => entry.published).sort().at(-1);
+  // A late pin can need a dependency published after it (a package released minutes before its
+  // own dependency); the cutoff moves to that dependency's lowest matching release.
+  for (let pass = 0; ; pass++) {
+    const result = resolve(before);
+    if (result.status === 0) break;
+    const target = tooNew.exec(result.output);
+    const minimum = target && /^[~^]?(\\d+\\.\\d+\\.\\d+)$/.exec(target[2] ?? "")?.[1];
+    if (!minimum || pass >= ${MAX_LATE_PINS}) process.exit(1);
+    const time = await published(target[1], minimum);
+    if (Date.parse(time) <= Date.parse(before)) process.exit(1);
+    late[target[1]] = { spec: target[2], published: time };
+    before = time;
+  }
 }
 process.stdout.write(JSON.stringify({ lockfile: readFileSync(lockfile, "utf8"), late, legacyPeerDeps: legacy }));
 `;
@@ -338,6 +352,8 @@ export function githubSources(manifest: Record<string, unknown>, seed?: string) 
 
 // Only the .npmrc settings that change resolution are read; the file never reaches the manager. A
 // registry for a scope the manifest never declares cannot change what resolves.
+const PUBLIC_REGISTRY = /^(["']?)https:\/\/registry\.npmjs\.org\/?\1$/;
+
 export function npmrcRefusal(npmrc: string, manifest: Record<string, unknown>) {
   const declared = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']
     .flatMap((section) => (isObject(manifest[section]) ? Object.entries(manifest[section]) : []))
@@ -347,8 +363,9 @@ export function npmrcRefusal(npmrc: string, manifest: Record<string, unknown>) {
     ]);
   const refused = npmrc.split(/\r?\n/).some((line) => {
     if (/_auth/.test(line)) return true;
-    const registry = /^\s*(@[^:\s]+:)?registry\s*=/.exec(line);
-    if (!registry) return false;
+    const registry = /^\s*(@[^:\s]+:)?registry\s*=\s*(.*?)\s*$/.exec(line);
+    // The public registry itself, which resolution uses anyway (the Shopify app template's line).
+    if (!registry || PUBLIC_REGISTRY.test(registry[2])) return false;
     const scope = registry[1]?.slice(0, -1);
     return !scope || declared.some((name) => name.startsWith(`${scope}/`));
   });
@@ -426,6 +443,21 @@ export async function resolvedLockfileSnapshot(
       return undefined;
     throw error;
   }
+  // npm resolves workspaces (the Shopify app template's `extensions/*`) only with their committed
+  // manifests, each limited to registry dependencies as the root is.
+  const workspaces =
+    manager === 'npm' && parsed.workspaces !== undefined
+      ? await Promise.all(
+          npmWorkspaceDirectories(parsed, paths).map(async (directory) => {
+            const path = `${directory}/package.json`;
+            const content = await readCommittedFile(snapshot, path, MAX_PACKAGE_BYTES);
+            const workspace = parseJson(content);
+            if (!isObject(workspace)) throw new PipelineInputError(`${path} is not an object.`);
+            dependencySources(workspace, path);
+            return { path, content };
+          }),
+        )
+      : undefined;
   const npmrc = paths.includes('.npmrc')
     ? await readCommittedFile(snapshot, '.npmrc', MAX_PACKAGE_BYTES)
     : '';
@@ -450,6 +482,7 @@ export async function resolvedLockfileSnapshot(
     legacyPeerDeps: legacyPeerDeps(npmrc),
     manager,
     tarballs,
+    workspaces,
     image: options.image,
     signal: options.signal,
   });

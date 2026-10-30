@@ -38,6 +38,14 @@ const REMOVED_FLAGS = new Map([
   ['lineItemBilling', BILLING_CHANGE],
   ['v10_lineItemBilling', BILLING_CHANGE],
 ]);
+// Flags a package accepts but never reads, so `true` goes like an adopted removed flag. No release
+// of @shopify/shopify-app-react-router reads unstable_newEmbeddedAuthStrategy: token exchange is its
+// only embedded strategy from 0.1.1 (dist/esm/server/shopify-app.mjs, 0.1.1 and 1.1.1).
+const IGNORED_FLAGS: Record<string, string[]> = {
+  '@shopify/shopify-app-react-router': ['unstable_newEmbeddedAuthStrategy'],
+};
+// A template literal's text that puts the next value in an Admin API URL's version segment.
+const ADMIN_URL_VERSION = /\/admin\/api\/$/;
 
 // Breaking changes of @shopify/shopify-api 13.0.0 and 14.0.0 and @shopify/shopify-app-react-router
 // 2.0.0 (each package's CHANGELOG.md in the shopify-app-js repository, read 2026-10-29) that code shows.
@@ -181,7 +189,10 @@ export function shopifySdkSourceChanges(
         }
         // a5be0d0: "If you have already adopted either of these flags you only need to remove the
         // flags"; in 11.x they only gate a log line (future/flags.mjs, 11.12.0).
-        if (REMOVED_FLAGS.has(name) && flag.initializer.kind === ts.SyntaxKind.TrueKeyword) {
+        if (
+          (REMOVED_FLAGS.has(name) || IGNORED_FLAGS[primary]?.includes(name)) &&
+          flag.initializer.kind === ts.SyntaxKind.TrueKeyword
+        ) {
           handled.add(flag.name);
           remove(flag, flags.properties, flags);
           continue;
@@ -388,11 +399,23 @@ export function shopifySdkSourceChanges(
             ? remove(specifier, named.elements, named)
             : remove(statement, file.statements, file);
       }
+    // An apiVersion setting, or the version segment of an Admin API URL, which the SDK requests
+    // at the apiVersion the upgrade pins (test mocks build it this way).
     const settable = latestUses.filter(
       (use) =>
-        ts.isPropertyAssignment(use.parent) &&
-        use.parent.initializer === use &&
-        use.parent.name.getText().replace(/['"]/g, '') === 'apiVersion',
+        (ts.isPropertyAssignment(use.parent) &&
+          use.parent.initializer === use &&
+          use.parent.name.getText().replace(/['"]/g, '') === 'apiVersion') ||
+        (ts.isTemplateSpan(use.parent) &&
+          use.parent.expression === use &&
+          ADMIN_URL_VERSION.test(
+            ts.isTemplateExpression(use.parent.parent) &&
+              use.parent.parent.templateSpans[0] === use.parent
+              ? use.parent.parent.head.text
+              : use.parent.parent.templateSpans[
+                  use.parent.parent.templateSpans.indexOf(use.parent) - 1
+                ].literal.text,
+          )),
     );
     if (latestUses.length && (!latestImports.length || settable.length < latestUses.length)) {
       stop(
@@ -403,6 +426,7 @@ export function shopifySdkSourceChanges(
     }
     // A Storefront client or codegen project keeps its own version, which no Admin check covers.
     const storefront = settable.find((use) => {
+      if (!ts.isPropertyAssignment(use.parent)) return false;
       const options = use.parent.parent as ts.ObjectLiteralExpression;
       const factory = options.parent;
       return (
