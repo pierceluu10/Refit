@@ -390,6 +390,57 @@ it('still treats a client whose constructor escapes into a call as uncertain', (
   expect(declarations.find((entry) => entry.kind === 'constructor')?.absent).toBeUndefined();
 });
 
+it.each([
+  [
+    'passed to a helper',
+    'const stripe = new Stripe(key);\nexport const run = () => lookup(stripe);',
+  ],
+  ['returned from a factory', 'export function client() {\n  return new Stripe(key);\n}'],
+  [
+    'loaded with require',
+    "const Stripe = require('stripe');\nconst stripe = new Stripe(key);\nmodule.exports = { stripe };",
+  ],
+])(
+  'reads a constructor without a version option as absent when its client is %s',
+  (_name, body) => {
+    const repository: Repository = {
+      root: '/refit-version-fixture',
+      files: [
+        {
+          path: 'application.js',
+          content: `${body.includes('require') ? '' : `${prefix}\n`}const key = process.env.KEY;\n${body}\n`,
+        },
+      ],
+      dependencies: [],
+      lockfiles: [],
+      warnings: [],
+    };
+    const constructor = analyzeRepository(repository, [], STRIPE).apiVersionDeclarations.find(
+      (entry) => entry.kind === 'constructor',
+    );
+    expect(constructor).toMatchObject({ absent: true, value: null });
+  },
+);
+
+it('keeps a constructor whose options are spread, or a repository with an escape hatch, unknown', () => {
+  for (const body of [
+    'const options = {};\nexport const stripe = new Stripe(key, ...[options]);',
+    "export const stripe = new Stripe(key);\nstripe.setApiVersion('2020-08-27');",
+  ]) {
+    const repository: Repository = {
+      root: '/refit-version-fixture',
+      files: [{ path: 'application.ts', content: `${prefix}\nconst key = 'k';\n${body}\n` }],
+      dependencies: [],
+      lockfiles: [],
+      warnings: [],
+    };
+    const constructor = analyzeRepository(repository, [], STRIPE).apiVersionDeclarations.find(
+      (entry) => entry.kind === 'constructor',
+    );
+    expect(constructor?.absent).toBeUndefined();
+  }
+});
+
 const requestStatuses = (source: string) =>
   analyzeRepository(
     {
