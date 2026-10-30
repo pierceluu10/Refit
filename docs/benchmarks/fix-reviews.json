@@ -4181,6 +4181,21 @@
         "upgradeComplete": "n/a: no package changes.",
         "wouldMerge": "yes"
       }
+    },
+    {
+      "repo": "shxhid-dev/shxhid-chat-agent",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41135598187 (36443a25, 2026-10-16-shopify-fresh-repos.json, size=5, --sdk-upgrade, no AI) against main 57ce145f run 41132455018. Read from the shard-39 artifact run/migration.patch and pull-request.md, checked against the source at the frozen commit.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the patch moved `API_VERSION = process.env.SHOPIFY_API_VERSION || '2025-01'` in app/shopify-storefront.js to 2026-10, but the same constant sets the Storefront API URL `/api/${API_VERSION}/graphql.json` (line 223) and an Admin REST URL `/admin/api/${API_VERSION}/storefront_access_tokens.json` (line 102) that the scan did not list as REST. The Storefront version moved without any proof.",
+        "bothVersions": "no: the Storefront documents were never checked on 2026-10.",
+        "nothingUnrelated": "no: the Storefront API version moved.",
+        "pleaseCheck": "Fixed in 8b0928c1: REST paths after a substituted version are REST usage, and a version literal a Storefront URL also uses stops the move. Run 41137299973 stops the row there; the patch is never produced.",
+        "upgradeComplete": "n/a: the row now stops before the SDK upgrade is proposed.",
+        "wouldMerge": "no"
+      }
     }
   ]
 }

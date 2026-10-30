@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 30 checkpoint: Shopify client tracing and REST URLs (unreleased, after 0.39.0)
+
+Shopify tracing follows Admin GraphQL clients returned from factories and passed into repository functions (as an argument or a destructured member), object members copied with spread or passed on, and loaded `import()` namespaces ([Shopify](SHOPIFY.md#what-refit-reads)). Two REST shapes that were invisible now count, and stop: base URLs that end at the version, and REST paths after a substituted version. A version literal that also sets a Storefront API URL stops the Admin move instead of moving the Storefront version. On the 310 Shopify rows (dev-60 and the 250 practice repositories, no AI): validated 34 → 34, unreadable-first rows 20 → 17, REST-first rows 32 → 35, none lost ([benchmarks](BENCHMARKS.md#document-tracing-and-rest-detection-2026-10-30-fixshopify-tracing-rest)).
+
 ## October 29 checkpoint: Shopify retired-version migrations (unreleased, after 0.39.0)
 
 Documents that already fail on the oldest supported Admin version (Shopify serves it to retired pins today) are now fixed where a documented migration applies, instead of stopping: `productVariantUpdate` becomes `productVariantsBulkUpdate` with the call's variables and response reads rewritten (rule `shopify-product-variant-update-to-bulk-update`, quoting Shopify's own app-template change), and unused variable declarations are removed. A patch that changes a document's variables is graded above D only when the development store ran the operation; the migration writes that case. See [Shopify rules](SHOPIFY-RULES.md#migrations). Benchmark evidence is in `docs/BENCHMARKS.md`.
