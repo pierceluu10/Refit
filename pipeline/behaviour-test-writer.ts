@@ -47,8 +47,12 @@ const WRITER_LIMITS = {
   timeoutMs: 300_000,
 } satisfies OutputLimits;
 const RETRY_TIMEOUT_MS = 600_000;
-const SHORTER =
-  'Your previous answer was cut off at the output limit. Write at most 2 files of at most 12 KiB each, fewer and shorter tests, a one-sentence summary and only the uncertainties that matter.';
+const SMALLER =
+  'Write at most 2 files of at most 12 KiB each, fewer and shorter tests, a one-sentence summary and only the uncertainties that matter.';
+const SHORTER = `Your previous answer was cut off at the output limit. ${SMALLER}`;
+// When the budget left cannot hold WRITER_LIMITS' reservation, a smaller answer is asked for once
+// with this limit: a typical answer (TYPICAL_OUTPUT_TOKENS) fits twice.
+const BUDGET_OUTPUT_TOKENS = 16_000;
 // Rounds of failures on the original code sent back to the writer (behaviourTestFeedback).
 export const FEEDBACK_ROUNDS = 2;
 const MAX_FEEDBACK_TEXT = 500;
@@ -1057,6 +1061,15 @@ export async function writeBehaviourTests(options: {
         ) {
           retries.push(`cut off at ${limits.maxOutputTokens} output tokens`);
           instructions = `${corrected}\n${SHORTER}`;
+        } else if (
+          error instanceof PipelineInputError &&
+          /budget exhausted/i.test(error.message) &&
+          limits.maxOutputTokens! > BUDGET_OUTPUT_TOKENS &&
+          instructions === corrected
+        ) {
+          retries.push(`the budget left could not hold ${limits.maxOutputTokens} output tokens`);
+          limits = { ...limits, maxOutputTokens: BUDGET_OUTPUT_TOKENS };
+          instructions = `${corrected}\n${SMALLER}`;
         } else throw error;
       }
   } catch (error) {

@@ -676,6 +676,102 @@ new AdAccount('act_1').getAds(['name']);`,
   });
 });
 
+describe('URLs that reach a request indirectly', () => {
+  it('reads a URL object, its search parameters, conditionals and returned URLs', async () => {
+    const found = await calls({
+      'a.ts': `export async function token(code: string) {
+  const url = new URL('https://graph.facebook.com/v19.0/oauth/access_token');
+  url.searchParams.set('code', code);
+  url.searchParams.set('fields', 'access_token');
+  return fetch(url.toString());
+}
+export async function changed() {
+  const url = new URL('https://graph.facebook.com/v19.0/me');
+  url.search = '?fields=name';
+  return fetch(url);
+}
+export async function pick(ig: boolean) {
+  const endpoint = ig ? 'https://graph.instagram.com/v21.0/me' : 'https://api.example.com/me';
+  return fetch(endpoint, { method: 'POST', body: JSON.stringify({ ...(ig ? { link: 'x' } : {}) }) });
+}
+function messagesUrl(id: string) {
+  return \`https://graph.facebook.com/v20.0/\${id}/messages\`;
+}
+export const send = (id: string) => fetch(messagesUrl(id), { method: 'POST' });`,
+    });
+    expect(at(found, 'a.ts', 5)).toMatchObject({
+      method: 'GET',
+      path: '/oauth/access_token',
+      parameters: ['code', 'fields'],
+      fields: ['access_token'],
+      unknown: [],
+    });
+    expect(at(found, 'a.ts', 10).unknown).toEqual(['`url.search` is changed on line 9']);
+    expect(at(found, 'a.ts', 14)).toMatchObject({
+      host: 'graph.instagram.com',
+      method: 'POST',
+      parameters: ['link'],
+      unknown: [],
+    });
+    expect(at(found, 'a.ts', 19)).toMatchObject({
+      method: 'POST',
+      path: '/{id}/messages',
+      edge: 'messages',
+      unknown: [],
+    });
+  });
+
+  it('reads helpers that add transport options, nested helpers and paging loops', async () => {
+    const found = await calls({
+      'a.ts': `async function graphFetch(url: string, init: RequestInit) {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(1000) });
+}
+async function pages(startUrl: string) {
+  let next: string | undefined = startUrl;
+  while (next) {
+    const body = await (await fetch(next)).json();
+    next = body.paging?.next;
+  }
+}
+async function cursor(startUrl: string) {
+  let next = startUrl;
+  next = next + '&after=x';
+  return fetch(next);
+}
+export async function run(token: string) {
+  const authFetch = (url: string) => fetch(url, { headers: { Authorization: token } });
+  await graphFetch('https://graph.facebook.com/v19.0/me/feed', { method: 'POST', body: JSON.stringify({ message: 'hi' }) });
+  await pages('https://graph.facebook.com/v19.0/me/accounts?fields=id,name');
+  await cursor('https://graph.facebook.com/v19.0/me/posts');
+  await authFetch('https://graph.facebook.com/v19.0/me?fields=id');
+}`,
+    });
+    expect(at(found, 'a.ts', 18)).toMatchObject({ method: 'POST', parameters: ['message'] });
+    expect(at(found, 'a.ts', 19)).toMatchObject({ method: 'GET', fields: ['id', 'name'] });
+    expect(at(found, 'a.ts', 20).unknown).toContain(
+      'request options passed to `cursor` are not read',
+    );
+    expect(at(found, 'a.ts', 21)).toMatchObject({ method: 'GET', fields: ['id'], unknown: [] });
+  });
+
+  it('reads a version constant imported through a tsconfig path alias', async () => {
+    const found = await calls({
+      'tsconfig.json': JSON.stringify({
+        compilerOptions: { baseUrl: '.', paths: { '@/*': ['src/*'] } },
+      }),
+      'src/meta/version.ts': `export const GRAPH_VERSION = process.env.META_VERSION || 'v21.0';`,
+      'src/a.ts': `import { GRAPH_VERSION } from '@/meta/version';
+export const me = () => fetch(\`https://graph.facebook.com/\${GRAPH_VERSION}/me?fields=id\`);`,
+    });
+    expect(at(found, 'src/a.ts', 2)).toMatchObject({
+      version: 'v21.0',
+      versionSource: 'env-default',
+      pin: { file: 'src/meta/version.ts', line: 1 },
+      unknown: [],
+    });
+  });
+});
+
 it('splits fields at top-level commas only', () => {
   expect(splitFields('id, posts{message,from{id}},picture.type(large),,')).toEqual([
     'id',

@@ -4,6 +4,9 @@ import {
   exported,
   findDeclaration,
   isConst,
+  moduleResolver,
+  propertyName,
+  reassignedName,
   isReference,
   scanGraphCalls,
   unwrap,
@@ -330,16 +333,20 @@ function holderOf(node: ts.Node): ts.VariableDeclaration | undefined {
     : undefined;
 }
 
-function references(source: ts.SourceFile, declaration: ts.VariableDeclaration) {
-  const name = (declaration.name as ts.Identifier).text;
+// References to a declared variable, or to a module-level import binding given by name.
+function references(source: ts.SourceFile, declaration: ts.VariableDeclaration | string) {
+  const name =
+    typeof declaration === 'string' ? declaration : (declaration.name as ts.Identifier).text;
+  const target = typeof declaration === 'string' ? undefined : declaration;
   const found: ts.Identifier[] = [];
   const visit = (node: ts.Node) => {
     if (
       ts.isIdentifier(node) &&
       node.text === name &&
       isReference(node) &&
-      node !== declaration.name &&
-      findDeclaration(name, node) === declaration
+      node !== target?.name &&
+      !ts.isImportSpecifier(node.parent) &&
+      findDeclaration(name, node) === target
     )
       found.push(node);
     ts.forEachChild(node, visit);
@@ -353,11 +360,14 @@ function references(source: ts.SourceFile, declaration: ts.VariableDeclaration) 
 // request config, or a file-local `const` alias whose uses qualify in turn.
 function untracedUses(
   source: ts.SourceFile,
-  declaration: ts.VariableDeclaration,
+  declaration: ts.VariableDeclaration | string,
   kind: 'url' | 'version',
   depth = 0,
+  // A `let`: the scan reads it only where it is passed to a call, not where it starts a longer URL.
+  direct = false,
 ): string[] {
-  const name = (declaration.name as ts.Identifier).text;
+  const name =
+    typeof declaration === 'string' ? declaration : (declaration.name as ts.Identifier).text;
   const reasons: string[] = [];
   for (const reference of references(source, declaration)) {
     let node: ts.Node = reference;
@@ -369,7 +379,7 @@ function untracedUses(
       node = node.parent;
     const parent = node.parent;
     const where = `${source.fileName}:${source.getLineAndCharacterOfPosition(reference.getStart(source)).line + 1}`;
-    if (ts.isTemplateSpan(parent)) {
+    if (ts.isTemplateSpan(parent) && !direct) {
       const template = parent.parent;
       const index = template.templateSpans.indexOf(parent);
       const before =
@@ -378,6 +388,7 @@ function untracedUses(
       if (kind === 'version' && HOST_PREFIX.test(before)) continue;
     } else if (kind === 'url') {
       if (
+        !direct &&
         ts.isBinaryExpression(parent) &&
         parent.operatorToken.kind === ts.SyntaxKind.PlusToken &&
         parent.left === node
@@ -400,6 +411,7 @@ function untracedUses(
         ts.isIdentifier(parent.name) &&
         isConst(parent) &&
         !exported(parent) &&
+        !direct &&
         depth < MAX_ALIAS_DEPTH
       ) {
         reasons.push(...untracedUses(source, parent, kind, depth + 1));
@@ -407,6 +419,68 @@ function untracedUses(
       }
     }
     reasons.push(`${where}: \`${name}\` is used in a way the request scan does not follow`);
+  }
+  return reasons;
+}
+
+// How other files use an exported version or base: each named import must be used only where the
+// scan reads it. Any other way of reaching the module (a namespace or default import, a
+// re-export, a whole-module `require` or `import()`) may use it unseen.
+function importerUses(
+  repository: Repository,
+  file: string,
+  name: string,
+  kind: 'url' | 'version',
+): string[] {
+  const resolveFrom = moduleResolver(repository);
+  const reasons: string[] = [];
+  for (const item of repository.files) {
+    if (item.path === file || !/\b(?:import|require|export)\b/.test(item.content)) continue;
+    const source = ts.createSourceFile(item.path, item.content, ts.ScriptTarget.Latest, true);
+    const reaches = (specifier: ts.Expression | undefined) =>
+      specifier !== undefined &&
+      ts.isStringLiteralLike(specifier) &&
+      resolveFrom(item.path, specifier.text) === file;
+    const where = (node: ts.Node) =>
+      `${item.path}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}`;
+    const locals: string[] = [];
+    const visit = (node: ts.Node) => {
+      if (ts.isImportDeclaration(node) && reaches(node.moduleSpecifier)) {
+        const clause = node.importClause;
+        if (clause?.name || (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)))
+          reasons.push(`${where(node)}: the module that exports \`${name}\` is imported whole`);
+        else if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings))
+          for (const element of clause.namedBindings.elements)
+            if ((element.propertyName ?? element.name).text === name)
+              locals.push(element.name.text);
+      } else if (ts.isExportDeclaration(node) && reaches(node.moduleSpecifier))
+        reasons.push(`${where(node)}: the module that exports \`${name}\` is re-exported`);
+      else if (
+        ts.isCallExpression(node) &&
+        (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+          (ts.isIdentifier(node.expression) && node.expression.text === 'require')) &&
+        reaches(node.arguments[0])
+      ) {
+        const declaration = node.parent;
+        if (
+          ts.isVariableDeclaration(declaration) &&
+          ts.isObjectBindingPattern(declaration.name) &&
+          declaration.parent.parent.parent === source
+        ) {
+          for (const element of declaration.name.elements)
+            if (
+              ts.isIdentifier(element.name) &&
+              (propertyName(element.propertyName) ?? element.name.text) === name
+            )
+              reasons.push(
+                `${where(node)}: \`${name}\` is required into a variable this check does not follow`,
+              );
+        } else reasons.push(`${where(node)}: the module that exports \`${name}\` is loaded whole`);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    for (const local of locals) reasons.push(...untracedUses(source, local, kind));
   }
   return reasons;
 }
@@ -454,27 +528,44 @@ function pinEdit(repository: Repository, file: string, line: number, version: st
   const name = ts.isIdentifier(holder.name) ? holder.name.text : '';
   if (!name)
     return { start, end, reasons: [`${where}: the version is held in a destructured value`] };
-  if (exported(holder))
-    return {
-      start,
-      end,
-      reasons: [
-        `${where}: the version is in the exported \`${name}\`; other files may use it in ways this check does not follow`,
-      ],
-    };
-  if (!isConst(holder))
-    return {
-      start,
-      end,
-      reasons: [`${where}: the version is in \`${name}\`, which is not a const`],
-    };
   const initializer =
     holder.initializer && (envDefault(holder.initializer) ?? unwrap(holder.initializer));
   const kind =
     initializer && ts.isStringLiteralLike(initializer) && VERSION.test(initializer.text)
       ? 'version'
       : 'url';
-  return { start, end, reasons: untracedUses(source, holder, kind) };
+  // An exported version, or an exported base written as a plain string, is followed into the files
+  // that import it by name; the scan reads both there.
+  if (exported(holder)) {
+    if (!isConst(holder) || (kind === 'url' && envDefault(holder.initializer!)))
+      return {
+        start,
+        end,
+        reasons: [
+          `${where}: the version is in the exported \`${name}\`; other files may use it in ways this check does not follow`,
+        ],
+      };
+    return {
+      start,
+      end,
+      reasons: [
+        ...untracedUses(source, holder, kind),
+        ...importerUses(repository, file, name, kind),
+      ],
+    };
+  }
+  // A `let` that is never assigned again holds its initializer, as a `const` does.
+  const steadyLet =
+    ts.isVariableDeclarationList(holder.parent) &&
+    (holder.parent.flags & ts.NodeFlags.Let) !== 0 &&
+    !reassignedName(holder);
+  if (!isConst(holder) && !steadyLet)
+    return {
+      start,
+      end,
+      reasons: [`${where}: the version is in \`${name}\`, which is not a const`],
+    };
+  return { start, end, reasons: untracedUses(source, holder, kind, 0, !isConst(holder)) };
 }
 
 // Proposes moving each pinned Graph API version to `target` where the evidence allows, and lists
