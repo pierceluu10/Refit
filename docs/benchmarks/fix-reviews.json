@@ -4016,6 +4016,171 @@
         "upgradeComplete": "yes: the type oracle shows no error introduced by stripe 23 on either side.",
         "wouldMerge": "yes."
       }
+    },
+    {
+      "repo": "ingridandrade-ctrl/arthea",
+      "pullRequest": null,
+      "run": "refit-bench 40970560104 (meta.yml, subsets/meta-dev-60.json, size 1, no AI) at 3f3937dc on feat/meta-changelogs; no patch at affb6e8a (40955443390), validated after. Read from a local `refit meta-graph --propose-version-moves --target v26.0` on the same commit.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the file-local GRAPH_API_VERSION v21.0 to v26.0, which feeds one axios instance for WhatsApp Cloud API `/{phone}/messages` sends and `/{waba}/message_templates` create, read (name,status,rejected_reason,quality_score) and delete; no change from v22.0 to v26.0 touches them. Template creation already uses UTILITY, MARKETING or AUTHENTICATION with sample values.",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the change table, including the mined WhatsApp and Messenger changelogs, from its own version to v26.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "src/lib/meta/api.ts keeps `process.env.META_GRAPH_VERSION || \"v21.0\"` for OAuth requests the scan cannot trace; it is listed as a note. Error 131059 (v24.0, bad template pagination cursor) is not handled by name, as before.",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "symbiosika/symbiosika-framework",
+      "pullRequest": null,
+      "run": "refit-bench 40970560104 (meta.yml, subsets/meta-dev-60.json, size 1, no AI) at 3f3937dc on feat/meta-changelogs; no patch at affb6e8a (40955443390), validated after. Read from a local `refit meta-graph --propose-version-moves --target v26.0` on the same commit.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v22.0 to v26.0 on WABA `subscribed_apps` (POST, GET), phone number `/register` (messaging_product, pin), WABA `/phone_numbers` and phone number `/messages`; no change from v23.0 to v26.0 touches them (the v21.0 data_localization_region removal is not crossed and the code does not send it).",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the change table, including the mined WhatsApp and Messenger changelogs, from its own version to v26.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "The repository's tests already fail before the patch; the patch adds no failure. A `/{custom-audience-id}`-shaped request in index.ts stays on v22.0 as a node-wide caution note.",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "mkyousafali/Aqura",
+      "pullRequest": null,
+      "run": "refit-bench 40970560104 (meta.yml, subsets/meta-dev-60.json, size 1, no AI) at 3f3937dc on feat/meta-changelogs; no patch at affb6e8a (40955443390), validated after. Read from a local `refit meta-graph --propose-version-moves --target v26.0` on the same commit.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v22.0 to v26.0 on WhatsApp Cloud API `/messages`, `/block_users`, `/whatsapp_business_profile` and the resumable `app/uploads` session, plus the GRAPH_API_VERSION const in attendance-no-show; no change from v23.0 to v26.0 touches them.",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the change table, including the mined WhatsApp and Messenger changelogs, from its own version to v26.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "The whatsapp-webhook function reads status webhooks; the v24.0 `conversation` omission follows the app's webhook version, not these request pins, so the move does not change it. Six pins whose requests the scan cannot read stay on v22.0 as notes.",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "FreeForCharity/FFC-IN-FFC_Single_Page_Template",
+      "pullRequest": null,
+      "run": "refit-bench meta.yml 40963544288 (59965322, subsets/meta-dev-60.json, size=1, no AI) against 40955599826 (affb6e8a); no patch before, validated after. Read from the shard artifact moves.patch and results.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the const GRAPH_API_VERSION v23.0 to v26.0 in src/lib/events/parsers/facebook.ts, which only GET /{pageId}/events uses (new URL with searchParams fields id,name,description,start_time,end_time,place,cover,is_online, time_filter, limit, access_token, sent through the injected fetcher); no change between v23.0 and v26.0 in the reviewed table touches it.",
+        "bothVersions": "n/a: a Graph API version move checked against the reviewed change table from v23.0 to v26.0; the change-table proof marks the changed request valid at v26.0.",
+        "nothingUnrelated": "yes: the only changed line is the version const.",
+        "pleaseCheck": "scripts/fetch-events.mjs keeps its own v23.0 URL, since its pagination loop reassigns the URL; the draft lists it as a note.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "tareksalammohamed/socialpilot",
+      "pullRequest": null,
+      "run": "refit-bench meta.yml 40963544288 (59965322, subsets/meta-dev-60.json, size=1, no AI) against 40955599826 (affb6e8a); no patch before, validated after. Read from the shard artifact moves.patch and results.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: const GRAPH v21.0 to v26.0 in supabase/functions/_shared/metaRefresh.ts (one GET /oauth/access_token fb_exchange_token) and supabase/functions/meta-oauth-callback/index.ts (two GET /oauth/access_token exchanges and GET /me/accounts with fields id,name,access_token,instagram_business_account{id,username}); no change in range touches them.",
+        "bothVersions": "n/a: a Graph API version move checked against the reviewed change table from v21.0 to v26.0; the change-table proof marks every changed request valid at v26.0.",
+        "nothingUnrelated": "yes: each changed line differs only in the version text.",
+        "pleaseCheck": "the WhatsApp and runtime-versioned requests elsewhere stay on their versions and are listed as notes.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "CassieMarie0728/jekyll-forge",
+      "pullRequest": null,
+      "run": "refit-bench meta.yml 40987935081 (24832a69, subsets/meta-dev-60.json, size=1, AI on, anthropic claude-sonnet-5-5) against the no-AI control 40987943348 at the same commit and 40955599826 (affb6e8a). Read from the shard artifact run/migration.patch and report.json (metaGraph.reconstructed), checked against the source at the frozen commit.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v18.0 to v26.0 on three /oauth/access_token URLs. AI read the two nested-ternary token URLs in server/_core/socialOAuth.ts (exchangeOAuthCode and refreshOAuthToken) as POSTs with the URLSearchParams bodies written there, exactly as the code sends them; the third in tokenRefreshManager.ts was traced. Token endpoints have no node fields; nothing in range touches them.",
+        "bothVersions": "n/a: a Graph API version move checked against the reviewed change table to v26.0; the change-table proof marks every changed request valid at v26.0.",
+        "nothingUnrelated": "yes: each changed line differs only in the version.",
+        "pleaseCheck": "refreshOAuthToken sends grant_type=refresh_token to Facebook, which Facebook does not support (it uses fb_exchange_token); that was already so before the patch and is not changed by it.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "dvygolov/AdReplica",
+      "pullRequest": null,
+      "run": "refit-bench meta.yml 40987935081 (24832a69, subsets/meta-dev-60.json, size=1, AI on, anthropic claude-sonnet-5-5) against the no-AI control 40987943348 at the same commit and 40955599826 (affb6e8a). Read from the shard artifact run/migration.patch and report.json (metaGraph.reconstructed), checked against the source at the frozen commit.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v23.0 to v26.0 on new URL('https://graph.facebook.com/v23.0/') in .github/scripts/scrape-facebook-og.mjs. AI read both requests graphUrl builds: the scrape POST (id, fields=og_object, scrape, method, access_token) and the verify GET (id, fields=og_object, access_token), matching the searchParams the code sets, including the conditional ones.",
+        "bothVersions": "n/a: a Graph API version move checked against the reviewed change table to v26.0; the change-table proof marks every changed request valid at v26.0.",
+        "nothingUnrelated": "yes: one line, the version only.",
+        "pleaseCheck": "adreplica-loader.js and the generated adreplica.js keep their own v23.0 and unversioned URLs; they are listed as notes.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "Shamrock2245/shamrock-bail-portal-site",
+      "pullRequest": null,
+      "run": "refit-bench meta.yml 40987935081 (24832a69, subsets/meta-dev-60.json, size=1, AI on, anthropic claude-sonnet-5-5) against the no-AI control 40987943348 at the same commit and 40955599826 (affb6e8a). Read from the shard artifact run/migration.patch and report.json (metaGraph.reconstructed), checked against the source at the frozen commit.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v21.0 to v26.0 on three URLs in backend-gas/SocialPublisher.js assigned to a variable in branches and sent by UrlFetchApp.fetch with method post: POST /{pageId}/photos (message, access_token, source), POST /{pageId}/feed (message, access_token) and POST /oauth/access_token (code, client_id, client_secret, redirect_uri, grant_type). AI read each payload exactly as written; nothing in range touches them.",
+        "bothVersions": "n/a: a Graph API version move checked against the reviewed change table to v26.0; the change-table proof marks every changed request valid at v26.0.",
+        "nothingUnrelated": "yes: each changed line differs only in the version.",
+        "pleaseCheck": "other Graph URLs in SocialPublisher.js and TokenRefreshService.js stay on their versions and are listed as notes.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "mkyousafali/Aqura",
+      "pullRequest": null,
+      "run": "refit-bench meta.yml 40987943348 (24832a69, subsets/meta-dev-60.json, size=1, no AI) against 40955599826 (affb6e8a); needs review before, validated after (parameter changes scoped to their edge). The AI run 40987935081 ships the identical patch.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes: v22.0 to v26.0 on POST /app/uploads (file_length, file_type, access_token), the Resumable Upload session create in frontend/src/routes/api/wa-upload-profile-photo/+server.ts; nothing in range touches it.",
+        "bothVersions": "n/a: a Graph API version move checked against the reviewed change table to v26.0; the change-table proof marks every changed request valid at v26.0.",
+        "nothingUnrelated": "yes: one line, the version only.",
+        "pleaseCheck": "the upload step at line 38 (POST /{uploadSessionId}) stays on v22.0, so the two steps of one upload send different versions; each Graph request carries its own version, but moving both together is cleaner.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "ogSulem/pulse",
+      "pullRequest": null,
+      "run": "refit-bench meta.yml 40987935081 (24832a69, subsets/meta-dev-60.json, size=1, AI on, anthropic claude-sonnet-5-5) against the no-AI control 40987943348 at the same commit and 40955599826 (affb6e8a). Read from the shard artifact run/migration.patch and report.json (metaGraph.reconstructed), checked against the source at the frozen commit.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v21.0 to v26.0 on three URLs in server/src/engine/oauth.js. AI read the config table's token URL (line 63), which postForm(cfg.token, body) sends with the PKCE code-exchange body and the fb_exchange_token body; the new URL fb_exchange_token GET and GET /me/accounts with literal fields were traced. Nothing in range touches them.",
+        "bothVersions": "n/a: a Graph API version move checked against the reviewed change table to v26.0; the change-table proof marks every changed request valid at v26.0.",
+        "nothingUnrelated": "yes: each changed line differs only in the version.",
+        "pleaseCheck": "the www.facebook.com/v21.0/dialog/oauth authorize URL is not a Graph request and stays as it is.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "FreeForCharity/FFC-IN-FFC_Single_Page_Template",
+      "pullRequest": null,
+      "run": "refit-bench meta.yml 40987935081 (24832a69, subsets/meta-dev-60.json, size=1, AI on, anthropic claude-sonnet-5-5) against the no-AI control 40987943348 at the same commit and 40955599826 (affb6e8a). Read from the shard artifact run/migration.patch and report.json (metaGraph.reconstructed), checked against the source at the frozen commit.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: as in the no-AI review, plus scripts/fetch-events.mjs: AI read its first-page GET /{pageId}/events with the same literal fields; later pages follow paging.next links, which Graph returns on the requesting version. Grade C rather than B because the tests do not reach the script.",
+        "bothVersions": "n/a: a Graph API version move checked against the reviewed change table to v26.0; the change-table proof marks every changed request valid at v26.0.",
+        "nothingUnrelated": "yes: two version lines only.",
+        "pleaseCheck": "none beyond the reconstructed request.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes"
+      }
     }
   ]
 }

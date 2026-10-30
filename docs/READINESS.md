@@ -15,6 +15,24 @@ Six held progress-30 rows (a practice set, opened on the founder's instruction),
 - 0-CYBERDYNE-SYSTEMS-0/quorum: checks pass (B), held on a real change: `expand: ['latest_invoice.payment_intent']` and its `invoice.payment_intent` read, whose documented replacement (`confirmation_secret`) needs a code change no rule makes, and 16 `.type` reads of WebSocket JSON. Version-tolerant helper types now return `any` for an `any` receiver, and the scan-time type proof follows assertions that only add inline members.
 - buildproven/saas-starter-kit: held on real removals: a customer-wide upcoming-invoice preview and legacy usage records. `subscription_items` and `invoice_items` now map to `invoices.createPreview` as Stripe's basil page documents, and an `undefined` branch counts as sending nothing.
 
+## October 29 checkpoint: Meta Graph WhatsApp and Messenger changelogs (unreleased, after 0.39.0)
+
+WhatsApp Business Platform and Messenger Platform requests move against their mined changelogs, stopping only across a version released before 2021-10-21. A listed change stops a move only where it can reach the code: in-effect changes (`appliesToAll` passed) go to the out-of-cycle list, parameter changes match their own edge or path, Page-node changes never match a WhatsApp send, and error-code and default-field changes stop where the code names them. The WhatsApp On-Premises shutdown (2025-10-23) is an alert, never an edit. meta-dev-60 (refit-bench 40955443390 → 40970560104): validated 3 → 6, none lost, each new diff reviewed `correct`; no AI. See [Benchmarks](BENCHMARKS.md#meta-graph-changelog-coverage-on-meta-dev-60-october-29).
+
+## October 29 checkpoint: Meta Graph tracing and AI reconstruction (unreleased, after 0.39.0)
+
+The Meta Graph scan now reads more request shapes:
+
+- `new URL(...)` with `searchParams`;
+- conditional URLs;
+- same-file URL builders;
+- fetch wrappers that spread their options;
+- injected fetch parameters.
+
+With AI on, it also reconstructs requests it cannot read. A reconstruction is kept only when every name is written in the code, it agrees with every traced part, and a runtime version is written on the line the model names. It then goes through the change table, the move stops and the proof like a traced request ([Meta Graph API](META-GRAPH.md)).
+
+Measured on meta-dev-60: validated 3 → 6 without AI and 9 with AI on Claude Sonnet 5.5, at $20.03; none lost and every new fix hand-checked ([benchmarks](BENCHMARKS.md#with-ai-on-claude-october-30)). Parameter changes now match only requests on their own edge or path.
+
 ## October 29 checkpoint: Shopify documents built at runtime (unreleased, after 0.39.0)
 
 Shopify tracing reads more of the GraphQL documents apps build at runtime or send through other clients ([Shopify](SHOPIFY.md#what-refit-reads)):

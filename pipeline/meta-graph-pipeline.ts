@@ -2,6 +2,8 @@ import { open, readFile } from 'node:fs/promises';
 import type { ApiVersionEvidence, ApiVersionPolicy } from './api-version.ts';
 import { daysUntil, loadDeadlineRegistry, type DeadlineRegistry } from './deadline-registry.ts';
 import { META_SDK } from './deadline-exposure.ts';
+import type { AiOptions } from './ai-budget.ts';
+import { reconstructGraphCalls, type GraphReconstruction } from './meta-graph-ai.ts';
 import { scanGraphCalls, type GraphCall } from './meta-graph-calls.ts';
 import {
   checkMetaGraphChanges,
@@ -14,6 +16,7 @@ import { loadMetaPlatformAlerts, planMetaGraphFixes } from './meta-graph-fixes.t
 import {
   changesUsedBy,
   fieldNames,
+  inEffect,
   META_GRAPH_VERSION_RULE,
   type VersionMoveStop,
 } from './meta-graph-moves.ts';
@@ -144,6 +147,7 @@ function realStop(
   target: string,
   changes: MetaGraphChanges,
   retired: (version: string) => boolean,
+  now: Date,
 ) {
   if (stop.from && retired(stop.from)) return 'retired' as const;
   if (stop.reasons.some((reason) => / rule .* documents /.test(reason))) return 'rule' as const;
@@ -152,7 +156,8 @@ function realStop(
     (change) =>
       change.version !== null &&
       compareVersions(change.version, stop.from!) > 0 &&
-      compareVersions(change.version, target) <= 0,
+      compareVersions(change.version, target) <= 0 &&
+      !inEffect(change, now),
   );
   return changesUsedBy(call, crossed).some((change) => definiteUse(call, change))
     ? ('change' as const)
@@ -175,6 +180,10 @@ export async function runMetaGraphPipeline(options: {
   proposePatch?: boolean;
   apiVersionPolicy: ApiVersionPolicy;
   now?: Date;
+  // AI reads the requests the scan cannot (meta-graph-ai.ts).
+  aiPatch?: AiOptions;
+  // Reconstructions already made for this commit, such as the benchmark scan's, reused instead.
+  reconstructions?: GraphReconstruction[];
 }) {
   const now = options.now ?? new Date();
   const target = options.after.document.info.version;
@@ -184,7 +193,13 @@ export async function runMetaGraphPipeline(options: {
     );
   const changes = changeTable(options.after.document.metaGraphChanges, 'the after snapshot');
   const repository = await readRepository(options.repository, META_SDK);
-  const scan = await scanGraphCalls(options.repository, { repository });
+  const unread = await scanGraphCalls(options.repository, { repository });
+  const reconstructions =
+    options.reconstructions ??
+    (options.aiPatch
+      ? await reconstructGraphCalls(repository.files, unread.calls, options.aiPatch)
+      : []);
+  const scan = await scanGraphCalls(options.repository, { repository, reconstructions });
   const registry = await loadDeadlineRegistry(undefined, now);
   const plan = await planMetaGraphFixes(options.repository, target, {
     changes,
@@ -192,6 +207,7 @@ export async function runMetaGraphPipeline(options: {
     rules: await loadMetaGraphRules(changes),
     alerts: await loadMetaPlatformAlerts(),
     now,
+    reconstructions,
   });
   const { proposal } = plan;
   const findings: Finding[] = [];
@@ -219,7 +235,7 @@ export async function runMetaGraphPipeline(options: {
       const call = scan.calls.find(
         (item) => item.file === request.file && item.line === request.line,
       );
-      const real = realStop(call, stop, target, changes, retired);
+      const real = realStop(call, stop, target, changes, retired, now);
       if (!real) {
         cautions.push(
           `${where(request.file, request.line)} ${request.method ?? 'request'} ${request.path ?? 'unknown path'} stays on ${stop.from ?? 'its version'}: ${stop.reasons.join(' ')}`,
@@ -327,6 +343,12 @@ export async function runMetaGraphPipeline(options: {
           warnings: [
             'Requests through WhatsApp, Messenger, the business SDK, project helpers or options built at runtime stay on their version; each is listed for review.',
             ...alerts,
+            ...reconstructions
+              .filter((item) => item.status === 'kept')
+              .map(
+                (item) =>
+                  `${where(item.file, item.line)}: Refit could not read this request statically; AI (${item.model}) read ${item.requests!.map((request) => `${request.method} ${request.path}`).join(', ')}${item.version ? ` on ${item.version} (${where(item.pin!.file, item.pin!.line)})` : ''} from the code, and Refit checked that every name is written there and ran it through the change table. Check that this is what the code sends.`,
+              ),
             ...cautions.map(
               (note) =>
                 `Left on its version, with no Meta problem found there (not counted as unresolved): ${note}`,
@@ -390,6 +412,8 @@ export async function runMetaGraphPipeline(options: {
       stops: proposal.stops,
       migrations: plan.migrations,
       alerts: plan.alerts,
+      // Requests AI read from code the scan could not; the proof applies the kept ones.
+      reconstructed: reconstructions,
     },
     warnings: [...repository.warnings, ...alerts],
     assessment: { status: 'not-requested' as const },

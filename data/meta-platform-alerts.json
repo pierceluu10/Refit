@@ -81,6 +81,17 @@
       "checkedAt": "2026-10-29"
     },
     {
+      "id": "whatsapp-on-premises-api-shutdown",
+      "kind": "product-shutdown",
+      "effective": "2025-10-23",
+      "match": { "products": ["whatsapp-on-premises"] },
+      "replacement": ["WhatsApp Cloud API"],
+      "summary": "The final WhatsApp On-Premises API client (v2.63) expired on 23 October 2025; messages to or from numbers still registered with it are not delivered, and Meta points to the Cloud API.",
+      "quote": "The final supported version of the On-Premise API client expired on October 23, 2025. On-Premises API can't be used to send messages to WhatsApp users anymore. Please use Cloud API on the WhatsApp Business Platform instead.",
+      "source": "https://developers.facebook.com/docs/whatsapp/on-premises/sunset/",
+      "checkedAt": "2026-10-29"
+    },
+    {
       "id": "instagram-login-business-scopes-renamed",
       "kind": "permission-renamed",
       "effective": "2025-01-27",

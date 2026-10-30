@@ -38,6 +38,7 @@ import { SHOPIFY, shopifyExtraFiles, shopifyVersionDeclarations } from './shopif
 import { codegenPinFiles, shopifyProof } from './shopify-proof.ts';
 import type { ShopifyLiveCase } from './shopify-live-proof.ts';
 import { shopifySchema, shopifySnapshotPath } from './shopify-schemas.ts';
+import type { GraphReconstruction } from './meta-graph-ai.ts';
 import { META_GRAPH_PROVIDER, metaGraphEvidence } from './meta-graph-proof.ts';
 import {
   apiVersionSourceBlocked,
@@ -1617,6 +1618,8 @@ export async function validateMigration(options: {
   compareTypeErrors?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
+  // The workflow scan's Meta Graph reconstructions, passed to every scan here (run.ts).
+  metaGraphReconstructions?: GraphReconstruction[];
   documentationSnapshots?: readonly string[];
   providerConfig?: string;
   apiVersion?: string;
@@ -3488,6 +3491,9 @@ export async function validateMigration(options: {
             diff: proposal.diff,
             ai: options.assessment ?? options.aiPatch,
             environment: process.env,
+            reconstructions: (
+              report as { metaGraph?: { reconstructed?: GraphReconstruction[] } }
+            ).metaGraph?.reconstructed?.filter((item) => item.status === 'kept'),
           })
         : undefined;
     const grade = metaGraph ? metaGraph.grade : checksGrade;

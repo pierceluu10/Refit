@@ -142,9 +142,11 @@ it('stops on what the contract does not describe', () => {
   expect(raw('GET', 'shop.json', ['shop.secret'])).toMatchObject({
     reason: expect.stringContaining('does not list for Shop'),
   });
-  expect(raw('GET', 'shop.json', ['errors'])).toMatchObject({
+  expect(raw('GET', 'shop.json', ['message'])).toMatchObject({
     reason: expect.stringContaining('not a key of the Shop response'),
   });
+  // Every version's error responses carry `errors` (shopify.dev status and error codes).
+  expect(raw('PUT', 'orders/{p0}.json', ['errors'])).toMatchObject({ status: 'proven' });
   expect(raw('GET', 'themes.json', [])).toMatchObject({
     reason: expect.stringContaining('no endpoint this call reaches'),
   });

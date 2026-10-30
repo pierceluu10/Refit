@@ -13,9 +13,12 @@ import {
   startRun,
 } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
+import { summarizeAiLedger } from './ai-budget.ts';
+import { assessmentConfiguration } from './assessment.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { metaRow, summaryTable } from './meta-benchmark.ts';
 import { META_SDK } from './deadline-exposure.ts';
+import { reconstructGraphCalls } from './meta-graph-ai.ts';
 import { scanGraphCalls } from './meta-graph-calls.ts';
 import { DEFAULT_META_GRAPH_CHANGES, loadMetaGraphChanges } from './meta-graph-changes.ts';
 import { proposeVersionMoves } from './meta-graph-moves.ts';
@@ -56,6 +59,17 @@ const repairAttempts = validateRepairAttempts(
   Boolean(values.ai),
 );
 if (values.env) process.loadEnvFile(values.env);
+// Fails before any repository runs when the key or model is missing. With --ai the scan's
+// unreadable requests are read by AI (meta-graph-ai.ts) and every child run gets --ai-patch; one
+// ledger caps the run, with no per-repository cap.
+const ai = assessmentConfiguration(values.ai, process.env);
+// The ledger's recorded spend, read around each stage so the row records what each one cost.
+async function spentUsd() {
+  const directory = process.env.REFIT_AI_BUDGET_DIRECTORY;
+  if (!ai || !directory) return 0;
+  const stored = await readFile(join(directory, 'budget.json'), 'utf8').catch(() => undefined);
+  return stored ? summarizeAiLedger(JSON.parse(stored)).spentUsd : 0;
+}
 // Benchmark runs never send Slack notices.
 const CHILD_ENV = { ...process.env };
 delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
@@ -78,6 +92,15 @@ const { rows: previous } = await openRunDirectory(
     refitRoot: fileURLToPath(new URL('..', import.meta.url)),
     list: { path: list, file: list },
     options: { target, limit: values.limit, validate: values.validate, ai: values.ai },
+    environment: ai
+      ? [
+          'REFIT_AI_PROVIDER',
+          'OPENAI_MODEL',
+          'ANTHROPIC_MODEL',
+          'OPENAI_REASONING_EFFORT',
+          'REFIT_AI_BUDGET_USD',
+        ]
+      : [],
     allowDirty: values['allow-dirty'],
   }),
   { resume: values.resume },
@@ -137,6 +160,13 @@ async function validate(directory: string, work: string, before: string, version
       ? { proven: Boolean(report.validation.metaGraph.proof.proven) }
       : {}),
     unresolved: Number(report.patch?.unresolvedFindings ?? 0),
+    ...(report.metaGraph?.reconstructed?.length
+      ? {
+          reconstructed: report.metaGraph.reconstructed.filter(
+            (item: { status: string }) => item.status === 'kept',
+          ).length,
+        }
+      : {}),
     pullRequest: await readFile(join(bundle, 'pull-request.md'), 'utf8').then(
       () => true,
       () => false,
@@ -164,20 +194,58 @@ for (const [index, entry] of repos.entries()) {
   else
     try {
       const repository = await readRepository(directory, META_SDK);
-      const scan = await scanGraphCalls(directory, { repository });
-      const proposal = await proposeVersionMoves(directory, target, changes, registry, now, rules);
+      const spentBefore = await spentUsd();
+      const reconstructions = ai
+        ? await reconstructGraphCalls(
+            repository.files,
+            (await scanGraphCalls(directory, { repository })).calls,
+            ai,
+          )
+        : [];
+      const scan = await scanGraphCalls(directory, { repository, reconstructions });
+      const proposal = await proposeVersionMoves(
+        directory,
+        target,
+        changes,
+        registry,
+        now,
+        rules,
+        reconstructions,
+      );
+      if (ai)
+        result.ai = {
+          scan: {
+            sites: reconstructions.length,
+            kept: reconstructions.filter((item) => item.status === 'kept').length,
+            refused: reconstructions
+              .filter((item) => item.status !== 'kept')
+              .map((item) => `${item.file}:${item.line}: ${item.reason}`),
+            costUsd: (await spentUsd()) - spentBefore,
+          },
+        };
+      // The row's total, which benchmark-merge.mjs sums into the run's AI spend.
+      if (ai) (result.ai as { costUsd: number }).costUsd = (await spentUsd()) - spentBefore;
       const { patch, ...row } = metaRow(scan, proposal);
       Object.assign(result, row, { patch: patch !== null });
       await writeFile(join(work, 'scan.json'), json(scan));
       await writeFile(join(work, 'proposal.json'), json(proposal));
       if (patch) await writeFile(join(work, 'moves.patch'), patch);
-      if (patch && values.validate)
+      if (patch && values.validate) {
+        const runBefore = await spentUsd();
         result.workflow = await validate(
           directory,
           work,
           row.versions.find((version) => recorded.has(version)) ?? target,
           target,
         );
+        if (ai) {
+          const spent = await spentUsd();
+          Object.assign(result.ai as object, {
+            run: { costUsd: spent - runBefore },
+            costUsd: spent - spentBefore,
+          });
+        }
+      }
     } catch (error) {
       result.error = message(error);
     }

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join, posix, relative, resolve } from 'node:path';
 import ts from 'typescript-compiler';
+import { applyReconstructions, type GraphReconstruction } from './meta-graph-ai.ts';
 import { metaSdkVersion, META_SDK, TEST_PATH } from './deadline-exposure.ts';
 import { readRepository } from './repository.ts';
 import { createSourceImportResolver } from './source-imports.ts';
@@ -77,6 +78,8 @@ export interface GraphCall {
   literals?: { fields: GraphSpan[]; metrics: GraphSpan[] };
   // The source line the request is made on, trimmed.
   text: string;
+  // The model whose reconstruction filled the parts the scan could not read (meta-graph-ai.ts).
+  reconstructed?: string;
 }
 
 export interface GraphCallScan {
@@ -168,6 +171,14 @@ export function partsOf(node: ts.Expression): Part[] {
 export function expressionName(expression: ts.Expression) {
   const node = unwrap(expression);
   if (ts.isIdentifier(node)) return node.text;
+  // `encodeURIComponent(pageId)` is the node ID `pageId`, escaped.
+  if (
+    ts.isCallExpression(node) &&
+    ts.isIdentifier(node.expression) &&
+    /^(?:encodeURIComponent|encodeURI|String)$/.test(node.expression.text) &&
+    node.arguments.length === 1
+  )
+    return expressionName(node.arguments[0]);
   if (ts.isPropertyAccessExpression(node)) return node.getText().replace(/\s+/g, '');
   return node.getText().replace(/\s+/g, ' ').slice(0, 40);
 }
@@ -1345,6 +1356,20 @@ export function passthroughOf(fn: ts.SignatureDeclaration): Passthrough | undefi
     : { url, options };
 }
 
+function injectedFetch(call: ts.CallExpression) {
+  if (!ts.isIdentifier(call.expression) || !/fetch/i.test(call.expression.text)) return false;
+  const name = call.expression.text;
+  for (let scope: ts.Node | undefined = call; scope; scope = scope.parent) {
+    if (!ts.isFunctionLike(scope)) continue;
+    const parameter = scope.parameters.find(
+      (item) => ts.isIdentifier(item.name) && item.name.text === name,
+    );
+    if (parameter) return !parameter.type || /\bfetch\b|Fetch/.test(parameter.type.getText());
+    if (findDeclaration(name, scope)) return false;
+  }
+  return false;
+}
+
 // Reads the method and request options of a call a Graph URL is passed to.
 function readCall(
   call: ts.CallExpression,
@@ -1390,8 +1415,9 @@ function readCall(
     const method = objectProperty(object, 'method');
     return method ? (constantString(method)?.value ?? '?') : undefined;
   };
-  // fetch(url, init) and wrappers named fetch, such as `ctx.fetch`.
-  if (name === 'fetch' || name === '$fetch' || name === 'ofetch') {
+  // fetch(url, init), wrappers named fetch, such as `ctx.fetch`, and a fetch passed in as a
+  // parameter named for it (`fetcher`, `fetchImpl`), typed as fetch or not typed.
+  if (name === 'fetch' || name === '$fetch' || name === 'ofetch' || injectedFetch(call)) {
     if (argument !== 0) return { client, method: null, helper: true };
     const method = readOptions(options(1), 'request options');
     if (method === '?') request.unknown.push('HTTP method is chosen at runtime');
@@ -1541,7 +1567,12 @@ interface FileContext {
 // Lists every Graph API request a repository makes, with what is known about it.
 export async function scanGraphCalls(
   directory: string,
-  options: { repository?: Repository; edges?: SdkEdges } = {},
+  options: {
+    repository?: Repository;
+    edges?: SdkEdges;
+    // Kept AI reconstructions of requests the scan cannot read, applied at their sites.
+    reconstructions?: GraphReconstruction[];
+  } = {},
 ): Promise<GraphCallScan> {
   const repository = options.repository ?? (await readRepository(resolve(directory), META_SDK));
   const edges = options.edges ?? (await loadSdkEdges());
@@ -1670,7 +1701,11 @@ export async function scanGraphCalls(
     if (browserFile) calls.push(...browserCalls(current, browserVersion));
   }
   calls.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
-  return { calls, sdk, warnings: repository.warnings };
+  return {
+    calls: applyReconstructions(calls, options.reconstructions ?? []),
+    sdk,
+    warnings: repository.warnings,
+  };
 }
 
 // The SDK release a repository declares, and the Graph API version it targets: release 20.x

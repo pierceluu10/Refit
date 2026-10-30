@@ -54,10 +54,10 @@ describe('the Meta Graph pipeline', () => {
     method: 'POST',
     body: JSON.stringify({ url: 'https://example.com/a.png', access_token: token }),
   });`,
-      'send.js': `export const send = (phone, to) =>
-  fetch(\`https://graph.facebook.com/v19.0/\${phone}/messages\`, {
+      'send.js': `export const register = (phone, pin) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${phone}/register\`, {
     method: 'POST',
-    body: JSON.stringify({ messaging_product: 'whatsapp', to }),
+    body: JSON.stringify({ messaging_product: 'whatsapp', pin, data_localization_region: 'DE' }),
   });`,
     });
     expect(report.provider).toBe('meta-graph');
@@ -66,13 +66,13 @@ describe('the Meta Graph pipeline', () => {
     expect(report.patch.diff).toContain(
       '+  fetch(`https://graph.facebook.com/v25.0/${page}/photos`, {',
     );
-    expect(report.patch.diff).not.toContain('v25.0/${phone}/messages');
+    expect(report.patch.diff).not.toContain('v25.0/${phone}/register');
     expect(report.patch.unresolvedFindings).toBe(1);
     expect(report.findings.map((finding) => [finding.file, finding.confidence])).toEqual([
       ['post.js', 'confirmed'],
       ['send.js', 'review'],
     ]);
-    expect(report.findings[1].reason).toContain('WhatsApp Business Platform');
+    expect(report.findings[1].reason).toContain('data_localization_region');
   });
 
   it('counts only real problems as unresolved, and lists caution-only stops as notes', async () => {
@@ -96,23 +96,20 @@ export const me = () => fetch('https://graph.facebook.com/me?fields=id');`,
     expect(report.findings.filter((finding) => finding.confidence === 'review')).toEqual([]);
     expect(
       report.patch.warnings.filter((warning) => warning.startsWith('Left on its version')),
-    ).toEqual([
-      expect.stringContaining('send.js:6 GET /me stays on its version'),
-      expect.stringContaining('send.js:2 POST /{phone}/messages stays on v23.0'),
-    ]);
+    ).toEqual([expect.stringContaining('send.js:6 GET /me stays on its version')]);
   });
 
   it('proposes no patch when nothing can move, and says why', async () => {
     const report = await run({
-      'send.js': `export const send = (phone, to) =>
-  fetch(\`https://graph.facebook.com/v19.0/\${phone}/messages\`, {
+      'send.js': `export const register = (phone, pin) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${phone}/register\`, {
     method: 'POST',
-    body: JSON.stringify({ messaging_product: 'whatsapp', to }),
+    body: JSON.stringify({ messaging_product: 'whatsapp', pin, data_localization_region: 'DE' }),
   });`,
     });
     expect(report.status).toBe('needs-review');
     expect(report.patch).toMatchObject({ status: 'not-generated' });
-    expect(report.patch.reason).toContain('WhatsApp Business Platform');
+    expect(report.patch.reason).toContain('data_localization_region');
   });
 
   it('rejects a snapshot whose change table was edited after it was taken', async () => {

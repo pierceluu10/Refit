@@ -189,7 +189,7 @@ export function retryDelay(headers: Headers, attempt: number) {
 }
 
 // Only the provider's error type, never its message, which may echo request content.
-export async function errorType(response: Response) {
+async function errorType(response: Response) {
   try {
     const parsed: unknown = JSON.parse(
       await readBoundedResponse(response, MAX_RESPONSE_BYTES, 'OpenAI error'),

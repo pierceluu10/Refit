@@ -1,3 +1,4 @@
+import type { GraphReconstruction } from './meta-graph-ai.ts';
 import type { GeneratedChecks } from './generated-checks.ts';
 import {
   migrationReviewReason,
@@ -391,6 +392,7 @@ export async function runWorkflow(options: {
       fullDiff: options.fullDiff,
       keepListedPaymentMethods: options.keepListedPaymentMethods,
       shopifySdkUpgrade: options.shopifySdkUpgrade,
+      metaGraphAi: options.aiPatch,
     };
     stage = 'scan';
     options.onProgress?.('Scanning repository for affected API usage...');
@@ -489,6 +491,10 @@ export async function runWorkflow(options: {
     const validate = (keepApiVersion: boolean) =>
       validateMigration({
         ...inputs,
+        // Meta: validation scans again with the scan's reconstructions, never asking AI again.
+        metaGraphReconstructions: (
+          scan as { metaGraph?: { reconstructed?: GraphReconstruction[] } }
+        ).metaGraph?.reconstructed,
         keepApiVersion,
         versionBump,
         image: options.image,
@@ -555,15 +561,17 @@ export async function runWorkflow(options: {
       Array.isArray(report.validation.advisoryTypeErrors)
         ? report.validation.advisoryTypeErrors.length
         : 0;
-    // The bump's validation is kept as evidence of why its checks did not pass.
-    if (versionBump && (report.validation.status !== 'passed' || advisory))
+    const failed = report.validation.status !== 'passed' && !baselineFailedProven(report);
+    if (versionBump && (failed || advisory)) {
+      // The bump's validation is kept as evidence of why its checks did not pass. A bump that
+      // continues writes report.json with its review artifacts instead.
       await save('report.json', `${JSON.stringify(report, null, 2)}\n`);
-    if (versionBump && report.validation.status !== 'passed' && !baselineFailedProven(report))
-      return await bumpStop(`Validation returned ${report.validation.status}.`);
-    if (versionBump && advisory)
       return await bumpStop(
-        `The bump introduced ${advisory} type error${advisory === 1 ? '' : 's'} in JavaScript files.`,
+        failed
+          ? `Validation returned ${report.validation.status}.`
+          : `The bump introduced ${advisory} type error${advisory === 1 ? '' : 's'} in JavaScript files.`,
       );
+    }
     const reviews = publicationWaiver(report, allowUnresolved, options.doctor);
     waivedGates.push(...new Set(reviews?.map((entry) => entry.gate)));
     const review = createReviewArtifacts(report, 'local', options.integration, reviews);
