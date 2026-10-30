@@ -1,0 +1,156 @@
+{
+  "formatVersion": 1,
+  "date": "2026-10-29",
+  "scope": "Items 3, 5 and 6 hand-checks: refit ai-migrations --review on DEV repositories (findings only; nothing is edited). Also run on the 20 item 4 DEV repositories: 9 findings, all correct after the chat-completions exclusion (2 legacy createCompletion calls on retired davinci models, 6 report-only @google/generative-ai sites).",
+  "selection": "GitHub code search per change type, repositories in any docs/benchmarks list and the item 4 DEV lists removed, non-fork, non-archived, ordered by sha256(seed+type+name), first 4 per type at their default-branch head",
+  "seed": "refit-ai-surfaces-dev-2026-10-29",
+  "queries": {
+    "assistants": "\"beta.threads.runs.create\" language:TypeScript",
+    "text-completions": "\"max_tokens_to_sample\" \"@anthropic-ai/sdk\"",
+    "realtime-beta": "\"realtime=v1\" \"OpenAI-Beta\"",
+    "context-1m": "\"context-1m-2025-08-07\"",
+    "graduated-beta": "\"files-api-2025-04-14\""
+  },
+  "rows": [
+    {
+      "type": "assistants",
+      "repo": "lastIndexOf/ai-boss",
+      "commit": "f247cc7242c6cb51e55fd59fd294b3bea2c71961",
+      "verdict": "correct",
+      "note": "6 Assistants calls (assistants, threads, runs) found; all fail since 2026-08-26."
+    },
+    {
+      "type": "assistants",
+      "repo": "agenticsorg/sparc2",
+      "commit": "01bf771ae18f6199d2e4e4e2c8a004a966a15e51",
+      "verdict": "correct",
+      "note": "One legacy completions call and one assistants.create, both on a traced OpenAI client field."
+    },
+    {
+      "type": "assistants",
+      "repo": "XamHans/formulateflow",
+      "commit": "9ba9560370c318758aa1760e0b045c61f0c5ffab",
+      "verdict": "correct-silent",
+      "note": "The only Assistants call is commented out."
+    },
+    {
+      "type": "assistants",
+      "repo": "nescampos/scraill",
+      "commit": "e6ee4d3b24fdeb6a5609955b4994cb57ff3455dc",
+      "verdict": "correct",
+      "note": "9 Assistants calls across 4 files."
+    },
+    {
+      "type": "text-completions",
+      "repo": "seanGSISG/claude-code-docs",
+      "commit": "1b31a9baedc1874f53e242eb395d0f0821f3638a",
+      "verdict": "correct-silent",
+      "note": "Documentation text only; no code calls Text Completions."
+    },
+    {
+      "type": "text-completions",
+      "repo": "okisdev/ChatChat",
+      "commit": "12674287a96b32ee4f04194b1e44944cf733a084",
+      "verdict": "correct",
+      "note": "Report-only: @google/generative-ai in 3 files."
+    },
+    {
+      "type": "text-completions",
+      "repo": "jarvis2f/ais-ninja",
+      "commit": "4106e26906c65e6e0c12858832416a08f67ca8fe",
+      "verdict": "correct",
+      "note": "Anthropic completions.create (Text Completions) and 3 OpenAI v3 createCompletion calls."
+    },
+    {
+      "type": "text-completions",
+      "repo": "GuruR17/power-bi-ai-agent",
+      "commit": "66b3d39924a24db0df41618c5e9cb2491868249e",
+      "verdict": "correct-ambiguous",
+      "note": "anthropic.completions.create is Text Completions; the file imports both SDKs, so it is also matched by the OpenAI rule and both are marked \"client unclear\"."
+    },
+    {
+      "type": "realtime-beta",
+      "repo": "p-i-/openai-realtime-py",
+      "commit": "9bce84bb285df57b60786cc86b311e0d5e5d7c36",
+      "verdict": "correct",
+      "note": "Report-only: 3 Python sites send OpenAI-Beta: realtime=v1."
+    },
+    {
+      "type": "realtime-beta",
+      "repo": "Barty-Bart/openai-realtime-api-voice-assistant",
+      "commit": "514206fce09858c5147ef97cbc2f7e7c4f5aea74",
+      "verdict": "correct",
+      "note": "realtime=v1 header on a WebSocket."
+    },
+    {
+      "type": "realtime-beta",
+      "repo": "AEON-7/matrix-voip-agent",
+      "commit": "717dfd0def5849f6553ff71270e798233297ffaa",
+      "verdict": "correct",
+      "note": "realtime=v1 header."
+    },
+    {
+      "type": "realtime-beta",
+      "repo": "tubban1/eduNest",
+      "commit": "7e244dba579d84ba0d87bf8dd19554b472f4e99f",
+      "verdict": "correct",
+      "note": "realtime=v1 header."
+    },
+    {
+      "type": "context-1m",
+      "repo": "jmerelnyc/Photo-agents",
+      "commit": "9fedfcfbc50a309f7b9192a62350dc30088bec17",
+      "verdict": "correct",
+      "note": "Report-only: Python adds context-1m-2025-08-07."
+    },
+    {
+      "type": "context-1m",
+      "repo": "ghboke/claude-code-reverse",
+      "commit": "570324dac73ef43bdcd36660188f3cb66524e572",
+      "verdict": "not-scanned",
+      "note": "Over Refit's scan limits (10,000 files, 50 MiB)."
+    },
+    {
+      "type": "context-1m",
+      "repo": "anthropics/anthropic-sdk-java",
+      "commit": "c0f5915f7dd34cef8d5f03fdc8cdd4f93933c47e",
+      "verdict": "correct-silent",
+      "note": "Java SDK source; no JS, TS or Python use."
+    },
+    {
+      "type": "context-1m",
+      "repo": "thevibeworks/claude-code-docs",
+      "commit": "a3201068ce02fb32a54fe814535f8cf4624bbd6c",
+      "verdict": "correct-silent",
+      "note": "Documentation only."
+    },
+    {
+      "type": "graduated-beta",
+      "repo": "thuhollow2/yuketang",
+      "commit": "b5da7837dc187c9b7a960623e4d196727637aa3d",
+      "verdict": "correct",
+      "note": "Report-only: Python sends files-api-2025-04-14 (graduated, cleanup)."
+    },
+    {
+      "type": "graduated-beta",
+      "repo": "tmattio/ocaml-anthropic",
+      "commit": "e7e6c67cb30bdff04902c92db9b7141550913b9c",
+      "verdict": "correct-silent",
+      "note": "OCaml; outside the languages Refit reads."
+    },
+    {
+      "type": "graduated-beta",
+      "repo": "gmdaos/business-requirements-analyst",
+      "commit": "d085fa5883c5bd43ff267347b4804acb2aca116c",
+      "verdict": "correct-silent",
+      "note": "Beta names appear only in README.md."
+    },
+    {
+      "type": "graduated-beta",
+      "repo": "wtfwhs/tengu-decoded",
+      "commit": "068b7a24325bbf92af5f024bdb9525a654251155",
+      "verdict": "not-scanned",
+      "note": "Over Refit's scan limits."
+    }
+  ]
+}

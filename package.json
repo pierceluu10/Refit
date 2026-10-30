@@ -36,6 +36,7 @@
     "model-parameter-changes:check": "node bin/refit.mjs deadlines --check-parameter-changes",
     "meta-graph:check": "node bin/refit.mjs meta-graph --check-changes",
     "shopify-rest:check": "node bin/refit.mjs shopify-rest --check-deprecations",
+    "ai-rules:check": "node bin/refit.mjs ai-migrations --check-rules",
     "benchmark:shopify": "tsx pipeline/shopify-benchmark-cli.ts"
   },
   "dependencies": {
