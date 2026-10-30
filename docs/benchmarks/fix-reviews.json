@@ -2548,6 +2548,201 @@
       }
     },
     {
+      "repo": "vignesh-gupta/digibee-marketplace",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40635544850 (after, feat/untraced-read-proof 5309a76e), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40635555316 has the same patch. Before: checks passed but untraced reads stayed unresolved; after: localReceiverReads proves the .price reads in src/collections/Products.ts (generated-type), so the draft validates without AI. migration.patch from the shard-2 artifact read in full with line endings ignored, lockfile hunks checked for the stripe entry only (and qs, which stripe 23 no longer needs)",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/payment-router.ts payment_method_types: [\"card\"] becomes allowed_payment_method_types.",
+        "bothVersions": "yes: only a request key and the pin change; no response read is rewritten.",
+        "nothingUnrelated": "yes: the card rename, the version pin and the stripe dependency.",
+        "pleaseCheck": "Nothing left: the .price reads at src/collections/Products.ts:98, :118 and :122 are Payload hook data asserted to the generated Product type, not a Stripe price, and are correctly left alone.",
+        "upgradeComplete": "yes: apiVersion 2024-12-18.acacia to 2026-09-30.endive and stripe ^17.5.0 to ^23.0.0 in package.json and yarn.lock.",
+        "wouldMerge": "yes: tsc passes on both sides; no test ran that code."
+      }
+    },
+    {
+      "repo": "thangtran3112/next-marketplace",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40635544850 (after, feat/untraced-read-proof 5309a76e), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40635555316 has the same patch. Before: checks passed but untraced reads stayed unresolved; after: localReceiverReads proves the .price read in src/collections/Products/Products.ts (generated-type), so the draft validates without AI. migration.patch from the shard-4 artifact read in full with line endings ignored, lockfile hunks checked for the stripe entry only (and qs, which stripe 23 no longer needs)",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/payment-router.ts payment_method_types: [\"card\"] becomes allowed_payment_method_types. The uppercase currency literal \"USD\" in the products.create default_price_data is lowercased (#314).",
+        "bothVersions": "yes: only request values and the pin change.",
+        "nothingUnrelated": "yes: the card rename, the currency literal, the version pin and the stripe dependency.",
+        "pleaseCheck": "Nothing left: The .price read at src/collections/Products/Products.ts:108 is Payload hook data asserted to the Product type payload-types.ts generates from the repository collections, not a Stripe price, and is correctly left alone.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 to 2026-09-30.endive and stripe 14.4.0 to 23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides; no test ran that code."
+      }
+    },
+    {
+      "repo": "miljan-code/gpt-writer",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40635544850 (after, feat/untraced-read-proof 5309a76e), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40635555316 has the same patch. Before: checks passed but untraced reads stayed unresolved; after: localReceiverReads proves creditPlan.price (literal-config), so the draft validates without AI. migration.patch from the shard-4 artifact read in full with line endings ignored, lockfile hunks checked for the stripe entry only (and qs, which stripe 23 no longer needs)",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: app/api/payment/route.ts payment_method_types: ['card'] becomes allowed_payment_method_types.",
+        "bothVersions": "yes: only a request key and the pin change.",
+        "nothingUnrelated": "yes: the card rename, the version pin and the stripe dependency.",
+        "pleaseCheck": "Nothing left: the .price read at app/api/webhooks/stripe/route.ts:67 reads creditPlan, an element of the repository const credit-plan list, not a Stripe price, and is correctly left alone.",
+        "upgradeComplete": "yes: apiVersion 2022-11-15 to 2026-09-30.endive and stripe ^11.18.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides; no test ran that code."
+      }
+    },
+    {
+      "repo": "Addisu87/digital-marketplace",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40635544850 (after, feat/untraced-read-proof 5309a76e), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40635555316 has the same patch. Before: checks passed but untraced reads stayed unresolved; after: localReceiverReads proves the .price read in collections/Products/Products.ts (generated-type), so the draft validates without AI. migration.patch from the shard-6 artifact read in full with line endings ignored, lockfile hunks checked for the stripe entry only (and qs, which stripe 23 no longer needs)",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: trpc/payment-router.ts payment_method_types: ['card'] becomes allowed_payment_method_types. The uppercase 'USD' in the products.create default_price_data is lowercased (#314).",
+        "bothVersions": "yes: only request values and the pin change.",
+        "nothingUnrelated": "yes: the card rename, the currency literal, the version pin and the stripe dependency.",
+        "pleaseCheck": "Nothing left: The .price read at collections/Products/Products.ts:105 is Payload hook data asserted to the Product type payload-types.ts generates from the repository collections, not a Stripe price, and is correctly left alone.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 to 2026-09-30.endive and stripe ^14.22.0 to ^23.0.0 in package.json and yarn.lock.",
+        "wouldMerge": "yes: tsc passes on both sides; no test ran that code."
+      }
+    },
+    {
+      "repo": "JensenMPillay/pdfai",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40635544850 (after, feat/untraced-read-proof 5309a76e), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40635555316 has the same patch. Before: checks passed but untraced reads stayed unresolved; after: localReceiverReads proves the .price reads on PLANS (repository-type), so the draft validates without AI. migration.patch from the shard-4 artifact read in full with line endings ignored, lockfile hunks checked for the stripe entry only (and qs, which stripe 23 no longer needs)",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct-partial",
+      "checks": {
+        "rightReplacement": "yes for the changed lines: the webhook route reads subscription.current_period_end through getSubscriptionPeriodEnd with items[0]; src/trpc/procedures.ts payment_method_types: [\"card\", \"paypal\"] becomes allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2).",
+        "bothVersions": "yes for the changed lines: the helper returns the old field when the payload has it.",
+        "nothingUnrelated": "yes: the two webhook reads and the generated helper, the card rename, the version pin and the stripe dependency.",
+        "pleaseCheck": "The .price reads at src/lib/stripe.ts:47 and src/trpc/procedures.ts:86 read the application plan list (PLANS.find), not a Stripe price, and are correctly left alone. Unchanged since the 2026-10-27 review: src/app/api/webhooks/stripe/route.ts:55 reads session.subscription on a value cast to Stripe.Checkout.Session that the invoice.payment_succeeded case also uses, so for invoice events it is invoice.subscription, which moved; it works while the webhook endpoint sends the old version.",
+        "upgradeComplete": "no: the invoice-event read above must move before the webhook endpoint version is upgraded; the client pin and stripe ^14.25.0 to ^23.0.0 (pnpm-lock.yaml) do move.",
+        "wouldMerge": "yes as an SDK and client upgrade, after confirming PayPal still appears in a test-mode Checkout; the webhook endpoint upgrade needs the read above fixed first."
+      }
+    },
+    {
+      "repo": "kalibani/HireFazz",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40635544850 (after, feat/untraced-read-proof 5309a76e), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40635555316 has the same patch. Before: checks passed but untraced reads stayed unresolved; after: localReceiverReads proves the .price reads on PLANS (repository-type), so the draft validates without AI. migration.patch from the shard-2 artifact read in full with line endings ignored, lockfile hunks checked for the stripe entry only (and qs, which stripe 23 no longer needs)",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the webhook route reads subscription.current_period_end through getSubscriptionPeriodEnd with items[0], the item the same branch reads for stripePriceId, and session.subscription through getInvoiceSubscription, which returns the old field a Checkout Session still has; trpc/index.ts payment_method_types: ['card', 'paypal'] becomes allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2).",
+        "bothVersions": "yes: the helpers return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the webhook reads and the generated helpers, the card rename, the version pin and the stripe dependency.",
+        "pleaseCheck": "The .price reads at lib/stripe.ts:45 and trpc/index.ts:77 read the application plan list (PLANS.find), not a Stripe price, and are correctly left alone. PayPal may no longer be offered to some buyers under the filter; the draft names it.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 to 2026-09-30.endive and stripe ^14.8.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout; tsc passes on both sides and no test ran that code."
+      }
+    },
+    {
+      "repo": "nicolas1102/dxter-shark",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40635544850 (after, feat/untraced-read-proof 5309a76e), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40635555316 has the same patch. Before: checks passed but untraced reads stayed unresolved; after: localReceiverReads proves the .price read in src/collections/Products.ts (generated-type), so the draft validates without AI. migration.patch from the shard-5 artifact read in full with line endings ignored, lockfile hunks checked for the stripe entry only (and qs, which stripe 23 no longer needs)",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/payment-router.ts payment_method_types: ['card'] becomes allowed_payment_method_types. The uppercase 'USD' in the products.create default_price_data is lowercased (#314).",
+        "bothVersions": "yes: only request values and the pin change.",
+        "nothingUnrelated": "yes: the card rename, the currency literal, the version pin and the stripe dependency.",
+        "pleaseCheck": "Nothing left: The .price read at src/collections/Products.ts:31 is Payload hook data asserted to the Product type payload-types.ts generates from the repository collections, not a Stripe price, and is correctly left alone.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 to 2026-09-30.endive and stripe ^14.15.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides; no test ran that code."
+      }
+    },
+    {
+      "repo": "mouhamedanflosse/digitalHome",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40635544850 (after, feat/untraced-read-proof 5309a76e), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40635555316 has the same patch. Before: checks passed but untraced reads stayed unresolved; after: localReceiverReads proves the .price read in src/collections/products/products.ts (generated-type), so the draft validates without AI. migration.patch from the shard-5 artifact read in full with line endings ignored, lockfile hunks checked for the stripe entry only (and qs, which stripe 23 no longer needs)",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/payment-router.ts payment_method_types: [\"card\", \"cashapp\"] becomes allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2). The uppercase \"USD\" in the products.create default_price_data is lowercased (#314).",
+        "bothVersions": "yes: only request values and the pin change.",
+        "nothingUnrelated": "yes: the card rename, the currency literal, the version pin (src/lib/strip.ts) and the stripe dependency.",
+        "pleaseCheck": "The .price read at src/collections/products/products.ts:86 is Payload hook data asserted to the Product type payload-types.ts generates from the repository collections, not a Stripe price, and is correctly left alone. Cash App Pay may no longer be offered to some buyers under the filter; the draft names it.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 to 2026-09-30.endive and stripe ^14.10.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout; tsc passes on both sides and no test ran that code."
+      }
+    },
+    {
+      "repo": "CiphersLab/SaaSPilot",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40635544850 (after, feat/untraced-read-proof 5309a76e), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40635555316 has the same patch. Before: checks passed but untraced reads stayed unresolved; after: localReceiverReads proves the .price reads on Credits_PLANS (repository-type), so the draft validates without AI. migration.patch from the shard-3 artifact read in full with line endings ignored, lockfile hunks checked for the stripe entry only (and qs, which stripe 23 no longer needs)",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types: ['card'] becomes allowed_payment_method_types on both checkout.sessions.create calls in actions/createStripeSession.ts.",
+        "bothVersions": "yes: only request keys and the pin change; no response read is rewritten.",
+        "nothingUnrelated": "yes: the two card renames, the version pin and the stripe dependency.",
+        "pleaseCheck": "Nothing left: the .price reads at actions/createStripeSession.ts:42 and :64 read packageC from Credits_PLANS, not a Stripe price, and are correctly left alone.",
+        "upgradeComplete": "yes: apiVersion 2023-08-16 to 2026-09-30.endive and stripe ^13.7.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides; no test ran that code."
+      }
+    },
+    {
+      "repo": "abhirupkumar/docwhisperer",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40635544850 (after, feat/untraced-read-proof 5309a76e), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40635555316 has the same patch. Before: checks passed but untraced reads stayed unresolved; after: localReceiverReads proves the .price reads on PLANS (repository-type), so the draft validates without AI. migration.patch from the shard-6 artifact read in full with line endings ignored, lockfile hunks checked for the stripe entry only (and qs, which stripe 23 no longer needs)",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the webhook route reads subscription.current_period_end through getSubscriptionPeriodEnd with items[0], the item the same branch reads for stripePriceId, and session.subscription through getInvoiceSubscription, which returns the old field a Checkout Session still has; src/trpc/index.ts payment_method_types: ['card'] becomes allowed_payment_method_types.",
+        "bothVersions": "yes: the helpers return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the webhook reads and the generated helpers, the card rename, the version pin and the stripe dependency.",
+        "pleaseCheck": "Nothing left: The .price reads at src/lib/stripe.ts:55 and src/trpc/index.ts:98 read the application plan list (PLANS.find), not a Stripe price, and are correctly left alone.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 to 2026-09-30.endive and stripe ^14.1.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides; no test ran that code."
+      }
+    },
+    {
+      "repo": "shivamm-55/HippoSphere",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40635544850 (after, feat/untraced-read-proof 5309a76e), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40635555316 has the same patch. Before: checks passed but untraced reads stayed unresolved; after: localReceiverReads proves the .price read in src/collections/Products/Products.ts (generated-type), so the draft validates without AI. migration.patch from the shard-6 artifact read in full with line endings ignored, lockfile hunks checked for the stripe entry only (and qs, which stripe 23 no longer needs)",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/payment-router.ts payment_method_types: ['card', 'paypal'] becomes allowed_payment_method_types with the same methods (keep-listed default, Push 279 decision 2). The uppercase 'USD' in the products.create default_price_data is lowercased (#314).",
+        "bothVersions": "yes: only request values and the pin change.",
+        "nothingUnrelated": "yes: the card rename, the currency literal, the version pin and the stripe dependency.",
+        "pleaseCheck": "The .price read at src/collections/Products/Products.ts:104 is Payload hook data asserted to the Product type payload-types.ts generates from the repository collections, not a Stripe price, and is correctly left alone. PayPal may no longer be offered to some buyers under the filter; the draft names it.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 to 2026-09-30.endive and stripe ^14.25.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes, after confirming the non-card methods still appear in a test-mode Checkout; tsc passes on both sides and no test ran that code."
+      }
+    },
+    {
+      "repo": "miazme/digitalhippo",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40635544850 (after, feat/untraced-read-proof 5309a76e), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40635555316 has the same patch. Before: checks passed but untraced reads stayed unresolved; after: localReceiverReads proves the .price read in src/collections/Products/Products.ts (generated-type), so the draft validates without AI. migration.patch from the shard-4 artifact read in full with line endings ignored, lockfile hunks checked for the stripe entry only (and qs, which stripe 23 no longer needs)",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: src/trpc/payment-router.ts payment_method_types: ['card'] becomes allowed_payment_method_types. The uppercase 'USD' in the products.create default_price_data is lowercased (#314).",
+        "bothVersions": "yes: only request values and the pin change.",
+        "nothingUnrelated": "yes: the card rename, the currency literal, the version pin and the stripe dependency.",
+        "pleaseCheck": "Nothing left: The .price read at src/collections/Products/Products.ts:98 is Payload hook data asserted to the Product type payload-types.ts generates from the repository collections, not a Stripe price, and is correctly left alone.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 to 2026-09-30.endive and stripe ^14.21.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides; no test ran that code."
+      }
+    },
+    {
+      "repo": "palashb01/DocuChat",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40624045392 (before, main 89f1c0ed) and 40635544850 (after, feat/untraced-read-proof 5309a76e), subsets/l2-push-249.json, no AI; the AI pair 40624062726 and 40635555316 has the same patch. Before: checks passed but untraced reads stayed unresolved; after: localReceiverReads proves the .price reads on PLANS (repository-type), so the draft validates without AI. migration.patch from the shard-4 artifact read in full with line endings ignored, lockfile hunks checked for the stripe entry only (and qs, which stripe 23 no longer needs)",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the webhook route reads subscription.current_period_end through getSubscriptionPeriodEnd with items[0], the item the same branch reads for stripePriceId, and session.subscription through getInvoiceSubscription, which returns the old field a Checkout Session still has; src/trpc/index.ts payment_method_types: [\"card\"] becomes allowed_payment_method_types.",
+        "bothVersions": "yes: the helpers return the old field when the payload has it.",
+        "nothingUnrelated": "yes: the webhook reads and the generated helpers, the card rename, the version pin and the stripe dependency.",
+        "pleaseCheck": "Nothing left: The .price reads at src/lib/stripe.ts:46 and src/trpc/index.ts:189 read the application plan list (PLANS.find), not a Stripe price, and are correctly left alone.",
+        "upgradeComplete": "yes: apiVersion 2023-10-16 to 2026-09-30.endive and stripe ^14.1.0 to ^23.0.0 in package.json and package-lock.json.",
+        "wouldMerge": "yes: tsc passes on both sides; no test ran that code."
+      }
+    },
+    {
       "repo": "samarbadriddin0v/notion-clone",
       "pullRequest": null,
       "run": "refit-dev/refit-bench 40637566055, Refit a4438b81 (subsets/l2-push-249.json); patch byte-identical to the baseline 40688452206 (main 89f1c0ed). Production mode moves from needs-review to validated because oasdiff `items` array segments now resolve, so the removed required Product.features under subscription items is attributed to Product.features, which no code reads. The artifact's migration.patch was applied to a shallow clone at 79d43f8 and read in full as git diff, lockfile included",

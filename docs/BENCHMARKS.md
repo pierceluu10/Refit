@@ -933,6 +933,26 @@ Two refit-bench runs of `refit classify-release` with `gpt-6.1-sol` over basil, 
 - **Predicted `rule` was right on 7 of 18 pages-only changes, by hand,** and on 7 of 12 statements given.
 - A first dispatch, run 40283460948 with `gpt-5.6-luna`, was refused with HTTP 403 on all 79 pages and billed nothing; the key accepts only `gpt-6.1-sol`.
 
+## Untraced reads Refit proves are not Stripe objects (October 28)
+
+Founder decision (Otabek, 2026-10-28), widening D2b to runs with or without AI (`localReceiverReads` in `pipeline/stripe-type-evidence.ts`). l2-push-249 on refit-bench, before at main `89f1c0ed`, after at `5309a76e` (`feat/untraced-read-proof`):
+
+| Run                                | Before      | After       | Validated |
+| ---------------------------------- | ----------- | ----------- | --------- |
+| No AI                              | 40624045392 | 40635544850 | 84 → 97   |
+| AI (`-f ai=true -f ai_budget=200`) | 40624062726 | 40635555316 | 88 → 97   |
+
+- **No AI: 13 rows move from needs-review to validated, all grade C,** and no other outcome changes (236 of 249 identical). They are the 13 the census at main predicted: 7 Payload marketplaces (`generated-type`), 5 PDF and SaaS apps reading their own `PLANS` (`repository-type`) and miljan-code/gpt-writer's credit-plan list (`literal-config`).
+- **AI: 9 rows move.** The other 4 (CiphersLab/SaaSPilot, JensenMPillay/pdfai, abhirupkumar/docwhisperer, palashb01/DocuChat) were already validated through D2b's AI path. CRONANANI/EzanaFinance3 failed to clone in the before run.
+- **The 13 patches match the before runs and the AI run** in the diffs `results.json` keeps (first 8000 characters), and nothing validated before is lost. All 13 `migration.patch` files from the after run's shards are read in full and labelled in `docs/benchmarks/fix-reviews.json`: 12 `correct`, and JensenMPillay/pdfai `correct-partial` for the invoice-event read noted on 2026-10-27.
+- **A wrong proof in the measured commit, fixed after it.** Of the 22 rows carrying `validation.localReads`, createdbymax/Loopletter had reads proven on a parameter whose value comes from `event.data.object as StripeInvoice` two calls up. That row and the other 8 with proofs still needed review for other reasons, so no draft was published on a wrong proof. The fix (`sourced`) follows every value back through parameters, `const`s, conditionals and returns, and rejects any assertion, `let` or annotated return on the way. Re-run on all 73 census repositories with untraced reads at their benchmark commits (every file treated as type-checked, an upper bound), it clears 44 reads in 26 repositories instead of 137 in 36. Every read the 13 rows cleared still clears, and each of the 44 was read at its source line.
+- **Not yet run:** l2-push-249 at the fixed commit, and heldout-30 (`-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30`, without and with `-f ai=true -f ai_budget=30`, against 40624360669 and 40624075884). Both are on hold by founder instruction (2026-10-28).
+
+```sh
+gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=<full-sha> -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249 [-f ai=true -f ai_budget=200]
+node scripts/stripe-benchmark-compare.mjs <before>/results.json <after>/results.json
+```
+
 ## What these benchmarks do not show
 
 - **Validation is evidence about the checks that ran.** Most validated fixes are checked by `tsc` with no new errors; only some repositories have tests. Generated `stripe-mock` checks found no runnable entry point in these handlers, so runtime behavior was exercised only where the repository's own tests do it.

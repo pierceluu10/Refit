@@ -73,6 +73,7 @@ import {
   type OracleComparison,
   type TypeOracle,
   localReceiverReads,
+  type LocalProof,
   typeOraclePasses,
   typeOracleReach,
 } from './stripe-type-evidence.ts';
@@ -3000,30 +3001,52 @@ export async function validateMigration(options: {
           unresolvedFindings: proposal.unresolvedFindings - operationUsages,
         };
     }
-    // Owner decision D2b (2026-10-27): where the AI left an untraced read unchanged (it proposed
-    // nothing more, or its kept patch passed the D2 gate), the read stops counting only when the
-    // type oracle passed and TypeScript's checker shows its receiver is the repository's own type.
-    // shortcut: a Stripe object assigned to a repository type with the field optional is not seen;
-    // upgrade by following assignments into the receiver if a review finds one.
-    if (
-      rules &&
-      coverage &&
+    // Owner decision D2b (2026-10-27), widened by the founder decision of 2026-10-28: an untraced
+    // read the published patch leaves unchanged (the rules' patch, or a kept AI patch that passed
+    // the D2 gate) stops counting where Refit proves its receiver is not a Stripe object
+    // (localReceiverReads), with or without AI. The type proof needs a passing type check: the type
+    // oracle, or the repository's own check with no type error in a file it covers.
+    // shortcut: a Stripe object written into a repository type's property, or returned from a
+    // function with a repository return type, is not followed; upgrade if a review finds one.
+    let localReads:
+      (ReturnType<typeof unresolvedSites>[number] & { proof: LocalProof })[] | undefined;
+    const covered =
+      validationStatus === 'passed' &&
       candidateSources &&
-      (coverage.outcome === 'no-proposal' || coverage.gate?.passed) &&
-      typeOraclePasses(typeOracle) &&
+      !typeCheckUnavailable &&
+      typeCheckFinished(patched) &&
+      !typeErrors(patched).length
+        ? typeCheckCoverage(candidateSources, options.command, packageDirectory)
+        : undefined;
+    if (
+      validationStatus === 'passed' &&
+      candidateSources &&
+      report.patch.generator === 'deterministic' &&
+      (!coverage || coverage.outcome !== 'kept' || coverage.gate?.passed) &&
       'unresolvedSites' in proposal &&
-      proposal.unresolvedSites
+      proposal.unresolvedSites?.some((site) => site.untraced)
     ) {
-      const reads = analyzeRepository(
+      const findings = analyzeRepository(
         { ...originalSources, files: candidateSources.files },
         report.changes,
         report.adapter,
         beforeSpecification.schemas,
-      ).findings.filter((finding) => finding.untraced && !TEST_PATH.test(finding.file));
-      const local = localReceiverReads(candidateSources, reads);
+      ).findings.filter((finding) => !TEST_PATH.test(finding.file));
+      const local = localReceiverReads(
+        candidateSources,
+        findings.filter((finding) => finding.untraced),
+        {
+          traced: findings.filter((finding) => !finding.untraced),
+          typeChecked: (file) => typeOraclePasses(typeOracle) || Boolean(covered?.has(file)),
+        },
+      );
       const left = resolvedSites(proposal.unresolvedSites, unresolvedSites(local));
       if (local.length && left.length === proposal.unresolvedSites.length - local.length) {
-        coverage.localReads = unresolvedSites(local);
+        localReads = unresolvedSites(local).map((site, index) => ({
+          ...site,
+          proof: local[index].proof,
+        }));
+        if (coverage) coverage.localReads = localReads;
         proposal = {
           ...proposal,
           unresolvedFindings: proposal.unresolvedFindings - local.length,
@@ -3067,6 +3090,7 @@ export async function validateMigration(options: {
       repair,
       ...(options.aiPatch ? { aiCostUsd } : {}),
       ...(coverage ? { coverageAi: coverage } : {}),
+      ...(localReads ? { localReads } : {}),
       ...(reviewTypeErrors.length ? { reviewTypeErrors } : {}),
       ...(advisoryErrors.length
         ? { advisoryTypeErrors: advisoryErrors.map(({ key, ...error }) => error) }
