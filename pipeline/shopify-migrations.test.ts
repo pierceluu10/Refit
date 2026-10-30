@@ -1,16 +1,19 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { parse, validate } from 'graphql';
+import { parse, validate, type GraphQLObjectType } from 'graphql';
 import { afterEach, expect, it } from 'vitest';
 import { readRepository } from './repository.ts';
 import { scanShopify } from './shopify-analysis.ts';
 import {
+  DOCUMENTED_REMOVALS,
   loadShopifyMigrationRules,
   migrateDocument,
   removeUnusedVariables,
+  unmigratedReasons,
 } from './shopify-migrations.ts';
 import { shopifyGrade } from './shopify-proof.ts';
+import { capturedPages } from './rule-evidence.ts';
 import { pinnedShopifySchema } from './shopify-schemas.ts';
 
 const after = pinnedShopifySchema('admin', '2026-10').schema;
@@ -228,4 +231,92 @@ it('grades a patch whose changed variables the store did not run as D', () => {
   const own = { letter: 'C' as const, level: 'type-check' as const, reason: 'tsc passed.' };
   expect(shopifyGrade(own, schema, undefined, [], ['app/a.tsx:3 (Update)']).letter).toBe('D');
   expect(shopifyGrade(own, schema, undefined, [], []).letter).toBe('C');
+});
+
+const failing = (text: string) => validate(after, parse(text));
+
+it('quotes every documented removal from its saved page, for a member no pinned Admin schema has', async () => {
+  const pages = await capturedPages(
+    new URL('../docs/benchmarks/shopify-changelog/pages/', import.meta.url).pathname,
+  );
+  const oldest = pinnedShopifySchema('admin', '2025-01').schema;
+  for (const entry of DOCUMENTED_REMOVALS) {
+    expect(pages.get(entry.source)?.content, entry.source).toContain(entry.quote);
+    const [type, field] = entry.coordinate.split('.');
+    for (const schema of [oldest, after])
+      expect(Object.keys((schema.getType(type) as GraphQLObjectType).getFields())).not.toContain(
+        field,
+      );
+  }
+});
+
+it('names the documented removal a document sends', () => {
+  const reasons = unmigratedReasons(
+    failing(
+      'mutation D($input: MetafieldDeleteInput!) { metafieldDelete(input: $input) { deletedId } }',
+    ),
+    after,
+  );
+  expect(reasons).toEqual([
+    expect.stringMatching(
+      /^Mutation\.metafieldDelete: Shopify removed it in 2025-01 for metafieldsDelete, .*GID.*\(https:\/\/shopify\.dev\/changelog\/posts\/remove-metafielddelete-in-favor-of-metafieldsdelete\)\.$/,
+    ),
+  ]);
+});
+
+it('names Storefront API fields and types a document sends to the Admin API', () => {
+  expect(
+    unmigratedReasons(
+      failing(
+        '{ shop { name privacyPolicy { body } } orders(first: 1) { nodes { financialStatus } } }',
+      ),
+      after,
+    ),
+  ).toEqual([
+    expect.stringMatching(
+      /^Shop\.privacyPolicy is a Storefront API field \(Storefront 2026-10 schema\)/,
+    ),
+    expect.stringMatching(/^Order\.financialStatus is a Storefront API field/),
+  ]);
+  // The input type is named only when no field is.
+  expect(unmigratedReasons(failing('query C($input: CartInput) { shop { name } }'), after)).toEqual(
+    [expect.stringMatching(/^CartInput is a Storefront API type/)],
+  );
+});
+
+it('says when no saved page names a replacement, and names nothing the Admin schemas have', () => {
+  expect(
+    unmigratedReasons(
+      failing('{ customers(first: 1) { nodes { ordersCount numberOfOrders(x: 1) } } }'),
+      after,
+    ),
+  ).toEqual([
+    'Customer.ordersCount is absent from every pinned Admin schema (2025-01 to 2026-10), and no saved Shopify page names its replacement.',
+  ]);
+});
+
+it('stops a failing document no migration covers with the named reasons', async () => {
+  const source = `export async function drop(admin, id) {
+  await admin.graphql(
+    \`#graphql
+    mutation Drop($input: MetafieldDeleteInput!) {
+      metafieldDelete(input: $input) { deletedId }
+    }\`,
+    { variables: { input: { id } } },
+  );
+}
+`;
+  const root = await mkdtemp(join(tmpdir(), 'refit-shopify-migrations-'));
+  roots.push(root);
+  await writeFile(
+    join(root, 'package.json'),
+    '{"dependencies":{"@shopify/shopify-app-remix":"3.0.0"}}',
+  );
+  await writeFile(join(root, 'drop.js'), source);
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-app-remix'));
+  expect(migrateDocument({ document: scan.documents[0], source, after, rules })).toEqual({
+    refusal: expect.stringMatching(
+      /^no documented migration covers this document\. Mutation\.metafieldDelete: Shopify removed it/,
+    ),
+  });
 });

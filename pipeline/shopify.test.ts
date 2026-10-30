@@ -284,7 +284,7 @@ it('stops for review on removed fields, type changes, already-failing documents 
     line: 3,
     confidence: 'confirmed',
     expression: 'Cannot query field "legacyCode" on type "Product".',
-    reason: 'Valid on 2026-01, invalid on 2026-10.',
+    reason: expect.stringMatching(/^Valid on 2026-01, invalid on 2026-10\./),
   });
   const changed = await run('id publishedAt');
   expect(
