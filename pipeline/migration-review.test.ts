@@ -6,7 +6,12 @@ import { runPipeline } from './run.ts';
 import { runWorkflow } from './workflow.ts';
 import { analyzeRepository } from './analyzer.ts';
 import { STRIPE } from './providers.ts';
-import { removedParameterSites, targetReached } from './migration-review.ts';
+import {
+  assessmentReviewReason,
+  migrationReviewReason,
+  removedParameterSites,
+  targetReached,
+} from './migration-review.ts';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -221,5 +226,32 @@ it('names at most three calls that still send a removed parameter and counts the
   );
   expect(removedParameterSites([1, 2, 3, 4, 5].map(sends))).toBe(
     'The calls: billing.js:1 sends payment_method_types; billing.js:2 sends payment_method_types; billing.js:3 sends payment_method_types; and 2 more in the run report.',
+  );
+});
+
+it('lets the advisory assessment read past the webhook and removed-parameter policies only', () => {
+  const finding = {
+    file: 'billing.ts',
+    line: 4,
+    column: 1,
+    changeId: 'removed-field',
+    expression: '.current_period_end',
+    confidence: 'confirmed' as const,
+    reason: 'Removed field.',
+  };
+  const sends = {
+    ...finding,
+    changeId: 'removed-payment-method-types',
+    requestParameter: { operationId: 'PostPaymentIntents', parameter: 'payment_method_types' },
+  };
+  const webhook = {
+    ...finding,
+    webhook: { schema: 'subscription', eventTypes: ['customer.subscription.updated'] },
+  } as Parameters<typeof assessmentReviewReason>[0]['findings'][number];
+  expect(migrationReviewReason({ findings: [sends, webhook] })).toBeDefined();
+  expect(assessmentReviewReason({ findings: [sends, webhook] })).toBeUndefined();
+  // Source evidence still blocks it.
+  expect(assessmentReviewReason({ findings: [], skippedFiles: ['broken.ts'] })).toMatch(
+    /^Unparseable source files were skipped/,
   );
 });

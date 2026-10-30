@@ -14,6 +14,14 @@ export const SHOPIFY_PACKAGES = [
 ];
 const SHOPIFY_IMPORT = /(?:from\s*|import\s*\(\s*|require\s*\(\s*)['"]@shopify\/[^'"]+['"]/;
 const GRAPHQL_MARKER = /^\s*#graphql\b/;
+const ENVIRONMENT =
+  /^process\.env\.(\w+)$|^process\.env\[['"](\w+)['"]\]$|^import\.meta\.env\.(\w+)$/;
+// Tags and functions that only mark a document: graphql-tag, codegen's client preset, gql.tada.
+const DOCUMENT_TAG = /^(?:gql|graphql)$/;
+// Storefront API clients: Hydrogen's `storefront`, createStorefrontApiClient and clients.Storefront.
+const STOREFRONT_RECEIVER = /(?:^|\.)storefront$/;
+export const STOREFRONT_CLIENT_FACTORY =
+  /^createStorefrontApiClient$|\.clients\.Storefront$|^createStorefrontClient$/;
 const TEST_FILE = /(?:^|\/)(?:__tests__|tests?)\/|\.(?:test|spec)\.[cm]?[jt]sx?$/;
 const ADMIN_RECEIVER = /(?:^|\.)admin$/;
 const ADMIN_CLIENT_FACTORY = /^createAdminApiClient$|\.clients\.Graphql$|^GraphqlClient$/;
@@ -24,8 +32,13 @@ const REST_RECEIVER =
 const REST_URL =
   /\/admin\/api\/(\d{4}-\d{2}|unstable)\/(?:(?!graphql\.json)[\w/{}.$-]*\.json|(?!graphql\b)[\w-]+\/)/;
 // The Admin GraphQL endpoint itself, requested without one of Shopify's clients.
-const GRAPHQL_URL = /\/admin\/api\/(?:\d{4}-\d{2}|unstable)\/graphql\.json/;
+const GRAPHQL_URL = /\/admin\/api\/(?:\d{4}-\d{2}|unstable|\{[^}]*\})\/graphql\.json/;
 const VERSION_URL = /\/admin\/api\/(\d{4}-\d{2})\//g;
+// GraphQL clients built from an endpoint URL, and the methods that send their documents.
+const ENDPOINT_CLIENT =
+  /(?:^|\.)(?:GraphQLClient|createGraphQLClient|createClient|ApolloClient|HttpLink)$/;
+const CLIENT_METHODS = new Set(['request', 'rawRequest', 'query', 'mutate', 'mutation']);
+const CLIENT_SETTERS = /^(?:setHeaders?|setEndpoint|config)$/;
 // Variables holding a REST Admin client: `new shopify.clients.Rest(...)` or `createAdminRestApiClient(...)`.
 const REST_CLIENT_FACTORY = /\.clients\.Rest$|^createAdminRestApiClient$/;
 const REST_VERBS: Record<string, string> = {
@@ -60,6 +73,8 @@ export interface AdminDocument extends Location {
   // True when the document reaches an Admin API client call; #graphql literals Refit could not
   // tie to a call are still checked but carry review evidence.
   traced: boolean;
+  // Sent to a Storefront API client: checked against the Storefront contract, never the Admin one.
+  api?: 'storefront';
 }
 
 export interface VersionDeclaration extends Location {
@@ -68,18 +83,28 @@ export interface VersionDeclaration extends Location {
   start: number;
   end: number;
   text: string;
+  // `process.env.NAME ?? '2025-01'`: the literal is a default the environment can override.
+  envFallback?: string;
+  // Set on a Storefront API client; the Admin version move leaves it alone.
+  api?: 'storefront';
 }
 
 export interface ShopifyScan {
   documents: AdminDocument[];
-  // Admin calls whose document Refit could not read statically.
-  unreadable: (Location & { reason: string })[];
+  // Calls whose document Refit could not read statically; `api` marks a Storefront client's.
+  unreadable: (Location & { reason: string; api?: 'storefront' })[];
   // REST Admin usage, with the HTTP method, path (`{…}` marks a substitution) and resource class
   // operation where the code states them. Review-only evidence: Refit never migrates REST calls.
   rest: (Location & { expression: string; method?: string; path?: string; resource?: string })[];
   versions: VersionDeclaration[];
   // `latest` marks LATEST_API_VERSION, which the locked SDK release determines.
-  unresolvedVersions: (Location & { reason: string; latest?: true })[];
+  // `note` marks a version the patch leaves alone and the draft names, which stops nothing: an
+  // environment variable with no default in code, or the moving `unstable` version.
+  unresolvedVersions: (Location & {
+    reason: string;
+    latest?: true;
+    note?: 'environment' | 'unstable';
+  })[];
   adminCalls: number;
   shopifyFiles: string[];
 }
@@ -235,6 +260,57 @@ function referencesIn(scope: ts.Node, name: string) {
   return found;
 }
 
+// True when `text`, a document's beginning, ends inside a GraphQL string: an odd number of
+// unescaped quotes, and no block string, whose quotes this does not count.
+function insideString(text: string) {
+  return !text.includes('"""') && (text.match(/(?<!\\)"/g) ?? []).length % 2 === 1;
+}
+
+// The GraphQL text of a numeric or boolean literal (`250`, `-1`, `true`), else undefined.
+function scalarText(node: ts.Expression): string | undefined {
+  const value = unwrap(node);
+  if (ts.isNumericLiteral(value)) return value.text;
+  if (
+    ts.isPrefixUnaryExpression(value) &&
+    value.operator === ts.SyntaxKind.MinusToken &&
+    ts.isNumericLiteral(value.operand)
+  )
+    return `-${value.operand.text}`;
+  if (value.kind === ts.SyntaxKind.TrueKeyword) return 'true';
+  if (value.kind === ts.SyntaxKind.FalseKeyword) return 'false';
+  return undefined;
+}
+
+function privateMethod(fn: ts.Node): fn is ts.MethodDeclaration {
+  return (
+    ts.isMethodDeclaration(fn) &&
+    (ts.isPrivateIdentifier(fn.name) || hasModifier(fn, ts.SyntaxKind.PrivateKeyword))
+  );
+}
+
+// `#graphql\n${query}`: a template that only wraps one value, read as that value.
+function wrappedValue(node: ts.Expression) {
+  return ts.isTemplateExpression(node) &&
+    node.templateSpans.length === 1 &&
+    /^\s*(?:#graphql\b)?\s*$/.test(node.head.text) &&
+    /^\s*$/.test(node.templateSpans[0].literal.text)
+    ? node.templateSpans[0].expression
+    : undefined;
+}
+
+// The return values of a function: its expression body, or every `return` outside nested functions.
+function returnedValues(fn: FunctionNode): ts.Expression[] {
+  if (fn.body && !ts.isBlock(fn.body)) return [fn.body];
+  const found: ts.Expression[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isFunctionLike(node) || ts.isClassLike(node)) return;
+    if (ts.isReturnStatement(node) && node.expression) found.push(node.expression);
+    ts.forEachChild(node, visit);
+  };
+  if (fn.body) ts.forEachChild(fn.body, visit);
+  return found;
+}
+
 function unwrap(node: ts.Expression): ts.Expression {
   if (
     ts.isParenthesizedExpression(node) ||
@@ -248,7 +324,11 @@ function unwrap(node: ts.Expression): ts.Expression {
   return node;
 }
 
-export function scanShopify(repository: Repository): ShopifyScan {
+// `graphqlFiles` are the repository's .graphql and .gql files, read as documents of their own.
+export function scanShopify(
+  repository: Repository,
+  graphqlFiles: { path: string; content: string }[] = [],
+): ShopifyScan {
   const sources = new Map(
     repository.files.map((file) => [resolve(repository.root, file.path), file.content]),
   );
@@ -434,7 +514,27 @@ export function scanShopify(repository: Repository): ShopifyScan {
     append(literal.head.text, literal.head, literal.head.getStart() + 1);
     for (const span of literal.templateSpans) {
       const expression = unwrap(span.expression);
-      const resolved = ts.isIdentifier(expression) ? constant(file, expression.text) : undefined;
+      const resolved = ts.isIdentifier(expression)
+        ? (scoped(expression, file) ?? constant(file, expression.text))
+        : undefined;
+      // A runtime value inside a GraphQL string (`product(id: "gid://shopify/Product/${id}")`)
+      // cannot change which fields the document selects, so a placeholder stands in for it; only
+      // a constant string is written as it is.
+      if (
+        (!resolved || !isLiteral(resolved.node) || ts.isTemplateExpression(resolved.node)) &&
+        insideString(text)
+      ) {
+        text += 'x';
+        append(span.literal.text, span.literal, span.literal.getStart() + 1);
+        continue;
+      }
+      // `first: ${PAGE_SIZE}`: a constant number or boolean is written as it is.
+      const atom = scalarText(resolved?.node ?? expression);
+      if (atom !== undefined) {
+        text += atom;
+        append(span.literal.text, span.literal, span.literal.getStart() + 1);
+        continue;
+      }
       if (!resolved || !isLiteral(resolved.node) || depth > 8)
         return 'The document interpolates a value Refit cannot resolve to a constant fragment.';
       const inner = assemble(resolved.node, resolved.file, depth + 1);
@@ -452,23 +552,33 @@ export function scanShopify(repository: Repository): ShopifyScan {
   };
   const unreadable = (node: ts.Node, reason: string) => {
     const where = location(node);
+    // Documents in tests are fixtures for mocked clients, readable or not.
+    if (TEST_FILE.test(where.file)) return;
     if (
       !scan.unreadable.some(
         (entry) =>
           entry.file === where.file &&
           entry.line === where.line &&
           entry.column === where.column &&
-          entry.reason === reason,
+          entry.reason === reason &&
+          entry.api === api,
       )
     )
-      scan.unreadable.push({ ...where, reason });
+      scan.unreadable.push({ ...where, reason, ...(api ? { api } : {}) });
   };
   const documentLiterals = new Map<Literal, boolean>();
+  const storefrontLiterals = new Set<Literal>();
+  // The API of the client call whose document is being read.
+  let api: 'storefront' | undefined;
   const record = (literal: Literal, file: string, reached: boolean, call?: ts.Node) => {
     // Documents in tests go to mocked clients; they are fixtures, not Admin API usage.
     const traced = reached && !TEST_FILE.test(pathOf.get(file) ?? '');
-    if (documentLiterals.get(literal)) return;
+    // A literal a Storefront call read first is read again for an Admin call, which it then is.
+    const admin = Boolean(call) && reached && !api;
+    if (documentLiterals.get(literal) && (!admin || !storefrontLiterals.has(literal))) return;
     documentLiterals.set(literal, traced);
+    if (call && reached && api) storefrontLiterals.add(literal);
+    else if (admin) storefrontLiterals.delete(literal);
     const assembled = assemble(literal, file);
     if (typeof assembled === 'string') {
       unreadable(call ?? literal, assembled);
@@ -480,7 +590,12 @@ export function scanShopify(repository: Repository): ShopifyScan {
         entry.file === location(literal).file,
     );
     if (existing >= 0) scan.documents.splice(existing, 1);
-    scan.documents.push({ ...location(literal), ...assembled, traced });
+    scan.documents.push({
+      ...location(literal),
+      ...assembled,
+      traced,
+      ...(reached && api ? { api } : {}),
+    });
   };
   // The `const` an identifier names in an enclosing block, including names destructured from
   // `await import('./module')` or `require('./module')`. Reassignable bindings are not followed.
@@ -603,15 +718,21 @@ export function scanShopify(repository: Repository): ShopifyScan {
   // Where a function value goes: every call that invokes it, and every use Refit cannot follow
   // (stored in an object, passed to code outside the repository, reassigned, loaded dynamically).
   // A use Refit cannot follow means some callers are unknown, so it stops for review.
-  type Flows = { calls: ts.CallExpression[]; escapes: { node: ts.Node; reason: string }[] };
+  // `open` marks a function code outside the repository may call: exported, or a public method.
+  type Flows = {
+    calls: ts.CallExpression[];
+    escapes: { node: ts.Node; reason: string }[];
+    open: boolean;
+  };
   const flowCache = new Map<ts.Node, Flows>();
   const ESCAPE =
     'A function that sends Admin GraphQL documents is used here in a way Refit cannot follow, so the documents it receives are not read.';
   const functionFlows = (fn: ts.SignatureDeclaration): Flows => {
     const cached = flowCache.get(fn);
     if (cached) return cached;
-    const flows: Flows = { calls: [], escapes: [] };
+    const flows: Flows = { calls: [], escapes: [], open: false };
     flowCache.set(fn, {
+      open: false,
       calls: [],
       escapes: [
         {
@@ -662,20 +783,76 @@ export function scanShopify(repository: Repository): ShopifyScan {
             ts.isFunctionExpression(factory))
         ) {
           const outer = functionFlows(factory);
+          // An exported factory nothing in the repository calls: its callers are unknown.
+          if (!outer.calls.length && !outer.escapes.length && outer.open)
+            return escape(
+              node,
+              'A function that sends Admin GraphQL documents is returned from an exported function nothing in the repository calls, so Refit cannot follow the documents it receives.',
+            );
           for (const call of outer.calls) uses(call);
           flows.escapes.push(...outer.escapes);
+          flows.open ||= outer.open;
           return;
         }
       }
       if (ts.isExportAssignment(parent)) return exported(node.getSourceFile().fileName, 'default');
       if (ts.isExportSpecifier(parent))
         return exported(node.getSourceFile().fileName, parent.name.text);
-      escape(
-        node,
-        ts.isPropertyAssignment(parent) || ts.isShorthandPropertyAssignment(parent)
-          ? 'A function that sends Admin GraphQL documents is stored in an object here; Refit does not follow calls through object properties, so the documents it receives are not read.'
-          : ESCAPE,
-      );
+      const STORED =
+        'A function that sends Admin GraphQL documents is stored in an object here; Refit does not follow calls through object properties, so the documents it receives are not read.';
+      if (
+        (ts.isPropertyAssignment(parent) && parent.initializer === node) ||
+        ts.isShorthandPropertyAssignment(parent)
+      )
+        return stored(parent, STORED);
+      escape(node, ESCAPE);
+    };
+    // A member of a local `const` object literal (`const admin = { graphql: (query) => … }`) is
+    // followed through every `admin.graphql(…)`; any other use of the object stops.
+    const stored = (
+      property: ts.PropertyAssignment | ts.ShorthandPropertyAssignment,
+      reason: string,
+    ) => {
+      const object = outermost(property.parent);
+      const holder = object.parent;
+      const key = property.name;
+      if (
+        ts.isComputedPropertyName(key) ||
+        !ts.isVariableDeclaration(holder) ||
+        holder.initializer !== object ||
+        !ts.isIdentifier(holder.name) ||
+        !(holder.parent.flags & ts.NodeFlags.Const) ||
+        hasModifier(holder.parent.parent, ts.SyntaxKind.ExportKeyword)
+      )
+        return escape(property, reason);
+      const binding = declarationOf(holder.name);
+      if (!binding) return escape(property, reason);
+      for (const reference of referencesIn(binding.scope, holder.name.text)) {
+        const at = outermost(reference);
+        const access = at.parent;
+        if (ts.isPropertyAccessExpression(access) && access.expression === at) {
+          if (access.name.text === key.text) uses(access);
+        } else escape(reference, reason);
+      }
+    };
+    // The names `const { a, b } = await import('./module')` takes from a loaded module, with the
+    // binding each one gets; undefined for any other use of the loaded module.
+    const loadedNames = (load: ts.CallExpression) => {
+      let node: ts.Node = load;
+      while (ts.isAwaitExpression(node.parent) || ts.isParenthesizedExpression(node.parent))
+        node = node.parent;
+      const parent = node.parent;
+      const pattern =
+        ts.isVariableDeclaration(parent) && parent.initializer === node ? parent.name : undefined;
+      if (!pattern || !ts.isObjectBindingPattern(pattern)) return undefined;
+      const names: [string, ts.Identifier | undefined][] = [];
+      for (const element of pattern.elements) {
+        const name = element.propertyName ?? element.name;
+        if (element.dotDotDotToken || !(ts.isIdentifier(name) || ts.isStringLiteral(name)))
+          return undefined;
+        names.push([name.text, ts.isIdentifier(element.name) ? element.name : undefined]);
+      }
+      return names;
     };
     // Passed as an argument: followed into the called function's parameter.
     const passed = (call: ts.CallExpression, index: number) => {
@@ -710,6 +887,7 @@ export function scanShopify(repository: Repository): ShopifyScan {
     };
     // Exported: followed into every module that imports it, by name, namespace or re-export.
     const exported = (file: string, name: string) => {
+      flows.open = true;
       const target = exportTarget(file, name);
       if (!target) return;
       const key = `${target.file}#${target.name}`;
@@ -732,22 +910,67 @@ export function scanShopify(repository: Repository): ShopifyScan {
             } else escape(reference);
           }
         }
-      for (const load of moduleLoads())
-        if (same(load.file, name) || same(load.file, target.name))
-          escape(
-            load.node,
-            'A module defining a function that sends Admin GraphQL documents is loaded dynamically here, so Refit cannot follow its callers.',
-          );
+      for (const load of moduleLoads()) {
+        if (!same(load.file, name) && !same(load.file, target.name)) continue;
+        const LOADED =
+          'A module defining a function that sends Admin GraphQL documents is loaded dynamically here, so Refit cannot follow its callers.';
+        const names = loadedNames(load.node);
+        if (!names) escape(load.node, LOADED);
+        else
+          for (const [exportName, binding] of names)
+            if (same(load.file, exportName))
+              if (binding) bound(binding);
+              else escape(load.node, LOADED);
+      }
     };
     if (ts.isFunctionDeclaration(fn) && fn.name) bound(fn.name);
     else if (ts.isFunctionDeclaration(fn) && hasModifier(fn, ts.SyntaxKind.DefaultKeyword))
       exported(fn.getSourceFile().fileName, 'default');
     else if (ts.isArrowFunction(fn) || ts.isFunctionExpression(fn)) uses(fn);
-    // Methods, constructors and accessors: their callers need the receiver's type, so none are
-    // followed and the call that sends the document stops for review.
+    else if (privateMethod(fn)) {
+      // A private method is reached only inside its class: `this.name` or, when static,
+      // `Class.name`. Any other access there (`self.name`, `this['name']`) stops.
+      const owner = fn.parent as ts.ClassLikeDeclaration;
+      const name = fn.name.getText();
+      const visit = (node: ts.Node) => {
+        if (ts.isPropertyAccessExpression(node) && node.name.getText() === name) {
+          if (
+            node.expression.kind === ts.SyntaxKind.ThisKeyword ||
+            (owner.name !== undefined && node.expression.getText() === owner.name.text)
+          )
+            uses(node);
+          else escape(node);
+        }
+        if (
+          ts.isElementAccessExpression(node) &&
+          node.expression.kind === ts.SyntaxKind.ThisKeyword &&
+          !(
+            ts.isStringLiteralLike(node.argumentExpression) && node.argumentExpression.text !== name
+          )
+        )
+          escape(node);
+        // `const { send } = this`, `self = this`, `helper(this)`: the method leaves the class.
+        if (
+          node.kind === ts.SyntaxKind.ThisKeyword &&
+          !(
+            (ts.isPropertyAccessExpression(node.parent) ||
+              ts.isElementAccessExpression(node.parent)) &&
+            node.parent.expression === node
+          )
+        )
+          escape(node);
+        ts.forEachChild(node, visit);
+      };
+      visit(owner);
+      // TypeScript lets code outside the class read a `private` member as `instance['name']`.
+      if (!ts.isPrivateIdentifier(fn.name) && members().elements.has(name)) escape(fn);
+    } else flows.open = true;
+    // Other methods, constructors and accessors: their callers need the receiver's type, so none
+    // are followed and the call that sends the document stops for review.
     // Calls in tests are still checked (their documents count as fixtures), but tests that pass a
     // helper to mocks and spies do not stop the run: those reach mocked clients.
     const result = {
+      open: flows.open,
       calls: [...new Set(flows.calls)],
       escapes: flows.escapes.filter((entry) => !TEST_FILE.test(location(entry.node).file)),
     };
@@ -812,9 +1035,217 @@ export function scanShopify(repository: Repository): ShopifyScan {
           : undefined,
     };
   };
+  // Across the repository: member names written (`x.NAME = …`) or declared by more than one class
+  // member, every `.NAME` access, and classes that `Object.assign(this, …)`. Built on first use.
+  let memberIndex:
+    | {
+        written: Set<string>;
+        accesses: Map<string, ts.PropertyAccessExpression[]>;
+        elements: Set<string>;
+        assigned: Set<ts.Node>;
+      }
+    | undefined;
+  const members = () => {
+    if (!memberIndex) {
+      const index = {
+        written: new Set<string>(),
+        accesses: new Map<string, ts.PropertyAccessExpression[]>(),
+        elements: new Set<string>(),
+        assigned: new Set<ts.Node>(),
+      };
+      const declared = new Map<string, number>();
+      for (const absolute of sources.keys()) {
+        if (/\.d\.[cm]?ts$/.test(absolute)) continue;
+        const visit = (node: ts.Node) => {
+          if (
+            ts.isBinaryExpression(node) &&
+            node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+            node.operatorToken.kind <= ts.SyntaxKind.LastAssignment &&
+            ts.isPropertyAccessExpression(node.left)
+          )
+            index.written.add(node.left.name.text);
+          if (ts.isElementAccessExpression(node) && ts.isStringLiteralLike(node.argumentExpression))
+            index.elements.add(node.argumentExpression.text);
+          if (ts.isPropertyAccessExpression(node))
+            index.accesses.set(node.name.text, [
+              ...(index.accesses.get(node.name.text) ?? []),
+              node,
+            ]);
+          if (
+            (ts.isPropertyDeclaration(node) ||
+              ts.isGetAccessorDeclaration(node) ||
+              ts.isMethodDeclaration(node)) &&
+            ts.isClassLike(node.parent)
+          )
+            declared.set(node.name.getText(), (declared.get(node.name.getText()) ?? 0) + 1);
+          if (
+            ts.isCallExpression(node) &&
+            node.expression.getText() === 'Object.assign' &&
+            node.arguments[0]?.kind === ts.SyntaxKind.ThisKeyword
+          ) {
+            const owner = ts.findAncestor(node, ts.isClassLike);
+            if (owner) index.assigned.add(owner);
+          }
+          ts.forEachChild(node, visit);
+        };
+        visit(sourceFile(absolute));
+      }
+      for (const [name, count] of declared) if (count > 1) index.written.add(name);
+      memberIndex = index;
+    }
+    return memberIndex;
+  };
+  // The initializer of the instance field `this.NAME` reads, in the class whose method reads it:
+  // readonly or private, or a field no code assigns and no other class declares.
+  const classField = (access: ts.PropertyAccessExpression) => {
+    if (access.expression.kind !== ts.SyntaxKind.ThisKeyword) return undefined;
+    const method = ts.findAncestor(
+      access.parent,
+      (node) => ts.isFunctionLike(node) && !ts.isArrowFunction(node),
+    );
+    const owner = method?.parent;
+    if (!owner || !ts.isClassLike(owner)) return undefined;
+    const name = access.name.getText();
+    const member = owner.members.find(
+      (entry): entry is ts.PropertyDeclaration =>
+        ts.isPropertyDeclaration(entry) &&
+        entry.name.getText() === name &&
+        !hasModifier(entry, ts.SyntaxKind.StaticKeyword),
+    );
+    if (!member?.initializer) return undefined;
+    // `readonly` and private fields can still be set in the constructor or by the class itself.
+    return !members().written.has(name) && !members().assigned.has(owner)
+      ? member.initializer
+      : undefined;
+  };
+  // Every value a `let` binding holds: its initializer and each `name = value` assignment. Undefined
+  // for any other write (`+=`, `++`, destructuring, a loop target), which Refit cannot follow.
+  const assignedValues = (identifier: ts.Identifier): ts.Expression[] | undefined => {
+    const binding = declarationOf(identifier);
+    const declaration = binding?.node;
+    if (
+      !binding ||
+      !declaration ||
+      !ts.isVariableDeclaration(declaration) ||
+      !ts.isIdentifier(declaration.name) ||
+      !(declaration.parent.flags & ts.NodeFlags.Let) ||
+      !ts.isVariableStatement(declaration.parent.parent)
+    )
+      return undefined;
+    const values = declaration.initializer ? [declaration.initializer] : [];
+    for (const reference of referencesIn(binding.scope, identifier.text)) {
+      const node = outermost(reference);
+      const parent = node.parent;
+      const operator = ts.isBinaryExpression(parent) ? parent.operatorToken.kind : undefined;
+      if (
+        ts.isBinaryExpression(parent) &&
+        parent.left === node &&
+        operator !== undefined &&
+        operator >= ts.SyntaxKind.FirstAssignment &&
+        operator <= ts.SyntaxKind.LastAssignment
+      ) {
+        if (operator !== ts.SyntaxKind.EqualsToken) return undefined;
+        values.push(parent.right);
+        continue;
+      }
+      if (
+        (ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) &&
+        (parent.operator === ts.SyntaxKind.PlusPlusToken ||
+          parent.operator === ts.SyntaxKind.MinusMinusToken)
+      )
+        return undefined;
+      let target: ts.Node = node;
+      while (
+        ts.isArrayLiteralExpression(target.parent) ||
+        ts.isObjectLiteralExpression(target.parent) ||
+        ts.isShorthandPropertyAssignment(target.parent) ||
+        ts.isSpreadElement(target.parent) ||
+        ts.isSpreadAssignment(target.parent) ||
+        (ts.isPropertyAssignment(target.parent) && target.parent.initializer === target) ||
+        ts.isParenthesizedExpression(target.parent)
+      )
+        target = target.parent;
+      if (
+        (target !== node &&
+          ts.isBinaryExpression(target.parent) &&
+          target.parent.left === target &&
+          target.parent.operatorToken.kind === ts.SyntaxKind.EqualsToken) ||
+        ((ts.isForOfStatement(target.parent) || ts.isForInStatement(target.parent)) &&
+          target.parent.initializer === target)
+      )
+        return undefined;
+    }
+    return values;
+  };
+  // Reads the argument each call passes for a parameter. False when no call is known and code
+  // outside the repository may call the function; a local function nothing calls sends nothing.
+  const parameterArguments = (
+    parameter: ts.ParameterDeclaration,
+    helpers: Set<string>,
+    read: (argument: ts.Expression, file: string, call: ts.Node, helpers: Set<string>) => void,
+  ) => {
+    const fn = parameter.parent;
+    const index = fn.parameters.indexOf(parameter);
+    const key = `${fn.getSourceFile().fileName}:${fn.pos}:${index}`;
+    if (helpers.has(key)) return true;
+    const flows = functionFlows(fn);
+    if (!flows.calls.length && !flows.escapes.length) return !flows.open;
+    for (const invocation of flows.calls) {
+      const argument = invocation.arguments[index];
+      if (invocation.arguments.slice(0, index + 1).some(ts.isSpreadElement))
+        unreadable(
+          invocation,
+          'The call spreads its arguments, so Refit cannot tell which one is the GraphQL document.',
+        );
+      else if (argument)
+        read(argument, invocation.getSourceFile().fileName, invocation, new Set([...helpers, key]));
+      else unreadable(invocation, 'The helper call passes no GraphQL document.');
+    }
+    for (const entry of flows.escapes) unreadable(entry.node, entry.reason);
+    return true;
+  };
+  // The documents in `base.property`: a member of a constant object, or of every object a parameter
+  // receives (`options.query`, `({ query }) => …`). `fallback` is a destructuring default.
+  const memberDocuments = (
+    base: ts.Expression,
+    property: string,
+    file: string,
+    call: ts.Node,
+    helpers: Set<string>,
+    fallback?: ts.Expression,
+  ): void => {
+    let value = unwrap(base);
+    let owner = file;
+    if (ts.isIdentifier(value)) {
+      const resolved = scoped(value, file) ?? constant(file, value.text);
+      const parameter = resolved ? undefined : declarationOf(value)?.node;
+      if (resolved) [value, owner] = [unwrap(resolved.node), resolved.file];
+      else if (
+        parameter &&
+        ts.isParameter(parameter) &&
+        ts.isIdentifier(parameter.name) &&
+        !parameter.dotDotDotToken &&
+        parameterArguments(parameter, helpers, (argument, at, invocation, followed) =>
+          memberDocuments(argument, property, at, invocation, followed, fallback),
+        )
+      )
+        return;
+    }
+    if (ts.isObjectLiteralExpression(value)) {
+      const item = memberOf(value, property);
+      if (item) return documentArgument(item, owner, call, helpers);
+      if (fallback && !value.properties.some(ts.isSpreadAssignment))
+        return documentArgument(fallback, file, call, helpers);
+    }
+    unreadable(
+      call,
+      'The document is built at runtime; Refit only reads literal or constant documents.',
+    );
+  };
   // A document argument: a literal, or a constant naming one, possibly wrapped as { query }.
-  // A document that is a parameter is read from every call of its function. `helpers` holds the
-  // function parameters already being followed, so recursion passing the same one is skipped.
+  // A document that is a parameter is read from every call of its function, one returned by a
+  // repository function from its `return`s, and a `let` from every value assigned to it.
+  // `helpers` holds the function parameters already being followed, so recursion is skipped.
   const documentArgument = (
     node: ts.Expression | undefined,
     file: string,
@@ -823,21 +1254,49 @@ export function scanShopify(repository: Repository): ShopifyScan {
   ): void => {
     if (!node) return;
     let value = unwrap(node);
+    if (ts.isAwaitExpression(value)) value = unwrap(value.expression);
+    // A raw request body: `JSON.stringify({ query })`.
+    if (
+      ts.isCallExpression(value) &&
+      value.expression.getText() === 'JSON.stringify' &&
+      value.arguments[0]
+    )
+      return documentArgument(value.arguments[0], file, call, helpers);
     if (ts.isObjectLiteralExpression(value)) {
-      const query = value.properties.find(
-        (property): property is ts.PropertyAssignment =>
-          ts.isPropertyAssignment(property) && property.name.getText() === 'query',
-      );
+      // `{ query }`, graphql-request's `{ document }` and Apollo's `{ mutation }`.
+      const query =
+        memberOf(value, 'query') ?? memberOf(value, 'document') ?? memberOf(value, 'mutation');
       if (!query) {
         unreadable(call, 'The request body has no static query.');
         return;
       }
-      value = unwrap(query.initializer);
+      value = unwrap(query);
     }
     if (ts.isConditionalExpression(value)) {
       documentArgument(value.whenTrue, file, call, helpers);
       documentArgument(value.whenFalse, file, call, helpers);
       return;
+    }
+    if (ts.isCallExpression(value)) {
+      // An imported `graphql(\`…\`)` or `gql(\`…\`)` only marks its document.
+      const binding = ts.isIdentifier(value.expression)
+        ? declarationOf(value.expression)?.node
+        : undefined;
+      if (
+        binding &&
+        DOCUMENT_TAG.test(value.expression.getText()) &&
+        (ts.isImportClause(binding.parent) || ts.isImportSpecifier(binding.parent))
+      )
+        return documentArgument(value.arguments[0], file, call, helpers);
+      // `admin.graphql(productsQuery(first))`: what the repository function returns.
+      const fn = calledFunction(value.expression);
+      const key = fn && `${fn.getSourceFile().fileName}:${fn.pos}:return`;
+      if (fn && key && !helpers.has(key)) {
+        const returned = returnedValues(fn);
+        for (const entry of returned)
+          documentArgument(entry, fn.getSourceFile().fileName, call, new Set([...helpers, key]));
+        if (returned.length) return;
+      }
     }
     // Members of a constant object or array literal: `QUERIES.product`, `QUERIES[0]`, and the
     // loop variable (or its property) of `for (const tier of TIERS)`, where every element is read.
@@ -863,52 +1322,75 @@ export function scanShopify(repository: Repository): ShopifyScan {
       }
       return;
     }
-    if (access && property !== undefined) {
-      const container = scoped(base as ts.Identifier, file) ?? constant(file, base.getText());
-      const item = container && memberOf(container.node, property);
-      if (item) return documentArgument(item, container.file, call, helpers);
-    }
+    if (access && property !== undefined)
+      return memberDocuments(base, property, file, call, helpers);
+    // `this.LIST_QUERY`: a class field's initializer, when nothing else can set it.
+    const field = ts.isPropertyAccessExpression(value) ? classField(value) : undefined;
+    if (field) return documentArgument(field, file, call, helpers);
     let owner = file;
     if (ts.isIdentifier(value)) {
       const resolved = scoped(value, file) ?? constant(file, value.text);
-      const parameter = resolved ? undefined : declarationOf(value)?.node;
+      const declaration = resolved ? undefined : declarationOf(value)?.node;
       if (resolved) {
         value = resolved.node;
         owner = resolved.file;
+      } else if (declaration && ts.isParameter(declaration) && !declaration.dotDotDotToken) {
+        if (
+          ts.isIdentifier(declaration.name) &&
+          parameterArguments(declaration, helpers, documentArgument)
+        )
+          return;
+        // `({ query, variables }) => …`: the property each call's argument names.
+        const element = ts.isObjectBindingPattern(declaration.name)
+          ? declaration.name.elements.find(
+              (entry) => ts.isIdentifier(entry.name) && entry.name.text === value.getText(),
+            )
+          : undefined;
+        const name = element && !element.dotDotDotToken && (element.propertyName ?? element.name);
+        if (
+          name &&
+          (ts.isIdentifier(name) || ts.isStringLiteral(name)) &&
+          parameterArguments(declaration, helpers, (argument, at, invocation, followed) =>
+            memberDocuments(argument, name.text, at, invocation, followed, element.initializer),
+          )
+        )
+          return;
       } else if (
-        parameter &&
-        ts.isParameter(parameter) &&
-        ts.isIdentifier(parameter.name) &&
-        !parameter.dotDotDotToken
+        // `const { query, variables } = input`: a property of a value Refit can follow.
+        declaration &&
+        ts.isVariableDeclaration(declaration) &&
+        ts.isObjectBindingPattern(declaration.name) &&
+        declaration.parent.flags & ts.NodeFlags.Const &&
+        declaration.initializer
       ) {
-        const fn = parameter.parent;
-        const index = fn.parameters.indexOf(parameter);
-        const key = `${fn.getSourceFile().fileName}:${fn.pos}:${index}`;
-        if (helpers.has(key)) return;
-        const flows = functionFlows(fn);
-        if (flows.calls.length || flows.escapes.length) {
-          for (const invocation of flows.calls) {
-            const argument = invocation.arguments[index];
-            if (invocation.arguments.slice(0, index + 1).some(ts.isSpreadElement))
-              unreadable(
-                invocation,
-                'The call spreads its arguments, so Refit cannot tell which one is the GraphQL document.',
-              );
-            else if (argument)
-              documentArgument(
-                argument,
-                invocation.getSourceFile().fileName,
-                invocation,
-                new Set([...helpers, key]),
-              );
-            else unreadable(invocation, 'The helper call passes no GraphQL document.');
-          }
-          for (const entry of flows.escapes) unreadable(entry.node, entry.reason);
+        const element = declaration.name.elements.find(
+          (entry) => ts.isIdentifier(entry.name) && entry.name.text === value.getText(),
+        );
+        const name = element && !element.dotDotDotToken && (element.propertyName ?? element.name);
+        if (name && (ts.isIdentifier(name) || ts.isStringLiteral(name)))
+          return memberDocuments(
+            declaration.initializer,
+            name.text,
+            file,
+            call,
+            helpers,
+            element.initializer,
+          );
+      } else {
+        const values = assignedValues(value);
+        if (values?.length) {
+          for (const entry of values) documentArgument(entry, file, call, helpers);
           return;
         }
       }
-      // `const mutation = isCode ? CODE_MUTATION : AUTOMATIC_MUTATION`
-      if (ts.isConditionalExpression(value)) return documentArgument(value, owner, call, helpers);
+      // `const mutation = isCode ? CODE_MUTATION : AUTOMATIC_MUTATION`, `const body = { query }`
+      if (ts.isConditionalExpression(value) || ts.isObjectLiteralExpression(value))
+        return documentArgument(value, owner, call, helpers);
+    }
+    const wrapped = wrappedValue(value);
+    if (wrapped) {
+      documentLiterals.set(value as Literal, true);
+      return documentArgument(wrapped, owner, call, helpers);
     }
     if (isLiteral(value)) record(value, owner, true, call);
     else
@@ -1012,12 +1494,301 @@ export function scanShopify(repository: Repository): ShopifyScan {
     const [method] = methods.size === 1 ? methods : [undefined];
     return { ...(method ? { method } : {}), ...(path ? { path } : {}) };
   };
+  // The node a value flows from, past parentheses and type assertions.
+  const outermost = (node: ts.Node) => {
+    while (
+      ts.isParenthesizedExpression(node.parent) ||
+      ts.isAsExpression(node.parent) ||
+      ts.isNonNullExpression(node.parent) ||
+      ts.isSatisfiesExpression(node.parent)
+    )
+      node = node.parent;
+    return node;
+  };
+  // A fetch body: `JSON.stringify({ query })`, or with an application/graphql content type the
+  // document itself, through `const` bindings and conditionals.
+  const rawBody = (node: ts.Expression, file: string, call: ts.Node, graphql: boolean): void => {
+    let value = unwrap(node);
+    if (ts.isIdentifier(value)) {
+      const resolved = scoped(value, file) ?? constant(file, value.text);
+      if (resolved) value = unwrap(resolved.node);
+    }
+    if (ts.isConditionalExpression(value)) {
+      rawBody(value.whenTrue, file, call, graphql);
+      rawBody(value.whenFalse, file, call, graphql);
+    } else if (
+      graphql ||
+      ts.isObjectLiteralExpression(value) ||
+      (ts.isCallExpression(value) && value.expression.getText() === 'JSON.stringify')
+    )
+      documentArgument(value, file, call);
+    else
+      unreadable(
+        call,
+        'A raw request to the Admin GraphQL endpoint whose body Refit cannot read; Refit reads `fetch(url, { body: JSON.stringify({ query }) })` and `axios.post(url, { query })`.',
+      );
+  };
+  // A GraphQL client built for the Admin endpoint URL `at`: `new GraphQLClient(url)` (graphql-request),
+  // `createGraphQLClient({ url })` (@shopify/graphql-client), urql's `createClient({ url })` and
+  // Apollo's `new ApolloClient({ uri })`.
+  const endpointClient = (at: ts.Node) => {
+    let argument: ts.Node = at;
+    if (
+      ((ts.isPropertyAssignment(at.parent) && at.parent.initializer === at) ||
+        ts.isShorthandPropertyAssignment(at.parent)) &&
+      /^(?:url|uri|endpoint)$/.test(at.parent.name.getText())
+    )
+      argument = outermost(at.parent.parent);
+    const creation = argument.parent;
+    return (ts.isCallExpression(creation) || ts.isNewExpression(creation)) &&
+      creation.arguments?.[0] === argument &&
+      ENDPOINT_CLIENT.test(creation.expression.getText())
+      ? creation
+      : undefined;
+  };
+  // Every request a client for the Admin endpoint sends: through the `const` holding it or
+  // `this.client` in its class. Any other use of the client stops for review.
+  const clientRequests = (creation: ts.Node, file: string) => {
+    const node = outermost(creation);
+    const holder = node.parent;
+    const ESCAPED =
+      'A GraphQL client for the Admin endpoint is used here in a way Refit cannot follow, so the documents it sends are not read.';
+    let references: ts.Node[];
+    if (
+      ts.isVariableDeclaration(holder) &&
+      holder.initializer === node &&
+      ts.isIdentifier(holder.name) &&
+      holder.parent.flags & ts.NodeFlags.Const &&
+      !hasModifier(holder.parent.parent, ts.SyntaxKind.ExportKeyword)
+    )
+      references = referencesIn(declarationOf(holder.name)!.scope, holder.name.text);
+    else if (
+      ts.isBinaryExpression(holder) &&
+      holder.right === node &&
+      holder.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      ts.isPropertyAccessExpression(holder.left) &&
+      holder.left.expression.kind === ts.SyntaxKind.ThisKeyword &&
+      ts.findAncestor(holder, ts.isClassLike)
+    ) {
+      const name = holder.left.name.text;
+      const assigned = holder.left;
+      const owner = ts.findAncestor(holder, ts.isClassLike)!;
+      // A field code outside the class can read (`repository.client.request(…)`) stops.
+      if (
+        !ts.isPrivateIdentifier(holder.left.name) &&
+        (members().accesses.get(name) ?? []).some((access) => {
+          const inside = Boolean(ts.findAncestor(access, (node) => node === owner));
+          if (inside) return access.expression.kind !== ts.SyntaxKind.ThisKeyword;
+          // Another class's own `this.client` is its field, unless it extends a class.
+          const other = ts.findAncestor(access, ts.isClassLike);
+          return (
+            access.expression.kind !== ts.SyntaxKind.ThisKeyword ||
+            !other ||
+            Boolean(other.heritageClauses?.length)
+          );
+        })
+      )
+        return unreadable(creation, ESCAPED);
+      references = [];
+      const visit = (child: ts.Node) => {
+        if (
+          child !== assigned &&
+          ts.isPropertyAccessExpression(child) &&
+          child.expression.kind === ts.SyntaxKind.ThisKeyword &&
+          child.name.text === name
+        )
+          references.push(child);
+        ts.forEachChild(child, visit);
+      };
+      visit(owner);
+    } else return unreadable(creation, ESCAPED);
+    for (const reference of references) {
+      const at = outermost(reference);
+      const access = at.parent;
+      if (!ts.isPropertyAccessExpression(access) || access.expression !== at) {
+        unreadable(reference, ESCAPED);
+        continue;
+      }
+      const call = access.parent;
+      // Header and endpoint setters send nothing; any other member may send a document.
+      if (CLIENT_SETTERS.test(access.name.text)) continue;
+      if (
+        !CLIENT_METHODS.has(access.name.text) ||
+        !ts.isCallExpression(call) ||
+        call.expression !== access
+      ) {
+        unreadable(reference, ESCAPED);
+        continue;
+      }
+      scan.adminCalls++;
+      documentArgument(call.arguments[0], file, call);
+    }
+  };
+  // A raw request to the Admin GraphQL endpoint: the document in `fetch(url, { body:
+  // JSON.stringify({ query }) })` or `axios.post(url, { query })`, for the URL literal and every use
+  // of a `const` holding it. False when no request with a readable body was found.
+  const rawGraphql = (literal: Literal, file: string) => {
+    const node = outermost(literal);
+    const declaration = node.parent;
+    const uses =
+      ts.isVariableDeclaration(declaration) &&
+      declaration.initializer === node &&
+      ts.isIdentifier(declaration.name) &&
+      declaration.parent.flags & ts.NodeFlags.Const
+        ? referencesIn(declarationOf(declaration.name)!.scope, declaration.name.text)
+        : [node];
+    let found = false;
+    const read = new Set<ts.Node>();
+    for (const use of uses) {
+      const at = outermost(use);
+      const client = endpointClient(at);
+      if (client) {
+        found = true;
+        read.add(at);
+        clientRequests(client, file);
+        continue;
+      }
+      const call = at.parent;
+      if (!ts.isCallExpression(call) || call.arguments[0] !== at) continue;
+      let body: ts.Expression | undefined;
+      let graphqlBody = false;
+      if (/^(?:\w+\.)*fetch$/.test(call.expression.getText())) {
+        // The options literal, or the `const` holding it.
+        let options: ts.Expression | undefined = call.arguments[1] && unwrap(call.arguments[1]);
+        if (options && ts.isIdentifier(options))
+          options = (scoped(options, file) ?? constant(file, options.text))?.node;
+        options = options && unwrap(options);
+        if (options && ts.isObjectLiteralExpression(options)) {
+          body = memberOf(options, 'body');
+          let headers = memberOf(options, 'headers');
+          if (headers && ts.isIdentifier(headers))
+            headers = (scoped(headers, file) ?? constant(file, headers.text))?.node;
+          graphqlBody = Boolean(headers && /application\/graphql/.test(headers.getText()));
+        }
+      } else if (
+        ts.isPropertyAccessExpression(call.expression) &&
+        call.expression.name.text === 'post'
+      )
+        body = call.arguments[1];
+      if (!body) continue;
+      found = true;
+      scan.adminCalls++;
+      read.add(at);
+      rawBody(body, file, call, graphqlBody);
+    }
+    // Once one use is read, every other use passed to a call stops at its own line.
+    if (found)
+      for (const use of uses) {
+        const at = outermost(use);
+        if (
+          !read.has(at) &&
+          (ts.isCallExpression(at.parent) || ts.isNewExpression(at.parent)) &&
+          at.parent.arguments?.some((argument) => argument === at)
+        )
+          unreadable(
+            at,
+            'A raw request to the Admin GraphQL endpoint whose body Refit cannot read; Refit reads `fetch(url, { body: JSON.stringify({ query }) })` and `axios.post(url, { query })`.',
+          );
+      }
+    return found;
+  };
+  const versionKeys = new Set<string>();
+  const pushVersion = (entry: VersionDeclaration) => {
+    const key = `${entry.file}:${entry.start}`;
+    if (versionKeys.has(key)) return;
+    versionKeys.add(key);
+    scan.versions.push(entry);
+  };
+  // A version literal an expression names: directly, through `const` bindings and imports, or as
+  // the default of `process.env.NAME ?? '2025-01'` (or `||`). `handled` marks ApiVersion members
+  // and LATEST_API_VERSION, which are read where they are written.
+  const versionSource = (
+    expression: ts.Expression,
+    file: string,
+    depth = 0,
+  ):
+    | { literal: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral; envFallback?: string }
+    | { environment: string }
+    | 'handled'
+    | undefined => {
+    const value = unwrap(expression);
+    if (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value))
+      return { literal: value };
+    if (ts.isPropertyAccessExpression(value) && value.expression.getText() === 'ApiVersion')
+      return 'handled';
+    if (ts.isIdentifier(value) && value.text === 'LATEST_API_VERSION') return 'handled';
+    if (
+      ts.isBinaryExpression(value) &&
+      (value.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
+        value.operatorToken.kind === ts.SyntaxKind.BarBarToken)
+    ) {
+      // A default in code: `process.env.NAME ?? '2025-01'`, `options.apiVersion || ApiVersion.X`.
+      const left = unwrap(value.left).getText();
+      const environment = ENVIRONMENT.exec(left);
+      const fallback = versionSource(value.right, file, depth + 1);
+      if (fallback === 'handled') return 'handled';
+      return fallback && 'literal' in fallback
+        ? {
+            ...fallback,
+            envFallback: environment
+              ? (environment[1] ?? environment[2] ?? environment[3])
+              : left.slice(0, 80),
+          }
+        : undefined;
+    }
+    const environment = ENVIRONMENT.exec(value.getText());
+    if (environment) return { environment: environment[1] ?? environment[2] ?? environment[3] };
+    if (ts.isIdentifier(value) && depth < 8) {
+      const resolved = scoped(value, value.getSourceFile().fileName) ?? constant(file, value.text);
+      return resolved ? versionSource(resolved.node, resolved.file, depth + 1) : undefined;
+    }
+    return undefined;
+  };
+  // Records a version an expression names; false when Refit cannot read it.
+  const versionFrom = (
+    expression: ts.Expression,
+    file: string,
+    kind: 'string' | 'url',
+    storefront: boolean,
+  ) => {
+    const source = versionSource(expression, file);
+    if (source === 'handled') return true;
+    if (source && 'environment' in source) {
+      scan.unresolvedVersions.push({
+        ...location(expression),
+        reason: `The Admin API version comes from the environment variable ${source.environment}, with no default in code; set it to the target version where the app is deployed.`,
+        note: 'environment',
+      });
+      return true;
+    }
+    if (source && source.literal.text === 'unstable') {
+      scan.unresolvedVersions.push({
+        ...location(source.literal),
+        reason: 'The unstable Admin API version changes without notice; Refit leaves it as it is.',
+        note: 'unstable',
+      });
+      return true;
+    }
+    if (!source || !isShopifyVersion(source.literal.text)) return false;
+    pushVersion({
+      ...location(source.literal),
+      kind,
+      value: source.literal.text,
+      start: source.literal.getStart() + 1,
+      end: source.literal.getEnd() - 1,
+      text: source.literal.getText(),
+      ...(source.envFallback ? { envFallback: source.envFallback } : {}),
+      ...(storefront ? { api: 'storefront' as const } : {}),
+    });
+    return true;
+  };
   for (const [absolute, content] of sources) {
     const file = sourceFile(absolute);
     const shopify = SHOPIFY_IMPORT.test(content);
     if (shopify) scan.shopifyFiles.push(pathOf.get(absolute)!);
     // Identifiers bound to Admin GraphQL and REST clients in this file.
     const clients = new Set<string>();
+    const storefrontClients = new Set<string>();
     const restClients = new Set<string>();
     const apiVersionImported = /\bApiVersion\b/.test(content) && shopify;
     const visit = (node: ts.Node) => {
@@ -1026,12 +1797,28 @@ export function scanShopify(repository: Repository): ShopifyScan {
         const callee =
           ts.isCallExpression(value) || ts.isNewExpression(value) ? value.expression.getText() : '';
         if (ADMIN_CLIENT_FACTORY.test(callee)) clients.add(node.name.text);
+        if (STOREFRONT_CLIENT_FACTORY.test(callee)) storefrontClients.add(node.name.text);
         if (REST_CLIENT_FACTORY.test(callee)) restClients.add(node.name.text);
       }
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
         const method = node.expression.name.text;
         const receiver = node.expression.expression.getText();
-        if (method === 'graphql' && ADMIN_RECEIVER.test(receiver)) {
+        if (
+          ((method === 'query' || method === 'mutate') && STOREFRONT_RECEIVER.test(receiver)) ||
+          ((method === 'request' || method === 'query') && storefrontClients.has(receiver))
+        ) {
+          api = 'storefront';
+          const argument = node.arguments[0];
+          const data =
+            method === 'query' &&
+            storefrontClients.has(receiver) &&
+            argument &&
+            ts.isObjectLiteralExpression(unwrap(argument))
+              ? memberOf(argument, 'data')
+              : argument;
+          documentArgument(data, absolute, node);
+          api = undefined;
+        } else if (method === 'graphql' && ADMIN_RECEIVER.test(receiver)) {
           scan.adminCalls++;
           documentArgument(node.arguments[0], absolute, node);
         } else if ((method === 'request' || method === 'query') && clients.has(receiver)) {
@@ -1087,7 +1874,7 @@ export function scanShopify(repository: Repository): ShopifyScan {
       ) {
         const value = versionFromEnum(node.name.text);
         if (value)
-          scan.versions.push({
+          pushVersion({
             ...location(node),
             kind: 'enum',
             value,
@@ -1098,7 +1885,12 @@ export function scanShopify(repository: Repository): ShopifyScan {
         else
           scan.unresolvedVersions.push({
             ...location(node),
-            reason: `${node.getText()} is not a dated Admin API version.`,
+            ...(node.name.text === 'Unstable'
+              ? {
+                  reason: 'ApiVersion.Unstable changes without notice; Refit leaves it as it is.',
+                  note: 'unstable' as const,
+                }
+              : { reason: `${node.getText()} is not a dated Admin API version.` }),
           });
       }
       if (
@@ -1119,25 +1911,21 @@ export function scanShopify(repository: Repository): ShopifyScan {
         node.name.getText().replace(/['"]/g, '') === 'apiVersion'
       ) {
         const value = unwrap(node.initializer);
+        const factory = node.parent.parent;
+        // A Storefront client, or a codegen project for the Storefront API
+        // (`shopifyApiProject({ apiType: ApiType.Storefront, apiVersion })`).
+        const apiType = memberOf(node.parent as ts.ObjectLiteralExpression, 'apiType');
+        const storefront =
+          ((ts.isCallExpression(factory) || ts.isNewExpression(factory)) &&
+            STOREFRONT_CLIENT_FACTORY.test(factory.expression.getText())) ||
+          Boolean(apiType && /Storefront/.test(apiType.getText()));
         if (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)) {
-          if (isShopifyVersion(value.text))
-            scan.versions.push({
-              ...location(value),
-              kind: 'string',
-              value: value.text,
-              start: value.getStart() + 1,
-              end: value.getEnd() - 1,
-              text: value.getText(),
-            });
-          else
+          if (!versionFrom(value, absolute, 'string', storefront))
             scan.unresolvedVersions.push({
               ...location(value),
               reason: `apiVersion ${value.getText()} is not a dated Admin API version.`,
             });
-        } else if (
-          (!ts.isPropertyAccessExpression(value) || value.expression.getText() !== 'ApiVersion') &&
-          !(ts.isIdentifier(value) && value.text === 'LATEST_API_VERSION')
-        )
+        } else if (!versionFrom(value, absolute, 'string', storefront))
           scan.unresolvedVersions.push({
             ...location(value),
             reason: `apiVersion is set from ${value.getText().slice(0, 80)}, which Refit cannot resolve statically.`,
@@ -1151,14 +1939,13 @@ export function scanShopify(repository: Repository): ShopifyScan {
       ) {
         if (isLiteral(node) && GRAPHQL_MARKER.test(node.text))
           record(node, absolute, documentLiterals.get(node) ?? false);
-        if (GRAPHQL_URL.test(node.text)) {
-          scan.adminCalls++;
-          unreadable(
-            node,
-            'A raw request to the Admin GraphQL endpoint; Refit reads documents only from calls through Shopify clients.',
-          );
-        }
-        if (REST_URL.test(node.text))
+        // A versioned Admin URL whose whole path is a substitution (`/admin/api/2025-01/${path}`)
+        // may name any REST resource, so it counts as REST usage.
+        if (
+          REST_URL.test(node.text) ||
+          ((ts.isTemplateHead(node) || ts.isTemplateMiddle(node)) &&
+            /\/admin\/api\/(?:\d{4}-\d{2}|unstable)\/$/.test(node.text))
+        )
           scan.rest.push({
             ...location(node),
             expression: node.text.slice(0, 120),
@@ -1166,7 +1953,7 @@ export function scanShopify(repository: Repository): ShopifyScan {
           });
         for (const match of node.text.matchAll(VERSION_URL)) {
           const start = node.getStart() + 1 + match.index! + '/admin/api/'.length;
-          scan.versions.push({
+          pushVersion({
             ...location(node, start),
             kind: 'url',
             value: match[1],
@@ -1178,10 +1965,76 @@ export function scanShopify(repository: Repository): ShopifyScan {
       }
       if (ts.isTemplateExpression(node) && GRAPHQL_MARKER.test(node.head.text))
         record(node, absolute, documentLiterals.get(node) ?? false);
+      // Raw requests in tests go to mocked endpoints, like documents in tests.
+      if (
+        isLiteral(node) &&
+        GRAPHQL_URL.test(literalText(node)) &&
+        !rawGraphql(node, absolute) &&
+        !TEST_FILE.test(pathOf.get(absolute) ?? '')
+      ) {
+        scan.adminCalls++;
+        unreadable(
+          node,
+          'A raw request to the Admin GraphQL endpoint whose body Refit cannot read; Refit reads `fetch(url, { body: JSON.stringify({ query }) })` and `axios.post(url, { query })`.',
+        );
+      }
+      // `/admin/api/${API_VERSION}/…`: the version a constant or environment default names.
+      if (ts.isTemplateExpression(node))
+        node.templateSpans.forEach((span, index) => {
+          const before = index ? node.templateSpans[index - 1].literal.text : node.head.text;
+          if (!/\/admin\/api\/$/.test(before) || !span.literal.text.startsWith('/')) return;
+          if (!versionFrom(span.expression, absolute, 'url', false))
+            scan.unresolvedVersions.push({
+              ...location(span.expression),
+              reason: `An Admin API URL takes its version from ${span.expression.getText().slice(0, 80)}, which Refit cannot resolve statically.`,
+            });
+        });
+      // gql`…` and graphql`…` documents, and graphql(`…`) documents for codegen and gql.tada.
+      if (
+        ts.isTaggedTemplateExpression(node) &&
+        DOCUMENT_TAG.test(node.tag.getText()) &&
+        isLiteral(node.template)
+      )
+        record(node.template, absolute, documentLiterals.get(node.template) ?? false);
+      // Only an imported `graphql()`: a local function of that name may send the document itself.
+      const imported = (identifier: ts.Identifier) => {
+        const binding = declarationOf(identifier)?.node;
+        return Boolean(
+          binding && (ts.isImportClause(binding.parent) || ts.isImportSpecifier(binding.parent)),
+        );
+      };
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        DOCUMENT_TAG.test(node.expression.text) &&
+        imported(node.expression) &&
+        node.arguments[0] &&
+        isLiteral(node.arguments[0])
+      )
+        record(node.arguments[0], absolute, documentLiterals.get(node.arguments[0]) ?? false);
       ts.forEachChild(node, visit);
     };
     visit(file);
   }
+  // .graphql files: no call Refit can see sends them, so they count as untraced documents.
+  for (const document of graphqlFiles)
+    if (/\S/.test(document.content))
+      scan.documents.push({
+        file: document.path,
+        line: 1,
+        column: 1,
+        text: document.content,
+        segments: [
+          {
+            documentStart: 0,
+            documentEnd: document.content.length,
+            file: document.path,
+            sourceStart: 0,
+            sourceText: document.content,
+          },
+        ],
+        traced: false,
+      });
   scan.documents.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
   return scan;
 }

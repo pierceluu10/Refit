@@ -378,6 +378,29 @@ export const HELPER_NAMES: readonly string[] = [
   COUPON_ID_HELPER,
   PRODUCT_FEATURES_HELPER,
 ];
+// The new locations each helper body below reads, as rule targets (schema, then properties). A
+// generated field-move rule calls the helper whose reads are exactly its targets
+// (pipeline/rule-generation.ts); a move no helper reads stays review-only.
+const PERIOD_TARGETS = [
+  ['subscription', 'items'],
+  ['subscription_item', 'current_period_start'],
+  ['subscription_item', 'current_period_end'],
+];
+export const HELPER_TARGETS: Record<string, string[][]> = {
+  [PERIOD_HELPERS.current_period_start]: PERIOD_TARGETS,
+  [PERIOD_HELPERS.current_period_end]: PERIOD_TARGETS,
+  [INVOICE_SUBSCRIPTION_HELPER]: [['invoice', 'parent', 'subscription_details', 'subscription']],
+  [INVOICE_PRICE_ID_HELPER]: [
+    ['line_item', 'pricing', 'price_details', 'price'],
+    ['invoiceitem', 'pricing', 'price_details', 'price'],
+  ],
+  [CHECKOUT_SHIPPING_HELPER]: [['checkout.session', 'collected_information', 'shipping_details']],
+  [COUPON_ID_HELPER]: [
+    ['promotion_code', 'promotion', 'coupon'],
+    ['discount', 'source', 'coupon'],
+  ],
+  [PRODUCT_FEATURES_HELPER]: [['product', 'marketing_features']],
+};
 export type PeriodRareCase = 'item-in-code' | 'price-policy' | 'flagged';
 
 const HELPER_BODY = (typed: boolean) => {
@@ -419,6 +442,8 @@ export function subscriptionPeriodHelperModule(
   const exported = kind === 'cjs' || inline ? '' : 'export ';
   const parameters = typed ? 'subscription: object, planItem?: PlanItem' : 'subscription, planItem';
   const result = typed ? ': number' : '';
+  // `unknown extends T` holds only for `any`: an untyped receiver stays `any`, as the read it
+  // replaces was (`0 extends 1 & T` is simplified away under `T extends object`).
   const sections: [string, string][] = [
     [
       PERIOD_HELPERS.current_period_start,
@@ -439,7 +464,9 @@ export function subscriptionPeriodHelperModule(
       `${
         typed
           ? `// Typed like the removed field under old stripe types, like the new location under new ones.
-type InvoiceSubscription<T> = T extends { subscription: infer S }
+type InvoiceSubscription<T> = unknown extends T
+  ? any
+  : T extends { subscription: infer S }
   ? S
   : T extends { parent: infer P }
     ? NonNullable<P> extends { subscription_details: infer D }
@@ -486,7 +513,9 @@ ${exported}function getInvoicePriceId(line${t(': object')})${t(': string | undef
       `${
         typed
           ? `// Typed like the removed field under old stripe types, like the new location under new ones.
-type CheckoutShippingDetails<T> = T extends { shipping_details: infer S }
+type CheckoutShippingDetails<T> = unknown extends T
+  ? any
+  : T extends { shipping_details: infer S }
   ? S
   : T extends { collected_information: infer C }
     ? NonNullable<C> extends { shipping_details: infer S }
@@ -530,7 +559,9 @@ ${exported}function getCouponId(value${t(': object')})${t(': string | undefined'
       `${
         typed
           ? `// Typed like the removed field under old stripe types, like the new name under new ones.
-type ProductMarketingFeatures<T> = T extends { features: infer F }
+type ProductMarketingFeatures<T> = unknown extends T
+  ? any
+  : T extends { features: infer F }
   ? F
   : T extends { marketing_features: infer M }
     ? M

@@ -130,6 +130,16 @@ export function aiSafetyStop(
   )?.reason;
 }
 
+// Founder decision (2026-10-28): the advisory AI assessment reads the evidence wherever its source is
+// sound. The webhook payload version and removed request parameter policies stop edits, not reading.
+export function assessmentReviewReason(evidence: Parameters<typeof migrationReviewReasons>[0]) {
+  return migrationReviewReasons(evidence).find(
+    (entry) =>
+      entry.reason !== WEBHOOK_REVIEW_REASON &&
+      entry.reason !== REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
+  )?.reason;
+}
+
 // Where traced calls still send a removed request parameter, and where an object Refit could not
 // trace to a call sets it, so a stop says what to look at.
 export function removedParameterSites(findings: Finding[]) {

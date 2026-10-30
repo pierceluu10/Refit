@@ -552,7 +552,10 @@ describe('syncDeadlines', () => {
     const registry = await shipped();
     for (const provider of ['shopify', 'meta-graph'] as const) {
       const source = DEPRECATION_SOURCES[provider];
-      const entries = registry.deadlines.filter((item) => item.provider === provider);
+      // The sync owns API version entries only; other kinds (Shopify's feature alerts) are untouched.
+      const entries = registry.deadlines.filter(
+        (item) => item.provider === provider && item.kind === source.kind,
+      );
       const rows = entries.map((item) => row(item.date, item.versions[0]));
       const today = entries.map((item) => item.checkedAt).sort()[0];
       // From nothing, the sync writes the same IDs, summaries, replacements and sources.

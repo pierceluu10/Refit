@@ -52,12 +52,16 @@ export interface PreparationIdentity {
   // A yarn.lock whose records without a registry URL or integrity Refit completed from the
   // registry's metadata for their exact versions, for validation only (lockfile-completion.ts).
   completedLockfile?: { lockfile: string; registry: string; records: string[] };
-  // A package-lock.json Refit resolved for validation only, in place of the refused or missing one
-  // (lockfile-resolution.ts): the refusal, the cutoff, and pins resolved after it.
+  // A lockfile Refit resolved for validation only, in place of the refused or missing one
+  // (lockfile-resolution.ts): the refusal, the cutoff, pins resolved after it, the manager when it
+  // is pnpm, whether npm needed --legacy-peer-deps, and GitHub dependencies fetched as archives.
   resolvedLockfile?: {
     reason: string;
     before: string;
     late?: Record<string, { spec: string; published: string }>;
+    manager?: 'pnpm';
+    legacyPeerDeps?: true;
+    github?: Record<string, { source: string; tarball: string }>;
   };
 }
 
@@ -78,7 +82,10 @@ interface PreparationInputs {
 }
 
 export async function readPreparationInputs(
-  snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
+  // `tarballs`: GitHub tarballs a resolved lockfile may install (lockfile-resolution.ts).
+  snapshot: Awaited<ReturnType<typeof readCommittedRepository>> & {
+    tarballs?: ReadonlySet<string>;
+  },
   // Node resolves modules up the directory tree, so a nested package's preparation refuses a
   // tracked node_modules anywhere in its repository, as the root's does.
   repositoryEntries = snapshot.entries,
@@ -229,7 +236,7 @@ export async function readPreparationInputs(
   const inputs: PreparationIdentity = pnpm
     ? validatePnpmInputs(packageContent, lockContent, workspaceContent, workspaceContents)
     : {
-        ...validateNpmLock(packageContent, lockContent, workspaceContents),
+        ...validateNpmLock(packageContent, lockContent, workspaceContents, snapshot.tarballs),
         manager: 'npm',
         ...(bunContent === undefined
           ? npmPin(manifest.packageManager)

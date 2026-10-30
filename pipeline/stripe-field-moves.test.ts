@@ -6,6 +6,7 @@ import { analyzeRepository, syntaxErrors } from './analyzer.ts';
 import { applySourceEdits } from './patches.ts';
 import { STRIPE } from './providers.ts';
 import { runPipeline } from './run.ts';
+import { STRIPE_SDK_RELEASES } from './stripe-package-upgrade.ts';
 import { digest, findRemovedProperties } from './specifications.ts';
 import { createReviewArtifacts } from './review.ts';
 import {
@@ -838,11 +839,16 @@ export async function hook(body: string, signature: string, db: { run(id: unknow
   expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
 });
 
+const BASIL_RELEASE = STRIPE_SDK_RELEASES['2025-03-31.basil'];
+
 async function run(
   body: string,
   moved = true,
   aiPatch?: { apiKey: string; model: string },
   options = `{ apiVersion: '2024-06-20' }`,
+  // A release declared with no lockfile: the target's already declared needs no upgrade, so the pin
+  // moves without a registry request.
+  declared?: string,
 ) {
   const root = await mkdtemp(join(tmpdir(), 'refit-field-moves-'));
   roots.push(root);
@@ -852,11 +858,12 @@ async function run(
   );
   await writeFile(
     join(root, 'package.json'),
-    JSON.stringify({ name: 'app', dependencies: { stripe: '16.0.0' } }),
+    JSON.stringify({ name: 'app', dependencies: { stripe: declared ?? '16.0.0' } }),
   );
   // Refit never upgrades stripe-node beside a bun lockfile, so these patches stay the field moves
-  // and need no registry; stripe-package-upgrade.test.ts covers the upgrade.
-  await writeFile(join(root, 'bun.lockb'), '');
+  // and need no registry; stripe-package-upgrade.test.ts covers the upgrade. A TypeScript pin then
+  // stays, as it moves only with the upgrade.
+  if (!declared) await writeFile(join(root, 'bun.lockb'), '');
   const contract = (after: boolean) => ({
     openapi: '3.0.3',
     info: {
@@ -885,7 +892,7 @@ const periodRead = `export async function ends(id: string) {
 }`;
 
 it('proposes the field move and the API-version bump as one patch', async () => {
-  const report = await run(periodRead);
+  const report = await run(periodRead, true, undefined, undefined, BASIL_RELEASE);
   expect(report.patch).toMatchObject({
     status: 'proposed',
     edits: 3,
@@ -966,6 +973,8 @@ export async function secret(id: string) {
 }`,
     true,
     { apiKey: 'test-key', model: 'test-model' },
+    undefined,
+    BASIL_RELEASE,
   );
   expect(evidence!.findings.map((finding) => finding.expression)).toEqual(['.payment_intent']);
   expect(report.patch).toMatchObject({ status: 'proposed', edits: 4, unresolvedFindings: 0 });

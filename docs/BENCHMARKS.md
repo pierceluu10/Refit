@@ -68,17 +68,17 @@ Each entry is pinned to the full commit that was checked. Rerun it with `node sc
 
 **What they hold.**
 
-| | holdout-100 | holdout-30b | heldout-30 |
-| --- | --- | --- | --- |
-| API version from 2022 | 6 | 4 | 1 |
-| from 2023 | 19 | 11 | 9 |
-| from 2024 | 33 | 8 | 12 |
-| from 2025 | 26 | 6 | 7 |
-| from 2026 | 16 | 1 | 1 |
-| Most common version | 2023-10-16 (16) | 2023-10-16 (9) | 2023-10-16 (7) |
-| Version from an `apiVersion` pin / from stripe-node | 61 / 39 | 23 / 7 | |
-| npm / pnpm / Yarn / several lockfiles / none | 79 / 10 / 0 / 5 / 6 | 22 / 3 / 3 / 1 / 1 | |
-| Median stars | 0 | 0 | 5 |
+|                                                     | holdout-100         | holdout-30b        | heldout-30     |
+| --------------------------------------------------- | ------------------- | ------------------ | -------------- |
+| API version from 2022                               | 6                   | 4                  | 1              |
+| from 2023                                           | 19                  | 11                 | 9              |
+| from 2024                                           | 33                  | 8                  | 12             |
+| from 2025                                           | 26                  | 6                  | 7              |
+| from 2026                                           | 16                  | 1                  | 1              |
+| Most common version                                 | 2023-10-16 (16)     | 2023-10-16 (9)     | 2023-10-16 (7) |
+| Version from an `apiVersion` pin / from stripe-node | 61 / 39             | 23 / 7             |                |
+| npm / pnpm / Yarn / several lockfiles / none        | 79 / 10 / 0 / 5 / 6 | 22 / 3 / 3 / 1 / 1 |                |
+| Median stars                                        | 0                   | 0                  | 5              |
 
 holdout-100 spans 25 API versions, from 2022-11-15 to 2026-08-26.dahlia; holdout-30b spans 15, from 2022-08-01 to 2026-04-22.dahlia. They have fewer stars than `heldout-30`, because the earlier sets took the most-starred repositories from the same searches and these are a random draw from what was left.
 
@@ -125,6 +125,25 @@ No run has been dispatched yet.
 - Not outcome changes: `LucasKlemke/doctor-reborn` now upgrades stripe and its own `@ts-expect-error` becomes unused, so its patch fails tsc and is not published (before, the pin moved on stripe 18 and passed); `passion-27/QuotesAI` now has the upgrade in its patch and still stops on its `link:` dependency; `vignesh-gupta/digibee-marketplace` (one `yarn.lock`, a byte-identical patch) timed out installing the candidate after 300 seconds; rerun locally in offline Docker at `17b831d8`, the same patch passes its type check (grade C).
 - heldout-30, run only after the above: 40624360669 (main `89f1c0ed`, 10 validated) → 40682647162 (`ce5755ac`, `-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30 -f flags=--resolve-lockfiles`, **12**), none lost, 27 of 30 rows identical. `ItusiAI/Open-Magiviz` and `VishalRaut2106/HackMate_AI` install `package-lock.json` because their workflows install with npm and validate (labelled `correct`); `DarkInventor/QuotesAI` gains the stripe upgrade and still stops on its `link:` dependency. Nothing was tuned on this set.
 - Run-to-run noise in lockfile-less repositories, which this change does not touch: `Alfredoeb9/ele` and `minhthuong031103/RealEstateBrokerageMarket` lost their installs to SIGKILL on main and lane A and ran here, and `kondax-com/Bocker`'s baseline failed only in lane A's run.
+
+## AI repair where policy used to stop (October 28)
+
+Founder decision of 2026-10-28 ([AI repair](AI-REPAIR.md), agent Q). Subset `subsets/repair-policy.json`: 12 rows of past l2-push-249 AI runs (40624062726, 40624045392) whose repair stopped `review-required`, whose patch broke the build on rejected properties, call signatures or removed operations, or whose assessment the webhook or removed-parameter policy blocked, plus 2 controls. heldout-30 had no such row and stays held out. All runs: `benchmark.yml` at `--ref feat/stripe-test-mode-key`, `-f list=subsets/repair-policy.json -f offset=0 -f size=2 -f count=12 -f ai=true -f "flags=--resolve-lockfiles --webhook-checks --behaviour-tests --stripe-test-mode"`.
+
+- Before: 40758613932 (`96102693` = `bench/all-feats-2026-10-28` `bf81624d` plus the subset, `ai_budget=3`), AI spend $0.28.
+- After: 40764807844 (`1ed2b674`, `ai_budget=5`), AI spend $0.66. Earlier after runs on this branch: 40752646000 (`ac2a33d2`, $0.42) and 40759647632 (`2aa46eec`, $0.58; twitter-like hit an npm `ECONNRESET`).
+
+|                                                                 | Before | After                                 |
+| --------------------------------------------------------------- | -----: | ------------------------------------- |
+| Patches that break the build (`regression`)                     |      4 | 3                                     |
+| Repairs requested                                               |      3 | 6                                     |
+| Repairs accepted                                                |      0 | 1 (dubbl-org/dubbl, `[Needs review]`) |
+| Assessments blocked (assessment not requested by the benchmark) |      6 | 2 (contract review)                   |
+| Validated                                                       |      3 | 3                                     |
+
+- dubbl-org/dubbl: `review-required` with 0 repair requests (the upgraded types reject `stripeAccount`) to an AI repair that passes the type check (grade C). It moves `{ stripeAccount }` into the request-options argument of six retrieve calls; reviewed `correct` in `docs/benchmarks/fix-reviews.json`. It ships `[Needs review]` with "What the AI changed and why", never validated.
+- ReeceHarding/firebase-next.js-boilerplate: the `retrieveUpcoming` contract review stopped it before any model call; now 3 repairs run and the checks still fail (`retrieveUpcoming` untouched), so it stays a regression and is not published. One of its AI edits is wrong (`accounts.retrieve({})`), reviewed `wrong`; the checks caught it.
+- Unchanged: LouisMbc/twitter-like (the rule-lines guard, agent S), Panda2Chan/ai-asmr (repeated proposal on a second API-version pin, agent P), kondax-com/Bocker (its own flaky tests fail the baseline), and the 7 rows that already passed.
 
 ## A coding agent on the repositories Refit did not fix (October 21)
 
@@ -252,6 +271,16 @@ On rerun, validated Stripe fixes rose from **10 to 53** on the same 531 reposito
 - fresh 381: 5 → 35. `YunmeiYe/nextjs-ai-platform` counts as validated: it hit a dependency-cache lock held by a concurrent run of the same repositories, and validated when rerun alone at `6d02116`, the same commit as the other 380 fresh results.
 
 All 43 card-rule fixes were checked against their diffs. 40 passed `tsc` with no new errors, and 3 are covered only by generated `stripe-mock` checks. 10 patches regressed on other stripe-node 23 type errors; validation caught them, and none was proposed. No other outcome changed. The tables below predate the policy.
+
+## Stripe test mode (October 28)
+
+Behaviour tests against Stripe test mode ([Stripe test mode](STRIPE-TEST-MODE.md)) on refit-dev/refit-bench, with the `STRIPE_TEST_KEY` repository secret and the workflow from refit-bench branch `feat/stripe-test-mode`, which passes that secret only when `flags` holds `--stripe-test-mode`:
+
+```bash
+gh workflow run benchmark.yml -R refit-dev/refit-bench --ref feat/stripe-test-mode -f commit=<sha> -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249 -f ai=true -f ai_budget=200 -f flags="--behaviour-tests --stripe-test-mode"
+```
+
+Results: pending; compared with 40624062726 (main `89f1c0ed`, AI) by `scripts/stripe-benchmark-compare.mjs`, then heldout-30 against 40624075884.
 
 ## Stripe
 
@@ -579,6 +608,22 @@ An `apiVersion` pin was `api-version-untraced` whenever its client could escape 
 - **What still stops.** 16 l2-push-249 rows keep an untraced version, from clients passed to helpers Refit cannot read, class bindings, or ambiguous aliases. Webhook endpoint versions are unchanged by this lane, and failed pin-move errors on `api-version-kept` drafts are still not recorded.
 - **Not measured:** AI patches, publication and the hosted worker.
 
+## Documented-replacement rules (October 28)
+
+`feat/stripe-generated-rules` (#357) adds a reach rule for removed API operations, walks oasdiff `items` segments as array members where the schema is an array (so `Subscription.items` reads as a property), and adds the `request-enum-value` rule family with dahlia's three Checkout `ui_mode` successors ([rules](MINED-RULES.md#documented-replacement-rules-2026-10-28)).
+
+| Set (no AI, default flags)                    | Before: main `89f1c0ed` | After: `a4438b81` |
+| --------------------------------------------- | ----------------------: | ----------------: |
+| l2-push-249: production validated             |                      84 |                86 |
+| l2-push-249: rows with a contract-change stop |                      86 |                83 |
+
+- **Runs.** `gh workflow run benchmark.yml --repo refit-dev/refit-bench -f commit=<sha> -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249`. Before: [40688452206](https://github.com/refit-dev/refit-bench/actions/runs/40688452206) at main `89f1c0ed`; the brief's before run 40624345477 was cancelled with 108 of 249 rows, so it was run again. After: [40637566055](https://github.com/refit-dev/refit-bench/actions/runs/40637566055) at `a4438b810c3f9930f997c77fc1d44273a70a17df`. Compared with `scripts/stripe-benchmark-compare.mjs`: 247 of 249 outcomes identical, 245 identical in every compared field.
+- **2 repositories newly validate, none lost.** samarbadriddin0v/notion-clone and shagunmistry/FlowCraft stopped only on `removed the required property …/items/data/items/price/product/anyOf[…: Product]/features`, which the old path walk could not attribute to a Stripe object. It is now `Product.features`, which neither repository reads. Both `migration.patch` files are byte-identical to the before run's, were applied to a clone and read in full: 2 `correct` in [fix-reviews.json](benchmarks/fix-reviews.json). FlowCraft's checks did not run in the before run (dependency preparation) and passed in the after run; that difference is run noise.
+- **Stops cleared but not counted.** `GET /v1/invoices/upcoming` blocks 6 rows instead of 20; each of the 6 has an untraced Stripe call that may request it, so it stays `unknown`. Product.features blocks 0 rows instead of 5. Chivo1530/CHIVITO-AI-DEV loses its contract-change stop and keeps its dependency-preparation stop. Strata-Labs/BitScript's checks ran in the before run and not in the after run (dependency preparation, run noise; the same patch).
+- **The `ui_mode` rules edited nothing.** All 5 rows that send `ui_mode` build the request with spreads, through an untraced client or in a body Refit cannot read, so each stays a stop, as designed. The rules have 0 wrong patches on this set, and no row exercised them; they are covered by tests only.
+- **heldout-30 not run.** Run [40727895025](https://github.com/refit-dev/refit-bench/actions/runs/40727895025) was cancelled on the founder's instruction (2026-10-28) to stop every heldout-30 and l2-push-249 run.
+- **Not measured:** AI patches, publication and the hosted worker.
+
 ## Lockfile resolution and types-only peers (October 28)
 
 Founders' decisions of 2026-10-27: a networked lockfile-resolution step may run before, and separate from, the offline validation, and a types-only peer (`@types/*` devDependency) may be raised together with stripe-node. `feat/lockfile-resolution` (`pipeline/lockfile-resolution.ts`, [details](DEPENDENCIES.md#lockfile-resolution-for-validation)) resolves a `package-lock.json` for a root npm project refused as `no-lockfile`, `lockfile-out-of-sync` or `lockfile-integrity`, as of its last commit date, with scripts off, no repository `.npmrc` and the registry pinned to registry.npmjs.org. Every resolved package then passes the existing checks and installs frozen offline. The resolved lockfile is not part of the pull request, and the draft says the checks ran against it and as of which date. It is on by default (`REFIT_LOCKFILE_RESOLUTION=off` turns it off); the benchmark's `--resolve-lockfiles` sets it explicitly.
@@ -817,6 +862,14 @@ The same 279 affected Stripe repositories (`subsets/push-279-affected.json`), no
 
 Nobody runs Refit on this set or reads its repositories' code before the final run, so the list stays unseen while Refit is tuned.
 
+## New set (frozen October 28)
+
+[`2026-10-28-stripe-new-repos.json`](benchmarks/2026-10-28-stripe-new-repos.json) holds 30 repositories that appear in no earlier Stripe list, so neither Refit nor its model has seen them. It was selected and committed before any run, with `stripe-active-select.mjs --frozen-at 2026-10-28 --limit 61` and one `--exclude` for each of the seven earlier Stripe lists (original, held out, fresh, active, the basil and endive replays, night):
+
+- **Search.** The same 13 code searches in 5 size ranges found 26,525 repositories. 650 belong to the earlier lists, leaving 25,875.
+- **Criteria.** The active-teams criteria, with the 90-day window ending 2026-10-28. 266 qualified. 16,833 had no commit in 90 days, 4,196 were over 50 MB, and 3,593 had one human author.
+- **Kept.** The 61 most starred were shallow-cloned only to read their API version, then deleted. The limit is the smallest that keeps 30. 31 were dropped: 19 already on endive, 7 with an API version that has no pinned spec, 4 with no derivable version and 1 that could not be cloned. 25 of the 30 pin a 2025–2026 API version. 5 are owned by organisations, and the median repository has 0 stars.
+
 ## P4 draft lifecycle stack on the dev set (October 24)
 
 Laptop 1's review of the P4 stack (#251 to #275) ran the 30-repository `subsets/dev-30.json` once at the stack head `c27f2dc`, which has `main` at `2143ee5` merged in: GitHub Actions run 40147129332 on `refit-dev/refit-bench`, `benchmark.yml` with `list=subsets/dev-30.json offset=0 size=2 count=30`, no AI, no publication. Each repository's row was compared with its row in run 40117208880 (`604cb81`, `subsets/f5-tuned-sets.json`).
@@ -916,6 +969,52 @@ Two refit-bench runs of `refit classify-release` with `gpt-6.1-sol` over basil, 
 - **Word matching is approximate.** Read by hand, the pages-only run's 50 rule or AI changes describe 8 catalog statements that stop or have no signal, the same 8 as with statements given; word matching put 15 of those 50 changes on a different catalog statement than the hand reading.
 - **Predicted `rule` was right on 7 of 18 pages-only changes, by hand,** and on 7 of 12 statements given.
 - A first dispatch, run 40283460948 with `gpt-5.6-luna`, was refused with HTTP 403 on all 79 pages and billed nothing; the key accepts only `gpt-6.1-sol`.
+
+## AI repair loop on build-breaking patches (October 28)
+
+`feat/repair-loop` (Agent P in `docs/AI-REPAIR.md`, founder decision 2026-10-28):
+
+- the version move updates every older `apiVersion` literal in a file that loads stripe, untraced clients included;
+- a repeated AI proposal is asked again, up to the attempt limit, with the introduced type errors, the source around them, the stripe-node declarations they name and a note that the last proposal changed nothing;
+- the repair log leaves out type errors the original code already had.
+
+The subset `subsets/p-repair-loop.json` holds the 10 l2-push-249 rows whose patch failed its checks in runs 40621425780, 40624045392, 40639445000 and 40688452206. No heldout-30 row qualified. It shares no repository with progress-30.
+
+| Subset, AI on ($5 cap), 3 repair attempts | Before `57b63cfc` ([40753170579](https://github.com/refit-dev/refit-bench/actions/runs/40753170579)) | After `fb5b00b4` ([40753185102](https://github.com/refit-dev/refit-bench/actions/runs/40753185102)) |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------: | --------------------------------------------------------------------------------------------------: |
+| Patches that break the build              |                                                                                                    6 |                                                                                                   6 |
+| Rows with a repair requested              |                                                                                                    5 |                                                                                                   5 |
+| Repair requests                           |                                                                                                    5 |                                                                                                   9 |
+| Repairs accepted                          |                                                                                                    0 |                                                                                                   0 |
+| `repeated-proposal` stops                 |                                                                                                    2 |                                                                                                   1 |
+| AI spend (USD)                            |                                                                                                 0.42 |                                                                                                0.57 |
+
+- **Runs.** `gh workflow run benchmark.yml -R refit-dev/refit-bench --ref feat/stripe-test-mode-key -f commit=<sha> -f list=subsets/p-repair-loop.json -f offset=0 -f size=1 -f count=10 -f ai=true -f ai_budget=5 -f "flags=--resolve-lockfiles --webhook-checks --behaviour-tests --stripe-test-mode"`. Before is `bf81624d` (`bench/all-feats-2026-10-28`) plus the subset file.
+- **No patch was repaired, so there is nothing to hand-review.** All 10 rows have the same outcome and grade in both runs.
+- **Panda2Chan/ai-asmr** asked 3 times and got the same proposal each time. Its only introduced error is the moved pin against the old stripe-node types: the upgrade was skipped because its pnpm lockfile version is not one Refit upgrades. No code edit fixes that, so this row needs the upgrade, not a repair.
+- **Drago-03/Neural-Nexus** asked 3 times. The first two proposals repeated an earlier attempt, and the third request was refused because the shard's $0.50 share of the budget could not cover its maximum output.
+- **The other 3 rows stop for policy reasons this change does not touch** (Agent Q's lane): declared-type provenance, `invoices.retrieveUpcoming`, and an AI edit on a line a rule already changed.
+- No subset row had a second `apiVersion` literal the old move missed, so the "every pin" change moved no row here. It is covered by tests in `declared-api-versions.test.ts` and `api-version-pins.test.ts`.
+
+## Untraced reads Refit proves are not Stripe objects (October 28)
+
+Founder decision (Otabek, 2026-10-28), widening D2b to runs with or without AI (`localReceiverReads` in `pipeline/stripe-type-evidence.ts`). l2-push-249 on refit-bench, before at main `89f1c0ed`, after at `5309a76e` (`feat/untraced-read-proof`):
+
+| Run                                | Before      | After       | Validated |
+| ---------------------------------- | ----------- | ----------- | --------- |
+| No AI                              | 40624045392 | 40635544850 | 84 → 97   |
+| AI (`-f ai=true -f ai_budget=200`) | 40624062726 | 40635555316 | 88 → 97   |
+
+- **No AI: 13 rows move from needs-review to validated, all grade C,** and no other outcome changes (236 of 249 identical). They are the 13 the census at main predicted: 7 Payload marketplaces (`generated-type`), 5 PDF and SaaS apps reading their own `PLANS` (`repository-type`) and miljan-code/gpt-writer's credit-plan list (`literal-config`).
+- **AI: 9 rows move.** The other 4 (CiphersLab/SaaSPilot, JensenMPillay/pdfai, abhirupkumar/docwhisperer, palashb01/DocuChat) were already validated through D2b's AI path. CRONANANI/EzanaFinance3 failed to clone in the before run.
+- **The 13 patches match the before runs and the AI run** in the diffs `results.json` keeps (first 8000 characters), and nothing validated before is lost. All 13 `migration.patch` files from the after run's shards are read in full and labelled in `docs/benchmarks/fix-reviews.json`: 12 `correct`, and JensenMPillay/pdfai `correct-partial` for the invoice-event read noted on 2026-10-27.
+- **A wrong proof in the measured commit, fixed after it.** Of the 22 rows carrying `validation.localReads`, createdbymax/Loopletter had reads proven on a parameter whose value comes from `event.data.object as StripeInvoice` two calls up. That row and the other 8 with proofs still needed review for other reasons, so no draft was published on a wrong proof. The fix (`sourced`) follows every value back through parameters, `const`s, conditionals and returns, and rejects any assertion, `let` or annotated return on the way. Re-run on all 73 census repositories with untraced reads at their benchmark commits (every file treated as type-checked, an upper bound), it clears 44 reads in 26 repositories instead of 137 in 36. Every read the 13 rows cleared still clears, and each of the 44 was read at its source line.
+- **Not yet run:** l2-push-249 at the fixed commit, and heldout-30 (`-f list=subsets/heldout-30.json -f offset=0 -f size=3 -f count=30`, without and with `-f ai=true -f ai_budget=30`, against 40624360669 and 40624075884). Both are on hold by founder instruction (2026-10-28).
+
+```sh
+gh workflow run benchmark.yml -R refit-dev/refit-bench -f commit=<full-sha> -f list=subsets/l2-push-249.json -f offset=0 -f size=25 -f count=249 [-f ai=true -f ai_budget=200]
+node scripts/stripe-benchmark-compare.mjs <before>/results.json <after>/results.json
+```
 
 ## What these benchmarks do not show
 

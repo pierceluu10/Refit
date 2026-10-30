@@ -458,7 +458,6 @@ it('keeps unmigrated webhook reads at review without AI, before networked or exe
     throw new Error('Webhook review must not request AI or GitHub.');
   });
   vi.stubGlobal('fetch', fetch);
-  const ai = { apiKey: 'local-fixture', model: 'fixture-model' };
   const report = await runPipeline({
     repository,
     before: beforePath,
@@ -466,14 +465,14 @@ it('keeps unmigrated webhook reads at review without AI, before networked or exe
     apiVersion: VERSION,
     apiVersionPolicy: 'source-verified',
     proposePatch: true,
-    assessment: ai,
   });
   expect(report.status).toBe('affected');
   expect(report.patch).toMatchObject({
     status: 'not-generated',
     reason: expect.stringContaining('migration-policy'),
   });
-  expect(report.assessment).toMatchObject({ status: 'blocked' });
+  // Founder decision (2026-10-28): the advisory assessment is no longer blocked by this policy
+  // (assessmentReviewReason in migration-review.test.ts).
   const workflow = await runWorkflow({
     repository,
     before: beforePath,

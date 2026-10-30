@@ -30,9 +30,13 @@
     "benchmark:stripe-labels": "tsx pipeline/stripe-ground-truth-cli.ts",
     "benchmark:stripe-score": "tsx pipeline/stripe-benchmark-score.ts",
     "deadlines:check": "node bin/refit.mjs deadlines --check-registry",
+    "deadlines:check-sources": "node bin/refit.mjs deadlines --check-sources",
+    "rules:check": "node bin/refit.mjs rules check",
     "model-parameters:check": "node bin/refit.mjs deadlines --check-parameters",
+    "model-parameter-changes:check": "node bin/refit.mjs deadlines --check-parameter-changes",
     "meta-graph:check": "node bin/refit.mjs meta-graph --check-changes",
     "shopify-rest:check": "node bin/refit.mjs shopify-rest --check-deprecations",
+    "ai-rules:check": "node bin/refit.mjs ai-migrations --check-rules",
     "benchmark:shopify": "tsx pipeline/shopify-benchmark-cli.ts"
   },
   "dependencies": {
@@ -60,6 +64,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "jsdom": "^29.1.1",
     "prettier": "^3.9.9",
+    "stripe": "23.0.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "typescript-compiler": "npm:typescript@^5.9.3",

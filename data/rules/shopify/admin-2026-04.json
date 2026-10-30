@@ -1,0 +1,74 @@
+{
+  "formatVersion": 1,
+  "provider": "shopify",
+  "api": "admin",
+  "version": "2026-04",
+  "previous": "2026-01",
+  "rules": [
+    {
+      "rule": "shopify-inventory-compare-quantity-to-change-from-quantity",
+      "family": "graphql-rename",
+      "coordinate": "InventoryQuantityInput.compareQuantity",
+      "replacement": "InventoryQuantityInput.changeFromQuantity",
+      "source": "https://shopify.dev/changelog/posts/finalizing-compare-and-swap-redesign-for-inventory-set-quantities",
+      "warning": "In inventorySetQuantities inputs, compareQuantity becomes changeFromQuantity with the same expected quantity. An input that also sends ignoreCompareQuantity: true opted out of the check, so it must become changeFromQuantity: null instead and stops for review.",
+      "quote": "We're making the `changeFromQuantity` field introduced [in `2026-01`](https://shopify.dev/changelog/compare-and-swap-redesign-for-inventory-set-quantities) mandatory and removing the [`compareQuantity`](https://shopify.dev/docs/api/admin-graphql/2026-01/input-objects/InventoryQuantityInput#fields-compareQuantity) and [`ignoreCompareQuantity`](https://shopify.dev/docs/api/admin-graphql/2026-01/input-objects/InventorySetQuantitiesInput#fields-ignoreCompareQuantity) fields for the [`inventorySetQuantities`](https://shopify.dev/docs/api/admin-graphql/2026-04/mutations/inventorysetquantities) mutation.",
+      "also": [
+        {
+          "source": "https://shopify.dev/changelog/posts/compare-and-swap-redesign-for-inventory-set-quantities",
+          "quote": "Passing any value (including `null`) to `changeFromQuantity` will override any values passed to the `compareQuantity` and `ignoreCompareQuantity` fields.",
+          "diff": {
+            "id": "input-field-removed",
+            "operationId": "InventoryQuantityInput.compareQuantity",
+            "text": "InventoryQuantityInput.compareQuantity was removed."
+          }
+        }
+      ],
+      "checkedAt": "2026-10-29",
+      "status": "auto",
+      "origin": "hand-written",
+      "diff": {
+        "id": "input-field-removed",
+        "operationId": "InventoryQuantityInput.compareQuantity",
+        "text": "InventoryQuantityInput.compareQuantity was removed."
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-fulfillment-service-create-drop-permits-sku-sharing",
+      "family": "graphql-argument-drop",
+      "coordinate": "Mutation.fulfillmentServiceCreate(permitsSkuSharing:)",
+      "value": true,
+      "source": "https://shopify.dev/changelog/posts/removing-permitsskusharing-field-from-fulfillment-service",
+      "warning": "Drops permitsSkuSharing: true from fulfillmentServiceCreate, which Shopify removed in 2026-04 because SKU sharing is enabled for every fulfillment service. Any other value stops for review.",
+      "quote": "As of API version 2026-04, we've removed the `permitsSkuSharing` field from the [`FulfillmentService`](https://shopify.dev/docs/api/admin-graphql/latest/objects/FulfillmentService) object and from the [`fulfillmentServiceCreate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/fulfillmentServiceCreate) and [`fulfillmentServiceUpdate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/fulfillmentserviceupdate) mutations. SKU sharing will be enabled by default for all fulfillment services.",
+      "checkedAt": "2026-10-29",
+      "status": "auto",
+      "origin": "hand-written",
+      "diff": {
+        "id": "argument-removed",
+        "operationId": "Mutation.fulfillmentServiceCreate(permitsSkuSharing:)",
+        "text": "Mutation.fulfillmentServiceCreate(permitsSkuSharing:) was removed."
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-fulfillment-service-update-drop-permits-sku-sharing",
+      "family": "graphql-argument-drop",
+      "coordinate": "Mutation.fulfillmentServiceUpdate(permitsSkuSharing:)",
+      "value": true,
+      "source": "https://shopify.dev/changelog/posts/removing-permitsskusharing-field-from-fulfillment-service",
+      "warning": "Drops permitsSkuSharing: true from fulfillmentServiceUpdate, which Shopify removed in 2026-04 because SKU sharing is enabled for every fulfillment service. Any other value stops for review.",
+      "quote": "As of API version 2026-04, we've removed the `permitsSkuSharing` field from the [`FulfillmentService`](https://shopify.dev/docs/api/admin-graphql/latest/objects/FulfillmentService) object and from the [`fulfillmentServiceCreate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/fulfillmentServiceCreate) and [`fulfillmentServiceUpdate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/fulfillmentserviceupdate) mutations. SKU sharing will be enabled by default for all fulfillment services.",
+      "checkedAt": "2026-10-29",
+      "status": "auto",
+      "origin": "hand-written",
+      "diff": {
+        "id": "argument-removed",
+        "operationId": "Mutation.fulfillmentServiceUpdate(permitsSkuSharing:)",
+        "text": "Mutation.fulfillmentServiceUpdate(permitsSkuSharing:) was removed."
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    }
+  ]
+}

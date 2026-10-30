@@ -51,25 +51,26 @@ export function cast(payload: { object: unknown }) {
 }
 `;
 
-it('confirms type-resolved reads of removed Stripe fields and stops automation for review', async () => {
+it('migrates checker-proven reads and stops type-resolved reads behind a cast for review', async () => {
+  // Refit's own stripe-node types the annotated parameters when none is installed (scan proof).
   const untyped = await scan(SOURCE, false);
-  expect(untyped.findings.filter((finding) => finding.confidence === 'confirmed')).toEqual([]);
+  expect(
+    untyped.findings
+      .filter((finding) => finding.confidence === 'confirmed')
+      .map(({ line, typeProven }) => ({ line, typeProven })),
+  ).toEqual([{ line: 4, typeProven: true }]);
 
   const typed = await scan(SOURCE, true);
   const reads = typed.findings.filter((finding) => finding.expression === '.current_period_end');
   expect(reads).toMatchObject([
-    {
-      line: 4,
-      confidence: 'confirmed',
-      typeEvidence: { receiverTypes: ['Stripe.Subscription'] },
-    },
+    { line: 4, confidence: 'confirmed', typeProven: true },
     {
       line: 9,
       confidence: 'confirmed',
       typeEvidence: { receiverTypes: ['Stripe.Subscription'], asserted: true },
     },
   ]);
-  expect(reads[0].typeEvidence).not.toHaveProperty('asserted');
+  expect(reads[0]).not.toHaveProperty('typeEvidence');
   expect(reads[1].reason).toContain('type assertion');
   expect(typed.status).toBe('affected');
   expect(typed.patch).toMatchObject({

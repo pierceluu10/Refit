@@ -1,0 +1,132 @@
+{
+  "formatVersion": 1,
+  "schemas": [
+    {
+      "api": "admin",
+      "version": "2025-01",
+      "sha256": "50094fe2fb32bfb504d51909f9fd537182a496e43c988966f3bf2d5e6449705e",
+      "source": {
+        "package": "@shopify/dev-mcp",
+        "release": "1.1.0",
+        "path": "data/admin_schema_2025-01.json.gz",
+        "integrity": "sha512-6LK2hmgzD3C/Q07LhY0ksIlqp1CYGoc0FuUcINiaObLLUfzCFG84l2+ieBthy40pPaRfPZ0+I60jb2d16186hQ=="
+      }
+    },
+    {
+      "api": "admin",
+      "version": "2026-01",
+      "sha256": "21835c40aaa6bc814c1fc86c9c91ad376921053c803a9a734c4260f51f17d2c1",
+      "source": {
+        "url": "https://shopify.dev/admin-graphql-direct-proxy/2026-01",
+        "fetchedAt": "2026-10-29"
+      }
+    },
+    {
+      "api": "admin",
+      "version": "2026-04",
+      "sha256": "976b0243a750107d87d3eec912f83fb361622d54e82e656cef80b315204d3c85",
+      "source": {
+        "url": "https://shopify.dev/admin-graphql-direct-proxy/2026-04",
+        "fetchedAt": "2026-10-29"
+      }
+    },
+    {
+      "api": "admin",
+      "version": "2026-07",
+      "sha256": "e926f80ae0b3c2adc4a5d19e389d4a3ca8bb10f6676c767d41c73c0f83ee5045",
+      "source": {
+        "url": "https://shopify.dev/admin-graphql-direct-proxy/2026-07",
+        "fetchedAt": "2026-10-29"
+      }
+    },
+    {
+      "api": "admin",
+      "version": "2026-10",
+      "sha256": "55218dc2cc69ba310adea41d8d29fc9639a0ce229200fc597b3426f1689c70f0",
+      "source": {
+        "url": "https://shopify.dev/admin-graphql-direct-proxy/2026-10",
+        "fetchedAt": "2026-10-29"
+      }
+    },
+    {
+      "api": "storefront",
+      "version": "2024-10",
+      "sha256": "3ac59849b70aef5d5df563fe615f0ff09d845e0ab2121ca865908167f02105dc",
+      "source": {
+        "package": "@shopify/hydrogen-react",
+        "release": "2024.10.2",
+        "path": "storefront.schema.json",
+        "integrity": "sha512-fO9x2zK4b/s/a5lZCu5JgI/vHVCtXYmSGcHJ4o0KVLW4nYDdKpFNRnYEcztHdIpmk8t57lox7kYXAfuTsDfoPA=="
+      }
+    },
+    {
+      "api": "storefront",
+      "version": "2025-01",
+      "sha256": "7134f3149e69912a2a9e4bfc59cf3cd59a7fe7a83aae194ea1cd2af1ffe6287a",
+      "source": {
+        "package": "@shopify/hydrogen-react",
+        "release": "2025.1.4",
+        "path": "storefront.schema.json",
+        "integrity": "sha512-aXmQoHNOF/fqDYD/K5VqEsiQEMLILbNga/VSJ+g9cfxjBGPRwcdpoT6U9DjvzEdIEBXJbDkUwyy3dvsx4HR5ug=="
+      }
+    },
+    {
+      "api": "storefront",
+      "version": "2025-07",
+      "sha256": "c231d36236e27f75c0d1296044f78a8626ac08466df8b6990394d911dbdcaf04",
+      "source": {
+        "package": "@shopify/hydrogen-react",
+        "release": "2025.7.2",
+        "path": "storefront.schema.json",
+        "integrity": "sha512-F6wkieimH9PIodctNz15zFxdGXs//Fl3SGN/8erUs2sQ/v20o4jiFijmCF4ZvU0kYoZWiOQXiz7Ruz/RILgz1g=="
+      }
+    },
+    {
+      "api": "storefront",
+      "version": "2025-10",
+      "sha256": "ee6739550472aa16abf22ce9c86832951aff86c443a021a8edde05b31b76ad72",
+      "source": {
+        "package": "@shopify/hydrogen-react",
+        "release": "2025.10.0",
+        "path": "storefront.schema.json",
+        "integrity": "sha512-8zZP/2/kzZ++Yq20ndcCczH/2PcDkOcuuKAF7dwaja5cSAGl44x8Xp89XsTKfKBOWstb0YMuz+cAiElcIJ8caw=="
+      }
+    },
+    {
+      "api": "storefront",
+      "version": "2026-01",
+      "sha256": "1e41ee0ceed3b9eab346edb76a021713fc1241b6d1fd055a316e0f9a460d1b12",
+      "source": {
+        "url": "https://shopify.dev/storefront-graphql-direct-proxy/2026-01",
+        "fetchedAt": "2026-10-29"
+      }
+    },
+    {
+      "api": "storefront",
+      "version": "2026-04",
+      "sha256": "a56076fcf0ea07e1ad354b2958a38247f9e01969b94c8fbd18a57efa1f7108db",
+      "source": {
+        "url": "https://shopify.dev/storefront-graphql-direct-proxy/2026-04",
+        "fetchedAt": "2026-10-29"
+      }
+    },
+    {
+      "api": "storefront",
+      "version": "2026-07",
+      "sha256": "f2502661f9350b620f127279a8573c12a38f47cd648c17ce62c975e16c52f3f5",
+      "source": {
+        "url": "https://shopify.dev/storefront-graphql-direct-proxy/2026-07",
+        "fetchedAt": "2026-10-29"
+      }
+    },
+    {
+      "api": "storefront",
+      "version": "2026-10",
+      "sha256": "fb17340b78682aa47788ea507cfc3e569d3cda73f4bdb5cc8d8d089938a61c89",
+      "source": {
+        "url": "https://shopify.dev/storefront-graphql-direct-proxy/2026-10",
+        "fetchedAt": "2026-10-29"
+      }
+    }
+  ]
+}

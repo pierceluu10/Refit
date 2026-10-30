@@ -13,15 +13,14 @@ import {
   startRun,
 } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
+import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { scanShopify, SHOPIFY_PACKAGES } from './shopify-analysis.ts';
 import { lockedShopifyApi } from './shopify-pipeline.ts';
-import { SHOPIFY_SDK_MAJORS } from './shopify-sdk-upgrade.ts';
 import {
   enumFromVersion,
   latestApiVersion,
-  SHOPIFY_API,
   SHOPIFY_API_ENUM_SINCE,
   sdkHasEnumMember,
 } from './shopify-versions.ts';
@@ -34,7 +33,7 @@ delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--list <frozen.json>] [--validate] [--sdk-upgrade] [--limit N] [--concurrency N]';
+  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--list <frozen.json>] [--validate [--assess (AI second opinion, OPENAI_API_KEY)]] [--sdk-upgrade] [--limit N] [--concurrency N]';
 const PINNED = 'docs/benchmarks/2026-10-16-shopify-repos.json';
 const VALIDATION_IMAGE = 'node:22-alpine';
 // Default `npm init` script; it is not a check.
@@ -49,6 +48,7 @@ const { values } = parseArgs({
     output: { type: 'string' },
     list: { type: 'string' },
     validate: { type: 'boolean' },
+    assess: { type: 'boolean' },
     'sdk-upgrade': { type: 'boolean' },
     limit: { type: 'string' },
     concurrency: { type: 'string' },
@@ -134,13 +134,12 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
     (pin) => pin.kind === 'enum' && !CODEGEN_CONFIG.test(pin.file),
   );
   const upgrade = Boolean(values['sdk-upgrade']);
-  // With --sdk-upgrade, LATEST_API_VERSION and the enum can name what the upgraded SDK's major has.
+  // With --sdk-upgrade, LATEST_API_VERSION and the enum can name any member a release ships; when
+  // the upgrade cannot reach it, the pipeline falls back to the newest version the app can take.
   const sdkNames = (version: string) => {
     const member = enumFromVersion(version)!;
     return Boolean(
-      (sdk && sdkHasEnumMember(sdk, member)) ||
-      (upgrade &&
-        SHOPIFY_API_ENUM_SINCE[member]?.startsWith(`${SHOPIFY_SDK_MAJORS[SHOPIFY_API]}.`)),
+      (sdk && sdkHasEnumMember(sdk, member)) || (upgrade && SHOPIFY_API_ENUM_SINCE[member]),
     );
   };
   const sdkLimited = enumPinned || (upgrade && Boolean(latest));
@@ -190,6 +189,17 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
       after: snapshot(target),
       proposePatch: true,
       shopifySdkUpgrade: upgrade,
+      // As validation does: npm may re-resolve the lockfile for an SDK upgrade, as of the commit.
+      ...(upgrade && lockfileResolutionEnabled()
+        ? {
+            lockfileResolution: {
+              image: VALIDATION_IMAGE,
+              before: (
+                await execute('git', ['-C', directory, 'log', '-1', '--format=%cI'])
+              ).stdout.trim(),
+            },
+          }
+        : {}),
     })) as unknown as {
       status: string;
       findings: {
@@ -289,6 +299,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         '--quiet',
         '--json',
         ...(upgrade ? ['--shopify-sdk-upgrade'] : []),
+        ...(values.assess ? ['--assess'] : []),
       ],
       { env: CHILD_ENV, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
     );
@@ -307,6 +318,10 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
     validation: report.validation?.status,
     baseline: report.validation?.baseline?.status,
     patched: report.validation?.patched?.status,
+    grade: report.validation?.grade?.letter,
+    schemaProof: report.validation?.shopifyProof?.schema?.status,
+    liveProof: report.validation?.shopifyProof?.live?.status,
+    aiCostUsd: report.validation?.shopifyProof?.aiCostUsd,
     pullRequest: existsSync(join(bundle, 'pull-request.md')),
   };
   log(`workflow ${String(outcome.status)}`);

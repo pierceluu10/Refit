@@ -152,7 +152,7 @@ Why no patch reached the repositories' own checks:
 - `pretzelai/stripe-no-webhooks`: a mutated `Stripe.Invoice` value keeps the declared-type gate on, and the repository's checks use `bun`, which the `node:22-alpine` image lacks.
 
 Every proposed patch was reviewed by hand:
-- **`horizon-ui/shadcn-nextjs-boilerplate` was wrong.** Its client passes `apiVersion: null`, so responses follow the account's default version. The moved reads would return `NaN` until the account is upgraded. Field moves now apply only when the same patch bumps a literal `apiVersion`, and this repository now gets no patch.
+- **`horizon-ui/shadcn-nextjs-boilerplate` was wrong.** Its client passes `apiVersion: null`, so responses follow the account's default version. The moved reads would return `NaN` until the account is upgraded. Field moves now apply only when the same patch bumps a literal `apiVersion`, and this repository now gets no patch. (Corrected 2026-10-28: stripe-node 12 and later send `apiVersion || DEFAULT_API_VERSION`, so `null` sends the release's pinned version, not the account default; Refit now treats it as an unset option.)
 - **The other six are correct at runtime when a subscription's items share one billing period.** All six are TypeScript projects on stripe-node 12–16. Type-checking the patched code against stripe@12.9.0 and stripe@16.12.0 types fails twice: `apiVersion` is typed as the package's own version literal, and `SubscriptionItem` has no `current_period_end`. They need the `stripe` package upgrade before they build (plan open decision 7).
 
 ### Re-run with AI (October 15)
@@ -272,7 +272,7 @@ node scripts/stripe-benchmark-compare.mjs <run-a>/results.json <run-b>/results.j
 
 ## Type-resolved reads (October 16, 2026)
 
-When a repository's stripe type definitions are available (`node_modules/stripe`, or `--stripe-package <dir>` in the benchmark, where `<dir>/<owner__repo>` is that repository's stripe package directory), Refit runs the ground-truth oracle's TypeScript checker over the scanned files. A removed-field read whose receiver resolves to a Stripe object that loses the field becomes a confirmed finding with `typeEvidence` (`asserted` when a local `as` cast states the type, since casts can lie). Type evidence only confirms detection: any such finding stops automatic migration, AI and publication for review. Repositories with more than 2,000 source files are skipped.
+When a repository's stripe type definitions are available (`node_modules/stripe`, or `--stripe-package <dir>` in the benchmark, where `<dir>/<owner__repo>` is that repository's stripe package directory), Refit runs the ground-truth oracle's TypeScript checker over the scanned files. A removed-field read whose receiver resolves to a Stripe object that loses the field becomes a confirmed finding with `typeEvidence` (`asserted` when a local `as` cast states the type, since casts can lie). Type evidence alone stops automatic migration, AI and publication for review, unless the checker also proves the value's path has no cast or `any` ([Removed-field reads proven by type](CLIENT-TRACING.md#removed-field-reads-proven-by-type), founder decision 2026-10-28). Repositories with more than 2,000 source files are skipped.
 
 Scan-only, on `main` at `ddd2932` plus this change, stripe types fetched with `npm pack` at each labelled repository's SDK version:
 

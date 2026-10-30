@@ -2,7 +2,7 @@
 
 Refit prepares dependencies and runs a repository's checks in a Docker image the workflow names (`image` in `.refit.json`, or `--image`). A repository that declares a Node.js version the image does not satisfy is still checked on that image: npm's `--engine-strict` then refuses the install, or the checks run on a release the project never targets.
 
-`pipeline/validation-runtime.ts` reads the repository's declarations and records whether the configured image satisfies them. Only the approved configuration chooses the image (owner decision, 2026-10-22): `.nvmrc` and `package.json` are not part of the approval fingerprint, so they never switch it.
+`pipeline/validation-runtime.ts` reads the repository's declarations and records whether the configured image satisfies them. The approved configuration chooses the image (owner decision, 2026-10-22), with one exception (requested for the setup-fixes branch, 2026-10-28, to be confirmed by the owner): when the root `package.json` `engines.node` excludes the configured allowlisted image's release, so `npm ci --engine-strict` would fail with `EBADENGINE`, validation runs on the newest allowlisted image `engines.node` accepts. `.nvmrc`, `.node-version`, `volta.node` and `.tool-versions` still never switch it.
 
 ## Declarations
 
@@ -28,9 +28,9 @@ The allowlist is four named constants: `node:18-alpine`, `node:20-alpine`, `node
 
 1. A configured image outside the allowlist (a custom image) is used as configured, and its declarations are not read.
 2. For an allowlisted image, Refit reads its Node.js release (`NODE_VERSION`, from `docker image inspect`; the image is never run for this) and records whether it satisfies every declaration.
-3. The configured image is used either way. A declaration Refit cannot read (`.nvmrc "v22/*"`, a non-string `engines.node`) is recorded as the reason; it is not a stop.
+3. The configured image is used unless `engines.node` excludes its release. Then Refit tries the other allowlisted images, newest first, skipping any whose release line cannot satisfy the range, and uses the first whose release it accepts, for preparation and checks alike; the reason names the range, both releases and the image used. An image that is not installed is pulled (`docker pull -q node:<major>-alpine`, an official image from the allowlist only); when no image Docker has or can pull satisfies the range, the configured image stays. A declaration Refit cannot read (`.nvmrc "v22/*"`, a non-string `engines.node`) is recorded as the reason; it is not a stop.
 
-Images are never pulled; `docker run --pull never` is unchanged.
+`docker run --pull never` is unchanged: only the switch above pulls.
 
 ## Package manager pins
 

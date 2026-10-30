@@ -164,7 +164,7 @@ export function compilerOptions(root: string, stripeModule?: string): ts.Compile
   };
 }
 
-function typeNames(
+export function typeNames(
   type: ts.Type,
   checker: ts.TypeChecker,
   stripePackage: string,

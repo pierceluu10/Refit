@@ -1476,4 +1476,18 @@ it('renders the deadline issue with evidence, the replacement and the migration 
   );
   expect(body).not.toContain('src/models.ts');
   expect(body).toContain('Refit has no OpenAI agent yet');
+  expect(body).not.toContain('embedding model');
+  // An embedding model's issue says why Refit never swaps it.
+  const embedding = deadlineBody({
+    exposure: {
+      ...exposure,
+      deadline: { ...exposure.deadline, versions: ['text-embedding-004'] },
+    },
+    repository: 'example/app',
+    revision: null,
+    status: { state: 'none' },
+    leadDays: [90, 30, 7],
+  });
+  expect(embedding).toContain('**This is an embedding model, so moving is a data migration.**');
+  expect(embedding).toContain('it never changes this model automatically');
 });

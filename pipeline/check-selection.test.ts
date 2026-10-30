@@ -717,15 +717,25 @@ it('grades each changed file by the strongest check that reached it', async () =
   expect((await grade(['node', '-e', '0'], ['server.js'])).reason).toBe(
     'node -e 0 is neither a test script nor a type check, and no generated check ran it.',
   );
-  // Grade A comes only from the behaviour-test harness.
-  expect(
-    await gradeEvidence({
+  // Grade A comes only from the behaviour-test harness, in a provider's test environment.
+  const behaviour = (target: 'test-environment' | 'mock') =>
+    gradeEvidence({
       repository: candidate,
       command: ['npm', 'test'],
       changedFiles: ['server.js'],
-      behaviour: { passed: true, coversEveryChangedLine: true, reason: 'Ran every changed line.' },
-    }),
-  ).toEqual({ letter: 'A', level: 'behaviour-tests', reason: 'Ran every changed line.' });
+      behaviour: {
+        passed: true,
+        coversEveryChangedLine: true,
+        target,
+        reason: 'Ran every changed line.',
+      },
+    });
+  expect(await behaviour('test-environment')).toEqual({
+    letter: 'A',
+    level: 'behaviour-tests',
+    reason: 'Ran every changed line.',
+  });
+  expect((await behaviour('mock')).letter).not.toBe('A');
 });
 
 it('runs the type check part of a chain alone on a patch whose tests were already broken', () => {

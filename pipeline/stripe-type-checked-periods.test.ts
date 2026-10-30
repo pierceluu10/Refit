@@ -295,8 +295,9 @@ it('proposes the type-checked reads with the version bump and says so in the dra
     apiVersion: '2023-10-16',
     proposePatch: true,
   };
+  // The checker proves both reads at scan time (typeProvenReads), as validation's type check does.
   const first = await runPipeline(options);
-  expect(first.patch).toMatchObject({ status: 'unsupported', edits: 0 });
+  expect(first.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
   const report = await runPipeline({
     ...options,
     typeCheckedPeriodReads: readsOf(

@@ -1,17 +1,21 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { analyzeRepository } from './analyzer.ts';
 import {
   annotateReach,
   CURRENCY_CODE_RULE,
   currencyCodeEdits,
+  enumValueEdits,
+  REQUEST_OPTIONS_RULE,
+  requestOptionEdits,
   responsePropertyOwner,
 } from './operation-reach.ts';
 import { applySourceEdits } from './patches.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
+import { STRIPE_PACK } from './rule-pack.ts';
 import { FORMAT_ANNOTATION } from './schema-equivalence.ts';
 import { createReviewArtifacts } from './review.ts';
 import { runPipeline } from './run.ts';
@@ -40,6 +44,12 @@ const before = {
         },
       },
     },
+    '/v1/promotion_codes': {
+      post: {
+        operationId: 'PostPromotionCodes',
+        responses: { '200': { content: { 'application/json': { schema: ref('product') } } } },
+      },
+    },
     '/v1/products': {
       post: {
         operationId: 'PostProducts',
@@ -50,6 +60,12 @@ const before = {
       get: {
         operationId: 'GetPrices',
         responses: { '200': { content: { 'application/json': { schema: ref('price_list') } } } },
+      },
+    },
+    '/v1/invoices/upcoming': {
+      get: {
+        operationId: 'GetInvoicesUpcoming',
+        responses: { '200': { content: { 'application/json': { schema: ref('product') } } } },
       },
     },
     '/v1/subscriptions/{subscription_exposed_id}': {
@@ -130,7 +146,19 @@ const provider: ProviderAdapter = {
       operationId: 'PostCheckoutSessions',
     },
     { resource: 'products', method: 'create', schema: 'product', operationId: 'PostProducts' },
+    {
+      resource: 'promotionCodes',
+      method: 'create',
+      schema: 'product',
+      operationId: 'PostPromotionCodes',
+    },
     { resource: 'prices', method: 'list', schema: 'price_list', operationId: 'GetPrices' },
+    {
+      resource: 'invoices',
+      method: 'retrieveUpcoming',
+      schema: 'product',
+      operationId: 'GetInvoicesUpcoming',
+    },
     {
       resource: 'subscriptions',
       method: 'update',
@@ -458,6 +486,31 @@ it('blocks a newly required nested property only for calls that send its parent'
   ).toBe('reached');
 });
 
+it('credits a newly required property to the kept request move that sends it', () => {
+  const required = () => ({
+    id: 'new-required-request-property',
+    level: 3,
+    operation: 'POST',
+    path: '/v1/promotion_codes',
+    text: 'added the new required request property `promotion`',
+  });
+  const source =
+    "export const go = (coupon: string) => stripe.promotionCodes.create({ coupon, code: 'SAVE' });";
+  const offset = (CLIENT + source).indexOf('coupon,');
+  const coupon = (_file: string, at: number) => at === offset;
+  expect(reach(source, [required()], [], coupon)[0][0]).toBe('handled');
+  // Without the kept edit, or for a property no move replaces, the call still must send it.
+  expect(reach(source, [required()])[0][0]).toBe('reached');
+  expect(
+    reach(
+      source,
+      [{ ...required(), text: 'added the new required request property `code2`' }],
+      [],
+      coupon,
+    )[0][0],
+  ).toBe('reached');
+});
+
 it('treats an operation an untraced call may request as unknown', () => {
   expect(
     reach(
@@ -473,6 +526,31 @@ it('treats an operation an untraced call may request as unknown', () => {
   ]);
 });
 
+it('rules out untraced calls known to request another operation for an unmapped one', () => {
+  const resume = () => ({
+    id: 'new-required-request-property',
+    level: 3,
+    operation: 'POST',
+    path: '/v1/subscriptions/{subscription}/resume',
+    operationId: 'PostSubscriptionsSubscriptionResume',
+    text: 'added the new required request property `billing_cycle_anchor/type`',
+  });
+  // blefnk/all-in-one-nextjs-template and MeiyuTech/AET-App stopped on calls like these.
+  const elsewhere = [
+    'mockStripe.webhooks.constructEvent.mockReturnValue',
+    'stripe.webhooks.constructEvent',
+    'stripe.products.create',
+    'stripe.subscriptions.update',
+  ];
+  expect(reach(AI_COMPANION, [resume()], elsewhere)).toEqual([
+    ['unused', 'No traced call requests `/v1/subscriptions/{subscription}/resume`.'],
+  ]);
+  for (const call of ['stripe.subscriptions.resume', 'billing.client.fetch'])
+    expect(reach(AI_COMPANION, [resume()], [...elsewhere, call])[0][1]).toBe(
+      `The untraced call \`${call}\` may request \`/v1/subscriptions/{subscription}/resume\` with \`billing_cycle_anchor/type\`.`,
+    );
+});
+
 it('names the Stripe object that owns a changed response property', () => {
   const owner = (text: string, path = '/v1/checkout/sessions') =>
     responsePropertyOwner({ operation: 'POST', path, text }, before);
@@ -480,19 +558,34 @@ it('names the Stripe object that owns a changed response property', () => {
     owner(
       'the response property `line_items/data/items/description` became nullable for the status `200`',
     ),
-  ).toEqual({ schema: 'item', property: 'description' });
+  ).toEqual({
+    schema: 'item',
+    property: 'description',
+    links: [{ schema: 'checkout.session', property: 'line_items' }],
+  });
   // A subscription's own `items` property is a list object, not an array's items.
   expect(
     owner(
       'removed the required property `items/data/items/price` from the response with the `200` status',
       '/v1/subscriptions/{subscription_exposed_id}',
     ),
-  ).toEqual({ schema: 'subscription_item', property: 'price' });
+  ).toEqual({
+    schema: 'subscription_item',
+    property: 'price',
+    links: [{ schema: 'subscription', property: 'items' }],
+  });
   expect(
     owner(
       "the `custom_text/submit/anyOf[subschema #1: PaymentPagesCheckoutSessionCustomTextPosition]/message` response property's maxLength was increased from `500` to `1200` for the response status `200`",
     ),
-  ).toEqual({ schema: 'payment_pages_checkout_session_custom_text_position', property: 'message' });
+  ).toEqual({
+    schema: 'payment_pages_checkout_session_custom_text_position',
+    property: 'message',
+    links: [
+      { schema: 'checkout.session', property: 'custom_text' },
+      { schema: 'payment_pages_checkout_session_custom_text', property: 'submit' },
+    ],
+  });
   // A nullable field whose path names no anyOf member reads its only object member.
   expect(
     owner(
@@ -501,12 +594,18 @@ it('names the Stripe object that owns a changed response property', () => {
   ).toEqual({
     schema: 'payment_pages_checkout_session_total_details',
     property: 'amount_discount',
+    links: [{ schema: 'checkout.session', property: 'total_details' }],
   });
+  // stripe-node unwraps the error body's `error` into the thrown error: only `payment_intent` links.
   expect(
     owner(
       'the response property `error/payment_intent/amount` became optional for the status `default`',
     ),
-  ).toEqual({ schema: 'payment_intent', property: 'amount' });
+  ).toEqual({
+    schema: 'payment_intent',
+    property: 'amount',
+    links: [{ schema: 'api_errors', property: 'payment_intent' }],
+  });
   // `line_items` is an inline list object: nothing names it, so reads cannot be traced against it.
   expect(
     owner('the response property `line_items/data` became optional for the status `200`'),
@@ -525,12 +624,44 @@ it('blocks a response change where code reads the property, traced or by the sam
     text: `the response property \`${path}\` became optional for the status \`default\``,
   });
   expect(reach(AI_COMPANION, [optional('error/payment_intent/amount')])).toEqual([
-    ['unused', 'No code reads `payment_intent.amount`.'],
+    [
+      'unused',
+      'No code reads `api_errors.payment_intent`, the only way to `payment_intent.amount` in this response.',
+    ],
   ]);
+  // A same-named read elsewhere cannot reach the error's PaymentIntent if nothing reads the link.
   const reads = `${AI_COMPANION}\nexport const total = (order) => order.amount;`;
   expect(reach(reads, [optional('error/payment_intent/amount')])[0]).toEqual([
+    'unused',
+    'No code reads `api_errors.payment_intent`, the only way to `payment_intent.amount` in this response.',
+  ]);
+  // A caught error's PaymentIntent is untraced: reading it and an `amount` keeps the change unknown.
+  const caught = `${reads}\nexport const failed = (error) => total(error.raw.payment_intent);`;
+  expect(reach(caught, [optional('error/payment_intent/amount')])[0]).toEqual([
     'unknown',
     'app/api/checkout/route.ts:12 reads `amount` on an object Refit cannot trace.',
+  ]);
+  // Checkout line items are read only through `line_items`: sending them in a request does not.
+  const description = {
+    ...optional('line_items/data/items/description'),
+    text: 'the response property `line_items/data/items/description` became nullable for the status `200`',
+  };
+  const labels = `${AI_COMPANION}\nexport const label = (feature) => feature.description;`;
+  expect(reach(labels, [{ ...description }])).toEqual([
+    [
+      'unused',
+      'No code reads `checkout.session.line_items`, the only way to `item.description` in this response.',
+    ],
+  ]);
+  const listed = `${labels}\nexport const items = (session) => session.line_items.data.map(label);`;
+  expect(reach(listed, [{ ...description }])[0][0]).toBe('unknown');
+  const expanded = `export async function GET() {
+  const session = await stripe.checkout.sessions.create({ mode: 'payment', expand: ['line_items'] });
+  return session.line_items.data[0].description.trim();
+}`;
+  expect(reach(expanded, [{ ...description }])[0]).toEqual([
+    'reached',
+    'app/api/checkout/route.ts:5 reads `item.description`.',
   ]);
   expect(
     reach(AI_COMPANION, [
@@ -554,7 +685,7 @@ it('leaves a response removal Refit already analyzes to that analysis', () => {
     path: '/v1/checkout/sessions',
     text: 'removed the required property `total_details/amount_discount` from the response with the `200` status',
   };
-  const source = `${AI_COMPANION}\nexport const discount = (totals) => totals.amount_discount;`;
+  const source = `${AI_COMPANION}\nexport const discount = (session) => session.total_details.amount_discount;`;
   const covered: Removal = {
     id: 'subscription-period',
     schema: 'payment_pages_checkout_session_total_details',
@@ -1042,3 +1173,327 @@ export const redirect = () => stripe.checkout.sessions.create({ mode: "subscript
     );
   },
 );
+
+it('names the owner of a property called items that is not an array', () => {
+  const document = {
+    paths: {
+      '/v1/subscriptions': {
+        get: {
+          responses: {
+            '200': {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: { data: { type: 'array', items: ref('subscription') } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        subscription: {
+          type: 'object',
+          properties: {
+            items: {
+              type: 'object',
+              properties: { data: { type: 'array', items: ref('subscription_item') } },
+            },
+          },
+        },
+        subscription_item: { type: 'object', properties: { price: ref('price') } },
+        price: {
+          type: 'object',
+          properties: { product: { anyOf: [{ type: 'string' }, ref('product')] } },
+        },
+        product: { type: 'object', properties: { features: { type: 'array' } } },
+      },
+    },
+  };
+  expect(
+    responsePropertyOwner(
+      {
+        operation: 'GET',
+        path: '/v1/subscriptions',
+        text: 'removed the required property `data/items/items/data/items/price/product/anyOf[subschema #2: Product]/features` from the response with the `200` status',
+      },
+      document,
+    ),
+  ).toEqual({
+    schema: 'product',
+    property: 'features',
+    links: [
+      { schema: 'subscription', property: 'items' },
+      { schema: 'subscription_item', property: 'price' },
+      { schema: 'price', property: 'product' },
+    ],
+  });
+});
+
+describe('a removed operation', () => {
+  const removed = () => ({
+    id: 'api-path-removed-without-deprecation',
+    level: 3,
+    operation: 'GET',
+    path: '/v1/invoices/upcoming',
+    text: 'api path removed without deprecation',
+  });
+  const UPCOMING =
+    'export const preview = (customer, subscription) => stripe.invoices.retrieveUpcoming({ customer, subscription });';
+  const source = `${CLIENT}${UPCOMING}`;
+  const name = source.indexOf('retrieveUpcoming');
+  // The createPreview rule replaces the method name (stripe-invoice-preview.ts).
+  const previewEdit = (file: string, offset: number) =>
+    file === 'app/api/checkout/route.ts' && offset >= name && offset < name + 16;
+
+  it('passes when no traced call requests it', () => {
+    expect(reach(AI_COMPANION, [removed()])).toEqual([
+      ['unused', 'No traced call requests the removed `invoices.retrieveUpcoming`.'],
+    ]);
+  });
+
+  it('is reached by a traced call and handled where a kept edit replaces every call', () => {
+    expect(reach(UPCOMING, [removed()])).toEqual([
+      ['reached', 'app/api/checkout/route.ts:3 calls the removed `invoices.retrieveUpcoming`.'],
+    ]);
+    expect(reach(UPCOMING, [removed()], [], previewEdit)).toEqual([
+      [
+        'handled',
+        'A kept rule edit replaces every traced `invoices.retrieveUpcoming` call, first in app/api/checkout/route.ts:3.',
+      ],
+    ]);
+    // A second call the edit does not cover still reaches it.
+    const second = `${UPCOMING}\nexport const again = () => stripe.invoices.retrieveUpcoming({ customer: 'cus_1' });`;
+    expect(reach(second, [removed()], [], previewEdit)[0][0]).toBe('reached');
+  });
+
+  it('stays unknown where an untraced call or a raw request may name it', () => {
+    expect(reach(AI_COMPANION, [removed()], ['billing.stripe.invoices.retrieveUpcoming'])).toEqual([
+      [
+        'unknown',
+        'The untraced call `billing.stripe.invoices.retrieveUpcoming` may request the removed `invoices.retrieveUpcoming`.',
+      ],
+    ]);
+    const raw = `${AI_COMPANION}\nexport const upcoming = () => fetch('https://api.stripe.com/v1/invoices/upcoming?customer=' + id);`;
+    expect(reach(raw, [removed()])).toEqual([
+      [
+        'unknown',
+        'app/api/checkout/route.ts writes the removed path `/v1/invoices/upcoming`, which Refit cannot trace.',
+      ],
+    ]);
+  });
+});
+
+describe('a documented enum successor', () => {
+  const move = {
+    rule: 'stripe-checkout-ui-mode-embedded',
+    family: 'request-enum-value' as const,
+    operations: ['PostCheckoutSessions'],
+    parameter: 'ui_mode',
+    value: 'embedded',
+    replacement: 'embedded_page',
+    source:
+      'https://docs.stripe.com/changelog/dahlia/2026-03-25/updates-available-checkout-session-ui-modes',
+    warning: 'Sends embedded_page.',
+  };
+  const removed = () =>
+    checkout(
+      'removed the enum value `embedded` of the request property `ui_mode`',
+      'request-property-enum-value-removed',
+    );
+  const run = (source: string, path?: string) => {
+    const context = traced(source, path);
+    const edits = enumValueEdits([removed()], context, [move]);
+    const change: Record<string, unknown> = removed();
+    annotateReach([change], {
+      ...context,
+      untracedCalls: () => [],
+      edited: (file, offset) =>
+        edits.some((edit) => edit.file === file && edit.start <= offset && offset < edit.end),
+      removals: [],
+    });
+    const file = context.repository.files[0];
+    return {
+      edits,
+      patched: applySourceEdits(file.content, edits),
+      reach: [change.reach, change.reachReason],
+    };
+  };
+
+  it('replaces the literal the call sends and passes the change', () => {
+    const embedded = run(
+      'export const go = () => stripe.checkout.sessions.create({ mode: "payment", ui_mode: "embedded" });',
+    );
+    expect(embedded.patched).toContain('ui_mode: "embedded_page"');
+    expect(embedded.reach).toEqual([
+      'handled',
+      'A kept rule edit rewrites `ui_mode` in every traced `checkout.sessions.create` call that sends it, first in app/api/checkout/route.ts.',
+    ]);
+    // Both sides of a conditional written in the call.
+    const conditional = run(
+      "export const go = (inline) => stripe.checkout.sessions.create({ ui_mode: inline ? 'embedded' : 'hosted' });",
+    );
+    expect(conditional.patched).toContain("ui_mode: inline ? 'embedded_page' : 'hosted'");
+    expect(conditional.reach[0]).toBe('handled');
+  });
+
+  it('leaves constants, other rules and test files for review', () => {
+    const constant = run(
+      "const MODE = 'embedded';\nexport const go = () => stripe.checkout.sessions.create({ ui_mode: MODE });",
+    );
+    expect(constant.edits).toEqual([]);
+    expect(constant.reach[0]).toBe('reached');
+    const computed = run(
+      'export const go = (mode) => stripe.checkout.sessions.create({ ui_mode: mode });',
+    );
+    expect(computed.edits).toEqual([]);
+    expect(computed.reach[0]).toBe('unknown');
+    // No rule for this value: nothing is edited.
+    const other = enumValueEdits(
+      [
+        checkout(
+          'removed the enum value `hosted` of the request property `ui_mode`',
+          'request-property-enum-value-removed',
+        ),
+      ],
+      traced("export const go = () => stripe.checkout.sessions.create({ ui_mode: 'hosted' });"),
+      [move],
+    );
+    expect(other).toEqual([]);
+    const test = run(
+      "export const go = () => stripe.checkout.sessions.create({ ui_mode: 'embedded' });",
+      'app/api/checkout/route.test.ts',
+    );
+    expect(test.edits).toEqual([]);
+  });
+});
+
+describe('an enum successor sent as an object (endive billing_cycle_anchor)', () => {
+  const moves = STRIPE_PACK.requestMoves.filter(
+    (move) => move.parameter === 'billing_cycle_anchor',
+  );
+  const changes = () =>
+    [
+      [
+        'request-property-enum-value-removed',
+        'removed the enum value `now` of the request property `billing_cycle_anchor`',
+      ],
+      [
+        'request-property-enum-value-removed',
+        'removed the enum value `unchanged` of the request property `billing_cycle_anchor`',
+      ],
+      [
+        'request-property-type-changed',
+        'the `billing_cycle_anchor` request property `type` changed from `string` to `object`',
+      ],
+      [
+        'new-required-request-property',
+        'added the new required request property `billing_cycle_anchor/type`',
+      ],
+    ].map(([id, text]) => ({
+      id,
+      level: 3,
+      operation: 'POST',
+      path: '/v1/subscriptions/{subscription_exposed_id}',
+      text,
+    }));
+  const run = (source: string) => {
+    const context = traced(source);
+    const edits = enumValueEdits(changes(), context, moves);
+    const annotated: Record<string, unknown>[] = changes();
+    annotateReach(annotated, {
+      ...context,
+      untracedCalls: () => [],
+      edited: (file, offset) =>
+        edits.some((edit) => edit.file === file && edit.start <= offset && offset < edit.end),
+      removals: [],
+    });
+    return {
+      patched: applySourceEdits(context.repository.files[0].content, edits),
+      reach: annotated.map((change) => change.reach),
+    };
+  };
+
+  it('sends the documented object and passes every change it answers', () => {
+    // stopinder/helio-therapist api/billing/annual.js, shortened.
+    const literal = run(
+      "export const go = (id) => stripe.subscriptions.update(id, { billing_cycle_anchor: 'now', proration_behavior: 'create_prorations' });",
+    );
+    expect(moves.map((move) => move.rule).sort()).toEqual([
+      'stripe-billing-cycle-anchor-now',
+      'stripe-billing-cycle-anchor-unchanged',
+    ]);
+    expect(literal.patched).toContain("billing_cycle_anchor: { type: 'now' }");
+    expect(literal.reach).toEqual(['handled', 'unused', 'handled', 'handled']);
+    const conditional = run(
+      "export const go = (id, reset) => stripe.subscriptions.update(id, { billing_cycle_anchor: reset ? 'now' : 'unchanged' });",
+    );
+    expect(conditional.patched).toContain(
+      "billing_cycle_anchor: reset ? { type: 'now' } : { type: 'unchanged' }",
+    );
+    expect(conditional.reach).toEqual(['handled', 'handled', 'handled', 'handled']);
+    // stripe-node leaves an undefined parameter out of the request.
+    const optional = run(
+      "export const go = (id, yearly) => stripe.subscriptions.update(id, { billing_cycle_anchor: yearly ? 'now' : undefined });",
+    );
+    expect(optional.patched).toContain(
+      "billing_cycle_anchor: yearly ? { type: 'now' } : undefined",
+    );
+    expect(optional.reach).toEqual(['handled', 'unused', 'handled', 'handled']);
+    // A local named `undefined` is a value Refit cannot read.
+    const shadowed = run(
+      "export const go = (id, yearly, undefined) => stripe.subscriptions.update(id, { billing_cycle_anchor: yearly ? 'now' : undefined });",
+    );
+    expect(shadowed.patched).not.toContain('type:');
+  });
+
+  it('keeps stopping where the value is not a literal in the call', () => {
+    const constant = run(
+      "const ANCHOR = 'now';\nexport const go = (id) => stripe.subscriptions.update(id, { billing_cycle_anchor: ANCHOR });",
+    );
+    expect(constant.patched).not.toContain('type:');
+    expect(constant.reach).toEqual(['reached', 'unused', 'reached', 'reached']);
+  });
+});
+
+describe('request options passed as params (stripe-node 22)', () => {
+  const moved = (source: string, path?: string) => {
+    const context = traced(source, path);
+    const edits = requestOptionEdits(context);
+    return {
+      edits,
+      patched: applySourceEdits(context.repository.files[0].content, edits).slice(CLIENT.length),
+    };
+  };
+
+  it('moves an options-only last argument after an explicit undefined', () => {
+    const { edits, patched } = moved(`export const go = (id: string, account: string) =>
+  stripe.subscriptions.update(id, { stripeAccount: account, idempotencyKey: 'k' });
+export const make = (stripeAccount: string) => stripe.checkout.sessions.create({ stripeAccount });`);
+    expect(edits.map((edit) => edit.rule)).toEqual([REQUEST_OPTIONS_RULE, REQUEST_OPTIONS_RULE]);
+    expect(patched).toBe(`export const go = (id: string, account: string) =>
+  stripe.subscriptions.update(id, undefined, { stripeAccount: account, idempotencyKey: 'k' });
+export const make = (stripeAccount: string) => stripe.checkout.sessions.create(undefined, { stripeAccount });`);
+  });
+
+  it('leaves params, mixed keys, spreads, explicit options and test files alone', () => {
+    const source = `export const a = (id: string) => stripe.subscriptions.update(id, { metadata: {} });
+export const b = (id: string, account: string) =>
+  stripe.subscriptions.update(id, { stripeAccount: account, metadata: {} });
+export const c = (id: string, options: object) => stripe.subscriptions.update(id, { ...options });
+export const d = (id: string, account: string) =>
+  stripe.subscriptions.update(id, {}, { stripeAccount: account });
+export const e = () => stripe.checkout.sessions.create({});`;
+    expect(moved(source).edits).toEqual([]);
+    expect(
+      moved(
+        `export const t = (s: string) => stripe.checkout.sessions.create({ stripeAccount: s });`,
+        'app/checkout.test.ts',
+      ).edits,
+    ).toEqual([]);
+  });
+});
