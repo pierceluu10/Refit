@@ -21,6 +21,8 @@ import {
   publishDraft,
   type publicationConfiguration,
   publicationWaiver,
+  proofLevel,
+  aiPatchProven,
   aiPatchValidated,
 } from './publication.ts';
 import { createReviewArtifacts, NEEDS_REVIEW_PREFIX } from './review.ts';
@@ -28,10 +30,11 @@ import { runPipeline } from './run.ts';
 import { type SlackSend, workflowNotice } from './slack.ts';
 import { discoverStripeRevision, encodeSnapshot, fetchStripeSnapshot } from './snapshots.ts';
 import { digest, isObject, readSpecification } from './specifications.ts';
+import { typeErrorKeys, typeErrors } from './type-errors.ts';
 import { PipelineInputError } from './types.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { checkFailureText } from './check-failures.ts';
-import { validateMigration } from './validation.ts';
+import { validateMigration, type ProviderSandbox } from './validation.ts';
 import {
   validateCheckCommand,
   validateRepairAttempts,
@@ -42,11 +45,15 @@ import { COMPRESSED_SUFFIX, compressEvidence } from './state-files.ts';
 import { countBreakingOperationUsages } from './provider-operations.ts';
 import { apiVersionSourceBlocked, type ApiVersionPolicy } from './api-version.ts';
 import type { ReadinessCheck } from './readiness.ts';
+import { PASSING_REACH } from './operation-reach.ts';
+import { readRepository } from './repository.ts';
+import { measureCoverage } from './sdk-coverage.ts';
+import { stripeWebhookConstructor } from './stripe-webhook-payloads.ts';
 
 const PREFLIGHT_GIT_TIMEOUT_MS = 30_000;
 // Both hold the full contract diff, which dominates their size; see COMPRESSED_SUFFIX.
 const COMPRESSED_EVIDENCE = new Set(['scan.json', 'report.json']);
-const NO_USAGE_REASON =
+export const NO_USAGE_REASON =
   'No confirmed supported usage was found. This does not prove no impact; no patch or publication was attempted.';
 const NO_PATCH_NOTE =
   'Refit opens a [Needs review] draft wherever it used to stop, but this run has no code change to publish.';
@@ -59,6 +66,7 @@ type Status =
   | 'needs-review'
   | 'validation-failed'
   | 'validated'
+  | 'version-bump'
   | 'draft-created'
   | 'draft-updated'
   | 'draft-closed'
@@ -139,6 +147,58 @@ function scanStop(scan: Awaited<ReturnType<typeof runPipeline>>, aiPatch: boolea
   if (!scan.findings.some((finding) => finding.confidence === 'confirmed')) return NO_USAGE_REASON;
 }
 
+// docs/VERSION-BUMP-PRS.md: why a repository whose scan found no usage still gets no version bump,
+// or nothing when every gate holds. A wrong bump is worse than none, so each gate fails closed;
+// validation then decides whether the bump is published.
+export async function versionBumpBlock(
+  scan: Awaited<ReturnType<typeof runPipeline>>,
+  repository: string,
+) {
+  if (scan.adapter.packageName !== 'stripe') return 'Version bumps cover Stripe only.';
+  if (scan.findings.length)
+    return `Refit found ${scan.findings.length} usage${scan.findings.length === 1 ? '' : 's'} to review.`;
+  if (scan.specificationDiff.engine !== 'oasdiff')
+    return 'The full contract diff did not run, so the contract cannot show the code is unaffected.';
+  const reached = (scan.specificationDiff.changes as { level?: unknown; reach?: unknown }[]).filter(
+    (change) => Number(change.level) >= 2 && !PASSING_REACH.has(change.reach),
+  ).length;
+  if (reached)
+    return `${reached} breaking contract change${reached === 1 ? ' is' : 's are'} reached by traced code or of unknown reach.`;
+  if (scan.skippedFiles.length || scan.warnings.some((warning) => warning.startsWith('Skipped ')))
+    return 'The scan skipped files, so it cannot show the code is unaffected.';
+  if (scan.sourceResolution.warnings.length)
+    return 'Some imports could not be resolved, so the scan may be incomplete.';
+  const untracedVersion = scan.apiVersion.source.declarations.find(
+    (entry) => entry.status === 'unknown' && !(entry.kind === 'constructor' && entry.absent),
+  );
+  if (untracedVersion)
+    return `Refit cannot resolve the API version set at ${untracedVersion.file}:${untracedVersion.line}.`;
+  const sites = measureCoverage(await readRepository(repository, 'stripe'), 'stripe').filter(
+    (site) => site.likelySdk,
+  );
+  if (!sites.length) return 'Refit detected no Stripe call.';
+  const untraced = sites.filter((site) => !site.traced).length;
+  if (untraced)
+    return `${untraced} of ${sites.length} detected Stripe calls ${untraced === 1 ? 'is' : 'are'} untraced and might use something the version changed.`;
+  // The contract diff sees a call only through an operation mapped to the OpenAPI document. A
+  // webhook signature check sends no request, and the bump leaves the endpoint's version alone.
+  const unmapped = scan.sdkCalls.filter(
+    (call) =>
+      !stripeWebhookConstructor(call) &&
+      !scan.adapter.operations.some(
+        (operation) =>
+          operation.resource === call.resource &&
+          operation.method === call.method &&
+          operation.operationId,
+      ),
+  );
+  if (unmapped.length)
+    return `${unmapped.length} traced Stripe call${unmapped.length === 1 ? ' is' : 's are'} not mapped to a contract operation, so the contract diff cannot check ${unmapped.length === 1 ? 'it' : 'them'}: ${unmapped.map((call) => `${call.resource}.${call.method}`).join(', ')}.`;
+}
+
+const VERSION_BUMP_NOT_PUBLISHED =
+  'Refit tried a version bump (every Stripe call traced, none affected), but its checks did not pass, so nothing was published.';
+
 // The rules' patch moved a pin or upgraded stripe-node.
 function movesApiVersion(report: Awaited<ReturnType<typeof validateMigration>>) {
   const { patch } = report;
@@ -148,6 +208,27 @@ function movesApiVersion(report: Awaited<ReturnType<typeof validateMigration>>) 
       patch.ruleEdits?.some((edit) => edit.rule === 'stripe-api-version')) ||
       ('sdkUpgrade' in patch && isObject(patch.sdkUpgrade) && 'from' in patch.sdkUpgrade))
   );
+}
+
+// What failed on the patch that moved the API version, so the kept draft names it instead of
+// blaming the check command for a stripe-mock, behaviour or signed-event regression.
+function failedEvidence(validation: Awaited<ReturnType<typeof validateMigration>>['validation']) {
+  const regressed = (key: string) => {
+    const evidence: unknown = (validation as Record<string, unknown>)[key];
+    return isObject(evidence) && Array.isArray(evidence.regressions) && evidence.regressions.length;
+  };
+  const baseline = typeErrorKeys(validation.baseline);
+  return {
+    failed: [
+      ...(validation.patched.status !== 'passed' ? ['checks' as const] : []),
+      ...(['generated', 'behaviour', 'signedEvents'] as const).filter(regressed),
+    ],
+    // Positions are left out: the report keeps what the type checker said, not the output.
+    introducedTypeErrors: typeErrors(validation.patched)
+      .filter((error) => !baseline.has(error.key))
+      .slice(0, 20)
+      .map((error) => `${error.file} ${error.code}: ${error.message}`.slice(0, 300)),
+  };
 }
 
 // Checked after the existing-PR lookup, which only publication runs.
@@ -181,8 +262,12 @@ export async function runWorkflow(options: {
   fullDiff?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
-  behaviourTestWriter?: BehaviourTestWriter;
+  // With AI patches on and stripe-mock settings (generatedChecks), behaviour tests are written with
+  // the same AI options unless this is false.
+  behaviourTestWriter?: BehaviourTestWriter | false;
   signedEventChecks?: boolean;
+  // --stripe-test-mode: behaviour tests run against Stripe test mode (validation.ts).
+  providerSandbox?: ProviderSandbox;
   documentationSnapshots?: readonly string[];
   repairAttempts?: number;
   publication?: ReturnType<typeof publicationConfiguration>;
@@ -365,7 +450,16 @@ export async function runWorkflow(options: {
           runId,
         );
     }
-    if (reviewReason) return await finish('needs-review', reviewReason, runId);
+    // Every Stripe call traced and none affected: a checked version bump instead of the stop.
+    const noUsage = Boolean(reviewReason?.startsWith(NO_USAGE_REASON));
+    const bumpBlock = noUsage ? await versionBumpBlock(scan, options.repository) : undefined;
+    const versionBump = noUsage && !bumpBlock;
+    if (reviewReason && !versionBump)
+      return await finish(
+        'needs-review',
+        bumpBlock ? `${reviewReason} Refit opened no version bump: ${bumpBlock}` : reviewReason,
+        runId,
+      );
     if (publication?.app) {
       options.signal?.throwIfAborted();
       options.onProgress?.('Checking for an existing Refit Agent migration...');
@@ -384,7 +478,9 @@ export async function runWorkflow(options: {
         }
       }
     }
-    const proposalReason = proposalReviewReason(scan, Boolean(options.aiPatch));
+    const proposalReason = versionBump
+      ? undefined
+      : proposalReviewReason(scan, Boolean(options.aiPatch));
     if (proposalReason) return await finish('needs-review', proposalReason, runId);
     stage = 'validation';
     options.signal?.throwIfAborted();
@@ -393,6 +489,7 @@ export async function runWorkflow(options: {
       validateMigration({
         ...inputs,
         keepApiVersion,
+        versionBump,
         image: options.image,
         command: options.command,
         baselineCommand: options.baselineCommand,
@@ -404,8 +501,9 @@ export async function runWorkflow(options: {
         aiPatch: options.aiPatch,
         // shortcut: the retry without the API-version move writes no behaviour tests, so it never
         // pays for a second identical request; reuse the first run's tests if that retry needs grade A.
-        behaviourTestWriter: keepApiVersion ? undefined : options.behaviourTestWriter,
+        behaviourTestWriter: keepApiVersion ? undefined : behaviourTestWriter(options),
         signedEventChecks: options.signedEventChecks,
+        providerSandbox: options.providerSandbox,
         documentationSnapshots: options.documentationSnapshots,
         repairAttempts: options.repairAttempts,
         leaveReviewedFindings: allowUnresolved,
@@ -413,10 +511,25 @@ export async function runWorkflow(options: {
         onProgress: options.onProgress,
         signal: options.signal,
       });
-    let report = await validate(false);
+    // A bump that cannot be checked keeps the scan's honest stop and publishes nothing.
+    const bumpStop = (why: string) =>
+      finish('needs-review', `${reviewReason} ${VERSION_BUMP_NOT_PUBLISHED} ${why}`, runId);
+    let bumpError: string | undefined;
+    const validated = await validate(false).catch((error: unknown) => {
+      if (!versionBump || !(error instanceof PipelineInputError)) throw error;
+      bumpError = error.message;
+      return undefined;
+    });
+    if (!validated) return await bumpStop(bumpError!);
+    let report = validated;
     // Owner decision 1: a rules' patch that moved the API version and then failed the checks is
     // retried without the move, keeping the edits that work under either version.
-    if (allowUnresolved && report.validation.status === 'regression' && movesApiVersion(report)) {
+    if (
+      allowUnresolved &&
+      !versionBump &&
+      report.validation.status === 'regression' &&
+      movesApiVersion(report)
+    ) {
       options.onProgress?.(
         'The patch failed the checks. Validating it without the API-version move...',
       );
@@ -425,10 +538,27 @@ export async function runWorkflow(options: {
         if (error instanceof PipelineInputError) return undefined;
         throw error;
       });
-      if (kept?.validation.status === 'passed' && kept.publicationFiles.length) report = kept;
+      if (kept?.validation.status === 'passed' && kept.publicationFiles.length) {
+        Object.assign(kept.validation, { movedAttempt: failedEvidence(report.validation) });
+        report = kept;
+      }
     }
     runId = report.runId;
     validation = report.validation.status;
+    // AI repair may fix a bump that breaks the build; it then ships as [Needs review] like any AI
+    // patch (founder decision, 2026-10-28). A bump with failing or no checks, or new advisory type
+    // errors, publishes nothing.
+    const advisory =
+      'advisoryTypeErrors' in report.validation &&
+      Array.isArray(report.validation.advisoryTypeErrors)
+        ? report.validation.advisoryTypeErrors.length
+        : 0;
+    if (versionBump && report.validation.status !== 'passed')
+      return await bumpStop(`Validation returned ${report.validation.status}.`);
+    if (versionBump && advisory)
+      return await bumpStop(
+        `The bump introduced ${advisory} type error${advisory === 1 ? '' : 's'} in JavaScript files.`,
+      );
     const reviews = publicationWaiver(report, allowUnresolved, options.doctor);
     waivedGates.push(...new Set(reviews?.map((entry) => entry.gate)));
     const review = createReviewArtifacts(report, 'local', options.integration, reviews);
@@ -447,7 +577,12 @@ export async function runWorkflow(options: {
         `Validation returned ${report.validation.status}; publication was not attempted.${report.validation.baselineStop ? ` The baseline checks failed because ${report.validation.baselineStop.summary}. ${report.validation.baselineStop.action}` : ''}${checkFailureText(report.validation)}`,
         runId,
       );
-    if (!reviews && report.patch.generator === 'openai' && !aiPatchValidated(report))
+    if (
+      !reviews &&
+      report.patch.generator === 'openai' &&
+      !aiPatchValidated(report) &&
+      !aiPatchProven(report)
+    )
       return await finish('needs-review', AI_PATCH_STOP, runId);
     if (reviews && !report.publicationFiles.length)
       return await finish(
@@ -469,6 +604,14 @@ export async function runWorkflow(options: {
       );
     // The draft's own title says [Needs review] (kept untyped properties, a grade-D check, advisory
     // type errors): the run is not a validated fix even though every gate passed.
+    // A passing bump counts as validated, since every edit is deterministic; its draft keeps the
+    // [Needs review] title an evidence grade of D gives it.
+    if (!publication && versionBump && report.patch.generator === 'deterministic')
+      return await finish(
+        'version-bump',
+        `Baseline and patched checks passed for the version bump${needsReview ? ', and its draft is [Needs review] for its evidence' : ''}. Review artifacts are ready; publication was not requested.`,
+        runId,
+      );
     if (!publication && needsReview)
       return await finish(
         'needs-review',
@@ -478,7 +621,9 @@ export async function runWorkflow(options: {
     if (!publication)
       return await finish(
         'validated',
-        'Baseline and patched checks passed. Review artifacts are ready; publication was not requested.',
+        report.validation.status === 'passed'
+          ? 'Baseline and patched checks passed. Review artifacts are ready; publication was not requested.'
+          : `The tests already failed on the original code and the patch adds no failure to them; evidence grade ${proofLevel(report)} covers its changes. Review artifacts are ready; publication was not requested.`,
         runId,
       );
     stage = 'publication';
@@ -500,4 +645,18 @@ export async function runWorkflow(options: {
       { name: error.name, message: error.message },
     );
   }
+}
+
+// Heavy AI (founder decision, 2026-10-28): wherever AI patches run and the behaviour tests can run
+// (a stripe-mock image and both versions' fixtures), the same model writes them.
+export function behaviourTestWriter(options: {
+  aiPatch?: AiOptions;
+  generatedChecks?: GeneratedChecks;
+  behaviourTestWriter?: BehaviourTestWriter | false;
+}) {
+  if (options.behaviourTestWriter === false) return undefined;
+  return (
+    options.behaviourTestWriter ??
+    (options.aiPatch && options.generatedChecks ? options.aiPatch : undefined)
+  );
 }

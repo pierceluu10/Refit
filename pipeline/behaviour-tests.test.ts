@@ -15,6 +15,9 @@ import {
   type BehaviourTest,
 } from './behaviour-tests.ts';
 import { gradeEvidence } from './check-selection.ts';
+import { proxyConfig, proxyRecords, writeProxy, type SandboxRequest } from './provider-sandbox.ts';
+import { STRIPE_TEST_MODE } from './stripe-test-mode.ts';
+import { spawn } from 'node:child_process';
 import { typescriptDirectory, writeHarness } from './generated-checks.ts';
 import { readRepository } from './repository.ts';
 import { subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
@@ -365,6 +368,7 @@ async function runSide(
   app: string,
   tools: string,
   tests: BehaviourTest[],
+  port = mock.port,
 ): Promise<CheckResult> {
   mock.use(side);
   await rm(join(app, 'refit-behaviour'), { recursive: true, force: true });
@@ -374,7 +378,7 @@ async function runSide(
   const { stdout, stderr } = await execute(process.execPath, [join(tools, 'behaviour.mjs')], {
     env: {
       ...process.env,
-      REFIT_STRIPE_MOCK_PORT: mock.port,
+      REFIT_STRIPE_MOCK_PORT: port,
       REFIT_GENERATED_ROOT: `${app}/`,
       REFIT_GENERATED_SIDE: side,
       REFIT_TYPESCRIPT: join(typescriptDirectory(), 'lib', 'typescript.js'),
@@ -385,7 +389,70 @@ async function runSide(
   return { status: 'passed', exitCode: 0, stdout, stderr };
 }
 
-async function behaviourRun(patchedFiles: Record<string, string>, tests = TESTS) {
+// The sandbox proxy, run outside Docker in front of the simulated server playing Stripe test mode,
+// as the proxy container would run in front of api.stripe.com.
+const TEST_KEY = 'sk_test_simulated0001';
+async function sandboxProxy(tools: string, side: 'original' | 'patched', upstream: string) {
+  const port = await new Promise<number>((resolve) => {
+    const server = createServer().listen(0, '127.0.0.1', () => {
+      const { port } = server.address() as { port: number };
+      server.close(() => resolve(port));
+    });
+  });
+  await writeProxy(
+    tools,
+    side,
+    proxyConfig(STRIPE_TEST_MODE, {
+      runId: 'refit-run-test',
+      version: '2023-08-16',
+      contract: {
+        paths: {
+          '/v1/checkout/sessions': {
+            post: {
+              requestBody: {
+                content: {
+                  'application/x-www-form-urlencoded': { schema: { properties: { metadata: {} } } },
+                },
+              },
+            },
+          },
+        },
+      },
+      standIns: [],
+      upstream,
+      port,
+    }),
+  );
+  const child = spawn(
+    process.execPath,
+    [join(tools, 'proxy.mjs'), join(tools, `proxy-${side}.json`)],
+    {
+      env: { PATH: process.env.PATH, REFIT_PROVIDER_KEYS: TEST_KEY },
+    },
+  );
+  let stdout = '';
+  child.stdout.on('data', (chunk) => (stdout += chunk));
+  await new Promise<void>((resolve) => {
+    const ready = () =>
+      stdout.includes('REFIT_SANDBOX_READY') ? resolve() : setTimeout(ready, 20);
+    ready();
+  });
+  return {
+    port: String(port),
+    stop: async () => {
+      const closed = new Promise((resolve) => child.once('close', resolve));
+      child.kill();
+      await closed;
+      return proxyRecords(stdout);
+    },
+  };
+}
+
+async function behaviourRun(
+  patchedFiles: Record<string, string>,
+  tests = TESTS,
+  target: 'mock' | 'test-environment' = 'mock',
+) {
   const root = await scratch();
   const original = await writeApp(join(root, 'original'), ORIGINAL);
   const patched = await writeApp(join(root, 'patched'), patchedFiles);
@@ -395,14 +462,52 @@ async function behaviourRun(patchedFiles: Record<string, string>, tests = TESTS)
   await writeBehaviourHarness(tools, tests, changed, { original, patched });
   const mock = await simulatedStripeMock();
   try {
-    const before = await runSide(mock, 'before', original.root, tools, tests);
-    const after = await runSide(mock, 'after', patched.root, tools, tests);
+    if (target === 'mock') {
+      const before = await runSide(mock, 'before', original.root, tools, tests);
+      const after = await runSide(mock, 'after', patched.root, tools, tests);
+      return compareBehaviourRuns({
+        tests,
+        changed,
+        sources: { original, patched },
+        original: before,
+        patched: after,
+      });
+    }
+    const upstream = `http://127.0.0.1:${mock.port}`;
+    const requests = {} as Record<'original' | 'patched', SandboxRequest[]>;
+    const results = {} as Record<'original' | 'patched', CheckResult>;
+    for (const [side, app] of [
+      ['original', original.root],
+      ['patched', patched.root],
+    ] as const) {
+      const proxy = await sandboxProxy(tools, side, upstream);
+      try {
+        results[side] = await runSide(
+          mock,
+          side === 'original' ? 'before' : 'after',
+          app,
+          tools,
+          tests,
+          proxy.port,
+        );
+      } finally {
+        requests[side] = await proxy.stop();
+      }
+    }
     return compareBehaviourRuns({
       tests,
       changed,
       sources: { original, patched },
-      original: before,
-      patched: after,
+      ...results,
+      target,
+      sandbox: {
+        adapter: STRIPE_TEST_MODE,
+        runId: 'refit-run-test',
+        versions: { original: '2023-08-16', patched: '2023-08-16' },
+        requests,
+        standIns: [],
+        unreproducible: [],
+      },
     });
   } finally {
     await mock.close();
@@ -533,9 +638,28 @@ export function unused(id) {
   });
 });
 
-it('gives grade A when both sides pass and every changed Stripe line ran on both (simulated stripe-mock)', async () => {
-  const result = await behaviourRun(CORRECT);
+it('gives grade A when both sides pass and every changed Stripe line ran on both (simulated Stripe test mode through the sandbox proxy)', async () => {
+  const result = await behaviourRun(CORRECT, TESTS, 'test-environment');
   expect(result.missing).toEqual([]);
+  // Every request went through the proxy, which put the test key on it and tagged the creation.
+  expect(result.sandbox?.requests.patched).toEqual([
+    expect.objectContaining({
+      method: 'POST',
+      path: '/v1/checkout/sessions',
+      status: 200,
+      tagged: true,
+      version: '2023-08-16',
+      created: { id: 'cs_test_1', object: 'checkout.session' },
+    }),
+    expect.objectContaining({
+      method: 'GET',
+      path: '/v1/subscriptions/sub_1',
+      status: 200,
+      tagged: false,
+    }),
+    expect.objectContaining({ method: 'GET', path: '/v1/subscriptions/sub_1', status: 200 }),
+  ]);
+  expect(JSON.stringify(result)).not.toContain(TEST_KEY);
   expect(result).toMatchObject({
     status: 'passed',
     grade: 'A',
@@ -574,7 +698,13 @@ it('gives grade A when both sides pass and every changed Stripe line ran on both
       content: test.content,
     })),
   );
-}, 60_000);
+  // The same tests against stripe-mock pass too, but a mock never grants grade A.
+  const mocked = await behaviourRun(CORRECT);
+  expect(mocked).toMatchObject({ status: 'passed', target: 'mock', grade: null, missing: [] });
+  expect(behaviourGrade(mocked).reason).toBe(
+    'Behaviour tests did not give grade A: they ran against a mock, which never grants grade A.',
+  );
+}, 90_000);
 
 it('catches a patch that keeps payment_method_types and one that reads a moved field only at its new location (simulated stripe-mock)', async () => {
   const kept = await behaviourRun({
@@ -612,14 +742,14 @@ it('catches a patch that keeps payment_method_types and one that reads a moved f
   });
 }, 60_000);
 
-it('falls back below A when a changed line did not run, and never counts a test that fails on the original code (simulated stripe-mock)', async () => {
-  const partial = await behaviourRun(CORRECT, [TESTS[0]]);
+it('falls back below A when a changed line did not run, and drops a test file that fails on the original code (simulated Stripe test mode)', async () => {
+  const partial = await behaviourRun(CORRECT, [TESTS[0]], 'test-environment');
   expect(partial).toMatchObject({ status: 'passed', grade: null, regressions: [] });
   expect(partial.missing).toEqual([
-    'app/api/webhook/invoice.ts lines 8, 15 did not run on the original code against the before-version stripe-mock.',
-    'libs/supabaseAdmin.ts lines 16, 19 did not run on the original code against the before-version stripe-mock.',
-    'app/api/webhook/invoice.ts lines 2, 9, 16 did not run on the patched code against the after-version stripe-mock.',
-    'libs/supabaseAdmin.ts lines 3, 17, 20 did not run on the patched code against the after-version stripe-mock.',
+    'app/api/webhook/invoice.ts lines 8, 15 did not run on the original code against Stripe test mode at the before version.',
+    'libs/supabaseAdmin.ts lines 16, 19 did not run on the original code against Stripe test mode at the before version.',
+    'app/api/webhook/invoice.ts lines 2, 9, 16 did not run on the patched code against Stripe test mode at the after version.',
+    'libs/supabaseAdmin.ts lines 3, 17, 20 did not run on the patched code against Stripe test mode at the after version.',
   ]);
   const wrongTest = {
     path: 'refit-behaviour/wrong.test.mjs',
@@ -631,12 +761,24 @@ test('expects a field no version returns', async () => {
 });
 `,
   };
-  const broken = await behaviourRun(CORRECT, [...TESTS, wrongTest]);
-  expect(broken).toMatchObject({ status: 'not-passing', grade: null, regressions: [] });
-  expect(broken.missing[0]).toMatch(
-    /^refit-behaviour\/wrong\.test\.mjs > expects a field no version returns failed \(test\) on the original code against the before-version stripe-mock: /,
+  // The wrong test proves nothing, so its file is dropped with its coverage; the rest decide.
+  const dropped = await behaviourRun(CORRECT, [...TESTS, wrongTest], 'test-environment');
+  expect(dropped).toMatchObject({ status: 'passed', grade: 'A', regressions: [], missing: [] });
+  expect(dropped.dropped).toEqual([
+    {
+      file: 'refit-behaviour/wrong.test.mjs',
+      reason: expect.stringMatching(
+        /^refit-behaviour\/wrong\.test\.mjs > expects a field no version returns failed \(test\) on the original code against Stripe test mode at the before version: /,
+      ),
+    },
+  ]);
+  // Alone, it leaves nothing that passed on the original code.
+  const only = await behaviourRun(CORRECT, [wrongTest], 'test-environment');
+  expect(only).toMatchObject({ status: 'not-passing', grade: null, regressions: [] });
+  expect(only.missing[0]).toBe(
+    'No behaviour test file passed on the original code against Stripe test mode at the before version.',
   );
-}, 60_000);
+}, 90_000);
 
 it('reports a side that did not finish as unavailable and counts nothing', () => {
   const sources = {
@@ -675,6 +817,8 @@ it('gives gradeEvidence grade A only for a result that passed and ran every chan
   const result = {
     status: 'passed',
     grade: 'A' as 'A' | null,
+    target: 'test-environment' as 'test-environment' | 'mock',
+    sandbox: { provider: 'Stripe' },
     missing: [] as string[],
     tests: [{ path: 'refit-behaviour/payments.test.mjs' }],
     coverage: {
@@ -695,8 +839,10 @@ it('gives gradeEvidence grade A only for a result that passed and ran every chan
     letter: 'A',
     level: 'behaviour-tests',
     reason:
-      'Behaviour tests (refit-behaviour/payments.test.mjs) passed on the original code against the before-version stripe-mock and on the patched code against the after-version stripe-mock, and ran every changed Stripe line on both sides (1 original, 2 patched).',
+      'Behaviour tests (refit-behaviour/payments.test.mjs) passed on the original code against Stripe test mode at the before version and on the patched code against Stripe test mode at the after version, ran every changed Stripe line on both sides (1 original, 2 patched), and Stripe returned no error on the patched side that it did not return on the original.',
   });
+  // A mock never gives grade A, even with every line covered.
+  expect((await grade({ ...result, target: 'mock' })).letter).toBe('D');
   const partial = {
     ...result,
     grade: null,
@@ -707,6 +853,7 @@ it('gives gradeEvidence grade A only for a result that passed and ran every chan
   expect(behaviourGrade(partial)).toEqual({
     passed: true,
     coversEveryChangedLine: false,
+    target: 'test-environment',
     reason:
       'Behaviour tests did not give grade A: lib/stripe.ts line 3 did not run on the patched code against the after-version stripe-mock.',
   });

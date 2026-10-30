@@ -335,8 +335,9 @@ function registry() {
   );
 }
 
-// Two shapes of a version Refit cannot trace beside a literal pin (dev set: an environment
-// variable on a route, and a config object). The card-only rename needs every pin moved, so it stays for review.
+// Two shapes of a version Refit cannot trace beside a literal pin: a value a function returns on
+// a route, and a config object that can be reassigned. Environment variables are a draft note
+// instead (version-tracing.test.ts). The card-only rename needs every pin moved, so it stays for review.
 // `renamed`: founders' decision (2026-10-27): the card list on a call whose own client is traced is
 // renamed even though another client's version is not.
 const UNTRACED_SHAPES: {
@@ -349,7 +350,7 @@ const UNTRACED_SHAPES: {
     files: {
       'lib/stripe.ts': client(BEFORE),
       'checkout.ts': checkout('./lib/stripe', "['card']"),
-      'app/api/refund/route.ts': `import Stripe from 'stripe';\nconst stripe = new Stripe(process.env.STRIPE_KEY!, { apiVersion: process.env.STRIPE_API_VERSION as Stripe.LatestApiVersion });\nexport const POST = () => stripe.checkout.sessions.create({ mode: 'payment' });\n`,
+      'app/api/refund/route.ts': `import Stripe from 'stripe';\nconst stripe = new Stripe(process.env.STRIPE_KEY!, { apiVersion: readVersion() as Stripe.LatestApiVersion });\nexport const POST = () => stripe.checkout.sessions.create({ mode: 'payment' });\n`,
     },
     untraced: 'app/api/refund/route.ts:2',
     moved: ['checkout.ts', 'lib/stripe.ts'],
@@ -358,7 +359,7 @@ const UNTRACED_SHAPES: {
   {
     files: {
       'src/stripe.ts': client(BEFORE),
-      'src/config.ts': `export const settings = { version: process.env.STRIPE_VERSION ?? '${BEFORE}' };\n`,
+      'src/config.ts': `export let settings = { version: '${BEFORE}' };\n`,
       'src/connect.ts': `import Stripe from 'stripe';\nimport { settings } from './config';\nconst stripe = new Stripe(process.env.STRIPE_KEY!, { apiVersion: settings.version as Stripe.LatestApiVersion });\nexport const POST = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });\n`,
     },
     untraced: 'src/connect.ts:3',
@@ -490,4 +491,24 @@ it('adds no default reason when the table records what the locked stripe-node se
   expect(reviewed.patch).toMatchObject({ sdkUpgrade: { from: '22.6.2', to: '23.0.0' } });
   const reviews = publicationWaiver(passed(reviewed), true)!;
   expect(reviews.map(({ gate }) => gate)).not.toContain('api-version-default');
+});
+
+// Founder decision (2026-10-28, docs/AI-REPAIR.md): an older literal pin moves even where Refit
+// cannot trace its client, so the upgraded types never meet a stale version in a second file.
+it('moves the literal pin of a client Refit cannot trace, and does not list it as unchanged', async () => {
+  const reviewed = await scan(
+    {
+      'lib/stripe.js': client(BEFORE),
+      'checkout.js': checkout('./lib/stripe.js', "['card']"),
+      'scripts/admin.ts': `import Stripe from 'stripe';\nregister(new Stripe(process.env.STRIPE_KEY!, { apiVersion: '2026-02-25.clover' }));\nexport const options = { apiVersion: '2026-02-25.clover' as Stripe.LatestApiVersion };\n`,
+    },
+    true,
+  );
+  expect(changedFiles(reviewed)).toContain('scripts/admin.ts');
+  const diff = 'diff' in reviewed.patch ? reviewed.patch.diff : '';
+  expect(diff).not.toMatch(/^\+.*2026-02-25\.clover/m);
+  expect(diff.match(new RegExp(`^\\+.*'${TARGET}'`, 'gm'))).toHaveLength(3);
+  const reviews = publicationWaiver(passed(reviewed), true)!;
+  const untraced = reviews.find(({ gate }) => gate === 'api-version-untraced');
+  expect(untraced && 'sites' in untraced ? untraced.sites : []).toEqual([]);
 });

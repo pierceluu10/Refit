@@ -25,7 +25,15 @@ export function declaredApiVersions(options: {
   references?: BindingReferences;
   // Receives the text span of each literal version, for a patch that bumps it. `endpoint` marks a
   // literal that also sets a webhook endpoint's api_version, so moving it changes that endpoint.
-  literals?: { file: string; start: number; end: number; value: string; endpoint?: true }[];
+  // `declaration` names the untraced constructor a literal belongs to.
+  literals?: {
+    file: string;
+    start: number;
+    end: number;
+    value: string;
+    endpoint?: true;
+    declaration?: number;
+  }[];
   // Receives the declaration indexes that decide each client binding's and each SDK call's
   // version, so a caller can check one request's own path.
   paths?: { clients: Map<ts.Symbol, number[]>; calls: Map<ts.CallExpression, number[]> };
@@ -46,11 +54,25 @@ export function declaredApiVersions(options: {
       return unwrap(expression.expression);
     return expression;
   }
+  // The repository default of `process.env.NAME ?? '2023-10-16'` (or `||`) resolves to its literal;
+  // this records NAME for each such literal, as the deployment environment can override it.
+  const environmentDefaults = new Map<ts.Expression, string>();
   function resolve(
     expression: ts.Expression,
     seen = new Set<ts.Symbol>(),
   ): ts.Expression | undefined {
     const current = unwrap(expression);
+    if (
+      ts.isBinaryExpression(current) &&
+      [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(
+        current.operatorToken.kind,
+      )
+    ) {
+      const name = environmentVariable(current.left, seen);
+      const value = name ? resolve(current.right, seen) : undefined;
+      if (value && name) environmentDefaults.set(value, name);
+      return value;
+    }
     if (ts.isIdentifier(current)) return resolveBinding(symbol(current), seen);
     if (ts.isPropertyAccessExpression(current)) {
       const result = property(current.expression, [current.name.text], seen);
@@ -90,6 +112,48 @@ export function declaredApiVersions(options: {
   function undefinedValue(expression: ts.Expression) {
     const value = unwrap(expression);
     return ts.isIdentifier(value) && value.text === 'undefined' && !symbol(value)?.valueDeclaration;
+  }
+  // NAME in `process.env.NAME` or `process.env['NAME']`, read directly or through immutable
+  // bindings and properties, where `process` is the global.
+  function environmentVariable(
+    expression: ts.Expression,
+    seen = new Set<ts.Symbol>(),
+  ): string | undefined {
+    const current = unwrap(expression);
+    const name = ts.isPropertyAccessExpression(current)
+      ? current.name.text
+      : ts.isElementAccessExpression(current) && ts.isStringLiteralLike(current.argumentExpression)
+        ? current.argumentExpression.text
+        : undefined;
+    const env =
+      name !== undefined ? unwrap((current as ts.AccessExpression).expression) : undefined;
+    if (
+      env &&
+      ts.isPropertyAccessExpression(env) &&
+      env.name.text === 'env' &&
+      ts.isIdentifier(env.expression) &&
+      env.expression.text === 'process' &&
+      !symbol(env.expression)?.valueDeclaration
+    )
+      return name;
+    if (ts.isIdentifier(current)) {
+      const binding = symbol(current);
+      const declaration = binding?.valueDeclaration;
+      return binding &&
+        !seen.has(binding) &&
+        declaration &&
+        ts.isVariableDeclaration(declaration) &&
+        declaration.initializer &&
+        ts.isVariableDeclarationList(declaration.parent) &&
+        declaration.parent.flags & ts.NodeFlags.Const
+        ? environmentVariable(declaration.initializer, new Set([...seen, binding]))
+        : undefined;
+    }
+    if (ts.isPropertyAccessExpression(current)) {
+      const result = property(current.expression, [current.name.text], seen);
+      return result.status === 'present' ? environmentVariable(result.expression, seen) : undefined;
+    }
+    return undefined;
   }
   function property(
     expression: ts.Expression,
@@ -238,15 +302,29 @@ export function declaredApiVersions(options: {
     status: 'absent' | 'unknown' | 'literal';
     value: string | null;
     node?: ts.Expression;
+    environment?: string;
   } {
     if (!expression || undefinedValue(expression)) return { status: 'absent', value: null };
     const result = property(expression, mapping!.property.split('.'));
     if (result.status !== 'present') return { status: result.status, value: null };
     const value = resolve(result.expression);
+    // stripe-node sends `apiVersion || DEFAULT_API_VERSION` (11.18.0 to 23.0.0), so null is unset.
+    if (
+      options.provider.packageName === 'stripe' &&
+      (value ?? unwrap(result.expression)).kind === ts.SyntaxKind.NullKeyword
+    )
+      return { status: 'absent', value: null };
+    const environment =
+      (value && environmentDefaults.get(value)) ?? environmentVariable(result.expression);
     if (!value || !(ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)))
-      return { status: 'unknown', value: null };
+      return { status: 'unknown', value: null, ...(environment ? { environment } : {}) };
     try {
-      return { status: 'literal', value: validateApiVersion(value.text)!, node: value };
+      return {
+        status: 'literal',
+        value: validateApiVersion(value.text)!,
+        node: value,
+        ...(environment ? { environment } : {}),
+      };
     } catch (error) {
       if (!(error instanceof PipelineInputError)) throw error;
       return { status: 'unknown', value: null };
@@ -284,14 +362,17 @@ export function declaredApiVersions(options: {
       )
       .map((node) => resolve(node.initializer)),
   );
-  const literalSpan = (node: ts.Expression, value: string) =>
+  const literalSpan = (node: ts.Expression, value: string, declaration?: number) =>
     options.literals?.push({
       file: location(node).file,
       start: node.getStart() + 1,
       end: node.getEnd() - 1,
       value,
       ...(endpointLiterals.has(node) ? { endpoint: true as const } : {}),
+      ...(declaration === undefined ? {} : { declaration }),
     });
+  // Untraced constructors' literal pins, checked once every traced pin is known (below).
+  const untracedPins: { node: ts.Expression; value: string; declaration: number }[] = [];
   const endpoint = (node: ts.Expression | undefined) =>
     node && endpointLiterals.has(node) ? { endpoint: true as const } : {};
   // stripe-node fixes a client's API version at construction; `setApiVersion`, a write to its
@@ -327,6 +408,12 @@ export function declaredApiVersions(options: {
         unsafe.has(binding);
       const uncertain = hatch || unresolved;
       if (result.node && !uncertain) literalSpan(result.node, result.value!);
+      else if (result.node && result.value)
+        untracedPins.push({
+          node: result.node,
+          value: result.value,
+          declaration: declarations.length,
+        });
       if (binding && options.paths)
         options.paths.clients.set(binding, [
           ...(options.paths.clients.get(binding) ?? []),
@@ -343,8 +430,11 @@ export function declaredApiVersions(options: {
             ? 'Literal SDK constructor API-version option.'
             : hatch && !unresolved
               ? 'setApiVersion, a write to the private _api field or a raw Stripe-Version header elsewhere in the repository can change the version this client sends.'
-              : 'Constructor version is absent or cannot be resolved through immutable local declarations.',
+              : result.environment && !uncertain
+                ? `Constructor version comes only from the deployment environment variable ${result.environment}.`
+                : 'Constructor version is absent or cannot be resolved through immutable local declarations.',
         ...(result.status === 'absent' && !uncertain ? { absent: true as const } : {}),
+        ...(result.environment && !uncertain ? { environment: result.environment } : {}),
         ...endpoint(result.node),
       });
     }
@@ -367,6 +457,7 @@ export function declaredApiVersions(options: {
         value: result.value,
         status: 'literal',
         reason: 'Literal per-request API-version override.',
+        ...(result.environment ? { environment: result.environment } : {}),
         ...endpoint(result.node),
       });
     }
@@ -384,6 +475,34 @@ export function declaredApiVersions(options: {
       node,
       Array.from({ length: declarations.length - first }, (_, index) => first + index),
     );
+  }
+  // Founder decision (2026-10-28, docs/AI-REPAIR.md): the version move updates every `apiVersion`
+  // string literal in a file that loads stripe, not only traced clients' pins. Outside a traced
+  // pin only a dated version with its release name, or a value a traced pin sends, counts, so
+  // another SDK's dated `apiVersion` is never moved.
+  if (options.provider.packageName === 'stripe' && options.literals) {
+    const traced = new Set(options.literals.map((literal) => literal.value));
+    const stripeVersion = (node: ts.Expression, value: string) =>
+      (/^\d{4}-\d{2}-\d{2}\.[a-z]+$/.test(value) || traced.has(value)) &&
+      /(?:from\s*|require\(\s*|import\(\s*)['"]stripe['"]/.test(node.getSourceFile().text);
+    for (const pin of untracedPins)
+      if (stripeVersion(pin.node, pin.value)) literalSpan(pin.node, pin.value, pin.declaration);
+    const property = mapping.property.split('.').at(-1);
+    for (const node of nodes) {
+      if (
+        !ts.isPropertyAssignment(node) ||
+        !(ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) ||
+        node.name.text !== property
+      )
+        continue;
+      const value = unwrap(node.initializer);
+      if (
+        (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)) &&
+        value.text === value.text.trim() &&
+        stripeVersion(value, value.text)
+      )
+        literalSpan(value, value.text);
+    }
   }
   return declarations;
 }

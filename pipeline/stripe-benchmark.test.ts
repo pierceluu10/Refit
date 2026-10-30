@@ -1,5 +1,10 @@
 import { expect, it, vi } from 'vitest';
-import { forkAtCommit, stripeOperations, summaryTable } from './stripe-benchmark.ts';
+import {
+  contractChangePages,
+  forkAtCommit,
+  stripeOperations,
+  summaryTable,
+} from './stripe-benchmark.ts';
 
 const ref = (schema: string) => ({ $ref: `#/components/schemas/${schema}` });
 const returns = (schema: unknown) => ({
@@ -325,4 +330,31 @@ it('reuses the organization fork instead of creating name-1', async () => {
     vi.unstubAllGlobals();
   }
   expect(calls.some((call) => call.endsWith('/forks'))).toBe(false);
+});
+
+it('attaches the changelog pages that name a reached contract change', () => {
+  const page = (version: string, content: string) => ({
+    path: `${version}.json`,
+    version,
+    content,
+  });
+  const pages = [
+    page(
+      '2026-09-30.endive',
+      '| `Subscription#update.billing_cycle_anchor` | Changed | `enum(now) → billing_cycle_anchor_param` |',
+    ),
+    page('2025-03-31.basil', 'The `billing_cycle_anchor` field.'),
+    page('2026-09-30.endive', 'Removes `payment_method_types`.'),
+  ];
+  const change = (reach: string) => ({
+    reach,
+    text: 'the `billing_cycle_anchor` request property `type` changed from `string` to `object`',
+  });
+  expect(
+    contractChangePages([change('reached')], pages, '2026-08-26.dahlia', '2026-09-30.endive'),
+  ).toEqual(['2026-09-30.endive.json']);
+  // An untraced call that may reach it gets no page; neither does a version outside the move.
+  expect(
+    contractChangePages([change('unknown')], pages, '2026-08-26.dahlia', '2026-09-30.endive'),
+  ).toEqual([]);
 });

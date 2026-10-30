@@ -42,8 +42,10 @@ function outcome(result) {
   if (result.scanCrash) return 'scan-crash';
   if (!result.mappedMethods) return 'no-mapped-methods';
   if (result.fullAdapter?.error) return 'scan-error';
-  if (!result.fullAdapter?.confirmed) return 'not-affected';
   const workflow = result.workflow;
+  // A version bump (docs/VERSION-BUMP-PRS.md) runs the workflow on a repository with no usage.
+  if (workflow?.status === 'version-bump') return 'version-bump';
+  if (!result.fullAdapter?.confirmed) return 'not-affected';
   if (!workflow) return result.checks === 'none' ? 'affected-no-checks' : 'affected';
   if (result.publication?.url) return 'pr-published';
   if (workflow.status === 'validated') return 'validated';
@@ -75,6 +77,7 @@ async function details(result, directory) {
   return {
     outcome: outcome(result),
     tracedCalls: result?.tracedCalls,
+    tracedCallsBySource: JSON.stringify(result?.tracedCallsBySource),
     confirmedFields: result?.fullAdapter?.confirmedFields?.join(' '),
     stage: workflow.stage,
     reason: workflow.reason,

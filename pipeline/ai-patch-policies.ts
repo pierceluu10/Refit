@@ -37,7 +37,7 @@ const unwrap = (node: ts.Expression): ts.Expression =>
 const lineOf = (source: ts.SourceFile, node: ts.Node) =>
   source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 
-function contentOf(repository: Repository, path: string) {
+export function contentOf(repository: Repository, path: string) {
   return repository.files.find((file) => file.path === path)?.content;
 }
 
@@ -574,9 +574,20 @@ function diffedLines(from: string, to: string, kind: 'added' | 'removed') {
   return lines;
 }
 
+// String literals and identifiers, the parts of a line that name a field, parameter or version.
+const TOKEN = /(['"`])(?:(?!\1)[^\\\n])*\1|[A-Za-z_$][\w$]*/g;
+const tokenCounts = (text: string) => {
+  const counts = new Map<string, number>();
+  for (const [token] of text.matchAll(TOKEN)) counts.set(token, (counts.get(token) ?? 0) + 1);
+  return counts;
+};
+
 // Lines the deterministic rules wrote that the AI's code changes or deletes again, as 1-based
-// lines of the rules' code. The AI builds on a rule's edit and never redoes it: the edit is
-// reviewed with its rule. A line the AI's replacement repeats unchanged is not counted.
+// lines of the rules' code. A line the AI's replacement repeats unchanged is not counted.
+// Founder decision (Otabek, 2026-10-28): the AI may edit a rule's line when the rule's intent
+// survives: every name and string the rule wrote on it that the original file lacks (the new
+// field, parameter, helper or version) is still in the AI's file. Validation keeps the edit only
+// if the checks then pass, and a rescan lists any removed read the AI put back as unresolved.
 export function rewrittenRuleLines(
   original: Repository,
   rules: Repository,
@@ -588,8 +599,14 @@ export function rewrittenRuleLines(
     const base = contentOf(original, path) ?? '';
     if (ruled === undefined || ruled === base) return [];
     const written = diffedLines(base, ruled, 'added');
+    const lines = ruled.split('\n');
+    const [inBase, inAfter] = [base, contentOf(after, path)!].map(tokenCounts);
+    const survives = (line: number) =>
+      [...tokenCounts(lines[line]).keys()].every(
+        (token) => inBase.has(token) || inAfter.has(token),
+      );
     return [...diffedLines(ruled, contentOf(after, path)!, 'removed')]
-      .filter((line) => written.has(line))
+      .filter((line) => written.has(line) && !survives(line))
       .map((line) => ({ file: path, line: line + 1 }));
   });
 }

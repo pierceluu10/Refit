@@ -36,7 +36,7 @@ Propose a rule only where the page names an exact one-to-one replacement that ke
 - "period-helper": a period field moved from a parent object onto its child items.
 - "request-rename": a request parameter renamed, with the same value and shape.
 - "request-wrap": a removed request parameter whose value is sent inside a new wrapper object as { type: <discriminator>, <parameter>: value }.
-- "request-enum-value": a removed enum value of a request parameter that the page says a new value replaces; one rule per removed value.
+- "request-enum-value": a removed enum value of a request parameter that the page says a new value replaces; one rule per removed value. Where the page says the parameter now takes an object such as { type: <value> } in place of the value, set discriminator to that object's key.
 
 Propose nothing for changes without an exact replacement: removed fields with no equivalent, behaviour changes, new error codes, values that change meaning, lists that replace a single value, Stripe.js, API v2. A missing rule is safe; a wrong rule edits customer code wrongly.
 
@@ -47,7 +47,7 @@ Fields, all required; use "" or [] where a field does not apply to the family:
 - targets: every new location, as a component schema name followed by properties ("invoice.parent.subscription_details.subscription"); for "period-helper" the parent's list property and each item property ("subscription.items", "subscription_item.current_period_end"). Field families only.
 - operations: every affected request as "METHOD /v1/path" ("POST /v1/promotion_codes"). Request families only.
 - parameter, replacement: the removed request parameter and its replacement; discriminator: the wrapper's type value ("request-wrap" only).
-- value: the removed enum value; parameter is the request parameter and replacement the value that replaces it ("request-enum-value" only).
+- value: the removed enum value; parameter is the request parameter and replacement the value that replaces it ("request-enum-value" only); discriminator, when set, is the key of the object that now carries the replacement.
 - quote: one sentence or table row copied character for character from the page that states the change. Copy it exactly, including backticks and punctuation; do not join or shorten text.
 - warning: one or two sentences for a reviewer saying what the edit does.
 - rationale: why the page shows the replacement keeps behaviour.
@@ -406,7 +406,9 @@ export function completeCandidate(
       operations: (ids as string[]).sort(),
       parameter: candidate.parameter,
       replacement: candidate.replacement,
-      ...(candidate.family === 'request-wrap' ? { discriminator: candidate.discriminator } : {}),
+      ...(candidate.family === 'request-wrap' || (enumValue && candidate.discriminator)
+        ? { discriminator: candidate.discriminator }
+        : {}),
       ...(enumValue ? { value: candidate.value } : {}),
       ...provenance,
     };

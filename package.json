@@ -64,6 +64,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "jsdom": "^29.1.1",
     "prettier": "^3.9.9",
+    "stripe": "23.0.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "typescript-compiler": "npm:typescript@^5.9.3",

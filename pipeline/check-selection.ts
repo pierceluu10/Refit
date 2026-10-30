@@ -1,3 +1,4 @@
+import { sandboxGrade, type SandboxTarget } from './provider-sandbox.ts';
 import { existsSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -91,11 +92,13 @@ export interface EvidenceGrade {
 }
 
 // Grade A's evidence, built by a behaviour-test harness: tests that ran every changed Stripe line
-// on the original code against the old API version's stripe-mock and on the patched code against
-// the new one's. Generated placeholder checks are not behaviour tests.
+// on the original code at the old API version and on the patched code at the new one, against the
+// provider's own test environment (provider-sandbox.ts). A mock such as stripe-mock never grants
+// it, and generated placeholder checks are not behaviour tests.
 export interface BehaviourEvidence {
   passed: boolean;
   coversEveryChangedLine: boolean;
+  target: SandboxTarget;
   reason: string;
 }
 
@@ -703,7 +706,14 @@ export async function gradeEvidence(options: {
   // make a file count for grade C, never B or A (founder decision, Otabek, 2026-10-28).
   signedEvents?: readonly string[];
 }): Promise<EvidenceGrade> {
-  if (options.behaviour?.passed && options.behaviour.coversEveryChangedLine)
+  if (
+    options.behaviour &&
+    sandboxGrade({
+      target: options.behaviour.target,
+      passed: options.behaviour.passed && options.behaviour.coversEveryChangedLine,
+      missing: [],
+    })
+  )
     return { letter: 'A', level: 'behaviour-tests', reason: options.behaviour.reason };
   const root = options.repository.root;
   const check = checkDirectory(options.repository, options.packageDirectory);

@@ -9,6 +9,7 @@ const TITLES: Record<Result['manifest']['status'], string> = {
   'needs-review': 'Refit needs review',
   'validation-failed': 'Migration validation failed',
   validated: 'Migration validated',
+  'version-bump': 'API version bump validated',
   'draft-created': 'Draft PR ready',
   'draft-updated': 'Draft PR updated',
   'draft-closed': 'Draft PR closed',
