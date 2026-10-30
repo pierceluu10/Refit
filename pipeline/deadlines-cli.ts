@@ -33,27 +33,42 @@ import {
   DEFAULT_MODEL_PARAMETERS,
   loadModelParameters,
 } from './model-parameters.ts';
+import { modelAlerts } from './model-alerts.ts';
+import { loadParameterChanges } from './model-parameter-changes.ts';
 import { proposeModelReplacements } from './model-retirements.ts';
+import { loadRequestProofs, unavailableTargets } from './model-request-proofs.ts';
 import { DEPRECATION_SOURCES, syncDeadlines, type SyncProvider } from './deadline-sync.ts';
+import {
+  checkSources,
+  loadSourcePages,
+  savePage,
+  SOURCE_PROVIDERS,
+  type SourceProvider,
+} from './deadline-sources.ts';
 import { parseObject } from './specifications.ts';
 import type { TracerStop } from './tree-sitter.ts';
 import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
 import { IGNORE_PATHS_FILE, OUTSIDE_APPLICATION_CODE } from './workspace-attribution.ts';
 
-// Providers whose retiring model IDs `--propose-model-fixes` can replace; Gemini is report only.
-const MODEL_FIX_PROVIDERS = new Set(['openai', 'anthropic']);
+// Providers whose retiring model IDs `--propose-model-fixes` can replace (Gemini since the owner
+// decision of 2026-10-29).
+const MODEL_FIX_PROVIDERS = new Set(['openai', 'anthropic', 'gemini']);
 import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE = `Usage: refit deadlines [--repository <root>] [--fail-within <days> [--allow-past-due <id>[,<id>]...]] [--ignore-file <path>] [--registry <path>] [--json]
-       refit deadlines --propose-model-fixes [--repository <root>] [--output <patch>] [--registry <path>] [--parameters <path>] [--json]
+       refit deadlines --propose-model-fixes [--repository <root>] [--output <patch>] [--registry <path>] [--parameters <path>] [--parameter-changes <path>|none] [--direct-only] [--json]
        refit deadlines --check-registry [--registry <path>] [--json]
        refit deadlines --check-parameters [--parameters <path>] [--json]
        refit deadlines --sync anthropic|openai|gemini|shopify|meta-graph [--registry <path>] [--write] [--json]
+       refit deadlines --check-sources [--registry <path>] [--json]
+       refit deadlines --check-parameter-changes [--parameter-changes <path>]
 Lists API versions and models a repository pins, and SDK packages it declares, that have a provider sunset or end-of-support date in the reviewed registry, with file:line evidence. Only live code counts; model lists, tests, examples, comments, tokenizers and checks are listed separately.
 --fail-within <days> exits 2 when a live exposure is past due or within that many days, for CI. Report-only deadlines (a derived date, or kind method, endpoint, field or feature) are listed but never fail it. Reviewed, expiring exceptions go in ${DEADLINE_IGNORE_FILE} at the repository root; --ignore-file reads another file. A deadline that has already passed keeps failing, with what to upgrade to and whether Refit can propose the upgrade. --allow-past-due <id> (repeatable or comma-separated) turns the named past-due deadlines into warnings; it never applies to a deadline that has not passed yet, and an ID the registry does not have is an error. Exit 0 means the check passed, 1 an error (including an invalid ignore file).
 --propose-model-fixes proposes replacing retiring OpenAI and Anthropic model IDs with the registry replacement, only where the ID is a literal model in a traced SDK call, lists every case that stops for review, and lists every other live model ID with why no traced request sends it. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
---sync reads a provider's deprecations page (Anthropic, OpenAI and Gemini API models; Shopify and Meta Graph API versions) and lists registry entries to add or update; --write saves them. It never deletes an entry. A scheduled workflow runs every sync and opens a pull request for review.
+--sync reads a provider's deprecations page (Anthropic, OpenAI and Gemini API models; Shopify and Meta Graph API versions) and lists registry entries to add or update; --write saves them. It never deletes an entry. With --write, an OpenAI, Anthropic or Gemini sync also saves the page it read in docs/benchmarks/deprecation-pages/ with its SHA-256. A scheduled workflow runs every sync and opens a pull request for review.
+Model fixes apply the sourced parameter changes in data/model-parameter-changes.json with each swap (owner decision, 2026-10-29): a documented rename or removal is edited and named in the result, a documented stop gives its reason; --parameter-changes reads another table, and --parameter-changes none turns them off. They also edit indirect model sources (class fields, object members, env fallbacks, computed initializers); --direct-only edits only literals, defaults and single-use constants, as before. --check-parameter-changes checks that table and that every quote is on its saved page.
+--check-sources re-reads those saved pages and fails unless they reproduce every OpenAI, Anthropic and Gemini model entry exactly, and every model with a replacement sits on a table row naming it. Nothing is fetched.
 --check-registry validates the registry and flags past-due entries, entries without a source and entries checked more than ${STALE_CHECK_DAYS} days ago. Nothing runs, installs or contacts a provider.
 --check-parameters validates the sourced model parameter table (data/model-parameters.json) and rejects the whole file on any error. Nothing runs, installs or contacts a provider.`;
 
@@ -70,6 +85,10 @@ try {
       'ignore-file': { type: 'string' },
       'propose-model-fixes': { type: 'boolean' },
       sync: { type: 'string' },
+      'check-sources': { type: 'boolean' },
+      'parameter-changes': { type: 'string' },
+      'check-parameter-changes': { type: 'boolean' },
+      'direct-only': { type: 'boolean' },
       write: { type: 'boolean' },
       output: { type: 'string' },
       json: { type: 'boolean' },
@@ -87,7 +106,8 @@ try {
     const registry = parseObject(await readFile(path, 'utf8'), 'Deadline registry');
     const response = await fetch(source.download);
     if (!response.ok) throw new Error(`${source.download} answered HTTP ${response.status}.`);
-    const page = source.parse(await response.text());
+    const pageText = await response.text();
+    const page = source.parse(pageText);
     const today = now.toISOString().slice(0, 10);
     const current = checkDeadlineRegistry(registry, now);
     if (current.errors.length)
@@ -99,6 +119,10 @@ try {
     const changes = sync.added.length + sync.changed.length + sync.rechecked.length;
     const write = values.write && changes > 0;
     if (write) await writeFile(path, `${JSON.stringify(sync.registry, null, 2)}\n`);
+    // The page is saved whenever --write is given, so a recheck with no registry change still
+    // leaves the copy the entries were checked against.
+    if (values.write && SOURCE_PROVIDERS.includes(values.sync as SourceProvider))
+      await savePage(values.sync as SourceProvider, pageText, today);
     if (values.json)
       console.log(
         JSON.stringify({
@@ -131,6 +155,29 @@ try {
       else if (write) console.log(`Written to ${terminalText(String(path))}`);
       else console.log('Run with --write to save these changes.');
     }
+  } else if (values['check-parameter-changes']) {
+    const table = await loadParameterChanges(
+      values['parameter-changes'] && values['parameter-changes'] !== 'none'
+        ? resolve(values['parameter-changes'])
+        : undefined,
+    );
+    console.log(
+      `Parameter change table is valid (${table.changes.length} changes, every quote on its saved page).`,
+    );
+  } else if (values['check-sources']) {
+    const registry = await loadDeadlineRegistry(registryPath);
+    const { index, pages, changelogs } = await loadSourcePages();
+    const report = checkSources(registry, index, pages, now, undefined, changelogs);
+    if (values.json) console.log(JSON.stringify(report));
+    else {
+      for (const error of report.errors) console.log(`  error    ${terminalText(error)}`);
+      for (const warning of report.warnings) console.log(`  warning  ${terminalText(warning)}`);
+      const chosen = report.evidence.filter((item) => item.chosenAmong);
+      console.log(
+        `${report.evidence.length} AI model entries checked against their saved pages; ${chosen.length} name a replacement a person chose among several the page offers.`,
+      );
+    }
+    if (report.errors.length) process.exitCode = 1;
   } else if (values['check-registry']) {
     const report = checkDeadlineRegistry(
       parseObject(await readFile(registryPath, 'utf8'), 'Deadline registry'),
@@ -176,10 +223,31 @@ try {
     const parameters = values.parameters
       ? await loadModelParameters(resolve(values.parameters), now)
       : undefined;
-    const proposal = await proposeModelReplacements(root, registry, now, { parameters });
+    const parameterChanges =
+      values['parameter-changes'] === 'none'
+        ? undefined
+        : await loadParameterChanges(
+            values['parameter-changes'] ? resolve(values['parameter-changes']) : undefined,
+          );
+    const proposal = await proposeModelReplacements(root, registry, now, {
+      parameters,
+      parameterChanges,
+      indirect: !values['direct-only'],
+      unavailable: unavailableTargets(await loadRequestProofs()),
+    });
+    // Embedding, fine-tuned and configuration uses: listed, never edited.
+    const { alerts, truncated } = await modelAlerts(root, registry, now);
     if (values.output && proposal.patch) await writeFile(resolve(values.output), proposal.patch);
     if (values.json)
-      console.log(JSON.stringify({ repository: root, checkedAt: now.toISOString(), ...proposal }));
+      console.log(
+        JSON.stringify({
+          repository: root,
+          checkedAt: now.toISOString(),
+          ...proposal,
+          alerts,
+          alertsTruncated: truncated,
+        }),
+      );
     else {
       console.log(`Refit model replacements  ${terminalText(root)}`);
       console.log(
@@ -191,7 +259,14 @@ try {
         );
       for (const item of proposal.replacements)
         console.log(
-          `\n${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.call)}\n  Replace      ${terminalText(item.from)} with ${terminalText(item.to)} at ${terminalText(`${item.edited.file}:${item.edited.line}`)}\n  Deadline     ${terminalText(item.via.join(' then '))} ${item.date} (${timing(item.days)})`,
+          `\n${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.call)}\n  Replace      ${terminalText(item.from)} with ${terminalText(item.to)} at ${terminalText(`${item.edited.file}:${item.edited.line}`)}\n  Deadline     ${terminalText(item.via.join(' then '))} ${item.date} (${timing(item.days)})${(
+            item.parameters ?? []
+          )
+            .map(
+              (edit) =>
+                `\n  Parameter    ${edit.action === 'rename' ? `rename ${terminalText(edit.name)} to ${terminalText(edit.to ?? '')}` : `remove ${terminalText(edit.name)}`} at ${terminalText(`${edit.file}:${edit.line}`)} (${terminalText(edit.change)}): ${terminalText(edit.note)}`,
+            )
+            .join('')}`,
         );
       if (proposal.stops.length) console.log('\nStopped for review:');
       for (const item of proposal.stops)
@@ -202,6 +277,15 @@ try {
       for (const item of proposal.unresolved)
         console.log(
           `  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.model)}${item.to ? ` (replacement ${terminalText(item.to)})` : ''}  ${terminalText(item.reason)}`,
+        );
+      if (alerts.length) console.log('\nAlert only, never changed by Refit:');
+      for (const item of alerts)
+        console.log(
+          `  ${terminalText(`${item.file}:${item.line}`)}  ${item.kind}  ${terminalText(item.model)}  ${terminalText(item.reason)}`,
+        );
+      if (truncated)
+        console.log(
+          '  The repository has more files than Refit reads for alerts; some may be missing.',
         );
       printTracerStops(proposal.tracerStops);
       if (proposal.patch && values.output)
@@ -298,7 +382,7 @@ try {
         if (more) console.log(`  …and ${more} more matches`);
         printNonLive(nonLive, nonLiveMore, nonLiveCounts);
         printIgnoredPaths(ignoredPaths, ignoredPathsMore);
-        // A retiring OpenAI or Anthropic model is replaced by a model fix, not an API contract run.
+        // A retiring OpenAI, Anthropic or Gemini model is replaced by a model fix, not an API contract run.
         console.log(
           `  Migration    ${terminalText(
             deadline.kind === 'model' && MODEL_FIX_PROVIDERS.has(deadline.provider)

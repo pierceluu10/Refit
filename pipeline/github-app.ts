@@ -68,7 +68,13 @@ export async function appJwt(configuration: GitHubAppConfiguration) {
 async function installationAccess(
   configuration: GitHubAppConfiguration,
   repository: string,
-  permissions: { contents: 'read' | 'write'; pull_requests?: 'write'; issues?: 'write' },
+  permissions: {
+    contents: 'read' | 'write';
+    pull_requests?: 'write';
+    issues?: 'write';
+    workflows?: 'write';
+    actions?: 'read';
+  },
 ) {
   const jwt = await appJwt(configuration);
   const app = await requestGitHub(jwt, 'GET', '/app');
@@ -196,6 +202,33 @@ export async function authenticateGitHubApp(
     author: { name: app.name, email: `${bot.id}+${login}@users.noreply.github.com` },
     publisher: { kind: 'github-app' as const, appId: app.id, name: app.name, login },
   };
+}
+
+// Opens the one pull request that adds the Refit validation workflow (customer-ci.ts); GitHub
+// requires the workflows permission for any change under .github/workflows.
+export async function authenticateGitHubWorkflow(
+  configuration: GitHubAppConfiguration,
+  repository: string,
+) {
+  const access = await installationAccess(configuration, repository, {
+    contents: 'write',
+    pull_requests: 'write',
+    workflows: 'write',
+  });
+  return { token: access.token, login: `${access.app.slug}[bot]` };
+}
+
+// Reads the validation workflow's runs and job logs on Refit's drafts, and comments on them.
+export async function authenticateGitHubActions(
+  configuration: GitHubAppConfiguration,
+  repository: string,
+) {
+  const access = await installationAccess(configuration, repository, {
+    contents: 'read',
+    pull_requests: 'write',
+    actions: 'read',
+  });
+  return { token: access.token, login: `${access.app.slug}[bot]` };
 }
 
 // One installation of this App as GitHub records it, or null when GitHub knows no such

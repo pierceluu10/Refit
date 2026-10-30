@@ -1,12 +1,14 @@
 import { expect, it } from 'vitest';
 import {
   DEFAULT_PNPM_10_VERSION,
+  DEFAULT_PNPM_7_VERSION,
   DEFAULT_PNPM_8_VERSION,
   DEFAULT_PNPM_VERSION,
   validatePnpmInputs,
 } from './pnpm-inputs.ts';
 import { parsePnpmLock } from './pnpm-lock.ts';
 import { resolveLockedDependency } from './lockfiles.ts';
+import { preparationStop } from './preparation-stops.ts';
 
 const INTEGRITY = `sha512-${Buffer.alloc(64).toString('base64')}`;
 type ObjectData = Record<string, any>;
@@ -88,6 +90,18 @@ it('validates explicit workspace links and default/named catalog constraints', (
     workspaceLinks: { 'packages/billing/node_modules/ids': 'packages/ids' },
     workspaceOptionalLinks: { 'node_modules/.pnpm/node_modules/ids': 'packages/ids' },
   });
+  // A bin is linked only into its dependents' node_modules/.bin: one no importer links to is fine.
+  sample.workspaces.set('packages/cli', JSON.stringify({ name: 'cli', bin: 'dist/index.js' }));
+  sample.lock.importers['packages/cli'] = {};
+  expect(validate(sample)).toMatchObject({
+    workspaceHashes: { 'packages/cli': expect.any(String) },
+  });
+  sample.workspaces.set(
+    'packages/ids',
+    JSON.stringify({ name: 'ids', version: '1.0.0', bin: 'x.js' }),
+  );
+  expect(() => validate(sample)).toThrow('Workspace bins');
+  sample.workspaces.set('packages/ids', JSON.stringify({ name: 'ids', version: '1.0.0' }));
   sample.workspace.catalogs.stable.stripe = '11.0.0';
   expect(() => validate(sample)).toThrow('catalog requirements differ');
   sample.workspace.catalogs.stable.stripe = '10.17.0';
@@ -256,6 +270,10 @@ it.each([
     'workspace binary',
     (s: ReturnType<typeof scenario>) => {
       s.workspaces.set('packages/cli', JSON.stringify({ name: 'cli', bin: 'index.js' }));
+      s.manifest.devDependencies = { cli: 'workspace:*' };
+      s.lock.importers['.'].devDependencies = {
+        cli: { specifier: 'workspace:*', version: 'link:packages/cli' },
+      };
       s.lock.importers['packages/cli'] = {};
     },
   ],
@@ -337,6 +355,90 @@ it('reads pnpm 8 lockfile v6 with the same snapshot and integrity checks, instal
   expect(() => validate(current)).toThrow('cannot install this lockfile');
 });
 
+it('reads pnpm 7 lockfile 5.4 with the same snapshot and integrity checks, installed only by pnpm 7', () => {
+  const sample = scenario();
+  delete sample.manifest.packageManager;
+  sample.manifest.dependencies = {
+    stripe: '^10.17.0',
+    'react-dom': '18.2.0',
+    ms: 'npm:tiny-ms@1.0.0',
+  };
+  sample.manifest.devDependencies = { '@types/react': '18.0.0' };
+  // As pnpm 7 writes it: specifiers apart, `/name/version` keys and `_peer` suffixes.
+  const lock = (): ObjectData => ({
+    lockfileVersion: 5.4,
+    specifiers: {
+      stripe: '^10.17.0',
+      'react-dom': '18.2.0',
+      ms: 'npm:tiny-ms@1.0.0',
+      '@types/react': '18.0.0',
+    },
+    dependencies: {
+      stripe: '10.17.0',
+      'react-dom': '18.2.0_react@18.2.0',
+      ms: '/tiny-ms/1.0.0',
+    },
+    devDependencies: { '@types/react': '18.0.0' },
+    packages: {
+      '/stripe/10.17.0': { resolution: { integrity: INTEGRITY }, dev: false },
+      '/react/18.2.0': { resolution: { integrity: INTEGRITY }, dev: false },
+      '/react-dom/18.2.0_react@18.2.0': {
+        resolution: { integrity: INTEGRITY },
+        peerDependencies: { react: '^18.2.0' },
+        dependencies: { react: '18.2.0' },
+        dev: false,
+      },
+      '/tiny-ms/1.0.0': { resolution: { integrity: INTEGRITY }, dev: false },
+      '/@types/react/18.0.0': { resolution: { integrity: INTEGRITY }, dev: true },
+    },
+  });
+  sample.lock = lock();
+  expect(validate(sample)).toMatchObject({ managerVersion: DEFAULT_PNPM_7_VERSION, packages: 5 });
+  expect(
+    resolveLockedDependency(
+      { file: 'package.json', section: 'dependencies', version: '^10.17.0' },
+      'stripe',
+      [{ file: 'pnpm-lock.yaml', content: parsePnpmLock(JSON.stringify(sample.lock)).document }],
+    ),
+  ).toMatchObject({ status: 'locked', version: '10.17.0' });
+  // The packageManager pin is respected, and only pnpm 7 installs 5.4 frozen.
+  sample.manifest.packageManager = 'pnpm@7.30.0';
+  expect(validate(sample).managerVersion).toBe('7.30.0');
+  for (const pin of ['pnpm@8.15.9', 'pnpm@9.15.9'])
+    expect(() =>
+      validate({ ...sample, manifest: { ...sample.manifest, packageManager: pin } }),
+    ).toThrow('lockfile 5.4 (pnpm 7)');
+  delete sample.manifest.packageManager;
+  sample.lock.packages['/tiny-ms/1.0.0'].resolution.integrity = 'sha1-unsafe';
+  expect(() => validate(sample)).toThrow('SHA-256-or-stronger');
+  sample.lock = lock();
+  sample.lock.specifiers.stripe = '^10.0.0';
+  expect(() => validate(sample)).toThrow('importer specifiers differ');
+  sample.lock = lock();
+  delete sample.lock.packages['/react-dom/18.2.0_react@18.2.0'];
+  sample.lock.packages['/react-dom/18.2.0'] = { resolution: { integrity: INTEGRITY } };
+  expect(() => validate(sample)).toThrow('peer-qualified snapshots');
+  // Git and tarball records keep their own keys and their own refusal.
+  sample.lock = lock();
+  sample.lock.dependencies.ms = 'github.com/owner/tiny-ms/0123456789abcdef0123456789abcdef01234567';
+  sample.lock.packages['github.com/owner/tiny-ms/0123456789abcdef0123456789abcdef01234567'] = {
+    resolution: {
+      tarball:
+        'https://codeload.github.com/owner/tiny-ms/tar.gz/0123456789abcdef0123456789abcdef01234567',
+    },
+    name: 'tiny-ms',
+    version: '1.0.0',
+  };
+  expect(() => validate(sample)).toThrow('registry name/version');
+  sample.lock = lock();
+  sample.lock.neverBuiltDependencies = ['esbuild'];
+  expect(() => validate(sample)).toThrow('Unsupported pnpm lockfile settings');
+  // pnpm 7 cannot read lockfile v9.
+  const current = scenario();
+  current.manifest.packageManager = 'pnpm@7.33.7';
+  expect(() => validate(current)).toThrow('cannot install this lockfile');
+});
+
 it('accepts release-age settings, which a frozen install never consults, only in their own shape', () => {
   const sample = scenario();
   sample.workspace.minimumReleaseAge = 1440;
@@ -394,7 +496,7 @@ it('names the unsupported pnpm setting and where it is set', () => {
     packageExtensions: { stripe: { dependencies: { qs: '6.11.0' } } },
   };
   expect(() => validate(sample)).toThrow(
-    'Unsupported pnpm settings require a custom validation image; hooks, patches, alternate stores, runtimes and registries are not loaded automatically, and the "pnpm" field of package.json sets "packageExtensions".',
+    'Unsupported pnpm settings need the repository install; hooks, patches, alternate stores, runtimes and registries are not loaded automatically, and the "pnpm" field of package.json sets "packageExtensions".',
   );
 });
 it('accepts committed patches and overrides only as pnpm-lock.yaml records them', () => {
@@ -460,4 +562,18 @@ it('accepts committed patches and overrides only as pnpm-lock.yaml records them'
     mutate(sample);
     expect(() => validate(sample), message).toThrow(message);
   }
+});
+it('names a pnpm 6 lockfile version instead of calling it an unsupported setting', () => {
+  const sample = scenario();
+  sample.lock = { lockfileVersion: 5.3, specifiers: {}, dependencies: {}, packages: {} };
+  let message = '';
+  try {
+    validate(sample);
+  } catch (error) {
+    message = (error as Error).message;
+  }
+  expect(message).toMatch(
+    /lockfile versions 5\.4, 6 and 9 \(pnpm 7 or later\); this one is version 5\.3/,
+  );
+  expect(preparationStop(message)?.reason).toBe('unsupported-lockfile');
 });

@@ -1,0 +1,94 @@
+{
+  "formatVersion": 1,
+  "provider": "openai",
+  "kind": "api-surface",
+  "pages": {
+    "deprecations": {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "file": "docs/ai-docs/pages/openai-deprecations.md",
+      "capturedAt": "2026-10-29",
+      "raw": "https://developers.openai.com/api/docs/deprecations.md"
+    },
+    "assistants": {
+      "url": "https://developers.openai.com/api/docs/assistants/migration",
+      "file": "docs/ai-docs/pages/openai-assistants-migration.md",
+      "capturedAt": "2026-10-29",
+      "raw": "https://developers.openai.com/api/docs/assistants/migration.md"
+    },
+    "responses": {
+      "url": "https://developers.openai.com/api/docs/guides/migrate-to-responses",
+      "file": "docs/ai-docs/pages/openai-migrate-to-responses.md",
+      "capturedAt": "2026-10-29",
+      "raw": "https://developers.openai.com/api/docs/guides/migrate-to-responses.md"
+    }
+  },
+  "rules": [
+    {
+      "rule": "openai-assistants-removed",
+      "family": "surface-removed",
+      "status": "review",
+      "page": "assistants",
+      "quote": "The Assistants API was officially sunset on August 26, 2026, and is no longer available.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Calls the Assistants API, which OpenAI shut down on 2026-08-26, so these requests fail today. The move is not one-to-one: assistants become Prompts (configured in the dashboard), threads become Conversations, runs become Responses, and the tool-call loop moves into your code. Refit lists each call for review and does not rewrite it.",
+      "data": {
+        "breaking": true,
+        "match": {
+          "packages": ["openai"],
+          "calls": ["beta.assistants.*", "beta.threads.*"]
+        }
+      }
+    },
+    {
+      "rule": "openai-legacy-completions",
+      "family": "surface-removed",
+      "status": "review",
+      "page": "deprecations",
+      "quote": "Access to these models was shut down on September 28, 2026.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Calls legacy Completions (`completions.create` / `createCompletion`). Every model it served (gpt-3.5-turbo-instruct, babbage-002, davinci-002) shut down on 2026-09-28, so the call needs a new model and a new API. OpenAI's Responses migration guide covers Chat Completions only; `prompt`, `suffix`, `echo`, `best_of` and `logprobs` have no documented mapping, so Refit lists it for review.",
+      "data": {
+        "breaking": true,
+        "match": {
+          "packages": ["openai"],
+          "calls": ["completions.create", "createCompletion"],
+          "notCalls": ["chat.completions.create", "beta.chat.completions.create"]
+        }
+      }
+    },
+    {
+      "rule": "openai-python-assistants-removed",
+      "family": "surface-removed",
+      "status": "report",
+      "page": "assistants",
+      "quote": "The Assistants API was officially sunset on August 26, 2026, and is no longer available.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Python calls the Assistants API, shut down on 2026-08-26. Python is report only.",
+      "data": {
+        "breaking": true,
+        "match": {
+          "python": ["\\.beta\\.(assistants|threads)\\."]
+        }
+      }
+    },
+    {
+      "rule": "openai-python-legacy-completions",
+      "family": "surface-removed",
+      "status": "report",
+      "page": "deprecations",
+      "quote": "Access to these models was shut down on September 28, 2026.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Python calls legacy Completions, whose models shut down on 2026-09-28. Python is report only.",
+      "data": {
+        "breaking": true,
+        "match": {
+          "python": ["(?<!chat)\\.completions\\.create\\(", "openai\\.Completion\\.create\\("]
+        }
+      }
+    }
+  ]
+}

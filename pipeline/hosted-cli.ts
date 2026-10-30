@@ -41,6 +41,7 @@ import { openInventoryStore } from './inventory-store.ts';
 import { hostedAlerts } from './monitoring.ts';
 import { publishUnresolved } from './publication.ts';
 import { hostedReports } from './report-issues.ts';
+import { hostedCustomerCi } from './hosted-customer.ts';
 import { hostedWatch } from './vendor-watch.ts';
 import { validateServiceSecret } from './local-service.ts';
 import { readRepositoryApproval } from './repository-enrollment.ts';
@@ -505,6 +506,7 @@ try {
         tenancy: hostedTenancy(process.env),
         alerts: hostedAlerts(process.env) ?? undefined,
         reports: hostedReports(process.env),
+        customerCi: hostedCustomerCi(process.env),
         watch: hostedWatch(process.env),
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
         aiTotalUsd:

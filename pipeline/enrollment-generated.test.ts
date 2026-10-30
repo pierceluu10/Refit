@@ -119,7 +119,8 @@ it('gives every reason it cannot generate a configuration, each with its fix', a
     id: 'no-lockfile',
     detail:
       'Refit installs dependencies only from a committed lockfile, and this repository has none at its root.',
-    action: 'Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
+    action:
+      'Without a committed lockfile Refit cannot install dependencies, so it cannot run the checks on a draft.',
   };
   const report = await inspectRepositoryReadiness({
     repository: app,
@@ -273,7 +274,7 @@ it.skipIf(!SAVED)(
       });
     await expect(load()).rejects.toThrow(
       new RepositoryApprovalError(
-        'Repository configuration needs review: Refit installs dependencies only from a committed lockfile, and this repository has none at its root. Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
+        'Repository configuration needs review: Refit installs dependencies only from a committed lockfile, and this repository has none at its root. Without a committed lockfile Refit cannot install dependencies, so it cannot run the checks on a draft.',
       ),
     );
     const loaded = await load(true);
@@ -387,7 +388,7 @@ it.skipIf(!SAVED)(
     const dependencies = report.checks.find((check) => check.id === 'dependencies');
     expect(dependencies?.status).toBe('blocked');
     expect(dependencies?.action).toMatch(
-      /^Make the change the message names in the repository and commit it, or: In \.refit\.json, .* This repository commits no \.refit\.json: to change its settings, commit the generated one first \(refit doctor --json prints it as generated\.configuration\) together with the contracts it names: run refit stripe-snapshot --version \S+ --version \S+ --contracts \. in the repository and commit refit\/\.$/,
+      /^Make the change the message names in the repository and commit it, or: In \.refit\.json, .* This repository commits no \.refit\.json, so Refit uses the one it generated \(refit doctor --json prints it as generated\.configuration\), with the contracts for \S+ and \S+\.$/,
     );
   },
 );

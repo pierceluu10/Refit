@@ -120,6 +120,23 @@ async function verifyCheckout(directory: string, state: Record<string, unknown>,
   return head;
 }
 
+// With several root lockfiles Refit may install the one last committed (chosenLockfile in
+// dependency-inputs.ts), so the history is fetched without file contents. Refit reads only the
+// checked-out commit's files; a failed fetch leaves the checkout shallow, and that rule picks none.
+async function fetchLockfileHistory(directory: string, nextRevision: string, token: string) {
+  const names = (await git(directory, ['ls-tree', '--name-only', nextRevision])).stdout.split('\n');
+  if (
+    ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'].filter((name) => names.includes(name))
+      .length < 2
+  )
+    return;
+  await git(
+    directory,
+    ['fetch', '--quiet', '--filter=blob:none', '--unshallow', '--no-tags', 'origin', nextRevision],
+    token,
+  ).catch(() => undefined);
+}
+
 export async function withGitHubCheckout<T>(
   options: {
     directory: string;
@@ -213,6 +230,7 @@ export async function withGitHubCheckout<T>(
           ['fetch', '--quiet', '--depth=1', '--no-tags', 'origin', nextRevision],
           authentication.token,
         );
+        await fetchLockfileHistory(staging, nextRevision, authentication.token);
         options.signal?.throwIfAborted();
         await git(staging, ['checkout', '--quiet', '--detach', nextRevision]);
         state = {
@@ -239,8 +257,15 @@ export async function withGitHubCheckout<T>(
         ['fetch', '--quiet', '--depth=1', '--no-tags', 'origin', nextRevision],
         authentication.token,
       );
+      await fetchLockfileHistory(checkout, nextRevision, authentication.token);
       options.signal?.throwIfAborted();
-      state = { ...state, phase: 'updating', pendingRevision: nextRevision };
+      state = {
+        ...state,
+        phase: 'updating',
+        pendingRevision: nextRevision,
+        // The first history fetch marks origin as a partial-clone remote in .git/config.
+        configHash: digest(await readFile(join(checkout, '.git', 'config'))),
+      };
       await writeState(statePath, state);
       await git(checkout, ['checkout', '--quiet', '--detach', nextRevision]);
       state = { ...state, phase: 'ready', revision: nextRevision, pendingRevision: null };

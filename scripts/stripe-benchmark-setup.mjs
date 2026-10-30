@@ -1,9 +1,10 @@
 // Rebuilds the Stripe benchmark root from the pinned repository list and labels: shallow clones
 // at the recorded commits, and each API version's spec and fixtures from its stripe/openapi tag.
+import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { parseArgs } from 'node:util';
+import { parseArgs, promisify } from 'node:util';
 import { shallowCheckout } from './ai-app-helpers.mjs';
 import { listSlice } from './aws-benchmark-helpers.mjs';
 
@@ -67,13 +68,39 @@ for (const { version, tag } of pinned.specs) {
     );
 }
 
+// With several root lockfiles Refit may pick the one last committed (chosenLockfile in
+// pipeline/dependency-inputs.ts), so the clone gets its history without file contents, as the
+// managed GitHub checkout does.
+async function lockfileHistory(directory, repo, commit) {
+  const lockfiles = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
+  if (lockfiles.filter((file) => existsSync(join(directory, file))).length < 2) return;
+  const git = (...args) =>
+    promisify(execFile)('git', ['-C', directory, ...args], {
+      timeout: 300_000,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    });
+  if ((await git('rev-parse', '--is-shallow-repository')).stdout.trim() !== 'true') return;
+  await git(
+    'fetch',
+    '-q',
+    '--filter=blob:none',
+    '--unshallow',
+    `https://github.com/${repo}`,
+    commit,
+  );
+}
+
 const failures = [];
 for (const [index, entry] of repos.entries()) {
   console.error(`[${index + 1}/${repos.length}] ${entry.repo}`);
   try {
     // Reuses a clone only at the pinned commit and removes one whose fetch failed, so a rerun
     // retries it instead of leaving an empty checkout for the benchmark to read.
-    await shallowCheckout(join(root, 'repos'), entry.repo, entry.commit);
+    await lockfileHistory(
+      await shallowCheckout(join(root, 'repos'), entry.repo, entry.commit),
+      entry.repo,
+      entry.commit,
+    );
   } catch (error) {
     failures.push({
       repo: entry.repo,
