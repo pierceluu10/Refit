@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
-import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { delimiter, join } from 'node:path';
+import { delimiter, dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { readCommittedRepository } from './committed-repository.ts';
@@ -51,7 +51,10 @@ afterEach(async () => {
 async function directory(files: Record<string, string>, commit = false) {
   const root = await mkdtemp(join(tmpdir(), 'refit-lock-resolution-'));
   roots.push(root);
-  for (const [path, content] of Object.entries(files)) await writeFile(join(root, path), content);
+  for (const [path, content] of Object.entries(files)) {
+    await mkdir(dirname(join(root, path)), { recursive: true });
+    await writeFile(join(root, path), content);
+  }
   if (commit) {
     const git = (...args: string[]) =>
       execute('git', ['-C', root, ...args], {
@@ -363,6 +366,54 @@ it('resolves only root npm projects with registry dependencies, as configured', 
     ),
   ).toBeUndefined();
   expect(resolveNpmLockfile).not.toHaveBeenCalled();
+});
+
+// The Shopify app template declares `"workspaces": ["extensions/*"]` and, in its older releases,
+// commits no lockfile; npm resolves such a project only with its workspace manifests.
+it('resolves an npm project without a lockfile with its committed workspace manifests', async () => {
+  const extension = '{"name":"banner","private":true,"dependencies":{"react":"^18.2.0"}}\n';
+  const root = await directory(
+    {
+      'package.json':
+        '{"name":"app","workspaces":["extensions/*"],"dependencies":{"a":"^1.0.0"}}\n',
+      'extensions/banner/package.json': extension,
+      'extensions/function/shopify.extension.toml': 'api_version = "2024-07"\n',
+    },
+    true,
+  );
+  const lockfile = JSON.stringify({
+    name: 'app',
+    lockfileVersion: 3,
+    requires: true,
+    packages: { '': { name: 'app', workspaces: ['extensions/*'] } },
+  });
+  // Stands in for docker: `run` lists the container's input and prints a lockfile.
+  const binary = await directory({});
+  await writeFile(
+    join(binary, 'docker'),
+    `#!/usr/bin/env node
+const args = process.argv.slice(2);
+if (args[0] !== 'run') process.exit(0);
+const input = /src=([^,]+),dst=\\/input/.exec(args.join(' '))[1];
+const files = require('node:fs').readdirSync(input, { recursive: true, withFileTypes: true })
+  .filter((entry) => entry.isFile())
+  .map((entry) => require('node:path').relative(input, require('node:path').join(entry.parentPath, entry.name)));
+require('node:fs').writeFileSync(${JSON.stringify(join(binary, 'input'))}, files.sort().join('\\n'));
+process.stdout.write(JSON.stringify({ lockfile: ${JSON.stringify(lockfile)}, late: {} }));
+`,
+  );
+  await chmod(join(binary, 'docker'), 0o755);
+  vi.stubEnv('PATH', binary + delimiter + process.env.PATH);
+  const resolved = await resolvedLockfileSnapshot(
+    await readCommittedRepository(root),
+    'no-lockfile',
+    { image: 'node:22-alpine' },
+  );
+  expect((await readFile(join(binary, 'input'), 'utf8')).split('\n')).toEqual([
+    'extensions/banner/package.json',
+    'package.json',
+  ]);
+  expect(resolved?.snapshot.replaced.get('package-lock.json')).toBe(lockfile);
 });
 
 const COMMIT = '7eb2d9abeb36e47c9f7183210f43d44bfd27503a';

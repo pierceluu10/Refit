@@ -17,6 +17,7 @@ import {
   isRegistrySource,
   MAX_LOCK_BYTES,
   MAX_PACKAGE_BYTES,
+  npmWorkspaceDirectories,
 } from './npm-lock.ts';
 import { DEFAULT_PNPM_10_VERSION, PNPM_WORKSPACE } from './pnpm-inputs.ts';
 import { PNPM_LOCKFILE } from './pnpm-lock.ts';
@@ -426,6 +427,21 @@ export async function resolvedLockfileSnapshot(
       return undefined;
     throw error;
   }
+  // npm resolves workspaces (the Shopify app template's `extensions/*`) only with their committed
+  // manifests, each limited to registry dependencies as the root is.
+  const workspaces =
+    manager === 'npm' && parsed.workspaces !== undefined
+      ? await Promise.all(
+          npmWorkspaceDirectories(parsed, paths).map(async (directory) => {
+            const path = `${directory}/package.json`;
+            const content = await readCommittedFile(snapshot, path, MAX_PACKAGE_BYTES);
+            const workspace = parseJson(content);
+            if (!isObject(workspace)) throw new PipelineInputError(`${path} is not an object.`);
+            dependencySources(workspace, path);
+            return { path, content };
+          }),
+        )
+      : undefined;
   const npmrc = paths.includes('.npmrc')
     ? await readCommittedFile(snapshot, '.npmrc', MAX_PACKAGE_BYTES)
     : '';
@@ -450,6 +466,7 @@ export async function resolvedLockfileSnapshot(
     legacyPeerDeps: legacyPeerDeps(npmrc),
     manager,
     tarballs,
+    workspaces,
     image: options.image,
     signal: options.signal,
   });
