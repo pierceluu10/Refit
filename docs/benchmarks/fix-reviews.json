@@ -3176,6 +3176,156 @@
         "upgradeComplete": "n/a: the locked SDK stays.",
         "wouldMerge": "yes"
       }
+    },
+    {
+      "repo": "hookdeck/shopify-festive-notifications",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40973528148/40973530890/40973533416 (396c5b1e, dev-60 and the 250 practice lists, --sdk-upgrade, no AI) against 40950547981/40950561596/40953254697 (c3304055): stopped on the SDK upgrade before, validated grade C after. Read from proposal.patch.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.October24 to ApiVersion.October26 in app/shopify.server.ts (shopifyApp and the exported apiVersion), LATEST_API_VERSION to ApiVersion.October26 in .graphqlrc.ts with its import renamed, and the template's restResources key and @shopify/shopify-api/rest/admin import removed because remix 4.0.0 removed REST (d7bd799) and no source file reads .rest.",
+        "bothVersions": "n/a: an Admin API version move; every traced Admin document validates on 2026-10 with graphql-js.",
+        "nothingUnrelated": "yes: prisma and @prisma/client 5 to 6.19.3 because session storage requires it (documented decision), checked by prisma generate and the type check. The re-resolved package-lock.json moves, outside the Shopify, framework and Prisma packages, only shared packages within their major (isbot 5.1.17 to 5.2.2); the other changes are Prisma 6's own tree and @shopify/shopify-api 11 dependencies the upgrade no longer needs.",
+        "pleaseCheck": "Node.js 22 is required from @shopify/shopify-api 14 (9fec7af); the draft says so. The template's SHOP_CUSTOM_DOMAIN line is left with a note.",
+        "upgradeComplete": "yes: @shopify/shopify-app-remix 3 to 5.0.1 and session-storage-prisma to 10.0.1 together (@shopify/shopify-api 14.0.1).",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "Shopify/loyalty-extension-example",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40973528148/40973530890/40973533416 (396c5b1e, dev-60 and the 250 practice lists, --sdk-upgrade, no AI) against 40950547981/40950561596/40953254697 (c3304055): stopped on the SDK upgrade before, validated grade C after. Read from proposal.patch.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.October24 to ApiVersion.October26 in app/shopify.server.ts (shopifyApp and the exported apiVersion), LATEST_API_VERSION to ApiVersion.October26 in .graphqlrc.ts with its import renamed, and the template's restResources key and @shopify/shopify-api/rest/admin import removed because remix 4.0.0 removed REST (d7bd799) and no source file reads .rest.",
+        "bothVersions": "n/a: an Admin API version move; every traced Admin document validates on 2026-10 with graphql-js.",
+        "nothingUnrelated": "yes: prisma and @prisma/client 5 to 6.19.3 because session storage requires it (documented decision), checked by prisma generate and the type check. The re-resolved package-lock.json moves, outside the Shopify, framework and Prisma packages, only shared packages within their major (dotenv 16.4.5 to 16.6.1, isbot 5.1.17 to 5.2.2); the other changes are Prisma 6's own tree and @shopify/shopify-api 11 dependencies the upgrade no longer needs.",
+        "pleaseCheck": "Node.js 22 is required from @shopify/shopify-api 14 (9fec7af); the draft says so. The template's SHOP_CUSTOM_DOMAIN line is left with a note.",
+        "upgradeComplete": "yes: @shopify/shopify-app-remix 3 to 5.0.1 and session-storage-prisma to 10.0.1 together (@shopify/shopify-api 14.0.1).",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "ntwrk1/test-checkout-app",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40973528148/40973530890/40973533416 (396c5b1e, dev-60 and the 250 practice lists, --sdk-upgrade, no AI) against 40950547981/40950561596/40953254697 (c3304055): stopped on the SDK upgrade before, validated grade C after. Read from proposal.patch.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.July24 to ApiVersion.October26 in app/shopify.server.ts (shopifyApp and the exported apiVersion), LATEST_API_VERSION to ApiVersion.October26 in .graphqlrc.ts with its import renamed, and the template's restResources key and @shopify/shopify-api/rest/admin import removed because remix 4.0.0 removed REST (d7bd799) and no source file reads .rest.",
+        "bothVersions": "n/a: an Admin API version move; every traced Admin document validates on 2026-10 with graphql-js.",
+        "nothingUnrelated": "yes: prisma and @prisma/client 5 to 6.19.3 because session storage requires it (documented decision), checked by prisma generate and the type check. The re-resolved package-lock.json moves, outside the Shopify, framework and Prisma packages, only shared packages within their major (dotenv 16.4.5 to 16.6.1, isbot 5.1.17 to 5.2.2, jose 5.8.0 to 5.10.0); the other changes are Prisma 6's own tree and @shopify/shopify-api 11 dependencies the upgrade no longer needs.",
+        "pleaseCheck": "Node.js 22 is required from @shopify/shopify-api 14 (9fec7af); the draft says so. The template's SHOP_CUSTOM_DOMAIN line is left with a note.",
+        "upgradeComplete": "yes: @shopify/shopify-app-remix 3 to 5.0.1 and session-storage-prisma to 10.0.1 together (@shopify/shopify-api 14.0.1).",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "Mitakshar15/RemixShopifyApp",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40973528148/40973530890/40973533416 (396c5b1e, dev-60 and the 250 practice lists, --sdk-upgrade, no AI) against 40950547981/40950561596/40953254697 (c3304055): stopped on the SDK upgrade before, validated grade C after. Read from proposal.patch.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.October24 to ApiVersion.October26 in app/shopify.server.ts (shopifyApp and the exported apiVersion), LATEST_API_VERSION to ApiVersion.October26 in .graphqlrc.ts with its import renamed, and the template's restResources key and @shopify/shopify-api/rest/admin import removed because remix 4.0.0 removed REST (d7bd799) and no source file reads .rest.",
+        "bothVersions": "n/a: an Admin API version move; every traced Admin document validates on 2026-10 with graphql-js.",
+        "nothingUnrelated": "yes: prisma and @prisma/client 5 to 6.19.3 because session storage requires it (documented decision), checked by prisma generate and the type check. The re-resolved package-lock.json moves, outside the Shopify, framework and Prisma packages, only shared packages within their major (dotenv 16.4.7 to 16.6.1, isbot 5.1.17 to 5.2.2); the other changes are Prisma 6's own tree and @shopify/shopify-api 11 dependencies the upgrade no longer needs.",
+        "pleaseCheck": "Node.js 22 is required from @shopify/shopify-api 14 (9fec7af); the draft says so. The template's SHOP_CUSTOM_DOMAIN line is left with a note.",
+        "upgradeComplete": "yes: @shopify/shopify-app-remix 3 to 5.0.1 and session-storage-prisma to 10.0.1 together (@shopify/shopify-api 14.0.1).",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "jaysontolentino/Shopify-QRCodeGeneratorApp",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40973528148/40973530890/40973533416 (396c5b1e, dev-60 and the 250 practice lists, --sdk-upgrade, no AI) against 40950547981/40950561596/40953254697 (c3304055): stopped on the SDK upgrade before, validated grade C after. Read from proposal.patch.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.July24 to ApiVersion.October26 in app/shopify.server.ts (shopifyApp and the exported apiVersion), LATEST_API_VERSION to ApiVersion.October26 in .graphqlrc.ts with its import renamed, and the template's restResources key and @shopify/shopify-api/rest/admin import removed because remix 4.0.0 removed REST (d7bd799) and no source file reads .rest.",
+        "bothVersions": "n/a: an Admin API version move; every traced Admin document validates on 2026-10 with graphql-js.",
+        "nothingUnrelated": "yes: prisma and @prisma/client 5 to 6.19.3 because session storage requires it (documented decision), checked by prisma generate and the type check. The re-resolved package-lock.json moves, outside the Shopify, framework and Prisma packages, only shared packages within their major (dotenv 16.4.5 to 16.6.1, isbot 5.1.17 to 5.2.2, jose 5.8.0 to 5.10.0); the other changes are Prisma 6's own tree and @shopify/shopify-api 11 dependencies the upgrade no longer needs.",
+        "pleaseCheck": "Node.js 22 is required from @shopify/shopify-api 14 (9fec7af); the draft says so. The template's SHOP_CUSTOM_DOMAIN line is left with a note.",
+        "upgradeComplete": "yes: @shopify/shopify-app-remix 3 to 5.0.1 and session-storage-prisma to 10.0.1 together (@shopify/shopify-api 14.0.1).",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "avocadomayo/cart-checkout-validation-app",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40973528148/40973530890/40973533416 (396c5b1e, dev-60 and the 250 practice lists, --sdk-upgrade, no AI) against 40950547981/40950561596/40953254697 (c3304055): stopped on the SDK upgrade before, validated grade C after. Read from proposal.patch.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.July24 to ApiVersion.October26 in app/shopify.server.ts (shopifyApp and the exported apiVersion), LATEST_API_VERSION to ApiVersion.October26 in .graphqlrc.ts with its import renamed, and the template's restResources key and @shopify/shopify-api/rest/admin import removed because remix 4.0.0 removed REST (d7bd799) and no source file reads .rest.",
+        "bothVersions": "n/a: an Admin API version move; every traced Admin document validates on 2026-10 with graphql-js.",
+        "nothingUnrelated": "yes: prisma and @prisma/client 5 to 6.19.3 because session storage requires it (documented decision), checked by prisma generate and the type check. The re-resolved package-lock.json moves, outside the Shopify, framework and Prisma packages, only shared packages within their major (dotenv 16.4.5 to 16.6.1, isbot 5.1.17 to 5.2.2, jose 5.8.0 to 5.10.0); the other changes are Prisma 6's own tree and @shopify/shopify-api 11 dependencies the upgrade no longer needs.",
+        "pleaseCheck": "Node.js 22 is required from @shopify/shopify-api 14 (9fec7af); the draft says so. The template's SHOP_CUSTOM_DOMAIN line is left with a note.",
+        "upgradeComplete": "yes: @shopify/shopify-app-remix 3 to 5.0.1 and session-storage-prisma to 10.0.1 together (@shopify/shopify-api 14.0.1).",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "edmondso006/shopify-remix-i18n-blog-post",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40973528148/40973530890/40973533416 (396c5b1e, dev-60 and the 250 practice lists, --sdk-upgrade, no AI) against 40950547981/40950561596/40953254697 (c3304055): stopped on the SDK upgrade before, validated grade C after. Read from proposal.patch.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.October24 to ApiVersion.October26 in app/shopify.server.ts (shopifyApp and the exported apiVersion), LATEST_API_VERSION to ApiVersion.October26 in .graphqlrc.ts with its import renamed, and the template's restResources key and @shopify/shopify-api/rest/admin import removed because remix 4.0.0 removed REST (d7bd799) and no source file reads .rest.",
+        "bothVersions": "n/a: an Admin API version move; every traced Admin document validates on 2026-10 with graphql-js.",
+        "nothingUnrelated": "yes: prisma and @prisma/client 5 to 6.19.3 because session storage requires it (documented decision), checked by prisma generate and the type check. The re-resolved package-lock.json moves, outside the Shopify, framework and Prisma packages, only shared packages within their major (dotenv 16.4.5 to 16.6.1, isbot 5.1.17 to 5.2.2); the other changes are Prisma 6's own tree and @shopify/shopify-api 11 dependencies the upgrade no longer needs.",
+        "pleaseCheck": "Node.js 22 is required from @shopify/shopify-api 14 (9fec7af); the draft says so. The template's SHOP_CUSTOM_DOMAIN line is left with a note.",
+        "upgradeComplete": "yes: @shopify/shopify-app-remix 3 to 5.0.1 and session-storage-prisma to 10.0.1 together (@shopify/shopify-api 14.0.1).",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "jgasimli04/marketoracle",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40973528148/40973530890/40973533416 (396c5b1e, dev-60 and the 250 practice lists, --sdk-upgrade, no AI) against 40950547981/40950561596/40953254697 (c3304055): validated on a fallback version (no SDK upgrade) before, validated grade C after. Read from proposal.patch. At 788cdaf9 the same upgrade failed its type check on an aliased AppProvider, never published; fixed in 396c5b1e.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.October25 to ApiVersion.October26 in app/shopify.server.ts and .graphqlrc.ts; <ShopifyAppProvider embedded apiKey> (AppProvider imported under an alias) loses embedded, and the login route's <AppProvider embedded={false}> becomes the Polaris script and its children (0dbb90c).",
+        "bothVersions": "n/a: an Admin API version move; every traced Admin document validates on 2026-10.",
+        "nothingUnrelated": "yes: the lockfile moves only isbot 5.1.32 to 5.2.2 outside the Shopify packages.",
+        "pleaseCheck": "Node.js 22 is required from @shopify/shopify-app-react-router 2 (9fec7af).",
+        "upgradeComplete": "yes: @shopify/shopify-app-react-router 1.1.0 to 2.1.0 and session-storage-prisma 8 to 10 (@shopify/shopify-api 14.0.1).",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "IliasHad/shopify-app-template-remix-cloudflare-workers",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40979832096/40984651472/40982838222 (df398702, dev-60 and the 250 practice lists, --sdk-upgrade, Claude Sonnet 5.5) against 40950547981/40950561596/40953254697 (c3304055): stopped on the SDK upgrade before, validated grade C after. Read from proposal.patch. The workflow records generator openai because AI repair ran; the final patch has only these rule edits.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.October24 to ApiVersion.October26 in app/shopify.server.ts (shopifyApp and the exported apiVersion), LATEST_API_VERSION to ApiVersion.October26 in .graphqlrc.ts with its import renamed, future.removeRest: true dropped (remix 4.0.0 d7bd799).",
+        "bothVersions": "n/a: an Admin API version move; every traced Admin document validates on 2026-10.",
+        "nothingUnrelated": "yes: the lockfile moves only isbot 5.1.21 to 5.2.2 (node-fetch and its dependencies only re-hoisted) outside the Shopify, framework and Prisma packages.",
+        "pleaseCheck": "Node.js 22 is required from @shopify/shopify-api 14 (9fec7af). The template's SHOP_CUSTOM_DOMAIN line is left with a note.",
+        "upgradeComplete": "yes: @shopify/shopify-app-remix 3 to 5.0.1 and session-storage-prisma to 10.0.1 (@shopify/shopify-api 14.0.1).",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "SankaiAI/iHeard.ai",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40979832096/40984651472/40982838222 (df398702, dev-60 and the 250 practice lists, --sdk-upgrade, Claude Sonnet 5.5) against 40950547981/40950561596/40953254697 (c3304055): stopped on the SDK upgrade before, validated grade C after. Read from proposal.patch.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.January25 to ApiVersion.October26 in app/shopify.server.ts (shopifyApp and the exported apiVersion), LATEST_API_VERSION to ApiVersion.October26 in .graphqlrc.ts with its import renamed, future.removeRest: true dropped (remix 4.0.0 d7bd799).",
+        "bothVersions": "n/a: an Admin API version move; every traced Admin document validates on 2026-10.",
+        "nothingUnrelated": "yes: the lockfile moves only isbot 5.1.28 to 5.2.2 outside the Shopify, framework and Prisma packages.",
+        "pleaseCheck": "Node.js 22 is required from @shopify/shopify-api 14 (9fec7af). The template's SHOP_CUSTOM_DOMAIN line is left with a note.",
+        "upgradeComplete": "yes: @shopify/shopify-app-remix 3 to 5.0.1 and session-storage-prisma to 10.0.1 (@shopify/shopify-api 14.0.1).",
+        "wouldMerge": "yes"
+      }
     }
   ]
 }
