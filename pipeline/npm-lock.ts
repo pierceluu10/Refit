@@ -26,22 +26,82 @@ export const DEPENDENCY_SECTIONS = [
 const NON_REGISTRY_SOURCE =
   /^(?:file:|link:|workspace:|git(?:\+|:)|https?:|ssh:|github:|gitlab:|bitbucket:|\/|\.\.?\/)|^[^@\s]+\/[^@\s]+$/;
 const INTEGRITY =
-  /^(?:sha(?:256|384|512)-[A-Za-z0-9+/]+={0,2})(?:\s+sha(?:256|384|512)-[A-Za-z0-9+/]+={0,2})*$/;
+  /^(?:sha(?:1|256|384|512)-[A-Za-z0-9+/]+={0,2})(?:\s+sha(?:1|256|384|512)-[A-Za-z0-9+/]+={0,2})*$/;
 const INTEGRITY_LENGTHS = new Map([
+  ['sha1', 20],
   ['sha256', 32],
   ['sha384', 48],
   ['sha512', 64],
 ]);
 
+// npm, pnpm and Yarn 1 check a tarball against only the strongest algorithm its integrity lists
+// (ssri's pickAlgorithm), so a sha1 hash beside a SHA-256-or-stronger one is never what is checked.
 export function hasStrongIntegrity(value: unknown): value is string {
   if (typeof value !== 'string' || !INTEGRITY.test(value)) return false;
-  return value.split(/\s+/).every((entry) => {
-    const [algorithm, encoded] = entry.split('-', 2);
-    const bytes = Buffer.from(encoded, 'base64');
-    return (
-      bytes.byteLength === INTEGRITY_LENGTHS.get(algorithm) && bytes.toString('base64') === encoded
+  const entries = value.split(/\s+/).map((entry) => entry.split('-', 2));
+  return (
+    entries.some(([algorithm]) => algorithm !== 'sha1') &&
+    entries.every(([algorithm, encoded]) => {
+      const bytes = Buffer.from(encoded, 'base64');
+      return (
+        bytes.byteLength === INTEGRITY_LENGTHS.get(algorithm) &&
+        bytes.toString('base64') === encoded
+      );
+    })
+  );
+}
+
+// Release archives of public code hosts, which npm records with the integrity of the bytes it
+// downloaded. With a SHA-256-or-stronger integrity they are as verifiable as a registry tarball:
+// npm ci refuses any other bytes. Only these hosts are fetched, never an arbitrary or private one.
+const CODE_HOST_ARCHIVES: Record<string, RegExp> = {
+  'github.com': /^\/[\w.-]+\/[\w.-]+\/archive\/[\w./-]+\.(?:tar\.gz|tgz)$/,
+  'codeload.github.com': /^\/[\w.-]+\/[\w.-]+\/tar\.gz\/[\w./-]+$/,
+  'gitlab.com': /^\/[\w.-]+(?:\/[\w.-]+)+\/-\/archive\/[\w./-]+\.(?:tar\.gz|tgz)$/,
+};
+
+export function codeHostTarball(source: unknown): source is string {
+  if (typeof source !== 'string') return false;
+  let url;
+  try {
+    url = new URL(source);
+  } catch {
+    return false;
+  }
+  return (
+    // Only a URL written as npm will request it: no dot segments or other normalisation.
+    url.href === source &&
+    url.protocol === 'https:' &&
+    !url.port &&
+    !url.username &&
+    !url.password &&
+    !url.search &&
+    !url.hash &&
+    Boolean(CODE_HOST_ARCHIVES[url.hostname]?.test(url.pathname))
+  );
+}
+
+// Names the repository and commit a Git source installs, for a refusal: Refit's install sandbox
+// has no git, and a Git checkout carries no SHA-256-or-stronger integrity of its own.
+export function gitSource(source: unknown) {
+  if (typeof source !== 'string') return undefined;
+  const at = (ref: string | undefined) =>
+    !ref ? '' : /^[a-f0-9]{40}$/.test(ref) ? ` at commit ${ref.slice(0, 7)}` : ` at ${ref}`;
+  const url =
+    /^git(?:\+(?:ssh|https?))?:\/\/(?:[^@/]+@)?([^/:]+)[/:](.+?)(?:\.git)?(?:#(.*))?$/.exec(source);
+  if (url) return `${url[1]}/${url[2]}${at(url[3])}`;
+  const shortcut = /^(?:(github|gitlab|bitbucket):)?([\w.-]+\/[\w.-]+?)(?:\.git)?(?:#(.*))?$/.exec(
+    source,
+  );
+  if (shortcut && (shortcut[1] || !source.includes(':')) && !/^[@./]/.test(source))
+    return `${shortcut[1] === 'gitlab' ? 'gitlab.com' : shortcut[1] === 'bitbucket' ? 'bitbucket.org' : 'github.com'}/${shortcut[2]}${at(shortcut[3])}`;
+  // pnpm keys and tarballs for a commit: github.com/o/r/<sha>, codeload.github.com/o/r/tar.gz/<sha>.
+  const commit =
+    /^(?:https:\/\/codeload\.)?github\.com\/([\w.-]+\/[\w.-]+)\/(?:tar\.gz\/)?([a-f0-9]{40})$/.exec(
+      source,
     );
-  });
+  if (commit) return `github.com/${commit[1]}${at(commit[2])}`;
+  return undefined;
 }
 
 export function isRegistrySource(source: unknown): source is string {
@@ -57,16 +117,21 @@ export function isRegistrySource(source: unknown): source is string {
 // A published package's own declarations reach the lockfile as its record's dependencies. npm reads
 // an empty range there as "*" (@tabler/icons-react 3.36.1 declares "@tabler/icons": ""), and the
 // lockfile still pins what it installs.
-function dependencySources(value: Record<string, unknown>, file: string, published = false) {
+export function dependencySources(value: Record<string, unknown>, file: string, published = false) {
   for (const section of DEPENDENCY_SECTIONS) {
     const dependencies = value[section];
     if (dependencies === undefined) continue;
     if (!isObject(dependencies)) throw new PipelineInputError(`npm ${section} must be an object.`);
-    for (const [name, source] of Object.entries(dependencies))
-      if (!(published && source === '') && !isRegistrySource(source))
-        throw new PipelineInputError(
-          `Automatic preparation supports public npm registry dependencies only; ${file} declares ${name} as ${quotedSource(source)}. Local, Git and URL dependencies require a custom image.`,
-        );
+    for (const [name, source] of Object.entries(dependencies)) {
+      if ((published && source === '') || isRegistrySource(source) || codeHostTarball(source))
+        continue;
+      const git = gitSource(source);
+      throw new PipelineInputError(
+        git
+          ? `Automatic preparation supports public npm registry dependencies only; ${file} declares ${name} from Git (${git}), which Refit's own preparation does not fetch: its install sandbox has no git, and a Git checkout has no SHA-256-or-stronger integrity to verify. Local, Git and URL dependencies need the repository install.`
+          : `Automatic preparation supports public npm registry dependencies only; ${file} declares ${name} as ${quotedSource(source)}. Local, Git and URL dependencies need the repository install.`,
+      );
+    }
   }
 }
 
@@ -78,31 +143,40 @@ export function npmWorkspaceDirectories(manifest: Record<string, unknown>, paths
     isObject(declared) && Object.keys(declared).join() === 'packages'
       ? declared.packages
       : declared;
+  // npm (@npmcli/map-workspaces) and pnpm (pnpm-workspace.yaml) exclude what a `!pattern` matches.
+  // npm lets a later positive pattern re-include it and pnpm does not, so negations are read only
+  // after every positive pattern, where both select the same directories.
+  const first = Array.isArray(patterns)
+    ? patterns.findIndex((pattern) => String(pattern).startsWith('!'))
+    : -1;
+  const negations = first < 0 ? [] : (patterns as string[]).slice(first);
   if (
     !Array.isArray(patterns) ||
     patterns.length > MAX_WORKSPACES ||
+    negations.some((pattern) => !/^![^!]/.test(String(pattern))) ||
     patterns.some(
       (pattern) =>
         typeof pattern !== 'string' ||
         !pattern ||
-        pattern.startsWith('!') ||
-        pattern.startsWith('/') ||
+        pattern.replace(/^!/, '').startsWith('/') ||
         /[\\\u0000-\u001f\u007f]/.test(pattern) ||
-        pattern.split('/').includes('..'),
+        pattern.replace(/^!/, '').split('/').includes('..'),
     )
   )
     throw new PipelineInputError(
-      'npm workspaces require at most 64 positive relative path/glob patterns. Negations, escaping paths and object declarations other than { packages } require a custom image.',
+      'npm workspaces require at most 64 relative path/glob patterns, with any negations after every positive one. Escaping paths and object declarations other than { packages } need the repository install.',
     );
+  const glob = (directory: string, pattern: string) =>
+    posix.matchesGlob(directory, pattern.replace(/^(\.\/)+/, '').replace(/\/+$/, ''));
+  const positive = patterns.slice(0, patterns.length - negations.length);
   const directories = paths
     .filter((path) => path.endsWith('/package.json'))
     .map(posix.dirname)
     .filter(
       (directory) =>
         !directory.split('/').includes('node_modules') &&
-        patterns.some((pattern) =>
-          posix.matchesGlob(directory, pattern.replace(/^(\.\/)+/, '').replace(/\/+$/, '')),
-        ),
+        positive.some((pattern) => glob(directory, pattern)) &&
+        !negations.some((pattern) => glob(directory, pattern.slice(1))),
     )
     .sort();
   if (directories.length > MAX_WORKSPACES)
@@ -135,7 +209,7 @@ export function validateNpmLock(
   const manifest = parseObject(packageContent, 'package.json');
   const lock = parseObject(lockContent, 'package-lock.json');
   if (manifest.bundledDependencies !== undefined || manifest.bundleDependencies !== undefined)
-    throw new PipelineInputError('Root bundled dependencies require a custom validation image.');
+    throw new PipelineInputError('Root bundled dependencies need the repository install.');
   dependencySources(manifest, 'package.json');
   if (manifest.overrides !== undefined) {
     if (!isObject(manifest.overrides))
@@ -190,7 +264,7 @@ export function validateNpmLock(
         value.bundleDependencies !== undefined
       )
         throw new PipelineInputError(
-          'Each workspace requires an explicit npm name; workspace bins, nested workspace declarations and bundled dependencies require a custom image.',
+          'Each workspace requires an explicit npm name; workspace bins, nested workspace declarations and bundled dependencies need the repository install.',
         );
       dependencySources(value, `${directory}/package.json`);
       return [directory, value] as const;
@@ -257,6 +331,8 @@ export function validateNpmLock(
       );
   }
   const workspaceLinks: Record<string, string> = {};
+  const remoteTarballs: string[] = [];
+  let mirrored = false;
   for (const [path, record] of Object.entries(lock.packages)) {
     if (!isObject(record))
       throw new PipelineInputError('npm lockfile package records must be objects.');
@@ -267,6 +343,15 @@ export function validateNpmLock(
     );
     if (!path) continue;
     if (workspaces.has(path)) continue;
+    // A record outside every node_modules directory describes a project directory, which npm never
+    // fetches (Arborist's diff.js does not diff fsChildren); an extraneous one with no source is a
+    // leftover npm ci leaves alone.
+    if (
+      !path.split('/').includes('node_modules') &&
+      record.extraneous === true &&
+      !['link', 'resolved', 'integrity'].some((key) => key in record)
+    )
+      continue;
     const dependencyPath =
       (path.startsWith('node_modules/') ||
         directories.some((directory) => path.startsWith(`${directory}/node_modules/`))) &&
@@ -287,7 +372,7 @@ export function validateNpmLock(
     }
     if (!dependencyPath || record.link)
       throw new PipelineInputError(
-        'Every npm package requires a registry URL, version and SHA-256-or-stronger integrity; links and bundled records require a custom image.',
+        'Every npm package requires a registry URL, version and SHA-256-or-stronger integrity; links and bundled records need the repository install.',
       );
     const verified = (value: Record<string, unknown>) =>
       typeof value.version === 'string' &&
@@ -334,12 +419,24 @@ export function validateNpmLock(
         `package-lock.json records ${path}${others ? ` and ${others} more packages` : ''} without a version, registry "resolved" URL and SHA-256-or-stronger "integrity", so Refit cannot verify what it would install. Reinstall against registry.npmjs.org so npm records them (delete node_modules and run npm install; if entries stay incomplete, regenerate package-lock.json) and commit the lockfile.`,
       );
     }
+    if (codeHostTarball(record.resolved)) {
+      remoteTarballs.push(path);
+      continue;
+    }
     assertRegistryTarball(record.resolved as string, path, true);
+    mirrored ||= new URL(record.resolved as string).hostname !== 'registry.npmjs.org';
   }
+  // npm fetches a mirror-resolved record from registry.npmjs.org only by replacing every host,
+  // which would also send a code host's archive to the registry.
+  if (remoteTarballs.length && mirrored)
+    throw new PipelineInputError(
+      `package-lock.json resolves ${remoteTarballs[0]} from a code host and other packages from a registry mirror; Refit fetches registry packages only from registry.npmjs.org, which npm cannot do while it also downloads a code host's archive. Reinstall against registry.npmjs.org and commit the lockfile.`,
+    );
   return {
     packageHash: digest(packageContent),
     lockHash: digest(lockContent),
     packages: Object.keys(lock.packages).length - 1,
+    ...(remoteTarballs.length ? { remoteTarballs: remoteTarballs.length } : {}),
     ...(workspaces.size
       ? {
           workspaceHashes: Object.fromEntries(
@@ -363,6 +460,11 @@ export function assertRegistryTarball(source: string, path?: string, mirrors = f
   } catch (cause) {
     throw new PipelineInputError('Package registry URL is invalid.', { cause });
   }
+  const git = gitSource(source);
+  if (git)
+    throw new PipelineInputError(
+      `Package tarballs must use public registry.npmjs.org HTTPS URLs without credentials or parameters${path ? `; package-lock.json installs ${path} from Git (${git})` : `; a dependency comes from Git (${git})`}, which Refit's own preparation does not fetch: its install sandbox has no git, and a Git checkout has no SHA-256-or-stronger integrity to verify.`,
+    );
   if (
     url.protocol !== 'https:' ||
     (url.hostname !== 'registry.npmjs.org' &&

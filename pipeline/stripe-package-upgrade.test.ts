@@ -9,6 +9,7 @@ import { DependencyPreparationError, prepareDependencies } from './dependency-pr
 import {
   codeDiff,
   packageDiff,
+  samePatchLine,
   STRIPE_SDK_RELEASES,
   stripePackageUpgrade,
 } from './stripe-package-upgrade.ts';
@@ -708,6 +709,26 @@ it.each([
   });
 });
 
+it('upgrades only the lockfile preparation chose when the lockfiles disagree', async () => {
+  // Shaped like avikalp987/quill: package-lock.json, committed last, locks another stripe than
+  // pnpm-lock.yaml. Both lockfiles are upgraded together whenever that works.
+  registry();
+  const npmLock = npmLockText(lockfile('^16.12.0'));
+  const root = await withLock(await pnpmProject(pnpmLock()), 'package-lock.json', npmLock);
+  const result = await stripePackageUpgrade(root, '2026-09-30.endive', undefined, 'pnpm-lock.yaml');
+  if (!('upgrade' in result)) throw new Error(result.reason);
+  const manifest = result.upgrade.files[0].before;
+  expect(result.upgrade.files).toEqual(await alone(manifest, 'pnpm-lock.yaml', pnpmLock()));
+  expect(result.upgrade.warning).toBe(
+    `Upgrades stripe from 16.12.0 to ${TARGET} in package.json and pnpm-lock.yaml, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog. Refit installed and upgraded pnpm-lock.yaml only and left package-lock.json as committed, so it can still lock the older stripe. Delete the lockfile your package manager does not use.`,
+  );
+  // Choosing the other one upgrades it alone.
+  const npm = await stripePackageUpgrade(root, '2026-09-30.endive', undefined, 'package-lock.json');
+  if (!('upgrade' in npm)) throw new Error(npm.reason);
+  expect(npm.upgrade.files.map((file) => file.path)).toEqual(['package.json', 'package-lock.json']);
+  expect(npm.upgrade.from).toBe('12.18.0');
+});
+
 it('ignores an empty lockfile beside the one that locks stripe', async () => {
   registry();
   const result = await stripePackageUpgrade(
@@ -1118,4 +1139,13 @@ it.each([
   registry();
   const result = await stripePackageUpgrade(await v6Project(lock), '2026-09-30.endive');
   expect(result).toMatchObject({ reason: expect.any(String) });
+});
+
+it('accepts a newer patch of the target stripe-node release, never another minor', () => {
+  expect(samePatchLine('23.0.0', '23.0.0')).toBe(true);
+  expect(samePatchLine('23.0.1', '23.0.0')).toBe(true);
+  expect(samePatchLine('23.1.0', '23.0.0')).toBe(false);
+  expect(samePatchLine('22.9.9', '23.0.0')).toBe(false);
+  expect(samePatchLine('23.0.1-beta.1', '23.0.0')).toBe(false);
+  expect(samePatchLine(undefined, '23.0.0')).toBe(false);
 });

@@ -526,7 +526,7 @@ it.skipIf(!SAVED_CONTRACTS)(
     // Without decision 1 the regenerated configuration refuses again, before doctor or the workflow.
     await expect(pollServiceTarget(input)).rejects.toThrow(
       new RepositoryApprovalError(
-        'Repository configuration needs review: Refit installs dependencies only from a committed lockfile, and this repository has none at its root. Run npm install, pnpm install or yarn install once and commit the lockfile it writes.',
+        'Repository configuration needs review: Refit installs dependencies only from a committed lockfile, and this repository has none at its root. Without a committed lockfile Refit cannot install dependencies, so it cannot run the checks on a draft.',
       ),
     );
     expect(worker).not.toHaveBeenCalled();

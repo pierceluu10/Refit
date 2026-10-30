@@ -61,6 +61,7 @@ it('refuses Yarn inputs that need a custom image', async () => {
       { ...manifest, workspaces: { packages: ['packages/*'], nohoist: ['**'] } },
       classic,
     ],
+    ['negated workspaces', { ...manifest, workspaces: ['packages/*', '!packages/old'] }, classic],
     ['undeclared range', { ...manifest, dependencies: { stripe: '^18.0.0' } }, classic],
     ['git source', { ...manifest, dependencies: { stripe: 'github:stripe/stripe-node' } }, classic],
     [
@@ -303,13 +304,13 @@ it('names each Yarn 2+ setup it does not prepare', async () => {
     throw new Error('accepted');
   };
   expect(refusal(pinned, undefined)).toBe(
-    "Yarn Plug'n'Play requires a custom validation image: Refit prepares Yarn 2+ only with nodeLinker: node-modules in .yarnrc.yml, and without nodeLinker Yarn uses Plug'n'Play.",
+    "Yarn Plug'n'Play needs the repository install: Refit prepares Yarn 2+ only with nodeLinker: node-modules in .yarnrc.yml, and without nodeLinker Yarn uses Plug'n'Play.",
   );
   expect(refusal(pinned, 'nodeLinker: pnp\n')).toBe(
-    "Yarn Plug'n'Play requires a custom validation image: Refit prepares Yarn 2+ only with nodeLinker: node-modules in .yarnrc.yml.",
+    "Yarn Plug'n'Play needs the repository install: Refit prepares Yarn 2+ only with nodeLinker: node-modules in .yarnrc.yml.",
   );
   expect(refusal(pinned, 'nodeLinker: pnpm\n')).toBe(
-    'Yarn\'s "pnpm" linker requires a custom validation image; Refit prepares Yarn 2+ only with nodeLinker: node-modules.',
+    'Yarn\'s "pnpm" linker needs the repository install; Refit prepares Yarn 2+ only with nodeLinker: node-modules.',
   );
   expect(
     refusal(
@@ -317,10 +318,10 @@ it('names each Yarn 2+ setup it does not prepare', async () => {
       `${BERRY_RC}plugins:\n  - path: .yarn/plugins/@yarnpkg/plugin-workspace-tools.cjs\n`,
     ),
   ).toBe(
-    'Yarn plugins (plugins in .yarnrc.yml) run their own code during installs, so they require a custom validation image.',
+    'Yarn plugins (plugins in .yarnrc.yml) run their own code during installs, so they need the repository install.',
   );
   expect(refusal(pinned, `${BERRY_RC}checksumBehavior: ignore\nnmMode: hardlinks-global\n`)).toBe(
-    '.yarnrc.yml sets checksumBehavior, nmMode, which Refit does not apply; validating with them requires a custom image.',
+    '.yarnrc.yml sets checksumBehavior, nmMode, which Refit does not apply; validating with them needs the repository install.',
   );
   expect(refusal({ ...manifest, packageManager: 'yarn@1.22.19' }, BERRY_RC)).toBe(
     'packageManager pins yarn@1.22.19, but yarn.lock is a Yarn 2+ lockfile. Pin the Yarn release that wrote the lockfile, or regenerate it with Yarn 1.',
@@ -462,7 +463,7 @@ it('accepts Yarn 2+ workspaces recorded in the lockfile and refuses unrecorded o
       ]),
     ),
   ).toThrow(
-    'lodash@^4.0.0 in packages/shared/package.json is not a public registry dependency or a sibling workspace recorded in yarn.lock; regenerate the lockfile or use a custom image.',
+    'lodash@^4.0.0 in packages/shared/package.json is not a public registry dependency or a sibling workspace recorded in yarn.lock; regenerate the lockfile or let Refit run the repository install.',
   );
   // Yarn records a plain range it resolved to a sibling workspace without the npm: prefix.
   expect(() =>
@@ -647,6 +648,7 @@ it('explains running out of installer space by package manager', async () => {
     `#!/usr/bin/env node
 const args = process.argv.slice(2);
 if (args[0] === 'image') { console.log('sha256:${'a'.repeat(64)}'); process.exit(0); }
+if (args[0] === 'run' && args.includes('--rm')) process.exit(0);
 if (args[0] === 'run') { process.stderr.write('ENOSPC: no space left on device, write\\n'); process.exit(1); }
 `,
   );
@@ -688,7 +690,7 @@ if (args[0] === 'run') { process.stderr.write('ENOSPC: no space left on device, 
       cacheDirectory: join(root, 'cache'),
     }),
   ).rejects.toThrow(
-    'yarn dependency preparation ran out of space in its 4g workspace (ENOSPC). Yarn 2+ keeps a zip of every package in its cache beside the unpacked tree. In .refit.json, remove "prepareDependencies"',
+    "yarn dependency preparation ran out of space in its 4g workspace (ENOSPC). Yarn's package cache is kept outside the workspace, so the unpacked tree alone did not fit. The installed dependencies do not fit",
   );
   // Under a smaller operator profile the message names the default 4 GiB one.
   vi.stubEnv('REFIT_VALIDATION_WORKSPACE', '2g');

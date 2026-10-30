@@ -33,7 +33,7 @@ The existing `watch`, enrollment and App service paths use the same preparation.
 
 Only committed root/workspace `package.json` files and the root `package-lock.json` enter the networked install container. Application source, `.env`, `.npmrc` and repository scripts are not copied or executed there. `npm ci` installs public locked dependencies with lifecycle scripts disabled.
 
-`workspaces` may be an array of up to 64 positive relative globs, or `{ "packages": [...] }` with no other keys, the form Shopify's app templates use; npm reads both the same way. Negations, escaping paths and other object declarations require a custom image.
+`workspaces` may be an array of up to 64 relative globs, or `{ "packages": [...] }` with no other keys, the form Shopify's app templates use; npm reads both the same way. A `!pattern` after every positive pattern excludes what it matches, as `@npmcli/map-workspaces` does; a positive pattern after a negation (which npm reads in order and pnpm does not), escaping paths and other object declarations require a custom image. Yarn 1 globs each pattern on its own, so its workspaces refuse negations.
 
 The validator compares each workspace's dependencies, name and version against its lockfile importer. Links must name and target declared committed workspaces. Installation checks the actual links and physical dependency directories before archiving root and nested `node_modules`. The archive contains dependencies and links; workspace source comes from the separate committed application snapshot during offline validation.
 
@@ -47,7 +47,7 @@ Workspace manifest hashes are part of the cache identity and environment evidenc
 - Public registry packages and implicit workspace links selected by npm. Ordinary version ranges such as `"@example/shared": "*"` can refer to a declared workspace.
 - Root and workspace dependency versions can differ; nested dependency directories are retained.
 
-Negative patterns, object workspace declarations, nested workspace declarations, workspace `bin` entries, bundled dependencies, explicit `file:`, `link:` or `workspace:` protocols, Git/URL/private dependencies, tracked dependency directories, symlinks that resolve outside the repository and submodules require the custom-image path. Packages that require install/build scripts also need a prepared custom image. Refit does not enable those scripts automatically. pnpm and Yarn lockfiles are outside this npm feature.
+Negations before a positive pattern, object workspace declarations, nested workspace declarations, workspace `bin` entries, bundled dependencies, explicit `file:`, `link:` or `workspace:` protocols, Git/URL/private dependencies, tracked dependency directories, symlinks that resolve outside the repository and submodules require the custom-image path. Packages that require install/build scripts also need a prepared custom image. Refit does not enable those scripts automatically. pnpm and Yarn lockfiles are outside this npm feature.
 
 ## Offline conformance example
 

@@ -7,6 +7,12 @@ import type { DeadlineEntry, DeadlineRegistry } from './deadline-registry.ts';
 import { daysUntil } from './deadline-registry.ts';
 import { scanDeadlines, TEST_PATH } from './deadline-exposure.ts';
 import { modelHostStops } from './model-hosts.ts';
+import {
+  parameterChange,
+  type ParameterChange,
+  type ParameterChangeTable,
+} from './model-parameter-changes.ts';
+import { proofApi, type UnavailableTarget } from './model-request-proofs.ts';
 import { modelWrapperStops } from './model-wrappers.ts';
 import { renderPatch } from './patches.ts';
 import {
@@ -200,6 +206,18 @@ function rejectsSampling(provider: string, model: string) {
   const [major, minor] = [Number(match[1]), Number(match[2] ?? 0)];
   return major > 4 || (major === 4 && minor >= 7);
 }
+// OpenAI's migrate-to-Responses guide (read 2026-10-29): "Starting with GPT-5.4, Chat Completions
+// does not support tool calling with `reasoning_effort` values other than `none`." A Chat
+// Completions request that sends tools to a GPT-5.4 or later replacement stops for review.
+function chatToolsNeedNoReasoning(model: string) {
+  const match = /^gpt-(\d+)(?:\.(\d+))?(?:-|$)/.exec(model);
+  if (!match) return false;
+  const [major, minor] = [Number(match[1]), Number(match[2] ?? 0)];
+  return major > 5 || (major === 5 && minor >= 4);
+}
+// A stop reason that names the legacy function-calling parameters.
+const FUNCTION_STOP = /\bsets\b[^.]*\b(?:functions|function_call)\b/;
+const CHAT_TOOLS = new Set(['tools', 'tool_choice']);
 export const MODEL_ID = /^[a-z0-9][a-z0-9.-]*$/;
 const MAX_CHAIN = 8;
 
@@ -218,6 +236,19 @@ export interface ModelReplacement {
   to: string;
   // Registry deadlines followed from `from` to `to`, when a replacement retires too.
   via: string[];
+  // Request parameters changed with the swap (only with a parameter change table).
+  parameters?: ModelParameterEdit[];
+}
+
+// One request parameter renamed or removed together with a model swap, with its sourced change.
+export interface ModelParameterEdit {
+  file: string;
+  line: number;
+  name: string;
+  action: 'rename' | 'remove';
+  to?: string;
+  change: string;
+  note: string;
 }
 
 export interface ModelReplacementStop {
@@ -2121,6 +2152,139 @@ export type ReportOnlySource = (
 // its reason instead of under unresolved; it is never edited.
 const REPORT_ONLY_SOURCES: ReportOnlySource[] = [modelWrapperStops, modelHostStops];
 
+// The final check before any swap is kept, independent of the rule that planned it: after the
+// planned parameter edits, the request's own object literal must not still set a parameter the
+// replacement is documented to rename, reject or stop on, or one the heuristic says it may reject
+// (unless the sourced table accepts that exact numeric literal). A swap that would leave one is a
+// stop. Returns the stop reason, or undefined when the request is clean.
+export function rejectedParametersLeft(options: {
+  object: ts.ObjectLiteralExpression;
+  provider: string;
+  to: string;
+  call: string;
+  edits: readonly { item: ts.ObjectLiteralElementLike; change: ParameterChange }[];
+  changes?: ParameterChangeTable;
+  parameters?: ModelParameterTable;
+}): string | undefined {
+  const { object, provider, to, call } = options;
+  const api = proofApi(call);
+  const handled = new Set(options.edits.map((edit) => edit.item));
+  const heuristic = rejectsSampling(provider, to)
+    ? (MODEL_PARAMETER_NAMES[provider] ?? new Set<string>())
+    : new Set<string>();
+  const left: string[] = [];
+  for (const item of object.properties) {
+    if (handled.has(item)) continue;
+    const name = item.name && propertyName(item.name);
+    if (!name) continue;
+    const change = options.changes && parameterChange(options.changes, provider, to, api, name);
+    const flagged =
+      Boolean(change) ||
+      heuristic.has(name) ||
+      (chatToolsNeedNoReasoning(to) && CHAT_TOOLS.has(name) && api === 'chat.completions');
+    if (!flagged) continue;
+    const value = ts.isPropertyAssignment(item) ? numericLiteral(item.initializer) : undefined;
+    const tabled = options.parameters?.models.some(
+      (entry) => entry.provider === provider && entry.model === to,
+    );
+    if (!change && tabled && parameterVerdict(options.parameters!, provider, to, name, value).ok)
+      continue;
+    left.push(name);
+  }
+  return left.length
+    ? `After the swap the request would still set ${left.join(', ')}, which ${to} is documented or may be expected to reject; change it by hand to ${to}.`
+    : undefined;
+}
+
+interface PlannedParameterEdit {
+  item: ts.ObjectLiteralElementLike;
+  name: string;
+  change: ParameterChange;
+  range: { start: number; end: number; replacement: string };
+}
+
+// What a sourced change table makes of a request's parameters for one replacement: the edits to
+// apply with the swap, or the reason the request stops. Only a plain `name: value` property in the
+// request's own object literal is edited: a rename rewrites the name, a removal deletes the
+// property with its separator. Shorthand, methods, a removal that would drop a comment, a rename
+// onto a name the object already has, and anything the table does not cover stop.
+function plannedParameterEdits(
+  table: ParameterChangeTable,
+  provider: string,
+  model: string,
+  call: string,
+  object: ts.ObjectLiteralExpression,
+  sensitive: ReadonlySet<string>,
+): { reason?: string; edits: PlannedParameterEdit[] } {
+  const api = proofApi(call);
+  const reasons: string[] = [];
+  const edits: PlannedParameterEdit[] = [];
+  const text = object.getSourceFile().text;
+  const names = new Set(
+    object.properties.flatMap((item) => {
+      const name = item.name && propertyName(item.name);
+      return name ? [name] : [];
+    }),
+  );
+  object.properties.forEach((item, index) => {
+    const name = item.name && propertyName(item.name);
+    if (!name) return;
+    const change = parameterChange(table, provider, model, api, name);
+    if (!change) {
+      if (sensitive.has(name))
+        reasons.push(`The request sets ${name}, which ${model} may reject or treat differently.`);
+      return;
+    }
+    if (change.action === 'stop')
+      return void reasons.push(`The request sets ${name}. ${change.note}`);
+    const blocker = change.stopIfPresent?.find((other) => names.has(other));
+    if (blocker)
+      return void reasons.push(
+        `The request sets ${name} and ${blocker}; whether ${model} accepts ${name} depends on ${blocker}, so change it by hand.`,
+      );
+    if (!ts.isPropertyAssignment(item) || ts.isComputedPropertyName(item.name))
+      return void reasons.push(
+        `The request sets ${name} in a form Refit does not rewrite; ${change.action === 'rename' ? `rename it to ${change.to}` : 'remove it'} by hand.`,
+      );
+    if (change.action === 'rename') {
+      if (names.has(change.to!))
+        return void reasons.push(
+          `The request sets both ${name} and ${change.to}; keep one by hand.`,
+        );
+      const quote = ts.isStringLiteral(item.name) ? text[item.name.getStart()] : '';
+      return void edits.push({
+        item,
+        name,
+        change,
+        range: {
+          start: item.name.getStart(),
+          end: item.name.end,
+          replacement: `${quote}${change.to}${quote}`,
+        },
+      });
+    }
+    // A removal takes the property and the separator after it, or before it for the last one.
+    const next = object.properties[index + 1];
+    const previous = object.properties[index - 1];
+    const range = next
+      ? { start: item.getStart(), end: next.getStart() }
+      : previous
+        ? { start: previous.end, end: item.end }
+        : undefined;
+    const removed = range && text.slice(range.start, range.end);
+    if (
+      !range ||
+      /\/\/|\/\*/.test(removed!.replace(item.getText(), '')) ||
+      /\/\/|\/\*/.test(item.getText())
+    )
+      return void reasons.push(
+        `Removing ${name} would drop a comment or empty the request; remove it by hand.`,
+      );
+    edits.push({ item, name, change, range: { ...range, replacement: '' } });
+  });
+  return reasons.length ? { reason: reasons.join(' '), edits: [] } : { edits };
+}
+
 export async function proposeModelReplacements(
   directory: string,
   registry: DeadlineRegistry,
@@ -2136,11 +2300,19 @@ export async function proposeModelReplacements(
     // A sourced table (data/model-parameters.json) that decides each sampling or length parameter
     // per replacement. Off unless passed (owner decision, 2026-10-22); until then the heuristic stops.
     parameters = EMPTY_MODEL_PARAMETERS,
+    // Sourced parameter changes (data/model-parameter-changes.json) applied with the swap: a
+    // documented rename or removal is edited, a documented `stop` names its reason. Off unless
+    // passed; it waits on an owner decision (docs/proposals/ai-model-parameters.md).
+    parameterChanges,
+    // Replacement targets a request proof got HTTP 404 for (`unavailableTargets`): never swapped to.
+    unavailable = [],
   }: {
     indirect?: boolean;
     reportOnly?: ReportOnlySource[];
     endpoints?: boolean;
     parameters?: ModelParameterTable;
+    parameterChanges?: ParameterChangeTable;
+    unavailable?: UnavailableTarget[];
   } = {},
 ): Promise<ModelReplacementProposal> {
   const byProvider = new Map<string, Map<string, DeadlineEntry>>();
@@ -2367,6 +2539,9 @@ export async function proposeModelReplacements(
       via: string[];
       reasons: string[];
       requests: (typeof requests)[number][];
+      parameterEdits: PlannedParameterEdit[];
+      // Each request's own object literal, for the final parameter check.
+      objects: { object: ts.ObjectLiteralExpression; call: string }[];
     }
   >();
   const stops: ModelReplacementStop[] = [];
@@ -2466,7 +2641,13 @@ export async function proposeModelReplacements(
       );
       const sensitiveProperties = found.object.properties.flatMap((item) => {
         const name = item.name && propertyName(item.name);
-        return name && MODEL_PARAMETER_NAMES[request.provider]?.has(name) ? [{ item, name }] : [];
+        return name &&
+          (MODEL_PARAMETER_NAMES[request.provider]?.has(name) ||
+            (chatToolsNeedNoReasoning(resolved.to) &&
+              CHAT_TOOLS.has(name) &&
+              proofApi(request.call) === 'chat.completions'))
+          ? [{ item, name }]
+          : [];
       });
       const sensitive = rejectsSampling(request.provider, resolved.to)
         ? sensitiveProperties.map(({ name }) => name)
@@ -2486,76 +2667,114 @@ export async function proposeModelReplacements(
             return verdict.ok ? [] : [parameterReason(name, value, resolved.to, verdict)];
           })
         : [];
+      // With a change table, every sensitive parameter or one the table names is decided by it.
+      const changed =
+        parameterChanges && resolved.to && !tabled
+          ? plannedParameterEdits(
+              parameterChanges,
+              request.provider,
+              resolved.to,
+              request.call,
+              found.object,
+              new Set(sensitive),
+            )
+          : undefined;
       const stop = site.stop ?? sharedUse(program, site.passes, reached);
+      const missing =
+        resolved.to &&
+        unavailable.find(
+          (item) =>
+            item.provider === request.provider &&
+            item.model === resolved.to &&
+            item.api === proofApi(request.call),
+        );
       const reason = !resolved.to
         ? 'The registry names no concrete replacement model ID.'
-        : request.reportOnly
-          ? `${request.reportOnly} ${resolved.to}.`
-          : platform
-            ? `${request.platform ? `The client is Claude on ${platform}` : `\`${site.literal.text}\` is a model ID for ${platform}`}, where model IDs and retirement dates are ${platform}'s, not the Claude API's (the Claude API retires ${onPlatform?.id ?? site.literal.text} on ${entry.date}); check ${platform}'s model lifecycle and change it by hand to its ID for ${resolved.to}.`
-            : request.client
-              ? `The client \`${request.client}\` is not one Refit can trace to the SDK constructor (a \`let\` variable, a typed parameter or field, or an object member), so this request is listed but not edited; change it by hand to ${resolved.to}.`
-              : request.unverified
-                ? `The tsconfig.json or jsconfig.json for the SDK import cannot be fully read (it may extend a generated file that is not checked in), so Refit cannot confirm the import is the SDK; change its model by hand to ${resolved.to}.`
-                : MESSAGE_HELPERS.has(request.call)
-                  ? `\`${request.call}\` is a Messages API helper or retired beta path, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
-                  : from === 'batch'
-                    ? `\`${request.call}\` is a Message Batches request, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
-                    : // Images, audio, embeddings, moderation and legacy completions change formats, vector
-                      // sizes or parameters with the model, so they are never edited. The wording is accurate for
-                      // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
-                      !request.text
-                      ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
-                      : customUrl
-                        ? request.sdk
-                          ? client?.custom
-                            ? `The client sets \`${client.option}\` (${client.custom}), so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-                            : client?.official && endpointSet && !endpointSet.everyClient
-                              ? `The repository mentions a custom endpoint (${endpointSet.at}), but this request's client (${client.official}) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to ${resolved.to}.`
-                              : `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-                          : `The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-                        : from
-                          ? `The request takes its model from the options it spreads (\`...${from}\`), which Refit reports but does not edit; change it by hand to ${resolved.to}.`
-                          : limit
-                            ? `${limit} ${resolved.to}.`
-                            : stop
-                              ? `${stop} ${resolved.to}.`
-                              : direct && (!direct.has(site.literal) || direct.get(site.literal))
-                                ? /^(?:axios|request) /.test(request.call)
-                                  ? `\`${request.call}\` is an axios request config, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
-                                  : `The model reaches this request through ${indirectSource(site)}, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
-                                : found.shared
-                                  ? `${found.shared} ${resolved.to}.`
-                                  : found.object.properties.some((item) =>
-                                        ts.isSpreadAssignment(item),
-                                      )
-                                    ? 'The request spreads other options, which may set parameters the replacement rejects.'
-                                    : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
-                                      // sampling or length parameter the name check cannot see.
-                                      found.object.properties.some(
-                                          (item) =>
-                                            item.name && ts.isComputedPropertyName(item.name),
+        : missing
+          ? `The provider's deprecations page names ${resolved.to} as the replacement, but Refit's request to ${resolved.to} through ${missing.api} returned HTTP 404 (${missing.run}), so Refit does not swap to it; check which model the provider serves for this call and change it by hand.`
+          : request.reportOnly
+            ? `${request.reportOnly} ${resolved.to}.`
+            : platform
+              ? `${request.platform ? `The client is Claude on ${platform}` : `\`${site.literal.text}\` is a model ID for ${platform}`}, where model IDs and retirement dates are ${platform}'s, not the Claude API's (the Claude API retires ${onPlatform?.id ?? site.literal.text} on ${entry.date}); check ${platform}'s model lifecycle and change it by hand to its ID for ${resolved.to}.`
+              : request.client
+                ? `The client \`${request.client}\` is not one Refit can trace to the SDK constructor (a \`let\` variable, a typed parameter or field, or an object member), so this request is listed but not edited; change it by hand to ${resolved.to}.`
+                : request.unverified
+                  ? `The tsconfig.json or jsconfig.json for the SDK import cannot be fully read (it may extend a generated file that is not checked in), so Refit cannot confirm the import is the SDK; change its model by hand to ${resolved.to}.`
+                  : MESSAGE_HELPERS.has(request.call)
+                    ? `\`${request.call}\` is a Messages API helper or retired beta path, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+                    : from === 'batch'
+                      ? `\`${request.call}\` is a Message Batches request, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+                      : // Images, audio, embeddings, moderation and legacy completions change formats, vector
+                        // sizes or parameters with the model, so they are never edited. The wording is accurate for
+                        // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
+                        !request.text
+                        ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
+                        : customUrl
+                          ? request.sdk
+                            ? client?.custom
+                              ? `The client sets \`${client.option}\` (${client.custom}), so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                              : client?.official && endpointSet && !endpointSet.everyClient
+                                ? `The repository mentions a custom endpoint (${endpointSet.at}), but this request's client (${client.official}) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to ${resolved.to}.`
+                                : `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                            : `The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                          : from
+                            ? `The request takes its model from the options it spreads (\`...${from}\`), which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+                            : limit
+                              ? `${limit} ${resolved.to}.`
+                              : stop
+                                ? `${stop} ${resolved.to}.`
+                                : direct && (!direct.has(site.literal) || direct.get(site.literal))
+                                  ? /^(?:axios|request) /.test(request.call)
+                                    ? `\`${request.call}\` is an axios request config, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
+                                    : `The model reaches this request through ${indirectSource(site)}, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
+                                  : found.shared
+                                    ? `${found.shared} ${resolved.to}.`
+                                    : found.object.properties.some((item) =>
+                                          ts.isSpreadAssignment(item),
                                         )
-                                      ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
-                                      : tabled
-                                        ? tableReasons.join(' ') || undefined
-                                        : sensitive.length
-                                          ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                                          : undefined;
+                                      ? 'The request spreads other options, which may set parameters the replacement rejects.'
+                                      : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
+                                        // sampling or length parameter the name check cannot see.
+                                        found.object.properties.some(
+                                            (item) =>
+                                              item.name && ts.isComputedPropertyName(item.name),
+                                          )
+                                        ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
+                                        : tabled
+                                          ? tableReasons.join(' ') || undefined
+                                          : changed?.reason
+                                            ? changed.reason
+                                            : sensitive.length && !changed
+                                              ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                                              : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,
         reasons: [],
         requests: [],
+        parameterEdits: [],
+        objects: [],
       };
       decisions.set(site.literal, decision);
       decision.requests.push(request);
+      decision.objects.push({ object: found.object, call: request.call });
       decision.reasons.push(reason ?? '');
+      if (!reason && changed) decision.parameterEdits.push(...changed.edits);
     }
   }
 
   const replacements: ModelReplacement[] = [];
   const edits: SourceEdit[] = [];
+  const editedParameters = new Set<ts.Node>();
+  // A function-calling flow (`functions` on one request, the `function` role reply on the next)
+  // moves together or not at all: when a request in a file stops on `functions` or `function_call`,
+  // every other request in that file sending the same retiring model stops too.
+  const flowKey = (request: (typeof requests)[number], entry: DeadlineEntry) =>
+    `${program.path(request.node)}\t${entry.id}`;
+  const flows = new Set<string>();
+  for (const decision of decisions.values())
+    if (decision.reasons.some((reason) => FUNCTION_STOP.test(reason)))
+      for (const request of decision.requests) flows.add(flowKey(request, decision.entry));
   for (const [literal, decision] of decisions) {
     const request = decision.requests[0];
     const base = {
@@ -2565,7 +2784,24 @@ export async function proposeModelReplacements(
       line: program.line(request.node),
       call: request.call,
     };
-    const blocking = decision.reasons.find(Boolean);
+    const blocking =
+      decision.reasons.find(Boolean) ??
+      decision.objects
+        .map(({ object, call }) =>
+          rejectedParametersLeft({
+            object,
+            provider: decision.entry.provider,
+            to: decision.to,
+            call,
+            edits: decision.parameterEdits,
+            changes: parameterChanges,
+            parameters,
+          }),
+        )
+        .find(Boolean) ??
+      (decision.requests.some((request) => flows.has(flowKey(request, decision.entry)))
+        ? `Another request in this file sends ${literal.text} with functions or function_call, which stops; moving one call of a function-calling flow leaves the other on the retired model, so change them together by hand to ${decision.to}.`
+        : undefined);
     if (blocking) {
       stops.push({
         ...base,
@@ -2586,6 +2822,26 @@ export async function proposeModelReplacements(
       changeId: decision.entry.id,
       rule: 'model-retirement',
     });
+    const parameterEdits: ModelParameterEdit[] = [];
+    for (const planned of decision.parameterEdits) {
+      if (editedParameters.has(planned.item)) continue;
+      editedParameters.add(planned.item);
+      edits.push({
+        file: program.path(planned.item),
+        ...planned.range,
+        changeId: planned.change.id,
+        rule: 'model-parameter-change',
+      });
+      parameterEdits.push({
+        file: program.path(planned.item),
+        line: program.line(planned.item),
+        name: planned.name,
+        action: planned.change.action as 'rename' | 'remove',
+        ...(planned.change.to ? { to: planned.change.to } : {}),
+        change: planned.change.id,
+        note: planned.change.note,
+      });
+    }
     replacements.push({
       ...base,
       date: decision.entry.date,
@@ -2594,6 +2850,7 @@ export async function proposeModelReplacements(
       from: literal.text,
       to: decision.to,
       via: decision.via,
+      ...(parameterEdits.length ? { parameters: parameterEdits } : {}),
     });
   }
   // Every other live match of a traced provider, with why no traced request sends it.

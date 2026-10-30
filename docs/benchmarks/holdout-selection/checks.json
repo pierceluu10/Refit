@@ -1,0 +1,1964 @@
+{
+  "solojungle/social-later": {
+    "commit": "801221352bf3dc58d888fd42fea153d5712f8a78",
+    "stars": 0,
+    "stripeDependency": "^14.7.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "14.25.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "DinukaKeshan/foodapp-payment-service": {
+    "commit": "2b2b3405d387189062cd894c1c0bc86fea3e8ab8",
+    "stars": 0,
+    "stripeDependency": "^17.5.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "17.7.0",
+    "before": "2025-02-24.acacia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "Logicium/flora": {
+    "commit": "baa0c9e9803ec096df22bb91422f6a9a2fa42b26",
+    "stars": 0,
+    "stripeDependency": "^16.11.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-06-20"
+    ],
+    "locked": "16.11.0",
+    "before": "2024-06-20",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "rajpat243/Spotify-Clone": {
+    "commit": "78f82dc1b5e0999eee569773c0c80dd740a0d077",
+    "stars": 0,
+    "stripeDependency": "^12.9.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2022-11-15"
+    ],
+    "locked": "12.9.0",
+    "before": "2022-11-15",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "jakob-rzeppa/spotify-clone": {
+    "commit": "14d35570189904cb529ae8c726343554f47d8d04",
+    "stars": 0,
+    "stripeDependency": "^14.14.0",
+    "packageManager": "npm",
+    "usesSdk": false,
+    "pins": [],
+    "locked": "14.14.0",
+    "before": "2023-10-16",
+    "beforeSource": "SDK version",
+    "outcome": "no Stripe SDK client in application code"
+  },
+  "neoparad/heatclick": {
+    "commit": "9e5bdacf512031c1737a297b0b3c9233c437deda",
+    "stars": 0,
+    "stripeDependency": "^17.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2025-02-24.acacia"
+    ],
+    "locked": "17.7.0",
+    "before": "2025-02-24.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "mehmetusa/noordons": {
+    "commit": "dffaa18bfedd009148e54963218564df065eec82",
+    "stars": 0,
+    "stripeDependency": "^20.4.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "20.4.1",
+    "before": "2026-02-25.clover",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "mar69287/protagonist-desktop": {
+    "commit": "60e85edd746469e173e80791a44e317d07a1185b",
+    "stars": 0,
+    "stripeDependency": "^19.3.0",
+    "packageManager": "none",
+    "usesSdk": true,
+    "pins": [
+      "2025-10-29.clover"
+    ],
+    "locked": null,
+    "before": "2025-10-29.clover",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "SyedMuhammadghazi1/results-based-ad-agency": {
+    "commit": "61c9a4202ae1af2a3cae531dd36661b30af12cfb",
+    "stars": 0,
+    "stripeDependency": "^22.6.2",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "22.6.2",
+    "before": "2026-08-26.dahlia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "codewithjihad1/e-commerce-app-server": {
+    "commit": "b261b341758fa7488cf434709673c2c46fb1aeba",
+    "stars": 0,
+    "stripeDependency": "^20.1.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "20.1.0",
+    "before": "2025-12-15.clover",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "genghix-techhh/dcaifauto": {
+    "commit": "fc4bb6fbbdcc51372ef4bed3b3abf330fe54784c",
+    "stars": 0,
+    "stripeDependency": "^22.1.1",
+    "packageManager": "none",
+    "usesSdk": true,
+    "pins": [
+      "2024-06-20"
+    ],
+    "locked": null,
+    "before": "2024-06-20",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "pkondra/ReplaySell": {
+    "commit": "db6dba30b4fa4ed13fdbd80359ba96de1de0cb85",
+    "stars": 0,
+    "stripeDependency": "^20.3.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "20.3.1",
+    "before": "2026-01-28.clover",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "joyboy30/ats-resume-optimizer": {
+    "commit": "2285c77cd7d0ae2f1a3cccc031a1cd1d69dbe1b8",
+    "stars": 0,
+    "stripeDependency": "^16.8.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "16.12.0",
+    "before": "2024-06-20",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "ahmedalbanna/The-Night-of-a-Lifetime": {
+    "commit": "6b6540ab3f49dd4a2541f6c70fc36394c3ded3a7",
+    "stars": 0,
+    "stripeDependency": "^22.1.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "22.1.0",
+    "before": "2026-04-22.dahlia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "Shivanshudeveloper/skillifyme_backend": {
+    "commit": "175d03f2b0f5636c8c75dd92434f4295032e76fd",
+    "stars": 0,
+    "stripeDependency": "^13.5.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "13.5.0",
+    "before": "2023-08-16",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "mauricio0607/accomplishment-tracking-platform": {
+    "commit": "1952d3ab28b13607e9b9035b5318e97d345b9e11",
+    "stars": 2,
+    "stripeDependency": "^19.1.0",
+    "packageManager": "pnpm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "19.1.0",
+    "before": "2025-09-30.clover",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "Ascenssucreausucre/ICSC-API": {
+    "commit": "ec70c2b5339eb3813ae13bba685b4a93a1a430b7",
+    "stars": 0,
+    "stripeDependency": "^18.2.1",
+    "packageManager": "none",
+    "usesSdk": true,
+    "pins": [],
+    "locked": null,
+    "outcome": "no API version"
+  },
+  "GiantClam/fluxkreafree": {
+    "commit": "dbf547f043d42358bf44daae5c413abbe618ccc7",
+    "stars": 0,
+    "stripeDependency": "^15.8.0",
+    "packageManager": "several",
+    "usesSdk": true,
+    "pins": [
+      "2024-04-10"
+    ],
+    "locked": null,
+    "before": "2024-04-10",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "VladimirPavlovv/devstore": {
+    "commit": "770341f2cdebaef0e9eb096a36077bea498d89fa",
+    "stars": 1,
+    "stripeDependency": "^18.3.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "18.3.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Nest-Microservices-Dedwison/payments-ms": {
+    "commit": "cf156e3969c972023db71f373bbd0ec76865a7ee",
+    "stars": 0,
+    "stripeDependency": "^18.1.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "18.1.1",
+    "before": "2025-04-30.basil",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "behexening/pws-saas": {
+    "commit": "c79efb69688e8b35c3eb7823f78dcd6574289560",
+    "stars": 0,
+    "stripeDependency": "^14.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "14.25.0",
+    "before": "2023-10-16",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "PatchBay-HQ/patchbay-demo-payments": {
+    "commit": "797b4e4057ba2e681ee131a73bd5d39877e6edbe",
+    "stars": 1,
+    "stripeDependency": "^17.0.0",
+    "packageManager": "none",
+    "usesSdk": true,
+    "pins": [],
+    "locked": null,
+    "outcome": "no API version"
+  },
+  "dedekpo/tutorial-stripe-by-andre-dev": {
+    "commit": "958931c0dc9a9344ec917e376ad5ded795bfa6ed",
+    "stars": 46,
+    "stripeDependency": "^17.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-09-30.acacia"
+    ],
+    "locked": "17.0.0",
+    "before": "2024-09-30.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Achavellir/PGA": {
+    "commit": "f56767c8f3b9e90a61e71c3d3a8645506adf5bea",
+    "stars": 0,
+    "stripeDependency": "^17.5.0",
+    "packageManager": "pnpm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "17.7.0",
+    "before": "2025-02-24.acacia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "Carver1771/SwingScout": {
+    "commit": "fdde09908575ef80086772aedc75c3f5334340b8",
+    "stars": 0,
+    "stripeDependency": "^17.0.0",
+    "packageManager": "none",
+    "usesSdk": true,
+    "pins": [
+      "2024-06-20"
+    ],
+    "locked": null,
+    "before": "2024-06-20",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "klass1dm/AIRF.com": {
+    "commit": "e153db7fef0354b13e99d2da1817c7aaeecdd804",
+    "stars": 0,
+    "stripeDependency": "^14.12.0",
+    "packageManager": "none",
+    "usesSdk": true,
+    "pins": [],
+    "locked": null,
+    "outcome": "no API version"
+  },
+  "Dahilon/modern-landing-page": {
+    "commit": "6db4f88dce538cb0feb4b1ebc95b40c60bbfc9b7",
+    "stars": 0,
+    "stripeDependency": "^18.1.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16",
+      "2024-06-20",
+      "2025-04-30.basil"
+    ],
+    "locked": "18.1.1",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin (oldest of 3)",
+    "outcome": "kept"
+  },
+  "fredbanda/phangelammereko": {
+    "commit": "9d83e7126742679148e9436a9be487bb55b8fef5",
+    "stars": 0,
+    "stripeDependency": "^18.5.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2025-08-27.basil"
+    ],
+    "locked": "18.5.0",
+    "before": "2025-08-27.basil",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "INVESTMALIN/mon-equipe-ia-windsurf-v4": {
+    "commit": "9c6ce0dce4f4934c413eab761f5c95fc20f68bf7",
+    "stars": 0,
+    "stripeDependency": "^18.3.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "18.3.0",
+    "before": "2025-06-30.basil",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "FrankBonanno/ping-panda": {
+    "commit": "7c129c8a8d8dccb42a09b5a33d7271cb550724ab",
+    "stars": 0,
+    "stripeDependency": "^17.2.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2025-02-24.acacia"
+    ],
+    "locked": "17.7.0",
+    "before": "2025-02-24.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "devbydanish/sampsira": {
+    "commit": "3d3c58e0b1b417d809eb2c133e9282504c61b8c5",
+    "stars": 0,
+    "stripeDependency": "^18.2.1",
+    "packageManager": "several",
+    "usesSdk": true,
+    "pins": [
+      "2022-11-15",
+      "2023-10-16"
+    ],
+    "locked": null,
+    "before": "2022-11-15",
+    "beforeSource": "apiVersion pin (oldest of 2)",
+    "outcome": "kept"
+  },
+  "MuhammadAliyan10/Webinar": {
+    "commit": "fdac6468e7683eed544dd0f7e4b9ba3c5789d905",
+    "stars": 0,
+    "stripeDependency": "^17.7.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2025-02-24.acacia"
+    ],
+    "locked": "17.7.0",
+    "before": "2025-02-24.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "ahmadnk31/ifound4u": {
+    "commit": "349d0871b140c5ed3d0815d07d2006d174384134",
+    "stars": 0,
+    "stripeDependency": "^18.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-04-10"
+    ],
+    "locked": "18.0.0",
+    "before": "2024-04-10",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Nhlanhla-advocate/Horizon-e-commerce": {
+    "commit": "0df3c7676bf66285702fe2d58162e186558e682b",
+    "stars": 1,
+    "stripeDependency": "^17.3.1",
+    "packageManager": "several",
+    "usesSdk": true,
+    "pins": [
+      "2024-11-20.acacia"
+    ],
+    "locked": null,
+    "before": "2024-11-20.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "mangesh925/docuchatter": {
+    "commit": "4c1702c86023dc05424c3aa0db11243e50b45600",
+    "stars": 0,
+    "stripeDependency": "^14.14.0",
+    "packageManager": "pnpm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": null,
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "will04waf-prog/clinic-software": {
+    "commit": "f6be2cb97c269e9d39cca5862b9ccecfa2cba98e",
+    "stars": 0,
+    "stripeDependency": "^22.0.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2026-03-25.dahlia"
+    ],
+    "locked": "22.0.1",
+    "before": "2026-03-25.dahlia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Haris-khan-Durrani/Stripe-Subscription-App": {
+    "commit": "12f3d8883727e634935881d650696c3781c35039",
+    "stars": 0,
+    "stripeDependency": "^12.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "12.18.0",
+    "before": "2022-11-15",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "matijariaudo/WABaileys": {
+    "commit": "85ec8306ba1be5a9608c5cdd286094b1c1d1ad55",
+    "stars": 0,
+    "stripeDependency": "^16.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "16.0.0",
+    "before": "2024-06-20",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "aniketnedunuri1/rls-auth": {
+    "commit": "7225bef681622ea1e01c76dab6c4b03d6e05782d",
+    "stars": 0,
+    "stripeDependency": "^17.7.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "17.7.0",
+    "before": "2025-02-24.acacia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "WaqarAhmad321/loopverse-hackathon": {
+    "commit": "e1c017626be80a7b080d9fc6b0f4c4ff50118fad",
+    "stars": 0,
+    "stripeDependency": "^21.0.1",
+    "packageManager": "several",
+    "usesSdk": true,
+    "pins": [],
+    "locked": null,
+    "outcome": "no API version"
+  },
+  "Creeper343/122343": {
+    "commit": "4d43cdb025db30f2a07bcb04dcafe938511d882c",
+    "stars": 0,
+    "stripeDependency": "^19.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2025-09-30.clover"
+    ],
+    "locked": "19.0.0",
+    "before": "2025-09-30.clover",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Hakim78/MiniTools_AI": {
+    "commit": "bcbfbdb51301bb1093eaca90eb19ac9c49fc51d1",
+    "stars": 0,
+    "stripeDependency": "^17.3.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-11-20.acacia"
+    ],
+    "locked": "17.7.0",
+    "before": "2024-11-20.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Lealweed/Terra-Fort": {
+    "commit": "9f76b6d3431b9e05e41ed074eb057c38877e9109",
+    "stars": 0,
+    "stripeDependency": "^22.1.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "22.1.0",
+    "before": "2026-04-22.dahlia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "ThienPhuoc2003/webbanquanao": {
+    "commit": "82b51add1010024456d021c0a4ebff88b8ea78e0",
+    "stars": 0,
+    "stripeDependency": "^14.3.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "14.3.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "rogenecarl/fdg-workspace": {
+    "commit": "a33795ffd76d3b0e88434c2b4ab4945984e86de9",
+    "stars": 0,
+    "stripeDependency": "^20.4.0",
+    "packageManager": "pnpm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "20.4.0",
+    "before": "2026-02-25.clover",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "k00nl/rgb-sp-public-dc-bot": {
+    "commit": "57b38ee985570dc9f284eaa90e9fbcd42e4fafa7",
+    "stars": 0,
+    "stripeDependency": "^17.5.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "17.5.0",
+    "before": "2024-12-18.acacia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "hamzazerouala/uniconvert": {
+    "commit": "aec4a1c00d6e3e5b49fe47b250fb457ab625a67a",
+    "stars": 0,
+    "stripeDependency": "^20.0.0",
+    "packageManager": "pnpm",
+    "usesSdk": false,
+    "pins": [],
+    "locked": "20.0.0",
+    "before": "2025-11-17.clover",
+    "beforeSource": "SDK version",
+    "outcome": "no Stripe SDK client in application code"
+  },
+  "bouba-34/form_consult": {
+    "commit": "2a5055847220e0220c2fd59ade14cd26d9c0443c",
+    "stars": 0,
+    "stripeDependency": "^18.2.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-11-20.acacia"
+    ],
+    "locked": "18.2.1",
+    "before": "2024-11-20.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Paul-Clue/flash-cards": {
+    "commit": "0a95b35f2eb67d8461e0777e23b6f941e2444ed4",
+    "stars": 0,
+    "stripeDependency": "^16.7.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2022-11-15"
+    ],
+    "locked": "16.8.0",
+    "before": "2022-11-15",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "ScottStin/ClassMateBackend": {
+    "commit": "cbebc0ad060b010a7561cb4371c6aedcdb0f78f7",
+    "stars": 0,
+    "stripeDependency": "^20.1.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-08-16"
+    ],
+    "locked": "20.1.0",
+    "before": "2023-08-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "yashk9293/mern-ecommerce-server": {
+    "commit": "c5f9703ae1e14212112ab4c090fbc71e373cb2ea",
+    "stars": 3,
+    "stripeDependency": "^14.5.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "14.5.0",
+    "before": "2023-10-16",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "sibongisenimxinwa/ecommerce": {
+    "commit": "68545f846ff43fd564409a12286a396a74ff804f",
+    "stars": 1,
+    "stripeDependency": "^16.4.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "16.4.0",
+    "before": "2024-06-20",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "thibaudbrault/FAQMaker": {
+    "commit": "9a812ccecd5d9e067b3aa72a0f08d0d5764a0bc2",
+    "stars": 0,
+    "stripeDependency": "^14.16.0",
+    "packageManager": "pnpm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": null,
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "NileshSaha/spotify_clone": {
+    "commit": "1a551b04c58631fd6c2000ed2e85b9401db50efc",
+    "stars": 0,
+    "stripeDependency": "^16.2.0",
+    "packageManager": "npm",
+    "usesSdk": false,
+    "pins": [],
+    "locked": "16.2.0",
+    "before": "2024-06-20",
+    "beforeSource": "SDK version",
+    "outcome": "no Stripe SDK client in application code"
+  },
+  "AbdulSatterism/social-media": {
+    "commit": "9f63c85ad942292ce52d370c2935669094936d57",
+    "stars": 0,
+    "stripeDependency": "^17.6.0",
+    "packageManager": "npm",
+    "usesSdk": false,
+    "pins": [],
+    "locked": "17.6.0",
+    "before": "2025-01-27.acacia",
+    "beforeSource": "SDK version",
+    "outcome": "no Stripe SDK client in application code"
+  },
+  "AdiSyahadi/waapi": {
+    "commit": "4b0d1ef4531bbfaa8834fb540eef8d1ada5afaea",
+    "stars": 0,
+    "stripeDependency": "^20.1.0",
+    "packageManager": "none",
+    "usesSdk": true,
+    "pins": [],
+    "locked": null,
+    "outcome": "no API version"
+  },
+  "milton-bolonha/ai-business-insights-saas": {
+    "commit": "4c21c0a749ab2342e05da2cd1420a01fc0ec6335",
+    "stars": 1,
+    "stripeDependency": "^20.4.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2026-02-25.clover"
+    ],
+    "locked": "20.4.1",
+    "before": "2026-02-25.clover",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "dmhernandez2525/Learning-Hall": {
+    "commit": "bea1d9961474221248ac12874af72e36002c4766",
+    "stars": 0,
+    "stripeDependency": "^14.14.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "14.25.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Yadvendra016/PictureVerse": {
+    "commit": "61f6a5acca90172dbeb34a2d95e24e2155b64f94",
+    "stars": 4,
+    "stripeDependency": "^14.17.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "14.17.0",
+    "before": "2023-10-16",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "patrickswelsh/hiddenhomes-supabase": {
+    "commit": "6997453f2e6e37edaef2ae8e64f3356d5013cdb9",
+    "stars": 0,
+    "stripeDependency": "^14.14.0",
+    "packageManager": "none",
+    "usesSdk": false,
+    "pins": [
+      "2022-11-15"
+    ],
+    "locked": null,
+    "before": "2022-11-15",
+    "beforeSource": "apiVersion pin",
+    "outcome": "no Stripe SDK client in application code"
+  },
+  "ElonInvestmentCo/xVPN": {
+    "commit": "6479c6b1dbf6311c602bdf9ef3a014993a5e4360",
+    "stars": 0,
+    "stripeDependency": "^20.3.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2026-01-28.clover"
+    ],
+    "locked": "20.3.1",
+    "before": "2026-01-28.clover",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "anembo/klyrbooks": {
+    "commit": "1f41f969212ff536061e53a05c0f5f68af661a2b",
+    "stars": 0,
+    "stripeDependency": "^20.4.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2026-02-25.clover"
+    ],
+    "locked": "20.4.0",
+    "before": "2026-02-25.clover",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "pina753753-star/seedance-black-studio": {
+    "commit": "f741e96645cf41d6107efd4aa07788102194d535",
+    "stars": 1,
+    "stripeDependency": "^17.5.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "17.7.0",
+    "before": "2025-02-24.acacia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "DJMONSTER0212/E-commerce-Admin": {
+    "commit": "231908caea1c8caee8d84256c3c5511e6b7a22e3",
+    "stars": 0,
+    "stripeDependency": "^12.13.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2022-11-15"
+    ],
+    "locked": "12.13.0",
+    "before": "2022-11-15",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "benoitmalige-svg/tax": {
+    "commit": "fafea7d67da4622dcfa0531f524dd39077ff2f2b",
+    "stars": 0,
+    "stripeDependency": "^17.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "17.7.0",
+    "before": "2025-02-24.acacia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "MonteLogic/MoL-blog-weba": {
+    "commit": "c4ce47ec0c572e70ea851b2082a1ff67f360fb0b",
+    "stars": 0,
+    "stripeDependency": "17.5.0",
+    "packageManager": "pnpm",
+    "usesSdk": true,
+    "pins": [
+      "2024-12-18.acacia"
+    ],
+    "locked": "17.5.0",
+    "before": "2024-12-18.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "totebee/extrapolate": {
+    "commit": "89de95fa07bb9282dca9674c1f9a0ecba01d6e77",
+    "stars": 0,
+    "stripeDependency": "^15.5.0",
+    "packageManager": "pnpm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "15.6.0",
+    "before": "2024-04-10",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "rodriibalondeoro/colecciona": {
+    "commit": "f246cee08674b7aac71bcddf3000c8548f17aa50",
+    "stars": 0,
+    "stripeDependency": "^17.7.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-12-18.acacia"
+    ],
+    "locked": "17.7.0",
+    "before": "2024-12-18.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "khilller/trial-stripe": {
+    "commit": "36257e6273235ecc77f22a4a870aa8568358c8bf",
+    "stars": 0,
+    "stripeDependency": "^17.5.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "17.5.0",
+    "before": "2024-12-18.acacia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "zkerkeb-class/payment-services-Plouski": {
+    "commit": "8e42604774af5478235c46e1038ec13b375447ba",
+    "stars": 0,
+    "stripeDependency": "^17.7.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "17.7.0",
+    "before": "2025-02-24.acacia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "Sginats/TestWebConvert": {
+    "commit": "807589af6ac78f542a254669f20ce2052b3c5d27",
+    "stars": 0,
+    "stripeDependency": "^16.2.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "16.12.0",
+    "before": "2024-06-20",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "arcalumis/art.ollo": {
+    "commit": "d97b10ef6bd4233357ee79f40652e0bc72bb0f4e",
+    "stars": 0,
+    "stripeDependency": "^20.1.2",
+    "packageManager": "none",
+    "usesSdk": true,
+    "pins": [
+      "2024-12-18.acacia"
+    ],
+    "locked": null,
+    "before": "2024-12-18.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Ipswich38/Kreativdental": {
+    "commit": "f5d5e7fe382d605857434246119111f8c284f451",
+    "stars": 0,
+    "stripeDependency": "^20.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-06-20"
+    ],
+    "locked": "20.0.0",
+    "before": "2024-06-20",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Run37927/infinite-slider-tut": {
+    "commit": "496b8b33c51aedddd645b37daa5757bdbc992e87",
+    "stars": 0,
+    "stripeDependency": "^17.5.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-10-28.acacia"
+    ],
+    "locked": "17.5.0",
+    "before": "2024-10-28.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "GVBharadwaj18/nexusmart": {
+    "commit": "f9077f81046aa69fbb287a5ea3d276fd06b00799",
+    "stars": 1,
+    "stripeDependency": "^19.1.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "19.2.0",
+    "before": "2025-10-29.clover",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "cvieirasp/cv-ai-connect": {
+    "commit": "ae6e87e6a9d23cdca4b4c4a3f5312c8add464e99",
+    "stars": 0,
+    "stripeDependency": "^14.18.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2022-11-15"
+    ],
+    "locked": "14.18.0",
+    "before": "2022-11-15",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "onitproductionita-design/ShotsChupiteria": {
+    "commit": "7c484b5417dd2b83c095650d21078364a6d35656",
+    "stars": 0,
+    "stripeDependency": "^22.5.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "22.5.0",
+    "before": "2026-07-29.dahlia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "tdot123-1/ecommerce-tl": {
+    "commit": "67137eee3467f321b9d6ff7d2b2d6bcfb0f44c69",
+    "stars": 0,
+    "stripeDependency": "^17.0.0",
+    "packageManager": "pnpm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "17.0.0",
+    "before": "2024-09-30.acacia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "Mortalify/Projecthandball": {
+    "commit": "6cd6cc466b257c3a71a8d595550390ce5d1b4593",
+    "stars": 0,
+    "stripeDependency": "20.0.0",
+    "packageManager": "pnpm",
+    "usesSdk": true,
+    "pins": [
+      "2025-08-27.basil"
+    ],
+    "locked": "20.0.0",
+    "before": "2025-08-27.basil",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "brandonlacoste9-tech/redlobster": {
+    "commit": "a6934f9021572ca347ce0fe7a32aec504db3c859",
+    "stars": 0,
+    "stripeDependency": "^20.4.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "20.4.1",
+    "before": "2026-02-25.clover",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "Krisna07/airesumebuilder": {
+    "commit": "897039e1275c6ba685367bcca3cdc6b86f878b69",
+    "stars": 0,
+    "stripeDependency": "^20.2.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-01-01",
+      "2026-02-25.clover"
+    ],
+    "locked": "20.2.0",
+    "before": "2023-01-01",
+    "beforeSource": "apiVersion pin (oldest of 2)",
+    "outcome": "API version without a pinned spec"
+  },
+  "SamySbh/samysbhv2-backend": {
+    "commit": "1bb6d1961266c1aafe557a8ec5978c0d163d3465",
+    "stars": 0,
+    "stripeDependency": "^17.6.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "17.6.0",
+    "before": "2025-01-27.acacia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "pdichone/soap-voice": {
+    "commit": "5786a33444a8ad687b1a207c95cdc2bdcf8d9bac",
+    "stars": 0,
+    "stripeDependency": "^17.7.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2025-02-24.acacia"
+    ],
+    "locked": "17.7.0",
+    "before": "2025-02-24.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "denova-labs/homepage": {
+    "commit": "797083e500890c98e4d03c8ca64d48478c18adce",
+    "stars": 0,
+    "stripeDependency": "^15.12.0",
+    "packageManager": "several",
+    "usesSdk": true,
+    "pins": [
+      "2024-04-10"
+    ],
+    "locked": null,
+    "before": "2024-04-10",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "MatheusAFD/m-care-api": {
+    "commit": "702890a7b071970f981c2b66763bc393d465b577",
+    "stars": 0,
+    "stripeDependency": "^17.6.0",
+    "packageManager": "pnpm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "17.6.0",
+    "before": "2025-01-27.acacia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "profullstack/venuedating-web": {
+    "commit": "cb2d9bce37755dd6a28e2c1fee7a47d808801f30",
+    "stars": 0,
+    "stripeDependency": "^14.22.0",
+    "packageManager": "none",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": null,
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "mrdv01/ecommerce-api": {
+    "commit": "f49e54afc369f6874f0791404b86f6e036f4ff44",
+    "stars": 0,
+    "stripeDependency": "^16.12.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "16.12.0",
+    "before": "2024-06-20",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "Abhityadav013/indiantadkauserinterface": {
+    "commit": "3c4c5ffff4e63a579f77464b903a1b183d55c498",
+    "stars": 0,
+    "stripeDependency": "^18.2.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2025-05-28.basil"
+    ],
+    "locked": "18.2.1",
+    "before": "2025-05-28.basil",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "AnhelinaDer/tatu_backend": {
+    "commit": "ca86e7a02773d3cb78c2f79cb8cca0b04cf6094b",
+    "stars": 0,
+    "stripeDependency": "^18.1.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "18.1.0",
+    "before": "2025-04-30.basil",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "Underwater008/fu": {
+    "commit": "2b0aa3811b128c16eac40c5f3100fcf539b446f4",
+    "stars": 0,
+    "stripeDependency": "^20.3.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "20.3.1",
+    "before": "2026-01-28.clover",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "codeandlove/10xDevs-project-BS-GPW": {
+    "commit": "e76600d9000a1d9f1ede85103ab1694fdb849d1e",
+    "stars": 1,
+    "stripeDependency": "^17.4.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2025-02-24.acacia"
+    ],
+    "locked": "17.7.0",
+    "before": "2025-02-24.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "ishaan-cherukuri/leaseguard": {
+    "commit": "8d3c6fb692b45370a68812a96ec5cbf274890e72",
+    "stars": 0,
+    "stripeDependency": "^16.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-06-20"
+    ],
+    "locked": "16.12.0",
+    "before": "2024-06-20",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Vonix-Network/Vonix-Network-WWW": {
+    "commit": "19d27c97e4393023fb90d3d3def0cae40e917af5",
+    "stars": 1,
+    "stripeDependency": "^19.3.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "19.3.0",
+    "before": "2025-10-29.clover",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "sloppyleaf/TeacherAPP": {
+    "commit": "d592252a5df2b9cfd95a3bcef59279ff646c415a",
+    "stars": 0,
+    "stripeDependency": "^14.21.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "14.25.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "kartikkpawar/flow-scrape": {
+    "commit": "ce1c83666459e35f2fd123283b2f1673ab09d347",
+    "stars": 30,
+    "stripeDependency": "^17.3.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-10-28.acacia"
+    ],
+    "locked": "17.3.1",
+    "before": "2024-10-28.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "monzasiz1/todo": {
+    "commit": "c9c6b11b167cc047983a8f8daf9318697281fa23",
+    "stars": 0,
+    "stripeDependency": "^17.7.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-12-18.acacia"
+    ],
+    "locked": "17.7.0",
+    "before": "2024-12-18.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "nakorn-b/stripe": {
+    "commit": "f9d9e0a1aa81cd867198365d92e03765a504b0c3",
+    "stars": 0,
+    "stripeDependency": "^17.3.0",
+    "packageManager": "several",
+    "usesSdk": true,
+    "pins": [],
+    "locked": null,
+    "outcome": "no API version"
+  },
+  "AbdulRauf-1/shippingbackendcpanel": {
+    "commit": "836ab55b1b5cef3d1f24cf1300055a39f7d55565",
+    "stars": 0,
+    "stripeDependency": "^13.9.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2020-08-27"
+    ],
+    "locked": "13.11.0",
+    "before": "2020-08-27",
+    "beforeSource": "apiVersion pin",
+    "outcome": "API version without a pinned spec"
+  },
+  "CHNiko1/Nexus": {
+    "commit": "1a0dca72d95864384d30043dc04524535a0e11a4",
+    "stars": 0,
+    "stripeDependency": "^14.14.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "14.25.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Logicium/archetype-service": {
+    "commit": "7629e440824bce5b39b73492e20ce32e86fe4be8",
+    "stars": 0,
+    "stripeDependency": "^17.5.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-12-18.acacia"
+    ],
+    "locked": "17.7.0",
+    "before": "2024-12-18.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "WispAyr/pitchup": {
+    "commit": "5986b0665ee767196e31390f6fd80dd4b2a0f3fa",
+    "stars": 0,
+    "stripeDependency": "^16.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-06-20"
+    ],
+    "locked": "16.12.0",
+    "before": "2024-06-20",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "ioana9999/Surprizemuzicale": {
+    "commit": "1302c3a140f8dbc15ad254642fef3c3b459faec5",
+    "stars": 0,
+    "stripeDependency": "^11.0.0",
+    "packageManager": "none",
+    "usesSdk": true,
+    "pins": [],
+    "locked": null,
+    "outcome": "no API version"
+  },
+  "LaimisMilas/crypto-signals": {
+    "commit": "a2d65ef682cbcb3b8f776518413b849209a0a347",
+    "stars": 0,
+    "stripeDependency": "^16.6.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-06-20"
+    ],
+    "locked": "16.12.0",
+    "before": "2024-06-20",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "OLEkSandrKoniaiev/freshnesecom_be": {
+    "commit": "5474794441d1d3a798f1ed5113959d364c4ef621",
+    "stars": 0,
+    "stripeDependency": "^20.2.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2026-02-25.clover"
+    ],
+    "locked": "20.4.1",
+    "before": "2026-02-25.clover",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "dewo952/miro-clone": {
+    "commit": "99c947fc11a7d3a5dc62b42e4fdf27c2eaad6f8a",
+    "stars": 3,
+    "stripeDependency": "^17.2.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-09-30.acacia"
+    ],
+    "locked": "17.2.1",
+    "before": "2024-09-30.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "temixxx555/commerce": {
+    "commit": "36a029a35d9a298f8b869ccd195988eae5a488de",
+    "stars": 0,
+    "stripeDependency": "^18.1.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "18.1.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "surajsilwal2/NepalStay": {
+    "commit": "1fbe8f3b9f7531bc18395cea7b05c63f147cb3dd",
+    "stars": 0,
+    "stripeDependency": "~20.4.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2026-02-25.clover"
+    ],
+    "locked": "20.4.1",
+    "before": "2026-02-25.clover",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "pranaysuyash/e-com-template": {
+    "commit": "f4ab9f40eaffeb52c18ce1d566bb7535f611bebe",
+    "stars": 0,
+    "stripeDependency": "^14.10.0",
+    "packageManager": "none",
+    "usesSdk": true,
+    "pins": [
+      "2024-11-20.acacia"
+    ],
+    "locked": null,
+    "before": "2024-11-20.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Icekid35/iceadmin": {
+    "commit": "8832a3b1f3715960fdcbcd095787bf584d431121",
+    "stars": 1,
+    "stripeDependency": "^13.5.0",
+    "packageManager": "several",
+    "usesSdk": true,
+    "pins": [
+      "2023-08-16"
+    ],
+    "locked": null,
+    "before": "2023-08-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Oishi106/care-connect-client": {
+    "commit": "5b2cf35a26440705454ac37d3829469efbf6339a",
+    "stars": 0,
+    "stripeDependency": "^22.1.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-06-20"
+    ],
+    "locked": "22.1.0",
+    "before": "2024-06-20",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "rafaeljara-dev/ecommerce-admin": {
+    "commit": "80254bef1efb2198a135f3e7498e1f9783d9f480",
+    "stars": 0,
+    "stripeDependency": "^14.20.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "14.20.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "SaberAbderafie/Projet_IpTv": {
+    "commit": "5db0fb0a49ea4e42d5ed187bd4ee1c32bc71dd57",
+    "stars": 0,
+    "stripeDependency": "^20.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2025-11-17.clover"
+    ],
+    "locked": "20.0.0",
+    "before": "2025-11-17.clover",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "MichaelMcCarson/serverless-stripe-payment-setup": {
+    "commit": "4a85efb94ef2d367df3dbf8d1049d5d9deac9cb2",
+    "stars": 0,
+    "stripeDependency": "15.11.0",
+    "packageManager": "none",
+    "usesSdk": false,
+    "pins": [
+      "2010-03-31"
+    ],
+    "locked": null,
+    "before": "2010-03-31",
+    "beforeSource": "apiVersion pin",
+    "outcome": "no Stripe SDK client in application code"
+  },
+  "srivera145/nextjs14-chatgpt": {
+    "commit": "c8a25ad263834aa42252cff5cd67560d566679eb",
+    "stars": 0,
+    "stripeDependency": "^14.19.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "14.19.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "jorgeghc05/centuria-backend": {
+    "commit": "7480d3420a227023aff8787d93b35ab14f8a57e6",
+    "stars": 0,
+    "stripeDependency": "^23.0.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "23.0.1",
+    "outcome": "no API version"
+  },
+  "jianiye-coder/Dream-Reel": {
+    "commit": "d45560c18783c27a56faa25c76d73cda1095619c",
+    "stars": 1,
+    "stripeDependency": "22.6.2",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "22.6.2",
+    "before": "2026-08-26.dahlia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "uttkarshnjr10/ApnaManager_Backend": {
+    "commit": "686ef89a35cd5f35c68dd9d6f9460919d87b1822",
+    "stars": 0,
+    "stripeDependency": "^19.3.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "19.3.0",
+    "before": "2025-10-29.clover",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "19-hugo-19/3_webstore": {
+    "commit": "b8a7da2c142ab926fa83eed76f5c22820aa9a365",
+    "stars": 0,
+    "stripeDependency": "^18.3.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "18.3.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "nvberegovykh/atlantist": {
+    "commit": "c4b2a24af3bc94a13ab23aa35d1a20601f15d104",
+    "stars": 0,
+    "stripeDependency": "^16.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-04-10"
+    ],
+    "locked": "16.12.0",
+    "before": "2024-04-10",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "martinfilous88/maturitni_prace": {
+    "commit": "37ed2f57653b994cf16dbc2b258fd2ead0a96042",
+    "stars": 0,
+    "stripeDependency": "^17.5.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "17.5.0",
+    "before": "2024-12-18.acacia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "a-nagdy/Node_Shop": {
+    "commit": "5f0572122e6e93ca932119dd0f7626211c8917d5",
+    "stars": 0,
+    "stripeDependency": "^16.1.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "16.1.0",
+    "before": "2024-06-20",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "Dessiidoo/Market-Prophet": {
+    "commit": "d9ec237ab24fc68bc2051cbf05529773bd986921",
+    "stars": 0,
+    "stripeDependency": "^20.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2025-11-17.clover"
+    ],
+    "locked": "20.0.0",
+    "before": "2025-11-17.clover",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "script-beast/BettingTipsBackend": {
+    "commit": "476850b15bfc77d5a00afe9a18ce4682302a6758",
+    "stars": 0,
+    "stripeDependency": "^14.9.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "14.20.0",
+    "before": "2023-10-16",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "GamerHubOrg/gamerhub_back": {
+    "commit": "e0a51e95f730507eaf8141bbbe8c1b19ef470654",
+    "stars": 0,
+    "stripeDependency": "^15.12.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "15.12.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "giannis198/duo-lingo-clone": {
+    "commit": "8af428455c6d35b59c712530e4c51fb890f4db98",
+    "stars": 0,
+    "stripeDependency": "^14.23.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "14.23.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "imrishifman/BaStudioApp": {
+    "commit": "308c3c80374139414184bad4ee6a9e73554a6076",
+    "stars": 0,
+    "stripeDependency": "^22.1.1",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "22.1.1",
+    "before": "2026-04-22.dahlia",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "Paulino12/nextjs-recipe-app": {
+    "commit": "a9b549b0fbfee5581a574c905b3fdb4075ba3716",
+    "stars": 0,
+    "stripeDependency": "^11.9.1",
+    "packageManager": "yarn",
+    "usesSdk": true,
+    "pins": [
+      "2022-11-05"
+    ],
+    "locked": "11.9.1",
+    "before": "2022-11-05",
+    "beforeSource": "apiVersion pin",
+    "outcome": "API version without a pinned spec"
+  },
+  "Uralov-Berdibek/google-drive": {
+    "commit": "2707c1a97d8abd8bb65d04bad97f80d354ef13ae",
+    "stars": 1,
+    "stripeDependency": "^14.16.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "14.16.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "enisgjinii/FivSync": {
+    "commit": "f2ad9e44b5d61571b8a1b38898580dbc9ca84dcd",
+    "stars": 0,
+    "stripeDependency": "^16.2.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-06-20"
+    ],
+    "locked": "16.12.0",
+    "before": "2024-06-20",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "skhan139/thecoastalsurf": {
+    "commit": "ffa8d259166c2c6a2d75a1917693680802a06350",
+    "stars": 0,
+    "stripeDependency": "^16.6.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-06-20"
+    ],
+    "locked": "16.12.0",
+    "before": "2024-06-20",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "harshmahajan2003/Fine-Ease": {
+    "commit": "71dab3f8c1e675c7fc55eff6a6164ae7e1827644",
+    "stars": 0,
+    "stripeDependency": "^20.2.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-12-18.acacia"
+    ],
+    "locked": "20.2.0",
+    "before": "2024-12-18.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Tandemn-Labs/tandemn-frontend": {
+    "commit": "7d2cb8004408a7141c905ff4bdecfdb9595b11de",
+    "stars": 0,
+    "stripeDependency": "^18.5.0",
+    "packageManager": "several",
+    "usesSdk": true,
+    "pins": [
+      "2025-08-27.basil"
+    ],
+    "locked": null,
+    "before": "2025-08-27.basil",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "kinshipcanada/delta": {
+    "commit": "f1c086f813dfa2fe43c3004e98bb5300533228c5",
+    "stars": 0,
+    "stripeDependency": "^13.4.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-08-16"
+    ],
+    "locked": "13.4.0",
+    "before": "2023-08-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "fgirse/8zense.com-2024-669": {
+    "commit": "b295bf1a96924f88ca711b616a749068f7d11261",
+    "stars": 0,
+    "stripeDependency": "^17.4.0",
+    "packageManager": "yarn",
+    "usesSdk": true,
+    "pins": [
+      "2023-08-16"
+    ],
+    "locked": null,
+    "before": "2023-08-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "alexkasema/pdf-helper": {
+    "commit": "fdf8717ceb4d698b012ab4fab4396d756ab4bd21",
+    "stars": 0,
+    "stripeDependency": "^17.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2024-09-30.acacia"
+    ],
+    "locked": "17.0.0",
+    "before": "2024-09-30.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Papayaguy-Creator/mindquest-backend": {
+    "commit": "8e7ca0e96fcb4c0ad69da47703df3bb92c1313fb",
+    "stars": 0,
+    "stripeDependency": "^14.12.0",
+    "packageManager": "npm",
+    "usesSdk": false,
+    "pins": [],
+    "locked": "14.25.0",
+    "before": "2023-10-16",
+    "beforeSource": "SDK version",
+    "outcome": "no Stripe SDK client in application code"
+  },
+  "bmoir23/symmetrical-octo-disco": {
+    "commit": "ba4f1091b0fbc56dd38e57c5b35f1ce7810244e8",
+    "stars": 0,
+    "stripeDependency": "^14.25.0",
+    "packageManager": "pnpm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "14.25.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Sukhjot-13/ResumeBuilder": {
+    "commit": "dc7a340117a2cc33451e4a507a87961fdb82f2eb",
+    "stars": 0,
+    "stripeDependency": "^20.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "20.0.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "satyam-code45/workwave": {
+    "commit": "edaea8fe08598035a41359d6249eb7b55eaf5902",
+    "stars": 0,
+    "stripeDependency": "^17.7.0",
+    "packageManager": "pnpm",
+    "usesSdk": true,
+    "pins": [
+      "2025-02-24.acacia"
+    ],
+    "locked": "17.7.0",
+    "before": "2025-02-24.acacia",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "lokeshpathrabe/ai-pitch-generator": {
+    "commit": "c3c6fd9485d67bc379d1ba262c7901f0a49f3013",
+    "stars": 0,
+    "stripeDependency": "^14.2.0",
+    "packageManager": "yarn",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "14.25.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "Yupsecous/AI-Agent-Lovable": {
+    "commit": "a5393a1dce0bf25ecb6360d80a0da691e126ba3d",
+    "stars": 0,
+    "stripeDependency": "^18.1.1",
+    "packageManager": "none",
+    "usesSdk": true,
+    "pins": [],
+    "locked": null,
+    "outcome": "no API version"
+  },
+  "khizarbakh/quantum-chain-explorer": {
+    "commit": "c40e549bd256b4d2a3971a4bc430a8ac9e0237d7",
+    "stars": 0,
+    "stripeDependency": "^8.176.0",
+    "packageManager": "yarn",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "8.222.0",
+    "before": "2022-08-01",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "D0MK3N/dwanpos": {
+    "commit": "9113bc584d9cb8a86c230bc55f2cb16e0a595492",
+    "stars": 0,
+    "stripeDependency": "^20.1.2",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2022-11-15"
+    ],
+    "locked": "20.1.2",
+    "before": "2022-11-15",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "ArunReddy99-ux/Explore-Tours": {
+    "commit": "39cf8b66b2430e2dc983f7c3ce0b583da7836f2c",
+    "stars": 0,
+    "stripeDependency": "^7.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [],
+    "locked": "7.0.0",
+    "before": "2022-08-01",
+    "beforeSource": "SDK version",
+    "outcome": "kept"
+  },
+  "jaboyd2025/e-commerce": {
+    "commit": "a19162242cb84172aec75ae0b817e98c881bc6aa",
+    "stars": 0,
+    "stripeDependency": "^18.1.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2023-10-16"
+    ],
+    "locked": "18.1.0",
+    "before": "2023-10-16",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "projectfva/ProjectFVA2025": {
+    "commit": "440ea6d6302adcfb99979469e2006dcf320286fb",
+    "stars": 0,
+    "stripeDependency": "^18.1.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2025-04-30.basil"
+    ],
+    "locked": "18.1.0",
+    "before": "2025-04-30.basil",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "navyapdh11/athena-clean": {
+    "commit": "2fc1e98fe4dd4255122ae1debf5f286d21bb2535",
+    "stars": 0,
+    "stripeDependency": "^14.22.0",
+    "packageManager": "none",
+    "usesSdk": true,
+    "pins": [
+      "2024-06-20"
+    ],
+    "locked": null,
+    "before": "2024-06-20",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "catzilaza/nextjsDashboard": {
+    "commit": "b37c0b8b689163904098f656431eb588d3da1ece",
+    "stars": 0,
+    "stripeDependency": "^20.1.0",
+    "packageManager": "pnpm",
+    "usesSdk": true,
+    "pins": [
+      "2025-12-15.clover"
+    ],
+    "locked": "20.1.0",
+    "before": "2025-12-15.clover",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "jakeersfdc/profitforce": {
+    "commit": "78fb9bba51d2f17938c993e12dd81f9d0d2359ba",
+    "stars": 0,
+    "stripeDependency": "^11.0.0",
+    "packageManager": "npm",
+    "usesSdk": true,
+    "pins": [
+      "2022-11-15"
+    ],
+    "locked": "11.18.0",
+    "before": "2022-11-15",
+    "beforeSource": "apiVersion pin",
+    "outcome": "kept"
+  },
+  "themiltz/sa-takehome-project-node": {
+    "commit": "b4c16d0b457df28f7c4d8150570197f4a6a37d13",
+    "stars": 0,
+    "stripeDependency": "^8.137.0",
+    "packageManager": "none",
+    "usesSdk": false,
+    "pins": [],
+    "locked": null,
+    "outcome": "no Stripe SDK client in application code"
+  }
+}

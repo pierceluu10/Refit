@@ -1,0 +1,286 @@
+{
+  "criteria": "Entries of subsets/f5-tuned-sets.json whose committed tree at the pinned commit is over 50 MiB (sum of blob sizes from the GitHub tree API, 2026-10-27; 596 of 597 measured, unique-point/car-trailers returns 404). Entries unchanged, in list order.",
+  "purpose": "Committed-source limit, founders decision 2026-10-27: every tuned-set repository the 50 MiB limit of the 2g profile refuses, run with --validation-workspace 2g before and after the 2g limit moves to 256 MiB (the 4g default moves from 256 to 512 MiB, which no measured repository reaches; the largest is 155.5 MiB).",
+  "frozenAt": "2026-10-27",
+  "repos": [
+    {
+      "repo": "razchiriac/tunnel-chat",
+      "stars": 59,
+      "commit": "a36cdd4f218cc1dda1aec6f02b7e078749976bac",
+      "before": "2025-08-27.basil",
+      "beforeSource": "SDK version",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "agnaistic/agnai",
+      "stars": 788,
+      "commit": "fccee00f5f7628d150760c787c4be87e6b1a652c",
+      "before": "2023-08-16",
+      "beforeSource": "apiVersion pin (oldest of 2)",
+      "stripeDependency": "^13.11.0",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "getcord/cord",
+      "stars": 107,
+      "commit": "c115dddb47a3036e8d2e82f3320144382d2fb686",
+      "before": "2024-04-10",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^15.4.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "SimplerDevelopment/SimplerDevelopment",
+      "stars": 13,
+      "commit": "2b6b7cc75ebb7872977f5487c2f05c5ca60c1c0c",
+      "before": "2026-02-25.clover",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^20.4.1",
+      "packageManager": "none"
+    },
+    {
+      "repo": "Traviseric/arxmint",
+      "stars": 5,
+      "commit": "57ff097ca08ddb0310b4f9068b28ccc28787959a",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.0.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "mouhamedanflosse/digitalHome",
+      "stars": 4,
+      "commit": "516f977fc565ecc1c392cd464d6c9c2105f82283",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.10.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "shivamm-55/HippoSphere",
+      "stars": 3,
+      "commit": "172bf370bff1123253ecf762ed693b0bb11090a6",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.25.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Eziox-Development/eziox-web",
+      "stars": 2,
+      "commit": "1b42f1e2b2fa6729c402409c3aa52c8e67071cff",
+      "before": "2026-01-28.clover",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^20.3.1",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "litmajor/mtaa-dao",
+      "stars": 2,
+      "commit": "8917af7c29cfe2229539a401ee665960e5a61350",
+      "before": "2025-08-27.basil",
+      "beforeSource": "apiVersion pin (oldest of 2)",
+      "stripeDependency": "^22.2.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Shefaul-22/AgriFlow",
+      "stars": 2,
+      "commit": "4a7741c0a599faac110cbe7cf48b57a0f3bfd04a",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.1.1",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "ARCPrivus2026/ARCPrivus-AI-Madre",
+      "stars": 1,
+      "commit": "1410e48c26ed9ecc06f8a8b51523e2be986737d7",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.1.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "meetingmindsexperts/ea-sys",
+      "stars": 1,
+      "commit": "1eea54511b17736dc529922acb67b29e88de1b19",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-02-25.clover",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^20.4.1"
+    },
+    {
+      "repo": "tmsteph/3dvr-portal",
+      "stars": 1,
+      "commit": "00cb96a75f319c6574c8653ed72475cd3d3161e3",
+      "owner": "User",
+      "authors90d": 4,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^12.17.0"
+    },
+    {
+      "repo": "CRONANANI/EzanaFinance3",
+      "stars": 0,
+      "commit": "4666e5a91486d99956fd81a8728b1c9f1c7ccdd4",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.4.1"
+    },
+    {
+      "repo": "kipp9165/codex-labs-homepage",
+      "stars": 0,
+      "commit": "4fb9cddf071e354b42b8e463219e14196b013e51",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2024-06-20",
+      "beforeSource": "apiVersion pin (oldest of 2)",
+      "stripeDependency": "^22.1.0"
+    },
+    {
+      "repo": "RaulRicco/CashBack",
+      "stars": 0,
+      "commit": "aacdd7564d2a19df515d6c079cd81453c516f642",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.5.0"
+    }
+  ],
+  "specs": [
+    {
+      "version": "2022-08-01",
+      "tag": "v174"
+    },
+    {
+      "version": "2022-11-15",
+      "tag": "v208"
+    },
+    {
+      "version": "2023-08-16",
+      "tag": "v466"
+    },
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-04-10",
+      "tag": "v940"
+    },
+    {
+      "version": "2024-06-20",
+      "tag": "v1095"
+    },
+    {
+      "version": "2024-09-30.acacia",
+      "tag": "v1268"
+    },
+    {
+      "version": "2024-10-28.acacia",
+      "tag": "v1319"
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "tag": "v1347"
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412"
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-03-31.basil",
+      "tag": "v1642"
+    },
+    {
+      "version": "2025-04-30.basil",
+      "tag": "v1719"
+    },
+    {
+      "version": "2025-05-28.basil",
+      "tag": "v1773"
+    },
+    {
+      "version": "2025-06-30.basil",
+      "tag": "v1819"
+    },
+    {
+      "version": "2025-07-30.basil",
+      "tag": "v1868"
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932"
+    },
+    {
+      "version": "2025-09-30.clover",
+      "tag": "v2031"
+    },
+    {
+      "version": "2025-10-29.clover",
+      "tag": "v2104"
+    },
+    {
+      "version": "2025-11-17.clover",
+      "tag": "v2124"
+    },
+    {
+      "version": "2025-12-15.clover",
+      "tag": "v2133"
+    },
+    {
+      "version": "2026-01-28.clover",
+      "tag": "v2160"
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "tag": "v2277"
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "tag": "v2324"
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349"
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+import { fallsBackToRepositoryInstall, repositoryInstallFiles } from './repository-environment.ts';
+import { installPlan } from './repository-install.ts';
 import { lstat, readFile } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { declaresVersion } from './api-version.ts';
@@ -202,7 +204,7 @@ const raising = (evidence: ReviewedEvidence, reason: string) =>
       migrationReviewReason({ adapter: evidence.adapter, findings: [finding] }, true) === reason,
   );
 
-// What a source-provenance stop is about, and its fix. Every sentence must hold for every
+// What a source-provenance stop is about, and what Refit could not do. Every sentence must hold for every
 // repository that reaches the branch, so a branch says only what all its causes share.
 function provenanceStop(
   evidence: ReviewedEvidence & { skippedFiles: string[] },
@@ -222,7 +224,7 @@ function provenanceStop(
     return {
       detail: `Refit could not parse ${listed(files)}, so it did not scan ${one ? 'that file' : 'those files'}.`,
       action:
-        'Fix any syntax error there, then run refit doctor again. Refit parses only TypeScript and JavaScript, so a file in another syntax, such as Flow, keeps this stop.',
+        'Refit parses only TypeScript and JavaScript, so it cannot check the Stripe code in a file it cannot parse, such as one in Flow; check that code before merging a draft.',
     };
   }
   if (reason === REMOVED_REQUEST_PARAMETER_REVIEW_REASON) {
@@ -235,7 +237,7 @@ function provenanceStop(
     const one = set.length === 1;
     return {
       detail: `Code sets ${one ? 'a request parameter' : 'request parameters'} that ${targetVersion(after)} removes, and Refit leaves ${one ? 'it' : 'them'} in place: ${listed(set)}.`,
-      action: `Remove or replace ${one ? 'it' : 'each one'} yourself.${
+      action: `Refit does not remove or replace ${one ? 'it' : 'them'}; check ${one ? 'it' : 'each one'} before merging a draft.${
         findings.some((finding) => finding.requestParameter!.parameter === 'payment_method_types')
           ? ' docs/STRIPE-PAYMENT-METHOD-TYPES.md says which payment_method_types values Refit replaces, and the API version and SDK changes that replacement needs.'
           : ''
@@ -253,16 +255,16 @@ function provenanceStop(
     const one = reads.length === 1;
     return {
       detail: `Refit could not confirm ${one ? 'a read' : `${reads.length} reads`} of ${one ? 'a field' : 'fields'} that ${targetVersion(after)} removes, on ${one ? 'a value' : 'values'} the code declares with a Stripe type: ${listed(reads)}.`,
-      action: `Check ${one ? 'it, and change it yourself if it reads' : 'each one, and change the ones that read'} a Stripe object. Refit's rules migrate such a read only when Refit can confirm it, and it cannot when the value may change before the read or come from an optional call, when the property name is computed, or when Refit cannot tell which Stripe object the value is.`,
+      action: `Refit leaves ${one ? 'it' : 'them'} unchanged; check whether ${one ? 'it reads' : 'each one reads'} a Stripe object before merging a draft. Refit's rules migrate such a read only when Refit can confirm it, and it cannot when the value may change before the read or come from an optional call, when the property name is computed, or when Refit cannot tell which Stripe object the value is.`,
     };
   }
   return {
     detail: reason,
-    action: `Review the code at ${listed([...new Set(raising(evidence, reason).map(at))])} yourself: Refit does not migrate it automatically.`,
+    action: `Refit does not migrate the code at ${listed([...new Set(raising(evidence, reason).map(at))])} automatically; check it before merging a draft.`,
   };
 }
 
-// What a webhook-migration stop is about, and its fix: each read that stops, with its own events.
+// What a webhook-migration stop is about, and what Refit could not do: each read that stops, with its own events.
 function webhookStop(evidence: ReviewedEvidence, reason: string, after: string | null) {
   const stopped = raising(evidence, reason);
   const events = new Map<string, Set<string>>();
@@ -290,7 +292,7 @@ function webhookStop(evidence: ReviewedEvidence, reason: string, after: string |
       unconfirmed
         ? "Refit's rules migrate a webhook read only once Refit confirms the event it reads, such as one stripe.webhooks.constructEvent result that nothing reassigns. "
         : ''
-    }${uncovered ? 'Change the reads no rule migrates yourself. ' : ''}A read you change must accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).`,
+    }${uncovered ? 'Refit leaves the reads no rule migrates unchanged; check them before merging a draft. ' : ''}A changed read must accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).`,
   };
 }
 
@@ -318,7 +320,7 @@ async function committedRepositoryCheck(repository: string, submodules?: boolean
   const snapshot = await inspectCheck(
     'repository',
     'Committed repository',
-    'Commit or stash the files it names, then run refit doctor again. Doctor needs the Git repository root with a committed HEAD; submodules and symlinks that resolve outside the repository are unsupported.',
+    'Refit checks only the committed Git repository root, so it cannot check uncommitted files, submodules or symlinks that resolve outside the repository.',
     () => readCommittedRepository(repository, { submodules }),
   );
   if (snapshot.value)
@@ -328,8 +330,7 @@ async function committedRepositoryCheck(repository: string, submodules?: boolean
         : ''
     }`;
   else if (SUBMODULE.test(snapshot.check.detail))
-    snapshot.check.action =
-      "Commit the submodule's files into this repository, or remove the submodule, then run refit doctor again.";
+    snapshot.check.action = "Refit cannot check a submodule's files, so it stops here.";
   return snapshot;
 }
 
@@ -354,7 +355,8 @@ async function generatedWorkflow(directory: string, contracts: string, allowUnte
               title: 'Workflow configuration',
               status: 'blocked' as const,
               detail: `No ${REPOSITORY_CONFIGURATION} in ${directory} yet, and Refit found no Stripe package to generate one for.`,
-              action: `Run refit agents to see which provider agents apply, then refit agents --add <id> to write ${REPOSITORY_CONFIGURATION}.`,
+              action:
+                'Refit generates a configuration only for Stripe code, so it has nothing to check here.',
             },
           ],
     };
@@ -468,7 +470,7 @@ export async function inspectRepositoryReadiness(options: {
   const configuration = await inspectCheck(
     'configuration',
     'Workflow configuration',
-    `Supply --config with a valid workflow file, or commit ${REPOSITORY_CONFIGURATION} in the repository root.`,
+    'Refit could not read this workflow configuration, so it stops before checking the repository.',
     async () =>
       generated?.workflow
         ? parseWorkflowConfiguration(
@@ -622,7 +624,7 @@ export async function inspectRepositoryReadiness(options: {
         action:
           unreadable && !warnings.length
             ? unreadable.action
-            : 'If a tsconfig or jsconfig is invalid, fix it. Otherwise nothing in your code needs to change: Refit stops at clients shared between files until it can verify which file each import loads.',
+            : 'Refit stops at clients shared between files until it can verify which file each import loads, which it cannot do under an invalid tsconfig or jsconfig.',
       });
     }
     scan.check.detail = `${evidence.repository.scannedFiles} source files inspected; adapter contracts resolved. ${workflow.latestStripe ? 'Latest Stripe source was not fetched; only the baseline was inspected.' : 'Both supplied contracts were inspected.'}`;
@@ -641,8 +643,8 @@ export async function inspectRepositoryReadiness(options: {
       action: versionPassed
         ? null
         : evidence.apiVersion.application === null && evidence.apiVersion.before
-          ? `Confirm your client and account use ${evidence.apiVersion.before}, then add "apiVersion": "${evidence.apiVersion.before}" to ${workflow.integration ? `the ${workflow.integration} integration in ` : ''}${REPOSITORY_CONFIGURATION}.`
-          : 'Verify the application client/account version and configure an exact before-contract API-version pin.',
+          ? `Refit could not confirm that the client and account use ${evidence.apiVersion.before}${workflow.integration ? `, the version the ${workflow.integration} integration starts from` : ''}; check the version before merging a draft.`
+          : 'Refit could not confirm the client and account API version, so it has no exact version to compare from.',
     });
     if (workflow.latestStripe && !evidence.provenance.before)
       report.checks.push({
@@ -673,7 +675,7 @@ export async function inspectRepositoryReadiness(options: {
           evidence.apiVersion,
         ),
         action:
-          'Run refit run --human to see each change and where the code reaches it, and migrate those calls by hand. Refit has no reviewed rule for these changes, so it stops before validation.',
+          'Refit has no reviewed rule for these changes, so it stops before validation and leaves those calls unchanged; refit run --human lists each change and where the code reaches it.',
       });
     if (evidence.specificationDiff.engine === 'direct-properties')
       report.checks.push({
@@ -681,7 +683,8 @@ export async function inspectRepositoryReadiness(options: {
         title: 'Contract comparison coverage',
         status: 'review',
         detail: 'Full comparison is disabled. Only supported removed properties were compared.',
-        action: 'Enable fullDiff and install oasdiff to inspect broader breaking contract changes.',
+        action:
+          'Refit compared only supported removed properties, so it did not check broader breaking contract changes.',
       });
     const helpers = new Set(
       evidence.adapter.packageName === 'stripe'
@@ -722,10 +725,10 @@ export async function inspectRepositoryReadiness(options: {
             : `${mappedCalls} of ${operationCalls.length} observed SDK API calls have configured mappings. ${helpers.size ? `${helpers.size} local webhook signature constructor${helpers.size === 1 ? '' : 's'} recognized; incoming version and policy require separate review. ` : ''}${unmapped.length ? 'Unmapped calls are outside automatic coverage.' : 'This count does not prove complete code coverage.'}`,
       action: missingMappings
         ? !operationCalls.length
-          ? `If the code reaches ${evidence.adapter.packageName} only through another library, upgrade that library instead. Otherwise run refit run --human to see which clients Refit found, and call the API through one it can follow.`
-          : `Check these calls against the ${evidence.adapter.packageName} changes${evidence.apiVersion.before && evidence.apiVersion.after ? ` from ${evidence.apiVersion.before} to ${evidence.apiVersion.after}` : ''} by hand. Refit cannot tell what the migration changes for a method it does not map, so it stops before validation.`
+          ? `Refit cannot see ${evidence.adapter.packageName} calls made inside another library or through a client it cannot follow, so it has nothing to migrate here; refit run --human lists the clients Refit found.`
+          : `Refit cannot tell what the migration changes for a method it does not map, so it stops before validation; these calls need checking against the ${evidence.adapter.packageName} changes${evidence.apiVersion.before && evidence.apiVersion.after ? ` from ${evidence.apiVersion.before} to ${evidence.apiVersion.after}` : ''} before merging a draft.`
         : unmapped.length
-          ? 'Review unmapped methods against provider documentation and add verified adapter mappings where supported.'
+          ? 'Refit does not migrate unmapped methods; check them against the provider documentation before merging a draft.'
           : null,
     });
     const unknownLocks = evidence.repository.dependencies.filter(
@@ -737,7 +740,7 @@ export async function inspectRepositoryReadiness(options: {
         title: 'Recorded SDK version',
         status: 'review',
         detail: `Refit cannot tell which ${evidence.adapter.packageName} release ${unknownLocks.map((dependency) => `${dependency.file} (${dependency.version})`).join(', ')} install${unknownLocks.length === 1 ? 's' : ''}: ${[...new Set(unknownLocks.map((dependency) => dependency.lock.reason))].join(' ')}`,
-        action: `Check which ${evidence.adapter.packageName} release you install before merging a migration: a declared range is not the installed release, and a migration may use methods only newer releases have.`,
+        action: `Refit could not confirm which ${evidence.adapter.packageName} release is installed: a declared range is not the installed release, and a migration may use methods only newer releases have, so check the release before merging a draft.`,
       });
   }
   if (workflow.prepareDependencies && snapshot.value) {
@@ -747,7 +750,7 @@ export async function inspectRepositoryReadiness(options: {
     const dependencies = await inspectCheck(
       'dependencies',
       'Dependency preparation inputs',
-      'Commit matching root manifests and a supported public-registry lockfile, or use a custom dependency image.',
+      'Refit could not prepare dependencies from the committed manifests and lockfile, so it cannot run the checks on a draft.',
       async () =>
         readPreparationInputs(
           packageDirectory
@@ -762,10 +765,21 @@ export async function inspectRepositoryReadiness(options: {
     } else if (dependencies.check.status === 'blocked') {
       dependencies.check.action =
         preparationStop(dependencies.check.detail)?.action ?? dependencies.check.action;
-      if (report.generated) {
+      // Refit builds the environment from the repository's own install instead (founder
+      // decision, 2026-10-28): nothing for the customer to change.
+      const plan =
+        !packageDirectory &&
+        fallsBackToRepositoryInstall(dependencies.check.detail) &&
+        installPlan(await repositoryInstallFiles(report.repository).catch(() => new Map()));
+      if (plan) {
+        dependencies.check.status = 'review';
+        dependencies.check.detail = `${dependencies.check.detail} Refit runs the repository's own install instead (${plan.command.join(' ')}, from ${plan.file}) in its build sandbox, with lifecycle scripts as that install runs them, no secrets and egress only to public registries and the hosts the repository's files name, then validates offline on the result.`;
+        dependencies.check.action =
+          "Nothing to configure. If that install needs a private registry or credentials, Refit publishes the draft untested and says what it could not check; the optional Refit validation workflow adds your CI's results if it was merged.";
+      } else if (report.generated) {
         // The generated file names its contracts relative to itself, so they are committed with it.
         const versions = [...new Set([report.generated.apiVersion.value, report.generated.target])];
-        dependencies.check.action += ` This repository commits no ${REPOSITORY_CONFIGURATION}: to change its settings, commit the generated one first (refit doctor --json prints it as generated.configuration) together with the contracts it names: run refit stripe-snapshot ${versions.map((version) => `--version ${version}`).join(' ')} --contracts . in the repository and commit refit/.`;
+        dependencies.check.action += ` This repository commits no ${REPOSITORY_CONFIGURATION}, so Refit uses the one it generated (refit doctor --json prints it as generated.configuration), with the contracts for ${versions.join(' and ')}.`;
       }
     }
     report.checks.push(dependencies.check);
@@ -776,7 +790,7 @@ export async function inspectRepositoryReadiness(options: {
       status: 'review',
       detail: 'A custom validation image must supply the dependencies used by the check commands.',
       action:
-        'Run baseline validation to verify that the image contains the required runtime and dependencies.',
+        'Refit has not checked that the image contains the required runtime and dependencies; baseline validation does.',
     });
   report.image = image.value ?? null;
   if (image.value)

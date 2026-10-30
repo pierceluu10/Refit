@@ -1,0 +1,118 @@
+{
+  "formatVersion": 1,
+  "provider": "stripe",
+  "version": "2025-03-31.basil",
+  "previous": "2025-02-24.acacia",
+  "rules": [
+    {
+      "rule": "stripe-subscription-periods-helper",
+      "family": "period-helper",
+      "schemas": ["subscription"],
+      "targets": [
+        ["subscription", "items"],
+        ["subscription_item", "current_period_end"],
+        ["subscription_item", "current_period_start"]
+      ],
+      "helpers": {
+        "current_period_end": "getSubscriptionPeriodEnd",
+        "current_period_start": "getSubscriptionPeriodStart"
+      },
+      "source": "https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end",
+      "warning": "Subscription periods are read through a generated helper: the old subscription-level field when present (old-version events), otherwise the period every item shares, otherwise the item the application already selects or the configured price policy. Webhook endpoints are not changed.",
+      "quote": "Instead, access the subscription item’s billing periods directly using [items.data.current_period_end](https://docs.stripe.com/api/subscription_items/object.md?api-version=2025-03-31.basil#subscription_item_object-current_period_end) and [items.data.current_period_start](https://docs.stripe.com/api/subscription_items/object.md?api-version=2025-03-31.basil#subscription_item_object-current_period_start) fields.",
+      "checkedAt": "2026-10-27",
+      "diff": {
+        "id": "response-required-property-removed",
+        "operationId": "GetAccount",
+        "text": "removed the required property `error/payment_intent/customer/anyOf[subschema #2: Customer]/subscriptions/data/items/current_period_end` from the response with the `default` status"
+      },
+      "status": "auto",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_04d581207d6105bc016ae06e9f36cc87d2a08b0f2154012978"
+      },
+      "benchmark": "Reproduces the reviewed hand-written pack rule with identical behaviour; refit-bench comparison against main 5ba25c1e in docs/BENCHMARKS.md (generated rules, 2026-10-27)."
+    },
+    {
+      "rule": "stripe-invoice-subscription-helper",
+      "family": "moved-value",
+      "schemas": ["invoice"],
+      "property": "subscription",
+      "helper": "getInvoiceSubscription",
+      "unlessExpanded": true,
+      "typeofGuard": true,
+      "narrowTested": true,
+      "targets": [["invoice", "parent", "subscription_details", "subscription"]],
+      "source": "https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects",
+      "warning": "Invoice subscriptions are read through a generated helper: the old invoice.subscription field when present (old-version events), otherwise invoice.parent.subscription_details.subscription. Webhook endpoints are not changed.",
+      "quote": "- Use `invoice.parent.subscription_details.subscription` (verify `invoice.parent.type` is `subscription_details`) instead of `invoice.subscription`.",
+      "checkedAt": "2026-10-27",
+      "diff": {
+        "id": "response-optional-property-removed",
+        "operationId": "GetAccount",
+        "text": "removed the optional property `error/payment_intent/customer/anyOf[subschema #2: Customer]/subscriptions/data/items/latest_invoice/anyOf[subschema #2: Invoice]/subscription` from the response with the `default` status"
+      },
+      "status": "auto",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_0456c9aa5fb9633b016ae06ea4199c87d28c0174d96791fca8"
+      },
+      "benchmark": "Reproduces the reviewed hand-written pack rule with identical behaviour; refit-bench comparison against main 5ba25c1e in docs/BENCHMARKS.md (generated rules, 2026-10-27)."
+    },
+    {
+      "rule": "stripe-checkout-shipping-details-helper",
+      "family": "moved-value",
+      "schemas": ["checkout.session"],
+      "property": "shipping_details",
+      "helper": "getCheckoutShippingDetails",
+      "droppedFields": ["carrier", "phone", "tracking_number"],
+      "narrowTested": true,
+      "targets": [["checkout.session", "collected_information", "shipping_details"]],
+      "source": "https://docs.stripe.com/changelog/basil/2025-03-31/checkout-session-remove-shipping-details",
+      "warning": "Checkout Session shipping details are read through a generated helper: the old shipping_details field when present (old-version events), otherwise collected_information.shipping_details. The new object holds only address and name; reads of carrier, phone or tracking_number are left for review. Webhook endpoints are not changed.",
+      "quote": "Within a [Checkout Session](https://docs.stripe.com/api/checkout/sessions/object.md?api-version=2025-03-31.basil), the `shipping_details` top-level field has moved to the [collected_information.shipping_details](https://docs.stripe.com/api/checkout/sessions/object.md?api-version=2025-03-31.basil#checkout_session_object-collected_information-shipping_details) field.",
+      "checkedAt": "2026-10-27",
+      "diff": {
+        "id": "response-optional-property-removed",
+        "operationId": "GetCheckoutSessions",
+        "text": "removed the optional property `data/items/shipping_details` from the response with the `200` status"
+      },
+      "status": "auto",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_096ad0f19ee19797016ae06eabfb4487d2b04ffc880be9183d"
+      },
+      "benchmark": "Reproduces the reviewed hand-written pack rule with identical behaviour; refit-bench comparison against main 5ba25c1e in docs/BENCHMARKS.md (generated rules, 2026-10-27)."
+    },
+    {
+      "rule": "stripe-invoice-price-id-helper",
+      "family": "moved-id",
+      "schemas": ["invoiceitem", "line_item"],
+      "property": "price",
+      "helper": "getInvoicePriceId",
+      "targets": [
+        ["invoiceitem", "pricing", "price_details", "price"],
+        ["line_item", "pricing", "price_details", "price"]
+      ],
+      "source": "https://docs.stripe.com/changelog/basil/2025-03-31/invoice-pricing-configurations",
+      "warning": "Invoice line item and invoice item price IDs are read through a generated helper: the old price.id when present (old-version events), otherwise pricing.price_details.price when pricing.type is price_details. A missing price reads as undefined. Webhook endpoints are not changed.",
+      "quote": "- Instead of `invoice_item.price.id`, use `invoice_item.pricing.price_details.price` after verifying that `invoice_item.pricing.type` is `price_details`",
+      "checkedAt": "2026-10-27",
+      "diff": {
+        "id": "response-optional-property-removed",
+        "operationId": "GetAccount",
+        "text": "removed the optional property `error/payment_intent/customer/anyOf[subschema #2: Customer]/subscriptions/data/items/latest_invoice/anyOf[subschema #2: Invoice]/lines/data/items/price` from the response with the `default` status"
+      },
+      "status": "auto",
+      "origin": "generated",
+      "generatedBy": {
+        "model": "gpt-6.1-sol",
+        "responseId": "resp_05ae1fb9a877e7d3016ae06ec0f4f087d2b345467ac40ce040"
+      },
+      "benchmark": "Reproduces the reviewed hand-written pack rule with identical behaviour; refit-bench comparison against main 5ba25c1e in docs/BENCHMARKS.md (generated rules, 2026-10-27)."
+    }
+  ]
+}

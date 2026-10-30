@@ -1,6 +1,10 @@
 import { afterAll, afterEach, beforeEach } from 'vitest';
 import { openHandleSnapshot, openHandlesSince, recordTimers } from './open-handles.ts';
 
+// A test whose preparation fails must not start a networked install of the repository's own
+// (repository-environment.ts); the tests of that install turn it on themselves.
+process.env.REFIT_REPOSITORY_INSTALL ??= '0';
+
 // Fails a test, or a file's hooks, that leave something running for the next test to trip over.
 recordTimers();
 const file = openHandleSnapshot();
