@@ -315,8 +315,12 @@ it
         expect(body.instructions).toContain('untrusted check output');
         expect(evidence.repair.attempt).toBe(attempt);
         expect(evidence.repair.failedPatch).toContain(
-          attempt === 1 ? '+  return [];' : '+  return [1];',
+          attempt === 1 || scenario === 'repeat' ? '+  return [];' : '+  return [1];',
         );
+        // A repeated proposal is asked again with the note that it changed nothing.
+        expect(Boolean(evidence.repair.unchanged)).toBe(scenario === 'repeat' && attempt > 1);
+        if (evidence.repair.unchanged)
+          expect(body.instructions).toContain('identical to one already checked');
         expect(evidence.repair.check.stderr.length).toBeLessThanOrEqual(4096);
         expect(evidence.repair.check.truncated).toBe(true);
         expect(evidence.repair.check.stderr).toContain('repair_test_failure');
@@ -383,7 +387,7 @@ it
     const expectedRequests =
       scenario === 'baseline-failed'
         ? 0
-        : ['exhausted', 'invalid-edit'].includes(scenario)
+        : ['exhausted', 'invalid-edit', 'repeat'].includes(scenario)
           ? 3
           : ['baseline-failed', 'disabled', 'stale'].includes(scenario)
             ? 1

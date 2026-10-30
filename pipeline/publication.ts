@@ -685,6 +685,7 @@ export function publicationWaiver(
   const untraced = declarations.filter(
     (declaration) =>
       declaration.status === 'unknown' &&
+      !declaration.moved &&
       !(declaration.kind === 'constructor' && declaration.absent),
   );
   const defaulted = declarations.filter(
@@ -707,7 +708,9 @@ export function publicationWaiver(
     declaration.value !== null &&
     declaration.value < targetVersion
       ? [{ file: declaration.file, line: declaration.line, detail: declaration.value }]
-      : [],
+      : declaration.moved
+        ? [{ file: declaration.file, line: declaration.line, detail: declaration.moved }]
+        : [],
   );
   const impacts: ReviewSite[] = report.operationImpacts.flatMap((impact) =>
     impact.usages.map((usage) => ({

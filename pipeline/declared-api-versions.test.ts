@@ -501,3 +501,53 @@ it('verifies a pin whose client goes to an exported helper Refit traces, but not
     ).source.status,
   ).toBe('unknown');
 });
+
+it('records every apiVersion literal a Stripe file pins, traced or not, but never another SDK date', () => {
+  const clover = '2026-02-25.clover';
+  const repository: Repository = {
+    root: '/refit-version-fixture',
+    files: [
+      {
+        path: 'application.ts',
+        content: `${prefix} const stripe = new Stripe('test', { apiVersion: '${ORIGINAL}' }); await stripe.paymentIntents.retrieve('id');`,
+      },
+      {
+        path: 'billing.ts',
+        content: `${prefix} register(new Stripe(process.env.KEY!, { apiVersion: '${clover}' }));`,
+      },
+      {
+        path: 'config.ts',
+        content: `import type Stripe from "stripe"; export const options = { apiVersion: '${clover}' as Stripe.LatestApiVersion, copy: { apiVersion: '${ORIGINAL}' } };`,
+      },
+      {
+        path: 'azure.ts',
+        content: `${prefix} import { AzureOpenAI } from 'openai'; new AzureOpenAI({ apiVersion: '2024-02-01' });`,
+      },
+      { path: 'other.ts', content: `export const client = { apiVersion: '${clover}' };` },
+    ],
+    dependencies: [],
+    lockfiles: [],
+    warnings: [],
+  };
+  const analysis = analyzeRepository(repository, [], STRIPE);
+  const pins = analysis.apiVersionLiterals.map(({ file, value, declaration }) => ({
+    file,
+    value,
+    untracedConstructor: declaration !== undefined,
+  }));
+  expect(pins).toEqual(
+    expect.arrayContaining([
+      { file: 'application.ts', value: ORIGINAL, untracedConstructor: false },
+      { file: 'billing.ts', value: clover, untracedConstructor: true },
+      { file: 'config.ts', value: clover, untracedConstructor: false },
+      { file: 'config.ts', value: ORIGINAL, untracedConstructor: false },
+    ]),
+  );
+  expect(pins.filter(({ file }) => file === 'azure.ts' || file === 'other.ts')).toEqual([]);
+  const billing = analysis.apiVersionLiterals.find(({ file }) => file === 'billing.ts')!;
+  expect(analysis.apiVersionDeclarations[billing.declaration!]).toMatchObject({
+    file: 'billing.ts',
+    kind: 'constructor',
+    status: 'unknown',
+  });
+});

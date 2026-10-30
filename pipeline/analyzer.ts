@@ -2159,7 +2159,13 @@ export function analyzeRepository(
   // or through one const alias; new enum values on these fields can reach unhandled code (owner
   // decision 6, 2026-10-24).
   const enumChecks: (Location & { schema: string; property: string; compare?: true })[] = [];
-  const apiVersionLiterals: { file: string; start: number; end: number; value: string }[] = [];
+  const apiVersionLiterals: {
+    file: string;
+    start: number;
+    end: number;
+    value: string;
+    declaration?: number;
+  }[] = [];
   for (const node of nodes) {
     const compared = comparedWithLiterals(node);
     let checked = ts.isSwitchStatement(node)

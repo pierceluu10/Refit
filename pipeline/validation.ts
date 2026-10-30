@@ -20,6 +20,13 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 import { runPipeline } from './run.ts';
+import {
+  archivedStripeTypes,
+  errorSources,
+  namedTypes,
+  typeDeclarations,
+  withoutBaselineErrors,
+} from './repair-context.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
 import {
@@ -2625,6 +2632,13 @@ export async function validateMigration(options: {
     }
     let typeRepair:
       { base: Repository; errors: { file: string; line: number; column: number }[] } | undefined;
+    // Founder decision (2026-10-28, docs/AI-REPAIR.md): a repeated proposal is asked again with
+    // more context, up to the attempt limit, instead of stopping the repair.
+    let repeated = false;
+    let stripeTypes: { path: string; content: string }[] | undefined;
+    // Only what the patch introduced: the original code's own type errors are left out.
+    const introducedLog = (output: string) =>
+      options.compareTypeErrors ? withoutBaselineErrors(baselineRun, output) : output;
     while (
       baseline.status === 'passed' &&
       patched.status === 'failed' &&
@@ -2682,6 +2696,29 @@ export async function validateMigration(options: {
       options.onProgress?.(
         `Patched checks failed. Requesting AI repair ${repair.requested} of ${repairLimit}...`,
       );
+      const stdout = introducedLog(patched.stdout);
+      const stderr = introducedLog(patched.stderr);
+      const repeatedContext = async (errors: typeof introduced) => {
+        const listed = errors.filter((error) => !reviewTypeError(error)).map(inPackage);
+        // The stripe-node the failed candidate was checked against.
+        const archive = candidateDependencies ?? dependencies;
+        if (archive)
+          stripeTypes ??= await archivedStripeTypes(archive, packageDirectory).catch(() => []);
+        return {
+          unchanged: true as const,
+          typeErrors: errorSources(
+            listed.map(({ file, line, column, code, message }) => ({
+              file,
+              line,
+              column,
+              code,
+              message,
+            })),
+            candidateSources?.files ?? [],
+          ),
+          stripeTypes: typeDeclarations(namedTypes(listed), stripeTypes ?? []),
+        };
+      };
       try {
         options.signal?.throwIfAborted();
         const candidate = await proposeAiPatch(
@@ -2716,12 +2753,13 @@ export async function validateMigration(options: {
             failedPatch: compactPatch(codeDiff(proposal.diff)),
             check: {
               exitCode: patched.exitCode,
-              stdout: patched.stdout.slice(0, MAX_REPAIR_LOG_CHARACTERS),
-              stderr: patched.stderr.slice(0, MAX_REPAIR_LOG_CHARACTERS),
+              stdout: stdout.slice(0, MAX_REPAIR_LOG_CHARACTERS),
+              stderr: stderr.slice(0, MAX_REPAIR_LOG_CHARACTERS),
               truncated:
-                patched.stdout.length > MAX_REPAIR_LOG_CHARACTERS ||
-                patched.stderr.length > MAX_REPAIR_LOG_CHARACTERS,
+                stdout.length > MAX_REPAIR_LOG_CHARACTERS ||
+                stderr.length > MAX_REPAIR_LOG_CHARACTERS,
             },
+            ...(repeated ? await repeatedContext(introduced) : {}),
           },
           options.documentationSnapshots,
           afterSpecification.schemas,
@@ -2748,8 +2786,10 @@ export async function validateMigration(options: {
         }
         if (attempts.some((attempt) => attempt.patchHash === digest(candidate.diff))) {
           repair.stopReason = 'repeated-proposal';
-          break;
+          repeated = true;
+          continue;
         }
+        repeated = false;
         const preparedCandidate = await prepareCandidate(candidate.diff, originalSources, report);
         // A removed request parameter has no reviewed replacement; a repair must not drop it.
         const dropped = droppedRequestParameters(

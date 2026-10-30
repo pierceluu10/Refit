@@ -501,6 +501,17 @@ async function runOpenApiPipeline(options: {
         edits.some((edit) => edit.file === file && edit.start <= offset && offset < edit.end),
     });
   }
+  // An untraced client's literal pin that the patch moves is listed as moved, not as left alone.
+  if (movesVersion || options.aiPatch)
+    for (const literal of apiVersionLiterals)
+      if (
+        literal.declaration !== undefined &&
+        versionEdits.some((edit) => edit.file === literal.file && edit.start === literal.start)
+      )
+        apiVersionDeclarations[literal.declaration] = {
+          ...apiVersionDeclarations[literal.declaration],
+          moved: literal.value,
+        };
   const apiVersion = compareApiVersion(
     applicationApiVersion,
     before.document,

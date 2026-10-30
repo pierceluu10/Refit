@@ -25,7 +25,15 @@ export function declaredApiVersions(options: {
   references?: BindingReferences;
   // Receives the text span of each literal version, for a patch that bumps it. `endpoint` marks a
   // literal that also sets a webhook endpoint's api_version, so moving it changes that endpoint.
-  literals?: { file: string; start: number; end: number; value: string; endpoint?: true }[];
+  // `declaration` names the untraced constructor a literal belongs to.
+  literals?: {
+    file: string;
+    start: number;
+    end: number;
+    value: string;
+    endpoint?: true;
+    declaration?: number;
+  }[];
   // Receives the declaration indexes that decide each client binding's and each SDK call's
   // version, so a caller can check one request's own path.
   paths?: { clients: Map<ts.Symbol, number[]>; calls: Map<ts.CallExpression, number[]> };
@@ -284,14 +292,17 @@ export function declaredApiVersions(options: {
       )
       .map((node) => resolve(node.initializer)),
   );
-  const literalSpan = (node: ts.Expression, value: string) =>
+  const literalSpan = (node: ts.Expression, value: string, declaration?: number) =>
     options.literals?.push({
       file: location(node).file,
       start: node.getStart() + 1,
       end: node.getEnd() - 1,
       value,
       ...(endpointLiterals.has(node) ? { endpoint: true as const } : {}),
+      ...(declaration === undefined ? {} : { declaration }),
     });
+  // Untraced constructors' literal pins, checked once every traced pin is known (below).
+  const untracedPins: { node: ts.Expression; value: string; declaration: number }[] = [];
   const endpoint = (node: ts.Expression | undefined) =>
     node && endpointLiterals.has(node) ? { endpoint: true as const } : {};
   // stripe-node fixes a client's API version at construction; `setApiVersion`, a write to its
@@ -327,6 +338,12 @@ export function declaredApiVersions(options: {
         unsafe.has(binding);
       const uncertain = hatch || unresolved;
       if (result.node && !uncertain) literalSpan(result.node, result.value!);
+      else if (result.node && result.value)
+        untracedPins.push({
+          node: result.node,
+          value: result.value,
+          declaration: declarations.length,
+        });
       if (binding && options.paths)
         options.paths.clients.set(binding, [
           ...(options.paths.clients.get(binding) ?? []),
@@ -384,6 +401,34 @@ export function declaredApiVersions(options: {
       node,
       Array.from({ length: declarations.length - first }, (_, index) => first + index),
     );
+  }
+  // Founder decision (2026-10-28, docs/AI-REPAIR.md): the version move updates every `apiVersion`
+  // string literal in a file that loads stripe, not only traced clients' pins. Outside a traced
+  // pin only a dated version with its release name, or a value a traced pin sends, counts, so
+  // another SDK's dated `apiVersion` is never moved.
+  if (options.provider.packageName === 'stripe' && options.literals) {
+    const traced = new Set(options.literals.map((literal) => literal.value));
+    const stripeVersion = (node: ts.Expression, value: string) =>
+      (/^\d{4}-\d{2}-\d{2}\.[a-z]+$/.test(value) || traced.has(value)) &&
+      /(?:from\s*|require\(\s*|import\(\s*)['"]stripe['"]/.test(node.getSourceFile().text);
+    for (const pin of untracedPins)
+      if (stripeVersion(pin.node, pin.value)) literalSpan(pin.node, pin.value, pin.declaration);
+    const property = mapping.property.split('.').at(-1);
+    for (const node of nodes) {
+      if (
+        !ts.isPropertyAssignment(node) ||
+        !(ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) ||
+        node.name.text !== property
+      )
+        continue;
+      const value = unwrap(node.initializer);
+      if (
+        (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)) &&
+        value.text === value.text.trim() &&
+        stripeVersion(value, value.text)
+      )
+        literalSpan(value, value.text);
+    }
   }
   return declarations;
 }
