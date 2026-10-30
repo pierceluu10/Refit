@@ -1,8 +1,22 @@
 # Refit implementation checkpoints
 
+<<<<<<< HEAD
 ## October 30 checkpoint: Shopify client tracing and REST URLs (unreleased, after 0.39.0)
 
 Shopify tracing follows Admin GraphQL clients returned from factories and passed into repository functions (as an argument or a destructured member), object members copied with spread or passed on, and loaded `import()` namespaces ([Shopify](SHOPIFY.md#what-refit-reads)). Two REST shapes that were invisible now count, and stop: base URLs that end at the version, and REST paths after a substituted version. A version literal that also sets a Storefront API URL stops the Admin move instead of moving the Storefront version. On the 310 Shopify rows (dev-60 and the 250 practice repositories, no AI): validated 34 → 34, unreadable-first rows 20 → 17, REST-first rows 32 → 35, none lost ([benchmarks](BENCHMARKS.md#document-tracing-and-rest-detection-2026-10-30-fixshopify-tracing-rest)).
+=======
+## October 30 checkpoint: Shopify SDK and preparation stops (unreleased, after 0.39.0)
+
+- **Lockfile resolution now covers three more cases.**
+  - It covers npm projects with positive-glob `workspaces`, using their committed workspace manifests.
+  - It accepts an `.npmrc` registry line that names `https://registry.npmjs.org` itself.
+  - When a late-pinned package needs a dependency published after it, resolution moves the cutoff to that dependency.
+- **The Shopify SDK upgrade has three changes.**
+  - It pins `LATEST_API_VERSION` where it fills an Admin API URL's version segment.
+  - It drops `unstable_newEmbeddedAuthStrategy: true` from React Router configs, which no React Router release reads.
+  - It now stops when it would cross `@shopify/shopify-app-session-storage-prisma` 8 and the Prisma `Session` model lacks `refreshToken` or `refreshTokenExpires`. 8.0.0 and later write both on every store, and Prisma rejects an undeclared argument at runtime.
+- **That last stop corrects 13 upgrades that main graded C and that would have broken session storage.** Validated rows on dev-60, practice-50 and fresh-200 went from 10, 7 and 17 to 4, 4 and 13 (refit-bench 41140411942, 41140424261, 41140435896). Of these, 6 repositories are newly validated through the preparation fixes. See [Benchmarks](BENCHMARKS.md#shopify-sdk-and-preparation-stops-2026-10-30).
+>>>>>>> origin/main
 
 ## October 29 checkpoint: Shopify retired-version migrations (unreleased, after 0.39.0)
 

@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
-import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { delimiter, join } from 'node:path';
+import { delimiter, dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { readCommittedRepository } from './committed-repository.ts';
@@ -51,7 +51,10 @@ afterEach(async () => {
 async function directory(files: Record<string, string>, commit = false) {
   const root = await mkdtemp(join(tmpdir(), 'refit-lock-resolution-'));
   roots.push(root);
-  for (const [path, content] of Object.entries(files)) await writeFile(join(root, path), content);
+  for (const [path, content] of Object.entries(files)) {
+    await mkdir(dirname(join(root, path)), { recursive: true });
+    await writeFile(join(root, path), content);
+  }
   if (commit) {
     const git = (...args: string[]) =>
       execute('git', ['-C', root, ...args], {
@@ -365,6 +368,54 @@ it('resolves only root npm projects with registry dependencies, as configured', 
   expect(resolveNpmLockfile).not.toHaveBeenCalled();
 });
 
+// The Shopify app template declares `"workspaces": ["extensions/*"]` and, in its older releases,
+// commits no lockfile; npm resolves such a project only with its workspace manifests.
+it('resolves an npm project without a lockfile with its committed workspace manifests', async () => {
+  const extension = '{"name":"banner","private":true,"dependencies":{"react":"^18.2.0"}}\n';
+  const root = await directory(
+    {
+      'package.json':
+        '{"name":"app","workspaces":["extensions/*"],"dependencies":{"a":"^1.0.0"}}\n',
+      'extensions/banner/package.json': extension,
+      'extensions/function/shopify.extension.toml': 'api_version = "2024-07"\n',
+    },
+    true,
+  );
+  const lockfile = JSON.stringify({
+    name: 'app',
+    lockfileVersion: 3,
+    requires: true,
+    packages: { '': { name: 'app', workspaces: ['extensions/*'] } },
+  });
+  // Stands in for docker: `run` lists the container's input and prints a lockfile.
+  const binary = await directory({});
+  await writeFile(
+    join(binary, 'docker'),
+    `#!/usr/bin/env node
+const args = process.argv.slice(2);
+if (args[0] !== 'run') process.exit(0);
+const input = /src=([^,]+),dst=\\/input/.exec(args.join(' '))[1];
+const files = require('node:fs').readdirSync(input, { recursive: true, withFileTypes: true })
+  .filter((entry) => entry.isFile())
+  .map((entry) => require('node:path').relative(input, require('node:path').join(entry.parentPath, entry.name)));
+require('node:fs').writeFileSync(${JSON.stringify(join(binary, 'input'))}, files.sort().join('\\n'));
+process.stdout.write(JSON.stringify({ lockfile: ${JSON.stringify(lockfile)}, late: {} }));
+`,
+  );
+  await chmod(join(binary, 'docker'), 0o755);
+  vi.stubEnv('PATH', binary + delimiter + process.env.PATH);
+  const resolved = await resolvedLockfileSnapshot(
+    await readCommittedRepository(root),
+    'no-lockfile',
+    { image: 'node:22-alpine' },
+  );
+  expect((await readFile(join(binary, 'input'), 'utf8')).split('\n')).toEqual([
+    'extensions/banner/package.json',
+    'package.json',
+  ]);
+  expect(resolved?.snapshot.replaced.get('package-lock.json')).toBe(lockfile);
+});
+
 const COMMIT = '7eb2d9abeb36e47c9f7183210f43d44bfd27503a';
 const ARCHIVE = `https://codeload.github.com/ai/react/tar.gz/${COMMIT}`;
 
@@ -439,10 +490,15 @@ it('refuses an .npmrc registry only for the scopes package.json declares, and an
   const manifest = { dependencies: { next: '^15.0.0' } };
   expect(npmrcRefusal('\n@jsr:registry=https://npm.jsr.io\n', manifest)).toBeUndefined();
   expect(npmrcRefusal('legacy-peer-deps=true\n', manifest)).toBeUndefined();
+  // The Shopify app template's .npmrc names the public registry itself, which changes nothing.
+  const shopify = { dependencies: { '@shopify/shopify-app-remix': '^3.7.0' } };
+  expect(npmrcRefusal('@shopify:registry=https://registry.npmjs.org\n', shopify)).toBeUndefined();
+  expect(npmrcRefusal('registry = "https://registry.npmjs.org/"\n', manifest)).toBeUndefined();
   for (const [npmrc, declared] of [
     ['@jsr:registry=https://npm.jsr.io', { dependencies: { '@jsr/std__path': '^1.0.0' } }],
     ['@jsr:registry=https://npm.jsr.io', { dependencies: { path: 'npm:@jsr/std__path@^1' } }],
     ['registry=https://npm.acme.test/', manifest],
+    ['@shopify:registry=https://registry.npmjs.org.acme.test/', shopify],
     ['//registry.npmjs.org/:_authToken=${NPM_TOKEN}', manifest],
   ] as const)
     expect(npmrcRefusal(npmrc, declared)).toMatch(
@@ -478,6 +534,57 @@ require('node:fs').writeFileSync('package-lock.json', '{"lockfileVersion":3}');
   const calls = (await readFile(join(binary, 'calls'), 'utf8')).trim().split('\n');
   expect(calls).toHaveLength(2);
   expect(calls[1]).toMatch(/--before=2026-09-15T00:00:00Z --legacy-peer-deps$/);
+});
+
+it('moves the late cutoff to a dependency a late pin needs that was published after it', async () => {
+  // The Shopify SDK upgrade's shape: @shopify/shopify-app-remix 5.0.1 needs
+  // @shopify/shopify-api ^14.0.1, which the registry records as published after it.
+  const PIN = '2026-09-28T13:49:40.000Z';
+  const NEEDED = '2026-09-28T13:51:02.000Z';
+  const root = await directory({ 'package.json': '{"dependencies":{"a":"^2.0.0"}}\n' });
+  const binary = await directory({});
+  await writeFile(
+    join(binary, 'npm'),
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+fs.appendFileSync(${JSON.stringify(join(binary, 'calls'))}, args.join(' ') + '\\n');
+const before = Date.parse(args.find((arg) => arg.startsWith('--before=')).slice(9));
+const declared = JSON.parse(fs.readFileSync('package.json', 'utf8')).dependencies?.a;
+const missing = declared && before < Date.parse(${JSON.stringify(PIN)}) ? 'a@^2.0.0'
+  : declared && before < Date.parse(${JSON.stringify(NEEDED)}) ? 'b@^3.0.0' : undefined;
+if (missing) { console.error('npm error notarget No matching version found for ' + missing + ' with a date before 1/1/2026.'); process.exit(1); }
+fs.writeFileSync('package-lock.json', '{"lockfileVersion":3}');
+`,
+  );
+  await chmod(join(binary, 'npm'), 0o755);
+  // Stands in for the registry's publication times.
+  const registry = `data:text/javascript,globalThis.fetch = async (url) => ({ ok: true, json: async () => ({ time: url.endsWith('/a') ? { '2.0.0': '${PIN}' } : { '3.0.0': '${NEEDED}' } }) });`;
+  vi.stubEnv('PATH', binary + delimiter + process.env.PATH);
+  const { stdout } = await execute(
+    process.execPath,
+    [
+      '--import',
+      registry,
+      '--input-type=module',
+      '-e',
+      RESOLVE_SCRIPT,
+      BEFORE,
+      '0',
+      'npm',
+      '0',
+      '[]',
+    ],
+    { cwd: root, env: process.env },
+  );
+  expect(JSON.parse(stdout).late).toEqual({
+    a: { section: 'dependencies', spec: '^2.0.0', published: PIN },
+    b: { spec: '^3.0.0', published: NEEDED },
+  });
+  const calls = (await readFile(join(binary, 'calls'), 'utf8')).trim().split('\n');
+  expect(calls.at(-1)).toContain(`--before=${NEEDED}`);
+  // The rest of the tree still resolves as of the commit date first.
+  expect(calls[0]).toContain(`--before=${BEFORE}`);
 });
 
 it('moves mirror URLs to registry.npmjs.org in a lockfile that installs GitHub archives', () => {
