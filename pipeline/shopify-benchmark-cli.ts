@@ -42,6 +42,11 @@ const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 const CODEGEN_CONFIG = /(?:^|\/)\.graphqlrc\.[cm]?[jt]s$/;
 const SDK_LIMIT = /first ships in|LATEST_API_VERSION is/;
+const LOCKFILE_MANAGERS = [
+  ['pnpm-lock.yaml', 'pnpm'],
+  ['yarn.lock', 'yarn'],
+  ['package-lock.json', 'npm'],
+] as const;
 
 const { values } = parseArgs({
   options: {
@@ -261,14 +266,15 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   const testScript: unknown = manifest.scripts?.test;
   const hasTests = typeof testScript === 'string' && !PLACEHOLDER_TEST.test(testScript);
   const typescript = existsSync(join(directory, 'tsconfig.json')) && Boolean(declared.typescript);
-  const checkable = existsSync(join(directory, 'package-lock.json'));
-  result.checks = !checkable ? 'none' : hasTests ? 'tests' : typescript ? 'typecheck' : 'none';
+  // The tests run with the root lockfile's manager, in check selection's order.
+  const manager = LOCKFILE_MANAGERS.find(([file]) => existsSync(join(directory, file)))?.[1];
+  result.checks = !manager ? 'none' : hasTests ? 'tests' : typescript ? 'typecheck' : 'none';
   if (!values.validate || result.checks === 'none') {
     log(`patched (${String(result.checks)} checks)`);
     return;
   }
   const command = hasTests
-    ? ['npm', 'test']
+    ? [manager!, 'test']
     : ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.'];
   const config = join(work, 'run.json');
   await writeFile(
