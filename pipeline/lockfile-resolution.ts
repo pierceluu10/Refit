@@ -79,7 +79,8 @@ export function lockfileResolutionEnabled(value = process.env.REFIT_LOCKFILE_RES
 // because its lowest version is newer (the stripe release a patch pins, a raised peer) is left out
 // of a first pass and added back in a second, seeded with the first pass's lockfile and cut off at
 // its publication time, so only those packages and what they newly need resolve later than the
-// cutoff. npm's peer conflict (ERESOLVE) is retried once with --legacy-peer-deps and recorded.
+// cutoff, and a dependency they need that was published later moves that cutoff again. npm's peer
+// conflict (ERESOLVE) is retried once with --legacy-peer-deps and recorded.
 export const RESOLVE_SCRIPT = `
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -153,8 +154,20 @@ for (let pass = 0; ; pass++) {
 }
 if (Object.keys(late).length) {
   writeFileSync("package.json", text);
-  const before = Object.values(late).map((entry) => entry.published).sort().at(-1);
-  if (resolve(before).status !== 0) process.exit(1);
+  let before = Object.values(late).map((entry) => entry.published).sort().at(-1);
+  // A late pin can need a dependency published after it (a package released minutes before its
+  // own dependency); the cutoff moves to that dependency's lowest matching release.
+  for (let pass = 0; ; pass++) {
+    const result = resolve(before);
+    if (result.status === 0) break;
+    const target = tooNew.exec(result.output);
+    const minimum = target && /^[~^]?(\\d+\\.\\d+\\.\\d+)$/.exec(target[2] ?? "")?.[1];
+    if (!minimum || pass >= ${MAX_LATE_PINS}) process.exit(1);
+    const time = await published(target[1], minimum);
+    if (Date.parse(time) <= Date.parse(before)) process.exit(1);
+    late[target[1]] = { spec: target[2], published: time };
+    before = time;
+  }
 }
 process.stdout.write(JSON.stringify({ lockfile: readFileSync(lockfile, "utf8"), late, legacyPeerDeps: legacy }));
 `;

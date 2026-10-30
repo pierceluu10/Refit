@@ -536,6 +536,57 @@ require('node:fs').writeFileSync('package-lock.json', '{"lockfileVersion":3}');
   expect(calls[1]).toMatch(/--before=2026-09-15T00:00:00Z --legacy-peer-deps$/);
 });
 
+it('moves the late cutoff to a dependency a late pin needs that was published after it', async () => {
+  // The Shopify SDK upgrade's shape: @shopify/shopify-app-remix 5.0.1 needs
+  // @shopify/shopify-api ^14.0.1, which the registry records as published after it.
+  const PIN = '2026-09-28T13:49:40.000Z';
+  const NEEDED = '2026-09-28T13:51:02.000Z';
+  const root = await directory({ 'package.json': '{"dependencies":{"a":"^2.0.0"}}\n' });
+  const binary = await directory({});
+  await writeFile(
+    join(binary, 'npm'),
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+fs.appendFileSync(${JSON.stringify(join(binary, 'calls'))}, args.join(' ') + '\\n');
+const before = Date.parse(args.find((arg) => arg.startsWith('--before=')).slice(9));
+const declared = JSON.parse(fs.readFileSync('package.json', 'utf8')).dependencies?.a;
+const missing = declared && before < Date.parse(${JSON.stringify(PIN)}) ? 'a@^2.0.0'
+  : declared && before < Date.parse(${JSON.stringify(NEEDED)}) ? 'b@^3.0.0' : undefined;
+if (missing) { console.error('npm error notarget No matching version found for ' + missing + ' with a date before 1/1/2026.'); process.exit(1); }
+fs.writeFileSync('package-lock.json', '{"lockfileVersion":3}');
+`,
+  );
+  await chmod(join(binary, 'npm'), 0o755);
+  // Stands in for the registry's publication times.
+  const registry = `data:text/javascript,globalThis.fetch = async (url) => ({ ok: true, json: async () => ({ time: url.endsWith('/a') ? { '2.0.0': '${PIN}' } : { '3.0.0': '${NEEDED}' } }) });`;
+  vi.stubEnv('PATH', binary + delimiter + process.env.PATH);
+  const { stdout } = await execute(
+    process.execPath,
+    [
+      '--import',
+      registry,
+      '--input-type=module',
+      '-e',
+      RESOLVE_SCRIPT,
+      BEFORE,
+      '0',
+      'npm',
+      '0',
+      '[]',
+    ],
+    { cwd: root, env: process.env },
+  );
+  expect(JSON.parse(stdout).late).toEqual({
+    a: { section: 'dependencies', spec: '^2.0.0', published: PIN },
+    b: { spec: '^3.0.0', published: NEEDED },
+  });
+  const calls = (await readFile(join(binary, 'calls'), 'utf8')).trim().split('\n');
+  expect(calls.at(-1)).toContain(`--before=${NEEDED}`);
+  // The rest of the tree still resolves as of the commit date first.
+  expect(calls[0]).toContain(`--before=${BEFORE}`);
+});
+
 it('moves mirror URLs to registry.npmjs.org in a lockfile that installs GitHub archives', () => {
   const lock = {
     lockfileVersion: 3,
