@@ -6,6 +6,7 @@ import {
   proposeAiMigrations,
   proposeSdkMajor,
   runAiMigrations,
+  runAiSurfaceMigrations,
   type AiMigrationProposal,
 } from './ai-migrations.ts';
 import { proveRequests, type ProofProvider } from './ai-request-proof.ts';
@@ -13,6 +14,8 @@ import { findReviewSites } from './ai-review-sites.ts';
 import { AI_RULE_KINDS, checkAiRuleTables, loadAiRuleTables, type AiRuleKind } from './ai-rules.ts';
 import { loadSdkProofTable, proveSdkTable } from './sdk-request-proofs.ts';
 import type { SdkMajorProposal } from './ai-sdk-majors.ts';
+import { aiBudgetConfiguration } from './ai-budget.ts';
+import { AI_MODEL, checkAiModel } from './openai.ts';
 import { cliErrorMessage } from './cli-errors.ts';
 import { readBoundedResponse } from './network.ts';
 import { isObject, parseJson } from './specifications.ts';
@@ -20,11 +23,12 @@ import { PipelineInputError } from './types.ts';
 import { terminalText } from './workflow-presentation.ts';
 
 const USAGE = `Usage: refit ai-migrations --check-rules [--live] [--json]
-       refit ai-migrations [--repository <root>] [--package <openai|@anthropic-ai/sdk>] [--edits-only] [--output <patch>] [--json]
+       refit ai-migrations [--repository <root>] [--package <openai|@anthropic-ai/sdk|@google/genai>] [--edits-only] [--output <patch>] [--json]
        refit ai-migrations --validate [--repository <root>] [--package <name>] [--check <command>] [--image <image>] [--json]
+       refit ai-migrations --ai-surfaces [--repository <root>] [--check <command>] [--image <image>] [--json]   (GitHub Actions only)
        refit ai-migrations --review [--repository <root>] [--kind <api-surface|response-format|beta-feature|sdk-major>]... [--json]
        refit ai-migrations --prove-table --sdk-directory <dir> --releases <name@version,...> --run <url> --output <path>
-       refit ai-migrations --prove --provider <openai|anthropic> --calls <call>[,<call>...] [--stream] [--tools] [--json-output] [--sdk-directory <dir>] [--json]`;
+       refit ai-migrations --prove --provider <openai|anthropic|gemini> --calls <call>[,<call>...] [--stream] [--tools] [--json-output] [--sdk-directory <dir>] [--json]`;
 
 const HELP = `${USAGE}
 
@@ -55,6 +59,8 @@ const { values } = parseArgs({
     'prove-table': { type: 'boolean' },
     review: { type: 'boolean' },
     validate: { type: 'boolean' },
+    'ai-surfaces': { type: 'boolean' },
+    'remove-sampling': { type: 'boolean' },
     check: { type: 'string' },
     kind: { type: 'string', multiple: true },
     run: { type: 'string' },
@@ -108,6 +114,38 @@ try {
         console.log(`  ${problem.table} ${problem.rule}: ${terminalText(problem.problem)}`);
     }
     process.exitCode = problems.length ? 1 : 0;
+  } else if (values['ai-surfaces']) {
+    // refit-bench Actions only (the run refuses elsewhere): the AI lane for shut-down OpenAI
+    // Completions and Assistants calls, with OPENAI_API_KEY, OPENAI_MODEL and the AI budget.
+    const key = process.env.OPENAI_API_KEY?.trim();
+    if (!key)
+      throw new PipelineInputError(
+        'The AI surface lane needs OPENAI_API_KEY (a refit-bench secret).',
+      );
+    const root = resolve(values.repository!);
+    const result = await runAiSurfaceMigrations({
+      repository: root,
+      tables: await loadAiRuleTables(),
+      ai: {
+        apiKey: key,
+        // Checked before anything runs: AI work uses gpt-6.1-sol only (openai.ts).
+        model: checkAiModel(process.env.OPENAI_MODEL?.trim() || AI_MODEL),
+        budget: aiBudgetConfiguration(process.env),
+      },
+      checks: {
+        image: values.image!,
+        command: values.check ? values.check.split(/\s+/).filter(Boolean) : ['npm', 'test'],
+        prepareDependencies: ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'].some((name) =>
+          existsSync(join(root, name)),
+        ),
+      },
+      onProgress: (message) => console.error(`  ${message}`),
+    });
+    console.log(
+      values.json
+        ? JSON.stringify(result, null, 2)
+        : `${result.status}: ${terminalText(result.reason)}`,
+    );
   } else if (values.validate) {
     // Benchmarks: the proposal validated with the repository's own checks before and after, in
     // offline Docker, with nothing published. `--check` names the command; otherwise `npm test`
@@ -126,6 +164,7 @@ try {
           repository: root,
           tables: await loadAiRuleTables(),
           packageName: values.package,
+          removeSampling: values['remove-sampling'],
           checks: {
             image: values.image!,
             command,
@@ -155,7 +194,7 @@ try {
     else
       for (const item of findings)
         console.log(
-          `${item.file}:${item.line}  ${item.rule}  ${item.breaking ? 'breaking' : 'cleanup'}${item.status === 'report' ? ', report only' : ''}${item.ambiguous ? ', client unclear' : ''}  ${terminalText(item.text)}`,
+          `${item.file}:${item.line}  ${item.rule}  ${item.breaking ? 'breaking' : 'cleanup'}${item.status === 'report' ? ', report only' : ''}${item.ambiguous ? ', client unclear' : ''}${item.test ? ', test path' : ''}  ${terminalText(item.text)}`,
         );
   } else if (values['prove-table']) {
     // refit-bench Actions only: --releases names what --sdk-directory holds, as name@version,...
@@ -187,7 +226,7 @@ try {
       );
   } else if (values.prove) {
     const provider = values.provider as ProofProvider;
-    if (!['openai', 'anthropic'].includes(provider) || !values.calls)
+    if (!['openai', 'anthropic', 'gemini'].includes(provider) || !values.calls)
       throw new PipelineInputError(USAGE);
     const proof = await proveRequests({
       provider,
@@ -214,6 +253,7 @@ try {
           image: values.image!,
           before: new Date().toISOString(),
           packageName: values.package,
+          removeSampling: values['remove-sampling'],
         });
     if (values.output && proposal?.patch) await writeFile(values.output, proposal.patch);
     if (values.json) console.log(JSON.stringify(proposal, null, 2));

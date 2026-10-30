@@ -1,4 +1,4 @@
-import { requestStructuredOutput } from './openai.ts';
+import { checkAiModel, requestStructuredOutput } from './openai.ts';
 import { migrationReviewReason } from './migration-review.ts';
 import { digest, parseObject } from './specifications.ts';
 import { PipelineInputError, type Finding, type Removal, type Repository } from './types.ts';
@@ -79,7 +79,11 @@ export function assessmentConfiguration(
   const model = environment.OPENAI_MODEL?.trim();
   if (!apiKey || !model)
     throw new PipelineInputError('AI operations require OPENAI_API_KEY and OPENAI_MODEL.');
-  return { apiKey, model, budget: aiBudgetConfiguration(environment) };
+  return {
+    apiKey,
+    model: checkAiModel(model, environment),
+    budget: aiBudgetConfiguration(environment),
+  };
 }
 
 function parseAssessment(content: string, evidence: Evidence) {

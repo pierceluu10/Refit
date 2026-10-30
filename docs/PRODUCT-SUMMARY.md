@@ -9,7 +9,7 @@ Refit is Dependabot for API changes. When a provider ships a new API version, Re
 1. **Detect.** `refit agents` finds which provider SDKs a repository uses, from package manifests, lockfiles and raw API hostnames. It suggests only the provider agents Refit has, and a pull request that adds a new SDK gets one suggestion comment. Nothing activates without explicit approval.
 2. **Diff the contracts.** Refit diffs the provider's published OpenAPI documents for the repository's pinned version and the target version: removed response fields, moved fields, and removed request parameters.
 3. **Trace the code.** A TypeScript-AST scanner follows SDK clients through imports, aliases, helpers and callbacks to the exact reads and requests the change breaks.
-4. **Fix.** Reviewed deterministic rules handle known migrations. AI (`gpt-5.6-luna`) is used only where no rule applies, behind a budget ledger, a substitution guard and one bounded repair. Anything ambiguous stops for review.
+4. **Fix.** Reviewed deterministic rules handle known migrations. AI (`gpt-6.1-sol`) is used only where no rule applies, behind a budget ledger, a substitution guard and one bounded repair. Anything ambiguous stops for review.
 5. **Validate.** Refit installs locked dependencies in Docker and runs the repository's tests or typecheck, plus generated checks against a local Stripe mock. Validation runs with no network access, before and after the patch.
 6. **Publish.** A draft PR from the Refit Agent GitHub App shows the changed code, the evidence and anything left to check.
 

@@ -1,5 +1,17 @@
 # Refit implementation checkpoints
 
+## October 29 checkpoint: Anthropic platform packages and v3 client options (unreleased, after 0.39.0)
+
+The `@anthropic-ai/sdk` 1.x upgrade moves declared Anthropic platform packages to v1 with it (2026-10-21 guide), guarded together in the re-resolved lockfile; the openai v3 client rewrite maps `organization` and `basePath` (to `baseURL`), quoted from the v3 `configuration.ts`/`base.ts` and v4 `ClientOptions` sources. Reproduced on DEV: an Anthropic repository declaring the Bedrock and Vertex SDKs now upgrades with no stop; an OpenAI v3 repository's `organization` Configuration now maps. `fileFromPath(path, name)` maps to `toFile(createReadStream(path), name)` (README), and the Gemini swap maps safety settings, chat and countTokens (Google's guide).
+
+## October 29 checkpoint: AI lane for shut-down OpenAI surfaces, sampling removal, Gemini models (unreleased, after 0.39.0)
+
+Decisions of the coordinating session on Furqan's delegation (2026-10-29). `refit ai-migrations --ai-surfaces` drafts the move of legacy Completions and Assistants calls to Responses with AI, in GitHub Actions only, under deterministic guards and the gates in `docs/AI-MIGRATIONS.md`; unit tests use a mocked model, and no measurement has run. The `@anthropic-ai/sdk` 1.x upgrade does not remove `temperature`, `top_p` or `top_k` (decision A): such repositories work on 0.x and 2023-06-01, so they are reported as "SDK upgrade available, not required (would change outputs)", neither failures nor hidden; the removal exists behind `--remove-sampling` and a quoted Anthropic sunset notice, which no table has yet. The Gemini swap replaces a retired model with the registry's quoted replacement and stops where none is named.
+
+## October 29 checkpoint: Gemini SDK swap (unreleased, after 0.39.0)
+
+Under the owner decision of 2026-10-29 (Gemini edits with a quoted source and request-level proof, otherwise `[Needs review]`), `refit ai-migrations` replaces `@google/generative-ai` with `@google/genai` 2.x for the migration guide's one-to-one JavaScript shapes (client, `getGenerativeModel({ model })` with `generateContent`/`generateContentStream` in one file, `response.text()`), and blocks on everything else. Request proofs for `models.generateContent` and its stream are pending in `data/sdk-request-proofs.json` until refit-bench's `sdk-proof.yml` runs. Hand-checks wait for ai-bench's `gemini-dev-15` DEV set.
+
 ## October 29 checkpoint: AI API surfaces, response formats and beta features (unreleased, after 0.39.0)
 
 `refit ai-migrations --review` lists OpenAI Assistants and legacy Completions calls, Anthropic Text Completions, PaLM, the OpenAI Realtime and Assistants v1 betas, Anthropic's retired and graduated betas, Anthropic Admin field renames and the report-only Python and Gemini SDK swaps, each with its quoted page (95 rules in 11 tables, all quotes checked live). No provider documents a one-to-one mapping for these, so nothing is edited. Hand-checks on 20 DEV repositories: `docs/benchmarks/ai-surfaces/review-hand-checks.json`. What a fix would need: `docs/proposals/ai-surface-migrations.md`.

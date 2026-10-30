@@ -1,0 +1,355 @@
+{
+  "formatVersion": 1,
+  "date": "2026-10-29",
+  "set": "docs/benchmarks/subsets/openai-dev-30.json (ai-bench, PR #415, DEV only)",
+  "method": "refit ai-migrations --edits-only --package openai (JS/TS) and --review (all), each diff and finding read by hand; package re-resolution, offline validation and request proof not run locally",
+  "rows": [
+    {
+      "repo": "crlny/lobe-chat",
+      "commit": "62043bba74ddd43020d5162d1acbedeb95300067",
+      "language": "js",
+      "sdk": {
+        "openai": "^4.91.1"
+      },
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "old-sdk-major",
+        "embeddings-fine-tunes"
+      ],
+      "verdict": "correct (package move to 6.x only; no shape the v4/v5 guides change, confirmed by grep for del, fileFromPath, httpAgent, runFunctions, shims, withResponse, beta.chat)",
+      "note": "Review: 5 report-only @google/generative-ai sites (correct) and chat-bison-001 in a test fixture, now labelled test path."
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "commit": "c0f1ca77014de1669ebce0b45a3f1810cd5b6228",
+      "language": "js",
+      "sdk": {
+        "openai": "^4.17.3"
+      },
+      "changeTypes": ["retired-model", "parameter-change", "old-sdk-major", "response-parsing"],
+      "verdict": "correct (package move to 6.x only; no shape the v4/v5 guides change, confirmed by grep for del, fileFromPath, httpAgent, runFunctions, shims, withResponse, beta.chat)",
+      "note": ""
+    },
+    {
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "commit": "9f2253c00ed7bcdd9f3017f7f6fb1676753d981f",
+      "language": "js",
+      "sdk": {
+        "openai": "5.0.1"
+      },
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major"],
+      "verdict": "correct (package move to 6.x only; no shape the v4/v5 guides change, confirmed by grep for del, fileFromPath, httpAgent, runFunctions, shims, withResponse, beta.chat)",
+      "note": "10 Assistants calls (shut down) listed; after this round they are listed in the upgrade draft as non-blocking."
+    },
+    {
+      "repo": "ravi-aman/pureFeedback",
+      "commit": "5121b3eca9cc48cbcbed94e52130e08e8a62d22c",
+      "language": "js",
+      "sdk": {
+        "openai": "4.78.1"
+      },
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major"],
+      "verdict": "correct (package move to 6.x only; no shape the v4/v5 guides change, confirmed by grep for del, fileFromPath, httpAgent, runFunctions, shims, withResponse, beta.chat)",
+      "note": "1 legacy Completions call listed."
+    },
+    {
+      "repo": "borodinka/hire-wise",
+      "commit": "b5ba583fa9dd9ba695a6a27b171bf4991945bfb6",
+      "language": "js",
+      "sdk": {
+        "openai": "4.77.0"
+      },
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "verdict": "correct",
+      "note": "beta.chat.completions.parse -> chat.completions.parse."
+    },
+    {
+      "repo": "gvprime/pubragi",
+      "commit": "477430609c67000b5ab2799b5aff270a93da799f",
+      "language": "js",
+      "sdk": {
+        "openai": "4.100.0"
+      },
+      "changeTypes": ["legacy-endpoint", "old-sdk-major", "beta-header"],
+      "verdict": "correct (package move to 6.x only; no shape the v4/v5 guides change, confirmed by grep for del, fileFromPath, httpAgent, runFunctions, shims, withResponse, beta.chat)",
+      "note": "Assistants (JS and Python) and assistants=v1 header listed (correct). Found a false positive: `openai.api_key =` is valid on openai Python 1.x; the pattern is removed."
+    },
+    {
+      "repo": "hachanimohamedsaid/backend_AgentAi",
+      "commit": "387ace95142de78a7d8dd3a1378b9aba5aeb3048",
+      "language": "js",
+      "sdk": {
+        "openai": "6.33.0"
+      },
+      "changeTypes": ["old-sdk-major", "response-parsing", "beta-header"],
+      "verdict": "n/a (already on openai 6)",
+      "note": "Review: realtime=v1 header (correct), report-only Gemini SDK sites (correct)."
+    },
+    {
+      "repo": "AyeletHillel/fine-tune",
+      "commit": "4ee956be046af38a59475ea0a8a01e6191f1f01d",
+      "language": "js",
+      "sdk": {
+        "openai": "^4.2.0"
+      },
+      "changeTypes": ["retired-model", "old-sdk-major", "embeddings-fine-tunes"],
+      "verdict": "correct (package move to 6.x only; no shape the v4/v5 guides change, confirmed by grep for del, fileFromPath, httpAgent, runFunctions, shims, withResponse, beta.chat)",
+      "note": ""
+    },
+    {
+      "repo": "edwinsatya/llm-output-guard",
+      "commit": "8538718cdeca93f3e58f0da62f49aa34fe7b1904",
+      "language": "js",
+      "sdk": {
+        "openai": "7.4.0"
+      },
+      "changeTypes": [],
+      "verdict": "n/a (openai 7)",
+      "note": "No findings (correct)."
+    },
+    {
+      "repo": "gaurangpb/test-mate",
+      "commit": "52f56177d577c76d80a3577acda439b29882779a",
+      "language": "js",
+      "sdk": {
+        "openai": "4.104.0"
+      },
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "verdict": "correct (package move to 6.x only; no shape the v4/v5 guides change, confirmed by grep for del, fileFromPath, httpAgent, runFunctions, shims, withResponse, beta.chat)",
+      "note": ""
+    },
+    {
+      "repo": "kenzic/ai-ui-demo",
+      "commit": "092aaaaec604ab06b6839531229ee70976c8d41a",
+      "language": "js",
+      "sdk": {
+        "openai": "4.56.0"
+      },
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "verdict": "correct",
+      "note": "beta.chat.completions.parse -> chat.completions.parse."
+    },
+    {
+      "repo": "MRwangqi/chatGPT-nodejs",
+      "commit": "820401fae534fc6c734b7b90068bedb79d966194",
+      "language": "js",
+      "sdk": {
+        "openai": "3.1.0"
+      },
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major"],
+      "verdict": "correct-stop",
+      "note": "Configuration read elsewhere and a removed v3 method; blocks. Legacy Completions on a retired model listed."
+    },
+    {
+      "repo": "adeojoemmanuel/EDD-Kafka-Rest-Api",
+      "commit": "55e43330f26066273a71b0563e301bf8d6343420",
+      "language": "js",
+      "sdk": {
+        "openai": "4.55.3"
+      },
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major", "response-parsing"],
+      "verdict": "correct (package move to 6.x only; no shape the v4/v5 guides change, confirmed by grep for del, fileFromPath, httpAgent, runFunctions, shims, withResponse, beta.chat)",
+      "note": "1 legacy Completions call listed."
+    },
+    {
+      "repo": "RaizenStyx/lore-forge",
+      "commit": "381a17d7c2104f966489421ec4f2f78442c9662e",
+      "language": "js",
+      "sdk": {
+        "openai": "5.20.1"
+      },
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major", "response-parsing"],
+      "verdict": "correct (package move to 6.x only; no shape the v4/v5 guides change, confirmed by grep for del, fileFromPath, httpAgent, runFunctions, shims, withResponse, beta.chat)",
+      "note": "2 legacy Completions calls listed."
+    },
+    {
+      "repo": "kkb2849/nextjs-1zdevcamp-template",
+      "commit": "0865bb268b395abac07042d6d6e627f92f24b159",
+      "language": "js",
+      "sdk": {
+        "openai": "4.24.7"
+      },
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major", "response-parsing"],
+      "verdict": "correct (package move to 6.x only; no shape the v4/v5 guides change, confirmed by grep for del, fileFromPath, httpAgent, runFunctions, shims, withResponse, beta.chat)",
+      "note": "Assistants and legacy Completions listed."
+    },
+    {
+      "repo": "Jeffansah/whop-ai-chat",
+      "commit": "b2cc335859a12d359ac662e3ff3f10b8b6bfe227",
+      "language": "js",
+      "sdk": {
+        "openai": "4.104.0"
+      },
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major"],
+      "verdict": "correct-stop (after fix)",
+      "note": "Found a bug: `vectorStores.files.del(store, file)` was renamed without the named-path stop (the check looked only at the new name). Fixed and tested; it now blocks at both sites. Before the fix the repo already blocked, so no wrong patch could ship."
+    },
+    {
+      "repo": "ioiuea/assistant-api-openai",
+      "commit": "8b57e1392ca74ba85f495a431ec3610c4c58d98f",
+      "language": "js",
+      "sdk": {
+        "openai": "4.27.0"
+      },
+      "changeTypes": ["legacy-endpoint", "old-sdk-major"],
+      "verdict": "correct-stop",
+      "note": "Untraced `beta.assistants.files.del` and `beta.threads.del`; blocks."
+    },
+    {
+      "repo": "akshat-mechlin/Ghost",
+      "commit": "e7605b2d653660143185c5b6eb3d33a8836c6764",
+      "language": "js",
+      "sdk": {
+        "openai": "5.23.2"
+      },
+      "changeTypes": ["retired-model", "old-sdk-major"],
+      "verdict": "correct (package move to 6.x only; no shape the v4/v5 guides change, confirmed by grep for del, fileFromPath, httpAgent, runFunctions, shims, withResponse, beta.chat)",
+      "note": ""
+    },
+    {
+      "repo": "Lealdos/Shopify-ecommerce",
+      "commit": "9c9ef956ca4aec1d990dca0fa620d2c777ec362b",
+      "language": "js",
+      "sdk": {
+        "openai": "4.28.4"
+      },
+      "changeTypes": ["retired-model", "old-sdk-major"],
+      "verdict": "correct (package move to 6.x only; no shape the v4/v5 guides change, confirmed by grep for del, fileFromPath, httpAgent, runFunctions, shims, withResponse, beta.chat)",
+      "note": ""
+    },
+    {
+      "repo": "vadik88888-prog/beauty-saas",
+      "commit": "ed948ce4eeb901db6d2bfe42ad8b1c6ba6674f87",
+      "language": "js",
+      "sdk": {
+        "openai": "6.39.0"
+      },
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "verdict": "n/a (already on openai 6)",
+      "note": "No findings."
+    },
+    {
+      "repo": "GLOBAL-PALO-IT/th_PALO-LLM-Playground",
+      "commit": "19c6665f79e9e498d9bc29be6e27ae3e9375a933",
+      "language": "js",
+      "sdk": {
+        "openai": "4.67.3"
+      },
+      "changeTypes": [
+        "retired-model",
+        "old-sdk-major",
+        "response-parsing",
+        "embeddings-fine-tunes"
+      ],
+      "verdict": "correct",
+      "note": "11 edits, read in full: v4 beta.chat.completions.parse/stream moves and runner renames."
+    },
+    {
+      "repo": "lissettecarlr/chat-openai-streamlit",
+      "commit": "330234738cc4c68f4aa3f4d870702028527d001b",
+      "language": "py",
+      "sdk": {
+        "openai": ">=1.3.6"
+      },
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major", "response-parsing"],
+      "verdict": "correct (review, report only)",
+      "note": "Python: findings listed report only."
+    },
+    {
+      "repo": "UW-Madison-Lee-Lab/TAPE",
+      "commit": "98f1aa7044cc8cea34583b2952dad9262587e95d",
+      "language": "py",
+      "sdk": {
+        "openai": "==1.101.0"
+      },
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "legacy-endpoint",
+        "old-sdk-major",
+        "response-parsing",
+        "embeddings-fine-tunes"
+      ],
+      "verdict": "correct (review, report only)",
+      "note": "Python `client.completions.create(**json_data)` in 5 files matched by both the OpenAI and Anthropic Text Completions rules; marked client unclear (correct-ambiguous)."
+    },
+    {
+      "repo": "BahadirKarsli/Chatbot-Assistant",
+      "commit": "80037971dee2389edf344a4111acab27d3ddd939",
+      "language": "py",
+      "sdk": {
+        "openai": ">=1.3.0"
+      },
+      "changeTypes": ["legacy-endpoint", "old-sdk-major", "beta-header"],
+      "verdict": "correct (review, report only)",
+      "note": "Python: findings listed report only."
+    },
+    {
+      "repo": "etecnos/simple-AI-personal-assistant-Greek-verion",
+      "commit": "511c090c3ba791500e8f3df760613565840574d4",
+      "language": "py",
+      "sdk": {
+        "openai": ""
+      },
+      "changeTypes": [],
+      "verdict": "correct (review, report only)",
+      "note": "Python: findings listed report only."
+    },
+    {
+      "repo": "janiluuk/gpt-buddy",
+      "commit": "7274a87fa1875f69804ba209807565f03fe05424",
+      "language": "py",
+      "sdk": {
+        "openai": ">=1.3.7"
+      },
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major"],
+      "verdict": "correct (review, report only)",
+      "note": "Python: findings listed report only."
+    },
+    {
+      "repo": "goodreasonai/nichey",
+      "commit": "e48e3e737abfc9c0d0b603c1939b593da22bfa73",
+      "language": "py",
+      "sdk": {
+        "openai": ""
+      },
+      "changeTypes": ["response-parsing"],
+      "verdict": "correct (review, report only)",
+      "note": "Python: findings listed report only."
+    },
+    {
+      "repo": "aparnaburhade/PDF-QA-CLI",
+      "commit": "5fe255c160e0bb93e3ae10a26a030b4894dedda9",
+      "language": "py",
+      "sdk": {
+        "openai": "==2.24.0"
+      },
+      "changeTypes": ["old-sdk-major", "embeddings-fine-tunes"],
+      "verdict": "correct (review, report only)",
+      "note": "Python: findings listed report only."
+    },
+    {
+      "repo": "leedtan/chattutorial",
+      "commit": "c6122c20bb73c1bcf8d72458d69a8096b6b44bed",
+      "language": "py",
+      "sdk": {
+        "openai": "==1.13.3"
+      },
+      "changeTypes": ["retired-model", "old-sdk-major", "embeddings-fine-tunes"],
+      "verdict": "correct (review, report only)",
+      "note": "Python openai 0.x module calls listed (report only); api_key lines no longer flagged."
+    },
+    {
+      "repo": "bicalhobim/ia.rt_bim",
+      "commit": "11af72ebbdcb9ba095947767eb57f7c4fb46396f",
+      "language": "py",
+      "sdk": {
+        "openai": "==1.31.0"
+      },
+      "changeTypes": ["legacy-endpoint", "old-sdk-major"],
+      "verdict": "correct (review, report only)",
+      "note": "Python: findings listed report only."
+    }
+  ]
+}

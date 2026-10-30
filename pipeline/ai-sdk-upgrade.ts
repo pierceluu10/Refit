@@ -22,11 +22,19 @@ export type Resolve = typeof resolveNpmLockfile;
 export interface SdkUpgradeOptions {
   packageName: string;
   targetMajor: number;
-  // Packages that must move with the SDK (Anthropic's platform clients); declared ones refuse.
+  // Packages that must move with the SDK (Anthropic's platform clients); declared ones refuse
+  // unless they are in `together`.
   companions?: string[];
+  // Declared packages moved to their newest `targetMajor` release in the same upgrade, as the
+  // provider's guide says (Anthropic's platform SDKs to v1 with @anthropic-ai/sdk 1).
+  together?: string[];
+  // The newest release of each `together` package; read from the npm registry when absent.
+  togetherReleases?: Record<string, string>;
   resolution: { image: string; before: string; resolve?: Resolve };
   // The newest release of the target major; read from the npm registry when absent.
   release?: string;
+  // A swap: this declared package is replaced by `packageName` in the same section.
+  replaces?: string;
 }
 
 const RELEASE = /^(\d+)\.(\d+)\.(\d+)$/;
@@ -100,15 +108,20 @@ export async function sdkMajorUpgrade(
     ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'].some(
       (section) => isObject(manifest[section]) && name in manifest[section],
     );
-  const companions = (options.companions ?? []).filter(declared);
+  const together = (options.together ?? []).filter(declared);
+  const companions = (options.companions ?? []).filter(
+    (name) => declared(name) && !together.includes(name),
+  );
   if (companions.length)
     return {
       reason: `package.json also declares ${companions.join(', ')}, which must move to a matching major with ${packageName}; Refit does not upgrade them together yet.`,
     };
-  const declaration = manifestDeclaration(manifest, manifestText, packageName);
+  const current = options.replaces ?? packageName;
+  if (options.replaces && declared(packageName))
+    return { reason: `package.json already declares ${packageName} beside ${options.replaces}.` };
+  const declaration = manifestDeclaration(manifest, manifestText, current);
   if ('reason' in declaration) return declaration;
-  if (!declaration.unique)
-    return { reason: `package.json declares ${packageName} more than once.` };
+  if (!declaration.unique) return { reason: `package.json declares ${current} more than once.` };
   if (npmrc && /^\s*(?:@[^:\s]+:)?registry\s*=|_auth/m.test(npmrc))
     return { reason: '.npmrc configures another registry or credentials.' };
   let release: string;
@@ -118,7 +131,26 @@ export async function sdkMajorUpgrade(
     if (!(error instanceof PipelineInputError)) throw error;
     return { reason: error.message };
   }
-  const after = declaration.rewrite(release, manifestText, '^');
+  let rewritten = declaration.rewrite(release, manifestText, '^');
+  const moved: { name: string; release: string }[] = [];
+  for (const name of together) {
+    const companion = manifestDeclaration(manifest, rewritten, name);
+    if ('reason' in companion) return companion;
+    if (!companion.unique) return { reason: `package.json declares ${name} more than once.` };
+    let next: string;
+    try {
+      next = options.togetherReleases?.[name] ?? (await newestRelease(name, targetMajor));
+    } catch (error) {
+      if (!(error instanceof PipelineInputError)) throw error;
+      return { reason: error.message };
+    }
+    rewritten = companion.rewrite(next, rewritten, '^');
+    moved.push({ name, release: next });
+  }
+  // A swap renames the key in place, so the section keeps its order.
+  const after = options.replaces
+    ? rewritten.replace(JSON.stringify(options.replaces), JSON.stringify(packageName))
+    : rewritten;
   if (lockText === undefined)
     return {
       upgrade: {
@@ -144,7 +176,11 @@ export async function sdkMajorUpgrade(
       reason: `npm could not re-resolve package-lock.json with ${packageName} ^${release}: ${error.message}`,
     };
   }
-  const outside = changesOutside(lockText, resolved.lockfile, [packageName]);
+  const outside = changesOutside(lockText, resolved.lockfile, [
+    packageName,
+    ...(options.replaces ? [options.replaces] : []),
+    ...together,
+  ]);
   if (outside.length)
     return {
       reason: `Upgrading ${packageName} changes ${outside
@@ -152,7 +188,7 @@ export async function sdkMajorUpgrade(
         .map((key) => key || 'the root record')
         .join(
           ', ',
-        )}${outside.length > 5 ? ` and ${outside.length - 5} more` : ''} in package-lock.json, outside ${packageName} and the packages only it reaches.`,
+        )}${outside.length > 5 ? ` and ${outside.length - 5} more` : ''} in package-lock.json, outside ${[packageName, ...together].join(', ')} and the packages only they reach.`,
     };
   const lock = parseJson(resolved.lockfile);
   const entry =
@@ -162,10 +198,24 @@ export async function sdkMajorUpgrade(
   const locked = isObject(entry) && typeof entry.version === 'string' ? entry.version : undefined;
   if (!locked || Number(RELEASE.exec(locked)?.[1]) !== targetMajor)
     return { reason: `npm did not lock ${packageName} ${targetMajor}.x at the project root.` };
+  for (const name of together) {
+    const companion =
+      isObject(lock) && isObject(lock.packages) ? lock.packages[`node_modules/${name}`] : undefined;
+    const version =
+      isObject(companion) && typeof companion.version === 'string' ? companion.version : '';
+    if (Number(RELEASE.exec(version)?.[1]) !== targetMajor)
+      return { reason: `npm did not lock ${name} ${targetMajor}.x at the project root.` };
+    // Nothing may keep a second, older copy of the SDK for it.
+    const nested = Object.keys(
+      isObject(lock) && isObject(lock.packages) ? lock.packages : {},
+    ).filter((key) => key.endsWith(`/node_modules/${packageName}`));
+    if (nested.length)
+      return { reason: `package-lock.json keeps another ${packageName} under ${nested[0]}.` };
+  }
   const previous = parseJson(lockText);
   const previousEntry =
     isObject(previous) && isObject(previous.packages)
-      ? previous.packages[`node_modules/${packageName}`]
+      ? previous.packages[`node_modules/${current}`]
       : undefined;
   const from =
     isObject(previousEntry) && typeof previousEntry.version === 'string'
@@ -179,11 +229,13 @@ export async function sdkMajorUpgrade(
         { path: 'package.json', before: manifestText, after },
         { path: 'package-lock.json', before: lockText, after: resolved.lockfile },
       ],
-      warning: `Upgrades ${packageName} from ${from} to ${locked}. npm re-resolved package-lock.json from the committed one in networked Docker with lifecycle scripts off, as of ${resolved.before}${Object.entries(
+      warning: `${options.replaces ? `Replaces ${options.replaces} ${from} with ${packageName} ${locked}` : `Upgrades ${packageName} from ${from} to ${locked}`}${moved.length ? `, and ${moved.map((item) => `${item.name} to ${item.release}`).join(', ')} with it` : ''}. npm re-resolved package-lock.json from the committed one in networked Docker with lifecycle scripts off, as of ${resolved.before}${Object.entries(
         resolved.late,
       )
         .map(([name, pin]) => `, ${name} ${pin.spec} as of ${pin.published}`)
-        .join('')}; nothing outside ${packageName} and the packages only it reaches changed.`,
+        .join(
+          '',
+        )}; nothing outside ${[packageName, ...together].join(', ')} and the packages only they reach changed.`,
     },
   };
 }

@@ -54,10 +54,19 @@
       "reason": "Not run yet: the sdk-proof workflow has not run in refit-bench Actions."
     },
     {
+      "package": "openai",
+      "major": 6,
+      "call": "responses.create",
+      "stream": true,
+      "tools": true,
+      "json": true,
+      "reason": "Not run yet: the sdk-proof workflow has not run in refit-bench Actions."
+    },
+    {
       "package": "@anthropic-ai/sdk",
       "major": 1,
       "call": "messages.create",
-      "reason": "ANTHROPIC_API_KEY is not a refit-bench repository secret yet, so no request was sent to Anthropic."
+      "reason": "Not run yet: the sdk-proof workflow has not run in refit-bench Actions."
     },
     {
       "package": "@anthropic-ai/sdk",
@@ -65,13 +74,26 @@
       "call": "messages.create",
       "stream": true,
       "tools": true,
-      "reason": "ANTHROPIC_API_KEY is not a refit-bench repository secret yet, so no request was sent to Anthropic."
+      "reason": "Not run yet: the sdk-proof workflow has not run in refit-bench Actions."
     },
     {
       "package": "@anthropic-ai/sdk",
       "major": 1,
       "call": "models.list",
-      "reason": "ANTHROPIC_API_KEY is not a refit-bench repository secret yet, so no request was sent to Anthropic."
+      "reason": "Not run yet: the sdk-proof workflow has not run in refit-bench Actions."
+    },
+    {
+      "package": "@google/genai",
+      "major": 2,
+      "call": "models.generateContent",
+      "reason": "Not run yet: the sdk-proof workflow has not run in refit-bench Actions."
+    },
+    {
+      "package": "@google/genai",
+      "major": 2,
+      "call": "models.generateContentStream",
+      "stream": true,
+      "reason": "Not run yet: the sdk-proof workflow has not run in refit-bench Actions."
     }
   ]
 }

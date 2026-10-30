@@ -155,8 +155,13 @@ export function parseAiRuleTable(value: unknown, label: string): AiRuleTable {
         )
           ? 'generatedBy'
           : '',
-        // Report-only providers never get rules that edit (AGENTS.md: Gemini is report only).
-        provider === 'gemini' && rule.status === 'auto' ? 'status (Gemini is report only)' : '',
+        // Gemini edits need a quoted source and a passing request-level proof, otherwise the draft
+        // is [Needs review] (owner decision of 2026-10-29); its auto rules may only swap the SDK.
+        provider === 'gemini' &&
+        rule.status === 'auto' &&
+        !(typeof rule.family === 'string' && rule.family.startsWith('gemini-swap'))
+          ? 'status (Gemini auto rules are limited to the documented SDK swap)'
+          : '',
       ].filter(Boolean);
       if (problems.length) {
         errors.push(`${at} (${String(rule.rule)}): invalid ${problems.join(', ')}`);

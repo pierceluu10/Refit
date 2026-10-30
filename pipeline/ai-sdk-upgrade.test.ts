@@ -124,3 +124,87 @@ it('moves only package.json when no lockfile is committed, and says so', async (
   ]);
   expect('upgrade' in result && result.upgrade.warning).toContain('commits no lockfile');
 });
+
+it('swaps @google/generative-ai for @google/genai in place, allowing both packages to change', async () => {
+  const gemini = `${JSON.stringify({ name: 'app', dependencies: { '@google/generative-ai': '^0.24.1', express: '^4.0.0' } }, null, 2)}\n`;
+  const old = lock({
+    '': { name: 'app', dependencies: { '@google/generative-ai': '^0.24.1', express: '^4.0.0' } },
+    'node_modules/@google/generative-ai': { version: '0.24.1' },
+    'node_modules/express': { version: '4.21.0' },
+  });
+  let manifestSent = '';
+  const resolve: Resolve = async (input) => {
+    manifestSent = input.manifest;
+    return {
+      lockfile: lock({
+        '': { name: 'app', dependencies: { '@google/genai': '^2.31.0', express: '^4.0.0' } },
+        'node_modules/@google/genai': { version: '2.31.0', dependencies: { ws: '^8.18.0' } },
+        'node_modules/ws': { version: '8.18.3' },
+        'node_modules/express': { version: '4.21.0' },
+      }),
+      before: input.before,
+      late: {},
+    };
+  };
+  const result = await sdkMajorUpgrade(
+    await project({ 'package.json': gemini, 'package-lock.json': old }),
+    {
+      packageName: '@google/genai',
+      replaces: '@google/generative-ai',
+      targetMajor: 2,
+      release: '2.31.0',
+      resolution: { image: 'node:22-alpine', before: '2026-01-02T00:00:00Z', resolve },
+    },
+  );
+  expect(manifestSent).toContain('"@google/genai": "^2.31.0"');
+  expect(manifestSent).not.toContain('generative-ai');
+  expect(manifestSent.indexOf('@google/genai')).toBeLessThan(manifestSent.indexOf('express'));
+  expect('upgrade' in result && result.upgrade.warning).toContain(
+    'Replaces @google/generative-ai 0.24.1 with @google/genai 2.31.0',
+  );
+});
+
+it('moves declared platform packages to v1 with @anthropic-ai/sdk and guards them together', async () => {
+  const manifest = `${JSON.stringify({ name: 'app', dependencies: { '@anthropic-ai/sdk': '^0.79.0', '@anthropic-ai/vertex-sdk': '^0.14.0' } }, null, 2)}\n`;
+  const old = lock({
+    '': {
+      name: 'app',
+      dependencies: { '@anthropic-ai/sdk': '^0.79.0', '@anthropic-ai/vertex-sdk': '^0.14.0' },
+    },
+    'node_modules/@anthropic-ai/sdk': { version: '0.79.0' },
+    'node_modules/@anthropic-ai/vertex-sdk': { version: '0.14.4' },
+  });
+  let sent = '';
+  const resolve: Resolve = async (input) => {
+    sent = input.manifest;
+    return {
+      lockfile: lock({
+        '': {
+          name: 'app',
+          dependencies: { '@anthropic-ai/sdk': '^1.3.0', '@anthropic-ai/vertex-sdk': '^1.1.0' },
+        },
+        'node_modules/@anthropic-ai/sdk': { version: '1.3.0' },
+        'node_modules/@anthropic-ai/vertex-sdk': { version: '1.1.0' },
+        'node_modules/google-auth-library': { version: '10.2.0' },
+      }),
+      before: input.before,
+      late: {},
+    };
+  };
+  const result = await sdkMajorUpgrade(
+    await project({ 'package.json': manifest, 'package-lock.json': old }),
+    {
+      packageName: '@anthropic-ai/sdk',
+      targetMajor: 1,
+      release: '1.3.0',
+      companions: ['@anthropic-ai/vertex-sdk', '@anthropic-ai/bedrock-sdk'],
+      together: ['@anthropic-ai/vertex-sdk'],
+      togetherReleases: { '@anthropic-ai/vertex-sdk': '1.1.0' },
+      resolution: { image: 'node:22-alpine', before: '2026-01-02T00:00:00Z', resolve },
+    },
+  );
+  expect(sent).toContain('"@anthropic-ai/vertex-sdk": "^1.1.0"');
+  expect('upgrade' in result && result.upgrade.warning).toContain(
+    'and @anthropic-ai/vertex-sdk to 1.1.0 with it',
+  );
+});

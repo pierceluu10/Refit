@@ -685,7 +685,7 @@ it('runs a job through the CLI’s refit hosted job when forked, with App and AI
   vi.stubEnv('GITHUB_APP_ID', '123');
   vi.stubEnv('GITHUB_APP_PRIVATE_KEY_FILE', join(root, 'unused-app-key.pem'));
   vi.stubEnv('OPENAI_API_KEY', 'openai-key-for-job-process-tests');
-  vi.stubEnv('OPENAI_MODEL', 'gpt-5.4-mini');
+  vi.stubEnv('OPENAI_MODEL', 'gpt-6.1-sol');
   vi.stubEnv('REFIT_AI_BUDGET_DIRECTORY', join(root, 'ai-budget'));
   // Nothing listens on port 1; the job stops before its AI ledger would connect.
   vi.stubEnv('REFIT_DATABASE_URL', 'postgres://refit:unused@127.0.0.1:1/refit');
