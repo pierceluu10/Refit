@@ -738,12 +738,13 @@ async function sessionModelStop(files: LockFiles, chosen: Map<string, { version:
   const from = triple(rootVersion(files.packages, PRISMA_SESSION_STORAGE) ?? '');
   if (!to || !from || from[0] >= 8 || to[0] < 8) return undefined;
   const { configured, schema } = await prismaSchema(files);
-  const model = schema && /^model\s+Session\s*\{([^}]*)\}/m.exec(schema)?.[1];
+  // The storage's default table is prisma.session, which a model named Session or session serves.
+  const model = schema && /^model\s+[Ss]ession\s*\{([^}]*)\}/m.exec(schema)?.[1];
   const missing = ['refreshToken', 'refreshTokenExpires'].filter(
     (field) => !model || !new RegExp(`^\\s*${field}\\s`, 'm').test(model),
   );
   if (!missing.length) return undefined;
-  return `${PRISMA_SESSION_STORAGE} 8.0.0 writes refreshToken and refreshTokenExpires on every session it stores (700377f), and the Session model in ${configured} ${model ? `lacks ${missing.join(', ')}` : 'cannot be read'}: add refreshToken String? and refreshTokenExpires DateTime? and run a migration first.`;
+  return `${PRISMA_SESSION_STORAGE} 8.0.0 writes refreshToken and refreshTokenExpires on every session it stores (700377f), and ${model ? `the Session model in ${configured} lacks ${missing.join(', ')}` : schema === undefined ? `Refit cannot read ${configured}` : `${configured} has no Session model`}: add refreshToken String? and refreshTokenExpires DateTime? and run a migration first.`;
 }
 
 // Prisma's documented 5 to 6 changes (prisma.io/docs/orm/more/upgrade-guides/upgrading-versions/

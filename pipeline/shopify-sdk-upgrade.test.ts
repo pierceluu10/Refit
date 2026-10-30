@@ -864,6 +864,16 @@ it('moves prisma with the session storage that needs it, and stops on Prisma 6 s
     reason: `${PRISMA_STORAGE} 8.0.0 writes refreshToken and refreshTokenExpires on every session it stores (700377f), and the Session model in prisma/schema.prisma lacks refreshToken, refreshTokenExpires: add refreshToken String? and refreshTokenExpires DateTime? and run a migration first.`,
   });
   const columns = '  refreshToken String?\n  refreshTokenExpires DateTime?\n';
+  // A lowercase model serves prisma.session too.
+  await writeFile(
+    join(root, 'prisma/schema.prisma'),
+    schema(`  shop String\n${columns}`).replace('model Session', 'model session'),
+  );
+  expect(await shopifySdkUpgrade(root, 'April26')).toMatchObject({ upgrade: { primary: REMIX } });
+  await writeFile(join(root, 'prisma/schema.prisma'), 'datasource db {}\n');
+  expect(await shopifySdkUpgrade(root, 'April26')).toEqual({
+    reason: expect.stringContaining('and prisma/schema.prisma has no Session model: add'),
+  });
   await writeFile(join(root, 'prisma/schema.prisma'), schema(`  shop String\n${columns}`));
   const result = await shopifySdkUpgrade(root, 'April26');
   expect(result).toMatchObject({ upgrade: { primary: REMIX, to: '4.1.1', lockless: true } });
