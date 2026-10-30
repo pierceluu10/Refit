@@ -18,6 +18,10 @@ const MODEL_PRICES: Record<string, AiPrices> = {
   'gpt-5.6-terra': { input: 2, cachedInput: 0.2, cacheWrite: 2, output: 12 },
   'gpt-5.6-sol': { input: 4, cachedInput: 0.4, cacheWrite: 4, output: 20 },
   'gpt-6.1-sol': { input: 2, cachedInput: 0.1, cacheWrite: 2, output: 10 },
+  // Claude prices from Anthropic's pricing page (platform.claude.com/docs/en/about-claude/pricing,
+  // as cached 2026-10-06); a five-minute cache write costs 1.25 times input.
+  'claude-sonnet-5-5': { input: 2, cachedInput: 0.2, cacheWrite: 2.5, output: 10 },
+  'claude-opus-5-5': { input: 4, cachedInput: 0.2, cacheWrite: 5, output: 20 },
 };
 // Responses report a dated snapshot of the configured model, such as gpt-5.4-mini-2026-03-17.
 const SNAPSHOT = /-\d{4}-\d{2}-\d{2}$/;
@@ -68,6 +72,8 @@ function fileLedger(directory: string): AiLedger {
   };
 }
 export interface AiOptions {
+  // openai unless set; anthropic sends the same request to the Claude Messages API.
+  provider?: 'openai' | 'anthropic';
   apiKey: string;
   model: string;
   budget?: AiBudget;
