@@ -366,11 +366,8 @@ export async function scanShopifyRestDeprecations(
   const root = resolve(directory);
   const repository = await readRepository(root, '@shopify/shopify-api');
   const scan = scanShopify(repository);
-  // `scanShopify`'s pins, plus a version that ends a base URL (`/admin/api/2024-01` + path).
-  const baseVersions = repository.files.flatMap((file) =>
-    [...file.content.matchAll(/\/admin\/api\/(\d{4}-\d{2})(?=[`'"])/g)].map((match) => match[1]),
-  );
-  const pinned = [...new Set([...scan.versions.map((item) => item.value), ...baseVersions])]
+  // `scanShopify`'s pins, a version that ends a base URL (`/admin/api/2024-01` + path) included.
+  const pinned = [...new Set(scan.versions.map((item) => item.value))]
     .filter((version) => VERSION.test(version))
     .sort();
   const oldest = oldestSupported(registry, now);
