@@ -445,3 +445,31 @@ export const shopify = shopifyApi({ apiVersion: '2025-01' });
   );
   expect(report.patch.diff).toContain('/admin/api/2026-10/graphql.json');
 });
+
+it('moves defaults in code, and notes environment-only and unstable versions without stopping', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/shopify.server.ts': `import { shopifyApi } from '@shopify/shopify-api';
+export const create = (options: { apiVersion?: string }) =>
+  shopifyApi({ apiVersion: options.apiVersion || '2025-01' });
+export const fromEnvironment = shopifyApi({ apiVersion: process.env.SHOPIFY_API_VERSION });
+export const preview = shopifyApi({ apiVersion: 'unstable' });
+`,
+  });
+  const report = (await runPipeline({
+    repository: root,
+    ...(await snapshots(root)),
+    proposePatch: true,
+  })) as any;
+  expect(report.patch.status).toBe('proposed');
+  expect(report.patch.diff).toContain(
+    "+  shopifyApi({ apiVersion: options.apiVersion || '2026-10' });",
+  );
+  expect(report.patch.diff).toContain(
+    "+export const preview = shopifyApi({ apiVersion: 'unstable' });",
+  );
+  const warnings = report.patch.warnings.join('\n');
+  expect(warnings).toContain('`options.apiVersion` overrides it where it is set');
+  expect(warnings).toContain('environment variable SHOPIFY_API_VERSION, with no default in code');
+  expect(warnings).toContain('The unstable Admin API version changes without notice');
+});

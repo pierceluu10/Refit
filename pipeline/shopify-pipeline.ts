@@ -48,6 +48,13 @@ import {
 } from './shopify-versions.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { digest, isObject } from './specifications.ts';
+import { proposeRestRule } from './shopify-rest-ai.ts';
+import {
+  loadShopifyRestContract,
+  loadShopifyRestRefusals,
+  restRewriteNotes,
+  shopifyRestRewrites,
+} from './shopify-rest-rewrite.ts';
 import type { Finding, Repository, SourceEdit } from './types.ts';
 
 export const SHOPIFY: ProviderAdapter = {
@@ -467,15 +474,18 @@ function versionDeclarations(scan: ShopifyScan): ApiVersionDeclaration[] {
         status: 'literal' as const,
         reason: `${entry.kind === 'enum' ? 'ApiVersion enum' : entry.kind === 'url' ? 'Admin API URL' : 'apiVersion string'} ${entry.text}`,
       })),
-    ...scan.unresolvedVersions.map((entry) => ({
-      file: entry.file,
-      line: entry.line,
-      column: entry.column,
-      kind: 'constructor' as const,
-      value: null,
-      status: 'unknown' as const,
-      reason: entry.reason,
-    })),
+    // Notes (an environment variable with no default, `unstable`) are left as they are.
+    ...scan.unresolvedVersions
+      .filter((entry) => !entry.note)
+      .map((entry) => ({
+        file: entry.file,
+        line: entry.line,
+        column: entry.column,
+        kind: 'constructor' as const,
+        value: null,
+        status: 'unknown' as const,
+        reason: entry.reason,
+      })),
   ];
 }
 
@@ -507,6 +517,16 @@ function sdkUpgradeNotes(packages: { name: string; from: string | null; to: stri
     ...(crossed(13)
       ? [
           '@shopify/shopify-api 13 removed API versions 2022-10 to 2024-07 (0bb7837) and made WebhookFields a union keyed on webhookType (1eb863d); 13.1.0 signs OAuth and session cookies with a derived key, so merchants may need to sign in again.',
+        ]
+      : []),
+    ...(packages.some((entry) => entry.name === 'prisma')
+      ? [
+          `Prisma upgraded because session storage requires it: ${packages
+            .filter((entry) => entry.name === 'prisma' || entry.name === '@prisma/client')
+            .map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`)
+            .join(
+              ', ',
+            )}. Refit checked the schema against Prisma 6's documented breaking changes and changed no migration or model; run prisma generate and your migrations as usual.`,
         ]
       : []),
     ...(prismaCrossed
@@ -563,7 +583,15 @@ function versionFindings(
     ...new Set(pinned.map((value) => (value < versions.before ? versions.before : value))),
   ];
   const declared = pinned.length > 1 ? served : pinned;
-  for (const entry of scan.unresolvedVersions)
+  for (const entry of scan.unresolvedVersions.filter((entry) => entry.note))
+    findings.push({
+      ...entry,
+      changeId: SHOPIFY_VERSION_RULE,
+      expression: entry.note === 'unstable' ? 'unstable' : 'apiVersion',
+      confidence: 'review',
+      reason: entry.reason,
+    });
+  for (const entry of scan.unresolvedVersions.filter((entry) => !entry.note))
     findings.push(
       entry.latest && latest && upgradedRelease
         ? {
@@ -645,7 +673,7 @@ function versionFindings(
     };
     findings.push(missing ? sdkBound(finding) : finding);
   }
-  if (!runtime.length && scan.adminCalls && !scan.unresolvedVersions.length)
+  if (!runtime.length && scan.adminCalls && !scan.unresolvedVersions.some((entry) => !entry.note))
     findings.push({
       file: scan.shopifyFiles[0] ?? 'package.json',
       line: 1,
@@ -909,19 +937,59 @@ async function shopifyRun(options: ShopifyRunOptions) {
       reason: entry.reason,
       contractReview: `Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API ${versions.after}.`,
     });
-  for (const entry of scan.rest)
-    findings.push({
-      file: entry.file,
-      line: entry.line,
-      column: entry.column,
-      changeId: 'shopify-rest',
-      expression: restLabel(entry),
-      confidence: 'review',
-      reason: 'REST Admin API usage. Shopify publishes no versioned REST contract Refit can check.',
-      contractReview:
-        'The repository calls the REST Admin API, which has no published versioned contract; Refit cannot prove those calls survive the version change.',
-    });
   const sdkRelease = await lockedShopifyApi(repository.root);
+  const restRun = await shopifyRestRewrites(
+    repository,
+    scan,
+    [
+      { version: versions.before, schema: before },
+      { version: versions.after, schema: after },
+    ],
+    sdkRelease,
+    options.aiPatch
+      ? {
+          propose: (stop) =>
+            proposeRestRule({
+              stop,
+              contract: loadShopifyRestContract(),
+              refusals: loadShopifyRestRefusals(),
+              schemas: [
+                { version: versions.before, schema: before },
+                { version: versions.after, schema: after },
+              ],
+              ai: options.aiPatch!,
+            }),
+        }
+      : {},
+  );
+  const rest = restRun.results;
+  const restRewrites = rest.filter((result) => result.status === 'rewritten');
+  const restEdits = restRewrites.flatMap((result) => result.edits);
+  for (const result of rest) {
+    const { entry } = result;
+    if (result.status === 'rewritten')
+      findings.push({
+        file: entry.file,
+        line: entry.line,
+        column: entry.column,
+        changeId: 'shopify-rest-graphql',
+        expression: restLabel(entry),
+        confidence: 'review',
+        reason: `Rewritten as the GraphQL Admin query \`${result.rule.root}\` (${result.rule.origin === 'ai' ? 'a mapping the model proposed and Refit checked' : `documented: ${result.rule.rest?.url}`}). The adapter rebuilds the REST fields this code reads (${result.reads.filter(Boolean).join(', ') || 'none'}); review the behaviour differences listed in the draft.`,
+      });
+    else
+      findings.push({
+        file: entry.file,
+        line: entry.line,
+        column: entry.column,
+        changeId: 'shopify-rest',
+        expression: restLabel(entry),
+        confidence: 'review',
+        reason: `REST Admin API usage Refit did not rewrite: ${result.reason}`,
+        contractReview:
+          'The repository calls the REST Admin API, which has no published versioned contract; Refit cannot prove those calls survive the version change.',
+      });
+  }
   const member = enumFromVersion(versions.after);
   const upgradeResult =
     options.sdkUpgrade &&
@@ -995,7 +1063,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
   // Rule edits to documents ship only with the version move they are for.
   const versionEdits = [...pins.edits, ...(source ? source.edits : [])];
   const ruleEdits = versionEdits.length ? [...versionEdits, ...documentEdits.values()] : [];
-  const edits = versionEdits.length ? [...ruleEdits, ...aiEdits] : [];
+  const edits = [...(versionEdits.length ? [...ruleEdits, ...aiEdits] : []), ...restEdits];
   const environmentPins = scan.versions.filter((entry) => entry.envFallback && !entry.api);
   const sdkUpgradeEvidence = upgraded
     ? {
@@ -1034,7 +1102,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
             }
           : {
               generator: aiEdits.length ? ('openai' as const) : ('deterministic' as const),
-              summary: `Move the pinned Shopify Admin API version to ${versions.after}${
+              summary: `${versionEdits.length ? `Move the pinned Shopify Admin API version to ${versions.after}` : `Rewrite ${restRewrites.length} REST Admin calls as GraphQL Admin queries`}${
                 upgraded
                   ? `, upgrading ${upgraded.primary} ${upgraded.from} to ${upgraded.to} (@shopify/shopify-api ${upgraded.apiRelease}) so the code can name ApiVersion.${member}`
                   : ''
@@ -1049,7 +1117,8 @@ async function shopifyRun(options: ShopifyRunOptions) {
               }. Every traced GraphQL document validates against the ${versions.after} schema and no selected field changes type.`,
               status: 'proposed' as const,
               edits: edits.length + (upgraded ? upgraded.files.length : 0),
-              unresolvedFindings: 0,
+              // REST rewrites always need a reviewer (docs/SHOPIFY-REST.md).
+              unresolvedFindings: restRewrites.length,
               diff:
                 renderPatch(patchRepository, edits) +
                 (upgraded
@@ -1059,6 +1128,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
               ruleEdits,
               ...evidence,
               warnings: [
+                ...restRewriteNotes(restRewrites),
                 ...(upgraded
                   ? [
                       upgraded.lockless
@@ -1080,9 +1150,12 @@ async function shopifyRun(options: ShopifyRunOptions) {
                     ]
                   : []),
                 ...variableNotes,
+                ...scan.unresolvedVersions
+                  .filter((entry) => entry.note)
+                  .map((entry) => `${entry.file}:${entry.line}: ${entry.reason}`),
                 ...environmentPins.map(
                   (entry) =>
-                    `${entry.file}:${entry.line} moves the default Admin API version; the environment variable ${entry.envFallback} overrides it where it is set.`,
+                    `${entry.file}:${entry.line} moves the default Admin API version; ${/^[A-Z0-9_]+$/.test(entry.envFallback!) ? `the environment variable ${entry.envFallback}` : `\`${entry.envFallback}\``} overrides it where it is set.`,
                 ),
                 ...(storefront.length
                   ? [
@@ -1147,7 +1220,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
       adminCalls: scan.adminCalls,
       unreadable: scan.unreadable.length,
       rest: scan.rest.length,
-      // Each REST Admin call for review. Refit reports them and never rewrites them as GraphQL.
+      // Each REST Admin call; reads a rule maps are rewritten as GraphQL (docs/SHOPIFY-REST.md).
       restCalls: scan.rest.map((entry) => ({
         file: entry.file,
         line: entry.line,
@@ -1161,6 +1234,15 @@ async function shopifyRun(options: ShopifyRunOptions) {
       storefrontDocuments: storefront.map((document) => `${document.file}:${document.line}`),
       webhookApiVersions: webhookVersions,
       ruleEdits: documentEdits.size,
+      restRewrites: restRewrites.length,
+      restAi: restRun.proposals.map((proposal) => ({
+        file: proposal.file,
+        line: proposal.line,
+        status: proposal.status,
+        model: proposal.model,
+        costUsd: proposal.costUsd,
+        reason: proposal.reason,
+      })),
       ai: aiAttempts.map((attempt) => ({
         file: attempt.file,
         line: attempt.line,
@@ -1179,7 +1261,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
     assessment: { status: 'not-requested' as const },
     coverage: {
       specification: `Shopify Admin GraphQL schemas ${versions.before} and ${versions.after}, compared by introspection.`,
-      code: 'Admin GraphQL documents passed to admin.graphql, createAdminApiClient().request and clients.Graphql().query, resolved from literals, constants, imported and re-exported constants, constant fragments, constant arrays and objects, and helper parameters followed through every call, callback and closure factory, plus #graphql literals. ApiVersion enum members, apiVersion strings and /admin/api/<version>/ URLs are read as pins. Runtime-built documents, sending functions Refit cannot follow, REST calls and unresolved pins stop for review.',
+      code: 'Admin GraphQL documents passed to admin.graphql, createAdminApiClient().request and clients.Graphql().query, resolved from literals, constants, imported and re-exported constants, constant fragments, constant arrays and objects, and helper parameters followed through every call, callback and closure factory, plus #graphql literals. ApiVersion enum members, apiVersion strings and /admin/api/<version>/ URLs are read as pins. REST Admin reads are rewritten as GraphQL where a documented or checked mapping produces every field the code reads. Runtime-built documents, sending functions Refit cannot follow, other REST calls and unresolved pins stop for review.',
       decision:
         'No finding is not proof of no impact: documents Refit cannot read and behavior that validation cannot see (semantics, rate limits, webhook payload versions) remain outside this check.',
     },

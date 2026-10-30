@@ -36,11 +36,14 @@ const SDK_FAMILY =
 const SESSION_STORAGE = '@shopify/shopify-app-session-storage';
 // The app frameworks Shopify's app packages build on. Decision (2026-10-29, AGENTS.md): when an SDK
 // major needs a newer release of them than the lockfile has, npm may re-resolve them.
+const PRISMA = ['prisma', '@prisma/client'];
 const FRAMEWORK = /^(?:@remix-run\/[a-z0-9.-]+|@react-router\/[a-z0-9.-]+|react-router(?:-dom)?)$/;
 const SESSION_ADAPTER = /^@shopify\/shopify-app-session-storage-[a-z0-9-]+$/;
 const REGISTRY = 'https://registry.npmjs.org/';
 const ABBREVIATED_METADATA = 'application/vnd.npm.install-v1+json';
-const MAX_PACKUMENT_BYTES = 8 * 1024 * 1024;
+// Abbreviated metadata of prisma (23 MB) and @prisma/client (38 MB), measured 2026-10-29, which
+// the session-storage upgrade reads.
+const MAX_PACKUMENT_BYTES = 64 * 1024 * 1024;
 const MAX_RELEASE_BYTES = 1024 * 1024;
 const RELEASE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const COMPARATOR = /^(\^|~|>=|<=|>|<|=)?v?(\d+|[xX*])(?:\.(\d+|[xX*]))?(?:\.(\d+|[xX*]))?$/;
@@ -269,6 +272,20 @@ async function releases(name: string) {
     .map(([version, value]) => readRelease(version, value))
     .filter((entry): entry is Release => entry !== undefined)
     .sort((left, right) => compare(triple(right.version)!, triple(left.version)!));
+}
+
+// Every published release of a package, newest first, prereleases left out.
+async function publishedVersions(name: string) {
+  const document = await registryJson(
+    `${REGISTRY}${name}`,
+    ABBREVIATED_METADATA,
+    MAX_PACKUMENT_BYTES,
+  );
+  if (!isObject(document) || !isObject(document.versions))
+    throw new PipelineInputError(`The npm registry metadata for ${name} is unreadable.`);
+  return Object.keys(document.versions)
+    .filter((version) => RELEASE.test(version))
+    .sort((left, right) => compare(triple(right)!, triple(left)!));
 }
 
 // The lock entry npm writes for a release, from its full registry manifest, before dependency
@@ -610,6 +627,48 @@ function installable(entry: unknown, peer: string) {
   return Boolean(range && lowest && satisfies(lowest, range) === true);
 }
 
+// Prisma's documented 5 to 6 changes (prisma.io/docs/orm/more/upgrade-guides/upgrading-versions/
+// upgrading-to-prisma-6, read 2026-10-29) that need a person: Refit never writes migrations or
+// edits the data model. Code that catches NotFoundError stops in pipeline/shopify-sdk-source.ts.
+async function prismaUpgradeStops(files: LockFiles, chosen: Map<string, { version: string }>) {
+  const to = chosen.get('prisma');
+  const from = triple(rootVersion(files.packages, 'prisma') ?? '');
+  if (!to || !from || from[0] >= 6) return undefined;
+  const typescript = triple(rootVersion(files.packages, 'typescript') ?? '');
+  if (typescript && compare(typescript, [5, 1, 0]) < 0)
+    return `Prisma 6 needs TypeScript 5.1 or later, and the project has ${typescript.join('.')}.`;
+  const configured =
+    isObject(files.manifest.prisma) && typeof files.manifest.prisma.schema === 'string'
+      ? files.manifest.prisma.schema
+      : 'prisma/schema.prisma';
+  const schema = files.root
+    ? await readFile(join(files.root, configured), 'utf8').catch(() => undefined)
+    : undefined;
+  if (schema === undefined)
+    return `Prisma 6 changes need checking against the schema, and Refit cannot read ${configured}.`;
+  const postgres = /provider\s*=\s*"(?:postgresql|postgres)"/.test(schema);
+  const models = new Map(
+    [...schema.matchAll(/^model\s+(\w+)\s*\{([^}]*)\}/gm)].map((match) => [match[1], match[2]]),
+  );
+  if ([...models.keys()].some((name) => ['async', 'await', 'using'].includes(name)))
+    return 'Prisma 6 reserves async, await and using as model names, and the schema uses one.';
+  if (/\bBytes\b/.test([...models.values()].join('\n')))
+    return 'Prisma 6 returns Bytes fields as Uint8Array instead of Buffer, and the schema has a Bytes field.';
+  if (postgres && /previewFeatures[^\n]*"fullTextSearch"/.test(schema))
+    return 'Prisma 6 renames the PostgreSQL fullTextSearch preview feature to fullTextSearchPostgres.';
+  // An implicit many-to-many relation: each model has a list of the other and no @relation fields.
+  const lists = (body: string) =>
+    [...body.matchAll(/^\s*\w+\s+(\w+)\[\](?![^\n]*fields:)/gm)].map((match) => match[1]);
+  if (
+    postgres &&
+    [...models].some(([name, body]) =>
+      lists(body).some((other) => lists(models.get(other) ?? '').includes(name)),
+    )
+  )
+    return 'Prisma 6 turns the unique index of PostgreSQL implicit many-to-many relation tables into a primary key, which needs a migration.';
+  return undefined;
+}
+
 // True when an SDK range installs `since` or a later release of its major: it admits `since`, or its
 // lowest version is in that major and not older.
 function installsSince(range: string | undefined, since: Triple) {
@@ -695,12 +754,56 @@ async function declaredUpgrade(
             installable(packages[`node_modules/${dependency}`], range),
         ),
     );
-    if (!fits)
+    // Decision (2026-10-29, AGENTS.md): a session-storage release may move prisma and
+    // @prisma/client to the release its peer range needs, when the project declares both.
+    const prismaDeclared = PRISMA.every((entry) =>
+      ROOT_SECTIONS.some((section) => isObject(manifest[section]) && entry in manifest[section]),
+    );
+    const moved =
+      !fits && prismaDeclared && SESSION_ADAPTER.test(name)
+        ? (await lookup(name)).find(
+            (release) =>
+              compare(triple(release.version)!, lowestOf(name)) >= 0 &&
+              [...Object.entries(release.dependencies), ...Object.entries(release.peers)].every(
+                ([dependency, range]) =>
+                  PRISMA.includes(dependency) ||
+                  !chosen.has(dependency) ||
+                  satisfies(chosen.get(dependency)!.version, range) === true,
+              ) &&
+              Object.entries(release.peers).every(
+                ([dependency, range]) =>
+                  PRISMA.includes(dependency) ||
+                  SDK_FAMILY.test(dependency) ||
+                  FRAMEWORK.test(dependency) ||
+                  release.optionalPeers.has(dependency) ||
+                  rootVersion(packages, dependency) === undefined ||
+                  satisfies(rootVersion(packages, dependency)!, range) === true ||
+                  installable(packages[`node_modules/${dependency}`], range),
+              ),
+          )
+        : undefined;
+    if (moved)
+      for (const dependency of PRISMA) {
+        const range = moved.peers[dependency];
+        if (!range || satisfies(rootVersion(packages, dependency) ?? '0.0.0', range) === true)
+          continue;
+        // The newest release of the major the peer range names. npm installs it, so releases the
+        // lockfile edit could not write (bin, install scripts) count too.
+        const release = (await publishedVersions(dependency))
+          .filter((version) => satisfies(version, range) === true)
+          .map((version) => ({ version }))[0];
+        if (!release)
+          return { reason: `No ${dependency} release satisfies ${name}'s peer ${range}.` };
+        chosen.set(dependency, release);
+      }
+    if (!fits && !moved)
       return {
         reason: `No ${name} release works with ${primary} ${target.version} and the packages the lockfile has (such as its peers' versions).`,
       };
-    chosen.set(name, fits);
+    chosen.set(name, (fits ?? moved)!);
   }
+  const prismaStop = await prismaUpgradeStops(files, chosen);
+  if (prismaStop) return { reason: prismaStop };
   const crossed = unruledMajors(chosen, packages);
   if (crossed.length) return { reason: crossed.join(' ') };
   let manifestText = files.manifestText;
@@ -828,12 +931,15 @@ async function resolvedUpgrade(
     lockfile: resolved.lockfile,
     manifests: { ...manifests, '.': parseJson(manifestText) as Record<string, unknown> },
   };
+  // Prisma's packages count too, when session storage moves prisma (decision of 2026-10-29).
+  const upgraded = (name: string) =>
+    SDK_FAMILY.test(name) ||
+    FRAMEWORK.test(name) ||
+    (declaration.chosen.has('prisma') && /^(?:prisma|@prisma\/[a-z0-9-]+)$/.test(name));
   let outside: string[], was: ReturnType<typeof lockedReleases>, now: typeof was;
   try {
     [was, now] = [lockedReleases(manager, before), lockedReleases(manager, after)];
-    const names = [...new Set([...was.all.keys(), ...now.all.keys()])].filter(
-      (name) => SDK_FAMILY.test(name) || FRAMEWORK.test(name),
-    );
+    const names = [...new Set([...was.all.keys(), ...now.all.keys()])].filter(upgraded);
     outside = lockChangesOutside(manager, before, after, names).map(
       (key) => key || 'the root record',
     );
@@ -868,9 +974,7 @@ async function resolvedUpgrade(
     return {
       reason: `${label} did not lock ${primary} ${major} with ${SHOPIFY_API} ${since.join('.')} or later everywhere (it locks ${SHOPIFY_API} ${apiCopies.join(', ') || 'nowhere'}).`,
     };
-  const names = [...new Set([...was.all.keys(), ...now.all.keys()])].filter(
-    (name) => SDK_FAMILY.test(name) || FRAMEWORK.test(name),
-  );
+  const names = [...new Set([...was.all.keys(), ...now.all.keys()])].filter(upgraded);
   const changes = names
     .map((name) => ({ name, from: release(was, name) ?? null, to: release(now, name) }))
     .filter((change): change is { name: string; from: string | null; to: string } =>
@@ -945,6 +1049,7 @@ interface LockFiles {
     pnpmWorkspace?: string;
     arguments: string[];
   };
+  root?: string;
 }
 
 // A root pnpm, Yarn or Bun project, read as preparation reads it (readPreparationInputs): the same
@@ -1018,6 +1123,7 @@ async function managedLockFiles(
         { version: release },
       ]),
     ),
+    root,
     ...(inputs.lockfileChoice ? { otherLockfiles: inputs.lockfileChoice.others } : {}),
     managed: {
       manager,
@@ -1145,6 +1251,7 @@ async function readLockFiles(root: string): Promise<LockFiles | Refusal> {
       render: () => '',
       packages,
       lockless: true,
+      root,
     };
   }
   if (manifestText === undefined || shrinkwrap !== undefined)
@@ -1193,6 +1300,7 @@ async function readLockFiles(root: string): Promise<LockFiles | Refusal> {
     lockText,
     render,
     packages,
+    root,
     ...(otherLockfiles ? { otherLockfiles } : {}),
   };
 }
