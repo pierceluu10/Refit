@@ -4181,6 +4181,321 @@
         "upgradeComplete": "n/a: no package changes.",
         "wouldMerge": "yes"
       }
+    },
+    {
+      "repo": "alexCevi/shopify-metaform-os",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41140411942/41140424261/41140435896 (08f5df4e, dev-60, practice-50 and fresh-200, --sdk-upgrade, no AI) against 41132449226/41132451966/41132455018 (main 57ce145f): patched and untested before (dependencies-unavailable: npm workspaces refused lockfile resolution), validated C after (resolution with the committed extensions/* workspace manifests). Same diff as at a744b0b2.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: @shopify/shopify-app-react-router 1.1.0 to 2.1.0: ApiVersion.October25 to ApiVersion.October26 in app/shopify.server.ts (shopifyApp and the exported apiVersion) and .graphqlrc.ts; <AppProvider embedded> loses the prop and <AppProvider embedded={false}> on the login route becomes the Polaris script and its children (0dbb90c, Shopify's template 89f43482), and the unused AppProvider import goes.",
+        "bothVersions": "n/a: an Admin API version move to 2026-10; every traced Admin document validates on 2026-01 and 2026-10 with graphql-js.",
+        "nothingUnrelated": "yes: every other changed line is a documented SDK codemod (docs/SHOPIFY-SDK-UPGRADE.md); the raw diff shows whole files where they are CRLF. customShopDomains is left as Shopify's own React Router template keeps it.",
+        "pleaseCheck": "Grade C: the repository type check passes on both sides; no test reaches the changed lines.",
+        "upgradeComplete": "yes: session-storage-prisma 8.0.0 to 10.0.1 (the schema already has refreshToken and refreshTokenExpires, so nothing new is written to a missing column).",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "Shabir300/QRCode-generator-react-router-app-v7-shopify",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41140411942/41140424261/41140435896 (08f5df4e, dev-60, practice-50 and fresh-200, --sdk-upgrade, no AI) against 41132449226/41132451966/41132455018 (main 57ce145f): patched and untested before (dependencies-unavailable: npm workspaces), validated C after.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: @shopify/shopify-app-react-router 1.1.0 to 2.1.0: ApiVersion.October25 to ApiVersion.October26 in app/shopify.server.ts (shopifyApp and the exported apiVersion) and .graphqlrc.ts; <AppProvider embedded> loses the prop and <AppProvider embedded={false}> on the login route becomes the Polaris script and its children (0dbb90c, Shopify's template 89f43482), and the unused AppProvider import goes.",
+        "bothVersions": "n/a: an Admin API version move to 2026-10; every traced Admin document validates on 2026-01 and 2026-10 with graphql-js.",
+        "nothingUnrelated": "yes: every other changed line is a documented SDK codemod (docs/SHOPIFY-SDK-UPGRADE.md); the raw diff shows whole files where they are CRLF.",
+        "pleaseCheck": "Grade C: the repository type check passes on both sides; no test reaches the changed lines.",
+        "upgradeComplete": "yes: session-storage-prisma 8.0.0 to 10.0.1; the schema already has both refresh-token fields.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "safwanadnan/shopiflare",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41140411942/41140424261/41140435896 (08f5df4e, dev-60, practice-50 and fresh-200, --sdk-upgrade, no AI) against 41132449226/41132451966/41132455018 (main 57ce145f): patched and untested before (dependencies-unavailable: npm workspaces), validated C after.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: @shopify/shopify-app-react-router 1.1.0 to 2.1.0: ApiVersion.October25 to ApiVersion.October26 in app/shopify.server.ts (shopifyApp inside its factory and the exported apiVersion) and .graphqlrc.ts; <AppProvider embedded> loses the prop and <AppProvider embedded={false}> on the login route becomes the Polaris script and its children (0dbb90c, Shopify's template 89f43482), and the unused AppProvider import goes.",
+        "bothVersions": "n/a: an Admin API version move to 2026-10; every traced Admin document validates on 2026-01 and 2026-10 with graphql-js.",
+        "nothingUnrelated": "yes: every other changed line is a documented SDK codemod (docs/SHOPIFY-SDK-UPGRADE.md); the raw diff shows whole files where they are CRLF.",
+        "pleaseCheck": "Grade C: the repository type check passes on both sides; no test reaches the changed lines.",
+        "upgradeComplete": "yes: only @shopify/shopify-app-react-router moves; the app keeps its own session storage (no Prisma session model).",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "Shopify/shopify-app-template-remix",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41140411942/41140424261/41140435896 (08f5df4e, dev-60, practice-50 and fresh-200, --sdk-upgrade, no AI) against 41132449226/41132451966/41132455018 (main 57ce145f): patched and untested before (the template's .npmrc @shopify:registry=https://registry.npmjs.org refused resolution; then remix 5.0.1, published 24 s before the @shopify/shopify-api 14.0.1 it requires, broke the late-pin pass), validated C after.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: @shopify/shopify-app-remix 4.1.0 to 5.0.1: ApiVersion.January25 to ApiVersion.October26 in app/shopify.server.ts (shopifyApp and the exported apiVersion) and ApiVersion.July25 to ApiVersion.October26 in the .graphqlrc.ts codegen project.",
+        "bothVersions": "n/a: an Admin API version move to 2026-10; every traced Admin document validates on 2026-01 and 2026-10 with graphql-js.",
+        "nothingUnrelated": "yes: every other changed line is a documented SDK codemod (docs/SHOPIFY-SDK-UPGRADE.md); the raw diff shows whole files where they are CRLF.",
+        "pleaseCheck": "Grade C: the repository type check passes on both sides; no test reaches the changed lines.",
+        "upgradeComplete": "yes: session-storage-prisma 8.0.0 to 10.0.1, which writes the same Session columns as 8.0.0.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "shopsavvy/shopify-shopsavvy",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41140411942/41140424261/41140435896 (08f5df4e, dev-60, practice-50 and fresh-200, --sdk-upgrade, no AI) against 41132449226/41132451966/41132455018 (main 57ce145f): patched and untested before (no lockfile, npm workspaces refused; then the late-pin cutoff missed @shopify/shopify-api 14.0.1), validated C after.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: @shopify/shopify-app-remix 4.1.0 to 5.0.1: ApiVersion.January25 to ApiVersion.October26 in app/shopify.server.ts and ApiVersion.July25 to ApiVersion.October26 in .graphqlrc.ts.",
+        "bothVersions": "n/a: an Admin API version move to 2026-10; every traced Admin document validates on 2026-01 and 2026-10 with graphql-js.",
+        "nothingUnrelated": "yes: every other changed line is a documented SDK codemod (docs/SHOPIFY-SDK-UPGRADE.md); the raw diff shows whole files where they are CRLF.",
+        "pleaseCheck": "Grade C: the repository type check passes on both sides; no test reaches the changed lines.",
+        "upgradeComplete": "yes: session-storage-prisma 8.0.0 to 10.0.1, which writes the same Session columns as 8.0.0.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "lukeclifton/shopify-app-template-remix-cloudflare",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41140411942/41140424261/41140435896 (08f5df4e, dev-60, practice-50 and fresh-200, --sdk-upgrade, no AI) against 41132449226/41132451966/41132455018 (main 57ce145f): patched and untested before (no lockfile, npm workspaces refused; then the late-pin cutoff missed @shopify/shopify-api 14.0.1), validated C after.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: @shopify/shopify-app-remix 3.0.2 to 5.0.1: ApiVersion.July24 to ApiVersion.October26 in app/shopify.server.ts; LATEST_API_VERSION to ApiVersion.October26 in .graphqlrc.ts (import renamed); restResources and its import go (remix 4 removed REST, d7bd799; no source reads .rest); the template's productVariantUpdate mutation becomes productVariantsBulkUpdate with productId and a one-element variants list, as Shopify's template made the same change.",
+        "bothVersions": "n/a: an Admin API version move to 2026-10; every traced Admin document validates on 2026-01 and 2026-10 with graphql-js.",
+        "nothingUnrelated": "yes: every other changed line is a documented SDK codemod (docs/SHOPIFY-SDK-UPGRADE.md); the raw diff shows whole files where they are CRLF.",
+        "pleaseCheck": "Grade C: the repository type check passes on both sides; no test reaches the changed lines.",
+        "upgradeComplete": "yes: session-storage-kv 4.0.3 to 7.0.1; KV storage serialises the whole session, so there are no columns to add.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "ratul-pointerflow/wishlist",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41134862193/41134865076/41134868010 (a744b0b2, dev-60, practice-50 and fresh-200, --sdk-upgrade, no AI) against 41132449226/41132451966/41132455018 (main 57ce145f): validated C at a744b0b2 (npm workspaces now resolved).",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 5.0.1 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e it stops. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "markusvoigt/market_discount_full_app",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41134862193/41134865076/41134868010 (a744b0b2, dev-60, practice-50 and fresh-200, --sdk-upgrade, no AI) against 41132449226/41132451966/41132455018 (main 57ce145f): validated C at a744b0b2 (public-registry .npmrc line now accepted).",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 6.0.6 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e it stops. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "hookdeck/shopify-festive-notifications",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41132449226/41132451966/41132455018 (main 57ce145f, --sdk-upgrade, no AI): validated C on main; re-read 2026-10-30 against 41140411942/41140424261/41140435896 (08f5df4e). Supersedes any earlier correct label for this upgrade.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 5.1.5 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e the upgrade stops and the draft falls back to the dated '2026-10' string pin on the locked SDK, [Needs review] at grade D. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "aaronarrays/shopify-vercel-app",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41132449226/41132451966/41132455018 (main 57ce145f, --sdk-upgrade, no AI): validated C on main; re-read 2026-10-30 against 41140411942/41140424261/41140435896 (08f5df4e). Supersedes any earlier correct label for this upgrade.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 5.2.1 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e the upgrade stops and the draft falls back to the dated '2026-10' string pin on the locked SDK, [Needs review] at grade D. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "mssalemi/b-is-for-bundles",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41132449226/41132451966/41132455018 (main 57ce145f, --sdk-upgrade, no AI): validated C on main; re-read 2026-10-30 against 41140411942/41140424261/41140435896 (08f5df4e). Supersedes any earlier correct label for this upgrade.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 6.0.6 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e the upgrade stops and the draft falls back to the dated '2026-10' string pin on the locked SDK, [Needs review] at grade D. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "kellyannclark/subscription-sync",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41132449226/41132451966/41132455018 (main 57ce145f, --sdk-upgrade, no AI): validated C on main; re-read 2026-10-30 against 41140411942/41140424261/41140435896 (08f5df4e). Supersedes any earlier correct label for this upgrade.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 6.0.9 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e the upgrade stops and the draft falls back to the dated '2026-10' string pin on the locked SDK, [Needs review] at grade D. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "Shopify/loyalty-extension-example",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41132449226/41132451966/41132455018 (main 57ce145f, --sdk-upgrade, no AI): validated C on main; re-read 2026-10-30 against 41140411942/41140424261/41140435896 (08f5df4e). Supersedes any earlier correct label for this upgrade.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 5.1.5 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e the upgrade stops and the draft falls back to the dated '2026-10' string pin on the locked SDK, [Needs review] at grade D. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "edmondso006/shopify-remix-i18n-blog-post",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41132449226/41132451966/41132455018 (main 57ce145f, --sdk-upgrade, no AI): validated C on main; re-read 2026-10-30 against 41140411942/41140424261/41140435896 (08f5df4e). Supersedes any earlier correct label for this upgrade.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 5.1.5 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e the upgrade stops and the draft falls back to the dated '2026-10' string pin on the locked SDK, [Needs review] at grade D. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "avocadomayo/cart-checkout-validation-app",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41132449226/41132451966/41132455018 (main 57ce145f, --sdk-upgrade, no AI): validated C on main; re-read 2026-10-30 against 41140411942/41140424261/41140435896 (08f5df4e). Supersedes any earlier correct label for this upgrade.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 5.1.2 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e the upgrade stops and the draft falls back to the dated '2026-10' string pin on the locked SDK, [Needs review] at grade D. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "jaysontolentino/Shopify-QRCodeGeneratorApp",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41132449226/41132451966/41132455018 (main 57ce145f, --sdk-upgrade, no AI): validated C on main; re-read 2026-10-30 against 41140411942/41140424261/41140435896 (08f5df4e). Supersedes any earlier correct label for this upgrade.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 5.1.1 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e the upgrade stops and the draft falls back to the dated '2026-10' string pin on the locked SDK, [Needs review] at grade D. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "Mitakshar15/RemixShopifyApp",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41132449226/41132451966/41132455018 (main 57ce145f, --sdk-upgrade, no AI): validated C on main; re-read 2026-10-30 against 41140411942/41140424261/41140435896 (08f5df4e). Supersedes any earlier correct label for this upgrade.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 5.1.5 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e the upgrade stops and the draft falls back to the dated '2026-10' string pin on the locked SDK, [Needs review] at grade D. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "ntwrk1/test-checkout-app",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41132449226/41132451966/41132455018 (main 57ce145f, --sdk-upgrade, no AI): validated C on main; re-read 2026-10-30 against 41140411942/41140424261/41140435896 (08f5df4e). Supersedes any earlier correct label for this upgrade.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 5.1.2 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e the upgrade stops and the draft falls back to the dated '2026-10' string pin on the locked SDK, [Needs review] at grade D. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "Stephnn0/shipping-discounts-shopify-app",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41132449226/41132451966/41132455018 (main 57ce145f, --sdk-upgrade, no AI): validated C on main; re-read 2026-10-30 against 41140411942/41140424261/41140435896 (08f5df4e). Supersedes any earlier correct label for this upgrade.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 6.0.3 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e the upgrade stops and the draft falls back to the dated '2026-10' string pin on the locked SDK, [Needs review] at grade D. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "polidario/weeklyhow-remix-app",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41132449226/41132451966/41132455018 (main 57ce145f, --sdk-upgrade, no AI): validated C on main; re-read 2026-10-30 against 41140411942/41140424261/41140435896 (08f5df4e). Supersedes any earlier correct label for this upgrade.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 5.0.1 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e the upgrade stops and the draft falls back to the dated '2026-10' string pin on the locked SDK, [Needs review] at grade D. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
+    },
+    {
+      "repo": "Shopify/editions-dev-2024-workshop-customer-account",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 41132449226/41132451966/41132455018 (main 57ce145f, --sdk-upgrade, no AI): validated C on main; re-read 2026-10-30 against 41140411942/41140424261/41140435896 (08f5df4e). Supersedes any earlier correct label for this upgrade.",
+      "reviewedAt": "2026-10-30",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "no: the SDK upgrade moves @shopify/shopify-app-session-storage-prisma from 5.0.1 to 10.0.1, and the Prisma Session model has no refreshToken or refreshTokenExpires. @shopify/shopify-app-session-storage-prisma 8.0.0 to 10.0.1 write refreshToken and refreshTokenExpires on every store (dist/esm/prisma.mjs sessionToRow, null when absent), and Prisma rejects an argument the model does not declare: an upsert with refreshToken: null on a Session model without it fails with PrismaClientValidationError 'Unknown argument `refreshToken`' (Prisma 6.19.3, sqlite, checked locally 2026-10-30). The type check cannot see this. Every session store, and so every install and token exchange, would fail after merging.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes: the source edits themselves are the documented codemods.",
+        "pleaseCheck": "Grade C came from a passing type check, which cannot see Prisma's runtime argument validation. At 08f5df4e the upgrade stops and the draft falls back to the dated '2026-10' string pin on the locked SDK, [Needs review] at grade D. Cause fixed in fix/shopify-sdk-stops 08f5df4e (sessionModelStop in pipeline/shopify-sdk-upgrade.ts): the upgrade now stops on the missing fields.",
+        "upgradeComplete": "no: it needs a Session migration Refit never writes.",
+        "wouldMerge": "no"
+      }
     }
   ]
 }

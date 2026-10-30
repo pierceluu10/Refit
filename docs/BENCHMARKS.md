@@ -385,6 +385,29 @@ dev-60 plus the 250 practice repositories (practice-50 and fresh-200), refit-ben
   - an error and an unrun patch: 2
 - The AI run validates fewer rows, and not because of the patches. Its development-store run failed on stand-in Function IDs, a store locale, rate limits and app ownership, on the before version (2026-01) as well, and that set five rows that pass every check to grade D (danyn/shopify-app-rr, cornerstone-report/x-money-shopify, ersinkoc/CouponEngine, mssalemi/b-is-for-bundles, Stephnn0/shipping-discounts-shopify-app). Two rows validate only with AI (IliasHad/shopify-app-template-remix-cloudflare-workers, SankaiAI/iHeard.ai).
 
+### Shopify SDK and preparation stops (2026-10-30)
+
+dev-60, practice-50 and fresh-200 on refit-bench `shopify.yml` (`shopify-ai`), `--sdk-upgrade`, no AI. Admin schemas were read on 2026-10-30.
+
+| Run                                           | Commit     | dev-60 validated | practice-50 validated | fresh-200 validated | Needs review (all) | Stopped (all) |
+| --------------------------------------------- | ---------- | ---------------: | --------------------: | ------------------: | -----------------: | ------------: |
+| Before: 41132449226, 41132451966, 41132455018 | `57ce145f` |               10 |                     7 |                  17 |                 96 |           170 |
+| 41134862193, 41134865076, 41134868010         | `a744b0b2` |               10 |                     9 |                  20 |                 94 |           167 |
+| After: 41140411942, 41140424261, 41140435896  | `08f5df4e` |                4 |                     4 |                  13 |                 92 |           188 |
+
+- **Gained, 6 repositories (6 rows), every diff read and labelled `correct`:**
+  - alexCevi/shopify-metaform-os (practice), Shabir300/QRCode-generator-react-router-app-v7-shopify and safwanadnan/shopiflare (fresh). These are npm projects with `workspaces: ["extensions/*"]` that lockfile resolution refused, and now resolve with their committed workspace manifests.
+  - Shopify/shopify-app-template-remix, shopsavvy/shopify-shopsavvy and lukeclifton/shopify-app-template-remix-cloudflare (fresh), which needed two more fixes:
+    - lockfile resolution now accepts an `.npmrc` line that names `https://registry.npmjs.org` itself (the template's `@shopify:registry=…`);
+    - the late-pin pass of lockfile resolution now moves its cutoff to a dependency a late pin needs that was published after it. `@shopify/shopify-app-remix` 5.0.1 was published 24 seconds before the `@shopify/shopify-api` 14.0.1 it requires (registry times, read 2026-10-30).
+- **Lost, 13 repositories (19 rows): a wrong upgrade that main counted as validated.** Each crossed `@shopify/shopify-app-session-storage-prisma` 8 (from 5.x or 6.x to 10.0.1) with a Prisma `Session` model that lacks `refreshToken` and `refreshTokenExpires`.
+  - Session storage 8.0.0 to 10.0.1 sends both fields on every store, as `null` when absent. Prisma rejects an argument the model does not declare (`Unknown argument \`refreshToken\``, checked locally with Prisma 6.19.3), so the upgraded app cannot store a session. The type check cannot see this, which is how it graded C.
+  - The upgrade now stops there (`sessionModelStop`), and these repositories fall back to the dated `'2026-10'` string pin on their locked SDK, `[Needs review]` at grade D.
+  - The 13 are labelled `wrong` in `fix-reviews.json`; 11 of them had earlier `correct` labels. ratul-pointerflow/wishlist and markusvoigt/market_discount_full_app validated at `a744b0b2` for the same reason and are labelled `wrong` too.
+  - Twenty more rows that the upgrade would have patched with the same defect now stop instead.
+- gruntlord5/cloudflare-react-router7-shopify-d1 (dev and practice) no longer stops on React Router's `unstable_newEmbeddedAuthStrategy` flag, which no release reads, but now stops on its Bun lockfile, with no code change. hak193/i-devr-code now prepares and passes on both sides, and stays `[Needs review]` for its submodules.
+- Shopify/subscriptions-reference-app's Admin URL `LATEST_API_VERSION` pin applies at `a744b0b2`. At `08f5df4e` the upgrade stops on its Session model.
+
 ### Shopify dev and blind sets
 
 Frozen on 2026-10-29 by `scripts/shopify-select.mjs`; nothing has been run on them. The exact criteria and command are in each list's `criteria`, and the search results, per-repository pre-scan counts and totals are in `docs/benchmarks/shopify-selection/`.
