@@ -337,6 +337,62 @@ it('ends a checked bump as version-bump and an unchecked one as the honest stop'
   );
 });
 
+it('ends a bump whose tests already failed as version-bump only when it adds no failure with proof', async () => {
+  const inputs = await fixture();
+  const actual = (await vi.importActual<typeof import('./run.ts')>('./run.ts')).runPipeline;
+  vi.mocked(runPipeline).mockImplementation(async (options) => withDiff(await actual(options)));
+  upgrades();
+  const bump = await actual({ ...inputs, proposePatch: true, versionBump: true });
+  // Tests that need services the sandbox lacks fail on the original code; the type check passes.
+  const broken = (newFailures: string[] | null, letter: string) => {
+    const report = passed(bump, 'baseline-failed');
+    Object.assign(report.validation, {
+      baseline: { status: 'failed', exitCode: 1, stdout: '', stderr: '' },
+      patched: { status: 'not-run', exitCode: null, stdout: '', stderr: '' },
+      brokenTestsTypeCheck: {
+        patched: { status: 'passed' },
+        tests: { status: 'passed', newFailures },
+      },
+      grade: {
+        letter,
+        level: letter === 'C' ? 'type-check' : 'none',
+        reason: 'tsc covers lib/stripe.ts.',
+      },
+    });
+    return report;
+  };
+  vi.mocked(validateMigration).mockResolvedValueOnce(broken([], 'C'));
+  const proven = await runWorkflow({
+    ...inputs,
+    output: `${inputs.output}-proven`,
+    image: 'node:22-alpine',
+    command: ['npm', 'test'],
+    allowUnresolved: true,
+  });
+  expect(proven.manifest.status).toBe('version-bump');
+  expect(proven.manifest.reason).toMatch(
+    /^The tests already failed on the original code and the version bump adds no failure to them; evidence grade C covers its changes\./,
+  );
+  for (const [newFailures, letter] of [
+    [['× sends the receipt'], 'C'],
+    [null, 'C'],
+    [[], 'D'],
+  ] as const) {
+    vi.mocked(validateMigration).mockResolvedValueOnce(
+      broken(newFailures as string[] | null, letter),
+    );
+    const held = await runWorkflow({
+      ...inputs,
+      output: `${inputs.output}-held-${letter}-${String(newFailures)}`,
+      image: 'node:22-alpine',
+      command: ['npm', 'test'],
+      allowUnresolved: true,
+    });
+    expect(held.manifest.status).toBe('needs-review');
+    expect(held.manifest.reason).toMatch(/Validation returned baseline-failed\.$/);
+  }
+});
+
 it('scores a bump correct only on a repository with nothing breaking', () => {
   const workflow = { status: 'version-bump', patch: 'proposed' } as never;
   expect(

@@ -233,7 +233,19 @@ exports.handler = async (event, context) => {
   const tested = await proposeStripeConfiguration(
     await repository({ ...files, 'package.json': manifest('^18.2.1', TESTS) }),
   );
+  // No file names a version option, so no request through the unfollowed client sends another.
   expect(tested.proposal?.apiVersion).toEqual({
+    value: '2025-05-28.basil',
+    source: 'the default of stripe-node 18.2.1, which the lockfile records',
+  });
+  const overridden = await proposeStripeConfiguration(
+    await repository({
+      ...files,
+      'package.json': manifest('^18.2.1', TESTS),
+      'extras/functions/version.js': "module.exports = { apiVersion: '2024-06-20' };\n",
+    }),
+  );
+  expect(overridden.proposal?.apiVersion).toEqual({
     value: '2025-05-28.basil',
     source:
       'the default of stripe-node 18.2.1, which the lockfile records; Refit cannot follow every use of the client at retronix/netlify/functions/create-checkout-session.js:1, so check that no request there sends another version',

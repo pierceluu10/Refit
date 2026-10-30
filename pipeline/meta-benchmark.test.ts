@@ -4,6 +4,7 @@ import { metaRow, stopKind, summaryTable } from './meta-benchmark.ts';
 
 const call = (overrides: Partial<GraphCall>): GraphCall => ({
   kind: 'url',
+  host: 'graph.facebook.com',
   file: 'src/a.ts',
   line: 1,
   use: 'live',
@@ -42,7 +43,15 @@ it('makes a row from the scan and proposal', () => {
     sdk: null,
     warnings: [],
   };
-  const move = { file: 'src/a.ts', line: 1, from: 'v19.0', to: 'v26.0', crossed: [], requests: [] };
+  const move = {
+    file: 'src/a.ts',
+    line: 1,
+    from: 'v19.0',
+    to: 'v26.0',
+    crossed: [],
+    requests: [],
+    rules: [],
+  };
   const stop = {
     file: null,
     line: null,
@@ -51,7 +60,14 @@ it('makes a row from the scan and proposal', () => {
     reasons: ['x: the URL names no version'],
   };
   expect(
-    metaRow(scan, { target: 'v26.0', moves: [move], stops: [], current: [], patch: 'diff' }),
+    metaRow(scan, {
+      target: 'v26.0',
+      moves: [move],
+      stops: [],
+      current: [],
+      patch: 'diff',
+      edits: [],
+    }),
   ).toMatchObject({
     outcome: 'version-move',
     liveRequests: 1,
@@ -64,16 +80,17 @@ it('makes a row from the scan and proposal', () => {
     stops: [stop],
     current: [],
     patch: null,
+    edits: [],
   });
   expect(row).toMatchObject({ outcome: 'needs-review', stopKinds: { unversioned: 1 } });
   expect(
     metaRow(
       { calls: [], sdk: null, warnings: [] },
-      { target: 'v26.0', moves: [], stops: [], current: [], patch: null },
+      { target: 'v26.0', moves: [], stops: [], current: [], patch: null, edits: [] },
     ).outcome,
   ).toBe('no-graph-usage');
   const table = summaryTable([
-    { ...row, outcomeClass: 'repository' },
+    { ...row, outcomeClass: 'repository', workflow: { status: 'validated', grade: 'C' } },
     { outcomeClass: 'infrastructure' },
     { error: 'boom', outcomeClass: 'repository' },
   ]);
@@ -82,6 +99,8 @@ it('makes a row from the scan and proposal', () => {
     '| infrastructure | 1 |',
     '| needs-review | 1 |',
     '| unversioned | 1 |',
+    '| validated | 1 |',
+    '| C | 1 |',
   ])
     expect(table).toContain(line);
 });

@@ -48,6 +48,23 @@
       "stopKinds": { "$ref": "common.schema.json#/$defs/counts" },
       "current": { "$ref": "common.schema.json#/$defs/count" },
       "patch": { "type": "boolean" },
+      "workflow": {
+        "type": "object",
+        "required": ["status", "checks", "unresolved", "pullRequest"],
+        "properties": {
+          "status": { "type": "string", "minLength": 1 },
+          "stage": { "type": "string" },
+          "reason": { "type": "string" },
+          "error": { "type": "string" },
+          "checks": { "enum": ["tests", "typecheck", "none"] },
+          "validation": { "type": "string" },
+          "grade": { "enum": ["A", "B", "C", "D"] },
+          "proven": { "type": "boolean" },
+          "unresolved": { "$ref": "common.schema.json#/$defs/count" },
+          "pullRequest": { "type": "boolean" }
+        },
+        "x-added": "2026-10-29"
+      },
       "seconds": { "$ref": "common.schema.json#/$defs/count" },
       "outcomeClass": { "$ref": "common.schema.json#/$defs/outcomeClass" },
       "infrastructure": { "$ref": "common.schema.json#/$defs/infrastructure" }

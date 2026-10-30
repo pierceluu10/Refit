@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "graph-api-out-of-cycle-oct-5-2021",
+  "url": "https://developers.facebook.com/docs/graph-api/changelog/ooc-changes/oct-5-2021/",
+  "revision": "4579769874c1067207eae68c48fd40f82181b0d9af74bd399b13bba0bde9b2e5",
+  "hash": "4579769874c1067207eae68c48fd40f82181b0d9af74bd399b13bba0bde9b2e5",
+  "content": "Changelog\n\nUpgrade\n\nVersions\n\nOut-Of-Cycle Changes\n\nOctober 5, 2021\n\nOut-of-cycle changes.\n\nInstagram API\n\nThe following changes apply to Instagram TV videos created on or after October 5, 2021. Instagram TV videos created before this date are exempt from these changes.\n\nthe media_product_type field will return FEED instead of IGTV\n\nthe video_title field will not be returned\n\nInstagram Webhooks comments and mentions fields are now supported\n\nOn January 3, 2022, the changes above will apply to all API versions and all Instagram TV videos, regardless of video creation date. This means that starting January 3, 2022, apps using older API versions will be able to query Instagram TV videos (read support was introduced in v10.0 and limited to v10.0+).\n\nStarting with v14.0, the video_title field will no longer be supported and the API will throw an error if the field is requested.",
+  "contentType": "text/html"
+}

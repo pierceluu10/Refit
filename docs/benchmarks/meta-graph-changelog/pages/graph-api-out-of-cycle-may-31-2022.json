@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "graph-api-out-of-cycle-may-31-2022",
+  "url": "https://developers.facebook.com/docs/graph-api/changelog/non-versioned-changes/may-31-2022/",
+  "revision": "1cb432cc6fe6c100b6900c0bc171b1d058a34b9e9a16dc350a2ed020a7f30539",
+  "hash": "1cb432cc6fe6c100b6900c0bc171b1d058a34b9e9a16dc350a2ed020a7f30539",
+  "content": "Changelog\n\nUpgrade\n\nVersions\n\nOut-Of-Cycle Changes\n\nMay 31, 2022\n\nOut-of-cycle changes.\n\nMarketing API\n\nStore Sales Optimization\n\nOptimization being deprecated\n\nThe Store Sales Optimization will no longer be available for use in new campaigns starting May 31, 2022, and existing campaigns will be disabled on June 30, 2022. This change includes the use of Store Sales Optimization in the Conversions Objective and Store Traffic Objective, as well as Collaborative Ads for Store Sales, and Collaborative Ads for Store Traffic.\n\nThe optimization_goal parameter will no longer accept the OFFLINE_CONVERSIONS value.\n\nThis change will affect the following endpoints:\n\nPOST /{ad-account-id}/adsets\n\nDeprecation timeline\n\nBeginning on May 31, 2022\n\nYou can no longer select Store Sales Optimization when creating or updating Conversion campaigns or Store Traffic campaigns. The only update possible would be to pause or delete such campaigns.\n\nBeginning June 30, 2022\n\nAll remaining campaigns using the Store Sales Optimization should be stopped at this point. Any residual campaigns of these types continuing to run after this date will be disabled.",
+  "contentType": "text/html"
+}

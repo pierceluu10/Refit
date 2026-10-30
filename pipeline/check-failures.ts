@@ -60,6 +60,8 @@ const testOutput = (check: CheckResult) => {
 };
 // Jest's `FAIL src/a.test.ts` names a file, not a test: with several files Jest prints only these.
 const FILE_LINE = /^FAIL\s+\S+$/;
+// An error a suite threw, as runners print it: `Error: ENOENT …`, `TypeError: Cannot read …`.
+const ERROR_LINE = /^\s*\w*Error:/;
 // The runner's own totals: Jest's `Tests: 1 failed, 5 passed, 6 total`, Vitest's
 // `Tests  1 failed | 5 passed (6)`.
 const SUMMARY = /^\s*Tests:?\s+(.*)$/m;
@@ -91,6 +93,22 @@ export function newTestFailures(baseline: CheckResult, patched: CheckResult) {
   };
   const before = counts(baseline);
   const after = counts(patched);
+  // No test ran on either side: every suite failed before its tests, while loading or in a setup
+  // hook. The patch adds a failure unless each failing suite and error it printed was printed the
+  // same on the original code.
+  if (!before.passed && !before.failing && !after.passed && !after.failing) {
+    const failures = (check: CheckResult) =>
+      new Set(
+        testOutput(check)
+          .split('\n')
+          .filter((line) => FAILED_LINE.test(line) || ERROR_LINE.test(line))
+          .map((line) => line.trim()),
+      );
+    const known = failures(baseline);
+    const found = failures(patched);
+    // Output that names no failure on one side says nothing about the other.
+    return known.size && found.size ? [...found].filter((line) => !known.has(line)) : undefined;
+  }
   // Failing files alone do not say which test failed, so they prove nothing; a file that failed
   // only on the patch is a new failure all the same.
   if (!before.failed.some((line) => !FILE_LINE.test(line))) return undefined;

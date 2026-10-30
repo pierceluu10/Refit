@@ -639,6 +639,11 @@ export function proofLevel(report: Report) {
   const grade = 'grade' in report.validation ? report.validation.grade : undefined;
   return grade && ['A', 'B', 'C'].includes(grade.letter) ? grade.letter : undefined;
 }
+// A Meta Graph patch with A to C proof (meta-graph-proof.ts): its proof comes from the change table
+// and the code around the requests, not from checks that ran, so missing checks or dependencies do
+// not hold it.
+const metaGraphProven = (report: Report) =>
+  report.provider === 'meta-graph' && proofLevel(report) !== undefined;
 // An AI patch whose checks passed with A to C proof is validated like the rules' patch; this
 // supersedes owner decision 8 for such patches. Without proof it stays [Needs review].
 export const aiPatchProven = (report: Report) =>
@@ -654,6 +659,16 @@ const brokenTestsUnchanged = (report: Report) => {
   const tests = isObject(broken) && isObject(broken.tests) ? broken.tests : undefined;
   return Array.isArray(tests?.newFailures) && tests.newFailures.length === 0;
 };
+
+// The checks failed or could not finish on the original code, so they never ran on the patch.
+const baselineFailedBefore = (report: Report) =>
+  ['baseline-failed', 'error'].includes(report.validation.status) &&
+  report.validation.baseline.status !== 'passed' &&
+  report.validation.patched.status === 'not-run';
+// Founder decision (2026-10-28): tests already failing do not hold a patch that adds no failure to
+// them where A to C proof reaches its changed lines.
+export const baselineFailedProven = (report: Report) =>
+  baselineFailedBefore(report) && brokenTestsUnchanged(report) && proofLevel(report) !== undefined;
 
 // An AI patch that fails owner decision D2's gate is never validated for publication, so
 // --publish-validated-only stops it.
@@ -672,15 +687,8 @@ export function publicationWaiver(
 ) {
   if (!allowUnresolved) return undefined;
   const { validation, patch } = report;
-  // The checks failed or could not finish on the original code, so they never ran on the patch.
-  const baselineFailed =
-    ['baseline-failed', 'error'].includes(validation.status) &&
-    validation.baseline.status !== 'passed' &&
-    validation.patched.status === 'not-run';
-  // Founder decision (2026-10-28): tests already failing do not hold a patch that adds no failure to
-  // them where A to C proof reaches its changed lines.
-  const baselineProven =
-    baselineFailed && brokenTestsUnchanged(report) && proofLevel(report) !== undefined;
+  const baselineFailed = baselineFailedBefore(report);
+  const baselineProven = baselineFailedProven(report);
   const failure = validation.dependencyFailure;
   if (
     validation.status !== 'passed' &&
@@ -771,7 +779,7 @@ export function publicationWaiver(
     })),
   );
   return [
-    ...(failure
+    ...(failure && !metaGraphProven(report)
       ? [
           {
             gate: 'dependency-preparation' as const,
@@ -795,7 +803,10 @@ export function publicationWaiver(
         ]
       : []),
     // #288: the type check Refit generated could not run and there are no tests, so no check ran.
-    ...(validation.status === 'untested' && !failure && validation.typeCheckUnavailable
+    ...(validation.status === 'untested' &&
+    !failure &&
+    validation.typeCheckUnavailable &&
+    !metaGraphProven(report)
       ? [
           {
             gate: 'no-checks' as const,
@@ -808,7 +819,8 @@ export function publicationWaiver(
     ...(validation.status === 'passed' &&
     validation.command.join(' ') === NO_OP_CHECK &&
     !generatedRan &&
-    proofLevel(report) !== 'A'
+    proofLevel(report) !== 'A' &&
+    !metaGraphProven(report)
       ? [{ gate: 'no-checks' as const, ...NO_OP_REVIEW }]
       : []),
     ...(validation.submodules?.length

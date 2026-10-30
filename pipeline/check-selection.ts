@@ -75,7 +75,13 @@ export interface CheckSelection {
 }
 
 export type EvidenceLevel =
-  'behaviour-tests' | 'stripe-tests' | 'type-check' | 'generated-check' | 'none';
+  | 'behaviour-tests'
+  | 'live-requests'
+  | 'request-strings'
+  | 'stripe-tests'
+  | 'type-check'
+  | 'generated-check'
+  | 'none';
 
 // A: behaviour tests cover every changed Stripe line; B: the repository's tests reach every changed
 // file; C: a type check covers the rest; D: some changed file has no check, or no check passed.
@@ -335,20 +341,35 @@ async function packageManager(root: string, nested: boolean) {
 // tsconfig.json's program when it holds every file importing stripe, otherwise a generated tsconfig
 // over those files and every file importing them (with Refit's compiler only without tests, and
 // never for a client only `require()` loads). Never a no-op.
+// The provider code a check must cover: files that import stripe by default. Meta Graph passes the
+// files that make Graph API requests, which TypeScript types without an SDK import.
+export interface CheckedCode {
+  label: string;
+  file: (content: string) => boolean;
+  typed: (content: string) => boolean;
+}
+
+const STRIPE_CODE: CheckedCode = {
+  label: 'Stripe',
+  file: (content) => STRIPE_IMPORT.test(content),
+  typed: (content) => TYPED_STRIPE_IMPORT.test(content),
+};
+
 export async function selectCheck(
   repository: Repository,
   // The nested package the check runs in, relative to the repository root (sdkPackageDirectory).
   packageDirectory?: string,
+  checked: CheckedCode = STRIPE_CODE,
 ): Promise<CheckSelection> {
+  const label = checked.label;
+  const none = label === 'Stripe' ? 'no file imports stripe' : `no file holds ${label} code`;
   const { root, inside, local } = checkDirectory(repository, packageDirectory);
   const { scripts, declared } = await manifestScripts(root);
   const tests = typeof scripts.test === 'string' && !PLACEHOLDER_TEST.test(scripts.test);
   const ownCompiler = Boolean(declared.typescript);
   const graph = importGraph(repository);
   const stripeFiles = repository.files
-    .filter(
-      (file) => inside(file.path) && !TEST_FILE.test(file.path) && STRIPE_IMPORT.test(file.content),
-    )
+    .filter((file) => inside(file.path) && !TEST_FILE.test(file.path) && checked.file(file.content))
     .map((file) => file.path);
   const allTests = testFiles(repository).filter(inside);
   const tested = tests ? reach(graph, allTests) : new Set<string>();
@@ -379,7 +400,7 @@ export async function selectCheck(
       ? stripeTests
       : [];
   const typed = repository.files.some(
-    (file) => stripeFiles.includes(file.path) && TYPED_STRIPE_IMPORT.test(file.content),
+    (file) => stripeFiles.includes(file.path) && checked.typed(file.content),
   );
   const scoped = !projectCheck && typed && (ownCompiler || !tests);
   const base = scoped ? baseConfiguration(root, stripeFiles.map(local)) : undefined;
@@ -422,10 +443,10 @@ export async function selectCheck(
   const testsClause = !tests
     ? 'There is no test script'
     : listed.length
-      ? `The tests import Stripe code in ${list(testedStripeFiles)}, and only the ${listed.length} test ${listed.length === 1 ? 'file' : 'files'} that reach it run (${list(listed)}); no other test reaches a file the patch can change`
+      ? `The tests import ${label} code in ${list(testedStripeFiles)}, and only the ${listed.length} test ${listed.length === 1 ? 'file' : 'files'} that reach it run (${list(listed)}); no other test reaches a file the patch can change`
       : testedStripeFiles.length
-        ? `The tests import Stripe code in ${list(testedStripeFiles)}`
-        : 'No test imports Stripe code, so the tests show only that the rest of the code still works';
+        ? `The tests import ${label} code in ${list(testedStripeFiles)}`
+        : `No test imports ${label} code, so the tests show only that the rest of the code still works`;
   const because = !rootConfiguration
     ? ', because there is no tsconfig.json'
     : !ownCompiler
@@ -435,14 +456,14 @@ export async function selectCheck(
         : `, because tsconfig.json leaves out ${list(uncovered)}`;
   const typeClause = projectCheck
     ? stripeFiles.length
-      ? `the type check (tsc over tsconfig.json) covers the Stripe code in ${list(stripeFiles)}`
-      : 'the type check (tsc over tsconfig.json) covers the code, though no file imports stripe'
+      ? `the type check (tsc over tsconfig.json) covers the ${label} code in ${list(stripeFiles)}`
+      : `the type check (tsc over tsconfig.json) covers the code, though ${none}`
     : scoped
-      ? `a generated tsconfig${base ? ` extending ${base}` : ''} type-checks the Stripe code (${list(stripeFiles)}) and every file importing it${because}${ownCompiler ? '' : ", with Refit's own TypeScript because the repository installs none"}`
+      ? `a generated tsconfig${base ? ` extending ${base}` : ''} type-checks the ${label} code (${list(stripeFiles)}) and every file importing it${because}${ownCompiler ? '' : ", with Refit's own TypeScript because the repository installs none"}`
       : !stripeFiles.length
-        ? 'no file imports stripe, so no type check can cover the Stripe code'
+        ? `${none}, so no type check can cover the ${label} code`
         : !typed
-          ? `stripe is loaded with require() (${list(stripeFiles)}), which TypeScript leaves untyped, so no type check can cover the Stripe code`
+          ? `stripe is loaded with require() (${list(stripeFiles)}), which TypeScript leaves untyped, so no type check can cover the ${label} code`
           : 'TypeScript is not installed, so no type check runs with them';
   return {
     kind: tests ? 'tests' : command ? 'typecheck' : null,

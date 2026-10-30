@@ -1,4 +1,5 @@
 import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
+import { runBounded } from './check-output.ts';
 import { chosenLockfile, type LockfileChoice } from './dependency-inputs.ts';
 import { aiSafetyStop, migrationReviewReason, unresolvedSites } from './migration-review.ts';
 import { diffLines } from 'diff';
@@ -31,6 +32,7 @@ import {
 } from './repair-context.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
+import { META_GRAPH_PROVIDER, metaGraphEvidence } from './meta-graph-proof.ts';
 import {
   apiVersionSourceBlocked,
   compareApiVersion,
@@ -706,51 +708,35 @@ async function containerCheck({
     generators.length ? { ...result, ...generatorExits(generators, result.stderr) } : result;
   await removeExpiredSandboxContainers();
   try {
-    const result = await execute(
-      'docker',
-      dockerSandboxArguments({
-        name,
-        directory,
-        image,
-        command: generators.length ? withGenerators(generators, argumentsList) : argumentsList,
-        network,
-        timeoutMs,
-        dependencies,
-        readOnlyMounts,
-        packageDirectory,
-      }),
-      {
-        timeout: timeoutMs,
-        maxBuffer: MAX_OUTPUT_BYTES,
-        encoding: 'utf8',
-        // The Docker client forwards SIGTERM to the container, where a process that ignores it keeps
-        // the client waiting forever; SIGKILL ends the client and the finally block the container.
-        killSignal: 'SIGKILL',
-        signal,
-      },
-    );
-    return withExit({ status: 'passed', exitCode: 0, ...result });
-  } catch (error) {
+    const args = dockerSandboxArguments({
+      name,
+      directory,
+      image,
+      command: generators.length ? withGenerators(generators, argumentsList) : argumentsList,
+      network,
+      timeoutMs,
+      dependencies,
+      readOnlyMounts,
+      packageDirectory,
+    });
+    // The Docker client forwards SIGTERM to the container, where a process that ignores it keeps
+    // the client waiting forever; SIGKILL ends the client and the finally block the container.
+    const { exitCode, timedOut, stdout, stderr, error } = await runBounded('docker', args, {
+      timeout: timeoutMs,
+      signal,
+    });
     signal?.throwIfAborted();
-    if (!(error instanceof Error)) throw error;
-    const failure = error as Error & {
-      code?: number | string;
-      killed?: boolean;
-      stdout?: string;
-      stderr?: string;
-    };
-    const exitCode = typeof failure.code === 'number' ? failure.code : null;
+    if (exitCode === 0 && !timedOut && !error)
+      return withExit({ status: 'passed', exitCode: 0, stdout, stderr });
     return withExit({
-      status: exitCode !== null && !failure.killed && exitCode < 125 ? 'failed' : 'error',
+      status: exitCode !== null && !timedOut && !error && exitCode < 125 ? 'failed' : 'error',
       exitCode,
-      stdout: failure.stdout ?? '',
-      stderr: failure.stderr ?? '',
-      error:
-        failure.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
-          ? `Check output exceeded ${MAX_OUTPUT_BYTES / 1024 / 1024} MiB; the container was stopped.`
-          : failure.killed
-            ? `Check exceeded ${timeoutMs / 1000} seconds; the container was stopped.`
-            : failure.message,
+      stdout,
+      stderr,
+      error: timedOut
+        ? `Check exceeded ${timeoutMs / 1000} seconds; the container was stopped.`
+        : (error?.message ??
+          `Command failed: docker ${args.join(' ')}${stderr ? `\n${stderr.slice(-4096)}` : ''}`),
     });
   } finally {
     // A killed Docker client does not necessarily stop the container it started.
@@ -3284,7 +3270,7 @@ export async function validateMigration(options: {
               : {}),
           })
         : undefined;
-    const grade = ownGrade
+    const checksGrade = ownGrade
       ? validationStatus === 'passed' || !generated
         ? ownGrade
         : {
@@ -3328,6 +3314,22 @@ export async function validateMigration(options: {
                       ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
                       : `Validation returned ${validationStatus}.`),
             );
+    // Meta Graph patches (meta-graph-proof.ts): the reviewed change table decides whether the checks'
+    // grade stands, read-only calls with Refit's test app can raise it to A, and an advisory AI
+    // review is recorded with its cost.
+    const metaGraph =
+      report.provider === META_GRAPH_PROVIDER && candidateSources
+        ? await metaGraphEvidence({
+            original: originalSources,
+            patched: candidateSources,
+            grade: checksGrade,
+            checksUsable: validationStatus === 'passed' || validationStatus === 'untested',
+            diff: proposal.diff,
+            ai: options.assessment ?? options.aiPatch,
+            environment: process.env,
+          })
+        : undefined;
+    const grade = metaGraph ? metaGraph.grade : checksGrade;
     const typeOracle = await runTypeOracle({
       compareTypeErrors: options.compareTypeErrors,
       command: options.command,
@@ -3486,6 +3488,7 @@ export async function validateMigration(options: {
       ...(behaviour ? { behaviour } : {}),
       ...(signedEvents ? { signedEvents } : {}),
       ...(grade ? { grade } : {}),
+      ...(metaGraph ? { metaGraph: metaGraph.record } : {}),
       attempts,
       repair,
       ...(options.aiPatch ? { aiCostUsd } : {}),

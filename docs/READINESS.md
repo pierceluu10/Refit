@@ -1,8 +1,54 @@
 # Refit implementation checkpoints
 
+## October 29 checkpoint: Meta Graph tracing, fix plans and dated alerts (unreleased, after 0.39.0)
+
+`refit meta-graph` traces more of how Meta integrations are written, and `refit meta-graph --fix --target <version>` turns the review-only version moves into a fix plan ([Meta Graph API](META-GRAPH.md#fix-plans)). `refit run` with Meta snapshots (`refit meta-graph --snapshot`) validates that plan and writes the draft, like Stripe and Shopify runs ([run](META-GRAPH.md#run-meta-graph-fixes-with-refit-run)). The `meta-graph` catalog entry keeps `adapter: null`.
+
+- **Tracing:**
+  - graph.instagram.com requests;
+  - `FB.api` calls with the version `FB.init` sets;
+  - versions that are the fallback of `process.env.X || 'vNN.N'`;
+  - requests on an `axios.create({ baseURL })` instance;
+  - project helpers that pass the URL and options to `fetch` unchanged;
+  - parameters set step by step on `FormData`, `URLSearchParams` or a `const` object;
+  - `qs.stringify`, `querystring.stringify` and `.toString()`;
+  - `fields=${LIST.join(',')}`.
+- **Fixes:** the documented rules in `data/rules/meta-graph` (none are committed yet) rename a field or metric in the literal list a request sends, together with the version move. They stop when the old name appears anywhere else in the code, since it may be a response read. Every other rule family stops the move with its source.
+- **Migrations and alerts:**
+  - Instagram Basic Display use is listed with Meta's documented migration plan.
+  - Retired permissions, Page Insights metrics and oEmbed requests get dated alerts from `data/meta-platform-alerts.json`. Each entry quotes a developers.facebook.com page read on 2026-10-29.
+- **Measured** offline on the 33 non-blind Meta repositories of the deadline benchmark, at target v25.0:
+  - live requests 162 → 168, `fields` read 113 → 155;
+  - pins moved 35 → 53 (requests 35 → 57) with ME2's change table, none lost; test expectations move with the live requests they describe;
+  - `refit run` on the 13 repositories with a move: 13 drafts, 3 validated with nothing left, 9 `[Needs review]` for requests that stay, 1 failing baseline; every patch changes only version text;
+  - 1 Basic Display migration and 2 alerts.
+  - Every changed request (52) and every new move (11) was checked by hand.
+  - ME1's meta-dev-60 set was not frozen yet, so it was not measured.
+  - Census of the 68 non-blind Meta repositories: 22 with a patch (18 before the default-field and helper fixes), all 22 proven by the change table, 10 validated (caution-only stops on versions Meta still serves are notes, not unresolved findings), grades B 1, C 19, D 2; [blockers](META-GRAPH.md#census-of-non-blind-meta-repositories-2026-10-29).
+  - meta-dev-60 (offline, no AI, target v26.0): the scan now follows `new URL(...)` objects and their `searchParams`, conditional and returned URLs, helpers that add transport options, paging helpers, nested helpers and versions imported through tsconfig path aliases. Patches 15 → 17, pins moved 45 → 67, validated 3 → 6, all proven, none lost; [details](META-GRAPH.md#measured-on-meta-dev-60-2026-10-29).
+- **Not done:**
+  - enrollment and hosted-worker configurations for Meta;
+  - AI repair;
+  - response-read renames;
+  - business SDK package upgrades;
+  - WhatsApp on-premises detection.
+
+## October 29 checkpoint: Meta Graph change table and rules (unreleased, after 0.39.0)
+
+`data/meta-graph/changes.json` (moved from `data/meta-graph-changes.json`) now covers Graph API v10.0 to v26.0, the Graph API out-of-cycle changes since 2021, and the Instagram Platform, WhatsApp Business Platform and Messenger Platform changelogs: 805 changes, each with the passage that states it. `data/rules/meta-graph/` holds 105 review-only rules for every change whose changelog names a replacement; the other 700 changes are alert-only, each dated. `refit rules check` verifies every quote against the saved page in `docs/benchmarks/meta-graph-changelog/pages` before the Stripe rules. New kinds (`endpoint-changed`, `product-removed`, `parameter-required`, `breakdown-removed`, webhook, error and permission changes) stop version moves only where a request uses the endpoint, parameter or breakdown; webhook and product changes stay alerts. Nothing applies the rules yet, and no benchmark was run. See [Meta Graph change table](META-GRAPH-CHANGES.md).
+
+## October 29 checkpoint: Meta Graph proof (unreleased, after 0.39.0)
+
+A Meta Graph patch that reaches validation is graded by the reviewed change table: every changed request must be valid at one reviewed target version, and the type check or tests must pass, for grade C or B; read-only calls with Refit's own `META_TEST_TOKEN` (an app access token, so only app-level reads; user and page requests keep the offline proof) raise it to A, and a target version the Graph API refuses drops it to D; where the checks prove nothing but did not fail, a patch that changes only request strings, or JavaScript checkJs fully types, is grade C too; otherwise it is grade D and `[Needs review]` with the reason ([Meta Graph proof](META-GRAPH.md#proof)). With AI enabled, an advisory second-opinion review is recorded with its cost. Unit tests, and a hand-check of ME3's patches on the 13 non-blind dev repositories that get one (all proven, every changed line read; [Meta Graph proof](META-GRAPH.md#proof)). No benchmark was run.
+
+## October 28 checkpoint: proof plumbing for verbose, failing and untyped repositories (unreleased, after 0.39.0)
+
+Checks no longer stop at 1 MiB of output: they keep the first and last lines and every result line and are judged by their exit code. Suites that fail before any test runs on both sides are compared by the suites and errors they print. pnpm reads a name declared in two sections once, as pnpm does. The analyzer stops flagging reads through a field the before contract never sent and untraced reads compared only with a value the removed field never held. A client without a version option moves with the stripe-node upgrade even where Refit cannot follow it, when no file names a version option. The behaviour-test writer asks once for a smaller answer when the budget cannot hold the full reservation. See [proof plumbing](PROOF-BASED-VALIDATION.md#proof-plumbing-featp30-proof-2026-10-28); measured locally on 4 progress-30 repositories, no benchmark run.
+
 ## October 28 checkpoint: rule coverage for contract stops (unreleased, after 0.39.0)
 
 An untraced call no longer blocks an operation the adapter does not map when it is known to request another operation, is a local webhook helper or sets up a test double ([census](MINED-RULES.md#rule-coverage-census-2026-10-28-branch-featrule-coverage)). New endive rules send `billing_cycle_anchor: 'now'`/`'unchanged'` on subscription update and resume as `{ type: … }`, as Stripe's changelog documents (`request-enum-value` with `discriminator`). The benchmark attaches the changelog pages that name a reached contract change to AI coverage requests. Measured offline only (scan without validation): heldout-30 moves MeiyuTech/AET-App from held to fixed; no benchmark was run.
+
 ## October 28 checkpoint: API versions from the environment and kept pins explained (unreleased, after 0.39.0)
 
 Founder decision (Otabek, 2026-10-28): needs review means no proof, or a real problem Refit could not fix.
@@ -25,6 +71,7 @@ Founder decision (Otabek, 2026-10-28): needs review means no proof, or a real pr
     - minhthuong031103/RealEstateBrokerageMarket fails on `Product.features`, an untraced read through `sort`/`map`. That is a real incompatibility.
     - Five other rows type-check cleanly in a sandbox with the moved pin and stripe 23. Their keep likely came from stripe-mock or signed-event regressions, which `movedAttempt` will show in the next combined run.
     - blefnk is the bun-only, upgrade-refused branch.
+
 ## October 28 checkpoint: Stripe reads proven by type at scan time (unreleased, after 0.39.0)
 
 Founder decision (2026-10-28): a type-checker result naming a Stripe type counts as evidence of Stripe usage. The scan now applies it to removed-field reads, not only to clients and AI repair: a read the analyzer left for review is analyzed again as confirmed where TypeScript's checker proves its receiver is the changed schema's stripe-node class and the value's whole path carries no cast or `any` (`typeProvenReads`, [Removed-field reads proven by type](CLIENT-TRACING.md#removed-field-reads-proven-by-type)). Proven reads take only the version-tolerant helpers; casts, callers' casts, `any`, functions passed as values and writes to the removed field keep the "Declared Stripe types" or type-evidence stop. Tests: `pipeline/scan-type-proof.test.ts`. No benchmark run: an offline rescan of the 68 distinct repositories of heldout-30 run 40780686585 and the `l4-lockfile-resolution` run 40734300846 at their frozen commits, base `66267102` against this branch, changes one finding and no outcome. blefnk/all-in-one-nextjs-template's `handlers.ts:120` read of a `subscriptions.retrieve` response becomes proven (checked by hand, correct), and the row still stops on a removed request parameter. The one row with the "Declared Stripe types" stop, helloworld9912/Stripe-Account-Migration, keeps it: its reads go through nested types (`Price.Recurring`, payment-link custom fields, `subscription.discount`) that are not one changed-schema class, or through fields stripe-node 23's types removed, and its lists pass through `concat` and `reverse`, which the proof does not follow. The other `source-evidence` rows in those runs stop on skipped unparseable files and unmigrated contract changes, which this change does not touch.
@@ -39,6 +86,7 @@ Founder decision (Otabek, 2026-10-28; `docs/AUTONOMOUS-LOOP.md`). `refit learn` 
 - **Roll back:** one revert, closed PR, CI failure or later check failure demotes the rule to `review-only` and lists its PRs to flag.
 
 Blind lists are refused. The offline replay of eight saved AI runs found 59 signatures and no candidates, because no AI fix there was proven at A or B. A synthetic candidate grounded against the real contracts rebuilt the shipped dahlia `ui_mode` rule. Not built: feeding hosted PR outcomes to `demote` automatically, and commenting on flagged PRs. Tests: `pipeline/learning.test.ts`. See [Learning loop](LEARNING-LOOP.md).
+
 ## October 28 checkpoint: proof decides, not caution (unreleased, after 0.39.0)
 
 Founder decision (Otabek, 2026-10-28, [proof-based validation](PROOF-BASED-VALIDATION.md)): a fix with A to C evidence is validated unless a real Stripe finding is left. An AI patch with A to C proof is validated (supersedes owner decision 8 for those); a grade-A behaviour test proves a patch no check covers; a patch to code whose tests already fail is validated where those tests, now also run on the patch, add no failure and A to C proof reaches its lines. Undecided reads clear where Refit proves the receiver is not the changed Stripe object: a `sort` comparator's elements, a `const` table of plans read by key, a Stripe object behind a cast to `any` that is another resource, and Prisma model delegates on a client built from `@prisma/client`. Tests: `pipeline/proof-based-validation.test.ts`, `pipeline/stripe-proof-receivers.test.ts`. No benchmark run yet: an offline replay of heldout-30 run 40772950934 (`790dd7c7`) through this branch's decision code moves 4 rows to validated (heyzbh/scrapmatic-saas-app, Jose-Wernerson/Turbo-Gestor, Shivamrai15/Safari, devczero/vid-analyzer-saas, all grade C, hand-checked `correct`) and changes no other row. The no-check and broken-baseline paths need a new run to show anything.
@@ -415,7 +463,7 @@ Most untraced exposures are catalog entries the scanner counts as live, or libra
 
 ## October 20 checkpoint: reviewed Meta Graph API change list (unreleased)
 
-`data/meta-graph-changes.json` now holds the Meta Graph API changelogs for v14.0 to v26.0, each read in full from developers.facebook.com on 2026-10-20 and marked `reviewed`, with 281 changes from the Graph API and Marketing API sections. Every change cites its page. The Instagram sections were checked against the Instagram Platform changelog's version-gated entries; they match except that from v14.0 the IG Media `video_title` field errors, which is recorded from that changelog. v13.0 stays `unread`: it matters only to pins older than any benchmark pin. Each version's note lists what the page holds that is not an entry: permission policy changes, error codes, transport changes, additions, and Certificate Transparency endpoints the page does not name.
+`data/meta-graph/changes.json` now holds the Meta Graph API changelogs for v14.0 to v26.0, each read in full from developers.facebook.com on 2026-10-20 and marked `reviewed`, with 281 changes from the Graph API and Marketing API sections. Every change cites its page. The Instagram sections were checked against the Instagram Platform changelog's version-gated entries; they match except that from v14.0 the IG Media `video_title` field errors, which is recorded from that changelog. v13.0 stays `unread`: it matters only to pins older than any benchmark pin. Each version's note lists what the page holds that is not an entry: permission policy changes, error codes, transport changes, additions, and Certificate Transparency endpoints the page does not name.
 
 `refit meta-graph --propose-version-moves` gained three stricter rules:
 
@@ -547,7 +595,7 @@ The default suite ran 1,587 tests across 100 files, with 78 environment-gated te
 
 Second review-only step toward a Meta agent (shared work item 5 in [Provider goals](PROVIDER-GOALS.md)).
 
-- **`data/meta-graph-changes.json`** is a hand-kept list of what each Graph API version removes or changes: endpoints, edges, fields, insights metrics and parameters. Every change needs a developers.facebook.com `source`, a `checkedAt` date, and a version whose changelog page is marked `reviewed`. See [the change list](META-GRAPH.md#the-per-version-change-list).
+- **`data/meta-graph/changes.json`** is a hand-kept list of what each Graph API version removes or changes: endpoints, edges, fields, insights metrics and parameters. Every change needs a developers.facebook.com `source`, a `checkedAt` date, and a version whose changelog page is marked `reviewed`. See [the change list](META-GRAPH.md#the-per-version-change-list).
 - **`npm run meta-graph:check`** (`refit meta-graph --check-changes`) rejects the whole file on any error: unknown or missing fields, duplicates, bad or future dates, sources outside Meta's documentation, and changes from unread pages. It also lists unread versions and Meta versions in the deadline registry that have no record.
 - **No changes are recorded.** developers.facebook.com could not be reached from this environment: the proxy refused every connection. The file holds 14 `unread` version records, v13.0 to v26.0, each saying so. Search results confirmed the page addresses for v17.0, v19.0, v22.0, v26.0 and the versions index, and were not used as evidence of any change. Nothing reads this list yet.
 

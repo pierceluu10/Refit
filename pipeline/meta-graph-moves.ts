@@ -4,9 +4,13 @@ import {
   exported,
   findDeclaration,
   isConst,
+  moduleResolver,
+  propertyName,
+  reassignedName,
   isReference,
   scanGraphCalls,
   unwrap,
+  envDefault,
   type GraphCall,
 } from './meta-graph-calls.ts';
 import {
@@ -14,6 +18,7 @@ import {
   type MetaGraphChange,
   type MetaGraphChanges,
 } from './meta-graph-changes.ts';
+import { applyRules, type AppliedRule } from './meta-graph-rule-edits.ts';
 import { renderPatch } from './patches.ts';
 import { readRepository } from './repository.ts';
 import { META_SDK } from './deadline-exposure.ts';
@@ -26,8 +31,9 @@ import { PipelineInputError, type Repository, type SourceEdit } from './types.ts
 // Nothing is applied, validated or published.
 
 const VERSION = /^v\d+\.\d+$/;
-const HOST_PREFIX = 'graph.facebook.com/';
+const HOST_PREFIX = /graph\.(?:facebook|instagram)\.com\/$/;
 const MAX_ALIAS_DEPTH = 3;
+export const META_GRAPH_VERSION_RULE = 'meta-graph-api-version';
 
 export interface VersionMoveRequest {
   file: string;
@@ -45,6 +51,8 @@ export interface VersionMove {
   // Versions crossed, each with a reviewed changelog that lists nothing these requests use.
   crossed: string[];
   requests: VersionMoveRequest[];
+  // Documented rules applied with the move, such as a renamed field in a `fields` list.
+  rules: string[];
 }
 
 export interface VersionMoveStop {
@@ -66,6 +74,8 @@ export interface VersionMoveProposal {
   current: VersionMoveRequest[];
   // A unified diff of every move; null when there is none. Never applied by Refit.
   patch: string | null;
+  // The edits the patch is made of: version pins and the rule edits that move with them.
+  edits: SourceEdit[];
 }
 
 function request(call: GraphCall): VersionMoveRequest {
@@ -87,7 +97,7 @@ export function fieldNames(fields: string[]) {
 // `/{offline-event-set-id}`, names a node type an opaque ID cannot reveal: it matches every request
 // to a single opaque node (a placeholder or a numeric ID), and never a longer path or a literal one
 // such as `/me`.
-function pathMatches(path: string, prefix: string) {
+export function pathMatches(path: string, prefix: string) {
   const segments = path.split('/').filter(Boolean);
   const wanted = prefix.split('/').filter(Boolean);
   const runtime = (segment: string) => segment.includes('{');
@@ -95,6 +105,11 @@ function pathMatches(path: string, prefix: string) {
   const opaque = (segment: string) => runtime(segment) || /^(act_)?\d+$/.test(segment);
   if (wanted.length === 1 && runtime(wanted[0]))
     return segments.length === 1 && opaque(segments[0]);
+  // A root endpoint such as `/search` or `/instagram_oembed` is one literal word; a request whose
+  // path starts with a node ID (`/{pageId}/photos`) is not under it. Paths named like a path, which
+  // could hold one, are already unknown in the scan. A longer path such as `/me/accounts` still
+  // matches a runtime node, which may be `me`.
+  if (wanted.length === 1 && segments.length && runtime(segments[0])) return false;
   return (
     wanted.length <= segments.length &&
     wanted.every(
@@ -104,23 +119,69 @@ function pathMatches(path: string, prefix: string) {
   );
 }
 
-// The change-list entries a request uses: its edge or endpoint, a field it requests, a metric or a
-// parameter. A GET that names no fields gets the node's defaults, so any field change counts.
+// Whether two request paths name the same endpoint: the same number of segments, each written the
+// same or a runtime segment on either side, so `/{userId}/media` describes `/123456/media`.
+function samePath(a: string, b: string) {
+  const left = a.split('/').filter(Boolean);
+  const right = b.split('/').filter(Boolean);
+  return (
+    left.length === right.length &&
+    left.every(
+      (segment, index) =>
+        segment === right[index] || segment.includes('{') || right[index].includes('{'),
+    )
+  );
+}
+
+// Endpoints that return a token payload, not a node, so they have no node fields to change.
+const TOKEN_PATHS = new Set([
+  '/oauth/access_token',
+  '/oauth/client_code',
+  '/debug_token',
+  '/access_token',
+  '/refresh_access_token',
+]);
+
+// Whether a GET that names no fields, and so receives the node's default fields, may receive a
+// field a change touches. It does unless the change cannot reach it: a token endpoint returns no
+// node, a change recorded on an edge's objects reaches only reads of that edge, and `/me` reads
+// the token's User or Page, never a node of another type the change names.
+function defaultFieldsMay(call: GraphCall, change: MetaGraphChange) {
+  if (call.method !== 'GET' || call.fields?.length !== 0) return false;
+  if (call.path !== null && TOKEN_PATHS.has(call.path)) return false;
+  if (change.edge !== null && change.edge !== call.edge) return false;
+  if (call.path === '/me' && change.node !== null && !/\b(user|page)\b/i.test(change.node))
+    return false;
+  return true;
+}
+
+// The change-list entries a request uses: its edge or endpoint, a field it requests, a metric, a
+// breakdown or a parameter. A GET that names no fields gets the node's defaults, so any field change
+// counts. Webhook changes follow the app's webhook version, not the request's, so no request uses
+// them; they stay alerts.
 export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
   const fields = call.fields ? fieldNames(call.fields) : new Set<string>();
+  const endpoint = (change: MetaGraphChange) =>
+    (change.edge !== null && change.edge === call.edge) ||
+    (change.path !== null && call.path !== null && pathMatches(call.path, change.path));
   return changes.filter((change) => {
     switch (change.kind) {
       case 'endpoint-removed':
-        return (
-          (change.edge !== null && change.edge === call.edge) ||
-          (change.path !== null && call.path !== null && pathMatches(call.path, change.path))
-        );
+      case 'endpoint-changed':
+      case 'parameter-required':
+      case 'error-changed':
+      case 'permission-changed':
+        return endpoint(change);
       case 'edge-removed':
       case 'edge-changed':
         return change.edge === call.edge;
       case 'field-removed':
       case 'field-changed':
-        return fields.has(change.name!) || (call.method === 'GET' && call.fields?.length === 0);
+        // A change recorded on an edge's objects reaches only reads of that edge.
+        return (
+          (change.edge === null || change.edge === call.edge) &&
+          (fields.has(change.name!) || defaultFieldsMay(call, change))
+        );
       case 'metric-removed':
       case 'metric-changed':
         // Changelogs print some metric names in capitals; requests use lowercase.
@@ -131,6 +192,17 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
       case 'parameter-removed':
       case 'parameter-changed':
         return call.parameters?.includes(change.name!) ?? false;
+      // The values a request breaks down by are not traced, so any breakdown on insights counts.
+      case 'breakdown-removed':
+        return (
+          call.edge === 'insights' &&
+          (call.parameters?.some((name) => /^(action_)?breakdowns$/.test(name)) ?? false)
+        );
+      // A product shutdown names no endpoint a request could match; it stays an alert.
+      case 'product-removed':
+      case 'webhook-field-removed':
+      case 'webhook-field-changed':
+        return false;
     }
     return true;
   });
@@ -182,7 +254,7 @@ const SEPARATE_CHANGELOG_PARAMETERS = new Set([
   'phone_number_id',
 ]);
 
-function separateChangelog(call: GraphCall) {
+export function separateChangelog(call: GraphCall) {
   // A root endpoint such as `/message_template_library` is a path with no node before it.
   const root = call.path !== null && /^\/[a-z_]+$/.test(call.path) ? call.path.slice(1) : null;
   return (call.edge !== null && SEPARATE_CHANGELOG_EDGES.has(call.edge)) ||
@@ -238,13 +310,16 @@ function isStringPiece(node: ts.Node) {
   );
 }
 
-// The expression a string piece belongs to, climbing through templates, concatenation and
-// wrappers, and the variable it initializes, if any.
+// The expression a string piece belongs to, climbing through templates, concatenation, the fallback
+// of `process.env.X || '…'` and wrappers, and the variable it initializes, if any.
 function holderOf(node: ts.Node): ts.VariableDeclaration | undefined {
   let current: ts.Node = node;
   while (
     current.parent &&
-    (ts.isTemplateExpression(current.parent) ||
+    ((ts.isBinaryExpression(current.parent) &&
+      current.parent.right === current &&
+      envDefault(current.parent) !== undefined) ||
+      ts.isTemplateExpression(current.parent) ||
       ts.isTemplateSpan(current.parent) ||
       (ts.isBinaryExpression(current.parent) &&
         current.parent.operatorToken.kind === ts.SyntaxKind.PlusToken) ||
@@ -258,16 +333,20 @@ function holderOf(node: ts.Node): ts.VariableDeclaration | undefined {
     : undefined;
 }
 
-function references(source: ts.SourceFile, declaration: ts.VariableDeclaration) {
-  const name = (declaration.name as ts.Identifier).text;
+// References to a declared variable, or to a module-level import binding given by name.
+function references(source: ts.SourceFile, declaration: ts.VariableDeclaration | string) {
+  const name =
+    typeof declaration === 'string' ? declaration : (declaration.name as ts.Identifier).text;
+  const target = typeof declaration === 'string' ? undefined : declaration;
   const found: ts.Identifier[] = [];
   const visit = (node: ts.Node) => {
     if (
       ts.isIdentifier(node) &&
       node.text === name &&
       isReference(node) &&
-      node !== declaration.name &&
-      findDeclaration(name, node) === declaration
+      node !== target?.name &&
+      !ts.isImportSpecifier(node.parent) &&
+      findDeclaration(name, node) === target
     )
       found.push(node);
     ts.forEachChild(node, visit);
@@ -281,11 +360,14 @@ function references(source: ts.SourceFile, declaration: ts.VariableDeclaration) 
 // request config, or a file-local `const` alias whose uses qualify in turn.
 function untracedUses(
   source: ts.SourceFile,
-  declaration: ts.VariableDeclaration,
+  declaration: ts.VariableDeclaration | string,
   kind: 'url' | 'version',
   depth = 0,
+  // A `let`: the scan reads it only where it is passed to a call, not where it starts a longer URL.
+  direct = false,
 ): string[] {
-  const name = (declaration.name as ts.Identifier).text;
+  const name =
+    typeof declaration === 'string' ? declaration : (declaration.name as ts.Identifier).text;
   const reasons: string[] = [];
   for (const reference of references(source, declaration)) {
     let node: ts.Node = reference;
@@ -297,15 +379,16 @@ function untracedUses(
       node = node.parent;
     const parent = node.parent;
     const where = `${source.fileName}:${source.getLineAndCharacterOfPosition(reference.getStart(source)).line + 1}`;
-    if (ts.isTemplateSpan(parent)) {
+    if (ts.isTemplateSpan(parent) && !direct) {
       const template = parent.parent;
       const index = template.templateSpans.indexOf(parent);
       const before =
         index === 0 ? template.head.text : template.templateSpans[index - 1].literal.text;
       if (kind === 'url' && index === 0 && before === '') continue;
-      if (kind === 'version' && before.endsWith(HOST_PREFIX)) continue;
+      if (kind === 'version' && HOST_PREFIX.test(before)) continue;
     } else if (kind === 'url') {
       if (
+        !direct &&
         ts.isBinaryExpression(parent) &&
         parent.operatorToken.kind === ts.SyntaxKind.PlusToken &&
         parent.left === node
@@ -328,6 +411,7 @@ function untracedUses(
         ts.isIdentifier(parent.name) &&
         isConst(parent) &&
         !exported(parent) &&
+        !direct &&
         depth < MAX_ALIAS_DEPTH
       ) {
         reasons.push(...untracedUses(source, parent, kind, depth + 1));
@@ -335,6 +419,68 @@ function untracedUses(
       }
     }
     reasons.push(`${where}: \`${name}\` is used in a way the request scan does not follow`);
+  }
+  return reasons;
+}
+
+// How other files use an exported version or base: each named import must be used only where the
+// scan reads it. Any other way of reaching the module (a namespace or default import, a
+// re-export, a whole-module `require` or `import()`) may use it unseen.
+function importerUses(
+  repository: Repository,
+  file: string,
+  name: string,
+  kind: 'url' | 'version',
+): string[] {
+  const resolveFrom = moduleResolver(repository);
+  const reasons: string[] = [];
+  for (const item of repository.files) {
+    if (item.path === file || !/\b(?:import|require|export)\b/.test(item.content)) continue;
+    const source = ts.createSourceFile(item.path, item.content, ts.ScriptTarget.Latest, true);
+    const reaches = (specifier: ts.Expression | undefined) =>
+      specifier !== undefined &&
+      ts.isStringLiteralLike(specifier) &&
+      resolveFrom(item.path, specifier.text) === file;
+    const where = (node: ts.Node) =>
+      `${item.path}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}`;
+    const locals: string[] = [];
+    const visit = (node: ts.Node) => {
+      if (ts.isImportDeclaration(node) && reaches(node.moduleSpecifier)) {
+        const clause = node.importClause;
+        if (clause?.name || (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)))
+          reasons.push(`${where(node)}: the module that exports \`${name}\` is imported whole`);
+        else if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings))
+          for (const element of clause.namedBindings.elements)
+            if ((element.propertyName ?? element.name).text === name)
+              locals.push(element.name.text);
+      } else if (ts.isExportDeclaration(node) && reaches(node.moduleSpecifier))
+        reasons.push(`${where(node)}: the module that exports \`${name}\` is re-exported`);
+      else if (
+        ts.isCallExpression(node) &&
+        (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+          (ts.isIdentifier(node.expression) && node.expression.text === 'require')) &&
+        reaches(node.arguments[0])
+      ) {
+        const declaration = node.parent;
+        if (
+          ts.isVariableDeclaration(declaration) &&
+          ts.isObjectBindingPattern(declaration.name) &&
+          declaration.parent.parent.parent === source
+        ) {
+          for (const element of declaration.name.elements)
+            if (
+              ts.isIdentifier(element.name) &&
+              (propertyName(element.propertyName) ?? element.name.text) === name
+            )
+              reasons.push(
+                `${where(node)}: \`${name}\` is required into a variable this check does not follow`,
+              );
+        } else reasons.push(`${where(node)}: the module that exports \`${name}\` is loaded whole`);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    for (const local of locals) reasons.push(...untracedUses(source, local, kind));
   }
   return reasons;
 }
@@ -352,7 +498,7 @@ function pinEdit(repository: Repository, file: string, line: number, version: st
   const inUrl = [
     ...lineText.matchAll(
       new RegExp(
-        `${HOST_PREFIX.replace(/\./g, '\\.')}${version.replace('.', '\\.')}(?![\\w.])`,
+        `(graph\\.(?:facebook|instagram)\\.com/)${version.replace('.', '\\.')}(?![\\w.])`,
         'g',
       ),
     ),
@@ -361,7 +507,7 @@ function pinEdit(repository: Repository, file: string, line: number, version: st
     ...lineText.matchAll(new RegExp(`(['"\`])${version.replace('.', '\\.')}\\1`, 'g')),
   ];
   let start: number;
-  if (inUrl.length === 1 && !quoted.length) start = lineStart + inUrl[0].index + HOST_PREFIX.length;
+  if (inUrl.length === 1 && !quoted.length) start = lineStart + inUrl[0].index + inUrl[0][1].length;
   else if (quoted.length === 1 && !inUrl.length) start = lineStart + quoted[0].index + 1;
   else
     return {
@@ -382,26 +528,44 @@ function pinEdit(repository: Repository, file: string, line: number, version: st
   const name = ts.isIdentifier(holder.name) ? holder.name.text : '';
   if (!name)
     return { start, end, reasons: [`${where}: the version is held in a destructured value`] };
-  if (exported(holder))
+  const initializer =
+    holder.initializer && (envDefault(holder.initializer) ?? unwrap(holder.initializer));
+  const kind =
+    initializer && ts.isStringLiteralLike(initializer) && VERSION.test(initializer.text)
+      ? 'version'
+      : 'url';
+  // An exported version, or an exported base written as a plain string, is followed into the files
+  // that import it by name; the scan reads both there.
+  if (exported(holder)) {
+    if (!isConst(holder) || (kind === 'url' && envDefault(holder.initializer!)))
+      return {
+        start,
+        end,
+        reasons: [
+          `${where}: the version is in the exported \`${name}\`; other files may use it in ways this check does not follow`,
+        ],
+      };
     return {
       start,
       end,
       reasons: [
-        `${where}: the version is in the exported \`${name}\`; other files may use it in ways this check does not follow`,
+        ...untracedUses(source, holder, kind),
+        ...importerUses(repository, file, name, kind),
       ],
     };
-  if (!isConst(holder))
+  }
+  // A `let` that is never assigned again holds its initializer, as a `const` does.
+  const steadyLet =
+    ts.isVariableDeclarationList(holder.parent) &&
+    (holder.parent.flags & ts.NodeFlags.Let) !== 0 &&
+    !reassignedName(holder);
+  if (!isConst(holder) && !steadyLet)
     return {
       start,
       end,
       reasons: [`${where}: the version is in \`${name}\`, which is not a const`],
     };
-  const initializer = holder.initializer && unwrap(holder.initializer);
-  const kind =
-    initializer && ts.isStringLiteralLike(initializer) && VERSION.test(initializer.text)
-      ? 'version'
-      : 'url';
-  return { start, end, reasons: untracedUses(source, holder, kind) };
+  return { start, end, reasons: untracedUses(source, holder, kind, 0, !isConst(holder)) };
 }
 
 // Proposes moving each pinned Graph API version to `target` where the evidence allows, and lists
@@ -412,6 +576,7 @@ export async function proposeVersionMoves(
   changes: MetaGraphChanges,
   registry: DeadlineRegistry,
   now: Date,
+  rules: AppliedRule[] = [],
 ): Promise<VersionMoveProposal> {
   if (!VERSION.test(target)) throw new PipelineInputError('--target must look like v24.0.');
   const records = new Map(changes.versions.map((entry) => [entry.version, entry]));
@@ -467,6 +632,7 @@ export async function proposeVersionMoves(
       pins.set(key, [...(pins.get(key) ?? []), call]);
     }
   }
+  const testPins: { file: string; line: number; from: string; calls: GraphCall[] }[] = [];
   for (const call of unpinned)
     stops.push({
       file: null,
@@ -492,21 +658,37 @@ export async function proposeVersionMoves(
         });
       continue;
     }
+    // Tests and examples follow the live moves, decided once those are known.
+    if (calls.every((call) => call.use === 'test')) {
+      testPins.push({ file, line, from, calls });
+      continue;
+    }
     const reasons = [...calls.flatMap(unknownParts), ...calls.flatMap(separateChangelog)];
-    if (calls.every((call) => call.use === 'test'))
-      reasons.push(`${file}:${line}: only tests and examples use this version`);
     const crossed = crossedBetween(from);
     const unreviewed = crossed.filter((version) => records.get(version)?.status !== 'reviewed');
     if (unreviewed.length)
       reasons.push(
         `${unreviewed.join(', ')}: ${unreviewed.length === 1 ? 'this changelog is' : 'these changelogs are'} not reviewed in the Meta Graph API change list`,
       );
-    const inRange = changes.changes.filter((change) => crossed.includes(change.version));
-    for (const call of calls)
+    const inRange = changes.changes.filter(
+      (change) => change.version !== null && crossed.includes(change.version),
+    );
+    const rulesInRange = rules.filter(
+      (rule) => rule.version !== null && crossed.includes(rule.version),
+    );
+    const ruleEdits: SourceEdit[] = [];
+    const applied = new Set<string>();
+    for (const call of calls) {
+      const outcome = applyRules(call, rulesInRange, repository, calls, scan.calls);
+      reasons.push(...outcome.reasons);
+      ruleEdits.push(...outcome.edits);
+      for (const edit of outcome.edits) applied.add(edit.changeId.replace('meta-graph-rule-', ''));
       for (const change of changesUsedBy(call, inRange))
-        reasons.push(
-          `${call.file}:${call.line}: ${change.version} ${change.kind} ${change.id}: ${change.summary}`,
-        );
+        if (!outcome.covers.includes(change.id))
+          reasons.push(
+            `${call.file}:${call.line}: ${change.version} ${change.kind} ${change.id}: ${change.summary}`,
+          );
+    }
     let edit: PinEdit | undefined;
     if (calls.some((call) => call.kind === 'url')) {
       edit = pinEdit(repository, file, line, from);
@@ -522,13 +704,72 @@ export async function proposeVersionMoves(
       });
       continue;
     }
-    moves.push({ file, line, from, to: target, crossed, requests: calls.map(request) });
+    moves.push({
+      file,
+      line,
+      from,
+      to: target,
+      crossed,
+      requests: calls.map(request),
+      rules: [...applied].sort(),
+    });
+    for (const edit of ruleEdits)
+      if (!edits.some((item) => item.file === edit.file && item.start === edit.start))
+        edits.push(edit);
     edits.push({
       file,
       start: edit.start,
       end: edit.end,
       replacement: target,
       changeId: `meta-graph-version-${from}-${target}`,
+      rule: META_GRAPH_VERSION_RULE,
+    });
+  }
+  // A pin only tests use, such as a mocked fetch's expected URL, moves with the live requests it
+  // describes: every one of its URLs names the path of a moved live request on the same version,
+  // and none names the path of a live request that stays. Anything else stops as before.
+  for (const pin of testPins) {
+    const { file, line, from, calls } = pin;
+    const moved = moves.filter((move) => move.from === from).flatMap((move) => move.requests);
+    const stayed = stops.filter((stop) => stop.from === from).flatMap((stop) => stop.requests);
+    const describes = (requests: VersionMoveRequest[], call: GraphCall) =>
+      requests.some((item) => item.path !== null && samePath(call.path!, item.path));
+    // A live request on this version whose path is unknown could be any endpoint a test describes.
+    const follows =
+      !stayed.some((item) => item.path === null) &&
+      calls.every(
+        (call) => call.path !== null && describes(moved, call) && !describes(stayed, call),
+      );
+    const edit = follows ? pinEdit(repository, file, line, from) : undefined;
+    if (!edit || edit.reasons.length) {
+      stops.push({
+        file,
+        line,
+        from,
+        requests: calls.map(request),
+        reasons: [
+          `${file}:${line}: only tests and examples use this version`,
+          ...(edit?.reasons ?? []),
+        ],
+      });
+      continue;
+    }
+    moves.push({
+      file,
+      line,
+      from,
+      to: target,
+      crossed: crossedBetween(from),
+      requests: calls.map(request),
+      rules: [],
+    });
+    edits.push({
+      file,
+      start: edit.start,
+      end: edit.end,
+      replacement: target,
+      changeId: `meta-graph-version-${from}-${target}`,
+      rule: META_GRAPH_VERSION_RULE,
     });
   }
   const byLocation = (a: { file: string | null; line: number | null }, b: typeof a) =>
@@ -539,5 +780,6 @@ export async function proposeVersionMoves(
     stops: stops.sort(byLocation),
     current,
     patch: edits.length ? renderPatch(repository, edits) : null,
+    edits,
   };
 }

@@ -395,6 +395,12 @@ export function declaredApiVersions(options: {
           /\.(?:setApiVersion|_setApiField|_api|_requestSender)\b/i.test(node.text)) ||
         sendsVersionHeader(node),
     );
+  const versionOption =
+    options.provider.packageName === 'stripe' &&
+    nodes.some(
+      (node) =>
+        ts.isSourceFile(node) && /\b(?:apiVersion|stripeVersion|stripe_version)\b/.test(node.text),
+    );
   for (const node of nodes) {
     const creation = options.creation(node);
     if (creation) {
@@ -433,7 +439,17 @@ export function declaredApiVersions(options: {
               : result.environment && !uncertain
                 ? `Constructor version comes only from the deployment environment variable ${result.environment}.`
                 : 'Constructor version is absent or cannot be resolved through immutable local declarations.',
-        ...(result.status === 'absent' && !uncertain ? { absent: true as const } : {}),
+        // A constructor without the option sends stripe-node's pinned version wherever its client
+        // goes afterwards. Where Refit cannot follow the client, a request through it could still
+        // send its own version, so that needs no file to name a version option at all.
+        ...(result.status === 'absent' &&
+        (!uncertain ||
+          (!hatch &&
+            !versionOption &&
+            !creation.arguments?.some(ts.isSpreadElement) &&
+            !unsafe.has(options.constructorBinding(creation)!)))
+          ? { absent: true as const }
+          : {}),
         ...(result.environment && !uncertain ? { environment: result.environment } : {}),
         ...endpoint(result.node),
       });

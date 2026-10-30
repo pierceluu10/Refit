@@ -123,6 +123,44 @@ it('finds the test failures a patch adds to tests that already failed', () => {
   expect(newTestFailures(before, run('error', ' × refunds a charge\n'))).toBeUndefined();
 });
 
+it('compares suites that failed before any test ran by the suites and errors they print', () => {
+  // Vitest, a setup hook that needs a database binary the offline sandbox cannot download.
+  const suites = (error: string, extra = '') => ({
+    status: 'failed' as const,
+    exitCode: 1,
+    stdout: ` ❯ tests/checkout.test.ts (6 tests | 6 skipped) 69ms\n Test Files  2 failed (2)\n      Tests  11 skipped (11)\n`,
+    stderr: ` FAIL  tests/checkout.test.ts [ tests/checkout.test.ts ]\n FAIL  tests/webhook.test.ts [ tests/webhook.test.ts ]\n${error}\n ❯ tests/setup.ts:22:12\n${extra}`,
+  });
+  const before = suites("Error: ENOENT: no such file or directory, mkdir '/.cache'");
+  expect(
+    newTestFailures(before, suites("Error: ENOENT: no such file or directory, mkdir '/.cache'")),
+  ).toEqual([]);
+  // A suite that now fails to load on the patch is a new failure.
+  expect(
+    newTestFailures(
+      before,
+      suites(
+        "Error: ENOENT: no such file or directory, mkdir '/.cache'",
+        'FAIL  tests/refund.test.ts [ tests/refund.test.ts ]\nSyntaxError: Unexpected token\n',
+      ),
+    ),
+  ).toEqual([
+    'FAIL  tests/refund.test.ts [ tests/refund.test.ts ]',
+    'SyntaxError: Unexpected token',
+  ]);
+  // So is another error in the same suites.
+  expect(
+    newTestFailures(
+      before,
+      suites("TypeError: Cannot read properties of undefined (reading 'id')"),
+    ),
+  ).toEqual(["TypeError: Cannot read properties of undefined (reading 'id')"]);
+  // A side that names no failure says nothing.
+  expect(
+    newTestFailures(before, { ...before, stdout: '', stderr: 'Segmentation fault' }),
+  ).toBeUndefined();
+});
+
 it('reads Jest totals where it names only failing files', () => {
   const jest = (failed: number, passed: number) =>
     run(
