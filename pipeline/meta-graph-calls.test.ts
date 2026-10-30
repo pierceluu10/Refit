@@ -56,7 +56,7 @@ describe('the fixture repository', () => {
       ['src/ads/campaigns.js', 10, 'POST', 'v20.0', '/{AdAccount}/campaigns'],
       ['src/ads/campaigns.js', 14, 'GET', 'v20.0', '/{Campaign}/adsets'],
       ['src/ads/campaigns.js', 15, 'GET', 'v20.0', '/{AdSet}'],
-      ['src/pages.ts', 7, null, 'v19.0', '/me/accounts'],
+      ['src/pages.ts', 7, 'GET', 'v19.0', '/me/accounts'],
       ['src/pages.ts', 11, 'GET', 'v18.0', '/{pageId}'],
       ['src/pages.ts', 19, 'POST', 'v18.0', '/{pageId}/feed'],
       ['src/pages.ts', 27, 'GET', 'v18.0', '/{mediaId}/insights'],
@@ -71,17 +71,15 @@ describe('the fixture repository', () => {
     expect(call).toMatchObject({
       kind: 'url',
       client: 'graphGet',
-      method: null,
+      // graphGet passes its URL to fetch unchanged, with no options.
+      method: 'GET',
       versionSource: 'constant',
       pin: { file: 'src/shared/graph.ts', line: 2 },
       edge: 'accounts',
       fields: ['id', 'name', 'access_token'],
-      parameters: null,
+      parameters: ['access_token', 'fields'],
     });
-    expect(call.unknown).toEqual([
-      'request options passed to `graphGet` are not read',
-      'HTTP method of helper `graphGet` is not known',
-    ]);
+    expect(call.unknown).toEqual([]);
   });
 
   it('reads axios params and bodies, and a URL held in a variable', async () => {
@@ -223,13 +221,49 @@ describe('raw Graph requests', () => {
     });
   });
 
-  it('treats parameters that change after their declaration as unknown', async () => {
+  it('reads parameters set step by step under literal names', async () => {
     const [call] = await calls({
-      'a.js': `async function post(page) {
+      'a.js': `async function post(page, caption) {
   const params = new URLSearchParams();
   params.set('fields', 'id');
   const body = { message: 'hi' };
   body.link = 'https://example.com';
+  const form = new FormData();
+  form.append('source', file);
+  if (caption) form.append('caption', caption);
+  await fetch(\`https://graph.facebook.com/v19.0/\${page}/photos\`, { method: 'POST', body: form });
+  return fetch(\`https://graph.facebook.com/v19.0/\${page}/feed?\${params}\`, {
+    method: 'POST',
+    body: qs.stringify(body),
+  });
+}`,
+    });
+    expect(call).toMatchObject({
+      edge: 'photos',
+      method: 'POST',
+      parameters: ['caption', 'source'],
+      unknown: [],
+    });
+  });
+
+  it('keeps fields set inside a nested block unknown', async () => {
+    const [call] = await calls({
+      'a.js': `async function read(page, wide) {
+  const params = new URLSearchParams({ access_token: token });
+  if (wide) params.set('fields', 'id,name');
+  return fetch(\`https://graph.facebook.com/v19.0/\${page}?\${params.toString()}\`);
+}`,
+    });
+    expect(call).toMatchObject({ fields: null, parameters: ['access_token', 'fields'] });
+  });
+
+  it('treats parameters that change after their declaration as unknown', async () => {
+    const [call] = await calls({
+      'a.js': `async function post(page, key) {
+  const params = new URLSearchParams();
+  params.set(key, 'id');
+  const body = { message: 'hi' };
+  delete body.message;
   return fetch(\`https://graph.facebook.com/v19.0/\${page}/feed?\${params}\`, {
     method: 'POST',
     body: JSON.stringify(body),
@@ -255,8 +289,8 @@ export const media = (id: string) =>
       versionSource: 'constant',
       pin: { file: 'a.ts', line: 1 },
       edge: 'media',
-      // A substitution inside a query value is a runtime value, even when it could be resolved.
-      fields: null,
+      // A substitution that is the whole value is read when the list is written literally.
+      fields: ['id', 'caption'],
     });
   });
 
@@ -384,9 +418,153 @@ export const exchange = (code: string) => fetch(\`\${TOKEN_URL}?code=\${code}\`)
 const hosts = { 'graph.facebook.com': { retry: 2 } };
 // fetch('https://graph.facebook.com/v19.0/me')
 /* axios.get('https://graph.facebook.com/v19.0/me') */
-fetch('https://graph.instagram.com/v19.0/me');`,
+fetch('https://api.instagram.com/oauth/access_token');`,
     });
     expect(found).toEqual([]);
+  });
+
+  it('reads graph.instagram.com requests and environment defaults for the version', async () => {
+    const found = await calls({
+      'a.ts': `const VERSION = process.env.IG_GRAPH_VERSION || 'v21.0';
+const BASE = process.env.GRAPH_URL ?? 'https://graph.facebook.com/v19.0';
+export const me = () => fetch(\`https://graph.instagram.com/\${VERSION}/me?fields=id,username\`);
+export const page = (id: string) => fetch(\`\${BASE}/\${id}?fields=name\`);`,
+    });
+    expect(found).toMatchObject([
+      {
+        host: 'graph.instagram.com',
+        version: 'v21.0',
+        versionSource: 'env-default',
+        pin: { file: 'a.ts', line: 1 },
+        path: '/me',
+        fields: ['id', 'username'],
+      },
+      {
+        host: 'graph.facebook.com',
+        version: 'v19.0',
+        versionSource: 'env-default',
+        pin: { file: 'a.ts', line: 2 },
+        path: '/{id}',
+      },
+    ]);
+  });
+
+  it('follows requests made on an axios instance built from a Graph base', async () => {
+    const found = await calls({
+      'a.ts': `import axios from 'axios';
+const graph = axios.create({ baseURL: 'https://graph.facebook.com/v20.0' });
+export const me = () => graph.get('/me', { params: { fields: 'id,name' } });
+export const post = (id: string) => graph.post(\`/\${id}/feed\`, { message: 'hi' });`,
+    });
+    expect(found).toMatchObject([
+      {
+        line: 3,
+        method: 'GET',
+        version: 'v20.0',
+        pin: { line: 2 },
+        path: '/me',
+        fields: ['id', 'name'],
+        unknown: [],
+      },
+      { line: 4, method: 'POST', path: '/{id}/feed', parameters: ['message'], unknown: [] },
+    ]);
+    const shared = await calls({
+      'a.ts': `import axios from 'axios';
+export const graph = axios.create({ baseURL: 'https://graph.facebook.com/v20.0' });
+export const me = () => graph.get('/me');`,
+    });
+    expect(shared[0].unknown).toEqual([
+      'the axios instance `graph` is exported; requests in other files are not traced',
+    ]);
+  });
+
+  it('reads helpers that write their own fetch options from literals and one body parameter', async () => {
+    const found = await calls({
+      'a.mjs': `async function get(url, extraHeaders) {
+  const res = await fetch(url, { headers: { 'User-Agent': 'x', ...(extraHeaders || {}) } });
+  return res.text();
+}
+async function postJson(url, payload) {
+  return fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+}
+async function sneaky(url, payload, verb) {
+  return fetch(url, { method: verb, body: JSON.stringify(payload) });
+}
+await get('https://graph.facebook.com/v22.0/me/accounts?fields=id,name');
+await postJson('https://graph.facebook.com/v22.0/123/messages', { messaging_product: 'whatsapp', to: '1' });
+await sneaky('https://graph.facebook.com/v22.0/123/feed', { message: 'hi' }, 'POST');`,
+    });
+    expect(found).toMatchObject([
+      {
+        line: 11,
+        client: 'get',
+        method: 'GET',
+        fields: ['id', 'name'],
+        parameters: ['fields'],
+        unknown: [],
+      },
+      {
+        line: 12,
+        client: 'postJson',
+        method: 'POST',
+        parameters: ['messaging_product', 'to'],
+        unknown: [],
+      },
+      { line: 13, client: 'sneaky', method: null, parameters: null },
+    ]);
+  });
+
+  it('reads helpers that pass the URL and options to fetch unchanged, and no others', async () => {
+    const found = await calls({
+      'lib.ts': `export async function metaFetch(ctx: Ctx, url: string, init?: RequestInit) {
+  const res = await ctx.fetch(url, init);
+  return res.json();
+}
+export async function signed(url: string) {
+  return fetch(\`\${url}&appsecret_proof=x\`);
+}`,
+      'a.ts': `import { metaFetch as fb, signed } from './lib';
+export const post = (ctx: Ctx, id: string) =>
+  fb(ctx, \`https://graph.facebook.com/v21.0/\${id}/feed\`, { method: 'POST', body: JSON.stringify({ message: 'hi' }) });
+export const me = () => signed('https://graph.facebook.com/v21.0/me?fields=id');`,
+    });
+    expect(found).toMatchObject([
+      { line: 3, client: 'fb', method: 'POST', parameters: ['message'], unknown: [] },
+      { line: 4, client: 'signed', method: null, parameters: null },
+    ]);
+  });
+
+  it('reads FB.api requests with the version FB.init sets', async () => {
+    const found = await calls({
+      'init.tsx': `window.FB.init({ appId: '1', cookie: true, version: 'v20.0' });`,
+      'a.ts': `FB.api('/me', { fields: 'id,name' }, (response) => console.log(response));
+FB.api(\`/\${pageId}/feed\`, 'post', { message: 'hi' }, done);`,
+    });
+    expect(found).toMatchObject([
+      {
+        file: 'a.ts',
+        line: 1,
+        client: 'FB.api',
+        method: 'GET',
+        version: 'v20.0',
+        pin: { file: 'init.tsx', line: 1 },
+        path: '/me',
+        fields: ['id', 'name'],
+        unknown: [],
+      },
+      {
+        file: 'a.ts',
+        line: 2,
+        method: 'POST',
+        path: '/{pageId}/feed',
+        parameters: ['message'],
+        unknown: [],
+      },
+    ]);
+    const alone = await calls({ 'init.tsx': `FB.init({ appId: '1', version: 'v20.0' });` });
+    expect(alone).toMatchObject([
+      { client: 'FB.init', version: 'v20.0', pin: { file: 'init.tsx', line: 1 }, path: null },
+    ]);
   });
 
   it('marks example and spec files as tests', async () => {
@@ -495,6 +673,102 @@ new AdAccount('act_1').getAds(['name']);`,
     expect(call.unknown).toEqual([
       'no facebook-nodejs-business-sdk version is declared in a manifest',
     ]);
+  });
+});
+
+describe('URLs that reach a request indirectly', () => {
+  it('reads a URL object, its search parameters, conditionals and returned URLs', async () => {
+    const found = await calls({
+      'a.ts': `export async function token(code: string) {
+  const url = new URL('https://graph.facebook.com/v19.0/oauth/access_token');
+  url.searchParams.set('code', code);
+  url.searchParams.set('fields', 'access_token');
+  return fetch(url.toString());
+}
+export async function changed() {
+  const url = new URL('https://graph.facebook.com/v19.0/me');
+  url.search = '?fields=name';
+  return fetch(url);
+}
+export async function pick(ig: boolean) {
+  const endpoint = ig ? 'https://graph.instagram.com/v21.0/me' : 'https://api.example.com/me';
+  return fetch(endpoint, { method: 'POST', body: JSON.stringify({ ...(ig ? { link: 'x' } : {}) }) });
+}
+function messagesUrl(id: string) {
+  return \`https://graph.facebook.com/v20.0/\${id}/messages\`;
+}
+export const send = (id: string) => fetch(messagesUrl(id), { method: 'POST' });`,
+    });
+    expect(at(found, 'a.ts', 5)).toMatchObject({
+      method: 'GET',
+      path: '/oauth/access_token',
+      parameters: ['code', 'fields'],
+      fields: ['access_token'],
+      unknown: [],
+    });
+    expect(at(found, 'a.ts', 10).unknown).toEqual(['`url.search` is changed on line 9']);
+    expect(at(found, 'a.ts', 14)).toMatchObject({
+      host: 'graph.instagram.com',
+      method: 'POST',
+      parameters: ['link'],
+      unknown: [],
+    });
+    expect(at(found, 'a.ts', 19)).toMatchObject({
+      method: 'POST',
+      path: '/{id}/messages',
+      edge: 'messages',
+      unknown: [],
+    });
+  });
+
+  it('reads helpers that add transport options, nested helpers and paging loops', async () => {
+    const found = await calls({
+      'a.ts': `async function graphFetch(url: string, init: RequestInit) {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(1000) });
+}
+async function pages(startUrl: string) {
+  let next: string | undefined = startUrl;
+  while (next) {
+    const body = await (await fetch(next)).json();
+    next = body.paging?.next;
+  }
+}
+async function cursor(startUrl: string) {
+  let next = startUrl;
+  next = next + '&after=x';
+  return fetch(next);
+}
+export async function run(token: string) {
+  const authFetch = (url: string) => fetch(url, { headers: { Authorization: token } });
+  await graphFetch('https://graph.facebook.com/v19.0/me/feed', { method: 'POST', body: JSON.stringify({ message: 'hi' }) });
+  await pages('https://graph.facebook.com/v19.0/me/accounts?fields=id,name');
+  await cursor('https://graph.facebook.com/v19.0/me/posts');
+  await authFetch('https://graph.facebook.com/v19.0/me?fields=id');
+}`,
+    });
+    expect(at(found, 'a.ts', 18)).toMatchObject({ method: 'POST', parameters: ['message'] });
+    expect(at(found, 'a.ts', 19)).toMatchObject({ method: 'GET', fields: ['id', 'name'] });
+    expect(at(found, 'a.ts', 20).unknown).toContain(
+      'request options passed to `cursor` are not read',
+    );
+    expect(at(found, 'a.ts', 21)).toMatchObject({ method: 'GET', fields: ['id'], unknown: [] });
+  });
+
+  it('reads a version constant imported through a tsconfig path alias', async () => {
+    const found = await calls({
+      'tsconfig.json': JSON.stringify({
+        compilerOptions: { baseUrl: '.', paths: { '@/*': ['src/*'] } },
+      }),
+      'src/meta/version.ts': `export const GRAPH_VERSION = process.env.META_VERSION || 'v21.0';`,
+      'src/a.ts': `import { GRAPH_VERSION } from '@/meta/version';
+export const me = () => fetch(\`https://graph.facebook.com/\${GRAPH_VERSION}/me?fields=id\`);`,
+    });
+    expect(at(found, 'src/a.ts', 2)).toMatchObject({
+      version: 'v21.0',
+      versionSource: 'env-default',
+      pin: { file: 'src/meta/version.ts', line: 1 },
+      unknown: [],
+    });
   });
 });
 

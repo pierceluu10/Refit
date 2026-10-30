@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "graph-api-out-of-cycle-nvc-2025",
+  "url": "https://developers.facebook.com/docs/graph-api/changelog/non-versioned-changes/nvc-2025/",
+  "revision": "9a6b156a542537610195f9b8ee3e8744e2b71282cff5f8b868340768b99e5217",
+  "hash": "9a6b156a542537610195f9b8ee3e8744e2b71282cff5f8b868340768b99e5217",
+  "content": "Graph API\n\nOverview\n\nGet Started\n\nBatch Requests\n\nDebug Requests\n\nHandle Errors\n\nField Expansion\n\nSecure Requests\n\nChangelog\n\nReference\n\n2025 Non-versioned Changes for Graph API\n\nNon-versioned Graph API and Marketing API changes introduced in 2025 are documented below by the date in which they were introduced.\n\nApril 8, 2025\n\nMeta oEmbed Read Feature\n\nApplies to all versions.\n\nIntroducing the new Meta oEmbed Read feature that is replacing the existing oEmbed Read feature. The current oEmbed Read feature will be deprecated on November 3, 2025.\n\nApps created after April 8, 2025 that implement oEmbed will use the new Meta oEmbed Read feature.\n\nExisting apps that already use the current oEmbed Read feature will be automatically updated to the new Meta oEmbed Read feature by November 3, 2025.\n\nRead the oEmbed Updates blog post from Meta to learn more.\n\noEmbed Response Updates\n\nApplies to all versions.\n\nThe author_name, author_url, thumbnail_url, thumbnail_width, and thumbnail_height fields will be removed from the Facebook post, Facebook video, and Instagram post oEmbed response. The Facebook page post oEmbed endpoint will be deprecated. These changes will apply across all API versions on November 3, 2025.",
+  "contentType": "text/html"
+}

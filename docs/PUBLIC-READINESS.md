@@ -203,7 +203,7 @@ Docker, Postgres, oasdiff and real-SDK tests are skipped unless you opt in, for 
 - Automatic edits stay limited to supported, evidence-backed migrations. Anything ambiguous (API versions, request or response semantics, webhook policies) must stop for review rather than guess.
 - New deterministic rules come with tests on real code snippets that show behaviour is preserved.
 - Never loosen an assertion, skip a test, raise a timeout or add a retry to make a test pass.
-- Registry and catalog data (`data/deadlines.json`, `data/meta-graph-changes.json` and similar) take facts only from a provider page you read, recorded with `source` and `checkedAt`. Run the matching check script after editing.
+- Registry and catalog data (`data/deadlines.json`, `data/meta-graph/changes.json` and similar) take facts only from a provider page you read, recorded with `source` and `checkedAt`. Run the matching check script after editing.
 - Recorded lockfile fixtures are byte-exact; list new ones in `.prettierignore` instead of reformatting them.
 - Benchmark repositories are other people's code: never install or run them outside Refit's offline Docker sandbox.
 

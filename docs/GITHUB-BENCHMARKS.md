@@ -74,6 +74,22 @@ gh workflow run shopify.yml -R refit-dev/refit-bench \
 
 The dev and blind sets ([Shopify dev and blind sets](BENCHMARKS.md#shopify-dev-and-blind-sets)) run the same way with `-f list=subsets/shopify-dev-60.json`. `subsets/shopify-blind-100.json` runs once, in the final combined benchmark. The benchmark runs each repository's tests with its root lockfile's manager (pnpm, then Yarn, then npm), as check selection does; before, only repositories with a `package-lock.json` were checked.
 
+## Meta Graph
+
+`.github/workflows/meta.yml` (refit-bench branch `feat/meta-benchmark` until merged) runs `npm run benchmark:meta` on a frozen Meta list, `subsets/meta-dev-60.json` or, only for the combined run at the end, `subsets/meta-blind-100.json`. It has the same plan, shard and merge jobs and inputs, no Docker and no secret but `REFIT_READ_TOKEN`. Each shard runs:
+
+```sh
+node scripts/meta-benchmark-setup.mjs --root <root> --list docs/benchmarks/<list> --offset <start> --limit <size>
+npm run benchmark:meta -- --root <root> --list <root>/list.json --output <out>/run
+```
+
+Each row holds `refit meta-graph`'s scan and its version-move proposal to the list's `specs.target`: the outcome (`no-graph-usage`, `current`, `version-move`, `needs-review`), every move and stop with its reasons, and the stop kinds. `run/repos/<repo>/` keeps `scan.json`, `proposal.json` and `moves.patch`. `meta.yml` passes `--validate`: each repository with a patch then runs `refit run` as a customer's would (`writeMetaGraphRun`: the change-table snapshots and the check `selectCheck` picks over the files that make Graph API requests). The row's `workflow` records the outcome, the check, the grade, ME4's proof, the requests left on their version and whether a draft was written, and `run/repos/<repo>/run/` keeps the bundle. With `ai: true` the workflow passes `--ai --env`, capped by `ai_budget`, exactly as `benchmark.yml` does. Nothing is sent to Meta; the merge job runs `scripts/benchmark-merge.mjs`, which uses the Meta summary table for a list whose `provider` is `meta-graph`, and the summary says when `data/meta-graph-changes.json` differs from the hash frozen with the list.
+
+```sh
+gh workflow run meta.yml -R refit-dev/refit-bench --ref feat/meta-benchmark \
+  -f commit=$(git rev-parse HEAD) -f list=subsets/meta-dev-60.json -f size=10
+```
+
 ## Shards
 
 A run has `count / size` shards, rounded up. Which repositories each shard runs comes from their measured durations: the merge job of every run without AI keeps each repository's newest `seconds` in a cache (`refit-timings-v1-…`, shared by every list), the plan job fills repositories the cache lacks from recent runs' `merged` results (newest first, up to 50), and then `.github/scripts/plan-shards.mjs` in refit-bench assigns repositories longest first to the least-loaded shard, counting a repository without a timing as the median. It balances only when at least half of the slice has a timing; otherwise, and if the planner fails, shards are the contiguous slices runs always had. A balanced plan is reused for the same list slice (list content, offset, count and size) for 24 hours, so a rerun of a commit, or a run of a nearby one, gets the same shards and so the same per-shard caches. Each shard runs setup on a list file of its own entries; the merged results list rows shard by shard, as before. On run 40144503063's timings the plan's slowest shard is 1,341 seconds, one repository on its own, where the contiguous slices' slowest took 3,545.

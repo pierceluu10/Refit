@@ -2953,6 +2953,111 @@
       }
     },
     {
+      "repo": "guilhermepimenta/landing_page_psicologia",
+      "pullRequest": null,
+      "run": "Offline `benchmark:meta --validate` on feat/meta-fixes (Meta census of 68 non-blind repositories, target v25.0, no AI, no refit-bench run); needs review before (caution-only stops counted as unresolved), validated after. Read from run/migration.patch and report.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v21.0 to v25.0 on two `/me?fields=id,name` reads and two ads insights reads (`spend`, `campaign_name` at `level` and `time_range`); no change in v22.0 to v25.0 touches them.",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the reviewed change table from its own version to v25.0, and ME4's change-table proof marks every changed request valid at v25.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "Requests whose path or options are built at runtime and one `/{normalizedId}` read stay on v21.0, which Meta serves until 2027-01-21; they are listed as notes.",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "PatoJAD/website",
+      "pullRequest": null,
+      "run": "Offline `benchmark:meta --validate` on feat/meta-fixes (Meta census of 68 non-blind repositories, target v25.0, no AI, no refit-bench run); needs review before (caution-only stops counted as unresolved), validated after. Read from run/migration.patch and report.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v22.0 to v25.0 on `/me/accounts?fields=id,name,username,access_token` and `/{page.id}/posts` with created_time, shares and reaction and comment summaries; no change in range touches them. Its tests already failed on the original code; the patch adds no failure.",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the reviewed change table from its own version to v25.0, and ME4's change-table proof marks every changed request valid at v25.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "Reads matched only through default fields or node-wide placeholders stay on v22.0 (served until 2027-05-20) and are listed as notes.",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "EricSpencer00/reelforge",
+      "pullRequest": null,
+      "run": "Offline `benchmark:meta --validate` on feat/meta-fixes (Meta census of 68 non-blind repositories, target v25.0, no AI, no refit-bench run); needs review before (caution-only stops counted as unresolved), validated after. Read from run/migration.patch and report.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v21.0 to v25.0 on two OAuth token exchanges, Instagram `/media` (caption, media_type, upload_type) and `/media_publish`, and Page `/video_reels` uploads; no change in range touches them.",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the reviewed change table from its own version to v25.0, and ME4's change-table proof marks every changed request valid at v25.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "`media_type` VIDEO stopped being accepted on 2023-11-09 on every version; the move neither causes nor fixes that. A `/{containerId}` status read stays on v21.0 as a note.",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "quocbahuynh/ViqiumAI",
+      "pullRequest": null,
+      "run": "Offline `benchmark:meta --validate` on feat/meta-fixes (Meta census of 68 non-blind repositories, target v25.0, no AI, no refit-bench run); needs review before (caution-only stops counted as unresolved), validated after. Read from run/migration.patch and report.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v22.0 to v25.0 on one OAuth `fb_exchange_token` exchange; no change in range touches it.",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the reviewed change table from its own version to v25.0, and ME4's change-table proof marks every changed request valid at v25.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "Messenger requests (`/me/messages`, conversations, subscribed_apps) stay on v22.0, served until 2027-05-20, since moving Messenger requests needs an owner decision; they are listed as notes.",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "CassieMarie0728/jekyll-forge",
+      "pullRequest": null,
+      "run": "Offline `benchmark:meta --validate` on feat/meta-fixes `d9224895` (meta-dev-60 from feat/meta-sets, target v26.0, no AI, no refit-bench run); no patch before (requests not traced), validated after. Read from moves.patch and run/report.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v18.0 to v26.0 on three POST OAuth `oauth/access_token` exchanges (`authorization_code` and token refresh); no listed change in range touches them.",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the reviewed change table from its own version to v26.0, and ME4's change-table proof marks every changed request valid at v26.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "Its own tests already fail before the change; the patch adds no failing test (proof-based baseline rule).",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "marioce12-bot/Chariow",
+      "pullRequest": null,
+      "run": "Offline `benchmark:meta --validate` on feat/meta-fixes `d9224895` (meta-dev-60 from feat/meta-sets, target v26.0, no AI, no refit-bench run); no patch before (requests not traced), validated after. Read from moves.patch and run/report.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v23.0 to v26.0 on the OAuth code exchange (a `URL` object with `searchParams`) and the `GET /me?fields=id` read, both through the `fetchMetaGraph` helper that only adds a timeout and cache option.",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the reviewed change table from its own version to v26.0, and ME4's change-table proof marks every changed request valid at v26.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "The `/me` version is the fallback of `META_GRAPH_VERSION`; a deployment that sets the variable keeps its own value.",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "tareksalammohamed/socialpilot",
+      "pullRequest": null,
+      "run": "Offline `benchmark:meta --validate` on feat/meta-fixes `d9224895` (meta-dev-60 from feat/meta-sets, target v26.0, no AI, no refit-bench run); no patch before (requests not traced), validated after. Read from moves.patch and run/report.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: v21.0 to v26.0 on two `GRAPH` bases used for the OAuth code and long-lived token exchanges and `GET /me/accounts?fields=id,name,access_token,instagram_business_account{id,username}`; no listed change in range touches them.",
+        "bothVersions": "n/a: a Graph API version move; every moved request was checked against the reviewed change table from its own version to v26.0, and ME4's change-table proof marks every changed request valid at v26.0.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the version text.",
+        "pleaseCheck": "Other requests (`GET /{providerId}` node reads, WhatsApp) stay on v21.0, served until 2027-01-21 per the deadline registry, and are listed as notes.",
+        "upgradeComplete": "n/a: no package changes; requests left on their version are listed in the draft as notes with their reasons.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
       "repo": "bisha21/lms",
       "pullRequest": null,
       "run": "Local run on feat/p30-proof (4f74856d) with Docker, benchmark flags --validate --resolve-lockfiles --webhook-checks, no AI; before: refit-bench 40791364860 (progress-30, bench/combined-final fd9878a5), needs review for baseline-failed. Validated after: the integration tests fail in setup on both sides (mongodb-memory-server cannot create /.cache offline), with the same suites and errors, and tsc covers the changed file (grade C).",
