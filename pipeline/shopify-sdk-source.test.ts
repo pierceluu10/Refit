@@ -545,3 +545,51 @@ export const shopify = shopifyApp({
   );
   expect(rest.edits).toEqual([]);
 });
+
+it('pins LATEST_API_VERSION in an Admin API URL to the member apiVersion gets', () => {
+  // Shopify/subscriptions-reference-app's test mocks build the URL the SDK requests this way.
+  const constants = `import {LATEST_API_VERSION} from '${API}';
+export const GRAPHQL_URL = \`https://\${TEST_SHOP}/admin/api/\${LATEST_API_VERSION}/graphql.json\`;
+`;
+  const storefront = `import {LATEST_API_VERSION} from '${API}';
+export const URL = \`https://\${TEST_SHOP}/api/\${LATEST_API_VERSION}/graphql.json\`;
+`;
+  const result = changes({ 'test/constants.ts': constants, 'test/storefront.ts': storefront });
+  expect(result.after('test/constants.ts')).toBe(`import {ApiVersion} from '${API}';
+export const GRAPHQL_URL = \`https://\${TEST_SHOP}/admin/api/\${ApiVersion.April26}/graphql.json\`;
+`);
+  // Any other URL is not the Admin API version; it keeps stopping.
+  expect(result.stops).toEqual([
+    expect.objectContaining({
+      file: 'test/storefront.ts',
+      reason: expect.stringContaining('cannot pin a dated ApiVersion'),
+    }),
+  ]);
+});
+
+it('drops unstable_newEmbeddedAuthStrategy: true, which no React Router release reads', () => {
+  const ROUTER = '@shopify/shopify-app-react-router';
+  const server = `import { ApiVersion, shopifyApp } from '${ROUTER}/server';
+export const shopify = shopifyApp({
+  apiVersion: ApiVersion.October25,
+  future: {
+    unstable_newEmbeddedAuthStrategy: true,
+  },
+});
+`;
+  const result = changes({ 'app/shopify.server.ts': server }, ROUTER);
+  expect(result.stops).toEqual([]);
+  expect(result.after('app/shopify.server.ts'))
+    .toBe(`import { ApiVersion, shopifyApp } from '${ROUTER}/server';
+export const shopify = shopifyApp({
+  apiVersion: ApiVersion.October25,
+  future: {
+  },
+});
+`);
+  // Any other value, and the remix flag remix 5 still accepts, stay as they are.
+  expect(
+    changes({ 'app/shopify.server.ts': server.replace(': true,', ': false,') }, ROUTER).reasons,
+  ).toEqual([`future.unstable_newEmbeddedAuthStrategy is not a flag of the upgraded ${ROUTER}.`]);
+  expect(changes({ 'app/shopify.server.ts': server.replaceAll(ROUTER, REMIX) }).edits).toEqual([]);
+});
