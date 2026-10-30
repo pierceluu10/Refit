@@ -5,7 +5,13 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { MEASUREMENT_LISTS, renderProposal, ruleCandidates, type MissRecord } from './ai-misses.ts';
+import {
+  MEASUREMENT_LISTS,
+  checkFailureCause,
+  renderProposal,
+  ruleCandidates,
+  type MissRecord,
+} from './ai-misses.ts';
 
 const USAGE =
   'Usage: npx tsx pipeline/ai-miss-rules-cli.ts --results <list>=<merged results.json>... --run <id>... --commit <sha> [--doc docs/proposals/ai-miss-rules.md] [--stubs data/rule-candidates]';
@@ -30,6 +36,7 @@ async function main() {
     process.exit(values.help ? 0 : 1);
   }
   const records: MissRecord[] = [];
+  const infrastructure: Record<string, number> = {};
   const lists: string[] = [];
   for (const pair of values.results) {
     const at = pair.indexOf('=');
@@ -41,8 +48,16 @@ async function main() {
     const parsed = JSON.parse(await readFile(pair.slice(at + 1), 'utf8'));
     const rows = (Array.isArray(parsed) ? parsed : parsed.results) as Array<{
       misses?: MissRecord[];
+      fallback?: { gates?: Array<{ gate: string; status: string; detail: string }> } | null;
     }>;
-    for (const row of rows) records.push(...(row.misses ?? []));
+    for (const row of rows) {
+      records.push(...(row.misses ?? []));
+      const checks = row.fallback?.gates?.find(
+        (gate) => gate.gate === 'checks' && gate.status === 'failed',
+      );
+      const cause = checks && checkFailureCause(checks.detail);
+      if (cause) infrastructure[cause] = (infrastructure[cause] ?? 0) + 1;
+    }
   }
   const candidates = ruleCandidates(records);
   await writeFile(
@@ -52,6 +67,7 @@ async function main() {
       runs: values.run ?? [],
       commit: values.commit,
       records: records.length,
+      infrastructure,
       date: new Date().toISOString().slice(0, 10),
     }),
   );
