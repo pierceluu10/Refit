@@ -2861,6 +2861,36 @@
         "upgradeComplete": "yes: stripe 23.0.0 in package.json and pnpm-lock.yaml. No client sets apiVersion (src/lib/stripe.ts:9, webhook/route.ts:7, auth/checkout/route.ts:14), so the version moves with the stripe-node default to 2026-09-30.endive; the draft does not say so explicitly.",
         "wouldMerge": "yes, after the Dashboard card check. Grade C (type check only; tests reach none of the changed files)."
       }
+    },
+    {
+      "repo": "dubbl-org/dubbl",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40764807844, Refit 1ed2b674 (subsets/repair-policy.json), AI on, --resolve-lockfiles --webhook-checks --behaviour-tests --stripe-test-mode; the same patch in 40752646000 (ac2a33d2). Read from migration.patch with CRLF line endings normalised.",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: six retrieve calls (events, balanceTransactions x3, charges, paymentIntents) passed { stripeAccount } as the params argument, which old stripe-node read as request options; the AI inserts an empty params object so the same object becomes the third (options) argument, as stripe-node's retrieve(id, params, options) and docs.stripe.com/connect/authentication define.",
+        "bothVersions": "n/a: request options, not a payload read.",
+        "nothingUnrelated": "yes: each edit adds `{},` inside the failing call; ids and account values unchanged.",
+        "pleaseCheck": "none beyond the rule's card rename in app/api/pay/[token]/checkout/route.ts.",
+        "upgradeComplete": "yes: type check passes (grade C).",
+        "wouldMerge": "yes, after review; shipped [Needs review] (ai-patch)."
+      }
+    },
+    {
+      "repo": "ReeceHarding/firebase-next.js-boilerplate",
+      "pullRequest": null,
+      "run": "refit-dev/refit-bench 40764807844, Refit 1ed2b674 (subsets/repair-policy.json), AI on, --resolve-lockfiles --webhook-checks --behaviour-tests --stripe-test-mode; regression, never published.",
+      "reviewedAt": "2026-10-28",
+      "verdict": "wrong",
+      "checks": {
+        "rightReplacement": "partly: billing-dashboard.tsx Stripe.UpcomingInvoice to Stripe.Invoice and invoice.paid to invoice.status === \"paid\" are right for basil; scripts/test-stripe-setup.ts accounts.retrieve() to accounts.retrieve({}) is wrong (the first argument is the account id string; the fix is accounts.retrieveCurrent()), and the next round removed it again. retrieveUpcoming was not attempted.",
+        "bothVersions": "n/a.",
+        "nothingUnrelated": "yes.",
+        "pleaseCheck": "the checks failed after 3 repairs, so nothing was published.",
+        "upgradeComplete": "no.",
+        "wouldMerge": "no; not published."
+      }
     }
   ]
 }

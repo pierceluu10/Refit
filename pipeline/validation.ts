@@ -61,6 +61,7 @@ import {
 } from './validation-options.ts';
 import { committedFiles, sdkPackageDirectory } from './preparation-packages.ts';
 import { CONTRACT_CHANGE, proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
+import { falloutShape } from './upgrade-fallout.ts';
 import {
   droppedRequestPaths,
   emitOptions,
@@ -2104,6 +2105,8 @@ export async function validateMigration(options: {
       typeAssertions?: { file: string; line: number; code: string }[];
       // Why a type repair was refused by the type-only gate (typeOnlyRepairFailures).
       typeOnlyGate?: { repair: 'deterministic' | 'ai'; failures: string[] };
+      // Founder decision (2026-10-28): the policies that used to stop this AI repair.
+      policies?: string[];
     } = {
       limit: repairLimit,
       requested: 0,
@@ -2668,26 +2671,44 @@ export async function validateMigration(options: {
         repair.stopReason = 'review-required';
         break;
       }
-      // No contract documents a property the upgraded types reject, and no repair passes without
-      // dropping or replacing it, which changes what the code sends: a person decides.
+      // Founder decision (2026-10-28): AI repairs the type errors the upgrade introduced where these
+      // policies used to stop it. The repair explains each edit and its source, ships [Needs review]
+      // (decision 8) and never passes the D2 gate.
       const rejected = options.compareTypeErrors ? rejectedProperties(baselineRun, patched) : [];
-      if (rejected.length) {
-        repair.stopReason = 'review-required';
-        repair.error = `The upgraded types reject ${rejected.map((name) => `'${name}'`).join(', ')}; removing or replacing ${rejected.length === 1 ? 'it' : 'them'} changes what the code sends, so it stops for review.`;
-        break;
-      }
       const periodReads = introduced.filter(subscriptionPeriodRead);
-      if (periodReads.length) {
-        repair.stopReason = 'review-required';
-        repair.error = `Stripe moved subscription billing periods onto subscription items, and ${periodReads.map((error) => `${error.file}:${error.line}`).join(', ')} still ${periodReads.length === 1 ? 'reads one' : 'read them'} from the subscription. Choosing an item is a reviewed rule (stripeSubscriptionPeriods), so it stops for review.`;
-        break;
-      }
+      const behaviour = introduced.filter(
+        (error) => !reviewTypeError(error) && falloutShape(error).lane === 'behaviour',
+      );
+      const policies = [
+        ...(rejected.length
+          ? [
+              `Removed request parameters: the upgraded types reject ${rejected.map((name) => `'${name}'`).join(', ')}, and changing what a request sends used to stop for review.`,
+            ]
+          : []),
+        ...(periodReads.length
+          ? [
+              `Subscription periods: ${periodReads.map((error) => `${error.file}:${error.line}`).join(', ')} ${periodReads.length === 1 ? 'reads' : 'read'} a billing period Stripe moved onto subscription items, which only the reviewed stripeSubscriptionPeriods rule used to migrate.`,
+            ]
+          : []),
+        ...(behaviour.length > periodReads.length
+          ? [
+              `Type-only repair: ${behaviour.length} upgrade error${behaviour.length === 1 ? '' : 's'}, such as ${behaviour[0].code} at ${behaviour[0].file}:${behaviour[0].line}, need${behaviour.length === 1 ? 's' : ''} a change to what the code does, not only its types, which the type-only repair gate used to stop.`,
+            ]
+          : []),
+      ];
+      // A contract review (such as a removed method) used to keep AI out of the repair.
+      const contractReviews = policies.length
+        ? [...new Set(report.findings.flatMap((finding) => finding.contractReview ?? []))]
+        : [];
+      policies.push(...contractReviews.map((reason) => `Contract review: ${reason}`));
+      if (policies.length) repair.policies = policies;
       // Founders' decision (2026-10-27): when every error left is one the stripe-node upgrade
       // introduced into the original code, the AI repairs types only, under the same type-only
       // gate as the deterministic assertions, and ships [Needs review] (decision 8).
       // Once it applies, it holds for every later round, against the candidate it first applied to.
       if (
         !typeRepair &&
+        !repair.policies &&
         introduced.length &&
         candidateSources &&
         !(rules && coverage?.outcome === 'checks-failed') &&
@@ -2728,7 +2749,9 @@ export async function validateMigration(options: {
           report.changes,
           [
             // Owner decisions 1 and 8: a removed request parameter no longer keeps AI out.
-            ...report.findings.filter((finding) => !(aiCoverage && finding.requestParameter)),
+            ...report.findings.filter(
+              (finding) => !((aiCoverage || repair.policies) && finding.requestParameter),
+            ),
             // Introduced type errors, at their positions in the failed candidate, become findings
             // the repair may fix, wherever they are.
             ...introduced
@@ -2752,6 +2775,7 @@ export async function validateMigration(options: {
           beforeSpecification.schemas,
           {
             attempt: repair.requested,
+            ...(repair.policies ? { policies: repair.policies } : {}),
             failedPatch: compactPatch(codeDiff(proposal.diff)),
             check: {
               exitCode: patched.exitCode,
@@ -2794,25 +2818,30 @@ export async function validateMigration(options: {
         repeated = false;
         const preparedCandidate = await prepareCandidate(candidate.diff, originalSources, report);
         // A removed request parameter has no reviewed replacement; a repair must not drop it.
+        // Under the founder decision a policy repair may replace one, never silently.
+        const explained = (name: string) =>
+          'explanations' in candidate &&
+          (candidate.explanations ?? []).some((note) => note.why.includes(name));
         const dropped = droppedRequestParameters(
           removedParameters,
           originalSources.files,
           preparedCandidate.sources.files,
           ('ruleEdits' in report.patch ? report.patch.ruleEdits : undefined) ?? [],
-        );
+        ).filter((name) => !(repair.policies && explained(name)));
         if (dropped.length) {
           repair.stopReason = 'review-required';
           repair.error = `AI repair drops removed request parameter ${dropped.join(', ')}; it stops for review.`;
           break;
         }
-        const typeOnly = typeRepair
-          ? typeOnlyRepairFailures({
-              before: typeRepair.base,
-              after: preparedCandidate.sources,
-              errors: typeRepair.errors,
-              compilerOptions: (path) => emitOptions(preparedCandidate.sources.root, path),
-            })
-          : [];
+        const typeOnly =
+          typeRepair && !repair.policies
+            ? typeOnlyRepairFailures({
+                before: typeRepair.base,
+                after: preparedCandidate.sources,
+                errors: typeRepair.errors,
+                compilerOptions: (path) => emitOptions(preparedCandidate.sources.root, path),
+              })
+            : [];
         if (typeOnly.length) {
           repair.typeOnlyGate = { repair: 'ai', failures: typeOnly };
           repair.stopReason = 'review-required';
@@ -2834,7 +2863,19 @@ export async function validateMigration(options: {
         );
         candidateDependencies = preparedCandidate.dependencies;
         candidateEnvironment = preparedCandidate.environment;
+        // A round that edits the failed candidate keeps the earlier rounds' explanations.
+        const earlier =
+          !(rules && coverage?.outcome === 'checks-failed') &&
+          options.compareTypeErrors &&
+          'explanations' in proposal
+            ? (proposal.explanations ?? [])
+            : [];
         proposal = coverage ? onRules(candidate) : candidate;
+        if (earlier.length && 'explanations' in candidate)
+          proposal = {
+            ...proposal,
+            explanations: [...earlier, ...(candidate.explanations ?? [])],
+          } as typeof proposal;
         publicationFiles = preparedCandidate.publicationFiles;
         candidateDirectory = preparedCandidate.directory;
         candidateSources = preparedCandidate.sources;
@@ -3190,6 +3231,11 @@ export async function validateMigration(options: {
         checksPassed: validationStatus === 'passed',
         typeCheckedFiles: typeCheckCoverage(candidateSources, options.command, packageDirectory),
       });
+      // Founder decision (2026-10-28): a repair where a policy used to stop is never validated.
+      if (repair.policies)
+        failures.push(
+          `AI repaired errors where a policy used to stop: ${repair.policies.join(' ')}`,
+        );
       coverage.gate = {
         passed: !failures.length,
         failures,
