@@ -86,6 +86,8 @@ interface RestRequest {
   method: string;
   path: Part[];
   query: Map<string, Part[]>;
+  // The JSON body a write sends: a client call's `data`, fetch's `body` or axios's data argument.
+  body?: ts.Expression;
 }
 
 type Transport =
@@ -98,9 +100,22 @@ type Transport =
 
 // What the code does with the response: REST body paths it reads ('[]' steps into an array),
 // whether a read uses the whole value, and the reads Refit cannot follow.
-interface Read {
+export interface Read {
   path: string[];
   whole: boolean;
+}
+
+// What a traced REST call sends and reads, for the versioned contract check
+// (pipeline/shopify-rest-contract.ts): the raw path (ids as `{p0}`) or the resource class and
+// operation, the query or option names, the body's key paths (null when the body is not an object
+// literal) and every read of the response.
+export interface RestTrace {
+  method: string;
+  path?: string;
+  resource?: { name: string; operation: string };
+  query: string[];
+  reads: Read[];
+  body?: string[][] | null;
 }
 
 interface Trace {
@@ -127,6 +142,10 @@ export interface RestStop {
   // Present when the call and its reads are understood but no rule produces them: the AI may
   // propose one.
   request?: { method: string; path: string; query: string[]; reads: string[]; transport: string };
+  trace?: RestTrace;
+  // A `new <shopify>.clients.Rest(...)` construction: where each use of the client is called, or
+  // null when a use is anything but a call on it.
+  clientCalls?: { line: number; column: number }[] | null;
 }
 
 const unwrapParent = (node: ts.Node) => {
@@ -264,7 +283,7 @@ function urlRequest(literal: ts.Expression, method: string) {
 function clientRequest(argument: ts.Expression | undefined, method: string, file: ts.SourceFile) {
   const options = argument && unwrap(argument);
   if (!options || !ts.isObjectLiteralExpression(options)) return undefined;
-  const allowed = new Set(['path', 'query']);
+  const allowed = new Set(['path', 'query', 'data', 'type']);
   if (
     options.properties.some((entry) => !propertyName(entry) || !allowed.has(propertyName(entry)!))
   )
@@ -292,7 +311,8 @@ function clientRequest(argument: ts.Expression | undefined, method: string, file
     }
   }
   if (path[0] && 'text' in path[0]) path[0] = { text: path[0].text.replace(/^\//, '') };
-  return { method, path, query } as RestRequest;
+  const body = property(options, 'data');
+  return { method, path, query, ...(body ? { body } : {}) } as RestRequest;
 }
 
 // A `const` with a literal value in the same file.
@@ -1007,6 +1027,9 @@ export interface RestRewriteOptions {
   schemas: { version: string; schema: GraphQLSchema }[];
   // The locked @shopify/shopify-api major: 9 and later send GraphQL with `request`.
   apiMajor?: number;
+  // Only trace the calls for the contract check: no rule applies, so nothing is rewritten, and
+  // stops that only concern writing GraphQL (the SDK major) do not apply.
+  traceOnly?: boolean;
 }
 
 // Rewrites the REST calls of one file. Entries that are not rewritten come back as stops.
@@ -1033,13 +1056,15 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
     ts.VariableDeclaration,
     { calls: ts.Identifier[]; rewritten: number }
   >();
-  const pending: { result: RestRewrite; client?: ts.VariableDeclaration }[] = [];
+  const pending: { result: RestRewrite; client?: ts.VariableDeclaration; trace: RestTrace }[] = [];
   for (const entry of options.entries) {
+    let trace: RestTrace | undefined;
     const stop = (reason: string, request?: RestStop['request']): RestStop => ({
       status: 'stopped',
       entry,
       reason,
       ...(request ? { request } : {}),
+      ...(trace ? { trace } : {}),
     });
     const at = offset(entry);
     const node = findNode(source, at, entry.expression);
@@ -1048,19 +1073,24 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
       continue;
     }
     if (ts.isNewExpression(node)) continue; // A REST client or resource construction: handled with its calls below.
-    const recognized = recognize(node, entry, source, options.apiMajor);
+    const recognized = recognize(
+      node,
+      entry,
+      source,
+      options.traceOnly ? (options.apiMajor ?? 0) : options.apiMajor,
+    );
     if (typeof recognized === 'string') {
       results.push(stop(recognized));
       continue;
     }
     const { call, transport, request, initial } = recognized;
-    const trace: Trace = { reads: [], stops: [], pagination: false };
-    follow(call, initial, true, trace);
-    if (trace.stops.length) {
-      results.push(stop(trace.stops[0]));
+    const followed: Trace = { reads: [], stops: [], pagination: false };
+    follow(call, initial, true, followed);
+    if (followed.stops.length) {
+      results.push(stop(followed.stops[0]));
       continue;
     }
-    const readText = [...new Set(trace.reads.map((read) => read.path.join('.')))];
+    const readText = [...new Set(followed.reads.map((read) => read.path.join('.')))];
     const description = {
       method: request.method,
       path:
@@ -1076,6 +1106,30 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
       reads: readText,
       transport: transport.kind,
     };
+    const resourceCall = entry.resource && /^(\w+)\.(\w+)$/.exec(entry.resource);
+    trace = {
+      method: request.method,
+      ...(resourceCall
+        ? { resource: { name: resourceCall[1], operation: resourceCall[2] } }
+        : { path: description.path }),
+      query: resourceCall
+        ? (
+            unwrap((node as ts.CallExpression).arguments[0]) as ts.ObjectLiteralExpression
+          ).properties
+            .map((property) => propertyName(property)!)
+            .filter((name) => name !== 'session')
+        : description.query,
+      reads: followed.reads,
+      ...(request.body ? { body: bodyKeys(request.body) } : {}),
+    };
+    if (request.method === 'GET' && request.body) {
+      results.push(stop('The GET request sends a body.', description));
+      continue;
+    }
+    if (options.traceOnly) {
+      results.push(stop('Traced for the contract check.', description));
+      continue;
+    }
     if (request.method !== 'GET') {
       results.push(
         stop(
@@ -1119,12 +1173,12 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
     }
     const { rule, params } = match;
     if (resource)
-      for (const read of trace.reads) read.path = resourcePath(rule, resource[2], read.path);
-    if (trace.pagination && rule.kind !== 'list') {
+      for (const read of followed.reads) read.path = resourcePath(rule, resource[2], read.path);
+    if (followed.pagination && rule.kind !== 'list') {
       results.push(stop('The code reads pagination of a request that is not a list.'));
       continue;
     }
-    const unmapped = trace.reads.find((read) => {
+    const unmapped = followed.reads.find((read) => {
       const field = mapped(rule, read.path);
       return !field || (read.whole && !field.leaf);
     });
@@ -1149,7 +1203,7 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
       results.push(stop(variables, description));
       continue;
     }
-    const used = usedFields(rule, trace.reads);
+    const used = usedFields(rule, followed.reads);
     const document = documentOf(rule, used, variables);
     const problem = documentProblem(document, options.schemas);
     if (problem) {
@@ -1164,7 +1218,7 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
       transport,
       typed,
       indent: indentOf(source, call.getStart()),
-      pagination: trace.pagination,
+      pagination: followed.pagination,
       apiMajor: options.apiMajor,
     });
     if (typeof replacement === 'string') {
@@ -1210,11 +1264,11 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
       record.rewritten++;
       clientCalls.set(client, record);
     }
-    pending.push({ result, client });
+    pending.push({ result, client, trace });
   }
   // A REST client becomes a GraphQL client, built where and when it was, only when every use of it
   // is a rewritten call; otherwise its calls stay REST.
-  for (const { result, client } of pending) {
+  for (const { result, client, trace } of pending) {
     if (!client) {
       results.push(result);
       continue;
@@ -1226,6 +1280,7 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
         entry: result.entry,
         reason:
           'The REST client is also used by calls Refit did not rewrite, so its calls stay REST.',
+        trace,
       });
       continue;
     }
@@ -1262,6 +1317,9 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
         reason: /\.clients\.Rest$/.test(entry.expression)
           ? 'The REST client is used by calls Refit did not rewrite.'
           : 'A REST resource record is built and saved; Refit rewrites only REST reads.',
+        ...(/\.clients\.Rest$/.test(entry.expression)
+          ? { clientCalls: clientCallSites(node, source) }
+          : {}),
       });
   }
   // Two edits must not overlap (a client removal inside a rewritten call cannot happen, but check).
@@ -1281,6 +1339,62 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
   return results.sort(
     (a, b) => options.entries.indexOf(a.entry) - options.entries.indexOf(b.entry),
   );
+}
+
+// The key paths of a JSON body written as an object literal, directly or in `JSON.stringify(…)`:
+// `{ script_tag: { event, src } }` is `script_tag.event` and `script_tag.src`. A value that is
+// not an object literal is a leaf the code sends whole. Null for anything else.
+function bodyKeys(expression: ts.Expression): string[][] | null {
+  let value = unwrap(expression);
+  if (
+    ts.isCallExpression(value) &&
+    value.expression.getText() === 'JSON.stringify' &&
+    value.arguments.length === 1
+  )
+    value = unwrap(value.arguments[0]);
+  if (!ts.isObjectLiteralExpression(value)) return null;
+  const paths: string[][] = [];
+  const walk = (object: ts.ObjectLiteralExpression, prefix: string[]): boolean =>
+    object.properties.every((entry) => {
+      const name = propertyName(entry);
+      if (!name || !(ts.isPropertyAssignment(entry) || ts.isShorthandPropertyAssignment(entry)))
+        return false;
+      const inner = ts.isPropertyAssignment(entry) ? unwrap(entry.initializer) : undefined;
+      if (inner && ts.isObjectLiteralExpression(inner)) return walk(inner, [...prefix, name]);
+      paths.push([...prefix, name]);
+      return true;
+    });
+  return walk(value, []) ? paths : null;
+}
+
+// Where each use of a `const client = new <shopify>.clients.Rest(…)` is a call on it
+// (`client.get(…)`), or null when a use is anything else (passed on, returned, reassigned).
+function clientCallSites(construction: ts.Node, source: ts.SourceFile) {
+  const declaration = unwrapParent(construction).parent;
+  if (
+    !ts.isVariableDeclaration(declaration) ||
+    !ts.isIdentifier(declaration.name) ||
+    !(declaration.parent.flags & ts.NodeFlags.Const) ||
+    // An exported client is used in files this one cannot see.
+    ts.getCombinedModifierFlags(declaration) & ts.ModifierFlags.Export
+  )
+    return null;
+  const uses = references(declaration.name, declarationScope(declaration.parent));
+  if (!uses) return null;
+  const sites: { line: number; column: number }[] = [];
+  for (const use of uses) {
+    const call = use.parent.parent;
+    if (
+      !ts.isPropertyAccessExpression(use.parent) ||
+      use.parent.expression !== use ||
+      !ts.isCallExpression(call) ||
+      call.expression !== use.parent
+    )
+      return null;
+    const at = source.getLineAndCharacterOfPosition(call.getStart());
+    sites.push({ line: at.line + 1, column: at.character + 1 });
+  }
+  return sites;
 }
 
 function findNode(source: ts.SourceFile, position: number, expression?: string) {
@@ -1381,7 +1495,7 @@ function recognize(
     const call = literal.parent;
     if (!ts.isCallExpression(call) || call.arguments[0] !== literal)
       return 'The REST URL is not passed straight to fetch() or axios.';
-    const callee = call.expression.getText();
+    const callee = call.expression.getText().replace(/\s+/g, '');
     const method = entry.method;
     if (!method) return 'Refit cannot tell the HTTP method of this request.';
     const parsed = urlRequest(node as ts.Expression, method);
@@ -1392,17 +1506,20 @@ function recognize(
       if (options && !ts.isObjectLiteralExpression(options))
         return 'The fetch options are not an object literal.';
       if (call.arguments.length > 2) return 'fetch() is called with extra arguments.';
+      const body = options && property(options as ts.ObjectLiteralExpression, 'body');
       return {
         call,
         transport: { kind: 'fetch', prefix: parsed.prefix, options } as Transport,
-        request: parsed.request,
+        request: { ...parsed.request, ...(body ? { body } : {}) },
         initial: { kind: 'response' } as Value,
         removable: extra,
       };
     }
-    const axios = /^(\w+)\.(get)$/.exec(callee);
+    const axios = /^(\w+)\.(get|post|put|delete)$/.exec(callee);
     if (axios && axios[1] === 'axios') {
-      const config = call.arguments[1] && unwrap(call.arguments[1]);
+      // axios.post(url, data, config) and axios.put; get and delete take (url, config).
+      const writes = axios[2] === 'post' || axios[2] === 'put';
+      const config = call.arguments[writes ? 2 : 1] && unwrap(call.arguments[writes ? 2 : 1]);
       if (config && !ts.isObjectLiteralExpression(config))
         return 'The axios config is not an object literal.';
       return {
@@ -1413,7 +1530,10 @@ function recognize(
           receiver: axios[1],
           config,
         } as Transport,
-        request: parsed.request,
+        request: {
+          ...parsed.request,
+          ...(writes && call.arguments[1] ? { body: call.arguments[1] } : {}),
+        },
         initial: { kind: 'axios' } as Value,
         removable: extra,
       };

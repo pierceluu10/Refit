@@ -1065,3 +1065,58 @@ it('gives a Shopify repair Shopify instructions and a Stripe one none', async ()
   expect(instructions).toContain('This is a Shopify app.');
   expect(instructions).toContain('Do not edit GraphQL documents');
 });
+
+it('repairs a Shopify candidate at the tsc error naming an @shopify type', async () => {
+  const webhook = `import type { WebhookHandler } from '@shopify/shopify-api';
+export const handler: WebhookHandler = async (topic, shop, body, webhookId, apiVersion) => {
+  console.log(webhookId);
+};
+`;
+  const repository = {
+    root: '/repository',
+    files: [{ path: 'web/webhooks.ts', content: webhook }],
+    dependencies: [],
+    lockfiles: [],
+    warnings: [],
+  };
+  const typeError = {
+    file: 'web/webhooks.ts',
+    line: 2,
+    column: 14,
+    changeId: TYPE_ERROR_CHANGE,
+    expression: 'TS2322',
+    confidence: 'confirmed' as const,
+    reason:
+      "Type '(topic, shop, body, webhookId, apiVersion) => Promise<void>' is not assignable to type 'WebhookHandler'.",
+  };
+  const [findingId] = buildAssessmentEvidence(repository, [], [typeError], SHOPIFY).findings.map(
+    (finding) => finding.id,
+  );
+  respond([
+    {
+      file: 'web/webhooks.ts',
+      original: 'console.log(webhookId);',
+      replacement: 'console.log(webhookId as string);',
+      findingId,
+    },
+  ]);
+  const proposal = await proposeAiPatch(
+    repository,
+    [],
+    [typeError],
+    OPTIONS,
+    SHOPIFY,
+    {},
+    {
+      attempt: 1,
+      failedPatch: '',
+      check: { exitCode: 2, stdout: '', stderr: '', truncated: false },
+    },
+    undefined,
+    {},
+    [],
+    { files: repository.files, rules: repository.files },
+  );
+  expect(modelEvidence().body.instructions).toContain('This is a Shopify app.');
+  expect(proposal.diff).toContain('+  console.log(webhookId as string);');
+});

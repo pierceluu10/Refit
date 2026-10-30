@@ -230,9 +230,12 @@ const { rows: previous } = await openRunDirectory(
       'REFIT_BASELINE_CHECK_CACHE_DIRECTORY',
       ...(values.ai || writer
         ? [
+            'REFIT_AI_PROVIDER',
             'OPENAI_MODEL',
+            'ANTHROPIC_MODEL',
             'OPENAI_REASONING_EFFORT',
             'OPENAI_ESCALATION_MODEL',
+            'ANTHROPIC_ESCALATION_MODEL',
             'OPENAI_ESCALATION_EFFORT',
           ]
         : []),

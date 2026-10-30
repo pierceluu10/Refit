@@ -21,6 +21,7 @@ import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 import { runPipeline } from './run.ts';
 import {
+  archivedShopifyTypes,
   archivedStripeTypes,
   errorSources,
   namedTypes,
@@ -28,10 +29,11 @@ import {
   withoutBaselineErrors,
   typeCheckedFindings,
   repeatedProposalReason,
+  SHOPIFY_SDK_NAMES,
 } from './repair-context.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
-import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
-import { shopifyProof } from './shopify-proof.ts';
+import { SHOPIFY, shopifyExtraFiles, shopifyVersionDeclarations } from './shopify-pipeline.ts';
+import { codegenPinFiles, shopifyProof } from './shopify-proof.ts';
 import { shopifySchema, shopifySnapshotPath } from './shopify-schemas.ts';
 import type { GraphReconstruction } from './meta-graph-ai.ts';
 import { META_GRAPH_PROVIDER, metaGraphEvidence } from './meta-graph-proof.ts';
@@ -381,6 +383,8 @@ function costOf(value: unknown) {
   };
   return budget?.costUsd ?? proposal?.budget?.costUsd ?? 0;
 }
+
+type ShopifyReconstructed = { file: string; line: number; document?: string };
 
 // The line an unchanged line of `before` is on in `after`; undefined once an edit changed it.
 export function movedLine(before: string, after: string, line: number) {
@@ -2690,6 +2694,9 @@ export async function validateMigration(options: {
     // more context, up to the attempt limit, instead of stopping the repair.
     let repeated = false;
     let stripeTypes: { path: string; content: string }[] | undefined;
+    // A Shopify repair sees the installed @shopify declarations its errors name instead.
+    const shopifyRepair = report.provider === SHOPIFY.id;
+    const sdkTypes = shopifyRepair ? archivedShopifyTypes : archivedStripeTypes;
     // Only what the patch introduced: the original code's own type errors are left out.
     const introducedLog = (output: string) =>
       options.compareTypeErrors ? withoutBaselineErrors(baselineRun, output) : output;
@@ -2774,8 +2781,7 @@ export async function validateMigration(options: {
         const listed = errors.filter((error) => !reviewTypeError(error)).map(inPackage);
         // The stripe-node the failed candidate was checked against.
         const archive = candidateDependencies ?? dependencies;
-        if (archive)
-          stripeTypes ??= await archivedStripeTypes(archive, packageDirectory).catch(() => []);
+        if (archive) stripeTypes ??= await sdkTypes(archive, packageDirectory).catch(() => []);
         return {
           unchanged: true as const,
           typeErrors: errorSources(
@@ -2798,7 +2804,7 @@ export async function validateMigration(options: {
         (finding) => finding.declaredType && finding.confidence !== 'confirmed',
       );
       if (archive && declared.length && introduced.length)
-        stripeTypes ??= await archivedStripeTypes(archive, packageDirectory).catch(() => []);
+        stripeTypes ??= await sdkTypes(archive, packageDirectory).catch(() => []);
       const typeChecked = new Set(
         typeCheckedFindings(declared, introduced.map(inPackage), stripeTypes ?? [], (finding) => {
           const before = originalSources.files.find((file) => file.path === finding.file);
@@ -2972,7 +2978,7 @@ export async function validateMigration(options: {
         .map(inPackage);
       const archive = candidateDependencies ?? dependencies;
       if (archive && errors.length)
-        stripeTypes ??= await archivedStripeTypes(archive, packageDirectory).catch(() => []);
+        stripeTypes ??= await sdkTypes(archive, packageDirectory).catch(() => []);
       const sdkUpgrade =
         'sdkUpgrade' in report.patch ? (report.patch.sdkUpgrade as { to?: string }) : undefined;
       const repeatedReason = repeatedProposalReason({
@@ -2982,11 +2988,15 @@ export async function validateMigration(options: {
           ...report.findings.map((finding) => finding.file),
           ...(candidateSources?.files ?? [])
             .filter((file) =>
-              /\bfrom\s+['"]stripe['"]|require\(\s*['"]stripe['"]\s*\)/.test(file.content),
+              (shopifyRepair
+                ? /\bfrom\s+['"]@shopify\/|require\(\s*['"]@shopify\//
+                : /\bfrom\s+['"]stripe['"]|require\(\s*['"]stripe['"]\s*\)/
+              ).test(file.content),
             )
             .map((file) => file.path),
         ]),
         stripeTypes: stripeTypes ?? [],
+        ...(shopifyRepair ? { sdk: SHOPIFY_SDK_NAMES } : {}),
       });
       repair.repeated = repeatedReason.kind;
       repair.error = repeatedReason.text;
@@ -3282,12 +3292,21 @@ export async function validateMigration(options: {
     // never vetoes a correct patch. A regression is never graded A.
     const behaviourA =
       behaviour?.grade === 'A' && !['stale', 'regression'].includes(validationStatus);
+    // A Shopify codegen configuration changed only in its version pin is proven by the schema proof
+    // (shopify-proof.ts), so the checks need not cover it.
+    const codegenPins =
+      report.provider === SHOPIFY.id && candidateSources
+        ? codegenPinFiles(originalSources, candidateSources)
+        : [];
+    const gradedFiles = publicationFiles
+      .map((file) => file.path)
+      .filter((path) => !codegenPins.includes(path));
     const ownGrade =
       (validationStatus === 'passed' || ownChecksPassed || behaviourA) && candidateSources
         ? await gradeEvidence({
             repository: candidateSources,
             command: options.command,
-            changedFiles: publicationFiles.map((file) => file.path),
+            changedFiles: gradedFiles,
             generated,
             behaviour: behaviour && behaviourGrade(behaviour),
             advisory: advisoryGrade,
@@ -3310,7 +3329,7 @@ export async function validateMigration(options: {
         ? await gradeEvidence({
             repository: candidateSources,
             command: options.command,
-            changedFiles: publicationFiles.map((file) => file.path),
+            changedFiles: gradedFiles,
             testsBroken: {
               reason: checkFailureText({
                 checkFailures: failures.checkFailures?.filter(
@@ -3348,7 +3367,7 @@ export async function validateMigration(options: {
     // with that proof. The AI second opinion is recorded and never changes the grade.
     const shopify =
       report.provider === SHOPIFY.id && candidateSources && validationStatus !== 'stale'
-        ? await timed('shopifyProof', () =>
+        ? await timed('shopifyProof', async () =>
             shopifyProof({
               original: originalSources,
               patched: candidateSources!,
@@ -3365,8 +3384,24 @@ export async function validateMigration(options: {
               diff: proposal.diff,
               summary: 'summary' in proposal ? String(proposal.summary) : '',
               warnings: 'warnings' in proposal ? (proposal.warnings as string[]) : [],
+              graphql: {
+                original: (await shopifyExtraFiles(originalSources.root)).graphql,
+                patched: (await shopifyExtraFiles(candidateSources!.root)).graphql,
+              },
+              codegenPins,
               ai: options.assessment ?? options.aiPatch,
               environment: process.env,
+              // Kept AI reconstructions (shopify-ai-rewrite.ts), at their lines in the candidate.
+              reconstructed: (
+                (report as { shopify?: { reconstructed?: ShopifyReconstructed[] } }).shopify
+                  ?.reconstructed ?? []
+              ).flatMap((entry) => {
+                const before = originalSources.files.find((file) => file.path === entry.file);
+                const after = candidateSources!.files.find((file) => file.path === entry.file);
+                const line =
+                  before && after && movedLine(before.content, after.content, entry.line);
+                return entry.document && line ? [{ ...entry, line, document: entry.document }] : [];
+              }),
             }),
           )
         : undefined;

@@ -3,6 +3,7 @@ import { readBoundedResponse } from './network.ts';
 import { digest, isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { reserveAiBudget, responseUsage, type AiOptions } from './ai-budget.ts';
+import { requestAnthropicOutput } from './anthropic.ts';
 
 const RESPONSES_URL = 'https://api.openai.com/v1/responses';
 const REQUEST_TIMEOUT_MS = 60_000;
@@ -55,6 +56,7 @@ export async function requestStructuredOutput(
   options: AiOptions,
   limits: OutputLimits = {},
 ) {
+  if (options.provider === 'anthropic') return requestAnthropicOutput(request, options, limits);
   const maxOutputTokens = limits.maxOutputTokens ?? MAX_OUTPUT_TOKENS;
   const maxResponseBytes = limits.maxResponseBytes ?? MAX_RESPONSE_BYTES;
   if (!options.apiKey.trim() || !options.model.trim())
@@ -175,7 +177,7 @@ export async function requestStructuredOutput(
 }
 
 // OpenAI's own wait when it sends one, otherwise exponential backoff; capped either way.
-function retryDelay(headers: Headers, attempt: number) {
+export function retryDelay(headers: Headers, attempt: number) {
   const milliseconds = Number(headers.get('retry-after-ms') ?? NaN);
   const seconds = Number(headers.get('retry-after') ?? NaN);
   const wait = Number.isFinite(milliseconds)
@@ -186,8 +188,8 @@ function retryDelay(headers: Headers, attempt: number) {
   return Math.min(Math.max(wait, 0), MAX_RETRY_WAIT_MS);
 }
 
-// Only OpenAI's error type, never its message, which may echo request content.
-async function errorType(response: Response) {
+// Only the provider's error type, never its message, which may echo request content.
+export async function errorType(response: Response) {
   try {
     const parsed: unknown = JSON.parse(
       await readBoundedResponse(response, MAX_RESPONSE_BYTES, 'OpenAI error'),

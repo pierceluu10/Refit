@@ -8,7 +8,8 @@ vi.mock('./openai.ts', async (load) => ({
   requestStructuredOutput: (...args: unknown[]) => requestStructuredOutput(...args),
 }));
 
-const { shopifyGrade, shopifyProof, shopifySchemaProof } = await import('./shopify-proof.ts');
+const { codegenPinFiles, shopifyGrade, shopifyProof, shopifySchemaProof } =
+  await import('./shopify-proof.ts');
 const { liveShopifyProof, shopifyAccessToken, shopifyTestStore } =
   await import('./shopify-live-proof.ts');
 
@@ -102,9 +103,35 @@ it('stays unproven when the code sends a document Refit cannot read', () => {
   expect(proof.status).toBe('unproven');
 });
 
+it('validates an AI reconstruction of that document at its call, and fails one that breaks', () => {
+  const patched = repository({
+    'app/routes/product.ts':
+      "export async function loader({ admin, request }) {\n  return admin.graphql('query { ' + request.field + ' }');\n}\n",
+  });
+  const read = (document: string, line = 2) =>
+    shopifySchemaProof({
+      original: repository({}),
+      patched,
+      before,
+      after,
+      reconstructed: [{ file: 'app/routes/product.ts', line, document }],
+    });
+  const proof = read('query { shop { name } }');
+  expect(proof).toMatchObject({ status: 'proven', checked: { patched: 1 } });
+  expect(proof.reason).toContain('1 read by AI');
+  expect(read('query { product(id: "1") { legacyCode } }')).toMatchObject({
+    status: 'failed',
+    failures: [{ file: 'app/routes/product.ts', line: 2 }],
+  });
+  // A reconstruction for another line proves nothing about this call.
+  expect(read('query { shop { name } }', 3).status).toBe('unproven');
+});
+
 it('trusts committed codegen types only when nothing the documents select widens', () => {
   const codegen = {
     '.graphqlrc.ts': "import { shopifyApiProject } from '@shopify/api-codegen-preset';\n",
+    'app/types/admin.generated.d.ts':
+      "declare module '@shopify/admin-api-client' {\n  interface AdminQueries {}\n}\n",
   };
   expect(prove('query { shop { name } }', codegen)).toMatchObject({
     status: 'proven',
@@ -114,8 +141,103 @@ it('trusts committed codegen types only when nothing the documents select widens
     status: 'unproven',
     codegen: { current: false },
   });
+  // Generated types the repository does not commit never reached the type check.
+  expect(
+    prove('query { product(id: "1") { status } }', { '.graphqlrc.ts': codegen['.graphqlrc.ts'] }),
+  ).not.toHaveProperty('codegen');
   // Without codegen an added enum value is not a schema-proof failure.
   expect(prove('query { product(id: "1") { status } }').status).toBe('proven');
+});
+
+it('inlines fragments defined in another file or a .graphql document', () => {
+  const files = {
+    'app/fragments.ts': 'export const SHOP = `#graphql\nfragment ShopName on Shop { name }`;\n',
+  };
+  expect(prove('query { shop { ...ShopName } }', files)).toMatchObject({
+    status: 'proven',
+    checked: { patched: 2 },
+  });
+  const graphql = [
+    { path: 'app/legacy.graphql', content: 'fragment Legacy on Product { legacyCode }' },
+  ];
+  const proof = shopifyProof({
+    original: route('query { product(id: "1") { ...Legacy } }'),
+    patched: route('query { product(id: "1") { ...Legacy } }'),
+    before,
+    after,
+    own: undefined,
+    diff: '',
+    summary: '',
+    warnings: [],
+    graphql: { original: graphql, patched: graphql },
+    environment: {},
+  });
+  return expect(proof).resolves.toMatchObject({ record: { schema: { status: 'failed' } } });
+});
+
+it('proves a move for code that sends no Admin request, unless it registers webhooks in code', () => {
+  const server = {
+    'app/shopify.server.ts':
+      "import { shopifyApp, ApiVersion } from '@shopify/shopify-app-react-router/server';\nexport default shopifyApp({ apiVersion: ApiVersion.January26 });\n",
+  };
+  const proof = shopifySchemaProof({
+    original: repository(server),
+    patched: repository(server),
+    before,
+    after,
+  });
+  expect(proof).toMatchObject({ status: 'proven', checked: { patched: 0 } });
+  expect(proof.reason).toContain('sends no Admin API request');
+  const webhooks = repository({
+    'app/shopify.server.ts': `${server['app/shopify.server.ts']}export const webhooks = { APP_UNINSTALLED: { deliveryMethod: DeliveryMethod.Http } };\n`,
+  });
+  expect(shopifySchemaProof({ original: webhooks, patched: webhooks, before, after }).status).toBe(
+    'unproven',
+  );
+});
+
+it('counts REST calls only when the versioned REST contract proves each one', () => {
+  const rest = (read: string) =>
+    repository({
+      'app/shop.ts': `export async function shopName(shop, token) {\n  const response = await fetch(\`https://\${shop}/admin/api/2026-10/shop.json\`, { headers: { 'X-Shopify-Access-Token': token } });\n  const body = await response.json();\n  return body.shop.${read};\n}\n`,
+    });
+  const proven = shopifySchemaProof({
+    original: rest('name'),
+    patched: rest('name'),
+    before,
+    after,
+  });
+  expect(proven).toMatchObject({ status: 'proven' });
+  expect(proven.reason).toContain('Every REST Admin call (1)');
+  // `legacy_field` is not in the 2026-01 Shop contract, so nothing proves the read.
+  const unproven = shopifySchemaProof({
+    original: rest('legacy_field'),
+    patched: rest('legacy_field'),
+    before,
+    after,
+  });
+  expect(unproven).toMatchObject({ status: 'unproven' });
+  expect(unproven.reason).toContain('app/shop.ts:2');
+  expect(unproven.reason).toContain('`shop.legacy_field`');
+});
+
+it('leaves a codegen configuration changed only in its version pin to the codegen evidence', () => {
+  const config = (pin: string, extra = '') =>
+    `import { ApiVersion } from '@shopify/shopify-app-react-router/server';\nimport { shopifyApiProject } from '@shopify/api-codegen-preset';\nexport default { projects: { default: shopifyApiProject({ apiVersion: ${pin}${extra} }) } };\n`;
+  const original = repository({ '.graphqlrc.ts': config('ApiVersion.October25') });
+  expect(
+    codegenPinFiles(original, repository({ '.graphqlrc.ts': config('ApiVersion.January26') })),
+  ).toEqual(['.graphqlrc.ts']);
+  expect(
+    codegenPinFiles(
+      original,
+      repository({ '.graphqlrc.ts': config('ApiVersion.January26', ', outputDir: "x"') }),
+    ),
+  ).toEqual([]);
+  const typeCheck = { letter: 'C' as const, level: 'type-check' as const, reason: 'tsc.' };
+  expect(
+    shopifyGrade(typeCheck, prove('query { shop { name } }'), undefined, ['.graphqlrc.ts']),
+  ).toMatchObject({ letter: 'C', reason: expect.stringContaining('version pin of .graphqlrc.ts') });
 });
 
 it('grades Shopify proof: D without schema proof, A with a live pass, else the checks’ B or C', () => {

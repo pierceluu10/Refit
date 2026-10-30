@@ -3013,6 +3013,66 @@
       }
     },
     {
+      "repo": "sabbir-noyon/wishkit-app-shopify",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40942668604 (33beeb94, subsets/shopify-dev-60.json, --sdk-upgrade, no AI) against 40939897777 (1712c55f): needs review (grade D) before, validated grade C after. Read from run/migration.patch and report.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.October25 to ApiVersion.January26 in app/shopify.server.ts (shopifyApp and the exported apiVersion) and in the .graphqlrc.ts codegen project; 2025-10 is past its support window, so requests already get 2026-01, the version the proof compares from.",
+        "bothVersions": "n/a: an Admin API version move; both traced Admin documents validate on 2026-01 with graphql-js; tsc type-checks app/shopify.server.ts and passed on both sides.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the ApiVersion member; no package or lockfile change.",
+        "pleaseCheck": "Generated types are committed and nothing the documents use differs, so they match the target. The SDK upgrade to @shopify/shopify-app-react-router 2 stopped (embedded-only), so the move stops at the newest version the locked SDK names. shopify.app.toml keeps its own webhook API version.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "lnmjkessel-code/v13",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40942668604 (33beeb94, subsets/shopify-dev-60.json, --sdk-upgrade, no AI) against 40939897777 (1712c55f): needs review (grade D) before, validated grade C after. Read from run/migration.patch and report.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.October25 to ApiVersion.July26 in app/shopify.server.ts (shopifyApp and the exported apiVersion) and in the .graphqlrc.ts codegen project; 2025-10 is past its support window, so requests already get 2026-01, the version the proof compares from.",
+        "bothVersions": "n/a: an Admin API version move; all 5 traced Admin documents validate on 2026-07 with graphql-js and no selected field or variable input type changes from 2026-01; tsc type-checks app/shopify.server.ts and passed on both sides.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the ApiVersion member; no package or lockfile change.",
+        "pleaseCheck": "The repository commits no generated types, so the codegen config pin affects only future codegen runs. The SDK upgrade to @shopify/shopify-app-react-router 2 stopped (embedded-only), so the move stops at the newest version the locked SDK names. shopify.app.toml keeps its own webhook API version.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "jgasimli04/marketoracle",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40942668604 (33beeb94, subsets/shopify-dev-60.json, --sdk-upgrade, no AI) against 40939897777 (1712c55f): needs review (grade D) before, validated grade C after. Read from run/migration.patch and report.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.October25 to ApiVersion.January26 in app/shopify.server.ts (shopifyApp and the exported apiVersion) and in the .graphqlrc.ts codegen project; 2025-10 is past its support window, so requests already get 2026-01, the version the proof compares from.",
+        "bothVersions": "n/a: an Admin API version move; the app sends no Admin request (no GraphQL call or document, no REST call, no webhook registered in code), so nothing depends on the version; tsc type-checks app/shopify.server.ts and passed on both sides.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the ApiVersion member; no package or lockfile change.",
+        "pleaseCheck": "The app is the unmodified template: it only authenticates; the move changes nothing it sends. The SDK upgrade to @shopify/shopify-app-react-router 2 stopped (embedded-only), so the move stops at the newest version the locked SDK names. shopify.app.toml keeps its own webhook API version.",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
+      "repo": "Akmal1255553/startup1",
+      "pullRequest": null,
+      "run": "refit-bench shopify.yml 40942682023/40942694636 (33beeb94, the 250 practice lists, --sdk-upgrade, no AI) against 40943642717/40943654787 (1712c55f): needs review (grade D) before, validated grade B after. Read from run/migration.patch and report.json.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: ApiVersion.January25 to ApiVersion.April26 in app/shopify.server.ts (shopifyApp and the exported apiVersion) and ApiVersion.July25 to ApiVersion.April26 in the .graphqlrc.ts codegen project; @shopify/shopify-api 12.3.0 names April26 but not October26.",
+        "bothVersions": "n/a: an Admin API version move; all 11 traced Admin documents validate on 2026-04 with graphql-js and no selected field or variable input type changes from 2026-01, the oldest supported version requests already get.",
+        "nothingUnrelated": "yes: every changed line differs from the original only in the ApiVersion member; no package or lockfile change.",
+        "pleaseCheck": "ShopPlan.displayName and ReturnLineItem.returnReason are deprecated on 2026-04 but still served; the draft lists both. shopify.app.toml keeps its own webhook API version (2026-07).",
+        "upgradeComplete": "n/a: no package changes.",
+        "wouldMerge": "yes"
+      }
+    },
+    {
       "repo": "FreeForCharity/FFC-IN-FFC_Single_Page_Template",
       "pullRequest": null,
       "run": "refit-bench meta.yml 40963544288 (59965322, subsets/meta-dev-60.json, size=1, no AI) against 40955599826 (affb6e8a); no patch before, validated after. Read from the shard artifact moves.patch and results.json.",

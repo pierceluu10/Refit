@@ -319,6 +319,46 @@ The dev set comes from the 250 already-open 2026-10-16 lists, because the search
 
 Run the dev set on GitHub Actions with `-f list=subsets/shopify-dev-60.json` ([GitHub benchmarks](GITHUB-BENCHMARKS.md#shopify)).
 
+#### Proof gate (2026-10-29, feat/shopify-proof-gate)
+
+`shopify.yml` on dev-60 with `-f flags=--sdk-upgrade`, size 1, no AI, current schemas (2026-01 `b0e01280b220`, 2026-04 `70db95021c1f`, 2026-07 `9cf7ccbb5b38`, 2026-10 `9af82bcd6c84`): 40939897777 (before, `1712c55f`) and 40942668604 (after, `33beeb94`). Validated 0 → 3, all grade C, each hand-checked `correct` in `docs/benchmarks/fix-reviews.json`: sabbir-noyon/wishkit-app-shopify and lnmjkessel-code/v13 (a `.graphqlrc.ts` pin left to the schema proof; lnmjkessel commits no generated types, so codegen no longer counts as stale) and jgasimli04/marketoracle (no Admin request). 9 patched rows stay `[Needs review]`: 4 at grade D whose changed files no check covers (LazerTechnologies, newideasacct-lab/ai-peacemaker and Rakesh161rausahn change JavaScript tsc does not check; brunaszarin/spotlight-manager runs only tests, which reach nothing changed), 4 at grade D whose baseline check fails (TS18003, TS2688 or failing tests), and dcam9586/scout-source2, now grade C, keeps its `submodules` gate. Priyadharshini29-M/Combo-page-app errors as before; no other row changed.
+
+The 250 practice repositories (`2026-10-16-shopify-repos.json` and `2026-10-16-shopify-fresh-repos.json`, size 5, same flags and schemas): 40943642717 and 40943654787 (before, `1712c55f`), 40942682023 and 40942694636 (after, `33beeb94`). Validated 4 → 8, none lost: the three dev-60 rows above (they come from these lists) and Akmal1255553/startup1 (grade B; its tests reach `app/shopify.server.ts`), reviewed `correct`. dcam9586/scout-source2 moves from D to C and keeps its `submodules` gate; no other row changed. The one dependency-preparation stop, aargonlab/Self-Service-Returns, declared `"workspaces": []`, which npm leaves out of the root lockfile record; `dc552d8a` accepts it as `npm ci` does, and 40945140339 prepares it and passes its tests on both sides, still grade D because no test reaches `app/shopify.server.ts`.
+
+#### Dev set with and without AI (2026-10-29)
+
+refit-bench `shopify.yml` on branch `shopify-ai`, commit `8bc3d97f`, `--sdk-upgrade`, `size=1`, schemas read 2026-10-29 (2026-04 and 2026-07 differ from the frozen hashes), the development store set in both runs. Without AI: run 40942065975. With AI (`ai=true`, `ai_budget=300`, gpt-6.1-sol): run 40942081474.
+
+|                                                                                  | No AI  | AI     |
+| -------------------------------------------------------------------------------- | ------ | ------ |
+| Validated                                                                        | 0      | 0      |
+| Needs review                                                                     | 12     | 12     |
+| Error (`Combo-page-app`: the proposal changes the verified version declarations) | 1      | 1      |
+| Stopped at scan                                                                  | 47     | 47     |
+| Grade A / D among the 12                                                         | 0 / 12 | 1 / 11 |
+
+- One row changes: jadenScali/Aeo-Optimizer moves from grade D to A. The model wrote the variable inputs the live proof lacked, and all 7 operations ran on the development store at both versions. It stays `[Needs review]` because its own tests fail on the original code. Its patch is deterministic and identical in both runs.
+- 32 scan-time AI requests cost $0.43; the AI child runs spent more on assessments and live cases (recorded per row as `workflow.aiCostUsd`).
+  - Document rewrites: 8 requests, 3 kept, none shipped (those repositories stop on REST calls or SDK limits). The sanjeev744/smart-bundle rewrite was kept only by adding a selection under `@skip(if: true)`. The gate now refuses that.
+  - Reconstructions: 14 requests, 2 kept, both hand-checked correct (alistairmartin/honey-birdette-checkout-amd, whose `GROUPS` holds only the CUSTOMER `size_preference` group). The other 12 were declined correctly: queries from CLI flags, request bodies or caller parameters. That repository still stops on its other unreadable calls and its SDK.
+  - REST mappings: 10 requests. One proposal was kept but did not produce what the code reads, so it was not used.
+- No patch reached AI repair. Every patched row's baseline failed or its checks passed, so no build break was left to repair.
+
+#### Versioned REST contract (2026-10-29, feat/shopify-rest-contract)
+
+refit-bench `shopify.yml` on branch `shopify-ai`, `--sdk-upgrade`, `size=1`, schemas read 2026-10-29 (2026-01 `b0e01280b220`, 2026-04 `70db95021c1f`, 2026-07 `9cf7ccbb5b38`, 2026-10 `9af82bcd6c84`). Before is `31532666` (bench/iter1-shopify-meta with #424 and #425 merged); after is `c3304055`.
+
+| Set                                               | Runs (before → after)     | AI              | Validated | Needs review | Rows stopped on REST |
+| ------------------------------------------------- | ------------------------- | --------------- | --------- | ------------ | -------------------- |
+| dev-60                                            | 40950502043 → 40950547981 | yes, budget 300 | 3 → 3     | 12 → 13      | 14 → 12              |
+| practice 50 (`2026-10-16-shopify-repos.json`)     | 40950519023 → 40950561596 | yes, budget 300 | 1 → 1     | 10 → 10      | 8 → 7                |
+| fresh 200 (`2026-10-16-shopify-fresh-repos.json`) | 40953240143 → 40953254697 | no              | 6 → 6     | 43 → 44      | 44 → 32              |
+
+- The fresh-200 AI pair (40950533927 → 40950575885) is not comparable: the OpenAI account ran out of credit during the after run, and 36 rows ended with `HTTP 429 (credit_balance_exhausted)`. In that run danyn/shopify-app-rr showed as validated only because its live proof, which failed before, did not run; it is not a new validation. The pair was rerun without AI.
+- 13 of the 52 rows on the 250 practice repositories that stopped on REST no longer do (dev-60 is drawn from them). None validates yet, because each meets another gate: `LATEST_API_VERSION` that only an SDK upgrade moves (Ascensyo/addlee-now, NINE15Team/Finally-Back-In-Stock, Stephnn0/remix-youtube-tutorial), an SDK upgrade the lockfile cannot take (AB-Insightful/ab-insightful, atsuki-sakai/shopify-point-app, sourav-backend-dev/crypto-shopify-app), a document that already fails on 2026-01 (dza59/remix-chat-tutorial), an unresolved `this.apiVersion` (shoptether/shoptether) or no pin (kevinjmosley93/the-best-shopify-theme-toolkit).
+- arslanramay/shopify-custom-app-boilerplate moves from the REST stop to a patch (SDK 11.0.0 to 14.0.1, three proven count calls) that is untested, because it has no checks. Priyadharshini29-M/Combo-page-app moves from an error to `[Needs review]` at grade D: its proven `products.json` call is no longer rewritten, so the rewrite no longer conflicts with the version edits.
+- No row is newly validated, so `docs/benchmarks/fix-reviews.json` gains no entry. Offline, the contract proves 66 of 181 REST calls on the 250 repositories, and every REST call in 16 of the 55 that use REST.
+
 ## API deadlines
 
 The hand-labelled [deadline benchmark](DEADLINE-BENCHMARK.md) covers 100 repositories, 32 labelled line by line. Refit flags 28 of 28 exposed repositories at 28/28 repository precision, with 83% OpenAI line precision from live-only evidence.
