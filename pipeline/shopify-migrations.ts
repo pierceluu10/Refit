@@ -17,6 +17,7 @@ import ts from 'typescript-compiler';
 import type { AdminDocument } from './shopify-analysis.ts';
 import type { ShopifyLiveCase } from './shopify-live-proof.ts';
 import { loadShopifyRuleTables } from './shopify-rules.ts';
+import { pinnedShopifySchema, pinnedShopifyVersions } from './shopify-schemas.ts';
 import type { SourceEdit } from './types.ts';
 
 // Documented migrations that change a document's shape (docs/SHOPIFY-RULES.md, family
@@ -669,6 +670,95 @@ function variantsBulkUpdate(
   };
 }
 
+// Admin members Shopify removed with no replacement a document edit can make, each quoting the
+// saved page it was read from (docs/benchmarks/shopify-changelog/pages). A document that sends one
+// stops with this reason instead of a generic "already fails".
+export const DOCUMENTED_REMOVALS = [
+  {
+    coordinate: 'Mutation.metafieldDelete',
+    source:
+      'https://shopify.dev/changelog/posts/remove-metafielddelete-in-favor-of-metafieldsdelete',
+    quote: 'Note that the Metafield GID is not an option in `metafieldsDelete`.',
+    checkedAt: '2026-10-30',
+    reason:
+      'Shopify removed it in 2025-01 for metafieldsDelete, which takes ownerId, namespace and key instead of the metafield GID this document sends, so the call needs those values from the code',
+  },
+  {
+    coordinate: 'Mutation.discountsAllocatorFunctionRegister',
+    source:
+      'https://shopify.dev/changelog/posts/discounts-allocator-function-api-developer-preview-has-ended',
+    quote: 'They were never available in a stable version.',
+    checkedAt: '2026-10-30',
+    reason:
+      'Shopify ended the Discounts Allocator Function API developer preview with no replacement; the mutation was only ever on the unstable version',
+  },
+] as const;
+
+// Every pinned Admin schema and the newest pinned Storefront schema, read once.
+let loadedSchemas:
+  | { admin: string[]; schemas: GraphQLSchema[]; storefront: string; shop: GraphQLSchema }
+  | undefined;
+function referenceSchemas() {
+  if (!loadedSchemas) {
+    const admin = pinnedShopifyVersions('admin');
+    const storefront = pinnedShopifyVersions('storefront').at(-1)!;
+    loadedSchemas = {
+      admin,
+      schemas: admin.map((version) => pinnedShopifySchema('admin', version).schema),
+      storefront,
+      shop: pinnedShopifySchema('storefront', storefront).schema,
+    };
+  }
+  return loadedSchemas;
+}
+
+const hasMember = (schema: GraphQLSchema, type: string, member?: string) => {
+  const named = schema.getType(type);
+  if (!named) return false;
+  if (!member) return true;
+  return 'getFields' in named && Object.hasOwn(named.getFields(), member);
+};
+
+// Why no documented migration fixes a document, one sentence per member its errors name: a
+// documented removal, or a member no pinned Admin schema has and no saved Shopify page replaces. A
+// document that validates whole on the pinned Storefront schema is a Storefront document sent to the
+// Admin API; a member that only shares a Storefront field's name proves nothing, since Admin had
+// many of the same names before it removed them. Errors about anything else name nothing.
+export function unmigratedReasons(
+  text: string,
+  errors: readonly GraphQLError[],
+  target: GraphQLSchema,
+) {
+  const { admin, schemas, storefront, shop } = referenceSchemas();
+  const pinned = `every pinned Admin schema (${admin[0]} to ${admin.at(-1)})`;
+  if (!errorsOn(shop, text).length)
+    return [
+      `The document validates on the Storefront API ${storefront} schema and fails on the Admin API: it is a Storefront document sent with an Admin client.`,
+    ];
+  const reasons = new Map<string, string>();
+  for (const error of errors) {
+    const field = /^Cannot query field "(\w+)" on type "(\w+)"\./.exec(error.message);
+    const type = /^Unknown type "(\w+)"\./.exec(error.message);
+    const [owner, member] = field ? [field[2], field[1]] : type ? [type[1], undefined] : [];
+    if (!owner) continue;
+    const coordinate = member ? `${owner}.${member}` : owner;
+    if (reasons.has(coordinate)) continue;
+    const documented = DOCUMENTED_REMOVALS.find((entry) => entry.coordinate === coordinate);
+    if (documented)
+      reasons.set(coordinate, `${coordinate}: ${documented.reason} (${documented.source}).`);
+    else if (![...schemas, target].some((schema) => hasMember(schema, owner, member)))
+      reasons.set(
+        coordinate,
+        `${coordinate} is absent from ${pinned}, and no saved Shopify page names its replacement.`,
+      );
+  }
+  // An input type goes with the field that takes it; it is named only when no field is.
+  const fields = [...reasons.keys()].filter((coordinate) => coordinate.includes('.'));
+  return (fields.length ? fields : [...reasons.keys()]).map((coordinate) =>
+    reasons.get(coordinate)!,
+  );
+}
+
 // Applies the unused-variable fix and the documented migrations a failing document needs, or says
 // why it cannot. Undefined when nothing applies. `source` is the content of the document's file.
 export function migrateDocument(options: {
@@ -690,7 +780,11 @@ export function migrateDocument(options: {
         error.message.startsWith('Cannot query field "productVariantUpdate" on type "Mutation".'),
       ),
   );
-  if (!unused && !variantRule) return undefined;
+  const named = unmigratedReasons(text, errors, after);
+  if (!unused && !variantRule)
+    return named.length
+      ? { refusal: `no documented migration covers this document. ${named.join(' ')}` }
+      : undefined;
   if (!segment || options.source === undefined)
     return { refusal: 'the document is assembled from several pieces of source' };
   const migration: DocumentMigration = { text, edits: [], notes: [], liveCases: [], uncovered: [] };
@@ -760,7 +854,10 @@ export function migrateDocument(options: {
   const remaining = errorsOn(after, text);
   if (remaining.length)
     return {
-      refusal: `After the migration the document still fails on the target schema: ${remaining[0].message}`,
+      refusal: [
+        `After the migration the document still fails on the target schema: ${remaining[0].message}`,
+        ...unmigratedReasons(text, remaining, after),
+      ].join(' '),
     };
   // Every variable type of the rewritten document exists on the target.
   for (const definition of parse(text).definitions)

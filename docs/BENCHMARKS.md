@@ -507,6 +507,20 @@ refit-bench `shopify.yml` on branch `shopify-ai`, `--sdk-upgrade`, `size=1`, no 
 - **AI runs with Claude are not comparable yet.** The pairs used `claude-sonnet-5-5` with budget 300 (before `dde26f87` = #431 plus the harness and variant fixes, after `ed026a00` = this branch merged with #431): dev-60 40988042473 → 40988067551, practice 50 40988051253 → 40988076014, fresh 200 40988059842 → 40988084253. Validated went 3 → 3, 1 → 1 and 5 → 6. Up to 34 rows per run ended with `Anthropic token counting failed with HTTP 400 (invalid_request_error)`. The requests are byte-identical at both commits (checked by recording them offline), and a rerun of the before commit (40990579751) fails on 12 dev-60 rows the same way, so the failure is on the Anthropic account, not in either commit. The fresh-200 +1 (cornerstone-report/x-money-shopify, grade D to C) is an artifact: its live-case writer hit the 400, so the store run that failed before did not run.
 - The development-store case for the bulk update was refused in a first AI run (40982706076): the variant it updates comes from the product the case created, but only the product's own ID counted as created. A created product's own variants now count (`3b31fd95`); other nested IDs still do not.
 
+#### Named stops for removed fields (2026-10-30, fix/shopify-field-rules, SH11)
+
+refit-bench `shopify.yml` on branch `shopify-ai`, `--sdk-upgrade`, no AI, Admin schemas read 2026-10-30 (2026-01 `76bdd5e5583c`, 2026-04 `a8b5a7a55eae`, 2026-07 `90cc3c6275fa`, 2026-10 `3ef749850e5d`). Before is main `57ce145f`; after is `f67a782e`.
+
+| Set                                               | Runs (before → after)     | Validated | Needs review | Rows stopped on "already fails" |
+| ------------------------------------------------- | ------------------------- | --------- | ------------ | ------------------------------- |
+| dev-60                                            | 41132449226 → 41135968921 | 10 → 10   | 24 → 24      | 2 → 2                           |
+| practice 50 (`2026-10-16-shopify-repos.json`)     | 41132451966 → 41135972588 | 7 → 7     | 15 → 15      | 4 → 4                           |
+| fresh 200 (`2026-10-16-shopify-fresh-repos.json`) | 41132455018 → 41135975750 | 17 → 17   | 57 → 57      | 14 → 14                         |
+
+- No rule was added, so no row changes outcome, patch or top-level reason. The changelog entries for the removed members these rows send (Customer fields, the variant field cleanup, the inventory mutations) return 404, and the feed starts in October 2024, so there is no page to quote ([Shopify rules](SHOPIFY-RULES.md#migrations)). The two pages that are published name no edit Refit can make: `metafieldsDelete` does not take the metafield GID, and the Discounts Allocator API has no replacement.
+- What changes is each document's reason, which `results.json` does not record. Checked locally at the benchmark commits: madeburo/GEO-AI-Shopify names the `metafieldDelete` removal and its page, tahmidbintaslim/shopify-ucp names a Storefront `cartCreate` document sent with an Admin client, and hasan-araav/shopify-order-sync names each member no pinned Admin schema has. An earlier commit (`4540f8ac`, runs 41134283388, 41134286336, 41134289484, identical outcomes) also called members such as `ProductVariant.weight` Storefront fields because the Storefront schema shares the name; that was wrong, since Admin had them until Shopify removed them, so only a document that validates whole on Storefront is named that way now.
+- No row is newly validated or patched, so `docs/benchmarks/fix-reviews.json` gains no entry.
+
 #### REST residue (2026-10-29, feat/shopify-rest-residue, SH14)
 
 Same workflow and flags, no AI (the OpenAI credit is exhausted). Before is `1de287fe` (bench/iter1-shopify-meta); after is `a9752609`: saved records, unused REST client providers, const bodies, `text()`, the `errors` envelope and scoped client declarations ([Shopify REST](SHOPIFY-REST.md#what-a-proof-needs)).
