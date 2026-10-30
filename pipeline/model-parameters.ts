@@ -21,6 +21,10 @@ export const MODEL_PARAMETER_NAMES: Record<string, ReadonlySet<string>> = {
     'logit_bias',
     'logprobs',
     'top_logprobs',
+    // Deprecated in favour of `tools` and `tool_choice`, which also change the response shape
+    // (OpenAI chat completions reference, read 2026-10-29).
+    'functions',
+    'function_call',
   ]),
   anthropic: new Set(['temperature', 'top_p', 'top_k', 'thinking']),
 };

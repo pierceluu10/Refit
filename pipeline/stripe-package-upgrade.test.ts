@@ -9,6 +9,7 @@ import { DependencyPreparationError, prepareDependencies } from './dependency-pr
 import {
   codeDiff,
   packageDiff,
+  samePatchLine,
   STRIPE_SDK_RELEASES,
   stripePackageUpgrade,
 } from './stripe-package-upgrade.ts';
@@ -500,9 +501,9 @@ it('leaves an unused optional peer out of the pnpm snapshot and prunes what only
 
 it.each([
   [
-    'lockfile v6 with importers',
+    'a lockfile 9 layout labelled v6',
     pnpmLock({ version: '6.0' }),
-    /single-project pnpm lockfile version 6/,
+    /\(v6\) dev and optional flags do not match/,
   ],
   ['pnpm 7 lockfile 5.4', pnpmLock({ version: '5.4' }), /Only pnpm lockfile versions 6 and 9/],
   ['non-pnpm formatting', pnpmLock().replace(/\{integrity: /g, '{ integrity: '), /pnpm formatting/],
@@ -706,6 +707,26 @@ it.each([
   expect(await stripePackageUpgrade(root, '2026-09-30.endive')).toEqual({
     reason: expect.stringMatching(reason),
   });
+});
+
+it('upgrades only the lockfile preparation chose when the lockfiles disagree', async () => {
+  // Shaped like avikalp987/quill: package-lock.json, committed last, locks another stripe than
+  // pnpm-lock.yaml. Both lockfiles are upgraded together whenever that works.
+  registry();
+  const npmLock = npmLockText(lockfile('^16.12.0'));
+  const root = await withLock(await pnpmProject(pnpmLock()), 'package-lock.json', npmLock);
+  const result = await stripePackageUpgrade(root, '2026-09-30.endive', undefined, 'pnpm-lock.yaml');
+  if (!('upgrade' in result)) throw new Error(result.reason);
+  const manifest = result.upgrade.files[0].before;
+  expect(result.upgrade.files).toEqual(await alone(manifest, 'pnpm-lock.yaml', pnpmLock()));
+  expect(result.upgrade.warning).toBe(
+    `Upgrades stripe from 16.12.0 to ${TARGET} in package.json and pnpm-lock.yaml, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog. Refit installed and upgraded pnpm-lock.yaml only and left package-lock.json as committed, so it can still lock the older stripe. Delete the lockfile your package manager does not use.`,
+  );
+  // Choosing the other one upgrades it alone.
+  const npm = await stripePackageUpgrade(root, '2026-09-30.endive', undefined, 'package-lock.json');
+  if (!('upgrade' in npm)) throw new Error(npm.reason);
+  expect(npm.upgrade.files.map((file) => file.path)).toEqual(['package.json', 'package-lock.json']);
+  expect(npm.upgrade.from).toBe('12.18.0');
 });
 
 it('ignores an empty lockfile beside the one that locks stripe', async () => {
@@ -1104,6 +1125,41 @@ it('upgrades a pnpm 8 lockfile v6 the way pnpm 8 rewrites it', async () => {
   expect(lock).toContain(`  /@types/node@20.1.0:\n    resolution: {integrity: ${INTEGRITY}}\n\n`);
 });
 
+// pnpm 8 nests the root sections under `importers['.']` when pnpm-workspace.yaml lists only the root.
+function v6RootImporter(extra = '') {
+  const [head, rest] = V6_LOCK.split('dependencies:\n  stripe:');
+  const [sections, packages] = `dependencies:\n  stripe:${rest}`.split('\npackages:\n');
+  const nested = sections.trimEnd().replace(/^(?=.)/gm, '    ');
+  return `${head}importers:\n\n  .:\n${nested}\n${extra}\npackages:\n${packages}`;
+}
+
+it('upgrades a lockfile v6 whose only importer is the root, in place under importers', async () => {
+  registry();
+  const result = await stripePackageUpgrade(await v6Project(v6RootImporter()), '2026-09-30.endive');
+  if (!('upgrade' in result)) throw new Error(result.reason);
+  expect(result.upgrade).toMatchObject({ from: '14.0.0', to: TARGET });
+  const lock = result.upgrade.files.find((file) => file.path === 'pnpm-lock.yaml')!.after;
+  expect(lock).toContain(
+    `importers:\n\n  .:\n    dependencies:\n      stripe:\n        specifier: ^${TARGET}\n        version: ${TARGET}(@types/node@20.1.0)\n`,
+  );
+  expect(lock).not.toMatch(/^dependencies:/m);
+  expect(lock).not.toContain('/qs@');
+  expect(lock).toContain(
+    `  /side-channel@1.0.4:\n    resolution: {integrity: ${INTEGRITY}}\n    dev: true\n`,
+  );
+});
+
+it('refuses a lockfile v6 with a second importer', async () => {
+  registry();
+  const result = await stripePackageUpgrade(
+    await v6Project(v6RootImporter('\n  packages/web: {}\n')),
+    '2026-09-30.endive',
+  );
+  expect(result).toEqual({
+    reason: expect.stringMatching(/single-project pnpm lockfile version 6/),
+  });
+});
+
 it.each([
   ['dev flags that do not match the graph', V6_LOCK.replace('    dev: true\n', '')],
   [
@@ -1118,4 +1174,13 @@ it.each([
   registry();
   const result = await stripePackageUpgrade(await v6Project(lock), '2026-09-30.endive');
   expect(result).toMatchObject({ reason: expect.any(String) });
+});
+
+it('accepts a newer patch of the target stripe-node release, never another minor', () => {
+  expect(samePatchLine('23.0.0', '23.0.0')).toBe(true);
+  expect(samePatchLine('23.0.1', '23.0.0')).toBe(true);
+  expect(samePatchLine('23.1.0', '23.0.0')).toBe(false);
+  expect(samePatchLine('22.9.9', '23.0.0')).toBe(false);
+  expect(samePatchLine('23.0.1-beta.1', '23.0.0')).toBe(false);
+  expect(samePatchLine(undefined, '23.0.0')).toBe(false);
 });

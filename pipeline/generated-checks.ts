@@ -4,7 +4,9 @@ import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import ts from 'typescript-compiler';
+import { HARNESS_FILE, HARNESS_SPECIFIER } from './behaviour-harness.ts';
 import { removeDockerContainer, resolveDockerImage } from './docker-sandbox.ts';
+import { AUTH_STAND_INS, STAND_INS_RUNTIME, type RuntimeStandIns } from './runtime-stand-ins.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import { digest } from './specifications.ts';
 import { PipelineInputError, type Finding, type Repository } from './types.ts';
@@ -244,8 +246,19 @@ const TYPESCRIPT = /\\.(?:[cm]?ts|tsx)$/;
 // Extensions Node or TypeScript resolve as modules; './workerTimers.worker' has none of them.
 const EXTENSION = /\\.(?:[cm]?[jt]sx?|json|node)$/i;
 const UNRESOLVED = new Set(['ERR_MODULE_NOT_FOUND', 'ERR_UNSUPPORTED_DIR_IMPORT']);
+// Stand-ins (runtime-stand-ins.ts): @prisma/client from the committed schema, and session helpers.
+const standIns = JSON.parse(readFileSync(new URL('stand-ins.json', import.meta.url), 'utf8'));
+const runtime = new URL('stand-ins.mjs', import.meta.url).href;
 export async function resolve(specifier, context, next) {
   if (specifier === '${BEHAVIOUR_MODULE}') return { url: '${BEHAVIOUR_MODULE}', shortCircuit: true };
+  if (specifier === '${HARNESS_SPECIFIER}') return { url: new URL('${HARNESS_FILE}', import.meta.url).href, shortCircuit: true };
+  if (specifier === '@prisma/client' && standIns.prisma) return { url: 'refit:prisma', shortCircuit: true };
+  const resolved = await locate(specifier, context, next);
+  return standIns.auth[specifier]
+    ? { url: 'refit:auth?' + new URLSearchParams({ specifier, url: resolved.url }), shortCircuit: true }
+    : resolved;
+}
+async function locate(specifier, context, next) {
   const parent = context.parentURL?.startsWith('file:') ? fileURLToPath(context.parentURL) : '';
   const target = parent.startsWith(root) ? map[parent.slice(root.length)]?.[specifier] : undefined;
   if (target) return next(pathToFileURL(root + target).href, context);
@@ -273,6 +286,29 @@ export async function load(url, context, next) {
       source: 'export const stripeRequests = globalThis.__refitStripe.requests; export const resetStripeRequests = globalThis.__refitStripe.reset;',
       shortCircuit: true,
     };
+  if (url === 'refit:prisma') {
+    const names = Object.keys(standIns.prisma.enums).filter((name) => !['PrismaClient', 'Prisma', '$Enums'].includes(name));
+    return {
+      format: 'module',
+      source: "import { prismaModule } from '" + runtime + "';\\nconst stand = prismaModule(" + JSON.stringify(standIns.prisma) + ");\\n" +
+        'export const PrismaClient = stand.PrismaClient;\\nexport const Prisma = stand.Prisma;\\nexport const $Enums = stand.enums;\\n' +
+        names.map((name) => 'export const ' + name + ' = stand.enums.' + name + ';\\n').join('') +
+        'export default { PrismaClient, Prisma, $Enums };\\n',
+      shortCircuit: true,
+    };
+  }
+  if (url.startsWith('refit:auth?')) {
+    const parameters = new URLSearchParams(url.slice('refit:auth?'.length));
+    const stand = standIns.auth[parameters.get('specifier')];
+    const real = JSON.stringify(parameters.get('url'));
+    return {
+      format: 'module',
+      source: "import { authStandIns } from '" + runtime + "';\\nexport * from " + real + ';\\n' +
+        (stand.defaultExport ? 'export { default } from ' + real + ';\\n' : '') +
+        stand.names.map((name) => 'export const ' + name + ' = authStandIns.' + name + ';\\n').join(''),
+      shortCircuit: true,
+    };
+  }
   // Bundlers import JSON without an attribute (import pkg from 'next/package.json'); Node's ESM
   // loader refuses that, so the sandbox serves it as a module whose default export is the data.
   if (url.startsWith('file:') && url.endsWith('.json') && context.importAttributes?.type !== 'json')
@@ -296,6 +332,7 @@ const REDIRECT = `import { readFileSync } from 'node:fs';
 import http from 'node:http';
 import https from 'node:https';
 import { register } from 'node:module';
+import './stand-ins.mjs';
 register('./resolve.mjs', import.meta.url);
 for (const [name, value] of Object.entries(JSON.parse(readFileSync(new URL('environment.json', import.meta.url), 'utf8'))))
   process.env[name] ??= value;
@@ -394,6 +431,7 @@ for (const entry of entries) {
     console.log('REFIT_GENERATED_RESULT=' + JSON.stringify({ id, ok: false, phase, error: text.slice(0, 500) }));
   }
 }
+console.log('REFIT_STAND_INS=' + JSON.stringify([...(globalThis.__refitStandIns ?? [])].sort()));
 // A stopped call may still hold the event loop open; exit once everything printed is written.
 process.stdout.write('${GENERATED_DONE}\\n', () => process.exit(0));
 `;
@@ -428,16 +466,36 @@ export function generatedResults(stdout: string) {
   return results;
 }
 
+// The stand-ins application code used on either side (printed by the harness).
+export function usedStandIns(...outputs: string[]) {
+  const names = new Set<string>();
+  for (const output of outputs)
+    for (const line of output.split('\n'))
+      if (line.startsWith('REFIT_STAND_INS=')) {
+        const value: unknown = JSON.parse(line.slice('REFIT_STAND_INS='.length));
+        if (Array.isArray(value))
+          for (const name of value) if (typeof name === 'string') names.add(name);
+      }
+  return [...names].sort();
+}
+
 export async function writeHarness(
   directory: string,
   entries: EntryPoint[],
   imports: Record<string, Record<string, string>> = {},
   patchedImports = imports,
   environment: Record<string, string> = {},
+  standIns: RuntimeStandIns = {},
 ) {
   await writeFile(join(directory, 'environment.json'), JSON.stringify(environment), {
     mode: 0o444,
   });
+  await writeFile(
+    join(directory, 'stand-ins.json'),
+    JSON.stringify({ ...standIns, auth: AUTH_STAND_INS }),
+    { mode: 0o444 },
+  );
+  await writeFile(join(directory, 'stand-ins.mjs'), STAND_INS_RUNTIME, { mode: 0o444 });
   await writeFile(join(directory, 'redirect.mjs'), REDIRECT, { mode: 0o444 });
   await writeFile(join(directory, 'resolve.mjs'), RESOLVE, { mode: 0o444 });
   await writeFile(join(directory, 'imports-before.json'), JSON.stringify(imports), { mode: 0o444 });
@@ -554,9 +612,11 @@ export function compareGeneratedRuns(
         : entries.length
           ? 'not-runnable'
           : 'not-run';
+  const standIns = usedStandIns(before.stdout, after.stdout);
   return {
     status,
     ...(broken ? { reason: broken } : {}),
+    ...(standIns.length ? { standIns } : {}),
     ...(status === 'not-runnable'
       ? {
           reason: unavailableEntries.length

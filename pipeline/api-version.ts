@@ -16,6 +16,10 @@ export interface ApiVersionDeclaration extends Location {
   absent?: true;
   // The literal also sets a webhook endpoint's api_version (see declared-api-versions.ts).
   endpoint?: true;
+  // An untraced client's literal pin the patch moves to the target: the version it sent.
+  moved?: string;
+  // The version is read from this deployment environment variable; `value` is its repository default.
+  environment?: string;
 }
 
 export interface ApiVersionSource {

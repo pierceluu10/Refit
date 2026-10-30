@@ -71,6 +71,10 @@ export interface AiOptions {
   apiKey: string;
   model: string;
   budget?: AiBudget;
+  // Responses API reasoning effort; the model's default (medium for gpt-6.1-sol) when unset.
+  reasoningEffort?: string;
+  // The stronger step a patch request retries once with when its first answer proposes no edit.
+  escalation?: { model: string; reasoningEffort?: string };
 }
 
 export function aiBudgetLimit(value: string | undefined, name: string, fallback?: number) {

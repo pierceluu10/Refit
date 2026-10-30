@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -96,13 +96,26 @@ it('installs with the lockfile of the pinned manager when the repository CI inst
       await commit({ ...portal, '.github/workflows/css-size.yml': workflow('npm ci') }),
     ),
   ).rejects.toThrow(conflict);
-  // So does a repository without a workflow that installs.
+  // Without a workflow that installs, the pin alone decides.
+  const pinned = await readPreparationInputs(
+    await commit({
+      ...portal,
+      '.github/workflows/ci.yml': workflow('pnpm typecheck'),
+      '.github/workflows/css-size.yml': workflow('pnpm run css:purge'),
+    }),
+  );
+  expect(pinned.inputs.lockfileChoice).toEqual({
+    lockfile: 'pnpm-lock.yaml',
+    rule: 'package-manager',
+    because: 'the lockfile of the manager package.json pins (`"packageManager": "pnpm@10.18.3"`)',
+    others: { 'package-lock.json': 'not read' },
+  });
+  // A pin whose lockfile is not committed picks none.
   await expect(
     readPreparationInputs(
       await commit({
         ...portal,
-        '.github/workflows/ci.yml': workflow('pnpm typecheck'),
-        '.github/workflows/css-size.yml': workflow('pnpm run css:purge'),
+        'package.json': portal['package.json'].replace('pnpm@10.18.3', 'yarn@1.22.22'),
       }),
     ),
   ).rejects.toThrow(conflict);
@@ -142,7 +155,8 @@ it('installs the one committed lockfile in sync with package.json and records wh
     manager: 'pnpm',
     lockfileChoice: {
       lockfile: 'pnpm-lock.yaml',
-      outOfSync: {
+      rule: 'in-sync',
+      others: {
         'package-lock.json':
           'package.json dependencies differ from the committed package-lock.json: stripe is "10.17.0" in package.json but "10.16.0" in the lockfile.',
       },
@@ -162,7 +176,8 @@ it('installs the one committed lockfile in sync with package.json and records wh
     manager: 'yarn',
     lockfileChoice: {
       lockfile: 'yarn.lock',
-      outOfSync: {
+      rule: 'in-sync',
+      others: {
         'package-lock.json':
           'package.json dependencies differ from the committed package-lock.json: stripe is "^10.17.0" in package.json but "^9.0.0" in the lockfile.',
       },
@@ -206,27 +221,152 @@ it('keeps refusing several lockfiles unless exactly one is in sync and the other
       }),
     ),
   ).rejects.toThrow(conflict('pnpm-lock.yaml'));
-  // Only one is in sync, but check selection would run the checks with pnpm, which the lockfile in
-  // sync does not install with.
+  // The one in sync is installed even where check selection used to prefer the other's manager:
+  // the checks now run with the chosen lockfile's manager (check-selection.ts).
   const stalePnpmLock = pnpmLock().replace('"specifier":"10.17.0"', '"specifier":"10.16.0"');
+  for (const [other, content, chosen] of [
+    ['pnpm-lock.yaml', stalePnpmLock, 'package-lock.json'],
+    ['yarn.lock', yarnLock('10.17.0'), 'yarn.lock'],
+  ])
+    expect(
+      (
+        await readPreparationInputs(
+          await commit({
+            'package.json': manifest('10.17.0'),
+            ...(other === 'pnpm-lock.yaml'
+              ? { 'package-lock.json': npmLockAt('10.17.0', '10.17.0') }
+              : { 'pnpm-lock.yaml': stalePnpmLock }),
+            [other]: content,
+          }),
+        )
+      ).inputs.lockfileChoice,
+    ).toMatchObject({ lockfile: chosen, rule: 'in-sync' });
+});
+
+const recorded = (name: string) =>
+  readFile(join(import.meta.dirname, 'fixtures', 'conflicting-lockfiles', name), 'utf8');
+
+// Commits `first`, then `later` on top, and reads the repository at the second commit.
+async function commitTwice(first: Record<string, string>, later: Record<string, string>) {
+  const repository = (await commit(first)).directory;
+  for (const [path, content] of Object.entries(later))
+    await writeFile(join(repository, path), content);
+  await execute('git', ['-C', repository, 'add', '.']);
+  await execute(
+    'git',
+    [
+      '-C',
+      repository,
+      '-c',
+      'user.name=Refit Test',
+      '-c',
+      'user.email=test@example.invalid',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-qm',
+      'test: later',
+    ],
+    { env: { ...process.env, GIT_COMMITTER_DATE: '2030-01-01T00:00:00Z' } },
+  );
+  return repository;
+}
+
+it('installs the most recently committed of several lockfiles in sync with package.json', async () => {
+  // Shaped like ensarokumus/tldr-app at 566f26e: no pin, no workflow, package-lock.json and
+  // yarn.lock both in sync, and yarn.lock committed last.
+  const [manifestText, npm, yarn, pnpm] = await Promise.all(
+    ['package.json', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'].map(recorded),
+  );
+  const repository = await commitTwice(
+    { 'package.json': manifestText, 'package-lock.json': npm, 'yarn.lock': `${yarn}\n` },
+    { 'yarn.lock': yarn },
+  );
+  const newest = await readPreparationInputs(await readCommittedRepository(repository));
+  expect(newest.inputs.manager).toBe('yarn');
+  expect([...newest.files.keys()]).toEqual(['package.json', 'yarn.lock']);
+  const { stdout: npmDate } = await execute('git', [
+    '-C',
+    repository,
+    'log',
+    '-1',
+    '--format=%cI',
+    '--',
+    'package-lock.json',
+  ]);
+  expect(newest.inputs.lockfileChoice).toEqual({
+    lockfile: 'yarn.lock',
+    rule: 'newest',
+    because: `the most recently committed lockfile in sync with \`package.json\` (last changed ${(
+      await execute('git', ['-C', repository, 'log', '-1', '--format=%cI'])
+    ).stdout.trim()})`,
+    others: { 'package-lock.json': `package-lock.json was last changed ${npmDate.trim()}.` },
+  });
+  // An out-of-sync lockfile is never a candidate, however recently committed: the stale
+  // package-lock.json is committed last here, and pnpm-lock.yaml is the only one in sync.
+  const stale = await recorded('stale-package-lock.json');
+  const outOfSync = await readPreparationInputs(
+    await readCommittedRepository(
+      await commitTwice(
+        { 'package.json': manifestText, 'pnpm-lock.yaml': pnpm, 'package-lock.json': npm },
+        { 'package-lock.json': stale },
+      ),
+    ),
+  );
+  expect(outOfSync.inputs.lockfileChoice).toMatchObject({
+    lockfile: 'pnpm-lock.yaml',
+    rule: 'in-sync',
+  });
+  // Committed together, they tie, and none is picked.
+  const conflict = 'keep only the lockfile of the package manager you use.';
   await expect(
     readPreparationInputs(
-      await commit({
-        'package.json': manifest('10.17.0'),
-        'package-lock.json': npmLockAt('10.17.0', '10.17.0'),
-        'pnpm-lock.yaml': stalePnpmLock,
-      }),
+      await commit({ 'package.json': manifestText, 'package-lock.json': npm, 'yarn.lock': yarn }),
     ),
-  ).rejects.toThrow(conflict('pnpm-lock.yaml'));
-  await expect(
-    readPreparationInputs(
-      await commit({
-        'package.json': manifest('10.17.0'),
-        'pnpm-lock.yaml': stalePnpmLock,
-        'yarn.lock': yarnLock('10.17.0'),
-      }),
-    ),
-  ).rejects.toThrow('keep only the lockfile of the package manager you use.');
+  ).rejects.toThrow(conflict);
+  // A shallow clone has no history to date them by.
+  const shallow = await mkdtemp(join(tmpdir(), 'refit-dependency-inputs-shallow-'));
+  roots.push(shallow);
+  await execute('git', ['clone', '-q', '--depth=1', `file://${repository}`, shallow]);
+  await expect(readPreparationInputs(await readCommittedRepository(shallow))).rejects.toThrow(
+    conflict,
+  );
+  // A candidate Refit committed itself has one commit; the original commit's choice stands.
+  const candidate = await commit({
+    'package.json': manifestText,
+    'package-lock.json': npm,
+    'yarn.lock': yarn,
+  });
+  expect(
+    (await readPreparationInputs(candidate, candidate.entries, newest.inputs.lockfileChoice)).inputs
+      .lockfileChoice?.lockfile,
+  ).toBe('yarn.lock');
+});
+
+it('installs the lockfile of the one manager the GitHub workflows install with', async () => {
+  // Shaped like Ankit-Sharma1011/Quill without its pin: pnpm-lock.yaml beside package-lock.json.
+  const [manifestText, npm, pnpm] = await Promise.all(
+    ['package.json', 'package-lock.json', 'pnpm-lock.yaml'].map(recorded),
+  );
+  const files = { 'package.json': manifestText, 'package-lock.json': npm, 'pnpm-lock.yaml': pnpm };
+  const ci = await readPreparationInputs(
+    await commit({ ...files, '.github/workflows/ci.yml': workflow('npm ci', 'npm test') }),
+  );
+  expect(ci.inputs).toMatchObject({
+    manager: 'npm',
+    lockfileChoice: {
+      lockfile: 'package-lock.json',
+      rule: 'ci',
+      others: { 'pnpm-lock.yaml': 'not read' },
+    },
+  });
+  // Workflows that install with two managers, or with one whose lockfile is not committed, pick none.
+  for (const commands of [['npm ci', 'pnpm install'], ['yarn install --frozen-lockfile']])
+    await expect(
+      readPreparationInputs(
+        await commit({ ...files, '.github/workflows/ci.yml': workflow(...commands) }),
+      ),
+    ).rejects.toThrow('keep only the lockfile of the package manager you use.');
 });
 
 it('gives pnpm each committed patch file whose SHA-256 pnpm-lock.yaml records', async () => {

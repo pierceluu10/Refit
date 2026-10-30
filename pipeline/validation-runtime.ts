@@ -9,8 +9,9 @@ const PROCESS_TIMEOUT_MS = 30_000;
 const MAX_DECLARATION_BYTES = 64 * 1024;
 const MAX_MANIFEST_BYTES = 1024 * 1024;
 
-// The official Node.js images whose release Refit compares with a repository's declarations. Only
-// the approved configuration chooses the image; Refit never switches it or pulls one.
+// The official Node.js images whose release Refit compares with a repository's declarations. The
+// approved configuration chooses the image; only a root engines.node that excludes its release
+// switches validation to another of these, which Refit pulls when it is not installed.
 export const NODE_18_IMAGE = 'node:18-alpine';
 export const NODE_20_IMAGE = 'node:20-alpine';
 export const NODE_22_IMAGE = 'node:22-alpine';
@@ -308,6 +309,24 @@ async function imageNodeVersion(image: string) {
   }
 }
 
+const PULL_TIMEOUT_MS = 300_000;
+
+// The Node.js release of an allowed official image, pulled when missing; null when Docker cannot
+// pull it (no network), so validation keeps the configured image.
+async function pulledNodeVersion(image: string) {
+  const installed = await imageNodeVersion(image);
+  if (installed !== null) return installed;
+  try {
+    await execute('docker', ['pull', '-q', image], {
+      timeout: PULL_TIMEOUT_MS,
+      maxBuffer: MAX_DECLARATION_BYTES,
+    });
+  } catch {
+    return null;
+  }
+  return imageNodeVersion(image);
+}
+
 const describe = (declarations: NodeDeclaration[]) =>
   declarations.map(({ source, value }) => `${source} ${JSON.stringify(value)}`).join(' and ');
 
@@ -320,8 +339,10 @@ export interface ValidationRuntime {
 }
 
 // The approved configuration chooses the image. For an allowlisted image, the repository's Node.js
-// declarations are read and compared with its release for the report; they never change the image
-// or stop validation.
+// declarations are read and compared with its release for the report. When the root engines.node
+// excludes that release (npm's --engine-strict install then fails with EBADENGINE), validation
+// moves to the newest allowed image engines.node accepts, for validation only; no other
+// declaration changes the image, and none stops validation.
 export async function selectValidationRuntime(
   snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
   configured: string,
@@ -351,6 +372,28 @@ export async function selectValidationRuntime(
   }
   if (!declarations.length)
     return keep('The repository declares no Node.js version.', declarations, nodeVersion);
+  const engines = declarations.filter((declaration) => declaration.source === 'engines.node');
+  if (nodeVersion !== null && engines.length && !satisfiesNodeDeclarations(nodeVersion, engines))
+    for (const image of [...VALIDATION_NODE_IMAGES].reverse()) {
+      const major = Number(/^node:(\d+)-alpine$/.exec(image)![1]);
+      // Pulls only an image whose release line can satisfy the range.
+      if (
+        image === configured ||
+        ![`${major}.0.0`, `${major}.999.999`].some((version) =>
+          satisfiesNodeDeclarations(version, engines),
+        )
+      )
+        continue;
+      const version = await pulledNodeVersion(image);
+      if (version !== null && satisfiesNodeDeclarations(version, engines))
+        return {
+          configured,
+          image,
+          nodeVersion: version,
+          declarations,
+          reason: `engines.node ${JSON.stringify(engines[0].value)} excludes Node.js ${nodeVersion} on ${configured}, so Refit prepares and checks the repository on ${image} (Node.js ${version}), the newest official image it accepts, for validation only.`,
+        };
+    }
   return keep(
     nodeVersion !== null && satisfiesNodeDeclarations(nodeVersion, declarations)
       ? `The configured image satisfies ${describe(declarations)}.`

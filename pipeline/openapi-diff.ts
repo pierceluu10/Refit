@@ -84,6 +84,22 @@ const RESPONSE_PROPERTY_TEXTS: Record<string, RegExp> = {
     /^the `([^`]+)` response's property `[^`]+` changed from `[^`]*` to `[^`]*` for status `([^`]+)`$/,
 };
 
+// The `default` response is the API's error object (`error/...`). A field of it becoming optional
+// changes no success response, and no client reads an error field as required.
+export function errorObjectOptional(change: Record<string, unknown>) {
+  const match = RESPONSE_PROPERTY_TEXTS['response-property-became-optional'].exec(
+    String(change.text),
+  );
+  return change.id === 'response-property-became-optional' &&
+    match?.[2] === 'default' &&
+    match[1].startsWith('error/')
+    ? {
+        reach: 'handled',
+        reachReason: 'Error-object field became optional; no client reads it as required.',
+      }
+    : undefined;
+}
+
 // Names the expandable fields whose expanded object a changed response property lies inside.
 // Unexpanded responses return those fields as ID strings, so the property cannot appear unless a
 // request expands every one of them. Unresolvable paths name nothing and keep blocking.
@@ -190,7 +206,8 @@ export function unmappedBreakingChanges(
 export async function compareOpenApi(
   before: object,
   after: object,
-  options: { openResponseEnums?: boolean } = {},
+  // Rule generation diffs years-apart Stripe versions, which take longer than a run's pair.
+  options: { openResponseEnums?: boolean; timeoutMs?: number } = {},
 ) {
   const directory = await mkdtemp(join(tmpdir(), 'refit-oasdiff-'));
   try {
@@ -204,7 +221,7 @@ export async function compareOpenApi(
     const { stdout } = await execute(
       'oasdiff',
       ['changelog', base, revision, '--format', 'json', '--allow-external-refs=false'],
-      { timeout: DIFF_TIMEOUT_MS, maxBuffer: MAX_DIFF_BYTES },
+      { timeout: options.timeoutMs ?? DIFF_TIMEOUT_MS, maxBuffer: MAX_DIFF_BYTES },
     );
     const changes: unknown = JSON.parse(stdout);
     if (
@@ -232,6 +249,7 @@ export async function compareOpenApi(
         ...change,
         ...responseRemovalLocation(change, before),
         ...expansionLocation(change, before),
+        ...errorObjectOptional(change),
         // D4: a change whose schema accepts the same values in both contracts is compatible.
         ...equivalentChange(
           change,

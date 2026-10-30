@@ -392,6 +392,18 @@ it('says when the open-enum repair restored widened Stripe enum values', async (
   );
 });
 
+it('names each type assertion and keeps a validated draft out of review', async () => {
+  const value = await report();
+  value.validation.repair.stopReason = 'type-assertion-repair';
+  value.validation.repair.typeAssertions = [{ file: 'lib/utils.ts', line: 165, code: 'TS2322' }];
+  const artifacts = createReviewArtifacts(value);
+  expect(artifacts.files['pull-request.md']).toContain(
+    'Asserts the type this code expects at `lib/utils.ts:165`',
+  );
+  expect(artifacts.files['pull-request.md']).toContain('compiles to the same JavaScript');
+  expect(artifacts.manifest.title).not.toMatch(/^\[Needs review\] /);
+});
+
 it('marks a draft that keeps sending an untyped request property for review', async () => {
   const value = await report();
   value.validation.repair.stopReason = 'open-enum-repair';
@@ -428,6 +440,27 @@ it('marks a draft with an untraced read for review and keeps it out of the confi
   expect(body).not.toContain('still unmigrated');
 });
 
+it('lists untraced reads proven not to read a Stripe object without holding the draft', async () => {
+  const value = await report();
+  const site = {
+    file: 'src/plans.ts',
+    line: 4,
+    changeId: value.findings[0].changeId,
+    expression: '.price',
+    confidence: 'review' as const,
+    untraced: true as const,
+  };
+  value.validation.localReads = [
+    { ...site, proof: 'literal-config' },
+    { ...site, line: 9, proof: 'generated-type' },
+  ];
+  const artifacts = createReviewArtifacts(value);
+  expect(artifacts.manifest.title).not.toMatch(/^\[Needs review\] /);
+  expect(artifacts.files['pull-request.md']).toContain(
+    "- Untraced Reads Cleared: Refit proved these reads of removed field names do not read a Stripe object, so they were left unchanged and do not hold the draft for review: `src/plans.ts:4` reads `.price` (an object literal the repository writes), `src/plans.ts:9` reads `.price` (a type generated from the repository's own schema).",
+  );
+});
+
 it('says when npm installed the committed lockfile with --legacy-peer-deps', async () => {
   const value = await report();
   expect(createReviewArtifacts(value).files['pull-request.md']).not.toContain('legacy-peer-deps');
@@ -454,7 +487,9 @@ it('says which of several committed lockfiles Refit installed and why it did not
     installation: {},
     lockfileChoice: {
       lockfile: 'pnpm-lock.yaml',
-      outOfSync: {
+      rule: 'in-sync',
+      because: 'the only one in sync with `package.json`',
+      others: {
         'package-lock.json':
           'package.json dependencies differ from the committed package-lock.json: jsdom is "^24.0.0" in package.json but missing in the lockfile.',
       },
@@ -462,6 +497,66 @@ it('says which of several committed lockfiles Refit installed and why it did not
   };
   expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
     '- Dependency Installation: the repository commits `pnpm-lock.yaml` and `package-lock.json`. Refit installed `pnpm-lock.yaml`, the only one in sync with `package.json`, and did not read the other: package.json dependencies differ from the committed package-lock.json: jsdom is "^24.0.0" in package.json but missing in the lockfile. Delete the lockfile your package manager does not use.',
+  );
+  // ensarokumus/tldr-app at 566f26e: both in sync, yarn.lock committed last.
+  value.validation.environment = {
+    installation: {},
+    lockfileChoice: {
+      lockfile: 'yarn.lock',
+      rule: 'newest',
+      because:
+        'the most recently committed lockfile in sync with `package.json` (last changed 2026-03-28T19:05:40+11:00)',
+      others: {
+        'package-lock.json': 'package-lock.json was last changed 2026-03-28T18:19:51+11:00.',
+      },
+    },
+  };
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    '- Dependency Installation: the repository commits `yarn.lock` and `package-lock.json`. Refit installed `yarn.lock`, the most recently committed lockfile in sync with `package.json` (last changed 2026-03-28T19:05:40+11:00), and did not read the other: package-lock.json was last changed 2026-03-28T18:19:51+11:00. Delete the lockfile your package manager does not use.',
+  );
+  // When the patch upgrades stripe in the chosen lockfile alone, the draft names the others.
+  const upgrade =
+    'diff --git "a/package.json" "b/package.json"\n--- "a/package.json"\n+++ "b/package.json"\n@@ -1 +1 @@\n-{"dependencies":{"stripe":"^15.12.0"}}\n+{"dependencies":{"stripe":"^23.0.0"}}\n' +
+    'diff --git "a/yarn.lock" "b/yarn.lock"\n--- "a/yarn.lock"\n+++ "b/yarn.lock"\n@@ -1 +1 @@\n-stripe@^15.12.0:\n+stripe@^23.0.0:\n';
+  value.patch.diff += upgrade;
+  value.validation.patchHash = digest(value.patch.diff);
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    'This patch upgrades stripe in `yarn.lock` only and leaves `package-lock.json` as committed, still locking the older stripe. Delete the lockfile your package manager does not use.',
+  );
+  value.patch.diff = value.patch.diff.replace(upgrade, '');
+  value.validation.patchHash = digest(value.patch.diff);
+  // Ankit-Sharma1011/Quill at bdd4055 pins pnpm.
+  value.validation.environment = {
+    installation: {},
+    lockfileChoice: {
+      lockfile: 'pnpm-lock.yaml',
+      rule: 'package-manager',
+      because: 'the lockfile of the manager package.json pins (`"packageManager": "pnpm@11.1.2"`)',
+      others: { 'package-lock.json': 'not read' },
+    },
+  };
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    '- Dependency Installation: the repository commits `pnpm-lock.yaml` and `package-lock.json`. Refit installed `pnpm-lock.yaml`, the lockfile of the manager package.json pins (`"packageManager": "pnpm@11.1.2"`), and did not read the other. Delete the lockfile your package manager does not use.',
+  );
+});
+
+it('says when the checks ran against a lockfile Refit resolved, and as of which date', async () => {
+  const value = await report();
+  expect(createReviewArtifacts(value).files['pull-request.md']).not.toContain('Refit resolved');
+  value.validation.environment = {
+    installation: {},
+    resolvedLockfile: { reason: 'no-lockfile', before: '2026-09-15T00:00:00Z' },
+  };
+  value.validation.patchedEnvironment = {
+    installation: {},
+    resolvedLockfile: {
+      reason: 'no-lockfile',
+      before: '2026-09-15T00:00:00Z',
+      late: { stripe: { spec: '23.0.0', published: '2026-10-01T00:52:07.438Z' } },
+    },
+  };
+  expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
+    '- Dependency Installation: the checks ran against a `package-lock.json` Refit resolved, not one the repository commits (it commits none). npm resolved it with lifecycle scripts off from registry.npmjs.org as of 2026-09-15T00:00:00Z, the last commit date; `stripe@23.0.0` as of 2026-10-01T00:52:07.438Z, and installed it with `npm ci`. It is not part of this pull request; commit your own lockfile and rerun your checks.',
   );
 });
 
@@ -1061,4 +1156,40 @@ it('pads inline code whose content starts or ends with a backtick', () => {
   expect(code('a`b')).toBe('``a`b``');
   expect(code('`start')).toBe('`` `start ``');
   expect(code('end`')).toBe('`` end` ``');
+});
+
+it('names a types-only peer raised with the stripe-node upgrade', async () => {
+  const value = await report();
+  if (!('diff' in value.patch)) throw new Error('Expected fixture patch');
+  // Run reports carry the upgrade beside the patch fields.
+  const upgrade = {
+    sdkUpgrade: {
+      from: '18.1.0',
+      to: '23.0.0',
+      raised: [{ name: '@types/node', from: '18.11.18', to: '20.0.0', range: '>=20' }],
+    },
+  };
+  value.patch = {
+    ...value.patch,
+    ...upgrade,
+    diff: `${value.patch.diff}diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@ -1,4 +1,4 @@
+ {
+-  "dependencies": { "stripe": "^18.0.0" },
+-  "devDependencies": { "@types/node": "18.11.18" }
++  "dependencies": { "stripe": "^23.0.0" },
++  "devDependencies": { "@types/node": "20.0.0" }
+ }
+`,
+  };
+  if ('diff' in value.patch) value.validation.patchHash = digest(value.patch.diff);
+  const body = createReviewArtifacts(value).files['pull-request.md'];
+  expect(body).toContain(
+    '- `package.json`: Upgrades `stripe` from `18.1.0` to `23.0.0` and raises `@types/node` from `18.11.18` to `20.0.0`.',
+  );
+  expect(body).toContain(
+    'Raises `@types/node` from `18.11.18` to `20.0.0` with it: stripe `23.0.0` declares `@types/node` `>=20` as an optional peer',
+  );
 });

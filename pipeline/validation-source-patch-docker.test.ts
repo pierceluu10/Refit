@@ -45,8 +45,10 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_NPM_PREPARE)(
         'commit.gpgsign=false',
         ...args,
       ]);
+    // A tracked lockfile the repository's .gitignore also lists must reach the patched side.
+    await writeFile(join(repository, '.gitignore'), 'package-lock.json\n');
     await git('init', '-q');
-    await git('add', '.');
+    await git('add', '--force', '.');
     await git('commit', '-q', '-m', 'test: seed');
     const upgraded = await lockedProject('7.0.0');
     for (const file of ['package.json', 'package-lock.json'])
@@ -84,6 +86,7 @@ it.skipIf(!process.env.REFIT_DOCKER_IMAGE || !process.env.REFIT_NPM_PREPARE)(
     expect(result.baseline.stdout).toContain('is-number 6.0.0');
     expect(result.patched.stdout).toContain('is-number 7.0.0');
     expect(result.candidateEnvironment).toBeDefined();
+    expect(result.candidateEnvironment?.resolvedLockfile).toBeUndefined();
   },
   600_000,
 );

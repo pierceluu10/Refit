@@ -5,13 +5,13 @@ import { PipelineInputError } from './types.ts';
 import { writeReviewBundle } from './review.ts';
 import { assessmentConfiguration } from './assessment.ts';
 import { publicationConfiguration, publishDraft } from './publication.ts';
-import { parseCheckCommand } from './validation-options.ts';
+import { parseCheckCommand, HOSTED_REPAIR_ATTEMPTS } from './validation-options.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import { validateApiVersionPolicy } from './api-version.ts';
 import { cliErrorMessage } from './cli-errors.ts';
 
 const USAGE =
-  'Usage: refit validate --repository <clean-git-directory> --before <spec.json> --after <spec.json> [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--provider-config <adapter.json>] --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)] [--repair-attempts 0|1|2 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main (uses GITHUB_TOKEN or --github-app)]';
+  'Usage: refit validate --repository <clean-git-directory> --before <spec.json> --after <spec.json> [--api-version <current-api-version>] [--api-version-policy operator-pin|source-verified] [--provider-config <adapter.json>] --image <local-image> --command \'["npm","test"]\' [--output <new-report.json> | --bundle <new-directory>] [--assess (sends selected source context to OpenAI)] [--ai-patch (sends affected source files to OpenAI)] [--repair-attempts 0-4 (sends failed check output to OpenAI)] [--publish-draft --github owner/repository --base main (uses GITHUB_TOKEN or --github-app)]';
 
 try {
   const { values } = parseArgs({
@@ -78,7 +78,9 @@ try {
           : undefined,
       assessment: assessmentConfiguration(values.assess, process.env),
       aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
-      repairAttempts: Number(values['repair-attempts'] ?? 0),
+      repairAttempts: Number(
+        values['repair-attempts'] ?? (values['ai-patch'] ? HOSTED_REPAIR_ATTEMPTS : 0),
+      ),
       providerConfig: values['provider-config'],
       apiVersion: values['api-version'],
       apiVersionPolicy: validateApiVersionPolicy(values['api-version-policy']),

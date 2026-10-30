@@ -438,3 +438,62 @@ export const preview = (customer, subscription) => stripe.invoices.retrieveUpcom
     contractReview: expect.stringContaining('this call needs review'),
   });
 });
+
+// stripe-node 22 reads params and options by position, so options passed as params move last
+// (operation-reach.ts requestOptionEdits), only together with the upgrade the other rules need.
+it('passes request options last only alongside a rules patch that upgrades stripe-node', async () => {
+  const retrieve = {
+    get: { operationId: 'GetInvoicesInvoice', responses: { '200': invoice } },
+  };
+  const withRetrieve = (document: ReturnType<typeof contract>) => ({
+    ...document,
+    paths: { ...document.paths, '/v1/invoices/{invoice}': retrieve },
+  });
+  const run = async (body: string) => {
+    stubRegistry('23.0.0');
+    const root = await mkdtemp(join(tmpdir(), 'refit-request-options-'));
+    roots.push(root);
+    for (const [path, content] of Object.entries({
+      ...npmFiles({ stripe: '^17.7.0' }, '17.7.0'),
+      'billing.js': `import Stripe from 'stripe';
+const stripe = new Stripe('sk', { apiVersion: '2025-02-24.acacia' });
+${body}`,
+      'provider.json': JSON.stringify({
+        ...STRIPE,
+        id: 'stripe-invoices',
+        operations: [
+          {
+            resource: 'invoices',
+            method: 'retrieve',
+            schema: 'invoice',
+            operationId: 'GetInvoicesInvoice',
+          },
+        ],
+      }),
+      'before.json': JSON.stringify(withRetrieve(before)),
+      'after.json': JSON.stringify(withRetrieve(after)),
+    }))
+      await writeFile(join(root, path), content);
+    const report = await runPipeline({
+      repository: root,
+      before: join(root, 'before.json'),
+      after: join(root, 'after.json'),
+      providerConfig: join(root, 'provider.json'),
+      apiVersion: '2025-02-24.acacia',
+      proposePatch: true,
+    });
+    return { report, diff: 'diff' in report.patch ? report.patch.diff : '' };
+  };
+  const account = `export const read = (id, account) => stripe.invoices.retrieve(id, { stripeAccount: account });\n`;
+  const { report, diff } = await run(
+    `export const preview = (customer, subscription) => stripe.invoices.retrieveUpcoming({ customer, subscription });\n${account}`,
+  );
+  expect(report.patch).toMatchObject({ status: 'proposed', sdkUpgrade: { to: '23.0.0' } });
+  expect(diff).toContain('stripe.invoices.retrieve(id, undefined, { stripeAccount: account })');
+  expect(diff).toContain('stripe.invoices.createPreview({ customer, subscription })');
+  expect('warnings' in report.patch ? report.patch.warnings : []).toContainEqual(
+    expect.stringContaining('Migration-guide-for-v22'),
+  );
+  // Alone, the move makes no patch.
+  expect((await run(account)).diff).not.toContain('undefined, {');
+});

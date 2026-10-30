@@ -2,7 +2,9 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { structuredPatch } from 'diff';
 import ts from 'typescript-compiler';
+import { BEHAVIOUR_HARNESS, HARNESS_FILE } from './behaviour-harness.ts';
 import { STRIPE_IMPORT, type BehaviourEvidence } from './check-selection.ts';
+import type { RuntimeStandIns } from './runtime-stand-ins.ts';
 import {
   generatedEnvironment,
   generatedImportMap,
@@ -20,6 +22,7 @@ import {
   type SandboxTarget,
   type StandIn,
 } from './provider-sandbox.ts';
+import { signedEventRecords, type DeliveryRecord } from './signed-events.ts';
 import { digest } from './specifications.ts';
 import { PipelineInputError, type Finding, type Repository } from './types.ts';
 import type { CheckResult } from './validation.ts';
@@ -262,6 +265,9 @@ for (let attempt = 0; ; attempt++) {
   if (attempt > 100) throw new Error('stripe-mock did not start');
   await new Promise((resolve) => setTimeout(resolve, 100));
 }
+// node:test's mock.module, which tests use with the harness's test doubles, from Node 22.3.
+const [major, minor] = process.versions.node.split('.').map(Number);
+const mocks = major > 22 || (major === 22 && minor >= 3) ? ['--experimental-test-module-mocks'] : [];
 const tests = readdirSync(root + '${BEHAVIOUR_DIRECTORY}').filter((name) => name.endsWith('.test.mjs')).sort().map((name) => '${BEHAVIOUR_DIRECTORY}/' + name);
 const files = JSON.parse(readFileSync(tool('behaviour-' + side + '.json'), 'utf8'));
 const wanted = new Map(files.flatMap((file) => [[pathToFileURL(root + file).href, file], [root + file, file]]));
@@ -269,7 +275,7 @@ const scripts = {};
 let exit = 0;
 for (const [index, test] of tests.entries()) {
   const coverage = root + '.refit-coverage/' + index;
-  const run = spawnSync(process.execPath, ['--import', tool('redirect.mjs'), '--test', '--test-concurrency=1', '--test-timeout=${TEST_TIMEOUT_MS}', '--test-reporter=' + tool('reporter.mjs'), test], {
+  const run = spawnSync(process.execPath, ['--import', tool('redirect.mjs'), ...mocks, '--test', '--test-concurrency=1', '--test-timeout=${TEST_TIMEOUT_MS}', '--test-reporter=' + tool('reporter.mjs'), test], {
     cwd: root,
     env: { ...process.env, NODE_V8_COVERAGE: coverage },
     encoding: 'utf8',
@@ -289,6 +295,10 @@ for (const [index, test] of tests.entries()) {
 }
 console.log('REFIT_BEHAVIOUR_EXIT=' + JSON.stringify(exit));
 console.log('REFIT_BEHAVIOUR_COVERAGE=' + JSON.stringify(scripts));
+// Signed-event deliveries (signed-events.ts) write one record each.
+const records = root + '.refit-webhooks';
+for (const name of existsSync(records) ? readdirSync(records).sort() : [])
+  console.log('REFIT_WEBHOOK_RECORD=' + readFileSync(records + '/' + name, 'utf8'));
 console.log('REFIT_BEHAVIOUR_DONE');
 `;
 
@@ -308,6 +318,7 @@ export async function writeBehaviourHarness(
   tests: readonly BehaviourTest[],
   changed: Record<Side, LinesByFile>,
   sources: Record<Side, Repository>,
+  standIns: RuntimeStandIns = {},
 ) {
   await writeHarness(
     directory,
@@ -315,8 +326,10 @@ export async function writeBehaviourHarness(
     behaviourImportMap(sources.original, tests),
     behaviourImportMap(sources.patched, tests),
     generatedEnvironment(sources.original, sources.patched),
+    standIns,
   );
   await writeFile(join(directory, 'reporter.mjs'), REPORTER, { mode: 0o444 });
+  await writeFile(join(directory, HARNESS_FILE), BEHAVIOUR_HARNESS, { mode: 0o444 });
   await writeFile(join(directory, 'behaviour.mjs'), RUNNER, { mode: 0o444 });
   for (const [side, file] of [
     ['original', 'behaviour-before.json'],
@@ -406,6 +419,7 @@ export function behaviourOutput(stdout: string) {
     exit,
     coverage,
     done,
+    records: signedEventRecords(stdout),
   };
 }
 
@@ -636,6 +650,7 @@ export function compareBehaviourRuns(options: {
           testExitCode: side.output.exit,
           tests: side.output.tests,
           stderr: side.check.stderr.slice(-2000),
+          ...(side.output.records.length ? { records: side.output.records } : {}),
         },
       ]),
     ) as Record<
@@ -647,6 +662,7 @@ export function compareBehaviourRuns(options: {
         testExitCode: number | null;
         tests: TestResult[];
         stderr: string;
+        records?: DeliveryRecord[];
       }
     >,
   };

@@ -378,6 +378,29 @@ export const HELPER_NAMES: readonly string[] = [
   COUPON_ID_HELPER,
   PRODUCT_FEATURES_HELPER,
 ];
+// The new locations each helper body below reads, as rule targets (schema, then properties). A
+// generated field-move rule calls the helper whose reads are exactly its targets
+// (pipeline/rule-generation.ts); a move no helper reads stays review-only.
+const PERIOD_TARGETS = [
+  ['subscription', 'items'],
+  ['subscription_item', 'current_period_start'],
+  ['subscription_item', 'current_period_end'],
+];
+export const HELPER_TARGETS: Record<string, string[][]> = {
+  [PERIOD_HELPERS.current_period_start]: PERIOD_TARGETS,
+  [PERIOD_HELPERS.current_period_end]: PERIOD_TARGETS,
+  [INVOICE_SUBSCRIPTION_HELPER]: [['invoice', 'parent', 'subscription_details', 'subscription']],
+  [INVOICE_PRICE_ID_HELPER]: [
+    ['line_item', 'pricing', 'price_details', 'price'],
+    ['invoiceitem', 'pricing', 'price_details', 'price'],
+  ],
+  [CHECKOUT_SHIPPING_HELPER]: [['checkout.session', 'collected_information', 'shipping_details']],
+  [COUPON_ID_HELPER]: [
+    ['promotion_code', 'promotion', 'coupon'],
+    ['discount', 'source', 'coupon'],
+  ],
+  [PRODUCT_FEATURES_HELPER]: [['product', 'marketing_features']],
+};
 export type PeriodRareCase = 'item-in-code' | 'price-policy' | 'flagged';
 
 const HELPER_BODY = (typed: boolean) => {

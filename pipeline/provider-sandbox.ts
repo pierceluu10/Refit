@@ -16,7 +16,8 @@ import { PipelineInputError } from './types.ts';
 // bridge. The proxy forwards only to the adapter's hosts, puts the test key on each request (the
 // code under test never holds it), pins the side's API version where the code sends none, tags
 // every object the run creates, retries rate-limited requests with the next key of the pool, and
-// prints one record per request: method, path, version and status, never a body.
+// prints one record per request: method, path, version and status, and for a refused request the
+// provider's error message (redacted, after stand-in IDs are swapped back), never a body.
 
 export type SandboxTarget = 'test-environment' | 'mock';
 
@@ -130,6 +131,8 @@ export interface SandboxRequest {
   rateLimited?: true;
   denied?: true;
   error?: string;
+  // The provider's own error message for a request it refused, which the test writer reads.
+  message?: string;
 }
 
 // The proxy, written into the sandbox's tool directory and run by node in its own container.
@@ -207,7 +210,14 @@ http.createServer((req, res) => {
         if (typeof value?.id === 'string' && typeof value?.object === 'string') record.created = { id: value.id, object: value.object };
       } catch {}
     text = swap(text, backward);
-    print({ ...record, attempts, status: response.status, ...(response.status === config.rateLimit.status ? { rateLimited: true } : {}) });
+    let message;
+    if (response.status >= 400)
+      try {
+        // Not cut here: a cut credential could escape the host's redaction, which runs on all of it.
+        const value = JSON.parse(text)?.error?.message;
+        if (typeof value === 'string') message = value;
+      } catch {}
+    print({ ...record, attempts, status: response.status, ...(response.status === config.rateLimit.status ? { rateLimited: true } : {}), ...(message ? { message } : {}) });
     const out = {};
     for (const [name, value] of Object.entries(response.headers))
       if (!['content-length', 'transfer-encoding', 'connection', 'content-encoding', 'set-cookie'].includes(name)) out[name] = value;

@@ -48,6 +48,64 @@ export function checkFailure(side: 'baseline' | 'patched', command: string[], ch
   };
 }
 
+// A test runner's failing lines without their timing (`× test 7ms`, `✕ test (5 ms)`).
+const failingTests = (check: CheckResult) =>
+  testOutput(check)
+    .split('\n')
+    .filter((line) => FAILED_LINE.test(line))
+    .map((line) => line.trim().replace(/\s*\(?\d+(?:\.\d+)?\s*m?s\)?$/, ''));
+const testOutput = (check: CheckResult) => {
+  const stdout = check.stdout.replace(ANSI, '');
+  return `${stdout.includes(TESTS_FAILED) ? stdout.slice(0, stdout.indexOf(TESTS_FAILED)) : stdout}\n${check.stderr.replace(ANSI, '')}`;
+};
+// Jest's `FAIL src/a.test.ts` names a file, not a test: with several files Jest prints only these.
+const FILE_LINE = /^FAIL\s+\S+$/;
+// The runner's own totals: Jest's `Tests: 1 failed, 5 passed, 6 total`, Vitest's
+// `Tests  1 failed | 5 passed (6)`.
+const SUMMARY = /^\s*Tests:?\s+(.*)$/m;
+const summaryCount = (check: CheckResult, kind: 'failed' | 'passed') => {
+  const line = SUMMARY.exec(testOutput(check))?.[1];
+  return line ? Number(new RegExp(`(\\d+) ${kind}`).exec(line)?.[1] ?? 0) : undefined;
+};
+
+// Founder decision (Otabek, 2026-10-28): tests that already fail on the original code still show
+// whether a patch adds a failure. It adds none when the tests on it report no fewer passing and
+// no more failing tests (the runner's totals where it prints them, else the lines counted), and
+// every failing test it names also failed on the original code. The failures it adds, empty for
+// none, or undefined where the output does not name failing tests (a runner Refit cannot read,
+// only failing files, or a check that did not finish), which proves nothing.
+export function newTestFailures(baseline: CheckResult, patched: CheckResult) {
+  if (![baseline, patched].every((check) => ['passed', 'failed'].includes(check.status)))
+    return undefined;
+  const counts = (check: CheckResult) => {
+    const failed = failingTests(check);
+    return {
+      passed:
+        summaryCount(check, 'passed') ??
+        testOutput(check)
+          .split('\n')
+          .filter((line) => PASSED_LINE.test(line)).length,
+      failing: summaryCount(check, 'failed') ?? failed.length,
+      failed,
+    };
+  };
+  const before = counts(baseline);
+  const after = counts(patched);
+  // Failing files alone do not say which test failed, so they prove nothing; a file that failed
+  // only on the patch is a new failure all the same.
+  if (!before.failed.some((line) => !FILE_LINE.test(line))) return undefined;
+  if (!(after.passed + after.failing)) return undefined;
+  const known = new Set(before.failed);
+  return [
+    ...(after.passed < before.passed || after.failing > before.failing
+      ? [
+          `${after.passed} passing and ${after.failing} failing on the patch, against ${before.passed} and ${before.failing} on the original code`,
+        ]
+      : []),
+    ...after.failed.filter((line) => !known.has(line)),
+  ];
+}
+
 // The stop message's sentences naming each check that failed or did not finish.
 export function checkFailureText(validation: {
   checkFailures?: NonNullable<ReturnType<typeof checkFailure>>[];
@@ -78,6 +136,7 @@ export function checkFailures(
   patched: CheckResult,
   generated?: { regressions: { id: string; error: string }[] },
   behaviour?: { regressions: { id: string; error: string }[] },
+  signedEvents?: { regressions: { id: string; error: string }[] },
 ) {
   const counted = (
     evidence: { regressions: { id: string; error: string }[] } | undefined,
@@ -94,6 +153,10 @@ export function checkFailures(
     checkFailure('patched', command, patched),
     ...counted(generated, 'generated stripe-mock check, which completed on the original code'),
     ...counted(behaviour, 'behaviour test, which passed on the original code'),
+    ...counted(
+      signedEvents,
+      'signed webhook event, which the original code handled the same way in both API versions',
+    ),
   ].filter((failure) => failure !== undefined);
   return failures.length ? { checkFailures: failures } : {};
 }
