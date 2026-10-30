@@ -1,0 +1,97 @@
+{
+  "frozenAt": "2026-10-29",
+  "seed": "refit-shopify-2026-10-29",
+  "queries": [
+    "\"@shopify/shopify-api\" filename:package.json size:<2000",
+    "\"@shopify/shopify-api\" filename:package.json size:2000..4000",
+    "\"@shopify/shopify-api\" filename:package.json size:4000..8000",
+    "\"@shopify/shopify-api\" filename:package.json size:8000..16000",
+    "\"@shopify/shopify-api\" filename:package.json size:>16000",
+    "\"@shopify/shopify-app-remix\" filename:package.json size:<2000",
+    "\"@shopify/shopify-app-remix\" filename:package.json size:2000..4000",
+    "\"@shopify/shopify-app-remix\" filename:package.json size:4000..8000",
+    "\"@shopify/shopify-app-remix\" filename:package.json size:8000..16000",
+    "\"@shopify/shopify-app-remix\" filename:package.json size:>16000",
+    "\"@shopify/shopify-app-react-router\" filename:package.json size:<2000",
+    "\"@shopify/shopify-app-react-router\" filename:package.json size:2000..4000",
+    "\"@shopify/shopify-app-react-router\" filename:package.json size:4000..8000",
+    "\"@shopify/shopify-app-react-router\" filename:package.json size:8000..16000",
+    "\"@shopify/shopify-app-react-router\" filename:package.json size:>16000",
+    "api_version filename:shopify.app.toml size:<2000",
+    "api_version filename:shopify.app.toml size:2000..4000",
+    "api_version filename:shopify.app.toml size:4000..8000",
+    "api_version filename:shopify.app.toml size:8000..16000",
+    "api_version filename:shopify.app.toml size:>16000",
+    "\"/admin/api/20\" language:TypeScript size:<2000",
+    "\"/admin/api/20\" language:TypeScript size:2000..4000",
+    "\"/admin/api/20\" language:TypeScript size:4000..8000",
+    "\"/admin/api/20\" language:TypeScript size:8000..16000",
+    "\"/admin/api/20\" language:TypeScript size:>16000",
+    "\"/admin/api/20\" language:JavaScript size:<2000",
+    "\"/admin/api/20\" language:JavaScript size:2000..4000",
+    "\"/admin/api/20\" language:JavaScript size:4000..8000",
+    "\"/admin/api/20\" language:JavaScript size:8000..16000",
+    "\"/admin/api/20\" language:JavaScript size:>16000"
+  ],
+  "searched": 6467,
+  "excludedByLists": 519,
+  "ineligible": {
+    "no commit in 90 days": 4748,
+    "no GitHub Actions workflow": 131,
+    "fewer than 2 human authors in 90 days": 808,
+    "no root package.json": 27,
+    "over 512 MB": 53,
+    "no root lockfile": 11,
+    "unavailable": 1
+  },
+  "eligible": 169,
+  "stages": [
+    {
+      "loosened": [],
+      "eligible": 169,
+      "scanned": 169,
+      "affected": 84
+    },
+    {
+      "loosened": ["activity window 180 days"],
+      "eligible": 61,
+      "scanned": 27,
+      "affected": 16
+    },
+    {
+      "loosened": ["activity window 180 days", "1 human author"],
+      "eligible": 309,
+      "scanned": 0,
+      "affected": 0
+    }
+  ],
+  "dropped": {
+    "not affected": 60,
+    "no Shopify Admin usage": 22,
+    "clone or scan failed": 14
+  },
+  "affected": 100,
+  "categories": {
+    "unsupported-version": 79,
+    "retiring-soonest": 4,
+    "deprecated-rest": 64,
+    "removed-fields": 10,
+    "product-model": 0
+  },
+  "devFrom": [
+    "docs/benchmarks/2026-10-16-shopify-repos.json",
+    "docs/benchmarks/2026-10-16-shopify-fresh-repos.json"
+  ],
+  "devScanned": 250,
+  "devAffected": 145,
+  "sets": [
+    {
+      "name": "shopify-blind-100",
+      "repositories": 100
+    },
+    {
+      "name": "shopify-dev-60",
+      "repositories": 60
+    }
+  ]
+}

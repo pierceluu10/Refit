@@ -1,0 +1,19 @@
+{
+  "formatVersion": 1,
+  "provider": "meta-graph",
+  "version": "v21.0",
+  "rules": [
+    {
+      "rule": "meta-graph-v21-0-parameter-removed-data-localization-region-replacement",
+      "family": "parameter-replacement",
+      "change": "meta-graph-v21-0-parameter-removed-data-localization-region",
+      "from": "data_localization_region",
+      "to": "storage_configuration",
+      "source": "https://developers.facebook.com/documentation/business-messaging/whatsapp/changelog",
+      "quote": "Added a `storage_configuration` parameter to the [**POST /<WHATSAPP_BUSINESS_PHONE_NUMBER>/settings**](https://developers.facebook.com/documentation/business-messaging/whatsapp/reference/whatsapp-business-phone-number/settings-api#Updating) endpoint, which can be used to enable or disable local storage.\n* Removed the `data_localization_region` parameter from the [**POST /<WHATSAPP_BUSINESS_PHONE_NUMBER>/register**]",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    }
+  ]
+}

@@ -13,6 +13,7 @@ import {
   startRun,
 } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
+import { assessmentConfiguration } from './assessment.ts';
 import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
@@ -26,14 +27,11 @@ import {
 } from './shopify-versions.ts';
 import { readEvidence } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
-
-// Benchmark runs never send Slack notices.
-const CHILD_ENV = { ...process.env };
-delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
+import { HOSTED_REPAIR_ATTEMPTS } from './validation-options.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--list <frozen.json>] [--validate [--assess (AI second opinion, OPENAI_API_KEY)]] [--sdk-upgrade] [--limit N] [--concurrency N]';
+  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--list <frozen.json>] [--env .env] [--ai] [--validate [--assess (AI second opinion, OPENAI_API_KEY)]] [--sdk-upgrade] [--limit N] [--concurrency N]';
 const PINNED = 'docs/benchmarks/2026-10-16-shopify-repos.json';
 const VALIDATION_IMAGE = 'node:22-alpine';
 // Default `npm init` script; it is not a check.
@@ -41,6 +39,11 @@ const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 const CODEGEN_CONFIG = /(?:^|\/)\.graphqlrc\.[cm]?[jt]s$/;
 const SDK_LIMIT = /first ships in|LATEST_API_VERSION is/;
+const LOCKFILE_MANAGERS = [
+  ['pnpm-lock.yaml', 'pnpm'],
+  ['yarn.lock', 'yarn'],
+  ['package-lock.json', 'npm'],
+] as const;
 
 const { values } = parseArgs({
   options: {
@@ -49,6 +52,12 @@ const { values } = parseArgs({
     list: { type: 'string' },
     validate: { type: 'boolean' },
     assess: { type: 'boolean' },
+    // Loaded before anything runs: OPENAI_API_KEY, OPENAI_MODEL and the run's AI ledger
+    // (REFIT_AI_BUDGET_USD, REFIT_AI_BUDGET_DIRECTORY), shared by the scan and every child run.
+    env: { type: 'string' },
+    // AI on every Shopify path: document rewrites and reconstructions, REST mappings, repair of
+    // patches that break the build (HOSTED_REPAIR_ATTEMPTS) and the second opinion.
+    ai: { type: 'boolean' },
     'sdk-upgrade': { type: 'boolean' },
     limit: { type: 'string' },
     concurrency: { type: 'string' },
@@ -58,6 +67,13 @@ const { values } = parseArgs({
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
+if (values.env) process.loadEnvFile(values.env);
+// Fails before any repository runs when the key or model is missing. One ledger caps the run;
+// there is no per-repository cap.
+const ai = assessmentConfiguration(values.ai, process.env);
+// Copied after --env loads, so children get its keys. Benchmark runs never send Slack notices.
+const CHILD_ENV = { ...process.env };
+delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
 const root = resolve(values.root);
 const output = resolve(values.output);
 const list = values.list ?? PINNED;
@@ -77,11 +93,16 @@ const { rows: previous } = await openRunDirectory(
     list: { path: list, file: list },
     options: {
       validate: values.validate,
+      ai: values.ai,
       sdkUpgrade: values['sdk-upgrade'],
       limit: values.limit,
       concurrency: values.concurrency,
     },
-    environment: ['REFIT_VALIDATION_WORKSPACE', 'REFIT_DEPENDENCY_TIMEOUT_SECONDS'],
+    environment: [
+      'REFIT_VALIDATION_WORKSPACE',
+      'REFIT_DEPENDENCY_TIMEOUT_SECONDS',
+      ...(ai ? ['OPENAI_MODEL', 'OPENAI_REASONING_EFFORT', 'REFIT_AI_BUDGET_USD'] : []),
+    ],
     ...(values.validate ? { image: VALIDATION_IMAGE } : {}),
     allowDirty: values['allow-dirty'],
   }),
@@ -189,6 +210,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
       after: snapshot(target),
       proposePatch: true,
       shopifySdkUpgrade: upgrade,
+      ...(ai ? { aiPatch: ai } : {}),
       // As validation does: npm may re-resolve the lockfile for an SDK upgrade, as of the commit.
       ...(upgrade && lockfileResolutionEnabled()
         ? {
@@ -217,7 +239,12 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         warnings?: string[];
         shopifySdkUpgrade?: unknown;
       };
-      shopify: { deprecated: string[] };
+      shopify: {
+        deprecated: string[];
+        ai: unknown[];
+        restAi: unknown[];
+        reconstructed?: unknown[];
+      };
       apiVersion: { applicability: string };
     };
     result.scan = {
@@ -234,6 +261,15 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         finding.contractReview?.includes('already fails'),
       ).length,
       deprecated: report.shopify.deprecated.length,
+      ...(ai
+        ? {
+            ai: {
+              rewrites: report.shopify.ai,
+              rest: report.shopify.restAi,
+              reconstructed: report.shopify.reconstructed ?? [],
+            },
+          }
+        : {}),
       findings: report.findings.map((finding) => ({
         file: finding.file,
         line: finding.line,
@@ -271,14 +307,18 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   const testScript: unknown = manifest.scripts?.test;
   const hasTests = typeof testScript === 'string' && !PLACEHOLDER_TEST.test(testScript);
   const typescript = existsSync(join(directory, 'tsconfig.json')) && Boolean(declared.typescript);
-  const checkable = existsSync(join(directory, 'package-lock.json'));
-  result.checks = !checkable ? 'none' : hasTests ? 'tests' : typescript ? 'typecheck' : 'none';
+  // The tests run with the root lockfile's manager, in check selection's order. A repository that
+  // commits no lockfile runs with npm, as a generated configuration does: preparation refuses it
+  // (the patch stays untested, grade D) unless an SDK upgrade's lockfile resolution gives one.
+  const manager =
+    LOCKFILE_MANAGERS.find(([file]) => existsSync(join(directory, file)))?.[1] ?? 'npm';
+  result.checks = !manager ? 'none' : hasTests ? 'tests' : typescript ? 'typecheck' : 'none';
   if (!values.validate || result.checks === 'none') {
     log(`patched (${String(result.checks)} checks)`);
     return;
   }
   const command = hasTests
-    ? ['npm', 'test']
+    ? [manager!, 'test']
     : ['npx', '--no-install', 'tsc', '--noEmit', '--pretty', 'false', '-p', '.'];
   const config = join(work, 'run.json');
   await writeFile(
@@ -299,7 +339,11 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         '--quiet',
         '--json',
         ...(upgrade ? ['--shopify-sdk-upgrade'] : []),
-        ...(values.assess ? ['--assess'] : []),
+        ...(ai
+          ? ['--ai-patch', '--repair-attempts', String(HOSTED_REPAIR_ATTEMPTS), '--assess']
+          : values.assess
+            ? ['--assess']
+            : []),
       ],
       { env: CHILD_ENV, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
     );
@@ -322,6 +366,8 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
     schemaProof: report.validation?.shopifyProof?.schema?.status,
     liveProof: report.validation?.shopifyProof?.live?.status,
     aiCostUsd: report.validation?.shopifyProof?.aiCostUsd,
+    generator: report.patch?.generator,
+    repair: report.validation?.repair,
     pullRequest: existsSync(join(bundle, 'pull-request.md')),
   };
   log(`workflow ${String(outcome.status)}`);

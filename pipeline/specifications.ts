@@ -166,6 +166,8 @@ export function digest(content: string | Uint8Array): string {
   return createHash('sha256').update(content).digest('hex');
 }
 
+export const META_GRAPH_CHANGELOG = 'https://developers.facebook.com/docs/graph-api/changelog';
+
 export async function readSpecification(path: string) {
   if ((await stat(path)).size > MAX_SPECIFICATION_BYTES)
     throw new PipelineInputError(`${path} exceeds the 64 MiB specification input limit.`);
@@ -226,6 +228,26 @@ export function parseSpecificationInput(content: string, path: string) {
       schemas: {},
       document: { info: { version: value.version }, graphqlIntrospection: value.content },
       provenance: { provider: 'shopify', revision: value.version, url: value.url },
+    };
+  }
+  // A Meta Graph run's contract: a Graph API version and the reviewed change table it pins
+  // (meta-graph-pipeline.ts).
+  if (value.kind === 'refit-meta-graph-snapshot') {
+    if (
+      value.formatVersion !== 1 ||
+      value.provider !== 'meta-graph' ||
+      typeof value.version !== 'string' ||
+      !/^v\d+\.\d+$/.test(value.version) ||
+      typeof value.content !== 'string' ||
+      value.hash !== digest(value.content) ||
+      value.url !== META_GRAPH_CHANGELOG
+    )
+      throw new PipelineInputError(`${path}: invalid Meta Graph snapshot provenance or hash.`);
+    return {
+      hash: value.hash,
+      schemas: {},
+      document: { info: { version: value.version }, metaGraphChanges: value.content },
+      provenance: { provider: 'meta-graph', revision: value.version, url: value.url },
     };
   }
   return { ...parseSpecification(content, path), provenance: null };

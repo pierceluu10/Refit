@@ -33,6 +33,12 @@ import {
   type RuleTable,
   type TableRule,
 } from './rule-pack.ts';
+import { loadMetaGraphChanges } from './meta-graph-changes.ts';
+import {
+  checkMetaGraphEvidence,
+  readMetaGraphEvidence,
+  type MetaGraphRuleTable,
+} from './meta-graph-rules.ts';
 import { responseRemovals, verifyRule } from './rule-verification.ts';
 import { digest } from './specifications.ts';
 import { breakingPages } from './stripe-release.ts';
@@ -53,12 +59,16 @@ import {
   verifyShopifyAlert,
   verifyShopifyRule,
 } from './shopify-rules.ts';
+import {
+  checkShopifyRestContract,
+  loadShopifyRestVersionContract,
+} from './shopify-rest-contract.ts';
 import { pinnedShopifyDiff, shopifyDiffFile } from './shopify-schema-diff.ts';
 import { pinnedShopifyVersions, SHOPIFY_APIS } from './shopify-schemas.ts';
 import { PipelineInputError } from './types.ts';
 
 const USAGE = `Usage: refit rules check [--contracts <directory>] [--provider shopify] [--coverage <shopify-coverage.json>]
-       refit rules save-page --url <https://shopify.dev/....md> [--url ...]
+       refit rules save-page --url <https://shopify.dev/....md | https://raw.githubusercontent.com/Shopify/<repo>/<commit>/....md> [--url ...]
        refit rules mine-shopify --output <new-directory> [--write] [--limit <entries>] [--entry <slug> ...]
        refit rules generate --version <api-version> [--version ...] --output <new-directory> [--write] [--contracts <directory>]`;
 const CHANGELOG = { label: 'stripe-changelog', url: 'https://docs.stripe.com/changelog.md' };
@@ -86,12 +96,15 @@ const { values, positionals } = parseArgs({
 if (values.help) {
   console.log(`${USAGE}
 
-check: verifies every rule in data/rules/stripe. Each rule's quote must be in its saved changelog
+check: verifies data/meta-graph/changes.json and every rule in data/rules/meta-graph: each quote must
+be in its saved Meta changelog page (docs/benchmarks/meta-graph-changelog/pages) and name its
+identifier and replacement, and every change that names a replacement has exactly one rule. It then
+verifies every rule in data/rules/stripe. Each rule's quote must be in its saved changelog
 page (docs/benchmarks/stripe-changelog/pages) verbatim, its oasdiff entry must be in the changelog
 between the table's two pinned contracts and be the change the rule answers, and the rule must
 agree with both contracts. Contracts missing from --contracts are downloaded at their pinned
 stripe/openapi commit and checked against data/stripe-openapi-versions.json. Needs oasdiff.
-It then checks data/rules/shopify and data/shopify-alerts.json against the saved Shopify pages
+It then checks data/shopify-rest-contract.json (its digests, sources and npm tarball integrity), data/rules/shopify and data/shopify-alerts.json against the saved Shopify pages
 (docs/benchmarks/shopify-changelog/pages) and the pinned schemas (data/shopify-schema-versions.json),
 checks that data/shopify-schema-diffs is what those schemas give, and prints how many breaking and
 deprecated schema changes a rule or an alert answers; --coverage writes every change with its state.
@@ -129,6 +142,7 @@ else if (positionals[0] === 'generate') await generate();
 else throw new PipelineInputError(USAGE);
 
 async function check() {
+  await checkMetaGraph();
   const pages = await capturedPages();
   let failures = 0;
   const tables = [...STRIPE_RULE_TABLES, ...STRIPE_LEARNED_TABLES];
@@ -172,6 +186,35 @@ async function checkShopify() {
       throw new PipelineInputError(`npm returned HTTP ${response.status} for ${name}.`);
     return Object.keys(((await response.json()) as { versions: object }).versions);
   };
+  // The versioned REST contract: its digests and sources, and each SDK tarball's integrity as the
+  // registry states it today.
+  const restContract = loadShopifyRestVersionContract();
+  const restProblems = checkShopifyRestContract(restContract);
+  for (const source of restContract.sources.sdk) {
+    const response = await fetch(
+      `https://registry.npmjs.org/${source.package.replace('/', '%2F')}`,
+      {
+        signal: AbortSignal.timeout(60_000),
+      },
+    );
+    if (!response.ok)
+      throw new PipelineInputError(`npm returned HTTP ${response.status} for ${source.package}.`);
+    const dist = (
+      (await response.json()) as {
+        versions: Record<string, { dist?: { tarball?: string; integrity?: string } }>;
+      }
+    ).versions[source.release]?.dist;
+    if (dist?.integrity !== source.integrity || dist?.tarball !== source.tarball)
+      restProblems.push(
+        `${source.package}@${source.release} is recorded as ${source.tarball} (${source.integrity}); the registry has ${dist?.tarball} (${dist?.integrity}).`,
+      );
+  }
+  for (const problem of restProblems) console.log(`FAIL shopify rest-contract ${problem}`);
+  if (restProblems.length)
+    throw new PipelineInputError('data/shopify-rest-contract.json does not match its sources.');
+  console.log(
+    `ok   shopify rest-contract ${Object.keys(restContract.versions).length} versions, ${Object.keys(restContract.resources).length} resources from ${restContract.sources.sdk.map((source) => `${source.package}@${source.release}`).join(', ')} and shopify.dev ${restContract.sources.docs.map((docs) => docs.version).join(', ')}`,
+  );
   const tables = loadShopifyRuleTables();
   const alerts = loadShopifyAlerts();
   let failures = 0;
@@ -220,6 +263,26 @@ async function checkShopify() {
     );
 }
 
+// Meta publishes no contract, so its rules are checked against the change table and the saved
+// changelog pages alone.
+async function checkMetaGraph() {
+  const { changes } = await loadMetaGraphChanges();
+  const { pages, tables } = await readMetaGraphEvidence();
+  const problems = checkMetaGraphEvidence(changes, tables, pages);
+  for (const problem of problems) console.log(`FAIL meta-graph ${problem}`);
+  if (problems.length)
+    throw new PipelineInputError(
+      `${problems.length} Meta Graph quotes or rules are not backed by their pages.`,
+    );
+  const rules = tables.reduce(
+    (total, { table }) => total + (table as MetaGraphRuleTable).rules.length,
+    0,
+  );
+  console.log(
+    `${changes.length} Meta Graph changes and ${rules} rules verified against their saved pages.`,
+  );
+}
+
 // The saved page, or a fresh capture saved next to the others.
 async function savedPage(version: string, slug: string, url: string) {
   const path = join(STRIPE_PAGES, version, `${slug}.json`);
@@ -235,9 +298,15 @@ async function savedPage(version: string, slug: string, url: string) {
 
 // A Shopify page saved for rules to quote: changelog entries under changelog/, guides under docs/.
 async function savedShopifyPage(url: string) {
-  const match = /^https:\/\/shopify\.dev\/(changelog\/posts|docs)\/(.+)\.md$/.exec(url);
-  if (!match) throw new PipelineInputError(`${url} is not a shopify.dev Markdown page.`);
-  const group = match[1] === 'docs' ? 'docs' : 'changelog';
+  // A Shopify GitHub file pinned to a commit counts too, such as an app template's CHANGELOG.md.
+  const match =
+    /^https:\/\/shopify\.dev\/(changelog\/posts|docs)\/(.+)\.md$/.exec(url) ??
+    /^https:\/\/raw\.githubusercontent\.com\/(Shopify)\/([\w.-]+\/[0-9a-f]{40}\/.+)\.md$/.exec(url);
+  if (!match)
+    throw new PipelineInputError(
+      `${url} is not a shopify.dev Markdown page or a Shopify GitHub Markdown file at a commit.`,
+    );
+  const group = match[1] === 'docs' ? 'docs' : match[1] === 'Shopify' ? 'github' : 'changelog';
   const slug = match[2].replace(/[^a-z0-9]+/gi, '-').toLowerCase();
   const path = join(SHOPIFY_PAGES, group, `${slug}.json`);
   if (existsSync(path)) {

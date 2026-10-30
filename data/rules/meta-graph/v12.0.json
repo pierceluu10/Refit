@@ -1,0 +1,43 @@
+{
+  "formatVersion": 1,
+  "provider": "meta-graph",
+  "version": "v12.0",
+  "rules": [
+    {
+      "rule": "meta-graph-v12-0-field-changed-name-replacement",
+      "family": "field-replacement",
+      "change": "meta-graph-v12-0-field-changed-name",
+      "from": "name",
+      "to": "page_label_name",
+      "source": "https://developers.facebook.com/documentation/business-messaging/messenger-platform/changelog",
+      "quote": "Graph API `v12.0`+ Custom Labels API `name` field will be replaced with `page_label_name`. This change will take effect on all older Graph API versions starting Dec 14, 2021.",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    },
+    {
+      "rule": "meta-graph-v12-0-field-removed-reported-object-id-replacement",
+      "family": "field-migration",
+      "change": "meta-graph-v12-0-field-removed-reported-object-id",
+      "from": "reported_object_id",
+      "to": "/reported_content/reporters",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version12.0",
+      "quote": "The reported_object_id field for the GET /company/reported_content endpoint is deprecated. Calls to this field will return no data. Use the new GET /reported_content/reporters endpoint instead.",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    },
+    {
+      "rule": "meta-graph-v12-0-field-removed-review-status-replacement",
+      "family": "field-replacement",
+      "change": "meta-graph-v12-0-field-removed-review-status",
+      "from": "review_status",
+      "to": "channels_to_integrity_status",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version12.0",
+      "quote": "Starting with version 12.0, review_status will not be accepted as a valid field. We recommend that you use the channels_to_integrity_status",
+      "checkedAt": "2026-10-29",
+      "status": "review",
+      "origin": "mined"
+    }
+  ]
+}

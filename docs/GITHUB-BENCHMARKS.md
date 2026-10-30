@@ -57,7 +57,7 @@ node scripts/benchmark-merge.mjs --shards <dir>/shards --list <list> --offset <o
 
 ## Shopify
 
-`.github/workflows/shopify.yml` runs `npm run benchmark:shopify` with the same plan, shard and merge jobs and the same inputs, without AI (the Shopify benchmark has none) and with no secret but `REFIT_READ_TOKEN`. A `snapshots` job reads each Admin API schema the list names once from Shopify's public documentation proxy (`refit shopify-snapshot`; no store or credentials) and uploads them as the artifact `snapshots`. Each shard downloads those saved files and runs:
+`.github/workflows/shopify.yml` runs `npm run benchmark:shopify` with the same plan, shard and merge jobs and the same inputs, `ai`, `ai_budget` and `model` included. With `ai=true` each shard writes the `OPENAI_API_KEY` secret and its share of `ai_budget` to a file passed as `--ai --env`, which turns on document rewrites and reconstructions, REST mappings, AI repair and the second opinion; one ledger caps each shard, with no per-repository cap. Every shard also gets the `SHOPIFY_TEST_STORE` and `SHOPIFY_TEST_TOKEN` secrets for the development-store proof ([Shopify proof](SHOPIFY-PROOF.md)). A `snapshots` job reads each Admin API schema the list names once from Shopify's public documentation proxy (`refit shopify-snapshot`; no store or credentials) and uploads them as the artifact `snapshots`. Each shard downloads those saved files and runs:
 
 ```sh
 node scripts/shopify-benchmark-setup.mjs --root <root> --list <list with the snapshot hashes> --offset <start> --limit <size>
@@ -70,6 +70,24 @@ Shopify changes published schemas in place: on 2026-10-26 none of the four schem
 gh workflow run shopify.yml -R refit-dev/refit-bench \
   -f commit=$(git rev-parse HEAD) \
   -f list=2026-10-16-shopify-fresh-repos.json -f offset=0 -f count=50 -f size=5
+```
+
+The dev and blind sets ([Shopify dev and blind sets](BENCHMARKS.md#shopify-dev-and-blind-sets)) run the same way with `-f list=subsets/shopify-dev-60.json`. `subsets/shopify-blind-100.json` runs once, in the final combined benchmark. The benchmark runs each repository's tests with its root lockfile's manager (pnpm, then Yarn, then npm), as check selection does; before, only repositories with a `package-lock.json` were checked.
+
+## Meta Graph
+
+`.github/workflows/meta.yml` (refit-bench branch `feat/meta-benchmark` until merged) runs `npm run benchmark:meta` on a frozen Meta list, `subsets/meta-dev-60.json` or, only for the combined run at the end, `subsets/meta-blind-100.json`. It has the same plan, shard and merge jobs and inputs, no Docker and no secret but `REFIT_READ_TOKEN`. Each shard runs:
+
+```sh
+node scripts/meta-benchmark-setup.mjs --root <root> --list docs/benchmarks/<list> --offset <start> --limit <size>
+npm run benchmark:meta -- --root <root> --list <root>/list.json --output <out>/run
+```
+
+Each row holds `refit meta-graph`'s scan and its version-move proposal to the list's `specs.target`: the outcome (`no-graph-usage`, `current`, `version-move`, `needs-review`), every move and stop with its reasons, and the stop kinds. `run/repos/<repo>/` keeps `scan.json`, `proposal.json` and `moves.patch`. `meta.yml` passes `--validate`: each repository with a patch then runs `refit run` as a customer's would (`writeMetaGraphRun`: the change-table snapshots and the check `selectCheck` picks over the files that make Graph API requests). The row's `workflow` records the outcome, the check, the grade, ME4's proof, the requests left on their version and whether a draft was written, and `run/repos/<repo>/run/` keeps the bundle. With `ai: true` the workflow passes `--ai --env`, capped by `ai_budget`, exactly as `benchmark.yml` does. Nothing is sent to Meta; the merge job runs `scripts/benchmark-merge.mjs`, which uses the Meta summary table for a list whose `provider` is `meta-graph`, and the summary says when `data/meta-graph-changes.json` differs from the hash frozen with the list.
+
+```sh
+gh workflow run meta.yml -R refit-dev/refit-bench --ref feat/meta-benchmark \
+  -f commit=$(git rev-parse HEAD) -f list=subsets/meta-dev-60.json -f size=10
 ```
 
 ## Shards
@@ -107,7 +125,7 @@ Production is the hosted worker on Fly (`fly.toml`, `Dockerfile`). The Stripe wo
 - **Yarn's package cache:** preparation mounts it from Refit's temporary directory, which on the worker is the Fly volume (`TMPDIR=/data/tmp`) and on a runner the root disk's `/tmp`. Both are disks outside the sandbox's tmpfs workspace; an install stops below 2 GiB free on either.
 - **Runtime:** the worker runs the packaged CLI on a 2-vCPU, 4 GB Fly machine; shards run the source at the pinned commit with `tsx` on 4-vCPU, 16 GB runners. Compare outcomes, not seconds.
 
-Shopify runs differ the same way, without AI, and on the Admin schemas read in the run (see [Shopify](#shopify)).
+Shopify runs differ the same way, and on the Admin schemas read in the run (see [Shopify](#shopify)).
 
 ## Checked
 

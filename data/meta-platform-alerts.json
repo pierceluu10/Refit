@@ -1,0 +1,150 @@
+{
+  "formatVersion": 1,
+  "provider": "meta-graph",
+  "alerts": [
+    {
+      "id": "facebook-publish-actions-removed",
+      "kind": "permission-removed",
+      "effective": "2018-08-01",
+      "match": { "scopes": ["publish_actions"] },
+      "replacement": null,
+      "summary": "The publish_actions permission was deprecated; apps that already had it kept it until 1 August 2018, and Meta points to the Share dialogs instead.",
+      "quote": "The publish_actions permission will be deprecated.",
+      "source": "https://developers.facebook.com/ads/blog/post/2018/04/24/platform-product-changes/",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "facebook-rsvp-event-managed-groups-deprecated",
+      "kind": "permission-removed",
+      "effective": null,
+      "match": { "scopes": ["rsvp_event", "user_managed_groups"] },
+      "replacement": null,
+      "summary": "Graph API v3.0 deprecated the rsvp_event and user_managed_groups permissions.",
+      "quote": "The rsvp_event and user_managed_groups permissions are deprecated.",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version3.0",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "facebook-manage-pages-replaced",
+      "kind": "permission-removed",
+      "effective": null,
+      "match": { "scopes": ["manage_pages"] },
+      "replacement": [
+        "pages_manage_ads",
+        "pages_manage_metadata",
+        "pages_read_engagement",
+        "pages_read_user_content"
+      ],
+      "summary": "Graph API v7.0 split manage_pages into four pages_* permissions; it was fully deprecated in May 2022.",
+      "quote": "The manage_pages and publish_pages permissions will be fully deprecated in May of 2022.",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version7.0/",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "facebook-publish-pages-replaced",
+      "kind": "permission-removed",
+      "effective": null,
+      "match": { "scopes": ["publish_pages"] },
+      "replacement": ["pages_manage_posts", "pages_manage_engagement"],
+      "summary": "Graph API v7.0 split publish_pages into pages_manage_posts and pages_manage_engagement, on the same timeline as manage_pages.",
+      "quote": "The publish_pages permission has been deprecated and replaced with 2 new permissions:",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version7.0/",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "facebook-page-insights-new-pages-experience-2024-03-14",
+      "kind": "policy",
+      "effective": "2024-03-14",
+      "match": {
+        "metrics": [
+          "page_consumptions",
+          "page_engaged_users",
+          "page_views_external_referrals",
+          "post_activity"
+        ]
+      },
+      "replacement": null,
+      "summary": "With every Page on the new Pages experience, Page Insights metrics including these were removed on 14 March 2024; the changelog entry lists about 85 such metrics, and only these four are matched here.",
+      "quote": "We are providing a 90-day notice to developers that these deprecations will be implemented on March 14, 2024,",
+      "source": "https://developers.facebook.com/blog/post/2023/12/14/page-insights-metrics-deprecation/",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "instagram-basic-display-api-shutdown",
+      "kind": "product-shutdown",
+      "effective": "2024-12-04",
+      "match": { "products": ["instagram-basic-display"] },
+      "replacement": null,
+      "summary": "The Instagram Basic Display API stopped working on 4 December 2024 and every request to it fails; Meta points business and creator use cases to the Instagram API with Instagram Login or with Facebook Login.",
+      "quote": "Starting on December 4th, 2024, Instagram Basic Display API will no longer be available.",
+      "source": "https://developers.facebook.com/blog/post/2024/09/04/update-on-instagram-basic-display-api",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "instagram-login-business-scopes-renamed",
+      "kind": "permission-renamed",
+      "effective": "2025-01-27",
+      "match": {
+        "scopes": [
+          "business_basic",
+          "business_content_publish",
+          "business_manage_comments",
+          "business_manage_messages"
+        ]
+      },
+      "replacement": [
+        "instagram_business_basic",
+        "instagram_business_content_publish",
+        "instagram_business_manage_comments",
+        "instagram_business_manage_messages"
+      ],
+      "summary": "The Instagram API with Instagram Login renamed its four scope values to instagram_business_* names, one to one in this order, and retired the old values on 27 January 2025.",
+      "quote": "Please note that the old scope values will be deprecated on January 27, 2025.",
+      "source": "https://developers.facebook.com/documentation/instagram-platform/changelog.md",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "meta-oembed-read-replacement",
+      "kind": "policy",
+      "effective": "2025-11-03",
+      "match": { "paths": ["/instagram_oembed", "/oembed_post", "/oembed_video"] },
+      "replacement": null,
+      "summary": "Meta oEmbed Read replaced the oEmbed Read feature on 3 November 2025, across all versions: author_name, author_url and the thumbnail fields left the response for Facebook posts, Facebook videos and Instagram posts.",
+      "quote": "The current oEmbed Read feature will be deprecated on November 3, 2025.",
+      "source": "https://developers.facebook.com/documentation/instagram-platform/changelog.md",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "facebook-page-insights-metrics-2025-11-15",
+      "kind": "policy",
+      "effective": "2025-11-15",
+      "match": {
+        "metrics": [
+          "page_fans",
+          "page_fans_city",
+          "page_fans_country",
+          "page_fans_locale",
+          "page_fan_adds",
+          "page_fan_adds_unique",
+          "page_fan_removes",
+          "page_fan_removes_unique",
+          "page_impressions",
+          "page_impressions_paid",
+          "page_impressions_viral",
+          "page_impressions_nonviral",
+          "post_impressions",
+          "post_impressions_paid",
+          "post_impressions_fan",
+          "post_impressions_organic",
+          "post_impressions_viral",
+          "post_impressions_nonviral"
+        ]
+      },
+      "replacement": null,
+      "summary": "On 15 November 2025 these Page Insights metrics were removed for every API version; the changelog gives alternatives for some, such as page_follows and page_media_view.",
+      "quote": "On November 15, 2025, a number of the Page Insights metrics will be deprecated for all API versions.",
+      "source": "https://developers.facebook.com/documentation/pages-api/changelog",
+      "checkedAt": "2026-10-29"
+    }
+  ]
+}

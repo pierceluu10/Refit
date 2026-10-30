@@ -12,7 +12,6 @@ import {
   visit,
   visitWithTypeInfo,
   type DocumentNode,
-  type FragmentDefinitionNode,
   type GraphQLSchema,
 } from 'graphql';
 import type { AiOptions } from './ai-budget.ts';
@@ -25,7 +24,6 @@ import {
   scanShopify,
   SHOPIFY_PACKAGES,
   type AdminDocument,
-  type DocumentSegment,
   type ShopifyScan,
 } from './shopify-analysis.ts';
 import {
@@ -35,9 +33,17 @@ import {
   type DocumentEdit,
   type ShopifyDocumentRule,
 } from './shopify-document-rules.ts';
-import { documentProof } from './shopify-proof.ts';
+import { documentProof, fragmentPool, withFragments } from './shopify-proof.ts';
 import { shopifySchema } from './shopify-schemas.ts';
-import { aiRewriteDocument, type ShopifyAiRewrite } from './shopify-ai-rewrite.ts';
+import {
+  aiReconstructDocument,
+  aiRewriteDocument,
+  reconstructionSources,
+  type ShopifyAiRewrite,
+  type ShopifyReconstruction,
+} from './shopify-ai-rewrite.ts';
+import type { ShopifyLiveCase } from './shopify-live-proof.ts';
+import { loadShopifyMigrationRules, migrateDocument } from './shopify-migrations.ts';
 import { SHOPIFY_SDK_RULE, shopifySdkSourceChanges } from './shopify-sdk-source.ts';
 import { shopifySdkUpgrade } from './shopify-sdk-upgrade.ts';
 import {
@@ -49,6 +55,7 @@ import {
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { digest, isObject } from './specifications.ts';
 import { proposeRestRule } from './shopify-rest-ai.ts';
+import { proveShopifyRest } from './shopify-rest-contract.ts';
 import {
   loadShopifyRestContract,
   loadShopifyRestRefusals,
@@ -82,7 +89,7 @@ const WEBHOOK_VERSION = /^\s*api_version\s*=\s*["'](\d{4}-\d{2}|unstable)["']/m;
 // The files source scanning skips that carry Shopify facts: .graphql and .gql documents, and the
 // app configuration (shopify.app.toml, shopify.app.<name>.toml), whose api_version sets the webhook
 // payload version.
-async function shopifyExtraFiles(root: string) {
+export async function shopifyExtraFiles(root: string) {
   const graphql: { path: string; content: string }[] = [];
   const configuration: { path: string; content: string }[] = [];
   const visit = async (directory: string): Promise<void> => {
@@ -104,90 +111,6 @@ async function shopifyExtraFiles(root: string) {
   await visit(root);
   const order = (a: { path: string }, b: { path: string }) => a.path.localeCompare(b.path);
   return { graphql: graphql.sort(order), configuration: configuration.sort(order) };
-}
-
-// The part of a document between two offsets, with its source mapping.
-function sliceDocument(document: AdminDocument, start: number, end: number) {
-  const segments: DocumentSegment[] = document.segments
-    .filter((entry) => entry.documentEnd > start && entry.documentStart < end)
-    .map((entry) => {
-      const from = Math.max(entry.documentStart, start);
-      return {
-        ...entry,
-        documentStart: from - start,
-        documentEnd: Math.min(entry.documentEnd, end) - start,
-        sourceStart: entry.sourceStart + from - entry.documentStart,
-      };
-    });
-  return { text: document.text.slice(start, end), segments };
-}
-
-// Fragments defined once across every document Refit read, by name: codegen and .graphql projects
-// define a fragment in one file and spread it in another. A name defined twice is left out.
-function fragmentPool(documents: AdminDocument[]) {
-  const pool = new Map<string, ReturnType<typeof sliceDocument> | null>();
-  for (const document of documents) {
-    let ast: DocumentNode;
-    try {
-      ast = parse(document.text);
-    } catch {
-      continue;
-    }
-    for (const definition of ast.definitions) {
-      if (definition.kind !== 'FragmentDefinition' || !definition.loc) continue;
-      const piece = sliceDocument(document, definition.loc.start, definition.loc.end);
-      const known = pool.get(definition.name.value);
-      pool.set(
-        definition.name.value,
-        known === undefined || known?.text === piece.text ? piece : null,
-      );
-    }
-  }
-  return pool;
-}
-
-// The document with every fragment it spreads but does not define appended from the pool.
-function withFragments(
-  document: AdminDocument,
-  pool: ReturnType<typeof fragmentPool>,
-): AdminDocument {
-  let current = document;
-  for (let round = 0; round < 16; round++) {
-    let ast: DocumentNode;
-    try {
-      ast = parse(current.text);
-    } catch {
-      return current;
-    }
-    const defined = new Set(
-      ast.definitions
-        .filter((entry): entry is FragmentDefinitionNode => entry.kind === 'FragmentDefinition')
-        .map((entry) => entry.name.value),
-    );
-    const missing = new Set<string>();
-    visit(ast, {
-      FragmentSpread(node) {
-        if (!defined.has(node.name.value) && pool.get(node.name.value))
-          missing.add(node.name.value);
-      },
-    });
-    if (!missing.size) return current;
-    let { text } = current;
-    const segments = [...current.segments];
-    for (const name of missing) {
-      const piece = pool.get(name)!;
-      text += '\n';
-      for (const entry of piece.segments)
-        segments.push({
-          ...entry,
-          documentStart: entry.documentStart + text.length,
-          documentEnd: entry.documentEnd + text.length,
-        });
-      text += piece.text;
-    }
-    current = { ...current, text, segments };
-  }
-  return current;
 }
 
 // The source edit for a rule's edit to an assembled document, or undefined when the document text
@@ -316,6 +239,10 @@ function checkDocument(
     ast = parse(document.text);
   } catch (error) {
     if (!(error instanceof GraphQLError)) throw error;
+    // A #graphql literal no Admin call reaches that does not parse is a piece the code assembles at
+    // runtime (the call that sends it is reported as unreadable) or fails on every version; the
+    // schema proof treats it the same way.
+    if (!document.traced) return { findings: [], deprecated: [], otherApi: true };
     return {
       findings: [
         {
@@ -476,7 +403,7 @@ function versionDeclarations(scan: ShopifyScan): ApiVersionDeclaration[] {
       })),
     // Notes (an environment variable with no default, `unstable`) are left as they are.
     ...scan.unresolvedVersions
-      .filter((entry) => !entry.note)
+      .filter((entry) => !entry.note && !CODEGEN_CONFIG.test(entry.file))
       .map((entry) => ({
         file: entry.file,
         line: entry.line,
@@ -842,6 +769,10 @@ async function shopifyRun(options: ShopifyRunOptions) {
   const otherApi: AdminDocument[] = [];
   const storefront: AdminDocument[] = [];
   const rules = loadShopifyDocumentRules(versions.after);
+  const migrationRules = loadShopifyMigrationRules(versions.after);
+  // Development store cases for documents whose variables a migration changed, at their lines.
+  const liveCases: (Omit<ShopifyLiveCase, 'document'> & { file: string; line: number })[] = [];
+  const migrationNotes: string[] = [];
   const documentEdits = new Map<string, SourceEdit>();
   const aiEdits: SourceEdit[] = [];
   const variableNotes = new Set<string>();
@@ -872,10 +803,74 @@ async function shopifyRun(options: ShopifyRunOptions) {
     } else if (rewritten)
       for (const finding of result.findings)
         finding.reason += ` A Shopify rule matched but was not applied: ${rewritten.refusal}`;
+    // Documents that already fail on the oldest supported version, or break on the target, and
+    // that no in-place rule fixed: the documented migrations and the unused-variable fix, which also
+    // edit the code around the document (pipeline/shopify-migrations.ts).
+    let migrated = false;
+    if (
+      !(rewritten && 'edits' in rewritten) &&
+      result.findings.length &&
+      !result.otherApi &&
+      result.findings.every(
+        (finding) =>
+          finding.reason.startsWith('This document already') ||
+          (finding.reason.startsWith('Valid on') &&
+            !finding.changeId.startsWith('shopify-graphql-input:')),
+      )
+    ) {
+      const migration = migrateDocument({
+        document,
+        source: patchRepository.files.find((file) => file.path === document.segments[0]?.file)
+          ?.content,
+        after,
+        rules: migrationRules,
+      });
+      const types =
+        migration && 'edits' in migration
+          ? typeChanges(
+              parse(migration.text),
+              { ...document, text: migration.text },
+              before,
+              after,
+              versions,
+              migration.text,
+            )
+          : undefined;
+      if (migration && 'edits' in migration && !types!.findings.length) {
+        migrated = true;
+        for (const edit of migration.edits)
+          documentEdits.set(`${edit.file}:${edit.start}:${edit.end}:${edit.replacement}`, edit);
+        liveCases.push(
+          ...migration.liveCases.map((entry) => ({
+            ...entry,
+            file: document.file,
+            line: document.line,
+          })),
+        );
+        for (const name of migration.uncovered)
+          migrationNotes.push(
+            `${document.file}:${document.line} (${name}): the migration changes the variables the code sends, and Refit could not write a development store case for it, so the patch stays [Needs review] until the operation is run.`,
+          );
+        const confidence = document.traced ? ('confirmed' as const) : ('review' as const);
+        result = {
+          deprecated: types!.deprecated,
+          findings: migration.notes.map((note) => ({
+            ...documentLocation(document, note.offset),
+            changeId: note.rule,
+            expression: note.expression,
+            confidence,
+            reason: `${note.reason} The rewritten document validates on ${versions.after}.`,
+          })),
+        };
+      } else if (migration)
+        for (const finding of result.findings)
+          finding.reason += ` A Shopify migration matched but was not applied: ${'refusal' in migration ? migration.refusal : 'a selected field changes type on the target.'}`;
+    }
     const segment = document === original && document.segments.length === 1 && document.segments[0];
     if (
       options.aiPatch &&
       segment &&
+      !migrated &&
       !(rewritten && 'edits' in rewritten) &&
       result.findings.length &&
       !result.otherApi &&
@@ -930,19 +925,53 @@ async function shopifyRun(options: ShopifyRunOptions) {
   }
   // A Storefront call's unreadable document does not reach the Admin version move.
   const storefrontUnreadable = scan.unreadable.filter((entry) => entry.api);
-  for (const entry of scan.unreadable.filter((item) => !item.api))
-    findings.push({
-      ...entry,
-      changeId: 'shopify-graphql:unreadable',
-      expression: 'Admin GraphQL call',
-      confidence: 'review',
-      reason: entry.reason,
-      contractReview: `Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API ${versions.after}.`,
-    });
+  const reconstructed: (ShopifyReconstruction & { file: string; line: number })[] = [];
+  for (const entry of scan.unreadable.filter((item) => !item.api)) {
+    // AI use 5: the model reads the document from the code; it counts only when every name it
+    // writes is in that code and the document validates on both versions (reconstructionProblem).
+    const attempt = options.aiPatch
+      ? await aiReconstructDocument({
+          file: entry.file,
+          line: entry.line,
+          why: entry.reason,
+          sources: reconstructionSources(patchRepository.files, entry.file),
+          before,
+          after,
+          versions,
+          ai: options.aiPatch,
+        })
+      : undefined;
+    if (attempt) reconstructed.push({ ...attempt, file: entry.file, line: entry.line });
+    findings.push(
+      attempt?.status === 'kept'
+        ? {
+            ...entry,
+            changeId: 'shopify-graphql-reconstructed',
+            expression: 'Admin GraphQL call',
+            confidence: 'review',
+            reason: `AI (${attempt.model}) read the document this call sends from the code; Refit checked that every name in it is written there and that it validates on ${versions.before} and ${versions.after}. ${attempt.reason}`,
+          }
+        : {
+            ...entry,
+            changeId: 'shopify-graphql:unreadable',
+            expression: 'Admin GraphQL call',
+            confidence: 'review',
+            reason: attempt
+              ? `${entry.reason} AI could not read it: ${attempt.reason}`
+              : entry.reason,
+            contractReview: `Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API ${versions.after}.`,
+          },
+    );
+  }
   const sdkRelease = await lockedShopifyApi(repository.root);
+  // REST calls the versioned REST contract proves stay REST and move with the version; only the
+  // others are rewritten as GraphQL or stop.
+  const restProofs = proveShopifyRest(repository, scan, versions);
+  const restProven = restProofs.filter((item) => item.proof.status === 'proven');
+  const restProof = new Map(restProofs.map((item) => [item.entry, item.proof]));
   const restRun = await shopifyRestRewrites(
     repository,
-    scan,
+    { rest: scan.rest.filter((entry) => restProof.get(entry)?.status !== 'proven') },
     [
       { version: versions.before, schema: before },
       { version: versions.after, schema: after },
@@ -988,8 +1017,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
         expression: restLabel(entry),
         confidence: 'review',
         reason: `REST Admin API usage Refit did not rewrite: ${result.reason}`,
-        contractReview:
-          'The repository calls the REST Admin API, which has no published versioned contract; Refit cannot prove those calls survive the version change.',
+        contractReview: `Refit cannot prove this REST Admin call against the ${versions.before} and ${versions.after} REST contracts (docs/SHOPIFY-REST.md): ${(restProof.get(entry) as { reason?: string } | undefined)?.reason ?? result.reason}`,
       });
   }
   const member = enumFromVersion(versions.after);
@@ -1131,6 +1159,11 @@ async function shopifyRun(options: ShopifyRunOptions) {
               ...evidence,
               warnings: [
                 ...restRewriteNotes(restRewrites),
+                ...(restProven.length
+                  ? [
+                      `${restProven.length} REST Admin call${restProven.length === 1 ? '' : 's'} stay REST: every endpoint, parameter, body key and response field ${restProven.length === 1 ? 'it uses' : 'they use'} is in the ${versions.before} REST contract and unchanged in ${versions.after} (Shopify's generated REST resources and REST reference, data/shopify-rest-contract.json): ${restProven.map((item) => `${item.entry.file}:${item.entry.line}`).join(', ')}.`,
+                    ]
+                  : []),
                 ...(upgraded
                   ? [
                       upgraded.lockless
@@ -1152,6 +1185,13 @@ async function shopifyRun(options: ShopifyRunOptions) {
                     ]
                   : []),
                 ...variableNotes,
+                ...migrationNotes,
+                ...reconstructed
+                  .filter((attempt) => attempt.status === 'kept')
+                  .map(
+                    (attempt) =>
+                      `${attempt.file}:${attempt.line} builds its GraphQL document at runtime; AI read it from the code and Refit validated it on ${versions.before} and ${versions.after}. Check that it is what the call sends:\n${attempt.document}`,
+                  ),
                 ...scan.unresolvedVersions
                   .filter((entry) => entry.note)
                   .map((entry) => `${entry.file}:${entry.line}: ${entry.reason}`),
@@ -1239,6 +1279,11 @@ async function shopifyRun(options: ShopifyRunOptions) {
       webhookApiVersions: webhookVersions,
       ruleEdits: documentEdits.size,
       restRewrites: restRewrites.length,
+      restContract: restProofs.map((item) => ({
+        file: item.entry.file,
+        line: item.entry.line,
+        ...item.proof,
+      })),
       restAi: restRun.proposals.map((proposal) => ({
         file: proposal.file,
         line: proposal.line,
@@ -1246,6 +1291,16 @@ async function shopifyRun(options: ShopifyRunOptions) {
         model: proposal.model,
         costUsd: proposal.costUsd,
         reason: proposal.reason,
+      })),
+      // Documents the model read from code Refit could not (AI use 5); the proof validates the kept ones.
+      reconstructed: reconstructed.map((attempt) => ({
+        file: attempt.file,
+        line: attempt.line,
+        status: attempt.status,
+        model: attempt.model,
+        costUsd: attempt.costUsd,
+        reason: attempt.reason,
+        ...(attempt.document ? { document: attempt.document } : {}),
       })),
       ai: aiAttempts.map((attempt) => ({
         file: attempt.file,
@@ -1256,6 +1311,8 @@ async function shopifyRun(options: ShopifyRunOptions) {
         reason: attempt.reason,
       })),
       deprecated: [...deprecated],
+      // Development store cases the migrations wrote (pipeline/shopify-migrations.ts).
+      liveCases,
     },
     warnings: [
       ...repository.warnings,

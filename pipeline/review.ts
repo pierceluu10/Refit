@@ -538,6 +538,8 @@ function testModeLines(validation: unknown) {
 
 const EVIDENCE_LABELS = {
   'behaviour-tests': "Behaviour tests in the provider's test mode cover every changed line",
+  'live-requests': "Read-only calls in the provider's test app accept every changed request",
+  'request-strings': 'Only request strings changed, each proven by the change table',
   'stripe-tests': 'Tests exercise the changed code',
   'type-check': 'Type-checked only',
   'generated-check': 'Generated stripe-mock checks only',
@@ -577,7 +579,9 @@ export function createReviewArtifacts(
         ? 'OpenAI'
         : report.provider === 'shopify'
           ? 'Shopify'
-          : report.provider;
+          : report.provider === 'meta-graph'
+            ? 'Meta Graph'
+            : report.provider;
   // Shopify runs move the pinned Admin API version after checking every traced GraphQL document.
   const shopify =
     report.provider === 'shopify'
@@ -1092,7 +1096,17 @@ export function createReviewArtifacts(
     (change) =>
       `${code(`${change.operation} ${change.path}`)} ${plainText(String(change.text))}: ${plainText(String(change.reachReason))}`,
   );
+  // Meta Graph requests Refit did not move stay on their version; each line gives the reasons.
+  const metaGraph = report.provider === 'meta-graph';
   const unmigratedSites = [...unmigratedUsages.values()].map((group) => {
+    if (metaGraph) {
+      const [site] = group;
+      const finding = report.findings.find(
+        (entry) =>
+          entry.file === site.file && entry.line === site.line && entry.changeId === site.changeId,
+      );
+      return `${code(`${site.file}:${site.line}`)} ${code(site.expression)}${finding ? `: ${plainText(finding.reason)}` : ''}`;
+    }
     const fields = new Set(
       group.flatMap((site) => {
         const entry = report.changes.find((candidate) => candidate.id === site.changeId);
@@ -1110,11 +1124,15 @@ export function createReviewArtifacts(
   const unlisted = sites ? Math.max(0, unresolvedReads - unmigratedSites.length) : 0;
   // Why a [Needs review] draft needs review opens the body; the checklist at the end has the actions.
   const usagesLeft = [
-    ...(unresolvedReads
+    ...(unresolvedReads && metaGraph
       ? [
-          `${unresolvedReads} usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes${sites && !unlisted && confirmedLeft !== unresolvedReads ? ` (${confirmedLeft ? `${confirmedLeft} confirmed, ${unresolvedReads - confirmedLeft}` : 'none confirmed; Refit'} traced ${confirmedLeft ? 'with less certainty' : 'them with less certainty'})` : ''} ${unresolvedReads === 1 ? 'is' : 'are'} still unmigrated: no rule changed ${unresolvedReads === 1 ? 'it' : 'them'}${passed ? `, and the checks passed without ${unresolvedReads === 1 ? 'it' : 'them'}` : ''}. ${unmigratedSites.length ? (unlisted ? `${unmigratedSites.length} ${unmigratedSites.length === 1 ? 'is' : 'are'} listed under Left Unchanged; the other ${unlisted} (${unlisted === 1 ? 'a call to a changed operation' : 'calls to changed operations'}) ${unlisted === 1 ? 'is' : 'are'} in Refit's run report.` : `${unresolvedReads === 1 ? 'It is' : 'Each is'} listed under Left Unchanged.`) : "The locations are in Refit's run report."}`,
+          `${unresolvedReads} Graph API request${unresolvedReads === 1 ? ' stays' : 's stay'} on ${unresolvedReads === 1 ? 'its' : 'their'} current version: Refit could not prove ${unresolvedReads === 1 ? 'it is' : 'they are'} safe to move, or a product migration needs a person. They keep working only until that version's end date. ${unresolvedReads === 1 ? 'It is' : 'Each is'} listed under Left Unchanged with the reason.`,
         ]
-      : []),
+      : unresolvedReads
+        ? [
+            `${unresolvedReads} usage${unresolvedReads === 1 ? '' : 's'} of the breaking changes${sites && !unlisted && confirmedLeft !== unresolvedReads ? ` (${confirmedLeft ? `${confirmedLeft} confirmed, ${unresolvedReads - confirmedLeft}` : 'none confirmed; Refit'} traced ${confirmedLeft ? 'with less certainty' : 'them with less certainty'})` : ''} ${unresolvedReads === 1 ? 'is' : 'are'} still unmigrated: no rule changed ${unresolvedReads === 1 ? 'it' : 'them'}${passed ? `, and the checks passed without ${unresolvedReads === 1 ? 'it' : 'them'}` : ''}. ${unmigratedSites.length ? (unlisted ? `${unmigratedSites.length} ${unmigratedSites.length === 1 ? 'is' : 'are'} listed under Left Unchanged; the other ${unlisted} (${unlisted === 1 ? 'a call to a changed operation' : 'calls to changed operations'}) ${unlisted === 1 ? 'is' : 'are'} in Refit's run report.` : `${unresolvedReads === 1 ? 'It is' : 'Each is'} listed under Left Unchanged.`) : "The locations are in Refit's run report."}`,
+          ]
+        : []),
     ...(untracedSites.length
       ? [
           `Refit could not trace ${untracedSites.length} read${untracedSites.length === 1 ? '' : 's'} of removed field names to a ${plainText(provider)} object, so it left ${untracedSites.length === 1 ? 'it unchanged; it is' : 'them unchanged; each is'} listed under Left Unchanged.`,
@@ -1555,7 +1573,9 @@ export function createReviewArtifacts(
       ...(unmigratedSites.length || untracedSites.length ? ['## Left Unchanged'] : []),
       ...(unmigratedSites.length
         ? [
-            `Refit traced these usages to ${plainText(provider)} objects but no rule changed them, so the migrated code still uses what the upgrade removes. Migrate each one before merging:`,
+            metaGraph
+              ? 'These Graph API requests stay on their current version. Each line gives why Refit did not move it; move or migrate each one before that version ends:'
+              : `Refit traced these usages to ${plainText(provider)} objects but no rule changed them, so the migrated code still uses what the upgrade removes. Migrate each one before merging:`,
             siteList(unmigratedSites, siteLimit),
           ]
         : []),

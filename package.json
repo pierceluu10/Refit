@@ -37,7 +37,8 @@
     "meta-graph:check": "node bin/refit.mjs meta-graph --check-changes",
     "shopify-rest:check": "node bin/refit.mjs shopify-rest --check-deprecations",
     "ai-rules:check": "node bin/refit.mjs ai-migrations --check-rules",
-    "benchmark:shopify": "tsx pipeline/shopify-benchmark-cli.ts"
+    "benchmark:shopify": "tsx pipeline/shopify-benchmark-cli.ts",
+    "benchmark:meta": "tsx pipeline/meta-benchmark-cli.ts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

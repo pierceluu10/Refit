@@ -57,3 +57,7 @@ Other blockers, fixed separately:
 | Failing before the fix | the failing tests run on the patch; `newTestFailures` compares them                                                                                                                                            | AET-App stays held by `contract-changes`; its new test run needs a benchmark                                                                                                                                                   |
 
 Validated before and after, with each row's proof level: 15 → 19 (every validated row grade C except VishalRaut2106/HackMate_AI, grade A).
+
+## Meta Graph API (2026-10-29)
+
+Meta patches use the same levels, with the reviewed change table standing in for a contract and read-only calls with Refit's test app for test mode: see [Meta Graph proof](META-GRAPH.md#proof).

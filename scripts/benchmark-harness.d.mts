@@ -2,7 +2,11 @@
 // import it. They follow docs/benchmarks/schemas/harness.schema.json.
 
 export type ResultsFormat =
-  'stripe-results' | 'shopify-results' | 'ai-model-results' | 'deadline-results';
+  | 'stripe-results'
+  | 'shopify-results'
+  | 'ai-model-results'
+  | 'deadline-results'
+  | 'meta-graph-results';
 
 export interface Revision {
   commit: string | null;

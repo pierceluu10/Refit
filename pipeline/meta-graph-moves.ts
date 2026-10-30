@@ -7,6 +7,7 @@ import {
   isReference,
   scanGraphCalls,
   unwrap,
+  envDefault,
   type GraphCall,
 } from './meta-graph-calls.ts';
 import {
@@ -14,6 +15,7 @@ import {
   type MetaGraphChange,
   type MetaGraphChanges,
 } from './meta-graph-changes.ts';
+import { applyRules, type AppliedRule } from './meta-graph-rule-edits.ts';
 import { renderPatch } from './patches.ts';
 import { readRepository } from './repository.ts';
 import { META_SDK } from './deadline-exposure.ts';
@@ -26,8 +28,9 @@ import { PipelineInputError, type Repository, type SourceEdit } from './types.ts
 // Nothing is applied, validated or published.
 
 const VERSION = /^v\d+\.\d+$/;
-const HOST_PREFIX = 'graph.facebook.com/';
+const HOST_PREFIX = /graph\.(?:facebook|instagram)\.com\/$/;
 const MAX_ALIAS_DEPTH = 3;
+export const META_GRAPH_VERSION_RULE = 'meta-graph-api-version';
 
 export interface VersionMoveRequest {
   file: string;
@@ -45,6 +48,8 @@ export interface VersionMove {
   // Versions crossed, each with a reviewed changelog that lists nothing these requests use.
   crossed: string[];
   requests: VersionMoveRequest[];
+  // Documented rules applied with the move, such as a renamed field in a `fields` list.
+  rules: string[];
 }
 
 export interface VersionMoveStop {
@@ -66,6 +71,8 @@ export interface VersionMoveProposal {
   current: VersionMoveRequest[];
   // A unified diff of every move; null when there is none. Never applied by Refit.
   patch: string | null;
+  // The edits the patch is made of: version pins and the rule edits that move with them.
+  edits: SourceEdit[];
 }
 
 function request(call: GraphCall): VersionMoveRequest {
@@ -87,7 +94,7 @@ export function fieldNames(fields: string[]) {
 // `/{offline-event-set-id}`, names a node type an opaque ID cannot reveal: it matches every request
 // to a single opaque node (a placeholder or a numeric ID), and never a longer path or a literal one
 // such as `/me`.
-function pathMatches(path: string, prefix: string) {
+export function pathMatches(path: string, prefix: string) {
   const segments = path.split('/').filter(Boolean);
   const wanted = prefix.split('/').filter(Boolean);
   const runtime = (segment: string) => segment.includes('{');
@@ -95,6 +102,11 @@ function pathMatches(path: string, prefix: string) {
   const opaque = (segment: string) => runtime(segment) || /^(act_)?\d+$/.test(segment);
   if (wanted.length === 1 && runtime(wanted[0]))
     return segments.length === 1 && opaque(segments[0]);
+  // A root endpoint such as `/search` or `/instagram_oembed` is one literal word; a request whose
+  // path starts with a node ID (`/{pageId}/photos`) is not under it. Paths named like a path, which
+  // could hold one, are already unknown in the scan. A longer path such as `/me/accounts` still
+  // matches a runtime node, which may be `me`.
+  if (wanted.length === 1 && segments.length && runtime(segments[0])) return false;
   return (
     wanted.length <= segments.length &&
     wanted.every(
@@ -104,23 +116,69 @@ function pathMatches(path: string, prefix: string) {
   );
 }
 
-// The change-list entries a request uses: its edge or endpoint, a field it requests, a metric or a
-// parameter. A GET that names no fields gets the node's defaults, so any field change counts.
+// Whether two request paths name the same endpoint: the same number of segments, each written the
+// same or a runtime segment on either side, so `/{userId}/media` describes `/123456/media`.
+function samePath(a: string, b: string) {
+  const left = a.split('/').filter(Boolean);
+  const right = b.split('/').filter(Boolean);
+  return (
+    left.length === right.length &&
+    left.every(
+      (segment, index) =>
+        segment === right[index] || segment.includes('{') || right[index].includes('{'),
+    )
+  );
+}
+
+// Endpoints that return a token payload, not a node, so they have no node fields to change.
+const TOKEN_PATHS = new Set([
+  '/oauth/access_token',
+  '/oauth/client_code',
+  '/debug_token',
+  '/access_token',
+  '/refresh_access_token',
+]);
+
+// Whether a GET that names no fields, and so receives the node's default fields, may receive a
+// field a change touches. It does unless the change cannot reach it: a token endpoint returns no
+// node, a change recorded on an edge's objects reaches only reads of that edge, and `/me` reads
+// the token's User or Page, never a node of another type the change names.
+function defaultFieldsMay(call: GraphCall, change: MetaGraphChange) {
+  if (call.method !== 'GET' || call.fields?.length !== 0) return false;
+  if (call.path !== null && TOKEN_PATHS.has(call.path)) return false;
+  if (change.edge !== null && change.edge !== call.edge) return false;
+  if (call.path === '/me' && change.node !== null && !/\b(user|page)\b/i.test(change.node))
+    return false;
+  return true;
+}
+
+// The change-list entries a request uses: its edge or endpoint, a field it requests, a metric, a
+// breakdown or a parameter. A GET that names no fields gets the node's defaults, so any field change
+// counts. Webhook changes follow the app's webhook version, not the request's, so no request uses
+// them; they stay alerts.
 export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
   const fields = call.fields ? fieldNames(call.fields) : new Set<string>();
+  const endpoint = (change: MetaGraphChange) =>
+    (change.edge !== null && change.edge === call.edge) ||
+    (change.path !== null && call.path !== null && pathMatches(call.path, change.path));
   return changes.filter((change) => {
     switch (change.kind) {
       case 'endpoint-removed':
-        return (
-          (change.edge !== null && change.edge === call.edge) ||
-          (change.path !== null && call.path !== null && pathMatches(call.path, change.path))
-        );
+      case 'endpoint-changed':
+      case 'parameter-required':
+      case 'error-changed':
+      case 'permission-changed':
+        return endpoint(change);
       case 'edge-removed':
       case 'edge-changed':
         return change.edge === call.edge;
       case 'field-removed':
       case 'field-changed':
-        return fields.has(change.name!) || (call.method === 'GET' && call.fields?.length === 0);
+        // A change recorded on an edge's objects reaches only reads of that edge.
+        return (
+          (change.edge === null || change.edge === call.edge) &&
+          (fields.has(change.name!) || defaultFieldsMay(call, change))
+        );
       case 'metric-removed':
       case 'metric-changed':
         // Changelogs print some metric names in capitals; requests use lowercase.
@@ -131,6 +189,17 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
       case 'parameter-removed':
       case 'parameter-changed':
         return call.parameters?.includes(change.name!) ?? false;
+      // The values a request breaks down by are not traced, so any breakdown on insights counts.
+      case 'breakdown-removed':
+        return (
+          call.edge === 'insights' &&
+          (call.parameters?.some((name) => /^(action_)?breakdowns$/.test(name)) ?? false)
+        );
+      // A product shutdown names no endpoint a request could match; it stays an alert.
+      case 'product-removed':
+      case 'webhook-field-removed':
+      case 'webhook-field-changed':
+        return false;
     }
     return true;
   });
@@ -182,7 +251,7 @@ const SEPARATE_CHANGELOG_PARAMETERS = new Set([
   'phone_number_id',
 ]);
 
-function separateChangelog(call: GraphCall) {
+export function separateChangelog(call: GraphCall) {
   // A root endpoint such as `/message_template_library` is a path with no node before it.
   const root = call.path !== null && /^\/[a-z_]+$/.test(call.path) ? call.path.slice(1) : null;
   return (call.edge !== null && SEPARATE_CHANGELOG_EDGES.has(call.edge)) ||
@@ -238,13 +307,16 @@ function isStringPiece(node: ts.Node) {
   );
 }
 
-// The expression a string piece belongs to, climbing through templates, concatenation and
-// wrappers, and the variable it initializes, if any.
+// The expression a string piece belongs to, climbing through templates, concatenation, the fallback
+// of `process.env.X || '…'` and wrappers, and the variable it initializes, if any.
 function holderOf(node: ts.Node): ts.VariableDeclaration | undefined {
   let current: ts.Node = node;
   while (
     current.parent &&
-    (ts.isTemplateExpression(current.parent) ||
+    ((ts.isBinaryExpression(current.parent) &&
+      current.parent.right === current &&
+      envDefault(current.parent) !== undefined) ||
+      ts.isTemplateExpression(current.parent) ||
       ts.isTemplateSpan(current.parent) ||
       (ts.isBinaryExpression(current.parent) &&
         current.parent.operatorToken.kind === ts.SyntaxKind.PlusToken) ||
@@ -303,7 +375,7 @@ function untracedUses(
       const before =
         index === 0 ? template.head.text : template.templateSpans[index - 1].literal.text;
       if (kind === 'url' && index === 0 && before === '') continue;
-      if (kind === 'version' && before.endsWith(HOST_PREFIX)) continue;
+      if (kind === 'version' && HOST_PREFIX.test(before)) continue;
     } else if (kind === 'url') {
       if (
         ts.isBinaryExpression(parent) &&
@@ -352,7 +424,7 @@ function pinEdit(repository: Repository, file: string, line: number, version: st
   const inUrl = [
     ...lineText.matchAll(
       new RegExp(
-        `${HOST_PREFIX.replace(/\./g, '\\.')}${version.replace('.', '\\.')}(?![\\w.])`,
+        `(graph\\.(?:facebook|instagram)\\.com/)${version.replace('.', '\\.')}(?![\\w.])`,
         'g',
       ),
     ),
@@ -361,7 +433,7 @@ function pinEdit(repository: Repository, file: string, line: number, version: st
     ...lineText.matchAll(new RegExp(`(['"\`])${version.replace('.', '\\.')}\\1`, 'g')),
   ];
   let start: number;
-  if (inUrl.length === 1 && !quoted.length) start = lineStart + inUrl[0].index + HOST_PREFIX.length;
+  if (inUrl.length === 1 && !quoted.length) start = lineStart + inUrl[0].index + inUrl[0][1].length;
   else if (quoted.length === 1 && !inUrl.length) start = lineStart + quoted[0].index + 1;
   else
     return {
@@ -396,7 +468,8 @@ function pinEdit(repository: Repository, file: string, line: number, version: st
       end,
       reasons: [`${where}: the version is in \`${name}\`, which is not a const`],
     };
-  const initializer = holder.initializer && unwrap(holder.initializer);
+  const initializer =
+    holder.initializer && (envDefault(holder.initializer) ?? unwrap(holder.initializer));
   const kind =
     initializer && ts.isStringLiteralLike(initializer) && VERSION.test(initializer.text)
       ? 'version'
@@ -412,6 +485,7 @@ export async function proposeVersionMoves(
   changes: MetaGraphChanges,
   registry: DeadlineRegistry,
   now: Date,
+  rules: AppliedRule[] = [],
 ): Promise<VersionMoveProposal> {
   if (!VERSION.test(target)) throw new PipelineInputError('--target must look like v24.0.');
   const records = new Map(changes.versions.map((entry) => [entry.version, entry]));
@@ -467,6 +541,7 @@ export async function proposeVersionMoves(
       pins.set(key, [...(pins.get(key) ?? []), call]);
     }
   }
+  const testPins: { file: string; line: number; from: string; calls: GraphCall[] }[] = [];
   for (const call of unpinned)
     stops.push({
       file: null,
@@ -492,21 +567,37 @@ export async function proposeVersionMoves(
         });
       continue;
     }
+    // Tests and examples follow the live moves, decided once those are known.
+    if (calls.every((call) => call.use === 'test')) {
+      testPins.push({ file, line, from, calls });
+      continue;
+    }
     const reasons = [...calls.flatMap(unknownParts), ...calls.flatMap(separateChangelog)];
-    if (calls.every((call) => call.use === 'test'))
-      reasons.push(`${file}:${line}: only tests and examples use this version`);
     const crossed = crossedBetween(from);
     const unreviewed = crossed.filter((version) => records.get(version)?.status !== 'reviewed');
     if (unreviewed.length)
       reasons.push(
         `${unreviewed.join(', ')}: ${unreviewed.length === 1 ? 'this changelog is' : 'these changelogs are'} not reviewed in the Meta Graph API change list`,
       );
-    const inRange = changes.changes.filter((change) => crossed.includes(change.version));
-    for (const call of calls)
+    const inRange = changes.changes.filter(
+      (change) => change.version !== null && crossed.includes(change.version),
+    );
+    const rulesInRange = rules.filter(
+      (rule) => rule.version !== null && crossed.includes(rule.version),
+    );
+    const ruleEdits: SourceEdit[] = [];
+    const applied = new Set<string>();
+    for (const call of calls) {
+      const outcome = applyRules(call, rulesInRange, repository, calls, scan.calls);
+      reasons.push(...outcome.reasons);
+      ruleEdits.push(...outcome.edits);
+      for (const edit of outcome.edits) applied.add(edit.changeId.replace('meta-graph-rule-', ''));
       for (const change of changesUsedBy(call, inRange))
-        reasons.push(
-          `${call.file}:${call.line}: ${change.version} ${change.kind} ${change.id}: ${change.summary}`,
-        );
+        if (!outcome.covers.includes(change.id))
+          reasons.push(
+            `${call.file}:${call.line}: ${change.version} ${change.kind} ${change.id}: ${change.summary}`,
+          );
+    }
     let edit: PinEdit | undefined;
     if (calls.some((call) => call.kind === 'url')) {
       edit = pinEdit(repository, file, line, from);
@@ -522,13 +613,72 @@ export async function proposeVersionMoves(
       });
       continue;
     }
-    moves.push({ file, line, from, to: target, crossed, requests: calls.map(request) });
+    moves.push({
+      file,
+      line,
+      from,
+      to: target,
+      crossed,
+      requests: calls.map(request),
+      rules: [...applied].sort(),
+    });
+    for (const edit of ruleEdits)
+      if (!edits.some((item) => item.file === edit.file && item.start === edit.start))
+        edits.push(edit);
     edits.push({
       file,
       start: edit.start,
       end: edit.end,
       replacement: target,
       changeId: `meta-graph-version-${from}-${target}`,
+      rule: META_GRAPH_VERSION_RULE,
+    });
+  }
+  // A pin only tests use, such as a mocked fetch's expected URL, moves with the live requests it
+  // describes: every one of its URLs names the path of a moved live request on the same version,
+  // and none names the path of a live request that stays. Anything else stops as before.
+  for (const pin of testPins) {
+    const { file, line, from, calls } = pin;
+    const moved = moves.filter((move) => move.from === from).flatMap((move) => move.requests);
+    const stayed = stops.filter((stop) => stop.from === from).flatMap((stop) => stop.requests);
+    const describes = (requests: VersionMoveRequest[], call: GraphCall) =>
+      requests.some((item) => item.path !== null && samePath(call.path!, item.path));
+    // A live request on this version whose path is unknown could be any endpoint a test describes.
+    const follows =
+      !stayed.some((item) => item.path === null) &&
+      calls.every(
+        (call) => call.path !== null && describes(moved, call) && !describes(stayed, call),
+      );
+    const edit = follows ? pinEdit(repository, file, line, from) : undefined;
+    if (!edit || edit.reasons.length) {
+      stops.push({
+        file,
+        line,
+        from,
+        requests: calls.map(request),
+        reasons: [
+          `${file}:${line}: only tests and examples use this version`,
+          ...(edit?.reasons ?? []),
+        ],
+      });
+      continue;
+    }
+    moves.push({
+      file,
+      line,
+      from,
+      to: target,
+      crossed: crossedBetween(from),
+      requests: calls.map(request),
+      rules: [],
+    });
+    edits.push({
+      file,
+      start: edit.start,
+      end: edit.end,
+      replacement: target,
+      changeId: `meta-graph-version-${from}-${target}`,
+      rule: META_GRAPH_VERSION_RULE,
     });
   }
   const byLocation = (a: { file: string | null; line: number | null }, b: typeof a) =>
@@ -539,5 +689,6 @@ export async function proposeVersionMoves(
     stops: stops.sort(byLocation),
     current,
     patch: edits.length ? renderPatch(repository, edits) : null,
+    edits,
   };
 }

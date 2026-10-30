@@ -1,5 +1,9 @@
 # Refit implementation checkpoints
 
+## October 29 checkpoint: Shopify retired-version migrations (unreleased, after 0.39.0)
+
+Documents that already fail on the oldest supported Admin version (Shopify serves it to retired pins today) are now fixed where a documented migration applies, instead of stopping: `productVariantUpdate` becomes `productVariantsBulkUpdate` with the call's variables and response reads rewritten (rule `shopify-product-variant-update-to-bulk-update`, quoting Shopify's own app-template change), and unused variable declarations are removed. A patch that changes a document's variables is graded above D only when the development store ran the operation; the migration writes that case. See [Shopify rules](SHOPIFY-RULES.md#migrations). Benchmark evidence is in `docs/BENCHMARKS.md`.
+
 ## October 29 checkpoint: progress-30 practice fixes (unreleased, after 0.39.0)
 
 Six held progress-30 rows (a practice set, opened on the founder's instruction), each fixed generally. Local Docker runs, no AI; before is refit-bench 40791364860.
@@ -44,9 +48,49 @@ REST Admin reads that a quoted rule covers (12 GET endpoints in `data/shopify-re
 
 Admin (2025-01, 2026-01 to 2026-10) and Storefront (2024-10, 2025-01, 2025-07, 2025-10, 2026-01 to 2026-10) schemas are pinned by SHA-256 with their source and saved in the repository. Deterministic diffs between consecutive pins are committed and checked by `refit rules check`. 67 rules and 238 alerts quote Shopify's changelog and REST reference verbatim and agree with the diffs; `refit rules mine-shopify` mined 20 of the rules and 198 of the alerts on refit-bench Actions ($1.70). Under the founder's "proof decides" decision of 2026-10-29, 44 rules are `auto` (renames within one type and argument drops, which keep every response key; each edited document must validate on the target schema), and the rest are review-only. No Shopify benchmark has run on them. Coverage and limits: [Shopify contracts and rules](SHOPIFY-RULES.md).
 
+## October 29 checkpoint: Meta Graph tracing, fix plans and dated alerts (unreleased, after 0.39.0)
+
+`refit meta-graph` traces more of how Meta integrations are written, and `refit meta-graph --fix --target <version>` turns the review-only version moves into a fix plan ([Meta Graph API](META-GRAPH.md#fix-plans)). `refit run` with Meta snapshots (`refit meta-graph --snapshot`) validates that plan and writes the draft, like Stripe and Shopify runs ([run](META-GRAPH.md#run-meta-graph-fixes-with-refit-run)). The `meta-graph` catalog entry keeps `adapter: null`.
+
+- **Tracing:**
+  - graph.instagram.com requests;
+  - `FB.api` calls with the version `FB.init` sets;
+  - versions that are the fallback of `process.env.X || 'vNN.N'`;
+  - requests on an `axios.create({ baseURL })` instance;
+  - project helpers that pass the URL and options to `fetch` unchanged;
+  - parameters set step by step on `FormData`, `URLSearchParams` or a `const` object;
+  - `qs.stringify`, `querystring.stringify` and `.toString()`;
+  - `fields=${LIST.join(',')}`.
+- **Fixes:** the documented rules in `data/rules/meta-graph` (none are committed yet) rename a field or metric in the literal list a request sends, together with the version move. They stop when the old name appears anywhere else in the code, since it may be a response read. Every other rule family stops the move with its source.
+- **Migrations and alerts:**
+  - Instagram Basic Display use is listed with Meta's documented migration plan.
+  - Retired permissions, Page Insights metrics and oEmbed requests get dated alerts from `data/meta-platform-alerts.json`. Each entry quotes a developers.facebook.com page read on 2026-10-29.
+- **Measured** offline on the 33 non-blind Meta repositories of the deadline benchmark, at target v25.0:
+  - live requests 162 → 168, `fields` read 113 → 155;
+  - pins moved 35 → 53 (requests 35 → 57) with ME2's change table, none lost; test expectations move with the live requests they describe;
+  - `refit run` on the 13 repositories with a move: 13 drafts, 3 validated with nothing left, 9 `[Needs review]` for requests that stay, 1 failing baseline; every patch changes only version text;
+  - 1 Basic Display migration and 2 alerts.
+  - Every changed request (52) and every new move (11) was checked by hand.
+  - ME1's meta-dev-60 set was not frozen yet, so it was not measured.
+  - Census of the 68 non-blind Meta repositories: 22 with a patch (18 before the default-field and helper fixes), all 22 proven by the change table, 10 validated (caution-only stops on versions Meta still serves are notes, not unresolved findings), grades B 1, C 19, D 2; [blockers](META-GRAPH.md#census-of-non-blind-meta-repositories-2026-10-29).
+- **Not done:**
+  - enrollment and hosted-worker configurations for Meta;
+  - AI repair;
+  - response-read renames;
+  - business SDK package upgrades;
+  - WhatsApp on-premises detection.
+
 ## October 29 checkpoint: Shopify proof (unreleased, after 0.39.0)
 
 Shopify patches are now graded by proof ([Shopify proof](SHOPIFY-PROOF.md)). Every traced GraphQL document is validated offline with graphql-js: the original documents against the original version's schema, the patched documents against the target's. Selected fields that change type, and variable input types that break, count as failures. Committed codegen types count only when nothing the documents use differs between the versions. Without that schema proof, a Shopify patch is grade D and `[Needs review]`; with it, the repository's tests (B) or type check (C) keep their grade. Live proof runs the patched operations on Refit's own Partner development store when `SHOPIFY_TEST_STORE` and `SHOPIFY_TEST_TOKEN` are set, and gives grade A. Queries are always allowed; mutations run only on objects the run created, with AI-written cases. An AI second opinion on every Shopify patch is advisory and its cost is recorded. Unit tests only: no benchmark was run, and live proof has not been run against a real store.
+
+## October 29 checkpoint: Meta Graph change table and rules (unreleased, after 0.39.0)
+
+`data/meta-graph/changes.json` (moved from `data/meta-graph-changes.json`) now covers Graph API v10.0 to v26.0, the Graph API out-of-cycle changes since 2021, and the Instagram Platform, WhatsApp Business Platform and Messenger Platform changelogs: 805 changes, each with the passage that states it. `data/rules/meta-graph/` holds 105 review-only rules for every change whose changelog names a replacement; the other 700 changes are alert-only, each dated. `refit rules check` verifies every quote against the saved page in `docs/benchmarks/meta-graph-changelog/pages` before the Stripe rules. New kinds (`endpoint-changed`, `product-removed`, `parameter-required`, `breakdown-removed`, webhook, error and permission changes) stop version moves only where a request uses the endpoint, parameter or breakdown; webhook and product changes stay alerts. Nothing applies the rules yet, and no benchmark was run. See [Meta Graph change table](META-GRAPH-CHANGES.md).
+
+## October 29 checkpoint: Meta Graph proof (unreleased, after 0.39.0)
+
+A Meta Graph patch that reaches validation is graded by the reviewed change table: every changed request must be valid at one reviewed target version, and the type check or tests must pass, for grade C or B; read-only calls with Refit's own `META_TEST_TOKEN` (an app access token, so only app-level reads; user and page requests keep the offline proof) raise it to A, and a target version the Graph API refuses drops it to D; where the checks prove nothing but did not fail, a patch that changes only request strings, or JavaScript checkJs fully types, is grade C too; otherwise it is grade D and `[Needs review]` with the reason ([Meta Graph proof](META-GRAPH.md#proof)). With AI enabled, an advisory second-opinion review is recorded with its cost. Unit tests, and a hand-check of ME3's patches on the 13 non-blind dev repositories that get one (all proven, every changed line read; [Meta Graph proof](META-GRAPH.md#proof)). No benchmark was run.
 
 ## October 28 checkpoint: rule coverage for contract stops (unreleased, after 0.39.0)
 
@@ -507,7 +551,7 @@ Most untraced exposures are catalog entries the scanner counts as live, or libra
 
 ## October 20 checkpoint: reviewed Meta Graph API change list (unreleased)
 
-`data/meta-graph-changes.json` now holds the Meta Graph API changelogs for v14.0 to v26.0, each read in full from developers.facebook.com on 2026-10-20 and marked `reviewed`, with 281 changes from the Graph API and Marketing API sections. Every change cites its page. The Instagram sections were checked against the Instagram Platform changelog's version-gated entries; they match except that from v14.0 the IG Media `video_title` field errors, which is recorded from that changelog. v13.0 stays `unread`: it matters only to pins older than any benchmark pin. Each version's note lists what the page holds that is not an entry: permission policy changes, error codes, transport changes, additions, and Certificate Transparency endpoints the page does not name.
+`data/meta-graph/changes.json` now holds the Meta Graph API changelogs for v14.0 to v26.0, each read in full from developers.facebook.com on 2026-10-20 and marked `reviewed`, with 281 changes from the Graph API and Marketing API sections. Every change cites its page. The Instagram sections were checked against the Instagram Platform changelog's version-gated entries; they match except that from v14.0 the IG Media `video_title` field errors, which is recorded from that changelog. v13.0 stays `unread`: it matters only to pins older than any benchmark pin. Each version's note lists what the page holds that is not an entry: permission policy changes, error codes, transport changes, additions, and Certificate Transparency endpoints the page does not name.
 
 `refit meta-graph --propose-version-moves` gained three stricter rules:
 
@@ -639,7 +683,7 @@ The default suite ran 1,587 tests across 100 files, with 78 environment-gated te
 
 Second review-only step toward a Meta agent (shared work item 5 in [Provider goals](PROVIDER-GOALS.md)).
 
-- **`data/meta-graph-changes.json`** is a hand-kept list of what each Graph API version removes or changes: endpoints, edges, fields, insights metrics and parameters. Every change needs a developers.facebook.com `source`, a `checkedAt` date, and a version whose changelog page is marked `reviewed`. See [the change list](META-GRAPH.md#the-per-version-change-list).
+- **`data/meta-graph/changes.json`** is a hand-kept list of what each Graph API version removes or changes: endpoints, edges, fields, insights metrics and parameters. Every change needs a developers.facebook.com `source`, a `checkedAt` date, and a version whose changelog page is marked `reviewed`. See [the change list](META-GRAPH.md#the-per-version-change-list).
 - **`npm run meta-graph:check`** (`refit meta-graph --check-changes`) rejects the whole file on any error: unknown or missing fields, duplicates, bad or future dates, sources outside Meta's documentation, and changes from unread pages. It also lists unread versions and Meta versions in the deadline registry that have no record.
 - **No changes are recorded.** developers.facebook.com could not be reached from this environment: the proxy refused every connection. The file holds 14 `unread` version records, v13.0 to v26.0, each saying so. Search results confirmed the page addresses for v17.0, v19.0, v22.0, v26.0 and the versions index, and were not used as evidence of any change. Nothing reads this list yet.
 

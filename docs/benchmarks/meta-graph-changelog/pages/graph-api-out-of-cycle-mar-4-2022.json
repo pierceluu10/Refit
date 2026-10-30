@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "graph-api-out-of-cycle-mar-4-2022",
+  "url": "https://developers.facebook.com/docs/graph-api/changelog/non-versioned-changes/mar-4-2022/",
+  "revision": "f192dc9bae2a662f637cb24c4db3f8b181246960d66cb372414d59855fae8ffe",
+  "hash": "f192dc9bae2a662f637cb24c4db3f8b181246960d66cb372414d59855fae8ffe",
+  "content": "Changelog\n\nUpgrade\n\nVersions\n\nOut-Of-Cycle Changes\n\nMarch 4, 2022\n\nOut-of-cycle changes.\n\nMarketing API\n\nIn compliance with recent U.S. sanctions, starting February 25, 2022, we are removing the ability to geo-target regions, cities, addresses or zip codes within Luhansk and Donetsk, either for inclusion or exclusion.\n\nAll active or paused campaigns that geo-target these regions will be paused by March 4, 2022.\n\nThis change affects the following endpoints when creating ads:\n\nPOST /{ad-account-id}/adsets\n\nPOST /{adset-id}",
+  "contentType": "text/html"
+}

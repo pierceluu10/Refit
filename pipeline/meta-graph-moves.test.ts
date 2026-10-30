@@ -14,6 +14,7 @@ import {
   type MetaGraphChanges,
 } from './meta-graph-changes.ts';
 import { changesUsedBy, fieldNames, proposeVersionMoves } from './meta-graph-moves.ts';
+import type { AppliedRule } from './meta-graph-rule-edits.ts';
 
 const execute = promisify(execFile);
 const CLI = fileURLToPath(new URL('../bin/refit.mjs', import.meta.url));
@@ -48,8 +49,11 @@ function change(
     edge: null,
     path: null,
     name: null,
+    replacement: null,
+    appliesToAll: null,
     summary: `${overrides.id} changes.`,
-    source: source(overrides.version),
+    quote: `${overrides.id} changes.`,
+    source: source(overrides.version!),
     checkedAt: '2026-10-20',
     ...overrides,
   };
@@ -68,6 +72,7 @@ function changes(
       .filter((version) => !omit.includes(version))
       .map((version) => ({
         version,
+        released: '2024-01-01',
         status: unread.includes(version) ? ('unread' as const) : ('reviewed' as const),
         source: source(version),
         checkedAt: '2026-10-20',
@@ -94,8 +99,27 @@ const registry: DeadlineRegistry = {
   ],
 };
 
-async function propose(files: Record<string, string>, list = changes(), target = 'v25.0') {
-  return proposeVersionMoves(await repository(files), target, list, registry, NOW);
+async function propose(
+  files: Record<string, string>,
+  list = changes(),
+  target = 'v25.0',
+  rules: AppliedRule[] = [],
+) {
+  return proposeVersionMoves(await repository(files), target, list, registry, NOW, rules);
+}
+
+function rule(
+  overrides: Partial<AppliedRule> &
+    Pick<AppliedRule, 'rule' | 'change' | 'subject' | 'from' | 'to'>,
+): AppliedRule {
+  return {
+    version: 'v22.0',
+    replacement: true,
+    edge: null,
+    source: source('v22.0'),
+    status: 'auto',
+    ...overrides,
+  };
 }
 
 const SEND = `export const send = (url) =>
@@ -125,6 +149,7 @@ describe('version moves', () => {
         to: 'v25.0',
         crossed: ['v19.0', 'v20.0', 'v21.0', 'v22.0', 'v23.0', 'v24.0', 'v25.0'],
         requests: [{ file: 'a.js', line: 2, method: 'POST', path: '/123/photos' }],
+        rules: [],
       },
     ]);
     expect(proposal.patch).toContain("-  fetch('https://graph.facebook.com/v18.0/123/photos', {");
@@ -248,9 +273,9 @@ FB.init({ appId, version: VERSION });
 export const me = () => fetch(\`https://graph.facebook.com/\${VERSION}/me?fields=id\`);`,
     });
     expect(shared.moves).toEqual([]);
-    expect(shared.stops[0].reasons).toEqual([
+    expect(shared.stops[0].reasons).toContain(
       'a.ts:2: `VERSION` is used in a way the request scan does not follow',
-    ]);
+    );
   });
 
   it('stops for a base an axios instance or another file may use, and never follows a let', async () => {
@@ -429,7 +454,10 @@ fetch('https://graph.facebook.com/v18.0/oauth/access_token?client_id=1&client_se
   });
 
   it('moves safe requests and stops the rest with concrete reasons under the committed list', async () => {
-    const list = await loadMetaGraphChanges(DEFAULT_META_GRAPH_CHANGES, NOW);
+    const list = await loadMetaGraphChanges(
+      DEFAULT_META_GRAPH_CHANGES,
+      new Date('2026-10-29T12:00:00Z'),
+    );
     const proposal = await proposeVersionMoves(FIXTURE, 'v25.0', list, registry, NOW);
     const pinned = proposal.stops.filter((stop) => stop.from);
     // Every changelog from v14.0 to v25.0 is reviewed, so no stop is for an unread changelog.
@@ -478,6 +506,29 @@ describe('matching', () => {
     } as unknown as GraphCall;
     expect(changesUsedBy(accounts, [removed('/me/accounts')])).toHaveLength(1);
     expect(changesUsedBy(accounts, [removed('/me/businesses')])).toHaveLength(0);
+  });
+
+  it('matches new kinds by endpoint or breakdowns, and never by webhook changes', () => {
+    const insights = {
+      path: '/{adAccountId}/insights',
+      edge: 'insights',
+      fields: [],
+      parameters: ['fields', 'breakdowns'],
+    } as unknown as GraphCall;
+    const entry = (kind: MetaGraphChange['kind'], extra: Partial<MetaGraphChange> = {}) =>
+      change({ id: kind, version: 'v20.0', kind, name: 'x', ...extra });
+    expect(changesUsedBy(insights, [entry('breakdown-removed')])).toHaveLength(1);
+    expect(
+      changesUsedBy({ ...insights, parameters: ['fields'] }, [entry('breakdown-removed')]),
+    ).toHaveLength(0);
+    expect(
+      changesUsedBy(insights, [entry('parameter-required', { edge: 'insights' })]),
+    ).toHaveLength(1);
+    expect(changesUsedBy(insights, [entry('error-changed', { edge: 'messages' })])).toHaveLength(0);
+    expect(changesUsedBy(insights, [entry('permission-changed')])).toHaveLength(0);
+    expect(
+      changesUsedBy(insights, [entry('webhook-field-removed', { edge: 'insights' })]),
+    ).toHaveLength(0);
   });
 });
 
@@ -528,3 +579,173 @@ it('writes a patch for review from the CLI and leaves the repository unchanged',
   expect(missing).toMatchObject({ code: 1 });
   expect(missing.stderr).toContain('--propose-version-moves requires --target');
 }, 60_000);
+
+describe('version moves with rules and new pins', () => {
+  it('counts default fields only where the changed field can be among them', () => {
+    const read = (path: string, edge: string | null) =>
+      ({ path, edge, method: 'GET', fields: [], parameters: [] }) as unknown as GraphCall;
+    const field = (extra: Partial<MetaGraphChange>) =>
+      change({ id: 'f', version: 'v22.0', kind: 'field-changed', name: 'base_price', ...extra });
+    const catalog = field({ node: 'Product Catalog', edge: 'localized_items_batch' });
+    const creative = field({ node: 'Ad Creative' });
+    const unknown = field({ node: null });
+    expect(changesUsedBy(read('/oauth/access_token', 'access_token'), [unknown])).toEqual([]);
+    expect(changesUsedBy(read('/me', null), [creative, catalog])).toEqual([]);
+    expect(changesUsedBy(read('/me', null), [unknown])).toHaveLength(1);
+    expect(changesUsedBy(read('/{id}', null), [creative])).toHaveLength(1);
+    expect(
+      changesUsedBy(read('/{id}/localized_items_batch', 'localized_items_batch'), [catalog]),
+    ).toHaveLength(1);
+    expect(changesUsedBy(read('/{id}/feed', 'feed'), [catalog])).toEqual([]);
+    const named = { path: '/{id}', edge: null, method: 'GET', fields: ['status'], parameters: [] };
+    expect(
+      changesUsedBy(named as unknown as GraphCall, [
+        field({ name: 'status', node: 'Product Catalog', edge: 'localized_items_batch' }),
+      ]),
+    ).toEqual([]);
+    expect(changesUsedBy(named as unknown as GraphCall, [field({ name: 'status' })])).toHaveLength(
+      1,
+    );
+  });
+
+  it('never matches a root endpoint change to a request on a node', async () => {
+    const list = changes([
+      change({ id: 'search', version: 'v22.0', kind: 'endpoint-changed', path: '/search' }),
+    ]);
+    const node = await propose(
+      {
+        'a.js':
+          'export const p = (id) => fetch(`https://graph.facebook.com/v19.0/${id}/photos?fields=id`);',
+      },
+      list,
+    );
+    expect(node.moves).toHaveLength(1);
+    const root = await propose(
+      {
+        'a.js':
+          "export const s = () => fetch('https://graph.facebook.com/v19.0/search?type=adinterest&q=x');",
+      },
+      list,
+    );
+    expect(root.stops[0].reasons).toEqual([expect.stringContaining('endpoint-changed search')]);
+  });
+
+  it('moves a test expectation with the live request it describes, and only then', async () => {
+    const live = `export const media = (user) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${user}/media\`, { method: 'POST', body: JSON.stringify({ caption: 'hi' }) });
+export const send = (phone) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${phone}/messages\`, { method: 'POST', body: JSON.stringify({ messaging_product: 'whatsapp' }) });
+`;
+    const proposal = await propose({
+      'lib.js': live,
+      'lib.test.js': `expect(fetch).toHaveBeenCalledWith('https://graph.facebook.com/v19.0/123/media', expect.anything());
+expect(fetch).toHaveBeenCalledWith('https://graph.facebook.com/v19.0/555/messages', expect.anything());`,
+    });
+    expect(proposal.patch).toContain(
+      "+expect(fetch).toHaveBeenCalledWith('https://graph.facebook.com/v25.0/123/media'",
+    );
+    expect(proposal.patch).not.toContain('v25.0/555/messages');
+    expect(proposal.stops.find((stop) => stop.file === 'lib.test.js')?.reasons).toEqual([
+      'lib.test.js:2: only tests and examples use this version',
+    ]);
+  });
+
+  it('moves environment defaults, graph.instagram.com URLs and the FB.init version', async () => {
+    const proposal = await propose({
+      'a.ts': `const VERSION = process.env.GRAPH_VERSION ?? 'v19.0';
+export const me = () => fetch(\`https://graph.facebook.com/\${VERSION}/me?fields=id\`);
+export const ig = () => fetch('https://graph.instagram.com/v20.0/me?fields=user_id');`,
+      'init.js': `FB.init({ appId: '1', version: 'v21.0' });
+FB.api('/me', { fields: 'id,name' }, (response) => response);`,
+    });
+    expect(proposal.stops).toEqual([]);
+    expect(proposal.patch).toContain("+const VERSION = process.env.GRAPH_VERSION ?? 'v25.0';");
+    expect(proposal.patch).toContain(
+      "+export const ig = () => fetch('https://graph.instagram.com/v25.0/me?fields=user_id');",
+    );
+    expect(proposal.patch).toContain("+FB.init({ appId: '1', version: 'v25.0' });");
+  });
+
+  it('renames a field a documented rule renames, and stops where the name may be read', async () => {
+    const list = changes([
+      change({ id: 'renamed', version: 'v22.0', kind: 'field-removed', name: 'old_field' }),
+    ]);
+    const rename = rule({
+      rule: 'rename',
+      change: 'renamed',
+      subject: 'field',
+      from: 'old_field',
+      to: 'new_field',
+    });
+    const clean = await propose(
+      {
+        'a.ts': `export const me = () => fetch('https://graph.facebook.com/v19.0/me?fields=id,old_field{name}');`,
+      },
+      list,
+      'v25.0',
+      [rename],
+    );
+    expect(clean.moves).toMatchObject([{ from: 'v19.0', rules: ['rename'] }]);
+    expect(clean.patch).toContain(
+      "fetch('https://graph.facebook.com/v25.0/me?fields=id,new_field{name}')",
+    );
+    const read = await propose(
+      {
+        'a.ts': `export const me = async () => (await (await fetch('https://graph.facebook.com/v19.0/me?fields=id,old_field')).json()).old_field;`,
+      },
+      list,
+      'v25.0',
+      [rename],
+    );
+    expect(read.moves).toEqual([]);
+    // The rename is refused, so the change it answers stops the move too.
+    expect(read.stops[0].reasons).toEqual([
+      expect.stringContaining(
+        '`old_field` also appears at a.ts:1, which may read the renamed response field',
+      ),
+      expect.stringContaining('field-removed renamed'),
+    ]);
+    // Without the rule the change stops the move, as before.
+    const unruled = await propose(
+      {
+        'a.ts': `export const me = () => fetch('https://graph.facebook.com/v19.0/me?fields=id,old_field');`,
+      },
+      list,
+    );
+    expect(unruled.stops[0].reasons).toEqual([expect.stringContaining('field-removed renamed')]);
+  });
+
+  it('stops for rules marked for review and rules that are not field or metric renames', async () => {
+    const parameter = rule({
+      rule: 'message-text',
+      change: 'message',
+      subject: 'parameter',
+      edge: 'feed',
+      from: 'message',
+      to: 'text',
+    });
+    const review = rule({
+      rule: 'look',
+      change: 'id',
+      subject: 'field',
+      from: 'id',
+      to: 'uid',
+      status: 'review',
+    });
+    const proposal = await propose(
+      {
+        'a.ts': `export const post = (id: string) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${id}/feed?fields=id\`, { method: 'POST', body: JSON.stringify({ message: 'hi' }) });`,
+      },
+      changes(),
+      'v25.0',
+      [parameter, review],
+    );
+    expect(proposal.stops[0].reasons).toEqual([
+      expect.stringContaining(
+        'documents `text` in place of `message`; only fields and metrics are edited automatically',
+      ),
+      expect.stringContaining('documents `uid` in place of `id`; the rule is marked for review'),
+    ]);
+  });
+});
