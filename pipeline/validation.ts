@@ -1628,6 +1628,8 @@ export async function validateMigration(options: {
   compareTypeErrors?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
+  // The workflow scan's Meta Graph reconstructions, passed to every scan here (run.ts).
+  metaGraphReconstructions?: GraphReconstruction[];
   documentationSnapshots?: readonly string[];
   providerConfig?: string;
   apiVersion?: string;

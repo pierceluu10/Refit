@@ -189,7 +189,13 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
         );
       case 'parameter-removed':
       case 'parameter-changed':
-        return call.parameters?.includes(change.name!) ?? false;
+        // Like fields: a parameter recorded on an edge or path is that endpoint's, so a request
+        // elsewhere that sends a parameter of the same name (`type`) does not use the change.
+        return (
+          (change.edge === null || change.edge === call.edge) &&
+          (change.path === null || (call.path !== null && pathMatches(call.path, change.path))) &&
+          (call.parameters?.includes(change.name!) ?? false)
+        );
       // The values a request breaks down by are not traced, so any breakdown on insights counts.
       case 'breakdown-removed':
         return (

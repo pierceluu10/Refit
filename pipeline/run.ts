@@ -55,6 +55,7 @@ import {
   isShopifySnapshotFile,
   runShopifyPipeline,
 } from './shopify-pipeline.ts';
+import type { GraphReconstruction } from './meta-graph-ai.ts';
 import {
   isMetaGraphSnapshot,
   isMetaGraphSnapshotFile,
@@ -110,6 +111,12 @@ async function runOpenApiPipeline(options: {
   proposePatch?: boolean;
   assessment?: AiOptions;
   aiPatch?: AiOptions;
+  // AI for a Meta Graph run's scan only: it reads the requests the scan cannot (meta-graph-ai.ts).
+  // Other providers ignore it, so the workflow's scan gives it without starting AI patches.
+  metaGraphAi?: AiOptions;
+  // Reconstructions the workflow's scan made, reused by validation's scans so one run asks once
+  // and validates the patch the scan proposed.
+  metaGraphReconstructions?: GraphReconstruction[];
   providerConfig?: string;
   apiVersion?: string;
   apiVersionPolicy?: ApiVersionPolicy;
@@ -1058,7 +1065,8 @@ export async function runPipeline(
       after: after as never,
       proposePatch: options.proposePatch,
       apiVersionPolicy: validateApiVersionPolicy(options.apiVersionPolicy),
-      aiPatch: options.aiPatch,
+      aiPatch: options.metaGraphAi ?? options.aiPatch,
+      reconstructions: options.metaGraphReconstructions,
     })) as unknown as PipelineReport;
   }
   const kinds = await Promise.all([options.before, options.after].map(isShopifySnapshotFile));
