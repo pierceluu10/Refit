@@ -26,6 +26,8 @@ const REQUEST_TIMEOUT_MS = 30_000;
 const THROTTLE_RETRIES = 3;
 const THROTTLE_BACKOFF_MS = 2_000;
 const DEV_STORE_QUERY = '{ shop { plan { partnerDevelopment } } }';
+// The store, not the patched call: rate limits left after the retries, and server errors.
+const STORE_SIDE = /^HTTP (?:429|5\d\d)$|too many attempts|throttled/i;
 
 export interface ShopifyTestStore {
   store: string;
@@ -373,9 +375,9 @@ export async function liveShopifyProof(options: {
               break;
             }
             const result = await request(version, step.document, variables);
+            // Setup steps are the case's inputs, not the patched code, so their failure proves nothing.
             if (result.error) {
-              entry.status = 'failed';
-              entry.reason = `setup step ${index + 1} failed on ${version}: ${result.error}`;
+              refuse(`setup step ${index + 1} failed on ${version}: ${result.error}`);
               break;
             }
             stepResults[`setup.${index}`] = result.data;
@@ -413,7 +415,16 @@ export async function liveShopifyProof(options: {
                 ids.add(id);
                 created.push({ id, deleted: false });
               }
-          if (result.error) {
+          // Only the patched operation failing at the target, after the original passed at the
+          // original version, is the patch's failure. The original failing too means the store or
+          // the case's inputs cannot run it (docs/SHOPIFY-PROOF.md).
+          if (result.error && version === options.versions.before)
+            refuse(
+              `the original operation fails on ${version} too, so the store cannot compare it: ${result.error}`,
+            );
+          else if (result.error && STORE_SIDE.test(result.error))
+            refuse(`the store did not answer on ${version}: ${result.error}`);
+          else if (result.error) {
             entry.status = 'failed';
             entry.reason = `failed on ${version}: ${result.error}`;
           }
