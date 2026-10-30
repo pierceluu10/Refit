@@ -11,6 +11,31 @@ Six held progress-30 rows (a practice set, opened on the founder's instruction),
 - 0-CYBERDYNE-SYSTEMS-0/quorum: checks pass (B), held on a real change: `expand: ['latest_invoice.payment_intent']` and its `invoice.payment_intent` read, whose documented replacement (`confirmation_secret`) needs a code change no rule makes, and 16 `.type` reads of WebSocket JSON. Version-tolerant helper types now return `any` for an `any` receiver, and the scan-time type proof follows assertions that only add inline members.
 - buildproven/saas-starter-kit: held on real removals: a customer-wide upcoming-invoice preview and legacy usage records. `subscription_items` and `invoice_items` now map to `invoices.createPreview` as Stripe's basil page documents, and an `undefined` branch counts as sending nothing.
 
+## October 29 checkpoint: Shopify documents built at runtime (unreleased, after 0.39.0)
+
+Shopify tracing reads more of the GraphQL documents apps build at runtime or send through other clients ([Shopify](SHOPIFY.md#what-refit-reads)):
+
+- constant numbers and booleans folded in;
+- `let` bindings, through every value assigned to them;
+- values repository functions return, and wrapper templates (`` `#graphql\n${query}` ``);
+- options parameters, by property, and class field initializers no code reassigns;
+- private methods, members of local `const` objects, and destructured `import()`;
+- graphql-request, `@shopify/graphql-client`, urql and Apollo clients built for an Admin `graphql.json` URL;
+- raw `fetch` bodies through `const`s, ternaries and `application/graphql`.
+
+A local function nothing calls sends nothing. Every new path stops where a value can escape: an unknown client member, a field set anywhere, `this` taken apart, a returned or exported client, or a use of the endpoint Refit cannot read beside one it can. Storefront documents Refit cannot read no longer stop the Admin move; they are listed with the Storefront documents and left out of the schema proof. The SDK upgrade now stops where `LATEST_API_VERSION` sets a Storefront client's version, which it used to move to the Admin member unchecked. A versioned URL whose whole path is a substitution counts as REST.
+
+- **Measured** with SH3's census (`runPipeline`, `--sdk-upgrade`, npm re-resolution on, no AI) on the 250 non-blind Shopify repositories of the 2026-10-16 lists, base `871d3f4d` against this branch:
+  - Documents read rose from 1,810 to 1,857, and traced ones from 1,235 to 1,288.
+  - Unreadable sites fell from 99 to 58, and repositories with one from 44 to 32.
+  - Proposed patches rose from 28 to 32, and the 28 earlier patches are byte-identical.
+- **New patches.** All four new patches (Akmal1255553/startup1, LazerTechnologies/shopify-app-development-course, dave1725/xeno-shopify-app, ibabalola89/Unoir_Render) were checked by hand.
+  - The newly read documents are exact: constants folded, every caller traced.
+  - The version and SDK moves are the existing fallback.
+  - omakatse-dev/omakatse no longer stops on its Storefront documents. It now stops on the Storefront `LATEST_API_VERSION` instead of getting an unchecked move.
+- **Not covered.** These still stop: runtime field lists and arguments, CLI and proxy pass-through, command tables of functions, clients returned from factories, and documents chosen per element of a `for…of` over a constant array.
+- **Not validated.** No benchmark run was made, so nothing here was validated in Docker.
+
 ## October 29 checkpoint: Shopify REST → GraphQL rewrites (unreleased, after 0.39.0)
 
 REST Admin reads that a quoted rule covers (12 GET endpoints in `data/shopify-rest-graphql.json`) are rewritten as GraphQL Admin queries behind an adapter local to the call, which rebuilds only the REST fields the code reads ([REST rewrites](SHOPIFY-REST.md)). Calls through `fetch`, axios, Remix `admin.rest`, `shopify.clients.Rest` and the resource classes' `all`, `find` and `count` are recognised. Writes, endpoints Shopify documents as returning other rows, untraced reads and unmapped parameters stop. With AI, the model proposes mappings and Refit keeps them only under the schema, REST-type and read gates. Every rewrite is `[Needs review]`. Measured offline without AI on the 250 non-blind repositories: 15 of 180 REST calls rewritten, all read by hand and correct; AI not measured.

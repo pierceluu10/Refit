@@ -315,3 +315,24 @@ export const shopify = shopifyApp({ apiVersion: ApiVersion.April26, future: { ${
       .reasons,
   ).toEqual([expect.stringContaining('stores refresh tokens (700377f)')]);
 });
+
+it('stops where LATEST_API_VERSION sets a Storefront version', () => {
+  const result = changes(
+    {
+      'app/clients.ts': `import { LATEST_API_VERSION } from '${API}';
+import { createStorefrontApiClient } from '@shopify/storefront-api-client';
+export const storefront = createStorefrontApiClient({ storeDomain: 'x', apiVersion: LATEST_API_VERSION });
+`,
+      '.graphqlrc.ts': `import { LATEST_API_VERSION } from '${API}';
+import { ApiType, shopifyApiProject } from '@shopify/api-codegen-preset';
+export default { projects: { storefront: shopifyApiProject({ apiType: ApiType.Storefront, apiVersion: LATEST_API_VERSION }) } };
+`,
+    },
+    API,
+  );
+  expect(result.edits).toEqual([]);
+  expect(result.reasons).toEqual([
+    expect.stringContaining('sets a Storefront API version here'),
+    expect.stringContaining('sets a Storefront API version here'),
+  ]);
+});
