@@ -1,0 +1,11 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "shopify-app-template-remix-bd7c2efd6310b8e91c22e455d45cee4e89b57d85-changelog",
+  "url": "https://raw.githubusercontent.com/Shopify/shopify-app-template-remix/bd7c2efd6310b8e91c22e455d45cee4e89b57d85/CHANGELOG.md",
+  "revision": "68f49ad91b73d75995849eed8adc8616a507b6f2125efd315684591dfeecc9a6",
+  "hash": "68f49ad91b73d75995849eed8adc8616a507b6f2125efd315684591dfeecc9a6",
+  "content": "# @shopify/shopify-app-template-remix\n\n## 2024.08.19\n\nReplaced deprecated `productVariantUpdate` with `productVariantsBulkUpdate`\n\n## v2024.08.06\n\nAllow `SHOP_REDACT` webhook to process without admin context\n\n## v2024.07.16\n\nStarted tracking changes and releases using calver",
+  "contentType": "text/plain",
+  "etag": "W/\"c1c2a05f2a5eab55c55601abe36d2df2c3db1a6af790cb851534c21b1745eb79\""
+}

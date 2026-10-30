@@ -260,10 +260,13 @@ function referencesIn(scope: ts.Node, name: string) {
   return found;
 }
 
-// True when `text`, a document's beginning, ends inside a GraphQL string: an odd number of
-// unescaped quotes, and no block string, whose quotes this does not count.
+// True when `text`, a document's beginning, ends inside a GraphQL string: inside an open `"""`
+// block string, or after an odd number of unescaped quotes outside block strings.
 function insideString(text: string) {
-  return !text.includes('"""') && (text.match(/(?<!\\)"/g) ?? []).length % 2 === 1;
+  const blocks = text.split('"""');
+  if (blocks.length % 2 === 0) return true;
+  const outside = blocks.filter((_, index) => index % 2 === 0).join('');
+  return (outside.match(/(?<!\\)"/g) ?? []).length % 2 === 1;
 }
 
 // The GraphQL text of a numeric or boolean literal (`250`, `-1`, `true`), else undefined.
@@ -309,6 +312,12 @@ function returnedValues(fn: FunctionNode): ts.Expression[] {
   };
   if (fn.body) ts.forEachChild(fn.body, visit);
   return found;
+}
+
+// An expression's source text on one line, cut to 60 characters, for stop reasons.
+function snippet(node: ts.Node) {
+  const text = node.getText().replace(/\s+/g, ' ');
+  return text.length > 60 ? `${text.slice(0, 57)}...` : text;
 }
 
 function unwrap(node: ts.Expression): ts.Expression {
@@ -469,7 +478,9 @@ export function scanShopify(
     const found = (starExports.get(file) ?? [])
       .map((module) => exportTarget(module, name, new Set(seen)))
       .filter((target) => target !== undefined);
-    return found.length === 1 ? found[0] : undefined;
+    // Modules that import the name and pass it on resolve to the same binding.
+    const distinct = new Set(found.map((target) => `${target.file}#${target.name}`));
+    return distinct.size === 1 ? found[0] : undefined;
   };
   const constant = (
     file: string,
@@ -488,31 +499,394 @@ export function scanShopify(
     const target = imported && exportTarget(imported.file, imported.name);
     return target ? constant(target.file, target.name, seen) : undefined;
   };
-  // Assembles a literal into document text, inlining `${FRAGMENT}` constants. Any other
-  // substitution makes the document unreadable.
+  type Variant = { text: string; segments: DocumentSegment[] };
+  // Variants past this many stop: each one is a document Refit checks on both schemas.
+  const MAX_VARIANTS = 64;
+  // `prefix` followed by each of `pieces`, with the pieces' segments moved after the prefix.
+  const joined = (prefixes: Variant[], pieces: Variant[]): Variant[] =>
+    prefixes.flatMap((prefix) =>
+      pieces.map((piece) => ({
+        text: prefix.text + piece.text,
+        segments: [
+          ...prefix.segments,
+          ...piece.segments.map((segment) => ({
+            ...segment,
+            documentStart: segment.documentStart + prefix.text.length,
+            documentEnd: segment.documentEnd + prefix.text.length,
+          })),
+        ],
+      })),
+    );
+  const piece = (value: string, node: ts.Node, sourceStart: number): Variant => ({
+    text: value,
+    segments: [
+      {
+        documentStart: 0,
+        documentEnd: value.length,
+        file: pathOf.get(node.getSourceFile().fileName)!,
+        sourceStart,
+        sourceText: node.getSourceFile().text,
+      },
+    ],
+  });
+  // What an expression can evaluate to, as the expressions that produce it (`null` for a nullish
+  // value): each branch of a conditional, both sides of `||` and `??`, what a repository function
+  // returns, a `const` or `let` binding's values, a `for (const x of LIST)` variable's elements, a
+  // member of the objects a base can be (every member for a computed key), and a parameter's
+  // argument at every call of its function. A superset is sound, since every document variant
+  // built from it must validate; a value Refit cannot list returns the reason instead.
+  type Leaf = { node: ts.Expression | null; file: string };
+  const MAX_LEAVES = 256;
+  const values = (
+    node: ts.Expression,
+    file: string,
+    depth: number,
+    followed: Set<string>,
+  ): Leaf[] | string => {
+    const cannot = `The document interpolates \`\${${snippet(node)}}\`, a value Refit cannot resolve to a constant fragment.`;
+    if (depth > 12) return cannot;
+    let value = unwrap(node);
+    if (ts.isAwaitExpression(value)) value = unwrap(value.expression);
+    if (
+      value.kind === ts.SyntaxKind.NullKeyword ||
+      (ts.isIdentifier(value) && value.text === 'undefined')
+    )
+      return [{ node: null, file }];
+    const union = (parts: Leaf[], inner = followed, dropNullish = 0): Leaf[] | string => {
+      const found: Leaf[] = [];
+      for (const [index, part] of parts.entries()) {
+        if (!part.node) {
+          if (index >= dropNullish) found.push(part);
+          continue;
+        }
+        const leaves = values(part.node, part.file, depth + 1, inner);
+        if (typeof leaves === 'string') return leaves;
+        found.push(...(index < dropNullish ? leaves.filter((leaf) => leaf.node) : leaves));
+        if (found.length > MAX_LEAVES) return tooMany;
+      }
+      return found;
+    };
+    if (ts.isConditionalExpression(value))
+      return union([
+        { node: value.whenTrue, file },
+        { node: value.whenFalse, file },
+      ]);
+    // `a || b` and `a ?? b` give `b` where `a` is nullish, so `a`'s nullish values are dropped.
+    if (
+      ts.isBinaryExpression(value) &&
+      (value.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
+        value.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken)
+    )
+      return union(
+        [
+          { node: value.left, file },
+          { node: value.right, file },
+        ],
+        followed,
+        1,
+      );
+    if (ts.isCallExpression(value)) {
+      // `LIST.find(…)`: an element of the list, or undefined.
+      const callee = value.expression;
+      if (ts.isPropertyAccessExpression(callee) && callee.name.text === 'find') {
+        const lists = values(callee.expression, file, depth + 1, followed);
+        if (typeof lists === 'string') return lists;
+        const found: Leaf[] = [{ node: null, file }];
+        for (const list of lists) {
+          const array = list.node && unwrap(list.node);
+          if (
+            !array ||
+            !ts.isArrayLiteralExpression(array) ||
+            array.elements.some(ts.isSpreadElement)
+          )
+            return cannot;
+          const elements = union(
+            array.elements.map((element) => ({ node: element, file: list.file })),
+          );
+          if (typeof elements === 'string') return elements;
+          found.push(...elements);
+        }
+        return found;
+      }
+      const fn = calledFunction(callee);
+      const key = fn && `${fn.getSourceFile().fileName}:${fn.pos}:return`;
+      if (!fn || !key || followed.has(key)) return [{ node: value, file }];
+      const returned = returnedValues(fn);
+      if (!returned.length) return [{ node: value, file }];
+      return union(
+        returned.map((entry) => ({ node: entry, file: fn.getSourceFile().fileName })),
+        new Set([...followed, key]),
+      );
+    }
+    if (ts.isPropertyAccessExpression(value) || ts.isElementAccessExpression(value)) {
+      if (ts.isPropertyAccessExpression(value) && !ts.isIdentifier(value.name)) return cannot;
+      const name = memberName(value);
+      const bases = values(value.expression, file, depth + 1, followed);
+      if (typeof bases === 'string') return bases;
+      const found: Leaf[] = [];
+      for (const base of bases) {
+        // Reading a member of a nullish value throws, so no document is sent.
+        if (!base.node) continue;
+        const container = unwrap(base.node);
+        if (name !== undefined) {
+          const member = memberOf(container, name);
+          if (!member) return cannot;
+          found.push({ node: member, file: base.file });
+        } else if (
+          ts.isObjectLiteralExpression(container) &&
+          container.properties.every(
+            (entry) =>
+              (ts.isPropertyAssignment(entry) || ts.isShorthandPropertyAssignment(entry)) &&
+              !ts.isComputedPropertyName(entry.name),
+          )
+        )
+          for (const entry of container.properties as ts.NodeArray<
+            ts.PropertyAssignment | ts.ShorthandPropertyAssignment
+          >)
+            found.push({
+              node: ts.isPropertyAssignment(entry) ? entry.initializer : entry.name,
+              file: base.file,
+            });
+        else if (
+          ts.isArrayLiteralExpression(container) &&
+          !container.elements.some(ts.isSpreadElement)
+        )
+          found.push(...container.elements.map((element) => ({ node: element, file: base.file })));
+        else return cannot;
+      }
+      return union(found);
+    }
+    if (!ts.isIdentifier(value)) return [{ node: value, file }];
+    const resolved = scoped(value, file) ?? constant(file, value.text);
+    if (resolved) return union([{ node: resolved.node, file: resolved.file }]);
+    const loop = forOfElements(value, file);
+    if (loop)
+      return loop.elements
+        ? union(loop.elements.map((element) => ({ node: element, file: loop.file })))
+        : cannot;
+    const declaration = declarationOf(value)?.node;
+    if (declaration && ts.isParameter(declaration)) {
+      if (declaration.dotDotDotToken) return cannot;
+      const fn = declaration.parent;
+      const index = fn.parameters.indexOf(declaration);
+      const key = `${fn.getSourceFile().fileName}:${fn.pos}:${index}`;
+      // A function passing its own parameter on can build values without end.
+      if (followed.has(key)) return cannot;
+      const flows = functionFlows(fn);
+      if (flows.escapes.length || !flows.calls.length)
+        return `The document interpolates \`\${${snippet(node)}}\`, from the parameter \`${value.text}\`, and Refit cannot list every call of its function.`;
+      const parts: Leaf[] = [];
+      for (const call of flows.calls) {
+        if (call.arguments.slice(0, index + 1).some(ts.isSpreadElement)) return cannot;
+        const argument = call.arguments[index];
+        parts.push(
+          argument
+            ? { node: argument, file: call.getSourceFile().fileName }
+            : { node: declaration.initializer ?? null, file },
+        );
+      }
+      const inner = new Set([...followed, key]);
+      if (ts.isIdentifier(declaration.name)) return union(parts, inner);
+      // `({ reverse }) => …`: the property each call's object passes, else the default.
+      const element = ts.isObjectBindingPattern(declaration.name)
+        ? declaration.name.elements.find(
+            (entry) => ts.isIdentifier(entry.name) && entry.name.text === value.text,
+          )
+        : undefined;
+      const property = element && !element.dotDotDotToken && (element.propertyName ?? element.name);
+      if (!element || !property || !(ts.isIdentifier(property) || ts.isStringLiteral(property)))
+        return cannot;
+      const objects = union(parts, inner);
+      if (typeof objects === 'string') return objects;
+      const found: Leaf[] = [];
+      for (const object of objects) {
+        const container = object.node && unwrap(object.node);
+        if (!container || !ts.isObjectLiteralExpression(container)) return cannot;
+        const member = memberOf(container, property.text);
+        if (member) found.push({ node: member, file: object.file });
+        else if (container.properties.some(ts.isSpreadAssignment)) return cannot;
+        else found.push({ node: element.initializer ?? null, file });
+      }
+      return union(found, inner);
+    }
+    const assigned = assignedValues(value);
+    if (assigned?.length) return union(assigned.map((entry) => ({ node: entry, file })));
+    return cannot;
+  };
+  // `a === b`, `!a`, `a < b`: always a boolean.
+  const BOOLEAN_OPERATORS = new Set([
+    ts.SyntaxKind.EqualsEqualsEqualsToken,
+    ts.SyntaxKind.ExclamationEqualsEqualsToken,
+    ts.SyntaxKind.EqualsEqualsToken,
+    ts.SyntaxKind.ExclamationEqualsToken,
+    ts.SyntaxKind.LessThanToken,
+    ts.SyntaxKind.GreaterThanToken,
+    ts.SyntaxKind.LessThanEqualsToken,
+    ts.SyntaxKind.GreaterThanEqualsToken,
+  ]);
+  const boolean = (node: ts.Expression) =>
+    (ts.isPrefixUnaryExpression(node) && node.operator === ts.SyntaxKind.ExclamationToken) ||
+    (ts.isBinaryExpression(node) && BOOLEAN_OPERATORS.has(node.operatorToken.kind));
+  // `Math.min(…)`, `Number(…)`, `parseInt(…)`, `list.length`, `a * b`: always a number.
+  const NUMBER_CALL =
+    /^(?:Math\.(?:min|max|floor|ceil|round|trunc|abs)|Number|parseInt|parseFloat)$/;
+  const numeric = (node: ts.Expression) =>
+    (ts.isCallExpression(node) && NUMBER_CALL.test(node.expression.getText())) ||
+    (ts.isPropertyAccessExpression(node) && node.name.text === 'length') ||
+    (ts.isBinaryExpression(node) &&
+      [
+        ts.SyntaxKind.MinusToken,
+        ts.SyntaxKind.AsteriskToken,
+        ts.SyntaxKind.SlashToken,
+        ts.SyntaxKind.PercentToken,
+      ].includes(node.operatorToken.kind));
+  const letOverrides = new Map<ts.Node, Variant[]>();
+  // Every string a substitution outside a GraphQL string can produce, as document pieces.
+  const stringValues = (
+    node: ts.Expression,
+    file: string,
+    depth: number,
+    followed: Set<string>,
+  ): Variant[] | string => {
+    // `let text = …; if (…) text += …` and `text = \`…${text}\``: every value the binding starts
+    // from, with or without each such change in source order. A change in a loop or another
+    // function can repeat, so it stops.
+    const bare = unwrap(node);
+    const binding = ts.isIdentifier(bare) ? declarationOf(bare) : undefined;
+    const override = binding && letOverrides.get(binding.node);
+    if (override) return override;
+    const appends: ts.Expression[] = [];
+    const assigned =
+      binding && ts.isIdentifier(bare) && !(scoped(bare, file) ?? constant(file, bare.text))
+        ? assignedValues(bare, appends)
+        : undefined;
+    const reads = (entry: ts.Expression) =>
+      referencesIn(binding!.scope, (bare as ts.Identifier).text).some(
+        (reference) => reference.pos >= entry.pos && reference.end <= entry.end,
+      );
+    const changes = assigned
+      ? [
+          ...appends.map((entry) => ({ entry, append: true })),
+          ...assigned.filter(reads).map((entry) => ({ entry, append: false })),
+        ].sort((a, b) => a.entry.pos - b.entry.pos)
+      : [];
+    if (binding && assigned?.length && changes.length) {
+      const repeats = changes.some(
+        ({ entry }) =>
+          ts.findAncestor(
+            entry,
+            (ancestor) =>
+              ancestor === binding.scope ||
+              ts.isIterationStatement(ancestor, false) ||
+              ts.isFunctionLike(ancestor),
+          ) !== binding.scope,
+      );
+      if (repeats)
+        return `The document interpolates \`\${${snippet(node)}}\`, which a loop or another function changes.`;
+      let found: Variant[] = [];
+      for (const entry of assigned.filter((item) => !reads(item))) {
+        const start = stringValues(entry, file, depth + 1, followed);
+        if (typeof start === 'string') return start;
+        found.push(...start);
+      }
+      for (const { entry, append } of changes) {
+        letOverrides.set(binding.node, found);
+        const changed = stringValues(entry, file, depth + 1, followed);
+        letOverrides.delete(binding.node);
+        if (typeof changed === 'string') return changed;
+        const result = append ? joined(found, changed) : changed;
+        // A change written directly in the binding's block before this use always runs.
+        const statement = entry.parent.parent;
+        const always =
+          ts.isExpressionStatement(statement) &&
+          statement.parent === binding.scope &&
+          statement.end <= node.pos &&
+          ts.findAncestor(
+            node,
+            (ancestor) => ancestor === binding.scope || ts.isFunctionLike(ancestor),
+          ) === binding.scope;
+        found = always ? result : [...found, ...result];
+        if (found.length > MAX_VARIANTS) return tooMany;
+      }
+      return found;
+    }
+    const leaves = values(node, file, depth, followed);
+    if (typeof leaves === 'string') return leaves;
+    const found: Variant[] = [];
+    for (const leaf of leaves) {
+      if (!leaf.node)
+        return `The document interpolates \`\${${snippet(node)}}\`, which can be undefined or null.`;
+      const value = unwrap(leaf.node);
+      const atom = scalarText(value);
+      // A number written where GraphQL takes one: any number validates where `1` does.
+      if (atom !== undefined || numeric(value)) found.push({ text: atom ?? '1', segments: [] });
+      // Either boolean validates where the other does.
+      else if (boolean(value)) found.push({ text: 'true', segments: [] });
+      else if (isLiteral(value)) {
+        const inner = assemble(value, leaf.file, depth + 1, followed);
+        if (typeof inner === 'string') return inner;
+        found.push(...inner);
+      } else if (
+        ts.isBinaryExpression(value) &&
+        value.operatorToken.kind === ts.SyntaxKind.PlusToken
+      ) {
+        const left = stringValues(value.left, leaf.file, depth + 1, followed);
+        if (typeof left === 'string') return left;
+        const right = stringValues(value.right, leaf.file, depth + 1, followed);
+        if (typeof right === 'string') return right;
+        if (left.length * right.length > MAX_VARIANTS) return tooMany;
+        found.push(...joined(left, right));
+      } else
+        return `The document interpolates \`\${${snippet(node)}}\`, a value Refit cannot resolve to a constant fragment.`;
+      if (found.length > MAX_VARIANTS) return tooMany;
+    }
+    return found;
+  };
+  // `[${LIST.map((item) => `{ … }`).join(', ')}]`: GraphQL validates each list element on its own
+  // and accepts an empty list, so checking every element the callback returns, one per variant,
+  // covers every list the code can build. The callback's own values must still resolve.
+  const listElements = (node: ts.Expression, before: string, after: string) => {
+    const call = unwrap(node);
+    if (
+      !/\[\s*$/.test(before) ||
+      !/^\s*\]/.test(after) ||
+      !ts.isCallExpression(call) ||
+      !ts.isPropertyAccessExpression(call.expression) ||
+      call.expression.name.text !== 'join' ||
+      !call.arguments[0] ||
+      !ts.isStringLiteralLike(call.arguments[0]) ||
+      !/^[\s,]*$/.test(call.arguments[0].text)
+    )
+      return undefined;
+    const mapped = unwrap(call.expression.expression);
+    const callback =
+      ts.isCallExpression(mapped) && mapped.arguments[0] && unwrap(mapped.arguments[0]);
+    if (
+      !callback ||
+      !ts.isPropertyAccessExpression(mapped.expression) ||
+      mapped.expression.name.text !== 'map' ||
+      !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback))
+    )
+      return undefined;
+    const returned = returnedValues(callback);
+    return returned.length === 1
+      ? { node: returned[0], file: callback.getSourceFile().fileName }
+      : undefined;
+  };
+  const tooMany = `The document can be built in more than ${MAX_VARIANTS} ways; Refit checks at most ${MAX_VARIANTS}.`;
+  // Assembles a literal into its document variants: `${FRAGMENT}` constants are inlined, and a
+  // substitution that can take several values gives one variant per value (stringValues).
   const assemble = (
     literal: Literal,
     file: string,
     depth = 0,
-  ): { text: string; segments: DocumentSegment[] } | string => {
-    const segments: DocumentSegment[] = [];
-    let text = '';
-    const append = (value: string, node: ts.Node, sourceStart: number) => {
-      segments.push({
-        documentStart: text.length,
-        documentEnd: text.length + value.length,
-        file: pathOf.get(node.getSourceFile().fileName)!,
-        sourceStart,
-        sourceText: node.getSourceFile().text,
-      });
-      text += value;
-    };
-    if (!ts.isTemplateExpression(literal)) {
-      append(literal.text, literal, literal.getStart() + 1);
-      return { text, segments };
-    }
-    append(literal.head.text, literal.head, literal.head.getStart() + 1);
+    followed = new Set<string>(),
+  ): Variant[] | string => {
+    if (!ts.isTemplateExpression(literal))
+      return [piece(literal.text, literal, literal.getStart() + 1)];
+    let variants = [piece(literal.head.text, literal.head, literal.head.getStart() + 1)];
     for (const span of literal.templateSpans) {
+      const tail = piece(span.literal.text, span.literal, span.literal.getStart() + 1);
       const expression = unwrap(span.expression);
       const resolved = ts.isIdentifier(expression)
         ? (scoped(expression, file) ?? constant(file, expression.text))
@@ -520,35 +894,31 @@ export function scanShopify(
       // A runtime value inside a GraphQL string (`product(id: "gid://shopify/Product/${id}")`)
       // cannot change which fields the document selects, so a placeholder stands in for it; only
       // a constant string is written as it is.
-      if (
-        (!resolved || !isLiteral(resolved.node) || ts.isTemplateExpression(resolved.node)) &&
-        insideString(text)
-      ) {
-        text += 'x';
-        append(span.literal.text, span.literal, span.literal.getStart() + 1);
-        continue;
+      const literalValue =
+        resolved && isLiteral(resolved.node) && !ts.isTemplateExpression(resolved.node);
+      const next: Variant[] = [];
+      for (const variant of variants) {
+        const element = listElements(span.expression, variant.text, span.literal.text);
+        if (!literalValue && insideString(variant.text))
+          next.push(...joined([variant], [{ text: 'x', segments: [] }]));
+        else if (element) {
+          const items = stringValues(element.node, element.file, depth, followed);
+          if (typeof items === 'string') return items;
+          next.push(...joined([variant], items));
+        } else {
+          const values = stringValues(span.expression, file, depth, followed);
+          if (typeof values === 'string') return values;
+          next.push(...joined([variant], values));
+        }
+        if (next.length > MAX_VARIANTS) return tooMany;
       }
-      // `first: ${PAGE_SIZE}`: a constant number or boolean is written as it is.
-      const atom = scalarText(resolved?.node ?? expression);
-      if (atom !== undefined) {
-        text += atom;
-        append(span.literal.text, span.literal, span.literal.getStart() + 1);
-        continue;
-      }
-      if (!resolved || !isLiteral(resolved.node) || depth > 8)
-        return 'The document interpolates a value Refit cannot resolve to a constant fragment.';
-      const inner = assemble(resolved.node, resolved.file, depth + 1);
-      if (typeof inner === 'string') return inner;
-      for (const segment of inner.segments)
-        segments.push({
-          ...segment,
-          documentStart: segment.documentStart + text.length,
-          documentEnd: segment.documentEnd + text.length,
-        });
-      text += inner.text;
-      append(span.literal.text, span.literal, span.literal.getStart() + 1);
+      // Variants with the same text are one document.
+      const texts = new Set<string>();
+      variants = joined(next, [tail]).filter(
+        (variant) => !texts.has(variant.text) && Boolean(texts.add(variant.text)),
+      );
     }
-    return { text, segments };
+    return variants;
   };
   const unreadable = (node: ts.Node, reason: string) => {
     const where = location(node);
@@ -584,18 +954,21 @@ export function scanShopify(
       unreadable(call ?? literal, assembled);
       return;
     }
-    const existing = scan.documents.findIndex(
-      (entry) =>
-        entry.segments[0].sourceStart === assembled.segments[0].sourceStart &&
-        entry.file === location(literal).file,
-    );
-    if (existing >= 0) scan.documents.splice(existing, 1);
-    scan.documents.push({
-      ...location(literal),
-      ...assembled,
-      traced,
-      ...(reached && api ? { api } : {}),
-    });
+    const where = location(literal);
+    const head = assembled[0].segments[0].sourceStart;
+    for (let index = scan.documents.length - 1; index >= 0; index--)
+      if (
+        scan.documents[index].segments[0].sourceStart === head &&
+        scan.documents[index].file === where.file
+      )
+        scan.documents.splice(index, 1);
+    for (const variant of assembled)
+      scan.documents.push({
+        ...where,
+        ...variant,
+        traced,
+        ...(reached && api ? { api } : {}),
+      });
   };
   // The `const` an identifier names in an enclosing block, including names destructured from
   // `await import('./module')` or `require('./module')`. Reassignable bindings are not followed.
@@ -703,6 +1076,35 @@ export function scanShopify(
         binding = ts.isIdentifier(initializer) ? declarationOf(initializer)?.node : undefined;
         continue;
       }
+      // `const { graphqlQuery } = createHandler(admin)`: the member every return of the
+      // repository function names, when all name the same function.
+      if (
+        ts.isVariableDeclaration(binding) &&
+        ts.isObjectBindingPattern(binding.name) &&
+        binding.parent.flags & ts.NodeFlags.Const &&
+        binding.initializer
+      ) {
+        const element = binding.name.elements.find(
+          (entry) => ts.isIdentifier(entry.name) && entry.name.text === value.text,
+        );
+        const name = element && !element.dotDotDotToken && (element.propertyName ?? element.name);
+        let source = unwrap(binding.initializer);
+        if (ts.isAwaitExpression(source)) source = unwrap(source.expression);
+        const factory =
+          ts.isCallExpression(source) && source.expression !== callee
+            ? calledFunction(source.expression)
+            : undefined;
+        if (!factory || !name || !(ts.isIdentifier(name) || ts.isStringLiteral(name)))
+          return undefined;
+        const key = name.text;
+        const found = new Set(
+          returnedValues(factory).map((entry) => {
+            const member = memberOf(entry, key);
+            return member && calledFunction(member);
+          }),
+        );
+        return found.size === 1 ? [...found][0] : undefined;
+      }
       if (
         ts.isIdentifier(binding) &&
         (ts.isImportClause(binding.parent) || ts.isImportSpecifier(binding.parent))
@@ -807,33 +1209,108 @@ export function scanShopify(
         return stored(parent, STORED);
       escape(node, ESCAPE);
     };
-    // A member of a local `const` object literal (`const admin = { graphql: (query) => … }`) is
-    // followed through every `admin.graphql(…)`; any other use of the object stops.
+    // A member of an object literal (`const admin = { graphql: (query) => … }`, a factory's
+    // `return { graphql: { request } }`) is followed through every access of its key path:
+    // `admin.graphql(…)`, `const { graphql } = admin`, `createClient().graphql.request(…)`. Any
+    // other use of the object stops.
     const stored = (
       property: ts.PropertyAssignment | ts.ShorthandPropertyAssignment,
       reason: string,
     ) => {
-      const object = outermost(property.parent);
+      const path: string[] = [];
+      let member: ts.Node = property;
+      let object = outermost(property.parent);
+      for (;;) {
+        const key = (member as ts.PropertyAssignment | ts.ShorthandPropertyAssignment).name;
+        if (ts.isComputedPropertyName(key) || ts.isPrivateIdentifier(key))
+          return escape(property, reason);
+        path.unshift(key.text);
+        const holder = object.parent;
+        if (!ts.isPropertyAssignment(holder) || holder.initializer !== object) break;
+        member = holder;
+        object = outermost(holder.parent);
+      }
       const holder = object.parent;
-      const key = property.name;
       if (
-        ts.isComputedPropertyName(key) ||
-        !ts.isVariableDeclaration(holder) ||
-        holder.initializer !== object ||
-        !ts.isIdentifier(holder.name) ||
-        !(holder.parent.flags & ts.NodeFlags.Const) ||
-        hasModifier(holder.parent.parent, ts.SyntaxKind.ExportKeyword)
+        ts.isVariableDeclaration(holder) &&
+        holder.initializer === object &&
+        ts.isIdentifier(holder.name) &&
+        holder.parent.flags & ts.NodeFlags.Const &&
+        !hasModifier(holder.parent.parent, ts.SyntaxKind.ExportKeyword)
+      )
+        return holderUses(holder.name, path, property, reason);
+      // Returned from a factory: followed from every call of it.
+      const factory = ts.isReturnStatement(holder)
+        ? ts.findAncestor(holder, (entry) => ts.isFunctionLike(entry))
+        : ts.isArrowFunction(holder) && holder.body === object
+          ? holder
+          : undefined;
+      if (
+        !factory ||
+        !(
+          ts.isFunctionDeclaration(factory) ||
+          ts.isArrowFunction(factory) ||
+          ts.isFunctionExpression(factory)
+        )
       )
         return escape(property, reason);
-      const binding = declarationOf(holder.name);
-      if (!binding) return escape(property, reason);
-      for (const reference of referencesIn(binding.scope, holder.name.text)) {
-        const at = outermost(reference);
-        const access = at.parent;
-        if (ts.isPropertyAccessExpression(access) && access.expression === at) {
-          if (access.name.text === key.text) uses(access);
-        } else escape(reference, reason);
+      const outer = functionFlows(factory);
+      if (outer.escapes.length || (!outer.calls.length && outer.open))
+        return escape(property, reason);
+      for (const call of outer.calls) valueUses(call, path, property, reason);
+    };
+    // Where a value holding the object goes: a key path access, a `const` binding of it or of
+    // one of its members.
+    const valueUses = (
+      expression: ts.Node,
+      path: string[],
+      property: ts.Node,
+      reason: string,
+    ): void => {
+      let node = expression;
+      while (
+        ts.isParenthesizedExpression(node.parent) ||
+        ts.isAsExpression(node.parent) ||
+        ts.isNonNullExpression(node.parent) ||
+        ts.isSatisfiesExpression(node.parent) ||
+        ts.isAwaitExpression(node.parent)
+      )
+        node = node.parent;
+      const parent = node.parent;
+      if (ts.isPropertyAccessExpression(parent) && parent.expression === node) {
+        if (parent.name.text !== path[0]) return;
+        return path.length === 1
+          ? uses(parent)
+          : valueUses(parent, path.slice(1), property, reason);
       }
+      if (
+        ts.isVariableDeclaration(parent) &&
+        parent.initializer === node &&
+        parent.parent.flags & ts.NodeFlags.Const &&
+        !hasModifier(parent.parent.parent, ts.SyntaxKind.ExportKeyword)
+      ) {
+        if (ts.isIdentifier(parent.name)) return holderUses(parent.name, path, property, reason);
+        if (ts.isObjectBindingPattern(parent.name)) {
+          for (const element of parent.name.elements) {
+            const name = element.propertyName ?? element.name;
+            if (element.dotDotDotToken || !(ts.isIdentifier(name) || ts.isStringLiteral(name)))
+              return escape(element, reason);
+            if (name.text !== path[0]) continue;
+            if (path.length === 1 && ts.isIdentifier(element.name)) bound(element.name);
+            else if (ts.isIdentifier(element.name))
+              holderUses(element.name, path.slice(1), property, reason);
+            else return escape(element, reason);
+          }
+          return;
+        }
+      }
+      escape(node, reason);
+    };
+    const holderUses = (name: ts.Identifier, path: string[], property: ts.Node, reason: string) => {
+      const binding = declarationOf(name);
+      if (!binding) return escape(property, reason);
+      for (const reference of referencesIn(binding.scope, name.text))
+        valueUses(reference, path, property, reason);
     };
     // The names `const { a, b } = await import('./module')` takes from a loaded module, with the
     // binding each one gets; undefined for any other use of the loaded module.
@@ -1120,7 +1597,11 @@ export function scanShopify(
   };
   // Every value a `let` binding holds: its initializer and each `name = value` assignment. Undefined
   // for any other write (`+=`, `++`, destructuring, a loop target), which Refit cannot follow.
-  const assignedValues = (identifier: ts.Identifier): ts.Expression[] | undefined => {
+  // With `appends`, each `name += value` is collected there instead of stopping.
+  const assignedValues = (
+    identifier: ts.Identifier,
+    appends?: ts.Expression[],
+  ): ts.Expression[] | undefined => {
     const binding = declarationOf(identifier);
     const declaration = binding?.node;
     if (
@@ -1144,8 +1625,9 @@ export function scanShopify(
         operator >= ts.SyntaxKind.FirstAssignment &&
         operator <= ts.SyntaxKind.LastAssignment
       ) {
-        if (operator !== ts.SyntaxKind.EqualsToken) return undefined;
-        values.push(parent.right);
+        if (operator === ts.SyntaxKind.PlusEqualsToken && appends) appends.push(parent.right);
+        else if (operator !== ts.SyntaxKind.EqualsToken) return undefined;
+        else values.push(parent.right);
         continue;
       }
       if (
@@ -1204,6 +1686,8 @@ export function scanShopify(
     for (const entry of flows.escapes) unreadable(entry.node, entry.reason);
     return true;
   };
+  const openParameter = (name: string) =>
+    `The document is \`${name}\`, from a parameter of a function nothing in the repository calls but code outside it can (an export, a public method or a callback), so Refit cannot list the documents it receives.`;
   // The documents in `base.property`: a member of a constant object, or of every object a parameter
   // receives (`options.query`, `({ query }) => …`). `fallback` is a destructuring default.
   const memberDocuments = (
@@ -1230,6 +1714,26 @@ export function scanShopify(
         )
       )
         return;
+      if (parameter && ts.isParameter(parameter))
+        return unreadable(call, openParameter(`${value.getText()}.${property}`));
+    }
+    // `getPaginationQuery(params).query`: the member in each object the function returns.
+    if (ts.isCallExpression(value)) {
+      const fn = calledFunction(value.expression);
+      const key = fn && `${fn.getSourceFile().fileName}:${fn.pos}:return`;
+      const returned = fn && key && !helpers.has(key) ? returnedValues(fn) : [];
+      if (fn && key && returned.length) {
+        for (const entry of returned)
+          memberDocuments(
+            entry,
+            property,
+            fn.getSourceFile().fileName,
+            call,
+            new Set([...helpers, key]),
+            fallback,
+          );
+        return;
+      }
     }
     if (ts.isObjectLiteralExpression(value)) {
       const item = memberOf(value, property);
@@ -1239,7 +1743,7 @@ export function scanShopify(
     }
     unreadable(
       call,
-      'The document is built at runtime; Refit only reads literal or constant documents.',
+      `The document \`${snippet(base)}.${property}\` is built at runtime; Refit only reads literal or constant documents.`,
     );
   };
   // A document argument: a literal, or a constant naming one, possibly wrapped as { query }.
@@ -1355,6 +1859,7 @@ export function scanShopify(
           )
         )
           return;
+        return unreadable(call, openParameter(value.getText()));
       } else if (
         // `const { query, variables } = input`: a property of a value Refit can follow.
         declaration &&
@@ -1396,7 +1901,7 @@ export function scanShopify(
     else
       unreadable(
         call,
-        'The document is built at runtime; Refit only reads literal or constant documents.',
+        `The document \`${snippet(value)}\` is built at runtime; Refit only reads literal or constant documents.`,
       );
   };
   // A literal's text with each substitution shown as `{name}` (or `{…}` when it is not a name).

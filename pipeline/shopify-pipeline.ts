@@ -42,6 +42,8 @@ import {
   type ShopifyAiRewrite,
   type ShopifyReconstruction,
 } from './shopify-ai-rewrite.ts';
+import type { ShopifyLiveCase } from './shopify-live-proof.ts';
+import { loadShopifyMigrationRules, migrateDocument } from './shopify-migrations.ts';
 import {
   SHOPIFY_SDK_RULE,
   shopifySdkSourceChanges,
@@ -789,6 +791,10 @@ async function shopifyRun(options: ShopifyRunOptions) {
   const otherApi: AdminDocument[] = [];
   const storefront: AdminDocument[] = [];
   const rules = loadShopifyDocumentRules(versions.after);
+  const migrationRules = loadShopifyMigrationRules(versions.after);
+  // Development store cases for documents whose variables a migration changed, at their lines.
+  const liveCases: (Omit<ShopifyLiveCase, 'document'> & { file: string; line: number })[] = [];
+  const migrationNotes: string[] = [];
   const documentEdits = new Map<string, SourceEdit>();
   const aiEdits: SourceEdit[] = [];
   const variableNotes = new Set<string>();
@@ -819,10 +825,74 @@ async function shopifyRun(options: ShopifyRunOptions) {
     } else if (rewritten)
       for (const finding of result.findings)
         finding.reason += ` A Shopify rule matched but was not applied: ${rewritten.refusal}`;
+    // Documents that already fail on the oldest supported version, or break on the target, and
+    // that no in-place rule fixed: the documented migrations and the unused-variable fix, which also
+    // edit the code around the document (pipeline/shopify-migrations.ts).
+    let migrated = false;
+    if (
+      !(rewritten && 'edits' in rewritten) &&
+      result.findings.length &&
+      !result.otherApi &&
+      result.findings.every(
+        (finding) =>
+          finding.reason.startsWith('This document already') ||
+          (finding.reason.startsWith('Valid on') &&
+            !finding.changeId.startsWith('shopify-graphql-input:')),
+      )
+    ) {
+      const migration = migrateDocument({
+        document,
+        source: patchRepository.files.find((file) => file.path === document.segments[0]?.file)
+          ?.content,
+        after,
+        rules: migrationRules,
+      });
+      const types =
+        migration && 'edits' in migration
+          ? typeChanges(
+              parse(migration.text),
+              { ...document, text: migration.text },
+              before,
+              after,
+              versions,
+              migration.text,
+            )
+          : undefined;
+      if (migration && 'edits' in migration && !types!.findings.length) {
+        migrated = true;
+        for (const edit of migration.edits)
+          documentEdits.set(`${edit.file}:${edit.start}:${edit.end}:${edit.replacement}`, edit);
+        liveCases.push(
+          ...migration.liveCases.map((entry) => ({
+            ...entry,
+            file: document.file,
+            line: document.line,
+          })),
+        );
+        for (const name of migration.uncovered)
+          migrationNotes.push(
+            `${document.file}:${document.line} (${name}): the migration changes the variables the code sends, and Refit could not write a development store case for it, so the patch stays [Needs review] until the operation is run.`,
+          );
+        const confidence = document.traced ? ('confirmed' as const) : ('review' as const);
+        result = {
+          deprecated: types!.deprecated,
+          findings: migration.notes.map((note) => ({
+            ...documentLocation(document, note.offset),
+            changeId: note.rule,
+            expression: note.expression,
+            confidence,
+            reason: `${note.reason} The rewritten document validates on ${versions.after}.`,
+          })),
+        };
+      } else if (migration)
+        for (const finding of result.findings)
+          finding.reason += ` A Shopify migration matched but was not applied: ${'refusal' in migration ? migration.refusal : 'a selected field changes type on the target.'}`;
+    }
     const segment = document === original && document.segments.length === 1 && document.segments[0];
     if (
       options.aiPatch &&
       segment &&
+      !migrated &&
       !(rewritten && 'edits' in rewritten) &&
       result.findings.length &&
       !result.otherApi &&
@@ -1153,6 +1223,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
                     ]
                   : []),
                 ...variableNotes,
+                ...migrationNotes,
                 ...reconstructed
                   .filter((attempt) => attempt.status === 'kept')
                   .map(
@@ -1278,6 +1349,8 @@ async function shopifyRun(options: ShopifyRunOptions) {
         reason: attempt.reason,
       })),
       deprecated: [...deprecated],
+      // Development store cases the migrations wrote (pipeline/shopify-migrations.ts).
+      liveCases,
     },
     warnings: [
       ...repository.warnings,

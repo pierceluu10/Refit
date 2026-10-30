@@ -54,6 +54,8 @@ A codegen configuration the patch changes only in its version pin (`codegenPinFi
 
 Passing checks without schema proof stay grade D, because they say nothing about the documents.
 
+A patch that changes a document's variable definitions (a migration in `pipeline/shopify-migrations.ts`) is also grade D unless the development store ran every such operation and it passed: schema validation cannot see whether the code sends what the document now declares. The migration writes that operation's case itself (a product it creates, the variant it updates, the keys the code sends with stand-ins where the code computes a value, and the product deleted afterwards). Where the original document already fails on the before version, the live run sends the patched document at both versions.
+
 ## AI second opinion (advisory)
 
 With `--assess` (or `--ai-patch`), every Shopify patch gets a second opinion (`reviewShopifyPatch`). The model reads the diff, the summary, the warnings and the schema proof's result. It names concrete problems that schema validation cannot see. Its verdict is recorded under `validation.shopifyProof.review`, and the draft shows it as "AI Second Opinion (advisory; it does not change the grade)". It never sets the grade, clears a stop or holds a draft.

@@ -1,6 +1,6 @@
 {
-  "source": "stripe/openapi v2591 openapi/spec3.sdk.json (2026-09-30.endive)",
-  "generated": "2026-10-24",
+  "source": "stripe/openapi v2596 openapi/spec3.sdk.json (2026-10-28.endive)",
+  "generated": "2026-10-29",
   "operationVersions": [
     "2022-08-01",
     "2022-11-15",
@@ -32,7 +32,8 @@
     "2026-06-24.dahlia",
     "2026-07-29.dahlia",
     "2026-08-26.dahlia",
-    "2026-09-30.endive"
+    "2026-09-30.endive",
+    "2026-10-28.endive"
   ],
   "classes": {
     "Aba": "funding_instructions_bank_transfer_aba_record",
@@ -64,7 +65,7 @@
     "Bancontact": "setup_attempt_payment_method_details_bancontact",
     "BankAccount": "bank_account",
     "BankTransfer": "funding_instructions_bank_transfer",
-    "BaseConfig": "connect_embedded_base_config_claim",
+    "BaseConfig": "connect_embedded_base_config",
     "BaseFeatures": "connect_embedded_base_features",
     "Billing.Alert": "billing.alert",
     "Billing.AlertTriggered": "billing.alert_triggered",
@@ -256,7 +257,7 @@
     "Radar.DeletedValueListItem": "deleted_radar.value_list_item",
     "Radar.EarlyFraudWarning": "radar.early_fraud_warning",
     "Radar.PaymentEvaluation": "radar.payment_evaluation",
-    "Radar.Rule": "rule",
+    "Radar.Rule": "radar.rule",
     "Radar.ValueList": "radar.value_list",
     "Radar.ValueListItem": "radar.value_list_item",
     "Receipt": "payment_method_details_interac_present_receipt",
@@ -580,6 +581,13 @@
     "test_helpers.test_clock.deleted": "test_helpers.test_clock",
     "test_helpers.test_clock.internal_failure": "test_helpers.test_clock",
     "test_helpers.test_clock.ready": "test_helpers.test_clock",
+    "three_d_secure.authentication.canceled": "three_d_secure.authentication",
+    "three_d_secure.authentication.challenge_started": "three_d_secure.authentication",
+    "three_d_secure.authentication.errored": "three_d_secure.authentication",
+    "three_d_secure.authentication.failed": "three_d_secure.authentication",
+    "three_d_secure.authentication.requires_challenge": "three_d_secure.authentication",
+    "three_d_secure.authentication.requires_submission": "three_d_secure.authentication",
+    "three_d_secure.authentication.succeeded": "three_d_secure.authentication",
     "topup.canceled": "topup",
     "topup.created": "topup",
     "topup.failed": "topup",
