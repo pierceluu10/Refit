@@ -21,6 +21,9 @@ export interface Finding extends Location {
   // Confirmed only because TypeScript's checker resolves the receiver to a Stripe type;
   // `asserted` when a type assertion states that type. Stops automatic migration for review.
   typeEvidence?: { receiverTypes: string[]; asserted?: true };
+  // Confirmed because TypeScript's checker proves the receiver is the change's Stripe type, with no
+  // type assertion or `any` on its path (stripe-type-evidence.ts typeProvenReads).
+  typeProven?: true;
   classClient?: { origin: Location; stability: 'review' };
   helperClient?: { origin: Location; parameter: Location; stability: 'review' };
   // How a migrated subscription-period read handles subscriptions whose items have different

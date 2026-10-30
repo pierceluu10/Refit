@@ -501,9 +501,9 @@ it('leaves an unused optional peer out of the pnpm snapshot and prunes what only
 
 it.each([
   [
-    'lockfile v6 with importers',
+    'a lockfile 9 layout labelled v6',
     pnpmLock({ version: '6.0' }),
-    /single-project pnpm lockfile version 6/,
+    /\(v6\) dev and optional flags do not match/,
   ],
   ['pnpm 7 lockfile 5.4', pnpmLock({ version: '5.4' }), /Only pnpm lockfile versions 6 and 9/],
   ['non-pnpm formatting', pnpmLock().replace(/\{integrity: /g, '{ integrity: '), /pnpm formatting/],
@@ -1123,6 +1123,41 @@ it('upgrades a pnpm 8 lockfile v6 the way pnpm 8 rewrites it', async () => {
     `  /side-channel@1.0.4:\n    resolution: {integrity: ${INTEGRITY}}\n    dev: true\n`,
   );
   expect(lock).toContain(`  /@types/node@20.1.0:\n    resolution: {integrity: ${INTEGRITY}}\n\n`);
+});
+
+// pnpm 8 nests the root sections under `importers['.']` when pnpm-workspace.yaml lists only the root.
+function v6RootImporter(extra = '') {
+  const [head, rest] = V6_LOCK.split('dependencies:\n  stripe:');
+  const [sections, packages] = `dependencies:\n  stripe:${rest}`.split('\npackages:\n');
+  const nested = sections.trimEnd().replace(/^(?=.)/gm, '    ');
+  return `${head}importers:\n\n  .:\n${nested}\n${extra}\npackages:\n${packages}`;
+}
+
+it('upgrades a lockfile v6 whose only importer is the root, in place under importers', async () => {
+  registry();
+  const result = await stripePackageUpgrade(await v6Project(v6RootImporter()), '2026-09-30.endive');
+  if (!('upgrade' in result)) throw new Error(result.reason);
+  expect(result.upgrade).toMatchObject({ from: '14.0.0', to: TARGET });
+  const lock = result.upgrade.files.find((file) => file.path === 'pnpm-lock.yaml')!.after;
+  expect(lock).toContain(
+    `importers:\n\n  .:\n    dependencies:\n      stripe:\n        specifier: ^${TARGET}\n        version: ${TARGET}(@types/node@20.1.0)\n`,
+  );
+  expect(lock).not.toMatch(/^dependencies:/m);
+  expect(lock).not.toContain('/qs@');
+  expect(lock).toContain(
+    `  /side-channel@1.0.4:\n    resolution: {integrity: ${INTEGRITY}}\n    dev: true\n`,
+  );
+});
+
+it('refuses a lockfile v6 with a second importer', async () => {
+  registry();
+  const result = await stripePackageUpgrade(
+    await v6Project(v6RootImporter('\n  packages/web: {}\n')),
+    '2026-09-30.endive',
+  );
+  expect(result).toEqual({
+    reason: expect.stringMatching(/single-project pnpm lockfile version 6/),
+  });
 });
 
 it.each([

@@ -1,0 +1,207 @@
+{
+  "formatVersion": 1,
+  "provider": "shopify",
+  "api": "admin",
+  "version": "2024-04",
+  "previous": "2024-01",
+  "rules": [
+    {
+      "rule": "shopify-rest-post-products",
+      "family": "rest-to-graphql",
+      "method": "POST",
+      "path": "products.json",
+      "replacement": "Mutation.productCreate",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product",
+      "warning": "Flags POST products.json, a deprecated REST product endpoint, and names productCreate, the GraphQL field Shopify's REST reference lists for it. Request and response shapes differ, so the call is not rewritten.",
+      "quote": "[/admin/api/latest/products.​json](https://shopify.dev/docs/api/admin-rest/latest/resources/product.md#post-products)\n\nCreate a new product\n\n[productCreate](https://shopify.dev/docs/api/admin-graphql/latest/mutations/productCreate)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "graphql-replacement-present",
+        "operationId": "Mutation.productCreate",
+        "text": "POST products.json is answered by Mutation.productCreate."
+      }
+    },
+    {
+      "rule": "shopify-rest-get-products",
+      "family": "rest-to-graphql",
+      "method": "GET",
+      "path": "products.json",
+      "replacement": "QueryRoot.products",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product",
+      "warning": "Flags GET products.json, a deprecated REST product endpoint, and names products, the GraphQL field Shopify's REST reference lists for it. Request and response shapes differ, so the call is not rewritten.",
+      "quote": "[/admin/api/latest/products.​json?ids=632910392,921728736](https://shopify.dev/docs/api/admin-rest/latest/resources/product.md#get-products?ids=632910392,921728736)\n\nRetrieve a list of products\n\n[products](https://shopify.dev/docs/api/admin-graphql/latest/queries/products?example=retrieve-a-list-of-products)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "graphql-replacement-present",
+        "operationId": "QueryRoot.products",
+        "text": "GET products.json is answered by QueryRoot.products."
+      }
+    },
+    {
+      "rule": "shopify-rest-get-products-id",
+      "family": "rest-to-graphql",
+      "method": "GET",
+      "path": "products/{product_id}.json",
+      "replacement": "QueryRoot.product",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product",
+      "warning": "Flags GET products/{product_id}.json, a deprecated REST product endpoint, and names product, the GraphQL field Shopify's REST reference lists for it. Request and response shapes differ, so the call is not rewritten.",
+      "quote": "[/admin/api/latest/products/{product\\_​id}.​json](https://shopify.dev/docs/api/admin-rest/latest/resources/product.md#get-products-product-id)\n\nRetrieve a single product\n\n[product](https://shopify.dev/docs/api/admin-graphql/latest/queries/product?example=retrieve-a-single-product)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "graphql-replacement-present",
+        "operationId": "QueryRoot.product",
+        "text": "GET products/{product_id}.json is answered by QueryRoot.product."
+      }
+    },
+    {
+      "rule": "shopify-rest-get-products-count",
+      "family": "rest-to-graphql",
+      "method": "GET",
+      "path": "products/count.json",
+      "replacement": "QueryRoot.productsCount",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product",
+      "warning": "Flags GET products/count.json, a deprecated REST product endpoint, and names productsCount, the GraphQL field Shopify's REST reference lists for it. Request and response shapes differ, so the call is not rewritten.",
+      "quote": "[/admin/api/latest/products/count.​json](https://shopify.dev/docs/api/admin-rest/latest/resources/product.md#get-products-count)\n\nRetrieve a count of products\n\n[productsCount](https://shopify.dev/docs/api/admin-graphql/latest/queries/productsCount?example=retrieve-a-count-of-products)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "graphql-replacement-present",
+        "operationId": "QueryRoot.productsCount",
+        "text": "GET products/count.json is answered by QueryRoot.productsCount."
+      }
+    },
+    {
+      "rule": "shopify-rest-put-products-id",
+      "family": "rest-to-graphql",
+      "method": "PUT",
+      "path": "products/{product_id}.json",
+      "replacement": "Mutation.productUpdate",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product",
+      "warning": "Flags PUT products/{product_id}.json, a deprecated REST product endpoint, and names productUpdate, the GraphQL field Shopify's REST reference lists for it. Request and response shapes differ, so the call is not rewritten.",
+      "quote": "[/admin/api/latest/products/{product\\_​id}.​json](https://shopify.dev/docs/api/admin-rest/latest/resources/product.md#put-products-product-id)\n\nUpdates a product\n\n[productUpdate](https://shopify.dev/docs/api/admin-graphql/latest/mutations/productUpdate)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "graphql-replacement-present",
+        "operationId": "Mutation.productUpdate",
+        "text": "PUT products/{product_id}.json is answered by Mutation.productUpdate."
+      }
+    },
+    {
+      "rule": "shopify-rest-delete-products-id",
+      "family": "rest-to-graphql",
+      "method": "DELETE",
+      "path": "products/{product_id}.json",
+      "replacement": "Mutation.productDelete",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product",
+      "warning": "Flags DELETE products/{product_id}.json, a deprecated REST product endpoint, and names productDelete, the GraphQL field Shopify's REST reference lists for it. Request and response shapes differ, so the call is not rewritten.",
+      "quote": "[/admin/api/latest/products/{product\\_​id}.​json](https://shopify.dev/docs/api/admin-rest/latest/resources/product.md#delete-products-product-id)\n\nDelete a product\n\n[productDelete](https://shopify.dev/docs/api/admin-graphql/latest/mutations/productDelete?example=delete-a-product)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "graphql-replacement-present",
+        "operationId": "Mutation.productDelete",
+        "text": "DELETE products/{product_id}.json is answered by Mutation.productDelete."
+      }
+    },
+    {
+      "rule": "shopify-rest-get-products-id-variants",
+      "family": "rest-to-graphql",
+      "method": "GET",
+      "path": "products/{product_id}/variants.json",
+      "replacement": "QueryRoot.productVariants",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-variant",
+      "warning": "Flags GET products/{product_id}/variants.json, a deprecated REST product variant endpoint, and names productVariants, the GraphQL field Shopify's REST reference lists for it. Request and response shapes differ, so the call is not rewritten.",
+      "quote": "[/admin/api/latest/products/{product\\_​id}/variants.​json](https://shopify.dev/docs/api/admin-rest/latest/resources/product-variant.md#get-products-product-id-variants)\n\nRetrieves a list of product variants\n\n[productVariants](https://shopify.dev/docs/api/admin-graphql/latest/queries/productVariants)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "graphql-replacement-present",
+        "operationId": "QueryRoot.productVariants",
+        "text": "GET products/{product_id}/variants.json is answered by QueryRoot.productVariants."
+      }
+    },
+    {
+      "rule": "shopify-rest-get-products-id-variants-count",
+      "family": "rest-to-graphql",
+      "method": "GET",
+      "path": "products/{product_id}/variants/count.json",
+      "replacement": "QueryRoot.productVariantsCount",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-variant",
+      "warning": "Flags GET products/{product_id}/variants/count.json, a deprecated REST product variant endpoint, and names productVariantsCount, the GraphQL field Shopify's REST reference lists for it. Request and response shapes differ, so the call is not rewritten.",
+      "quote": "[/admin/api/latest/products/{product\\_​id}/variants/count.​json](https://shopify.dev/docs/api/admin-rest/latest/resources/product-variant.md#get-products-product-id-variants-count)\n\nReceive a count of all Product Variants\n\n[productVariantsCount](https://shopify.dev/docs/api/admin-graphql/latest/queries/productVariantsCount?example=receive-a-count-of-all-product-variants)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "graphql-replacement-present",
+        "operationId": "QueryRoot.productVariantsCount",
+        "text": "GET products/{product_id}/variants/count.json is answered by QueryRoot.productVariantsCount."
+      }
+    },
+    {
+      "rule": "shopify-rest-get-variants-id",
+      "family": "rest-to-graphql",
+      "method": "GET",
+      "path": "variants/{variant_id}.json",
+      "replacement": "QueryRoot.productVariant",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-variant",
+      "warning": "Flags GET variants/{variant_id}.json, a deprecated REST product variant endpoint, and names productVariant, the GraphQL field Shopify's REST reference lists for it. Request and response shapes differ, so the call is not rewritten.",
+      "quote": "[/admin/api/latest/variants/{variant\\_​id}.​json](https://shopify.dev/docs/api/admin-rest/latest/resources/product-variant.md#get-variants-variant-id)\n\nReceive a single Product Variant\n\n[productVariant](https://shopify.dev/docs/api/admin-graphql/latest/queries/productVariant)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "graphql-replacement-present",
+        "operationId": "QueryRoot.productVariant",
+        "text": "GET variants/{variant_id}.json is answered by QueryRoot.productVariant."
+      }
+    },
+    {
+      "rule": "shopify-rest-put-variants-id",
+      "family": "rest-to-graphql",
+      "method": "PUT",
+      "path": "variants/{variant_id}.json",
+      "replacement": "Mutation.productVariantsBulkUpdate",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-variant",
+      "warning": "Flags PUT variants/{variant_id}.json, a deprecated REST product variant endpoint, and names productVariantsBulkUpdate, the GraphQL field Shopify's REST reference lists for it. Request and response shapes differ, so the call is not rewritten.",
+      "quote": "[/admin/api/latest/variants/{variant\\_​id}.​json](https://shopify.dev/docs/api/admin-rest/latest/resources/product-variant.md#put-variants-variant-id)\n\nModify an existing Product Variant\n\n[productVariantsBulkUpdate](https://shopify.dev/docs/api/admin-graphql/latest/mutations/productVariantsBulkUpdate)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "graphql-replacement-present",
+        "operationId": "Mutation.productVariantsBulkUpdate",
+        "text": "PUT variants/{variant_id}.json is answered by Mutation.productVariantsBulkUpdate."
+      }
+    },
+    {
+      "rule": "shopify-rest-delete-products-id-variants-id",
+      "family": "rest-to-graphql",
+      "method": "DELETE",
+      "path": "products/{product_id}/variants/{variant_id}.json",
+      "replacement": "Mutation.productVariantsBulkDelete",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-variant",
+      "warning": "Flags DELETE products/{product_id}/variants/{variant_id}.json, a deprecated REST product variant endpoint, and names productVariantsBulkDelete, the GraphQL field Shopify's REST reference lists for it. Request and response shapes differ, so the call is not rewritten.",
+      "quote": "[/admin/api/latest/products/{product\\_​id}/variants/{variant\\_​id}.​json](https://shopify.dev/docs/api/admin-rest/latest/resources/product-variant.md#delete-products-product-id-variants-variant-id)\n\nRemove an existing Product Variant\n\n[productVariantsBulkDelete](https://shopify.dev/docs/api/admin-graphql/latest/mutations/productVariantsBulkDelete?example=remove-an-existing-product-variant)",
+      "checkedAt": "2026-10-29",
+      "status": "review-only",
+      "origin": "hand-written",
+      "diff": {
+        "id": "graphql-replacement-present",
+        "operationId": "Mutation.productVariantsBulkDelete",
+        "text": "DELETE products/{product_id}/variants/{variant_id}.json is answered by Mutation.productVariantsBulkDelete."
+      }
+    }
+  ]
+}

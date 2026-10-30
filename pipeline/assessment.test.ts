@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
-import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
+import { assessMigration, assessmentConfiguration, buildAssessmentEvidence } from './assessment.ts';
 
 const OPTIONS = { apiKey: 'test-key', model: 'configured-test-model' };
 const INPUTS = {
@@ -48,7 +48,9 @@ function assessment(id: string) {
 
 afterEach(() => vi.unstubAllGlobals());
 
-it('refuses advisory webhook assessment before making a paid request', async () => {
+// Founder decision (2026-10-28): the webhook payload policy no longer blocks the advisory
+// assessment, but evidence without traced provenance still does.
+it('refuses advisory assessment of untraced evidence before making a paid request', async () => {
   const input = await evidence();
   input.findings[0].webhook = {
     schema: 'payment_intent',
@@ -56,9 +58,11 @@ it('refuses advisory webhook assessment before making a paid request', async () 
     origin: { file: 'handler.ts', line: 1, column: 1 },
     apiVersion: 'unverified',
   };
+  input.findings[0].declaredType = { schema: 'payment_intent' };
+  input.findings[0].confidence = 'review';
   const fetch = vi.fn();
   vi.stubGlobal('fetch', fetch);
-  await expect(assessMigration(input, OPTIONS)).rejects.toThrow(/migration-policy/);
+  await expect(assessMigration(input, OPTIONS)).rejects.toThrow(/^Declared Stripe types/);
   expect(fetch).not.toHaveBeenCalled();
 });
 
@@ -187,17 +191,55 @@ it('rejects missing configuration and oversized input before networking', async 
   await expect(assessMigration(input, { ...OPTIONS, apiKey: '' })).rejects.toThrow(
     /OPENAI_API_KEY/,
   );
-  input.findings[0].context.text = 'x'.repeat(64 * 1024);
-  await expect(assessMigration(input, OPTIONS)).rejects.toThrow(/64 KiB/);
+  input.findings[0].context.text = 'x'.repeat(256 * 1024);
+  await expect(assessMigration(input, OPTIONS)).rejects.toThrow(/256 KiB/);
   expect(fetcher).not.toHaveBeenCalled();
 });
 
-it('does not retry rate limits or expose the API error body', async () => {
+it('retries rate limits a bounded number of times without exposing the API error body', async () => {
   const input = await evidence();
-  const fetcher = vi
-    .fn()
-    .mockResolvedValue(new Response('sensitive upstream error detail', { status: 429 }));
+  const fetcher = vi.fn().mockImplementation(
+    async () =>
+      new Response('sensitive upstream error detail', {
+        status: 429,
+        headers: { 'retry-after-ms': '0' },
+      }),
+  );
   vi.stubGlobal('fetch', fetcher);
-  await expect(assessMigration(input, OPTIONS)).rejects.toThrow('HTTP 429. No retry was made.');
+  const error = await assessMigration(input, OPTIONS).catch((caught: Error) => caught);
+  expect(String(error)).toContain('HTTP 429 after 4 retries.');
+  expect(String(error)).not.toContain('sensitive');
+  expect(fetcher).toHaveBeenCalledTimes(5);
+  // Other failures are not retried.
+  fetcher.mockClear().mockImplementation(async () => new Response('', { status: 500 }));
+  await expect(assessMigration(input, OPTIONS)).rejects.toThrow('HTTP 500. No retry was made.');
   expect(fetcher).toHaveBeenCalledTimes(1);
+});
+
+it('reads reasoning effort and the escalation step from the environment', () => {
+  const base = { OPENAI_API_KEY: 'key', OPENAI_MODEL: 'gpt-6.1-sol' };
+  expect(assessmentConfiguration(true, base)).toMatchObject({
+    escalation: { model: 'gpt-6.1-sol', reasoningEffort: 'high' },
+  });
+  expect(assessmentConfiguration(true, base)).not.toHaveProperty('reasoningEffort');
+  expect(
+    assessmentConfiguration(true, {
+      ...base,
+      OPENAI_REASONING_EFFORT: 'xhigh',
+      OPENAI_ESCALATION_MODEL: 'gpt-other',
+    }),
+  ).toMatchObject({
+    reasoningEffort: 'xhigh',
+    escalation: { model: 'gpt-other', reasoningEffort: 'max' },
+  });
+  // The strongest effort has no step above it.
+  expect(
+    assessmentConfiguration(true, { ...base, OPENAI_REASONING_EFFORT: 'max' }),
+  ).not.toHaveProperty('escalation');
+  expect(
+    assessmentConfiguration(true, { ...base, OPENAI_ESCALATION_EFFORT: 'none' }),
+  ).not.toHaveProperty('escalation');
+  expect(() =>
+    assessmentConfiguration(true, { ...base, OPENAI_REASONING_EFFORT: 'extreme' }),
+  ).toThrow(/OPENAI_REASONING_EFFORT must be one of low, medium, high, xhigh, max/);
 });

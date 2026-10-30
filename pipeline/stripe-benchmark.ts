@@ -1,6 +1,7 @@
 import { splitRows } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
 import { analyzeRepository } from './analyzer.ts';
+import { requestProperty } from './operation-reach.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { runPipeline } from './run.ts';
 import {
@@ -9,7 +10,12 @@ import {
   type StripeOperation,
 } from './stripe-operations.ts';
 import { PipelineInputError, type Repository } from './types.ts';
-import { proposalReviewReason, scanReviewReason } from './workflow.ts';
+import {
+  NO_USAGE_REASON,
+  proposalReviewReason,
+  scanReviewReason,
+  versionBumpBlock,
+} from './workflow.ts';
 import { targetReached } from './migration-review.ts';
 
 // Refit adapters accept at most 100 operations; Stripe exposes far more, so each repository
@@ -107,7 +113,7 @@ export function summaryTable(entries: Record<string, unknown>[]) {
   return [
     '# Stripe benchmark summary',
     '',
-    `Repositories: ${rows.length}. Affected in either mode: ${affected.length}. Production mode runs the full contract diff, as a hosted worker does, with the benchmark's SDK-spec adapter (customerMode records the built-in adapter's scan); benchmark mode turns the full diff off. Pull requests: ${count('outcome', 'pull request')}.`,
+    `Repositories: ${rows.length}. Affected in either mode: ${affected.length}. Production mode runs the full contract diff, as a hosted worker does, with the benchmark's SDK-spec adapter (customerMode records the built-in adapter's scan); benchmark mode turns the full diff off. Pull requests: ${count('outcome', 'pull request')}. Version bumps (every Stripe call traced, none affected; counted apart from migration fixes): ${count('outcome', 'version-bump')}.`,
     ...(predates.length
       ? [
           '',
@@ -215,28 +221,36 @@ type ScanInputs = {
   apiVersion: string;
   providerConfig: string;
   keepListedPaymentMethods?: boolean;
+  fullDiff?: boolean;
 };
 
-// The workflow's scan stage: why it stops, if it does, and the proposed patch.
+// The workflow's scan stage: why it stops, if it does, and the proposed patch. Where the scan finds
+// no usage, `versionBump` says why runWorkflow opens no version bump, or `eligible` when it tries one.
 export async function workflowScan(
   inputs: ScanInputs,
   aiPatch: boolean,
   leaveReviewedFindings: boolean,
 ) {
-  return runPipeline({ ...inputs, proposePatch: true, leaveReviewedFindings }).then(
-    (scan) => ({
-      stop: targetReached(scan)
-        ? undefined
-        : (scanReviewReason(scan, aiPatch, leaveReviewedFindings) ??
-          proposalReviewReason(scan, aiPatch)),
+  try {
+    const scan = await runPipeline({ ...inputs, proposePatch: true, leaveReviewedFindings });
+    const stop = targetReached(scan)
+      ? undefined
+      : (scanReviewReason(scan, aiPatch, leaveReviewedFindings) ??
+        proposalReviewReason(scan, aiPatch));
+    if (!stop?.startsWith(NO_USAGE_REASON)) return { stop, patch: scan.patch };
+    const block = await versionBumpBlock(scan, inputs.repository);
+    return {
+      stop: block ? `${stop} Refit opened no version bump: ${block}` : undefined,
       patch: scan.patch,
-    }),
-    (error: unknown) => ({
+      versionBump: block ?? 'eligible',
+    };
+  } catch (error) {
+    return {
       stop: undefined,
       patch: undefined,
       error: error instanceof Error ? error.message : String(error),
-    }),
-  );
+    };
+  }
 }
 
 export async function workflowScanStop(
@@ -265,4 +279,44 @@ export function workflowExitReason(error: unknown, limitMs: number) {
     .split('\n')
     .at(-1);
   return `refit run ${signal ? `was killed by ${signal}` : `exited with code ${code}`}${last ? `: ${last}` : '.'}`;
+}
+
+// Saved changelog pages for the breaking changes traced code reaches that no rule migrates, so an
+// AI coverage request reads what Stripe says about them: a page of a version after `before`, up to
+// `after`, that names the changed property in code (`billing_cycle_anchor`,
+// `Subscription#update.billing_cycle_anchor`). `pages` maps each saved page's path to its version
+// directory and Markdown.
+export function contractChangePages(
+  changes: Record<string, unknown>[],
+  pages: { path: string; version: string; content: string }[],
+  before: string,
+  after: string,
+) {
+  const properties = new Set(
+    changes
+      .filter((change) => change.reach === 'reached')
+      .flatMap((change) => {
+        const text = String(change.text);
+        const property = requestProperty(text) ?? text.match(/property `([^`]+)`/)?.[1];
+        return property
+          ? [
+              property
+                .replace(/anyOf\[[^\]]*\]\//g, '')
+                .split('/')
+                .at(-1)!,
+            ]
+          : [];
+      }),
+  );
+  const date = (version: string) => version.slice(0, 10);
+  return pages
+    .filter(
+      (page) =>
+        date(page.version) > date(before) &&
+        date(page.version) <= date(after) &&
+        [...page.content.matchAll(/`([^`]+)`/g)].some(([, code]) =>
+          [...properties].some((property) => code === property || code.endsWith(`.${property}`)),
+        ),
+    )
+    .map((page) => page.path);
 }

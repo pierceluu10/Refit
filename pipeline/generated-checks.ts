@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import ts from 'typescript-compiler';
+import { HARNESS_FILE, HARNESS_SPECIFIER } from './behaviour-harness.ts';
 import { removeDockerContainer, resolveDockerImage } from './docker-sandbox.ts';
 import { AUTH_STAND_INS, STAND_INS_RUNTIME, type RuntimeStandIns } from './runtime-stand-ins.ts';
 import { createSourceImportResolver } from './source-imports.ts';
@@ -250,6 +251,7 @@ const standIns = JSON.parse(readFileSync(new URL('stand-ins.json', import.meta.u
 const runtime = new URL('stand-ins.mjs', import.meta.url).href;
 export async function resolve(specifier, context, next) {
   if (specifier === '${BEHAVIOUR_MODULE}') return { url: '${BEHAVIOUR_MODULE}', shortCircuit: true };
+  if (specifier === '${HARNESS_SPECIFIER}') return { url: new URL('${HARNESS_FILE}', import.meta.url).href, shortCircuit: true };
   if (specifier === '@prisma/client' && standIns.prisma) return { url: 'refit:prisma', shortCircuit: true };
   const resolved = await locate(specifier, context, next);
   return standIns.auth[specifier]
@@ -321,7 +323,8 @@ export async function load(url, context, next) {
 }
 `;
 
-// Redirects the Stripe SDK's HTTPS requests for api.stripe.com to stripe-mock on loopback. The SDK
+// Redirects the Stripe SDK's HTTPS requests for api.stripe.com to stripe-mock on loopback, or, in
+// Stripe test mode, to the sandbox proxy (REFIT_STRIPE_MOCK_HOST, provider-sandbox.ts). The SDK
 // writes request bodies after `secureConnect`, so the plain socket re-emits it on `connect`. Each
 // request is recorded for behaviour tests: method, path, query and form body decoded to plain
 // objects (\`a[b][0]=x\` to \`{ a: { b: ['x'] } }\`), and the Stripe-Version header.
@@ -333,6 +336,7 @@ import './stand-ins.mjs';
 register('./resolve.mjs', import.meta.url);
 for (const [name, value] of Object.entries(JSON.parse(readFileSync(new URL('environment.json', import.meta.url), 'utf8'))))
   process.env[name] ??= value;
+const host = process.env.REFIT_STRIPE_MOCK_HOST ?? '127.0.0.1';
 const port = Number(process.env.REFIT_STRIPE_MOCK_PORT ?? ${MOCK_PORT});
 const requests = [];
 globalThis.__refitStripe = { requests, reset: () => { requests.length = 0; } };
@@ -363,8 +367,9 @@ const request = https.request;
 https.request = function (options, ...rest) {
   if (options && typeof options === 'object' && (options.hostname ?? options.host) === 'api.stripe.com') {
     const { agent, ...plain } = options;
-    const headers = { ...plain.headers, Authorization: 'Bearer sk_test_123' };
-    const req = http.request({ ...plain, headers, protocol: 'http:', hostname: '127.0.0.1', host: '127.0.0.1', port }, ...rest);
+    // The sandbox proxy replaces this placeholder with Refit's test key and forwards by Host.
+    const headers = { ...plain.headers, Authorization: 'Bearer sk_test_123', Host: 'api.stripe.com' };
+    const req = http.request({ ...plain, headers, protocol: 'http:', hostname: host, host, port }, ...rest);
     req.once('socket', (socket) => socket.once('connect', () => socket.emit('secureConnect')));
     const chunks = [];
     const keep = (chunk) => { if (chunk != null && typeof chunk !== 'function') chunks.push(Buffer.from(chunk)); };

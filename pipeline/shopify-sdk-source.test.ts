@@ -6,7 +6,11 @@ const API = '@shopify/shopify-api';
 const REMIX = '@shopify/shopify-app-remix';
 const EXPRESS = '@shopify/shopify-app-express';
 
-function changes(files: Record<string, string>, primary = REMIX) {
+function changes(
+  files: Record<string, string>,
+  primary = REMIX,
+  moves: { name: string; from: string | null; to: string }[] = [],
+) {
   const result = shopifySdkSourceChanges(
     {
       root: '/repository',
@@ -17,6 +21,7 @@ function changes(files: Record<string, string>, primary = REMIX) {
     },
     primary,
     'April26',
+    moves,
   );
   return {
     ...result,
@@ -254,4 +259,80 @@ export const shopify = shopifyApp({
   });
   expect(result.stops).toEqual([]);
   expect(result.edits).toEqual([]);
+});
+
+it('applies or stops on the breaking changes of the majors an upgrade crosses', () => {
+  const ROUTER = '@shopify/shopify-app-react-router';
+  const server = `import { shopifyApp, ApiVersion } from '${ROUTER}/server';
+export const shopify = shopifyApp({
+  apiVersion: ApiVersion.October26,
+  isEmbeddedApp: true,
+  customShopDomains: ['shop.example.com'],
+});
+export const register = (webhook) => webhook.subTopic;
+`;
+  const app = `import { AppProvider } from '${ROUTER}/react';
+export const App = () => <AppProvider embedded apiKey="k">x</AppProvider>;
+export const Other = () => <AppProvider embedded={false} apiKey="k">x</AppProvider>;
+`;
+  const files = { 'app/shopify.server.ts': server, 'app/root.tsx': app };
+  const moves = [
+    { name: API, from: '12.3.0', to: '14.0.0' },
+    { name: ROUTER, from: '1.1.1', to: '2.0.0' },
+  ];
+  const result = changes(files, ROUTER, moves);
+  expect(result.reasons).toEqual([
+    expect.stringContaining('removed customShopDomains for domainTransformations'),
+    expect.stringContaining('removed subTopic (84397d9)'),
+    expect.stringContaining('serves embedded apps only (0dbb90c)'),
+  ]);
+  expect(result.stops.map((stop) => `${stop.file}:${stop.line}`)).toEqual([
+    'app/shopify.server.ts:5',
+    'app/shopify.server.ts:7',
+    'app/root.tsx:3',
+  ]);
+  expect(result.after('app/shopify.server.ts')).not.toContain('isEmbeddedApp');
+  expect(result.after('app/root.tsx')).toContain('<AppProvider apiKey="k">x</AppProvider>;');
+  // Without crossing those majors, none of it applies.
+  expect(changes(files, ROUTER).stops).toEqual([]);
+});
+
+it('stops on refresh tokens across prisma session storage 8 only where the app turns them on', () => {
+  const PRISMA = '@shopify/shopify-app-session-storage-prisma';
+  const moves = [{ name: PRISMA, from: '6.0.0', to: '10.0.0' }];
+  const server = (flag: string) => `import { shopifyApp, ApiVersion } from '${REMIX}/server';
+export const shopify = shopifyApp({ apiVersion: ApiVersion.April26, future: { ${flag} } });
+`;
+  expect(
+    changes(
+      { 'app/shopify.server.ts': server('unstable_newEmbeddedAuthStrategy: true') },
+      REMIX,
+      moves,
+    ).reasons,
+  ).toEqual([]);
+  expect(
+    changes({ 'app/shopify.server.ts': server('expiringOfflineAccessTokens: true') }, REMIX, moves)
+      .reasons,
+  ).toEqual([expect.stringContaining('stores refresh tokens (700377f)')]);
+});
+
+it('stops where LATEST_API_VERSION sets a Storefront version', () => {
+  const result = changes(
+    {
+      'app/clients.ts': `import { LATEST_API_VERSION } from '${API}';
+import { createStorefrontApiClient } from '@shopify/storefront-api-client';
+export const storefront = createStorefrontApiClient({ storeDomain: 'x', apiVersion: LATEST_API_VERSION });
+`,
+      '.graphqlrc.ts': `import { LATEST_API_VERSION } from '${API}';
+import { ApiType, shopifyApiProject } from '@shopify/api-codegen-preset';
+export default { projects: { storefront: shopifyApiProject({ apiType: ApiType.Storefront, apiVersion: LATEST_API_VERSION }) } };
+`,
+    },
+    API,
+  );
+  expect(result.edits).toEqual([]);
+  expect(result.reasons).toEqual([
+    expect.stringContaining('sets a Storefront API version here'),
+    expect.stringContaining('sets a Storefront API version here'),
+  ]);
 });

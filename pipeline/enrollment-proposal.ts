@@ -612,8 +612,12 @@ export async function proposeStripeConfiguration(
     });
     return { proposal: null, stops };
   }
+  // Generation never takes a version from the environment (owner decision, P3): a default behind
+  // a variable stays unreadable here, though a run moves it like a literal pin.
   const version = applicationVersion(
-    analysis.apiVersionDeclarations,
+    analysis.apiVersionDeclarations.map(({ environment, ...declaration }) =>
+      environment ? { ...declaration, status: 'unknown' as const, value: null } : declaration,
+    ),
     repository,
     options.allowUntested,
   );
@@ -641,7 +645,9 @@ export async function proposeStripeConfiguration(
       ? 'tsc over tsconfig.json, failing only on new type errors'
       : check.typeCheck === 'scoped'
         ? 'tsc over the Stripe code, failing only on new type errors'
-        : undefined;
+        : check.typeCheck === 'checkjs'
+          ? 'tsc with checkJs over the JavaScript Stripe code, counted only where TypeScript types the changed Stripe calls'
+          : undefined;
   // Owner decision 1: without any check the command is a no-op the draft names (untested).
   const checked = check.kind
     ? [

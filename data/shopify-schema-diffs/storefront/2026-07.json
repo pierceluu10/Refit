@@ -1,0 +1,18 @@
+{
+  "formatVersion": 1,
+  "api": "storefront",
+  "previous": "2026-04",
+  "version": "2026-07",
+  "sha256": {
+    "2026-04": "a56076fcf0ea07e1ad354b2958a38247f9e01969b94c8fbd18a57efa1f7108db",
+    "2026-07": "f2502661f9350b620f127279a8573c12a38f47cd648c17ce62c975e16c52f3f5"
+  },
+  "changes": [
+    {
+      "id": "enum-value-added",
+      "coordinate": "CartWarningCode.PRODUCT_UNAVAILABLE_IN_BUYER_LOCATION",
+      "text": "CartWarningCode.PRODUCT_UNAVAILABLE_IN_BUYER_LOCATION was added.",
+      "breaking": false
+    }
+  ]
+}

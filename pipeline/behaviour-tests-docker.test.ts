@@ -250,7 +250,7 @@ test('stores the period end of the subscription an old-version invoice event nam
 ];
 
 it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(
-  'gives grade A to a correct patch and catches wrong ones with real stripe-mock and stripe-node in offline Docker',
+  'passes a correct patch (a mock never grants grade A) and catches wrong ones with real stripe-mock and stripe-node in offline Docker',
   async () => {
     const root = await mkdtemp(join(tmpdir(), 'refit-behaviour-docker-'));
     roots.push(root);
@@ -309,7 +309,7 @@ it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(
     };
     const correct = await run('correct', CORRECT);
     expect(correct.missing).toEqual([]);
-    expect(correct).toMatchObject({ status: 'passed', grade: 'A', regressions: [] });
+    expect(correct).toMatchObject({ status: 'passed', grade: null, missing: [], regressions: [] });
     expect(JSON.parse(await readFile(contracts.after, 'utf8')).info.version).toBe(
       VERSIONS.after.version,
     );

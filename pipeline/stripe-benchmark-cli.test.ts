@@ -227,6 +227,54 @@ it('needs --validate and an --env with a key and model for --behaviour-tests, be
   });
 });
 
+it('refuses a missing, live or malformed STRIPE_TEST_KEY for --stripe-test-mode, before any repository runs, never printing it', async () => {
+  const root = await benchmarkRoot();
+  const { STRIPE_TEST_KEY: _ignored, ...environment } = process.env;
+  const cases = [
+    ['', 'Stripe test mode needs STRIPE_TEST_KEY, which is not set.'],
+    ['sk_live_refitbenchmark12345678', 'is a live or other non-test credential'],
+    ['rk_live_refitbenchmark12345678', 'is a live or other non-test credential'],
+    ['sk_test_refitbench12345678,sk_live_refitbenchmark12345678', 'value 2 of 2'],
+    ['pk_test_refitbenchmark12345678', 'does not have the shape of a test key'],
+  ];
+  for (const [index, [key, message]] of cases.entries()) {
+    const env = join(root, `ai-${index}.env`);
+    await writeFile(
+      env,
+      `OPENAI_API_KEY=unused-test-key\nOPENAI_MODEL=gpt-6.1-sol\n${key ? `STRIPE_TEST_KEY=${key}\n` : ''}`,
+    );
+    const output = join(root, `out-${index}`);
+    const failure = await execute(
+      process.execPath,
+      [
+        '--import',
+        'tsx',
+        cli,
+        '--root',
+        root,
+        '--output',
+        output,
+        '--allow-dirty',
+        '--behaviour-tests',
+        '--stripe-test-mode',
+        '--validate',
+        '--env',
+        env,
+      ],
+      { env: environment },
+    ).then(
+      () => undefined,
+      (error: { stdout: string; stderr: string }) => error,
+    );
+    expect(failure?.stderr).toContain(message);
+    for (const part of key.split(',').filter(Boolean)) {
+      expect(failure?.stderr).not.toContain(part);
+      expect(failure?.stdout).not.toContain(part);
+    }
+    await expect(readFile(join(output, 'harness.json'))).rejects.toMatchObject({ code: 'ENOENT' });
+  }
+});
+
 it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
   'records --behaviour-tests and its model without turning on AI patches',
   async () => {
@@ -315,8 +363,8 @@ it('repairs as often as the hosted worker by default and checks --repair-attempt
     stderr: expect.stringContaining('Repair attempts require --ai-patch.'),
   });
   await expect(
-    run(root, join(root, 'out-b'), '--ai', '--repair-attempts', '3'),
+    run(root, join(root, 'out-b'), '--ai', '--repair-attempts', '5'),
   ).rejects.toMatchObject({
-    stderr: expect.stringContaining('Repair attempts must be an integer from 0 to 2.'),
+    stderr: expect.stringContaining('Repair attempts must be an integer from 0 to 4.'),
   });
 });

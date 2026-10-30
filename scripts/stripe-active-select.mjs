@@ -115,17 +115,27 @@ async function main() {
 
   async function github(path, init = {}) {
     for (let attempt = 0; ; attempt++) {
-      const response = await fetch(`https://api.github.com${path}`, {
-        ...init,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github+json',
-          ...init.headers,
-        },
-      });
+      let response;
+      try {
+        response = await fetch(`https://api.github.com${path}`, {
+          ...init,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+            ...init.headers,
+          },
+        });
+      } catch (error) {
+        // DNS failures and connection resets pass; a long run meets several.
+        if (attempt >= 20) throw error;
+        console.error(`GitHub ${error.cause?.code ?? error.message}; retrying in 30s`);
+        await pause(30_000);
+        continue;
+      }
       if (response.ok) return response.json();
-      // Secondary rate limits answer 403 or 429; wait and retry a few times.
-      if ([403, 429, 502].includes(response.status) && attempt < 6) {
+      // Secondary rate limits answer 403 or 429, often several times in a row with
+      // a one-second retry-after; wait and retry.
+      if ([403, 429, 502].includes(response.status) && attempt < 20) {
         const retry = Number(response.headers.get('retry-after')) || 60;
         console.error(`GitHub ${response.status}; retrying in ${retry}s`);
         await pause(retry * 1000);
@@ -147,16 +157,23 @@ async function main() {
   const queries = searchQueries();
   const search = await cached('search.json', async () => {
     const repositories = new Set();
-    for (const query of queries) {
-      for (let page = 1; page <= 10; page++) {
-        const result = await github(
-          `/search/code?q=${encodeURIComponent(query)}&per_page=100&page=${page}`,
-        );
-        for (const item of result.items) repositories.add(item.repository.full_name);
-        console.error(`${query} page ${page}: ${repositories.size} repositories`);
-        await pause(6500);
-        if (result.items.length < 100) break;
-      }
+    // Each query is cached on its own, so a rate-limit failure resumes where it stopped.
+    for (const [index, query] of queries.entries()) {
+      const found = await cached(`search-${index}.json`, async () => {
+        const names = [];
+        for (let page = 1; page <= 10; page++) {
+          const result = await github(
+            `/search/code?q=${encodeURIComponent(query)}&per_page=100&page=${page}`,
+          );
+          for (const item of result.items) names.push(item.repository.full_name);
+          console.error(`${query} page ${page}: ${names.length} results`);
+          await pause(6500);
+          if (result.items.length < 100) break;
+        }
+        return names;
+      });
+      for (const name of found) repositories.add(name);
+      console.error(`${query}: ${repositories.size} repositories`);
     }
     return [...repositories].sort();
   });

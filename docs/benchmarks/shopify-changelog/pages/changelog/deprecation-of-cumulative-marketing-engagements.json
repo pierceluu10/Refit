@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "deprecation-of-cumulative-marketing-engagements",
+  "url": "https://shopify.dev/changelog/posts/deprecation-of-cumulative-marketing-engagements.md",
+  "revision": "045978e69c493300efa7fcfc183c5bd5c8a579cd1752a8e99247c0f965d70dc3",
+  "hash": "045978e69c493300efa7fcfc183c5bd5c8a579cd1752a8e99247c0f965d70dc3",
+  "content": "---\ntitle: Deprecation of cumulative marketing engagements - Shopify developer changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/deprecation-of-cumulative-marketing-engagements\nmd: >-\nhttps://shopify.dev/changelog/posts/deprecation-of-cumulative-marketing-engagements.md\nmetadata:\neffectiveApiVersion: 2026-07\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Deprecation announcement\nhandle: deprecation-announcement\nindicatesActionRequired: true\ncreatedAt: '2026-04-29T16:48:15-04:00'\npostedAt: '2026-07-01T12:00:00-04:00'\nupdatedAt: '2026-04-29T17:06:33-04:00'\neffectiveAt: '2026-07-01T12:00:00-04:00'\n---\n\nJuly 1, 2026\n\n# Deprecation of cumulative marketing engagements\n\nDateJuly 1, 2026\n\nVersion[2026-07](https://shopify.dev/changelog?api_version=2026-07)\n\nFlags[Deprecation announcement](https://shopify.dev/changelog?filter=deprecation-announcement)[Action required](https://shopify.dev/changelog?action_required=true)\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nThe `isCumulative` argument to the `marketingEngagementCreate` mutation is being deprecated, defaulting to `false`. Please update your integration to send non-cumulative engagements, as needed. Existing activities that have been sending cumulative metrics can migrate to non-cumulative at any time.",
+  "contentType": "text/markdown"
+}

@@ -151,7 +151,8 @@ export function dockerSandboxArguments(options: {
   directory: string;
   image: string;
   command: string[];
-  network: 'none' | 'bridge';
+  // A provider sandbox's internal network (provider-sandbox.ts) reaches only its proxy.
+  network: 'none' | 'bridge' | `refit-sandbox-${string}`;
   // How long the caller waits before it kills the Docker client and removes the container.
   timeoutMs: number;
   dependencies?: string;

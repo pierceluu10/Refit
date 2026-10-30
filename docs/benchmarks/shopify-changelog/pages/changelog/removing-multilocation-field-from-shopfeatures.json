@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "removing-multilocation-field-from-shopfeatures",
+  "url": "https://shopify.dev/changelog/posts/removing-multilocation-field-from-shopfeatures.md",
+  "revision": "40b9261125566d5e8a87d8ecd91a51f5a00d7f2f2fd0f253a3a86c4f164d0132",
+  "hash": "40b9261125566d5e8a87d8ecd91a51f5a00d7f2f2fd0f253a3a86c4f164d0132",
+  "content": "---\ntitle: Removing multiLocation field from ShopFeatures - Shopify developer changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/removing-multilocation-field-from-shopfeatures\nmd: >-\nhttps://shopify.dev/changelog/posts/removing-multilocation-field-from-shopfeatures.md\nmetadata:\neffectiveApiVersion: 2025-01\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Deprecation announcement\nhandle: deprecation-announcement\nindicatesActionRequired: true\ncreatedAt: '2024-10-17T14:13:26-04:00'\npostedAt: '2024-11-01T10:00:00-04:00'\nupdatedAt: '2024-11-01T08:58:55-04:00'\neffectiveAt: '2024-11-01T10:00:00-04:00'\n---\n\nNovember 1, 2024\n\n# Removing `multiLocation` field from `ShopFeatures`\n\nDateNovember 1, 2024\n\nVersion[2025-01](https://shopify.dev/changelog?api_version=2025-01)\n\nFlags[Deprecation announcement](https://shopify.dev/changelog?filter=deprecation-announcement)[Action required](https://shopify.dev/changelog?action_required=true)\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nAs of the **2025-01** release of the Admin GraphQL API, the deprecated `multiLocation` field on [ShopFeatures](https://shopify.dev/docs/api/admin-graphql/latest/objects/ShopFeatures) will be removed.\n\nUse the [locationsCount](https://shopify.dev/docs/api/admin-graphql/latest/queries/locationsCount) query to determine how many locations a shop has.",
+  "contentType": "text/markdown"
+}

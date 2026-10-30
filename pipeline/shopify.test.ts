@@ -67,6 +67,11 @@ async function snapshots(root: string) {
     );
     return path;
   };
+  // The fallback reads the versions in between beside the target snapshot; they have the target's
+  // schema here.
+  await write('2026-01', '2026-01', SCHEMA('before'));
+  await write('2026-04', '2026-04', SCHEMA('after'));
+  await write('2026-07', '2026-07', SCHEMA('after'));
   return {
     before: await write('before', '2026-01', SCHEMA('before')),
     after: await write('after', '2026-10', SCHEMA('after')),
@@ -281,10 +286,17 @@ it('stops for review on removed fields, type changes, already-failing documents 
   expect(
     failing.findings.find((finding: any) => finding.changeId.startsWith('shopify-graphql:')).reason,
   ).toContain('already fails');
+  // 12.3.0 cannot name October26 or July26, so the patch moves to April26, the newest it has.
   const oldSdk = await run('id title', '12.3.0');
-  expect(oldSdk.patch.reason).toContain(
-    '@shopify/shopify-api 12.3.0 has no ApiVersion.October26; it first ships in 14.0.0',
+  expect(oldSdk.patch.status).toBe('proposed');
+  expect(oldSdk.fallback).toMatchObject({ target: '2026-10', version: '2026-04' });
+  expect(oldSdk.patch.diff).toContain(
+    '+export const shopify = shopifyApp({ apiVersion: ApiVersion.April26',
   );
+  expect(oldSdk.patch.warnings[0]).toContain(
+    'Moves to 2026-04, not 2026-10: @shopify/shopify-api 12.3.0 has no ApiVersion.October26; it first ships in 14.0.0',
+  );
+  expect(oldSdk.patch.warnings[0]).toContain('Shopify serves it until 2027-04-16');
   expect((await run('id title')).patch.status).toBe('proposed');
 });
 
@@ -504,13 +516,13 @@ await runQuery({}, \`query Fixture { shop { name } }\`);
     ],
   );
   // The recursive call passes the same parameter and the test's spy reaches a mocked client; neither
-  // stops, and the test's document is checked as a fixture. The dynamic import, the object
-  // property, the third-party callee and the method stop.
+  // stops, and the test's document is checked as a fixture. The function the dynamic import
+  // returns to unknown callers, the object property, the third-party callee and the method stop.
   expect(scan.unreadable.map((entry) => [entry.file, entry.line, entry.reason])).toEqual([
     [
       'app/lib/helpers.server.ts',
-      6,
-      'A module defining a function that sends Admin GraphQL documents is loaded dynamically here, so Refit cannot follow its callers.',
+      7,
+      'A function that sends Admin GraphQL documents is returned from an exported function nothing in the repository calls, so Refit cannot follow the documents it receives.',
     ],
     [
       'app/routes/app.ts',
