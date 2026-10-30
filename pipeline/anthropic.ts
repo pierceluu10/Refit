@@ -4,7 +4,6 @@ import { digest, isObject, parseObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 import { reserveAiBudget, type AiOptions, type AiUsage } from './ai-budget.ts';
 import {
-  errorType,
   INPUT_LIMIT,
   MAX_INPUT_BYTES,
   MAX_OUTPUT_TOKENS,
@@ -83,9 +82,8 @@ export async function requestAnthropicOutput(
       body: JSON.stringify({ ...prompt, output_config: { format } }),
     });
     if (!count.ok) {
-      const type = await errorType(count);
       throw new PipelineInputError(
-        `Anthropic token counting failed with HTTP ${count.status}${type ? ` (${type})` : ''}; generation was not attempted.`,
+        `Anthropic token counting failed with HTTP ${count.status}${await failure(count)}; generation was not attempted.`,
       );
     }
     const tokens = parseObject(
@@ -108,11 +106,11 @@ export async function requestAnthropicOutput(
       body: JSON.stringify(body),
     });
     if (response.ok) break;
-    const type = await errorType(response);
+    const reason = await failure(response);
     const retryable = response.status === 429 || response.status >= 500;
     if (!retryable || attempt === RETRIES)
       throw new PipelineInputError(
-        `Anthropic message request failed with HTTP ${response.status}${type ? ` (${type})` : ''}${retryable && attempt ? ` after ${attempt} retries` : '. No retry was made'}.`,
+        `Anthropic message request failed with HTTP ${response.status}${reason}${retryable && attempt ? ` after ${attempt} retries` : '. No retry was made'}.`,
       );
     await sleep(retryDelay(response.headers, attempt));
   }
@@ -163,6 +161,24 @@ export async function requestAnthropicOutput(
     budget,
     content: texts[0],
   };
+}
+
+// The error type, and for an account without credit a fixed note of Refit's own: Anthropic answers
+// that with the same 400 invalid_request_error as a malformed request. Never the API's message,
+// which may echo request content.
+async function failure(response: Response) {
+  try {
+    const parsed: unknown = JSON.parse(
+      await readBoundedResponse(response, MAX_RESPONSE_BYTES, 'Anthropic error'),
+    );
+    const error = isObject(parsed) && isObject(parsed.error) ? parsed.error : {};
+    if (typeof error.type !== 'string' || !/^[a-z_]{1,40}$/.test(error.type)) return '';
+    const credit =
+      typeof error.message === 'string' && /credit balance is too low/i.test(error.message);
+    return ` (${error.type}${credit ? ': the credit balance is too low' : ''})`;
+  } catch {
+    return '';
+  }
 }
 
 // Anthropic's input_tokens excludes cache reads and writes; the ledger counts them as input.
