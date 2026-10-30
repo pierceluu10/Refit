@@ -226,8 +226,9 @@ export function validatePnpmInputs(
       throw new PipelineInputError('pnpm manifest settings must be an object.');
     configuration(manifest.pnpm, 'the "pnpm" field of package.json');
   }
-  if (manifest.workspaces !== undefined)
-    throw new PipelineInputError('pnpm workspaces must be declared only in pnpm-workspace.yaml.');
+  // pnpm reads workspaces only from pnpm-workspace.yaml and ignores package.json `workspaces`
+  // (pnpm 9.15.9 locks only importer `.` for one), which the Shopify app template keeps after a
+  // switch to pnpm; the importers below must match what pnpm reads.
   // Patches are new to this preparation, so only inputs with patches meet the checks below; every
   // other input keeps main's checks. pnpm's frozen install applies what pnpm-lock.yaml recorded: each
   // patch file's SHA-256 and the overrides pnpm resolved with (package.json resolutions, the "pnpm"
