@@ -1,0 +1,51 @@
+{
+  "formatVersion": 1,
+  "provider": "gemini",
+  "kind": "sdk-major",
+  "pages": {
+    "migrate": {
+      "url": "https://ai.google.dev/gemini-api/docs/migrate",
+      "file": "docs/ai-docs/pages/gemini-migrate.md",
+      "capturedAt": "2026-10-29",
+      "raw": "https://ai.google.dev/gemini-api/docs/migrate.md.txt"
+    }
+  },
+  "rules": [
+    {
+      "rule": "gemini-generative-ai-js",
+      "family": "sdk-swap",
+      "status": "report",
+      "page": "migrate",
+      "quote": "import { GoogleGenerativeAI } from \"@google/generative-ai\";",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Uses @google/generative-ai, which Google no longer supports; @google/genai replaces it with another client (`ai.models.generateContent`) and response shape (`response.text` is a property). The swap is an owner decision for Gemini, so Refit lists it.",
+      "data": {
+        "breaking": false,
+        "match": {
+          "imports": ["@google/generative-ai", "@google/generative-ai/server"]
+        }
+      }
+    },
+    {
+      "rule": "gemini-generativeai-python",
+      "family": "sdk-swap",
+      "status": "report",
+      "page": "migrate",
+      "quote": "import google.generativeai as genai",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Python uses google-generativeai, the legacy library; google-genai replaces it. Python and Gemini are report only.",
+      "data": {
+        "breaking": false,
+        "match": {
+          "python": [
+            "^\\s*import google\\.generativeai\\b",
+            "^\\s*from google import generativeai\\b",
+            "^\\s*from google\\.generativeai\\b"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -12,6 +12,7 @@ import {
   realpath,
   rename,
   rm,
+  statfs,
   utimes,
   writeFile,
 } from 'node:fs/promises';
@@ -22,6 +23,7 @@ import { readCommittedRepository } from './committed-repository.ts';
 import {
   DOCKER_IMAGE_ID,
   dockerSandboxArguments,
+  emptyInstallerCache,
   MAX_VALIDATION_ARCHIVE_BYTES,
   preparationProfile,
   validationProfile,
@@ -30,7 +32,11 @@ import {
   resolveDockerImage,
 } from './docker-sandbox.ts';
 import { standaloneStateDirectory } from './github-checkout.ts';
-import { readPreparationInputs, type PreparationIdentity } from './dependency-inputs.ts';
+import {
+  readPreparationInputs,
+  type LockfileChoice,
+  type PreparationIdentity,
+} from './dependency-inputs.ts';
 import {
   NPM_TOOL_INSTALL_COMMAND,
   PNPM_INSTALL_COMMAND,
@@ -38,6 +44,12 @@ import {
   YARN_INSTALL_COMMAND,
   YARN_SKIP_PLATFORM_PACKAGES,
 } from './manager-install.ts';
+import { completedYarnLockSnapshot, RegistryUnreachableError } from './lockfile-completion.ts';
+import {
+  LockfileResolutionError,
+  lockfileResolutionEnabled,
+  resolvedLockfileSnapshot,
+} from './lockfile-resolution.ts';
 import { hasStrongIntegrity } from './npm-lock.ts';
 import { digest, parseObject } from './specifications.ts';
 import { hasErrorCode, withStateLock, writeState } from './state-files.ts';
@@ -50,10 +62,13 @@ const RECIPE_VERSION = 6;
 const LEGACY_PEER_DEPS_MARKER = 'REFIT_LEGACY_PEER_DEPS=1';
 const PRUNED_GLIBC_MARKER = 'REFIT_PRUNED_GLIBC_PACKAGES';
 // --replace-registry-host=always fetches every locked tarball from registry.npmjs.org, including
-// ones a lockfile resolved through a public mirror (npm-lock.ts); integrity still decides.
-const npmCi = (binary: string) =>
+// ones a lockfile resolved through a public mirror (npm-lock.ts); integrity still decides. A
+// lockfile with code-host archives, or a resolved lockfile with GitHub archives
+// (lockfile-resolution.ts onRegistryHost), has no mirror records, and replaces only
+// registry.npmjs.org itself, so those archives come from their own host, checked by integrity.
+const npmCi = (binary: string, remoteTarballs = false) =>
   `${binary} ci --ignore-scripts --include=dev --engine-strict --no-audit --no-fund ` +
-  '--registry=https://registry.npmjs.org --replace-registry-host=always --cache=/workspace/.npm-cache';
+  `--registry=https://registry.npmjs.org --replace-registry-host=${remoteTarballs ? 'npmjs' : 'always'} --cache=/workspace/.npm-cache`;
 const DEFAULT_INSTALL_TIMEOUT_SECONDS = 300;
 const MIN_INSTALL_TIMEOUT_SECONDS = 60;
 const MAX_INSTALL_TIMEOUT_SECONDS = 1800;
@@ -159,10 +174,20 @@ export const npmCiWithPeerRetry = (ci: string, log = '/workspace/.refit-npm-ci.l
   `printf "${LEGACY_PEER_DEPS_MARKER}\\n" >&2; ${ci} --legacy-peer-deps >&2; cat ${log} >&2; ` +
   `else cat ${log} >&2; exit 1; fi; `;
 function installCommand(
-  { manager, managerVersion, legacyPeerDeps, platformPackages }: PreparationIdentity,
+  {
+    manager,
+    managerVersion,
+    legacyPeerDeps,
+    platformPackages,
+    remoteTarballs,
+    resolvedLockfile,
+  }: PreparationIdentity,
   platformPackageMode?: 'skip' | 'install',
 ) {
-  const NPM_CI = npmCi(managerVersion ? '"$refit_tool"' : 'npm');
+  const NPM_CI = npmCi(
+    managerVersion ? '"$refit_tool"' : 'npm',
+    Boolean(remoteTarballs) || Boolean(resolvedLockfile?.github),
+  );
   return [
     'sh',
     '-c',
@@ -321,7 +346,7 @@ function withPreparationStop(error: unknown) {
   return named;
 }
 
-// Preparation failures the repository owner fixes in the repository. Each pattern matches a
+// Preparation failures caused by the repository's inputs; each action says what Refit could not do. Each pattern matches a
 // message Refit or the package manager raises; anything else (Docker, network, sandbox) is not one.
 const REPOSITORY_DEPENDENCY_FAILURES = [
   {
@@ -329,7 +354,7 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
     pattern: /^The repository commits package\.json without a lockfile/,
     summary: 'the repository has no committed lockfile',
     action: () =>
-      'Commit a lockfile (for npm, run `npm install` and commit `package-lock.json`), then rerun your checks on this branch.',
+      'The repository commits no lockfile, so Refit could not install the exact dependencies it uses, and none of its checks ran on this patch.',
   },
   {
     reason: 'lockfile-out-of-sync',
@@ -337,7 +362,7 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
       /differ from the committed (?:package-lock\.json|bun\.lock)|differs? from the (?:patch hash|overrides) pnpm-lock\.yaml records|^pnpm patches must be committed files whose SHA-256|^Workspaces must match the committed root lockfile|^Workspace names and versions must match their committed lockfile records|^pnpm lockfile importers must exactly match|^pnpm importer (?:specifiers|declarations) differ from committed manifests|^npm dependency preparation failed[\s\S]*\bin sync\b|ERR_PNPM_OUTDATED_LOCKFILE|Your lockfile needs to be updated/,
     summary: 'the committed lockfile is out of sync with package.json',
     action: (lockfile: string) =>
-      `Update \`${lockfile}\` so it matches \`package.json\` (run your package manager's install), commit it, then rerun your checks on this branch.`,
+      `\`${lockfile}\` does not match \`package.json\`, so Refit could not install it, and none of its checks ran on this patch.`,
   },
   {
     reason: 'lockfile-integrity',
@@ -345,28 +370,28 @@ const REPOSITORY_DEPENDENCY_FAILURES = [
       /^Every npm package requires a registry URL, version and SHA-256-or-stronger integrity|^package-lock\.json records .+ without a version, registry "resolved" URL and SHA-256-or-stronger "integrity"|^Every pnpm package needs a registry name\/version and SHA-256-or-stronger integrity|^Every yarn\.lock entry must resolve an exact version to a public registry tarball/,
     summary: 'lockfile entries have no registry integrity hash',
     action: (lockfile: string) =>
-      `Regenerate \`${lockfile}\` from the public npm registry so every entry records its tarball URL and integrity hash, commit it, then rerun your checks on this branch.`,
+      `\`${lockfile}\` records entries without a public registry tarball and integrity hash, so Refit could not verify or install them, and none of its checks ran on this patch.`,
   },
   {
     reason: 'peer-dependency-conflict',
     pattern: /^npm dependency preparation failed[\s\S]*\bERESOLVE\b/,
     summary: "npm rejects the committed lockfile's conflicting peer dependencies",
     action: (lockfile: string) =>
-      `Resolve the peer dependency conflict npm reports (\`npm ci\` fails with ERESOLVE even with \`--legacy-peer-deps\`), commit the updated \`${lockfile}\`, then rerun your checks on this branch.`,
+      `npm rejects the peer dependencies \`${lockfile}\` records (\`npm ci\` fails with ERESOLVE even with \`--legacy-peer-deps\`), so Refit could not install them, and none of its checks ran on this patch.`,
   },
   {
     reason: 'dependency-archive-limit',
     pattern: /^Dependency archive exceeds \d+ MiB/,
     summary: "the installed dependencies exceed Refit's validation sandbox limit",
     action: () =>
-      "Run your own tests and type check on this branch before merging; Refit's sandbox could not hold this dependency tree.",
+      "The installed dependencies exceed Refit's sandbox limit, so none of its checks ran on this patch.",
   },
 ] as const;
 export const OTHER_DEPENDENCY_FAILURE = {
   reason: 'preparation-failed',
   summary: 'Refit could not install them in its sandbox',
   action: () =>
-    'Install the dependencies and run your own tests and type check on this branch before merging; Refit ran none.',
+    'Refit could not install the dependencies in its sandbox, so none of its checks ran on this patch.',
 };
 
 // An absolute path in a refusal names the host or container layout, never the repository's files:
@@ -382,6 +407,18 @@ const HOST_FAILURE =
   /Cannot connect to the Docker daemon|error during connect|Mounts denied|overlay[\s\S]*(?:ENOSPC|no space left)/i;
 const REGISTRY_UNREACHABLE =
   /\b(?:EAI_AGAIN|ENOTFOUND|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|ERR_SOCKET_TIMEOUT)\b|socket hang up/;
+
+// A code-host archive the lockfile pins (npm-lock.ts) that is gone, or whose bytes changed, is the
+// repository's to fix; an unreachable host stays a host failure, retried like the registry.
+const CODE_HOST_URL = /https:\/\/(?:codeload\.)?(?:github|gitlab)\.com\/\S+/;
+export function codeHostFailure(stderr: string) {
+  const url = CODE_HOST_URL.exec(stderr)?.[0];
+  if (/\bE40[34]\b|\b40[34] Not Found\b/.test(stderr) && url)
+    return `npm could not download ${url.replace(/[)'",]+$/, '')}, a code-host archive package-lock.json pins: the host no longer serves it.`;
+  if (/^npm (?:ERR!|error) code EINTEGRITY$/m.test(stderr))
+    return `npm refused a downloaded package whose bytes differ from the integrity package-lock.json records (EINTEGRITY)${url ? `; the lockfile pins a code-host archive (${url.replace(/[)'",]+$/, '')}), whose bytes the host may have changed` : ''}.`;
+  return undefined;
+}
 
 export class PreparationHostError extends PipelineInputError {
   override name = 'PreparationHostError';
@@ -443,12 +480,23 @@ export function preparationFailure(error: unknown) {
   };
 }
 
+// The installer cache is on a shared host disk without a quota of its own, so an install stops
+// before the cache leaves less than this much of that disk free.
+export const INSTALLER_CACHE_FREE_BYTES = 2 * GIB;
+const INSTALLER_CACHE_POLL_MS = 2_000;
+
+async function freeBytes(directory: string) {
+  const { bavail, bsize } = await statfs(directory);
+  return bavail * bsize;
+}
+
 async function installDependencies(
   argumentsList: string[],
   output: string,
   inputs: PreparationIdentity,
   timeoutSeconds: number,
   signal?: AbortSignal,
+  installerCache?: string,
 ) {
   signal?.throwIfAborted();
   const child = spawn('docker', argumentsList, { stdio: ['ignore', 'pipe', 'pipe'], signal });
@@ -463,6 +511,19 @@ async function installDependencies(
     timedOut = true;
     child.kill('SIGKILL');
   }, timeoutSeconds * 1000);
+  let hostDiskLow = false;
+  const diskWatch = installerCache
+    ? setInterval(() => {
+        freeBytes(installerCache).then(
+          (bytes) => {
+            if (bytes >= INSTALLER_CACHE_FREE_BYTES || hostDiskLow) return;
+            hostDiskLow = true;
+            child.kill('SIGKILL');
+          },
+          () => undefined,
+        );
+      }, INSTALLER_CACHE_POLL_MS)
+    : undefined;
   let bytes = 0;
   const { archiveBytes } = validationProfile();
   const hash = createHash('sha256');
@@ -473,7 +534,7 @@ async function installDependencies(
         bytes += chunk.length;
         if (bytes > archiveBytes)
           throw new DependencyPreparationError(
-            `Dependency archive exceeds ${archiveBytes / 1024 / 1024} MiB. ${archiveBytes < MAX_VALIDATION_ARCHIVE_BYTES ? 'An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree.' : 'This exceeds the largest validation profile; use a custom validation image.'}`,
+            `Dependency archive exceeds ${archiveBytes / 1024 / 1024} MiB. ${archiveBytes < MAX_VALIDATION_ARCHIVE_BYTES ? 'An operator can set REFIT_VALIDATION_WORKSPACE=4g (up to a 2 GiB archive and 5 GiB container memory) for a larger tree.' : 'This exceeds the largest validation profile; the sandbox cannot hold it.'}`,
           );
         hash.update(chunk);
         yield chunk;
@@ -496,10 +557,17 @@ async function installDependencies(
   const tasks = [archive, logs, exited] as const;
   try {
     const [, stderr, result] = await Promise.all(tasks);
+    if (hostDiskLow)
+      throw new DependencyPreparationError(
+        `${inputs.manager} dependency preparation stopped: its package cache left less than ${INSTALLER_CACHE_FREE_BYTES / GIB} GiB free on the host disk that holds Refit's temporary files.`,
+      );
     if (timedOut)
       throw new DependencyPreparationError(
         `Dependency preparation exceeded ${timeoutSeconds} seconds. Set REFIT_DEPENDENCY_TIMEOUT_SECONDS (up to ${MAX_INSTALL_TIMEOUT_SECONDS}) for a larger dependency tree.`,
       );
+    const archive =
+      result.code !== 0 && inputs.remoteTarballs ? codeHostFailure(stderr) : undefined;
+    if (archive) throw new DependencyPreparationError(archive);
     const host = result.code !== 0 ? hostInstallFailure(inputs.manager, result, stderr) : undefined;
     if (host) throw host;
     const { workspace } = preparationProfile();
@@ -508,9 +576,7 @@ async function installDependencies(
         `${inputs.manager} dependency preparation ran out of space in its ${workspace} workspace (ENOSPC).${
           inputs.manager !== 'yarn'
             ? ''
-            : inputs.managerVersion?.startsWith('1.')
-              ? " Yarn 1 also downloads other platforms' optional binaries."
-              : ' Yarn 2+ keeps a zip of every package in its cache beside the unpacked tree.'
+            : " Yarn's package cache is kept outside the workspace, so the unpacked tree alone did not fit."
         }${
           workspace === '4g'
             ? ''
@@ -561,6 +627,7 @@ async function installDependencies(
     throw error;
   } finally {
     clearTimeout(timeout);
+    clearInterval(diskWatch);
   }
 }
 
@@ -572,6 +639,10 @@ export async function prepareDependencies(options: {
   cacheDirectory?: string;
   // A nested package (preparation-packages.ts) installs from its own manifest and lockfile.
   packageDirectory?: string;
+  // The cutoff for a resolved lockfile when the repository is a candidate Refit committed itself.
+  committedAt?: string;
+  // The original commit's choice of several lockfiles, for a candidate Refit committed itself.
+  lockfileChoice?: LockfileChoice;
   // Copied under the cache lock, so eviction cannot remove the bundle mid-copy.
   copyArchiveTo?: string;
   signal?: AbortSignal;
@@ -580,11 +651,99 @@ export async function prepareDependencies(options: {
   try {
     return await prepare(options);
   } catch (error) {
+    // npm ci or pnpm can find a lockfile out of sync that Refit's own check accepted (missing
+    // peers), and npm ci can reject its peers even with --legacy-peer-deps; resolution then starts
+    // from that lockfile, once.
+    const outOfSync =
+      !options.packageDirectory &&
+      error instanceof PipelineInputError &&
+      /^p?npm dependency preparation failed/.test(error.message) &&
+      ['lockfile-out-of-sync', 'peer-dependency-conflict'].includes(
+        preparationFailure(error)?.reason ?? '',
+      ) &&
+      lockfileResolutionEnabled();
+    try {
+      if (outOfSync) return await prepare(options, error);
+    } catch (again) {
+      throw withPreparationStop(again);
+    }
     throw withPreparationStop(error);
   }
 }
 
-async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
+// A refused or missing npm or pnpm lockfile is replaced by one resolved as of the commit date, for
+// validation only (lockfile-resolution.ts); the original refusal leads any further one. A GitHub
+// dependency refused as non-registry is resolved from its public archive.
+async function withResolvedLockfile(
+  snapshot: Awaited<ReturnType<typeof readCommittedRepository>>,
+  error: unknown,
+  options: Parameters<typeof prepareDependencies>[0],
+) {
+  const reason =
+    preparationFailure(error)?.reason ??
+    (error instanceof PipelineInputError ? preparationStop(error.message)?.reason : undefined);
+  if (!reason || !(error instanceof Error)) throw error;
+  const completed = await completedYarnLockSnapshot(snapshot, error, options).catch((cause) => {
+    if (cause instanceof RegistryUnreachableError)
+      throw new PreparationHostError(cause.message, { cause });
+    if (!(cause instanceof PipelineInputError)) throw cause;
+    throw new DependencyPreparationError(
+      `${error.message} Refit could not complete it from the registry: ${cause.message}`,
+      { cause },
+    );
+  });
+  if (completed) {
+    const result = await readPreparationInputs(
+      completed.snapshot,
+      snapshot.entries,
+      options.lockfileChoice,
+    ).catch((refused) => {
+      throw new DependencyPreparationError(
+        `${error.message} Refit completed ${completed.record.records.length} records from ${completed.record.registry}, and the lockfile was refused again: ${refused instanceof Error ? refused.message : String(refused)}`,
+        { cause: refused },
+      );
+    });
+    return { ...result, inputs: { ...result.inputs, completedLockfile: completed.record } };
+  }
+  let resolved;
+  try {
+    resolved = await resolvedLockfileSnapshot(snapshot, reason, {
+      image: DOCKER_IMAGE_ID.test(options.image)
+        ? options.image
+        : await resolveDockerImage(options.image),
+      before: options.committedAt,
+      signal: options.signal,
+      onProgress: options.onProgress,
+    });
+  } catch (cause) {
+    const host =
+      cause instanceof LockfileResolutionError &&
+      cause.result &&
+      hostInstallFailure(
+        /^pnpm/.test(cause.message) ? 'pnpm' : 'npm',
+        cause.result,
+        cause.result.stderr,
+      );
+    if (host) throw host;
+    if (!(cause instanceof PipelineInputError)) throw cause;
+    throw new DependencyPreparationError(
+      `${error.message} Refit could not resolve a lockfile instead: ${cause.message}`,
+      { cause },
+    );
+  }
+  if (!resolved) throw error;
+  const result = await readPreparationInputs(resolved.snapshot, snapshot.entries).catch(
+    (refused) => {
+      throw new DependencyPreparationError(
+        `${error.message} Refit resolved a lockfile as of ${resolved.record.before}, which was refused too: ${refused instanceof Error ? refused.message : String(refused)}`,
+        { cause: refused },
+      );
+    },
+  );
+  return { ...result, inputs: { ...result.inputs, resolvedLockfile: resolved.record } };
+}
+
+async function prepare(options: Parameters<typeof prepareDependencies>[0], refusal?: Error) {
   options.signal?.throwIfAborted();
   const timeoutSeconds = installTimeoutSeconds();
   const cacheLimit = cacheLimitBytes();
@@ -592,12 +751,19 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
     submodules: options.submodules,
   })
     .then(async (snapshot) =>
-      readPreparationInputs(
-        options.packageDirectory
-          ? await packageSnapshot(snapshot, options.packageDirectory)
-          : snapshot,
-        snapshot.entries,
-      ),
+      refusal
+        ? withResolvedLockfile(snapshot, refusal, options)
+        : readPreparationInputs(
+            options.packageDirectory
+              ? await packageSnapshot(snapshot, options.packageDirectory)
+              : snapshot,
+            snapshot.entries,
+            options.lockfileChoice,
+          ).catch((error) =>
+            options.packageDirectory
+              ? Promise.reject(error)
+              : withResolvedLockfile(snapshot, error, options),
+          ),
     )
     .catch(repositoryRefusal);
   const kind = `refit-${inputs.manager}-environment`;
@@ -694,9 +860,19 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
     const input = await mkdtemp(join(tmpdir(), 'refit-npm-input-'));
     const name = `refit-dependencies-${randomUUID()}`;
     const preparation = preparationProfile();
+    // Only the sandbox user writes the cache; its private parent keeps other host users out.
+    const cacheParent =
+      inputs.manager === 'yarn'
+        ? await mkdtemp(join(tmpdir(), 'refit-installer-cache-'))
+        : undefined;
+    const installerCache = cacheParent && join(cacheParent, 'cache');
     try {
       await mkdir(staging, { mode: 0o700 });
       await chmod(input, 0o755);
+      if (installerCache) {
+        await mkdir(installerCache);
+        await chmod(installerCache, 0o777);
+      }
       for (const [file, content] of files) {
         await mkdir(resolve(input, file, '..'), { recursive: true, mode: 0o755 });
         await writeFile(join(input, file), content, { mode: 0o444 });
@@ -729,11 +905,13 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
           network: 'bridge',
           timeoutMs: timeoutSeconds * 1000,
           preparation,
+          installerCache,
         }),
         join(staging, ARCHIVE),
         inputs,
         timeoutSeconds,
         options.signal,
+        installerCache,
       );
       options.signal?.throwIfAborted();
       const environment = {
@@ -767,6 +945,7 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
           registry: 'https://registry.npmjs.org',
           timeoutMs: timeoutSeconds * 1000,
           ...preparation,
+          ...(installerCache ? { packageCache: 'host-disk' } : {}),
         },
         validation: { network: 'none' },
       };
@@ -806,6 +985,14 @@ async function prepare(options: Parameters<typeof prepareDependencies>[0]) {
         rm(input, { recursive: true, force: true }),
         rm(staging, { recursive: true, force: true }),
       ]);
+      if (cacheParent)
+        cleanup.push(
+          ...(await Promise.allSettled([
+            (installerCache ? emptyInstallerCache(image, installerCache) : Promise.resolve()).then(
+              () => rm(cacheParent, { recursive: true, force: true }),
+            ),
+          ])),
+        );
       for (const result of cleanup) if (result.status === 'rejected') throw result.reason;
     }
   });

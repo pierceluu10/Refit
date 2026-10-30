@@ -1,3 +1,4 @@
+import { HOSTED_REPAIR_ATTEMPTS } from './validation-options.ts';
 import { parseArgs } from 'node:util';
 import { slackNotifier } from './slack.ts';
 import { assessmentConfiguration } from './assessment.ts';
@@ -18,7 +19,7 @@ const REVIEW_STATUSES = new Set([
   'documentation-changed',
 ]);
 const USAGE =
-  'Usage: refit serve --config <service.json> --state <directory-outside-repository> [--port <number>] [--interval <seconds>] [--once] [--retry-target <id> ... --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft [--supersede-drafts] [--weekly-status]] [--publish-unresolved | --publish-validated-only] [--deadline-alerts [--deadline-lead-days 90,30,7]] [--model-fixes] [--json]';
+  'Usage: refit serve --config <service.json> --state <directory-outside-repository> [--port <number>] [--interval <seconds>] [--once] [--retry-target <id> ... --once] [--ai-patch --repair-attempts 0-4] [--publish-draft [--supersede-drafts] [--weekly-status]] [--publish-unresolved | --publish-validated-only] [--deadline-alerts [--deadline-lead-days 90,30,7]] [--model-fixes] [--json]';
 
 try {
   const { values } = parseArgs({
@@ -91,7 +92,9 @@ try {
         once: values.once,
         retryTargets: values['retry-target'],
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
-        repairAttempts: Number(values['repair-attempts'] ?? 0),
+        repairAttempts: Number(
+          values['repair-attempts'] ?? (values['ai-patch'] ? HOSTED_REPAIR_ATTEMPTS : 0),
+        ),
         publishDraft: values['publish-draft'],
         publishUnresolved: publishUnresolved(values),
         weeklyStatus: values['weekly-status'],

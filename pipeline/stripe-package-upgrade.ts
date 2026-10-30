@@ -7,7 +7,10 @@ import {
   SpecificationUnavailableError,
 } from './network.ts';
 import { EXACT_PACKAGE_VERSION } from './npm-lock.ts';
+import { legacyPeerDeps } from './dependency-inputs.ts';
+import { changesOutside, resolveNpmLockfile } from './lockfile-resolution.ts';
 import { isObject, parseJson } from './specifications.ts';
+import { PipelineInputError } from './types.ts';
 
 // Latest stripe-node release pinned to each API version.
 // Source: stripe-node release tags (VERSION with API_VERSION / OPENAPI_VERSION), as mapped for the
@@ -98,9 +101,12 @@ export interface PackageUpgrade {
   files: { path: string; before: string; after: string }[];
   // Replaces the default patch warning when the upgrade is not a verified lockfile edit.
   warning?: string;
+  // Types-only peers raised with stripe, which the draft names.
+  raised?: Raised;
 }
 
 type Refusal = { reason: string };
+type Lock = [string, () => Promise<{ upgrade: PackageUpgrade } | Refusal>];
 interface Declaration {
   section: 'dependencies' | 'devDependencies';
   spec: string;
@@ -121,6 +127,19 @@ interface Release {
 }
 
 // Only the `>=X[.Y[.Z]]` form stripe-node uses; any other range counts as unsatisfied.
+// The same major.minor as `target`, at or above its patch (23.0.1 for 23.0.0, never 23.1.0).
+export function samePatchLine(version: unknown, target: string) {
+  const actual = typeof version === 'string' ? /^(\d+)\.(\d+)\.(\d+)$/.exec(version) : null;
+  const wanted = /^(\d+)\.(\d+)\.(\d+)$/.exec(target);
+  return Boolean(
+    actual &&
+    wanted &&
+    actual[1] === wanted[1] &&
+    actual[2] === wanted[2] &&
+    Number(actual[3]) >= Number(wanted[3]),
+  );
+}
+
 function satisfiesMinimum(version: unknown, range: string) {
   const minimum = /^>=\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?$/.exec(range.trim());
   const actual = typeof version === 'string' ? /^(\d+)\.(\d+)\.(\d+)/.exec(version) : null;
@@ -263,6 +282,10 @@ function peerConflicts(
 export async function stripePackageUpgrade(
   root: string,
   apiVersion: string,
+  // The networked resolver (lockfile-resolution.ts) a types-only peer bump re-resolves with.
+  resolution?: Resolution,
+  // Of several committed lockfiles, the one preparation installs (dependency-inputs.ts).
+  lockfile?: string,
 ): Promise<{ upgrade: PackageUpgrade } | Refusal> {
   const target = STRIPE_SDK_RELEASES[apiVersion];
   if (!target)
@@ -281,19 +304,51 @@ export async function stripePackageUpgrade(
     manifestText !== undefined &&
     [npmLock, pnpmLock, yarnLock, ...otherLocks].every((text) => text === undefined)
   )
-    return manifestUpgrade(target, manifestText);
+    return manifestUpgrade(target, manifestText, Boolean(resolution));
   const locks = [
-    npmLock && (() => npmUpgrade(target, manifestText!, npmLock)),
-    pnpmLock && (() => pnpmUpgrade(target, manifestText!, pnpmLock)),
-    yarnLock && (() => yarnUpgrade(target, manifestText!, yarnLock)),
-  ].filter((upgrade) => typeof upgrade === 'function');
+    npmLock && [
+      'package-lock.json',
+      () =>
+        npmUpgrade(
+          target,
+          manifestText!,
+          npmLock,
+          resolution && { ...resolution, npmrc: () => read('.npmrc') },
+        ),
+    ],
+    pnpmLock && ['pnpm-lock.yaml', () => pnpmUpgrade(target, manifestText!, pnpmLock)],
+    yarnLock && ['yarn.lock', () => yarnUpgrade(target, manifestText!, yarnLock)],
+  ].filter((entry): entry is Lock => Array.isArray(entry));
   if (manifestText === undefined || !locks.length)
     return {
       reason:
         'Only root npm, pnpm or Yarn 1 projects with package.json and at least one of package-lock.json, pnpm-lock.yaml or yarn.lock are upgraded.',
     };
-  if (locks.length === 1) return locks[0]();
-  return everyLockfileUpgrade(locks);
+  if (locks.length === 1) return locks[0][1]();
+  const every = await everyLockfileUpgrade(locks.map(([, upgrade]) => upgrade));
+  const chosen = locks.find(([path]) => path === lockfile);
+  if ('upgrade' in every || !chosen) return every;
+  return chosenLockfileUpgrade(
+    chosen[1],
+    locks.flatMap(([path]) => (path === lockfile ? [] : [path])),
+  );
+}
+
+// Founder decision (Otabek, 2026-10-28): when the lockfiles cannot all be upgraded together, the
+// one preparation chose is upgraded alone, and the others stay as committed; the warning names them.
+async function chosenLockfileUpgrade(
+  chosen: Lock[1],
+  others: string[],
+): Promise<{ upgrade: PackageUpgrade } | Refusal> {
+  const result = await chosen();
+  if ('reason' in result) return result;
+  const { upgrade } = result;
+  return {
+    upgrade: {
+      ...upgrade,
+      warning: `${upgrade.warning ?? `Upgrades stripe from ${upgrade.from} to ${upgrade.to} in ${upgrade.files.map((file) => file.path).join(' and ')}, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`} Refit installed and upgraded ${upgrade.files[1].path} only and left ${others.join(' and ')} as committed, so ${others.length === 1 ? 'it' : 'they'} can still lock the older stripe. Delete the lockfile your package manager does not use.`,
+    },
+  };
 }
 
 // A project that commits several lockfiles installs from whichever its package manager reads, so
@@ -333,6 +388,7 @@ function declaredMinimum(spec: string) {
 async function manifestUpgrade(
   target: string,
   manifestText: string,
+  resolved = false,
 ): Promise<{ upgrade: PackageUpgrade } | Refusal> {
   let manifest: unknown;
   try {
@@ -351,32 +407,143 @@ async function manifestUpgrade(
   const release = await registryRelease(target);
   if ('reason' in release) return release;
   if (release.requiredPeers.length) return dependencyChanges(target, release.requiredPeers);
-  const conflict = peerConflicts(
-    target,
-    release.peers,
-    (name) => {
-      for (const section of ['dependencies', 'devDependencies', 'optionalDependencies']) {
-        const declarations = root[section];
-        const spec = isObject(declarations) ? declarations[name] : undefined;
-        if (spec !== undefined) return typeof spec === 'string' ? declaredMinimum(spec) : null;
-      }
-      return undefined;
-    },
-    'package.json',
-  );
-  if (conflict) return conflict;
+  const installed = (name: string) => {
+    for (const section of ['dependencies', 'devDependencies', 'optionalDependencies']) {
+      const declarations = root[section];
+      const spec = isObject(declarations) ? declarations[name] : undefined;
+      if (spec !== undefined) return typeof spec === 'string' ? declaredMinimum(spec) : null;
+    }
+    return undefined;
+  };
+  const conflict = peerConflicts(target, release.peers, installed, 'package.json');
+  const after = declared.rewrite(target, undefined, '');
+  // With resolution on, validation resolves the raised peer with the rest (lockfile-resolution.ts).
+  const bump =
+    conflict && resolved ? typesPeerBump(root, after, release.peers, installed) : undefined;
+  if (conflict && !bump) return conflict;
   return {
     upgrade: {
       from: declaredMinimum(declared.spec)!,
       to: target,
+      files: [{ path: 'package.json', before: manifestText, after: bump?.text ?? after }],
+      ...(bump ? { raised: bump.raised } : {}),
+      warning: `Upgrades stripe from ${declared.spec} to exactly ${target}${bump ? ` and ${raisedText(bump.raised, target)}` : ''} in package.json only: the project commits no lockfile, so npm install resolves stripe ${target} and the rest of the dependency tree at install time${resolved ? '. Refit checked the patch against a package-lock.json it resolved for validation only, which this patch does not add, so your own install can resolve other versions' : ', which Refit did not check'}. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
+    },
+  };
+}
+
+type Resolution = { image: string; before: string };
+type Raised = { name: string; from: string; to: string; range: string }[];
+
+// Founders' decision (2026-10-27): an @types/* devDependency outside stripe's optional peer range
+// is raised with stripe to the lowest version in range, keeping its ^ or ~. Any other conflicting
+// peer, or one declared elsewhere or in another form, keeps the refusal.
+function typesPeerBump(
+  manifest: Record<string, unknown>,
+  manifestText: string,
+  peers: Record<string, string>,
+  installed: (name: string) => unknown,
+) {
+  let text = manifestText;
+  const raised: Raised = [];
+  for (const [name, range] of Object.entries(peers)) {
+    const version = installed(name);
+    if (version === undefined || satisfiesMinimum(version, range)) continue;
+    const minimum = /^>=\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?$/.exec(range.trim());
+    const declaration = manifestDeclaration(manifest, text, name);
+    if (
+      !name.startsWith('@types/') ||
+      !minimum ||
+      'reason' in declaration ||
+      declaration.section !== 'devDependencies' ||
+      !declaration.unique
+    )
+      return undefined;
+    const to = `${minimum[1]}.${minimum[2] ?? 0}.${minimum[3] ?? 0}`;
+    text = declaration.rewrite(to, text);
+    raised.push({ name, from: declaration.spec, to: declaration.newSpec(to), range });
+  }
+  return raised.length ? { text, raised } : undefined;
+}
+
+const raisedText = (raised: Raised, target: string) =>
+  raised
+    .map(
+      ({ name, from, to, range }) =>
+        `raises ${name} from ${from} to ${to}, the lowest version in stripe ${target}'s optional peer range ${range}`,
+    )
+    .join(' and ');
+
+// Re-resolves the committed package-lock.json with stripe and the raised peers changed, and keeps
+// it only when nothing changes outside them and the packages only they reach.
+async function resolvedPeerUpgrade(
+  target: string,
+  from: string,
+  manifestText: string,
+  lockText: string,
+  bump: { text: string; raised: Raised },
+  resolution: Resolution & { npmrc: () => Promise<string | undefined> },
+): Promise<{ upgrade: PackageUpgrade } | Refusal> {
+  const raised = bump.raised.map(({ name }) => name);
+  const npmrc = (await resolution.npmrc()) ?? '';
+  if (/^\s*(?:@[^:\s]+:)?registry\s*=|_auth/m.test(npmrc))
+    return {
+      reason: `stripe ${target} needs ${raised.join(', ')} raised, and .npmrc configures another registry.`,
+    };
+  let resolved;
+  try {
+    resolved = await resolveNpmLockfile({
+      manifest: bump.text,
+      seed: lockText,
+      before: resolution.before,
+      legacyPeerDeps: legacyPeerDeps(npmrc),
+      image: resolution.image,
+    });
+  } catch (error) {
+    if (!(error instanceof PipelineInputError)) throw error;
+    return {
+      reason: `stripe ${target} needs ${raised.join(', ')} raised, and npm could not re-resolve package-lock.json: ${error.message}`,
+    };
+  }
+  const outside = changesOutside(lockText, resolved.lockfile, ['stripe', ...raised]);
+  if (outside.length)
+    return {
+      reason: `Raising ${raised.join(', ')} with stripe ${target} changes ${outside
+        .slice(0, 5)
+        .map((key) => key || 'the root record')
+        .join(
+          ', ',
+        )}${outside.length > 5 ? ` and ${outside.length - 5} more` : ''} in package-lock.json, outside stripe, the raised peer and the packages only they reach.`,
+    };
+  const lock = parseJson(resolved.lockfile);
+  const packages = isObject(lock) && isObject(lock.packages) ? lock.packages : {};
+  const version = (name: string) => {
+    const entry = packages[`node_modules/${name}`];
+    return isObject(entry) ? entry.version : undefined;
+  };
+  // npm picks the newest patch of the caret range; a patch keeps the API version, a minor may not.
+  const locked = version('stripe');
+  if (
+    !samePatchLine(locked, target) ||
+    bump.raised.some(({ name, range }) => !satisfiesMinimum(version(name), range))
+  )
+    return { reason: `npm did not lock stripe ${target} and ${raised.join(', ')} in range.` };
+  return {
+    upgrade: {
+      from,
+      to: locked as string,
       files: [
-        {
-          path: 'package.json',
-          before: manifestText,
-          after: declared.rewrite(target, undefined, ''),
-        },
+        { path: 'package.json', before: manifestText, after: bump.text },
+        { path: 'package-lock.json', before: lockText, after: resolved.lockfile },
       ],
-      warning: `Upgrades stripe from ${declared.spec} to exactly ${target} in package.json only: the project commits no lockfile, so npm install resolves stripe ${target} and the rest of the dependency tree at install time, which Refit did not check. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
+      raised: bump.raised,
+      warning: `Upgrades stripe from ${from} to ${locked} and ${raisedText(bump.raised, target)} (now ${bump.raised.map(({ name }) => `${name} ${version(name)}`).join(', ')}). npm re-resolved package-lock.json from the committed one in networked Docker with lifecycle scripts off, as of ${resolution.before}${Object.entries(
+        resolved.late,
+      )
+        .map(([name, pin]) => `, ${name} ${pin.spec} as of ${pin.published}`)
+        .join(
+          '',
+        )}; nothing outside stripe, the raised peer and the packages only they reach changed. A major SDK upgrade and a newer ${raised.join(', ')} can change other types and behavior; review the stripe-node changelog.`,
     },
   };
 }
@@ -385,6 +552,7 @@ async function npmUpgrade(
   target: string,
   manifestText: string,
   lockText: string,
+  resolution?: Resolution & { npmrc: () => Promise<string | undefined> },
 ): Promise<{ upgrade: PackageUpgrade } | Refusal> {
   let manifest: unknown, lock: unknown;
   try {
@@ -417,11 +585,20 @@ async function npmUpgrade(
   );
   if (missing.length || release.requiredPeers.length)
     return dependencyChanges(target, [...missing.map(([name]) => name), ...release.requiredPeers]);
-  const conflict = peerConflicts(target, peers, (name) => {
+  const installed = (name: string) => {
     const installed = packages[`node_modules/${name}`];
     return isObject(installed) ? (installed.version ?? null) : undefined;
-  });
-  if (conflict) return conflict;
+  };
+  const conflict = peerConflicts(target, peers, installed);
+  if (conflict) {
+    const bump =
+      resolution && declared.unique
+        ? typesPeerBump(manifest, declared.rewrite(target), peers, installed)
+        : undefined;
+    return bump && resolution
+      ? resolvedPeerUpgrade(target, entry.version, manifestText, lockText, bump, resolution)
+      : conflict;
+  }
   const optional = (value: Record<string, string>, key: string) =>
     Object.keys(value).length ? { [key]: value } : {};
   packages['node_modules/stripe'] = {
@@ -624,8 +801,8 @@ async function pnpmUpgrade(
   };
 }
 
-// pnpm 8's lockfile v6 for one project: root sections at the top level and `/name@version(peers)`
-// package records that carry their own dependencies and pnpm's `dev` and `optional` flags.
+// pnpm 8's lockfile v6 for one project: root sections at the top level, or under `importers['.']`
+// when a pnpm-workspace.yaml lists only the root, and `/name@version(peers)` package records that carry their own dependencies and pnpm's `dev` and `optional` flags.
 const V6_ROOT_SECTIONS = ['dependencies', 'optionalDependencies', 'devDependencies'] as const;
 
 function v6Key(name: string, version: unknown) {
@@ -637,7 +814,11 @@ function v6Key(name: string, version: unknown) {
 // `dev: false` when only production dependencies reach a package, `dev: true` when only development
 // ones do, neither when both; `optional: true` when every path goes through an optional dependency.
 // Undefined when a dependency names no record.
-function v6Flags(lock: Record<string, unknown>) {
+function v6Flags(lock: Record<string, unknown>, rootPath: string[]) {
+  const root = rootPath.reduce<unknown>(
+    (node, key) => (isObject(node) ? node[key] : undefined),
+    lock,
+  ) as Record<string, unknown>;
   const packages = isObject(lock.packages) ? lock.packages : {};
   const states = new Map<string, Set<string>>();
   const pending: [string, string, boolean][] = [];
@@ -657,7 +838,7 @@ function v6Flags(lock: Record<string, unknown>) {
     pending.push([key, kind, optional]);
   };
   for (const section of V6_ROOT_SECTIONS) {
-    const entries = isObject(lock[section]) ? lock[section] : {};
+    const entries = isObject(root[section]) ? root[section] : {};
     for (const [name, entry] of Object.entries(entries))
       if (isObject(entry))
         reach(
@@ -701,11 +882,17 @@ async function pnpmV6Upgrade(
   document: Document,
   lock: Record<string, unknown>,
 ): Promise<{ upgrade: PackageUpgrade } | Refusal> {
-  if (lock.importers !== undefined)
+  const importers = lock.importers;
+  if (
+    importers !== undefined &&
+    !(isObject(importers) && Object.keys(importers).join() === '.' && isObject(importers['.']))
+  )
     return { reason: 'Only single-project pnpm lockfile version 6 files are upgraded.' };
+  const rootPath = importers === undefined ? [] : ['importers', '.'];
+  const root = (importers === undefined ? lock : importers['.']) as Record<string, unknown>;
   const packages = isObject(lock.packages) ? lock.packages : {};
   // Refit's model of pnpm's flags must reproduce the recorded ones before it rewrites them.
-  const original = v6Flags(lock);
+  const original = v6Flags(lock, rootPath);
   if (
     !original ||
     Object.entries(packages).some(([key, record]) => {
@@ -721,7 +908,7 @@ async function pnpmV6Upgrade(
     return {
       reason: 'pnpm-lock.yaml (v6) dev and optional flags do not match its dependency graph.',
     };
-  const section = lock[declared.section];
+  const section = root[declared.section];
   const entry = isObject(section) ? section.stripe : undefined;
   if (!isObject(entry) || entry.specifier !== declared.spec || typeof entry.version !== 'string')
     return { reason: 'pnpm-lock.yaml does not lock the declared stripe at the project root.' };
@@ -732,7 +919,7 @@ async function pnpmV6Upgrade(
   const oldKey = `/stripe@${entry.version}`;
   const lockedElsewhere =
     V6_ROOT_SECTIONS.some(
-      (name) => name !== declared.section && isObject(lock[name]) && lock[name].stripe,
+      (name) => name !== declared.section && isObject(root[name]) && root[name].stripe,
     ) ||
     Object.entries(packages).some(
       ([key, record]) =>
@@ -751,9 +938,9 @@ async function pnpmV6Upgrade(
   if (added.length || release.requiredPeers.length)
     return dependencyChanges(target, [...added, ...release.requiredPeers]);
   const rootVersion = (name: string) => {
-    for (const root of V6_ROOT_SECTIONS) {
-      const locked = isObject(lock[root])
-        ? (lock[root] as Record<string, unknown>)[name]
+    for (const rootSection of V6_ROOT_SECTIONS) {
+      const locked = isObject(root[rootSection])
+        ? (root[rootSection] as Record<string, unknown>)[name]
         : undefined;
       if (isObject(locked)) return locked.version ?? null;
     }
@@ -782,10 +969,10 @@ async function pnpmV6Upgrade(
     return { reason: 'pnpm-lock.yaml does not record the locked stripe package.' };
   setFlow(document, ['packages', newKey, 'resolution']);
   setFlow(document, ['packages', newKey, 'engines']);
-  document.setIn([declared.section, 'stripe', 'specifier'], declared.newSpec(target));
-  document.setIn([declared.section, 'stripe', 'version'], qualified);
+  document.setIn([...rootPath, declared.section, 'stripe', 'specifier'], declared.newSpec(target));
+  document.setIn([...rootPath, declared.section, 'stripe', 'version'], qualified);
   // Drop what only the old stripe reached, then rewrite every flag the new graph changes.
-  const flags = v6Flags(document.toJS() as Record<string, unknown>);
+  const flags = v6Flags(document.toJS() as Record<string, unknown>, rootPath);
   if (!flags) return { reason: 'pnpm-lock.yaml (v6) names a package it does not record.' };
   for (const key of Object.keys(packages))
     if (key !== oldKey && !flags.has(key)) document.deleteIn(['packages', key]);

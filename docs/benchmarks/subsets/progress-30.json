@@ -1,0 +1,403 @@
+{
+  "frozenAt": "2026-10-28",
+  "purpose": "Progress set for the combined lanes: 30 active-team Stripe repositories that were in no earlier list. No row, diff or code was opened before freezing. Run main and bench/all-lanes-combined on it, with and without AI.",
+  "criteria": "The first 30 entries, in order, of the output of: node_modules/.bin/tsx scripts/stripe-active-select.mjs --work <dir> --output <candidates.json> --frozen-at 2026-10-28 --limit 80, with --exclude for each of the 117 lists under docs/benchmarks/ that has a repos array. 44 candidates were left. Selector criteria: The fresh set's 13 GitHub code searches, each split into 5 file-size ranges, excluding the 2304 repositories of the excluded lists. Kept: not archived, not a fork, under 50 MB; a default-branch commit since 2026-07-30 with at least 2 distinct human commit authors in that window (bots excluded); a .github/workflows directory; stripe declared in the root package.json; exactly one root lockfile (package-lock.json, pnpm-lock.yaml or yarn.lock). The 80 most starred were cloned at their default-branch HEAD by this script, read only for their API version and deleted. The API version is the oldest literal apiVersion pin outside a commented-out line, else the locked stripe-node release; repositories without a pinned spec or already on 2026-09-30.endive are dropped.",
+  "specs": [
+    {
+      "version": "2023-10-16",
+      "tag": "v603"
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "tag": "v1347"
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "tag": "v1412"
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "tag": "v1455"
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "tag": "v1505"
+    },
+    {
+      "version": "2025-08-27.basil",
+      "tag": "v1932"
+    },
+    {
+      "version": "2025-10-29.clover",
+      "tag": "v2104"
+    },
+    {
+      "version": "2025-11-17.clover",
+      "tag": "v2124"
+    },
+    {
+      "version": "2026-02-25.clover",
+      "tag": "v2186"
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "tag": "v2206"
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "tag": "v2252"
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "tag": "v2277"
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "tag": "v2324"
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "tag": "v2349"
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "tag": "v2442"
+    },
+    {
+      "version": "2026-09-30.endive",
+      "tag": "v2526"
+    }
+  ],
+  "repos": [
+    {
+      "repo": "mattogodoy/nametag",
+      "stars": 1101,
+      "commit": "a3a31ab7bcac080ecd0b019e06b1171b9eb0d3fe",
+      "owner": "User",
+      "authors90d": 7,
+      "packageManager": "npm",
+      "before": "2025-11-17.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.0.0"
+    },
+    {
+      "repo": "sanidhyy/duolingo-clone",
+      "stars": 691,
+      "commit": "d74bb88e0a6e2ec35eb9516a5dcb9b45901f3bd0",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.6.2"
+    },
+    {
+      "repo": "timh-dev/startup-page",
+      "stars": 527,
+      "commit": "df45b47860d5c69a49bf2a1d65e119ff747e4275",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2026-06-24.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.3.2"
+    },
+    {
+      "repo": "webrenew/unicon",
+      "stars": 17,
+      "commit": "956c71d398b719e5df46706fa19c6eff406a5f7e",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.6.1"
+    },
+    {
+      "repo": "twaldin/trade-up-bot",
+      "stars": 5,
+      "commit": "bb0f36dbf82ce240a192db2ca587c297026b4de9",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-02-25.clover",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^20.4.1"
+    },
+    {
+      "repo": "Shards-foundation/shards-workflow-hub",
+      "stars": 3,
+      "commit": "b2ae1f9fa56be8b8119e6fdec57c5c8b24774564",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2025-10-29.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.3.1"
+    },
+    {
+      "repo": "noa10/mataresit",
+      "stars": 2,
+      "commit": "b156488d3df4061cfc09d5927d0945117fa4d464",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^23.0.1"
+    },
+    {
+      "repo": "anvveber/hyperion",
+      "stars": 1,
+      "commit": "206a9e4c36c7e2a9056ee0460dc7359e71708d00",
+      "owner": "User",
+      "authors90d": 6,
+      "packageManager": "npm",
+      "before": "2025-11-17.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.0.0"
+    },
+    {
+      "repo": "cranberrymuffin/auditionwithme",
+      "stars": 1,
+      "commit": "2d0ae194346bedaf82454ef81b07252fe0c700c0",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-07-29.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.5.0"
+    },
+    {
+      "repo": "jackstonemedia/StoneAIOMainSystem",
+      "stars": 1,
+      "commit": "58c3cef9b8a011f4c1ba0fc8c38bc56fbedb8c9e",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.1.0"
+    },
+    {
+      "repo": "pina753753-star/seedance-black-studio",
+      "stars": 1,
+      "commit": "32176deda3abb2bdd5a22c1f33e0b9c668fdf8bc",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^17.5.0"
+    },
+    {
+      "repo": "0-CYBERDYNE-SYSTEMS-0/quorum",
+      "stars": 0,
+      "commit": "0286c081bb5f98d30c2189147d36183ed5b902d0",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^18.0.0"
+    },
+    {
+      "repo": "aaqibqadeer/ScrapperNinjaa",
+      "stars": 0,
+      "commit": "4cde5cff672ef00c82118c05cf15588713aa2f7c",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2025-08-27.basil",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^18.5.0"
+    },
+    {
+      "repo": "ArkeonProject/arkeon-blog",
+      "stars": 0,
+      "commit": "b68848797d68cccc77b7c711a5435bdc161113b2",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2025-01-27.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^21.0.1"
+    },
+    {
+      "repo": "asakaxgit/open-payment-adapter",
+      "stars": 0,
+      "commit": "7411cf22a6a21eab0bcf5f2ac6195b552860e0ea",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.6.1"
+    },
+    {
+      "repo": "Autosociomx/Gobernanza-Digital",
+      "stars": 0,
+      "commit": "8db819e820b4cec8a545d1d584200d7f2253d140",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.2.2"
+    },
+    {
+      "repo": "bisha21/lms",
+      "stars": 0,
+      "commit": "35a6f9fda9a2795c545b0a6d6cc3e2eaee428d00",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-07-29.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.4.0"
+    },
+    {
+      "repo": "BitsToBoot/new-auto-DM",
+      "stars": 0,
+      "commit": "ae2c630bd822e16a5be7cf6989d599e96bf86e50",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.1.1"
+    },
+    {
+      "repo": "bokkeh/distribution-portal",
+      "stars": 0,
+      "commit": "7936beb715b4e3240958ae8a03b8c4c0bebdb9b2",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-02-25.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.4.1"
+    },
+    {
+      "repo": "bud-diaz/paperweightv1",
+      "stars": 0,
+      "commit": "94f4ee104ad490c8596de8456e84f910dfc5fca2",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^17.0.0"
+    },
+    {
+      "repo": "buildproven/saas-starter-kit",
+      "stars": 0,
+      "commit": "8f927625d7281696e6219704762814f5fc0877dd",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^16.12.0"
+    },
+    {
+      "repo": "byronhawley/xert-fitness",
+      "stars": 0,
+      "commit": "7e7c5ad4815d726546dbca212796643471f6856c",
+      "owner": "User",
+      "authors90d": 4,
+      "packageManager": "npm",
+      "before": "2026-06-24.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.3.0"
+    },
+    {
+      "repo": "CaioF/actors-copilot",
+      "stars": 0,
+      "commit": "fd5b8f3eaaad1e1b13657f28bdabd4ad39e0ee3c",
+      "owner": "User",
+      "authors90d": 5,
+      "packageManager": "pnpm",
+      "before": "2026-05-27.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.2.1"
+    },
+    {
+      "repo": "camster91/ashbi-platform",
+      "stars": 0,
+      "commit": "286fa56dc3791b5b4d4f17a4cdf4600b0b11fb94",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^23.0.0"
+    },
+    {
+      "repo": "CarlosReyes0/mon-unlock-widget",
+      "stars": 0,
+      "commit": "eeded4370deaff3f3177aae5122013f13972f13c",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-06-24.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.3.2"
+    },
+    {
+      "repo": "cedcas/CedCasProperties",
+      "stars": 0,
+      "commit": "2019a7edce8671e477b67abf6a890842d491cd64",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-03-25.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^21.0.1"
+    },
+    {
+      "repo": "Chandelier-Consulting/chandelier",
+      "stars": 0,
+      "commit": "9a656588dbf0cd322ba19fb3869f987a86e194b1",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-05-27.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.2.0"
+    },
+    {
+      "repo": "charliejo11/gridster",
+      "stars": 0,
+      "commit": "e2898209bfe5a4f4c720b7220383c029a4416f8b",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-06-24.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.3.2"
+    },
+    {
+      "repo": "Chaulin7/fitscore-backend",
+      "stars": 0,
+      "commit": "a07cb270d560dfdfab5e9bff5569c942453dd9b5",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^17.7.0"
+    },
+    {
+      "repo": "chessco/icellshoppos",
+      "stars": 0,
+      "commit": "6f28b26c05013603c0312ed847ed14b61aff5819",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2026-02-25.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.4.0"
+    }
+  ]
+}

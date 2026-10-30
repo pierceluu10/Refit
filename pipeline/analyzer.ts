@@ -11,6 +11,7 @@ import { sdkConstructors } from './sdk-constructors.ts';
 import { classClients } from './class-clients.ts';
 import { factoryClients, proxyClient } from './factory-clients.ts';
 import { helperClients } from './helper-clients.ts';
+import type { TraceSource, TypedClient } from './type-clients.ts';
 import { stripeWebhookPayloads } from './stripe-webhook-payloads.ts';
 import { componentReference, isObject, resolvableComponentSchema } from './specifications.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
@@ -264,6 +265,11 @@ function buildAnalysisProgram(repository: Repository) {
   return { sources, resolution, program, checker: program.getTypeChecker() };
 }
 
+// A traced read the analyzer could not decide: validation's receiver proofs may clear it like an
+// untraced one (founder decision, 2026-10-28).
+export const UNPROVEN_RECEIVER_REASON =
+  'Receiver or property cannot be proven by the supported local analysis; inspect manually.';
+
 export function analyzeRepository(
   repository: Repository,
   changes: Removal[],
@@ -282,7 +288,13 @@ export function analyzeRepository(
   // `modelFixClients`: trace only the client shapes the model-fix edits were decided on (AGENTS.md),
   // leaving lazy Proxy clients with a local or bound methods, a Proxy over a filled holder and a
   // holder used as the client to stop for review.
+  // `typedClients`: client expressions found by type (type-clients.ts); calls on them are traced
+  // where the analyzer's own tracers find no client.
+  // `typeProvenReads`: removed-field reads TypeScript's checker proves read the change's Stripe
+  // type (stripe-type-evidence.ts typeProvenReads); they are confirmed as declared-type reads.
   options: {
+    typedClients?: TypedClient[];
+    typeProvenReads?: { file: string; line: number; column: number; changeId: string }[];
     traceUnverifiedPackageImports?: boolean;
     invoicePreview?: InvoicePreviewMove;
     typeCheckedPeriodReads?: { file: string; position: number }[];
@@ -293,13 +305,19 @@ export function analyzeRepository(
   const typeCheckedPeriodReads = new Set(
     (options.typeCheckedPeriodReads ?? []).map((read) => `${read.file}\0${read.position}`),
   );
+  const typeProvenReads = new Set(
+    (options.typeProvenReads ?? []).map(
+      (read) => `${read.file}\0${read.line}\0${read.column}\0${read.changeId}`,
+    ),
+  );
   const findings: Finding[] = [];
   const imports: Location[] = [];
-  const calls: (Location & { method: string })[] = [];
+  const calls: (Location & { method: string; traceSource: TraceSource })[] = [];
   const sdkCalls: (Location & {
     resource: string;
     method: string;
     expression: string;
+    traceSource: TraceSource;
     helperClient?: Finding['helperClient'];
   })[] = [];
   const sdkCallNodes = new Map<ts.Node, (typeof sdkCalls)[number]>();
@@ -315,6 +333,8 @@ export function analyzeRepository(
   const origins = new Map<ts.Symbol, ts.CallExpression>();
   const wrappedResponses = new Map<ts.Symbol, ts.Symbol>();
   const edits: SourceEdit[] = [];
+  // The creation calls each payment-method rename's body reaches, for its API-version path.
+  const renameCalls = new Map<SourceEdit, ts.CallExpression[]>();
   const nodes: ts.Node[] = [];
   const locations = new Map(
     [...sources.keys()].map((path, index) => [path, repository.files[index].path]),
@@ -513,11 +533,23 @@ export function analyzeRepository(
     factoryBindings?.call(node) ??
     (ts.isIdentifier(node) ? symbol(node) : undefined);
   imports.push(...sdk.imports.map(location));
+  const typedClients = new Map(
+    (options.typedClients ?? []).map((client) => [
+      `${client.file}\0${client.start}\0${client.end}`,
+      client.source,
+    ]),
+  );
+  const typedClient = (node: ts.Node) =>
+    typedClients.size
+      ? typedClients.get(
+          `${locations.get(node.getSourceFile().fileName)}\0${node.getStart()}\0${node.end}`,
+        )
+      : undefined;
   function sdkAccess(expression: ts.Expression) {
     const properties: (ts.PropertyAccessExpression & { name: ts.Identifier })[] = [];
     let current = expression;
     while (ts.isPropertyAccessExpression(current) && ts.isIdentifier(current.name)) {
-      if (classBindings?.reference(current)) break;
+      if (classBindings?.reference(current) || typedClient(current)) break;
       properties.push(current as ts.PropertyAccessExpression & { name: ts.Identifier });
       current = current.expression;
     }
@@ -525,9 +557,12 @@ export function analyzeRepository(
     while (ts.isNonNullExpression(current) || ts.isParenthesizedExpression(current))
       current = current.expression;
     const binding = clientBinding(current);
-    if (!binding || !clients.has(binding)) return;
-    return { client: current, properties: properties.reverse() };
+    const traceSource: TraceSource | undefined =
+      binding && clients.has(binding) ? 'analyzer' : typedClient(current);
+    if (!traceSource) return;
+    return { client: current, properties: properties.reverse(), traceSource };
   }
+  let typedUntrusted = false;
   function sdkCall(node: ts.Node) {
     if (!ts.isCallExpression(node)) return;
     const access = sdkAccess(node.expression);
@@ -544,7 +579,12 @@ export function analyzeRepository(
       expression: `${access.client.getText()}.${resource}.${method}`,
       client: access.client,
       start: access.properties[0].name.getStart(),
+      traceSource: access.traceSource,
+      // A call that may not run, a JavaScript client traced only by what its factory returns (lower
+      // confidence) or a typed client next to an unsafe construction: its findings stay for review.
       optional:
+        access.traceSource === 'js-return' ||
+        (access.traceSource === 'type' && typedUntrusted) ||
         Boolean(node.questionDotToken) ||
         (ts.isPropertyAccessExpression(access.client) && Boolean(access.client.questionDotToken)) ||
         access.properties.some((property) => Boolean(property.questionDotToken)),
@@ -1060,6 +1100,7 @@ export function analyzeRepository(
         resource: sdk.resource,
         method: sdk.method,
         expression: sdk.expression,
+        traceSource: sdk.traceSource,
       };
       sdkCalls.push(evidence);
       sdkCallNodes.set(node, evidence);
@@ -1079,6 +1120,7 @@ export function analyzeRepository(
         ...location(node),
         method: `${operation.resource}.${operation.method}`,
         ...(operation.operationId ? { operationId: operation.operationId } : {}),
+        traceSource: sdk!.traceSource,
       });
   }
   const providerDetected =
@@ -1186,6 +1228,18 @@ export function analyzeRepository(
     if (spread || unsafeConstructors.has(sdk.binding(creation)!)) initialUnsafe.add(binding);
     if (spread || mutatedConstructors.has(sdk.binding(creation)!)) initialMutated.add(binding);
   }
+  // A call traced by type may use any client the repository makes, so it is trusted only where
+  // every Stripe constructor and construction is.
+  typedUntrusted = nodes.some((node) => {
+    const creation = sdk.creation(node);
+    const constructor = creation && sdk.binding(creation);
+    return Boolean(
+      creation &&
+      (creation.arguments?.some(ts.isSpreadElement) ||
+        (constructor &&
+          (unsafeConstructors.has(constructor) || mutatedConstructors.has(constructor)))),
+    );
+  });
   for (const [response, origin] of origins)
     if (sdkCall(origin)?.optional) {
       initialUnsafe.add(response);
@@ -1291,7 +1345,7 @@ export function analyzeRepository(
           ? 'Removed request field in a direct SDK argument under an operator-authored rename with a matching recorded contract.'
           : edit.status === 'review'
             ? edit.reason
-            : 'SDK client escape, mutation or optional invocation prevents a request-field edit; inspect manually.',
+            : 'SDK client escape, mutation, optional invocation or a JavaScript-only client trace prevents a request-field edit; inspect manually.',
       });
       if (confirmed && edit.status === 'editable')
         edits.push({
@@ -1344,7 +1398,7 @@ export function analyzeRepository(
         });
       if (confirmed && removal.cardReplacement && rule) {
         const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
-        edits.push({
+        const edit = {
           file: location(property).file,
           start: property.name.getStart(),
           end: property.name.getEnd(),
@@ -1353,7 +1407,9 @@ export function analyzeRepository(
             : `${quote}${removal.cardReplacement}${quote}`,
           changeId: removal.id,
           rule,
-        });
+        };
+        edits.push(edit);
+        renameCalls.set(edit, [node]);
       }
       findings.push({
         ...location(property),
@@ -1404,7 +1460,7 @@ export function analyzeRepository(
   }
   // A removed parameter set outside every traced SDK body stops for review, unless it is an exact
   // `['card']` in a local body only confirmed card-rule calls receive (request-migration.ts).
-  for (const { property, removal, rule } of untracedRemovedParameters(
+  for (const { property, removal, rule, calls: bodyCalls } of untracedRemovedParameters(
     nodes,
     requestParameterRemovals,
     (node) => {
@@ -1423,7 +1479,7 @@ export function analyzeRepository(
     const rename = Boolean(rule);
     if (rule && (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property))) {
       const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
-      edits.push({
+      const edit = {
         file: location(property).file,
         start: property.name.getStart(),
         end: property.name.getEnd(),
@@ -1432,7 +1488,9 @@ export function analyzeRepository(
           : `${quote}${removal.cardReplacement}${quote}`,
         changeId: removal.id,
         rule,
-      });
+      };
+      edits.push(edit);
+      renameCalls.set(edit, bodyCalls ?? []);
     }
     findings.push({
       ...location(property),
@@ -1465,7 +1523,7 @@ export function analyzeRepository(
       ...helperEvidence(call.client),
       reason: confirmed
         ? 'Removed endpoint call on an immutable SDK client under an operator-authored replacement with a matching recorded contract.'
-        : 'SDK client escape, mutation or optional invocation prevents a configured endpoint edit; inspect manually.',
+        : 'SDK client escape, mutation, optional invocation or a JavaScript-only client trace prevents a configured endpoint edit; inspect manually.',
     });
     if (confirmed)
       edits.push({
@@ -1638,8 +1696,12 @@ export function analyzeRepository(
     receiver: ts.Expression,
     change: Removal,
     typeChecked = false,
+    typeProven = false,
   ): SourceEdit['rule'] | undefined {
-    const provenance = sourceEvidence(receiver)?.kind;
+    const traced = sourceEvidence(receiver)?.kind;
+    // A type-proven value may be a webhook payload passed into a helper, as a declared one may.
+    const provenance =
+      typeProven && traced !== 'sdk' && traced !== 'webhook' ? 'declared-type' : traced;
     // Removed Stripe reads with a documented new location go through a generated helper that reads
     // either API version (data/packs/stripe.json). Period reads also take a read the upgraded types
     // reject on Subscription. A field the code expands is held back where the entry says the expand
@@ -1978,7 +2040,12 @@ export function analyzeRepository(
     // SDK resources are not response fields, even when their names match a removal.
     if (sdkAccess(receiver)) return;
     if (readsMovedPath(node)) return;
-    const schema = schemaForExpression(receiver);
+    const at = location(node);
+    const proven = (change: Removal) =>
+      typeProvenReads.has(`${at.file}\0${at.line}\0${at.column}\0${change.id}`);
+    const schema =
+      schemaForExpression(receiver) ??
+      (typeProvenReads.size ? changes.find(proven)?.schema : undefined);
     const tracked = schema !== undefined;
     const webhook = webhooks?.origin(receiver);
     const provenance = sourceEvidence(receiver);
@@ -2039,13 +2106,15 @@ export function analyzeRepository(
         (responseSymbol !== undefined && mutated.has(responseSymbol)) ||
         (immediateSdk &&
           (immediateSdk.optional || mutated.has(clientBinding(immediateSdk.client)!)));
+      // The checker's proof covers the value's whole path, writes and helper returns included.
+      const typeProven = proven(change);
       const confirmed = Boolean(
         tracked &&
-        !uncertainMutation &&
+        (!uncertainMutation || typeProven) &&
         property !== undefined &&
         change.schema === schema &&
         (!webhook || webhook.schema !== undefined) &&
-        (provenance?.kind !== 'unmapped-sdk' || declaredType),
+        (provenance?.kind !== 'unmapped-sdk' || declaredType || typeProven),
       );
       // The type checker resolved the receiver to Subscription, and the helper returns the field the
       // object holds at runtime, so neither tracing nor mutation evidence is needed for this read.
@@ -2059,7 +2128,9 @@ export function analyzeRepository(
             Object.hasOwn(move.helpers, change.property),
         );
       const migration =
-        confirmed || typeChecked ? propose(node, receiver, change, typeChecked) : undefined;
+        confirmed || typeChecked
+          ? propose(node, receiver, change, typeChecked, typeProven)
+          : undefined;
       const checkedMigration = typeChecked && migration !== undefined;
       if (property === undefined && !tracked) continue;
       const file = location(node).file;
@@ -2079,6 +2150,7 @@ export function analyzeRepository(
         ...(sourceClient ? helperEvidence(sourceClient, mutated) : {}),
         ...(declaredType ? { declaredType: { schema } } : {}),
         ...(checkedMigration ? { typeChecked: true as const } : {}),
+        ...(typeProven && confirmed ? { typeProven: true as const } : {}),
         ...(tracked || provenance || checkedMigration || iterationCallback(receiver)
           ? {}
           : { untraced: true as const }),
@@ -2113,18 +2185,19 @@ export function analyzeRepository(
         reason:
           (checkedMigration
             ? `Removed subscription.${change.property} read that the upgraded stripe-node types reject on Subscription. Refit's tracer did not reach its receiver, so the version-tolerant period helper reads it.`
-            : declaredType && confirmed
-              ? `Removed ${schema}.${change.property} read on a value declared with a Stripe.* type.`
-              : declaredType
-                ? 'Declared Stripe type identifies this possible field usage, but the value may be mutated; inspect manually.'
-                : confirmed && webhook
-                  ? `Removed ${schema}.${change.property} read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.`
-                  : confirmed
-                    ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
-                    : uncertainMutation
-                      ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
-                      : 'Receiver or property cannot be proven by the supported local analysis; inspect manually.') +
-          (moveReview ? ` ${moveReview}` : ''),
+            : typeProven && confirmed
+              ? `Removed ${schema}.${change.property} read on a value TypeScript's checker resolves to its Stripe type, with no type assertion or any on its path.`
+              : declaredType && confirmed
+                ? `Removed ${schema}.${change.property} read on a value declared with a Stripe.* type.`
+                : declaredType
+                  ? 'Declared Stripe type identifies this possible field usage, but the value may be mutated; inspect manually.'
+                  : confirmed && webhook
+                    ? `Removed ${schema}.${change.property} read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.`
+                    : confirmed
+                      ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
+                      : uncertainMutation
+                        ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
+                        : UNPROVEN_RECEIVER_REASON) + (moveReview ? ` ${moveReview}` : ''),
       });
     }
   }
@@ -2153,7 +2226,13 @@ export function analyzeRepository(
   // or through one const alias; new enum values on these fields can reach unhandled code (owner
   // decision 6, 2026-10-24).
   const enumChecks: (Location & { schema: string; property: string; compare?: true })[] = [];
-  const apiVersionLiterals: { file: string; start: number; end: number; value: string }[] = [];
+  const apiVersionLiterals: {
+    file: string;
+    start: number;
+    end: number;
+    value: string;
+    declaration?: number;
+  }[] = [];
   for (const node of nodes) {
     const compared = comparedWithLiterals(node);
     let checked = ts.isSwitchStatement(node)
@@ -2417,42 +2496,82 @@ export function analyzeRepository(
       }
     }
   }
+  const versionPaths = {
+    clients: new Map<ts.Symbol, number[]>(),
+    calls: new Map<ts.CallExpression, number[]>(),
+  };
+  const apiVersionDeclarations = declaredApiVersions({
+    nodes,
+    mutationNodes,
+    initialUnsafe: versionUnsafe,
+    checker,
+    provider,
+    clients,
+    creation: sdk.creation,
+    constructorBinding: sdk.binding,
+    clientBinding: (node) =>
+      ts.isVariableDeclaration(node.parent) && ts.isIdentifier(node.parent.name)
+        ? symbol(node.parent.name)
+        : (classBindings!.creations.get(node) ??
+          helperBindings.creations.get(node) ??
+          factoryBindings!.creations.get(node) ??
+          (ts.isExportAssignment(node.parent)
+            ? modules.inlineDefaults.get(node.parent)
+            : undefined)),
+    sdkCall: (node) => {
+      const call = sdkCall(node);
+      return provider.packageName === 'stripe' && call?.resource === 'webhooks' ? undefined : call;
+    },
+    symbol,
+    canonical,
+    location,
+    references: { ...clientReferences, localArgument: helperBindings.visibleArgument },
+    literals: apiVersionLiterals,
+    paths: versionPaths,
+  });
+  // The constructors of a client binding, through `const` aliases such as `const stripe = getStripe()`.
+  const constructorsOf = (
+    binding: ts.Symbol,
+    seen = new Set<ts.Symbol>(),
+  ): number[] | undefined => {
+    const recorded = versionPaths.clients.get(binding);
+    if (recorded || seen.has(binding)) return recorded;
+    const declaration = binding.valueDeclaration;
+    if (
+      !declaration ||
+      !ts.isVariableDeclaration(declaration) ||
+      !declaration.initializer ||
+      !ts.isVariableDeclarationList(declaration.parent) ||
+      !(declaration.parent.flags & ts.NodeFlags.Const)
+    )
+      return undefined;
+    const next = clientBinding(declaration.initializer);
+    return next && constructorsOf(next, new Set([...seen, binding]));
+  };
+  // The declarations that decide the version each rename's calls send: the call's own request
+  // options and every constructor of its client. Undefined when one of them is not recorded.
+  const renamePaths = new Map<SourceEdit, number[] | undefined>();
+  for (const [edit, targets] of renameCalls) {
+    const path = targets.flatMap((call) => {
+      const traced = sdkCall(call);
+      const binding = traced && clientBinding(traced.client);
+      const constructors = binding && constructorsOf(binding);
+      const request = versionPaths.calls.get(call);
+      return constructors && request ? [...constructors, ...request] : [undefined];
+    });
+    renamePaths.set(
+      edit,
+      path.length && path.every((index) => index !== undefined) ? (path as number[]) : undefined,
+    );
+  }
   return {
     imports,
     calls,
     sdkCalls,
     clientMethodCalls,
     expandedFields: [...expandedFields()].sort(),
-    apiVersionDeclarations: declaredApiVersions({
-      nodes,
-      mutationNodes,
-      initialUnsafe: versionUnsafe,
-      checker,
-      provider,
-      clients,
-      creation: sdk.creation,
-      constructorBinding: sdk.binding,
-      clientBinding: (node) =>
-        ts.isVariableDeclaration(node.parent) && ts.isIdentifier(node.parent.name)
-          ? symbol(node.parent.name)
-          : (classBindings!.creations.get(node) ??
-            helperBindings.creations.get(node) ??
-            factoryBindings!.creations.get(node) ??
-            (ts.isExportAssignment(node.parent)
-              ? modules.inlineDefaults.get(node.parent)
-              : undefined)),
-      sdkCall: (node) => {
-        const call = sdkCall(node);
-        return provider.packageName === 'stripe' && call?.resource === 'webhooks'
-          ? undefined
-          : call;
-      },
-      symbol,
-      canonical,
-      location,
-      references: { ...clientReferences, localArgument: helperBindings.visibleArgument },
-      literals: apiVersionLiterals,
-    }),
+    apiVersionDeclarations,
+    renamePaths,
     apiVersionLiterals,
     findings,
     enumChecks,

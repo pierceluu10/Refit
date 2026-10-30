@@ -1,8 +1,10 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
+import type { ShopifyReview } from './shopify-ai.ts';
 import { join, resolve } from 'node:path';
 import { structuredPatch } from 'diff';
 import ts from 'typescript-compiler';
 import { digest, isObject, type AddedProperty } from './specifications.ts';
+import type { LockfileChoice } from './dependency-inputs.ts';
 import { CURRENCY_CODE_RULE, PASSING_REACH } from './operation-reach.ts';
 import { affectedFields } from './report-fields.ts';
 import { PipelineInputError, type Finding } from './types.ts';
@@ -24,7 +26,7 @@ import {
   PAYMENT_METHOD_TYPES_CHANGELOG,
 } from './patches.ts';
 import { typeErrorKeys } from './type-errors.ts';
-import { HELPER_NAMES } from './stripe-subscription-periods.ts';
+import { HELPER_NAMES, HELPER_RULES } from './stripe-subscription-periods.ts';
 
 // The entry for one gate, when the draft has it.
 function gated<Gate extends ReviewReason['gate']>(
@@ -331,6 +333,7 @@ const LOCAL_PROOFS: Record<LocalProof, string> = {
   'literal-config': 'an object literal the repository writes',
   'generated-type': "a type generated from the repository's own schema",
   'receiver-type': 'a type that is not the changed object',
+  'prisma-client': "a Prisma model the repository's schema declares",
 };
 
 function failedChecks(validation: Validation) {
@@ -503,8 +506,38 @@ function replacementReasons(report: ValidationReport) {
   return { reasons, replacements };
 }
 
+function testModeLines(validation: unknown) {
+  const sandbox = (
+    validation as {
+      behaviour?: {
+        sandbox?: {
+          provider: string;
+          standIns: { id: string; standIn: string; assumption: string }[];
+          unreproducible: string[];
+          newErrors: string[];
+        };
+      };
+    }
+  ).behaviour?.sandbox;
+  if (!sandbox) return [];
+  return [
+    `- ${plainText(sandbox.provider)} Test Mode: the behaviour tests ran against Refit's own ${plainText(sandbox.provider)} test account, the original code at the before API version and the patch at the after version.`,
+    ...sandbox.standIns.map(
+      (item) =>
+        `- Stand-in: ${code(item.id)} is your account's object, so the tests used ${plainText(item.assumption)} in its place. **Check that your ${code(item.id)} behaves the same way.**`,
+    ),
+    ...sandbox.unreproducible.map(
+      (item) =>
+        `- Not reproduced: ${plainText(item)} lives in your account, so test mode could not check it and it stays outside grade A. **Check it when you approve.**`,
+    ),
+    ...sandbox.newErrors.map(
+      (error) => `- New ${plainText(sandbox.provider)} error on the patched side: ${code(error)}.`,
+    ),
+  ];
+}
+
 const EVIDENCE_LABELS = {
-  'behaviour-tests': 'Behaviour tests cover every changed line',
+  'behaviour-tests': "Behaviour tests in the provider's test mode cover every changed line",
   'stripe-tests': 'Tests exercise the changed code',
   'type-check': 'Type-checked only',
   'generated-check': 'Generated stripe-mock checks only',
@@ -594,29 +627,37 @@ export function createReviewArtifacts(
   const subscriptionPolicy = report.findings.some((finding) => finding.webhook?.migration)
     ? report.adapter.stripeSubscriptionPeriods
     : undefined;
-  const description = subscriptionPolicy
-    ? 'preserve subscription periods after item-level billing'
-    : request && requestChanges.length === 1 && !operationChanges.length && !readChanges.length
-      ? `update ${request.resource}.${request.method} after ${request.removed} removal`
-      : endpoint && operationChanges.length === 1 && !readChanges.length
-        ? `replace retired ${endpoint.resource}.${endpoint.method} calls`
-        : cardRename && !readChanges.length
-          ? 'move payment_method_types to allowed_payment_method_types'
-          : currencyEdits.length && !readChanges.length
-            ? 'lowercase currency codes'
-            : change && readChanges.length === 1
-              ? provider === 'Stripe' &&
-                change.schema === 'payment_intent' &&
-                change.property === 'charges'
-                ? 'restore payment history after charges removal'
-                : `migrate removed ${change.schema}.${change.property} reads`
-              : `migrate removed ${provider} API fields`;
+  // docs/VERSION-BUMP-PRS.md: every Stripe call traced and none uses what the target changes.
+  const versionBump = 'versionBump' in patch && patch.versionBump === true;
+  const description = versionBump
+    ? `upgrade Stripe API to ${report.apiVersion.after}`
+    : subscriptionPolicy
+      ? 'preserve subscription periods after item-level billing'
+      : request && requestChanges.length === 1 && !operationChanges.length && !readChanges.length
+        ? `update ${request.resource}.${request.method} after ${request.removed} removal`
+        : endpoint && operationChanges.length === 1 && !readChanges.length
+          ? `replace retired ${endpoint.resource}.${endpoint.method} calls`
+          : cardRename && !readChanges.length
+            ? 'move payment_method_types to allowed_payment_method_types'
+            : currencyEdits.length && !readChanges.length
+              ? 'lowercase currency codes'
+              : change && readChanges.length === 1
+                ? provider === 'Stripe' &&
+                  change.schema === 'payment_intent' &&
+                  change.property === 'charges'
+                  ? 'restore payment history after charges removal'
+                  : `migrate removed ${change.schema}.${change.property} reads`
+                : `migrate removed ${provider} API fields`;
   const versionTitle = shopify ? `upgrade Admin API to ${report.apiVersion.after}` : undefined;
   const scope = (
     integration ?? (shopify ? 'shopify' : report.adapter.packageName.split('/').pop()!)
   ).toLowerCase();
   // O2's evidence grade: what the passing checks proved about the changed files.
   const grade = 'grade' in validation ? validation.grade : undefined;
+  const shopifyReview =
+    'shopifyProof' in validation
+      ? (validation.shopifyProof as { review?: ShopifyReview }).review
+      : undefined;
   // A passing patch graded D, which no check fully reached, publishes only as [Needs review]
   // (AGENTS.md, 2026-10-24).
   const unchecked =
@@ -633,12 +674,21 @@ export function createReviewArtifacts(
           message: string;
         }[])
       : [];
+  // Webhook events both the original and the patched code handle differently in the new API
+  // version (signed-events.ts): the patch did not cause it, and did not fix it.
+  const unresolvedEvents =
+    'signedEvents' in validation &&
+    validation.signedEvents &&
+    'unresolved' in validation.signedEvents
+      ? (validation.signedEvents.unresolved as { id: string; error: string }[])
+      : [];
   const needsReview = Boolean(
     reviews?.length ||
     patch.unresolvedFindings ||
     keptProperties.length ||
     unchecked ||
-    advisoryTypeErrors.length,
+    advisoryTypeErrors.length ||
+    unresolvedEvents.length,
   );
   const prefix = needsReview ? NEEDS_REVIEW_PREFIX : '';
   const full = `${prefix}fix(${scope}): ${versionTitle ?? description}`;
@@ -694,8 +744,30 @@ export function createReviewArtifacts(
   const fromBunLock = [validation.environment, validation.patchedEnvironment].some(
     (environment) => typeof environment?.bunLockHash === 'string',
   );
-  const lockfileChoice = validation.environment?.lockfileChoice as
-    { lockfile: string; outOfSync: Record<string, string> } | undefined;
+  const lockfileChoice = validation.environment?.lockfileChoice as LockfileChoice | undefined;
+  const otherLockfiles = Object.entries(lockfileChoice?.others ?? {});
+  // Lockfiles a patch that upgrades stripe leaves as committed (stripe-package-upgrade.ts).
+  const unchangedLockfiles = /^diff --git "a\/package\.json"/m.test(patch.diff)
+    ? otherLockfiles
+        .map(([file]) => file)
+        .filter((file) => !patch.diff.includes(`diff --git "a/${file}"`))
+    : [];
+  type ResolvedLockfile = {
+    reason: string;
+    before: string;
+    late?: Record<string, { spec: string; published: string }>;
+  };
+  const resolvedLockfiles = [validation.environment, validation.patchedEnvironment]
+    .map((environment) => environment?.resolvedLockfile as ResolvedLockfile | undefined)
+    .filter((entry) => entry !== undefined);
+  const completedRecords = [
+    ...new Set(
+      [validation.environment, validation.patchedEnvironment].flatMap((environment) => {
+        const completed = environment?.completedLockfile as { records?: unknown } | undefined;
+        return Array.isArray(completed?.records) ? (completed.records as string[]) : [];
+      }),
+    ),
+  ];
   const prunedGlibcPackages = Math.max(
     0,
     ...[validation.environment, validation.patchedEnvironment].map((environment) => {
@@ -745,8 +817,17 @@ export function createReviewArtifacts(
     typeof patch.sdkUpgrade === 'object' &&
     'to' in patch.sdkUpgrade &&
     'from' in patch.sdkUpgrade
-      ? (patch.sdkUpgrade as { from: string; to: string })
+      ? (patch.sdkUpgrade as {
+          from: string;
+          to: string;
+          raised?: { name: string; from: string; to: string; range: string }[];
+        })
       : undefined;
+  const raisedPeers = summaryList(
+    (upgrade?.raised ?? []).map(
+      ({ name, from, to }) => `${code(name)} from ${code(from)} to ${code(to)}`,
+    ),
+  );
   const pinFrom = report.apiVersion.application;
   const pinTo = report.apiVersion.after;
   const movesPin = (file: FileChange) =>
@@ -812,7 +893,7 @@ export function createReviewArtifacts(
               : []),
             ...(upgrade && (/(?:^|\/)package\.json$/.test(file.path) || LOCKFILE.test(file.path))
               ? [
-                  `Upgrades ${code(report.adapter.packageName)} from ${code(upgrade.from)} to ${code(upgrade.to)}.`,
+                  `Upgrades ${code(report.adapter.packageName)} from ${code(upgrade.from)} to ${code(upgrade.to)}${raisedPeers ? ` and raises ${raisedPeers}` : ''}.`,
                 ]
               : []),
           ].join(' ') || `Updates ${plainText(provider)} API usage for the new contract.`;
@@ -827,6 +908,11 @@ export function createReviewArtifacts(
         }`,
       ]
     : [
+        ...(versionBump
+          ? [
+              `None of ${plainText(provider)} API ${after}'s breaking changes reaches the traced calls (see Changed, Not Used By Traced Code).`,
+            ]
+          : []),
         ...(readChanges.length
           ? [`Removes response fields ${changes} in ${plainText(provider)} API ${after}.`]
           : []),
@@ -863,6 +949,11 @@ export function createReviewArtifacts(
         !validation.repair.enumsUnchanged
           ? [
               `Restores the known values of the Stripe enums that stripe-node 22.4.0 widened with ${code('OtherString')}, using ${code('Extract<…>')} types where the upgraded types rejected this code. Runtime code is unchanged: a value Stripe adds later still reaches this code unchecked, as it did before the upgrade.`,
+            ]
+          : []),
+        ...(validation.repair?.typeAssertions?.length
+          ? [
+              `Asserts the type this code expects at ${summaryList(validation.repair.typeAssertions.map((site) => code(`${site.file}:${site.line}`)))}, where the upgraded stripe-node types widened a value it assigns to a narrower type. Each file compiles to the same JavaScript as before (checked with TypeScript's ${code('transpileModule')}), so runtime behaviour is unchanged: a value outside the asserted type still reaches this code unchecked, as it did before the upgrade.`,
             ]
           : []),
         ...(typeCheckedReads.length
@@ -902,6 +993,13 @@ export function createReviewArtifacts(
             .join('; ')}.`,
         ]
       : []),
+    ...(unresolvedEvents.length
+      ? [
+          `**Webhook events of the new API version.** Refit sent signed test events of both versions to your webhook handler, offline. The original and the patched code both handle ${unresolvedEvents.length === 1 ? 'this event' : 'these events'} differently when ${unresolvedEvents.length === 1 ? 'it arrives' : 'they arrive'} in the new version, so the handler is not ready for an endpoint on that version: ${unresolvedEvents
+            .map((event) => `${code(event.id)} (${plainText(event.error)})`)
+            .join('; ')}. The webhook endpoint's own version is unchanged.`,
+        ]
+      : []),
     ...(shopify?.deprecated ?? []).map(
       (entry) =>
         `Deprecated on ${after}, still served: ${code(entry.split(':')[0])}${plainText(entry.slice(entry.indexOf(':')))}`,
@@ -931,6 +1029,11 @@ export function createReviewArtifacts(
     upgrade.from.split('.')[0] !== upgrade.to.split('.')[0]
       ? [
           `Upgrades ${code('stripe')} across major versions, ${code(upgrade.from)} to ${code(upgrade.to)}; [its changelog](${STRIPE_NODE_CHANGELOG}) lists type and behavior changes the checks may not cover.`,
+        ]
+      : []),
+    ...(upgrade?.raised?.length
+      ? [
+          `Raises ${raisedPeers} with it: stripe ${code(upgrade.to)} declares ${summaryList(upgrade.raised.map(({ name, range }) => `${code(name)} ${code(range)}`))} as an optional peer, and Refit takes the lowest version in that range. Newer types can reject code that compiled before; check your own type check and editor.`,
         ]
       : []),
     ...movedExpressions.map(
@@ -1060,6 +1163,19 @@ export function createReviewArtifacts(
   const fileTotal = changedFiles(patch.diff).length;
   const stripe = provider === 'Stripe';
   const webhookReads = report.findings.some((finding) => finding.webhook);
+  // Founder decision (2026-10-28): webhook reads the generated helpers migrated work under the old
+  // and the new payload, so the endpoint's version is a deploy step, not a hold.
+  const helperWebhooks =
+    !webhookGate &&
+    report.findings.some((finding) => HELPER_RULES.has(finding.webhook?.migration?.rule ?? ''));
+  // Clients whose version a deployment environment variable sets (founder decision, 2026-10-28):
+  // a note naming the variable, not a hold. A repository default the patch moves is listed too.
+  const environmentPins = (report.apiVersion?.source?.declarations ?? []).filter(
+    (declaration) => declaration.environment,
+  );
+  const environmentVariables = [
+    ...new Set(environmentPins.map((declaration) => code(declaration.environment!))),
+  ];
   // What the run did not establish, in one place, so a reviewer does not infer it from silence.
   const notVerified = [
     ranCode
@@ -1075,6 +1191,11 @@ export function createReviewArtifacts(
     ...(stripe && (pinFiles.length || webhookReads)
       ? [
           'Webhook endpoints keep the API version set in the Stripe Dashboard. This patch does not change them, so events can keep arriving in the old shape until you update them.',
+        ]
+      : []),
+    ...(environmentPins.length
+      ? [
+          `The API version comes from ${summaryList(environmentVariables)} where you deploy (${summaryList(environmentPins.map((declaration) => code(`${declaration.file}:${declaration.line}`)))}), which Refit cannot read.${environmentPins.some((declaration) => declaration.value) ? ' This patch moves the default the code falls back to; a value set in the environment still overrides it.' : ''}`,
         ]
       : []),
     ...(shopify
@@ -1112,6 +1233,11 @@ export function createReviewArtifacts(
     `Refit changed nothing outside this repository${stripe ? ': no Stripe Dashboard, webhook endpoint or account setting' : ''}.`,
   ];
   const checklist = [
+    ...(versionBump
+      ? [
+          "Check each webhook endpoint's API version in the Stripe Dashboard (Developers > Webhooks). Endpoints have their own version, which this pull request does not change.",
+        ]
+      : []),
     `Read each change under Code Changes${sources.length ? ' against the provider page linked in Overview' : ''}.`,
     ...(dependency
       ? [
@@ -1126,6 +1252,16 @@ export function createReviewArtifacts(
     ...(webhookGate
       ? [
           `Set the webhook endpoint API version to ${code(webhookGate.targetVersion)} when you deploy, or confirm it already is.`,
+        ]
+      : []),
+    ...(helperWebhooks && !versionBump && report.apiVersion?.after
+      ? [
+          `Set each webhook endpoint's API version to ${code(report.apiVersion.after)} when you deploy. The generated helpers read the old and the new payload, so the handlers work before and after.`,
+        ]
+      : []),
+    ...(environmentPins.length && report.apiVersion?.after
+      ? [
+          `Set ${summaryList(environmentVariables)} to ${code(report.apiVersion.after)} in every environment you deploy to, or confirm ${environmentVariables.length === 1 ? 'it is' : 'they are'} already.`,
         ]
       : []),
     ...(reviews ?? [])
@@ -1170,13 +1306,16 @@ export function createReviewArtifacts(
                 `Fix what ${commandText(validation.command)} reports on the migrated code (see Automated Verification Gates).`,
               ]),
   ];
-  const overview = shopify
-    ? `This app pins Shopify Admin API ${plainText(report.apiVersion.application ?? 'an older version')}. A deterministic Refit rule moves it to ${after} after checking every traced GraphQL document against the ${after} schema.`
-    : `${plainText(provider)} API ${after} ${overviewCauses.length ? overviewCauses.join(' and ') : 'changes API usage this code relies on'}. ${
-        patch.diff
-          ? `${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount}.`
-          : `No Refit rule changes the ${usageCount} in ${fileCount}, so this patch changes no files.`
-      }`;
+  const tracedCalls = versionBump ? report.sdkCalls.length : 0;
+  const overview = versionBump
+    ? `Refit traced ${tracedCalls} ${plainText(provider)} call${tracedCalls === 1 ? '' : 's'} in this code, and none uses anything ${plainText(provider)} API ${after} changes. ${pinFiles.length ? `This patch moves every ${code('apiVersion')} pin to ${after}${upgrade ? ` and upgrades ${code(report.adapter.packageName)} from ${code(upgrade.from)} to ${code(upgrade.to)} in the package manifest and lockfile` : ''}.` : `No client sets ${code('apiVersion')}, so the installed ${code(report.adapter.packageName)} decides the version: this patch upgrades it${upgrade ? ` from ${code(upgrade.from)} to ${code(upgrade.to)}` : ''} in the package manifest and lockfile, which sends ${after}.`}${passed ? ' The checks passed before and after the change.' : ''}`
+    : shopify
+      ? `This app pins Shopify Admin API ${plainText(report.apiVersion.application ?? 'an older version')}. A deterministic Refit rule moves it to ${after} after checking every traced GraphQL document against the ${after} schema.`
+      : `${plainText(provider)} API ${after} ${overviewCauses.length ? overviewCauses.join(' and ') : 'changes API usage this code relies on'}. ${
+          patch.diff
+            ? `${ai ? `AI${model ? ` (${code(model)})` : ''}, checked by Refit,` : 'A deterministic Refit rule'} migrates ${usageCount} in ${fileCount}.`
+            : `No Refit rule changes the ${usageCount} in ${fileCount}, so this patch changes no files.`
+        }`;
   const checks = passed
     ? passedChecks(validation)
     : dependency
@@ -1185,6 +1324,8 @@ export function createReviewArtifacts(
         : `**Not run: dependency preparation failed (${code(dependency.failure.reason)}); this patch is untested.**`
       : failedChecks(validation);
   const aiLines = gated(reviews, 'ai-patch') ? aiWrittenLines(patch, Boolean(upgrade)) : [];
+  const explanations = ('explanations' in patch && patch.explanations) || [];
+  const policies = validation.repair?.policies ?? [];
   // Every reason this draft needs review, each with what to check and where (owner decision 1).
   const reasonList = (siteLimit: number) =>
     (reviews ?? []).map((entry) => {
@@ -1218,6 +1359,19 @@ export function createReviewArtifacts(
             reasonList(siteLimit).join('\n'),
           ]
         : []),
+      // Founder decision (2026-10-28): each edit of an AI repair where a policy used to stop.
+      ...(explanations.length
+        ? [
+            '## What the AI changed and why',
+            `The patch broke the build, and AI repaired it where Refit used to stop for review (founder decision, 2026-10-28). **Check each edit and its source before merging.**${policies.length ? ` Without that decision, Refit would have stopped here: ${policies.map(plainText).join(' ')}` : ''}`,
+            explanations
+              .map(
+                (note) =>
+                  `- ${code(`${note.file}:${note.line}`)} Build error: ${code(note.error.length > MAX_QUOTE ? `${note.error.slice(0, MAX_QUOTE)}...` : note.error)} Change: ${plainText(note.why)} Source: ${/^https:\/\/\S+$/.test(note.source) ? note.source : '**none: no documentation page backs this edit.**'}`,
+              )
+              .join('\n'),
+          ]
+        : []),
       ...(dependency
         ? [
             '## Untested: checks did not run',
@@ -1225,7 +1379,8 @@ export function createReviewArtifacts(
               ? `**Refit did not run any checks on this patch.** ${commandText(validation.baselineCommand)} passed on the original code, but ${dependency.failure.reason === OTHER_DEPENDENCY_FAILURE.reason ? 'Refit could not install the upgraded lockfile this patch writes in its sandbox' : `the upgraded lockfile this patch writes could not be installed because ${plainText(dependency.failure.summary)}`}, so the patched code was not built or tested. Nothing in this patch is verified.`
               : `**Refit did not run any checks on this patch.** Preparing the repository's dependencies failed because ${plainText(dependency.failure.summary)}, so neither the original nor the patched code was built or tested. Nothing in this patch is verified.`,
             `> ${plainText(dependency.failure.message.length > MAX_QUOTE ? `${dependency.failure.message.slice(0, MAX_QUOTE)}...` : dependency.failure.message)}`,
-            `**What to do:** ${dependency.failure.action} Don't merge until they pass.`,
+            // A stop names what Refit could not do, never a task (founder decision, 2026-10-28).
+            `**What Refit could not do:** ${dependency.failure.action}`,
           ]
         : []),
       ...(parameterGate
@@ -1271,9 +1426,23 @@ export function createReviewArtifacts(
           ]
         : []),
       '## Overview',
-      shopify
-        ? overview
-        : `${overview}${sources.length ? ` ${plainText(provider)} documents the change: ${sources.join(', ')}.` : ''}`,
+      ...(versionBump
+        ? [
+            overview,
+            '## Traced Stripe Calls',
+            siteList(
+              report.sdkCalls.map(
+                (call) =>
+                  `${code(`${call.file}:${call.line}`)} ${code(`${call.resource}.${call.method}`)}`,
+              ),
+              Math.max(siteLimit, 1),
+            ),
+          ]
+        : [
+            shopify
+              ? overview
+              : `${overview}${sources.length ? ` ${plainText(provider)} documents the change: ${sources.join(', ')}.` : ''}`,
+          ]),
       '## API Impact & Spec Changes',
       [
         `- Breaking Changes: ${breaking.join(' ') || 'Recorded in the technical evidence.'}`,
@@ -1296,6 +1465,21 @@ export function createReviewArtifacts(
           ? `- Evidence Grade: **${grade.letter ? `${grade.letter}, ` : ''}${EVIDENCE_LABELS[grade.level]}.** ${plainText(grade.reason)}`
           : `- Evidence Strength: ${evidenceStrength(validation, generatedPassed)}`,
         `- Test Suite Output: ${checks}${generatedResult}`,
+        // AI use 5 (docs/SHOPIFY-PROOF.md): advisory, it never sets the grade or holds the draft.
+        ...(shopifyReview?.status === 'completed'
+          ? [
+              `- AI Second Opinion (advisory; it does not change the grade): ${
+                shopifyReview.concerns?.length
+                  ? summaryList(
+                      shopifyReview.concerns.map(
+                        (entry) =>
+                          `${code(`${entry.file}:${entry.line}`)} ${plainText(entry.concern)}`,
+                      ),
+                    )
+                  : 'no concerns.'
+              }`,
+            ]
+          : []),
         // Owner decision D2a: the type check stood in for tests the repository does not have.
         ...(validation.coverageAi?.gate?.typeCheckOnly
           ? [
@@ -1317,9 +1501,23 @@ export function createReviewArtifacts(
               )}.`,
             ]
           : []),
+        // Founder decision (2026-10-28): a repair that ended on a repeated proposal says why.
+        ...(validation.repair?.stopReason === 'repeated-proposal' && validation.repair.error
+          ? [`- AI Repair: ${plainText(validation.repair.error)}`]
+          : []),
+        // Stripe test mode: what Refit stood in for in its own account, and what it could not.
+        ...testModeLines(validation),
+        // The checkJs check stood in for tests (D2a's rule on JavaScript TypeScript proved typed).
+        ...(validation.checkJs?.counts
+          ? [
+              `- Validated by type check (checkJs), no tests: every contract change the patch handles is type-visible, and tsc with checkJs shows no new error against the target stripe-node. ${plainText(validation.checkJs.reason)}.`,
+            ]
+          : validation.checkJs
+            ? [`- checkJs type check, not counted: ${plainText(validation.checkJs.reason)}.`]
+            : []),
         ...(legacyPeerDeps
           ? [
-              "- Dependency Installation: `npm ci` rejected the committed lockfile's peer dependencies, so Refit installed the same lockfile with `--legacy-peer-deps`. Check that your own install uses the same setting.",
+              `- Dependency Installation: \`npm ci\` rejected the ${resolvedLockfiles.length ? 'resolved' : 'committed'} lockfile's peer dependencies, so Refit installed the same lockfile with \`--legacy-peer-deps\`. Check that your own install uses the same setting.`,
             ]
           : []),
         ...(fromBunLock
@@ -1329,7 +1527,17 @@ export function createReviewArtifacts(
           : []),
         ...(lockfileChoice
           ? [
-              `- Dependency Installation: the repository commits ${[lockfileChoice.lockfile, ...Object.keys(lockfileChoice.outOfSync)].map(code).join(' and ')}. Refit installed ${code(lockfileChoice.lockfile)}, the only one in sync with \`package.json\`, and did not read ${Object.keys(lockfileChoice.outOfSync).length === 1 ? 'the other' : 'the others'}: ${Object.values(lockfileChoice.outOfSync).map(plainText).join(' ')} Delete the lockfile your package manager does not use.`,
+              `- Dependency Installation: the repository commits ${[lockfileChoice.lockfile, ...otherLockfiles.map(([file]) => file)].map(code).join(' and ')}. Refit installed ${code(lockfileChoice.lockfile)}, ${lockfileChoice.because}, and did not read ${otherLockfiles.length === 1 ? 'the other' : 'the others'}${otherLockfiles.every(([, note]) => note === 'not read') ? '.' : `: ${otherLockfiles.map(([, note]) => plainText(note)).join(' ')}`}${unchangedLockfiles.length ? ` This patch upgrades stripe in ${code(lockfileChoice.lockfile)} only and leaves ${unchangedLockfiles.map(code).join(' and ')} as committed, still locking the older stripe.` : ''} Delete the lockfile your package manager does not use.`,
+            ]
+          : []),
+        ...(resolvedLockfiles.length
+          ? [
+              `- Dependency Installation: the checks ran against a \`package-lock.json\` Refit resolved, not one the repository commits (${{ 'no-lockfile': 'it commits none', 'lockfile-out-of-sync': 'the committed one is out of sync with `package.json`', 'lockfile-integrity': 'the committed one has entries without integrity hashes' }[resolvedLockfiles[0].reason] ?? resolvedLockfiles[0].reason}). npm resolved it with lifecycle scripts off from registry.npmjs.org as of ${resolvedLockfiles[0].before}, the last commit date${[...new Set(resolvedLockfiles.flatMap((entry) => Object.entries(entry.late ?? {}).map(([name, pin]) => `${code(`${name}@${pin.spec}`)} as of ${pin.published}`)))].map((pin, index) => `${index ? ', ' : '; '}${pin}`).join('')}, and installed it with \`npm ci\`. It is not part of this pull request; commit your own lockfile and rerun your checks.`,
+            ]
+          : []),
+        ...(completedRecords.length
+          ? [
+              `- Dependency Installation: the committed \`yarn.lock\` locks ${completedRecords.map(code).join(', ')} without a registry URL or integrity hash. For the checks only, Refit kept ${completedRecords.length === 1 ? 'that version' : 'those versions'} and added the tarball URL and SHA-512 integrity registry.npmjs.org publishes for ${completedRecords.length === 1 ? 'it' : 'each'}, which Yarn verified while installing. That completed lockfile is not part of this pull request; commit a regenerated \`yarn.lock\` to record them yourself.`,
             ]
           : []),
         ...(prunedGlibcPackages

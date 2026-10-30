@@ -1,3 +1,4 @@
+import { HOSTED_REPAIR_ATTEMPTS } from './validation-options.ts';
 import { parseArgs } from 'node:util';
 import type { Pool } from 'pg';
 import {
@@ -40,6 +41,7 @@ import { openInventoryStore } from './inventory-store.ts';
 import { hostedAlerts } from './monitoring.ts';
 import { publishUnresolved } from './publication.ts';
 import { hostedReports } from './report-issues.ts';
+import { hostedCustomerCi } from './hosted-customer.ts';
 import { hostedWatch } from './vendor-watch.ts';
 import { validateServiceSecret } from './local-service.ts';
 import { readRepositoryApproval } from './repository-enrollment.ts';
@@ -51,7 +53,7 @@ const REPOSITORY = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
 const JOB_ID = /^[1-9]\d{0,15}$/;
 // A job process's connections, for its AI ledger reservations.
 const JOB_PROCESS_CONNECTIONS = 2;
-const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0|1|2] [--publish-draft [--supersede-drafts]] [--publish-unresolved | --publish-validated-only] [--job-processes <n> | --job-machines] [--purge-uninstalled]
+const USAGE = `Usage: refit hosted serve --state <directory> [--host <address>] [--port <number>] [--interval <seconds>] [--ai-patch --repair-attempts 0-4] [--publish-draft [--supersede-drafts]] [--publish-unresolved | --publish-validated-only] [--job-processes <n> | --job-machines] [--purge-uninstalled]
        refit hosted approve --approval <receipt.json> --approved-by <github-login>
        refit hosted retry --target <id>
        refit hosted reconcile
@@ -504,13 +506,16 @@ try {
         tenancy: hostedTenancy(process.env),
         alerts: hostedAlerts(process.env) ?? undefined,
         reports: hostedReports(process.env),
+        customerCi: hostedCustomerCi(process.env),
         watch: hostedWatch(process.env),
         aiPatch: assessmentConfiguration(values['ai-patch'], process.env),
         aiTotalUsd:
           process.env.REFIT_HOSTED_AI_BUDGET_USD === undefined
             ? undefined
             : aiBudgetLimit(process.env.REFIT_HOSTED_AI_BUDGET_USD, 'REFIT_HOSTED_AI_BUDGET_USD'),
-        repairAttempts: Number(values['repair-attempts'] ?? 0),
+        repairAttempts: Number(
+          values['repair-attempts'] ?? (values['ai-patch'] ? HOSTED_REPAIR_ATTEMPTS : 0),
+        ),
         publishDraft: values['publish-draft'],
         publishUnresolved: publishUnresolved(values),
         supersedeDrafts: values['supersede-drafts'],

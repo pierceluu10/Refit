@@ -1,0 +1,78 @@
+{
+  "formatVersion": 1,
+  "api": "storefront",
+  "previous": "2024-10",
+  "version": "2025-01",
+  "sha256": {
+    "2024-10": "3ac59849b70aef5d5df563fe615f0ff09d845e0ab2121ca865908167f02105dc",
+    "2025-01": "7134f3149e69912a2a9e4bfc59cf3cd59a7fe7a83aae194ea1cd2af1ffe6287a"
+  },
+  "changes": [
+    {
+      "id": "deprecated",
+      "coordinate": "CartBuyerIdentity.deliveryAddressPreferences",
+      "text": "CartBuyerIdentity.deliveryAddressPreferences is deprecated: Use `cart.delivery` instead.",
+      "breaking": false
+    },
+    {
+      "id": "input-field-removed",
+      "coordinate": "CartBuyerIdentityInput.deliveryAddressPreferences",
+      "text": "CartBuyerIdentityInput.deliveryAddressPreferences was removed.",
+      "breaking": true
+    },
+    {
+      "id": "deprecated",
+      "coordinate": "CartCost.totalDutyAmount",
+      "text": "CartCost.totalDutyAmount is deprecated: Tax and duty amounts are no longer available and will be removed in a future version.\nPlease see [the changelog](https://shopify.dev/changelog/tax-and-duties-are-deprecated-in-storefront-cart-api)\nfor more information.\n",
+      "breaking": false
+    },
+    {
+      "id": "deprecated",
+      "coordinate": "CartCost.totalDutyAmountEstimated",
+      "text": "CartCost.totalDutyAmountEstimated is deprecated: Tax and duty amounts are no longer available and will be removed in a future version.\nPlease see [the changelog](https://shopify.dev/changelog/tax-and-duties-are-deprecated-in-storefront-cart-api)\nfor more information.\n",
+      "breaking": false
+    },
+    {
+      "id": "deprecated",
+      "coordinate": "CartCost.totalTaxAmount",
+      "text": "CartCost.totalTaxAmount is deprecated: Tax and duty amounts are no longer available and will be removed in a future version.\nPlease see [the changelog](https://shopify.dev/changelog/tax-and-duties-are-deprecated-in-storefront-cart-api)\nfor more information.\n",
+      "breaking": false
+    },
+    {
+      "id": "deprecated",
+      "coordinate": "CartCost.totalTaxAmountEstimated",
+      "text": "CartCost.totalTaxAmountEstimated is deprecated: Tax and duty amounts are no longer available and will be removed in a future version.\nPlease see [the changelog](https://shopify.dev/changelog/tax-and-duties-are-deprecated-in-storefront-cart-api)\nfor more information.\n",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CartErrorCode.INVALID_DELIVERY_ADDRESS_ID",
+      "text": "CartErrorCode.INVALID_DELIVERY_ADDRESS_ID was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CartErrorCode.ONLY_ONE_DELIVERY_ADDRESS_CAN_BE_SELECTED",
+      "text": "CartErrorCode.ONLY_ONE_DELIVERY_ADDRESS_CAN_BE_SELECTED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CartErrorCode.TOO_MANY_DELIVERY_ADDRESSES",
+      "text": "CartErrorCode.TOO_MANY_DELIVERY_ADDRESSES was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CartWarningCode.DUPLICATE_DELIVERY_ADDRESS",
+      "text": "CartWarningCode.DUPLICATE_DELIVERY_ADDRESS was added.",
+      "breaking": false
+    },
+    {
+      "id": "field-type-changed",
+      "coordinate": "SellingPlanPercentagePriceAdjustment.adjustmentPercentage",
+      "text": "SellingPlanPercentagePriceAdjustment.adjustmentPercentage changed type from Int! to Float!.",
+      "breaking": true
+    }
+  ]
+}

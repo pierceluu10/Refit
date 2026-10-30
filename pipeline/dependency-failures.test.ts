@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
 import {
+  codeHostFailure,
   DependencyPreparationError,
   hostInstallFailure,
   PreparationHostError,
@@ -39,7 +40,7 @@ it('classifies the lockfile refusals the repository owner can fix', () => {
     ),
   ).toMatchObject({
     reason: 'lockfile-out-of-sync',
-    action: expect.stringContaining('Update `package-lock.json` so it matches `package.json`'),
+    action: expect.stringContaining('`package-lock.json` does not match `package.json`'),
   });
   expect(
     failure(manifest, {
@@ -53,7 +54,10 @@ it('classifies the lockfile refusals the repository owner can fix', () => {
         'The repository commits package.json without a lockfile, so the dependency versions to verify are unknown. Run npm install, pnpm install or yarn install and commit the package-lock.json, pnpm-lock.yaml or yarn.lock it writes.',
       ),
     ),
-  ).toMatchObject({ reason: 'no-lockfile', action: expect.stringContaining('package-lock.json') });
+  ).toMatchObject({
+    reason: 'no-lockfile',
+    action: expect.stringContaining('commits no lockfile'),
+  });
   expect(
     preparationFailure(
       new DependencyPreparationError(
@@ -76,12 +80,12 @@ it('classifies the lockfile refusals the repository owner can fix', () => {
   ])
     expect(preparationFailure(new PipelineInputError(message))).toMatchObject({
       reason: 'lockfile-out-of-sync',
-      action: expect.stringContaining('Update `pnpm-lock.yaml` so it matches `package.json`'),
+      action: expect.stringContaining('`pnpm-lock.yaml` does not match `package.json`'),
     });
   expect(
     preparationFailure(
       new DependencyPreparationError(
-        'Dependency archive exceeds 1024 MiB. This exceeds the largest validation profile; use a custom validation image.',
+        'Dependency archive exceeds 1024 MiB. This exceeds the largest validation profile; the sandbox cannot hold it.',
       ),
     ),
   ).toMatchObject({ reason: 'dependency-archive-limit' });
@@ -93,7 +97,7 @@ it('classifies the lockfile refusals the repository owner can fix', () => {
     ),
   ).toMatchObject({
     reason: 'peer-dependency-conflict',
-    action: expect.stringContaining('commit the updated `package-lock.json`'),
+    action: expect.stringContaining('peer dependencies `package-lock.json` records'),
   });
 });
 
@@ -107,7 +111,7 @@ it('records install and unnamed input refusals as preparation-failed, keeping th
     expect(preparationFailure(error)).toEqual({
       reason: 'preparation-failed',
       summary: 'Refit could not install them in its sandbox',
-      action: expect.stringContaining('Refit ran none'),
+      action: expect.stringContaining('none of its checks ran'),
       message: error.message,
     });
 });
@@ -204,4 +208,20 @@ it("treats Docker, host and registry failures of an install as Refit's", () => {
     'npm error code ELIFECYCLE',
   ])
     expect(hostInstallFailure('npm', exit(1), stderr)).toBeUndefined();
+});
+
+it('names a code-host archive that is gone or changed, and leaves an unreachable host to retry', () => {
+  const url = 'https://codeload.github.com/acme/kit/tar.gz/refs/tags/v0.1.2';
+  expect(codeHostFailure(`npm error code E404\nnpm error 404 Not Found - GET ${url}\n`)).toBe(
+    `npm could not download ${url}, a code-host archive package-lock.json pins: the host no longer serves it.`,
+  );
+  expect(
+    codeHostFailure(
+      `npm error code EINTEGRITY\nnpm error sha512-a integrity checksum failed when using sha512\n${url}\n`,
+    ),
+  ).toContain('the lockfile pins a code-host archive');
+  expect(codeHostFailure('npm error code ETIMEDOUT\nnpm error network timeout')).toBeUndefined();
+  expect(
+    preparationFailure(new DependencyPreparationError(codeHostFailure(`E404 ${url}`)!)),
+  ).toMatchObject({ reason: 'preparation-failed' });
 });

@@ -1,0 +1,583 @@
+{
+  "formatVersion": 1,
+  "api": "admin",
+  "previous": "2026-01",
+  "version": "2026-04",
+  "sha256": {
+    "2026-01": "21835c40aaa6bc814c1fc86c9c91ad376921053c803a9a734c4260f51f17d2c1",
+    "2026-04": "976b0243a750107d87d3eec912f83fb361622d54e82e656cef80b315204d3c85"
+  },
+  "changes": [
+    {
+      "id": "enum-value-added",
+      "coordinate": "BusinessCustomerErrorCode.MANAGED_BY_APP",
+      "text": "BusinessCustomerErrorCode.MANAGED_BY_APP was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CashTrackingSessionsSortKeys.CREATED_AT",
+      "text": "CashTrackingSessionsSortKeys.CREATED_AT was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CheckoutBrandingColorSchemeSelection.COLOR_SCHEME5",
+      "text": "CheckoutBrandingColorSchemeSelection.COLOR_SCHEME5 was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CheckoutBrandingColorSchemeSelection.COLOR_SCHEME6",
+      "text": "CheckoutBrandingColorSchemeSelection.COLOR_SCHEME6 was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "ColumnDataType.COLOR",
+      "text": "ColumnDataType.COLOR was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "ColumnDataType.CUMULATIVE",
+      "text": "ColumnDataType.CUMULATIVE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "ColumnDataType.ENTITY",
+      "text": "ColumnDataType.ENTITY was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "ColumnDataType.GEO_COORDINATE",
+      "text": "ColumnDataType.GEO_COORDINATE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "ColumnDataType.MULTIPLIER",
+      "text": "ColumnDataType.MULTIPLIER was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "ColumnDataType.RATING",
+      "text": "ColumnDataType.RATING was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "ColumnDataType.STRING_IDENTITY",
+      "text": "ColumnDataType.STRING_IDENTITY was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "ColumnDataType.UNITLESS_SCALAR",
+      "text": "ColumnDataType.UNITLESS_SCALAR was added.",
+      "breaking": false
+    },
+    {
+      "id": "type-removed",
+      "coordinate": "DeliveryLegacyModeBlocked",
+      "text": "DeliveryLegacyModeBlocked was removed.",
+      "breaking": true
+    },
+    {
+      "id": "type-removed",
+      "coordinate": "DeliveryLegacyModeBlockedReason",
+      "text": "DeliveryLegacyModeBlockedReason was removed.",
+      "breaking": true
+    },
+    {
+      "id": "field-removed",
+      "coordinate": "DeliveryProfile.legacyMode",
+      "text": "DeliveryProfile.legacyMode was removed.",
+      "breaking": true,
+      "deprecationReason": "Legacy mode profiles are no longer supported. This will be removed in 2026-04."
+    },
+    {
+      "id": "type-removed",
+      "coordinate": "DeliverySetting",
+      "text": "DeliverySetting was removed.",
+      "breaking": true
+    },
+    {
+      "id": "type-removed",
+      "coordinate": "DeliverySettingInput",
+      "text": "DeliverySettingInput was removed.",
+      "breaking": true
+    },
+    {
+      "id": "field-removed",
+      "coordinate": "DeliverySettingUpdatePayload.setting",
+      "text": "DeliverySettingUpdatePayload.setting was removed.",
+      "breaking": true
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "DiscountErrorCode.INVALID_PRODUCT_DISCOUNTS_FALSE_WITH_EXISTING_TAGS_ON_SAME_CART_LINE",
+      "text": "DiscountErrorCode.INVALID_PRODUCT_DISCOUNTS_FALSE_WITH_EXISTING_TAGS_ON_SAME_CART_LINE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "DiscountErrorCode.INVALID_PRODUCT_DISCOUNTS_WITH_TAGS_ON_SAME_CART_LINE_FOR_DISCOUNT_CLASS",
+      "text": "DiscountErrorCode.INVALID_PRODUCT_DISCOUNTS_WITH_TAGS_ON_SAME_CART_LINE_FOR_DISCOUNT_CLASS was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "DiscountErrorCode.INVALID_PRODUCT_DISCOUNTS_WITH_TAGS_ON_SAME_CART_LINE_WITHOUT_PRODUCT_DISCOUNTS",
+      "text": "DiscountErrorCode.INVALID_PRODUCT_DISCOUNTS_WITH_TAGS_ON_SAME_CART_LINE_WITHOUT_PRODUCT_DISCOUNTS was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "DiscountErrorCode.INVALID_TAG_LENGTH",
+      "text": "DiscountErrorCode.INVALID_TAG_LENGTH was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "DiscountErrorCode.PRODUCT_DISCOUNTS_WITH_TAGS_ON_SAME_CART_LINE_NOT_ENTITLED",
+      "text": "DiscountErrorCode.PRODUCT_DISCOUNTS_WITH_TAGS_ON_SAME_CART_LINE_NOT_ENTITLED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "DiscountErrorCode.TOO_MANY_PRODUCT_DISCOUNTS_WITH_TAGS_ON_SAME_CART_LINE",
+      "text": "DiscountErrorCode.TOO_MANY_PRODUCT_DISCOUNTS_WITH_TAGS_ON_SAME_CART_LINE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "DiscountErrorCode.TOO_MANY_TAGS",
+      "text": "DiscountErrorCode.TOO_MANY_TAGS was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "DisputeStatus.PREVENTED",
+      "text": "DisputeStatus.PREVENTED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "FulfillmentEventSortKeys.CREATED_AT",
+      "text": "FulfillmentEventSortKeys.CREATED_AT was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "FulfillmentOrderAction.REPORT_PROGRESS",
+      "text": "FulfillmentOrderAction.REPORT_PROGRESS was added.",
+      "breaking": false
+    },
+    {
+      "id": "field-type-changed",
+      "coordinate": "FulfillmentOrderCancelPayload.userErrors",
+      "text": "FulfillmentOrderCancelPayload.userErrors changed type from [UserError!]! to [FulfillmentOrderCancelError!]!.",
+      "breaking": true
+    },
+    {
+      "id": "field-type-changed",
+      "coordinate": "FulfillmentOrderMovePayload.userErrors",
+      "text": "FulfillmentOrderMovePayload.userErrors changed type from [UserError!]! to [FulfillmentOrderMoveFulfillmentOrderMoveUserError!]!.",
+      "breaking": true
+    },
+    {
+      "id": "field-removed",
+      "coordinate": "FulfillmentService.permitsSkuSharing",
+      "text": "FulfillmentService.permitsSkuSharing was removed.",
+      "breaking": true,
+      "deprecationReason": "Fulfillment services are all migrating to permit SKU sharing.\nSetting permits SKU sharing to false [is no longer supported](https://shopify.dev/changelog/setting-permitsskusharing-argument-to-false-when-creating-a-fulfillment-service-returns-an-error).\nAs of API version `2026-04` this field will be removed.\n"
+    },
+    {
+      "id": "input-field-removed",
+      "coordinate": "InventoryQuantityInput.compareQuantity",
+      "text": "InventoryQuantityInput.compareQuantity was removed.",
+      "breaking": true,
+      "deprecationReason": "Use `changeFromQuantity` instead. This will be removed in 2026-04."
+    },
+    {
+      "id": "input-field-removed",
+      "coordinate": "InventorySetQuantitiesInput.ignoreCompareQuantity",
+      "text": "InventorySetQuantitiesInput.ignoreCompareQuantity was removed.",
+      "breaking": true,
+      "deprecationReason": "Instead of opting out of quantity comparison checks by passing in `ignoreCompareQuantity: true`, you can now opt out by explicitly passing in a null value to `InventoryQuantityInput.changeFromQuantity`. This field will be removed in `2026-04`."
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketingEventSortKeys.CREATED_AT",
+      "text": "MarketingEventSortKeys.CREATED_AT was added.",
+      "breaking": false
+    },
+    {
+      "id": "argument-removed",
+      "coordinate": "Mutation.deliveryProfileUpdate(leaveLegacyModeProfiles:)",
+      "text": "Mutation.deliveryProfileUpdate(leaveLegacyModeProfiles:) was removed.",
+      "breaking": true,
+      "deprecationReason": "Legacy mode profiles are no longer supported. This will be removed in 2026-04."
+    },
+    {
+      "id": "argument-removed",
+      "coordinate": "Mutation.deliverySettingUpdate(setting:)",
+      "text": "Mutation.deliverySettingUpdate(setting:) was removed.",
+      "breaking": true
+    },
+    {
+      "id": "argument-removed",
+      "coordinate": "Mutation.fulfillmentServiceCreate(permitsSkuSharing:)",
+      "text": "Mutation.fulfillmentServiceCreate(permitsSkuSharing:) was removed.",
+      "breaking": true,
+      "deprecationReason": "Fulfillment services are all migrating to permit SKU sharing.\nSetting permits SKU sharing to false [is no longer supported](https://shopify.dev/changelog/setting-permitsskusharing-argument-to-false-when-creating-a-fulfillment-service-returns-an-error).\nAs of API version `2026-04` this argument will be removed.\n"
+    },
+    {
+      "id": "argument-removed",
+      "coordinate": "Mutation.fulfillmentServiceUpdate(permitsSkuSharing:)",
+      "text": "Mutation.fulfillmentServiceUpdate(permitsSkuSharing:) was removed.",
+      "breaking": true,
+      "deprecationReason": "Fulfillment services are all migrating to permit SKU sharing.\nSetting `permitsSkuSharing` to false is no longer supported.\nAs of API version `2026-04` this argument will be removed.\n"
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.AMOUNT_TOO_LARGE",
+      "text": "OrderTransactionErrorCode.AMOUNT_TOO_LARGE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.AMOUNT_TOO_SMALL",
+      "text": "OrderTransactionErrorCode.AMOUNT_TOO_SMALL was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.AUTHENTICATION_FAILED",
+      "text": "OrderTransactionErrorCode.AUTHENTICATION_FAILED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.AUTHENTICATION_REQUIRED",
+      "text": "OrderTransactionErrorCode.AUTHENTICATION_REQUIRED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.AUTHORIZATION_EXPIRED",
+      "text": "OrderTransactionErrorCode.AUTHORIZATION_EXPIRED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.CANCELLED_PAYMENT",
+      "text": "OrderTransactionErrorCode.CANCELLED_PAYMENT was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.CARD_TESTING",
+      "text": "OrderTransactionErrorCode.CARD_TESTING was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.DO_NOT_HONOR",
+      "text": "OrderTransactionErrorCode.DO_NOT_HONOR was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.FRAUD_SUSPECTED",
+      "text": "OrderTransactionErrorCode.FRAUD_SUSPECTED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.INSTRUMENT_DECLINED",
+      "text": "OrderTransactionErrorCode.INSTRUMENT_DECLINED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.INSUFFICIENT_FUNDS",
+      "text": "OrderTransactionErrorCode.INSUFFICIENT_FUNDS was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.INVALID_CURRENCY",
+      "text": "OrderTransactionErrorCode.INVALID_CURRENCY was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.INVALID_PAYMENT_METHOD",
+      "text": "OrderTransactionErrorCode.INVALID_PAYMENT_METHOD was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.INVALID_PURCHASE_TYPE",
+      "text": "OrderTransactionErrorCode.INVALID_PURCHASE_TYPE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.MERCHANT_ACCOUNT_ERROR",
+      "text": "OrderTransactionErrorCode.MERCHANT_ACCOUNT_ERROR was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.MERCHANT_RULE",
+      "text": "OrderTransactionErrorCode.MERCHANT_RULE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.PAYMENT_METHOD_UNSUPPORTED",
+      "text": "OrderTransactionErrorCode.PAYMENT_METHOD_UNSUPPORTED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.PAYMENT_PROVIDER_ERROR",
+      "text": "OrderTransactionErrorCode.PAYMENT_PROVIDER_ERROR was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.RETRY_DECLINED",
+      "text": "OrderTransactionErrorCode.RETRY_DECLINED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OrderTransactionErrorCode.TRANSACTION_LIMIT_EXCEEDED",
+      "text": "OrderTransactionErrorCode.TRANSACTION_LIMIT_EXCEEDED was added.",
+      "breaking": false
+    },
+    {
+      "id": "field-removed",
+      "coordinate": "QueryRoot.deliverySettings",
+      "text": "QueryRoot.deliverySettings was removed.",
+      "breaking": true
+    },
+    {
+      "id": "field-type-changed",
+      "coordinate": "ShopPolicy.createdAt",
+      "text": "ShopPolicy.createdAt changed type from Date! to DateTime!.",
+      "breaking": true
+    },
+    {
+      "id": "field-type-changed",
+      "coordinate": "ShopPolicy.updatedAt",
+      "text": "ShopPolicy.updatedAt changed type from Date! to DateTime!.",
+      "breaking": true
+    },
+    {
+      "id": "field-type-changed",
+      "coordinate": "ShopifyPaymentsDispute.evidenceDueBy",
+      "text": "ShopifyPaymentsDispute.evidenceDueBy changed type from Date to DateTime.",
+      "breaking": true
+    },
+    {
+      "id": "field-type-changed",
+      "coordinate": "ShopifyPaymentsDispute.evidenceSentOn",
+      "text": "ShopifyPaymentsDispute.evidenceSentOn changed type from Date to DateTime.",
+      "breaking": true
+    },
+    {
+      "id": "field-type-changed",
+      "coordinate": "ShopifyPaymentsDispute.finalizedOn",
+      "text": "ShopifyPaymentsDispute.finalizedOn changed type from Date to DateTime.",
+      "breaking": true
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "StaffMembersSortKeys.CREATED_AT",
+      "text": "StaffMembersSortKeys.CREATED_AT was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.AMOUNT_TOO_LARGE",
+      "text": "SubscriptionBillingAttemptErrorCode.AMOUNT_TOO_LARGE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.AUTHENTICATION_FAILED",
+      "text": "SubscriptionBillingAttemptErrorCode.AUTHENTICATION_FAILED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.AUTHENTICATION_REQUIRED",
+      "text": "SubscriptionBillingAttemptErrorCode.AUTHENTICATION_REQUIRED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.CALL_ISSUER",
+      "text": "SubscriptionBillingAttemptErrorCode.CALL_ISSUER was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.CANCELLED_PAYMENT",
+      "text": "SubscriptionBillingAttemptErrorCode.CANCELLED_PAYMENT was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.CARD_DECLINED",
+      "text": "SubscriptionBillingAttemptErrorCode.CARD_DECLINED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.CONFIRMATION_REJECTED",
+      "text": "SubscriptionBillingAttemptErrorCode.CONFIRMATION_REJECTED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.DO_NOT_HONOR",
+      "text": "SubscriptionBillingAttemptErrorCode.DO_NOT_HONOR was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.EXPIRED_BUYER_ACTION",
+      "text": "SubscriptionBillingAttemptErrorCode.EXPIRED_BUYER_ACTION was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.EXPIRED_CARD",
+      "text": "SubscriptionBillingAttemptErrorCode.EXPIRED_CARD was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.GENERIC_ERROR",
+      "text": "SubscriptionBillingAttemptErrorCode.GENERIC_ERROR was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.INCORRECT_ADDRESS",
+      "text": "SubscriptionBillingAttemptErrorCode.INCORRECT_ADDRESS was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.INCORRECT_NUMBER",
+      "text": "SubscriptionBillingAttemptErrorCode.INCORRECT_NUMBER was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.INCORRECT_ZIP",
+      "text": "SubscriptionBillingAttemptErrorCode.INCORRECT_ZIP was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.INVALID_CURRENCY",
+      "text": "SubscriptionBillingAttemptErrorCode.INVALID_CURRENCY was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.INVALID_EXPIRY_DATE",
+      "text": "SubscriptionBillingAttemptErrorCode.INVALID_EXPIRY_DATE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.INVALID_NUMBER",
+      "text": "SubscriptionBillingAttemptErrorCode.INVALID_NUMBER was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.INVALID_PURCHASE_TYPE",
+      "text": "SubscriptionBillingAttemptErrorCode.INVALID_PURCHASE_TYPE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.MERCHANT_ACCOUNT_ERROR",
+      "text": "SubscriptionBillingAttemptErrorCode.MERCHANT_ACCOUNT_ERROR was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.MERCHANT_RULE",
+      "text": "SubscriptionBillingAttemptErrorCode.MERCHANT_RULE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.OFF_SESSION_REJECTED",
+      "text": "SubscriptionBillingAttemptErrorCode.OFF_SESSION_REJECTED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.PAYMENT_METHOD_NOT_SPECIFIED",
+      "text": "SubscriptionBillingAttemptErrorCode.PAYMENT_METHOD_NOT_SPECIFIED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.PAYMENT_METHOD_UNSUPPORTED",
+      "text": "SubscriptionBillingAttemptErrorCode.PAYMENT_METHOD_UNSUPPORTED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.PAYMENT_PROVIDER_ERROR",
+      "text": "SubscriptionBillingAttemptErrorCode.PAYMENT_PROVIDER_ERROR was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.PROCESSING_ERROR",
+      "text": "SubscriptionBillingAttemptErrorCode.PROCESSING_ERROR was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.RETRY_DECLINED",
+      "text": "SubscriptionBillingAttemptErrorCode.RETRY_DECLINED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.TRANSACTION_LIMIT_EXCEEDED",
+      "text": "SubscriptionBillingAttemptErrorCode.TRANSACTION_LIMIT_EXCEEDED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "WebhookSubscriptionTopic.FULFILLMENT_ORDERS_MANUALLY_REPORTED_PROGRESS_STOPPED",
+      "text": "WebhookSubscriptionTopic.FULFILLMENT_ORDERS_MANUALLY_REPORTED_PROGRESS_STOPPED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "WebhookSubscriptionTopic.FULFILLMENT_ORDERS_PROGRESS_REPORTED",
+      "text": "WebhookSubscriptionTopic.FULFILLMENT_ORDERS_PROGRESS_REPORTED was added.",
+      "breaking": false
+    }
+  ]
+}

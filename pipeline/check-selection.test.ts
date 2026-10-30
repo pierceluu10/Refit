@@ -1,6 +1,8 @@
+import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import {
   checkKinds,
@@ -18,6 +20,8 @@ import {
   unavailableTypeCheck,
 } from './check-selection.ts';
 import { readRepository } from './repository.ts';
+
+const execute = promisify(execFile);
 
 const roots: string[] = [];
 
@@ -592,8 +596,9 @@ it('never selects a no-op', async () => {
     reason:
       'There is no test script. No file imports stripe, so no type check can cover the Stripe code.',
   });
-  // dalemoncayo/express-stripe at a18c6d3: `require('stripe')(key)` is untyped to TypeScript, so a
-  // type check would pass without checking a single Stripe call.
+  // dalemoncayo/express-stripe at a18c6d3: TypeScript types `require('stripe')(key)` only with
+  // checkJs, Node's module resolution and a stripe-node whose typings make it callable, so the check
+  // is a checkJs one that counts only with the coverage proof (checkjs-coverage.test.ts).
   expect(
     await selectCheck(
       await repository({
@@ -607,11 +612,11 @@ it('never selects a no-op', async () => {
       }),
     ),
   ).toMatchObject({
-    kind: null,
-    command: null,
+    kind: 'typecheck',
+    typeCheck: 'checkjs',
     stripeFiles: ['app.js'],
     reason:
-      'There is no test script. Stripe is loaded with require() (app.js), which TypeScript leaves untyped, so no type check can cover the Stripe code.',
+      "There is no test script. Stripe is loaded with require() (app.js), so a generated tsconfig type-checks that JavaScript and every file importing it with checkJs and Node's module resolution, with Refit's own TypeScript because the repository installs none; it counts only where TypeScript types the changed Stripe calls with the installed stripe-node.",
   });
 });
 
@@ -712,15 +717,25 @@ it('grades each changed file by the strongest check that reached it', async () =
   expect((await grade(['node', '-e', '0'], ['server.js'])).reason).toBe(
     'node -e 0 is neither a test script nor a type check, and no generated check ran it.',
   );
-  // Grade A comes only from the behaviour-test harness.
-  expect(
-    await gradeEvidence({
+  // Grade A comes only from the behaviour-test harness, in a provider's test environment.
+  const behaviour = (target: 'test-environment' | 'mock') =>
+    gradeEvidence({
       repository: candidate,
       command: ['npm', 'test'],
       changedFiles: ['server.js'],
-      behaviour: { passed: true, coversEveryChangedLine: true, reason: 'Ran every changed line.' },
-    }),
-  ).toEqual({ letter: 'A', level: 'behaviour-tests', reason: 'Ran every changed line.' });
+      behaviour: {
+        passed: true,
+        coversEveryChangedLine: true,
+        target,
+        reason: 'Ran every changed line.',
+      },
+    });
+  expect(await behaviour('test-environment')).toEqual({
+    letter: 'A',
+    level: 'behaviour-tests',
+    reason: 'Ran every changed line.',
+  });
+  expect((await behaviour('mock')).letter).not.toBe('A');
 });
 
 it('runs the type check part of a chain alone on a patch whose tests were already broken', () => {
@@ -1102,4 +1117,65 @@ it('grades a scoped type check by the files its generated configuration covers',
       })
     ).letter,
   ).toBe('D');
+});
+
+it('lets signed webhook events cover a handler for grade C, never B or A', async () => {
+  const embedbase = await repository(EMBEDBASE);
+  const options = {
+    repository: embedbase,
+    command: ['node', '-e', '0'],
+    changedFiles: ['dashboard/pages/api/webhooks.ts'],
+    packageDirectory: 'dashboard',
+  };
+  await expect(gradeEvidence(options)).resolves.toMatchObject({ letter: 'D' });
+  await expect(
+    gradeEvidence({ ...options, signedEvents: ['dashboard/pages/api/webhooks.ts'] }),
+  ).resolves.toEqual({
+    letter: 'C',
+    level: 'type-check',
+    reason:
+      'Signed webhook events of both API versions ran every changed line of dashboard/pages/api/webhooks.ts on the original and the patched code, and the patched handler behaved the same way on both.',
+  });
+  // A changed file the events did not cover keeps the grade at D.
+  await expect(
+    gradeEvidence({
+      ...options,
+      changedFiles: [...options.changedFiles, 'dashboard/utils/stripe.ts'],
+      signedEvents: ['dashboard/pages/api/webhooks.ts'],
+    }),
+  ).resolves.toMatchObject({ letter: 'D' });
+});
+
+it('runs the tests with the manager of the lockfile preparation installs', async () => {
+  // Shaped like Ankit-Sharma1011/Quill: pnpm-lock.yaml beside package-lock.json. Without Git
+  // history the choice is unknown, so pnpm runs the tests as before; a committed npm pin picks npm.
+  const files = {
+    'package.json': manifest({ test: 'vitest run' }),
+    'pnpm-lock.yaml': "lockfileVersion: '9.0'\n",
+    'package-lock.json': '{}\n',
+  };
+  expect((await selectCheck(await repository(files))).command).toEqual(['pnpm', 'test']);
+  const pinned = await repository({
+    ...files,
+    'package.json': JSON.stringify({
+      ...JSON.parse(files['package.json']),
+      packageManager: 'npm@10.9.2',
+    }),
+  });
+  await execute('git', ['init', '-q', pinned.root]);
+  await execute('git', ['-C', pinned.root, 'add', '.']);
+  await execute('git', [
+    '-C',
+    pinned.root,
+    '-c',
+    'user.name=Refit Test',
+    '-c',
+    'user.email=test@example.invalid',
+    '-c',
+    'commit.gpgsign=false',
+    'commit',
+    '-qm',
+    'test: fixture',
+  ]);
+  expect((await selectCheck(pinned)).command).toEqual(['npm', 'test']);
 });

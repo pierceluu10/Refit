@@ -10,7 +10,7 @@ import { githubAppConfiguration } from './github-app.ts';
 import { renderWorkflowResult } from './workflow-presentation.ts';
 import { PipelineInputError } from './types.ts';
 import { SpecificationUnavailableError } from './network.ts';
-import { validateRepairAttempts } from './validation-options.ts';
+import { validateRepairAttempts, HOSTED_REPAIR_ATTEMPTS } from './validation-options.ts';
 import { normalizeDocumentationSource } from './documentation-sources.ts';
 import { validateApiVersionPolicy } from './api-version.ts';
 import { cliErrorMessage } from './cli-errors.ts';
@@ -28,7 +28,7 @@ const FAILED_STATUSES = new Set([
   'documentation-changed',
 ]);
 const USAGE =
-  'Usage: refit watch --config <run.json> [--integration <id>] --state <directory-outside-repository> [--repository <local-git-root>] [--api-version-policy operator-pin|source-verified] [--once] [--sync-github --github owner/repo --base main --github-app] [--source-url <public-https-openapi> | --source-file <openapi> | --latest-stripe] [--documentation-source <label=https-url> ...] [--interval <seconds>] [--retry --once] [--ai-patch --repair-attempts 0|1|2] [--publish-draft --github owner/repo --base main --github-app] [--json]';
+  'Usage: refit watch --config <run.json> [--integration <id>] --state <directory-outside-repository> [--repository <local-git-root>] [--api-version-policy operator-pin|source-verified] [--once] [--sync-github --github owner/repo --base main --github-app] [--source-url <public-https-openapi> | --source-file <openapi> | --latest-stripe] [--documentation-source <label=https-url> ...] [--interval <seconds>] [--retry --once] [--ai-patch --repair-attempts 0-4] [--publish-draft --github owner/repo --base main --github-app] [--json]';
 
 try {
   const { values } = parseArgs({
@@ -84,7 +84,7 @@ try {
         : undefined;
     const aiPatch = assessmentConfiguration(values['ai-patch'], process.env);
     const repairAttempts = validateRepairAttempts(
-      Number(values['repair-attempts'] ?? 0),
+      Number(values['repair-attempts'] ?? (values['ai-patch'] ? HOSTED_REPAIR_ATTEMPTS : 0)),
       Boolean(aiPatch),
     );
     const interval = Number(values.interval ?? DEFAULT_INTERVAL_SECONDS);

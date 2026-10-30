@@ -26,6 +26,7 @@ import {
   satisfiesRange,
   sdkTarget,
 } from './sdk-deadlines.ts';
+import { SHOPIFY_CHECKOUT_MARKERS, shopifyCheckoutUses } from './shopify-checkout-alerts.ts';
 import { slackMethodUses } from './slack-calls.ts';
 import { TEST_PATH } from './source-paths.ts';
 import {
@@ -607,7 +608,11 @@ export async function scanDeadlines(
 
   const features = registry.deadlines
     .filter((entry) => entry.kind === 'feature')
-    .flatMap((entry) => entry.versions.map((marker) => ({ provider: entry.provider, marker })));
+    .flatMap((entry) => entry.versions.map((marker) => ({ provider: entry.provider, marker })))
+    // Checkout layouts and Scripts are Liquid and Ruby files, read by their own scanner below.
+    .filter(
+      ({ provider, marker }) => !(provider === 'shopify' && SHOPIFY_CHECKOUT_MARKERS.has(marker)),
+    );
   const repository = await readRepository(root, META_SDK);
   // Models sent through AI wrapper SDKs: each match names the call that sends it, and gateway or
   // registry IDs such as `'openai/gpt-4o'`, which the exact match below cannot see, are added.
@@ -786,6 +791,16 @@ export async function scanDeadlines(
       repository,
     ))
       record('cloudflare', use.version, { ...use, kind: 'source' });
+  // Shopify checkout.liquid layouts and Shopify Scripts: dated alerts only, never edits.
+  if (
+    registry.deadlines.some(
+      (entry) =>
+        entry.provider === 'shopify' &&
+        entry.versions.some((version) => SHOPIFY_CHECKOUT_MARKERS.has(version)),
+    )
+  )
+    for (const use of await shopifyCheckoutUses(root))
+      record('shopify', use.version, { ...use, kind: 'source' });
   // GitHub: pinned X-GitHub-Api-Version headers, requests to removed endpoints and GraphQL fields,
   // from the GitHub API call scanner.
   const github = registry.deadlines.filter((entry) => entry.provider === 'github');

@@ -1,7 +1,7 @@
 import ts from 'typescript-compiler';
 import { local } from './request-removals.ts';
 import { isObject } from './specifications.ts';
-import { STRIPE_PACK } from './rule-pack.ts';
+import { STRIPE_PACK, type RequestMove } from './rule-pack.ts';
 
 // The code behind each request-move family in a rule pack (pipeline/rule-pack.ts): a removed request
 // parameter whose documented replacement sends the same request. Every move is checked against both
@@ -44,42 +44,77 @@ function isString(schema: unknown, document: Record<string, unknown>) {
   return Boolean(resolved && resolved.type === 'string' && !resolved.enum);
 }
 
-// The pack move of a removed parameter, named by its replacement, when both contracts agree with it:
-// a rename needs the same shape under the new name; a wrap needs a required string in the before
-// body, and an after body whose replacement holds that string beside a `type` accepting the
-// discriminator.
+type Contract = { schema: Record<string, unknown>; document: Record<string, unknown> };
+
+// The pack move of a removed parameter, named by its replacement, when both contracts agree with it.
 export function requestMove(
   operationId: string,
   parameter: string,
-  before: { schema: Record<string, unknown>; document: Record<string, unknown> },
-  after: { schema: Record<string, unknown>; document: Record<string, unknown> },
+  before: Contract,
+  after: Contract,
 ): string | undefined {
   const move = STRIPE_PACK.requestMoves.find(
-    (entry) => entry.parameter === parameter && entry.operations.includes(operationId),
+    (entry) =>
+      entry.family !== 'request-enum-value' &&
+      entry.parameter === parameter &&
+      entry.operations.includes(operationId),
   );
-  if (!move) return;
-  const old = isObject(before.schema.properties) ? before.schema.properties[parameter] : undefined;
+  return move && requestMoveMatches(move, before, after) ? move.replacement : undefined;
+}
+
+// Whether both contracts agree with a move: a rename needs the same shape under the new name; a
+// wrap needs a required string in the before body, and an after body whose replacement holds that
+// string beside a `type` accepting the discriminator; an enum value needs a parameter whose before
+// enum has the value and whose after enum has the replacement and not the value, or, with a
+// discriminator, whose after schema is an object (no enum) whose discriminator enum has the
+// replacement.
+export function requestMoveMatches(move: RequestMove, before: Contract, after: Contract) {
+  const old = isObject(before.schema.properties)
+    ? before.schema.properties[move.parameter]
+    : undefined;
   const target = isObject(after.schema.properties) ? after.schema.properties : {};
+  if (move.family === 'request-enum-value') {
+    const [was, now] = [local(old, before.document), local(target[move.parameter], after.document)];
+    if (move.discriminator) {
+      const type = local(properties(now, after.document)?.[move.discriminator], after.document);
+      return Boolean(
+        Array.isArray(was?.enum) &&
+        was.enum.includes(move.value) &&
+        now &&
+        !now.enum &&
+        Array.isArray(type?.enum) &&
+        type.enum.includes(move.replacement),
+      );
+    }
+    return Boolean(
+      Array.isArray(was?.enum) &&
+      Array.isArray(now?.enum) &&
+      was.enum.includes(move.value) &&
+      !now.enum.includes(move.value) &&
+      now.enum.includes(move.replacement),
+    );
+  }
   if (move.family === 'request-rename') {
     const renamed = target[move.replacement];
-    return old &&
+    return Boolean(
+      old &&
       renamed &&
-      JSON.stringify(shape(old, before.document)) === JSON.stringify(shape(renamed, after.document))
-      ? move.replacement
-      : undefined;
+      JSON.stringify(shape(old, before.document)) ===
+        JSON.stringify(shape(renamed, after.document)),
+    );
   }
   const required = Array.isArray(before.schema.required) ? before.schema.required : [];
   const holder = properties(target[move.replacement], after.document);
   const type = holder && local(holder.type, after.document);
-  return isString(old, before.document) &&
-    required.includes(parameter) &&
+  return Boolean(
+    isString(old, before.document) &&
+    required.includes(move.parameter) &&
     holder &&
-    isString(holder[parameter], after.document) &&
+    isString(holder[move.parameter], after.document) &&
     type &&
     Array.isArray(type.enum) &&
-    type.enum.includes(move.discriminator)
-    ? move.replacement
-    : undefined;
+    type.enum.includes(move.discriminator),
+  );
 }
 
 function staticName(name: ts.PropertyName) {
@@ -109,7 +144,10 @@ export function requestMoveEdit(
   if (ts.isShorthandPropertyAssignment(property) && property.objectAssignmentInitializer)
     return { reason: 'Request shorthand initializers require review.' };
   const move = STRIPE_PACK.requestMoves.find(
-    (entry) => entry.replacement === replacement && entry.parameter === parameter,
+    (entry) =>
+      entry.family !== 'request-enum-value' &&
+      entry.replacement === replacement &&
+      entry.parameter === parameter,
   )!;
   if (move.family === 'request-rename') {
     if (names.includes(replacement))

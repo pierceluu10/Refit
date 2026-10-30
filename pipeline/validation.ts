@@ -1,3 +1,5 @@
+import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
+import { chosenLockfile, type LockfileChoice } from './dependency-inputs.ts';
 import { aiSafetyStop, migrationReviewReason, unresolvedSites } from './migration-review.ts';
 import { diffLines } from 'diff';
 import type { AiOptions, AiUsage } from './ai-budget.ts';
@@ -18,8 +20,19 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 import { runPipeline } from './run.ts';
+import {
+  archivedStripeTypes,
+  errorSources,
+  namedTypes,
+  typeDeclarations,
+  withoutBaselineErrors,
+  typeCheckedFindings,
+  repeatedProposalReason,
+} from './repair-context.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
+import { shopifyProof } from './shopify-proof.ts';
+import { shopifySchema, shopifySnapshotPath } from './shopify-schemas.ts';
 import {
   apiVersionSourceBlocked,
   compareApiVersion,
@@ -27,6 +40,19 @@ import {
   type ApiVersionPolicy,
 } from './api-version.ts';
 import { digest, isObject, readSpecification } from './specifications.ts';
+import {
+  cleanupObjects,
+  createSandboxNetwork,
+  createStandIns,
+  providerCaller,
+  proxyConfig,
+  redactor,
+  removeSandboxNetwork,
+  startProxy,
+  writeProxy,
+  type SandboxAdapter,
+  type SandboxRequest,
+} from './provider-sandbox.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { PipelineInputError, type Finding, type Repository, type SourceEdit } from './types.ts';
@@ -39,16 +65,31 @@ import {
 } from './validation-options.ts';
 import { committedFiles, sdkPackageDirectory } from './preparation-packages.ts';
 import { CONTRACT_CHANGE, proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
-import { droppedRequestPaths, untouchedCalls, untracedEdits } from './ai-patch-policies.ts';
+import { falloutShape } from './upgrade-fallout.ts';
+import {
+  droppedRequestPaths,
+  emitOptions,
+  typeOnlyRepairFailures,
+  untouchedCalls,
+  untracedEdits,
+} from './ai-patch-policies.ts';
 import { PAYMENT_METHOD_RENAME_RULES, removedRequestParameters } from './request-removals.ts';
 import { gitEnvironment } from './git-environment.ts';
 import { readCommittedRepository } from './committed-repository.ts';
 import { prepareDependencies, preparationFailure } from './dependency-preparation.ts';
+import { prepareEnvironment } from './repository-environment.ts';
 import { baselineStop } from './preparation-stops.ts';
+import { runtimeStandIns } from './runtime-stand-ins.ts';
+import {
+  declaredGenerators,
+  generatorExits,
+  generatorsEnabled,
+  withGenerators,
+} from './declared-generators.ts';
 import { typeErrorKeys, typeErrors } from './type-errors.ts';
 import { baselineCheck } from './validation-baseline-cache.ts';
 import { inspectArtifactFile } from './verification.ts';
-import { analyzeRepository } from './analyzer.ts';
+import { analyzeRepository, UNPROVEN_RECEIVER_REASON } from './analyzer.ts';
 import ts from 'typescript-compiler';
 import {
   extractStripeMock,
@@ -73,6 +114,7 @@ import {
 } from './stripe-type-evidence.ts';
 import {
   behaviourCommand,
+  behaviourTestModeCommand,
   changedStripeLines,
   compareBehaviourRuns,
   behaviourGrade,
@@ -80,12 +122,15 @@ import {
   writeBehaviourHarness,
   type BehaviourTest,
 } from './behaviour-tests.ts';
+import { compareSignedEvents, prepareSignedEvents } from './signed-events.ts';
+import { stripeSignedEventAdapter } from './stripe-signed-events.ts';
 import { compactPatch, renderPatch } from './patches.ts';
 import {
   crossesOpenEnums,
   crossesTypeRemovals,
   KEEP_UNTYPED_REQUEST_PROPERTIES,
   OPEN_ENUM_REPAIR,
+  TYPE_ASSERTION_REPAIR,
   OPEN_ENUM_RULE,
   keepsPartialRestore,
   openEnumRepair,
@@ -94,9 +139,16 @@ import {
 } from './stripe-open-enums.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { selectValidationRuntime } from './validation-runtime.ts';
-import { checkFailures, checkFailureText, INTRODUCED_TYPE_ERRORS } from './check-failures.ts';
+import {
+  checkFailures,
+  checkFailureText,
+  INTRODUCED_TYPE_ERRORS,
+  newTestFailures,
+} from './check-failures.ts';
 import {
   advisoryTypeError,
+  CHECKJS_STANDS_IN_FOR_TESTS,
+  checkJsCheck,
   checkKinds,
   gradeEvidence,
   runsTests,
@@ -109,11 +161,15 @@ import {
   ungradedEvidence,
 } from './check-selection.ts';
 import {
+  behaviourTestFeedback,
   behaviourTestSkip,
+  FEEDBACK_ROUNDS,
   writeBehaviourTests,
+  type BehaviourTestRecord,
   type BehaviourTestWriter,
 } from './behaviour-test-writer.ts';
 import { stripeOnlyImports, stripeOnlyProject } from './dependency-stripe-only.ts';
+import { checkJsCoverage, type CheckJsCoverage } from './checkjs-coverage.ts';
 import {
   dockerSandboxArguments,
   preparationProfile,
@@ -133,10 +189,15 @@ const execute = promisify(execFile);
 const PROCESS_TIMEOUT_MS = 30_000;
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const MAX_COMMAND_OUTPUT_BYTES = 50 * 1024 * 1024;
-// Committed source is copied into the validation workspace beside the unpacked dependency archive.
-// The 4 GiB workspace holds a 2 GiB archive and 256 MiB of source; smaller profiles keep 50 MiB.
-const sourceArchiveBytes = () => (validationProfile().workspace === '4g' ? 256 : 50) * 1024 * 1024;
-const MAX_REPAIR_LOG_CHARACTERS = 4096;
+// Committed source is copied into the validation workspace beside the unpacked dependency archive,
+// and buffered once on the host to hash it. Founders' decision (2026-10-27): the 4 GiB workspace
+// holds a 2 GiB archive and 512 MiB of source, leaving 1.5 GiB for build and test output; the 2 GiB
+// one holds a 1 GiB archive and 256 MiB. The largest committed tree on the frozen Stripe lists is
+// 155.5 MiB (docs/DEPENDENCY-BLOCKERS.md). Smaller profiles keep 50 MiB.
+const SOURCE_ARCHIVE_MIB: Record<string, number> = { '4g': 512, '2g': 256 };
+const sourceArchiveBytes = () =>
+  (SOURCE_ARCHIVE_MIB[validationProfile().workspace] ?? 50) * 1024 * 1024;
+const MAX_REPAIR_LOG_CHARACTERS = 16_384;
 
 export interface ValidationAttempt {
   number: number;
@@ -172,6 +233,8 @@ interface CoverageAttempt {
   // Owner decision D2b: untraced reads the AI left unchanged that the type checker shows read the
   // repository's own objects, never a Stripe type; they no longer count as unresolved.
   localReads?: ReturnType<typeof unresolvedSites>;
+  // The stronger step asked after a first answer with no edit (ai-patches.ts).
+  escalation?: { model: string; reasoningEffort: string | null; edits: number };
 }
 // Contract changes named per traced call in a coverage target; the run report has the rest.
 const MAX_TARGET_CHANGES = 3;
@@ -358,6 +421,13 @@ export interface CheckResult {
   stdout: string;
   stderr: string;
   error?: string;
+  // Generated files recreated offline before the checks (see declared-generators.ts).
+  generators?: {
+    name: string;
+    command: string[];
+    environment?: Record<string, string>;
+    exitCode: number | null;
+  }[];
 }
 const NOT_RUN: CheckResult = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
 
@@ -490,6 +560,14 @@ export function compareTypeCheck(
 const typeCheckFinished = (run: CheckResult) =>
   !['error', 'not-run'].includes(run.status) && (run.exitCode === 0 || typeErrors(run).length > 0);
 
+// The type check the oracle runs on the original code: the check's own type check part.
+function oracleCommand(command: string[]) {
+  const kinds = checkKinds(command, {});
+  return (
+    typeCheckCommand(command) ?? (kinds.size === 1 && kinds.has('typecheck') ? command : undefined)
+  );
+}
+
 // The type oracle (stripe-type-evidence.ts TypeOracle): only where the final patch installs a
 // stripe-node upgrade of its own and the check compares type errors. The original code is checked
 // once more, with only the patch's package files applied and its prepared dependencies.
@@ -518,10 +596,7 @@ export async function runTypeOracle(options: {
   if (!options.compareTypeErrors || !to || !options.packages || !options.dependencies)
     return undefined;
   const sdk = { from: options.upgrade?.from ?? null, to };
-  const kinds = checkKinds(options.command, {});
-  const command =
-    typeCheckCommand(options.command) ??
-    (kinds.size === 1 && kinds.has('typecheck') ? options.command : undefined);
+  const command = oracleCommand(options.command);
   const prefix = options.packageDirectory ? `${options.packageDirectory}/` : '';
   const compare = (run: CheckResult | undefined, side: string): OracleComparison => {
     if (options.typeCheckUnavailable)
@@ -616,6 +691,7 @@ async function containerCheck({
   signal,
   timeoutMs,
   packageDirectory,
+  network = 'none',
 }: {
   directory: string;
   image: string;
@@ -623,8 +699,16 @@ async function containerCheck({
   dependencies?: string;
   readOnlyMounts?: { source: string; target: string }[];
   signal?: AbortSignal;
+  network?: 'none' | `refit-sandbox-${string}`;
 } & CheckSandbox): Promise<CheckResult> {
   const name = `refit-${randomUUID()}`;
+  // Only prepared dependencies skip the repository's install steps; a custom image ran its own.
+  const generators =
+    dependencies && generatorsEnabled()
+      ? await declaredGenerators(join(directory, packageDirectory ?? ''))
+      : [];
+  const withExit = (result: CheckResult): CheckResult =>
+    generators.length ? { ...result, ...generatorExits(generators, result.stderr) } : result;
   await removeExpiredSandboxContainers();
   try {
     const result = await execute(
@@ -633,8 +717,8 @@ async function containerCheck({
         name,
         directory,
         image,
-        command: argumentsList,
-        network: 'none',
+        command: generators.length ? withGenerators(generators, argumentsList) : argumentsList,
+        network,
         timeoutMs,
         dependencies,
         readOnlyMounts,
@@ -650,7 +734,7 @@ async function containerCheck({
         signal,
       },
     );
-    return { status: 'passed', exitCode: 0, ...result };
+    return withExit({ status: 'passed', exitCode: 0, ...result });
   } catch (error) {
     signal?.throwIfAborted();
     if (!(error instanceof Error)) throw error;
@@ -661,7 +745,7 @@ async function containerCheck({
       stderr?: string;
     };
     const exitCode = typeof failure.code === 'number' ? failure.code : null;
-    return {
+    return withExit({
       status: exitCode !== null && !failure.killed && exitCode < 125 ? 'failed' : 'error',
       exitCode,
       stdout: failure.stdout ?? '',
@@ -672,7 +756,7 @@ async function containerCheck({
           : failure.killed
             ? `Check exceeded ${timeoutMs / 1000} seconds; the container was stopped.`
             : failure.message,
-    };
+    });
   } finally {
     // A killed Docker client does not necessarily stop the container it started.
     await removeDockerContainer(name);
@@ -824,10 +908,15 @@ async function prepareCandidateDependencies(
     signal?: AbortSignal;
     onProgress?: (message: string) => void;
     packageDirectory?: string;
+    // The original repository's commit date: a lockfile resolved for the candidate is cut off there.
+    committedAt?: string;
+    lockfileChoice?: LockfileChoice;
   },
 ) {
   await command('git', ['init', '-q'], candidateDirectory);
-  await command('git', ['add', '-A'], candidateDirectory);
+  // The directory holds only the revision's archived files and the patch; --force keeps a tracked
+  // lockfile the repository's .gitignore also lists.
+  await command('git', ['add', '-A', '--force'], candidateDirectory);
   // A large tree would make the commit start `git gc --auto` in the background, which can still be
   // writing packs when the .git directory is removed below (ENOTEMPTY).
   await command(
@@ -851,10 +940,12 @@ async function prepareCandidateDependencies(
     candidateDirectory,
   );
   const dependencies = join(root, `${basename(candidateDirectory)}-dependencies.tar`);
-  const prepared = await prepareDependencies({
+  const prepared = await prepareEnvironment({
     repository: candidateDirectory,
     image,
     packageDirectory: options.packageDirectory,
+    committedAt: options.committedAt,
+    lockfileChoice: options.lockfileChoice,
     copyArchiveTo: dependencies,
     signal: options.signal,
     onProgress: options.onProgress,
@@ -1137,6 +1228,7 @@ async function runGeneratedStripeChecks(
     generatedImportMap(options.original),
     generatedImportMap(options.patched),
     generatedEnvironment(options.original, options.patched),
+    await runtimeStandIns(join(options.runs[0].directory, options.sandbox.packageDirectory ?? '')),
   );
   // Each side runs in its own offline sandbox with its own stripe-mock, so both may run at once.
   const generatedRun = async (run: (typeof options.runs)[number]) => {
@@ -1195,7 +1287,15 @@ export async function runBehaviourTests(options: {
     before: options.original.contract,
     after: options.patched.contract,
   });
-  await writeBehaviourHarness(tools, options.tests, changed, sources);
+  await writeBehaviourHarness(
+    tools,
+    options.tests,
+    changed,
+    sources,
+    await runtimeStandIns(
+      join(options.original.directory, options.sandbox?.packageDirectory ?? ''),
+    ),
+  );
   const run = (side: 'before' | 'after') => {
     const input = side === 'before' ? options.original : options.patched;
     options.onProgress?.(
@@ -1222,13 +1322,245 @@ export async function runBehaviourTests(options: {
   };
 }
 
+// Signed webhook checks (signed-events.ts) with Stripe's adapter: the handlers the patch can affect
+// get signed events of both API versions, built from each version's fixtures, on the original and
+// the patched code, in the behaviour-test sandbox. Setup problems are unavailable, never a failure.
+async function signedEventEvidence(
+  options: Omit<Parameters<typeof runBehaviourTests>[0], 'settings' | 'tests'> & {
+    settings?: GeneratedChecks;
+    versions: [string, string];
+    specification: unknown;
+  },
+) {
+  try {
+    if (!options.settings)
+      throw new PipelineInputError(
+        "Signed webhook checks need generatedChecks settings: a local stripe-mock image and both versions' fixtures.",
+      );
+    const [beforeFixtures, afterFixtures] = await Promise.all(
+      [options.settings.beforeFixtures, options.settings.afterFixtures].map(async (path) =>
+        JSON.parse(await readFile(path, 'utf8')),
+      ),
+    );
+    const adapter = stripeSignedEventAdapter({
+      beforeFixtures,
+      afterFixtures,
+      beforeVersion: options.versions[0],
+      afterVersion: options.versions[1],
+      beforeSpecification: options.specification,
+    });
+    const changed = changedStripeLines(
+      options.original.repository,
+      options.patched.repository,
+      options.findings,
+    );
+    const changedFiles = [
+      ...new Set([...Object.keys(changed.original), ...Object.keys(changed.patched)]),
+    ];
+    const prepared = prepareSignedEvents({
+      adapter,
+      original: options.original.repository,
+      patched: options.patched.repository,
+      findings: (options.findings ?? []) as Finding[],
+      changedFiles,
+    });
+    if (!prepared.test)
+      return {
+        status: 'not-runnable' as const,
+        reason: 'No webhook handler the patch can affect could be called.',
+        skipped: prepared.skipped,
+        regressions: [],
+      };
+    const run = await runBehaviourTests({
+      ...options,
+      settings: options.settings,
+      tests: [prepared.test],
+    });
+    if (run.status === 'unavailable')
+      return {
+        status: 'unavailable' as const,
+        reason: run.reason ?? 'The sandbox did not finish.',
+        skipped: prepared.skipped,
+        regressions: [],
+      };
+    return {
+      ...compareSignedEvents({
+        sites: prepared.sites,
+        original: run.sides.original.records ?? [],
+        patched: run.sides.patched.records ?? [],
+        missing: run.coverage.missing,
+        changedFiles,
+      }),
+      ...(prepared.skipped.length ? { skipped: prepared.skipped } : {}),
+      test: { path: prepared.test.path, sha256: digest(prepared.test.content) },
+    };
+  } catch (error) {
+    options.signal?.throwIfAborted();
+    return {
+      status: 'unavailable' as const,
+      reason: `Signed webhook checks could not run: ${setupError(error)}`,
+      regressions: [],
+    };
+  }
+}
+
+// How far behaviour tests got on the original code: files kept (passing there), then changed lines
+// they ran there. Only the original side, which the writer is fed back.
+function originalProgress(result: {
+  status: string;
+  tests?: { path: string }[];
+  dropped?: { file: string }[];
+  coverage?: { covered: { original: Record<string, number[]> } };
+}) {
+  if (result.status === 'unavailable') return -1;
+  const kept = (result.tests?.length ?? 0) - (result.dropped?.length ?? 0);
+  const lines = Object.values(result.coverage?.covered.original ?? {}).flat().length;
+  return kept * 10_000 + lines;
+}
+
+// A provider's test environment for behaviour tests (--stripe-test-mode): the adapter and the
+// test keys providerKeys read from its environment variable.
+export interface ProviderSandbox {
+  adapter: SandboxAdapter;
+  keys: string[];
+}
+
+// Runs behaviour tests on the original code at the before API version and on the patched code at
+// the after version against the provider's test environment, one side after the other, each
+// behind its own proxy on an internal network (provider-sandbox.ts). Stand-ins for account-specific
+// objects are created first; everything the run created is removed at the end, whatever happened.
+// The keys never enter a test container and are redacted from everything recorded.
+export async function runSandboxBehaviourTests(options: {
+  tests: BehaviourTest[];
+  provider: ProviderSandbox;
+  image: string;
+  root: string;
+  original: { directory: string; contract: string; repository: Repository; dependencies?: string };
+  patched: { directory: string; contract: string; repository: Repository; dependencies?: string };
+  findings?: readonly Pick<Finding, 'file'>[];
+  sandbox?: CheckSandbox;
+  onProgress?: (message: string) => void;
+  signal?: AbortSignal;
+}) {
+  validateBehaviourTests(options.tests);
+  const { adapter, keys } = options.provider;
+  const redact = redactor(adapter, keys);
+  const sources = { original: options.original.repository, patched: options.patched.repository };
+  const changed = changedStripeLines(sources.original, sources.patched, options.findings);
+  const runId = `refit-${randomUUID()}`;
+  const contracts = {
+    original: JSON.parse(await readFile(options.original.contract, 'utf8')) as unknown,
+    patched: JSON.parse(await readFile(options.patched.contract, 'utf8')) as unknown,
+  };
+  const version = (contract: unknown) => {
+    const value = (contract as { info?: { version?: unknown } } | null)?.info?.version;
+    return typeof value === 'string' ? value : null;
+  };
+  const versions = { original: version(contracts.original), patched: version(contracts.patched) };
+  const tools = await sandboxInput(options.root, 'behaviour-');
+  await writeBehaviourHarness(
+    tools,
+    options.tests,
+    changed,
+    sources,
+    await runtimeStandIns(
+      join(options.original.directory, options.sandbox?.packageDirectory ?? ''),
+    ),
+  );
+  const call = providerCaller(adapter, keys, { runId });
+  const changedSources = (['original', 'patched'] as const).flatMap((side) =>
+    sources[side].files.filter((file) => file.path in changed[side]),
+  );
+  const timeoutMs = options.sandbox?.timeoutMs ?? validateCheckTimeout() * 1000;
+  const requests: Record<'original' | 'patched', SandboxRequest[]> = { original: [], patched: [] };
+  const results: Partial<Record<'original' | 'patched', CheckResult>> = {};
+  const prepared = await createStandIns(adapter, call, changedSources);
+  let network: `refit-sandbox-${string}` | undefined;
+  let cleanup;
+  try {
+    network = (await createSandboxNetwork(2 * timeoutMs)) as `refit-sandbox-${string}`;
+    for (const side of ['original', 'patched'] as const) {
+      options.signal?.throwIfAborted();
+      await writeProxy(
+        tools,
+        side,
+        proxyConfig(adapter, {
+          runId,
+          version: versions[side],
+          contract: contracts[side],
+          standIns: prepared.standIns,
+        }),
+      );
+      const proxy = await startProxy({
+        network,
+        image: options.image,
+        tools,
+        side,
+        keys,
+        timeoutMs,
+      });
+      options.onProgress?.(
+        `Running behaviour tests on the ${side} code against ${adapter.name} test mode...`,
+      );
+      try {
+        const input = options[side];
+        const result = await containerCheck({
+          directory: input.directory,
+          image: options.image,
+          command: behaviourTestModeCommand(side === 'original' ? 'before' : 'after', proxy),
+          dependencies: input.dependencies,
+          readOnlyMounts: [{ source: tools, target: '/refit/generated' }, ...typescriptMount()],
+          network,
+          signal: options.signal,
+          ...(options.sandbox ?? { timeoutMs }),
+        });
+        results[side] = {
+          ...result,
+          stdout: redact(result.stdout),
+          stderr: redact(result.stderr),
+          ...(result.error ? { error: redact(result.error) } : {}),
+        };
+      } finally {
+        requests[side] = JSON.parse(redact(JSON.stringify(await proxy.stop()))) as SandboxRequest[];
+      }
+    }
+  } finally {
+    if (network) await removeSandboxNetwork(network);
+    cleanup = await cleanupObjects(adapter, call, [
+      ...prepared.objects,
+      ...requests.original.flatMap((request) => (request.created ? [request.created] : [])),
+      ...requests.patched.flatMap((request) => (request.created ? [request.created] : [])),
+    ]);
+  }
+  return compareBehaviourRuns({
+    tests: options.tests,
+    changed,
+    sources,
+    original: results.original!,
+    patched: results.patched!,
+    target: 'test-environment',
+    sandbox: {
+      adapter,
+      runId,
+      versions,
+      requests,
+      standIns: prepared.standIns,
+      unreproducible: prepared.unreproducible,
+      cleanup,
+    },
+  });
+}
+
 // Behaviour tests that cannot be set up or run are reported as unavailable, never as a failure.
 async function behaviourEvidence(
   options: Omit<Parameters<typeof runBehaviourTests>[0], 'settings'> & {
     settings?: GeneratedChecks;
+    provider?: ProviderSandbox;
   },
 ) {
   try {
+    if (options.provider)
+      return await runSandboxBehaviourTests({ ...options, provider: options.provider });
     if (!options.settings)
       throw new PipelineInputError(
         "Behaviour tests need generatedChecks settings: a local stripe-mock image and both versions' fixtures.",
@@ -1236,9 +1568,16 @@ async function behaviourEvidence(
     return await runBehaviourTests({ ...options, settings: options.settings });
   } catch (error) {
     options.signal?.throwIfAborted();
-    const reason = `Behaviour tests could not run: ${setupError(error)}`;
+    const reason = `Behaviour tests could not run: ${
+      options.provider
+        ? redactor(options.provider.adapter, options.provider.keys)(setupError(error))
+        : setupError(error)
+    }`;
     return {
-      engine: 'node-test+stripe-mock' as const,
+      engine: options.provider
+        ? ('node-test+test-environment' as const)
+        : ('node-test+stripe-mock' as const),
+      target: options.provider ? ('test-environment' as const) : ('mock' as const),
       status: 'unavailable' as const,
       reason,
       grade: null,
@@ -1300,9 +1639,17 @@ export async function validateMigration(options: {
   // --write-behaviour-tests: without behaviourTests, one model request writes them from the
   // original code (behaviour-test-writer.ts); --write-behaviour-tests-dry-run only builds it.
   behaviourTestWriter?: BehaviourTestWriter;
+  // --webhook-checks: signed events of both API versions sent to the webhook handlers the patch can
+  // affect (signed-events.ts); they need generatedChecks' stripe-mock image and fixtures.
+  signedEventChecks?: boolean;
+  // --stripe-test-mode: behaviour tests run against the provider's test environment instead of
+  // stripe-mock, the only evidence that grants grade A (runSandboxBehaviourTests).
+  providerSandbox?: ProviderSandbox;
   // Owner decision 1: see runPipeline.
   leaveReviewedFindings?: boolean;
   keepApiVersion?: boolean;
+  // docs/VERSION-BUMP-PRS.md: see runPipeline.
+  versionBump?: boolean;
   keepListedPaymentMethods?: boolean;
   shopifySdkUpgrade?: boolean;
   // Owner decision 1: when dependency preparation refuses, or the baseline checks fail and so give
@@ -1352,6 +1699,15 @@ export async function validateMigration(options: {
   const git = (args: string[]) =>
     command('git', ['-c', 'core.fsmonitor=false', '-C', repository, ...args]);
   const { revision, entries } = snapshot;
+  const committedAt = (await git(['show', '-s', '--format=%cI', revision])).stdout.trim();
+  // Of several committed lockfiles, the one installed for the original commit; the candidate and
+  // the stripe-node upgrade use it too, since a candidate's own one-commit history cannot date it.
+  const lockfileChoice = packageDirectory
+    ? undefined
+    : await chosenLockfile(snapshot).catch((error) => {
+        if (error instanceof PipelineInputError) return undefined;
+        throw error;
+      });
   const runtime = await selectValidationRuntime(snapshot, options.image);
   const image = await resolveDockerImage(runtime.image);
   const root = await mkdtemp(join(tmpdir(), 'refit-validation-'));
@@ -1389,6 +1745,10 @@ export async function validateMigration(options: {
           ...options,
           repository: baselineDirectory,
           proposePatch: true,
+          lockfileResolution: lockfileResolutionEnabled()
+            ? { image, before: committedAt }
+            : undefined,
+          lockfile: lockfileChoice?.lockfile,
           aiPatch: baselinePassed ? options.aiPatch : undefined,
           assessment: baselinePassed ? options.assessment : undefined,
           onProgress: baselinePassed ? options.onProgress : undefined,
@@ -1404,6 +1764,8 @@ export async function validateMigration(options: {
             prepareCandidateDependencies(directory, root, image, {
               ...options,
               packageDirectory,
+              committedAt,
+              lockfileChoice,
               signal,
             }),
           )),
@@ -1437,7 +1799,7 @@ export async function validateMigration(options: {
     if (options.prepareDependencies)
       try {
         prepared = await timed('preparation', () =>
-          prepareDependencies({
+          prepareEnvironment({
             repository,
             image,
             packageDirectory,
@@ -1670,10 +2032,21 @@ export async function validateMigration(options: {
     const configuredRequestProposal = initialReport.requestChanges?.some(
       (change) => change.usages.length > 0,
     );
-    const [beforeSpecification, afterSpecification] = await Promise.all([
+    const [beforeSpecification, configuredAfter] = await Promise.all([
       readSpecification(options.before),
       readSpecification(options.after),
     ]);
+    // A Shopify patch may move to an earlier supported version than the configured target
+    // (pipeline/shopify-pipeline.ts); it is checked against that version's snapshot.
+    const shopifyAfter =
+      initialReport.provider === SHOPIFY.id &&
+      initialReport.apiVersion.after &&
+      configuredAfter.hash !== initialReport.snapshots.after
+        ? await readSpecification(
+            await shopifySnapshotPath(initialReport.apiVersion.after, options.after),
+          )
+        : undefined;
+    const afterSpecification = shopifyAfter ?? configuredAfter;
     if (beforeSpecification.hash !== initialReport.snapshots.before)
       throw new PipelineInputError('Baseline specification changed during validation.');
     if (afterSpecification.hash !== initialReport.snapshots.after)
@@ -1683,7 +2056,7 @@ export async function validateMigration(options: {
       (!initialReport.patch.diff && (baseline.status === 'passed' || dependencyFailure))
     )
       throw new PipelineInputError(
-        'No supported patch proposal is available for this committed revision.',
+        `No supported patch proposal is available for this committed revision.${options.versionBump && 'reason' in initialReport.patch ? ` ${initialReport.patch.reason}` : ''}`,
       );
     // A type-checked period-read restore below may replace it with a new proposal.
     let report: ProposedReport = initialReport;
@@ -1776,6 +2149,14 @@ export async function validateMigration(options: {
       keptProperties?: string[];
       // The restore kept only such properties and changed no enum types.
       enumsUnchanged?: boolean;
+      // Upgrade-introduced type errors repaired by an assertion at their site (TYPE_ASSERTION_REPAIR).
+      typeAssertions?: { file: string; line: number; code: string }[];
+      // Why a type repair was refused by the type-only gate (typeOnlyRepairFailures).
+      typeOnlyGate?: { repair: 'deterministic' | 'ai'; failures: string[] };
+      // The likely reason a repair ended on a repeated proposal (repeatedProposalReason).
+      repeated?: ReturnType<typeof repeatedProposalReason>['kind'];
+      // Founder decision (2026-10-28): the policies that used to stop this AI repair.
+      policies?: string[];
     } = {
       limit: repairLimit,
       requested: 0,
@@ -1790,6 +2171,58 @@ export async function validateMigration(options: {
           : 'baseline-failed',
       error: null,
     };
+    // The type oracle's run of the original code with the target stripe-node, once per package
+    // diff: the type repairs below need it before runTypeOracle records it.
+    const oracleRuns = new Map<string, Promise<CheckResult>>();
+    const oracleCheck = (diff: string, command: string[], dependencies: string) => {
+      // Every install of one package diff installs the same lockfile, so it is checked once.
+      const key = `${digest(diff)} ${command.join(' ')}`;
+      if (!oracleRuns.has(key))
+        oracleRuns.set(
+          key,
+          timed('typeOracle', async () => {
+            const directory = await sandboxInput(root, 'oracle-');
+            await applyPatch(archive, directory, `${directory}.patch`, diff);
+            options.onProgress?.('Type-checking the original code with the target stripe-node...');
+            return containerCheck({
+              directory,
+              image,
+              command,
+              dependencies,
+              signal: options.signal,
+              ...sandbox,
+            });
+          }),
+        );
+      return oracleRuns.get(key)!;
+    };
+    // Of `errors`, the ones the target stripe-node introduces into the original code: by file, code
+    // and message, and no more of each than the oracle's run has, so the same error a rule's edit
+    // repeats elsewhere does not count. None when the oracle cannot run on this candidate.
+    const upgradeErrors = async <T extends { key: string }>(errors: T[]) => {
+      const command = oracleCommand(options.command);
+      if (
+        !command ||
+        !options.compareTypeErrors ||
+        typeCheckUnavailable ||
+        !typeCheckFinished(baselineRun) ||
+        !candidateDependencies ||
+        candidateDependencies === dependencies
+      )
+        return [];
+      const run = await oracleCheck(
+        packageDiff(proposal.diff, packageDirectory),
+        command,
+        candidateDependencies,
+      ).catch(() => undefined);
+      if (!run || !typeCheckFinished(run)) return [];
+      const count = (list: { key: string }[], key: string) =>
+        list.filter((error) => error.key === key).length;
+      const upgrade = introducedTypeErrors(baselineRun, run);
+      return errors.filter((error) => count(errors, error.key) <= count(upgrade, error.key));
+    };
+    const inPackage = <T extends { file: string }>(error: T) =>
+      packageDirectory ? { ...error, file: `${packageDirectory}/${error.file}` } : error;
     // stripe-node 22.4.0 widened open response enums with OtherString. Before any AI repair, a
     // deterministic repair restores their known literals where the upgraded types reject them. It
     // is kept when every introduced error is that shape and the checks then pass, or, before an AI
@@ -1830,6 +2263,10 @@ export async function validateMigration(options: {
           ...options,
           repository: baselineDirectory,
           proposePatch: true,
+          lockfileResolution: lockfileResolutionEnabled()
+            ? { image, before: committedAt }
+            : undefined,
+          lockfile: lockfileChoice?.lockfile,
           aiPatch: undefined,
           assessment: undefined,
           onProgress: undefined,
@@ -1965,6 +2402,127 @@ export async function validateMigration(options: {
         }
       }
     }
+    // Founders' decision (2026-10-27): type errors the stripe-node upgrade introduces, where a
+    // Stripe type it widened is assigned to a narrower type, get an assertion to that type at the
+    // site (stripe-open-enums.ts assertionSite). Only errors the type oracle shows the upgrade
+    // introduced into the original code qualify, and the repair must pass the type-only gate:
+    // statements with such an error only, the same JavaScript per file. It is kept when the checks
+    // then pass, which a type check comparing errors shows as zero new errors, or, before an AI
+    // repair of a rules proposal, when they fail only on the errors it left alone.
+    // shortcut: without AI, a candidate mixing restore and assertion shapes gets neither; upgrade
+    // by selecting the restorable errors of both when a measured row needs it.
+    const assertionCandidates =
+      baseline.status === 'passed' &&
+      patched.status === 'failed' &&
+      options.compareTypeErrors &&
+      candidateSources &&
+      sdkUpgrade?.to
+        ? introducedTypeErrors(baselineRun, patched)
+        : [];
+    // The oracle runs only where some error has an assertion shape at all.
+    const fromUpgrade =
+      candidateSources &&
+      restorableOpenEnumErrors(
+        candidateSources.files,
+        assertionCandidates.map(inPackage),
+        undefined,
+        true,
+      ).length
+        ? (await upgradeErrors(assertionCandidates)).map(inPackage)
+        : [];
+    const assertionErrors =
+      candidateSources && fromUpgrade.length
+        ? options.aiPatch && ruleSources
+          ? restorableOpenEnumErrors(candidateSources.files, fromUpgrade, undefined, true)
+          : fromUpgrade.length === assertionCandidates.length
+            ? fromUpgrade
+            : []
+        : [];
+    const assertionFiles =
+      candidateSources && assertionErrors.length
+        ? openEnumRepair(candidateSources.files, assertionErrors, undefined, true)
+        : undefined;
+    if (assertionFiles?.length && candidateSources) {
+      const sources = candidateSources;
+      const current = new Map(sources.files.map((file) => [file.path, file.content]));
+      const repaired = new Map(assertionFiles.map((file) => [file.path, file.content]));
+      const failures = typeOnlyRepairFailures({
+        before: sources,
+        after: {
+          ...sources,
+          files: sources.files.map((file) => ({
+            ...file,
+            content: repaired.get(file.path) ?? file.content,
+          })),
+        },
+        errors: assertionErrors,
+        compilerOptions: (path) => emitOptions(sources.root, path),
+      });
+      if (failures.length) repair.typeOnlyGate = { repair: 'deterministic', failures };
+      else {
+        const diff =
+          proposal.diff +
+          renderPatch(
+            {
+              ...sources,
+              files: assertionFiles.map((file) => ({
+                path: file.path,
+                content: current.get(file.path)!,
+              })),
+            },
+            assertionFiles.map((file) => ({
+              file: file.path,
+              start: 0,
+              end: current.get(file.path)!.length,
+              replacement: file.content,
+              changeId: OPEN_ENUM_RULE,
+            })),
+          );
+        options.onProgress?.(
+          'Asserting the types the stripe-node upgrade widened; running checks in offline Docker...',
+        );
+        const prepared = await prepareCandidate(diff, originalSources, report);
+        const check = compared(
+          await timed('patchedChecks', () =>
+            containerCheck({
+              directory: prepared.directory,
+              image,
+              command: options.command,
+              dependencies: prepared.dependencies,
+              signal: options.signal,
+              ...sandbox,
+            }),
+          ),
+        );
+        if (
+          check.status === 'passed' ||
+          (check.status === 'failed' &&
+            options.aiPatch &&
+            keepsPartialRestore(
+              assertionCandidates,
+              assertionErrors,
+              introducedTypeErrors(baselineRun, check),
+            ))
+        ) {
+          proposal = { ...proposal, diff };
+          publicationFiles = prepared.publicationFiles;
+          candidateDirectory = prepared.directory;
+          candidateSources = prepared.sources;
+          candidateDependencies = prepared.dependencies;
+          candidateEnvironment = prepared.environment;
+          patched = check;
+          recordAttempt();
+          repair.typeAssertions = assertionErrors.map(({ file, line, code }) => ({
+            file,
+            line,
+            code,
+          }));
+          if (check.status === 'passed') repair.stopReason = TYPE_ASSERTION_REPAIR;
+          // The assertions are a rule edit, so the AI guards do not count them as the model's.
+          else ruleSources = prepared.sources.files;
+        }
+      }
+    }
     // Every AI request's cost, whether its proposal was checked or refused.
     let aiCostUsd = costOf(proposal);
     const aiCoverage =
@@ -2085,6 +2643,7 @@ export async function validateMigration(options: {
           requestRemovals,
         );
         charge(candidate);
+        if (candidate.escalation) coverage.escalation = candidate.escalation;
         // The model's edits are the proposal's beyond the rules'.
         if (candidate.edits <= ruleEdits.length)
           coverage.response = {
@@ -2126,6 +2685,15 @@ export async function validateMigration(options: {
         coverage.error = `${error.name}: ${error.message}`;
       }
     }
+    let typeRepair:
+      { base: Repository; errors: { file: string; line: number; column: number }[] } | undefined;
+    // Founder decision (2026-10-28, docs/AI-REPAIR.md): a repeated proposal is asked again with
+    // more context, up to the attempt limit, instead of stopping the repair.
+    let repeated = false;
+    let stripeTypes: { path: string; content: string }[] | undefined;
+    // Only what the patch introduced: the original code's own type errors are left out.
+    const introducedLog = (output: string) =>
+      options.compareTypeErrors ? withoutBaselineErrors(baselineRun, output) : output;
     while (
       baseline.status === 'passed' &&
       patched.status === 'failed' &&
@@ -2153,23 +2721,93 @@ export async function validateMigration(options: {
         repair.stopReason = 'review-required';
         break;
       }
-      // No contract documents a property the upgraded types reject, and no repair passes without
-      // dropping or replacing it, which changes what the code sends: a person decides.
+      // Founder decision (2026-10-28): AI repairs the type errors the upgrade introduced where these
+      // policies used to stop it. The repair explains each edit and its source, ships [Needs review]
+      // (decision 8) and never passes the D2 gate.
       const rejected = options.compareTypeErrors ? rejectedProperties(baselineRun, patched) : [];
-      if (rejected.length) {
-        repair.stopReason = 'review-required';
-        repair.error = `The upgraded types reject ${rejected.map((name) => `'${name}'`).join(', ')}; removing or replacing ${rejected.length === 1 ? 'it' : 'them'} changes what the code sends, so it stops for review.`;
-        break;
-      }
       const periodReads = introduced.filter(subscriptionPeriodRead);
-      if (periodReads.length) {
-        repair.stopReason = 'review-required';
-        repair.error = `Stripe moved subscription billing periods onto subscription items, and ${periodReads.map((error) => `${error.file}:${error.line}`).join(', ')} still ${periodReads.length === 1 ? 'reads one' : 'read them'} from the subscription. Choosing an item is a reviewed rule (stripeSubscriptionPeriods), so it stops for review.`;
-        break;
-      }
+      const behaviour = introduced.filter(
+        (error) => !reviewTypeError(error) && falloutShape(error).lane === 'behaviour',
+      );
+      const policies = [
+        ...(rejected.length
+          ? [
+              `Removed request parameters: the upgraded types reject ${rejected.map((name) => `'${name}'`).join(', ')}, and changing what a request sends used to stop for review.`,
+            ]
+          : []),
+        ...(periodReads.length
+          ? [
+              `Subscription periods: ${periodReads.map((error) => `${error.file}:${error.line}`).join(', ')} ${periodReads.length === 1 ? 'reads' : 'read'} a billing period Stripe moved onto subscription items, which only the reviewed stripeSubscriptionPeriods rule used to migrate.`,
+            ]
+          : []),
+        ...(behaviour.length > periodReads.length
+          ? [
+              `Type-only repair: ${behaviour.length} upgrade error${behaviour.length === 1 ? '' : 's'}, such as ${behaviour[0].code} at ${behaviour[0].file}:${behaviour[0].line}, need${behaviour.length === 1 ? 's' : ''} a change to what the code does, not only its types, which the type-only repair gate used to stop.`,
+            ]
+          : []),
+      ];
+      // A contract review (such as a removed method) used to keep AI out of the repair.
+      const contractReviews = policies.length
+        ? [...new Set(report.findings.flatMap((finding) => finding.contractReview ?? []))]
+        : [];
+      policies.push(...contractReviews.map((reason) => `Contract review: ${reason}`));
+      if (policies.length) repair.policies = policies;
+      // Founders' decision (2026-10-27): when every error left is one the stripe-node upgrade
+      // introduced into the original code, the AI repairs types only, under the same type-only
+      // gate as the deterministic assertions, and ships [Needs review] (decision 8).
+      // Once it applies, it holds for every later round, against the candidate it first applied to.
+      if (
+        !typeRepair &&
+        !repair.policies &&
+        introduced.length &&
+        candidateSources &&
+        !(rules && coverage?.outcome === 'checks-failed') &&
+        (await upgradeErrors(introduced)).length === introduced.length
+      )
+        typeRepair = { base: candidateSources, errors: introduced.map(inPackage) };
       repair.requested++;
       options.onProgress?.(
         `Patched checks failed. Requesting AI repair ${repair.requested} of ${repairLimit}...`,
+      );
+      const stdout = introducedLog(patched.stdout);
+      const stderr = introducedLog(patched.stderr);
+      const repeatedContext = async (errors: typeof introduced) => {
+        const listed = errors.filter((error) => !reviewTypeError(error)).map(inPackage);
+        // The stripe-node the failed candidate was checked against.
+        const archive = candidateDependencies ?? dependencies;
+        if (archive)
+          stripeTypes ??= await archivedStripeTypes(archive, packageDirectory).catch(() => []);
+        return {
+          unchanged: true as const,
+          typeErrors: errorSources(
+            listed.map(({ file, line, column, code, message }) => ({
+              file,
+              line,
+              column,
+              code,
+              message,
+            })),
+            candidateSources?.files ?? [],
+          ),
+          stripeTypes: typeDeclarations(namedTypes(listed), stripeTypes ?? []),
+        };
+      };
+      // A declared-type read an introduced error names a stripe-node type at may be repaired; the
+      // scan's findings, and so the draft's review of them, are unchanged.
+      const archive = candidateDependencies ?? dependencies;
+      const declared = report.findings.filter(
+        (finding) => finding.declaredType && finding.confidence !== 'confirmed',
+      );
+      if (archive && declared.length && introduced.length)
+        stripeTypes ??= await archivedStripeTypes(archive, packageDirectory).catch(() => []);
+      const typeChecked = new Set(
+        typeCheckedFindings(declared, introduced.map(inPackage), stripeTypes ?? [], (finding) => {
+          const before = originalSources.files.find((file) => file.path === finding.file);
+          const after = candidateSources?.files.find((file) => file.path === finding.file);
+          return before && after
+            ? movedLine(before.content, after.content, finding.line)
+            : undefined;
+        }),
       );
       try {
         options.signal?.throwIfAborted();
@@ -2178,7 +2816,13 @@ export async function validateMigration(options: {
           report.changes,
           [
             // Owner decisions 1 and 8: a removed request parameter no longer keeps AI out.
-            ...report.findings.filter((finding) => !(aiCoverage && finding.requestParameter)),
+            ...report.findings
+              .filter((finding) => !((aiCoverage || repair.policies) && finding.requestParameter))
+              .map((finding) =>
+                typeChecked.has(finding)
+                  ? { ...finding, confidence: 'confirmed' as const }
+                  : finding,
+              ),
             // Introduced type errors, at their positions in the failed candidate, become findings
             // the repair may fix, wherever they are.
             ...introduced
@@ -2202,15 +2846,17 @@ export async function validateMigration(options: {
           beforeSpecification.schemas,
           {
             attempt: repair.requested,
+            ...(repair.policies ? { policies: repair.policies } : {}),
             failedPatch: compactPatch(codeDiff(proposal.diff)),
             check: {
               exitCode: patched.exitCode,
-              stdout: patched.stdout.slice(0, MAX_REPAIR_LOG_CHARACTERS),
-              stderr: patched.stderr.slice(0, MAX_REPAIR_LOG_CHARACTERS),
+              stdout: stdout.slice(0, MAX_REPAIR_LOG_CHARACTERS),
+              stderr: stderr.slice(0, MAX_REPAIR_LOG_CHARACTERS),
               truncated:
-                patched.stdout.length > MAX_REPAIR_LOG_CHARACTERS ||
-                patched.stderr.length > MAX_REPAIR_LOG_CHARACTERS,
+                stdout.length > MAX_REPAIR_LOG_CHARACTERS ||
+                stderr.length > MAX_REPAIR_LOG_CHARACTERS,
             },
+            ...(repeated ? await repeatedContext(introduced) : {}),
           },
           options.documentationSnapshots,
           afterSpecification.schemas,
@@ -2237,19 +2883,40 @@ export async function validateMigration(options: {
         }
         if (attempts.some((attempt) => attempt.patchHash === digest(candidate.diff))) {
           repair.stopReason = 'repeated-proposal';
-          break;
+          repeated = true;
+          continue;
         }
+        repeated = false;
         const preparedCandidate = await prepareCandidate(candidate.diff, originalSources, report);
         // A removed request parameter has no reviewed replacement; a repair must not drop it.
+        // Under the founder decision a policy repair may replace one, never silently.
+        const explained = (name: string) =>
+          'explanations' in candidate &&
+          (candidate.explanations ?? []).some((note) => note.why.includes(name));
         const dropped = droppedRequestParameters(
           removedParameters,
           originalSources.files,
           preparedCandidate.sources.files,
           ('ruleEdits' in report.patch ? report.patch.ruleEdits : undefined) ?? [],
-        );
+        ).filter((name) => !(repair.policies && explained(name)));
         if (dropped.length) {
           repair.stopReason = 'review-required';
           repair.error = `AI repair drops removed request parameter ${dropped.join(', ')}; it stops for review.`;
+          break;
+        }
+        const typeOnly =
+          typeRepair && !repair.policies
+            ? typeOnlyRepairFailures({
+                before: typeRepair.base,
+                after: preparedCandidate.sources,
+                errors: typeRepair.errors,
+                compilerOptions: (path) => emitOptions(preparedCandidate.sources.root, path),
+              })
+            : [];
+        if (typeOnly.length) {
+          repair.typeOnlyGate = { repair: 'ai', failures: typeOnly };
+          repair.stopReason = 'review-required';
+          repair.error = `AI repair of the type errors the stripe-node upgrade introduced is not type-only: ${typeOnly[0]}`;
           break;
         }
         options.onProgress?.('Running repaired checks in offline Docker...');
@@ -2267,7 +2934,19 @@ export async function validateMigration(options: {
         );
         candidateDependencies = preparedCandidate.dependencies;
         candidateEnvironment = preparedCandidate.environment;
+        // A round that edits the failed candidate keeps the earlier rounds' explanations.
+        const earlier =
+          !(rules && coverage?.outcome === 'checks-failed') &&
+          options.compareTypeErrors &&
+          'explanations' in proposal
+            ? (proposal.explanations ?? [])
+            : [];
         proposal = coverage ? onRules(candidate) : candidate;
+        if (earlier.length && 'explanations' in candidate)
+          proposal = {
+            ...proposal,
+            explanations: [...earlier, ...(candidate.explanations ?? [])],
+          } as typeof proposal;
         publicationFiles = preparedCandidate.publicationFiles;
         candidateDirectory = preparedCandidate.directory;
         candidateSources = preparedCandidate.sources;
@@ -2286,6 +2965,32 @@ export async function validateMigration(options: {
         repair.error = `${error.name}: ${error.message}`;
         break;
       }
+    }
+    // A repair that ended on a repeated proposal says in the draft why that is likely.
+    if (repair.stopReason === 'repeated-proposal') {
+      const errors = (options.compareTypeErrors ? introducedTypeErrors(baselineRun, patched) : [])
+        .filter((error) => !reviewTypeError(error))
+        .map(inPackage);
+      const archive = candidateDependencies ?? dependencies;
+      if (archive && errors.length)
+        stripeTypes ??= await archivedStripeTypes(archive, packageDirectory).catch(() => []);
+      const sdkUpgrade =
+        'sdkUpgrade' in report.patch ? (report.patch.sdkUpgrade as { to?: string }) : undefined;
+      const repeatedReason = repeatedProposalReason({
+        errors,
+        sdkUpgraded: Boolean(sdkUpgrade?.to),
+        stripeFiles: new Set([
+          ...report.findings.map((finding) => finding.file),
+          ...(candidateSources?.files ?? [])
+            .filter((file) =>
+              /\bfrom\s+['"]stripe['"]|require\(\s*['"]stripe['"]\s*\)/.test(file.content),
+            )
+            .map((file) => file.path),
+        ]),
+        stripeTypes: stripeTypes ?? [],
+      });
+      repair.repeated = repeatedReason.kind;
+      repair.error = repeatedReason.text;
     }
     const generatedFor = async (directory = candidateDirectory) =>
       options.generatedChecks &&
@@ -2332,6 +3037,21 @@ export async function validateMigration(options: {
                 ...sandbox,
               }),
             ),
+          )
+        : undefined;
+    // Founder decision (2026-10-28): the broken tests run on the patch too, so a patch that adds no
+    // failure to them can be validated by the evidence that reaches its lines.
+    const brokenTestsPatched =
+      brokenTestsTypeCheck && initialCandidate
+        ? await timed('patchedChecks', () =>
+            containerCheck({
+              directory: initialCandidate.directory,
+              image,
+              command: options.command,
+              dependencies: initialCandidate.dependencies,
+              signal: options.signal,
+              ...sandbox,
+            }),
           )
         : undefined;
     let generated = await generatedFor();
@@ -2385,29 +3105,115 @@ export async function validateMigration(options: {
             ? `Dependencies could not be prepared, and the changed Stripe code cannot run on stripe alone: ${stripeOnly?.record.reasons?.join(' ') ?? 'no candidate.'}`
             : undefined;
     // Written from the original code and the preflight scan, which ran before any patch existed.
-    const written =
+    const writerInput = {
+      repository: originalSources,
+      findings: preflight.findings,
+      changes: preflight.changes,
+      removals: requestRemovals,
+      before: beforeSpecification,
+      after: afterSpecification,
+      // Where the patch changes the original code, so the tests reach every changed line.
+      changedLines: candidateSources
+        ? changedStripeLines(originalSources, candidateSources, report.findings).original
+        : {},
+      target: options.providerSandbox ? ('test-environment' as const) : ('mock' as const),
+    };
+    let written =
       options.behaviourTestWriter && !options.behaviourTests
         ? behaviourBlocked
           ? { record: behaviourTestSkip(options.behaviourTestWriter, behaviourBlocked), files: [] }
           : await timed('behaviourTestWriter', () =>
-              writeBehaviourTests({
-                repository: originalSources,
-                findings: preflight.findings,
-                changes: preflight.changes,
-                removals: requestRemovals,
-                before: beforeSpecification,
-                after: afterSpecification,
-                ai: options.behaviourTestWriter!,
-              }),
+              writeBehaviourTests({ ...writerInput, ai: options.behaviourTestWriter! }),
             )
         : undefined;
+    const runBehaviour = (tests: BehaviourTest[]) =>
+      timed('behaviourTests', () =>
+        behaviourEvidence({
+          tests,
+          settings: options.generatedChecks,
+          image,
+          root,
+          original: {
+            directory: baselineDirectory,
+            contract: options.before,
+            repository: originalSources,
+            dependencies: stripeOnly?.dependencies?.original ?? dependencies,
+          },
+          patched: {
+            directory: candidateDirectory!,
+            contract: options.after,
+            repository: candidateSources!,
+            dependencies:
+              stripeOnly?.dependencies?.patched ?? candidateDependencies ?? dependencies,
+          },
+          findings: report.findings,
+          sandbox,
+          provider: options.providerSandbox,
+          onProgress: options.onProgress,
+          signal: options.signal,
+        }),
+      );
     const behaviourTests = options.behaviourTests ?? written?.files;
-    const behaviour =
-      behaviourTests?.length && !behaviourBlocked
-        ? await timed('behaviourTests', () =>
-            behaviourEvidence({
-              tests: behaviourTests,
+    let behaviour =
+      behaviourTests?.length && !behaviourBlocked ? await runBehaviour(behaviourTests) : undefined;
+    // A generated test counts only once it passes on the original code and runs every changed line
+    // there, so the writer gets its files back with what they did on the original code, never the
+    // patched side, and writes them again. A round that writes nothing keeps the previous run.
+    for (let round = 1; written?.files.length && behaviour && round <= FEEDBACK_ROUNDS; round++) {
+      // Files exist only after a real request, never with a skip record.
+      const previous = written.record as BehaviourTestRecord;
+      const previousAttempt = behaviourTestFeedback(behaviour, written.files, round);
+      if (!previousAttempt) break;
+      const next = await timed('behaviourTestWriter', () =>
+        writeBehaviourTests({ ...writerInput, previousAttempt, ai: options.behaviourTestWriter! }),
+      );
+      // costUsd counts every request, feedback rounds included.
+      const record: BehaviourTestRecord = {
+        ...(next.files.length ? next.record : previous),
+        costUsd:
+          previous.costUsd === null && next.record.costUsd === null
+            ? null
+            : (previous.costUsd ?? 0) + (next.record.costUsd ?? 0),
+        feedback: [
+          ...(previous.feedback ?? []),
+          {
+            round,
+            status: next.record.status,
+            ...(next.record.reason ? { reason: next.record.reason } : {}),
+            costUsd: next.record.costUsd,
+            files: next.record.files.map((file) => file.path),
+          },
+        ],
+      };
+      if (!next.files.length) {
+        written = { record, files: written.files };
+        break;
+      }
+      const rerun = await runBehaviour(next.files);
+      // A round that does worse on the original code than the one before keeps the earlier files.
+      if (originalProgress(rerun) < originalProgress(behaviour)) {
+        record.feedback!.at(-1)!.reason =
+          'Its files did worse on the original code; the earlier files are kept.';
+        written = {
+          record: { ...previous, costUsd: record.costUsd, feedback: record.feedback },
+          files: written.files,
+        };
+        break;
+      }
+      written = { record, files: next.files };
+      behaviour = rerun;
+    }
+    const signedEvents =
+      options.signedEventChecks && !behaviourBlocked
+        ? await timed('signedEvents', () =>
+            signedEventEvidence({
               settings: options.generatedChecks,
+              versions: [beforeSpecification, afterSpecification].map((specification) =>
+                String(
+                  (specification.document as { info?: { version?: unknown } }).info?.version ?? '',
+                ),
+              ) as [string, string],
+              specification: beforeSpecification.document,
               image,
               root,
               original: {
@@ -2429,17 +3235,19 @@ export async function validateMigration(options: {
               signal: options.signal,
             }),
           )
-        : undefined;
+        : options.signedEventChecks
+          ? { status: 'not-run' as const, reason: behaviourBlocked!, regressions: [] }
+          : undefined;
     const currentRevision = (await git(['rev-parse', '--verify', 'HEAD^{commit}'])).stdout.trim();
     const currentStatus = (await git(['status', '--porcelain', '--untracked-files=all'])).stdout;
     const validationStatus =
       currentRevision !== revision || currentStatus
         ? 'stale'
         : dependencyFailure || noCheck
-          ? behaviour?.regressions.length
+          ? behaviour?.regressions.length || signedEvents?.regressions.length
             ? 'regression'
             : 'untested'
-          : checkStatus(baseline, patched, generated, behaviour);
+          : checkStatus(baseline, patched, generated, behaviour, signedEvents);
     const failures = checkFailures(
       baselineCommand,
       options.command,
@@ -2447,6 +3255,7 @@ export async function validateMigration(options: {
       patched,
       generated,
       behaviour,
+      signedEvents,
     );
     const introducedByPatch = brokenTestsTypeCheck
       ? introducedTypeErrors(baselineRun, brokenTestsTypeCheck).filter(
@@ -2474,6 +3283,52 @@ export async function validateMigration(options: {
     // never vetoes a correct patch. A regression is never graded A.
     const behaviourA =
       behaviour?.grade === 'A' && !['stale', 'regression'].includes(validationStatus);
+    // A checkJs check (check-selection.ts) counts only where TypeScript typed the changed Stripe code
+    // with the target stripe-node (checkjs-coverage.ts) and, as under D2a, only for type-visible
+    // contract changes: every change the patch handles or reaches is a removed field, a changed type
+    // or a removed enum value.
+    let checkJs: (CheckJsCoverage & { counts: boolean; behavioural: string[] }) | undefined;
+    if (checkJsCheck(options.command) && candidateSources && validationStatus === 'passed') {
+      const upgrade =
+        'sdkUpgrade' in proposal
+          ? (proposal.sdkUpgrade as { from?: string; to?: string } | undefined)
+          : undefined;
+      const coverage = await timed('checkJsCoverage', () =>
+        checkJsCoverage({
+          original: originalSources,
+          patched: candidateSources!,
+          command: options.command,
+          changedFiles: publicationFiles.map((file) => file.path),
+          dependencies:
+            !dependencyFailure && candidateDependencies !== dependencies
+              ? candidateDependencies
+              : undefined,
+          sdk: upgrade?.to,
+          packageDirectory,
+        }),
+      );
+      const behavioural = [
+        ...new Set(
+          (report.specificationDiff.changes as Record<string, unknown>[])
+            .filter((change) => change.reach === 'reached' || change.reach === 'handled')
+            .map((change) => String(change.id))
+            .filter((id) => !TYPE_VISIBLE_CHANGES.has(id)),
+        ),
+      ];
+      const counts = coverage.proven && !behavioural.length && CHECKJS_STANDS_IN_FOR_TESTS;
+      checkJs = {
+        ...coverage,
+        counts,
+        behavioural,
+        reason: !coverage.proven
+          ? coverage.reason
+          : behavioural.length
+            ? `${behavioural.slice(0, MAX_GATE_SITES).join(', ')} ${behavioural.length === 1 ? 'is' : 'are'} not type-visible, so only tests could show the patch handles ${behavioural.length === 1 ? 'it' : 'them'}`
+            : counts
+              ? coverage.reason
+              : `${coverage.reason}, but a checkJs result does not yet stand in for tests without an owner decision, so it is evidence only`,
+      };
+    }
     const ownGrade =
       (validationStatus === 'passed' || ownChecksPassed || behaviourA) && candidateSources
         ? await gradeEvidence({
@@ -2486,6 +3341,10 @@ export async function validateMigration(options: {
             typeCheckUnavailable,
             packageDirectory,
             testsFoundNone: noTests,
+            ...(checkJs ? { checkJs: { counts: checkJs.counts, reason: checkJs.reason } } : {}),
+            ...(signedEvents && 'covered' in signedEvents && signedEvents.covered.length
+              ? { signedEvents: signedEvents.covered }
+              : {}),
           })
         : undefined;
     const grade = ownGrade
@@ -2532,6 +3391,33 @@ export async function validateMigration(options: {
                       ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
                       : `Validation returned ${validationStatus}.`),
             );
+    // docs/SHOPIFY-PROOF.md: a Shopify patch is graded by its proof, the documents validated
+    // against the target schema (and the dev store when configured); the checks' grade counts only
+    // with that proof. The AI second opinion is recorded and never changes the grade.
+    const shopify =
+      report.provider === SHOPIFY.id && candidateSources && validationStatus !== 'stale'
+        ? await timed('shopifyProof', () =>
+            shopifyProof({
+              original: originalSources,
+              patched: candidateSources!,
+              before: {
+                version: report.apiVersion.before ?? '',
+                schema: shopifySchema(String(beforeSpecification.document.graphqlIntrospection)),
+              },
+              after: {
+                version: report.apiVersion.after ?? '',
+                schema: shopifySchema(String(afterSpecification.document.graphqlIntrospection)),
+              },
+              own: grade,
+              regression: validationStatus === 'regression',
+              diff: proposal.diff,
+              summary: 'summary' in proposal ? String(proposal.summary) : '',
+              warnings: 'warnings' in proposal ? (proposal.warnings as string[]) : [],
+              ai: options.assessment ?? options.aiPatch,
+              environment: process.env,
+            }),
+          )
+        : undefined;
     const typeOracle = await runTypeOracle({
       compareTypeErrors: options.compareTypeErrors,
       command: options.command,
@@ -2552,20 +3438,7 @@ export async function validateMigration(options: {
       before: beforeSpecification.document as Record<string, unknown>,
       files: originalSources.files,
       packageDirectory,
-      check: (diff, command, dependencies) =>
-        timed('typeOracle', async () => {
-          const directory = await sandboxInput(root, 'oracle-');
-          await applyPatch(archive, directory, `${directory}.patch`, diff);
-          options.onProgress?.('Type-checking the original code with the target stripe-node...');
-          return containerCheck({
-            directory,
-            image,
-            command,
-            dependencies,
-            signal: options.signal,
-            ...sandbox,
-          });
-        }),
+      check: oracleCheck,
     });
     options.signal?.throwIfAborted();
     if (rules && coverage?.outcome === 'kept' && candidateSources) {
@@ -2590,6 +3463,11 @@ export async function validateMigration(options: {
         checksPassed: validationStatus === 'passed',
         typeCheckedFiles: typeCheckCoverage(candidateSources, options.command, packageDirectory),
       });
+      // Founder decision (2026-10-28): a repair where a policy used to stop is never validated.
+      if (repair.policies)
+        failures.push(
+          `AI repaired errors where a policy used to stop: ${repair.policies.join(' ')}`,
+        );
       coverage.gate = {
         passed: !failures.length,
         failures,
@@ -2625,7 +3503,7 @@ export async function validateMigration(options: {
       report.patch.generator === 'deterministic' &&
       (!coverage || coverage.outcome !== 'kept' || coverage.gate?.passed) &&
       'unresolvedSites' in proposal &&
-      proposal.unresolvedSites?.some((site) => site.untraced)
+      proposal.unresolvedSites?.some((site) => site.untraced || site.confidence === 'review')
     ) {
       const findings = analyzeRepository(
         { ...originalSources, files: candidateSources.files },
@@ -2633,21 +3511,24 @@ export async function validateMigration(options: {
         report.adapter,
         beforeSpecification.schemas,
       ).findings.filter((finding) => !TEST_PATH.test(finding.file));
+      // Founder decision (2026-10-28): a traced read the analyzer could not decide is proved the
+      // same way as an untraced one; a reason it named (a webhook, a mutation) keeps it.
+      const unproven = (finding: Finding) =>
+        finding.untraced ||
+        (finding.confidence === 'review' && finding.reason === UNPROVEN_RECEIVER_REASON);
       const sources = candidateSources;
+      const prisma = (await runtimeStandIns(join(sources.root, packageDirectory ?? ''))).prisma;
       const local = await withDependencyTypes(
         root,
         join(sources.root, packageDirectory ?? ''),
         candidateDependencies,
         () =>
-          localReceiverReads(
-            sources,
-            findings.filter((finding) => finding.untraced),
-            {
-              traced: findings.filter((finding) => !finding.untraced),
-              typeChecked: (file) => typeOraclePasses(typeOracle) || Boolean(covered?.has(file)),
-              changes: report.changes,
-            },
-          ),
+          localReceiverReads(sources, findings.filter(unproven), {
+            traced: findings.filter((finding) => !unproven(finding)),
+            typeChecked: (file) => typeOraclePasses(typeOracle) || Boolean(covered?.has(file)),
+            changes: report.changes,
+            prismaModels: prisma ? Object.keys(prisma.models) : [],
+          }),
       );
       const left = resolvedSites(proposal.unresolvedSites, unresolvedSites(local));
       if (local.length && left.length === proposal.unresolvedSites.length - local.length) {
@@ -2693,7 +3574,9 @@ export async function validateMigration(options: {
       ...(stripeOnly ? { stripeOnly: stripeOnly.record } : {}),
       ...(written ? { behaviourTestWriter: written.record } : {}),
       ...(behaviour ? { behaviour } : {}),
-      ...(grade ? { grade } : {}),
+      ...(signedEvents ? { signedEvents } : {}),
+      ...(shopify ? { grade: shopify.grade } : grade ? { grade } : {}),
+      ...(shopify ? { shopifyProof: shopify.record } : {}),
       attempts,
       repair,
       ...(options.aiPatch ? { aiCostUsd } : {}),
@@ -2705,9 +3588,23 @@ export async function validateMigration(options: {
         : {}),
       ...(typeCheckUnavailable ? { typeCheckUnavailable } : {}),
       ...(typeOracle ? { typeOracle } : {}),
+      ...(checkJs ? { checkJs } : {}),
       ...namedBaselineStop(validationStatus, baselineRun),
       ...(brokenTestsTypeCheck
-        ? { brokenTestsTypeCheck: { command: brokenTestsCommand, patched: brokenTestsTypeCheck } }
+        ? {
+            brokenTestsTypeCheck: {
+              command: brokenTestsCommand,
+              patched: brokenTestsTypeCheck,
+              ...(brokenTestsPatched
+                ? {
+                    tests: {
+                      status: brokenTestsPatched.status,
+                      newFailures: newTestFailures(baselineRun, brokenTestsPatched) ?? null,
+                    },
+                  }
+                : {}),
+            },
+          }
         : {}),
       ...failures,
       ...(Object.keys(timings).length ? { timings } : {}),
@@ -2794,7 +3691,7 @@ export async function validateSourcePatch(options: {
     let environment: Record<string, unknown> | undefined;
     if (options.prepareDependencies) {
       dependencies = join(root, 'dependencies.tar');
-      const prepared = await prepareDependencies({
+      const prepared = await prepareEnvironment({
         repository: snapshot.directory,
         image,
         copyArchiveTo: dependencies,

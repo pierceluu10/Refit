@@ -1,5 +1,7 @@
 import { execFile } from 'node:child_process';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { signedEventSummary } from './signed-events.ts';
+import { emptySignatures, readJson, signatureSummary, SIGNATURES } from './learning.ts';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,13 +17,16 @@ import {
 import { assertResults } from '../scripts/benchmark-results.mjs';
 import { assessmentConfiguration } from './assessment.ts';
 import { selectCheck, ungradedEvidence } from './check-selection.ts';
+import { MAX_DOCUMENTATION_SOURCES } from './documentation-sources.ts';
 import { unmappedBreakingChanges } from './openapi-diff.ts';
 import { PASSING_REACH } from './operation-reach.ts';
 import { sdkPackageDirectory } from './preparation-packages.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { measureCoverage } from './sdk-coverage.ts';
+import { typedStripeClients } from './type-clients.ts';
 import {
+  contractChangePages,
   forkAtCommit,
   PUBLISH_BASE,
   repositoryAdapter,
@@ -32,8 +37,10 @@ import {
 } from './stripe-benchmark.ts';
 import { FieldSubstitutionError } from './substitution-guard.ts';
 import { validationProfile } from './docker-sandbox.ts';
+import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
 import { HOSTED_REPAIR_ATTEMPTS, validateRepairAttempts } from './validation-options.ts';
 import { AiPolicyStop } from './ai-patches.ts';
+import { stripeTestMode } from './stripe-test-mode.ts';
 import { behaviourTestSkip, DRY_RUN_MODEL } from './behaviour-test-writer.ts';
 import { githubAppConfiguration } from './github-app.ts';
 import {
@@ -44,15 +51,18 @@ import {
 } from './publication.ts';
 import { PipelineInputError, type Repository } from './types.ts';
 import { typeErrorKeys } from './type-errors.ts';
-import { proposalReviewReason, scanReviewReason } from './workflow.ts';
+import { NO_USAGE_REASON, proposalReviewReason, scanReviewReason } from './workflow.ts';
 import { readEvidence } from './state-files.ts';
 import { NO_OP_CHECK } from './review.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0|1|2]] [--behaviour-tests | --behaviour-tests-dry-run] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0-4] [--ai-effort low|medium|high|xhigh|max]] [--behaviour-tests | --behaviour-tests-dry-run | --no-behaviour-tests] [--webhook-checks] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--skip-generated-clients] [--resolve-lockfiles] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
-const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
+// Above validation's own limits at their defaults: two preparations (300 s each), a baseline and a
+// patched check (600 s each), and the retry without the API-version move (another preparation and
+// check), so a repository's limits decide its outcome, not the benchmark's.
+const VALIDATION_TIMEOUT_MS = 45 * 60 * 1000;
 // Unmapped oasdiff changes recorded per scan; multi-year jumps can report hundreds.
 const MAX_RECORDED_CHANGES = 500;
 const reportedTypeErrorKeys = (check: { stdout?: string; stderr?: string } | undefined) =>
@@ -82,6 +92,15 @@ const { values } = parseArgs({
     // Builds each behaviour-test request without sending it, and records per repository whether
     // the real run would send it, why not, and its estimated tokens and cost. No key needed.
     'behaviour-tests-dry-run': { type: 'boolean' },
+    // --ai writes behaviour tests with the same model by default; this turns them off.
+    'no-behaviour-tests': { type: 'boolean' },
+    // OPENAI_REASONING_EFFORT for every AI request (low, medium, high, xhigh or max).
+    'ai-effort': { type: 'string' },
+    // Sends signed webhook events of both API versions to the handlers a patch can affect
+    // (signed-events.ts), offline; no key needed.
+    'webhook-checks': { type: 'boolean' },
+    // Runs the behaviour tests against Stripe test mode with STRIPE_TEST_KEY (provider-sandbox.ts).
+    'stripe-test-mode': { type: 'boolean' },
     validate: { type: 'boolean' },
     offset: { type: 'string' },
     limit: { type: 'string' },
@@ -99,6 +118,11 @@ const { values } = parseArgs({
     'allow-dirty': { type: 'boolean' },
     // Sandbox profile for every repository (REFIT_VALIDATION_WORKSPACE), e.g. 4g on a large runner.
     'validation-workspace': { type: 'string' },
+    // Skips recreating the Prisma client and next-env.d.ts before every check
+    // (REFIT_GENERATE_CLIENTS=0; declared-generators.ts).
+    'skip-generated-clients': { type: 'boolean' },
+    // Sets REFIT_LOCKFILE_RESOLUTION=on explicitly; it is the default, so runs before it was stay reproducible.
+    'resolve-lockfiles': { type: 'boolean' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
@@ -110,10 +134,13 @@ const repairAttempts = validateRepairAttempts(
   Boolean(values.ai),
 );
 if (values.env) process.loadEnvFile(values.env);
+if (values['ai-effort']) process.env.OPENAI_REASONING_EFFORT = values['ai-effort'];
 if (values['validation-workspace']) {
   validationProfile(values['validation-workspace']);
   process.env.REFIT_VALIDATION_WORKSPACE = values['validation-workspace'];
 }
+if (values['skip-generated-clients']) process.env.REFIT_GENERATE_CLIENTS = '0';
+if (values['resolve-lockfiles']) process.env.REFIT_LOCKFILE_RESOLUTION = 'on';
 if (values['behaviour-tests'] && (!values.env || !values.validate))
   throw new PipelineInputError(
     '--behaviour-tests needs --validate and --env with OPENAI_API_KEY and OPENAI_MODEL.',
@@ -125,6 +152,12 @@ if (values['behaviour-tests-dry-run'] && (!values.validate || values['behaviour-
     '--behaviour-tests-dry-run needs --validate and replaces --behaviour-tests.',
   );
 const writer = values['behaviour-tests'] || values['behaviour-tests-dry-run'];
+// Refuses a missing, live or malformed STRIPE_TEST_KEY before any repository runs.
+// --ai writes behaviour tests by default unless --no-behaviour-tests.
+stripeTestMode(
+  values['stripe-test-mode'],
+  values['behaviour-tests'] || (values.ai && !values['no-behaviour-tests']),
+);
 // Copied after --env loads, so children get its keys. Benchmark runs never send Slack notices.
 const CHILD_ENV = { ...process.env };
 delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
@@ -162,6 +195,21 @@ const changelogPages = (
     changes: Record<string, string>;
   }
 ).changes;
+const changelogContents = await Promise.all(
+  (await readdir(join(CHANGELOG, 'pages'), { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .flatMap(async (entry) =>
+      Promise.all(
+        (await readdir(join(CHANGELOG, 'pages', entry.name)))
+          .filter((file) => file.endsWith('.json'))
+          .map(async (file) => {
+            const path = join(CHANGELOG, 'pages', entry.name, file);
+            const { content } = JSON.parse(await readFile(path, 'utf8')) as { content: string };
+            return { path, version: entry.name, content };
+          }),
+      ),
+    ),
+).then((groups) => groups.flat());
 const productionFailures = new Map<string, string>();
 // Every option but the paths that only locate inputs and outputs, and the harness's own flags.
 const {
@@ -184,7 +232,14 @@ const { rows: previous } = await openRunDirectory(
       'REFIT_DEPENDENCY_TIMEOUT_SECONDS',
       // Rows may then carry baseline results an earlier run recorded (workflow.baselineReused).
       'REFIT_BASELINE_CHECK_CACHE_DIRECTORY',
-      ...(values.ai || writer ? ['OPENAI_MODEL'] : []),
+      ...(values.ai || writer
+        ? [
+            'OPENAI_MODEL',
+            'OPENAI_REASONING_EFFORT',
+            'OPENAI_ESCALATION_MODEL',
+            'OPENAI_ESCALATION_EFFORT',
+          ]
+        : []),
     ],
     ...(values.validate ? { image: VALIDATION_IMAGE } : {}),
     allowDirty,
@@ -244,10 +299,25 @@ async function benchmark(entry: Selected, index: number) {
     return;
   }
   lap('read');
+  const stripePackage = values['stripe-package']
+    ? join(resolve(values['stripe-package']), entry.repo.replace('/', '__'))
+    : undefined;
   try {
-    const sites = measureCoverage(repository, 'stripe').filter((site) => site.likelySdk);
+    const sites = measureCoverage(repository, 'stripe', {
+      typeTracing: true,
+      stripePackage,
+    }).filter((site) => site.likelySdk);
     result.sdkCalls = sites.length;
     result.tracedCalls = sites.filter((site) => site.traced).length;
+    // How each traced call was traced (docs/CLIENT-TRACING.md).
+    result.tracedCallsBySource = Object.fromEntries(
+      (['analyzer', 'type', 'js-return'] as const).map((source) => [
+        source,
+        sites.filter((site) => site.traceSource === source).length,
+      ]),
+    );
+    const typed = typedStripeClients(repository, stripePackage);
+    if (typed.skipped) result.typeTracing = typed.skipped;
   } catch (error) {
     result.scanCrash = message(error);
     log('scanner crashed');
@@ -272,9 +342,7 @@ async function benchmark(entry: Selected, index: number) {
     before,
     after,
     apiVersion: entry.before,
-    ...(values['stripe-package']
-      ? { stripePackage: join(resolve(values['stripe-package']), entry.repo.replace('/', '__')) }
-      : {}),
+    ...(stripePackage ? { stripePackage } : {}),
     ...(values['keep-listed-payment-methods'] ? { keepListedPaymentMethods: true } : {}),
   };
   const webhookFiles = new Set(
@@ -414,6 +482,7 @@ async function benchmark(entry: Selected, index: number) {
   // on machine load, not the pair, so it is not reused. A reused failure is recorded exactly like
   // the first, so a row does not depend on which repository --concurrency reached first.
   const failed = productionFailures.get(entry.before);
+  let contractNotes: string[] = [];
   if (failed) result.productionMode = { error: failed };
   else
     try {
@@ -425,6 +494,22 @@ async function benchmark(entry: Selected, index: number) {
         leaveReviewedFindings,
       });
       result.productionMode = { ...summarize(scan), stop: scanStop(scan) ?? null };
+      contractNotes =
+        scan.specificationDiff.engine === 'oasdiff'
+          ? contractChangePages(
+              unmappedBreakingChanges(
+                scan.specificationDiff,
+                scan.changes,
+                scan.findings,
+                scan.operationChanges,
+                scan.requestChanges,
+                scan.expandedFields,
+              ) as Record<string, unknown>[],
+              changelogContents,
+              entry.before,
+              latest,
+            )
+          : [];
     } catch (error) {
       if (!/time limit/.test(message(error))) productionFailures.set(entry.before, message(error));
       result.productionMode = { error: message(error) };
@@ -432,11 +517,24 @@ async function benchmark(entry: Selected, index: number) {
   lap('productionMode');
   const full = result.fullAdapter as { confirmed: number; confirmedFields: string[] };
   const production = result.productionMode as { error?: string; stop?: string | null };
+  // Pages for removed fields the code reads, then for contract changes traced code reaches.
   const notes = [
-    ...new Set(full.confirmedFields?.map((field) => changelogPages[field]).filter(Boolean)),
-  ].map((page) => join(CHANGELOG, page));
+    ...new Set([
+      ...(full.confirmedFields ?? [])
+        .map((field) => changelogPages[field])
+        .filter(Boolean)
+        .map((page) => join(CHANGELOG, page)),
+      ...contractNotes,
+    ]),
+  ].slice(0, MAX_DOCUMENTATION_SOURCES);
   result.changelogNotes = notes.map((path) => path.slice(CHANGELOG.length + 1));
-  if (!full.confirmed) {
+  // docs/VERSION-BUMP-PRS.md: where production mode found no usage, the workflow may open a checked
+  // version bump; it applies every gate itself.
+  const bumpCandidate =
+    !full.confirmed &&
+    Boolean(values.validate) &&
+    String(production.stop ?? '').startsWith(NO_USAGE_REASON);
+  if (!full.confirmed && !bumpCandidate) {
     log('not affected');
     return;
   }
@@ -457,7 +555,7 @@ async function benchmark(entry: Selected, index: number) {
   const locked = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'].some((lockfile) =>
     existsSync(join(checkRoot, lockfile)),
   );
-  const checkable = locked && Boolean(declared.stripe);
+  const checkable = (locked || lockfileResolutionEnabled()) && Boolean(declared.stripe);
   // Owner decision 1: a project that commits no lockfile runs the workflow as a customer's generated
   // configuration does; preparation refuses, and the patch is kept untested, graded D.
   const unlocked = !locked && Boolean(declared.stripe);
@@ -474,6 +572,12 @@ async function benchmark(entry: Selected, index: number) {
   };
   result.validatable = checkable && Boolean(selection.command);
   result.checks = !checkable ? 'none' : (selection.kind ?? 'generated-only');
+  // A bump is published only with checks that ran, so without them the row stays not affected.
+  if (bumpCandidate && !(checkable && selection.command)) {
+    result.versionBump = checkable ? selection.reason : 'No lockfile declares stripe.';
+    log('not affected; no check can run a version bump');
+    return;
+  }
   if (values.validate && (checkable || unlocked)) {
     const fixtures = (version: string) => join(root, 'fixtures', `${version}.json`);
     const generatedChecks =
@@ -486,12 +590,18 @@ async function benchmark(entry: Selected, index: number) {
         : undefined;
     // compareTypeErrors fails a patched type check only on errors the patch introduced, which then
     // go to AI repair.
-    const command = checkable ? selection.command : (selection.command ?? NO_OP_CHECK.split(' '));
+    // With behaviour tests, a repository with no check is validated with the no-op check, as the
+    // configuration enrollment generates for it, so a grade-A behaviour test can prove its patch
+    // (founder decision, 2026-10-28).
+    const command =
+      checkable && !values['behaviour-tests']
+        ? selection.command
+        : (selection.command ?? NO_OP_CHECK.split(' '));
     const config = join(work, 'run.json');
     // A customer's worker runs the full contract diff. When it stops before validation, the
     // workflow runs without it (benchmark mode) to measure what the rules alone would do; when it
     // does not stop, the diff adds nothing else, so the workflow below is the customer's run.
-    const productionPasses = !production.error && !production.stop;
+    const productionPasses = (!production.error && !production.stop) || bumpCandidate;
     await writeFile(
       config,
       `${JSON.stringify({ formatVersion: 1, repository: directory, apiVersion: entry.before, before, after, providerConfig: adapterPath, image: VALIDATION_IMAGE, prepareDependencies: true, command, ...(productionPasses ? { fullDiff: true } : {}), ...(selection.compareTypeErrors ? { compareTypeErrors: true } : {}), ...(generatedChecks ? { generatedChecks } : {}), ...(values['keep-listed-payment-methods'] ? { stripePaymentMethodTypes: 'keep-listed' } : {}) }, null, 2)}\n`,
@@ -506,11 +616,17 @@ async function benchmark(entry: Selected, index: number) {
         apiVersion: entry.before,
         providerConfig: adapterPath,
         ...(values['keep-listed-payment-methods'] ? { keepListedPaymentMethods: true } : {}),
+        ...(bumpCandidate ? { fullDiff: true } : {}),
       },
       Boolean(ai),
       leaveReviewedFindings,
     );
     const stop = scan.stop;
+    if (scan.versionBump) result.versionBump = scan.versionBump;
+    if (bumpCandidate && stop) {
+      log(`not affected; no version bump: ${scan.versionBump ?? stop}`);
+      return;
+    }
     // A repository with no check keeps its patch, graded D, for a [Needs review] draft.
     const noCheck = !stop && !command;
     lap('workflowScan');
@@ -539,7 +655,11 @@ async function benchmark(entry: Selected, index: number) {
               ? ['--write-behaviour-tests']
               : values['behaviour-tests-dry-run']
                 ? ['--write-behaviour-tests-dry-run']
-                : []),
+                : values['no-behaviour-tests']
+                  ? ['--no-behaviour-tests']
+                  : []),
+            ...(values['webhook-checks'] ? ['--webhook-checks'] : []),
+            ...(values['stripe-test-mode'] ? ['--stripe-test-mode'] : []),
             ...(leaveReviewedFindings ? [] : ['--publish-validated-only']),
             '--quiet',
             '--json',
@@ -584,6 +704,7 @@ async function benchmark(entry: Selected, index: number) {
       checks: result.checks,
       patch: report.patch?.status,
       generator: report.patch?.generator,
+      rules: report.patch?.rules,
       summary: report.patch?.summary,
       unresolvedFindings: report.patch?.unresolvedFindings,
       sdkUpgrade: report.patch?.sdkUpgrade,
@@ -596,6 +717,9 @@ async function benchmark(entry: Selected, index: number) {
       behaviourTestWriter: report.validation?.behaviourTestWriter,
       stripeOnly: report.validation?.stripeOnly,
       advisoryTypeErrors: report.validation?.advisoryTypeErrors?.length,
+      ...(report.validation?.signedEvents
+        ? { signedEvents: signedEventSummary(report.validation.signedEvents) }
+        : {}),
       typeCheckUnavailable: report.validation?.typeCheckUnavailable,
       ...(report.validation?.typeOracle
         ? {
@@ -633,6 +757,8 @@ async function benchmark(entry: Selected, index: number) {
         patched: report.validation?.patched?.error,
       },
       checkFailures: report.validation?.checkFailures,
+      // Why an api-version-kept row kept its pins (workflow.ts).
+      movedAttempt: report.validation?.movedAttempt,
       timings: report.validation?.timings,
       ...(report.validation?.compareTypeErrors && report.validation?.patched
         ? {
@@ -670,6 +796,15 @@ async function benchmark(entry: Selected, index: number) {
               missing: report.validation.behaviour.missing,
               regressions: report.validation.behaviour.regressions,
               tests: report.validation.behaviour.tests,
+              ...(report.validation.behaviour.target
+                ? { target: report.validation.behaviour.target }
+                : {}),
+              ...(report.validation.behaviour.dropped?.length
+                ? { dropped: report.validation.behaviour.dropped }
+                : {}),
+              ...(report.validation.behaviour.sandbox
+                ? { sandbox: report.validation.behaviour.sandbox }
+                : {}),
             },
           }
         : {}),
@@ -850,6 +985,9 @@ await Promise.all(
 );
 assertResults('stripe-results', results);
 await writeFile(join(output, 'results.json'), json(results));
-await writeFile(join(output, 'summary.md'), summaryTable(results));
+await writeFile(
+  join(output, 'summary.md'),
+  `${summaryTable(results)}\n${signatureSummary(results, readJson(SIGNATURES, emptySignatures))}`,
+);
 console.log(`Results: ${join(output, 'results.json')}`);
 console.log(`Summary: ${join(output, 'summary.md')}`);

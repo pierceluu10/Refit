@@ -14,6 +14,14 @@ export const SHOPIFY_PACKAGES = [
 ];
 const SHOPIFY_IMPORT = /(?:from\s*|import\s*\(\s*|require\s*\(\s*)['"]@shopify\/[^'"]+['"]/;
 const GRAPHQL_MARKER = /^\s*#graphql\b/;
+const ENVIRONMENT =
+  /^process\.env\.(\w+)$|^process\.env\[['"](\w+)['"]\]$|^import\.meta\.env\.(\w+)$/;
+// Tags and functions that only mark a document: graphql-tag, codegen's client preset, gql.tada.
+const DOCUMENT_TAG = /^(?:gql|graphql)$/;
+// Storefront API clients: Hydrogen's `storefront`, createStorefrontApiClient and clients.Storefront.
+const STOREFRONT_RECEIVER = /(?:^|\.)storefront$/;
+const STOREFRONT_CLIENT_FACTORY =
+  /^createStorefrontApiClient$|\.clients\.Storefront$|^createStorefrontClient$/;
 const TEST_FILE = /(?:^|\/)(?:__tests__|tests?)\/|\.(?:test|spec)\.[cm]?[jt]sx?$/;
 const ADMIN_RECEIVER = /(?:^|\.)admin$/;
 const ADMIN_CLIENT_FACTORY = /^createAdminApiClient$|\.clients\.Graphql$|^GraphqlClient$/;
@@ -24,7 +32,7 @@ const REST_RECEIVER =
 const REST_URL =
   /\/admin\/api\/(\d{4}-\d{2}|unstable)\/(?:(?!graphql\.json)[\w/{}.$-]*\.json|(?!graphql\b)[\w-]+\/)/;
 // The Admin GraphQL endpoint itself, requested without one of Shopify's clients.
-const GRAPHQL_URL = /\/admin\/api\/(?:\d{4}-\d{2}|unstable)\/graphql\.json/;
+const GRAPHQL_URL = /\/admin\/api\/(?:\d{4}-\d{2}|unstable|\{[^}]*\})\/graphql\.json/;
 const VERSION_URL = /\/admin\/api\/(\d{4}-\d{2})\//g;
 // Variables holding a REST Admin client: `new shopify.clients.Rest(...)` or `createAdminRestApiClient(...)`.
 const REST_CLIENT_FACTORY = /\.clients\.Rest$|^createAdminRestApiClient$/;
@@ -60,6 +68,8 @@ export interface AdminDocument extends Location {
   // True when the document reaches an Admin API client call; #graphql literals Refit could not
   // tie to a call are still checked but carry review evidence.
   traced: boolean;
+  // Sent to a Storefront API client: checked against the Storefront contract, never the Admin one.
+  api?: 'storefront';
 }
 
 export interface VersionDeclaration extends Location {
@@ -68,6 +78,10 @@ export interface VersionDeclaration extends Location {
   start: number;
   end: number;
   text: string;
+  // `process.env.NAME ?? '2025-01'`: the literal is a default the environment can override.
+  envFallback?: string;
+  // Set on a Storefront API client; the Admin version move leaves it alone.
+  api?: 'storefront';
 }
 
 export interface ShopifyScan {
@@ -79,7 +93,13 @@ export interface ShopifyScan {
   rest: (Location & { expression: string; method?: string; path?: string; resource?: string })[];
   versions: VersionDeclaration[];
   // `latest` marks LATEST_API_VERSION, which the locked SDK release determines.
-  unresolvedVersions: (Location & { reason: string; latest?: true })[];
+  // `note` marks a version the patch leaves alone and the draft names, which stops nothing: an
+  // environment variable with no default in code, or the moving `unstable` version.
+  unresolvedVersions: (Location & {
+    reason: string;
+    latest?: true;
+    note?: 'environment' | 'unstable';
+  })[];
   adminCalls: number;
   shopifyFiles: string[];
 }
@@ -235,6 +255,12 @@ function referencesIn(scope: ts.Node, name: string) {
   return found;
 }
 
+// True when `text`, a document's beginning, ends inside a GraphQL string: an odd number of
+// unescaped quotes, and no block string, whose quotes this does not count.
+function insideString(text: string) {
+  return !text.includes('"""') && (text.match(/(?<!\\)"/g) ?? []).length % 2 === 1;
+}
+
 function unwrap(node: ts.Expression): ts.Expression {
   if (
     ts.isParenthesizedExpression(node) ||
@@ -248,7 +274,11 @@ function unwrap(node: ts.Expression): ts.Expression {
   return node;
 }
 
-export function scanShopify(repository: Repository): ShopifyScan {
+// `graphqlFiles` are the repository's .graphql and .gql files, read as documents of their own.
+export function scanShopify(
+  repository: Repository,
+  graphqlFiles: { path: string; content: string }[] = [],
+): ShopifyScan {
   const sources = new Map(
     repository.files.map((file) => [resolve(repository.root, file.path), file.content]),
   );
@@ -435,6 +465,13 @@ export function scanShopify(repository: Repository): ShopifyScan {
     for (const span of literal.templateSpans) {
       const expression = unwrap(span.expression);
       const resolved = ts.isIdentifier(expression) ? constant(file, expression.text) : undefined;
+      // A runtime value inside a GraphQL string (`product(id: "gid://shopify/Product/${id}")`)
+      // cannot change which fields the document selects, so a placeholder stands in for it.
+      if ((!resolved || !isLiteral(resolved.node)) && insideString(text)) {
+        text += 'x';
+        append(span.literal.text, span.literal, span.literal.getStart() + 1);
+        continue;
+      }
       if (!resolved || !isLiteral(resolved.node) || depth > 8)
         return 'The document interpolates a value Refit cannot resolve to a constant fragment.';
       const inner = assemble(resolved.node, resolved.file, depth + 1);
@@ -464,6 +501,8 @@ export function scanShopify(repository: Repository): ShopifyScan {
       scan.unreadable.push({ ...where, reason });
   };
   const documentLiterals = new Map<Literal, boolean>();
+  // The API of the client call whose document is being read.
+  let api: 'storefront' | undefined;
   const record = (literal: Literal, file: string, reached: boolean, call?: ts.Node) => {
     // Documents in tests go to mocked clients; they are fixtures, not Admin API usage.
     const traced = reached && !TEST_FILE.test(pathOf.get(file) ?? '');
@@ -480,7 +519,12 @@ export function scanShopify(repository: Repository): ShopifyScan {
         entry.file === location(literal).file,
     );
     if (existing >= 0) scan.documents.splice(existing, 1);
-    scan.documents.push({ ...location(literal), ...assembled, traced });
+    scan.documents.push({
+      ...location(literal),
+      ...assembled,
+      traced,
+      ...(reached && api ? { api } : {}),
+    });
   };
   // The `const` an identifier names in an enclosing block, including names destructured from
   // `await import('./module')` or `require('./module')`. Reassignable bindings are not followed.
@@ -824,15 +868,12 @@ export function scanShopify(repository: Repository): ShopifyScan {
     if (!node) return;
     let value = unwrap(node);
     if (ts.isObjectLiteralExpression(value)) {
-      const query = value.properties.find(
-        (property): property is ts.PropertyAssignment =>
-          ts.isPropertyAssignment(property) && property.name.getText() === 'query',
-      );
+      const query = memberOf(value, 'query');
       if (!query) {
         unreadable(call, 'The request body has no static query.');
         return;
       }
-      value = unwrap(query.initializer);
+      value = unwrap(query);
     }
     if (ts.isConditionalExpression(value)) {
       documentArgument(value.whenTrue, file, call, helpers);
@@ -907,8 +948,9 @@ export function scanShopify(repository: Repository): ShopifyScan {
           return;
         }
       }
-      // `const mutation = isCode ? CODE_MUTATION : AUTOMATIC_MUTATION`
-      if (ts.isConditionalExpression(value)) return documentArgument(value, owner, call, helpers);
+      // `const mutation = isCode ? CODE_MUTATION : AUTOMATIC_MUTATION`, `const body = { query }`
+      if (ts.isConditionalExpression(value) || ts.isObjectLiteralExpression(value))
+        return documentArgument(value, owner, call, helpers);
     }
     if (isLiteral(value)) record(value, owner, true, call);
     else
@@ -1012,12 +1054,157 @@ export function scanShopify(repository: Repository): ShopifyScan {
     const [method] = methods.size === 1 ? methods : [undefined];
     return { ...(method ? { method } : {}), ...(path ? { path } : {}) };
   };
+  // The node a value flows from, past parentheses and type assertions.
+  const outermost = (node: ts.Node) => {
+    while (
+      ts.isParenthesizedExpression(node.parent) ||
+      ts.isAsExpression(node.parent) ||
+      ts.isNonNullExpression(node.parent) ||
+      ts.isSatisfiesExpression(node.parent)
+    )
+      node = node.parent;
+    return node;
+  };
+  // A raw request to the Admin GraphQL endpoint: the document in `fetch(url, { body:
+  // JSON.stringify({ query }) })` or `axios.post(url, { query })`, for the URL literal and every use
+  // of a `const` holding it. False when no request with a readable body was found.
+  const rawGraphql = (literal: Literal, file: string) => {
+    const node = outermost(literal);
+    const declaration = node.parent;
+    const uses =
+      ts.isVariableDeclaration(declaration) &&
+      declaration.initializer === node &&
+      ts.isIdentifier(declaration.name) &&
+      declaration.parent.flags & ts.NodeFlags.Const
+        ? referencesIn(declarationOf(declaration.name)!.scope, declaration.name.text)
+        : [node];
+    let found = false;
+    for (const use of uses) {
+      const at = outermost(use);
+      const call = at.parent;
+      if (!ts.isCallExpression(call) || call.arguments[0] !== at) continue;
+      let body: ts.Expression | undefined;
+      if (/^(?:\w+\.)*fetch$/.test(call.expression.getText())) {
+        const options = call.arguments[1] && unwrap(call.arguments[1]);
+        const raw =
+          options && ts.isObjectLiteralExpression(options) ? memberOf(options, 'body') : undefined;
+        const value = raw && unwrap(raw);
+        if (
+          value &&
+          ts.isCallExpression(value) &&
+          value.expression.getText() === 'JSON.stringify' &&
+          value.arguments[0]
+        )
+          body = value.arguments[0];
+      } else if (
+        ts.isPropertyAccessExpression(call.expression) &&
+        call.expression.name.text === 'post'
+      )
+        body = call.arguments[1];
+      if (!body) continue;
+      found = true;
+      scan.adminCalls++;
+      documentArgument(body, file, call);
+    }
+    return found;
+  };
+  const versionKeys = new Set<string>();
+  const pushVersion = (entry: VersionDeclaration) => {
+    const key = `${entry.file}:${entry.start}`;
+    if (versionKeys.has(key)) return;
+    versionKeys.add(key);
+    scan.versions.push(entry);
+  };
+  // A version literal an expression names: directly, through `const` bindings and imports, or as
+  // the default of `process.env.NAME ?? '2025-01'` (or `||`). `handled` marks ApiVersion members
+  // and LATEST_API_VERSION, which are read where they are written.
+  const versionSource = (
+    expression: ts.Expression,
+    file: string,
+    depth = 0,
+  ):
+    | { literal: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral; envFallback?: string }
+    | { environment: string }
+    | 'handled'
+    | undefined => {
+    const value = unwrap(expression);
+    if (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value))
+      return { literal: value };
+    if (ts.isPropertyAccessExpression(value) && value.expression.getText() === 'ApiVersion')
+      return 'handled';
+    if (ts.isIdentifier(value) && value.text === 'LATEST_API_VERSION') return 'handled';
+    if (
+      ts.isBinaryExpression(value) &&
+      (value.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
+        value.operatorToken.kind === ts.SyntaxKind.BarBarToken)
+    ) {
+      // A default in code: `process.env.NAME ?? '2025-01'`, `options.apiVersion || ApiVersion.X`.
+      const left = unwrap(value.left).getText();
+      const environment = ENVIRONMENT.exec(left);
+      const fallback = versionSource(value.right, file, depth + 1);
+      if (fallback === 'handled') return 'handled';
+      return fallback && 'literal' in fallback
+        ? {
+            ...fallback,
+            envFallback: environment
+              ? (environment[1] ?? environment[2] ?? environment[3])
+              : left.slice(0, 80),
+          }
+        : undefined;
+    }
+    const environment = ENVIRONMENT.exec(value.getText());
+    if (environment) return { environment: environment[1] ?? environment[2] ?? environment[3] };
+    if (ts.isIdentifier(value) && depth < 8) {
+      const resolved = scoped(value, value.getSourceFile().fileName) ?? constant(file, value.text);
+      return resolved ? versionSource(resolved.node, resolved.file, depth + 1) : undefined;
+    }
+    return undefined;
+  };
+  // Records a version an expression names; false when Refit cannot read it.
+  const versionFrom = (
+    expression: ts.Expression,
+    file: string,
+    kind: 'string' | 'url',
+    storefront: boolean,
+  ) => {
+    const source = versionSource(expression, file);
+    if (source === 'handled') return true;
+    if (source && 'environment' in source) {
+      scan.unresolvedVersions.push({
+        ...location(expression),
+        reason: `The Admin API version comes from the environment variable ${source.environment}, with no default in code; set it to the target version where the app is deployed.`,
+        note: 'environment',
+      });
+      return true;
+    }
+    if (source && source.literal.text === 'unstable') {
+      scan.unresolvedVersions.push({
+        ...location(source.literal),
+        reason: 'The unstable Admin API version changes without notice; Refit leaves it as it is.',
+        note: 'unstable',
+      });
+      return true;
+    }
+    if (!source || !isShopifyVersion(source.literal.text)) return false;
+    pushVersion({
+      ...location(source.literal),
+      kind,
+      value: source.literal.text,
+      start: source.literal.getStart() + 1,
+      end: source.literal.getEnd() - 1,
+      text: source.literal.getText(),
+      ...(source.envFallback ? { envFallback: source.envFallback } : {}),
+      ...(storefront ? { api: 'storefront' as const } : {}),
+    });
+    return true;
+  };
   for (const [absolute, content] of sources) {
     const file = sourceFile(absolute);
     const shopify = SHOPIFY_IMPORT.test(content);
     if (shopify) scan.shopifyFiles.push(pathOf.get(absolute)!);
     // Identifiers bound to Admin GraphQL and REST clients in this file.
     const clients = new Set<string>();
+    const storefrontClients = new Set<string>();
     const restClients = new Set<string>();
     const apiVersionImported = /\bApiVersion\b/.test(content) && shopify;
     const visit = (node: ts.Node) => {
@@ -1026,12 +1213,28 @@ export function scanShopify(repository: Repository): ShopifyScan {
         const callee =
           ts.isCallExpression(value) || ts.isNewExpression(value) ? value.expression.getText() : '';
         if (ADMIN_CLIENT_FACTORY.test(callee)) clients.add(node.name.text);
+        if (STOREFRONT_CLIENT_FACTORY.test(callee)) storefrontClients.add(node.name.text);
         if (REST_CLIENT_FACTORY.test(callee)) restClients.add(node.name.text);
       }
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
         const method = node.expression.name.text;
         const receiver = node.expression.expression.getText();
-        if (method === 'graphql' && ADMIN_RECEIVER.test(receiver)) {
+        if (
+          ((method === 'query' || method === 'mutate') && STOREFRONT_RECEIVER.test(receiver)) ||
+          ((method === 'request' || method === 'query') && storefrontClients.has(receiver))
+        ) {
+          api = 'storefront';
+          const argument = node.arguments[0];
+          const data =
+            method === 'query' &&
+            storefrontClients.has(receiver) &&
+            argument &&
+            ts.isObjectLiteralExpression(unwrap(argument))
+              ? memberOf(argument, 'data')
+              : argument;
+          documentArgument(data, absolute, node);
+          api = undefined;
+        } else if (method === 'graphql' && ADMIN_RECEIVER.test(receiver)) {
           scan.adminCalls++;
           documentArgument(node.arguments[0], absolute, node);
         } else if ((method === 'request' || method === 'query') && clients.has(receiver)) {
@@ -1087,7 +1290,7 @@ export function scanShopify(repository: Repository): ShopifyScan {
       ) {
         const value = versionFromEnum(node.name.text);
         if (value)
-          scan.versions.push({
+          pushVersion({
             ...location(node),
             kind: 'enum',
             value,
@@ -1098,7 +1301,12 @@ export function scanShopify(repository: Repository): ShopifyScan {
         else
           scan.unresolvedVersions.push({
             ...location(node),
-            reason: `${node.getText()} is not a dated Admin API version.`,
+            ...(node.name.text === 'Unstable'
+              ? {
+                  reason: 'ApiVersion.Unstable changes without notice; Refit leaves it as it is.',
+                  note: 'unstable' as const,
+                }
+              : { reason: `${node.getText()} is not a dated Admin API version.` }),
           });
       }
       if (
@@ -1119,25 +1327,21 @@ export function scanShopify(repository: Repository): ShopifyScan {
         node.name.getText().replace(/['"]/g, '') === 'apiVersion'
       ) {
         const value = unwrap(node.initializer);
+        const factory = node.parent.parent;
+        // A Storefront client, or a codegen project for the Storefront API
+        // (`shopifyApiProject({ apiType: ApiType.Storefront, apiVersion })`).
+        const apiType = memberOf(node.parent as ts.ObjectLiteralExpression, 'apiType');
+        const storefront =
+          ((ts.isCallExpression(factory) || ts.isNewExpression(factory)) &&
+            STOREFRONT_CLIENT_FACTORY.test(factory.expression.getText())) ||
+          Boolean(apiType && /Storefront/.test(apiType.getText()));
         if (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)) {
-          if (isShopifyVersion(value.text))
-            scan.versions.push({
-              ...location(value),
-              kind: 'string',
-              value: value.text,
-              start: value.getStart() + 1,
-              end: value.getEnd() - 1,
-              text: value.getText(),
-            });
-          else
+          if (!versionFrom(value, absolute, 'string', storefront))
             scan.unresolvedVersions.push({
               ...location(value),
               reason: `apiVersion ${value.getText()} is not a dated Admin API version.`,
             });
-        } else if (
-          (!ts.isPropertyAccessExpression(value) || value.expression.getText() !== 'ApiVersion') &&
-          !(ts.isIdentifier(value) && value.text === 'LATEST_API_VERSION')
-        )
+        } else if (!versionFrom(value, absolute, 'string', storefront))
           scan.unresolvedVersions.push({
             ...location(value),
             reason: `apiVersion is set from ${value.getText().slice(0, 80)}, which Refit cannot resolve statically.`,
@@ -1151,13 +1355,6 @@ export function scanShopify(repository: Repository): ShopifyScan {
       ) {
         if (isLiteral(node) && GRAPHQL_MARKER.test(node.text))
           record(node, absolute, documentLiterals.get(node) ?? false);
-        if (GRAPHQL_URL.test(node.text)) {
-          scan.adminCalls++;
-          unreadable(
-            node,
-            'A raw request to the Admin GraphQL endpoint; Refit reads documents only from calls through Shopify clients.',
-          );
-        }
         if (REST_URL.test(node.text))
           scan.rest.push({
             ...location(node),
@@ -1166,7 +1363,7 @@ export function scanShopify(repository: Repository): ShopifyScan {
           });
         for (const match of node.text.matchAll(VERSION_URL)) {
           const start = node.getStart() + 1 + match.index! + '/admin/api/'.length;
-          scan.versions.push({
+          pushVersion({
             ...location(node, start),
             kind: 'url',
             value: match[1],
@@ -1178,10 +1375,76 @@ export function scanShopify(repository: Repository): ShopifyScan {
       }
       if (ts.isTemplateExpression(node) && GRAPHQL_MARKER.test(node.head.text))
         record(node, absolute, documentLiterals.get(node) ?? false);
+      // Raw requests in tests go to mocked endpoints, like documents in tests.
+      if (
+        isLiteral(node) &&
+        GRAPHQL_URL.test(literalText(node)) &&
+        !rawGraphql(node, absolute) &&
+        !TEST_FILE.test(pathOf.get(absolute) ?? '')
+      ) {
+        scan.adminCalls++;
+        unreadable(
+          node,
+          'A raw request to the Admin GraphQL endpoint whose body Refit cannot read; Refit reads `fetch(url, { body: JSON.stringify({ query }) })` and `axios.post(url, { query })`.',
+        );
+      }
+      // `/admin/api/${API_VERSION}/…`: the version a constant or environment default names.
+      if (ts.isTemplateExpression(node))
+        node.templateSpans.forEach((span, index) => {
+          const before = index ? node.templateSpans[index - 1].literal.text : node.head.text;
+          if (!/\/admin\/api\/$/.test(before) || !span.literal.text.startsWith('/')) return;
+          if (!versionFrom(span.expression, absolute, 'url', false))
+            scan.unresolvedVersions.push({
+              ...location(span.expression),
+              reason: `An Admin API URL takes its version from ${span.expression.getText().slice(0, 80)}, which Refit cannot resolve statically.`,
+            });
+        });
+      // gql`…` and graphql`…` documents, and graphql(`…`) documents for codegen and gql.tada.
+      if (
+        ts.isTaggedTemplateExpression(node) &&
+        DOCUMENT_TAG.test(node.tag.getText()) &&
+        isLiteral(node.template)
+      )
+        record(node.template, absolute, documentLiterals.get(node.template) ?? false);
+      // Only an imported `graphql()`: a local function of that name may send the document itself.
+      const imported = (identifier: ts.Identifier) => {
+        const binding = declarationOf(identifier)?.node;
+        return Boolean(
+          binding && (ts.isImportClause(binding.parent) || ts.isImportSpecifier(binding.parent)),
+        );
+      };
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        DOCUMENT_TAG.test(node.expression.text) &&
+        imported(node.expression) &&
+        node.arguments[0] &&
+        isLiteral(node.arguments[0])
+      )
+        record(node.arguments[0], absolute, documentLiterals.get(node.arguments[0]) ?? false);
       ts.forEachChild(node, visit);
     };
     visit(file);
   }
+  // .graphql files: no call Refit can see sends them, so they count as untraced documents.
+  for (const document of graphqlFiles)
+    if (/\S/.test(document.content))
+      scan.documents.push({
+        file: document.path,
+        line: 1,
+        column: 1,
+        text: document.content,
+        segments: [
+          {
+            documentStart: 0,
+            documentEnd: document.content.length,
+            file: document.path,
+            sourceStart: 0,
+            sourceText: document.content,
+          },
+        ],
+        traced: false,
+      });
   scan.documents.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
   return scan;
 }

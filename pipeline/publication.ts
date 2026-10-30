@@ -631,6 +631,30 @@ const AI_PATCH_REVIEW = {
 export const aiPatchValidated = (report: Report) =>
   report.patch.generator === 'openai' && report.validation.coverageAi?.gate?.passed === true;
 
+// Founder decision (Otabek, 2026-10-28; docs/PROOF-BASED-VALIDATION.md): proof decides, not caution.
+// Grades A to C (behaviour tests against Stripe test mode, the repository's own tests, or a type
+// check covering every changed file) prove a fix; grade D, where nothing reached the changed lines,
+// does not. The letter, or undefined without proof.
+export function proofLevel(report: Report) {
+  const grade = 'grade' in report.validation ? report.validation.grade : undefined;
+  return grade && ['A', 'B', 'C'].includes(grade.letter) ? grade.letter : undefined;
+}
+// An AI patch whose checks passed with A to C proof is validated like the rules' patch; this
+// supersedes owner decision 8 for such patches. Without proof it stays [Needs review].
+export const aiPatchProven = (report: Report) =>
+  report.patch.generator === 'openai' &&
+  report.validation.status === 'passed' &&
+  proofLevel(report) !== undefined;
+// Tests that failed before the patch, run on it as well (newTestFailures): it added no failure.
+const brokenTestsUnchanged = (report: Report) => {
+  const broken =
+    'brokenTestsTypeCheck' in report.validation
+      ? report.validation.brokenTestsTypeCheck
+      : undefined;
+  const tests = isObject(broken) && isObject(broken.tests) ? broken.tests : undefined;
+  return Array.isArray(tests?.newFailures) && tests.newFailures.length === 0;
+};
+
 // An AI patch that fails owner decision D2's gate is never validated for publication, so
 // --publish-validated-only stops it.
 export const AI_PATCH_STOP = `${AI_PATCH_REVIEW.reason} It publishes only as a [Needs review] draft, which --publish-validated-only turns off.`;
@@ -653,6 +677,10 @@ export function publicationWaiver(
     ['baseline-failed', 'error'].includes(validation.status) &&
     validation.baseline.status !== 'passed' &&
     validation.patched.status === 'not-run';
+  // Founder decision (2026-10-28): tests already failing do not hold a patch that adds no failure to
+  // them where A to C proof reaches its changed lines.
+  const baselineProven =
+    baselineFailed && brokenTestsUnchanged(report) && proofLevel(report) !== undefined;
   const failure = validation.dependencyFailure;
   if (
     validation.status !== 'passed' &&
@@ -681,10 +709,14 @@ export function publicationWaiver(
     report.expandedFields,
   ).filter(isObject);
   const declarations = report.apiVersion.source.declarations;
-  // Clients and requests whose version Refit cannot trace; the patch never edits them.
+  // Clients and requests whose version Refit cannot trace; the patch never edits them. A version
+  // read only from the deployment environment is a draft note, not a hold (founder decision,
+  // 2026-10-28): the draft names the variable to update.
   const untraced = declarations.filter(
     (declaration) =>
       declaration.status === 'unknown' &&
+      !declaration.moved &&
+      !declaration.environment &&
       !(declaration.kind === 'constructor' && declaration.absent),
   );
   const defaulted = declarations.filter(
@@ -701,13 +733,35 @@ export function publicationWaiver(
     ('skipped' in sdkUpgrade || !stripeNodeDefaultVersion(sdkUpgrade.from));
   const before = code(report.apiVersion.before ?? 'the before contract');
   const kept = 'keptApiVersion' in patch && patch.keptApiVersion === true;
+  const pinBlocked =
+    'pinBlocked' in patch && typeof patch.pinBlocked === 'string' ? patch.pinBlocked : undefined;
+  // What failed on the patch that moved the version (workflow.ts); older reports do not say.
+  const movedAttempt =
+    'movedAttempt' in validation && isObject(validation.movedAttempt)
+      ? (validation.movedAttempt as { failed: string[] })
+      : undefined;
+  const failedOnMove = movedAttempt?.failed.length
+    ? summaryList(
+        movedAttempt.failed.map((evidence) =>
+          evidence === 'checks'
+            ? `${checks} failed`
+            : evidence === 'generated'
+              ? 'the generated stripe-mock checks found regressions'
+              : evidence === 'behaviour'
+                ? 'the behaviour tests found regressions'
+                : 'the signed webhook event checks found regressions',
+        ),
+      )
+    : `${checks} failed`;
   // The pins a patch moves: literals older than the target.
   const olderPins = declarations.flatMap((declaration): ReviewSite[] =>
     declaration.status === 'literal' &&
     declaration.value !== null &&
     declaration.value < targetVersion
       ? [{ file: declaration.file, line: declaration.line, detail: declaration.value }]
-      : [],
+      : declaration.moved
+        ? [{ file: declaration.file, line: declaration.line, detail: declaration.moved }]
+        : [],
   );
   const impacts: ReviewSite[] = report.operationImpacts.flatMap((impact) =>
     impact.usages.map((usage) => ({
@@ -730,7 +784,7 @@ export function publicationWaiver(
           },
         ]
       : []),
-    ...(baselineFailed
+    ...(baselineFailed && !baselineProven
       ? [
           {
             gate: 'baseline-failed' as const,
@@ -750,9 +804,11 @@ export function publicationWaiver(
           },
         ]
       : []),
+    // A behaviour test that reaches every changed line (grade A) is proof where no check ran.
     ...(validation.status === 'passed' &&
     validation.command.join(' ') === NO_OP_CHECK &&
-    !generatedRan
+    !generatedRan &&
+    proofLevel(report) !== 'A'
       ? [{ gate: 'no-checks' as const, ...NO_OP_REVIEW }]
       : []),
     ...(validation.submodules?.length
@@ -766,7 +822,7 @@ export function publicationWaiver(
           },
         ]
       : []),
-    ...(patch.generator === 'openai' && !aiValidated
+    ...(patch.generator === 'openai' && !aiValidated && !aiPatchProven(report)
       ? [{ gate: 'ai-patch' as const, ...AI_PATCH_REVIEW }]
       : []),
     ...migrationReviewReasons(report, deterministic).map((entry) =>
@@ -816,7 +872,7 @@ export function publicationWaiver(
       ? [
           {
             gate: 'api-version-kept' as const,
-            reason: `${checks} failed on the patch that moved the API version to ${code(targetVersion)}, so this patch leaves every pin listed here and the stripe package unchanged. It keeps only edits that work under either version; Refit compared the ${before} contract with ${code(targetVersion)}.`,
+            reason: `${pinBlocked ? `Refit could not upgrade stripe-node to the release whose types accept ${code(targetVersion)}: ${plainText(pinBlocked)} A pin moves only with that upgrade` : `${failedOnMove} on the patch that moved the API version to ${code(targetVersion)}`}, so this patch leaves every pin listed here and the stripe package unchanged. It keeps only edits that work under either version; Refit compared the ${before} contract with ${code(targetVersion)}.`,
             check: `Move each pin listed here to ${code(targetVersion)}, upgrade stripe-node if its types need it, and fix what ${checks} then reports before merging.`,
             sites: olderPins,
           },
@@ -944,7 +1000,12 @@ export async function publishDraft(
     throw new PipelineInputError(
       'Draft publication requires passing baseline/patched checks, changed files and zero unresolved findings, unless owner decision 1 publishes it for review (off with --publish-validated-only).',
     );
-  if (report.patch.generator === 'openai' && !reviews && !aiPatchValidated(report))
+  if (
+    report.patch.generator === 'openai' &&
+    !reviews &&
+    !aiPatchValidated(report) &&
+    !aiPatchProven(report)
+  )
     throw new PipelineInputError(AI_PATCH_STOP);
   const provider = `${PROVIDER_MARKER} ${report.provider} -->`;
   const target = apiVersion.after ?? 'the target contract';

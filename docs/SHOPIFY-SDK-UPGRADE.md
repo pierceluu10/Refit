@@ -15,16 +15,17 @@ It runs only when the version move needs it: the code uses `LATEST_API_VERSION` 
 
 ## What it upgrades
 
-The upgrade moves the one Shopify package the project declares to the oldest major that serves a supported Admin API version. Each of these majors depends on `@shopify/shopify-api` 12, whose 12.1.0 first ships `ApiVersion.January26`.
+The upgrade moves the one Shopify package the project declares to the first major whose `@shopify/shopify-api` ships the target `ApiVersion` member, applying or stopping on the documented breaking changes of every major it crosses, from the oldest major each package served a supported version with (`@shopify/shopify-api` 11, remix 3, react-router 0, express 5).
 
-| Declared package                    | Target major |
-| ----------------------------------- | ------------ |
-| `@shopify/shopify-api`              | 12           |
-| `@shopify/shopify-app-remix`        | 4            |
-| `@shopify/shopify-app-react-router` | 1            |
-| `@shopify/shopify-app-express`      | 6            |
+| Target member | `@shopify/shopify-api` | remix | react-router | express |
+| ------------- | ---------------------- | ----- | ------------ | ------- |
+| `January26`, `April26` | 12 (12.1.0, 12.3.0) | 4 | 1 | 6 |
+| `July26`      | 13 (13.1.0)            | 4 (4.2.0) | 1 (1.2.0) | 7 |
+| `October26`   | 14 (14.0.0)            | 5     | 2            | 8 |
 
-The target release is the newest in that major that fits the lockfile and whose `@shopify/shopify-api` names the target member (at least 12.1.0 for `January26`, 12.3.0 for `April26`). `July26` (13.1.0) and `October26` (14.0.0) need a later major, so the upgrade refuses them. With `--sdk-upgrade`, the benchmark aims `LATEST_API_VERSION` and enum pins at the newest member that major has. Today that member is `April26`.
+The app package's major is read from the registry: the first release whose `@shopify/shopify-api` dependency takes the release that ships the member. The target release is the newest in that major that fits the lockfile. With `--sdk-upgrade`, the benchmark aims pins at the newest member; when the upgrade cannot reach it, the pipeline falls back to the newest supported version the app can take ([Shopify](SHOPIFY.md#fallback-to-a-supported-version)).
+
+`@shopify/shopify-api` 14 needs Node.js 22 (9fec7af), 12 and 13 need 20.10: a project whose `engines.node` excludes it is refused, and the draft asks to check the deployment runtime.
 
 The upgrade writes `package.json` and `package-lock.json` the way the [Stripe package upgrade](DEPENDENCIES.md) does. It uses npm registry metadata and locks only releases that metadata gives with the canonical registry tarball URL and a SHA-512 integrity. It follows npm's key order and package order.
 
@@ -54,12 +55,19 @@ Every stop names the file, line and reason. The citations are the shopify-app-js
 | `future` flags that are not an object literal, or a spread, shorthand or computed flag                                                                                                         |                                                                 |
 | `future.removeRest` set to anything but `true`, or `removeRest` elsewhere                                                                                                                      | d7bd799                                                         |
 | REST Admin API use (already a stop without the upgrade)                                                                                                                                        | c3005a6: REST IDs become strings; d7bd799: remix 4 removes REST |
+| Crossing `@shopify/shopify-api` 13: `customShopDomains` (now `domainTransformations` with `{ match, transform }` rules)                                                                       | 78c8968 |
+| Crossing session-storage prisma 8 where the app turns on `expiringOfflineAccessTokens`: the Session model needs `refreshToken` and `refreshTokenExpires` and a migration. Otherwise the change is backward-compatible (the fields are optional) and the draft names the optional migration | 700377f |
+| Crossing `@shopify/shopify-api` 14: any `subTopic` (webhooks filter with `filter`)                                                                                                             | 84397d9 |
+| Crossing `@shopify/shopify-app-react-router` 2: `isEmbeddedApp` or `<AppProvider embedded>` with any value but `true` (edits drop `isEmbeddedApp: true` and `embedded`/`embedded={true}`)       | 0dbb90c |
+| Crossing `@shopify/shopify-app-express` 7 (Express 4 to 5), sqlite, postgresql or mysql 6 (column data migration), drizzle 4 (refresh-token columns) or mongodb 6 (driver v7) | each package's CHANGELOG.md |
 
 Before any edit, the upgrade also refuses these projects:
 
-- **Lockfiles.** A lockfile other than a lone root `package-lock.json` (pnpm, yarn, bun, shrinkwrap, or none), a lockfile version other than 3, a lockfile not in npm's formatting or order, or nested copies of a Shopify package.
-- **Packages.** More than one Shopify app package, or a package more than one major behind the target. The migration guides in between are not applied.
-- **Resolution.** A lockfile that cannot take the upgrade without npm resolving it again, because a new release needs a range the lockfile does not satisfy and the package is not dependency-free. The reason names each range and the locked version.
+- **Lockfiles.** No root `package-lock.json`, an `npm-shrinkwrap.json`, or other root lockfiles (pnpm, yarn, bun) unless the documented lockfile choice (`chosenLockfile`, as for stripe-node) picks `package-lock.json`; then only it and `package.json` are edited and the draft names each other lockfile left on the older release, a lockfile version other than 3, a lockfile not in npm's formatting or order, or nested copies of a Shopify package.
+- **Packages.** More than one Shopify app package, or a package older than the oldest major whose migration Refit applies, or a target past `@shopify/shopify-api` 14.
+- **Resolution.** A lockfile that cannot take the upgrade without npm resolving it again, unless lockfile resolution is on (validation's networked step, `REFIT_LOCKFILE_RESOLUTION`, on by default). Then the declared Shopify packages move to the target major's releases in `package.json`, npm re-resolves the committed `package-lock.json` from it in networked Docker (lifecycle scripts off, no repository `.npmrc`, as of the commit date), and the re-resolved lockfile ships in the patch, with the draft naming the framework packages it moved. It is refused when anything outside the Shopify packages, the Remix and React Router packages (`@remix-run/*`, `@react-router/*`, `react-router`, `react-router-dom`) and what only they reach changes (decision of 2026-10-29 in AGENTS.md).
+- **Prisma.** Every session-storage release for `@shopify/shopify-api` 12 and later peers `prisma` 6.15 or later. When the project declares `prisma` and `@prisma/client`, the upgrade moves both to the newest release of the major the peer range names, and the draft says "Prisma upgraded because session storage requires it". Prisma's documented 5 to 6 breaking changes stop: TypeScript older than 5.1, models named `async`, `await` or `using`, `Bytes` fields, PostgreSQL `fullTextSearch`, PostgreSQL implicit many-to-many relations (they need a migration), and code naming `NotFoundError`. Refit never writes a migration or changes the data model (decision of 2026-10-29 in AGENTS.md).
+- **No lockfile.** A project that commits none gets a `package.json`-only upgrade; validation resolves a lockfile for its checks, which never ships.
 
 Every proposed upgrade warns that `@shopify/shopify-api` 12 requires Node.js 20.10 or later (dc41d09). The published `engines` field says `>=20.0.0`; Refit uses the changelog's stricter bound.
 
@@ -182,6 +190,6 @@ The four published Admin schemas changed after the 2026-10-16 freeze. These runs
 
 ## Not covered
 
-- Majors past the oldest supported one (13 and 14), and any upgrade more than one major behind.
+- `@shopify/shopify-api` 15 and later, and behaviour changes the draft only names: 13.1.0 signs cookies with a derived key, 14 hardens App Proxy validation and OAuth callback errors (b1bcc27); type changes (1eb863d, 493094d) are left to the type check.
 - pnpm, yarn and bun lockfiles, and lockfiles that need npm to resolve again.
 - Billing, REST, `getJwt` and `setCrypto` call sites. These stop with the changelog entry rather than being rewritten.

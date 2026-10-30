@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "new-localizationextensionkeys-value-for-mexico",
+  "url": "https://shopify.dev/changelog/posts/new-localizationextensionkeys-value-for-mexico.md",
+  "revision": "e39971da7948bcdc7b9c8ba419b5c0d4ab88676c1cabe1f765b18ade0f09363d",
+  "hash": "e39971da7948bcdc7b9c8ba419b5c0d4ab88676c1cabe1f765b18ade0f09363d",
+  "content": "---\ntitle: New LocalizationExtensionKeys value for Mexico - Shopify developer changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/new-localizationextensionkeys-value-for-mexico\nmd: >-\nhttps://shopify.dev/changelog/posts/new-localizationextensionkeys-value-for-mexico.md\nmetadata:\neffectiveApiVersion: 2025-01\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Update\nhandle: update\nindicatesActionRequired: false\ncreatedAt: '2024-12-10T13:02:35-05:00'\npostedAt: '2024-12-16T10:00:00-05:00'\nupdatedAt: '2024-12-12T10:16:51-05:00'\neffectiveAt: '2024-12-16T10:00:00-05:00'\n---\n\nDecember 16, 2024\n\n# New `LocalizationExtensionKeys` value for Mexico\n\nDateDecember 16, 2024\n\nVersion[2025-01](https://shopify.dev/changelog?api_version=2025-01)\n\nFlagsUpdate\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nAs of version `2025-01` of the Admin GraphQL API, we're adding a new LocalizationExtensionsKey value to support the collection shipping credentials for cross-border shipments into Mexico: `SHIPPING_CREDENTIAL_MX`.\n\nLearn more about `LocalizationExtensionKeys` on [Shopify.dev](https://shopify.dev/docs/api/admin-graphql/latest/enums/LocalizationExtensionKey).",
+  "contentType": "text/markdown"
+}

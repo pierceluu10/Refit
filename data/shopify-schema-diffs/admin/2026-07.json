@@ -1,0 +1,457 @@
+{
+  "formatVersion": 1,
+  "api": "admin",
+  "previous": "2026-04",
+  "version": "2026-07",
+  "sha256": {
+    "2026-04": "976b0243a750107d87d3eec912f83fb361622d54e82e656cef80b315204d3c85",
+    "2026-07": "e926f80ae0b3c2adc4a5d19e389d4a3ca8bb10f6676c767d41c73c0f83ee5045"
+  },
+  "changes": [
+    {
+      "id": "enum-value-added",
+      "coordinate": "CatalogUserErrorCode.B2B_CATALOG_LIMIT_REACHED",
+      "text": "CatalogUserErrorCode.B2B_CATALOG_LIMIT_REACHED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CatalogUserErrorCode.CATALOG_NOT_COMPATIBLE_WITH_CONDITION_TYPES",
+      "text": "CatalogUserErrorCode.CATALOG_NOT_COMPATIBLE_WITH_CONDITION_TYPES was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CatalogUserErrorCode.UNPERMITTED_ENTITLEMENTS_DIRECT_CATALOG_ASSIGNMENT",
+      "text": "CatalogUserErrorCode.UNPERMITTED_ENTITLEMENTS_DIRECT_CATALOG_ASSIGNMENT was added.",
+      "breaking": false
+    },
+    {
+      "id": "deprecated",
+      "coordinate": "Collection.ruleSet",
+      "text": "Collection.ruleSet is deprecated: Use `sources` instead.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CollectionSortOrder.MOST_RELEVANT",
+      "text": "CollectionSortOrder.MOST_RELEVANT was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "DiscountErrorCode.DISCOUNT_NOT_COMPATIBLE_WITH_CONDITION_TYPES",
+      "text": "DiscountErrorCode.DISCOUNT_NOT_COMPATIBLE_WITH_CONDITION_TYPES was added.",
+      "breaking": false
+    },
+    {
+      "id": "deprecated",
+      "coordinate": "GiftCardCreateInput.initialValue",
+      "text": "GiftCardCreateInput.initialValue is deprecated: Use `initialAmount` instead.",
+      "breaking": false
+    },
+    {
+      "id": "type-removed",
+      "coordinate": "InventoryScheduledChangeInput",
+      "text": "InventoryScheduledChangeInput was removed.",
+      "breaking": true
+    },
+    {
+      "id": "type-removed",
+      "coordinate": "InventoryScheduledChangeItemInput",
+      "text": "InventoryScheduledChangeItemInput was removed.",
+      "breaking": true
+    },
+    {
+      "id": "type-removed",
+      "coordinate": "InventorySetScheduledChangesInput",
+      "text": "InventorySetScheduledChangesInput was removed.",
+      "breaking": true
+    },
+    {
+      "id": "type-removed",
+      "coordinate": "InventorySetScheduledChangesPayload",
+      "text": "InventorySetScheduledChangesPayload was removed.",
+      "breaking": true
+    },
+    {
+      "id": "type-removed",
+      "coordinate": "InventorySetScheduledChangesUserError",
+      "text": "InventorySetScheduledChangesUserError was removed.",
+      "breaking": true
+    },
+    {
+      "id": "type-removed",
+      "coordinate": "InventorySetScheduledChangesUserErrorCode",
+      "text": "InventorySetScheduledChangesUserErrorCode was removed.",
+      "breaking": true
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "InventoryTransferCreateAsReadyToShipUserErrorCode.INVALID_METAFIELDS",
+      "text": "InventoryTransferCreateAsReadyToShipUserErrorCode.INVALID_METAFIELDS was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "InventoryTransferCreateUserErrorCode.INVALID_METAFIELDS",
+      "text": "InventoryTransferCreateUserErrorCode.INVALID_METAFIELDS was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "InventoryTransferDeleteUserErrorCode.INVALID_STATE",
+      "text": "InventoryTransferDeleteUserErrorCode.INVALID_STATE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "InventoryTransferEditUserErrorCode.INVALID_METAFIELDS",
+      "text": "InventoryTransferEditUserErrorCode.INVALID_METAFIELDS was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketConditionType.CHANNEL",
+      "text": "MarketConditionType.CHANNEL was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketCurrencySettingsUserErrorCode.ADAPTIVE_PRICING_REQUIRES_LOCAL_CURRENCIES",
+      "text": "MarketCurrencySettingsUserErrorCode.ADAPTIVE_PRICING_REQUIRES_LOCAL_CURRENCIES was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketType.CHANNEL",
+      "text": "MarketType.CHANNEL was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.ADAPTIVE_PRICING_REQUIRED_SETUP_ERROR",
+      "text": "MarketUserErrorCode.ADAPTIVE_PRICING_REQUIRED_SETUP_ERROR was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.ADAPTIVE_PRICING_REQUIRES_LOCAL_CURRENCIES",
+      "text": "MarketUserErrorCode.ADAPTIVE_PRICING_REQUIRES_LOCAL_CURRENCIES was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.ADAPTIVE_PRICING_REQUIRES_MANAGED_MARKETS",
+      "text": "MarketUserErrorCode.ADAPTIVE_PRICING_REQUIRES_MANAGED_MARKETS was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.B2B_CATALOG_LIMIT_REACHED",
+      "text": "MarketUserErrorCode.B2B_CATALOG_LIMIT_REACHED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.CANNOT_ACTIVATE_MARKET_B2B_CATALOG_LIMIT_REACHED",
+      "text": "MarketUserErrorCode.CANNOT_ACTIVATE_MARKET_B2B_CATALOG_LIMIT_REACHED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.CANNOT_ADD_ALL_SUBDIVISIONS_FOR_A_COUNTRY_TO_A_MARKET",
+      "text": "MarketUserErrorCode.CANNOT_ADD_ALL_SUBDIVISIONS_FOR_A_COUNTRY_TO_A_MARKET was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.CANNOT_DELETE_SUBDIVISION_MARKET",
+      "text": "MarketUserErrorCode.CANNOT_DELETE_SUBDIVISION_MARKET was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.CHANNEL_DRIVER_MUST_HAVE_CHANNEL_SPECIFICATION",
+      "text": "MarketUserErrorCode.CHANNEL_DRIVER_MUST_HAVE_CHANNEL_SPECIFICATION was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.CHANNEL_MARKET_MUST_HAVE_SINGLE_CHANNEL_DRIVER",
+      "text": "MarketUserErrorCode.CHANNEL_MARKET_MUST_HAVE_SINGLE_CHANNEL_DRIVER was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.CHANNEL_NOT_VALID_FOR_CHANNEL_MARKET",
+      "text": "MarketUserErrorCode.CHANNEL_NOT_VALID_FOR_CHANNEL_MARKET was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.DISCOUNT_EXCEEDS_MARKET_LIMIT",
+      "text": "MarketUserErrorCode.DISCOUNT_EXCEEDS_MARKET_LIMIT was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.DISCOUNT_NOT_COMPATIBLE_WITH_B2B_MARKET",
+      "text": "MarketUserErrorCode.DISCOUNT_NOT_COMPATIBLE_WITH_B2B_MARKET was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.DISCOUNT_NOT_MARKET_CONTEXTUAL",
+      "text": "MarketUserErrorCode.DISCOUNT_NOT_MARKET_CONTEXTUAL was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.INCOMPATIBLE_CONFIGURATION",
+      "text": "MarketUserErrorCode.INCOMPATIBLE_CONFIGURATION was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.INVALID_CHANNEL_IDS",
+      "text": "MarketUserErrorCode.INVALID_CHANNEL_IDS was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.INVALID_COUNTRY_AND_SUBDIVISION_CONDITIONS",
+      "text": "MarketUserErrorCode.INVALID_COUNTRY_AND_SUBDIVISION_CONDITIONS was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.INVALID_CUSTOMIZATION_FOR_SUBDIVISION_CONDITION",
+      "text": "MarketUserErrorCode.INVALID_CUSTOMIZATION_FOR_SUBDIVISION_CONDITION was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.INVALID_SUBDIVISION_FORMAT",
+      "text": "MarketUserErrorCode.INVALID_SUBDIVISION_FORMAT was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.MARKET_MANAGER_NOT_COMPATIBLE_WITH_CONDITION_TYPES",
+      "text": "MarketUserErrorCode.MARKET_MANAGER_NOT_COMPATIBLE_WITH_CONDITION_TYPES was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.MISSING_SUBDIVISION_CODE",
+      "text": "MarketUserErrorCode.MISSING_SUBDIVISION_CODE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.MIXED_COUNTRY_SUBDIVISIONS_NOT_ALLOWED",
+      "text": "MarketUserErrorCode.MIXED_COUNTRY_SUBDIVISIONS_NOT_ALLOWED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.REGION_NOT_SUPPORTED_FOR_CHANNEL",
+      "text": "MarketUserErrorCode.REGION_NOT_SUPPORTED_FOR_CHANNEL was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.SHIPPING_NOT_COMPATIBLE_WITH_CONDITION_TYPES",
+      "text": "MarketUserErrorCode.SHIPPING_NOT_COMPATIBLE_WITH_CONDITION_TYPES was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.SUBDIVISION_DOES_NOT_EXIST",
+      "text": "MarketUserErrorCode.SUBDIVISION_DOES_NOT_EXIST was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.SUBDIVISION_MARKET_REQUIRES_COUNTRY_COVERAGE",
+      "text": "MarketUserErrorCode.SUBDIVISION_MARKET_REQUIRES_COUNTRY_COVERAGE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MarketUserErrorCode.SUBDIVISION_MUST_BELONG_TO_COUNTRY",
+      "text": "MarketUserErrorCode.SUBDIVISION_MUST_BELONG_TO_COUNTRY was added.",
+      "breaking": false
+    },
+    {
+      "id": "deprecated",
+      "coordinate": "MarketingEngagementInput.isCumulative",
+      "text": "MarketingEngagementInput.isCumulative is deprecated: Cumulative metrics are being phased out. Send non-cumulative engagement metrics instead (values aggregated over the single day indicated in `occurredOn`, with `isCumulative: false`). Existing activities that have been sending cumulative metrics can migrate to non-cumulative at any time.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "MetafieldOwnerType.TRANSFER",
+      "text": "MetafieldOwnerType.TRANSFER was added.",
+      "breaking": false
+    },
+    {
+      "id": "deprecated",
+      "coordinate": "Mutation.collectionCreate(input:)",
+      "text": "Mutation.collectionCreate(input:) is deprecated: Use `collection` instead.",
+      "breaking": false
+    },
+    {
+      "id": "deprecated",
+      "coordinate": "Mutation.collectionUpdate(input:)",
+      "text": "Mutation.collectionUpdate(input:) is deprecated: This argument does not support new collection model features, such as multiple sources. Use `collection` to ensure compatibility with all collections.",
+      "breaking": false
+    },
+    {
+      "id": "field-removed",
+      "coordinate": "Mutation.inventorySetScheduledChanges",
+      "text": "Mutation.inventorySetScheduledChanges was removed.",
+      "breaking": true,
+      "deprecationReason": "Scheduled changes will be phased out in 2026-07."
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "OnlineStoreThemeFilesUserErrorsCode.THEME_CONTEXTUALIZATION_NOT_COMPATIBLE_WITH_CONDITION_TYPES",
+      "text": "OnlineStoreThemeFilesUserErrorsCode.THEME_CONTEXTUALIZATION_NOT_COMPATIBLE_WITH_CONDITION_TYPES was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "ProductVariantsBulkCreateUserErrorCode.LOCAL_CURRENCY_GIFT_CARD_PRICE_MUST_BE_ZERO",
+      "text": "ProductVariantsBulkCreateUserErrorCode.LOCAL_CURRENCY_GIFT_CARD_PRICE_MUST_BE_ZERO was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "ProductVariantsBulkUpdateUserErrorCode.LOCAL_CURRENCY_GIFT_CARD_PRICE_MUST_BE_ZERO",
+      "text": "ProductVariantsBulkUpdateUserErrorCode.LOCAL_CURRENCY_GIFT_CARD_PRICE_MUST_BE_ZERO was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "PublicationUserErrorCode.CANNOT_COMBINE_PRODUCTS_AND_VARIANTS",
+      "text": "PublicationUserErrorCode.CANNOT_COMBINE_PRODUCTS_AND_VARIANTS was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "PublicationUserErrorCode.PRODUCT_LOCK_ERROR",
+      "text": "PublicationUserErrorCode.PRODUCT_LOCK_ERROR was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "PublicationUserErrorCode.VARIANTS_BELONG_TO_MULTIPLE_PRODUCTS",
+      "text": "PublicationUserErrorCode.VARIANTS_BELONG_TO_MULTIPLE_PRODUCTS was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "PublicationUserErrorCode.VARIANT_PUBLISHING_UNSUPPORTED_PRODUCT_TYPE",
+      "text": "PublicationUserErrorCode.VARIANT_PUBLISHING_UNSUPPORTED_PRODUCT_TYPE was added.",
+      "breaking": false
+    },
+    {
+      "id": "deprecated",
+      "coordinate": "QueryRoot.collectionRulesConditions",
+      "text": "QueryRoot.collectionRulesConditions is deprecated: Use `CollectionSourceInclusionCondition*` and `CollectionSourceExclusionCondition*` types instead.",
+      "breaking": false
+    },
+    {
+      "id": "input-field-type-changed",
+      "coordinate": "RemoteAuthorizeNetCustomerPaymentProfileInput.customerPaymentProfileId",
+      "text": "RemoteAuthorizeNetCustomerPaymentProfileInput.customerPaymentProfileId changed type from String to String!.",
+      "breaking": true
+    },
+    {
+      "id": "input-field-type-changed",
+      "coordinate": "RemoteBraintreePaymentMethodInput.paymentMethodToken",
+      "text": "RemoteBraintreePaymentMethodInput.paymentMethodToken changed type from String to String!.",
+      "breaking": true
+    },
+    {
+      "id": "input-field-type-changed",
+      "coordinate": "RemoteStripePaymentMethodInput.paymentMethodId",
+      "text": "RemoteStripePaymentMethodInput.paymentMethodId changed type from String to String!.",
+      "breaking": true
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.INCORRECT_CVC",
+      "text": "SubscriptionBillingAttemptErrorCode.INCORRECT_CVC was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.INCORRECT_PIN",
+      "text": "SubscriptionBillingAttemptErrorCode.INCORRECT_PIN was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.INVALID_AMOUNT",
+      "text": "SubscriptionBillingAttemptErrorCode.INVALID_AMOUNT was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.INVALID_CVC",
+      "text": "SubscriptionBillingAttemptErrorCode.INVALID_CVC was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptErrorCode.INVALID_REQUEST",
+      "text": "SubscriptionBillingAttemptErrorCode.INVALID_REQUEST was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptPaymentErrorCode.INCORRECT_CVC",
+      "text": "SubscriptionBillingAttemptPaymentErrorCode.INCORRECT_CVC was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptPaymentErrorCode.INCORRECT_PIN",
+      "text": "SubscriptionBillingAttemptPaymentErrorCode.INCORRECT_PIN was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptPaymentErrorCode.INVALID_AMOUNT",
+      "text": "SubscriptionBillingAttemptPaymentErrorCode.INVALID_AMOUNT was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptPaymentErrorCode.INVALID_CVC",
+      "text": "SubscriptionBillingAttemptPaymentErrorCode.INVALID_CVC was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "SubscriptionBillingAttemptPaymentErrorCode.INVALID_REQUEST",
+      "text": "SubscriptionBillingAttemptPaymentErrorCode.INVALID_REQUEST was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "WebhookSubscriptionTopic.CUSTOMERS_WHATS_APP_MARKETING_CONSENT_UPDATE",
+      "text": "WebhookSubscriptionTopic.CUSTOMERS_WHATS_APP_MARKETING_CONSENT_UPDATE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "WebhookSubscriptionTopic.INVENTORY_TRANSFERS_UPDATED",
+      "text": "WebhookSubscriptionTopic.INVENTORY_TRANSFERS_UPDATED was added.",
+      "breaking": false
+    }
+  ]
+}
