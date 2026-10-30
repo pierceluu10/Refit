@@ -532,6 +532,67 @@ it('counts only the created object, never an existing one the payload selects, a
   ).toBeDefined();
 });
 
+it('lets a mutation target the variants of a product the run created, and nothing else nested', async () => {
+  const fetch = (async (_url: string, init: RequestInit) => {
+    const body = JSON.parse(String(init.body));
+    const json = (value: unknown) => new Response(JSON.stringify(value), { status: 200 });
+    if (body.query.includes('partnerDevelopment'))
+      return json({ data: { shop: { plan: { partnerDevelopment: true } } } });
+    if (body.query.includes('productCreate'))
+      return json({
+        data: {
+          productCreate: {
+            product: {
+              id: 'gid://shopify/Product/1',
+              variants: { nodes: [{ id: 'gid://shopify/ProductVariant/2' }] },
+              collections: { nodes: [{ id: 'gid://shopify/Collection/3' }] },
+            },
+          },
+        },
+      });
+    return json({ data: { productVariantsBulkUpdate: { userErrors: [] } } });
+  }) as unknown as typeof globalThis.fetch;
+  const bulk =
+    'mutation Bulk($productId: ID!, $variants: [ProductVariantsBulkInput!]!) { productVariantsBulkUpdate(productId: $productId, variants: $variants) { userErrors { message } } }';
+  const setup = [
+    {
+      document:
+        'mutation { productCreate(input: {}) { product { id variants(first: 1) { nodes { id } } collections(first: 1) { nodes { id } } } } }',
+      variables: {},
+    },
+  ];
+  const run = (id: string) =>
+    liveShopifyProof({
+      store,
+      versions,
+      documents: [{ id: 'a.ts:1', original: null, patched: bulk }],
+      cases: [
+        {
+          document: 'a.ts:1',
+          operationName: 'Bulk',
+          variables: {
+            productId: { $ref: 'setup.0.productCreate.product.id' },
+            variants: [{ id: { $ref: id }, price: 1 }],
+          },
+          setup,
+          cleanup: [],
+        },
+      ],
+      fetch,
+    });
+  const variant = await run('setup.0.productCreate.product.variants.nodes.0.id');
+  expect(variant.status).toBe('passed');
+  expect(variant.created.map((entry) => entry.id)).toEqual([
+    'gid://shopify/Product/1',
+    'gid://shopify/Product/1',
+  ]);
+  const collection = await run('setup.0.productCreate.product.collections.nodes.0.id');
+  expect(collection.operations[0]).toMatchObject({
+    status: 'not-run',
+    reason: expect.stringContaining('gid://shopify/Collection/3'),
+  });
+});
+
 it('grades D when the development store shows the document breaks, and catches a lost input default', () => {
   const proven = prove('query { shop { name } }');
   const typeCheck = { letter: 'C' as const, level: 'type-check' as const, reason: 'tsc.' };
