@@ -374,26 +374,29 @@
       "versions": [
         "gpt-4-0314",
         "gpt-4-0125-preview",
-        "gpt-4-turbo-preview"
+        "gpt-4-turbo-preview",
+        "gpt-4-turbo-preview-completions"
       ],
       "date": "2026-03-26",
-      "summary": "OpenAI shuts down gpt-4-0314, gpt-4-0125-preview, gpt-4-turbo-preview on the API; requests to a shut-down model fail.",
+      "summary": "OpenAI shuts down gpt-4-0314, gpt-4-0125-preview, gpt-4-turbo-preview, gpt-4-turbo-preview-completions on the API; requests to a shut-down model fail. The page recommends: gpt-5 or gpt-4.1*.",
       "replacement": null,
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "openai-2026-05-07-gpt-4o-realtime-preview",
       "provider": "openai",
       "kind": "model",
       "versions": [
-        "gpt-4o-realtime-preview"
+        "gpt-4o-realtime-preview",
+        "gpt-4o-realtime-preview-2025-06-03",
+        "gpt-4o-realtime-preview-2024-12-17"
       ],
       "date": "2026-05-07",
-      "summary": "OpenAI shuts down gpt-4o-realtime-preview on the API; requests to a shut-down model fail.",
+      "summary": "OpenAI shuts down gpt-4o-realtime-preview, gpt-4o-realtime-preview-2025-06-03, gpt-4o-realtime-preview-2024-12-17 on the API; requests to a shut-down model fail.",
       "replacement": "gpt-realtime-1.5",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "openai-2026-05-07-gpt-4o-mini-realtime-preview",
@@ -455,29 +458,37 @@
       "versions": [
         "gpt-5-chat-latest",
         "gpt-5-codex",
+        "gpt-5.1-chat-latest",
         "gpt-5.1-codex",
+        "gpt-5.1-codex-max",
+        "o3-deep-research-2025-06-26",
         "o3-deep-research",
-        "o4-mini-deep-research"
+        "o4-mini-deep-research-2025-06-26",
+        "o4-mini-deep-research",
+        "gpt-5.2-codex"
       ],
       "date": "2026-07-23",
-      "summary": "OpenAI shuts down gpt-5-chat-latest, gpt-5-codex, gpt-5.1-codex, o3-deep-research, o4-mini-deep-research.",
+      "summary": "OpenAI shuts down gpt-5-chat-latest, gpt-5-codex, gpt-5.1-chat-latest, gpt-5.1-codex, gpt-5.1-codex-max, o3-deep-research-2025-06-26, o3-deep-research, o4-mini-deep-research-2025-06-26, o4-mini-deep-research, gpt-5.2-codex on the API; requests to a shut-down model fail.",
       "replacement": "gpt-5.6-sol",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "openai-2026-07-23-gpt-5-1-codex-mini",
       "provider": "openai",
       "kind": "model",
       "versions": [
-        "gpt-5.1-codex-mini",
-        "computer-use-preview"
+        "computer-use-preview-2025-03-11",
+        "computer-use-preview",
+        "gpt-4o-mini-search-preview-2025-03-11",
+        "gpt-4o-search-preview-2025-03-11",
+        "gpt-5.1-codex-mini"
       ],
       "date": "2026-07-23",
-      "summary": "OpenAI shuts down gpt-5.1-codex-mini, computer-use-preview.",
+      "summary": "OpenAI shuts down computer-use-preview-2025-03-11, computer-use-preview, gpt-4o-mini-search-preview-2025-03-11, gpt-4o-search-preview-2025-03-11, gpt-5.1-codex-mini on the API; requests to a shut-down model fail.",
       "replacement": "gpt-5.6-terra",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "openai-2026-08-10-gpt-5-2-chat-latest",
@@ -514,36 +525,42 @@
       "provider": "openai",
       "kind": "model",
       "versions": [
-        "gpt-3.5-turbo",
         "gpt-3.5-turbo-0125",
+        "gpt-3.5-turbo",
+        "gpt-3.5-turbo-completions",
+        "o4-mini-2025-04-16",
         "o4-mini"
       ],
       "date": "2026-10-23",
-      "summary": "OpenAI shuts down gpt-3.5-turbo, gpt-3.5-turbo-0125, o4-mini.",
+      "summary": "OpenAI shuts down gpt-3.5-turbo-0125, gpt-3.5-turbo, gpt-3.5-turbo-completions, o4-mini-2025-04-16, o4-mini on the API; requests to a shut-down model fail.",
       "replacement": "gpt-5.6-terra",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "openai-2026-10-23-gpt-4",
       "provider": "openai",
       "kind": "model",
       "versions": [
-        "gpt-4",
         "gpt-4-0613",
+        "gpt-4",
+        "gpt-4-0613-completions",
+        "gpt-4-completions",
         "gpt-4-1106-preview",
         "gpt-4-turbo",
         "gpt-4-turbo-2024-04-09",
+        "gpt-4-turbo-completions",
         "gpt-4o-2024-05-13",
-        "o1",
         "o1-2024-12-17",
+        "o1",
+        "o3-mini-2025-01-31",
         "o3-mini"
       ],
       "date": "2026-10-23",
-      "summary": "OpenAI shuts down gpt-4, gpt-4-0613, gpt-4-1106-preview, gpt-4-turbo, gpt-4-turbo-2024-04-09, gpt-4o-2024-05-13, o1, o1-2024-12-17, o3-mini on the API; requests to a shut-down model fail.",
+      "summary": "OpenAI shuts down gpt-4-0613, gpt-4, gpt-4-0613-completions, gpt-4-completions, gpt-4-1106-preview, gpt-4-turbo, gpt-4-turbo-2024-04-09, gpt-4-turbo-completions, gpt-4o-2024-05-13, o1-2024-12-17, o1, o3-mini-2025-01-31, o3-mini on the API; requests to a shut-down model fail.",
       "replacement": "gpt-5.6-sol",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "openai-2026-10-23-o1-pro-2025-03-19",
@@ -593,67 +610,74 @@
       "versions": [
         "gpt-image-1-mini",
         "gpt-image-1.5",
+        "gpt-image-1.5-2025-12-16",
         "chatgpt-image-latest"
       ],
       "date": "2026-12-01",
-      "summary": "OpenAI shuts down gpt-image-1-mini, gpt-image-1.5, chatgpt-image-latest.",
+      "summary": "OpenAI shuts down gpt-image-1-mini, gpt-image-1.5, gpt-image-1.5-2025-12-16, chatgpt-image-latest on the API; requests to a shut-down model fail.",
       "replacement": "gpt-image-2.5-sunburst",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "openai-2026-12-11-gpt-5-2025-08-07",
       "provider": "openai",
       "kind": "model",
       "versions": [
+        "gpt-5",
         "gpt-5-2025-08-07",
+        "o3",
         "o3-2025-04-16"
       ],
       "date": "2026-12-11",
-      "summary": "OpenAI shuts down gpt-5-2025-08-07, o3-2025-04-16 on the API; requests to a shut-down model fail.",
+      "summary": "OpenAI shuts down gpt-5, gpt-5-2025-08-07, o3, o3-2025-04-16 on the API; requests to a shut-down model fail.",
       "replacement": "gpt-5.6-sol",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "openai-2026-12-11-gpt-5-pro-2025-10-06",
       "provider": "openai",
       "kind": "model",
       "versions": [
+        "gpt-5-pro",
         "gpt-5-pro-2025-10-06",
+        "o3-pro",
         "o3-pro-2025-06-10"
       ],
       "date": "2026-12-11",
-      "summary": "OpenAI shuts down gpt-5-pro-2025-10-06, o3-pro-2025-06-10 on the API; requests to a shut-down model fail. The page recommends: gpt-5.6-sol (reasoning.mode: pro).",
+      "summary": "OpenAI shuts down gpt-5-pro, gpt-5-pro-2025-10-06, o3-pro, o3-pro-2025-06-10 on the API; requests to a shut-down model fail. The page recommends: gpt-5.6-sol (reasoning.mode: pro).",
       "replacement": null,
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-22"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "openai-2026-12-11-gpt-5-mini-2025-08-07",
       "provider": "openai",
       "kind": "model",
       "versions": [
+        "gpt-5-mini",
         "gpt-5-mini-2025-08-07"
       ],
       "date": "2026-12-11",
-      "summary": "OpenAI shuts down gpt-5-mini-2025-08-07.",
+      "summary": "OpenAI shuts down gpt-5-mini, gpt-5-mini-2025-08-07 on the API; requests to a shut-down model fail.",
       "replacement": "gpt-5.6-terra",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "openai-2026-12-11-gpt-5-nano-2025-08-07",
       "provider": "openai",
       "kind": "model",
       "versions": [
+        "gpt-5-nano",
         "gpt-5-nano-2025-08-07"
       ],
       "date": "2026-12-11",
-      "summary": "OpenAI shuts down gpt-5-nano-2025-08-07.",
+      "summary": "OpenAI shuts down gpt-5-nano, gpt-5-nano-2025-08-07 on the API; requests to a shut-down model fail.",
       "replacement": "gpt-5.6-luna",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "openai-2027-01-06-tts-1",
@@ -661,13 +685,16 @@
       "kind": "model",
       "versions": [
         "tts-1",
-        "tts-1-hd"
+        "tts-1-hd",
+        "gpt-4o-mini-tts",
+        "gpt-4o-mini-tts-2025-03-20",
+        "gpt-4o-mini-tts-2025-12-15"
       ],
       "date": "2027-01-06",
-      "summary": "OpenAI shuts down tts-1, tts-1-hd.",
+      "summary": "OpenAI shuts down tts-1, tts-1-hd, gpt-4o-mini-tts, gpt-4o-mini-tts-2025-03-20, gpt-4o-mini-tts-2025-12-15 on the API; requests to a shut-down model fail.",
       "replacement": "gpt-realtime-2.1-mini",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "openai-2027-01-14-gpt-4o-2024-08-06",
@@ -693,40 +720,44 @@
       "versions": [
         "whisper-1",
         "gpt-4o-transcribe",
-        "gpt-4o-mini-transcribe"
+        "gpt-4o-mini-transcribe",
+        "gpt-4o-mini-transcribe-2025-12-15",
+        "gpt-4o-transcribe-diarize"
       ],
       "date": "2027-02-26",
-      "summary": "OpenAI shuts down whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe.",
+      "summary": "OpenAI shuts down whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe, gpt-4o-mini-transcribe-2025-12-15, gpt-4o-transcribe-diarize on the API; requests to a shut-down model fail.",
       "replacement": "gpt-transcribe",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "openai-2027-04-01-gpt-5-1",
       "provider": "openai",
       "kind": "model",
       "versions": [
+        "gpt-5.3-codex",
         "gpt-5.1",
-        "gpt-5.3-codex"
+        "gpt-5.1-2025-11-13"
       ],
       "date": "2027-04-01",
-      "summary": "OpenAI shuts down gpt-5.1, gpt-5.3-codex.",
+      "summary": "OpenAI shuts down gpt-5.3-codex, gpt-5.1, gpt-5.1-2025-11-13 on the API; requests to a shut-down model fail.",
       "replacement": "gpt-6-sol",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "openai-2027-04-01-gpt-5-4-nano",
       "provider": "openai",
       "kind": "model",
       "versions": [
-        "gpt-5.4-nano"
+        "gpt-5.4-nano",
+        "gpt-5.4-nano-2026-03-17"
       ],
       "date": "2027-04-01",
-      "summary": "OpenAI shuts down gpt-5.4-nano.",
+      "summary": "OpenAI shuts down gpt-5.4-nano, gpt-5.4-nano-2026-03-17 on the API; requests to a shut-down model fail.",
       "replacement": "gpt-6-luna",
       "source": "https://developers.openai.com/api/docs/deprecations",
-      "checkedAt": "2026-10-15"
+      "checkedAt": "2026-10-29"
     },
     {
       "id": "anthropic-2024-11-06-claude-1",
@@ -2242,6 +2273,284 @@
       "replacement": "The dated API versions (for example 2026-03) HubSpot documents for each API",
       "source": "https://developers.hubspot.com/changelog/legacy-apis-and-legacy-apps-whats-going-unsupported-and-when",
       "checkedAt": "2026-10-22"
+    },
+    {
+      "id": "openai-2023-03-23-code-davinci-001",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "code-davinci-001",
+        "code-cushman-002",
+        "code-cushman-001"
+      ],
+      "date": "2023-03-23",
+      "summary": "OpenAI shuts down code-davinci-001, code-cushman-002, code-cushman-001 on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-4o",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2024-01-04-text-ada-001",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "text-ada-001",
+        "text-babbage-001",
+        "text-curie-001",
+        "text-davinci-001",
+        "text-davinci-002",
+        "text-davinci-003",
+        "code-davinci-002"
+      ],
+      "date": "2024-01-04",
+      "summary": "OpenAI shuts down text-ada-001, text-babbage-001, text-curie-001, text-davinci-001, text-davinci-002, text-davinci-003, code-davinci-002 on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-3.5-turbo-instruct",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2024-01-04-text-davinci-edit-001",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "text-davinci-edit-001",
+        "code-davinci-edit-001"
+      ],
+      "date": "2024-01-04",
+      "summary": "OpenAI shuts down text-davinci-edit-001, code-davinci-edit-001 on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-4o",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2024-01-04-text-similarity-ada-001",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "text-similarity-ada-001",
+        "text-search-ada-doc-001",
+        "text-search-ada-query-001",
+        "code-search-ada-code-001",
+        "code-search-ada-text-001",
+        "text-similarity-babbage-001",
+        "text-search-babbage-doc-001",
+        "text-search-babbage-query-001",
+        "code-search-babbage-code-001",
+        "code-search-babbage-text-001",
+        "text-similarity-curie-001",
+        "text-search-curie-doc-001",
+        "text-search-curie-query-001",
+        "text-similarity-davinci-001",
+        "text-search-davinci-doc-001",
+        "text-search-davinci-query-001"
+      ],
+      "date": "2024-01-04",
+      "summary": "OpenAI shuts down text-similarity-ada-001, text-search-ada-doc-001, text-search-ada-query-001, code-search-ada-code-001, code-search-ada-text-001, text-similarity-babbage-001, text-search-babbage-doc-001, text-search-babbage-query-001, code-search-babbage-code-001, code-search-babbage-text-001, text-similarity-curie-001, text-search-curie-doc-001, text-search-curie-query-001, text-similarity-davinci-001, text-search-davinci-doc-001, text-search-davinci-query-001 on the API; requests to a shut-down model fail.",
+      "replacement": "text-embedding-3-small",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2024-09-13-gpt-3-5-turbo-0613",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-3.5-turbo-0613",
+        "gpt-3.5-turbo-16k-0613",
+        "gpt-3.5-turbo-0301"
+      ],
+      "date": "2024-09-13",
+      "summary": "OpenAI shuts down gpt-3.5-turbo-0613, gpt-3.5-turbo-16k-0613, gpt-3.5-turbo-0301 on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-3.5-turbo",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2024-12-06-gpt-4-vision-preview",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4-vision-preview",
+        "gpt-4-1106-vision-preview"
+      ],
+      "date": "2024-12-06",
+      "summary": "OpenAI shuts down gpt-4-vision-preview, gpt-4-1106-vision-preview on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-4o",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2025-06-06-gpt-4-32k",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4-32k",
+        "gpt-4-32k-0613",
+        "gpt-4-32k-0314"
+      ],
+      "date": "2025-06-06",
+      "summary": "OpenAI shuts down gpt-4-32k, gpt-4-32k-0613, gpt-4-32k-0314 on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-4o",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2025-10-10-gpt-4o-audio-preview-2024-10-01",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4o-audio-preview-2024-10-01"
+      ],
+      "date": "2025-10-10",
+      "summary": "OpenAI shuts down gpt-4o-audio-preview-2024-10-01 on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-audio-1.5",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2025-10-10-gpt-4o-realtime-preview-2024-10-01",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4o-realtime-preview-2024-10-01"
+      ],
+      "date": "2025-10-10",
+      "summary": "OpenAI shuts down gpt-4o-realtime-preview-2024-10-01 on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-realtime-1.5",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2026-07-23-gpt-audio-mini-2025-10-06",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-audio-mini-2025-10-06"
+      ],
+      "date": "2026-07-23",
+      "summary": "OpenAI shuts down gpt-audio-mini-2025-10-06 on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-audio-1.5",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2026-07-23-gpt-realtime-mini-2025-10-06",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-realtime-mini-2025-10-06"
+      ],
+      "date": "2026-07-23",
+      "summary": "OpenAI shuts down gpt-realtime-mini-2025-10-06 on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-realtime-2.1-mini",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2026-09-24-sora-2",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "sora-2",
+        "sora-2-pro",
+        "sora-2-2025-10-06",
+        "sora-2-2025-12-08",
+        "sora-2-pro-2025-10-06"
+      ],
+      "date": "2026-09-24",
+      "summary": "OpenAI shuts down sora-2, sora-2-pro, sora-2-2025-10-06, sora-2-2025-12-08, sora-2-pro-2025-10-06 on the API; requests to a shut-down model fail.",
+      "replacement": null,
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2026-10-01-gpt-5-4-cyber",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-5.4-cyber"
+      ],
+      "date": "2026-10-01",
+      "summary": "OpenAI shuts down gpt-5.4-cyber on the API; requests to a shut-down model fail. The page recommends: The most capable cyber model available to you.",
+      "replacement": null,
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2027-01-20-gpt-4o-mini-transcribe-2025-03-20",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-4o-mini-transcribe-2025-03-20"
+      ],
+      "date": "2027-01-20",
+      "summary": "OpenAI shuts down gpt-4o-mini-transcribe-2025-03-20 on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-4o-mini-transcribe-2025-12-15",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2027-01-20-gpt-audio",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-audio",
+        "gpt-audio-2025-08-28",
+        "gpt-4o-audio",
+        "gpt-audio-mini",
+        "gpt-audio-mini-2025-12-15",
+        "gpt-4o-mini-audio"
+      ],
+      "date": "2027-01-20",
+      "summary": "OpenAI shuts down gpt-audio, gpt-audio-2025-08-28, gpt-4o-audio, gpt-audio-mini, gpt-audio-mini-2025-12-15, gpt-4o-mini-audio on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-audio-1.5",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2027-01-20-gpt-realtime",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-realtime",
+        "gpt-realtime-2025-08-28",
+        "gpt-4o-realtime"
+      ],
+      "date": "2027-01-20",
+      "summary": "OpenAI shuts down gpt-realtime, gpt-realtime-2025-08-28, gpt-4o-realtime on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-realtime-2.1",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "openai-2027-01-20-gpt-realtime-mini",
+      "provider": "openai",
+      "kind": "model",
+      "versions": [
+        "gpt-realtime-mini",
+        "gpt-realtime-mini-2025-12-15",
+        "gpt-4o-mini-realtime"
+      ],
+      "date": "2027-01-20",
+      "summary": "OpenAI shuts down gpt-realtime-mini, gpt-realtime-mini-2025-12-15, gpt-4o-mini-realtime on the API; requests to a shut-down model fail.",
+      "replacement": "gpt-realtime-2.1-mini",
+      "source": "https://developers.openai.com/api/docs/deprecations",
+      "checkedAt": "2026-10-29"
+    },
+    {
+      "id": "gemini-2025-09-29-gemini-1-5",
+      "provider": "gemini",
+      "kind": "model",
+      "versions": [
+        "gemini-1.5-pro",
+        "gemini-1.5-flash-8b",
+        "gemini-1.5-flash"
+      ],
+      "date": "2025-09-29",
+      "summary": "Google shut down gemini-1.5-pro, gemini-1.5-flash-8b and gemini-1.5-flash on the Gemini API (changelog, September 29, 2025); requests to a shut-down model fail. The changelog names no replacement, so Refit never swaps them.",
+      "replacement": null,
+      "source": "https://ai.google.dev/gemini-api/docs/changelog",
+      "checkedAt": "2026-10-29"
     }
   ]
 }

@@ -931,16 +931,15 @@ async function resolvedUpgrade(
     lockfile: resolved.lockfile,
     manifests: { ...manifests, '.': parseJson(manifestText) as Record<string, unknown> },
   };
+  // Prisma's packages count too, when session storage moves prisma (decision of 2026-10-29).
+  const upgraded = (name: string) =>
+    SDK_FAMILY.test(name) ||
+    FRAMEWORK.test(name) ||
+    (declaration.chosen.has('prisma') && /^(?:prisma|@prisma\/[a-z0-9-]+)$/.test(name));
   let outside: string[], was: ReturnType<typeof lockedReleases>, now: typeof was;
   try {
     [was, now] = [lockedReleases(manager, before), lockedReleases(manager, after)];
-    const names = [...new Set([...was.all.keys(), ...now.all.keys()])].filter(
-      (name) =>
-        SDK_FAMILY.test(name) ||
-        FRAMEWORK.test(name) ||
-        // Prisma's packages, when session storage moves prisma (decision of 2026-10-29).
-        (declaration.chosen.has('prisma') && /^(?:prisma|@prisma\/[a-z0-9-]+)$/.test(name)),
-    );
+    const names = [...new Set([...was.all.keys(), ...now.all.keys()])].filter(upgraded);
     outside = lockChangesOutside(manager, before, after, names).map(
       (key) => key || 'the root record',
     );
@@ -975,9 +974,7 @@ async function resolvedUpgrade(
     return {
       reason: `${label} did not lock ${primary} ${major} with ${SHOPIFY_API} ${since.join('.')} or later everywhere (it locks ${SHOPIFY_API} ${apiCopies.join(', ') || 'nowhere'}).`,
     };
-  const names = [...new Set([...was.all.keys(), ...now.all.keys()])].filter(
-    (name) => SDK_FAMILY.test(name) || FRAMEWORK.test(name),
-  );
+  const names = [...new Set([...was.all.keys(), ...now.all.keys()])].filter(upgraded);
   const changes = names
     .map((name) => ({ name, from: release(was, name) ?? null, to: release(now, name) }))
     .filter((change): change is { name: string; from: string | null; to: string } =>
@@ -1042,7 +1039,6 @@ interface LockFiles {
   otherLockfiles?: Record<string, string>;
   // No lockfile is committed: `packages` holds the lowest release each declaration allows.
   lockless?: true;
-  root?: string;
   // A pnpm, Yarn or Bun project: the upgrade re-resolves its lockfile with the release of the
   // manager preparation installs with, and `packages` holds what each root declaration installs.
   managed?: {
@@ -1053,6 +1049,7 @@ interface LockFiles {
     pnpmWorkspace?: string;
     arguments: string[];
   };
+  root?: string;
 }
 
 // A root pnpm, Yarn or Bun project, read as preparation reads it (readPreparationInputs): the same
@@ -1126,6 +1123,7 @@ async function managedLockFiles(
         { version: release },
       ]),
     ),
+    root,
     ...(inputs.lockfileChoice ? { otherLockfiles: inputs.lockfileChoice.others } : {}),
     managed: {
       manager,
