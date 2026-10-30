@@ -14,6 +14,10 @@ refit deadlines --sync openai --write     # save it to data/deadlines.json
 refit deadlines --sync openai --json      # the same report as JSON
 ```
 
+### Saved pages and `--check-sources`
+
+With `--write`, an OpenAI, Anthropic or Gemini sync also saves the page it read as `docs/benchmarks/deprecation-pages/<provider>.md` and records its URL, date and SHA-256 in `index.json` there. `refit deadlines --check-sources` (`npm run deadlines:check-sources`, and a test in `pipeline/deadline-sources.test.ts`) fetches nothing. It fails unless each saved page still matches its hash, re-reading it reproduces every model entry of that provider exactly, and every model with a replacement sits on a table row that names the replacement. Undated aliases are accepted only beside the dated snapshot whose row proves them, such as `claude-sonnet-4-5` beside `claude-sonnet-4-5-20250929`. The check lists the entries whose replacement a person chose among several the page offers. Model-fix drafts cite the same page.
+
 Each sync fetches one page, as Markdown where the provider serves it, parses its tables, checks the current registry, merges the page into it and checks the result before anything is written. It prints the entries it would add, update or recheck, the entries the page no longer lists, and every row it skipped with the reason.
 
 | Provider       | Page read                                                              | Entries it maintains               |

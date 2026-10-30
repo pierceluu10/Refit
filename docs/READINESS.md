@@ -1,5 +1,18 @@
 # Refit implementation checkpoints
 
+## October 29 checkpoint: AI model sources, alerts and request proofs (unreleased, after 0.39.0)
+
+- **Registry and provenance.** `data/deadlines.json` was synced with OpenAI's deprecations page on 2026-10-29: 17 entries added and 15 updated, including the `gpt-5`, `o3`, `gpt-5-mini` and `gpt-5-nano` aliases that shut down on 2026-12-11, `o1` and `o3-mini` on 2026-10-23, and the January 2027 audio family. The Anthropic and Gemini pages matched already. With `--write`, an OpenAI, Anthropic or Gemini sync now saves the page it read under `docs/benchmarks/deprecation-pages/` with its SHA-256. `npm run deadlines:check-sources` (`pipeline/deadline-sources.ts`, also run by the test suite) fails unless re-reading those saved pages reproduces every AI model entry, and every replaced model sits on a table row that names its replacement. Four entries name a replacement a person chose among several the page offers: `dall-e-2`, `gpt-image-1`, `gpt-image-1-mini` and `whisper-1`. All four are image or audio calls, which model fixes never edit. `o3` is no longer a final replacement, because it retires on 2026-12-11, so its `data/model-parameters.json` entry was removed. `o1-preview` now resolves to `gpt-5.6-sol` through `o3`.
+- **Alert only (`pipeline/model-alerts.ts`).** Model fixes and `--propose-model-fixes` list three kinds of use and never change them:
+  - OpenAI `ft:` models whose base model retires. The draft quotes the page: "Inference on fine-tuned models will be disabled only when the underlying base model is deprecated."
+  - Embedding models with a deadline. A swap is a data migration, because stored vectors do not match vectors from a new model.
+  - Retiring models set as a whole value in `.env*`, JSON, YAML or TOML files, with the source lines that read that key.
+
+  A deadline issue for an embedding model says why Refit never swaps it.
+
+- **Draft wording and request proof.** Every model-fix draft now has an "Outputs may differ" section and asks the customer to check quality. `data/model-request-proofs.json` records, for each final replacement and API family, the smallest request a provider accepted with Refit's own key in refit-bench Actions (`scripts/model-request-proof.mjs`: plain request, JSON output, forced tool call, stream, plus which of `max_tokens`, `temperature`, `top_p` and `top_k` return HTTP 400), or the exact reason it is pending. A draft with any unproven replacement is titled `[Needs review]` and names the reason. Today every proof is pending: the refit-bench secrets for all three providers exist, but `model-proof.yml` (refit-dev/refit-bench#10) is not on refit-bench main yet, so it cannot be dispatched.
+- Unchanged: which uses are edited (owner decision #120), Gemini report only, the parameter table off by default.
+
 ## October 29 checkpoint: checkJs type check for require()-only JavaScript (unreleased, after 0.39.0)
 
 JavaScript that loads stripe only with `require()` and has no test script now gets a generated checkJs type check (`pipeline/check-selection.ts`). Under owner decision D2c it counts, at grade C, only where the coverage proof types every changed Stripe expression with the target stripe-node (`pipeline/checkjs-coverage.ts`) and every handled contract change is type-visible. On refit-bench without AI, l2-push-249 validated goes from 86 to 89 and "No check can run" rows from 6 to 0 ([benchmarks](BENCHMARKS.md#checkjs-type-check-for-require-only-javascript-october-29)). Test: `pipeline/checkjs-coverage.test.ts`.
