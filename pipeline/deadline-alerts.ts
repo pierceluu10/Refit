@@ -2,6 +2,7 @@ import { AGENT_CATALOG } from './agent-catalog.ts';
 import { agentStatus, type AgentStatus, type ReportedExposure } from './deadline-exposure.ts';
 import { applyDeadlineIgnores, type DeadlineIgnore } from './deadline-ignores.ts';
 import { reportOnly, type DeadlineRegistry } from './deadline-registry.ts';
+import { isEmbeddingModel } from './model-alerts.ts';
 import { isObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
 
@@ -121,6 +122,11 @@ export function deadlineTitle(exposure: ReportedExposure) {
 
 // What happens next. A configured integration runs the normal migration with every gate; an alert
 // itself never edits code, starts a worker or publishes a pull request.
+// Embedding models are never swapped automatically (item 7): the vectors already stored are only
+// comparable with vectors from the same model.
+export const EMBEDDING_NOTE =
+  '**This is an embedding model, so moving is a data migration.** Vectors from a different embedding model are not comparable with the ones this model already stored, so changing only the model ID would silently break search and similarity over existing data. Re-embed every stored vector with the new model and rebuild the index (the dimension can change) before switching queries over. Refit cannot run or check that from the code, so it never changes this model automatically.';
+
 export function migrationNote(provider: string, status: AgentStatus) {
   const name = providerName(provider);
   if (status.state === 'configured')
@@ -163,6 +169,9 @@ export function deadlineBody(options: {
     '',
     '### Migration',
     '',
+    ...(deadline.kind === 'model' && deadline.versions.some(isEmbeddingModel)
+      ? [EMBEDDING_NOTE, '']
+      : []),
     migrationNote(deadline.provider, options.status),
     '',
     `Refit updates this issue ${options.leadDays.join(', ')} days before the deadline and when it passes. It never changes code from an alert.`,

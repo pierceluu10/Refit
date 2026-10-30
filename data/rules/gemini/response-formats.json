@@ -1,0 +1,32 @@
+{
+  "formatVersion": 1,
+  "provider": "gemini",
+  "kind": "response-format",
+  "pages": {
+    "migrate": {
+      "url": "https://ai.google.dev/gemini-api/docs/migrate",
+      "file": "docs/ai-docs/pages/gemini-migrate.md",
+      "capturedAt": "2026-10-29",
+      "raw": "https://ai.google.dev/gemini-api/docs/migrate.md.txt"
+    }
+  },
+  "rules": [
+    {
+      "rule": "gemini-response-text-method",
+      "family": "response-accessor",
+      "status": "report",
+      "page": "migrate",
+      "quote": "console.log(result.response.text());",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "Reads `result.response.text()` from @google/generative-ai; on @google/genai the text is the `response.text` property. Gemini is report only.",
+      "data": {
+        "breaking": false,
+        "match": {
+          "packages": ["@google/generative-ai"],
+          "calls": ["response.text"]
+        }
+      }
+    }
+  ]
+}

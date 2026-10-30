@@ -41,6 +41,8 @@ Each document is validated against both schemas with the standard GraphQL rules:
 
 Only when nothing stops does the rule move every pin to the target version. An `ApiVersion` enum pin is moved only if the locked `@shopify/shopify-api` release defines the target member (`October26` first ships in 14.0.0, `July26` in 13.1.0, `April26` in 12.3.0, `January26` in 12.1.0). Otherwise the run stops, because upgrading the SDK is a separate, major change. REST calls, several different runtime pins, and pins Refit cannot resolve also stop for review. Fields deprecated on the target are listed in the draft PR, not changed.
 
+Validation grades the patch again on the patched code ([Shopify proof](SHOPIFY-PROOF.md)): without schema proof at the target it is grade D and `[Needs review]`, and Refit's own development store can raise it to grade A.
+
 A field rename is not inferred from a deprecation notice. Of the 401 fields deprecated in `2026-01`, 23 name a same-typed replacement that still exists in `2026-10`, but same type does not mean same value: `ShopifyPaymentsPayout.gross` points to `net`.
 
 ## Add the agent

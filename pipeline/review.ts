@@ -1,4 +1,5 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
+import type { ShopifyReview } from './shopify-ai.ts';
 import { join, resolve } from 'node:path';
 import { structuredPatch } from 'diff';
 import ts from 'typescript-compiler';
@@ -653,6 +654,10 @@ export function createReviewArtifacts(
   ).toLowerCase();
   // O2's evidence grade: what the passing checks proved about the changed files.
   const grade = 'grade' in validation ? validation.grade : undefined;
+  const shopifyReview =
+    'shopifyProof' in validation
+      ? (validation.shopifyProof as { review?: ShopifyReview }).review
+      : undefined;
   // A passing patch graded D, which no check fully reached, publishes only as [Needs review]
   // (AGENTS.md, 2026-10-24).
   const unchecked =
@@ -755,6 +760,14 @@ export function createReviewArtifacts(
   const resolvedLockfiles = [validation.environment, validation.patchedEnvironment]
     .map((environment) => environment?.resolvedLockfile as ResolvedLockfile | undefined)
     .filter((entry) => entry !== undefined);
+  const completedRecords = [
+    ...new Set(
+      [validation.environment, validation.patchedEnvironment].flatMap((environment) => {
+        const completed = environment?.completedLockfile as { records?: unknown } | undefined;
+        return Array.isArray(completed?.records) ? (completed.records as string[]) : [];
+      }),
+    ),
+  ];
   const prunedGlibcPackages = Math.max(
     0,
     ...[validation.environment, validation.patchedEnvironment].map((environment) => {
@@ -1452,6 +1465,21 @@ export function createReviewArtifacts(
           ? `- Evidence Grade: **${grade.letter ? `${grade.letter}, ` : ''}${EVIDENCE_LABELS[grade.level]}.** ${plainText(grade.reason)}`
           : `- Evidence Strength: ${evidenceStrength(validation, generatedPassed)}`,
         `- Test Suite Output: ${checks}${generatedResult}`,
+        // AI use 5 (docs/SHOPIFY-PROOF.md): advisory, it never sets the grade or holds the draft.
+        ...(shopifyReview?.status === 'completed'
+          ? [
+              `- AI Second Opinion (advisory; it does not change the grade): ${
+                shopifyReview.concerns?.length
+                  ? summaryList(
+                      shopifyReview.concerns.map(
+                        (entry) =>
+                          `${code(`${entry.file}:${entry.line}`)} ${plainText(entry.concern)}`,
+                      ),
+                    )
+                  : 'no concerns.'
+              }`,
+            ]
+          : []),
         // Owner decision D2a: the type check stood in for tests the repository does not have.
         ...(validation.coverageAi?.gate?.typeCheckOnly
           ? [
@@ -1479,6 +1507,14 @@ export function createReviewArtifacts(
           : []),
         // Stripe test mode: what Refit stood in for in its own account, and what it could not.
         ...testModeLines(validation),
+        // The checkJs check stood in for tests (D2a's rule on JavaScript TypeScript proved typed).
+        ...(validation.checkJs?.counts
+          ? [
+              `- Validated by type check (checkJs), no tests: every contract change the patch handles is type-visible, and tsc with checkJs shows no new error against the target stripe-node. ${plainText(validation.checkJs.reason)}.`,
+            ]
+          : validation.checkJs
+            ? [`- checkJs type check, not counted: ${plainText(validation.checkJs.reason)}.`]
+            : []),
         ...(legacyPeerDeps
           ? [
               `- Dependency Installation: \`npm ci\` rejected the ${resolvedLockfiles.length ? 'resolved' : 'committed'} lockfile's peer dependencies, so Refit installed the same lockfile with \`--legacy-peer-deps\`. Check that your own install uses the same setting.`,
@@ -1497,6 +1533,11 @@ export function createReviewArtifacts(
         ...(resolvedLockfiles.length
           ? [
               `- Dependency Installation: the checks ran against a \`package-lock.json\` Refit resolved, not one the repository commits (${{ 'no-lockfile': 'it commits none', 'lockfile-out-of-sync': 'the committed one is out of sync with `package.json`', 'lockfile-integrity': 'the committed one has entries without integrity hashes' }[resolvedLockfiles[0].reason] ?? resolvedLockfiles[0].reason}). npm resolved it with lifecycle scripts off from registry.npmjs.org as of ${resolvedLockfiles[0].before}, the last commit date${[...new Set(resolvedLockfiles.flatMap((entry) => Object.entries(entry.late ?? {}).map(([name, pin]) => `${code(`${name}@${pin.spec}`)} as of ${pin.published}`)))].map((pin, index) => `${index ? ', ' : '; '}${pin}`).join('')}, and installed it with \`npm ci\`. It is not part of this pull request; commit your own lockfile and rerun your checks.`,
+            ]
+          : []),
+        ...(completedRecords.length
+          ? [
+              `- Dependency Installation: the committed \`yarn.lock\` locks ${completedRecords.map(code).join(', ')} without a registry URL or integrity hash. For the checks only, Refit kept ${completedRecords.length === 1 ? 'that version' : 'those versions'} and added the tarball URL and SHA-512 integrity registry.npmjs.org publishes for ${completedRecords.length === 1 ? 'it' : 'each'}, which Yarn verified while installing. That completed lockfile is not part of this pull request; commit a regenerated \`yarn.lock\` to record them yourself.`,
             ]
           : []),
         ...(prunedGlibcPackages

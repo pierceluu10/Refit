@@ -1,11 +1,12 @@
 import { posix } from 'node:path';
 import { digest, isObject, parseObject, parseDocumentObject } from './specifications.ts';
 import { PipelineInputError } from './types.ts';
-import { parsePnpmLock } from './pnpm-lock.ts';
+import { isLockfileV5, parsePnpmLock } from './pnpm-lock.ts';
 import {
   assertRegistryTarball,
   DEPENDENCY_SECTIONS,
   EXACT_PACKAGE_VERSION,
+  gitSource,
   hasStrongIntegrity,
   isRegistrySource,
   MAX_LOCK_BYTES,
@@ -26,6 +27,10 @@ export const DEFAULT_PNPM_VERSION = '9.15.9';
 // v6 roots therefore install with the final pnpm 8 release, which no longer receives fixes.
 // Source: npm registry, pnpm versions (8.15.9 published 2024-07-17), 2026-10-16.
 export const DEFAULT_PNPM_8_VERSION = '8.15.9';
+// Lockfile 5.4 is pnpm 7's format, which pnpm 8 and later migrate. Unpinned 5.4 roots install
+// with the final pnpm 7 release, which no longer receives fixes.
+// Source: npm registry, pnpm versions (7.33.7 published 2024-02-15), 2026-10-28.
+export const DEFAULT_PNPM_7_VERSION = '7.33.7';
 // pnpm 9 rejects a pnpm-workspace.yaml without `packages`, which pnpm 10 accepts as a settings-only
 // file. Unpinned roots with such a file install with the final pnpm 10 release.
 // Source: npm registry, pnpm latest-10 dist-tag (10.34.7 published 2026-10-12), 2026-10-16.
@@ -33,7 +38,7 @@ export const DEFAULT_PNPM_10_VERSION = '10.34.7';
 // Only a sha512 Corepack checksum can be compared with registry integrity; a weaker one is ignored,
 // so that pin installs like an unhashed one, still verified by npm against the registry.
 const MANAGER_PIN =
-  /^pnpm@((?:8|9|10|11|12)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:\+(?:sha512\.([a-f0-9]{128})|sha1\.[a-f0-9]{40}|sha224\.[a-f0-9]{56}|sha256\.[a-f0-9]{64}|sha384\.[a-f0-9]{96}))?$/;
+  /^pnpm@((?:7|8|9|10|11|12)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:\+(?:sha512\.([a-f0-9]{128})|sha1\.[a-f0-9]{40}|sha224\.[a-f0-9]{56}|sha256\.[a-f0-9]{64}|sha384\.[a-f0-9]{96}))?$/;
 const CONFIGURATION_KEYS = new Set([
   'packages',
   'catalog',
@@ -52,7 +57,7 @@ const CONFIGURATION_KEYS = new Set([
   'trustPolicy',
 ]);
 const IMPORTER_SECTIONS = new Set(['dependencies', 'devDependencies', 'optionalDependencies']);
-const PNPM_LOCK_VERSIONS: unknown[] = [9, '9.0', '6.0'];
+const PNPM_LOCK_VERSIONS: unknown[] = [9, '9.0', '6.0', 5.4, '5.4'];
 const LOCK_KEYS = new Set([
   'lockfileVersion',
   'settings',
@@ -182,6 +187,7 @@ export function validatePnpmInputs(
   const manifest = parseObject(packageContent, 'package.json');
   const { document: lock, environment } = parsePnpmLock(lockContent);
   const v6 = lock.lockfileVersion === '6.0';
+  const v5 = isLockfileV5(lock.lockfileVersion);
   const workspace =
     workspaceContent === undefined ? {} : parseDocumentObject(workspaceContent, PNPM_WORKSPACE);
   const settingsOnly =
@@ -189,11 +195,13 @@ export function validatePnpmInputs(
     !(Array.isArray(workspace.packages) && workspace.packages.length);
   // Patches are accepted below only with the SHA-256 hashes pnpm 10 writes; pnpm 9 hashes patch
   // files as base32, so its frozen install would report a patchedDependencies mismatch.
-  const fallback = v6
-    ? DEFAULT_PNPM_8_VERSION
-    : settingsOnly || isObject(lock.patchedDependencies)
-      ? DEFAULT_PNPM_10_VERSION
-      : DEFAULT_PNPM_VERSION;
+  const fallback = v5
+    ? DEFAULT_PNPM_7_VERSION
+    : v6
+      ? DEFAULT_PNPM_8_VERSION
+      : settingsOnly || isObject(lock.patchedDependencies)
+        ? DEFAULT_PNPM_10_VERSION
+        : DEFAULT_PNPM_VERSION;
   const pin =
     manifest.packageManager === undefined
       ? ([`pnpm@${fallback}`, fallback] as const)
@@ -202,12 +210,14 @@ export function validatePnpmInputs(
         : null;
   if (!pin)
     throw new PipelineInputError(
-      'pnpm preparation requires no packageManager or an exact pin for pnpm 8–12, optionally with a Corepack checksum.',
+      'pnpm preparation requires no packageManager or an exact pin for pnpm 7–12, optionally with a Corepack checksum.',
     );
-  if (v6 !== pin[1].startsWith('8.'))
+  // Each older lockfile format installs frozen only with the pnpm major that writes it.
+  const legacy = v5 ? { major: '7', lockfile: '5.4' } : v6 ? { major: '8', lockfile: 'v6' } : null;
+  if (legacy ? !pin[1].startsWith(`${legacy.major}.`) : /^[78]\./.test(pin[1]))
     throw new PipelineInputError(
-      v6
-        ? `pnpm-lock.yaml is lockfile v6 (pnpm 8), but packageManager pins pnpm ${pin[1]}, which would migrate it. Run pnpm install with pnpm ${pin[1]} and commit the regenerated lockfile, or pin pnpm 8.`
+      legacy
+        ? `pnpm-lock.yaml is lockfile ${legacy.lockfile} (pnpm ${legacy.major}), but packageManager pins pnpm ${pin[1]}, which would migrate it. Run pnpm install with pnpm ${pin[1]} and commit the regenerated lockfile, or pin pnpm ${legacy.major}.`
         : `packageManager pins pnpm ${pin[1]}, which cannot install this lockfile. Pin pnpm 9–12, or remove the pin.`,
     );
   const catalogs = configuration(workspace, 'pnpm-workspace.yaml');
@@ -252,6 +262,7 @@ export function validatePnpmInputs(
     const recorded = recordedPatches[name];
     if (
       v6 ||
+      v5 ||
       !isObject(recorded) ||
       typeof recorded.path !== 'string' ||
       recorded.path !== patches[name] ||
@@ -462,7 +473,7 @@ export function validatePnpmInputs(
 function registryGraph(document: Record<string, unknown>) {
   if (!PNPM_LOCK_VERSIONS.includes(document.lockfileVersion as string | number))
     throw new PipelineInputError(
-      `Automatic preparation reads pnpm-lock.yaml lockfile versions 6 and 9 (pnpm 8 or later); this one is version ${JSON.stringify(document.lockfileVersion)}. Run pnpm install with pnpm 8 or later and commit the lockfile it writes, or validate with a custom image.`,
+      `Automatic preparation reads pnpm-lock.yaml lockfile versions 5.4, 6 and 9 (pnpm 7 or later); this one is version ${JSON.stringify(document.lockfileVersion)}, which needs the repository install.`,
     );
   if (Object.keys(document).some((key) => !LOCK_KEYS.has(key)))
     throw new PipelineInputError(
@@ -480,7 +491,7 @@ function registryGraph(document: Record<string, unknown>) {
     Object.keys((document.packages ?? {}) as object).length > MAX_PACKAGES
   )
     throw new PipelineInputError(
-      'Automatic pnpm preparation requires lockfile v6 or v9 with at most 20,000 registry package records.',
+      'Automatic pnpm preparation requires lockfile 5.4, v6 or v9 with at most 20,000 registry package records.',
     );
   const packages = (document.packages ?? {}) as Record<string, unknown>;
   const snapshots = (document.snapshots ?? {}) as Record<string, unknown>;
@@ -509,10 +520,13 @@ function registryGraph(document: Record<string, unknown>) {
       !isObject(value.resolution) ||
       !hasStrongIntegrity(value.resolution.integrity) ||
       Object.keys(value.resolution).some((key) => !['integrity', 'tarball'].includes(key))
-    )
+    ) {
+      const resolution = isObject(value) && isObject(value.resolution) ? value.resolution : {};
+      const git = gitSource(key) ?? gitSource(resolution.tarball);
       throw new PipelineInputError(
-        `Every pnpm package needs a registry name/version and SHA-256-or-stronger integrity; local, Git, patched and URL sources need the repository install. pnpm-lock.yaml records ${key} without them.`,
+        `Every pnpm package needs a registry name/version and SHA-256-or-stronger integrity; local, Git, patched and URL sources need the repository install. pnpm-lock.yaml records ${key} without them${git ? `: it installs from Git (${git}), which Refit's own preparation does not fetch (no git, and no SHA-256-or-stronger integrity to verify)` : ''}.`,
       );
+    }
     if (value.resolution.tarball !== undefined) {
       if (typeof value.resolution.tarball !== 'string')
         throw new PipelineInputError('pnpm tarball must be a public registry URL.');

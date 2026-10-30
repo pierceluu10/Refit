@@ -34,7 +34,7 @@ delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--list <frozen.json>] [--validate] [--sdk-upgrade] [--limit N] [--concurrency N]';
+  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--list <frozen.json>] [--validate [--assess (AI second opinion, OPENAI_API_KEY)]] [--sdk-upgrade] [--limit N] [--concurrency N]';
 const PINNED = 'docs/benchmarks/2026-10-16-shopify-repos.json';
 const VALIDATION_IMAGE = 'node:22-alpine';
 // Default `npm init` script; it is not a check.
@@ -49,6 +49,7 @@ const { values } = parseArgs({
     output: { type: 'string' },
     list: { type: 'string' },
     validate: { type: 'boolean' },
+    assess: { type: 'boolean' },
     'sdk-upgrade': { type: 'boolean' },
     limit: { type: 'string' },
     concurrency: { type: 'string' },
@@ -289,6 +290,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         '--quiet',
         '--json',
         ...(upgrade ? ['--shopify-sdk-upgrade'] : []),
+        ...(values.assess ? ['--assess'] : []),
       ],
       { env: CHILD_ENV, timeout: VALIDATION_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 },
     );
@@ -307,6 +309,10 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
     validation: report.validation?.status,
     baseline: report.validation?.baseline?.status,
     patched: report.validation?.patched?.status,
+    grade: report.validation?.grade?.letter,
+    schemaProof: report.validation?.shopifyProof?.schema?.status,
+    liveProof: report.validation?.shopifyProof?.live?.status,
+    aiCostUsd: report.validation?.shopifyProof?.aiCostUsd,
     pullRequest: existsSync(join(bundle, 'pull-request.md')),
   };
   log(`workflow ${String(outcome.status)}`);
