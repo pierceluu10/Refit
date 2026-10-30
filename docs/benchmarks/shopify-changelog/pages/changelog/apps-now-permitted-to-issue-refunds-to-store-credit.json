@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "apps-now-permitted-to-issue-refunds-to-store-credit",
+  "url": "https://shopify.dev/changelog/posts/apps-now-permitted-to-issue-refunds-to-store-credit.md",
+  "revision": "b55060145f51e90c2114d433fc956ff6405694f07e5f9279290687106e4005b6",
+  "hash": "b55060145f51e90c2114d433fc956ff6405694f07e5f9279290687106e4005b6",
+  "content": "---\ntitle: >-\nApps now permitted to issue refunds to store credit - Shopify developer\nchangelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/apps-now-permitted-to-issue-refunds-to-store-credit\nmd: >-\nhttps://shopify.dev/changelog/posts/apps-now-permitted-to-issue-refunds-to-store-credit.md\nmetadata:\neffectiveApiVersion: ''\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: App store\nhandle: shopify_app_store\nsecondaryTag:\ndisplayName: Update\nhandle: update\nindicatesActionRequired: false\ncreatedAt: '2025-05-20T14:06:02-04:00'\npostedAt: '2025-05-20T15:00:00-04:00'\nupdatedAt: '2025-05-20T18:51:14-04:00'\neffectiveAt: '2025-05-20T15:00:00-04:00'\n---\n\nMay 20, 2025\n\n# Apps now permitted to issue refunds to store credit\n\nDateMay 20, 2025\n\nFlagsUpdate\n\nSurfacesApp store\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nAs of May 20th, 2025 apps will be permitted to complete refunds to store credit when store credit was not the original payment method. With this update you can issue store credit to customers as a refund and they can later spend that store credit at checkout. A customer's store credit is visible on their customer accounts profile page and it can be queried via the GraphQL Admin API.\n\n[Learn how to issue store credit refunds in the GraphQL Admin API](http://shopify.dev/docs/api/admin-graphql/unstable/input-objects/ReturnProcessRefundInput#fields-refundMethods.fields.storeCreditRefund).",
+  "contentType": "text/markdown"
+}

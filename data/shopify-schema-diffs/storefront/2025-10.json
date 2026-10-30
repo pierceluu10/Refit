@@ -1,0 +1,54 @@
+{
+  "formatVersion": 1,
+  "api": "storefront",
+  "previous": "2025-07",
+  "version": "2025-10",
+  "sha256": {
+    "2025-07": "c231d36236e27f75c0d1296044f78a8626ac08466df8b6990394d911dbdcaf04",
+    "2025-10": "ee6739550472aa16abf22ce9c86832951aff86c443a021a8edde05b31b76ad72"
+  },
+  "changes": [
+    {
+      "id": "enum-value-added",
+      "coordinate": "CartErrorCode.BUNDLES_AND_ADDONS_CANNOT_BE_MIXED",
+      "text": "CartErrorCode.BUNDLES_AND_ADDONS_CANNOT_BE_MIXED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CartErrorCode.MERCHANDISE_NOT_APPLICABLE",
+      "text": "CartErrorCode.MERCHANDISE_NOT_APPLICABLE was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CartErrorCode.PARENT_LINE_NESTING_TOO_DEEP",
+      "text": "CartErrorCode.PARENT_LINE_NESTING_TOO_DEEP was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CartErrorCode.PARENT_LINE_NOT_FOUND",
+      "text": "CartErrorCode.PARENT_LINE_NOT_FOUND was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CartErrorCode.PARENT_LINE_OPERATION_BLOCKED",
+      "text": "CartErrorCode.PARENT_LINE_OPERATION_BLOCKED was added.",
+      "breaking": false
+    },
+    {
+      "id": "enum-value-added",
+      "coordinate": "CartWarningCode.MERCHANDISE_SELLING_PLAN_NOT_APPLICABLE_ON_COMPANY_LOCATION",
+      "text": "CartWarningCode.MERCHANDISE_SELLING_PLAN_NOT_APPLICABLE_ON_COMPANY_LOCATION was added.",
+      "breaking": false
+    },
+    {
+      "id": "deprecated",
+      "coordinate": "MediaPresentation.id",
+      "text": "MediaPresentation.id is deprecated: MediaPresentation IDs are being deprecated. Access the data directly via the asJson field on the Media type.",
+      "breaking": false
+    }
+  ]
+}

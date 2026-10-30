@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "deprecating-pricelistusererrorcode-values",
+  "url": "https://shopify.dev/changelog/posts/deprecating-pricelistusererrorcode-values.md",
+  "revision": "17825bcc0508a3442096ea426c43aa0d1f9c407c91bdd212700f1b8242313eb1",
+  "hash": "17825bcc0508a3442096ea426c43aa0d1f9c407c91bdd212700f1b8242313eb1",
+  "content": "---\ntitle: Deprecating PriceListUserErrorCode values - Shopify developer changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/deprecating-pricelistusererrorcode-values\nmd: >-\nhttps://shopify.dev/changelog/posts/deprecating-pricelistusererrorcode-values.md\nmetadata:\neffectiveApiVersion: 2025-04\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Breaking API Change\nhandle: breaking-api-change\nindicatesActionRequired: true\ncreatedAt: '2025-01-03T10:22:05-05:00'\npostedAt: '2025-03-17T09:00:00-04:00'\nupdatedAt: '2025-01-06T13:32:03-05:00'\neffectiveAt: '2025-03-17T09:00:00-04:00'\n---\n\nMarch 17, 2025\n\n# Deprecating PriceListUserErrorCode values\n\nDateMarch 17, 2025\n\nVersion[2025-04](https://shopify.dev/changelog?api_version=2025-04)\n\nFlags[Breaking API Change](https://shopify.dev/changelog?filter=breaking-api-change)[Action required](https://shopify.dev/changelog?action_required=true)\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nStarting in API version 2025-04, [PriceListErrorCode](https://shopify.dev/docs/api/admin-graphql/unstable/enums/PriceListUserErrorCode) values that are currently not returned by the API will be hidden. These error codes include:\n\n* `CATALOG_ASSIGNMENT_NOT_ALLOWED`\n* `CATALOG_CANNOT_CHANGE_CONTEXT_TYPE`\n* `APP_CATALOG_PRICE_LIST_ASSIGNMENT`\n* `CONTEXT_RULE_MARKET_LOCKED`",
+  "contentType": "text/markdown"
+}
