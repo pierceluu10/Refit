@@ -2953,6 +2953,36 @@
       }
     },
     {
+      "repo": "cranberrymuffin/auditionwithme",
+      "pullRequest": null,
+      "run": "Local Docker run on feat/p30-fixes (progress-30 practice set, frozen commit; --validate --resolve-lockfiles --webhook-checks, no AI). Before: refit-bench 40791364860 (bench/combined-final fd9878a5), needs review. Read from migration.patch with CRLF line endings normalised.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: apiVersion 2026-07-29.dahlia to endive in api/account.ts, api/billing.ts, api/stripe-webhook.ts and the shared API_VERSION constant of scripts/stripe-setup.mjs, stripe-node 22.5.0 to 23.0.0; payment_method_types ['card'] to allowed_payment_method_types ['card'] on a Checkout Session (ui_mode elements) and a SetupIntent; accounts.retrieve() to accounts.retrieveCurrent() (same GET /v1/account).",
+        "bothVersions": "n/a: no response read of a changed field; the webhook handler reads nothing the dahlia to endive contract changes.",
+        "nothingUnrelated": "yes: pins, the two request keys, the retrieve call, package.json and the lockfile.",
+        "pleaseCheck": "scripts/stripe-setup.mjs's constant also sets the api_version of webhook endpoints the script creates; endpoints created after the merge receive endive payloads (the draft says so). Existing endpoints keep their version.",
+        "upgradeComplete": "yes: tsc passes on both sides; the generated check's only new JavaScript error (enabled_events: string[] from a const literal list) is a widening artifact every member of which EnabledEvent accepts.",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "bokkeh/distribution-portal",
+      "pullRequest": null,
+      "run": "Local Docker run on feat/p30-fixes (progress-30 practice set, frozen commit; --validate --resolve-lockfiles --webhook-checks, no AI). Before: refit-bench 40791364860 (bench/combined-final fd9878a5), needs review. Read from migration.patch with CRLF line endings normalised.",
+      "reviewedAt": "2026-10-29",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: apiVersion 2026-02-25.clover to endive in 8 files, stripe-node 20.4.1 to 23.0.0; payment_method_types [paymentMethod] and [method] to allowed_payment_method_types on PaymentIntent creation, where both are CustomerPaymentMethod = 'us_bank_account' | 'card'.",
+        "bothVersions": "n/a: no response read of a changed field.",
+        "nothingUnrelated": "yes.",
+        "pleaseCheck": "the 10 cleared .description reads are journal-entry inputs, FormData line items and Drizzle invoice-item and sales-route rows (6 repository-type, 4 receiver-type proofs); none reads a payment record's card details. us_bank_account must stay enabled on the account, since allowed_payment_method_types filters instead of listing.",
+        "upgradeComplete": "yes: tsc passes on both sides with no error (grade C).",
+        "wouldMerge": "yes."
+      }
+    },
+    {
       "repo": "horizon-ui/shadcn-nextjs-boilerplate",
       "pullRequest": null,
       "run": "refit-dev/refit-bench 40626037555 (before, origin/main 89f1c0ed + subset, cdff5f05) and 40626047695 (after, feat/lockfile-resolution 622951a0, --resolve-lockfiles), subsets/l4-lockfile-resolution.json, no AI. Before: untested, dependency preparation refused (no lockfile committed). After: tsc -p . passes against a package-lock.json Refit resolved as of 2025-01-27T17:45:09Z (no-lockfile), the draft says so; [Needs review] on api-version-untraced. migration.patch from the shard-0 artifact read in full, lockfile hunks checked for scope Re-run at the branch head: 40734300846 (feat/lockfile-resolution 45601b1b, --resolve-lockfiles) produced a byte-identical migration.patch and the same outcome.",

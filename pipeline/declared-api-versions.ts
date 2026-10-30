@@ -233,6 +233,17 @@ export function declaredApiVersions(options: {
       ? { status: 'absent' }
       : { status: 'unknown' };
   }
+  // `params.cancellation_reason = …`: a plain assignment to another named key cannot set the
+  // version option, the only key read here.
+  const versionKey = mapping.property.split('.')[0];
+  const otherKeyWrite = (node: ts.Identifier) =>
+    ts.isPropertyAccessExpression(node.parent) &&
+    node.parent.expression === node &&
+    node.parent.name.text !== versionKey &&
+    ts.isBinaryExpression(node.parent.parent) &&
+    node.parent.parent.left === node.parent &&
+    node.parent.parent.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+    ts.isExpressionStatement(node.parent.parent.parent);
   // A value only ever copied by spreads or passed directly to SDK calls, which copy their
   // arguments (`{ ...params }` in stripe-node), cannot gain a key after its declaration.
   function onlyCopied(binding: ts.Symbol, declaration: ts.VariableDeclaration) {
@@ -253,7 +264,8 @@ export function declaredApiVersions(options: {
           ts.isCallExpression(node.parent) &&
           node.parent.arguments.includes(node) &&
           options.sdkCall(node.parent)
-        )
+        ) &&
+        !otherKeyWrite(node)
       )
         copied = false;
       else ts.forEachChild(node, visit);
@@ -372,7 +384,13 @@ export function declaredApiVersions(options: {
       ...(declaration === undefined ? {} : { declaration }),
     });
   // Untraced constructors' literal pins, checked once every traced pin is known (below).
-  const untracedPins: { node: ts.Expression; value: string; declaration: number }[] = [];
+  // `untraced`: the construction's own version is a literal and only its client is untraced.
+  const untracedPins: {
+    node: ts.Expression;
+    value: string;
+    declaration: number;
+    untraced?: true;
+  }[] = [];
   const endpoint = (node: ts.Expression | undefined) =>
     node && endpointLiterals.has(node) ? { endpoint: true as const } : {};
   // stripe-node fixes a client's API version at construction; `setApiVersion`, a write to its
@@ -400,12 +418,10 @@ export function declaredApiVersions(options: {
     if (creation) {
       const result = version(creation.arguments?.[mapping.constructorArgument]);
       const binding = options.clientBinding(node);
-      const unresolved =
+      const constructed =
         creation.arguments?.some(ts.isSpreadElement) ||
-        unsafe.has(options.constructorBinding(creation)!) ||
-        !binding ||
-        !clients.has(binding) ||
-        unsafe.has(binding);
+        unsafe.has(options.constructorBinding(creation)!);
+      const unresolved = constructed || !binding || !clients.has(binding) || unsafe.has(binding);
       const uncertain = hatch || unresolved;
       if (result.node && !uncertain) literalSpan(result.node, result.value!);
       else if (result.node && result.value)
@@ -413,6 +429,9 @@ export function declaredApiVersions(options: {
           node: result.node,
           value: result.value,
           declaration: declarations.length,
+          ...(!hatch && !constructed && result.status === 'literal' && !result.environment
+            ? { untraced: true as const }
+            : {}),
         });
       if (binding && options.paths)
         options.paths.clients.set(binding, [
@@ -482,12 +501,38 @@ export function declaredApiVersions(options: {
   // another SDK's dated `apiVersion` is never moved.
   if (options.provider.packageName === 'stripe' && options.literals) {
     const traced = new Set(options.literals.map((literal) => literal.value));
+    const property = mapping.property.split('.').at(-1);
+    // A literal the code always sends: not a deployment environment variable's default.
+    const resolvedLiteral = (expression: ts.Expression) => {
+      const value = resolve(expression);
+      return Boolean(
+        value &&
+        (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)) &&
+        !environmentDefaults.has(value) &&
+        !environmentVariable(expression),
+      );
+    };
     const stripeVersion = (node: ts.Expression, value: string) =>
       (/^\d{4}-\d{2}-\d{2}\.[a-z]+$/.test(value) || traced.has(value)) &&
       /(?:from\s*|require\(\s*|import\(\s*)['"]stripe['"]/.test(node.getSourceFile().text);
+    // A version option anywhere in a Stripe file whose value is not a literal (or a constant one).
+    const unreadOption = nodes.some(
+      (node) =>
+        (ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) &&
+        (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) &&
+        node.name.text === property &&
+        /(?:from\s*|require\(\s*|import\(\s*)['"]stripe['"]/.test(node.getSourceFile().text) &&
+        !resolvedLiteral(ts.isPropertyAssignment(node) ? node.initializer : node.name),
+    );
     for (const pin of untracedPins)
-      if (stripeVersion(pin.node, pin.value)) literalSpan(pin.node, pin.value, pin.declaration);
-    const property = mapping.property.split('.').at(-1);
+      if (stripeVersion(pin.node, pin.value)) {
+        literalSpan(pin.node, pin.value, pin.declaration);
+        // stripe-node fixes the version at construction, so wherever this client goes it sends the
+        // literal written there, which the version move updates, unless a request overrides it
+        // with an option Refit cannot read (`unreadOption`).
+        if (pin.untraced && !unreadOption)
+          declarations[pin.declaration] = { ...declarations[pin.declaration], untracedPin: true };
+      }
     for (const node of nodes) {
       if (
         !ts.isPropertyAssignment(node) ||

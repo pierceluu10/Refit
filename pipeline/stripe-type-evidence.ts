@@ -105,7 +105,8 @@ export function addTypeEvidence(
 // checker proves read the changed schema's own stripe-node type, each with the change it reads. The
 // receiver's type, nullish parts left out, must be exactly that schema's class (stripe-sdk-metadata),
 // and the value must have got it honestly: no type assertion (JavaScript's `/** @type */ (…)`
-// included) and no `any` anywhere on the path it took. The path is followed through variables and
+// included; one that only intersects the value's own type with inline members is followed) and no
+// `any` anywhere on the path it took. The path is followed through variables and
 // every write to them, destructuring, array elements, inserts and the callbacks that receive them,
 // the returns of the repository's functions and the argument every call in the repository passes
 // to a parameter, and ends at a stripe-node declaration (an SDK response, a webhook event) or at an
@@ -280,7 +281,30 @@ function provenInProgram(
       const symbol = resolved(checker.getSymbolAtLocation(expression));
       return Boolean(symbol && honestSymbol(symbol));
     }
-    // Anything else, a type assertion included, proves nothing.
+    // `value as Own & { extra?: … }`: an assertion that keeps the value's own type and only adds
+    // members the repository writes inline keeps where the value came from (quorum's
+    // `invoice as Stripe.Invoice & { payment_intent?: … }`).
+    if (ts.isAsExpression(expression) || ts.isTypeAssertionExpression(expression)) {
+      const operand = checker.getNonNullableType(checker.getTypeAtLocation(expression.expression));
+      const asserted = checker.getTypeFromTypeNode(expression.type);
+      return (
+        asserted.isIntersection() &&
+        asserted.types.includes(operand) &&
+        asserted.types.every(
+          (member) =>
+            member === operand ||
+            Boolean(
+              member.flags & ts.TypeFlags.Object &&
+              (member as ts.ObjectType).objectFlags & ts.ObjectFlags.Anonymous &&
+              member.symbol?.declarations?.every(
+                (declaration) => ts.isTypeLiteralNode(declaration) && own(declaration),
+              ),
+            ),
+        ) &&
+        honest(expression.expression)
+      );
+    }
+    // Anything else, another type assertion included, proves nothing.
     return false;
   }
   const symbols = new Map<ts.Symbol, boolean>();
@@ -1039,12 +1063,48 @@ export function localReceiverReads<
   // receiver that requires the field cannot take it. Unknown schemas and types prove nothing.
   // shortcut: a value typed `any` (JSON.parse, an untyped library) written into the receiver is not
   // seen; upgrade by following writes if a review finds one.
-  const acceptsSchema = (receiver: ts.Type, schemas: readonly string[]) => {
+  // Every stripe-node interface or class that declares `property`, whatever its schema.
+  const declaring = new Map<string, ts.Type[]>();
+  const typesDeclaring = (property: string) => {
+    let found = declaring.get(property);
+    if (found) return found;
+    found = [];
+    const visit = (node: ts.Node) => {
+      if (
+        (ts.isInterfaceDeclaration(node) || ts.isClassDeclaration(node)) &&
+        node.name &&
+        node.members.some(
+          (member) => member.name && ts.isIdentifier(member.name) && member.name.text === property,
+        )
+      ) {
+        const symbol = checker.getSymbolAtLocation(node.name);
+        if (symbol) found!.push(checker.getDeclaredTypeOfSymbol(symbol));
+      }
+      ts.forEachChild(node, visit);
+    };
+    for (const source of program.getSourceFiles())
+      if (STRIPE_PACKAGE.test(source.fileName)) visit(source);
+    declaring.set(property, found);
+    return found;
+  };
+  // A schema with no stripe-node type of its own (a nested sub-object such as a payment record's
+  // card details) is matched by the read property: the receiver must require it (the target
+  // stripe-node's object no longer has it), and no stripe-node type that still declares it (the
+  // installed version's, whichever it is) may be assignable to the receiver.
+  const unmappedAccepts = (receiver: ts.Type, property: string) => {
+    const symbol = checker.getPropertyOfType(receiver, property);
+    return (
+      !symbol ||
+      Boolean(symbol.flags & ts.SymbolFlags.Optional) ||
+      typesDeclaring(property).some((type) => checker.isTypeAssignableTo(type, receiver))
+    );
+  };
+  const acceptsSchema = (receiver: ts.Type, schemas: readonly string[], property: string) => {
     if (receiver.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) return true;
     const types = schemas.map(schemaTypes);
     return (
       !schemas.length ||
-      types.some((list) => !list.length) ||
+      types.some((list) => !list.length && unmappedAccepts(receiver, property)) ||
       types.some((list) => list.some((type) => checker.isTypeAssignableTo(type, receiver)))
     );
   };
@@ -1058,7 +1118,7 @@ export function localReceiverReads<
     const file = read.file;
     if (!TYPESCRIPT.test(file) || !(options.typeChecked?.(file) ?? false)) return false;
     if (asserted(access.expression, checker)) return false;
-    if (acceptsSchema(receiverOf(access), schemasOf(read))) return false;
+    if (acceptsSchema(receiverOf(access), schemasOf(read), access.name.text)) return false;
     const declarations = checker.getSymbolAtLocation(access.name)?.getDeclarations() ?? [];
     return (
       declarations.length > 0 &&
@@ -1197,7 +1257,7 @@ export function localReceiverReads<
     )
       return flows(node.left, schemas, depth + 1) && flows(node.right, schemas, depth + 1);
     if (ts.isCallExpression(node))
-      return returns(node, schemas, depth) && flows(node.expression, schemas, depth + 1);
+      return returns(node, schemas, depth) && flows(node.expression, schemas, depth);
     if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node))
       return flows(node.expression, schemas, depth);
     if (ts.isArrayLiteralExpression(node))
@@ -1263,10 +1323,15 @@ export function localReceiverReads<
       owner.parent.arguments.includes(owner)
     ) {
       const callee = owner.parent.expression;
+      // A promise's `then` passes its first callback the value `await` would give.
+      const then =
+        ts.isPropertyAccessExpression(callee) &&
+        callee.name.text === 'then' &&
+        index === 0 &&
+        owner.parent.arguments[0] === owner;
       if (
         !ts.isPropertyAccessExpression(callee) ||
-        !CALLBACK_METHODS.has(callee.name.text) ||
-        !arrayComparator(callee)
+        (!then && (!CALLBACK_METHODS.has(callee.name.text) || !arrayComparator(callee)))
       )
         return false;
       if (!flows(callee.expression, schemas, depth + 1)) return false;
@@ -1337,7 +1402,7 @@ export function localReceiverReads<
     if (!TYPESCRIPT.test(read.file) || !(options.typeChecked?.(read.file) ?? false)) return false;
     const schemas = schemasOf(read);
     return (
-      !acceptsSchema(receiverOf(access), schemas) &&
+      !acceptsSchema(receiverOf(access), schemas, access.name.text) &&
       notSchema(receiverOf(access), schemas) &&
       propertyNotSchema(access, schemas) &&
       flows(access.expression, schemas)
@@ -1395,7 +1460,7 @@ export function localReceiverReads<
         (receiver) =>
           checker.getPropertyOfType(receiver, access.name.text) &&
           notSchema(receiver, schemas) &&
-          !acceptsSchema(receiver, schemas),
+          !acceptsSchema(receiver, schemas, access.name.text),
       ),
     );
   };
