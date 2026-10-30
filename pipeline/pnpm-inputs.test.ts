@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import {
   DEFAULT_PNPM_10_VERSION,
+  DEFAULT_PNPM_7_VERSION,
   DEFAULT_PNPM_8_VERSION,
   DEFAULT_PNPM_VERSION,
   validatePnpmInputs,
@@ -354,6 +355,90 @@ it('reads pnpm 8 lockfile v6 with the same snapshot and integrity checks, instal
   expect(() => validate(current)).toThrow('cannot install this lockfile');
 });
 
+it('reads pnpm 7 lockfile 5.4 with the same snapshot and integrity checks, installed only by pnpm 7', () => {
+  const sample = scenario();
+  delete sample.manifest.packageManager;
+  sample.manifest.dependencies = {
+    stripe: '^10.17.0',
+    'react-dom': '18.2.0',
+    ms: 'npm:tiny-ms@1.0.0',
+  };
+  sample.manifest.devDependencies = { '@types/react': '18.0.0' };
+  // As pnpm 7 writes it: specifiers apart, `/name/version` keys and `_peer` suffixes.
+  const lock = (): ObjectData => ({
+    lockfileVersion: 5.4,
+    specifiers: {
+      stripe: '^10.17.0',
+      'react-dom': '18.2.0',
+      ms: 'npm:tiny-ms@1.0.0',
+      '@types/react': '18.0.0',
+    },
+    dependencies: {
+      stripe: '10.17.0',
+      'react-dom': '18.2.0_react@18.2.0',
+      ms: '/tiny-ms/1.0.0',
+    },
+    devDependencies: { '@types/react': '18.0.0' },
+    packages: {
+      '/stripe/10.17.0': { resolution: { integrity: INTEGRITY }, dev: false },
+      '/react/18.2.0': { resolution: { integrity: INTEGRITY }, dev: false },
+      '/react-dom/18.2.0_react@18.2.0': {
+        resolution: { integrity: INTEGRITY },
+        peerDependencies: { react: '^18.2.0' },
+        dependencies: { react: '18.2.0' },
+        dev: false,
+      },
+      '/tiny-ms/1.0.0': { resolution: { integrity: INTEGRITY }, dev: false },
+      '/@types/react/18.0.0': { resolution: { integrity: INTEGRITY }, dev: true },
+    },
+  });
+  sample.lock = lock();
+  expect(validate(sample)).toMatchObject({ managerVersion: DEFAULT_PNPM_7_VERSION, packages: 5 });
+  expect(
+    resolveLockedDependency(
+      { file: 'package.json', section: 'dependencies', version: '^10.17.0' },
+      'stripe',
+      [{ file: 'pnpm-lock.yaml', content: parsePnpmLock(JSON.stringify(sample.lock)).document }],
+    ),
+  ).toMatchObject({ status: 'locked', version: '10.17.0' });
+  // The packageManager pin is respected, and only pnpm 7 installs 5.4 frozen.
+  sample.manifest.packageManager = 'pnpm@7.30.0';
+  expect(validate(sample).managerVersion).toBe('7.30.0');
+  for (const pin of ['pnpm@8.15.9', 'pnpm@9.15.9'])
+    expect(() =>
+      validate({ ...sample, manifest: { ...sample.manifest, packageManager: pin } }),
+    ).toThrow('lockfile 5.4 (pnpm 7)');
+  delete sample.manifest.packageManager;
+  sample.lock.packages['/tiny-ms/1.0.0'].resolution.integrity = 'sha1-unsafe';
+  expect(() => validate(sample)).toThrow('SHA-256-or-stronger');
+  sample.lock = lock();
+  sample.lock.specifiers.stripe = '^10.0.0';
+  expect(() => validate(sample)).toThrow('importer specifiers differ');
+  sample.lock = lock();
+  delete sample.lock.packages['/react-dom/18.2.0_react@18.2.0'];
+  sample.lock.packages['/react-dom/18.2.0'] = { resolution: { integrity: INTEGRITY } };
+  expect(() => validate(sample)).toThrow('peer-qualified snapshots');
+  // Git and tarball records keep their own keys and their own refusal.
+  sample.lock = lock();
+  sample.lock.dependencies.ms = 'github.com/owner/tiny-ms/0123456789abcdef0123456789abcdef01234567';
+  sample.lock.packages['github.com/owner/tiny-ms/0123456789abcdef0123456789abcdef01234567'] = {
+    resolution: {
+      tarball:
+        'https://codeload.github.com/owner/tiny-ms/tar.gz/0123456789abcdef0123456789abcdef01234567',
+    },
+    name: 'tiny-ms',
+    version: '1.0.0',
+  };
+  expect(() => validate(sample)).toThrow('registry name/version');
+  sample.lock = lock();
+  sample.lock.neverBuiltDependencies = ['esbuild'];
+  expect(() => validate(sample)).toThrow('Unsupported pnpm lockfile settings');
+  // pnpm 7 cannot read lockfile v9.
+  const current = scenario();
+  current.manifest.packageManager = 'pnpm@7.33.7';
+  expect(() => validate(current)).toThrow('cannot install this lockfile');
+});
+
 it('accepts release-age settings, which a frozen install never consults, only in their own shape', () => {
   const sample = scenario();
   sample.workspace.minimumReleaseAge = 1440;
@@ -478,9 +563,9 @@ it('accepts committed patches and overrides only as pnpm-lock.yaml records them'
     expect(() => validate(sample), message).toThrow(message);
   }
 });
-it('names a pnpm 7 lockfile version instead of calling it an unsupported setting', () => {
+it('names a pnpm 6 lockfile version instead of calling it an unsupported setting', () => {
   const sample = scenario();
-  sample.lock = { lockfileVersion: 5.4, specifiers: {}, dependencies: {}, packages: {} };
+  sample.lock = { lockfileVersion: 5.3, specifiers: {}, dependencies: {}, packages: {} };
   let message = '';
   try {
     validate(sample);
@@ -488,7 +573,7 @@ it('names a pnpm 7 lockfile version instead of calling it an unsupported setting
     message = (error as Error).message;
   }
   expect(message).toMatch(
-    /lockfile versions 6 and 9 \(pnpm 8 or later\); this one is version 5\.4/,
+    /lockfile versions 5\.4, 6 and 9 \(pnpm 7 or later\); this one is version 5\.3/,
   );
   expect(preparationStop(message)?.reason).toBe('unsupported-lockfile');
 });
