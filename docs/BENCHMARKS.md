@@ -968,6 +968,15 @@ Reading more Admin GraphQL documents statically changed no validated count. `sho
   - argument lists built with `push`, and aliases built from IDs;
   - one document with more than 64 variants (bloomreach).
 
+With AI (Claude `claude-sonnet-5-5` through #431's Anthropic backend, `ai_budget` 300, otherwise the same settings), the base is #431's head `0b160d23` (runs 40981167687 and 40981175529) and the branch is `ce605d8d`, this branch merged with #431 (runs 40981302107 and 40987435368):
+
+- Validated stayed at 4 of 250 (3 of 60 on dev-60), with the same repositories. Needs review went from 24 to 26, from the same two patches as without AI.
+- AI reconstructions: 5 kept and 50 refused on the base ($1.52), against 2 kept and 44 refused on the branch ($0.99).
+  - Two calls the base reconstructed with AI (alistairmartin's `definitionsQuery`) are now read without AI.
+  - aura-historia's stop moved from the route to the export it calls, where the model declines. Its outcome is unchanged.
+  - No reconstruction changed an outcome on either side.
+- With AI on, both sides validate 3 fewer repositories than without AI: ersinkoc/CouponEngine, cornerstone-report/x-money-shopify and danyn/shopify-app-rr. Their checks pass, but the development-store live proof runs and fails (`liveProof: failed`), which grades them D. This happens with or without this change.
+
 Each repository that had an unreadable call before, with its next stop after:
 
 | Repository                                       | Unreadable (base → branch) | Next stop on the branch                                                                                        |
