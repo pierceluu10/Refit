@@ -5,7 +5,10 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
+import { BEHAVIOUR_HARNESS } from './behaviour-harness.ts';
 import {
+  behaviourInstructions,
+  behaviourTestFeedback,
   behaviourTestRequest,
   behaviourTestSkip,
   INSTRUCTIONS,
@@ -573,7 +576,7 @@ it('records the model, prompt hash, tokens, cost and file hashes of one request,
   expect(files.map((file) => file.content)).toEqual([CHECKOUT_TEST]);
   expect(fetcher.mock.calls.filter(([url]) => !url.endsWith('/input_tokens'))).toHaveLength(1);
 
-  // A refused answer is recorded, not regenerated.
+  // A refused answer is sent back once with the reasons; a second refusal is recorded, both billed.
   const refused = respond({
     ...CHECKOUT_ANSWER,
     files: [{ ...CHECKOUT_ANSWER.files[0], path: 'test/x.test.mjs' }],
@@ -582,9 +585,15 @@ it('records the model, prompt hash, tokens, cost and file hashes of one request,
   expect(second.record).toMatchObject({
     status: 'refused',
     files: [],
-    costUsd: expect.any(Number),
+    retries: [expect.stringContaining('refused: File "test/x.test.mjs" is not a')],
   });
-  expect(refused.mock.calls.filter(([url]) => !url.endsWith('/input_tokens'))).toHaveLength(1);
+  const generations = refused.mock.calls.filter(([url]) => !url.endsWith('/input_tokens'));
+  expect(generations).toHaveLength(2);
+  expect(JSON.parse(String(generations[1][1]!.body)).instructions).toContain(
+    'Refit refused your previous answer',
+  );
+  // 9,000 input and 7,000 output tokens each.
+  expect(second.record.costUsd).toBeCloseTo(2 * (0.018 + 0.07), 6);
 });
 
 it('builds the same request in a dry run and estimates its tokens and cost without sending it (nicuk/docsflow at 3e6fd71)', async () => {
@@ -616,10 +625,10 @@ it('builds the same request in a dry run and estimates its tokens and cost witho
     estimate: { inputTokens },
   });
   // gpt-6.1-sol: $2 per million input tokens, $10 per million output tokens; a typical answer of
-  // 8,000 output tokens and the 25,000 every request reserves.
+  // 8,000 output tokens and the 64,000 every writer request reserves.
   expect(record.estimate!.inputUsd).toBeCloseTo(inputTokens * 2e-6, 9);
   expect(record.estimate!.typicalUsd).toBeCloseTo(inputTokens * 2e-6 + 0.08, 9);
-  expect(record.estimate!.maximumUsd).toBeCloseTo(inputTokens * 2e-6 + 0.25, 9);
+  expect(record.estimate!.maximumUsd).toBeCloseTo(inputTokens * 2e-6 + 0.64, 9);
 
   const refused = await writeBehaviourTests({
     ...large.inputs,
@@ -642,7 +651,15 @@ it('builds the same request in a dry run and estimates its tokens and cost witho
 
 const REPOSITORY = {
   root: '/repository',
-  files: [{ path: 'lib/stripe-client.ts', content: DOCSFLOW_CLIENT }],
+  files: [
+    { path: 'lib/stripe-client.ts', content: DOCSFLOW_CLIENT },
+    {
+      path: 'lib/billing.ts',
+      content: "import Stripe from 'stripe';\nexport const plan = 'pro';\n",
+    },
+    { path: 'lib/db.ts', content: 'export const db = {};\n' },
+    { path: 'lib/checkout.ts', content: "export { plan } from './billing';\n" },
+  ],
   dependencies: [],
   lockfiles: [],
   warnings: [],
@@ -655,8 +672,9 @@ const parse = (files: { path: string; content: string; findingIds?: string[] }[]
       files: files.map((file) => ({ findingIds: ['f1'], ...file })),
       ...extra,
     }),
-    { repository: REPOSITORY, findingIds: ['f1'] },
+    { repository: REPOSITORY, findingIds: ['f1', 'c1'], protectedFiles: ['lib/stripe-client.ts'] },
   );
+const MOCK = "import { mock } from 'node:test';";
 const testFile = (body: string, imports = '') => `import { test } from 'node:test';
 import assert from 'node:assert/strict';
 ${imports}
@@ -886,13 +904,402 @@ it.each([
     'defines no node:test tests',
   ],
   ['a syntax error', { content: testFile('  const = 1;') }, 'does not parse'],
-  ['an unknown finding', { findingIds: ['f9'] }, 'cites findings that were not supplied'],
+  [
+    'a mock of stripe',
+    { content: testFile("  mock.module('stripe', { defaultExport: class {} });", MOCK) },
+    "mocks 'stripe'; Stripe is never replaced",
+  ],
+  [
+    'a mock of the module holding the Stripe code',
+    { content: testFile("  mock.module('../lib/stripe-client.ts', {});", MOCK) },
+    'Stripe is never replaced',
+  ],
+  [
+    'a mock of another repository module that imports stripe',
+    {
+      content: testFile("  mock.module('../lib/billing.ts', {});", MOCK),
+    },
+    'which holds or reaches Stripe code',
+  ],
+  [
+    'a mock of a repository module that reaches stripe through another module',
+    { content: testFile("  mock.module('../lib/checkout.ts', {});", MOCK) },
+    'which holds or reaches Stripe code',
+  ],
+  [
+    "a mock of Node's network",
+    { content: testFile("  mock.module('node:https', {});", MOCK) },
+    "mocks Node's 'node:https' module",
+  ],
+  [
+    'a mock by alias',
+    { content: testFile("  mock.module('@/lib/db', {});", MOCK) },
+    'not a package the harness covers',
+  ],
+  [
+    'a computed mock',
+    { content: testFile('  mock.module(process.env.MODULE, {});', MOCK) },
+    'mocks a computed module specifier',
+  ],
+  [
+    'a mocked Stripe method',
+    {
+      content: testFile(
+        "  const stripe = new Stripe('sk_test_123');\n  mock.method(stripe.checkout.sessions, 'create', async () => ({}));",
+        `${MOCK}\nimport Stripe from 'stripe';`,
+      ),
+    },
+    'only mock.module and mock.fn may be used',
+  ],
+  [
+    'a renamed mock',
+    { content: testFile("  m.module('stripe', {});", "import { mock as m } from 'node:test';") },
+    'renames mock',
+  ],
+  [
+    "a mock taken from the test's context",
+    {
+      content:
+        "import { test } from 'node:test';\ntest('x', ({ mock: m }) => m.module('stripe', {}));\n",
+    },
+    'renames mock',
+  ],
+  [
+    'a computed mock member',
+    { content: testFile("  mock['module']('stripe', {});", MOCK) },
+    'uses mock other than as mock.<member>(...)',
+  ],
+  [
+    'a mock passed on',
+    { content: testFile("  mock.module.call(mock, 'stripe', {});", MOCK) },
+    'uses mock other than as mock.<member>(...)',
+  ],
+  [
+    'a destructured mock',
+    { content: testFile("  const { module: replace } = mock;\n  replace('stripe', {});", MOCK) },
+    'uses mock other than as mock.<member>(...)',
+  ],
+  [
+    'a Stripe method redefined',
+    {
+      content: testFile(
+        "  const stripe = new Stripe('sk_test_123');\n  Object.defineProperty(stripe.customers, 'create', { value: async () => ({}) });",
+        "import Stripe from 'stripe';",
+      ),
+    },
+    'changes part of the Stripe SDK',
+  ],
+  [
+    'a Stripe method replaced by mock.fn',
+    {
+      content: testFile(
+        "  const stripe = new Stripe('sk_test_123');\n  stripe.customers.create = mock.fn(async () => ({}));",
+        `${MOCK}\nimport Stripe from 'stripe';`,
+      ),
+    },
+    'replaces part of the Stripe SDK',
+  ],
+  [
+    'a replaced Stripe method',
+    {
+      content: testFile(
+        "  const stripe = new Stripe('sk_test_123');\n  stripe.checkout.sessions.create = async () => ({ id: 'cs_1' });",
+        "import Stripe from 'stripe';",
+      ),
+    },
+    'replaces part of the Stripe SDK',
+  ],
 ])('refuses %s', (_name, change, reason) => {
   const parsed = parse([
     { path: 'refit-behaviour/checkout.test.mjs', content: CHECKOUT_TEST, ...change },
   ]);
   expect(parsed.files).toEqual([]);
   expect(parsed.refusals.join('\n')).toContain(reason);
+});
+
+it('drops a citation of an id it did not supply, and keeps the file', () => {
+  const parsed = parse([
+    { path: 'refit-behaviour/checkout.test.mjs', content: CHECKOUT_TEST, findingIds: ['f1', 'f9'] },
+  ]);
+  expect(parsed.refusals).toEqual([]);
+  expect(parsed.files[0].findingIds).toEqual(['f1']);
+  expect(parsed.rejectedCitations).toEqual([
+    'File "refit-behaviour/checkout.test.mjs" cites ids that were not supplied: "f9".',
+  ]);
+});
+
+it('accepts test doubles for application dependencies: libraries and repository modules without Stripe code', () => {
+  const content = testFile(
+    `  mock.module('@prisma/client', prismaClient({ user: [] }));
+  mock.module('next/headers', nextHeaders({ headers: { 'stripe-signature': 'sig' } }));
+  mock.module('../lib/db.ts', { namedExports: { db: prisma({ user: [{ id: 'u1' }] }) } });
+  const user = { stripeCustomerId: null };
+  user.stripeCustomerId = 'cus_1';
+  const { createCheckoutSession } = await import('../lib/stripe-client.ts');
+  assert.equal(typeof createCheckoutSession, 'function');`,
+    `${MOCK}\nimport { nextHeaders, prisma, prismaClient } from 'refit-behaviour/harness';`,
+  );
+  const parsed = parse([{ path: 'refit-behaviour/checkout.test.mjs', content }]);
+  expect(parsed.refusals).toEqual([]);
+  expect(parsed.files).toHaveLength(1);
+});
+
+it('tells the writer which Stripe it runs against and which test doubles it may use', () => {
+  const testMode = behaviourInstructions('test-environment');
+  expect(INSTRUCTIONS).toContain('stripe-mock is stateless');
+  expect(testMode).not.toContain('stripe-mock');
+  expect(testMode).toContain('Create, in the test, every object the code reads');
+  expect(testMode).toContain('never invented IDs');
+  for (const instructions of [INSTRUCTIONS, testMode]) {
+    expect(instructions).toContain('mock.module(specifier, options)');
+    expect(instructions).toContain('never stripe, a module that imports stripe');
+    expect(instructions).toContain('evidence.previousAttempt');
+  }
+});
+
+it('sends an answer again after a timeout, and asks for fewer, smaller files after one cut off at the output limit', async () => {
+  const sample = await scenario('docsflow');
+  const completed = (status: string) =>
+    new Response(
+      JSON.stringify({
+        id: 'resp_behaviour',
+        model: 'gpt-6.1-sol-2026-10-01',
+        status,
+        usage: { input_tokens: 9000, output_tokens: status === 'completed' ? 7000 : 64000 },
+        ...(status === 'incomplete' ? { incomplete_details: { reason: 'max_output_tokens' } } : {}),
+        output:
+          status === 'completed'
+            ? [
+                {
+                  type: 'message',
+                  role: 'assistant',
+                  content: [{ type: 'output_text', text: JSON.stringify(CHECKOUT_ANSWER) }],
+                },
+              ]
+            : [],
+      }),
+    );
+  const sent: { max_output_tokens: number; instructions: string }[] = [];
+  let generation = 0;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/input_tokens'))
+        return new Response(JSON.stringify({ input_tokens: 9000 }));
+      sent.push(JSON.parse(String(init!.body)));
+      generation++;
+      if (generation === 1) throw new DOMException('The operation timed out.', 'TimeoutError');
+      return completed(generation === 2 ? 'incomplete' : 'completed');
+    }),
+  );
+  // Every attempt reserves 64,000 output tokens ($0.64), and an aborted one keeps its reservation.
+  const { record, files } = await writeBehaviourTests({ ...sample.inputs, ai: ai(sample.root, 5) });
+  expect(record.status).toBe('generated');
+  expect(files).toHaveLength(1);
+  expect(record.retries).toEqual(['timed out after 300 seconds', 'cut off at 64000 output tokens']);
+  expect(sent.map((body) => body.max_output_tokens)).toEqual([64000, 64000, 64000]);
+  expect(sent[2].instructions).toContain('Write at most 2 files');
+  expect(sent[1].instructions).not.toContain('Write at most 2 files');
+  // The cut-off answer was billed (9,000 input and 64,000 output tokens), and so was the last.
+  expect(record.costUsd).toBeCloseTo(0.018 + 0.64 + 0.018 + 0.07, 6);
+
+  // A second failure of the same kind is final.
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      if (url.endsWith('/input_tokens'))
+        return new Response(JSON.stringify({ input_tokens: 9000 }));
+      throw new DOMException('The operation timed out.', 'TimeoutError');
+    }),
+  );
+  const failed = await writeBehaviourTests({ ...sample.inputs, ai: ai(sample.root, 5) });
+  expect(failed.record).toMatchObject({
+    status: 'error',
+    retries: ['timed out after 300 seconds'],
+    reason: expect.stringContaining('TimeoutError'),
+  });
+});
+
+it('sends back what the files did on the original code only, never the patched side', () => {
+  const files = [{ path: 'refit-behaviour/checkout.test.mjs', content: CHECKOUT_TEST }];
+  const result = {
+    status: 'not-passing',
+    sides: {
+      original: {
+        tests: [
+          {
+            id: 'a > creates a session',
+            ok: false,
+            phase: 'test',
+            error: 'AssertionError: 400 !== 200',
+          },
+          { id: 'a > rejects a missing price', ok: true },
+        ],
+      },
+      patched: { tests: [{ id: 'a > patched secret', ok: false, error: 'PATCHED ONLY' }] },
+    },
+    coverage: {
+      missing: {
+        original: { 'lib/stripe-client.ts': [31] },
+        patched: { 'lib/stripe-client.ts': [40] },
+      },
+    },
+    sandbox: {
+      requests: {
+        original: [
+          {
+            method: 'POST',
+            path: '/v1/checkout/sessions',
+            status: 400,
+            message: "No such price: 'price_123'",
+            version: '2025-08-27.basil',
+          },
+        ],
+        patched: [{ method: 'POST', path: '/v1/patched', status: 500, message: 'PATCHED ONLY' }],
+      },
+    },
+  };
+  const feedback = behaviourTestFeedback(result, files, 1)!;
+  expect(feedback).toEqual({
+    round: 1,
+    files,
+    failures: [
+      { test: 'a > creates a session', phase: 'test', error: 'AssertionError: 400 !== 200' },
+    ],
+    stripeRequests: [
+      {
+        method: 'POST',
+        path: '/v1/checkout/sessions',
+        status: 400,
+        message: "No such price: 'price_123'",
+      },
+    ],
+    missingLines: [{ file: 'lib/stripe-client.ts', lines: [31] }],
+  });
+  expect(JSON.stringify(feedback)).not.toContain('PATCHED');
+  // Nothing to fix, a regression to keep, or a run that never happened: no further round.
+  expect(
+    behaviourTestFeedback(
+      {
+        ...result,
+        sides: { original: { tests: [{ id: 'a', ok: true }] } },
+        coverage: { missing: { original: {} } },
+      },
+      files,
+      1,
+    ),
+  ).toBeUndefined();
+  expect(behaviourTestFeedback({ ...result, status: 'regression' }, files, 1)).toBeUndefined();
+  expect(behaviourTestFeedback({ status: 'unavailable' }, files, 1)).toBeUndefined();
+  // The writer's next request carries it as evidence.
+  const request = behaviourTestRequest({
+    repository: REPOSITORY,
+    findings: [
+      {
+        file: 'lib/stripe-client.ts',
+        line: 31,
+        column: 7,
+        expression: 'payment_method_types',
+        confidence: 'confirmed',
+        changeId: 'request-parameter:PostCheckoutSessions.payment_method_types',
+      } as Finding,
+    ],
+    changes: [],
+    removals: [],
+    before: { document: { info: { version: 'a' } }, schemas: {} },
+    after: { document: { info: { version: 'b' } }, schemas: {} },
+    previousAttempt: feedback,
+  });
+  expect(request.evidence.previousAttempt).toEqual(feedback);
+});
+
+it('test doubles for application libraries keep what the code writes and never touch Stripe', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-harness-'));
+  roots.push(root);
+  await writeFile(join(root, 'harness.mjs'), BEHAVIOUR_HARNESS);
+  expect(BEHAVIOUR_HARNESS).not.toMatch(/stripe/i);
+  const harnessModule = await import(join(root, 'harness.mjs'));
+  const { defaultExport: express } = harnessModule.express();
+  const app = express();
+  app.use(express.json());
+  const router = express.Router();
+  router.post('/items/:id', async (request: any, response: any) =>
+    response.status(201).json({ id: request.params.id, body: request.body }),
+  );
+  app.use('/api', router);
+  app.post('/webhook', express.raw(), (request: any, response: any) =>
+    response.send(Buffer.isBuffer(request.body) ? request.body.toString() : 'parsed'),
+  );
+  app.get('/broken', () => {
+    throw new Error('broken');
+  });
+  app.listen(3000);
+  expect(await harnessModule.request('POST', '/api/items/7', { body: { a: 1 } })).toMatchObject({
+    status: 201,
+    body: { id: '7', body: { a: 1 } },
+  });
+  expect((await harnessModule.request('POST', '/webhook', { body: '{"id":"evt_1"}' })).body).toBe(
+    '{"id":"evt_1"}',
+  );
+  expect((await harnessModule.request('GET', '/broken')).status).toBe(500);
+  expect((await harnessModule.request('GET', '/missing')).status).toBe(404);
+
+  const tables = {
+    profiles: [{ id: 'u1', stripe_customer_id: 'cus_1' }] as Record<string, unknown>[],
+  };
+  const supabase = harnessModule.supabase({ tables }).namedExports.createClient();
+  expect(await supabase.from('profiles').select('*').eq('id', 'u1').single()).toMatchObject({
+    data: { id: 'u1' },
+    error: null,
+  });
+  await supabase.from('profiles').update({ plan: 'pro' }).eq('id', 'u1');
+  expect(tables.profiles[0].plan).toBe('pro');
+  expect((await supabase.auth.getUser()).data.user.email).toBe('refit-test@example.com');
+  const signedOut = harnessModule.supabase({ user: null }).namedExports.createServerClient();
+  expect((await signedOut.auth.getUser()).error).toBeTruthy();
+
+  const users = { user: [{ id: 'u1', email: 'a@example.com' }] as Record<string, unknown>[] };
+  const db = harnessModule.prisma(users);
+  expect(await db.user.findUnique({ where: { id: 'u1' } })).toMatchObject({
+    email: 'a@example.com',
+  });
+  await db.user.update({ where: { id: 'u1' }, data: { stripeCustomerId: 'cus_2' } });
+  expect(users.user[0].stripeCustomerId).toBe('cus_2');
+  await expect(db.user.update({ where: { id: 'none' }, data: {} })).rejects.toMatchObject({
+    code: 'P2025',
+  });
+
+  const { headers, cookies } = harnessModule.nextHeaders({
+    headers: { 'stripe-signature': 'sig' },
+    cookies: { session: 's' },
+  }).namedExports;
+  expect(headers().get('stripe-signature')).toBe('sig');
+  expect((await headers()).get('stripe-signature')).toBe('sig');
+  expect((await cookies()).get('session').value).toBe('s');
+
+  const web = harnessModule.firestore({ users: { u1: { credits: 1 } } }).namedExports;
+  const store = web.getFirestore();
+  await web.updateDoc(web.doc(store, 'users', 'u1'), { credits: web.increment(2) });
+  expect((await web.getDoc(web.doc(store, 'users/u1'))).data()).toEqual({ credits: 3 });
+  expect(
+    (await web.getDocs(web.query(web.collection(store, 'users'), web.where('credits', '==', 3))))
+      .size,
+  ).toBe(1);
+  const admin = harnessModule.firestoreAdmin({});
+  await admin.defaultExport.firestore().collection('users').doc('u2').set({ plan: 'pro' });
+  expect((await admin.namedExports.getFirestore().collection('users').doc('u2').get()).exists).toBe(
+    true,
+  );
+
+  expect(await harnessModule.clerk().namedExports.auth()).toMatchObject({
+    userId: 'user_refit_test',
+  });
+  expect(
+    await harnessModule.kinde(null).namedExports.getKindeServerSession().isAuthenticated(),
+  ).toBe(false);
+  expect(await harnessModule.nextAuth().namedExports.getServerSession()).toMatchObject({
+    user: { email: 'refit-test@example.com' },
+  });
 });
 
 it('refuses every file when one breaks the contract, and answers that do not match the schema', () => {
@@ -967,11 +1374,16 @@ async function harness(
   findings: Finding[],
   patchedClient: string,
   sides = { original: 'before', patched: 'after' } as const,
+  extra: Record<string, string> = {},
 ) {
   const root = await mkdtemp(join(tmpdir(), 'refit-behaviour-run-'));
   roots.push(root);
   const app = async (name: string, client: string) => {
-    for (const [path, content] of Object.entries({ ...PACKAGE, 'lib/stripe-client.ts': client })) {
+    for (const [path, content] of Object.entries({
+      ...PACKAGE,
+      ...extra,
+      'lib/stripe-client.ts': client,
+    })) {
       await mkdir(dirname(join(root, name, path)), { recursive: true });
       await writeFile(join(root, name, path), content);
     }
@@ -1078,6 +1490,42 @@ it("SIMULATED stripe-mock: the generated test passes the card rule's patch (a mo
   expect(unchanged).toMatchObject({ status: 'regression' });
 }, 120_000);
 
+it('SIMULATED stripe-mock: a test replaces an application module with a harness double through mock.module in the real runner, and the real Stripe call still runs', async () => {
+  const sample = await scenario('docsflow');
+  const content = CHECKOUT_TEST.replace(
+    "import assert from 'node:assert/strict';\n",
+    `import assert from 'node:assert/strict';
+import { mock } from 'node:test';
+import { prisma } from 'refit-behaviour/harness';
+
+const tenants = { tenant: [{ id: 'tenant_1' }] };
+mock.module('../lib/tenants.ts', { namedExports: { db: prisma(tenants) } });
+const { db } = await import('../lib/tenants.ts');
+test('the double answers instead of the database', async () => {
+  assert.deepEqual(await db.tenant.findUnique({ where: { id: 'tenant_1' } }), { id: 'tenant_1' });
+});
+`,
+  );
+  const files = [
+    {
+      path: 'refit-behaviour/create-checkout-session.test.mjs',
+      content,
+      sha256: digest(content),
+      findingIds: ['f1'],
+    },
+  ];
+  const correct = DOCSFLOW_CLIENT.replace('2025-08-27.basil', '2026-09-30.endive').replace(
+    "payment_method_types: ['card']",
+    "allowed_payment_method_types: ['card']",
+  );
+  const result = await harness(files, sample.report.findings, correct, undefined, {
+    'lib/tenants.ts':
+      "export const db = { tenant: { findUnique() { throw new Error('no database'); } } };\n",
+  });
+  expect(result).toMatchObject({ status: 'passed', missing: [], regressions: [] });
+  expect(result.coverage!.covered.original).toEqual({ 'lib/stripe-client.ts': [7, 31] });
+}, 120_000);
+
 it('names the lines a patch changes, never the patch, so the tests can reach every one', async () => {
   const sample = await scenario('spotify');
   const request = behaviourTestRequest({
@@ -1086,9 +1534,16 @@ it('names the lines a patch changes, never the patch, so the tests can reach eve
     changedLines: { 'libs/stripe.ts': [3], 'libs/supabaseAdmin.ts': [12, 13], 'gone.ts': [1] },
   });
   expect(request.evidence.changedLines).toEqual([
-    { file: 'libs/stripe.ts', lines: [3] },
-    { file: 'libs/supabaseAdmin.ts', lines: [12, 13] },
+    { id: 'c1', file: 'libs/stripe.ts', lines: [3] },
+    { id: 'c2', file: 'libs/supabaseAdmin.ts', lines: [12, 13] },
   ]);
+  // A file may cite a finding or a file of changed lines, and nothing else (a strict schema enum):
+  // on heldout-30, 3 answers were refused for citing an id for a changed line with no finding.
+  expect(request.citable).toEqual(['f1', 'f2', 'c1', 'c2']);
+  expect(
+    (request.schema.properties.files.items.properties.findingIds.items as { enum: string[] }).enum,
+  ).toEqual(['f1', 'f2', 'c1', 'c2']);
+  expect(request.protectedFiles.sort()).toEqual(['libs/stripe.ts', 'libs/supabaseAdmin.ts']);
   expect(request.evidence.files.map((file) => file.path).sort()).toEqual([
     'libs/stripe.ts',
     'libs/supabaseAdmin.ts',
