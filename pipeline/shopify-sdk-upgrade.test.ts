@@ -386,9 +386,99 @@ it('upgrades package-lock.json when the documented lockfile choice picks it, nam
     `${JSON.stringify({ ...manifest, packageManager: 'yarn@1.22.22' }, null, 2)}\n`,
   );
   git('commit', '-qam', 'yarn');
+  // yarn.lock is chosen, and preparation refuses it, so the upgrade does too.
   expect(await shopifySdkUpgrade(root, 'April26')).toEqual({
     reason: expect.stringMatching(
-      /^The repository installs from yarn\.lock \(.+\); the Shopify SDK upgrade edits package-lock.json only\.$/,
+      /^Preparation cannot read the committed lockfile, so the Shopify SDK upgrade cannot either: /,
+    ),
+  });
+});
+
+// pnpm-lock.yaml version 9 for a root project declaring the remix app package at `remix`.
+function pnpmLock(remix: string, api: string, runtime: string, other = '1.0.0') {
+  const pkg = (name: string, version: string) =>
+    `  '${name}@${version}':\n    resolution: {integrity: ${INTEGRITY}}\n`;
+  return `lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '${REMIX}':
+        specifier: ^${remix}
+        version: ${remix}
+      other:
+        specifier: ^1.0.0
+        version: ${other}
+
+packages:
+
+${[pkg(API, api), pkg(REMIX, remix), pkg(RUNTIME, runtime), pkg('other', other)].join('\n')}
+snapshots:
+
+  '${API}@${api}': {}
+
+  '${REMIX}@${remix}':
+    dependencies:
+      '${API}': ${api}
+      '${RUNTIME}': ${runtime}
+
+  '${RUNTIME}@${runtime}': {}
+
+  other@${other}: {}
+`;
+}
+
+it('re-resolves a pnpm lockfile with the pnpm release preparation uses, keeping nothing else it changes', async () => {
+  registry();
+  const root = await directory({
+    'package.json': `${JSON.stringify({ name: 'app', packageManager: 'pnpm@9.1.0', dependencies: { [REMIX]: '^3.4.0', other: '^1.0.0' } }, null, 2)}\n`,
+    'pnpm-lock.yaml': pnpmLock('3.4.0', '11.14.1', '2.15.2'),
+  });
+  const git = (...args: string[]) =>
+    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { cwd: root });
+  git('init', '-q');
+  git('add', '.');
+  git('commit', '-qm', 'init');
+  const options = { image: 'node:22-alpine', before: '2026-01-01T00:00:00Z' };
+  expect(await shopifySdkUpgrade(root, 'April26')).toEqual({
+    reason:
+      'The repository installs from pnpm-lock.yaml. Its upgrade needs lockfile resolution, which is off.',
+  });
+  resolution.lockfile = pnpmLock('4.1.1', '12.3.0', '2.17.3');
+  const result = await shopifySdkUpgrade(root, 'April26', options);
+  expect(result).toMatchObject({
+    upgrade: {
+      primary: REMIX,
+      from: '3.4.0',
+      to: '4.1.1',
+      apiRelease: '12.3.0',
+      resolved: {
+        manager: 'pnpm 9.1.0',
+        lockfile: 'pnpm-lock.yaml',
+        frameworks: [`${RUNTIME} 2.15.2 → 2.17.3`],
+      },
+    },
+  });
+  expect(resolution.calls.at(-1)).toMatchObject({
+    manager: 'pnpm',
+    managerVersion: '9.1.0',
+    managerArguments: [
+      '--config.auto-install-peers=true',
+      '--config.exclude-links-from-lockfile=false',
+    ],
+  });
+  const files = 'upgrade' in result ? result.upgrade.files.map((file) => file.path) : [];
+  expect(files).toEqual(['package.json', 'pnpm-lock.yaml']);
+  // A package the app declares on its own moves too: refused.
+  resolution.lockfile = pnpmLock('4.1.1', '12.3.0', '2.17.3', '1.1.0');
+  expect(await shopifySdkUpgrade(root, 'April26', options)).toMatchObject({
+    reason: expect.stringContaining(
+      "pnpm 9.1.0's re-resolved pnpm-lock.yaml changes importer ., other@1.0.0, other@1.1.0",
     ),
   });
 });
@@ -450,7 +540,7 @@ it('refuses projects and targets outside the upgrade before reading the registry
     [
       'another lockfile',
       project({ files: { 'pnpm-lock.yaml': "lockfileVersion: '9.0'\n" } }),
-      'The repository commits several lockfiles and no documented rule picks package-lock.json.',
+      'The repository commits several lockfiles and no documented rule picks one.',
     ],
     [
       'lockfile version 2',
@@ -597,8 +687,7 @@ it('records why the opted-in upgrade stopped, from the lockfile or from the sour
   expect(lockfileStop.patch).toMatchObject({
     status: 'not-generated',
     shopifySdkUpgrade: {
-      skipped:
-        'The repository commits several lockfiles and no documented rule picks package-lock.json.',
+      skipped: 'The repository commits several lockfiles and no documented rule picks one.',
     },
   });
   expect(lockfileStop.patch.reason).toContain(
@@ -712,5 +801,45 @@ it('never moves a lockless declaration backwards and leaves one that already all
   });
   expect(await shopifySdkUpgrade(root, 'January26')).toMatchObject({
     upgrade: { primary: REMIX, to: '4.1.1', lockless: true, files: [] },
+  });
+});
+
+it('moves prisma with the session storage that needs it, and stops on Prisma 6 schema changes', async () => {
+  registry({
+    ...RELEASES,
+    [PRISMA_STORAGE]: {
+      '5.0.2': { peerDependencies: { [API]: '^11.0.0', prisma: '^5.0.0' } },
+      '7.0.0': {
+        peerDependencies: { [API]: '^12.0.0', prisma: '^6.15.0', '@prisma/client': '^6.15.0' },
+      },
+    },
+    prisma: { '5.22.0': {}, '6.15.0': {}, '6.19.0': {}, '7.0.0': {} },
+    '@prisma/client': { '5.22.0': {}, '6.19.0': {}, '7.0.0': {} },
+  });
+  const manifest = {
+    name: 'app',
+    dependencies: {
+      [REMIX]: '^3.4.0',
+      [PRISMA_STORAGE]: '^5.0.2',
+      '@prisma/client': '^5.22.0',
+      prisma: '^5.22.0',
+    },
+  };
+  const schema = (fields: string) =>
+    `datasource db {\n  provider = "sqlite"\n  url = "file:dev.sqlite"\n}\nmodel Session {\n  id String @id\n${fields}}\n`;
+  const root = await directory({
+    'package.json': `${JSON.stringify(manifest, null, 2)}\n`,
+    'prisma/schema.prisma': schema('  shop String\n'),
+  });
+  const result = await shopifySdkUpgrade(root, 'April26');
+  expect(result).toMatchObject({ upgrade: { primary: REMIX, to: '4.1.1', lockless: true } });
+  const after = 'upgrade' in result ? result.upgrade.files[0].after : '';
+  expect(after).toContain('"prisma": "^6.19.0"');
+  expect(after).toContain('"@prisma/client": "^6.19.0"');
+  expect(after).toContain(`"${PRISMA_STORAGE}": "^7.0.0"`);
+  await writeFile(join(root, 'prisma/schema.prisma'), schema('  data Bytes\n'));
+  expect(await shopifySdkUpgrade(root, 'April26')).toEqual({
+    reason:
+      'Prisma 6 returns Bytes fields as Uint8Array instead of Buffer, and the schema has a Bytes field.',
   });
 });

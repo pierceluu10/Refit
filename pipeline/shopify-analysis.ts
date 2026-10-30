@@ -14,6 +14,8 @@ export const SHOPIFY_PACKAGES = [
 ];
 const SHOPIFY_IMPORT = /(?:from\s*|import\s*\(\s*|require\s*\(\s*)['"]@shopify\/[^'"]+['"]/;
 const GRAPHQL_MARKER = /^\s*#graphql\b/;
+const ENVIRONMENT =
+  /^process\.env\.(\w+)$|^process\.env\[['"](\w+)['"]\]$|^import\.meta\.env\.(\w+)$/;
 // Tags and functions that only mark a document: graphql-tag, codegen's client preset, gql.tada.
 const DOCUMENT_TAG = /^(?:gql|graphql)$/;
 // Storefront API clients: Hydrogen's `storefront`, createStorefrontApiClient and clients.Storefront.
@@ -96,7 +98,13 @@ export interface ShopifyScan {
   rest: (Location & { expression: string; method?: string; path?: string; resource?: string })[];
   versions: VersionDeclaration[];
   // `latest` marks LATEST_API_VERSION, which the locked SDK release determines.
-  unresolvedVersions: (Location & { reason: string; latest?: true })[];
+  // `note` marks a version the patch leaves alone and the draft names, which stops nothing: an
+  // environment variable with no default in code, or the moving `unstable` version.
+  unresolvedVersions: (Location & {
+    reason: string;
+    latest?: true;
+    note?: 'environment' | 'unstable';
+  })[];
   adminCalls: number;
   shopifyFiles: string[];
 }
@@ -1700,6 +1708,7 @@ export function scanShopify(
     depth = 0,
   ):
     | { literal: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral; envFallback?: string }
+    | { environment: string }
     | 'handled'
     | undefined => {
     const value = unwrap(expression);
@@ -1713,14 +1722,22 @@ export function scanShopify(
       (value.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
         value.operatorToken.kind === ts.SyntaxKind.BarBarToken)
     ) {
-      const environment = /^process\.env\.(\w+)$|^process\.env\[['"](\w+)['"]\]$/.exec(
-        unwrap(value.left).getText(),
-      );
-      const fallback = environment && versionSource(value.right, file, depth + 1);
-      return fallback && fallback !== 'handled'
-        ? { ...fallback, envFallback: environment[1] ?? environment[2] }
+      // A default in code: `process.env.NAME ?? '2025-01'`, `options.apiVersion || ApiVersion.X`.
+      const left = unwrap(value.left).getText();
+      const environment = ENVIRONMENT.exec(left);
+      const fallback = versionSource(value.right, file, depth + 1);
+      if (fallback === 'handled') return 'handled';
+      return fallback && 'literal' in fallback
+        ? {
+            ...fallback,
+            envFallback: environment
+              ? (environment[1] ?? environment[2] ?? environment[3])
+              : left.slice(0, 80),
+          }
         : undefined;
     }
+    const environment = ENVIRONMENT.exec(value.getText());
+    if (environment) return { environment: environment[1] ?? environment[2] ?? environment[3] };
     if (ts.isIdentifier(value) && depth < 8) {
       const resolved = scoped(value, value.getSourceFile().fileName) ?? constant(file, value.text);
       return resolved ? versionSource(resolved.node, resolved.file, depth + 1) : undefined;
@@ -1736,6 +1753,22 @@ export function scanShopify(
   ) => {
     const source = versionSource(expression, file);
     if (source === 'handled') return true;
+    if (source && 'environment' in source) {
+      scan.unresolvedVersions.push({
+        ...location(expression),
+        reason: `The Admin API version comes from the environment variable ${source.environment}, with no default in code; set it to the target version where the app is deployed.`,
+        note: 'environment',
+      });
+      return true;
+    }
+    if (source && source.literal.text === 'unstable') {
+      scan.unresolvedVersions.push({
+        ...location(source.literal),
+        reason: 'The unstable Admin API version changes without notice; Refit leaves it as it is.',
+        note: 'unstable',
+      });
+      return true;
+    }
     if (!source || !isShopifyVersion(source.literal.text)) return false;
     pushVersion({
       ...location(source.literal),
@@ -1852,7 +1885,12 @@ export function scanShopify(
         else
           scan.unresolvedVersions.push({
             ...location(node),
-            reason: `${node.getText()} is not a dated Admin API version.`,
+            ...(node.name.text === 'Unstable'
+              ? {
+                  reason: 'ApiVersion.Unstable changes without notice; Refit leaves it as it is.',
+                  note: 'unstable' as const,
+                }
+              : { reason: `${node.getText()} is not a dated Admin API version.` }),
           });
       }
       if (
