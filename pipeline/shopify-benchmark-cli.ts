@@ -52,7 +52,8 @@ const { values } = parseArgs({
     list: { type: 'string' },
     validate: { type: 'boolean' },
     assess: { type: 'boolean' },
-    // Loaded before anything runs: OPENAI_API_KEY, OPENAI_MODEL and the run's AI ledger
+    // Loaded before anything runs: OPENAI_API_KEY and OPENAI_MODEL (or ANTHROPIC_API_KEY,
+    // ANTHROPIC_MODEL and REFIT_AI_PROVIDER=anthropic) and the run's AI ledger
     // (REFIT_AI_BUDGET_USD, REFIT_AI_BUDGET_DIRECTORY), shared by the scan and every child run.
     env: { type: 'string' },
     // AI on every Shopify path: document rewrites and reconstructions, REST mappings, repair of
@@ -101,7 +102,15 @@ const { rows: previous } = await openRunDirectory(
     environment: [
       'REFIT_VALIDATION_WORKSPACE',
       'REFIT_DEPENDENCY_TIMEOUT_SECONDS',
-      ...(ai ? ['OPENAI_MODEL', 'OPENAI_REASONING_EFFORT', 'REFIT_AI_BUDGET_USD'] : []),
+      ...(ai
+        ? [
+            'REFIT_AI_PROVIDER',
+            'OPENAI_MODEL',
+            'ANTHROPIC_MODEL',
+            'OPENAI_REASONING_EFFORT',
+            'REFIT_AI_BUDGET_USD',
+          ]
+        : []),
     ],
     ...(values.validate ? { image: VALIDATION_IMAGE } : {}),
     allowDirty: values['allow-dirty'],

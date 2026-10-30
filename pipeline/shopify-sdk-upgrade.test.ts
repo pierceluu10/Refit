@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import { buildSchema, introspectionFromSchema } from 'graphql';
 import { afterEach, expect, it, vi } from 'vitest';
 import { runPipeline } from './run.ts';
-import { satisfies, shopifySdkUpgrade } from './shopify-sdk-upgrade.ts';
+import { satisfies, sharedMovesOutside, shopifySdkUpgrade } from './shopify-sdk-upgrade.ts';
 import { digest, shopifySchemaUrl } from './specifications.ts';
 
 const REGISTRY = 'https://registry.npmjs.org/';
@@ -680,8 +680,29 @@ it('leaves the SDK alone by default and proposes the upgrade with LATEST_API_VER
 
 it('records why the opted-in upgrade stopped, from the lockfile or from the source', async () => {
   registry();
+  // A GraphQL-only app keeps its locked SDK and pins the dated string instead.
+  const stringPin = await pipeline({
+    flag: true,
+    files: { 'yarn.lock': '# yarn lockfile v1\n' },
+  });
+  expect(stringPin.patch).toMatchObject({
+    status: 'proposed',
+    shopifySdkUpgrade: {
+      skipped: 'The repository commits several lockfiles and no documented rule picks one.',
+    },
+  });
+  for (const line of [
+    "+import { shopifyApi, ApiVersion } from '@shopify/shopify-api';",
+    "+export const shopify = shopifyApi({ apiVersion: '2026-04' as ApiVersion, future: {} });",
+  ])
+    expect(stringPin.patch.diff).toContain(line);
+  expect(stringPin.patch.warnings.join('\n')).toContain(
+    "Pins the dated string '2026-04' on the locked @shopify/shopify-api 11.14.1",
+  );
+  // REST stops the string pin, so the SDK upgrade's own stop stands.
   const lockfileStop = await pipeline({
     flag: true,
+    server: `${SERVER}export const products = (session) => new shopify.clients.Rest({ session }).get({ path: 'products' });\n`,
     files: { 'yarn.lock': '# yarn lockfile v1\n' },
   });
   expect(lockfileStop.patch).toMatchObject({
@@ -690,8 +711,14 @@ it('records why the opted-in upgrade stopped, from the lockfile or from the sour
       skipped: 'The repository commits several lockfiles and no documented rule picks one.',
     },
   });
-  expect(lockfileStop.patch.reason).toContain(
+  const latest = lockfileStop.findings.find((finding: { expression: string }) =>
+    finding.expression.startsWith('LATEST_API_VERSION'),
+  );
+  expect(latest.contractReview).toContain(
     ' The SDK upgrade stopped: The repository commits several lockfiles',
+  );
+  expect(latest.contractReview).toContain(
+    'A dated apiVersion string on the locked SDK does not apply either: The app sends REST Admin requests',
   );
 
   const sourceStop = await pipeline({
@@ -842,4 +869,42 @@ it('moves prisma with the session storage that needs it, and stops on Prisma 6 s
     reason:
       'Prisma 6 returns Bytes fields as Uint8Array instead of Buffer, and the schema has a Bytes field.',
   });
+});
+
+it('lets npm move a shared package only within its major, as every dependent range allows', () => {
+  const lock = (root: Record<string, string>, packages: Record<string, unknown>) =>
+    JSON.stringify({
+      lockfileVersion: 3,
+      packages: { '': { dependencies: root }, ...packages },
+    });
+  const before = lock(
+    { [API]: '^11.0.0', isbot: '^5.1.0', other: '^1.0.0' },
+    {
+      [`node_modules/${API}`]: {
+        version: '11.12.0',
+        dependencies: { isbot: '^5.1.21', 'node-fetch': '^2.6.1' },
+      },
+      'node_modules/isbot': { version: '5.1.26' },
+      'node_modules/node-fetch': { version: '2.7.0' },
+      'node_modules/other': { version: '1.0.0', dependencies: { 'node-fetch': '^2.6.1' } },
+    },
+  );
+  const after = (root: Record<string, string>, isbot: string, other = '1.0.0') =>
+    lock(root, {
+      [`node_modules/${API}`]: { version: '14.0.1', dependencies: { isbot: '^5.2.0' } },
+      'node_modules/isbot': { version: isbot },
+      // Only a dev dependency reaches it now, so npm flags it; the flag alone is no change.
+      'node_modules/node-fetch': { version: '2.7.0', dev: true },
+      'node_modules/other': { version: other, dependencies: { 'node-fetch': '^2.6.1' } },
+    });
+  const root = { [API]: '^14.0.1', isbot: '^5.1.0', other: '^1.0.0' };
+  expect(sharedMovesOutside(before, after(root, '5.2.2'), [API])).toEqual([]);
+  // Another major, a declaration the move breaks, or a package the app alone moves all stop.
+  expect(sharedMovesOutside(before, after(root, '6.0.0'), [API])).toEqual(['node_modules/isbot']);
+  expect(sharedMovesOutside(before, after({ ...root, isbot: '~5.1.0' }, '5.2.2'), [API])).toEqual([
+    'node_modules/isbot',
+  ]);
+  expect(sharedMovesOutside(before, after(root, '5.2.2', '1.1.0'), [API])).toEqual([
+    'node_modules/other',
+  ]);
 });

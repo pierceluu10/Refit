@@ -358,6 +358,33 @@ Shopify Admin GraphQL migrations are deterministic, and no AI is used. Details a
 - **The broken queries are real.** All 23 were rechecked with graphql-js against the served schema. 11 are the old Remix template's `productVariantUpdate(input: ProductVariantInput)`.
 - **Most apps are limited by their SDK.** `ApiVersion.October26` needs `@shopify/shopify-api` 14, and app frameworks pin older releases. That SDK upgrade is a major-version change, so Refit stops rather than performing it.
 
+### Shopify SDK path, round 3 (SH12, 2026-10-30)
+
+dev-60 plus the 250 practice repositories (practice-50 and fresh-200), refit-bench `shopify.yml` on `shopify-ai`, size 1, `--sdk-upgrade`. Before: 40950547981, 40950561596, 40953254697 (`c3304055`, docs-only behind the base; AI was requested but the OpenAI credit was exhausted, so no AI call ran).
+
+| Run                                                              | Commit     | Validated rows | Distinct repos | Needs review | Stopped |
+| ---------------------------------------------------------------- | ---------- | -------------: | -------------: | -----------: | ------: |
+| Before                                                           | `c3304055` |             10 |              7 |           31 |     220 |
+| No AI: 40971544558, 40971547445, 40971550694                     | `788cdaf9` |             19 |             13 |           65 |     157 |
+| No AI: 40973528148, 40973530890, 40973533416                     | `396c5b1e` |             30 |             21 |           65 |     157 |
+| Claude Sonnet 5.5, $15.34: 40979832096, 40984651472, 40982838222 | `df398702` |             26 |             19 |           71 |     157 |
+
+- Rows count every list a repository is in; one fresh-200 row of the `396c5b1e` run did not come back (309 rows).
+- At `396c5b1e`, nothing validated before is lost, and 14 repositories are newly validated (2 grade A, 12 grade C). Every diff was read and labelled `correct` in `fix-reviews.json`.
+  - 12 move the SDK with the version (remix 3 to 5, React Router 1 to 2).
+  - 2 pin the dated version string on the locked `@shopify/shopify-api` 11.
+- jgasimli04/marketoracle validated before on a fallback version. At `788cdaf9` its upgrade failed its type check on an aliased `AppProvider` and was not published; `396c5b1e` fixed that.
+- Of the 91 rows whose first stop was the SDK upgrade, the next stops at `396c5b1e` are:
+  - validated: 13
+  - needs review: 24
+  - GraphQL documents already failing on 2026-01 (SH11): 14
+  - unreadable documents (SH13): 12
+  - the SDK still: 15. These are lockfiles that preparation refuses, remix 2 or `@shopify/shopify-api` older than 8, no readable locked release, and REST apps the string pin does not cover.
+  - REST (SH14): 9
+  - regressions, never published: 2
+  - an error and an unrun patch: 2
+- The AI run validates fewer rows, and not because of the patches. Its development-store run failed on stand-in Function IDs, a store locale, rate limits and app ownership, on the before version (2026-01) as well, and that set five rows that pass every check to grade D (danyn/shopify-app-rr, cornerstone-report/x-money-shopify, ersinkoc/CouponEngine, mssalemi/b-is-for-bundles, Stephnn0/shipping-discounts-shopify-app). Two rows validate only with AI (IliasHad/shopify-app-template-remix-cloudflare-workers, SankaiAI/iHeard.ai).
+
 ### Shopify dev and blind sets
 
 Frozen on 2026-10-29 by `scripts/shopify-select.mjs`; nothing has been run on them. The exact criteria and command are in each list's `criteria`, and the search results, per-repository pre-scan counts and totals are in `docs/benchmarks/shopify-selection/`.

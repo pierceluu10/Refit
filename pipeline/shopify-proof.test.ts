@@ -337,8 +337,43 @@ it('runs read-only queries on both versions and records failures without the tok
     documents,
     fetch: fakeStore({ failOn: '2026-10/graphql' }).fetch,
   });
-  expect(failing.status).not.toBe('passed');
+  // Only the target failing, after the original passed, is the patch's failure.
+  expect(failing.status).toBe('failed');
   expect(JSON.stringify(failing)).not.toContain(TOKEN);
+  // The original failing too, or the store refusing on its side, proves nothing either way.
+  const original = await liveShopifyProof({
+    store,
+    versions,
+    documents,
+    fetch: fakeStore({ failOn: '2026-01/graphql' }).fetch,
+  });
+  expect(original).toMatchObject({
+    status: 'not-run',
+    reason: expect.stringContaining('fails on 2026-01 too, so the store cannot compare it'),
+  });
+  const limited = fakeStore();
+  const busy = vi.fn(async (url: string, init: RequestInit) =>
+    url.includes('2026-10') && String(init.body).includes('Shop')
+      ? new Response(
+          JSON.stringify({
+            data: {
+              shop: {
+                userErrors: [
+                  { field: null, message: 'Too many attempts. Please try again later.' },
+                ],
+              },
+            },
+          }),
+          { status: 200 },
+        )
+      : limited.fetch(url, init),
+  );
+  expect(
+    await liveShopifyProof({ store, versions, documents, fetch: busy as unknown as typeof fetch }),
+  ).toMatchObject({
+    status: 'not-run',
+    reason: expect.stringContaining('did not answer on 2026-10'),
+  });
 });
 
 const CREATE = 'mutation { productCreate(input: { title: "Refit" }) { product { id } } }';

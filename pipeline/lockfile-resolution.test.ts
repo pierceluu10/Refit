@@ -407,11 +407,13 @@ it('pins public GitHub dependencies to their archive at a locked commit or a dec
     ['github:ai/react#semver:^0.8.0', undefined],
   ] as const)
     expect(() => githubSources({ dependencies: { '@nanostores/react': source } }, lock)).toThrow(
-      /^Automatic preparation supports public npm registry dependencies only; package\.json declares @nanostores\/react as/,
+      /^Automatic preparation supports public npm registry dependencies only; package\.json declares @nanostores\/react (?:as|from Git)/,
     );
 });
 
-it('accepts a GitHub archive in package-lock.json only where Refit pinned it', () => {
+// A code-host archive locked with SHA-256-or-stronger integrity installs whether Refit pinned it
+// (lockfile-resolution.ts) or the repository committed it (npm-lock.ts preparation fallbacks).
+it('accepts a GitHub archive in package-lock.json only with its integrity', () => {
   const manifest = JSON.stringify({ dependencies: { '@nanostores/react': ARCHIVE } });
   const lock = JSON.stringify({
     lockfileVersion: 3,
@@ -424,16 +426,13 @@ it('accepts a GitHub archive in package-lock.json only where Refit pinned it', (
       },
     },
   });
-  expect(() => validateNpmLock(manifest, lock)).toThrow(
-    /^Automatic preparation supports public npm registry dependencies only/,
-  );
+  expect(validateNpmLock(manifest, lock).packages).toBe(1);
   expect(validateNpmLock(manifest, lock, new Map(), new Set([ARCHIVE])).packages).toBe(1);
-  // An archive recorded below the root is still refused.
-  const nested = JSON.parse(lock);
-  nested.packages['node_modules/x'] = { version: '1.0.0', resolved: ARCHIVE, integrity: INTEGRITY };
-  expect(() =>
-    validateNpmLock(manifest, JSON.stringify(nested), new Map(), new Set(['https://other.test'])),
-  ).toThrow();
+  const unverified = JSON.parse(lock);
+  delete unverified.packages['node_modules/@nanostores/react'].integrity;
+  expect(() => validateNpmLock(manifest, JSON.stringify(unverified))).toThrow(
+    /without a version, registry "resolved" URL and SHA-256-or-stronger "integrity"/,
+  );
 });
 
 it('refuses an .npmrc registry only for the scopes package.json declares, and any credentials', () => {

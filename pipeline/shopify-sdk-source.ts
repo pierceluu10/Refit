@@ -1,6 +1,7 @@
+import { parse, validate, type GraphQLSchema } from 'graphql';
 import ts from 'typescript-compiler';
 import { SHOPIFY_PACK } from './rule-pack.ts';
-import { STOREFRONT_CLIENT_FACTORY } from './shopify-analysis.ts';
+import { STOREFRONT_CLIENT_FACTORY, type ShopifyScan } from './shopify-analysis.ts';
 import type { Location, Repository, SourceEdit } from './types.ts';
 
 export const SHOPIFY_SDK_RULE = 'shopify-sdk-upgrade';
@@ -50,6 +51,20 @@ const PRISMA_NOT_FOUND =
   'Prisma 6 removed NotFoundError: catch PrismaClientKnownRequestError with code P2025 instead (prisma.io upgrade guide to Prisma 6).';
 const EMBEDDED =
   '@shopify/shopify-app-react-router 2.0.0 serves embedded apps only (0dbb90c): AppProvider has no embedded prop and shopifyApp rejects isEmbeddedApp; a non-embedded app needs review.';
+// The Shopify app templates' line, which @shopify/shopify-api 13 still accepts and ignores.
+const CUSTOM_DOMAIN_TEMPLATE =
+  /^\.\.\.\(((?:process\.)?env)(\.SHOP_CUSTOM_DOMAIN|\[(["'])SHOP_CUSTOM_DOMAIN\3\])\?\{customShopDomains:\[\1\2\],?\}:\{\}\)$/;
+const CUSTOM_DOMAIN_NOTE =
+  "@shopify/shopify-api 13.0.0 removed customShopDomains and no longer supports the SHOP_CUSTOM_DOMAIN environment variable (78c8968), so the template's `customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN]` line no longer has an effect. Shopify's own React Router template keeps the same line on @shopify/shopify-app-react-router 3 (its app/shopify.server.ts at commit fa091e35), so Refit leaves it. Where SHOP_CUSTOM_DOMAIN is set, add a domainTransformations rule as the 13.0.0 changelog shows.";
+// What <AppProvider embedded={false}> rendered in @shopify/shopify-app-react-router 1.x
+// (dist/esm/react/components/AppProvider/AppProvider.mjs, 1.1.1): the Polaris script and the
+// children. 2.0.0 (0dbb90c) says to remove it; the template does exactly this (89f43482).
+const ROUTER_REACT = '@shopify/shopify-app-react-router/react';
+const POLARIS_SCRIPT = '<script src="https://cdn.shopify.com/shopifycloud/polaris.js" />';
+// The remix and React Router adapters' billing context passes returnObject: true to
+// @shopify/shopify-api (server/authenticate/admin/billing/*.mjs, remix 3.8.2), so 12.0.0's
+// billing.check change leaves it as it is; their own majors to 5 and 2 change no billing API.
+const ADAPTERS = new Set(['@shopify/shopify-app-remix', '@shopify/shopify-app-react-router']);
 
 // The majors an upgrade crosses: each package's locked and upgraded release.
 export type SdkMoves = { name: string; from: string | null; to: string }[];
@@ -65,6 +80,8 @@ const crosses = (moves: SdkMoves, name: string, major: number) =>
 export interface ShopifySdkSourceChanges {
   edits: SourceEdit[];
   stops: (Location & { reason: string })[];
+  // Changes Refit leaves in place on purpose, for the draft.
+  notes: string[];
 }
 
 // The source edits the Shopify SDK upgrade can confirm in files that import a Shopify package:
@@ -80,11 +97,17 @@ export function shopifySdkSourceChanges(
   const v13 = crosses(moves, '@shopify/shopify-api', 13);
   const v14 = crosses(moves, '@shopify/shopify-api', 14);
   const embeddedOnly = crosses(moves, '@shopify/shopify-app-react-router', 2);
+  // @shopify/shopify-app-remix 4.0.0 removed REST entirely (d7bd799). An app that reads no `.rest`
+  // anywhere used `restResources` only to fill admin.rest.resources, so the key and its import go.
+  const withoutRest =
+    crosses(moves, '@shopify/shopify-app-remix', 4) &&
+    !repository.files.some(({ path, content }) => SOURCE.test(path) && /\.rest\b/.test(content));
   // Optional new columns, backward-compatible unless the app asks for refresh tokens.
   const refreshTokens = crosses(moves, '@shopify/shopify-app-session-storage-prisma', 8);
   const prismaSix = crosses(moves, 'prisma', 6);
   const edits: SourceEdit[] = [];
   const stops: ShopifySdkSourceChanges['stops'] = [];
+  const notes = new Set<string>();
   for (const { path, content } of repository.files) {
     // NotFoundError lives in Prisma code, which need not import a Shopify package.
     if (!SHOPIFY_IMPORT.test(content) && !(prismaSix && /\bNotFoundError\b/.test(content)))
@@ -99,17 +122,8 @@ export function shopifySdkSourceChanges(
     };
     const edit = (start: number, end: number, replacement = '') =>
       edits.push({ file: path, start, end, replacement, changeId: SHOPIFY_SDK_RULE });
-    // Removes a list element: its whole line when it stands alone there, else it and a separator.
-    const remove = (node: ts.Node, list: readonly ts.Node[], container: ts.Node) => {
-      const lineStart = content.lastIndexOf('\n', node.getStart() - 1) + 1;
-      const after = LINE_REST.exec(content.slice(node.getEnd()));
-      const index = list.indexOf(node);
-      if (!content.slice(lineStart, node.getStart()).trim() && after)
-        edit(lineStart, node.getEnd() + after[0].length);
-      else if (index < list.length - 1) edit(node.getStart(), list[index + 1].getStart());
-      else if (index > 0) edit(list[index - 1].getEnd(), node.getEnd());
-      else edit(container.getStart(), container.getEnd(), '{}');
-    };
+    const remove = (node: ts.Node, list: readonly ts.Node[], container: ts.Node) =>
+      edit(...removal(content, node, list, container));
     const inConfig = (node: ts.Node) => {
       let current: ts.Node = node;
       while (
@@ -165,6 +179,13 @@ export function shopifySdkSourceChanges(
           stop(flag, 'A future flag is a spread, shorthand or computed name Refit cannot check.');
           continue;
         }
+        // a5be0d0: "If you have already adopted either of these flags you only need to remove the
+        // flags"; in 11.x they only gate a log line (future/flags.mjs, 11.12.0).
+        if (REMOVED_FLAGS.has(name) && flag.initializer.kind === ts.SyntaxKind.TrueKeyword) {
+          handled.add(flag.name);
+          remove(flag, flags.properties, flags);
+          continue;
+        }
         if (name !== 'removeRest') {
           if (!FUTURE_FLAGS[primary].includes(name))
             stop(
@@ -184,6 +205,23 @@ export function shopifySdkSourceChanges(
       }
     };
     const latestUses: ts.Identifier[] = [];
+    // Tag names of the <AppProvider embedded={false}> elements replaced above.
+    const providers: ts.Node[] = [];
+    // restResources bindings whose config key went.
+    const restBindings = new Set<string>();
+    // Local names of the React Router package's AppProvider, aliases included.
+    const providerNames = new Set(['AppProvider']);
+    for (const statement of file.statements)
+      if (
+        ts.isImportDeclaration(statement) &&
+        ts.isStringLiteral(statement.moduleSpecifier) &&
+        statement.moduleSpecifier.text === ROUTER_REACT &&
+        statement.importClause?.namedBindings &&
+        ts.isNamedImports(statement.importClause.namedBindings)
+      )
+        for (const element of statement.importClause.namedBindings.elements)
+          if ((element.propertyName ?? element.name).text === 'AppProvider')
+            providerNames.add(element.name.text);
     const visit = (node: ts.Node) => {
       if (
         (ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) &&
@@ -208,6 +246,17 @@ export function shopifySdkSourceChanges(
         )
           stop(node, API_VERSION_REQUIRED);
       }
+      if (
+        withoutRest &&
+        (ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) &&
+        node.name.getText() === 'restResources' &&
+        inConfig(node) &&
+        ts.isObjectLiteralExpression(node.parent)
+      ) {
+        handled.add(node.name);
+        remove(node, node.parent.properties, node.parent);
+        if (ts.isShorthandPropertyAssignment(node)) restBindings.add(node.name.text);
+      }
       // `isEmbeddedApp: true` goes; any other value stops.
       if (
         embeddedOnly &&
@@ -226,15 +275,42 @@ export function shopifySdkSourceChanges(
         embeddedOnly &&
         ts.isJsxAttribute(node) &&
         node.name.getText() === 'embedded' &&
-        /(?:^|\.)AppProvider$/.test(node.parent.parent.tagName.getText())
+        providerNames.has(node.parent.parent.tagName.getText().replace(/^.*\./, ''))
       ) {
         const value = node.initializer;
+        const opening = node.parent.parent;
         if (
           !value ||
           (ts.isJsxExpression(value) && value.expression?.kind === ts.SyntaxKind.TrueKeyword)
         )
           edit(node.getFullStart(), node.getEnd());
-        else stop(node, EMBEDDED);
+        else if (
+          ts.isJsxExpression(value) &&
+          value.expression?.kind === ts.SyntaxKind.FalseKeyword &&
+          opening.attributes.properties.length === 1 &&
+          ts.isJsxOpeningElement(opening) &&
+          ts.isJsxElement(opening.parent)
+        ) {
+          const indent = /[ \t]*$/.exec(content.slice(0, opening.getStart()))![0];
+          edit(opening.getStart(), opening.getEnd(), `<>\n${indent}  ${POLARIS_SCRIPT}`);
+          const closing = opening.parent.closingElement;
+          edit(closing.getStart(), closing.getEnd(), '</>');
+          providers.push(opening.tagName, closing.tagName);
+        } else stop(node, EMBEDDED);
+      }
+      if (
+        v13 &&
+        ts.isSpreadAssignment(node) &&
+        CUSTOM_DOMAIN_TEMPLATE.test(node.getText().replace(/\s/g, '')) &&
+        ts.isObjectLiteralExpression(node.parent) &&
+        inConfig(node.parent)
+      ) {
+        notes.add(CUSTOM_DOMAIN_NOTE);
+        const mark = (child: ts.Node): void => {
+          if (ts.isIdentifier(child) && child.text === 'customShopDomains') handled.add(child);
+          ts.forEachChild(child, mark);
+        };
+        mark(node);
       }
       if (ts.isIdentifier(node) && !handled.has(node)) {
         if (v13 && node.text === 'customShopDomains') stop(node, CUSTOM_SHOP_DOMAINS);
@@ -252,16 +328,66 @@ export function shopifySdkSourceChanges(
           );
       }
       if (
-        (ts.isPropertyAccessExpression(node) && node.name.text === 'billing') ||
-        (ts.isBindingElement(node) && (node.propertyName ?? node.name).getText() === 'billing') ||
+        (!ADAPTERS.has(primary) &&
+          ((ts.isPropertyAccessExpression(node) && node.name.text === 'billing') ||
+            (ts.isBindingElement(node) &&
+              (node.propertyName ?? node.name).getText() === 'billing'))) ||
         ((ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) &&
           node.name.getText() === 'billing' &&
-          inConfig(node))
+          inConfig(node) &&
+          !lineItemPlans(node))
       )
         stop(node, BILLING_CHANGE);
       ts.forEachChild(node, visit);
     };
     visit(file);
+    // An `@shopify/shopify-api/rest/admin/<version>` import goes with its last use.
+    for (const statement of file.statements) {
+      const named =
+        ts.isImportDeclaration(statement) &&
+        ts.isStringLiteral(statement.moduleSpecifier) &&
+        /^@shopify\/shopify-api\/rest\/admin\//.test(statement.moduleSpecifier.text) &&
+        !statement.importClause?.name &&
+        statement.importClause?.namedBindings &&
+        ts.isNamedImports(statement.importClause.namedBindings)
+          ? statement.importClause.namedBindings
+          : undefined;
+      if (!named) continue;
+      const gone = named.elements.filter((element) => restBindings.has(element.name.text));
+      const uses = (name: string) => content.match(new RegExp(`\\b${name}\\b`, 'g'))!.length;
+      // The import and the removed shorthand are the only two mentions.
+      const unused = gone.filter((element) => uses(element.name.text) === 2);
+      if (unused.length === named.elements.length) remove(statement, file.statements, file);
+      else for (const element of unused) remove(element, named.elements, named);
+    }
+    // AppProvider goes from the import once no element uses it.
+    if (providers.length)
+      for (const statement of file.statements) {
+        if (
+          !ts.isImportDeclaration(statement) ||
+          !ts.isStringLiteral(statement.moduleSpecifier) ||
+          statement.moduleSpecifier.text !== ROUTER_REACT
+        )
+          continue;
+        const named = statement.importClause?.namedBindings;
+        const specifier =
+          named && ts.isNamedImports(named)
+            ? named.elements.find(
+                (element) => (element.propertyName ?? element.name).text === 'AppProvider',
+              )
+            : undefined;
+        if (!named || !ts.isNamedImports(named) || !specifier) continue;
+        const uses: ts.Node[] = [];
+        const find = (child: ts.Node): void => {
+          if (ts.isIdentifier(child) && child.text === specifier.name.text) uses.push(child);
+          ts.forEachChild(child, find);
+        };
+        find(file);
+        if (uses.every((use) => use === specifier.name || providers.includes(use)))
+          named.elements.length > 1 || statement.importClause?.name
+            ? remove(specifier, named.elements, named)
+            : remove(statement, file.statements, file);
+      }
     const settable = latestUses.filter(
       (use) =>
         ts.isPropertyAssignment(use.parent) &&
@@ -303,7 +429,49 @@ export function shopifySdkSourceChanges(
       else remove(statement, file.statements, file);
     });
   }
-  return { edits, stops };
+  return { edits, stops, notes: [...notes] };
+}
+
+// A billing config every plan of which @shopify/shopify-api 12 reads the same way: line-item plans
+// and one-time plans (a5be0d0 moved only recurring plans into lineItems).
+function lineItemPlans(node: ts.PropertyAssignment | ts.ShorthandPropertyAssignment) {
+  const plans = ts.isPropertyAssignment(node) ? node.initializer : undefined;
+  return (
+    plans !== undefined &&
+    ts.isObjectLiteralExpression(plans) &&
+    plans.properties.every((plan) => {
+      const config =
+        ts.isPropertyAssignment(plan) && ts.isObjectLiteralExpression(plan.initializer)
+          ? plan.initializer
+          : undefined;
+      const interval = config && property(config, 'interval');
+      return (
+        config !== undefined &&
+        config.properties.every((entry) => ts.isPropertyAssignment(entry)) &&
+        (property(config, 'lineItems')
+          ? !interval
+          : interval !== undefined &&
+            /(?:^|\.)OneTime$/.test((interval as ts.PropertyAssignment).initializer.getText()))
+      );
+    })
+  );
+}
+
+// Removes a list element: its whole line when it stands alone there, else it and a separator.
+function removal(
+  content: string,
+  node: ts.Node,
+  list: readonly ts.Node[],
+  container: ts.Node,
+): [number, number, string?] {
+  const lineStart = content.lastIndexOf('\n', node.getStart() - 1) + 1;
+  const after = LINE_REST.exec(content.slice(node.getEnd()));
+  const index = list.indexOf(node);
+  if (!content.slice(lineStart, node.getStart()).trim() && after)
+    return [lineStart, node.getEnd() + after[0].length];
+  if (index < list.length - 1) return [node.getStart(), list[index + 1].getStart()];
+  if (index > 0) return [list[index - 1].getEnd(), node.getEnd()];
+  return [container.getStart(), container.getEnd(), '{}'];
 }
 
 const property = (object: ts.ObjectLiteralExpression, name: string) =>
@@ -347,4 +515,170 @@ function bindingForm(element: SdkBinding) {
   }
   const plain = !element.propertyName && !element.initializer && !element.dotDotDotToken;
   return { plain, removable: plain };
+}
+
+export const SHOPIFY_VERSION_STRING_RULE = 'shopify-version-string';
+// @shopify/shopify-api majors whose source Refit read for a dated apiVersion string the ApiVersion
+// enum lacks (8.1.1, 9.7.2, 10.0.0, 11.12.0, 12.3.0 and 13.1.0, read 2026-10-29): validateConfig
+// checks at most that apiVersion is set, and the value goes into request URLs
+// (/admin/api/<version>/graphql.json, through @shopify/admin-api-client from 9.x, whose
+// graphql-client 0.10.4 and 1.4.2 only warn outside a date-based list), log lines and
+// utils.versionCompatible's numeric comparison. The remix 3.8.2 and 4.1.1, React Router 1.1.1 and
+// express 5.0.17 and 6.0.5 adapters pass it through. 7.7.0's webhook registration reads
+// privateMetafieldNamespaces, so 7.x is out. docs/SHOPIFY-SDK-UPGRADE.md has the reading.
+const STRING_PIN_MAJORS = new Set([8, 9, 10, 11, 12, 13]);
+// The GraphQL documents shopify.webhooks.register sends (lib/webhooks/register, identical in 8.1.1
+// to 13.1.0), with sample arguments. They run at the pinned version too.
+const WEBHOOK_DOCUMENTS = [
+  'query { webhookSubscriptions(first: 250, after: null) { edges { node { id topic includeFields metafieldNamespaces endpoint { __typename ... on WebhookHttpEndpoint { callbackUrl } ... on WebhookEventBridgeEndpoint { arn } ... on WebhookPubSubEndpoint { pubSubProject pubSubTopic } } } } pageInfo { endCursor hasNextPage } } }',
+  'mutation { webhookSubscriptionCreate(topic: APP_UNINSTALLED, webhookSubscription: {callbackUrl: "https://a.example/b", includeFields: ["id"], metafieldNamespaces: ["c"]}) { userErrors { field message } } }',
+  'mutation { webhookSubscriptionUpdate(id: "gid://shopify/WebhookSubscription/1", webhookSubscription: {callbackUrl: "https://a.example/b"}) { userErrors { field message } } }',
+  'mutation { webhookSubscriptionDelete(id: "gid://shopify/WebhookSubscription/1") { userErrors { field message } } }',
+  'mutation { eventBridgeWebhookSubscriptionCreate(topic: APP_UNINSTALLED, webhookSubscription: {arn: "a"}) { userErrors { field message } } }',
+  'mutation { pubSubWebhookSubscriptionCreate(topic: APP_UNINSTALLED, webhookSubscription: {pubSubProject: "a", pubSubTopic: "b"}) { userErrors { field message } } }',
+];
+const WEBHOOK_REGISTRATION = /^(?:registerWebhooks|register|addHandlers)$/;
+const TYPESCRIPT = /\.[cm]?tsx?$/;
+const SOURCE = /\.[cm]?[jt]sx?$/;
+
+// The smaller fix for apps that send only GraphQL: every ApiVersion member and LATEST_API_VERSION
+// becomes the dated `version` string, with the locked SDK kept. Refused, with the reason, where the
+// SDK could use the version for anything but GraphQL request URLs Refit validates: REST, billing,
+// Storefront clients, or webhook topics the target does not have.
+export function shopifyVersionStringPins(
+  repository: Repository,
+  scan: Pick<ShopifyScan, 'rest' | 'versions'>,
+  sdkRelease: string | undefined,
+  version: string,
+  schema: GraphQLSchema,
+): { edits: SourceEdit[] } | { reason: string } {
+  const major = Number(sdkRelease?.split('.')[0]);
+  if (!sdkRelease || !STRING_PIN_MAJORS.has(major))
+    return {
+      reason: `Refit read the @shopify/shopify-api source for a dated apiVersion string in majors 8 to 13 only${sdkRelease ? `, and the lockfile has ${sdkRelease}` : ''}.`,
+    };
+  if (scan.rest.length)
+    return {
+      reason: `The app sends REST Admin requests, whose resources the locked @shopify/shopify-api ${sdkRelease} has only for older versions.`,
+    };
+  if (scan.versions.some((entry) => entry.api === 'storefront'))
+    return { reason: 'A Storefront client sets its own version.' };
+  const topics = new Set(
+    (schema.getType('WebhookSubscriptionTopic') as { getValues?: () => { name: string }[] })
+      ?.getValues?.()
+      .map((value) => value.name) ?? [],
+  );
+  const edits: SourceEdit[] = [];
+  let registers = false;
+  for (const { path, content } of repository.files) {
+    // Billing, Storefront and webhook code often imports only the app's own shopify.server file.
+    if (!SOURCE.test(path)) continue;
+    const shopify = SHOPIFY_IMPORT.test(content);
+    const file = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true);
+    const typed = TYPESCRIPT.test(path);
+    const literal = `'${version}'${typed ? ' as ApiVersion' : ''}`;
+    let reason: string | undefined;
+    let apiVersionImported = false;
+    const latest: {
+      element: SdkBinding;
+      elements: readonly SdkBinding[];
+      statement: ts.Statement;
+    }[] = [];
+    for (const statement of file.statements)
+      for (const element of sdkBindings(statement)) {
+        const { plain, removable } = bindingForm(element);
+        const imported = (element.propertyName ?? element.name).getText();
+        if (imported === 'ApiVersion' && plain) apiVersionImported = true;
+        if (imported !== 'LATEST_API_VERSION') continue;
+        if (!removable)
+          reason ??= 'LATEST_API_VERSION is imported in a form Refit does not rewrite.';
+        latest.push({ element, elements: sdkBindings(statement), statement });
+      }
+    const imports = new Set(latest.map(({ element }) => element.name));
+    let replaced = 0;
+    const visit = (node: ts.Node): void => {
+      if (reason) return;
+      if (
+        ts.isIdentifier(node) &&
+        ['billing', 'storefront', 'Storefront'].includes(node.text) &&
+        !ts.isImportSpecifier(node.parent)
+      )
+        reason = `${path} uses ${node.text}, which sends requests at this version through @shopify/shopify-api ${sdkRelease}'s own code.`;
+      if (
+        ts.isIdentifier(node) &&
+        WEBHOOK_REGISTRATION.test(node.text) &&
+        (ts.isPropertyAccessExpression(node.parent) || ts.isCallExpression(node.parent))
+      )
+        registers = true;
+      // Webhook topics the SDK registers: the keys of a config's `webhooks` and of addHandlers.
+      const handlers =
+        ts.isPropertyAssignment(node) && node.name.getText() === 'webhooks'
+          ? node.initializer
+          : ts.isCallExpression(node) && /(?:^|\.)addHandlers$/.test(node.expression.getText())
+            ? node.arguments[0]
+            : undefined;
+      if (handlers) {
+        if (!ts.isObjectLiteralExpression(handlers))
+          reason = `${path} registers webhooks Refit cannot read.`;
+        else
+          for (const handler of handlers.properties) {
+            const name =
+              handler.name && (ts.isIdentifier(handler.name) || ts.isStringLiteral(handler.name))
+                ? handler.name.text.toUpperCase().replace(/[/.]/g, '_')
+                : undefined;
+            if (!name || !topics.has(name))
+              reason = `${path} registers the webhook topic ${handler.name?.getText() ?? handler.getText()}, which is not a ${version} WebhookSubscriptionTopic.`;
+          }
+      }
+      const pin =
+        (ts.isIdentifier(node) && node.text === 'LATEST_API_VERSION' && !imports.has(node)) ||
+        (ts.isPropertyAccessExpression(node) &&
+          ts.isIdentifier(node.expression) &&
+          node.expression.text === 'ApiVersion' &&
+          node.name.text !== 'Unstable');
+      if (
+        pin &&
+        shopify &&
+        !ts.isImportSpecifier(node.parent) &&
+        !ts.isBindingElement(node.parent)
+      ) {
+        if (ts.isTypeReferenceNode(node.parent) || ts.isTypeQueryNode(node.parent))
+          reason = `${path} uses ${node.getText()} as a type.`;
+        edits.push({
+          file: path,
+          start: node.getStart(),
+          end: node.getEnd(),
+          replacement: literal,
+          changeId: SHOPIFY_VERSION_STRING_RULE,
+        });
+        replaced++;
+        return;
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(file);
+    if (reason) return { reason };
+    if (typed && replaced && !apiVersionImported && !latest.length)
+      return { reason: `${path} pins a version without importing ApiVersion where Refit can see.` };
+    // The cast names ApiVersion: a file that imported only LATEST_API_VERSION imports it instead.
+    latest.forEach(({ element, elements, statement }, index) => {
+      const [start, end, replacement = ''] =
+        index === 0 && typed && !apiVersionImported
+          ? [element.name.getStart(), element.name.getEnd(), 'ApiVersion']
+          : elements.length > 1
+            ? removal(content, element, elements, statement)
+            : removal(content, statement, file.statements, file);
+      edits.push({ file: path, start, end, replacement, changeId: SHOPIFY_VERSION_STRING_RULE });
+    });
+  }
+  if (registers)
+    for (const document of WEBHOOK_DOCUMENTS) {
+      const errors = validate(schema, parse(document));
+      if (errors.length)
+        return {
+          reason: `@shopify/shopify-api ${sdkRelease}'s webhook registration does not validate on ${version}: ${errors[0].message}`,
+        };
+    }
+  if (!edits.length) return { reason: 'No pinned version to replace.' };
+  return { edits };
 }
