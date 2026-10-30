@@ -8,6 +8,7 @@ import type { MetaGraphChanges } from './meta-graph-changes.ts';
 import {
   changesUsedBy,
   fieldNames,
+  inEffect,
   pathMatches,
   proposeVersionMoves,
   type VersionMoveProposal,
@@ -29,7 +30,7 @@ export const DEFAULT_META_PLATFORM_ALERTS = new URL(
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const SOURCE = /^https:\/\/developers\.facebook\.com\/\S*$/;
 const KINDS = ['permission-removed', 'permission-renamed', 'product-shutdown', 'policy'] as const;
-const PRODUCTS = ['instagram-basic-display'] as const;
+const PRODUCTS = ['instagram-basic-display', 'whatsapp-on-premises'] as const;
 
 export interface MetaPlatformAlert {
   id: string;
@@ -136,10 +137,11 @@ export interface MetaGraphFixPlan {
 // longer accepted for `media_type`) need the value, which is not traced; edge and endpoint changes,
 // and behaviour changes with no replacement, match too broadly on every version at once. Those stay
 // with the version moves and alerts.
-function outOfCycleUses(calls: GraphCall[], changes: MetaGraphChanges): OutOfCycleUse[] {
+function outOfCycleUses(calls: GraphCall[], changes: MetaGraphChanges, now: Date): OutOfCycleUse[] {
+  // A versioned change that Meta has since applied to every version counts here too.
   const always = changes.changes.filter(
     (change) =>
-      change.version === null &&
+      (change.version === null || inEffect(change, now)) &&
       (/^(field|metric)-removed$/.test(change.kind) ||
         (/^(field|metric)-changed$/.test(change.kind) && change.replacement !== null) ||
         change.kind === 'parameter-removed'),
@@ -173,7 +175,7 @@ function literals(repository: Repository) {
   const found: { file: string; line: number; text: string }[] = [];
   for (const file of repository.files) {
     if (!CODE.test(file.path)) continue;
-    if (!/facebook|instagram|\bFB\b|graph|scope/i.test(file.content)) continue;
+    if (!/facebook|instagram|whatsapp|\bFB\b|graph|scope/i.test(file.content)) continue;
     const source = sourceOf(file.path, file.content);
     const visit = (node: ts.Node) => {
       if (
@@ -226,6 +228,36 @@ function basicDisplay(found: ReturnType<typeof literals>): ProductMigration | nu
         uses,
         plan: BASIC_DISPLAY_PLAN,
         sources: BASIC_DISPLAY_SOURCES,
+      }
+    : null;
+}
+
+// The WhatsApp On-Premises API ran on the business's own host, so its requests never reach
+// graph.facebook.com. Its login endpoint, `/v1/users/login`, in a file that names WhatsApp
+// identifies a client. Meta shut the API down on 2025-10-23; it is an alert, never an edit.
+const ON_PREMISES_LOGIN = '/v1/users/login';
+const ON_PREMISES_PLAN = [
+  'The WhatsApp On-Premises API stopped delivering messages on 2025-10-23, when its final client version (v2.63) expired; move to the WhatsApp Cloud API.',
+  'Cloud API requests go to graph.facebook.com/vNN.N/<PHONE_NUMBER_ID>/messages with a system user access token and messaging_product: "whatsapp", in place of the client host and its /v1/users/login token.',
+];
+const ON_PREMISES_SOURCES = ['https://developers.facebook.com/docs/whatsapp/on-premises/sunset/'];
+
+function onPremises(
+  found: ReturnType<typeof literals>,
+  repository: Repository,
+): ProductMigration | null {
+  const whatsapp = new Set(
+    repository.files.filter((file) => /whatsapp/i.test(file.content)).map((file) => file.path),
+  );
+  const uses = found
+    .filter((item) => whatsapp.has(item.file) && item.text.includes(ON_PREMISES_LOGIN))
+    .map((item) => ({ file: item.file, line: item.line, evidence: `calls ${ON_PREMISES_LOGIN}` }));
+  return uses.length
+    ? {
+        product: 'whatsapp-on-premises',
+        uses,
+        plan: ON_PREMISES_PLAN,
+        sources: ON_PREMISES_SOURCES,
       }
     : null;
 }
@@ -306,12 +338,14 @@ export async function planMetaGraphFixes(
     reconstructions: options.reconstructions,
   });
   const found = literals(repository).filter((item) => !TEST_PATH.test(item.file));
-  const migrations = [basicDisplay(found)].filter((item) => item !== null);
+  const migrations = [basicDisplay(found), onPremises(found, repository)].filter(
+    (item) => item !== null,
+  );
   return {
     target,
     proposal,
     migrations,
     alerts: alertHits(options.alerts, scan.calls, found, migrations, options.now),
-    outOfCycle: outOfCycleUses(scan.calls, options.changes),
+    outOfCycle: outOfCycleUses(scan.calls, options.changes, options.now),
   };
 }

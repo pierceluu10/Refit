@@ -62,6 +62,29 @@ describe('Meta Graph fix plans', () => {
     ]);
   });
 
+  it('alerts on a WhatsApp On-Premises API client, which Meta shut down, and never edits it', async () => {
+    const result = await plan({
+      'whatsapp.ts': `// WhatsApp Business API client on our own host.
+export const login = (host: string) => fetch(\`\${host}/v1/users/login\`, { method: 'POST' });`,
+      'other.ts': `export const login = (host: string) => fetch(\`\${host}/v1/users/login\`);`,
+    });
+    expect(result.migrations).toMatchObject([
+      {
+        product: 'whatsapp-on-premises',
+        uses: [{ file: 'whatsapp.ts', line: 2, evidence: 'calls /v1/users/login' }],
+      },
+    ]);
+    expect(result.alerts).toMatchObject([
+      {
+        alert: 'whatsapp-on-premises-api-shutdown',
+        effective: '2025-10-23',
+        file: 'whatsapp.ts',
+        replacement: ['WhatsApp Cloud API'],
+      },
+    ]);
+    expect(result.proposal.edits).toEqual([]);
+  });
+
   it('alerts on retired permissions, insights metrics and oEmbed requests, never in tests', async () => {
     const result = await plan({
       'login.ts': `FB.login(done, { scope: 'email,manage_pages,publish_pages' });`,

@@ -129,7 +129,7 @@ const SEND = `export const send = (url) =>
   });
 `;
 
-// A WhatsApp Cloud API send: WhatsApp publishes its own changelog, which the list does not cover.
+// A WhatsApp Cloud API send: WhatsApp publishes its own changelog, mined into the list.
 const WHATSAPP = `export const send = (to) =>
   fetch('https://graph.facebook.com/v18.0/123/messages', {
     method: 'POST',
@@ -199,7 +199,7 @@ fetch('https://graph.facebook.com/v18.0/1/photos?fields=id');`,
     ]);
     const proposal = await propose(
       {
-        'a.js': `fetch('https://graph.facebook.com/v18.0/123');
+        'a.js': `fetch('https://graph.facebook.com/v18.0/123').then((page) => page.x);
 fetch('https://graph.facebook.com/v18.0/123?fields=id');`,
       },
       list,
@@ -208,6 +208,78 @@ fetch('https://graph.facebook.com/v18.0/123?fields=id');`,
       [1, ['a.js:1: v21.0 field-removed field: field changes.']],
     ]);
     expect(proposal.moves.map((move) => move.line)).toEqual([2]);
+    // A default field the code never reads cannot reach it.
+    const unread = await propose(
+      { 'a.js': `fetch('https://graph.facebook.com/v18.0/123');` },
+      list,
+    );
+    expect(unread.moves.map((move) => move.line)).toEqual([1]);
+  });
+
+  it('stops on a changed error code only where the code names it', async () => {
+    const list = changes([
+      change({
+        id: 'error',
+        version: 'v21.0',
+        kind: 'error-changed',
+        edge: 'photos',
+        name: '9007',
+      }),
+    ]);
+    const send = SEND.replace('});', '}).then((response) => response.json());');
+    expect((await propose({ 'a.js': send }, list)).moves.map((move) => move.line)).toEqual([2]);
+    const handled = await propose(
+      { 'a.js': `${send}export const paused = (error) => error.code === 9007;\n` },
+      list,
+    );
+    expect(handled.stops.map((stop) => stop.reasons)).toEqual([
+      ['a.js:2: v21.0 error-changed error: error changes.'],
+    ]);
+  });
+
+  it('leaves a change Meta already applied to every version to the out-of-cycle list', async () => {
+    const list = changes([
+      change({
+        id: 'applied',
+        version: 'v21.0',
+        kind: 'parameter-removed',
+        edge: 'photos',
+        name: 'published',
+        appliesToAll: '2025-01-01',
+      }),
+    ]);
+    expect((await propose({ 'a.js': SEND }, list)).moves.map((move) => move.line)).toEqual([2]);
+    list.changes[0].appliesToAll = '2027-01-01';
+    expect((await propose({ 'a.js': SEND }, list)).stops.map((stop) => stop.line)).toEqual([2]);
+  });
+
+  it('matches a parameter change only on its own edge, and never a Page change to a WhatsApp send', async () => {
+    const list = changes([
+      change({
+        id: 'type',
+        version: 'v21.0',
+        kind: 'parameter-changed',
+        edge: 'adcreatives',
+        name: 'messaging_product',
+      }),
+      change({
+        id: 'booking',
+        version: 'v20.0',
+        kind: 'edge-changed',
+        node: 'Page',
+        edge: 'messages',
+      }),
+    ]);
+    expect((await propose({ 'a.js': WHATSAPP }, list)).moves.map((move) => move.line)).toEqual([2]);
+    const messenger = await propose(
+      {
+        'a.js': `fetch('https://graph.facebook.com/v18.0/me/messages', { method: 'POST', body: JSON.stringify({ recipient, message }) });`,
+      },
+      list,
+    );
+    expect(messenger.stops.map((stop) => stop.reasons)).toEqual([
+      ['a.js:1: v20.0 edge-changed booking: booking changes.'],
+    ]);
   });
 
   it('stops when a crossed changelog is unread or has no record at all', async () => {
@@ -374,19 +446,27 @@ fetch('https://graph.facebook.com/v24.0/me?fields=id');`,
     );
   });
 
-  it('stops WhatsApp and Messenger requests, whose changelogs the list does not cover', async () => {
+  it('moves WhatsApp and Messenger requests within their changelogs, and stops before they start', async () => {
     const reason = (line: number) =>
-      `a.js:${line}: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover`;
-    const whatsapp = await propose({ 'a.js': WHATSAPP });
+      `a.js:${line}: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which start after v19.0 was released`;
+    expect((await propose({ 'a.js': WHATSAPP })).moves.map((move) => move.line)).toEqual([2]);
+    const early = changes();
+    early.versions = early.versions.map((entry) =>
+      entry.version === 'v19.0' ? { ...entry, released: '2021-01-01' } : entry,
+    );
+    const whatsapp = await propose({ 'a.js': WHATSAPP }, early);
     expect(whatsapp.moves).toEqual([]);
     expect(whatsapp.stops.map((stop) => stop.reasons)).toEqual([[reason(2)]]);
     // By edge alone, and by a send parameter on an edge both share with other products.
-    const proposal = await propose({
-      'a.js': `fetch('https://graph.facebook.com/v18.0/1/message_templates?fields=id');
+    const proposal = await propose(
+      {
+        'a.js': `fetch('https://graph.facebook.com/v18.0/1/message_templates?fields=id');
 fetch('https://graph.facebook.com/v18.0/1/media', { method: 'POST', body: JSON.stringify({ messaging_product: 'whatsapp', file }) });
 fetch('https://graph.facebook.com/v18.0/me/messages', { method: 'POST', body: JSON.stringify({ recipient, message }) });
 fetch('https://graph.facebook.com/v18.0/1/media', { method: 'POST', body: JSON.stringify({ image_url, caption }) });`,
-    });
+      },
+      early,
+    );
     expect(proposal.stops.map((stop) => [stop.line, stop.reasons])).toEqual([
       [1, [reason(1)]],
       [2, [reason(2)]],
@@ -396,12 +476,17 @@ fetch('https://graph.facebook.com/v18.0/1/media', { method: 'POST', body: JSON.s
     expect(proposal.moves.map((move) => move.line)).toEqual([4]);
   });
 
-  it('stops the WhatsApp and Messenger edges and parameters found in the platform sample', async () => {
+  it('knows the WhatsApp and Messenger edges and parameters found in the platform sample', async () => {
     const reason = (line: number) =>
-      `a.js:${line}: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover`;
+      `a.js:${line}: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which start after v19.0 was released`;
+    const early = changes();
+    early.versions = early.versions.map((entry) =>
+      entry.version === 'v19.0' ? { ...entry, released: '2021-01-01' } : entry,
+    );
     // Request shapes from docs/benchmarks/2026-10-22-meta-platform-labels.json, with literal versions.
-    const proposal = await propose({
-      'a.js': `fetch('https://graph.facebook.com/v18.0/1/calls', { method: 'POST', body: JSON.stringify({ to, action: 'connect' }) });
+    const proposal = await propose(
+      {
+        'a.js': `fetch('https://graph.facebook.com/v18.0/1/calls', { method: 'POST', body: JSON.stringify({ to, action: 'connect' }) });
 fetch('https://graph.facebook.com/v18.0/1/smb_app_data', { method: 'POST', body: JSON.stringify({ sync_type: 'history' }) });
 fetch('https://graph.facebook.com/v18.0/1/request_display_name', { method: 'POST', body: JSON.stringify({ new_display_name }) });
 fetch('https://graph.facebook.com/v18.0/1/pin', { method: 'DELETE' });
@@ -409,7 +494,9 @@ fetch('https://graph.facebook.com/v18.0/1/settings', { method: 'POST', body: JSO
 fetch('https://graph.facebook.com/v18.0/message_template_library?fields=name');
 fetch('https://graph.facebook.com/v18.0/1/moderate_conversations', { method: 'POST', body: JSON.stringify({ user_ids, actions }) });
 fetch('https://graph.facebook.com/v18.0/2?phone_number_id=1&fields=url');`,
-    });
+      },
+      early,
+    );
     expect(proposal.moves).toEqual([]);
     expect(proposal.stops.map((stop) => [stop.line, stop.reasons])).toEqual(
       [1, 2, 3, 4, 5, 6, 7, 8].map((line) => [line, [reason(line)]]),
@@ -656,8 +743,8 @@ describe('version moves with rules and new pins', () => {
   it('moves a test expectation with the live request it describes, and only then', async () => {
     const live = `export const media = (user) =>
   fetch(\`https://graph.facebook.com/v19.0/\${user}/media\`, { method: 'POST', body: JSON.stringify({ caption: 'hi' }) });
-export const send = (phone) =>
-  fetch(\`https://graph.facebook.com/v19.0/\${phone}/messages\`, { method: 'POST', body: JSON.stringify({ messaging_product: 'whatsapp' }) });
+export const send = (phone, body) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${phone}/messages\`, { method: 'POST', body });
 `;
     const proposal = await propose({
       'lib.js': live,

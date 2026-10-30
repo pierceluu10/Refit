@@ -16,6 +16,7 @@ import { loadMetaPlatformAlerts, planMetaGraphFixes } from './meta-graph-fixes.t
 import {
   changesUsedBy,
   fieldNames,
+  inEffect,
   META_GRAPH_VERSION_RULE,
   type VersionMoveStop,
 } from './meta-graph-moves.ts';
@@ -146,6 +147,7 @@ function realStop(
   target: string,
   changes: MetaGraphChanges,
   retired: (version: string) => boolean,
+  now: Date,
 ) {
   if (stop.from && retired(stop.from)) return 'retired' as const;
   if (stop.reasons.some((reason) => / rule .* documents /.test(reason))) return 'rule' as const;
@@ -154,7 +156,8 @@ function realStop(
     (change) =>
       change.version !== null &&
       compareVersions(change.version, stop.from!) > 0 &&
-      compareVersions(change.version, target) <= 0,
+      compareVersions(change.version, target) <= 0 &&
+      !inEffect(change, now),
   );
   return changesUsedBy(call, crossed).some((change) => definiteUse(call, change))
     ? ('change' as const)
@@ -232,7 +235,7 @@ export async function runMetaGraphPipeline(options: {
       const call = scan.calls.find(
         (item) => item.file === request.file && item.line === request.line,
       );
-      const real = realStop(call, stop, target, changes, retired);
+      const real = realStop(call, stop, target, changes, retired, now);
       if (!real) {
         cautions.push(
           `${where(request.file, request.line)} ${request.method ?? 'request'} ${request.path ?? 'unknown path'} stays on ${stop.from ?? 'its version'}: ${stop.reasons.join(' ')}`,

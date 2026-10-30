@@ -162,7 +162,15 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
   const endpoint = (change: MetaGraphChange) =>
     (change.edge !== null && change.edge === call.edge) ||
     (change.path !== null && call.path !== null && pathMatches(call.path, change.path));
+  // A change recorded on an edge or endpoint reaches only requests to it.
+  const own = (change: MetaGraphChange) =>
+    (change.edge === null || change.edge === call.edge) &&
+    (change.path === null || (call.path !== null && pathMatches(call.path, change.path)));
+  // A WhatsApp Cloud API request (it names `messaging_product`) goes to a WhatsApp node, so a
+  // change Meta records on another node type, such as the Page `messages` edge, cannot reach it.
+  const whatsapp = call.parameters?.includes('messaging_product') ?? false;
   return changes.filter((change) => {
+    if (whatsapp && change.node !== null && !/whatsapp/i.test(change.node)) return false;
     switch (change.kind) {
       case 'endpoint-removed':
       case 'endpoint-changed':
@@ -191,11 +199,7 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
       case 'parameter-changed':
         // Like fields: a parameter recorded on an edge or path is that endpoint's, so a request
         // elsewhere that sends a parameter of the same name (`type`) does not use the change.
-        return (
-          (change.edge === null || change.edge === call.edge) &&
-          (change.path === null || (call.path !== null && pathMatches(call.path, change.path))) &&
-          (call.parameters?.includes(change.name!) ?? false)
-        );
+        return own(change) && (call.parameters?.includes(change.name!) ?? false);
       // The values a request breaks down by are not traced, so any breakdown on insights counts.
       case 'breakdown-removed':
         return (
@@ -212,10 +216,13 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
   });
 }
 
-// WhatsApp Business Platform and Messenger Platform publish their own changelogs, which the change
-// list does not cover, so a request that belongs to either stops any move of its version. A
-// request belongs to them by its edge (or root endpoint), or by a parameter only their send APIs
-// take.
+// WhatsApp Business Platform and Messenger Platform publish their own changelogs. Both are mined
+// into the change list (docs/benchmarks/meta-graph-changelog/pages/whatsapp.json and
+// messenger-platform.json), so their requests are matched like any other. The WhatsApp changelog
+// starts on 2021-10-21 and the Messenger one on 2020-12-01, so a request that belongs to either
+// still stops a move across a version released before the later of the two. A request belongs to
+// them by its edge (or root endpoint), or by a parameter only their send APIs take.
+export const PLATFORM_CHANGELOGS_FROM = '2021-10-21';
 const SEPARATE_CHANGELOG_EDGES = new Set([
   'messages',
   'message_templates',
@@ -258,16 +265,62 @@ const SEPARATE_CHANGELOG_PARAMETERS = new Set([
   'phone_number_id',
 ]);
 
-export function separateChangelog(call: GraphCall) {
+// `uncovered` are the crossed versions released before both platform changelogs start.
+export function separateChangelog(call: GraphCall, uncovered: string[]) {
+  if (!uncovered.length) return [];
   // A root endpoint such as `/message_template_library` is a path with no node before it.
   const root = call.path !== null && /^\/[a-z_]+$/.test(call.path) ? call.path.slice(1) : null;
   return (call.edge !== null && SEPARATE_CHANGELOG_EDGES.has(call.edge)) ||
     (root !== null && SEPARATE_CHANGELOG_EDGES.has(root)) ||
     (call.parameters ?? []).some((name) => SEPARATE_CHANGELOG_PARAMETERS.has(name))
     ? [
-        `${call.file}:${call.line}: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover`,
+        `${call.file}:${call.line}: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which start after ${uncovered.join(', ')} ${uncovered.length === 1 ? 'was' : 'were'} released`,
       ]
     : [];
+}
+
+// Whether a change took effect on every version by `now` (`appliesToAll`): the pinned version
+// already has it, so moving the pin neither causes nor fixes it. It is listed with the out-of-cycle
+// changes instead.
+export function inEffect(change: MetaGraphChange, now: Date) {
+  return change.appliesToAll !== null && change.appliesToAll <= now.toISOString().slice(0, 10);
+}
+
+// Whether the repository's code names a changed field or error code, so it may read it: a number
+// written as a word (`132018`), or a name read as a property (`.network`, `?.network`), written as
+// a string (`'network'`, which also covers `data['network']`) or destructured (`{ network }`).
+// Dynamic keys are not followed.
+export function codeNames(repository: Repository) {
+  const contents = repository.files.map((file) => file.content);
+  const found = new Map<string, boolean>();
+  return (name: string) => {
+    if (!found.has(name)) {
+      const pattern = /^\d+$/.test(name)
+        ? new RegExp(`\\b${name}\\b`)
+        : new RegExp(`(\\.|['"\`])${name}\\b|[{,]\\s*${name}\\s*[,}:=]`);
+      found.set(
+        name,
+        contents.some((content) => pattern.test(content)),
+      );
+    }
+    return found.get(name)!;
+  };
+}
+
+// Whether a change the request uses can reach its code. A changed error code leaves the request
+// valid and matters only where the code names that code; a field change counted against the node's
+// default fields, which the request never names, matters only where the code reads the field.
+// Anything else, and a change named in prose rather than as an identifier, does.
+export function reachesCode(
+  call: GraphCall,
+  change: MetaGraphChange,
+  named: (name: string) => boolean,
+) {
+  const identifier = change.name !== null && /^\w+$/.test(change.name);
+  if (change.kind === 'error-changed') return !identifier || named(change.name!);
+  if (change.kind.startsWith('field-') && !fieldNames(call.fields ?? []).has(change.name ?? ''))
+    return !identifier || named(change.name!);
+  return true;
 }
 
 // What a request leaves unknown, which stops any move of its version.
@@ -510,6 +563,7 @@ export async function proposeVersionMoves(
     );
   const repository = await readRepository(directory, META_SDK);
   const scan = await scanGraphCalls(directory, { repository, reconstructions });
+  const names = codeNames(repository);
   // Every version a move could cross: the change list's, the deadline registry's and each whole
   // major version, so a version missing from both lists is still checked.
   const known = new Set([
@@ -580,15 +634,22 @@ export async function proposeVersionMoves(
       testPins.push({ file, line, from, calls });
       continue;
     }
-    const reasons = [...calls.flatMap(unknownParts), ...calls.flatMap(separateChangelog)];
     const crossed = crossedBetween(from);
+    const uncovered = crossed.filter(
+      (version) => (records.get(version)?.released ?? '') < PLATFORM_CHANGELOGS_FROM,
+    );
+    const reasons = [
+      ...calls.flatMap(unknownParts),
+      ...calls.flatMap((call) => separateChangelog(call, uncovered)),
+    ];
     const unreviewed = crossed.filter((version) => records.get(version)?.status !== 'reviewed');
     if (unreviewed.length)
       reasons.push(
         `${unreviewed.join(', ')}: ${unreviewed.length === 1 ? 'this changelog is' : 'these changelogs are'} not reviewed in the Meta Graph API change list`,
       );
     const inRange = changes.changes.filter(
-      (change) => change.version !== null && crossed.includes(change.version),
+      (change) =>
+        change.version !== null && crossed.includes(change.version) && !inEffect(change, now),
     );
     const rulesInRange = rules.filter(
       (rule) => rule.version !== null && crossed.includes(rule.version),
@@ -601,7 +662,7 @@ export async function proposeVersionMoves(
       ruleEdits.push(...outcome.edits);
       for (const edit of outcome.edits) applied.add(edit.changeId.replace('meta-graph-rule-', ''));
       for (const change of changesUsedBy(call, inRange))
-        if (!outcome.covers.includes(change.id))
+        if (!outcome.covers.includes(change.id) && reachesCode(call, change, names))
           reasons.push(
             `${call.file}:${call.line}: ${change.version} ${change.kind} ${change.id}: ${change.summary}`,
           );

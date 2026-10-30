@@ -68,6 +68,7 @@ export const META_PAGE_SOURCES: Record<string, string> = {
   'instagram-platform': `${DOCUMENTATION}/instagram-platform/changelog.md`,
   whatsapp: `${DOCUMENTATION}/business-messaging/whatsapp/changelog.md`,
   'messenger-platform': `${DOCUMENTATION}/business-messaging/messenger-platform/changelog.md`,
+  'whatsapp-on-premises-sunset': `${DOCS}/whatsapp/on-premises/sunset/`,
 };
 
 // A page URL without its scheme, /docs or /documentation prefix, `.md` view, fragment or trailing

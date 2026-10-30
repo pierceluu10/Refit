@@ -452,6 +452,26 @@ Nothing validated in the no-AI control is lost with AI. No wrong fix. In the AI 
 
 The merged summaries of these runs print "AI spend: $0": rows recorded spend only per stage (`ai.scan`, `ai.run`), and the merge sums `ai.costUsd`. The row total is now written.
 
+## Meta Graph changelog coverage on meta-dev-60 (October 29)
+
+`feat/meta-changelogs`: WhatsApp and Messenger requests are matched against their mined changelogs instead of stopping every move, and a listed change stops a move only where it can reach the code (see [Meta Graph API](META-GRAPH.md#propose-version-moves-review-only)). refit-bench `meta.yml`, `subsets/meta-dev-60.json`, `size=1`, no AI (AI spend $0):
+
+|                                                                     | Before: 40955443390 (`affb6e8a`) | After: 40970560104 (`3f3937dc`) |
+| ------------------------------------------------------------------- | -------------------------------: | ------------------------------: |
+| Validated                                                           |                                3 |                               6 |
+| Needs review                                                        |                               11 |                              19 |
+| Missing manifest                                                    |                                1 |                               0 |
+| Rows with a patch                                                   |                               15 |                              25 |
+| Stop kind `separate-changelog` (repositories)                       |                               32 |                               0 |
+| Stop kind `listed-change`                                           |                               41 |                              32 |
+| `unknown-request` / `unversioned` / `version-holder` / `tests-only` |                 47 / 22 / 13 / 7 |                47 / 22 / 13 / 7 |
+
+- Newly validated: ingridandrade-ctrl/arthea, symbiosika/symbiosika-framework, mkyousafali/Aqura. All three diffs are reviewed `correct` in `docs/benchmarks/fix-reviews.json`; none was validated before was lost.
+- An intermediate run (40963951479, `43dff33f`) lost framerslab/agentos and ogSulem/pulse: the v12.0 Custom Labels `name` change had no edge, so routing in-effect changes to the out-of-cycle list matched every `fields=name` request. It is now scoped to `custom_labels`, and no dev-60 repository gets an in-effect out-of-cycle hit.
+- What still holds `listed-change`: node-wide placeholder removals (`/{commerce-order-id}`, custom audiences, Instagram v1.0 nodes) on requests to a single opaque node, the v22.0 Instagram v1.0 `comments` edge, `GET /?ids=` (v26.0, a real break), and explicitly requested fields a crossed version changes.
+
+## Meta Graph API requests (October 20)
+
 `refit meta-graph` was run over the 33 Meta repositories of the deadline benchmark, and each of the 162 requests it reports in live code was read in context ([labels](benchmarks/2026-10-20-meta-graph-call-labels.json), [results](benchmarks/2026-10-20-meta-graph-call-results.json)). All 162 are real Graph API requests or endpoints, and no reported version, path, edge, field, metric or method disagrees with the code. The version was read for 157 (the other 5 are unversioned), the path for 158, the edge for 116, and `fields` for 113. A request was found at 62 of the 63 live Graph pins labelled in the deadline benchmark; the miss is a browser `FB.init`. Labels are one reviewer's single pass. See [Meta Graph API](META-GRAPH.md#measured-on-the-deadline-benchmark).
 
 Review-only version moves to v25.0 on the same 33 repositories ([results](benchmarks/2026-10-20-meta-graph-move-results.json)): 0 proposed with the committed change list, because every changelog is unread; in a hypothetical run with every changelog marked reviewed and empty, 100 of the 131 live pins would move, each a one-line edit of the version text only.
