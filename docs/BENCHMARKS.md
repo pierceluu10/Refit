@@ -374,7 +374,66 @@ The hand-labelled [deadline benchmark](DEADLINE-BENCHMARK.md) covers 100 reposit
 
 These counts are a lower bound for Shopify: the registry starts at `2025-04`, and many apps pin older versions.
 
-## Meta Graph API requests (October 20)
+## Meta Graph tracing on meta-dev-60 (October 29)
+
+refit-bench `meta.yml` on `subsets/meta-dev-60.json` (size 1, all 60 rows, target v26.0, no AI) compared affb6e8a (run 40955599826) with feat/meta-tracing-ai 59965322 (run 40963544288). The change: URL objects with `searchParams`, conditional URLs, same-file URL builders, fetch wrappers that spread options, injected fetch parameters, and `encodeURIComponent(id)` as a node.
+
+|                                         | affb6e8a  | 59965322       |
+| --------------------------------------- | --------- | -------------- |
+| Validated                               | 3         | 5              |
+| Needs review (patch)                    | 12        | 12             |
+| No patch                                | 45        | 43             |
+| Grades                                  | C 11, D 4 | B 1, C 12, D 4 |
+| Repositories with unknown-request stops | 47        | 46             |
+| unversioned / version-holder            | 22 / 13   | 22 / 13        |
+| AI spend                                | $0        | $0             |
+
+- FreeForCharity/FFC-IN-FFC_Single_Page_Template (B) and tareksalammohamed/socialpilot (C) moved from no patch to validated. Both diffs were read and labelled `correct` in `benchmarks/fix-reviews.json`.
+- Totex-Motors/Totexgest hit the 30-minute validation timeout in 40963544288. Alone in 40970287411 (same commit), it is needs-review / D in 666 s, as on the base (unresolved 30 → 28).
+- 9 newly moved pins across 5 repositories were read in context offline.
+- Nothing validated before was lost.
+- The AI reconstruction path (`pipeline/meta-graph-ai.ts`) is not measured. Probe run 40963591790 still got HTTP 429 `credit_balance_exhausted` from OpenAI.
+
+### With AI on Claude (October 30)
+
+refit-bench `meta.yml` (branch `feat/anthropic-provider`, refit-dev/refit-bench#15) ran on `subsets/meta-dev-60.json` at 24832a69 (feat/meta-tracing-ai, which includes feat/anthropic-backend), with size 1, $300 cap, provider `anthropic` and `claude-sonnet-5-5`:
+
+- 40987935081: with AI;
+- 40987943348: the no-AI control at the same commit.
+
+24832a69 also scopes parameter changes to their edge or path, as field changes already were. That fix stops a WhatsApp `/messages` request that sends `type` from matching a v26.0 change on the Ad Account `adcreatives` edge.
+
+|                                         | affb6e8a, no AI | 24832a69, no AI | 24832a69, AI                          |
+| --------------------------------------- | --------------- | --------------- | ------------------------------------- |
+| Validated                               | 3               | 6               | 9                                     |
+| Needs review (patch)                    | 12              | 11              | 12                                    |
+| No patch                                | 45              | 43              | 39                                    |
+| Grades                                  | C 11, D 4       | B 1, C 12, D 4  | C 17, D 4                             |
+| Repositories with unknown-request stops | 47              | 46              | 24                                    |
+| unversioned / version-holder            | 22 / 13         | 22 / 13         | 20 / 15                               |
+| listed-change / separate-changelog      | 41 / 32         | 41 / 32         | 48 / 35                               |
+| AI spend                                | $0              | $0              | $20.03 (scan $12.18, refit run $7.85) |
+
+AI reconstruction:
+
+- 295 sites were sent to the model and 220 were kept.
+- The 75 refused were declined by the model or failed Refit's checks: a different traced path, a version not written on the named line, or a name not in the code.
+- Each benchmark row reconstructs twice, once in its scan and once in its child `refit run`. Within one `refit run` the model is asked once: validation reuses the workflow scan's reconstructions.
+- Requests AI made readable expose real blockers: listed-change and separate-changelog stops rise.
+
+Newly validated, each read against the source and labelled in `benchmarks/fix-reviews.json`:
+
+- With AI:
+  - CassieMarie0728/jekyll-forge: nested-ternary OAuth token URLs;
+  - dvygolov/AdReplica: an OG scrape helper that returns a `new URL` with conditional `searchParams`;
+  - Shamrock2245/shamrock-bail-portal-site: Apps Script `UrlFetchApp` posts.
+  - All three are `correct`.
+- Without AI, from the parameter scoping: mkyousafali/Aqura, `correct-partial`. Its upload-session create moves; the upload step stays on v22.0.
+- Already validated, with a different AI diff: ogSulem/pulse (the config table's token URL) and FreeForCharity (its pagination script too, so grade C instead of B). Both `correct`.
+
+Nothing validated in the no-AI control is lost with AI. No wrong fix. In the AI run, Totex-Motors/Totexgest, AtonIA00/aton-member-dashboard and jaguar999paw-droid/lavira-media-engine end needs-review, held by real or caution stops.
+
+The merged summaries of these runs print "AI spend: $0": rows recorded spend only per stage (`ai.scan`, `ai.run`), and the merge sums `ai.costUsd`. The row total is now written.
 
 `refit meta-graph` was run over the 33 Meta repositories of the deadline benchmark, and each of the 162 requests it reports in live code was read in context ([labels](benchmarks/2026-10-20-meta-graph-call-labels.json), [results](benchmarks/2026-10-20-meta-graph-call-results.json)). All 162 are real Graph API requests or endpoints, and no reported version, path, edge, field, metric or method disagrees with the code. The version was read for 157 (the other 5 are unversioned), the path for 158, the edge for 116, and `fields` for 113. A request was found at 62 of the 63 live Graph pins labelled in the deadline benchmark; the miss is a browser `FB.init`. Labels are one reviewer's single pass. See [Meta Graph API](META-GRAPH.md#measured-on-the-deadline-benchmark).
 

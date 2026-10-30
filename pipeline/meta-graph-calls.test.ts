@@ -705,3 +705,109 @@ it('runs as a review-only CLI command with readable and JSON output', async () =
   expect(report.calls).toHaveLength(12);
   expect(report.sdk.version).toBe('v20.0');
 }, 60_000);
+
+describe('URL objects, conditionals, builders and wrappers', () => {
+  it('reads a new URL with searchParams sent through url.toString()', async () => {
+    const found = await calls({
+      'src/events.ts': [
+        'export async function events(pageId: string, token: string) {',
+        '  const url = new URL(`https://graph.facebook.com/v23.0/${encodeURIComponent(pageId)}/events`);',
+        "  url.searchParams.set('fields', 'id,name');",
+        "  url.searchParams.set('access_token', token);",
+        '  return fetch(url.toString());',
+        '}',
+      ].join('\n'),
+    });
+    expect(at(found, 'src/events.ts', 5)).toMatchObject({
+      client: 'fetch',
+      method: 'GET',
+      version: 'v23.0',
+      path: '/{pageId}/events',
+      fields: ['id', 'name'],
+      parameters: ['access_token', 'fields'],
+      unknown: [],
+    });
+  });
+
+  it('leaves a URL object changed another way unknown', async () => {
+    const found = await calls({
+      'src/events.ts': [
+        'export async function events(next: string) {',
+        "  const url = new URL('https://graph.facebook.com/v23.0/me');",
+        '  url.search = next;',
+        '  return fetch(url);',
+        '}',
+      ].join('\n'),
+    });
+    const call = at(found, 'src/events.ts', 4);
+    expect(call.parameters).toBeNull();
+    expect(call.unknown.join(' ')).toMatch(/url\.search/);
+  });
+
+  it('follows each branch of a conditional URL to its request', async () => {
+    const found = await calls({
+      'src/media.ts': [
+        'export async function media(ig: boolean, id: string) {',
+        '  const url = ig',
+        '    ? `https://graph.instagram.com/v20.0/${id}/media?fields=id`',
+        '    : `https://graph.facebook.com/v20.0/${id}/feed?fields=id`;',
+        '  return fetch(url);',
+        '}',
+      ].join('\n'),
+    });
+    expect(found.map((call) => [call.host, call.line, call.path, call.fields])).toEqual([
+      ['graph.instagram.com', 5, '/{id}/media', ['id']],
+      ['graph.facebook.com', 5, '/{id}/feed', ['id']],
+    ]);
+  });
+
+  it('follows a URL builder to the requests its callers make', async () => {
+    const found = await calls({
+      'src/ig.ts': [
+        "const GRAPH = 'https://graph.instagram.com/v22.0';",
+        'function mediaUrl() {',
+        '  return `${GRAPH}/me/media?fields=id,timestamp`;',
+        '}',
+        'export async function media() {',
+        '  return fetch(mediaUrl());',
+        '}',
+      ].join('\n'),
+    });
+    expect(at(found, 'src/ig.ts', 6)).toMatchObject({
+      method: 'GET',
+      path: '/me/media',
+      fields: ['id', 'timestamp'],
+      unknown: [],
+    });
+  });
+
+  it('does not follow an exported builder', async () => {
+    const found = await calls({
+      'src/ig.ts': [
+        'export function mediaUrl() {',
+        "  return 'https://graph.instagram.com/v22.0/me/media?fields=id';",
+        '}',
+      ].join('\n'),
+    });
+    expect(found[0].unknown).toContain('no request call was traced for this URL');
+  });
+
+  it('reads a fetch wrapper that spreads its options and an injected fetch', async () => {
+    const found = await calls({
+      'src/fetch-timeout.ts': [
+        'export async function fetchWithTimeout(url: string, options: RequestInit = {}) {',
+        '  return fetch(url, { ...options, signal: AbortSignal.timeout(5000) });',
+        '}',
+      ].join('\n'),
+      'src/me.ts': [
+        "import { fetchWithTimeout } from './fetch-timeout';",
+        'export async function me(fetcher: typeof fetch) {',
+        "  await fetchWithTimeout('https://graph.facebook.com/v21.0/me?fields=id', { method: 'GET' });",
+        "  return fetcher('https://graph.facebook.com/v21.0/me/accounts', { method: 'POST' });",
+        '}',
+      ].join('\n'),
+    });
+    expect(at(found, 'src/me.ts', 3)).toMatchObject({ method: 'GET', fields: ['id'], unknown: [] });
+    expect(at(found, 'src/me.ts', 4)).toMatchObject({ method: 'POST', path: '/me/accounts' });
+  });
+});
