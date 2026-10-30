@@ -4,10 +4,10 @@ import {
   GraphQLError,
   NoUnusedFragmentsRule,
   parse,
-  print,
   specifiedRules,
   TypeInfo,
   validate,
+  valueFromASTUntyped,
   visit,
   visitWithTypeInfo,
   type ArgumentNode,
@@ -37,8 +37,8 @@ export interface ShopifyDocumentRule {
   // The field, input field or enum value.
   member: string;
   argument?: string;
-  // graphql-argument-drop: the literal value (as GraphQL prints it) the dropped argument must have.
-  value?: string;
+  // graphql-argument-drop: the value (as JSON) the dropped argument must have.
+  value?: unknown;
   replacement: string;
   source: string;
 }
@@ -63,7 +63,7 @@ function expand(entry: unknown): ShopifyDocumentRule[] {
   if (!type) return [];
   const base = { rule: entry.rule, source: entry.source, type, member };
   if (entry.family === 'graphql-argument-drop')
-    return argument && typeof entry.value === 'string'
+    return argument && entry.value !== undefined
       ? [
           {
             ...base,
@@ -110,6 +110,27 @@ export function loadShopifyDocumentRules(
         return [];
       return table.rules.flatMap(expand);
     });
+}
+
+// The rules a document's variables reach: an enum value or input field the rule renames can arrive
+// in a variable's runtime value, which neither the rule nor schema validation sees.
+export function variableRules(text: string, rules: ShopifyDocumentRule[]) {
+  // One entry per rule: a coordinate's expansions share its name.
+  const reached = new Map<string, ShopifyDocumentRule>();
+  visit(parse(text), {
+    VariableDefinition(node) {
+      let type = node.type;
+      while (type.kind !== 'NamedType') type = type.type;
+      for (const rule of rules)
+        if (
+          (rule.family === 'graphql-enum-value-rename' ||
+            rule.family === 'graphql-input-field-rename') &&
+          rule.type === type.name.value
+        )
+          reached.set(rule.rule, rule);
+    },
+  });
+  return [...reached.values()];
 }
 
 export interface DocumentEdit {
@@ -189,11 +210,8 @@ export function rewriteDocument(
               target && 'getFields' in target
                 ? target.getFields()[rule.replacement]?.type
                 : undefined;
-            if (
-              !was ||
-              !now ||
-              (String(was) !== String(now) && `${String(was)}!` !== String(now))
-            ) {
+            // A field the before schema no longer has was checked by the rule's own diff.
+            if (!now || (was && String(was) !== String(now) && `${String(was)}!` !== String(now))) {
               refusals.push(
                 `${rule.rule}: ${rule.type}.${rule.member} is ${String(was)} but ${rule.type}.${rule.replacement} is ${String(now)} on the target, so the payload would change shape.`,
               );
@@ -218,7 +236,10 @@ export function rewriteDocument(
           )
             continue;
           if (rule.family === 'graphql-argument-rename') rename(node.name, rule.replacement, rule);
-          if (rule.family === 'graphql-argument-drop' && print(node.value) === rule.value)
+          if (
+            rule.family === 'graphql-argument-drop' &&
+            JSON.stringify(valueFromASTUntyped(node.value)) === JSON.stringify(rule.value)
+          )
             dropped.set(node, rule);
         }
       },

@@ -9,6 +9,7 @@ import { scanShopify } from './shopify-analysis.ts';
 import {
   loadShopifyDocumentRules,
   rewriteDocument,
+  variableRules,
   type ShopifyDocumentRule,
 } from './shopify-document-rules.ts';
 import { digest, shopifySchemaUrl } from './specifications.ts';
@@ -344,4 +345,131 @@ it('drops an argument only when the document sends the value the rule names', as
   expect(
     rewriteDocument('query { products(sortKey: ID) { id } }', before, afterSchema, [drop]),
   ).toBeUndefined();
+});
+
+it('fixes documents that already fail on the oldest supported version and stops on variables a change reaches', async () => {
+  rules.current = await tableRules([
+    ...TABLE_RULES,
+    {
+      ...TABLE_RULES[2],
+      rule: 'relevance',
+      coordinate: 'ProductSortKeys.RELEVANCE',
+      replacement: 'ProductSortKeys.ID',
+    },
+  ]);
+  const server = `import { shopifyApi } from '@shopify/shopify-api';
+export const shopify = shopifyApi({ apiVersion: '2026-01' });
+`;
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/shopify.server.ts': server,
+    'app/routes/products.ts': `export const loader = (admin) =>
+  admin.graphql(\`#graphql
+    query { products(sortKey: RELEVANCE) { id } }\`);
+`,
+  });
+  const fixed = (await runPipeline({
+    repository: root,
+    ...(await snapshots(root)),
+    proposePatch: true,
+  })) as any;
+  expect(fixed.patch.status).toBe('proposed');
+  expect(fixed.patch.diff).toContain('+    query { products(sort: ID) { id } }`);');
+
+  const variables = await directory({
+    'package.json': MANIFEST,
+    'app/shopify.server.ts': server,
+    'app/routes/create.ts': `export const action = (admin, input) =>
+  admin.graphql(\`#graphql
+    mutation Create($input: ProductInput!) { productCreate(input: $input) { product { id } } }\`, { variables: { input } });
+`,
+  });
+  const stopped = (await runPipeline({
+    repository: variables,
+    ...(await snapshots(variables)),
+    proposePatch: true,
+  })) as any;
+  expect(stopped.patch.status).toBe('not-generated');
+  expect(
+    stopped.findings.find((entry: any) => entry.changeId.startsWith('shopify-graphql-input:')),
+  ).toMatchObject({
+    expression: 'ProductInput.bodyHtml was removed',
+    contractReview: expect.stringContaining('Refit cannot see the values the code sends'),
+  });
+});
+
+it('drops an argument whose rule value is JSON, and names rules a variable reaches', async () => {
+  const [drop] = await tableRules([
+    {
+      ...TABLE_RULES[1],
+      rule: 'drop-flag',
+      family: 'graphql-argument-drop',
+      coordinate: 'QueryRoot.product(id:)',
+      value: '1',
+    },
+  ]);
+  const before = buildSchema(SCHEMA('before'));
+  expect(
+    rewriteDocument('query { product(id: "1") { id } }', before, before, [drop]),
+  ).toMatchObject({ refusal: expect.stringContaining('Field "product" argument "id"') });
+  expect(
+    variableRules(
+      'query ($sort: ProductSortKeys) { products(sortKey: $sort) { id } }',
+      await tableRules(TABLE_RULES),
+    ).map((rule) => rule.rule),
+  ).toEqual(['shopify-product-sort-title']);
+});
+
+it('treats pins Shopify serves as the same version as one pin', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/shopify.server.ts': `import { shopifyApi } from '@shopify/shopify-api';
+export const shopify = shopifyApi({ apiVersion: '2025-01' });
+`,
+    'scripts/sync.ts': `export const sync = (shop: string) =>
+  fetch(\`https://\${shop}/admin/api/2024-01/graphql.json\`, { method: 'POST', body: JSON.stringify({ query: \`query { shop { name } }\` }) });
+`,
+  });
+  const report = (await runPipeline({
+    repository: root,
+    ...(await snapshots(root)),
+    proposePatch: true,
+  })) as any;
+  expect(report.patch.status).toBe('proposed');
+  expect(report.apiVersion).toMatchObject({
+    application: '2026-01',
+    applicability: 'matches-before',
+  });
+  expect(report.patch.diff).toContain(
+    "+export const shopify = shopifyApi({ apiVersion: '2026-10' });",
+  );
+  expect(report.patch.diff).toContain('/admin/api/2026-10/graphql.json');
+});
+
+it('moves defaults in code, and notes environment-only and unstable versions without stopping', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/shopify.server.ts': `import { shopifyApi } from '@shopify/shopify-api';
+export const create = (options: { apiVersion?: string }) =>
+  shopifyApi({ apiVersion: options.apiVersion || '2025-01' });
+export const fromEnvironment = shopifyApi({ apiVersion: process.env.SHOPIFY_API_VERSION });
+export const preview = shopifyApi({ apiVersion: 'unstable' });
+`,
+  });
+  const report = (await runPipeline({
+    repository: root,
+    ...(await snapshots(root)),
+    proposePatch: true,
+  })) as any;
+  expect(report.patch.status).toBe('proposed');
+  expect(report.patch.diff).toContain(
+    "+  shopifyApi({ apiVersion: options.apiVersion || '2026-10' });",
+  );
+  expect(report.patch.diff).toContain(
+    "+export const preview = shopifyApi({ apiVersion: 'unstable' });",
+  );
+  const warnings = report.patch.warnings.join('\n');
+  expect(warnings).toContain('`options.apiVersion` overrides it where it is set');
+  expect(warnings).toContain('environment variable SHOPIFY_API_VERSION, with no default in code');
+  expect(warnings).toContain('The unstable Admin API version changes without notice');
 });

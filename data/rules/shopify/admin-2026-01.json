@@ -31,13 +31,374 @@
       "warning": "Selections of Shop.billingAddress become Shop.shopAddress, which Shopify says has the same structure and values; billingAddress is deprecated and will be removed in a future version.",
       "quote": "This new field replaces the now-deprecated `billingAddress` field, which will be removed in a future version. `shopAddress` will have identical structure and values as `billingAddress`.",
       "checkedAt": "2026-10-29",
-      "status": "review-only",
+      "status": "auto",
       "origin": "hand-written",
       "diff": {
         "id": "deprecated",
         "operationId": "Shop.billingAddress",
         "text": "Shop.billingAddress is deprecated: Use `shopAddress` instead."
-      }
+      },
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-deletioneventsortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "DeletionEventSortKeys.RELEVANCE",
+      "replacement": "DeletionEventSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "DeletionEventSortKeys.RELEVANCE",
+        "text": "DeletionEventSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-eventsortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "EventSortKeys.RELEVANCE",
+      "replacement": "EventSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "EventSortKeys.RELEVANCE",
+        "text": "EventSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-fulfillmenteventsortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "FulfillmentEventSortKeys.RELEVANCE",
+      "replacement": "FulfillmentEventSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "FulfillmentEventSortKeys.RELEVANCE",
+        "text": "FulfillmentEventSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-fulfillmentordersortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "FulfillmentOrderSortKeys.RELEVANCE",
+      "replacement": "FulfillmentOrderSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "FulfillmentOrderSortKeys.RELEVANCE",
+        "text": "FulfillmentOrderSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-giftcardsortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "GiftCardSortKeys.RELEVANCE",
+      "replacement": "GiftCardSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "GiftCardSortKeys.RELEVANCE",
+        "text": "GiftCardSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-marketingactivitysortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "MarketingActivitySortKeys.RELEVANCE",
+      "replacement": "MarketingActivitySortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "MarketingActivitySortKeys.RELEVANCE",
+        "text": "MarketingActivitySortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-marketingeventsortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "MarketingEventSortKeys.RELEVANCE",
+      "replacement": "MarketingEventSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "MarketingEventSortKeys.RELEVANCE",
+        "text": "MarketingEventSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-menusortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "MenuSortKeys.RELEVANCE",
+      "replacement": "MenuSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "MenuSortKeys.RELEVANCE",
+        "text": "MenuSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-methoddefinitionsortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "MethodDefinitionSortKeys.RELEVANCE",
+      "replacement": "MethodDefinitionSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "MethodDefinitionSortKeys.RELEVANCE",
+        "text": "MethodDefinitionSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-payoutsortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "PayoutSortKeys.RELEVANCE",
+      "replacement": "PayoutSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "PayoutSortKeys.RELEVANCE",
+        "text": "PayoutSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-pricelistsortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "PriceListSortKeys.RELEVANCE",
+      "replacement": "PriceListSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "PriceListSortKeys.RELEVANCE",
+        "text": "PriceListSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-productimagesortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "ProductImageSortKeys.RELEVANCE",
+      "replacement": "ProductImageSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "ProductImageSortKeys.RELEVANCE",
+        "text": "ProductImageSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-productmediasortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "ProductMediaSortKeys.RELEVANCE",
+      "replacement": "ProductMediaSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "ProductMediaSortKeys.RELEVANCE",
+        "text": "ProductMediaSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-quantitypricebreaksortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "QuantityPriceBreakSortKeys.RELEVANCE",
+      "replacement": "QuantityPriceBreakSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "QuantityPriceBreakSortKeys.RELEVANCE",
+        "text": "QuantityPriceBreakSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-scheduledchangesortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "ScheduledChangeSortKeys.RELEVANCE",
+      "replacement": "ScheduledChangeSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "ScheduledChangeSortKeys.RELEVANCE",
+        "text": "ScheduledChangeSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-sellingplangroupsortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "SellingPlanGroupSortKeys.RELEVANCE",
+      "replacement": "SellingPlanGroupSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "SellingPlanGroupSortKeys.RELEVANCE",
+        "text": "SellingPlanGroupSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-subscriptionbillingattemptssortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "SubscriptionBillingAttemptsSortKeys.RELEVANCE",
+      "replacement": "SubscriptionBillingAttemptsSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "SubscriptionBillingAttemptsSortKeys.RELEVANCE",
+        "text": "SubscriptionBillingAttemptsSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-subscriptionbillingcyclessortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "SubscriptionBillingCyclesSortKeys.RELEVANCE",
+      "replacement": "SubscriptionBillingCyclesSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "SubscriptionBillingCyclesSortKeys.RELEVANCE",
+        "text": "SubscriptionBillingCyclesSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-validationsortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "ValidationSortKeys.RELEVANCE",
+      "replacement": "ValidationSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "ValidationSortKeys.RELEVANCE",
+        "text": "ValidationSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
+    },
+    {
+      "rule": "shopify-2026-01-webhooksubscriptionsortkeys-relevance",
+      "family": "graphql-rename",
+      "coordinate": "WebhookSubscriptionSortKeys.RELEVANCE",
+      "replacement": "WebhookSubscriptionSortKeys.ID",
+      "source": "https://shopify.dev/changelog/posts/removing-unnecessary-relevance-sort-options",
+      "warning": "Replaces the removed RELEVANCE enum value with ID, preserving ID ordering.",
+      "quote": "This will eliminate cases where the option offered no unique behavior, and acted as a basic `ID` sort.",
+      "checkedAt": "2026-10-29",
+      "diff": {
+        "id": "enum-value-removed",
+        "operationId": "WebhookSubscriptionSortKeys.RELEVANCE",
+        "text": "WebhookSubscriptionSortKeys.RELEVANCE was removed."
+      },
+      "status": "auto",
+      "origin": "hand-written",
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     }
   ]
 }

@@ -1,0 +1,1358 @@
+{
+  "frozenAt": "2026-10-29",
+  "provider": "anthropic",
+  "purpose": "Measurement-only anthropic set: no repository was named anywhere in Refit, opened by a person, scanned by Refit or used to tune it before this list was frozen. Run it only at milestones; never open, trace or debug its repositories, rows or diffs to design a fix (docs/benchmarks/AI-PROVIDER-SETS.md). Debug on anthropic-dev-30 instead.",
+  "criteria": "GitHub code searches for anthropic SDK use, one stratum per change type plus a general stratum (docs/benchmarks/ai-provider-selection/anthropic-search.json), excluding every owner/name any tracked Refit file mentions at origin/main and every other origin branch (docs/benchmarks/ai-provider-selection/anthropic-candidates.json namesAt). Kept, as for the Stripe holdout sets: not archived, not a fork, under 50 MB, pushed since 2024-01-01, and the SDK (@anthropic-ai/sdk, anthropic) declared in a root manifest. Ordered by SHA-256 of the seed \"refit-ai-providers-2026-10-29\", a newline and the lower-cased name, and walked in that order with shallow clones at the default-branch HEAD, read only for SDK use, language, SDK version and change types, then deleted. Kept: an application file (not a test, example, spec, fixture or mock) imports the SDK and one constructs a client; JS/TS when that holds for JS/TS code, else Python. Each set takes its JS/TS and Python repositories by first giving every change type its minimum (walking that type's search stratum in seeded order and keeping only clones whose application code shows the type) and then following plain seeded order. Measurement sets are filled first, then dev sets, so they are disjoint.",
+  "seed": "refit-ai-providers-2026-10-29",
+  "selection": {
+    "script": "scripts/ai-provider-sets-select.mjs",
+    "inputs": "docs/benchmarks/ai-provider-selection",
+    "searchRepositories": 7947,
+    "excluded": {
+      "named in Refit": 307,
+      "SDK not in a root manifest": 254,
+      "over 50 MB": 177,
+      "no push since 2024-01-01": 25
+    },
+    "unnamed": 7640,
+    "metadataFetched": 630,
+    "eligible": 174,
+    "walked": 174,
+    "dropped": {
+      "no SDK client in application code": 11
+    },
+    "languages": {
+      "js": 70,
+      "py": 30
+    },
+    "minimumPerChangeType": {
+      "js": 6,
+      "py": 3
+    },
+    "shortfall": {
+      "js embeddings-fine-tunes": 6,
+      "py embeddings-fine-tunes": 3
+    }
+  },
+  "changeTypeCoverage": {
+    "retired-model": 50,
+    "parameter-change": 24,
+    "legacy-endpoint": 16,
+    "old-sdk-major": 82,
+    "response-parsing": 66,
+    "beta-header": 28,
+    "embeddings-fine-tunes": 0
+  },
+  "retiredModels": [
+    "claude-1.0",
+    "claude-1.1",
+    "claude-1.2",
+    "claude-1.3",
+    "claude-2",
+    "claude-2.0",
+    "claude-2.1",
+    "claude-3-5-haiku-20241022",
+    "claude-3-5-sonnet-20240620",
+    "claude-3-5-sonnet-20241022",
+    "claude-3-7-sonnet-20250219",
+    "claude-3-haiku-20240307",
+    "claude-3-opus-20240229",
+    "claude-3-sonnet-20240229",
+    "claude-instant-1",
+    "claude-instant-1.0",
+    "claude-instant-1.1",
+    "claude-instant-1.2",
+    "claude-instant-v1",
+    "claude-opus-4-1-20250805",
+    "claude-opus-4-20250514",
+    "claude-sonnet-4-20250514",
+    "claude-v1",
+    "claude-v2"
+  ],
+  "currentMajors": {
+    "js": {
+      "@anthropic-ai/sdk": 1
+    },
+    "py": {
+      "anthropic": 2
+    }
+  },
+  "repos": [
+    {
+      "repo": "larryhudson/claude-custom-tools-typescript",
+      "stars": 1,
+      "commit": "8574ada394fbd8a63ef53026e9e3d36ab2a21754",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.24.3"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "retired-model"
+    },
+    {
+      "repo": "WebCFD/AlemanIA_Aprende_Aleman",
+      "stars": 0,
+      "commit": "f53197407ad7e054e91c397c6d99d00d709198dc",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.41.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "retired-model"
+    },
+    {
+      "repo": "vg-yuvaraj-bathrabagu/lobe-chat-1",
+      "stars": 0,
+      "commit": "755ab92565a002fce87870f525dd0f8822ca8405",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "^0.53.0"
+      },
+      "packageManager": "none",
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "old-sdk-major",
+        "response-parsing",
+        "beta-header"
+      ],
+      "stratum": "retired-model"
+    },
+    {
+      "repo": "StudioCodeAI/LyaCode",
+      "stars": 1,
+      "commit": "6e5fbb2a1a2fa31fc56b4c796e12d5ba8f594673",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.94.0"
+      },
+      "packageManager": "none",
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "legacy-endpoint",
+        "old-sdk-major",
+        "response-parsing",
+        "beta-header"
+      ],
+      "stratum": "retired-model"
+    },
+    {
+      "repo": "johnmichaelkuczynski/INCOMPLETENESSOFDEDUCTIVELOGIC",
+      "stars": 0,
+      "commit": "77e0a78422ffa837d23c3fd00daf992733101620",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.37.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "retired-model"
+    },
+    {
+      "repo": "alex-tgk/orion",
+      "stars": 0,
+      "commit": "3928a9d02cf78ad72df625902df48b598bc549e9",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.67.0"
+      },
+      "packageManager": "pnpm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "retired-model"
+    },
+    {
+      "repo": "smallmain/vscode-unify-chat-provider",
+      "stars": 716,
+      "commit": "a98d77d76d552149a6a7273011cd3e58aeb52ec9",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.102.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["parameter-change", "old-sdk-major", "response-parsing", "beta-header"],
+      "stratum": "parameter-change"
+    },
+    {
+      "repo": "takato23/acomerlantigravity",
+      "stars": 0,
+      "commit": "6f5147c8e94293c44a8f2a8a4cae127f097100ac",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.9.1"
+      },
+      "packageManager": "npm",
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "legacy-endpoint",
+        "old-sdk-major",
+        "response-parsing"
+      ],
+      "stratum": "parameter-change"
+    },
+    {
+      "repo": "TyVanRoy/llm-nodes",
+      "stars": 0,
+      "commit": "aac3e28784032b347ef7c10f7d551e6046cb1d46",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.69.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["parameter-change", "old-sdk-major", "beta-header"],
+      "stratum": "parameter-change"
+    },
+    {
+      "repo": "AgilistTim/lobe-chat",
+      "stars": 0,
+      "commit": "f92f847857f9f0f1c8d34f0d6abe67f3690d4e5c",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "^0.16.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "parameter-change", "old-sdk-major"],
+      "stratum": "parameter-change"
+    },
+    {
+      "repo": "matheus-rech/meta-analysis-gpt2",
+      "stars": 0,
+      "commit": "2b3f579b5f50481abd2c1f4a2a07846a845e9395",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "^1.0.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "parameter-change", "legacy-endpoint", "response-parsing"],
+      "stratum": "legacy-endpoint"
+    },
+    {
+      "repo": "kldh/aha-chat",
+      "stars": 0,
+      "commit": "debdb6ce2b079e638aa8e1a81d1745bfd99fd186",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "^0.27.1"
+      },
+      "packageManager": "several",
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "legacy-endpoint",
+        "old-sdk-major",
+        "response-parsing"
+      ],
+      "stratum": "legacy-endpoint"
+    },
+    {
+      "repo": "falahh6/docsy",
+      "stars": 0,
+      "commit": "c8697bfbc803038944c41fe51cf56f085e0fc7da",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.26.1"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "parameter-change", "legacy-endpoint", "old-sdk-major"],
+      "stratum": "legacy-endpoint"
+    },
+    {
+      "repo": "Maazaowski/MatchMyJob",
+      "stars": 0,
+      "commit": "bcfb449e2c5dc82eb22291ce2a6a4bd7eb447356",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.14.1"
+      },
+      "packageManager": "npm",
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "legacy-endpoint",
+        "old-sdk-major",
+        "response-parsing"
+      ],
+      "stratum": "legacy-endpoint"
+    },
+    {
+      "repo": "sandbaseai/sandbase-harness",
+      "stars": 636,
+      "commit": "427b52a96a5309ca23268407f85c237468ab6a4e",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.131.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "beta-header"],
+      "stratum": "beta-header"
+    },
+    {
+      "repo": "DanielGift/GlooHack2026",
+      "stars": 0,
+      "commit": "84971f86450e97d82096d838ccb8dc9c344270aa",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.131.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "beta-header"],
+      "stratum": "beta-header"
+    },
+    {
+      "repo": "jdai-ca/atticus",
+      "stars": 53,
+      "commit": "dd533792faf0374d6cde3bdde60c72fb34ec8c0f",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "^0.71.2"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "husohome/test-llm-with-desktop-genie",
+      "stars": 0,
+      "commit": "98776f9522be8d9bf2b99041bfc01bb8e74bee64",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.20.9"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "Shokeent/nxt_step",
+      "stars": 0,
+      "commit": "0963c98d0e1d554b1e8e2eb71e642c17533eb64c",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.94.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "danielishakutv/flockinsight_v8",
+      "stars": 0,
+      "commit": "c1ab8cd5dd69b2167ed0a7f6004740b8963d00bc",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.137.0"
+      },
+      "packageManager": "pnpm",
+      "changeTypes": ["old-sdk-major", "beta-header"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "hellolucient/microplastics-pulse-backend",
+      "stars": 0,
+      "commit": "3b7b096871484150d1372340ac7c516bb9c60f15",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.61.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "Agencia316/nexusflow",
+      "stars": 0,
+      "commit": "4d86fc87749d4805a6a815145bb25d0009d6359b",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.123.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "vakharwalad23/tv-os",
+      "stars": 0,
+      "commit": "bb8197960edeb6505b57a515a9d040617f42504e",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "^0.78.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "HeeJeonLee/petcare-phase2",
+      "stars": 0,
+      "commit": "3ecf3db19a6cfe7589a5bceaf910a7e61b5d6af4",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.31.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "flkapes/lobehub",
+      "stars": 0,
+      "commit": "212c091365e5543272029e5c8b34b90fda000f2c",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "^0.73.0"
+      },
+      "packageManager": "none",
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "old-sdk-major",
+        "response-parsing",
+        "beta-header"
+      ],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "corbt/agent.exe",
+      "stars": 3471,
+      "commit": "e2440622aa0206b9c9223c776f89cb511bbc9f8b",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.30.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "beta-header"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "ShafferW-18/AI-Prompt-Constructor",
+      "stars": 0,
+      "commit": "71b578348636651a4ef9a24f580604e03f1a5f32",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.115.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "MokoyS/Auticiel_IA",
+      "stars": 0,
+      "commit": "1ccf2557f4ff26d19c914ac90c84d9b7d95aff69",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.81.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "georgevlad/philagora",
+      "stars": 0,
+      "commit": "29141c5724059b9ceacede6a10c9cf0fa0a1e5d4",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.78.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "rajeevcode/macropulse",
+      "stars": 0,
+      "commit": "0ecdf7c902ffa46662006e4b7a2bda6ebcb9987e",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.39.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "Tmattox12/veritaslegalintel",
+      "stars": 0,
+      "commit": "34495dec8d8e1c537206fb00d370447f6a169c02",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.120.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "MaxenceRaveau/stet-atelier-1",
+      "stars": 0,
+      "commit": "00ce7b1ab2208d3eb2be1bd37598f9f29990306e",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.27.3"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "carolmnader/agente-tdah",
+      "stars": 0,
+      "commit": "89cbed199036c480ae38ccd9d445753835cb497e",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.85.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "kagsteiner/Signet",
+      "stars": 0,
+      "commit": "22c18c1f30dcd91b193ff3cd736ade6ef5f47970",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.78.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "lillyemiraschade/16s-sms",
+      "stars": 0,
+      "commit": "7c48cfb8cc8b7fcb9b406fca0effc53a9112f465",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.74.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "starhyuns-ux/yeanchurch",
+      "stars": 0,
+      "commit": "f95eae5b32ad2a88b40c445680e151ada1e7ee9a",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.58.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": [
+        "retired-model",
+        "legacy-endpoint",
+        "old-sdk-major",
+        "response-parsing",
+        "beta-header"
+      ],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "jbmoutout/itadakimasu",
+      "stars": 0,
+      "commit": "17687854b5aa9d11148b96049ead86d3b8e4d710",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.55.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "marlinjai/framer-clone",
+      "stars": 2,
+      "commit": "2b600f2eec9478b6edd9740247c08626a14004e8",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.135.0"
+      },
+      "packageManager": "pnpm",
+      "changeTypes": ["old-sdk-major", "beta-header"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "cryptofedge/FEDGE-2.O",
+      "stars": 0,
+      "commit": "80a165aa1c59b136885fbc7354f46c4c364c1a26",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.95.1"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "matheusfarocha/Tide",
+      "stars": 0,
+      "commit": "d7e1d0846777f58110891acb0d4517057da1162a",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "1.3.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["beta-header"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "brandonrlj-dev/Ancla",
+      "stars": 0,
+      "commit": "1a326b9df56b3b4cebd475ca09057dc054c6aa1f",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "^0.97.1"
+      },
+      "packageManager": "several",
+      "changeTypes": ["old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "lemonardo1/obsidian-medical-generator",
+      "stars": 0,
+      "commit": "ae2784e6c0015bba10be33b52cb3582bb0c1b568",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.80.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "AgenticMatrix/coderix",
+      "stars": 321,
+      "commit": "166f77e9421bc84f594387d19f09f10b40d18a19",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "^0.102.0"
+      },
+      "packageManager": "several",
+      "changeTypes": ["parameter-change", "legacy-endpoint", "old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "Yennzies/tunisia-web",
+      "stars": 0,
+      "commit": "616be1a776360484d6b5bb694b6a6349e5422f7a",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.87.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "Imjungjuna/dama-bot",
+      "stars": 0,
+      "commit": "b1afa8c0305488616f1bd0bad720971f340945cb",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.104.1"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "zssai13/email-generator-clone",
+      "stars": 0,
+      "commit": "15991a679c7bfbe412fcd81350e0c01f2c3e12ea",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.52.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "razors13/jarvis-builder",
+      "stars": 0,
+      "commit": "d2584a73fe6e79a3d7e23f9619e9b617606571dc",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.80.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "Niraj123kumar/PDRS_APP",
+      "stars": 0,
+      "commit": "95cf1b4bdd76213a21a1693c7ff241ef69e95502",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.90.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "ygh1254/Graduation",
+      "stars": 0,
+      "commit": "88275dd4872be123d65ff12848cd2884503b225d",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.70.1"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "imarios/skilltree",
+      "stars": 2,
+      "commit": "a1a520ff2b4849ab4bf039dd604ecd19b6135193",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "^0.124.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "aleriado/myguo-backend",
+      "stars": 0,
+      "commit": "66c11a1a066ddf0c67b3537a5142c7cf35235295",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.71.2"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "alexvalle92/v0-tami-forms",
+      "stars": 0,
+      "commit": "ede3ee5db457b0d66a34c73d267bf53f9ce33f4e",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.133.0"
+      },
+      "packageManager": "pnpm",
+      "changeTypes": ["old-sdk-major", "beta-header"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "whyashthakker/beam-cli",
+      "stars": 15,
+      "commit": "01267d117286cfc02e621b8f8a889f6841fe80b4",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "1.2.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["beta-header"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "repguy/Agent",
+      "stars": 0,
+      "commit": "334fde1a09557c7ce19aeae2819707b307673b4d",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.81.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "legacy-endpoint",
+        "old-sdk-major",
+        "response-parsing",
+        "beta-header"
+      ],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "avila2026/site-MATERNIDADE",
+      "stars": 1,
+      "commit": "20fc44d8138eb19b9a767c0782c3274390bd36ad",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.51.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "lakshmi-3sc/customer-desk",
+      "stars": 0,
+      "commit": "63c6666a84e3749b51188879473232189089dd89",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.90.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "Panagiotis3149/Neocode",
+      "stars": 0,
+      "commit": "5cbf5948a7ba3102b433f6bf930357509af35c46",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.91.1"
+      },
+      "packageManager": "none",
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "legacy-endpoint",
+        "old-sdk-major",
+        "response-parsing",
+        "beta-header"
+      ],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "omiflow-web/omiflow",
+      "stars": 0,
+      "commit": "2db16ff5c698b1cf458c0a9f28b3463186fc3ba5",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "^0.27.3"
+      },
+      "packageManager": "none",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "Vswashah/toyota-next",
+      "stars": 0,
+      "commit": "bdb3bfa2c69ec2b977f53c239418b89ffb282a6c",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "1.3.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["beta-header"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "admonstrator/zettelrobbe",
+      "stars": 266,
+      "commit": "112af1456ac8b34de532a14f5ff4e7cbd1aef0dd",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.135.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["parameter-change", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "harshmriduhash/Dealpulse-AI",
+      "stars": 0,
+      "commit": "714e76b1b30e88ca638c52cfb66532b6af6d3e6b",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.71.2"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "rjg184/basic-mcp-client",
+      "stars": 0,
+      "commit": "bd1ec8647acfa96d0d26a2f14399eb24710e26e1",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.74.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "slightlyuseless/ai-twitter-crypto-reply-bot",
+      "stars": 38,
+      "commit": "d0cf2a9bb7a2cb27fda5813425a64cfaa65fba45",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.106.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "restlessankyyy/my-portfolio-app",
+      "stars": 0,
+      "commit": "446fc1653d8fb2fb62de85f9cf387841a3d40265",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "1.3.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "MarcusAurelius82/rrf",
+      "stars": 0,
+      "commit": "4cea29057d90a96b49fc4e76d04ec0a47882136b",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.20.9"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "itsfabioroma/transcribee",
+      "stars": 198,
+      "commit": "184325947ac3415c95ce885a034a3d20018620c3",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "^0.67.0"
+      },
+      "packageManager": "several",
+      "changeTypes": ["old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "hal-8999-alpha/Better-Artifacts",
+      "stars": 17,
+      "commit": "3f518ef7c14ec3f94ac1a56cce86c10b850e6f32",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.24.3"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "Juampii01/novascalingportal",
+      "stars": 0,
+      "commit": "9072f5103f9b7c748c15bb33dea4ffe5cb954b8c",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.80.0"
+      },
+      "packageManager": "pnpm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "xiliab/write",
+      "stars": 0,
+      "commit": "34dae20921f5b9d8e6118bc4db1bdc112fc43ca0",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.94.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": [
+        "retired-model",
+        "legacy-endpoint",
+        "old-sdk-major",
+        "response-parsing",
+        "beta-header"
+      ],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "kerollosmakary-ai/ok",
+      "stars": 0,
+      "commit": "6484e2977d0ad6a9c7f35bf8d1d7139d09784907",
+      "language": "js",
+      "sdk": {
+        "@anthropic-ai/sdk": "0.21.1"
+      },
+      "packageManager": "pnpm",
+      "changeTypes": ["retired-model", "parameter-change", "old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "wisdomgreat/JobAutomation",
+      "stars": 0,
+      "commit": "d5825f8d121a51796935fd5571641833358354d0",
+      "language": "py",
+      "sdk": {
+        "anthropic": ">=0.80.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "retired-model"
+    },
+    {
+      "repo": "karishmadhingra30/voiceInterviewAgent-sprint",
+      "stars": 0,
+      "commit": "7e4598fbc3a7bc03a7a98c1362b451b67db3a632",
+      "language": "py",
+      "sdk": {
+        "anthropic": "==0.96.0"
+      },
+      "packageManager": "none",
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "legacy-endpoint",
+        "old-sdk-major",
+        "response-parsing",
+        "beta-header"
+      ],
+      "stratum": "retired-model"
+    },
+    {
+      "repo": "luissimon96/AI-Powered-Migration-Validation-System",
+      "stars": 0,
+      "commit": "d77e2152d4727f875633e9f6cf0e867ee38de7f9",
+      "language": "py",
+      "sdk": {
+        "anthropic": ""
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "response-parsing"],
+      "stratum": "retired-model"
+    },
+    {
+      "repo": "kevinchwong/llmeasy",
+      "stars": 0,
+      "commit": "ed0a9c838b9ec350904b59dc9270ef1b9ac72371",
+      "language": "py",
+      "sdk": {
+        "anthropic": "^0.18.1"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "parameter-change", "old-sdk-major", "response-parsing"],
+      "stratum": "parameter-change"
+    },
+    {
+      "repo": "vsamuel2003/PersonaGym",
+      "stars": 44,
+      "commit": "536f705e610289c38d84e083fcea6ea5093d3a25",
+      "language": "py",
+      "sdk": {
+        "anthropic": ""
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "parameter-change", "response-parsing"],
+      "stratum": "parameter-change"
+    },
+    {
+      "repo": "halfprice06/bookmarker",
+      "stars": 1,
+      "commit": "ea5861fbd8e0d9fc120e4a57da0623f6a2ad4186",
+      "language": "py",
+      "sdk": {
+        "anthropic": ""
+      },
+      "packageManager": "none",
+      "changeTypes": ["legacy-endpoint", "response-parsing"],
+      "stratum": "legacy-endpoint"
+    },
+    {
+      "repo": "BioTech-Ai/BioTechAi",
+      "stars": 1,
+      "commit": "cb0f84566703ee7d8d534a9c15f6e8c27a0d92d9",
+      "language": "py",
+      "sdk": {
+        "anthropic": ""
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "parameter-change", "legacy-endpoint", "response-parsing"],
+      "stratum": "legacy-endpoint"
+    },
+    {
+      "repo": "maximilianfeix/aktien-radar",
+      "stars": 0,
+      "commit": "72c8df4313a915484470401680e59686ebcb1969",
+      "language": "py",
+      "sdk": {
+        "anthropic": ">=0.80"
+      },
+      "packageManager": "none",
+      "changeTypes": ["old-sdk-major", "beta-header"],
+      "stratum": "beta-header"
+    },
+    {
+      "repo": "jia-jing-zhang-dev/Codeviz",
+      "stars": 0,
+      "commit": "fbbc5624eb9539030a526cbb330b8daada0abc47",
+      "language": "py",
+      "sdk": {
+        "anthropic": ">=1.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["old-sdk-major", "beta-header"],
+      "stratum": "beta-header"
+    },
+    {
+      "repo": "Hulkmode85/formulabot-ai",
+      "stars": 0,
+      "commit": "4e00a5e09029c35fb014af69c8d55d96a5649594",
+      "language": "py",
+      "sdk": {
+        "anthropic": ""
+      },
+      "packageManager": "none",
+      "changeTypes": ["response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "tessscholtus/dental-ai-pipeline",
+      "stars": 0,
+      "commit": "7c858ad6eb0a2eb651e84332f5b57ab987597c0b",
+      "language": "py",
+      "sdk": {
+        "anthropic": ">=0.40.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "deven367/talk-to-a-file",
+      "stars": 1,
+      "commit": "7e2d957a8b085628ee552f860e328cd36b9f126f",
+      "language": "py",
+      "sdk": {
+        "anthropic": ""
+      },
+      "packageManager": "uv.lock",
+      "changeTypes": ["retired-model", "legacy-endpoint", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "justincastilla/elastic-newsroom",
+      "stars": 4,
+      "commit": "c03375128b269d90d24d17b694d58dca3ac7a532",
+      "language": "py",
+      "sdk": {
+        "anthropic": ">=0.50.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "Snseam/boss-zhipin-mcp",
+      "stars": 156,
+      "commit": "06a1a7d804aa80131a066bddc1879ac4bc72f841",
+      "language": "py",
+      "sdk": {
+        "anthropic": ">=0.30"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "saikrishna759/WereWolfGPT-via-SelfPlay",
+      "stars": 0,
+      "commit": "6dda67e1973f8ededf80115d07e4df83529caace",
+      "language": "py",
+      "sdk": {
+        "anthropic": ""
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "parameter-change", "legacy-endpoint", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "afridpasha/RAG-using-Semantic-Search-",
+      "stars": 0,
+      "commit": "8d73a6c61a064f08914fff4e6dd8481bffd10a25",
+      "language": "py",
+      "sdk": {
+        "anthropic": ">=0.28.0              # Anthropic Claude (PAID)"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "parameter-change", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "israelo19/promptguard",
+      "stars": 0,
+      "commit": "c0f22ae880f5f97fdbf0f220fed941b3b57836e5",
+      "language": "py",
+      "sdk": {
+        "anthropic": ">=0.18.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "Two-Jay/chatbot",
+      "stars": 5,
+      "commit": "0e559698d8595a28bef18e3425263aaa1830ca9a",
+      "language": "py",
+      "sdk": {
+        "anthropic": ""
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "response-parsing", "beta-header"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "dthwwydfli/rgc-hackathon",
+      "stars": 0,
+      "commit": "7b4bba89f43af5b2ec455641719a9c7b073f81cf",
+      "language": "py",
+      "sdk": {
+        "anthropic": ">=1.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["old-sdk-major", "beta-header"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "pseudotensor/open-strawberry",
+      "stars": 187,
+      "commit": "0c003cc7aeec2dac8de514c465686568bbfe29ba",
+      "language": "py",
+      "sdk": {
+        "anthropic": ""
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "response-parsing", "beta-header"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "jinxbuilds/chatwithmedic",
+      "stars": 0,
+      "commit": "76faf7870d76482cb7019771bf6b9cde8a12ffa4",
+      "language": "py",
+      "sdk": {
+        "anthropic": ">=0.40"
+      },
+      "packageManager": "none",
+      "changeTypes": ["old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "mrmps/LLM-SQL-Demo",
+      "stars": 0,
+      "commit": "238094be62985af66d83524d122e296adabe5f66",
+      "language": "py",
+      "sdk": {
+        "anthropic": "==0.34.2"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing", "beta-header"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "1A7432/loreweaver",
+      "stars": 67,
+      "commit": "9c74149bba8a4d903d9ed63dbd4f5ac4f1d93f8b",
+      "language": "py",
+      "sdk": {
+        "anthropic": ""
+      },
+      "packageManager": "uv.lock",
+      "changeTypes": [],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "jhd3197/Prompture",
+      "stars": 16,
+      "commit": "74cd39197c078a862960a8dbb9aeefc0893e0d7b",
+      "language": "py",
+      "sdk": {
+        "anthropic": ">=0.8.0"
+      },
+      "packageManager": "none",
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "old-sdk-major",
+        "response-parsing",
+        "beta-header"
+      ],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "datapizza-labs/rag-dataset-builder",
+      "stars": 47,
+      "commit": "f2428dce66ea418a785998fa6ec57bc561b72239",
+      "language": "py",
+      "sdk": {
+        "anthropic": ">=0.71.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["old-sdk-major", "beta-header"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "Manumanu-AI/SAKIYOMI-daihon-1-r-atriseshop",
+      "stars": 0,
+      "commit": "1bc0b4e92043201304f1f78bb7be0b7062b47011",
+      "language": "py",
+      "sdk": {
+        "anthropic": ""
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "parameter-change", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "wwwillchen/mesop-duo-chat",
+      "stars": 11,
+      "commit": "3250263e8e75cdd56c4893aebf52cb06be5e93bb",
+      "language": "py",
+      "sdk": {
+        "anthropic": ""
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "im-girisankar/pr-review-agent",
+      "stars": 0,
+      "commit": "95e25252226d293e9ad6eefb5292edd3cb16f4bb",
+      "language": "py",
+      "sdk": {
+        "anthropic": ">=0.34.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "gmitt98/fieldtest-demo",
+      "stars": 0,
+      "commit": "96ede8b714b4e85ac281929c299f75f5b8d644c3",
+      "language": "py",
+      "sdk": {
+        "anthropic": ""
+      },
+      "packageManager": "none",
+      "changeTypes": ["response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "MUYAHGaious/muyah-code",
+      "stars": 0,
+      "commit": "a949730864ff17afd5380653ce4b273c74db88ba",
+      "language": "py",
+      "sdk": {
+        "anthropic": ">=1.7"
+      },
+      "packageManager": "none",
+      "changeTypes": ["old-sdk-major", "response-parsing", "beta-header"],
+      "stratum": "seeded order"
+    }
+  ]
+}

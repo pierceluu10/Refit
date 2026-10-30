@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { DeadlineRegistry } from './deadline-registry.ts';
 import { EMPTY_MODEL_PARAMETERS } from './model-parameters.ts';
+import type { RequestProofTable } from './model-request-proofs.ts';
 import { runModelFixes } from './model-fixes.ts';
 import { NO_OP_CHECK, NO_OP_REVIEW } from './review.ts';
 
@@ -157,12 +158,30 @@ it.each([
   );
 });
 
+// A request to the replacement that Refit's own key sent in refit-bench Actions.
+const PROVEN: RequestProofTable = {
+  formatVersion: 1,
+  proofs: [
+    {
+      provider: 'openai',
+      model: 'gpt-5.6-sol',
+      api: 'chat.completions',
+      parameters: ['max_completion_tokens'],
+      checks: { request: 'passed', json: 'passed', tools: 'passed', stream: 'passed' },
+      run: 'https://github.com/refit-dev/refit-bench/actions/runs/1',
+      date: '2026-10-29',
+    },
+  ],
+  pending: [],
+};
+
 it('opens a draft pull request for validated replacements without asking first', async () => {
   const root = await repository({ 'src/ai.ts': SOURCE });
   const result = await runModelFixes({
     repository: root,
     registry,
     parameters: EMPTY_MODEL_PARAMETERS,
+    proofs: PROVEN,
     now: NOW,
     checks: CHECKS,
     publication: { repository: 'example/app', base: 'main', token: 'token' },
@@ -191,6 +210,12 @@ it('opens a draft pull request for validated replacements without asking first',
   // The call that sets temperature is listed, not edited.
   expect(body).toContain('## Left for review');
   expect(body).toContain('`src/ai.ts:4` `gpt-4`: The request sets temperature');
+  // Never a claim that the replacement behaves the same.
+  expect(body).toContain('## Outputs may differ');
+  expect(body).toContain('Check output quality on your own prompts before merging.');
+  expect(body).toContain(
+    '- `gpt-5.6-sol` `chat.completions`: accepted with `max_completion_tokens`; request, json, tools, stream passed ([run](https://github.com/refit-dev/refit-bench/actions/runs/1), 2026-10-29).',
+  );
 
   // The same replacements are not validated or published again while their pull request stands,
   // even at a later revision.
@@ -297,4 +322,41 @@ it('edits a parameterised call only when a table entry proves the literal', asyn
     checks: CHECKS,
   });
   expect(withTable.replacements.map((item) => item.line)).toEqual([3, 4]);
+});
+
+it('marks a draft [Needs review] with the exact reason when a replacement has no request proof', async () => {
+  const root = await repository({
+    'src/ai.ts': SOURCE,
+    '.env.example': 'OPENAI_MODEL=gpt-4\n',
+  });
+  await runModelFixes({
+    repository: root,
+    registry,
+    parameters: EMPTY_MODEL_PARAMETERS,
+    proofs: {
+      formatVersion: 1,
+      proofs: [],
+      pending: [
+        {
+          provider: 'openai',
+          model: 'gpt-5.6-sol',
+          api: 'chat.completions',
+          reason: 'Blocked: the proof run was cancelled.',
+        },
+      ],
+    },
+    now: NOW,
+    checks: CHECKS,
+    publication: { repository: 'example/app', base: 'main', token: 'token' },
+  });
+  expect(published[0].title).toBe('[Needs review] fix: replace 1 retiring AI model');
+  const body = published[0].body;
+  expect(body.startsWith('## Why this needs review\n')).toBe(true);
+  expect(body).toContain(
+    '- No request-level proof for `gpt-5.6-sol`: Blocked: the proof run was cancelled. **Check:**',
+  );
+  expect(body).toContain('- `gpt-5.6-sol`: not proven. Blocked: the proof run was cancelled.');
+  // The configuration file is listed, never edited.
+  expect(body).toContain('## Alert only');
+  expect(body).toContain('- `.env.example:1` `gpt-4` (configuration):');
 });

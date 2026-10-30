@@ -32,8 +32,31 @@ import { isObject } from './specifications.ts';
 // - webhook-topic-rename: a WebhookSubscriptionTopic value and its documented replacement.
 // - package-major: a documented call rewrite in a major release of a Shopify npm package (table
 //   api `packages`, no schema version); only the quote and the published release are checked.
-// No Shopify rule edits code yet: every rule is review-only until a benchmark shows zero wrong
-// patches (owner decision D3), and the Shopify tracer (pipeline/shopify-analysis.ts) reads them.
+// Founder decision (2026-10-29, relayed by the coordinating session: "proof decides, not caution")
+// replaces D3's benchmark requirement for Shopify: a rule may be `auto` when the schema diff confirms
+// the change, every edited document must validate on the target schema before a patch is kept
+// (pipeline/shopify-document-rules.ts and SH4's proof), and the response keys the code reads are
+// unchanged. Only two families can promise the last: `graphql-rename` within one type (a field is
+// selected under an alias of its old name; arguments, input fields and enum values are inputs) and
+// `graphql-argument-drop`. A move to another type, REST rewrites, webhook topics and package
+// rewrites change what the code reads or calls, so they stay review-only. An auto rule names the
+// decision in `decision`.
+export const SHOPIFY_DECISION =
+  'Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged.';
+
+// The member a coordinate belongs to: the type of a field, input field or enum value, the field of
+// an argument.
+const owner = (coordinate: string) =>
+  coordinate.includes('(')
+    ? `${coordinate.slice(0, coordinate.indexOf('('))}()`
+    : coordinate.split('.')[0];
+
+// Whether a rule's edit can keep every response key the code reads.
+export const keysPreserved = (rule: Record<string, unknown>) =>
+  rule.family === 'graphql-argument-drop' ||
+  (rule.family === 'graphql-rename' &&
+    String(rule.coordinate).includes('.') &&
+    owner(String(rule.coordinate)) === owner(String(rule.replacement)));
 export const SHOPIFY_RULE_FAMILIES = [
   'graphql-rename',
   'graphql-argument-drop',
@@ -136,7 +159,8 @@ export function parseShopifyRuleTable(value: unknown, file: string, names = new 
       fail(file, `${name} has an unknown family.`);
     if (!text(entry.source) || !SOURCE.test(String(entry.source)) || !text(entry.warning))
       fail(file, `${name} needs a shopify.dev or Shopify GitHub source and a warning.`);
-    if (entry.status !== 'review-only') fail(file, `${name} must be review-only.`);
+    if (entry.status === 'auto' && !keysPreserved(entry))
+      fail(file, `${name} changes what the code reads, so it must be review-only.`);
     const shape =
       entry.family === 'graphql-rename'
         ? COORDINATE.test(String(entry.coordinate)) && COORDINATE.test(String(entry.replacement))
@@ -157,7 +181,7 @@ export function parseShopifyRuleTable(value: unknown, file: string, names = new 
     if (!shape) fail(file, `${name} is missing the values its family needs.`);
     if ((value.api === 'packages') !== (entry.family === 'package-major'))
       fail(file, `${name}: package rules go in the packages table and only there.`);
-    checkRuleProvenance(file, entry);
+    checkRuleProvenance(file, entry, 'decision');
   }
   return value as unknown as ShopifyRuleTable;
 }

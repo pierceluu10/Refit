@@ -31,9 +31,11 @@ import {
 import {
   loadShopifyDocumentRules,
   rewriteDocument,
+  variableRules,
   type DocumentEdit,
   type ShopifyDocumentRule,
 } from './shopify-document-rules.ts';
+import { documentProof } from './shopify-proof.ts';
 import { shopifySchema } from './shopify-schemas.ts';
 import { aiRewriteDocument, type ShopifyAiRewrite } from './shopify-ai-rewrite.ts';
 import { SHOPIFY_SDK_RULE, shopifySdkSourceChanges } from './shopify-sdk-source.ts';
@@ -389,6 +391,8 @@ function typeChanges(
   before: GraphQLSchema,
   after: GraphQLSchema,
   versions: { before: string; after: string },
+  // The text the schema proof checks: the document as it will be sent.
+  sent = document.text,
 ): DocumentResult {
   const confidence = document.traced ? ('confirmed' as const) : ('review' as const);
   const located = (offsetInDocument: number) => documentLocation(document, offsetInDocument);
@@ -426,6 +430,24 @@ function typeChanges(
       }),
     );
   }
+  // What the schema proof sees beyond selected fields (pipeline/shopify-proof.ts): a variable whose
+  // input type loses a field or enum value, or gains a required field. The code's runtime values
+  // may still send what was removed.
+  const reported = new Set(findings.map((finding) => finding.changeId));
+  for (const change of documentProof(sent, after, before) ?? []) {
+    const field = /^(\w+\.\w+) changes from /.exec(change)?.[1];
+    if (field && reported.has(`shopify-graphql-type:${field}`)) continue;
+    findings.push({
+      file: document.file,
+      line: document.line,
+      column: document.column,
+      changeId: `shopify-graphql-input:${digest(change).slice(0, 12)}`,
+      expression: change,
+      confidence,
+      reason: `Valid on ${versions.before} and ${versions.after}, but ${change}, and the code's variables may still send it.`,
+      contractReview: `A Shopify GraphQL document's variables reach an input change on Admin API ${versions.after} (${change}); Refit cannot see the values the code sends.`,
+    });
+  }
   return { findings, deprecated: [...new Set(deprecated)] };
 }
 
@@ -452,15 +474,18 @@ function versionDeclarations(scan: ShopifyScan): ApiVersionDeclaration[] {
         status: 'literal' as const,
         reason: `${entry.kind === 'enum' ? 'ApiVersion enum' : entry.kind === 'url' ? 'Admin API URL' : 'apiVersion string'} ${entry.text}`,
       })),
-    ...scan.unresolvedVersions.map((entry) => ({
-      file: entry.file,
-      line: entry.line,
-      column: entry.column,
-      kind: 'constructor' as const,
-      value: null,
-      status: 'unknown' as const,
-      reason: entry.reason,
-    })),
+    // Notes (an environment variable with no default, `unstable`) are left as they are.
+    ...scan.unresolvedVersions
+      .filter((entry) => !entry.note)
+      .map((entry) => ({
+        file: entry.file,
+        line: entry.line,
+        column: entry.column,
+        kind: 'constructor' as const,
+        value: null,
+        status: 'unknown' as const,
+        reason: entry.reason,
+      })),
   ];
 }
 
@@ -478,6 +503,13 @@ function sdkUpgradeNotes(packages: { name: string; from: string | null; to: stri
     Number((api?.to ?? '0').split('.')[0]),
   ];
   const crossed = (major: number) => from < major && to >= major;
+  const prisma = packages.find(
+    (entry) => entry.name === '@shopify/shopify-app-session-storage-prisma',
+  );
+  const prismaCrossed =
+    prisma &&
+    Number((prisma.from ?? '0').split('.')[0]) < 8 &&
+    Number(prisma.to.split('.')[0]) >= 8;
   return [
     to >= 14
       ? '@shopify/shopify-api 14 requires Node.js 22 or later (9fec7af); check the deployment runtime.'
@@ -485,6 +517,21 @@ function sdkUpgradeNotes(packages: { name: string; from: string | null; to: stri
     ...(crossed(13)
       ? [
           '@shopify/shopify-api 13 removed API versions 2022-10 to 2024-07 (0bb7837) and made WebhookFields a union keyed on webhookType (1eb863d); 13.1.0 signs OAuth and session cookies with a derived key, so merchants may need to sign in again.',
+        ]
+      : []),
+    ...(packages.some((entry) => entry.name === 'prisma')
+      ? [
+          `Prisma upgraded because session storage requires it: ${packages
+            .filter((entry) => entry.name === 'prisma' || entry.name === '@prisma/client')
+            .map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`)
+            .join(
+              ', ',
+            )}. Refit checked the schema against Prisma 6's documented breaking changes and changed no migration or model; run prisma generate and your migrations as usual.`,
+        ]
+      : []),
+    ...(prismaCrossed
+      ? [
+          '@shopify/shopify-app-session-storage-prisma 8 can store OAuth refresh tokens (700377f). Shopify documents it as backward-compatible: the new Session fields are optional. To keep refresh tokens, add refreshToken String? and refreshTokenExpires DateTime? to the Prisma Session model and run a migration.',
         ]
       : []),
     ...(crossed(14)
@@ -506,7 +553,7 @@ function versionFindings(
   scan: ShopifyScan,
   versions: { before: string; after: string },
   sdkRelease: string | undefined,
-  upgrade?: { release: string } | { refusal: string },
+  upgrade?: { release: string; lockless?: boolean } | { refusal: string },
 ) {
   const stopped =
     upgrade && 'refusal' in upgrade ? ` The SDK upgrade stopped: ${upgrade.refusal}` : '';
@@ -516,20 +563,41 @@ function versionFindings(
   const runtime = scan.versions.filter((entry) => !CODEGEN_CONFIG.test(entry.file) && !entry.api);
   const member = enumFromVersion(versions.after)!;
   // LATEST_API_VERSION is fixed by the locked SDK release, so it counts as that release's pin.
-  const latest = sdkRelease ? latestApiVersion(sdkRelease) : undefined;
-  const declared = [
+  // Without a lockfile the installed release is unknown, but LATEST_API_VERSION exists only before
+  // @shopify/shopify-api 12, where every value is older than the oldest supported version, which
+  // Shopify serves instead. The upgrade that replaces it then moves from that version.
+  const latest = sdkRelease
+    ? latestApiVersion(sdkRelease)
+    : upgrade && 'release' in upgrade && upgrade.lockless
+      ? versions.before
+      : undefined;
+  // Pins compared by the version Shopify serves: every pin older than the oldest supported version
+  // gets that version, so they do not disagree.
+  const pinned = [
     ...new Set([
       ...runtime.map((entry) => entry.value),
       ...(latest && scan.unresolvedVersions.some((entry) => entry.latest) ? [latest] : []),
     ]),
   ];
-  for (const entry of scan.unresolvedVersions)
+  const served = [
+    ...new Set(pinned.map((value) => (value < versions.before ? versions.before : value))),
+  ];
+  const declared = pinned.length > 1 ? served : pinned;
+  for (const entry of scan.unresolvedVersions.filter((entry) => entry.note))
+    findings.push({
+      ...entry,
+      changeId: SHOPIFY_VERSION_RULE,
+      expression: entry.note === 'unstable' ? 'unstable' : 'apiVersion',
+      confidence: 'review',
+      reason: entry.reason,
+    });
+  for (const entry of scan.unresolvedVersions.filter((entry) => !entry.note))
     findings.push(
       entry.latest && latest && upgradedRelease
         ? {
             ...entry,
             changeId: SHOPIFY_VERSION_RULE,
-            expression: `LATEST_API_VERSION (${latest} in @shopify/shopify-api ${sdkRelease}) → ApiVersion.${member}`,
+            expression: `LATEST_API_VERSION (${sdkRelease ? `${latest} in @shopify/shopify-api ${sdkRelease}` : `served as ${latest}; no lockfile`}) → ApiVersion.${member}`,
             confidence: 'confirmed',
             reason: `@shopify/shopify-api 12.0.0 removed LATEST_API_VERSION; the SDK upgrade to ${upgradedRelease} pins ApiVersion.${member}.`,
           }
@@ -605,7 +673,7 @@ function versionFindings(
     };
     findings.push(missing ? sdkBound(finding) : finding);
   }
-  if (!runtime.length && scan.adminCalls && !scan.unresolvedVersions.length)
+  if (!runtime.length && scan.adminCalls && !scan.unresolvedVersions.some((entry) => !entry.note))
     findings.push({
       file: scan.shopifyFiles[0] ?? 'package.json',
       line: 1,
@@ -634,7 +702,12 @@ function rewriteBreakingDocument(
   if (
     !result.findings.length ||
     result.otherApi ||
-    !result.findings.every((finding) => finding.reason.startsWith('Valid on'))
+    // Breaks the target brings, and breaks of documents that already fail on the oldest supported
+    // version, which Shopify serves today: a rule's rewrite must hold on the target either way.
+    !result.findings.every(
+      (finding) =>
+        finding.reason.startsWith('Valid on') || finding.reason.startsWith('This document already'),
+    )
   )
     return undefined;
   const rewrite = rewriteDocument(document.text, before, after, rules);
@@ -643,7 +716,7 @@ function rewriteBreakingDocument(
   const edits = rewrite.edits.map((edit) => sourceEdit(document, edit));
   if (edits.some((edit) => !edit))
     return { refusal: 'An edit falls on an escaped string the source spells differently.' };
-  const types = typeChanges(parse(document.text), document, before, after, versions);
+  const types = typeChanges(parse(document.text), document, before, after, versions, rewrite.text);
   if (types.findings.length)
     return { refusal: 'A selected field that the rules leave changes type on the target.' };
   const confidence = document.traced ? ('confirmed' as const) : ('review' as const);
@@ -673,6 +746,8 @@ type ShopifyRunOptions = {
   sdkUpgrade?: boolean;
   // With AI enabled, breaking documents no rule fixes are rewritten by the model (AI use 4).
   aiPatch?: AiOptions;
+  // Validation's networked lockfile resolution (pipeline/lockfile-resolution.ts), for SDK upgrades.
+  lockfileResolution?: { image: string; before: string };
   // The snapshot of another Admin API version, for the fallback below.
   snapshot?: (version: string) => Promise<Snapshot>;
 };
@@ -769,6 +844,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
   const rules = loadShopifyDocumentRules(versions.after);
   const documentEdits = new Map<string, SourceEdit>();
   const aiEdits: SourceEdit[] = [];
+  const variableNotes = new Set<string>();
   const aiAttempts: (ShopifyAiRewrite & { file: string; line: number })[] = [];
   const pool = fragmentPool(scan.documents);
   for (const original of scan.documents) {
@@ -777,6 +853,14 @@ async function shopifyRun(options: ShopifyRunOptions) {
       continue;
     }
     const document = withFragments(original, pool);
+    try {
+      for (const rule of variableRules(document.text, rules))
+        variableNotes.add(
+          `${document.file}:${document.line} sends ${rule.type} through a variable; Shopify rule ${rule.rule} (${rule.type}.${rule.member} → ${rule.replacement}) edits only values written in the document, so check what the code sends.`,
+        );
+    } catch {
+      // A document that does not parse is reported by checkDocument.
+    }
     let result = checkDocument(document, before, after, versions);
     const rewritten = rules.length
       ? rewriteBreakingDocument(document, result, before, after, versions, rules)
@@ -795,7 +879,13 @@ async function shopifyRun(options: ShopifyRunOptions) {
       !(rewritten && 'edits' in rewritten) &&
       result.findings.length &&
       !result.otherApi &&
-      result.findings.every((finding) => finding.reason.startsWith('Valid on')) &&
+      // Breaks on the target, or a document that already fails on the oldest supported version.
+      result.findings.every(
+        (finding) =>
+          (finding.reason.startsWith('Valid on') &&
+            !finding.changeId.startsWith('shopify-graphql-input:')) ||
+          finding.reason.startsWith('This document already'),
+      ) &&
       segment.sourceText.slice(segment.sourceStart, segment.sourceStart + document.text.length) ===
         document.text
     ) {
@@ -907,7 +997,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
     (scan.unresolvedVersions.some((entry) => entry.latest) ||
       scan.versions.some((entry) => entry.kind === 'enum' && !CODEGEN_CONFIG.test(entry.file))) &&
     !(sdkRelease && sdkHasEnumMember(sdkRelease, member))
-      ? await shopifySdkUpgrade(repository.root, member)
+      ? await shopifySdkUpgrade(repository.root, member, options.lockfileResolution)
       : undefined;
   const upgraded = upgradeResult && 'upgrade' in upgradeResult ? upgradeResult.upgrade : undefined;
   const source =
@@ -926,7 +1016,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
     versions,
     sdkRelease,
     upgraded
-      ? { release: upgraded.apiRelease }
+      ? { release: upgraded.apiRelease, lockless: upgraded.lockless }
       : upgradeResult && 'reason' in upgradeResult
         ? { refusal: upgradeResult.reason }
         : undefined,
@@ -1041,7 +1131,11 @@ async function shopifyRun(options: ShopifyRunOptions) {
                 ...restRewriteNotes(restRewrites),
                 ...(upgraded
                   ? [
-                      `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')} in package.json and package-lock.json from verified npm registry metadata (SHA-512 integrity)${upgraded.removed.length ? `, removing ${upgraded.removed.length} lock entries nothing requires any more` : ''}. Review it against the shopify-app-js changelogs and the v12 migration guide: ${SHOPIFY_MIGRATION_GUIDE}`,
+                      upgraded.lockless
+                        ? `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')} in package.json. No lockfile is committed, so the install resolves these ranges; Refit's checks ran against a lockfile it resolved in networked Docker, which is not part of this patch. Review it against the shopify-app-js changelogs: ${SHOPIFY_MIGRATION_GUIDE}`
+                        : upgraded.resolved
+                          ? `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')}. npm re-resolved package-lock.json from the committed one in networked Docker with lifecycle scripts off, as of ${upgraded.resolved.before}${upgraded.resolved.legacyPeerDeps ? ' with --legacy-peer-deps' : ''}, because the target SDK needs newer framework packages than the lockfile had${upgraded.resolved.frameworks.length ? ` (${upgraded.resolved.frameworks.join(', ')})` : ''}; nothing outside the Shopify and framework packages and what only they reach changed. Review it against the shopify-app-js changelogs: ${SHOPIFY_MIGRATION_GUIDE}`
+                          : `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')} in package.json and package-lock.json from verified npm registry metadata (SHA-512 integrity)${upgraded.removed.length ? `, removing ${upgraded.removed.length} lock entries nothing requires any more` : ''}. Review it against the shopify-app-js changelogs and the v12 migration guide: ${SHOPIFY_MIGRATION_GUIDE}`,
                       ...sdkUpgradeNotes(upgraded.packages),
                       ...Object.entries(upgraded.otherLockfiles ?? {}).map(
                         ([file, why]) =>
@@ -1055,9 +1149,13 @@ async function shopifyRun(options: ShopifyRunOptions) {
                       `${scan.documents.filter((document) => !document.traced).length} #graphql documents were not traced to an Admin call; they were checked against both contracts anyway.`,
                     ]
                   : []),
+                ...variableNotes,
+                ...scan.unresolvedVersions
+                  .filter((entry) => entry.note)
+                  .map((entry) => `${entry.file}:${entry.line}: ${entry.reason}`),
                 ...environmentPins.map(
                   (entry) =>
-                    `${entry.file}:${entry.line} moves the default Admin API version; the environment variable ${entry.envFallback} overrides it where it is set.`,
+                    `${entry.file}:${entry.line} moves the default Admin API version; ${/^[A-Z0-9_]+$/.test(entry.envFallback!) ? `the environment variable ${entry.envFallback}` : `\`${entry.envFallback}\``} overrides it where it is set.`,
                 ),
                 ...(storefront.length
                   ? [

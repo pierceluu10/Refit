@@ -20,7 +20,17 @@ type Manifest = Record<string, unknown>;
 type Releases = Record<string, Record<string, Manifest>>;
 
 // A small registry: @shopify/shopify-api 12.3.0 is the first release with ApiVersion.April26.
+const REMIX = '@shopify/shopify-app-remix';
+const RUNTIME = '@remix-run/server-runtime';
 const RELEASES: Releases = {
+  [REMIX]: {
+    '3.4.0': { dependencies: { [API]: '^11.14.1', [RUNTIME]: '^2.10.0' } },
+    '4.1.1': { dependencies: { [API]: '^12.3.0', [RUNTIME]: '^2.17.3' } },
+  },
+  [RUNTIME]: {
+    '2.15.2': { dependencies: { cookie: '^0.6.0' } },
+    '2.17.3': { dependencies: { cookie: '^0.7.0' } },
+  },
   [API]: {
     '11.14.1': { dependencies: { [ADMIN]: '^1.0.0', 'lossless-json': '^2.0.11' } },
     '12.0.0': { dependencies: { [ADMIN]: '^1.1.0' } },
@@ -45,6 +55,16 @@ const RELEASES: Releases = {
     '8.0.0': { dependencies: { [API]: '^14.0.0' } },
   },
 };
+
+// npm's networked re-resolution (pipeline/lockfile-resolution.ts) runs in Docker; tests answer it.
+const resolution = vi.hoisted(() => ({ lockfile: '', calls: [] as { manifest: string }[] }));
+vi.mock('./lockfile-resolution.ts', async (actual) => ({
+  ...(await actual<typeof import('./lockfile-resolution.ts')>()),
+  resolveNpmLockfile: async (options: { manifest: string; before: string }) => {
+    resolution.calls.push(options);
+    return { lockfile: resolution.lockfile, before: options.before, late: {} };
+  },
+}));
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -604,5 +624,133 @@ it('records why the opted-in upgrade stopped, from the lockfile or from the sour
     status: 'not-generated',
     reason: `The Shopify SDK upgrade stops for review: getJwt became asynchronous in ${API} 12.0.0 (dc41d09); its callers must await it.`,
     shopifySdkUpgrade: { to: '12.3.0' },
+  });
+});
+
+it('lets npm re-resolve framework packages an SDK major needs, and keeps nothing else it changes', async () => {
+  registry();
+  const entries = {
+    ...API_ENTRIES,
+    [REMIX]: locked(REMIX, '3.4.0', {
+      license: 'MIT',
+      dependencies: { [API]: '^11.14.1', [RUNTIME]: '^2.10.0' },
+    }),
+    [RUNTIME]: locked(RUNTIME, '2.15.2', { license: 'MIT', dependencies: { cookie: '^0.6.0' } }),
+    cookie: locked('cookie', '0.6.0', { license: 'MIT' }),
+    other: locked('other', '1.0.0', { license: 'MIT' }),
+  };
+  const declared = { [REMIX]: '^3.4.0', other: '^1.0.0' };
+  const root = await project({ declared, entries });
+  // Without resolution, the lockfile cannot take remix 4's newer server runtime.
+  expect(await shopifySdkUpgrade(root, 'April26')).toMatchObject({
+    reason: expect.stringContaining(`${RUNTIME} ^2.17.3`),
+  });
+  const resolved = (changes: Record<string, unknown>) =>
+    JSON.stringify(
+      lockfile(
+        { ...declared, [REMIX]: '^4.1.1' },
+        {
+          ...entries,
+          [REMIX]: locked(REMIX, '4.1.1', { license: 'MIT', dependencies: { [API]: '^12.3.0' } }),
+          [API]: locked(API, '12.3.0', { license: 'MIT', dependencies: { [ADMIN]: '^1.1.1' } }),
+          [RUNTIME]: locked(RUNTIME, '2.17.3', {
+            license: 'MIT',
+            dependencies: { cookie: '^0.7.0' },
+          }),
+          cookie: locked('cookie', '0.7.0', { license: 'MIT' }),
+          ...changes,
+        },
+      ),
+      null,
+      2,
+    ) + '\n';
+  resolution.lockfile = resolved({});
+  const result = await shopifySdkUpgrade(root, 'April26', {
+    image: 'node:22-alpine',
+    before: '2026-01-01T00:00:00Z',
+  });
+  expect(result).toMatchObject({
+    upgrade: {
+      primary: REMIX,
+      to: '4.1.1',
+      apiRelease: '12.3.0',
+      resolved: {
+        before: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+        frameworks: [`${RUNTIME} 2.15.2 → 2.17.3`],
+      },
+    },
+  });
+  expect(resolution.calls.at(-1)?.manifest).toContain(`"${REMIX}": "^4.1.1"`);
+  // A change to a package the app also uses on its own is refused.
+  resolution.lockfile = resolved({ other: locked('other', '1.1.0', { license: 'MIT' }) });
+  expect(
+    await shopifySdkUpgrade(root, 'April26', {
+      image: 'node:22-alpine',
+      before: '2026-01-01T00:00:00Z',
+    }),
+  ).toMatchObject({ reason: expect.stringContaining('node_modules/other') });
+});
+
+it('rewrites package.json alone when no lockfile is committed', async () => {
+  registry();
+  const root = await directory({
+    'package.json': `${JSON.stringify({ name: 'app', dependencies: { [API]: '^11.14.1' } }, null, 2)}\n`,
+  });
+  const result = await shopifySdkUpgrade(root, 'October26');
+  expect(result).toMatchObject({
+    upgrade: { primary: API, from: '11.14.1', to: '14.0.0', lockless: true, apiRelease: '14.0.0' },
+  });
+  const files = 'upgrade' in result ? result.upgrade.files : [];
+  expect(files.map((file) => file.path)).toEqual(['package.json']);
+  expect(files[0].after).toContain(`"${API}": "^14.0.0"`);
+});
+
+it('never moves a lockless declaration backwards and leaves one that already allows the target', async () => {
+  registry();
+  const root = await directory({
+    'package.json': `${JSON.stringify({ name: 'app', dependencies: { [REMIX]: '^4.1.0' } }, null, 2)}\n`,
+  });
+  expect(await shopifySdkUpgrade(root, 'January26')).toMatchObject({
+    upgrade: { primary: REMIX, to: '4.1.1', lockless: true, files: [] },
+  });
+});
+
+it('moves prisma with the session storage that needs it, and stops on Prisma 6 schema changes', async () => {
+  registry({
+    ...RELEASES,
+    [PRISMA_STORAGE]: {
+      '5.0.2': { peerDependencies: { [API]: '^11.0.0', prisma: '^5.0.0' } },
+      '7.0.0': {
+        peerDependencies: { [API]: '^12.0.0', prisma: '^6.15.0', '@prisma/client': '^6.15.0' },
+      },
+    },
+    prisma: { '5.22.0': {}, '6.15.0': {}, '6.19.0': {}, '7.0.0': {} },
+    '@prisma/client': { '5.22.0': {}, '6.19.0': {}, '7.0.0': {} },
+  });
+  const manifest = {
+    name: 'app',
+    dependencies: {
+      [REMIX]: '^3.4.0',
+      [PRISMA_STORAGE]: '^5.0.2',
+      '@prisma/client': '^5.22.0',
+      prisma: '^5.22.0',
+    },
+  };
+  const schema = (fields: string) =>
+    `datasource db {\n  provider = "sqlite"\n  url = "file:dev.sqlite"\n}\nmodel Session {\n  id String @id\n${fields}}\n`;
+  const root = await directory({
+    'package.json': `${JSON.stringify(manifest, null, 2)}\n`,
+    'prisma/schema.prisma': schema('  shop String\n'),
+  });
+  const result = await shopifySdkUpgrade(root, 'April26');
+  expect(result).toMatchObject({ upgrade: { primary: REMIX, to: '4.1.1', lockless: true } });
+  const after = 'upgrade' in result ? result.upgrade.files[0].after : '';
+  expect(after).toContain('"prisma": "^6.19.0"');
+  expect(after).toContain('"@prisma/client": "^6.19.0"');
+  expect(after).toContain(`"${PRISMA_STORAGE}": "^7.0.0"`);
+  await writeFile(join(root, 'prisma/schema.prisma'), schema('  data Bytes\n'));
+  expect(await shopifySdkUpgrade(root, 'April26')).toEqual({
+    reason:
+      'Prisma 6 returns Bytes fields as Uint8Array instead of Buffer, and the schema has a Bytes field.',
   });
 });

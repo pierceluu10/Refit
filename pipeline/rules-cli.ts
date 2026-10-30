@@ -59,7 +59,7 @@ import { PipelineInputError } from './types.ts';
 
 const USAGE = `Usage: refit rules check [--contracts <directory>] [--provider shopify] [--coverage <shopify-coverage.json>]
        refit rules save-page --url <https://shopify.dev/....md> [--url ...]
-       refit rules mine-shopify --output <new-directory> [--write] [--limit <entries>]
+       refit rules mine-shopify --output <new-directory> [--write] [--limit <entries>] [--entry <slug> ...]
        refit rules generate --version <api-version> [--version ...] --output <new-directory> [--write] [--contracts <directory>]`;
 const CHANGELOG = { label: 'stripe-changelog', url: 'https://docs.stripe.com/changelog.md' };
 const TABLES = fileURLToPath(new URL('../data/rules/stripe/', import.meta.url));
@@ -79,6 +79,7 @@ const { values, positionals } = parseArgs({
     provider: { type: 'string' },
     url: { type: 'string', multiple: true },
     limit: { type: 'string' },
+    entry: { type: 'string', multiple: true },
     help: { type: 'boolean' },
   },
 });
@@ -382,6 +383,7 @@ async function mineShopify() {
   const feed = await response.text();
   const entries = changelogEntries(feed)
     .filter(isChangeEntry)
+    .filter((entry) => !values.entry?.length || values.entry.includes(entry.slug))
     .slice(0, values.limit ? Number(values.limit) : undefined);
   const pages = new Map<string, CapturedDocumentation>();
   for (const entry of entries) {
@@ -396,19 +398,14 @@ async function mineShopify() {
   };
   const evidence = { pages: await capturedPages(SHOPIFY_PAGES), releases };
   const minings: EntryMining[] = [];
-  // Six entries at a time; the budget ledger serialises its own updates.
-  for (let index = 0; index < entries.length; index += 6)
-    minings.push(
-      ...(await Promise.all(
-        entries.slice(index, index + 6).map(async (entry) => {
-          const mining = await mineEntry(entry, pages.get(entry.url.replace(/\.md$/, ''))!, ai);
-          console.error(
-            `[${minings.length + 1}/${entries.length}] ${entry.slug}: ${mining.error ?? `${mining.candidates.length} candidates`} ($${mining.costUsd.toFixed(4)})`,
-          );
-          return mining;
-        }),
-      )),
+  // One entry at a time: the budget ledger's lock refuses concurrent reservations.
+  for (const [index, entry] of entries.entries()) {
+    const mining = await mineEntry(entry, pages.get(entry.url.replace(/\.md$/, ''))!, ai);
+    console.error(
+      `[${index + 1}/${entries.length}] ${entry.slug}: ${mining.error ?? `${mining.candidates.length} candidates`} ($${mining.costUsd.toFixed(4)})`,
     );
+    minings.push(mining);
+  }
   const outcomes: { entry: string; candidate: MinedCandidate; outcome: Outcome }[] = [];
   for (const mining of minings)
     for (const candidate of mining.candidates) {
