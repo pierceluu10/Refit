@@ -2030,6 +2030,60 @@ export function analyzeRepository(
       field.additionalProperties.type === 'string'
     );
   }
+  // A value read through a field the before contract does not declare on a traced object, such as
+  // `invoice.parent` before Stripe added it: the object the code traced never held that field at the
+  // before version, so nothing read through it is that object's removed field.
+  function undeclaredPath(expression: ts.Expression): boolean {
+    while (ts.isNonNullExpression(expression) || ts.isParenthesizedExpression(expression))
+      expression = expression.expression;
+    // A receiver Refit traces to a schema, such as a narrowed webhook object, is read as that schema.
+    if (!ts.isPropertyAccessExpression(expression) || schemaForExpression(expression) !== undefined)
+      return false;
+    const parent = schemaForExpression(expression.expression);
+    if (parent === undefined) return undeclaredPath(expression.expression);
+    // An event's `data.object` is any object; the webhook tracer types it by the event type.
+    if (parent === 'event') return false;
+    const definition = componentDefinition(schemaDefinitions, parent)?.definition;
+    return (
+      isObject(definition) &&
+      isObject(definition.properties) &&
+      definition.additionalProperties === undefined &&
+      !definition.anyOf &&
+      !Object.hasOwn(definition.properties, expression.name.text)
+    );
+  }
+  // `body.type === 'v2.core.event'`: a read only compared with a string the removed field never
+  // held (outside its enum in the before contract) gives the same result whether the field is there
+  // or not, so it is not a read the removal changes.
+  function comparedOutsideEnum(node: ts.Node, change: Removal) {
+    let read = node;
+    while (ts.isParenthesizedExpression(read.parent)) read = read.parent;
+    const comparison = read.parent;
+    if (
+      !ts.isBinaryExpression(comparison) ||
+      ![
+        ts.SyntaxKind.EqualsEqualsEqualsToken,
+        ts.SyntaxKind.ExclamationEqualsEqualsToken,
+        ts.SyntaxKind.EqualsEqualsToken,
+        ts.SyntaxKind.ExclamationEqualsToken,
+      ].includes(comparison.operatorToken.kind)
+    )
+      return false;
+    const other = comparison.left === read ? comparison.right : comparison.left;
+    if (!ts.isStringLiteralLike(other)) return false;
+    const definition = componentDefinition(schemaDefinitions, change.schema)?.definition;
+    const field =
+      isObject(definition) && isObject(definition.properties)
+        ? definition.properties[change.property]
+        : undefined;
+    return (
+      isObject(field) &&
+      Array.isArray(field.enum) &&
+      field.enum.length > 0 &&
+      field.enum.every((value) => typeof value === 'string') &&
+      !field.enum.includes(other.text)
+    );
+  }
   function record(node: ts.Node, receiver: ts.Expression, property: string | undefined) {
     if (
       property !== undefined &&
@@ -2040,6 +2094,7 @@ export function analyzeRepository(
     // SDK resources are not response fields, even when their names match a removal.
     if (sdkAccess(receiver)) return;
     if (readsMovedPath(node)) return;
+    if (undeclaredPath(receiver)) return;
     const at = location(node);
     const proven = (change: Removal) =>
       typeProvenReads.has(`${at.file}\0${at.line}\0${at.column}\0${change.id}`);
@@ -2073,6 +2128,7 @@ export function analyzeRepository(
     for (const change of changes) {
       if (tracked && change.schema !== schema) continue;
       if (property !== undefined && change.property !== property) continue;
+      if (!tracked && comparedOutsideEnum(node, change)) continue;
       if (!tracked && !providerDetected && !checkedRead) continue;
       // Unresolved Stripe receivers are flagged only where files work with Stripe; if none are
       // identifiable, every same-named read stays flagged.
