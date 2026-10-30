@@ -339,6 +339,8 @@ export function githubSources(manifest: Record<string, unknown>, seed?: string) 
 
 // Only the .npmrc settings that change resolution are read; the file never reaches the manager. A
 // registry for a scope the manifest never declares cannot change what resolves.
+const PUBLIC_REGISTRY = /^(["']?)https:\/\/registry\.npmjs\.org\/?\1$/;
+
 export function npmrcRefusal(npmrc: string, manifest: Record<string, unknown>) {
   const declared = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']
     .flatMap((section) => (isObject(manifest[section]) ? Object.entries(manifest[section]) : []))
@@ -348,8 +350,9 @@ export function npmrcRefusal(npmrc: string, manifest: Record<string, unknown>) {
     ]);
   const refused = npmrc.split(/\r?\n/).some((line) => {
     if (/_auth/.test(line)) return true;
-    const registry = /^\s*(@[^:\s]+:)?registry\s*=/.exec(line);
-    if (!registry) return false;
+    const registry = /^\s*(@[^:\s]+:)?registry\s*=\s*(.*?)\s*$/.exec(line);
+    // The public registry itself, which resolution uses anyway (the Shopify app template's line).
+    if (!registry || PUBLIC_REGISTRY.test(registry[2])) return false;
     const scope = registry[1]?.slice(0, -1);
     return !scope || declared.some((name) => name.startsWith(`${scope}/`));
   });

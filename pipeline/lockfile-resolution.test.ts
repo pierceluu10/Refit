@@ -490,10 +490,15 @@ it('refuses an .npmrc registry only for the scopes package.json declares, and an
   const manifest = { dependencies: { next: '^15.0.0' } };
   expect(npmrcRefusal('\n@jsr:registry=https://npm.jsr.io\n', manifest)).toBeUndefined();
   expect(npmrcRefusal('legacy-peer-deps=true\n', manifest)).toBeUndefined();
+  // The Shopify app template's .npmrc names the public registry itself, which changes nothing.
+  const shopify = { dependencies: { '@shopify/shopify-app-remix': '^3.7.0' } };
+  expect(npmrcRefusal('@shopify:registry=https://registry.npmjs.org\n', shopify)).toBeUndefined();
+  expect(npmrcRefusal('registry = "https://registry.npmjs.org/"\n', manifest)).toBeUndefined();
   for (const [npmrc, declared] of [
     ['@jsr:registry=https://npm.jsr.io', { dependencies: { '@jsr/std__path': '^1.0.0' } }],
     ['@jsr:registry=https://npm.jsr.io', { dependencies: { path: 'npm:@jsr/std__path@^1' } }],
     ['registry=https://npm.acme.test/', manifest],
+    ['@shopify:registry=https://registry.npmjs.org.acme.test/', shopify],
     ['//registry.npmjs.org/:_authToken=${NPM_TOKEN}', manifest],
   ] as const)
     expect(npmrcRefusal(npmrc, declared)).toMatch(
