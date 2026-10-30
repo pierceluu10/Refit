@@ -7,6 +7,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import {
   dockerSandboxArguments,
   removeExpiredSandboxContainers,
+  INSTALLER_CACHE,
   SANDBOX_EXPIRY_LABEL,
 } from './docker-sandbox.ts';
 import { validateSourcePatch } from './validation.ts';
@@ -159,6 +160,29 @@ it('gives dependency preparation the registry network and its own deadline, noth
   );
   expect(args).not.toContain('--privileged');
   expect(args.join(' ')).not.toMatch(/unconfined|--cap-add|--device|docker\.sock|--volume|-v /);
+});
+
+it("mounts only the installer's package cache writable, outside the tmpfs workspace", () => {
+  const options = {
+    name: 'refit-dependencies',
+    directory: '/tmp/inputs',
+    image: 'sha256:image',
+    command: ['sh', '-c', 'yarn install'],
+    network: 'bridge' as const,
+    timeoutMs: 300_000,
+    preparation: { workspace: '4g', memory: '5g' },
+  };
+  const args = dockerSandboxArguments({ ...options, installerCache: '/data/tmp/cache' });
+  const mounts = args.flatMap((value, index) => (args[index - 1] === '--mount' ? [value] : []));
+  expect(mounts).toEqual([
+    'type=bind,src=/tmp/inputs,dst=/input,readonly',
+    `type=bind,src=/data/tmp/cache,dst=${INSTALLER_CACHE}`,
+  ]);
+  expect(args).toContain('--read-only');
+  expect(dockerSandboxArguments(options).join(' ')).not.toContain(INSTALLER_CACHE);
+  expect(() => dockerSandboxArguments({ ...options, installerCache: '/a,dst=/etc' })).toThrow(
+    'must not contain commas',
+  );
 });
 
 it('refuses bind-mount paths that would split the mount specification', () => {

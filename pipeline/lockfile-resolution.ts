@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -43,6 +43,17 @@ export const RESOLVABLE_REFUSALS = new Set([
   'non-registry-dependency',
 ]);
 
+// The package managers a re-resolution can run, with the lockfile each writes. The Shopify SDK
+// upgrade (shopify-sdk-upgrade.ts) runs each with the project's own release.
+export type ResolutionManager = 'npm' | 'pnpm' | 'yarn' | 'yarn-berry' | 'bun';
+export const RESOLUTION_LOCKFILES: Record<ResolutionManager, string> = {
+  npm: 'package-lock.json',
+  pnpm: PNPM_LOCKFILE,
+  yarn: 'yarn.lock',
+  'yarn-berry': 'yarn.lock',
+  bun: 'bun.lock',
+};
+
 export class LockfileResolutionError extends PipelineInputError {
   override name = 'LockfileResolutionError';
   constructor(
@@ -71,14 +82,18 @@ export function lockfileResolutionEnabled(value = process.env.REFIT_LOCKFILE_RES
 export const RESOLVE_SCRIPT = `
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
-const [cutoff, legacyFlag, manager, pnpmVersion, tarballs] = process.argv.slice(1);
-const lockfile = manager === "pnpm" ? "pnpm-lock.yaml" : "package-lock.json";
+const [cutoff, legacyFlag, manager, managerVersion, tarballs, extraArguments] = process.argv.slice(1);
+const extra = JSON.parse(extraArguments ?? "[]");
+const lockfile = { pnpm: "pnpm-lock.yaml", yarn: "yarn.lock", "yarn-berry": "yarn.lock", bun: "bun.lock" }[manager] ?? "package-lock.json";
 const text = readFileSync("package.json", "utf8");
 const manifest = JSON.parse(text);
 const sections = ["dependencies", "devDependencies", "optionalDependencies"];
 writeFileSync("/tmp/refit-user.npmrc", "");
 writeFileSync("/tmp/refit-global.npmrc", "");
-const env = { ...process.env, npm_config_userconfig: "/tmp/refit-user.npmrc", npm_config_globalconfig: "/tmp/refit-global.npmrc", npm_config_update_notifier: "false", npm_config_manage_package_manager_versions: "false", pnpm_config_pm_on_fail: "ignore", COREPACK_ENABLE_NETWORK: "0", CI: "true", PNPM_HOME: "/workspace/.pnpm-home", XDG_CACHE_HOME: "/workspace/.cache", XDG_STATE_HOME: "/workspace/.state", XDG_DATA_HOME: "/workspace/.data" };
+const env = { ...process.env, npm_config_userconfig: "/tmp/refit-user.npmrc", npm_config_globalconfig: "/tmp/refit-global.npmrc", npm_config_update_notifier: "false", npm_config_manage_package_manager_versions: "false", pnpm_config_pm_on_fail: "ignore", COREPACK_ENABLE_NETWORK: "0", CI: "true", PNPM_HOME: "/workspace/.pnpm-home", XDG_CACHE_HOME: "/workspace/.cache", XDG_STATE_HOME: "/workspace/.state", XDG_DATA_HOME: "/workspace/.data", YARN_ENABLE_SCRIPTS: "false", YARN_ENABLE_TELEMETRY: "false", YARN_ENABLE_IMMUTABLE_INSTALLS: "false", YARN_ENABLE_GLOBAL_CACHE: "false", YARN_IGNORE_PATH: "true", YARN_CACHE_FOLDER: "/workspace/.yarn-cache", YARN_NODE_LINKER: "node-modules", YARN_NPM_REGISTRY_SERVER: "https://registry.yarnpkg.com", BUN_INSTALL_CACHE_DIR: "/workspace/.bun-cache" };
+const tools = "/workspace/.refit-tools/node_modules/";
+// Bun's own binary for the container's platform (the image is Alpine, so musl).
+const bunPackage = "@oven/bun-linux-" + (process.arch === "arm64" ? "aarch64" : "x64") + "-musl";
 const run = (command, args) => {
   const result = spawnSync(command, args, { env, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
   process.stderr.write(result.stdout + result.stderr);
@@ -93,13 +108,18 @@ for (const url of JSON.parse(tarballs)) {
     process.exit(1);
   }
 }
-if (manager === "pnpm" && run("npm", ["install", "--prefix", "/workspace/.refit-tools", "--cache=/workspace/.npm-cache", "--ignore-scripts", "--no-audit", "--no-fund", "--registry=https://registry.npmjs.org/", "pnpm@" + pnpmVersion]).status !== 0) process.exit(1);
+const tool = { pnpm: "pnpm", yarn: "yarn", "yarn-berry": "@yarnpkg/cli-dist", bun: bunPackage }[manager];
+if (tool && run("npm", ["install", "--prefix", "/workspace/.refit-tools", "--cache=/workspace/.npm-cache", "--ignore-scripts", "--no-audit", "--no-fund", "--registry=https://registry.npmjs.org/", tool + "@" + managerVersion]).status !== 0) process.exit(1);
 let legacy = legacyFlag === "1";
 function resolve(before) {
   if (manager === "pnpm") {
     const minutes = Math.max(0, Math.floor((Date.now() - Date.parse(before)) / 60000));
-    return run("/workspace/.refit-tools/node_modules/.bin/pnpm", ["install", "--lockfile-only", "--no-frozen-lockfile", "--ignore-scripts", "--config.ignore-pnpmfile=true", "--store-dir=/workspace/.pnpm-store", "--registry=https://registry.npmjs.org/", "--config.minimum-release-age=" + minutes]);
+    return run(tools + ".bin/pnpm", ["install", "--lockfile-only", "--no-frozen-lockfile", "--ignore-scripts", "--config.ignore-pnpmfile=true", "--store-dir=/workspace/.pnpm-store", "--registry=https://registry.npmjs.org/", ...(minutes ? ["--config.minimum-release-age=" + minutes] : []), ...extra]);
   }
+  // Yarn 1 has no lockfile-only mode; it installs with scripts off into a folder nothing reads.
+  if (manager === "yarn") return run(tools + ".bin/yarn", ["install", "--ignore-scripts", "--ignore-engines", "--non-interactive", "--no-progress", "--registry", "https://registry.yarnpkg.com", "--cache-folder", "/workspace/.yarn-cache", "--modules-folder", "/workspace/.refit-modules", ...extra]);
+  if (manager === "yarn-berry") return run("node", [tools + "@yarnpkg/cli-dist/bin/yarn.js", "install", "--mode=update-lockfile", ...extra]);
+  if (manager === "bun") return run(tools + bunPackage + "/bin/bun", ["install", "--lockfile-only", "--ignore-scripts", "--no-progress", "--registry=https://registry.npmjs.org/", ...extra]);
   const result = run("npm", ["install", "--package-lock-only", "--ignore-scripts", "--no-audit", "--no-fund", "--registry=https://registry.npmjs.org/", "--cache=/workspace/.npm-cache", "--before=" + before, ...(legacy ? ["--legacy-peer-deps"] : [])]);
   if (result.status === 0 || legacy || !/^npm (?:ERR!|error) code ERESOLVE$/m.test(result.output)) return result;
   legacy = true;
@@ -107,7 +127,7 @@ function resolve(before) {
 }
 const tooNew = manager === "pnpm"
   ? /ERR_PNPM_NO_MATURE_MATCHING_VERSION\\s+Version \\S+ \\([^)]*\\) of (@?[^\\s@]+) does not meet/
-  : /No matching version found for (@?[^@\\s]+)@(\\S+?) with a date before/;
+  : manager === "npm" ? /No matching version found for (@?[^@\\s]+)@(\\S+?) with a date before/ : /(?!)/;
 async function published(name, version) {
   const response = await fetch("https://registry.npmjs.org/" + name.replace("/", "%2f"), { headers: { accept: "application/json" }, redirect: "error" });
   if (!response.ok) throw new Error("The npm registry returned HTTP " + response.status + " for " + name + ".");
@@ -157,8 +177,17 @@ export async function resolveNpmLockfile(options: {
   seed?: string;
   before: string;
   legacyPeerDeps?: boolean;
-  manager?: 'npm' | 'pnpm';
+  manager?: ResolutionManager;
+  // The release of the manager to run; pnpm defaults to PNPM_RESOLUTION_VERSION.
+  managerVersion?: string;
+  // Further arguments to the manager's install (lockfile settings to keep).
+  managerArguments?: string[];
+  // pnpm-workspace.yaml, which names pnpm's workspaces and catalogs.
+  pnpmWorkspace?: string;
   tarballs?: string[];
+  // npm workspaces' package.json files, at their paths: a project with workspaces resolves only
+  // with them (the Shopify app template's `extensions/*`).
+  workspaces?: { path: string; content: string }[];
   image: string;
   signal?: AbortSignal;
 }): Promise<ResolvedLockfile> {
@@ -167,19 +196,33 @@ export async function resolveNpmLockfile(options: {
     throw new PipelineInputError(`Lockfile resolution needs a date; ${options.before} is not one.`);
   const manifest = parseJson(options.manifest);
   if (!isObject(manifest)) throw new PipelineInputError('package.json is not an object.');
-  if (manager === 'npm' && manifest.workspaces !== undefined)
+  if (
+    (manager === 'npm' || manager === 'yarn' || manager === 'yarn-berry' || manager === 'bun') &&
+    manifest.workspaces !== undefined &&
+    !options.workspaces
+  )
     throw new PipelineInputError('Refit resolves lockfiles only for projects without workspaces.');
+  for (const workspace of options.workspaces ?? [])
+    if (
+      !/^(?:[\w@.-]+\/)*package\.json$/.test(workspace.path) ||
+      workspace.path.split('/').includes('..')
+    )
+      throw new PipelineInputError(
+        `Workspace manifest path ${workspace.path} is not a relative package.json.`,
+      );
   const input = await mkdtemp(join(tmpdir(), 'refit-lock-input-'));
   const name = `refit-lockfile-${randomUUID()}`;
   try {
     await chmod(input, 0o755);
     await writeFile(join(input, 'package.json'), options.manifest, { mode: 0o644 });
+    for (const workspace of options.workspaces ?? []) {
+      await mkdir(join(input, workspace.path, '..'), { recursive: true, mode: 0o755 });
+      await writeFile(join(input, workspace.path), workspace.content, { mode: 0o644 });
+    }
+    if (options.pnpmWorkspace !== undefined)
+      await writeFile(join(input, PNPM_WORKSPACE), options.pnpmWorkspace, { mode: 0o644 });
     if (options.seed !== undefined)
-      await writeFile(
-        join(input, manager === 'pnpm' ? PNPM_LOCKFILE : 'package-lock.json'),
-        options.seed,
-        { mode: 0o644 },
-      );
+      await writeFile(join(input, RESOLUTION_LOCKFILES[manager]), options.seed, { mode: 0o644 });
     await removeExpiredSandboxContainers();
     const argumentsList = dockerSandboxArguments({
       name,
@@ -193,8 +236,9 @@ export async function resolveNpmLockfile(options: {
         new Date(options.before).toISOString(),
         options.legacyPeerDeps ? '1' : '0',
         manager,
-        PNPM_RESOLUTION_VERSION,
+        options.managerVersion ?? PNPM_RESOLUTION_VERSION,
         JSON.stringify(options.tarballs ?? []),
+        JSON.stringify(options.managerArguments ?? []),
       ],
       network: 'bridge',
       timeoutMs: RESOLUTION_TIMEOUT_MS,
@@ -226,7 +270,7 @@ export async function resolveNpmLockfile(options: {
       throw new LockfileResolutionError('Lockfile resolution did not produce a lockfile.');
     return {
       lockfile:
-        options.seed === undefined || manager === 'pnpm'
+        options.seed === undefined || manager !== 'npm'
           ? output.lockfile
           : keepSeedNames(options.seed, output.lockfile),
       before: options.before,

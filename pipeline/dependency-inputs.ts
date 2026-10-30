@@ -44,9 +44,14 @@ export interface PreparationIdentity {
   bunLockHash?: string;
   // Committed pnpm patch files by path, with the SHA-256 pnpm-lock.yaml records for each.
   patchHashes?: Record<string, string>;
+  // npm packages locked to a public code host's release archive with their integrity (npm-lock.ts).
+  remoteTarballs?: number;
   // Of several committed lockfiles, the one Refit installed, by which rule, and what each other one
   // shows (chosenLockfile).
   lockfileChoice?: LockfileChoice;
+  // A yarn.lock whose records without a registry URL or integrity Refit completed from the
+  // registry's metadata for their exact versions, for validation only (lockfile-completion.ts).
+  completedLockfile?: { lockfile: string; registry: string; records: string[] };
   // A lockfile Refit resolved for validation only, in place of the refused or missing one
   // (lockfile-resolution.ts): the refusal, the cutoff, pins resolved after it, the manager when it
   // is pnpm, whether npm needed --legacy-peer-deps, and GitHub dependencies fetched as archives.

@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "new-card-brands-for-ordertransactionspaymentmethods",
+  "url": "https://shopify.dev/changelog/posts/new-card-brands-for-ordertransactionspaymentmethods.md",
+  "revision": "8e434200f4759a4d851bea0ccd4625053ccab65bd0856bc38fbccfd7c1383a83",
+  "hash": "8e434200f4759a4d851bea0ccd4625053ccab65bd0856bc38fbccfd7c1383a83",
+  "content": "---\ntitle: >-\nNew card brands for OrderTransactions.paymentMethods - Shopify developer\nchangelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/new-card-brands-for-ordertransactionspaymentmethods\nmd: >-\nhttps://shopify.dev/changelog/posts/new-card-brands-for-ordertransactionspaymentmethods.md\nmetadata:\neffectiveApiVersion: 2025-04\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Update\nhandle: update\nindicatesActionRequired: false\ncreatedAt: '2025-01-09T10:28:53-05:00'\npostedAt: '2025-01-10T12:00:00-05:00'\nupdatedAt: '2025-01-09T11:12:23-05:00'\neffectiveAt: '2025-01-10T12:00:00-05:00'\n---\n\nJanuary 10, 2025\n\n# New card brands for OrderTransactions.paymentMethods\n\nDateJanuary 10, 2025\n\nVersion[2025-04](https://shopify.dev/changelog?api_version=2025-04)\n\nFlagsUpdate\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nThe [`OrderTransactions.paymentMethods`](https://shopify.dev/docs/api/admin-graphql/unstable/enums/PaymentMethods) enumerated type now includes two new values: `CARTES_BANCAIRES` and `BANCONTACT`. Starting with API version `2025-04`, order transactions paid using these methods will reflect the new values in GraphQL API responses.",
+  "contentType": "text/markdown"
+}

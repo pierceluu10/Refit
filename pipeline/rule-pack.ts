@@ -368,6 +368,8 @@ export interface RuleProvenance {
   origin: (typeof RULE_ORIGINS)[number];
   generatedBy?: { model: string; responseId: string };
   benchmark?: string;
+  // Shopify: the decision under which per-patch proof makes the rule automatic.
+  decision?: string;
   // A learned rule's proven fixes, and why it was rolled back (pipeline/learning.ts).
   learnedFrom?: { repo: string; run: string; grade: string | null }[];
   demoted?: { at: string; reason: string };
@@ -411,55 +413,71 @@ export function parseRuleTable(value: unknown, file: string, rules = new Set<str
     if (!isObject(entry)) fail(file, 'every rule must be an object.');
     if (FIELD_FAMILIES.has(entry.family as string)) checkFieldMove(file, entry, rules);
     else checkRequestMove(file, entry, rules);
-    const name = entry.rule as string;
-    if (typeof entry.checkedAt !== 'string' || !DAY.test(entry.checkedAt))
-      fail(file, `${name} needs checkedAt as YYYY-MM-DD.`);
-    const evidence = [entry, ...(Array.isArray(entry.also) ? entry.also : [])];
-    if (entry.also !== undefined && (!Array.isArray(entry.also) || !entry.also.length))
-      fail(file, `${name} also must list further evidence when set.`);
-    for (const item of evidence) {
-      const diff = isObject(item) ? item.diff : undefined;
-      if (
-        !isObject(item) ||
-        typeof item.source !== 'string' ||
-        !SOURCE.test(item.source) ||
-        typeof item.quote !== 'string' ||
-        !item.quote.trim() ||
-        item.quote.length > MAX_QUOTE_LENGTH ||
-        !isObject(diff) ||
-        Object.keys(diff).sort().join(',') !== 'id,operationId,text' ||
-        !Object.values(diff).every((part) => typeof part === 'string' && part.length > 0)
-      )
-        fail(
-          file,
-          `${name} needs each source with a quote of at most ${MAX_QUOTE_LENGTH} characters and its oasdiff entry as exactly id, operationId and text.`,
-        );
-    }
-    if (!RULE_STATUSES.includes(entry.status as RuleProvenance['status']))
-      fail(file, `${name} status must be auto or review-only.`);
-    if (!RULE_ORIGINS.includes(entry.origin as RuleProvenance['origin']))
-      fail(file, `${name} origin must be generated, hand-written or learned.`);
-    if (
-      entry.origin === 'learned' &&
-      (!Array.isArray(entry.learnedFrom) ||
-        new Set(entry.learnedFrom.map((item) => (isObject(item) ? String(item.repo) : ''))).size <
-          3)
-    )
-      fail(file, `${name} is learned and needs learnedFrom with at least 3 repositories.`);
-    const generatedBy = entry.generatedBy;
-    if (
-      entry.origin === 'generated' &&
-      (!isObject(generatedBy) ||
-        typeof generatedBy.model !== 'string' ||
-        !generatedBy.model ||
-        typeof generatedBy.responseId !== 'string' ||
-        !generatedBy.responseId)
-    )
-      fail(file, `${name} is generated and needs generatedBy with a model and a response id.`);
-    if (entry.status === 'auto' && (typeof entry.benchmark !== 'string' || !entry.benchmark))
-      fail(file, `${name} is auto and needs the benchmark run that showed zero wrong patches.`);
+    checkRuleProvenance(file, entry);
   }
   return value as unknown as RuleTable;
+}
+
+// The provenance every table rule carries, whichever provider and family: source pages with
+// verbatim quotes, the contract diff entry it answers, its status and origin.
+// `autoNeeds` names what an auto rule must cite: the benchmark run (Stripe, owner decision D3) or
+// the decision that lets per-patch proof stand in for it (Shopify, pipeline/shopify-rules.ts).
+export function checkRuleProvenance(
+  file: string,
+  entry: Record<string, unknown>,
+  autoNeeds: 'benchmark' | 'decision' = 'benchmark',
+) {
+  const name = entry.rule as string;
+  if (typeof entry.checkedAt !== 'string' || !DAY.test(entry.checkedAt))
+    fail(file, `${name} needs checkedAt as YYYY-MM-DD.`);
+  const evidence = [entry, ...(Array.isArray(entry.also) ? entry.also : [])];
+  if (entry.also !== undefined && (!Array.isArray(entry.also) || !entry.also.length))
+    fail(file, `${name} also must list further evidence when set.`);
+  for (const item of evidence) {
+    const diff = isObject(item) ? item.diff : undefined;
+    if (
+      !isObject(item) ||
+      typeof item.source !== 'string' ||
+      !SOURCE.test(item.source) ||
+      typeof item.quote !== 'string' ||
+      !item.quote.trim() ||
+      item.quote.length > MAX_QUOTE_LENGTH ||
+      !isObject(diff) ||
+      Object.keys(diff).sort().join(',') !== 'id,operationId,text' ||
+      !Object.values(diff).every((part) => typeof part === 'string' && part.length > 0)
+    )
+      fail(
+        file,
+        `${name} needs each source with a quote of at most ${MAX_QUOTE_LENGTH} characters and its oasdiff entry as exactly id, operationId and text.`,
+      );
+  }
+  if (!RULE_STATUSES.includes(entry.status as RuleProvenance['status']))
+    fail(file, `${name} status must be auto or review-only.`);
+  if (!RULE_ORIGINS.includes(entry.origin as RuleProvenance['origin']))
+    fail(file, `${name} origin must be generated, hand-written or learned.`);
+  if (
+    entry.origin === 'learned' &&
+    (!Array.isArray(entry.learnedFrom) ||
+      new Set(entry.learnedFrom.map((item) => (isObject(item) ? String(item.repo) : ''))).size < 3)
+  )
+    fail(file, `${name} is learned and needs learnedFrom with at least 3 repositories.`);
+  const generatedBy = entry.generatedBy;
+  if (
+    entry.origin === 'generated' &&
+    (!isObject(generatedBy) ||
+      typeof generatedBy.model !== 'string' ||
+      !generatedBy.model ||
+      typeof generatedBy.responseId !== 'string' ||
+      !generatedBy.responseId)
+  )
+    fail(file, `${name} is generated and needs generatedBy with a model and a response id.`);
+  if (entry.status === 'auto' && (typeof entry[autoNeeds] !== 'string' || !entry[autoNeeds]))
+    fail(
+      file,
+      autoNeeds === 'benchmark'
+        ? `${name} is auto and needs the benchmark run that showed zero wrong patches.`
+        : `${name} is auto and needs the decision that makes it automatic.`,
+    );
 }
 
 export function loadRuleTables(directory: URL, rules = new Set<string>()): RuleTable[] {

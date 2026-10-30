@@ -77,6 +77,7 @@ import {
 } from './api-version.ts';
 import { PipelineInputError, type Finding, type Repository, type SourceEdit } from './types.ts';
 import { digest, findRemovedProperties, isObject, readSpecification } from './specifications.ts';
+import { shopifySnapshotPath } from './shopify-schemas.ts';
 import { stripeAdapterFor } from './stripe-operations.ts';
 import {
   addTypeEvidence,
@@ -1114,5 +1115,9 @@ export async function runPipeline(
     apiVersion: validateApiVersion(options.apiVersion),
     apiVersionPolicy: validateApiVersionPolicy(options.apiVersionPolicy),
     sdkUpgrade: options.shopifySdkUpgrade,
+    aiPatch: options.aiPatch,
+    lockfileResolution: options.lockfileResolution,
+    snapshot: async (version) =>
+      readSpecification(await shopifySnapshotPath(version, options.after)),
   })) as unknown as PipelineReport;
 }

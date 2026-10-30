@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "identifier-support-added-to-the-productupdate-mutation",
+  "url": "https://shopify.dev/changelog/posts/identifier-support-added-to-the-productupdate-mutation.md",
+  "revision": "ee0aa99ec11efdafdc4882a0c08a1f5e2cc7559c9c866c2088f2dfac45008e6d",
+  "hash": "ee0aa99ec11efdafdc4882a0c08a1f5e2cc7559c9c866c2088f2dfac45008e6d",
+  "content": "---\ntitle: >-\nIdentifier support added to the productUpdate mutation - Shopify developer\nchangelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/identifier-support-added-to-the-productupdate-mutation\nmd: >-\nhttps://shopify.dev/changelog/posts/identifier-support-added-to-the-productupdate-mutation.md\nmetadata:\neffectiveApiVersion: 2026-04\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Update\nhandle: update\nindicatesActionRequired: false\ncreatedAt: '2026-03-10T17:44:24-04:00'\npostedAt: '2026-04-01T00:00:00-04:00'\nupdatedAt: '2026-03-16T16:31:25-04:00'\neffectiveAt: '2026-03-11T12:00:00-04:00'\n---\n\nApril 1, 2026\n\n# Identifier support added to the productUpdate mutation\n\nDateApril 1, 2026\n\nVersion[2026-04](https://shopify.dev/changelog?api_version=2026-04)\n\nFlagsUpdate\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nThe `productUpdate` mutation now accepts an `identifier` argument, allowing you to look up the product to update by `id`, `handle`, or `customId` instead of passing the product `ID` inside the `input`.\n\nThe `id` and `handle` identifiers let you specify a product's global `ID` or `handle` directly. The `customId` identifier lets you reference a product by a unique metafield value using a `namespace`, `key`, and `value` combination, enabling workflows where external systems identify products by their own `ID`s.",
+  "contentType": "text/markdown"
+}

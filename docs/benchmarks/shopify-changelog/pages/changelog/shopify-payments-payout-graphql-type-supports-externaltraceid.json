@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "kind": "refit-documentation-snapshot",
+  "label": "shopify-payments-payout-graphql-type-supports-externaltraceid",
+  "url": "https://shopify.dev/changelog/posts/shopify-payments-payout-graphql-type-supports-externaltraceid.md",
+  "revision": "a4de5b7d7b9832e3547d984e9f8fc3ad63f34383e55817a75ad29b4056d17259",
+  "hash": "a4de5b7d7b9832e3547d984e9f8fc3ad63f34383e55817a75ad29b4056d17259",
+  "content": "---\ntitle: >-\nShopify Payments Payout GraphQL type supports external_trace_id - Shopify\ndeveloper changelog\ndescription: >-\nShopify’s developer changelog documents all changes to Shopify’s platform.\nFind the latest news and learn about new platform opportunities.\nsource_url:\nhtml: >-\nhttps://shopify.dev/changelog/posts/shopify-payments-payout-graphql-type-supports-externaltraceid\nmd: >-\nhttps://shopify.dev/changelog/posts/shopify-payments-payout-graphql-type-supports-externaltraceid.md\nmetadata:\neffectiveApiVersion: 2025-10\naffectedApi:\n- displayName: GraphQL Admin API\nhandle: admin-graphql\nprimaryTag:\ndisplayName: API\nhandle: api\nsecondaryTag:\ndisplayName: Update\nhandle: update\nindicatesActionRequired: false\ncreatedAt: '2025-07-30T11:38:25-04:00'\npostedAt: '2025-08-01T12:00:00-04:00'\nupdatedAt: '2025-08-01T10:52:12-04:00'\neffectiveAt: '2025-08-06T12:00:00-04:00'\n---\n\nAugust 1, 2025\n\n# Shopify Payments Payout GraphQL type supports `external_trace_id`\n\nDateAugust 1, 2025\n\nVersion[2025-10](https://shopify.dev/changelog?api_version=2025-10)\n\nFlagsUpdate\n\nSurfacesAPI\n\nAffected APIs[GraphQL Admin API](https://shopify.dev/changelog?api_type=admin-graphql)\n\nAs of GraphQL Admin API version **2025-10**, ShopifyPaymentsPayout now includes `externalTraceId` field\n\nThe `externalTraceId` field provides a unique reference identifier for tracking payouts across external payment systems and financial institutions.\n\nFor more information about `ShopifyPaymentsPayout`, visit the [Shopify.dev documentation](https://shopify.dev/docs/api/admin-graphql/2025-10/objects/shopifypaymentspayout).",
+  "contentType": "text/markdown"
+}

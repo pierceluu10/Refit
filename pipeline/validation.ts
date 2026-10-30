@@ -32,6 +32,8 @@ import {
 } from './repair-context.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
+import { shopifyProof } from './shopify-proof.ts';
+import { shopifySchema, shopifySnapshotPath } from './shopify-schemas.ts';
 import {
   apiVersionSourceBlocked,
   compareApiVersion,
@@ -146,6 +148,8 @@ import {
 } from './check-failures.ts';
 import {
   advisoryTypeError,
+  CHECKJS_STANDS_IN_FOR_TESTS,
+  checkJsCheck,
   checkKinds,
   gradeEvidence,
   runsTests,
@@ -166,6 +170,7 @@ import {
   type BehaviourTestWriter,
 } from './behaviour-test-writer.ts';
 import { stripeOnlyImports, stripeOnlyProject } from './dependency-stripe-only.ts';
+import { checkJsCoverage, type CheckJsCoverage } from './checkjs-coverage.ts';
 import {
   dockerSandboxArguments,
   preparationProfile,
@@ -2028,10 +2033,21 @@ export async function validateMigration(options: {
     const configuredRequestProposal = initialReport.requestChanges?.some(
       (change) => change.usages.length > 0,
     );
-    const [beforeSpecification, afterSpecification] = await Promise.all([
+    const [beforeSpecification, configuredAfter] = await Promise.all([
       readSpecification(options.before),
       readSpecification(options.after),
     ]);
+    // A Shopify patch may move to an earlier supported version than the configured target
+    // (pipeline/shopify-pipeline.ts); it is checked against that version's snapshot.
+    const shopifyAfter =
+      initialReport.provider === SHOPIFY.id &&
+      initialReport.apiVersion.after &&
+      configuredAfter.hash !== initialReport.snapshots.after
+        ? await readSpecification(
+            await shopifySnapshotPath(initialReport.apiVersion.after, options.after),
+          )
+        : undefined;
+    const afterSpecification = shopifyAfter ?? configuredAfter;
     if (beforeSpecification.hash !== initialReport.snapshots.before)
       throw new PipelineInputError('Baseline specification changed during validation.');
     if (afterSpecification.hash !== initialReport.snapshots.after)
@@ -3284,6 +3300,52 @@ export async function validateMigration(options: {
     // never vetoes a correct patch. A regression is never graded A.
     const behaviourA =
       behaviour?.grade === 'A' && !['stale', 'regression'].includes(validationStatus);
+    // A checkJs check (check-selection.ts) counts only where TypeScript typed the changed Stripe code
+    // with the target stripe-node (checkjs-coverage.ts) and, as under D2a, only for type-visible
+    // contract changes: every change the patch handles or reaches is a removed field, a changed type
+    // or a removed enum value.
+    let checkJs: (CheckJsCoverage & { counts: boolean; behavioural: string[] }) | undefined;
+    if (checkJsCheck(options.command) && candidateSources && validationStatus === 'passed') {
+      const upgrade =
+        'sdkUpgrade' in proposal
+          ? (proposal.sdkUpgrade as { from?: string; to?: string } | undefined)
+          : undefined;
+      const coverage = await timed('checkJsCoverage', () =>
+        checkJsCoverage({
+          original: originalSources,
+          patched: candidateSources!,
+          command: options.command,
+          changedFiles: publicationFiles.map((file) => file.path),
+          dependencies:
+            !dependencyFailure && candidateDependencies !== dependencies
+              ? candidateDependencies
+              : undefined,
+          sdk: upgrade?.to,
+          packageDirectory,
+        }),
+      );
+      const behavioural = [
+        ...new Set(
+          (report.specificationDiff.changes as Record<string, unknown>[])
+            .filter((change) => change.reach === 'reached' || change.reach === 'handled')
+            .map((change) => String(change.id))
+            .filter((id) => !TYPE_VISIBLE_CHANGES.has(id)),
+        ),
+      ];
+      const counts = coverage.proven && !behavioural.length && CHECKJS_STANDS_IN_FOR_TESTS;
+      checkJs = {
+        ...coverage,
+        counts,
+        behavioural,
+        reason: !coverage.proven
+          ? coverage.reason
+          : behavioural.length
+            ? `${behavioural.slice(0, MAX_GATE_SITES).join(', ')} ${behavioural.length === 1 ? 'is' : 'are'} not type-visible, so only tests could show the patch handles ${behavioural.length === 1 ? 'it' : 'them'}`
+            : counts
+              ? coverage.reason
+              : `${coverage.reason}, but a checkJs result does not yet stand in for tests without an owner decision, so it is evidence only`,
+      };
+    }
     const ownGrade =
       (validationStatus === 'passed' || ownChecksPassed || behaviourA) && candidateSources
         ? await gradeEvidence({
@@ -3296,6 +3358,7 @@ export async function validateMigration(options: {
             typeCheckUnavailable,
             packageDirectory,
             testsFoundNone: noTests,
+            ...(checkJs ? { checkJs: { counts: checkJs.counts, reason: checkJs.reason } } : {}),
             ...(signedEvents && 'covered' in signedEvents && signedEvents.covered.length
               ? { signedEvents: signedEvents.covered }
               : {}),
@@ -3345,6 +3408,33 @@ export async function validateMigration(options: {
                       ? `The generated stripe-mock checks returned ${generated.baseline.status} on the original code and ${generated.patched.status} on the patch.`
                       : `Validation returned ${validationStatus}.`),
             );
+    // docs/SHOPIFY-PROOF.md: a Shopify patch is graded by its proof, the documents validated
+    // against the target schema (and the dev store when configured); the checks' grade counts only
+    // with that proof. The AI second opinion is recorded and never changes the grade.
+    const shopify =
+      report.provider === SHOPIFY.id && candidateSources && validationStatus !== 'stale'
+        ? await timed('shopifyProof', () =>
+            shopifyProof({
+              original: originalSources,
+              patched: candidateSources!,
+              before: {
+                version: report.apiVersion.before ?? '',
+                schema: shopifySchema(String(beforeSpecification.document.graphqlIntrospection)),
+              },
+              after: {
+                version: report.apiVersion.after ?? '',
+                schema: shopifySchema(String(afterSpecification.document.graphqlIntrospection)),
+              },
+              own: grade,
+              regression: validationStatus === 'regression',
+              diff: proposal.diff,
+              summary: 'summary' in proposal ? String(proposal.summary) : '',
+              warnings: 'warnings' in proposal ? (proposal.warnings as string[]) : [],
+              ai: options.assessment ?? options.aiPatch,
+              environment: process.env,
+            }),
+          )
+        : undefined;
     const typeOracle = await runTypeOracle({
       compareTypeErrors: options.compareTypeErrors,
       command: options.command,
@@ -3502,7 +3592,8 @@ export async function validateMigration(options: {
       ...(written ? { behaviourTestWriter: written.record } : {}),
       ...(behaviour ? { behaviour } : {}),
       ...(signedEvents ? { signedEvents } : {}),
-      ...(grade ? { grade } : {}),
+      ...(shopify ? { grade: shopify.grade } : grade ? { grade } : {}),
+      ...(shopify ? { shopifyProof: shopify.record } : {}),
       attempts,
       repair,
       ...(options.aiPatch ? { aiCostUsd } : {}),
@@ -3514,6 +3605,7 @@ export async function validateMigration(options: {
         : {}),
       ...(typeCheckUnavailable ? { typeCheckUnavailable } : {}),
       ...(typeOracle ? { typeOracle } : {}),
+      ...(checkJs ? { checkJs } : {}),
       ...namedBaselineStop(validationStatus, baselineRun),
       ...(brokenTestsTypeCheck
         ? {

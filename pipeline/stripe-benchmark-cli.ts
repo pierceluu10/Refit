@@ -57,7 +57,7 @@ import { NO_OP_CHECK } from './review.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0-4] [--ai-effort low|medium|high|xhigh|max]] [--behaviour-tests | --behaviour-tests-dry-run | --no-behaviour-tests] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--resolve-lockfiles] [--skip-generated-clients] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
+  'Usage: npm run benchmark:stripe -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--env .env] [--ai [--repair-attempts 0-4] [--ai-effort low|medium|high|xhigh|max]] [--behaviour-tests | --behaviour-tests-dry-run | --no-behaviour-tests] [--webhook-checks] [--validate] [--offset N] [--limit N] [--concurrency N] [--stripe-package <dir>] [--validation-workspace 4g|2g|1g|512m] [--skip-generated-clients] [--resolve-lockfiles] [--publish <github-org>] [--publish-unresolved | --publish-validated-only]';
 const VALIDATION_IMAGE = 'node:22-alpine';
 // Above validation's own limits at their defaults: two preparations (300 s each), a baseline and a
 // patched check (600 s each), and the retry without the API-version move (another preparation and
@@ -118,11 +118,11 @@ const { values } = parseArgs({
     'allow-dirty': { type: 'boolean' },
     // Sandbox profile for every repository (REFIT_VALIDATION_WORKSPACE), e.g. 4g on a large runner.
     'validation-workspace': { type: 'string' },
-    // Sets REFIT_LOCKFILE_RESOLUTION=on explicitly; it is the default, so runs before it was stay reproducible.
-    'resolve-lockfiles': { type: 'boolean' },
     // Skips recreating the Prisma client and next-env.d.ts before every check
     // (REFIT_GENERATE_CLIENTS=0; declared-generators.ts).
     'skip-generated-clients': { type: 'boolean' },
+    // Sets REFIT_LOCKFILE_RESOLUTION=on explicitly; it is the default, so runs before it was stay reproducible.
+    'resolve-lockfiles': { type: 'boolean' },
   },
 });
 if (!values.root || !values.output) throw new PipelineInputError(USAGE);
@@ -139,8 +139,8 @@ if (values['validation-workspace']) {
   validationProfile(values['validation-workspace']);
   process.env.REFIT_VALIDATION_WORKSPACE = values['validation-workspace'];
 }
-if (values['resolve-lockfiles']) process.env.REFIT_LOCKFILE_RESOLUTION = 'on';
 if (values['skip-generated-clients']) process.env.REFIT_GENERATE_CLIENTS = '0';
+if (values['resolve-lockfiles']) process.env.REFIT_LOCKFILE_RESOLUTION = 'on';
 if (values['behaviour-tests'] && (!values.env || !values.validate))
   throw new PipelineInputError(
     '--behaviour-tests needs --validate and --env with OPENAI_API_KEY and OPENAI_MODEL.',
@@ -153,7 +153,11 @@ if (values['behaviour-tests-dry-run'] && (!values.validate || values['behaviour-
   );
 const writer = values['behaviour-tests'] || values['behaviour-tests-dry-run'];
 // Refuses a missing, live or malformed STRIPE_TEST_KEY before any repository runs.
-stripeTestMode(values['stripe-test-mode'], values['behaviour-tests']);
+// --ai writes behaviour tests by default unless --no-behaviour-tests.
+stripeTestMode(
+  values['stripe-test-mode'],
+  values['behaviour-tests'] || (values.ai && !values['no-behaviour-tests']),
+);
 // Copied after --env loads, so children get its keys. Benchmark runs never send Slack notices.
 const CHILD_ENV = { ...process.env };
 delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
