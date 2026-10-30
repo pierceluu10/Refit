@@ -1,5 +1,13 @@
 # Refit implementation checkpoints
 
+## October 29 checkpoint: AI API surfaces, response formats and beta features (unreleased, after 0.39.0)
+
+`refit ai-migrations --review` lists OpenAI Assistants and legacy Completions calls, Anthropic Text Completions, PaLM, the OpenAI Realtime and Assistants v1 betas, Anthropic's retired and graduated betas, Anthropic Admin field renames and the report-only Python and Gemini SDK swaps, each with its quoted page (95 rules in 11 tables, all quotes checked live). No provider documents a one-to-one mapping for these, so nothing is edited. Hand-checks on 20 DEV repositories: `docs/benchmarks/ai-surfaces/review-hand-checks.json`. What a fix would need: `docs/proposals/ai-surface-migrations.md`.
+
+## October 29 checkpoint: AI SDK major upgrades (unreleased, after 0.39.0)
+
+`refit ai-migrations` moves openai 3.x to 5.x and `@anthropic-ai/sdk` 0.x to their current majors (6.x and 1.x) with the providers' documented mappings in quote-checked rule tables (`data/rules/{openai,anthropic}/sdk-majors.json`, `npm run ai-rules:check`), re-resolves `package-lock.json` with the existing networked resolver and keeps it only when nothing outside the SDK changes. Any site that would break on the new SDK blocks the whole patch. Drafts report code, request and output-shape proof separately; request proofs are stored in `data/sdk-request-proofs.json` and all are pending until refit-bench runs them (Anthropic needs an `ANTHROPIC_API_KEY` secret). Not wired into `refit serve` or the hosted worker. Hand-checks on 20 DEV repositories: `docs/benchmarks/ai-surfaces/sdk-major-hand-checks.json` (14 correct, 1 correct-partial, 5 correct stops). See `docs/AI-MIGRATIONS.md`.
+
 ## October 29 checkpoint: sourced parameter changes with model swaps (unreleased, after 0.39.0)
 
 - `data/model-parameter-changes.json` (`pipeline/model-parameter-changes.ts`, `npm run model-parameter-changes:check`) records what a replacement model renames, rejects or changes. Each entry is quoted verbatim from an official page saved under `docs/benchmarks/parameter-pages/` with its SHA-256:
