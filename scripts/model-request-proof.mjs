@@ -253,6 +253,7 @@ async function prove(model, api) {
   const first = await call(spec.base(model));
   if (first.status !== 200 || !spec.ok(parsed(first.text)))
     return {
+      status: first.status,
       pending: `The smallest request returned HTTP ${first.status}${first.status === 200 ? ' with a body Refit could not read' : ''} on ${new Date().toISOString().slice(0, 10)}.`,
     };
   const checks = { request: 'passed' };
@@ -311,7 +312,11 @@ for (const target of targets) {
     result = { pending: `The request failed before a response: ${error.name}.` };
   }
   if (result.pending) {
-    next.pending.push({ ...target, reason: result.pending });
+    next.pending.push({
+      ...target,
+      reason: result.pending,
+      ...(result.status ? { status: result.status, run: values.run } : {}),
+    });
     summary.push(`${target.model} ${target.api}: pending, ${result.pending}`);
     continue;
   }

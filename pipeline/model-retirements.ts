@@ -12,7 +12,7 @@ import {
   type ParameterChange,
   type ParameterChangeTable,
 } from './model-parameter-changes.ts';
-import { proofApi } from './model-request-proofs.ts';
+import { proofApi, type UnavailableTarget } from './model-request-proofs.ts';
 import { modelWrapperStops } from './model-wrappers.ts';
 import { renderPatch } from './patches.ts';
 import {
@@ -211,13 +211,18 @@ function rejectsSampling(provider: string, model: string) {
   const [major, minor] = [Number(match[1]), Number(match[2] ?? 0)];
   return major > 4 || (major === 4 && minor >= 7);
 }
-// OpenAI's GPT-6 migration guide (read 2026-10-29): "GPT-6 Sol and GPT-6 Luna support function
-// calling in Chat Completions only with `reasoning_effort: "none"`." A Chat Completions request
-// that sends tools to a GPT-6 replacement stops for review.
-const GPT_6 = /^gpt-6(?:[.-]|$)/;
+// OpenAI's migrate-to-Responses guide (read 2026-10-29): "Starting with GPT-5.4, Chat Completions
+// does not support tool calling with `reasoning_effort` values other than `none`." A Chat
+// Completions request that sends tools to a GPT-5.4 or later replacement stops for review.
+function chatToolsNeedNoReasoning(model: string) {
+  const match = /^gpt-(\d+)(?:\.(\d+))?(?:-|$)/.exec(model);
+  if (!match) return false;
+  const [major, minor] = [Number(match[1]), Number(match[2] ?? 0)];
+  return major > 5 || (major === 5 && minor >= 4);
+}
 // A stop reason that names the legacy function-calling parameters.
 const FUNCTION_STOP = /\bsets\b[^.]*\b(?:functions|function_call)\b/;
-const GPT_6_CHAT_TOOLS = new Set(['tools', 'tool_choice']);
+const CHAT_TOOLS = new Set(['tools', 'tool_choice']);
 export const MODEL_ID = /^[a-z0-9][a-z0-9.-]*$/;
 const MAX_CHAIN = 8;
 
@@ -2181,7 +2186,7 @@ export function rejectedParametersLeft(options: {
     const flagged =
       Boolean(change) ||
       heuristic.has(name) ||
-      (GPT_6.test(to) && GPT_6_CHAT_TOOLS.has(name) && api === 'chat.completions');
+      (chatToolsNeedNoReasoning(to) && CHAT_TOOLS.has(name) && api === 'chat.completions');
     if (!flagged) continue;
     const value = ts.isPropertyAssignment(item) ? numericLiteral(item.initializer) : undefined;
     const tabled = options.parameters?.models.some(
@@ -2304,12 +2309,15 @@ export async function proposeModelReplacements(
     // documented rename or removal is edited, a documented `stop` names its reason. Off unless
     // passed; it waits on an owner decision (docs/proposals/ai-model-parameters.md).
     parameterChanges,
+    // Replacement targets a request proof got HTTP 404 for (`unavailableTargets`): never swapped to.
+    unavailable = [],
   }: {
     indirect?: boolean;
     reportOnly?: ReportOnlySource[];
     endpoints?: boolean;
     parameters?: ModelParameterTable;
     parameterChanges?: ParameterChangeTable;
+    unavailable?: UnavailableTarget[];
   } = {},
 ): Promise<ModelReplacementProposal> {
   const byProvider = new Map<string, Map<string, DeadlineEntry>>();
@@ -2640,8 +2648,8 @@ export async function proposeModelReplacements(
         const name = item.name && propertyName(item.name);
         return name &&
           (MODEL_PARAMETER_NAMES[request.provider]?.has(name) ||
-            (GPT_6.test(resolved.to) &&
-              GPT_6_CHAT_TOOLS.has(name) &&
+            (chatToolsNeedNoReasoning(resolved.to) &&
+              CHAT_TOOLS.has(name) &&
               proofApi(request.call) === 'chat.completions'))
           ? [{ item, name }]
           : [];
@@ -2701,65 +2709,75 @@ export async function proposeModelReplacements(
             )
           : undefined;
       const stop = site.stop ?? sharedUse(program, site.passes, reached);
+      const missing =
+        resolved.to &&
+        unavailable.find(
+          (item) =>
+            item.provider === request.provider &&
+            item.model === resolved.to &&
+            item.api === proofApi(request.call),
+        );
       const reason = !resolved.to
         ? 'The registry names no concrete replacement model ID.'
-        : request.reportOnly
-          ? `${request.reportOnly} ${resolved.to}.`
-          : platform
-            ? `${request.platform ? `The client is Claude on ${platform}` : `\`${site.literal.text}\` is a model ID for ${platform}`}, where model IDs and retirement dates are ${platform}'s, not the Claude API's (the Claude API retires ${onPlatform?.id ?? site.literal.text} on ${entry.date}); check ${platform}'s model lifecycle and change it by hand to its ID for ${resolved.to}.`
-            : request.client
-              ? `The client \`${request.client}\` is not one Refit can trace to the SDK constructor (a \`let\` variable, a typed parameter or field, or an object member), so this request is listed but not edited; change it by hand to ${resolved.to}.`
-              : request.unverified
-                ? `The tsconfig.json or jsconfig.json for the SDK import cannot be fully read (it may extend a generated file that is not checked in), so Refit cannot confirm the import is the SDK; change its model by hand to ${resolved.to}.`
-                : MESSAGE_HELPERS.has(request.call)
-                  ? `\`${request.call}\` is a Messages API helper or retired beta path, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
-                  : from === 'batch'
-                    ? `\`${request.call}\` is a Message Batches request, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
-                    : // Images, audio, embeddings, moderation and legacy completions change formats, vector
-                      // sizes or parameters with the model, so they are never edited. The wording is accurate for
-                      // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
-                      !request.text
-                      ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
-                      : customUrl
-                        ? request.sdk
-                          ? client?.custom
-                            ? `The client sets \`${client.option}\` (${client.custom}), so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-                            : client?.official && endpointSet && !endpointSet.everyClient
-                              ? `The repository mentions a custom endpoint (${endpointSet.at}), but this request's client (${client.official}) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to ${resolved.to}.`
-                              : `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-                          : `The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
-                        : from
-                          ? `The request takes its model from the options it spreads (\`...${from}\`), which Refit reports but does not edit; change it by hand to ${resolved.to}.`
-                          : limit
-                            ? `${limit} ${resolved.to}.`
-                            : stop
-                              ? `${stop} ${resolved.to}.`
-                              : direct && (!direct.has(site.literal) || direct.get(site.literal))
-                                ? /^(?:axios|request) /.test(request.call)
-                                  ? `\`${request.call}\` is an axios request config, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
-                                  : `The model reaches this request through ${indirectSource(site)}, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
-                                : found.shared
-                                  ? `${found.shared} ${resolved.to}.`
-                                  : found.object.properties.some((item) =>
-                                        ts.isSpreadAssignment(item),
-                                      )
-                                    ? 'The request spreads other options, which may set parameters the replacement rejects.'
-                                    : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
-                                      // sampling or length parameter the name check cannot see.
-                                      found.object.properties.some(
-                                          (item) =>
-                                            item.name && ts.isComputedPropertyName(item.name),
+        : missing
+          ? `The provider's deprecations page names ${resolved.to} as the replacement, but Refit's request to ${resolved.to} through ${missing.api} returned HTTP 404 (${missing.run}), so Refit does not swap to it; check which model the provider serves for this call and change it by hand.`
+          : request.reportOnly
+            ? `${request.reportOnly} ${resolved.to}.`
+            : platform
+              ? `${request.platform ? `The client is Claude on ${platform}` : `\`${site.literal.text}\` is a model ID for ${platform}`}, where model IDs and retirement dates are ${platform}'s, not the Claude API's (the Claude API retires ${onPlatform?.id ?? site.literal.text} on ${entry.date}); check ${platform}'s model lifecycle and change it by hand to its ID for ${resolved.to}.`
+              : request.client
+                ? `The client \`${request.client}\` is not one Refit can trace to the SDK constructor (a \`let\` variable, a typed parameter or field, or an object member), so this request is listed but not edited; change it by hand to ${resolved.to}.`
+                : request.unverified
+                  ? `The tsconfig.json or jsconfig.json for the SDK import cannot be fully read (it may extend a generated file that is not checked in), so Refit cannot confirm the import is the SDK; change its model by hand to ${resolved.to}.`
+                  : MESSAGE_HELPERS.has(request.call)
+                    ? `\`${request.call}\` is a Messages API helper or retired beta path, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+                    : from === 'batch'
+                      ? `\`${request.call}\` is a Message Batches request, which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+                      : // Images, audio, embeddings, moderation and legacy completions change formats, vector
+                        // sizes or parameters with the model, so they are never edited. The wording is accurate for
+                        // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
+                        !request.text
+                        ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
+                        : customUrl
+                          ? request.sdk
+                            ? client?.custom
+                              ? `The client sets \`${client.option}\` (${client.custom}), so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                              : client?.official && endpointSet && !endpointSet.everyClient
+                                ? `The repository mentions a custom endpoint (${endpointSet.at}), but this request's client (${client.official}) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to ${resolved.to}.`
+                                : `The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                            : `The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to ${resolved.to}.`
+                          : from
+                            ? `The request takes its model from the options it spreads (\`...${from}\`), which Refit reports but does not edit; change it by hand to ${resolved.to}.`
+                            : limit
+                              ? `${limit} ${resolved.to}.`
+                              : stop
+                                ? `${stop} ${resolved.to}.`
+                                : direct && (!direct.has(site.literal) || direct.get(site.literal))
+                                  ? /^(?:axios|request) /.test(request.call)
+                                    ? `\`${request.call}\` is an axios request config, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
+                                    : `The model reaches this request through ${indirectSource(site)}, which Refit reports but does not edit yet; change it by hand to ${resolved.to}.`
+                                  : found.shared
+                                    ? `${found.shared} ${resolved.to}.`
+                                    : found.object.properties.some((item) =>
+                                          ts.isSpreadAssignment(item),
                                         )
-                                      ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
-                                      : geminiConfig
-                                        ? geminiConfig
-                                        : tabled
-                                          ? tableReasons.join(' ') || undefined
-                                          : changed?.reason
-                                            ? changed.reason
-                                            : sensitive.length && !changed
-                                              ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
-                                              : undefined;
+                                      ? 'The request spreads other options, which may set parameters the replacement rejects.'
+                                      : // A computed name such as `['temperature']: 0.5` or `[KEY]: 5` may be a
+                                        // sampling or length parameter the name check cannot see.
+                                        found.object.properties.some(
+                                            (item) =>
+                                              item.name && ts.isComputedPropertyName(item.name),
+                                          )
+                                        ? `The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to ${resolved.to}.`
+                                        : geminiConfig
+                                          ? geminiConfig
+                                          : tabled
+                                            ? tableReasons.join(' ') || undefined
+                                            : changed?.reason
+                                              ? changed.reason
+                                              : sensitive.length && !changed
+                                                ? `The request sets ${sensitive.join(', ')}, which ${resolved.to} may reject or treat differently.`
+                                                : undefined;
       const decision = decisions.get(site.literal) ?? {
         entry,
         ...resolved,

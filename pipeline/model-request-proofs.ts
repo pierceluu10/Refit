@@ -35,6 +35,10 @@ export interface PendingProof {
   model: string;
   api: ProofApi;
   reason: string;
+  // The HTTP status the smallest request got, with the run that sent it. A 404 means the provider
+  // does not serve the model through this API, so a swap to it stops (`unavailableTargets`).
+  status?: number;
+  run?: string;
 }
 
 export interface RequestProofTable {
@@ -107,9 +111,28 @@ export function checkRequestProofs(value: unknown): { errors: string[] } {
     common(item, label);
     if (typeof item.reason !== 'string' || !item.reason.trim())
       errors.push(`${label}: reason is required.`);
+    if (
+      (Object.hasOwn(item, 'status') || Object.hasOwn(item, 'run')) &&
+      (!Number.isInteger(item.status) ||
+        (item.status as number) < 100 ||
+        (item.status as number) > 599 ||
+        typeof item.run !== 'string' ||
+        !RUN.test(item.run))
+    )
+      errors.push(`${label}: status needs an HTTP status and the refit-bench run that got it.`);
   });
   return { errors };
 }
+
+// Replacement targets the provider answered with HTTP 404 through an API: Refit never swaps to them.
+export function unavailableTargets(table: RequestProofTable) {
+  return table.pending.flatMap((item) =>
+    item.status === 404 && item.run
+      ? [{ provider: item.provider, model: item.model, api: item.api, run: item.run }]
+      : [],
+  );
+}
+export type UnavailableTarget = ReturnType<typeof unavailableTargets>[number];
 
 export async function loadRequestProofs(path: string | URL = DEFAULT_REQUEST_PROOFS) {
   const value = parseObject(await readFile(path, 'utf8'), 'Request proofs');

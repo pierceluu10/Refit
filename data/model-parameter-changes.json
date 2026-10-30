@@ -47,16 +47,25 @@
       "note": "Anthropic's page says to omit these and use prompting to guide the model, so answers can be more or less varied than with the value the code set."
     },
     {
-      "id": "openai-gpt-6-chat-tools",
+      "id": "openai-chat-tools-5-4",
       "provider": "openai",
       "apis": ["chat.completions"],
-      "models": ["gpt-6-luna", "gpt-6-sol"],
+      "models": [
+        "gpt-5.4-cyber",
+        "gpt-5.4-nano",
+        "gpt-5.4-nano-2026-03-17",
+        "gpt-5.6-luna",
+        "gpt-5.6-sol",
+        "gpt-5.6-terra",
+        "gpt-6-luna",
+        "gpt-6-sol"
+      ],
       "parameters": ["tools", "tool_choice"],
       "action": "stop",
-      "page": "openai-latest-model.md",
-      "quote": "GPT-6 Sol and GPT-6 Luna support function calling in Chat Completions only with `reasoning_effort: \"none\"`. Use Responses for reasoning with tools.",
+      "page": "openai-migrate-to-responses.md",
+      "quote": "Starting with GPT-5.4, Chat Completions does not support tool calling with `reasoning_effort` values other than `none`.",
       "checkedAt": "2026-10-29",
-      "note": "OpenAI's GPT-6 guide says these models call functions in Chat Completions only with `reasoning_effort: \"none\"`, and to use the Responses API for reasoning with tools. Choosing between them changes how the model reasons or how the request and response are written, so Refit leaves it to you."
+      "note": "OpenAI's migration guide says that from GPT-5.4 on, Chat Completions calls tools only with `reasoning_effort: \"none\"`; otherwise the request fails with HTTP 400. Not every model accepts `\"none\"`, so check yours before choosing it. The Responses API took tool calls on every GPT-5.6 and GPT-6 model in Refit's request proof, but the request and response are written differently there. Both change how your code or the model behaves, so Refit leaves the choice to you."
     },
     {
       "id": "openai-chat-functions",

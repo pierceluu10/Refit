@@ -18,6 +18,12 @@
       "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
       "fetchedAt": "2026-10-29",
       "sha256": "7c01727a08cc32c5812ccecc6dd36caa667ae5bd4e9d907b3b7b4272ce950c28"
+    },
+    {
+      "file": "openai-migrate-to-responses.md",
+      "url": "https://developers.openai.com/api/docs/guides/migrate-to-responses.md",
+      "fetchedAt": "2026-10-29",
+      "sha256": "e53f316cc7b600cc42c8df903f2d3a2276f7843dc4f77c987965375e4b560c1f"
     }
   ]
 }
