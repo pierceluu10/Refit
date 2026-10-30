@@ -501,8 +501,131 @@ query \${name} { shop { name } }\`);
     [
       'app/send.ts',
       20,
-      'The document is built at runtime; Refit only reads literal or constant documents.',
+      'The document `built` is built at runtime; Refit only reads literal or constant documents.',
     ],
+  ]);
+});
+
+it('reads every value a substitution takes across call sites, loops, lists and returned objects', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/constants.ts': `export const OWNER = 'PRODUCT';\n`,
+    'app/models/index.ts': `export * from '../constants';\nexport * from './uses';\n`,
+    'app/models/uses.ts': `import { OWNER } from '../constants';\nexport const label = OWNER;\n`,
+    'app/queries.ts': `import { OWNER } from './models';
+const GROUPS = [{ id: 'a', field: 'title' }, { id: 'b', field: 'id' }];
+function fieldsQuery(field: string, sort?: string) {
+  return \`query Fields { products(sortKey: \${sort || 'ID'}) { \${field} } }\`;
+}
+export async function load(admin: any, id: string, cursor?: string, flag = false) {
+  const group = GROUPS.find((entry) => entry.id === id) || null;
+  await admin.graphql(fieldsQuery(group.field));
+  await admin.graphql(fieldsQuery('title', 'TITLE'));
+  const after = cursor ? \`, after: "\${cursor}"\` : '';
+  let filter = '';
+  if (flag) filter = ', reverse: true';
+  await admin.graphql(\`query Page { products(first: \${Math.min(Number(id), 50)}\${after}\${filter}) { id } }\`);
+  for (const kind of ['title', 'id'] as const) await admin.graphql(\`query Kind { products { \${kind} } }\`);
+  const items = [{ title: 'A' }];
+  await admin.graphql(\`mutation { productCreate(input: [\${items.map((item) => \`{ title: """\${item.title}""" }\`).join(', ')}]) { product { id } } }\`);
+  await admin.graphql(\`query Owner { products(sortKey: \${OWNER === 'PRODUCT' ? 'TITLE' : 'ID'}) { id } }\`);
+}
+export async function built(admin: any, flag: boolean) {
+  let fields = 'id';
+  fields += ' title';
+  if (flag) fields = \`\${fields} title\`;
+  await admin.graphql(\`query Built { products { \${fields} } }\`);
+}
+export async function runtime(admin: any, field: string) {
+  await admin.graphql(\`query Runtime { products { \${field.toUpperCase()} } }\`);
+}
+function handler(admin: any) {
+  const send = (query: string) => admin.graphql(query);
+  return { api: { send } };
+}
+export async function factory(admin: any) {
+  const { api } = handler(admin);
+  await api.send(\`query Factory { shop { name } }\`);
+  await handler(admin).api.send(\`query Direct { shop { name } }\`);
+}
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-api'));
+  const texts = (name: string) =>
+    scan.documents
+      .filter((entry) => entry.text.includes(name))
+      .map((entry) => entry.text.replace(/\s+/g, ' ').trim());
+  // Every call's argument, the list `find` can return, and the `||` default. Substitutions vary
+  // independently, so the variants are a superset of what the calls send.
+  expect(texts('Fields')).toEqual([
+    'query Fields { products(sortKey: TITLE) { title } }',
+    'query Fields { products(sortKey: TITLE) { id } }',
+    'query Fields { products(sortKey: ID) { title } }',
+    'query Fields { products(sortKey: ID) { id } }',
+  ]);
+  // A number stands in for `Math.min`; each optional piece is there or not, strings get `x`.
+  expect(texts('Page')).toEqual([
+    'query Page { products(first: 1, after: "x") { id } }',
+    'query Page { products(first: 1, after: "x", reverse: true) { id } }',
+    'query Page { products(first: 1) { id } }',
+    'query Page { products(first: 1, reverse: true) { id } }',
+  ]);
+  expect(texts('Kind')).toEqual([
+    'query Kind { products { title } }',
+    'query Kind { products { id } }',
+  ]);
+  // One list element per variant; block strings take a placeholder.
+  expect(texts('productCreate')).toEqual([
+    'mutation { productCreate(input: [{ title: """x""" }]) { product { id } } }',
+  ]);
+  // `export *` from two modules that pass on the same binding resolves to it.
+  expect(texts('Owner')).toEqual([
+    'query Owner { products(sortKey: TITLE) { id } }',
+    'query Owner { products(sortKey: ID) { id } }',
+  ]);
+  // The unconditional append always runs; the conditional change may.
+  expect(texts('Built')).toEqual([
+    'query Built { products { id title } }',
+    'query Built { products { id title title } }',
+  ]);
+  // A member of a nested object a factory returns, through destructuring and a direct call.
+  expect(texts('Factory')).toEqual(['query Factory { shop { name } }']);
+  expect(texts('Direct')).toEqual(['query Direct { shop { name } }']);
+  expect(scan.unreadable.map((entry) => [entry.file, entry.line, entry.reason])).toEqual([
+    [
+      'app/queries.ts',
+      26,
+      'The document interpolates `${field.toUpperCase()}`, a value Refit cannot resolve to a constant fragment.',
+    ],
+  ]);
+});
+
+it('stops on values a loop rebuilds, a parameter nothing calls, and too many variants', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/send.ts': `export async function loop(admin: any, names: string[]) {
+  let fields = 'id';
+  for (const name of names) fields += \` \${name}\`;
+  await admin.graphql(\`query Loop { shop { \${fields} } }\`);
+}
+export async function open(admin: any, field: string) {
+  await admin.graphql(\`query Open { shop { \${field} } }\`);
+}
+export async function many(admin: any, a: boolean, b: boolean, c: boolean, d: boolean, e: boolean, f: boolean, g: boolean) {
+  const pick = (flag: boolean) => (flag ? 'id' : 'name');
+  await admin.graphql(\`query Many { shop { \${a ? 'id' : 'name'} \${b ? 'id' : 'name'} \${c ? 'id' : 'name'} \${d ? 'id' : 'name'} \${e ? 'id' : 'name'} \${f ? 'id' : 'name'} \${g ? 'id' : 'name'} } }\`);
+}
+`,
+  });
+  const scan = scanShopify(await readRepository(root, '@shopify/shopify-api'));
+  expect(scan.documents).toEqual([]);
+  expect(scan.unreadable.map((entry) => [entry.line, entry.reason])).toEqual([
+    [4, 'The document interpolates `${fields}`, which a loop or another function changes.'],
+    [
+      7,
+      'The document interpolates `${field}`, from the parameter `field`, and Refit cannot list every call of its function.',
+    ],
+    [11, 'The document can be built in more than 64 ways; Refit checks at most 64.'],
   ]);
 });
 
@@ -589,7 +712,7 @@ export async function use(admin: any) {
     scan.unreadable.map((entry) => [entry.file, entry.line, entry.reason.slice(0, 60)]),
   ).toEqual([
     ['app/clients.ts', 3, 'A GraphQL client for the Admin endpoint is used here in a wa'],
-    ['app/clients.ts', 11, 'The document is built at runtime; Refit only reads literal o'],
+    ['app/clients.ts', 11, 'The document `this.LIST` is built at runtime; Refit only rea'],
     ['app/use.ts', 5, 'A module defining a function that sends Admin GraphQL docume'],
   ]);
 });

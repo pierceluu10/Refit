@@ -1080,6 +1080,72 @@ The subset `subsets/p-repair-loop.json` holds the 10 l2-push-249 rows whose patc
 - **The other 3 rows stop for policy reasons this change does not touch** (Agent Q's lane): declared-type provenance, `invoices.retrieveUpcoming`, and an AI edit on a line a rule already changed.
 - No subset row had a second `apiVersion` literal the old move missed, so the "every pin" change moved no row here. It is covered by tests in `declared-api-versions.test.ts` and `api-version-pins.test.ts`.
 
+## Shopify GraphQL document tracing, round 3 SH13 (October 29)
+
+Reading more Admin GraphQL documents statically changed no validated count. `shopify.yml` in `refit-dev/refit-bench` ran on the 250 practice repositories (`2026-10-16-shopify-repos.json` and `2026-10-16-shopify-fresh-repos.json`, which hold all of dev-60), with `size=1`, an explicit `count`, `--sdk-upgrade`, no AI and `contracts=current`. Both sides used identical schema hashes.
+
+|        | Commit                                     | Practice 50 | Fresh 200   |
+| ------ | ------------------------------------------ | ----------- | ----------- |
+| Before | `1de287fe8d3d959274d08864c5f6056308535bbe` | 40966481779 | 40966491852 |
+| After  | `2c89270a32a66dfa9b7e2d1f2512baabc6d7fb85` | 40967527548 | 40967536624 |
+
+- Unreadable Admin calls went from 58 to 47, and repositories with one from 32 to 25. Documents read went from 1676 to 1732, and traced documents from 1288 to 1332. On dev-60, unreadable calls went from 16 to 9 and traced documents from 354 to 369.
+- Validated stayed at 7 of 250 (3 of 60 on dev-60), with the same repositories. Needs review went from 21 to 23, and nothing was lost.
+- Hujjat/easy-product-recommendations and alirafat2024/25_oct-shopify_functions move from stopped to patched. Both are `[Needs review]` because their own type check fails on the original code (grade D, schema proof proven). Both diffs are reviewed `correct` in `docs/benchmarks/fix-reviews.json`.
+- Five more repositories clear every unreadable call and now stop at the next gate: SDK `LATEST_API_VERSION` (ndrishinski, sarim-alis, umxr, omakatse) or a document that already fails (t-maypat).
+- yan-ad/shopify-app-nuxt goes from 1 to 6 calls. It is a Nuxt module whose exported functions receive their users' queries, and each export is now its own stop.
+- Most of what remains is runtime by design and keeps stopping:
+  - raw queries passed through from a CLI, an MCP tool or a GraphiQL proxy;
+  - library exports and `Effect.fn` or `Object.assign` wrappers;
+  - argument lists built with `push`, and aliases built from IDs;
+  - one document with more than 64 variants (bloomreach).
+
+With AI (Claude `claude-sonnet-5-5` through #431's Anthropic backend, `ai_budget` 300, otherwise the same settings), the base is #431's head `0b160d23` (runs 40981167687 and 40981175529) and the branch is `ce605d8d`, this branch merged with #431 (runs 40981302107 and 40987435368):
+
+- Validated stayed at 4 of 250 (3 of 60 on dev-60), with the same repositories. Needs review went from 24 to 26, from the same two patches as without AI.
+- AI reconstructions: 5 kept and 50 refused on the base ($1.52), against 2 kept and 44 refused on the branch ($0.99).
+  - Two calls the base reconstructed with AI (alistairmartin's `definitionsQuery`) are now read without AI.
+  - aura-historia's stop moved from the route to the export it calls, where the model declines. Its outcome is unchanged.
+  - No reconstruction changed an outcome on either side.
+- With AI on, both sides validate 3 fewer repositories than without AI: ersinkoc/CouponEngine, cornerstone-report/x-money-shopify and danyn/shopify-app-rr. Their checks pass, but the development-store live proof runs and fails (`liveProof: failed`), which grades them D. This happens with or without this change.
+
+Each repository that had an unreadable call before, with its next stop after:
+
+| Repository                                       | Unreadable (base → branch) | Next stop on the branch                                                                                        |
+| ------------------------------------------------ | -------------------------: | -------------------------------------------------------------------------------------------------------------- |
+| alirafat2024/25_oct-shopify_functions            |                      2 → 0 | needs-review: baseline-failed                                                                                  |
+| alistairmartin/honey-birdette-checkout-amd (dev) |                      5 → 1 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+| ArseniyX/taskly (dev)                            |                      2 → 2 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+| asap-xt/shopify-ai-seo-app                       |                      4 → 3 | A Shopify GraphQL document already fails on Admin API 2026-01; fix it before any version upgrade.              |
+| aura-historia/shopify-app                        |                      1 → 1 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+| BillyND/shopify-uploads                          |                      2 → 2 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+| bloomreach/shopify-discovery-connector-v2        |                      1 → 1 | A Shopify GraphQL document does not parse; Refit cannot prove it works on the target API version.              |
+| callobuzz/cob-shopify-mcp                        |                      1 → 1 | A Shopify GraphQL document's variables reach an input change on Admin API 2026-10 (InventoryQuantityInput.comp |
+| carlosrebelo14-ai/alterpop-importer2             |                      1 → 1 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+| codeyogi911/shopify-mcp                          |                      3 → 2 | A Shopify GraphQL document already fails on Admin API 2026-01; fix it before any version upgrade.              |
+| drizzle-team/tento (dev)                         |                      1 → 1 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+| flwrdev/delivery-scheduler                       |                      1 → 1 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+| GeLi2001/shopify-mcp                             |                      2 → 2 | A Shopify GraphQL document's variables reach an input change on Admin API 2026-10 (InventoryQuantityInput.comp |
+| Hujjat/easy-product-recommendations              |                      1 → 0 | needs-review: baseline-failed                                                                                  |
+| lisandrophan/designify                           |                      3 → 3 | A Shopify GraphQL document already fails on Admin API 2026-01; fix it before any version upgrade.              |
+| madeburo/GEO-AI-Shopify                          |                      3 → 2 | A Shopify GraphQL document already fails on Admin API 2026-01; fix it before any version upgrade.              |
+| mw10013/tanstack-cloudflare-effect-shopify-app   |                      1 → 1 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+| ndrishinski/bulk-update-tags                     |                      1 → 0 | LATEST_API_VERSION is 2024-10 in @shopify/shopify-api 11.7.0, and only an SDK upgrade changes it. ApiVersion.O |
+| Nuraveda/ai-seo-agent                            |                      4 → 4 | A Shopify GraphQL document already fails on Admin API 2026-01; fix it before any version upgrade.              |
+| Nuraveda/shopify-agentic-seo-app (dev)           |                      4 → 4 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+| omakatse-dev/omakatse (dev)                      |                      2 → 0 | The Shopify SDK upgrade stops for review: LATEST_API_VERSION, removed in the upgraded SDK, sets a Storefront A |
+| psydao/psydao-io (dev)                           |                      1 → 1 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+| rrichie551/Quantity-Breaks                       |                      1 → 1 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+| sanjeev744/smart-variants-display                |                      2 → 2 | A Shopify GraphQL document's variables reach an input change on Admin API 2026-10 (InventoryQuantityInput.comp |
+| sarim-alis/redemption-solutionsss                |                      1 → 0 | LATEST_API_VERSION is 2025-04 in @shopify/shopify-api 11.12.0, and only an SDK upgrade changes it. ApiVersion. |
+| serebano/busymate-ai-connector-shopify           |                      1 → 1 | A Shopify GraphQL document already fails on Admin API 2026-07; fix it before any version upgrade.              |
+| shxhid-dev/shxhid-chat-agent                     |                      2 → 2 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+| t-maypat/xsight                                  |                      1 → 0 | A Shopify GraphQL document already fails on Admin API 2026-01; fix it before any version upgrade.              |
+| The-Rapid-Apps/Rapid-CRM                         |                      1 → 1 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+| umxr/shopify-product-reviews (dev)               |                      1 → 0 | LATEST_API_VERSION is 2024-01 in @shopify/shopify-api 9.0.1, and only an SDK upgrade changes it. ApiVersion.Oc |
+| yan-ad/shopify-app-nuxt                          |                      1 → 6 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+| Yespo-CDP/yespo-shopify                          |                      1 → 1 | Refit cannot read an Admin API call's GraphQL document statically, so it cannot prove it works on Admin API 20 |
+
 ## Untraced reads Refit proves are not Stripe objects (October 28)
 
 Founder decision (Otabek, 2026-10-28), widening D2b to runs with or without AI (`localReceiverReads` in `pipeline/stripe-type-evidence.ts`). l2-push-249 on refit-bench, before at main `89f1c0ed`, after at `5309a76e` (`feat/untraced-read-proof`):
