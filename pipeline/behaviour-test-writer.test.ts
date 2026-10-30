@@ -544,8 +544,36 @@ it('refuses before sending when the request could exceed the budget, and sends n
   });
   expect(record.promptHash).toMatch(/^[a-f0-9]{64}$/);
   expect(files).toEqual([]);
-  expect(fetcher).toHaveBeenCalledTimes(1);
-  expect(fetcher.mock.calls[0][0]).toMatch(/\/input_tokens$/);
+  // The smaller answer it then asks for does not fit either; only tokens were counted.
+  expect(record.retries).toEqual(['the budget left could not hold 64000 output tokens']);
+  expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+    expect.stringMatching(/\/input_tokens$/),
+    expect.stringMatching(/\/input_tokens$/),
+  ]);
+});
+
+it('asks once for a smaller answer when the budget left cannot hold the full one', async () => {
+  const sample = await scenario('docsflow');
+  const sent: { max_output_tokens: number; instructions: string }[] = [];
+  const fetcher = respond(CHECKOUT_ANSWER, { input_tokens: 9000, output_tokens: 3000 });
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (!url.endsWith('/input_tokens')) sent.push(JSON.parse(String(init!.body)));
+      return fetcher(url, init);
+    }),
+  );
+  // 64,000 output tokens reserve $0.66 with the input; 16,000 reserve $0.18, within $0.50.
+  const { record, files } = await writeBehaviourTests({
+    ...sample.inputs,
+    ai: ai(sample.root, 0.5),
+  });
+  expect(record.status).toBe('generated');
+  expect(files).toHaveLength(1);
+  expect(record.retries).toEqual(['the budget left could not hold 64000 output tokens']);
+  expect(sent.map((body) => body.max_output_tokens)).toEqual([16000]);
+  expect(sent[0].instructions).toContain('Write at most 2 files');
+  expect(sent[0].instructions).not.toContain('cut off');
 });
 
 it('records the model, prompt hash, tokens, cost and file hashes of one request, and never asks again', async () => {

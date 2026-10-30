@@ -1,9 +1,13 @@
 import ts from 'typescript-compiler';
 import { daysUntil, type DeadlineRegistry } from './deadline-registry.ts';
+import type { GraphReconstruction } from './meta-graph-ai.ts';
 import {
   exported,
   findDeclaration,
   isConst,
+  moduleResolver,
+  propertyName,
+  reassignedName,
   isReference,
   scanGraphCalls,
   unwrap,
@@ -161,7 +165,15 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
   const endpoint = (change: MetaGraphChange) =>
     (change.edge !== null && change.edge === call.edge) ||
     (change.path !== null && call.path !== null && pathMatches(call.path, change.path));
+  // A change recorded on an edge or endpoint reaches only requests to it.
+  const own = (change: MetaGraphChange) =>
+    (change.edge === null || change.edge === call.edge) &&
+    (change.path === null || (call.path !== null && pathMatches(call.path, change.path)));
+  // A WhatsApp Cloud API request (it names `messaging_product`) goes to a WhatsApp node, so a
+  // change Meta records on another node type, such as the Page `messages` edge, cannot reach it.
+  const whatsapp = call.parameters?.includes('messaging_product') ?? false;
   return changes.filter((change) => {
+    if (whatsapp && change.node !== null && !/whatsapp/i.test(change.node)) return false;
     switch (change.kind) {
       case 'endpoint-removed':
       case 'endpoint-changed':
@@ -188,7 +200,9 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
         );
       case 'parameter-removed':
       case 'parameter-changed':
-        return call.parameters?.includes(change.name!) ?? false;
+        // Like fields: a parameter recorded on an edge or path is that endpoint's, so a request
+        // elsewhere that sends a parameter of the same name (`type`) does not use the change.
+        return own(change) && (call.parameters?.includes(change.name!) ?? false);
       // The values a request breaks down by are not traced, so any breakdown on insights counts.
       case 'breakdown-removed':
         return (
@@ -205,10 +219,13 @@ export function changesUsedBy(call: GraphCall, changes: MetaGraphChange[]) {
   });
 }
 
-// WhatsApp Business Platform and Messenger Platform publish their own changelogs, which the change
-// list does not cover, so a request that belongs to either stops any move of its version. A
-// request belongs to them by its edge (or root endpoint), or by a parameter only their send APIs
-// take.
+// WhatsApp Business Platform and Messenger Platform publish their own changelogs. Both are mined
+// into the change list (docs/benchmarks/meta-graph-changelog/pages/whatsapp.json and
+// messenger-platform.json), so their requests are matched like any other. The WhatsApp changelog
+// starts on 2021-10-21 and the Messenger one on 2020-12-01, so a request that belongs to either
+// still stops a move across a version released before the later of the two. A request belongs to
+// them by its edge (or root endpoint), or by a parameter only their send APIs take.
+export const PLATFORM_CHANGELOGS_FROM = '2021-10-21';
 const SEPARATE_CHANGELOG_EDGES = new Set([
   'messages',
   'message_templates',
@@ -251,16 +268,62 @@ const SEPARATE_CHANGELOG_PARAMETERS = new Set([
   'phone_number_id',
 ]);
 
-export function separateChangelog(call: GraphCall) {
+// `uncovered` are the crossed versions released before both platform changelogs start.
+export function separateChangelog(call: GraphCall, uncovered: string[]) {
+  if (!uncovered.length) return [];
   // A root endpoint such as `/message_template_library` is a path with no node before it.
   const root = call.path !== null && /^\/[a-z_]+$/.test(call.path) ? call.path.slice(1) : null;
   return (call.edge !== null && SEPARATE_CHANGELOG_EDGES.has(call.edge)) ||
     (root !== null && SEPARATE_CHANGELOG_EDGES.has(root)) ||
     (call.parameters ?? []).some((name) => SEPARATE_CHANGELOG_PARAMETERS.has(name))
     ? [
-        `${call.file}:${call.line}: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which the change list does not cover`,
+        `${call.file}:${call.line}: WhatsApp Business Platform and Messenger Platform requests follow their own changelogs, which start after ${uncovered.join(', ')} ${uncovered.length === 1 ? 'was' : 'were'} released`,
       ]
     : [];
+}
+
+// Whether a change took effect on every version by `now` (`appliesToAll`): the pinned version
+// already has it, so moving the pin neither causes nor fixes it. It is listed with the out-of-cycle
+// changes instead.
+export function inEffect(change: MetaGraphChange, now: Date) {
+  return change.appliesToAll !== null && change.appliesToAll <= now.toISOString().slice(0, 10);
+}
+
+// Whether the repository's code names a changed field or error code, so it may read it: a number
+// written as a word (`132018`), or a name read as a property (`.network`, `?.network`), written as
+// a string (`'network'`, which also covers `data['network']`) or destructured (`{ network }`).
+// Dynamic keys are not followed.
+export function codeNames(repository: Repository) {
+  const contents = repository.files.map((file) => file.content);
+  const found = new Map<string, boolean>();
+  return (name: string) => {
+    if (!found.has(name)) {
+      const pattern = /^\d+$/.test(name)
+        ? new RegExp(`\\b${name}\\b`)
+        : new RegExp(`(\\.|['"\`])${name}\\b|[{,]\\s*${name}\\s*[,}:=]`);
+      found.set(
+        name,
+        contents.some((content) => pattern.test(content)),
+      );
+    }
+    return found.get(name)!;
+  };
+}
+
+// Whether a change the request uses can reach its code. A changed error code leaves the request
+// valid and matters only where the code names that code; a field change counted against the node's
+// default fields, which the request never names, matters only where the code reads the field.
+// Anything else, and a change named in prose rather than as an identifier, does.
+export function reachesCode(
+  call: GraphCall,
+  change: MetaGraphChange,
+  named: (name: string) => boolean,
+) {
+  const identifier = change.name !== null && /^\w+$/.test(change.name);
+  if (change.kind === 'error-changed') return !identifier || named(change.name!);
+  if (change.kind.startsWith('field-') && !fieldNames(call.fields ?? []).has(change.name ?? ''))
+    return !identifier || named(change.name!);
+  return true;
 }
 
 // What a request leaves unknown, which stops any move of its version.
@@ -330,16 +393,20 @@ function holderOf(node: ts.Node): ts.VariableDeclaration | undefined {
     : undefined;
 }
 
-function references(source: ts.SourceFile, declaration: ts.VariableDeclaration) {
-  const name = (declaration.name as ts.Identifier).text;
+// References to a declared variable, or to a module-level import binding given by name.
+function references(source: ts.SourceFile, declaration: ts.VariableDeclaration | string) {
+  const name =
+    typeof declaration === 'string' ? declaration : (declaration.name as ts.Identifier).text;
+  const target = typeof declaration === 'string' ? undefined : declaration;
   const found: ts.Identifier[] = [];
   const visit = (node: ts.Node) => {
     if (
       ts.isIdentifier(node) &&
       node.text === name &&
       isReference(node) &&
-      node !== declaration.name &&
-      findDeclaration(name, node) === declaration
+      node !== target?.name &&
+      !ts.isImportSpecifier(node.parent) &&
+      findDeclaration(name, node) === target
     )
       found.push(node);
     ts.forEachChild(node, visit);
@@ -353,11 +420,14 @@ function references(source: ts.SourceFile, declaration: ts.VariableDeclaration) 
 // request config, or a file-local `const` alias whose uses qualify in turn.
 function untracedUses(
   source: ts.SourceFile,
-  declaration: ts.VariableDeclaration,
+  declaration: ts.VariableDeclaration | string,
   kind: 'url' | 'version',
   depth = 0,
+  // A `let`: the scan reads it only where it is passed to a call, not where it starts a longer URL.
+  direct = false,
 ): string[] {
-  const name = (declaration.name as ts.Identifier).text;
+  const name =
+    typeof declaration === 'string' ? declaration : (declaration.name as ts.Identifier).text;
   const reasons: string[] = [];
   for (const reference of references(source, declaration)) {
     let node: ts.Node = reference;
@@ -369,7 +439,7 @@ function untracedUses(
       node = node.parent;
     const parent = node.parent;
     const where = `${source.fileName}:${source.getLineAndCharacterOfPosition(reference.getStart(source)).line + 1}`;
-    if (ts.isTemplateSpan(parent)) {
+    if (ts.isTemplateSpan(parent) && !direct) {
       const template = parent.parent;
       const index = template.templateSpans.indexOf(parent);
       const before =
@@ -378,6 +448,7 @@ function untracedUses(
       if (kind === 'version' && HOST_PREFIX.test(before)) continue;
     } else if (kind === 'url') {
       if (
+        !direct &&
         ts.isBinaryExpression(parent) &&
         parent.operatorToken.kind === ts.SyntaxKind.PlusToken &&
         parent.left === node
@@ -400,6 +471,7 @@ function untracedUses(
         ts.isIdentifier(parent.name) &&
         isConst(parent) &&
         !exported(parent) &&
+        !direct &&
         depth < MAX_ALIAS_DEPTH
       ) {
         reasons.push(...untracedUses(source, parent, kind, depth + 1));
@@ -407,6 +479,68 @@ function untracedUses(
       }
     }
     reasons.push(`${where}: \`${name}\` is used in a way the request scan does not follow`);
+  }
+  return reasons;
+}
+
+// How other files use an exported version or base: each named import must be used only where the
+// scan reads it. Any other way of reaching the module (a namespace or default import, a
+// re-export, a whole-module `require` or `import()`) may use it unseen.
+function importerUses(
+  repository: Repository,
+  file: string,
+  name: string,
+  kind: 'url' | 'version',
+): string[] {
+  const resolveFrom = moduleResolver(repository);
+  const reasons: string[] = [];
+  for (const item of repository.files) {
+    if (item.path === file || !/\b(?:import|require|export)\b/.test(item.content)) continue;
+    const source = ts.createSourceFile(item.path, item.content, ts.ScriptTarget.Latest, true);
+    const reaches = (specifier: ts.Expression | undefined) =>
+      specifier !== undefined &&
+      ts.isStringLiteralLike(specifier) &&
+      resolveFrom(item.path, specifier.text) === file;
+    const where = (node: ts.Node) =>
+      `${item.path}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}`;
+    const locals: string[] = [];
+    const visit = (node: ts.Node) => {
+      if (ts.isImportDeclaration(node) && reaches(node.moduleSpecifier)) {
+        const clause = node.importClause;
+        if (clause?.name || (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)))
+          reasons.push(`${where(node)}: the module that exports \`${name}\` is imported whole`);
+        else if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings))
+          for (const element of clause.namedBindings.elements)
+            if ((element.propertyName ?? element.name).text === name)
+              locals.push(element.name.text);
+      } else if (ts.isExportDeclaration(node) && reaches(node.moduleSpecifier))
+        reasons.push(`${where(node)}: the module that exports \`${name}\` is re-exported`);
+      else if (
+        ts.isCallExpression(node) &&
+        (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+          (ts.isIdentifier(node.expression) && node.expression.text === 'require')) &&
+        reaches(node.arguments[0])
+      ) {
+        const declaration = node.parent;
+        if (
+          ts.isVariableDeclaration(declaration) &&
+          ts.isObjectBindingPattern(declaration.name) &&
+          declaration.parent.parent.parent === source
+        ) {
+          for (const element of declaration.name.elements)
+            if (
+              ts.isIdentifier(element.name) &&
+              (propertyName(element.propertyName) ?? element.name.text) === name
+            )
+              reasons.push(
+                `${where(node)}: \`${name}\` is required into a variable this check does not follow`,
+              );
+        } else reasons.push(`${where(node)}: the module that exports \`${name}\` is loaded whole`);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    for (const local of locals) reasons.push(...untracedUses(source, local, kind));
   }
   return reasons;
 }
@@ -454,27 +588,44 @@ function pinEdit(repository: Repository, file: string, line: number, version: st
   const name = ts.isIdentifier(holder.name) ? holder.name.text : '';
   if (!name)
     return { start, end, reasons: [`${where}: the version is held in a destructured value`] };
-  if (exported(holder))
-    return {
-      start,
-      end,
-      reasons: [
-        `${where}: the version is in the exported \`${name}\`; other files may use it in ways this check does not follow`,
-      ],
-    };
-  if (!isConst(holder))
-    return {
-      start,
-      end,
-      reasons: [`${where}: the version is in \`${name}\`, which is not a const`],
-    };
   const initializer =
     holder.initializer && (envDefault(holder.initializer) ?? unwrap(holder.initializer));
   const kind =
     initializer && ts.isStringLiteralLike(initializer) && VERSION.test(initializer.text)
       ? 'version'
       : 'url';
-  return { start, end, reasons: untracedUses(source, holder, kind) };
+  // An exported version, or an exported base written as a plain string, is followed into the files
+  // that import it by name; the scan reads both there.
+  if (exported(holder)) {
+    if (!isConst(holder) || (kind === 'url' && envDefault(holder.initializer!)))
+      return {
+        start,
+        end,
+        reasons: [
+          `${where}: the version is in the exported \`${name}\`; other files may use it in ways this check does not follow`,
+        ],
+      };
+    return {
+      start,
+      end,
+      reasons: [
+        ...untracedUses(source, holder, kind),
+        ...importerUses(repository, file, name, kind),
+      ],
+    };
+  }
+  // A `let` that is never assigned again holds its initializer, as a `const` does.
+  const steadyLet =
+    ts.isVariableDeclarationList(holder.parent) &&
+    (holder.parent.flags & ts.NodeFlags.Let) !== 0 &&
+    !reassignedName(holder);
+  if (!isConst(holder) && !steadyLet)
+    return {
+      start,
+      end,
+      reasons: [`${where}: the version is in \`${name}\`, which is not a const`],
+    };
+  return { start, end, reasons: untracedUses(source, holder, kind, 0, !isConst(holder)) };
 }
 
 // Proposes moving each pinned Graph API version to `target` where the evidence allows, and lists
@@ -486,6 +637,7 @@ export async function proposeVersionMoves(
   registry: DeadlineRegistry,
   now: Date,
   rules: AppliedRule[] = [],
+  reconstructions: GraphReconstruction[] = [],
 ): Promise<VersionMoveProposal> {
   if (!VERSION.test(target)) throw new PipelineInputError('--target must look like v24.0.');
   const records = new Map(changes.versions.map((entry) => [entry.version, entry]));
@@ -501,7 +653,8 @@ export async function proposeVersionMoves(
       `${target} was retired on ${retiring.date}; choose a newer target.`,
     );
   const repository = await readRepository(directory, META_SDK);
-  const scan = await scanGraphCalls(directory, { repository });
+  const scan = await scanGraphCalls(directory, { repository, reconstructions });
+  const names = codeNames(repository);
   // Every version a move could cross: the change list's, the deadline registry's and each whole
   // major version, so a version missing from both lists is still checked.
   const known = new Set([
@@ -572,15 +725,22 @@ export async function proposeVersionMoves(
       testPins.push({ file, line, from, calls });
       continue;
     }
-    const reasons = [...calls.flatMap(unknownParts), ...calls.flatMap(separateChangelog)];
     const crossed = crossedBetween(from);
+    const uncovered = crossed.filter(
+      (version) => (records.get(version)?.released ?? '') < PLATFORM_CHANGELOGS_FROM,
+    );
+    const reasons = [
+      ...calls.flatMap(unknownParts),
+      ...calls.flatMap((call) => separateChangelog(call, uncovered)),
+    ];
     const unreviewed = crossed.filter((version) => records.get(version)?.status !== 'reviewed');
     if (unreviewed.length)
       reasons.push(
         `${unreviewed.join(', ')}: ${unreviewed.length === 1 ? 'this changelog is' : 'these changelogs are'} not reviewed in the Meta Graph API change list`,
       );
     const inRange = changes.changes.filter(
-      (change) => change.version !== null && crossed.includes(change.version),
+      (change) =>
+        change.version !== null && crossed.includes(change.version) && !inEffect(change, now),
     );
     const rulesInRange = rules.filter(
       (rule) => rule.version !== null && crossed.includes(rule.version),
@@ -593,7 +753,7 @@ export async function proposeVersionMoves(
       ruleEdits.push(...outcome.edits);
       for (const edit of outcome.edits) applied.add(edit.changeId.replace('meta-graph-rule-', ''));
       for (const change of changesUsedBy(call, inRange))
-        if (!outcome.covers.includes(change.id))
+        if (!outcome.covers.includes(change.id) && reachesCode(call, change, names))
           reasons.push(
             `${call.file}:${call.line}: ${change.version} ${change.kind} ${change.id}: ${change.summary}`,
           );

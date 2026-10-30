@@ -15,6 +15,24 @@ Six held progress-30 rows (a practice set, opened on the founder's instruction),
 - 0-CYBERDYNE-SYSTEMS-0/quorum: checks pass (B), held on a real change: `expand: ['latest_invoice.payment_intent']` and its `invoice.payment_intent` read, whose documented replacement (`confirmation_secret`) needs a code change no rule makes, and 16 `.type` reads of WebSocket JSON. Version-tolerant helper types now return `any` for an `any` receiver, and the scan-time type proof follows assertions that only add inline members.
 - buildproven/saas-starter-kit: held on real removals: a customer-wide upcoming-invoice preview and legacy usage records. `subscription_items` and `invoice_items` now map to `invoices.createPreview` as Stripe's basil page documents, and an `undefined` branch counts as sending nothing.
 
+## October 29 checkpoint: Meta Graph WhatsApp and Messenger changelogs (unreleased, after 0.39.0)
+
+WhatsApp Business Platform and Messenger Platform requests move against their mined changelogs, stopping only across a version released before 2021-10-21. A listed change stops a move only where it can reach the code: in-effect changes (`appliesToAll` passed) go to the out-of-cycle list, parameter changes match their own edge or path, Page-node changes never match a WhatsApp send, and error-code and default-field changes stop where the code names them. The WhatsApp On-Premises shutdown (2025-10-23) is an alert, never an edit. meta-dev-60 (refit-bench 40955443390 → 40970560104): validated 3 → 6, none lost, each new diff reviewed `correct`; no AI. See [Benchmarks](BENCHMARKS.md#meta-graph-changelog-coverage-on-meta-dev-60-october-29).
+
+## October 29 checkpoint: Meta Graph tracing and AI reconstruction (unreleased, after 0.39.0)
+
+The Meta Graph scan now reads more request shapes:
+
+- `new URL(...)` with `searchParams`;
+- conditional URLs;
+- same-file URL builders;
+- fetch wrappers that spread their options;
+- injected fetch parameters.
+
+With AI on, it also reconstructs requests it cannot read. A reconstruction is kept only when every name is written in the code, it agrees with every traced part, and a runtime version is written on the line the model names. It then goes through the change table, the move stops and the proof like a traced request ([Meta Graph API](META-GRAPH.md)).
+
+Measured on meta-dev-60: validated 3 → 6 without AI and 9 with AI on Claude Sonnet 5.5, at $20.03; none lost and every new fix hand-checked ([benchmarks](BENCHMARKS.md#with-ai-on-claude-october-30)). Parameter changes now match only requests on their own edge or path.
+
 ## October 29 checkpoint: Shopify documents built at runtime (unreleased, after 0.39.0)
 
 Shopify tracing reads more of the GraphQL documents apps build at runtime or send through other clients ([Shopify](SHOPIFY.md#what-refit-reads)):
@@ -73,6 +91,7 @@ Admin (2025-01, 2026-01 to 2026-10) and Storefront (2024-10, 2025-01, 2025-07, 2
   - Every changed request (52) and every new move (11) was checked by hand.
   - ME1's meta-dev-60 set was not frozen yet, so it was not measured.
   - Census of the 68 non-blind Meta repositories: 22 with a patch (18 before the default-field and helper fixes), all 22 proven by the change table, 10 validated (caution-only stops on versions Meta still serves are notes, not unresolved findings), grades B 1, C 19, D 2; [blockers](META-GRAPH.md#census-of-non-blind-meta-repositories-2026-10-29).
+  - meta-dev-60 (offline, no AI, target v26.0): the scan now follows `new URL(...)` objects and their `searchParams`, conditional and returned URLs, helpers that add transport options, paging helpers, nested helpers and versions imported through tsconfig path aliases. Patches 15 → 17, pins moved 45 → 67, validated 3 → 6, all proven, none lost; [details](META-GRAPH.md#measured-on-meta-dev-60-2026-10-29).
 - **Not done:**
   - enrollment and hosted-worker configurations for Meta;
   - AI repair;
@@ -91,6 +110,10 @@ Shopify patches are now graded by proof ([Shopify proof](SHOPIFY-PROOF.md)). Eve
 ## October 29 checkpoint: Meta Graph proof (unreleased, after 0.39.0)
 
 A Meta Graph patch that reaches validation is graded by the reviewed change table: every changed request must be valid at one reviewed target version, and the type check or tests must pass, for grade C or B; read-only calls with Refit's own `META_TEST_TOKEN` (an app access token, so only app-level reads; user and page requests keep the offline proof) raise it to A, and a target version the Graph API refuses drops it to D; where the checks prove nothing but did not fail, a patch that changes only request strings, or JavaScript checkJs fully types, is grade C too; otherwise it is grade D and `[Needs review]` with the reason ([Meta Graph proof](META-GRAPH.md#proof)). With AI enabled, an advisory second-opinion review is recorded with its cost. Unit tests, and a hand-check of ME3's patches on the 13 non-blind dev repositories that get one (all proven, every changed line read; [Meta Graph proof](META-GRAPH.md#proof)). No benchmark was run.
+
+## October 28 checkpoint: proof plumbing for verbose, failing and untyped repositories (unreleased, after 0.39.0)
+
+Checks no longer stop at 1 MiB of output: they keep the first and last lines and every result line and are judged by their exit code. Suites that fail before any test runs on both sides are compared by the suites and errors they print. pnpm reads a name declared in two sections once, as pnpm does. The analyzer stops flagging reads through a field the before contract never sent and untraced reads compared only with a value the removed field never held. A client without a version option moves with the stripe-node upgrade even where Refit cannot follow it, when no file names a version option. The behaviour-test writer asks once for a smaller answer when the budget cannot hold the full reservation. See [proof plumbing](PROOF-BASED-VALIDATION.md#proof-plumbing-featp30-proof-2026-10-28); measured locally on 4 progress-30 repositories, no benchmark run.
 
 ## October 28 checkpoint: rule coverage for contract stops (unreleased, after 0.39.0)
 

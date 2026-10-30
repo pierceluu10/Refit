@@ -742,7 +742,8 @@ export async function sync(admin, session, shop, id, verb, url) {
       .map((finding: any) => finding.expression)
       .slice(0, 3),
   ).toEqual(['shopify.clients.Rest', 'PUT metafields.json (client.put)', 'DELETE (client.delete)']);
-  // Calls with no reads, an empty body or a listed parameter (`status`) are in both REST contracts.
+  // Calls with no reads, an empty body or a listed parameter (`status`) are in both REST contracts,
+  // and so is a record built with no field assigned (its save endpoints are kept).
   expect(
     report.shopify.restContract
       .filter((entry: any) => entry.status === 'proven')
@@ -754,6 +755,7 @@ export async function sync(admin, session, shop, id, verb, url) {
     [16, ['GET orders.json']],
     [17, ['POST orders.json']],
     [20, ['GET shop.json']],
+    [22, ['POST products.json', 'PUT products/<id>.json']],
   ]);
   expect(renderScanResult(report)).toContain(
     'REST        15 REST Admin calls for review, not migrated: GET products/count at app/rest.ts:6, POST products/{id}/metafields at app/rest.ts:7, call at app/rest.ts:8, and 12 more',

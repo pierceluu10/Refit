@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { usageCostUsd, type AiOptions } from './ai-budget.ts';
 import type { EvidenceGrade } from './check-selection.ts';
+import { movedReconstructions, type GraphReconstruction } from './meta-graph-ai.ts';
 import { scanGraphCalls, type GraphCall } from './meta-graph-calls.ts';
 import { checkJsProof, requestStringProof, type CodeProof } from './meta-graph-code-proof.ts';
 import {
@@ -9,7 +10,14 @@ import {
   loadMetaGraphChanges,
   type MetaGraphChanges,
 } from './meta-graph-changes.ts';
-import { changesUsedBy, separateChangelog } from './meta-graph-moves.ts';
+import {
+  changesUsedBy,
+  codeNames,
+  inEffect,
+  PLATFORM_CHANGELOGS_FROM,
+  reachesCode,
+  separateChangelog,
+} from './meta-graph-moves.ts';
 import { requestStructuredOutput, UnusableAiResponse } from './openai.ts';
 import { parseObject } from './specifications.ts';
 import { PipelineInputError, type Repository } from './types.ts';
@@ -137,6 +145,11 @@ export function proveGraphRequests(
   patched: GraphCall[],
   changes: MetaGraphChanges,
   target?: string,
+  // What the patched code names, and the day of the check (moves' reachesCode and inEffect).
+  context: { names: (name: string) => boolean; now: Date } = {
+    names: () => true,
+    now: new Date(),
+  },
 ): MetaGraphProof & { calls: GraphCall[] } {
   const changed = pairRequests(original, patched).filter(
     ({ call, original }) => !original || shape(original) !== shape(call),
@@ -156,9 +169,15 @@ export function proveGraphRequests(
     // A change with no version (out of cycle) applies before and after a version move alike; the
     // fix plan lists the requests it reaches (ME3's outOfCycleUses), so it is not this patch's proof.
     const inRange = changes.changes.filter(
-      (change) => change.version !== null && crossed.includes(change.version),
+      (change) =>
+        change.version !== null &&
+        crossed.includes(change.version) &&
+        !inEffect(change, context.now),
     );
-    const problems = [...unknownParts(call), ...separateChangelog(call)];
+    const uncovered = crossed.filter(
+      (version) => (records.get(version)?.released ?? '') < PLATFORM_CHANGELOGS_FROM,
+    );
+    const problems = [...unknownParts(call), ...separateChangelog(call, uncovered)];
     if (resolved && call.version !== null && call.version !== resolved)
       problems.push(`${where(call)}: sends ${call.version}, not the target ${resolved}`);
     const unreviewed = crossed.filter((version) => records.get(version)?.status !== 'reviewed');
@@ -166,7 +185,9 @@ export function proveGraphRequests(
       problems.push(
         `${where(call)}: the changelog of ${unreviewed.join(', ')} is not reviewed in the change table`,
       );
-    for (const change of changesUsedBy(call, inRange))
+    for (const change of changesUsedBy(call, inRange).filter((change) =>
+      reachesCode(call, change, context.names),
+    ))
       problems.push(
         `${where(call)}: ${change.version} ${change.kind} ${change.id}: ${change.summary}`,
       );
@@ -199,14 +220,28 @@ export function proveGraphRequests(
 export async function proveMetaGraphPatch(
   original: Repository,
   patched: Repository,
-  options: { changes?: MetaGraphChanges; target?: string } = {},
+  options: {
+    changes?: MetaGraphChanges;
+    target?: string;
+    // Kept AI reconstructions (meta-graph-ai.ts). A version move edits within a line, so they
+    // apply at the same sites on both sides.
+    reconstructions?: GraphReconstruction[];
+  } = {},
 ) {
   const changes = options.changes ?? (await loadMetaGraphChanges(metaGraphChangeTable()));
+  const { reconstructions } = options;
   const [before, after] = await Promise.all([
-    scanGraphCalls(original.root, { repository: original }),
-    scanGraphCalls(patched.root, { repository: patched }),
+    scanGraphCalls(original.root, { repository: original, reconstructions }),
+    scanGraphCalls(patched.root, {
+      repository: patched,
+      // The patched side sends the target where a reconstructed version was moved.
+      reconstructions: reconstructions && movedReconstructions(reconstructions, patched),
+    }),
   ]);
-  return proveGraphRequests(before.calls, after.calls, changes, options.target);
+  return proveGraphRequests(before.calls, after.calls, changes, options.target, {
+    names: codeNames(patched),
+    now: new Date(),
+  });
 }
 
 export interface GraphProbe {
@@ -535,10 +570,13 @@ export async function metaGraphEvidence(options: {
   ai?: AiOptions;
   environment: Record<string, string | undefined>;
   request?: typeof fetch;
+  reconstructions?: GraphReconstruction[];
 }) {
   let proof: MetaGraphProof & { calls?: GraphCall[] };
   try {
-    proof = await proveMetaGraphPatch(options.original, options.patched);
+    proof = await proveMetaGraphPatch(options.original, options.patched, {
+      reconstructions: options.reconstructions,
+    });
   } catch (error) {
     proof = {
       target: null,

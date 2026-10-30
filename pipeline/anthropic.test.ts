@@ -167,3 +167,47 @@ it('chooses Anthropic when configured or when its key is the only one', () => {
     items: { type: 'string' },
   });
 });
+
+it('says when token counting fails because the account has no credit, without the API message', async () => {
+  const fetcher = vi.fn().mockImplementation(
+    async () =>
+      new Response(
+        JSON.stringify({
+          type: 'error',
+          error: {
+            type: 'invalid_request_error',
+            message:
+              'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.',
+          },
+        }),
+        { status: 400 },
+      ),
+  );
+  vi.stubGlobal('fetch', fetcher);
+  const directory = await mkdtemp(join(tmpdir(), 'refit-anthropic-'));
+  try {
+    await expect(
+      requestStructuredOutput(REQUEST, { ...OPTIONS, budget: { directory, limitUsd: 1 } }),
+    ).rejects.toThrow(
+      'Anthropic token counting failed with HTTP 400 (invalid_request_error: the credit balance is too low); generation was not attempted.',
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+  // Any other 400 names only its type.
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ error: { type: 'invalid_request_error', message: 'evidence text' } }),
+          { status: 400 },
+        ),
+      ),
+  );
+  await expect(requestStructuredOutput(REQUEST, OPTIONS)).rejects.toThrow(
+    'Anthropic message request failed with HTTP 400 (invalid_request_error). No retry was made.',
+  );
+});
