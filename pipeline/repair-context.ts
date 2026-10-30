@@ -138,3 +138,62 @@ export async function archivedStripeTypes(archive: string, packageDirectory?: st
     await rm(directory, { recursive: true, force: true });
   }
 }
+
+// Founder decision (Otabek, 2026-10-28): a type error the patch introduced that names a type
+// stripe-node declares is evidence of Stripe usage on its line. Returns the declared-type findings
+// such an error lands on; `line` maps a finding into the checked candidate, undefined when gone.
+export function typeCheckedFindings<
+  F extends { file: string; line: number; confidence: string; declaredType?: unknown },
+>(
+  findings: F[],
+  errors: TypeError[],
+  stripeTypes: { path: string; content: string }[],
+  line: (finding: F) => number | undefined,
+) {
+  const named = errors.filter((error) =>
+    namedTypes([error]).some((name) => typeDeclarations([name], stripeTypes).length > 0),
+  );
+  return findings.filter(
+    (finding) =>
+      finding.declaredType &&
+      finding.confidence !== 'confirmed' &&
+      named.some((error) => error.file === finding.file && error.line === line(finding)),
+  );
+}
+
+// Founder decision (Otabek, 2026-10-28): when the model returns a patch already checked, the draft
+// says why that is likely, from the errors left: stripe-node was not upgraded while they name an API
+// version, every one is outside Stripe code, or the stripe-node types they name could not be read.
+export function repeatedProposalReason(input: {
+  errors: TypeError[];
+  sdkUpgraded: boolean;
+  stripeFiles: Set<string>;
+  stripeTypes: { path: string; content: string }[];
+}) {
+  const { errors, sdkUpgraded, stripeFiles, stripeTypes } = input;
+  const sites = (list: TypeError[]) =>
+    [...new Set(list.map((error) => `${error.file}:${error.line} ${error.code}`))]
+      .slice(0, 3)
+      .join(', ');
+  const versioned = errors.filter((error) => STRIPE_VERSION.test(error.message));
+  if (!sdkUpgraded && versioned.length)
+    return {
+      kind: 'sdk-not-upgraded' as const,
+      text: `The model returned the same patch again, likely because stripe-node was not upgraded: the installed types still reject the API version at ${sites(versioned)}, which no code edit fixes. Upgrade stripe-node to the release for the target version, then rerun.`,
+    };
+  if (errors.length && errors.every((error) => !stripeFiles.has(error.file)))
+    return {
+      kind: 'outside-stripe-code' as const,
+      text: `The model returned the same patch again, likely because the errors left are outside Stripe code (${sites(errors)}): no file there imports stripe or holds a finding, so the repair may not change them. Fix them by hand, then rerun.`,
+    };
+  const names = namedTypes(errors);
+  if (!stripeTypes.length || !typeDeclarations(names, stripeTypes).length)
+    return {
+      kind: 'missing-types' as const,
+      text: `The model returned the same patch again, likely because Refit could not show it the stripe-node types the errors name (${names.length ? names.join(', ') : 'none named'}), so it had nothing new to go on. Check ${sites(errors) || 'the failing check'} against the upgraded stripe-node types.`,
+    };
+  return {
+    kind: 'unknown' as const,
+    text: `The model returned the same patch again although it saw the errors left (${sites(errors)}) and the stripe-node types they name. Fix them by hand.`,
+  };
+}

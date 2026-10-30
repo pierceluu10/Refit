@@ -1041,9 +1041,9 @@ it('refuses an AI edit to a line the rules wrote, but not a replacement that rep
   expect(rewrittenRuleLines(original, ...versions(path, rules, whole))).toEqual([]);
 });
 
-it("refuses a repair that rewrites the rules' shipping helper calls", () => {
-  // Mangu-Commerce/madcaptees: narrowing one helper call is correct, but it rewrites the rule's
-  // lines, so the fix belongs in the rule (docs/overnight/P2.md).
+it("accepts a repair that hoists the rules' shipping helper calls into one", () => {
+  // Mangu-Commerce/madcaptees: narrowing one helper call is correct. It rewrites the rule's lines
+  // but keeps the helper, so under the founder decision of 2026-10-28 it is no longer refused.
   const path = 'api/stripe/webhook.ts';
   const helper = '(getCheckoutShippingDetails(session))';
   const original = HELPER_READS.replace(
@@ -1069,9 +1069,7 @@ it("refuses a repair that rewrites the rules' shipping helper calls", () => {
     rewrittenRuleLines(repository(path, original), ...versions(path, HELPER_READS, repaired)).map(
       (entry) => entry.line,
     ),
-  ).toEqual(
-    HELPER_READS.split('\n').flatMap((text, index) => (text.includes(helper) ? [index + 1] : [])),
-  );
+  ).toEqual([]);
 });
 
 it('passes a legitimate AI patch: a helper read on top of the rules', () => {

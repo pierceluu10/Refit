@@ -651,7 +651,7 @@ export async function proposeAiPatch(
   const ruleLines = rewrittenRuleLines(original, ruleBase, modified, aiFiles);
   if (ruleLines.length)
     throw new AiPolicyStop(
-      `AI patch changes ${ruleLines.map((entry) => `${entry.file}:${entry.line}`).join(', ')}, which the deterministic rules already changed; a rule's edit changes only with its rule, so it stops for review.`,
+      `AI patch changes ${ruleLines.map((entry) => `${entry.file}:${entry.line}`).join(', ')}, which the deterministic rules already changed, and drops what the rule introduced there; a rule's edit may be adjusted only while its new field, parameter or version stays, so it stops for review.`,
       proposal(),
     );
   // Calls that still send a removed request parameter stay unresolved too.

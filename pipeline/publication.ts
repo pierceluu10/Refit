@@ -702,6 +702,8 @@ export function publicationWaiver(
     ('skipped' in sdkUpgrade || !stripeNodeDefaultVersion(sdkUpgrade.from));
   const before = code(report.apiVersion.before ?? 'the before contract');
   const kept = 'keptApiVersion' in patch && patch.keptApiVersion === true;
+  const pinBlocked =
+    'pinBlocked' in patch && typeof patch.pinBlocked === 'string' ? patch.pinBlocked : undefined;
   // The pins a patch moves: literals older than the target.
   const olderPins = declarations.flatMap((declaration): ReviewSite[] =>
     declaration.status === 'literal' &&
@@ -819,7 +821,7 @@ export function publicationWaiver(
       ? [
           {
             gate: 'api-version-kept' as const,
-            reason: `${checks} failed on the patch that moved the API version to ${code(targetVersion)}, so this patch leaves every pin listed here and the stripe package unchanged. It keeps only edits that work under either version; Refit compared the ${before} contract with ${code(targetVersion)}.`,
+            reason: `${pinBlocked ? `Refit could not upgrade stripe-node to the release whose types accept ${code(targetVersion)}: ${plainText(pinBlocked)} A pin moves only with that upgrade` : `${checks} failed on the patch that moved the API version to ${code(targetVersion)}`}, so this patch leaves every pin listed here and the stripe package unchanged. It keeps only edits that work under either version; Refit compared the ${before} contract with ${code(targetVersion)}.`,
             check: `Move each pin listed here to ${code(targetVersion)}, upgrade stripe-node if its types need it, and fix what ${checks} then reports before merging.`,
             sites: olderPins,
           },

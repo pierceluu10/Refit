@@ -1398,6 +1398,10 @@ export function createReviewArtifacts(
               )}.`,
             ]
           : []),
+        // Founder decision (2026-10-28): a repair that ended on a repeated proposal says why.
+        ...(validation.repair?.stopReason === 'repeated-proposal' && validation.repair.error
+          ? [`- AI Repair: ${plainText(validation.repair.error)}`]
+          : []),
         // Stripe test mode: what Refit stood in for in its own account, and what it could not.
         ...testModeLines(validation),
         ...(legacyPeerDeps

@@ -26,6 +26,8 @@ import {
   namedTypes,
   typeDeclarations,
   withoutBaselineErrors,
+  typeCheckedFindings,
+  repeatedProposalReason,
 } from './repair-context.ts';
 import { validateProviderOperationMappings } from './provider-operations.ts';
 import { SHOPIFY, shopifyVersionDeclarations } from './shopify-pipeline.ts';
@@ -2102,6 +2104,8 @@ export async function validateMigration(options: {
       typeAssertions?: { file: string; line: number; code: string }[];
       // Why a type repair was refused by the type-only gate (typeOnlyRepairFailures).
       typeOnlyGate?: { repair: 'deterministic' | 'ai'; failures: string[] };
+      // The likely reason a repair ended on a repeated proposal (repeatedProposalReason).
+      repeated?: ReturnType<typeof repeatedProposalReason>['kind'];
     } = {
       limit: repairLimit,
       requested: 0,
@@ -2719,6 +2723,23 @@ export async function validateMigration(options: {
           stripeTypes: typeDeclarations(namedTypes(listed), stripeTypes ?? []),
         };
       };
+      // A declared-type read an introduced error names a stripe-node type at may be repaired; the
+      // scan's findings, and so the draft's review of them, are unchanged.
+      const archive = candidateDependencies ?? dependencies;
+      const declared = report.findings.filter(
+        (finding) => finding.declaredType && finding.confidence !== 'confirmed',
+      );
+      if (archive && declared.length && introduced.length)
+        stripeTypes ??= await archivedStripeTypes(archive, packageDirectory).catch(() => []);
+      const typeChecked = new Set(
+        typeCheckedFindings(declared, introduced.map(inPackage), stripeTypes ?? [], (finding) => {
+          const before = originalSources.files.find((file) => file.path === finding.file);
+          const after = candidateSources?.files.find((file) => file.path === finding.file);
+          return before && after
+            ? movedLine(before.content, after.content, finding.line)
+            : undefined;
+        }),
+      );
       try {
         options.signal?.throwIfAborted();
         const candidate = await proposeAiPatch(
@@ -2726,7 +2747,13 @@ export async function validateMigration(options: {
           report.changes,
           [
             // Owner decisions 1 and 8: a removed request parameter no longer keeps AI out.
-            ...report.findings.filter((finding) => !(aiCoverage && finding.requestParameter)),
+            ...report.findings
+              .filter((finding) => !(aiCoverage && finding.requestParameter))
+              .map((finding) =>
+                typeChecked.has(finding)
+                  ? { ...finding, confidence: 'confirmed' as const }
+                  : finding,
+              ),
             // Introduced type errors, at their positions in the failed candidate, become findings
             // the repair may fix, wherever they are.
             ...introduced
@@ -2851,6 +2878,32 @@ export async function validateMigration(options: {
         repair.error = `${error.name}: ${error.message}`;
         break;
       }
+    }
+    // A repair that ended on a repeated proposal says in the draft why that is likely.
+    if (repair.stopReason === 'repeated-proposal') {
+      const errors = (options.compareTypeErrors ? introducedTypeErrors(baselineRun, patched) : [])
+        .filter((error) => !reviewTypeError(error))
+        .map(inPackage);
+      const archive = candidateDependencies ?? dependencies;
+      if (archive && errors.length)
+        stripeTypes ??= await archivedStripeTypes(archive, packageDirectory).catch(() => []);
+      const sdkUpgrade =
+        'sdkUpgrade' in report.patch ? (report.patch.sdkUpgrade as { to?: string }) : undefined;
+      const repeatedReason = repeatedProposalReason({
+        errors,
+        sdkUpgraded: Boolean(sdkUpgrade?.to),
+        stripeFiles: new Set([
+          ...report.findings.map((finding) => finding.file),
+          ...(candidateSources?.files ?? [])
+            .filter((file) =>
+              /\bfrom\s+['"]stripe['"]|require\(\s*['"]stripe['"]\s*\)/.test(file.content),
+            )
+            .map((file) => file.path),
+        ]),
+        stripeTypes: stripeTypes ?? [],
+      });
+      repair.repeated = repeatedReason.kind;
+      repair.error = repeatedReason.text;
     }
     const generatedFor = async (directory = candidateDirectory) =>
       options.generatedChecks &&
