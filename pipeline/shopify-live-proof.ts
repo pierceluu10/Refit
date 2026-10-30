@@ -1,4 +1,12 @@
-import { Kind, parse, type DocumentNode, type OperationDefinitionNode } from 'graphql';
+import {
+  Kind,
+  parse,
+  visit,
+  type ArgumentNode,
+  type DocumentNode,
+  type ObjectFieldNode,
+  type OperationDefinitionNode,
+} from 'graphql';
 import { isObject } from './specifications.ts';
 
 // Live proof for Shopify patches (docs/SHOPIFY-PROOF.md): Refit sends each GraphQL operation the
@@ -23,11 +31,30 @@ const CREDENTIAL = /^[A-Za-z0-9_.-]{16,256}$/;
 const GLOBAL_ID = /gid:\/\/shopify\/[A-Za-z]+\/[^\s"']+/;
 const MAX_ERROR = 200;
 const REQUEST_TIMEOUT_MS = 30_000;
-const THROTTLE_RETRIES = 3;
+const THROTTLE_RETRIES = 5;
 const THROTTLE_BACKOFF_MS = 2_000;
+const MAX_THROTTLE_WAIT_MS = 60_000;
 const DEV_STORE_QUERY = '{ shop { plan { partnerDevelopment } } }';
+const FUNCTIONS_QUERY = '{ shopifyFunctions(first: 100) { nodes { id handle } } }';
+const LOCALES_QUERY = '{ shopLocales { locale } }';
 // The store, not the patched call: rate limits left after the retries, and server errors.
 const STORE_SIDE = /^HTTP (?:429|5\d\d)$|too many attempts|throttled/i;
+// A resource rate limit Shopify reports as a user error rather than THROTTLED.
+const TOO_MANY_ATTEMPTS = /too many attempts/i;
+// Store-environment answers an original operation gives at the original version, and what each
+// means, so the not-run reason names the cause rather than only quoting Shopify.
+const STORE_ENVIRONMENT: [RegExp, string][] = [
+  [
+    /function .* not found|"field":\["functionId"\]/i,
+    'the Shopify Function it names is not released by the app Refit uses on the store',
+  ],
+  [/not a valid locale/i, 'the locale it names is not enabled on the store'],
+  [
+    /owned by a shop|migrated to the shopify partners/i,
+    'the app Refit uses on the store is merchant-owned, and the Billing API needs a Partner app',
+  ],
+  [STORE_SIDE, 'the store rate-limited or failed the request'],
+];
 
 export interface ShopifyTestStore {
   store: string;
@@ -242,6 +269,49 @@ function globalIds(value: unknown): string[] {
   return isObject(value) ? Object.values(value).flatMap(globalIds) : [];
 }
 
+// Every string a case sends under `key`, in its variables or written in its documents.
+function inputStrings(key: string, texts: string[], values: unknown[]): string[] {
+  const found: string[] = [];
+  const walk = (value: unknown): void => {
+    if (Array.isArray(value)) value.forEach(walk);
+    else if (isObject(value))
+      for (const [name, entry] of Object.entries(value))
+        if (name === key && typeof entry === 'string') found.push(entry);
+        else walk(entry);
+  };
+  values.forEach(walk);
+  const literal = (node: ObjectFieldNode | ArgumentNode) => {
+    if (node.name.value === key && node.value.kind === Kind.STRING) found.push(node.value.value);
+  };
+  for (const text of texts) visit(parse(text), { ObjectField: literal, Argument: literal });
+  return found;
+}
+
+// How long to wait before retrying a throttled request: Shopify's Retry-After on HTTP 429, or the
+// time the query-cost bucket needs to refill (extensions.cost), whichever is longer than the backoff.
+function throttleWait(response: Response, body: unknown, backoff: number) {
+  const retryAfter = Number(response.headers.get('Retry-After')) * 1000;
+  const cost =
+    isObject(body) && isObject(body.extensions) && isObject(body.extensions.cost)
+      ? body.extensions.cost
+      : undefined;
+  const status = isObject(cost?.throttleStatus) ? cost.throttleStatus : undefined;
+  const refill =
+    typeof cost?.requestedQueryCost === 'number' &&
+    typeof status?.currentlyAvailable === 'number' &&
+    typeof status.restoreRate === 'number' &&
+    status.restoreRate > 0
+      ? ((cost.requestedQueryCost - status.currentlyAvailable) / status.restoreRate) * 1000
+      : 0;
+  return Math.min(
+    MAX_THROTTLE_WAIT_MS,
+    Math.max(backoff, Number.isFinite(retryAfter) ? retryAfter : 0, refill),
+  );
+}
+
+const storeCause = (error: string) =>
+  STORE_ENVIRONMENT.find(([pattern]) => pattern.test(error))?.[1];
+
 // Why a mutation, setup or cleanup step may not run, or undefined when it may.
 function mutationRefusal(
   operation: OperationDefinitionNode,
@@ -289,18 +359,21 @@ export async function liveShopifyProof(options: {
       });
       const body: unknown = await response.json().catch(() => ({}));
       const errors = isObject(body) && Array.isArray(body.errors) ? body.errors : [];
+      const data = isObject(body) ? body.data : undefined;
+      const userErrors = JSON.stringify(data ?? null).match(/"userErrors":\[\{[^\]]*\]/)?.[0];
       const throttled =
         response.status === 429 ||
+        TOO_MANY_ATTEMPTS.test(userErrors ?? '') ||
         errors.some(
           (error) =>
             isObject(error) && isObject(error.extensions) && error.extensions.code === 'THROTTLED',
         );
       if (throttled && attempt < THROTTLE_RETRIES) {
-        await new Promise((done) => setTimeout(done, THROTTLE_BACKOFF_MS * 2 ** attempt));
+        await new Promise((done) =>
+          setTimeout(done, throttleWait(response, body, THROTTLE_BACKOFF_MS * 2 ** attempt)),
+        );
         continue;
       }
-      const data = isObject(body) ? body.data : undefined;
-      const userErrors = JSON.stringify(data ?? null).match(/"userErrors":\[\{[^\]]*\]/)?.[0];
       const first = errors[0];
       const error = !response.ok
         ? `HTTP ${response.status}`
@@ -315,6 +388,63 @@ export async function liveShopifyProof(options: {
             : undefined;
       return { status: response.status, data, error };
     }
+  };
+  // The store's own values for a probe (its app's functions, its locales), asked once per run, or
+  // the error the store answered.
+  const probes = new Map<string, Promise<string[] | string>>();
+  const storeValues = (query: string, root: string, fields: string[]) => {
+    if (!probes.has(query))
+      probes.set(
+        query,
+        request(options.versions.after, query, {}).then((result) => {
+          if (result.error) return result.error;
+          const value = lookup(result.data, [root]);
+          const nodes = Array.isArray(value)
+            ? value
+            : isObject(value) && Array.isArray(value.nodes)
+              ? value.nodes
+              : [];
+          return nodes.flatMap((node) =>
+            isObject(node)
+              ? fields.flatMap((field) => (typeof node[field] === 'string' ? [node[field]] : []))
+              : [],
+          );
+        }),
+      );
+    return probes.get(query)!;
+  };
+  // A Shopify Function or locale the store lacks fails identically on both versions and proves
+  // nothing, so a case that names one is not sent; the reason says what the store has instead.
+  const environmentRefusal = async (texts: string[], values: unknown[]) => {
+    const needs = [
+      {
+        keys: ['functionId', 'functionHandle'],
+        query: FUNCTIONS_QUERY,
+        root: 'shopifyFunctions',
+        fields: ['id', 'handle'],
+        what: 'Shopify Function',
+        owner: 'the app Refit uses on the store has released',
+      },
+      {
+        keys: ['locale'],
+        query: LOCALES_QUERY,
+        root: 'shopLocales',
+        fields: ['locale'],
+        what: 'locale',
+        owner: 'the store has enabled',
+      },
+    ];
+    for (const need of needs) {
+      const named = need.keys.flatMap((key) => inputStrings(key, texts, values));
+      if (!named.length) continue;
+      const known = await storeValues(need.query, need.root, need.fields);
+      if (typeof known === 'string')
+        return `it names a ${need.what}, and the store did not list its own: ${known}`;
+      const missing = named.find((value) => !known.includes(value));
+      if (missing !== undefined)
+        return `it names the ${need.what} ${redact(missing)}, which is not one ${need.owner} (${known.length ? known.join(', ') : 'none'})`;
+    }
+    return undefined;
   };
   const created: { id: string; deleted: boolean }[] = [];
   const base = { store, created };
@@ -374,6 +504,21 @@ export async function liveShopifyProof(options: {
         entry.reason = 'a mutation runs only with a case that creates what it changes';
         continue;
       }
+      if (testCase) {
+        try {
+          const refusal = await environmentRefusal(
+            [original, document.patched, ...testCase.setup.map((step) => step.document)],
+            [testCase.variables, ...testCase.setup.map((step) => step.variables)],
+          );
+          if (refusal) {
+            entry.reason = refusal;
+            continue;
+          }
+        } catch (error) {
+          entry.reason = redact(error instanceof Error ? error.message : String(error));
+          continue;
+        }
+      }
       entry.versions = {};
       entry.status = 'passed';
       // Each version gets its own setup, so the target never reads objects the original created.
@@ -399,7 +544,10 @@ export async function liveShopifyProof(options: {
             const result = await request(version, step.document, variables);
             // Setup steps are the case's inputs, not the patched code, so their failure proves nothing.
             if (result.error) {
-              refuse(`setup step ${index + 1} failed on ${version}: ${result.error}`);
+              const cause = storeCause(result.error);
+              refuse(
+                `setup step ${index + 1} failed on ${version}${cause ? ` (${cause})` : ''}: ${result.error}`,
+              );
               break;
             }
             stepResults[`setup.${index}`] = result.data;
@@ -442,11 +590,12 @@ export async function liveShopifyProof(options: {
           // Only the patched operation failing at the target, after the original passed at the
           // original version, is the patch's failure. The original failing too means the store or
           // the case's inputs cannot run it (docs/SHOPIFY-PROOF.md).
-          if (result.error && version === options.versions.before)
+          if (result.error && version === options.versions.before) {
+            const cause = storeCause(result.error);
             refuse(
-              `the original operation fails on ${version} too, so the store cannot compare it: ${result.error}`,
+              `the original operation fails on ${version} too${cause ? ` (${cause})` : ''}, so the store cannot compare it: ${result.error}`,
             );
-          else if (result.error && STORE_SIDE.test(result.error))
+          } else if (result.error && STORE_SIDE.test(result.error))
             refuse(`the store did not answer on ${version}: ${result.error}`);
           else if (result.error) {
             entry.status = 'failed';

@@ -1,6 +1,11 @@
 # Refit implementation checkpoints
 
 <<<<<<< HEAD
+## October 30 checkpoint: Shopify store-environment cases (unreleased, after 0.39.0)
+
+The development-store live proof checks a case's Shopify Function IDs and locales against the store before sending it ([Shopify proof](SHOPIFY-PROOF.md#live-proof-optional)). A function the store's app has not released, or a locale the store has not enabled, fails identically on both versions, so the operation is recorded as not run with the store's own values named, and the grade comes from the other evidence. An original that fails on the original version names the store cause (function, locale, merchant-owned app on the Billing API, rate limit). Rate limits, including `Too many attempts` user errors, are retried five times using Shopify's `Retry-After` or query-cost refill. #435 had already stopped store-side failures from grading rows D; on main the five rows of SH12 round 3 validate at B or C. Benchmarks show no outcome change on dev-60, practice-50 or fresh-200 (`docs/BENCHMARKS.md`). The AI dev-60 runs at a $10 cap never reached the live-case writer, so live proof on AI-written cases is not measured by this change.
+=======
+<<<<<<< HEAD
 ## October 30 checkpoint: Shopify client tracing and REST URLs (unreleased, after 0.39.0)
 
 Shopify tracing follows Admin GraphQL clients returned from factories and passed into repository functions (as an argument or a destructured member), object members copied with spread or passed on, and loaded `import()` namespaces ([Shopify](SHOPIFY.md#what-refit-reads)). Two REST shapes that were invisible now count, and stop: base URLs that end at the version, and REST paths after a substituted version. A version literal that also sets a Storefront API URL stops the Admin move instead of moving the Storefront version. On the 310 Shopify rows (dev-60 and the 250 practice repositories, no AI): validated 34 → 34, unreadable-first rows 20 → 17, REST-first rows 32 → 35, none lost ([benchmarks](BENCHMARKS.md#document-tracing-and-rest-detection-2026-10-30-fixshopify-tracing-rest)).
@@ -16,6 +21,7 @@ Shopify tracing follows Admin GraphQL clients returned from factories and passed
   - It drops `unstable_newEmbeddedAuthStrategy: true` from React Router configs, which no React Router release reads.
   - It now stops when it would cross `@shopify/shopify-app-session-storage-prisma` 8 and the Prisma `Session` model lacks `refreshToken` or `refreshTokenExpires`. 8.0.0 and later write both on every store, and Prisma rejects an undeclared argument at runtime.
 - **That last stop corrects 13 upgrades that main graded C and that would have broken session storage.** Validated rows on dev-60, practice-50 and fresh-200 went from 10, 7 and 17 to 4, 4 and 13 (refit-bench 41140411942, 41140424261, 41140435896). Of these, 6 repositories are newly validated through the preparation fixes. See [Benchmarks](BENCHMARKS.md#shopify-sdk-and-preparation-stops-2026-10-30).
+>>>>>>> origin/main
 >>>>>>> origin/main
 
 ## October 29 checkpoint: Shopify retired-version migrations (unreleased, after 0.39.0)
