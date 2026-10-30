@@ -33,7 +33,11 @@ const REST_URL =
   /\/admin\/api\/(\d{4}-\d{2}|unstable)\/(?:(?!graphql\.json)[\w/{}.$-]*\.json|(?!graphql\b)[\w-]+\/)/;
 // The Admin GraphQL endpoint itself, requested without one of Shopify's clients.
 const GRAPHQL_URL = /\/admin\/api\/(?:\d{4}-\d{2}|unstable|\{[^}]*\})\/graphql\.json/;
-const VERSION_URL = /\/admin\/api\/(\d{4}-\d{2})\//g;
+// A version followed by a path, or ending the literal piece: a base URL (`…/admin/api/2025-01`)
+// that code joins a path to elsewhere.
+const VERSION_URL = /\/admin\/api\/(\d{4}-\d{2})(?=\/|$)/g;
+// A base URL ending at its version: the request path, REST or GraphQL, is added elsewhere.
+const BASE_URL = /\/admin\/api\/(?:\d{4}-\d{2}|unstable)$/;
 // GraphQL clients built from an endpoint URL, and the methods that send their documents.
 const ENDPOINT_CLIENT =
   /(?:^|\.)(?:GraphQLClient|createGraphQLClient|createClient|ApolloClient|HttpLink)$/;
@@ -2576,9 +2580,11 @@ export function scanShopify(
         if (isLiteral(node) && GRAPHQL_MARKER.test(node.text))
           record(node, absolute, documentLiterals.get(node) ?? false);
         // A versioned Admin URL whose whole path is a substitution (`/admin/api/2025-01/${path}`)
-        // may name any REST resource, so it counts as REST usage.
+        // or is added elsewhere (`/admin/api/2025-01`) may name any REST resource, so it counts as
+        // REST usage.
         if (
           REST_URL.test(node.text) ||
+          BASE_URL.test(node.text) ||
           ((ts.isTemplateHead(node) || ts.isTemplateMiddle(node)) &&
             /\/admin\/api\/(?:\d{4}-\d{2}|unstable)\/$/.test(node.text))
         )

@@ -1494,6 +1494,8 @@ function indentOf(source: ts.SourceFile, position: number) {
 }
 
 const SIMPLE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
+// A base URL ending at its version (`https://${shop}/admin/api/2025-01`).
+const BASE_URL = /\/admin\/api\/(?:\d{4}-\d{2}|unstable)$/;
 
 // Why a URL const's substitutions cannot be evaluated where its single use is instead: the const
 // must sit in the same function as the use, each substitution must be a name or property chain, and
@@ -1536,6 +1538,8 @@ function recognize(
 ) {
   // A REST URL literal passed to fetch() or axios, directly or through a const used once.
   if (!ts.isCallExpression(node)) {
+    if (BASE_URL.test(entry.expression))
+      return 'The Admin API URL ends at its version, so its path is joined on elsewhere and Refit cannot tell which REST or GraphQL endpoint it reaches.';
     let literal = unwrapParent(node) as ts.Expression;
     const declaration = literal.parent;
     let removable: ts.VariableStatement | undefined;

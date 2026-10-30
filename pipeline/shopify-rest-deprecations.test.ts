@@ -129,7 +129,9 @@ export async function listFulfillments(shop: string, orderId: number) {
     expect(summary(scan.calls)).toEqual([
       'server/adapter.ts:7 POST orders/<order_id>/fulfillments.json 2022-07 removed',
     ]);
+    // The base URL itself is REST usage whose path is joined on elsewhere.
     expect(scan.rest.map((item) => `${item.line} ${item.method} ${item.path}`)).toEqual([
+      '3 null null',
       '7 POST orders/{orderId}/fulfillments.json',
       '13 null orders/{orderId}/fulfillments.json',
       '16 null products.json',

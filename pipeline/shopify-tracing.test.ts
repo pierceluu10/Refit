@@ -6,6 +6,7 @@ import { buildSchema, introspectionFromSchema } from 'graphql';
 import { afterEach, expect, it, vi } from 'vitest';
 import { readRepository } from './repository.ts';
 import { scanShopify } from './shopify-analysis.ts';
+import { proveShopifyRest } from './shopify-rest-contract.ts';
 import {
   loadShopifyDocumentRules,
   rewriteDocument,
@@ -812,6 +813,34 @@ export async function sync(shop: string) {
     ['app/client.ts', 10, 'A GraphQL client for the Admin endpoint is used here in a wa'],
     ['app/client.ts', 11, 'A GraphQL client for the Admin endpoint is used here in a wa'],
     ['app/load.ts', 3, 'A module defining a function that sends Admin GraphQL docume'],
+  ]);
+});
+
+it('counts a base URL ending at its version as REST usage and its pin, and never proves it', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'app/adapter.ts': `const baseUrl = (shop: string) => \`https://\${shop}/admin/api/2024-01\`;
+export const shop = (domain: string) => fetch(\`\${baseUrl(domain)}/shop.json\`);
+export const api = (domain: string) => ({ baseURL: \`https://\${domain}/admin/api/2024-04\${''}\` });
+`,
+  });
+  const repository = await readRepository(root, '@shopify/shopify-api');
+  const scan = scanShopify(repository);
+  expect(scan.versions.map((pin) => [pin.line, pin.kind, pin.value])).toEqual([
+    [1, 'url', '2024-01'],
+    [3, 'url', '2024-04'],
+  ]);
+  expect(scan.rest.map((entry) => entry.line)).toEqual([1, 3]);
+  const proofs = proveShopifyRest(repository, scan, { before: '2026-01', after: '2026-10' });
+  expect(proofs.map((item) => item.proof)).toEqual([
+    {
+      status: 'unproven',
+      reason: expect.stringContaining('The Admin API URL ends at its version'),
+    },
+    {
+      status: 'unproven',
+      reason: expect.stringContaining('The Admin API URL ends at its version'),
+    },
   ]);
 });
 
