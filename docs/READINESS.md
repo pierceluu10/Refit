@@ -20,7 +20,7 @@ The Meta Graph scan now reads more request shapes:
 
 With AI on, it also reconstructs requests it cannot read. A reconstruction is kept only when every name is written in the code, it agrees with every traced part, and a runtime version is written on the line the model names. It then goes through the change table, the move stops and the proof like a traced request ([Meta Graph API](META-GRAPH.md)).
 
-Measured on meta-dev-60 without AI: validated 3 → 5, none lost ([benchmarks](BENCHMARKS.md#meta-graph-tracing-on-meta-dev-60-october-29)). The AI path is unit-tested only. OpenAI credit was exhausted on 2026-10-29, so no AI run measured it.
+Measured on meta-dev-60: validated 3 → 6 without AI and 9 with AI on Claude Sonnet 5.5, at $20.03; none lost and every new fix hand-checked ([benchmarks](BENCHMARKS.md#with-ai-on-claude-october-30)). Parameter changes now match only requests on their own edge or path.
 
 ## October 29 checkpoint: Meta Graph change table and rules (unreleased, after 0.39.0)
 

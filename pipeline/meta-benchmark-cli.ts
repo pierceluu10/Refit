@@ -223,6 +223,8 @@ for (const [index, entry] of repos.entries()) {
             costUsd: (await spentUsd()) - spentBefore,
           },
         };
+      // The row's total, which benchmark-merge.mjs sums into the run's AI spend.
+      if (ai) (result.ai as { costUsd: number }).costUsd = (await spentUsd()) - spentBefore;
       const { patch, ...row } = metaRow(scan, proposal);
       Object.assign(result, row, { patch: patch !== null });
       await writeFile(join(work, 'scan.json'), json(scan));
@@ -236,8 +238,13 @@ for (const [index, entry] of repos.entries()) {
           row.versions.find((version) => recorded.has(version)) ?? target,
           target,
         );
-        if (ai)
-          (result.ai as Record<string, unknown>).run = { costUsd: (await spentUsd()) - runBefore };
+        if (ai) {
+          const spent = await spentUsd();
+          Object.assign(result.ai as object, {
+            run: { costUsd: spent - runBefore },
+            costUsd: spent - spentBefore,
+          });
+        }
       }
     } catch (error) {
       result.error = message(error);
