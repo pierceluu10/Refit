@@ -7,6 +7,8 @@ import {
   type ShopifyRestDeprecations,
 } from './shopify-rest-deprecations.ts';
 import { rewriteRestCalls, type RestTrace } from './shopify-rest-rewrite.ts';
+import { fileClientsUnreached } from './shopify-rest-clients.ts';
+import { traceFileRecords } from './shopify-rest-records.ts';
 
 // The versioned REST Admin contract (data/shopify-rest-contract.json, built by
 // scripts/shopify-rest-contract.mjs) and the check that proves a traced REST call survives a
@@ -262,6 +264,15 @@ const stripVersions = (entry: RestResourceContract | undefined) => {
   return rest;
 };
 
+// The error envelope of the REST Admin API, the same in every version the contract covers: an
+// error response is a JSON object whose `errors` key holds the message (or messages by field).
+export const REST_ERRORS = {
+  key: 'errors',
+  source: 'https://shopify.dev/docs/api/admin-rest/2026-10#status-and-error-codes',
+  // Read 2026-10-29 on the 2026-01 and 2026-10 reference pages, which give the same examples.
+  quote: '"errors": "Not Found"',
+};
+
 // Resource class operations and the endpoint operations each one sends (as in
 // shopify-rest-deprecations.ts); `save` is `post` for a new record and `put` for an existing one.
 const OPERATIONS: Record<string, string[]> = {
@@ -446,11 +457,12 @@ export function proveRestCall(
     return fieldPath(inner[0], rest, isWhole, [...shown, key]);
   };
   // A body or read path from the top of the JSON: the resource's singular or plural key, or
-  // `count` for a count.
+  // `count` for a count, or the `errors` key every version's error responses carry.
   const envelope = (path: string[], isWhole: boolean): string | undefined => {
     if (!path.length) return isWhole ? whole(resourceName) : undefined;
     const [top, ...rest] = path;
     if (operation === 'count' && top === 'count' && !rest.length) return undefined;
+    if (top === REST_ERRORS.key) return undefined;
     if (top !== old.singular && top !== old.plural)
       return `it reads \`${field(path)}\`, which is not a key of the ${resourceName} response.`;
     return fieldPath(resourceName, rest, isWhole, [top]);
@@ -497,7 +509,8 @@ export interface RestEntryProof {
 
 // Every REST call the scan found, traced and checked against the contract. A REST client
 // construction is proven when every use of the client is a call that is proven; a resource
-// record built and saved is not traced, so it stays unproven.
+// record built and saved in one scope is proven when its save endpoints, every field it assigns
+// and every field it reads back are (pipeline/shopify-rest-records.ts).
 export function proveShopifyRest(
   repository: { files: { path: string; content: string }[] },
   scan: Pick<ShopifyScan, 'rest'>,
@@ -525,6 +538,11 @@ export function proveShopifyRest(
       schemas: [],
       traceOnly: true,
     });
+    const records = traceFileRecords(
+      file,
+      content,
+      entries.filter((entry) => entry.resource?.startsWith('new ')),
+    );
     const calls = new Map<string, RestCallProof>();
     for (const result of traced)
       if (result.status === 'stopped' && result.trace)
@@ -539,19 +557,44 @@ export function proveShopifyRest(
         proofs.push({ entry, proof: own });
         continue;
       }
-      if (result?.status === 'stopped' && result.clientCalls !== undefined) {
-        const sites = result.clientCalls?.map((site) => calls.get(`${site.line}:${site.column}`));
+      const record = records.get(entry);
+      if (record !== undefined) {
+        const name = entry.resource!.slice('new '.length);
+        const singular = contractAt(contract, versions.before).get(name)?.singular ?? name;
         proofs.push({
           entry,
           proof:
-            sites && sites.every((site) => site?.status === 'proven')
-              ? { status: 'proven', endpoints: [], checked: 0 }
-              : {
-                  status: 'unproven',
-                  reason: sites
-                    ? 'The REST client is also used by calls the contract does not prove.'
-                    : 'The REST client is used in ways other than calls Refit traced.',
-                },
+            typeof record === 'string'
+              ? { status: 'unproven', reason: `${name}.save: ${record}` }
+              : proveRestCall(contract, versions, {
+                  method: 'POST or PUT',
+                  resource: { name, operation: 'save' },
+                  query: [],
+                  reads: record.reads,
+                  body: record.body.map((path) => [singular, ...path]),
+                }),
+        });
+        continue;
+      }
+      if (result?.status === 'stopped' && result.clientCalls !== undefined) {
+        const sites = result.clientCalls?.map((site) => calls.get(`${site.line}:${site.column}`));
+        // A client that is only returned, from a provider no file calls, sends nothing.
+        const reasons = sites
+          ? undefined
+          : fileClientsUnreached(file, content, [entry], repository.files);
+        const unreached = reasons?.has(entry)
+          ? reasons.get(entry)
+          : 'The REST client is used in ways other than calls Refit traced.';
+        proofs.push({
+          entry,
+          proof: (sites ? sites.every((site) => site?.status === 'proven') : !unreached)
+            ? { status: 'proven', endpoints: [], checked: 0 }
+            : {
+                status: 'unproven',
+                reason: sites
+                  ? 'The REST client is also used by calls the contract does not prove.'
+                  : unreached!,
+              },
         });
         continue;
       }
