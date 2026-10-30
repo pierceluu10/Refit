@@ -249,13 +249,16 @@ const attempt = (host, port) => new Promise((resolve) => {
 );
 
 gated(
-  'stops a check whose output passes the cap and names the reason',
+  'judges a check that prints far more than it keeps by its exit code, keeping its last lines',
   async () => {
-    const result = await check({}, ['yes', 'flood']);
-    expect(result).toMatchObject({
-      status: 'error',
-      error: 'Check output exceeded 1 MiB; the container was stopped.',
-    });
+    const result = await check({}, [
+      'sh',
+      '-c',
+      'yes "ok - flood" | head -n 2000000; echo "not ok 1 - the end"; exit 1',
+    ]);
+    expect(result).toMatchObject({ status: 'failed', exitCode: 1 });
+    expect(result.stdout.length).toBeLessThan(1024 * 1024);
+    expect(result.stdout).toMatch(/not ok 1 - the end\n$/);
     expect(result.seconds).toBeLessThan(60);
     expect(await sandboxContainers('flood')).toEqual([]);
   },

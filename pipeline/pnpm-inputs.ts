@@ -357,10 +357,10 @@ export function validatePnpmInputs(
         'pnpm configuration dependencies, injected metadata and unknown importer fields need the repository install.',
       );
     for (const section of DEPENDENCY_SECTIONS) {
-      const declarations = value[section] ?? {};
-      if (!isObject(declarations))
+      const sectionDeclarations = value[section] ?? {};
+      if (!isObject(sectionDeclarations))
         throw new PipelineInputError(`pnpm ${section} must be an object.`);
-      for (const [name, source] of Object.entries(declarations))
+      for (const [name, source] of Object.entries(sectionDeclarations))
         if (
           !REGISTRY_PACKAGE_NAME.test(name) ||
           typeof source !== 'string' ||
@@ -372,6 +372,23 @@ export function validatePnpmInputs(
             `pnpm declarations must use public registry, configured catalogs or explicit local workspaces; ${directory === '.' ? '' : `${directory}/`}package.json declares ${name} as ${quotedSource(source)}.`,
           );
       if (section === 'peerDependencies') continue;
+      // pnpm records a name declared in several sections once: optionalDependencies wins over
+      // dependencies, which wins over devDependencies (satisfiesPackageManifest, pnpm 10.34.7).
+      const outranking =
+        section === 'devDependencies'
+          ? ['optionalDependencies', 'dependencies']
+          : section === 'dependencies'
+            ? ['optionalDependencies']
+            : [];
+      const declarations = Object.fromEntries(
+        Object.entries(sectionDeclarations).filter(
+          ([name]) =>
+            !outranking.some((other) => {
+              const higher: unknown = value[other];
+              return isObject(higher) && Object.hasOwn(higher, name);
+            }),
+        ),
+      );
       const recorded: unknown = importer[section] ?? {};
       const manifestFile = `${directory === '.' ? '' : `${directory}/`}package.json`;
       const update = 'Run pnpm install and commit the updated pnpm-lock.yaml.';

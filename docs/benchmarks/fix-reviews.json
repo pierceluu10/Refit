@@ -2951,6 +2951,36 @@
         "upgradeComplete": "yes: the project's own type errors in app/api/transcript are on both sides; none introduced (grade C).",
         "wouldMerge": "yes."
       }
+    },
+    {
+      "repo": "bisha21/lms",
+      "pullRequest": null,
+      "run": "Local run on feat/p30-proof (4f74856d) with Docker, benchmark flags --validate --resolve-lockfiles --webhook-checks, no AI; before: refit-bench 40791364860 (progress-30, bench/combined-final fd9878a5), needs review for baseline-failed. Validated after: the integration tests fail in setup on both sides (mongodb-memory-server cannot create /.cache offline), with the same suites and errors, and tsc covers the changed file (grade C).",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: payment_method_types ['card'] on checkout.sessions.create becomes allowed_payment_method_types ['card'] (owner decision 2026-10-16), with stripe-node 22.4.0 to 23.0.0 in package.json and package-lock.json; the API version follows the stripe-node default (no apiVersion in the code).",
+        "bothVersions": "not applicable: a request parameter, sent at the version the upgraded client sends.",
+        "nothingUnrelated": "yes: one line in payment.controller.ts, the stripe declaration and its lockfile entry.",
+        "pleaseCheck": "the integration tests cannot run offline (mongodb-memory-server downloads mongod); run them on this branch. Managed Payments accounts reject both parameter names on Checkout, as before the patch.",
+        "upgradeComplete": "yes: the type oracle shows the original code fails on stripe 23 (TS2561 at payment.controller.ts:140) and the patch introduces no type error.",
+        "wouldMerge": "yes."
+      }
+    },
+    {
+      "repo": "ArkeonProject/arkeon-blog",
+      "pullRequest": null,
+      "run": "Local run on feat/p30-proof (dfc48c7a) with Docker, flags --validate --resolve-lockfiles --webhook-checks, no AI; before: refit-bench 40791364860 (progress-30, fd9878a5), needs review for dependency-preparation and webhook-api-version. Validated after (grade C): pnpm installs (isbot is in dependencies and devDependencies; pnpm records it once), the tests and a generated tsc over the 10 Stripe files pass on both sides.",
+      "reviewedAt": "2026-10-28",
+      "verdict": "correct",
+      "checks": {
+        "rightReplacement": "yes: the 10 literal apiVersion pins move from 2025-01-27.acacia to 2026-09-30.endive with stripe-node 21.0.1 to 23.0.0; the two subscription.current_period_end reads on subscriptions.retrieve responses go through the generated period helper.",
+        "bothVersions": "yes: the helper reads the old field first, then the item period.",
+        "nothingUnrelated": "yes: pins, the two reads, the helper file, package.json and pnpm-lock.yaml.",
+        "pleaseCheck": "the webhook's invoice.parent?.subscription_details?.subscription already reads the basil-and-later location (it returns null for acacia payloads before and after this patch), and parsedBody.type compares the raw event's type with 'v2.core.event'; neither is a removed field. Multi-item subscriptions: the helper returns undefined when items' periods differ, as the draft notes.",
+        "upgradeComplete": "yes: the type oracle shows no error introduced by stripe 23 on either side.",
+        "wouldMerge": "yes."
+      }
     }
   ]
 }

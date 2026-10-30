@@ -292,6 +292,33 @@ Shopify Admin GraphQL migrations are deterministic, and no AI is used. Details a
 - **The broken queries are real.** All 23 were rechecked with graphql-js against the served schema. 11 are the old Remix template's `productVariantUpdate(input: ProductVariantInput)`.
 - **Most apps are limited by their SDK.** `ApiVersion.October26` needs `@shopify/shopify-api` 14, and app frameworks pin older releases. That SDK upgrade is a major-version change, so Refit stops rather than performing it.
 
+### Shopify dev and blind sets
+
+Frozen on 2026-10-29 by `scripts/shopify-select.mjs`; nothing has been run on them. The exact criteria and command are in each list's `criteria`, and the search results, per-repository pre-scan counts and totals are in `docs/benchmarks/shopify-selection/`.
+
+- `subsets/shopify-blind-100.json` (100) is measurement only. Nobody opens, traces or debugs its repositories, and it runs once, in the final combined Shopify benchmark. `pipeline/shopify-sets-integrity.test.ts` fails if a tracked file outside the list and the selection inputs names one of them, or if any other benchmark list does.
+- `subsets/shopify-dev-60.json` (60) is the development set. Agents may open and debug it.
+
+How the blind set was chosen:
+
+- **Search.** GitHub code search for the three Shopify app SDKs in `package.json`, `api_version` in `shopify.app.toml`, and `/admin/api/20` URLs in TypeScript and JavaScript. This found 6,467 repositories; 519 were dropped because any file under `docs/benchmarks` already names them.
+- **Activity filters.**
+  - Kept repositories that are not archived or forks and are under 512 MB.
+  - Each has a default-branch commit within 90 days, at least 2 human authors in that window, a GitHub Actions workflow, and a root `package.json` and lockfile.
+  - 169 passed.
+- **Offline pre-scan.**
+  - Each repository was scanned at its commit with Refit's Shopify scan and its GraphQL documents were checked against 2026-10. Nothing was installed or run.
+  - A repository is affected when its oldest pin is unsupported or retiring soonest (2026-01), when it calls the REST Admin API, or when a document fails on 2026-10 or already fails.
+  - 84 of the 169 were affected.
+- **Loosening.**
+  - 84 is short of 100, so per the founder (2026-10-29) the activity window widened to 180 days. 16 of the first 27 newly eligible repositories, in seeded order, filled the set. The 1-author stage was not needed.
+  - Each loosened repository records it in `loosened`, and the list's top-level `loosened` counts them. CI, lockfile, Shopify-usage and affected checks were never loosened.
+- **Categories** of the 100: unsupported version 79, retiring soonest 4, REST Admin calls 64, failing documents 10, product model 0.
+
+The dev set comes from the 250 already-open 2026-10-16 lists, because the search alone could not fill both sets. They were pre-scanned the same way at their frozen commits, with a root lockfile required and no activity filters: 145 were affected, and the first 60 in seeded order form the set. Each entry names its `source` list, and it shares no repository with the blind set.
+
+Run the dev set on GitHub Actions with `-f list=subsets/shopify-dev-60.json` ([GitHub benchmarks](GITHUB-BENCHMARKS.md#shopify)).
+
 ## API deadlines
 
 The hand-labelled [deadline benchmark](DEADLINE-BENCHMARK.md) covers 100 repositories, 32 labelled line by line. Refit flags 28 of 28 exposed repositories at 28/28 repository precision, with 83% OpenAI line precision from live-only evidence.

@@ -660,6 +660,16 @@ const brokenTestsUnchanged = (report: Report) => {
   return Array.isArray(tests?.newFailures) && tests.newFailures.length === 0;
 };
 
+// The checks failed or could not finish on the original code, so they never ran on the patch.
+const baselineFailedBefore = (report: Report) =>
+  ['baseline-failed', 'error'].includes(report.validation.status) &&
+  report.validation.baseline.status !== 'passed' &&
+  report.validation.patched.status === 'not-run';
+// Founder decision (2026-10-28): tests already failing do not hold a patch that adds no failure to
+// them where A to C proof reaches its changed lines.
+export const baselineFailedProven = (report: Report) =>
+  baselineFailedBefore(report) && brokenTestsUnchanged(report) && proofLevel(report) !== undefined;
+
 // An AI patch that fails owner decision D2's gate is never validated for publication, so
 // --publish-validated-only stops it.
 export const AI_PATCH_STOP = `${AI_PATCH_REVIEW.reason} It publishes only as a [Needs review] draft, which --publish-validated-only turns off.`;
@@ -677,15 +687,8 @@ export function publicationWaiver(
 ) {
   if (!allowUnresolved) return undefined;
   const { validation, patch } = report;
-  // The checks failed or could not finish on the original code, so they never ran on the patch.
-  const baselineFailed =
-    ['baseline-failed', 'error'].includes(validation.status) &&
-    validation.baseline.status !== 'passed' &&
-    validation.patched.status === 'not-run';
-  // Founder decision (2026-10-28): tests already failing do not hold a patch that adds no failure to
-  // them where A to C proof reaches its changed lines.
-  const baselineProven =
-    baselineFailed && brokenTestsUnchanged(report) && proofLevel(report) !== undefined;
+  const baselineFailed = baselineFailedBefore(report);
+  const baselineProven = baselineFailedProven(report);
   const failure = validation.dependencyFailure;
   if (
     validation.status !== 'passed' &&

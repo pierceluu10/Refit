@@ -114,3 +114,71 @@ it('gives the same analysis when adapters share one snapshot as when each reads 
   expect(together).toEqual([['5:chat.completions.create'], ['6:messages.create']]);
   expect(together).toEqual(apart);
 });
+
+it('does not flag a removed field name read through a field the before contract never sent', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-skip-'));
+  roots.push(root);
+  await cp(resolve('pipeline/fixtures/repository'), root, { recursive: true });
+  // `latest_attempt` is not a payment_intent field at the before version, so `charges` read through
+  // it is not the removed payment_intent.charges; the direct read still is.
+  await writeFile(
+    join(root, 'attempts.ts'),
+    "import Stripe from 'stripe';\nconst stripe = new Stripe('sk_test');\nexport async function attempts() {\n  const intent = await stripe.paymentIntents.retrieve('pi_1');\n  const nested = (intent as any).latest_attempt?.charges;\n  const deeper = intent.latest_attempt?.details?.charges;\n  return [nested, deeper, intent.charges];\n}\n",
+  );
+  const report = await runPipeline({
+    repository: root,
+    before: resolve('pipeline/fixtures/before.json'),
+    after: resolve('pipeline/fixtures/after.json'),
+  });
+  expect(
+    report.findings
+      .filter((finding) => finding.file === 'attempts.ts')
+      .map(({ line, confidence }) => ({ line, confidence })),
+  ).toEqual([{ line: 7, confidence: 'confirmed' }]);
+});
+
+it('does not flag an untraced read compared only with a string the removed field never held', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-skip-'));
+  roots.push(root);
+  await writeFile(
+    join(root, 'package.json'),
+    JSON.stringify({ name: 'app', dependencies: { stripe: '16.0.0' } }),
+  );
+  const contract = (after: boolean) => ({
+    openapi: '3.0.3',
+    info: {
+      title: 'Simulated Stripe contract',
+      version: after ? '2025-03-31.basil' : '2024-06-20',
+    },
+    paths: {},
+    components: {
+      schemas: {
+        payment_intent: { type: 'object', properties: { id: { type: 'string' } } },
+        line_item: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            ...(after ? {} : { type: { type: 'string', enum: ['invoiceitem', 'subscription'] } }),
+          },
+        },
+      },
+    },
+  });
+  await writeFile(join(root, 'before.json'), JSON.stringify(contract(false)));
+  await writeFile(join(root, 'after.json'), JSON.stringify(contract(true)));
+  // A raw webhook body checked for a v2 event type, then a comparison with a value the removed
+  // field did hold, and one with a value that is not a string literal.
+  await writeFile(
+    join(root, 'events.ts'),
+    "import Stripe from 'stripe';\nexport const stripe = new Stripe('sk_test');\nexport function kind(body: string, wanted: string) {\n  const parsed = JSON.parse(body) as Record<string, unknown>;\n  if (parsed && parsed.type === 'v2.core.event') return 'ping';\n  if ((parsed.type) !== 'v2.core.event') return 'other';\n  if (parsed.type === 'subscription') return 'line';\n  return parsed.type === wanted;\n}\n",
+  );
+  const report = await runPipeline({
+    repository: root,
+    before: join(root, 'before.json'),
+    after: join(root, 'after.json'),
+    apiVersion: '2024-06-20',
+  });
+  expect(
+    report.findings.filter((finding) => finding.file === 'events.ts').map(({ line }) => line),
+  ).toEqual([7, 8]);
+});

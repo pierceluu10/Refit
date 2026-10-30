@@ -1,4 +1,5 @@
 import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
+import { runBounded } from './check-output.ts';
 import { chosenLockfile, type LockfileChoice } from './dependency-inputs.ts';
 import { aiSafetyStop, migrationReviewReason, unresolvedSites } from './migration-review.ts';
 import { diffLines } from 'diff';
@@ -707,51 +708,35 @@ async function containerCheck({
     generators.length ? { ...result, ...generatorExits(generators, result.stderr) } : result;
   await removeExpiredSandboxContainers();
   try {
-    const result = await execute(
-      'docker',
-      dockerSandboxArguments({
-        name,
-        directory,
-        image,
-        command: generators.length ? withGenerators(generators, argumentsList) : argumentsList,
-        network,
-        timeoutMs,
-        dependencies,
-        readOnlyMounts,
-        packageDirectory,
-      }),
-      {
-        timeout: timeoutMs,
-        maxBuffer: MAX_OUTPUT_BYTES,
-        encoding: 'utf8',
-        // The Docker client forwards SIGTERM to the container, where a process that ignores it keeps
-        // the client waiting forever; SIGKILL ends the client and the finally block the container.
-        killSignal: 'SIGKILL',
-        signal,
-      },
-    );
-    return withExit({ status: 'passed', exitCode: 0, ...result });
-  } catch (error) {
+    const args = dockerSandboxArguments({
+      name,
+      directory,
+      image,
+      command: generators.length ? withGenerators(generators, argumentsList) : argumentsList,
+      network,
+      timeoutMs,
+      dependencies,
+      readOnlyMounts,
+      packageDirectory,
+    });
+    // The Docker client forwards SIGTERM to the container, where a process that ignores it keeps
+    // the client waiting forever; SIGKILL ends the client and the finally block the container.
+    const { exitCode, timedOut, stdout, stderr, error } = await runBounded('docker', args, {
+      timeout: timeoutMs,
+      signal,
+    });
     signal?.throwIfAborted();
-    if (!(error instanceof Error)) throw error;
-    const failure = error as Error & {
-      code?: number | string;
-      killed?: boolean;
-      stdout?: string;
-      stderr?: string;
-    };
-    const exitCode = typeof failure.code === 'number' ? failure.code : null;
+    if (exitCode === 0 && !timedOut && !error)
+      return withExit({ status: 'passed', exitCode: 0, stdout, stderr });
     return withExit({
-      status: exitCode !== null && !failure.killed && exitCode < 125 ? 'failed' : 'error',
+      status: exitCode !== null && !timedOut && !error && exitCode < 125 ? 'failed' : 'error',
       exitCode,
-      stdout: failure.stdout ?? '',
-      stderr: failure.stderr ?? '',
-      error:
-        failure.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
-          ? `Check output exceeded ${MAX_OUTPUT_BYTES / 1024 / 1024} MiB; the container was stopped.`
-          : failure.killed
-            ? `Check exceeded ${timeoutMs / 1000} seconds; the container was stopped.`
-            : failure.message,
+      stdout,
+      stderr,
+      error: timedOut
+        ? `Check exceeded ${timeoutMs / 1000} seconds; the container was stopped.`
+        : (error?.message ??
+          `Command failed: docker ${args.join(' ')}${stderr ? `\n${stderr.slice(-4096)}` : ''}`),
     });
   } finally {
     // A killed Docker client does not necessarily stop the container it started.
