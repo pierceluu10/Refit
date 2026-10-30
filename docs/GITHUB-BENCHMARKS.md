@@ -57,7 +57,7 @@ node scripts/benchmark-merge.mjs --shards <dir>/shards --list <list> --offset <o
 
 ## Shopify
 
-`.github/workflows/shopify.yml` runs `npm run benchmark:shopify` with the same plan, shard and merge jobs and the same inputs, without AI (the Shopify benchmark has none) and with no secret but `REFIT_READ_TOKEN`. A `snapshots` job reads each Admin API schema the list names once from Shopify's public documentation proxy (`refit shopify-snapshot`; no store or credentials) and uploads them as the artifact `snapshots`. Each shard downloads those saved files and runs:
+`.github/workflows/shopify.yml` runs `npm run benchmark:shopify` with the same plan, shard and merge jobs and the same inputs, `ai`, `ai_budget` and `model` included. With `ai=true` each shard writes the `OPENAI_API_KEY` secret and its share of `ai_budget` to a file passed as `--ai --env`, which turns on document rewrites and reconstructions, REST mappings, AI repair and the second opinion; one ledger caps each shard, with no per-repository cap. Every shard also gets the `SHOPIFY_TEST_STORE` and `SHOPIFY_TEST_TOKEN` secrets for the development-store proof ([Shopify proof](SHOPIFY-PROOF.md)). A `snapshots` job reads each Admin API schema the list names once from Shopify's public documentation proxy (`refit shopify-snapshot`; no store or credentials) and uploads them as the artifact `snapshots`. Each shard downloads those saved files and runs:
 
 ```sh
 node scripts/shopify-benchmark-setup.mjs --root <root> --list <list with the snapshot hashes> --offset <start> --limit <size>
@@ -124,7 +124,7 @@ Production is the hosted worker on Fly (`fly.toml`, `Dockerfile`). The Stripe wo
 - **Not exercised:** the worker's doctor and approval steps, draft publication (`--publish-draft --supersede-drafts`; the workflow refuses `--publish`), polling, and its dependency-bundle cache, which reuses only bundles whose inputs match.
 - **Runtime:** the worker runs the packaged CLI on a 2-vCPU, 4 GB Fly machine; shards run the source at the pinned commit with `tsx` on 4-vCPU, 16 GB runners. Compare outcomes, not seconds.
 
-Shopify runs differ the same way, without AI, and on the Admin schemas read in the run (see [Shopify](#shopify)).
+Shopify runs differ the same way, and on the Admin schemas read in the run (see [Shopify](#shopify)).
 
 ## Checked
 

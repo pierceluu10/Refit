@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
 import { TYPE_CHECK_STARTED } from './check-selection.ts';
 import {
+  archivedShopifyTypes,
   archivedStripeTypes,
   errorSources,
   namedTypes,
@@ -112,4 +113,28 @@ it('reads the checked package’s stripe-node types from a dependency archive', 
   expect(await archivedStripeTypes(archive, 'app')).toEqual([
     { path: 'types/lib.d.ts', content: 'type Package = 1;' },
   ]);
+});
+
+it('reads the checked package’s @shopify declarations, named from the package', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-repair-context-'));
+  directories.push(root);
+  for (const [path, content] of [
+    ['node_modules/@shopify/shopify-api/dist/ts/lib/index.d.ts', 'type Root = 1;'],
+    ['node_modules/@shopify/shopify-api/node_modules/@shopify/x/index.d.ts', 'type Nested = 1;'],
+    ['node_modules/@shopify/shopify-api/dist/esm/index.mjs', ''],
+    ['web/node_modules/@shopify/shopify-app-express/dist/index.d.ts', 'type Package = 1;'],
+  ]) {
+    await mkdir(join(root, path, '..'), { recursive: true });
+    await writeFile(join(root, path), content);
+  }
+  const archive = join(root, 'dependencies.tar');
+  execFileSync('tar', ['-cf', archive, '-C', root, 'node_modules', 'web']);
+  expect(await archivedShopifyTypes(archive)).toEqual([
+    { path: '@shopify/shopify-api/dist/ts/lib/index.d.ts', content: 'type Root = 1;' },
+  ]);
+  expect(await archivedShopifyTypes(archive, 'web')).toEqual([
+    { path: '@shopify/shopify-app-express/dist/index.d.ts', content: 'type Package = 1;' },
+  ]);
+  // A package with no @shopify install of its own reads the root's.
+  expect(await archivedShopifyTypes(archive, 'other')).toHaveLength(1);
 });

@@ -595,6 +595,29 @@ describe('matching', () => {
     expect(changesUsedBy(accounts, [removed('/me/businesses')])).toHaveLength(0);
   });
 
+  it('matches a parameter change recorded on an edge only on that edge', () => {
+    const changed = change({
+      id: 'x',
+      version: 'v26.0',
+      kind: 'parameter-changed',
+      edge: 'adcreatives',
+      name: 'type',
+    });
+    const send = {
+      path: '/{phoneNumberId}/messages',
+      edge: 'messages',
+      parameters: ['to', 'type'],
+    } as unknown as GraphCall;
+    const creative = {
+      path: '/{adAccountId}/adcreatives',
+      edge: 'adcreatives',
+      parameters: ['type'],
+    } as unknown as GraphCall;
+    expect(changesUsedBy(send, [changed])).toHaveLength(0);
+    expect(changesUsedBy(creative, [changed])).toHaveLength(1);
+    expect(changesUsedBy(send, [{ ...changed, edge: null }])).toHaveLength(1);
+  });
+
   it('matches new kinds by endpoint or breakdowns, and never by webhook changes', () => {
     const insights = {
       path: '/{adAccountId}/insights',

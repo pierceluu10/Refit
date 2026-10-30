@@ -14,6 +14,7 @@ import {
   visit,
   visitWithTypeInfo,
   type DocumentNode,
+  type FragmentDefinitionNode,
   type GraphQLNamedType,
   type GraphQLSchema,
 } from 'graphql';
@@ -24,6 +25,7 @@ import {
   documentLocation,
   scanShopify,
   type AdminDocument,
+  type DocumentSegment,
   type ShopifyScan,
 } from './shopify-analysis.ts';
 import {
@@ -33,7 +35,10 @@ import {
   shopifyTestStore,
   type ShopifyLiveProof,
 } from './shopify-live-proof.ts';
+import { proveShopifyRest } from './shopify-rest-contract.ts';
 import type { Repository } from './types.ts';
+
+type GraphqlFile = { path: string; content: string };
 
 // Offline proof for Shopify patches (docs/SHOPIFY-PROOF.md). Shopify versions its Admin GraphQL
 // schema per release, so every document the code sends can be validated against the exact schema of
@@ -45,6 +50,13 @@ const RULES = specifiedRules.filter((rule) => rule !== NoUnusedFragmentsRule);
 const MAX_TEXT = 300;
 const CODEGEN_CONFIG = /(?:^|\/)(?:\.graphqlrc\.[cm]?[jt]s|codegen\.[cm]?[jt]s|codegen\.ya?ml)$/;
 const CODEGEN_PACKAGE = /@shopify\/api-codegen-preset|@graphql-codegen\//;
+// What Shopify's codegen preset and graphql-codegen's client preset write into generated types.
+const GENERATED_TYPES =
+  /declare module ['"]@shopify\/(?:admin|storefront)-api-client['"]|from ['"]@graphql-typed-document-node\/core['"]/;
+const CODE_WEBHOOKS = /\bDeliveryMethod\.\w+/;
+// Shopify version pins as a codegen configuration writes them.
+const VERSION_PIN =
+  /\bApiVersion\b(?:\.\w+)?|\bLATEST_API_VERSION\b|(['"`])(?:\d{4}-\d{2}|unstable)\1/g;
 
 export interface ShopifyVersionedSchema {
   version: string;
@@ -245,7 +257,9 @@ function codegenEvidence(repository: Repository, widened: string[]) {
   const files = [...repository.files, ...(repository.configurations ?? [])]
     .filter((file) => CODEGEN_CONFIG.test(file.path) && CODEGEN_PACKAGE.test(file.content))
     .map((file) => file.path);
-  if (!files.length) return undefined;
+  // Only committed generated types reach the type check: the sandbox cannot run codegen offline.
+  if (!files.length || !repository.files.some((file) => GENERATED_TYPES.test(file.content)))
+    return undefined;
   return widened.length
     ? {
         files,
@@ -259,27 +273,83 @@ function codegenEvidence(repository: Repository, widened: string[]) {
       };
 }
 
+// Codegen configurations the patch changes only in their Admin API version pin. The pin chooses the
+// schema the types are generated from, which codegenEvidence proves equivalent for the documents, so
+// no type check has to cover the file (a .graphqlrc.ts is outside the app's tsconfig).
+export function codegenPinFiles(original: Repository, patched: Repository) {
+  const files = (repository: Repository) => [
+    ...repository.files,
+    ...(repository.configurations ?? []),
+  ];
+  const before = new Map(files(original).map((file) => [file.path, file.content]));
+  return files(patched)
+    .filter((file) => {
+      const old = before.get(file.path);
+      if (!CODEGEN_CONFIG.test(file.path) || !CODEGEN_PACKAGE.test(file.content)) return false;
+      if (old === undefined || old === file.content) return false;
+      const [was, now] = [old.split('\n'), file.content.split('\n')];
+      return (
+        was.length === now.length &&
+        was.every(
+          (line, index) =>
+            line === now[index] ||
+            line.replace(VERSION_PIN, '$') === now[index].replace(VERSION_PIN, '$'),
+        )
+      );
+    })
+    .map((file) => file.path);
+}
+
 export function shopifySchemaProof(options: {
   original: Repository;
   patched: Repository;
   before: ShopifyVersionedSchema;
   after: ShopifyVersionedSchema;
   scans?: { original: ShopifyScan; patched: ShopifyScan };
+  // Documents the model read from calls Refit cannot read (AI use 5), at their patched lines.
+  reconstructed?: { file: string; line: number; document: string }[];
 }): ShopifySchemaProof {
   const original = options.scans?.original ?? scanShopify(options.original);
   const patched = options.scans?.patched ?? scanShopify(options.patched);
   const originalFailures: ShopifyProofFailure[] = [];
   const failures: ShopifyProofFailure[] = [];
+  const read = (entry: { file: string; line: number }) =>
+    options.reconstructed?.find((item) => item.file === entry.file && item.line === entry.line);
   // Storefront clients keep their own version and contract; the Admin proof leaves them out.
   const unreadable: string[] = patched.unreadable
-    .filter((entry) => !entry.api)
+    .filter((entry) => !entry.api && !read(entry))
     .map((entry) => `${entry.file}:${entry.line} (${entry.reason})`);
+  const reconstructed = patched.unreadable.flatMap((entry) => {
+    const found = !entry.api && read(entry);
+    return found
+      ? [
+          {
+            ...entry,
+            text: found.document,
+            // Errors in a reconstruction point at the call's line; its text is not in the source.
+            segments: [
+              {
+                documentStart: 0,
+                documentEnd: found.document.length,
+                file: entry.file,
+                sourceStart: entry.line - 1,
+                sourceText: '\n'.repeat(entry.line - 1),
+              },
+            ],
+            traced: true,
+          } satisfies AdminDocument,
+        ]
+      : [];
+  });
   const otherApi: string[] = [];
   const widened: string[] = [];
+  // Fragments defined in another file or .graphql document are inlined, as the scan does.
+  const originalPool = fragmentPool(original.documents);
+  const patchedPool = fragmentPool(patched.documents);
   let checkedOriginal = 0;
   for (const document of original.documents) {
     if (document.api) continue;
-    const result = checkDocument(document, options.before.schema);
+    const result = checkDocument(withFragments(document, originalPool), options.before.schema);
     if (result.unreadable) continue;
     checkedOriginal++;
     for (const error of result.errors)
@@ -287,9 +357,13 @@ export function shopifySchemaProof(options: {
   }
   const originalTexts = new Set(original.documents.map((document) => document.text));
   let checkedPatched = 0;
-  for (const document of patched.documents) {
+  for (const document of [...patched.documents, ...reconstructed]) {
     if (document.api) continue;
-    const result = checkDocument(document, options.after.schema, options.before.schema);
+    const result = checkDocument(
+      withFragments(document, patchedPool),
+      options.after.schema,
+      options.before.schema,
+    );
     if (result.unreadable) {
       unreadable.push(`${document.file}:${document.line} (${result.unreadable})`);
       continue;
@@ -300,7 +374,7 @@ export function shopifySchemaProof(options: {
       !document.traced &&
       originalTexts.has(document.text) &&
       result.errors.length &&
-      checkDocument(document, options.before.schema).errors.length
+      checkDocument(withFragments(document, patchedPool), options.before.schema).errors.length
     ) {
       otherApi.push(`${document.file}:${document.line}`);
       continue;
@@ -318,11 +392,45 @@ export function shopifySchemaProof(options: {
       status: 'failed',
       reason: `${failures.length === 1 ? 'A Shopify GraphQL document does' : `${failures.length} Shopify GraphQL document errors do`} not hold on Admin API ${options.after.version}, first ${failures[0].file}:${failures[0].line}: ${failures[0].text}.`,
     };
+  // REST calls count only when the versioned REST contract proves each one (shopify-rest-contract.ts).
+  const rest = patched.rest.length
+    ? proveShopifyRest(options.patched, patched, {
+        before: options.before.version,
+        after: options.after.version,
+      })
+    : [];
+  const restUnproven = rest.filter((item) => item.proof.status !== 'proven');
+  const restProven = rest.length
+    ? ` Every REST Admin call (${rest.length}) uses only endpoints, parameters, body keys and response fields the ${options.before.version} REST contract lists and ${options.after.version} keeps unchanged.`
+    : '';
+  if (restUnproven.length) {
+    const first = restUnproven[0];
+    return {
+      ...base,
+      status: 'unproven',
+      reason: `Refit cannot prove ${restUnproven.length === 1 ? 'a REST Admin call' : `${restUnproven.length} REST Admin calls`} against the ${options.before.version} and ${options.after.version} REST contracts, first ${first.entry.file}:${first.entry.line}: ${(first.proof as { reason: string }).reason}`,
+    };
+  }
   if (unreadable.length)
     return {
       ...base,
       status: 'unproven',
       reason: `Refit could not read ${unreadable.length === 1 ? 'a GraphQL document' : `${unreadable.length} GraphQL documents`} the code sends, first ${unreadable[0]}, so it cannot prove ${unreadable.length === 1 ? 'it works' : 'they work'} on Admin API ${options.after.version}.`,
+    };
+  // Nothing the code sends depends on the Admin API version: no Admin call, no document, no REST
+  // call, and no webhook subscription registered in code (those receive the app version's payloads).
+  if (
+    !checkedPatched &&
+    !patched.adminCalls &&
+    !patched.documents.some((document) => !document.api) &&
+    !options.patched.files.some((file) => CODE_WEBHOOKS.test(file.content))
+  )
+    return {
+      ...base,
+      status: 'proven',
+      reason: rest.length
+        ? `The code sends no Admin GraphQL request and registers no webhook subscription in code.${restProven}${codegen ? ` ${codegen.reason}` : ''}`
+        : `The code sends no Admin API request: Refit found no Admin GraphQL call or document, no REST call and no webhook subscription registered in code, so nothing it sends depends on the version moving to ${options.after.version}.${codegen ? ` ${codegen.reason}` : ''}`,
     };
   if (!checkedPatched)
     return {
@@ -334,7 +442,7 @@ export function shopifySchemaProof(options: {
   return {
     ...base,
     status: 'proven',
-    reason: `Every traced Shopify GraphQL document (${checkedPatched}) validates against the Admin API ${options.after.version} schema with graphql-js, and no selected field or variable input type changes between ${options.before.version} and ${options.after.version}.${codegen ? ` ${codegen.reason}` : ''}`,
+    reason: `Every traced Shopify GraphQL document (${checkedPatched}${reconstructed.length ? `, ${reconstructed.length} read by AI from code Refit could not read and checked to name only what that code writes` : ''}) validates against the Admin API ${options.after.version} schema with graphql-js, and no selected field or variable input type changes between ${options.before.version} and ${options.after.version}.${restProven}${codegen ? ` ${codegen.reason}` : ''}`,
   };
 }
 
@@ -345,7 +453,11 @@ export function shopifyGrade(
   own: EvidenceGrade | undefined,
   schema: ShopifySchemaProof,
   live?: { status: string; reason: string },
+  codegenPins: readonly string[] = [],
 ): EvidenceGrade {
+  const pins = codegenPins.length
+    ? ` The patch changes only the version pin of ${codegenPins.join(', ')}, which selects only the schema codegen generates types from; the schema proof covers that schema.`
+    : '';
   if (schema.status !== 'proven')
     return {
       letter: 'D',
@@ -361,12 +473,96 @@ export function shopifyGrade(
   if (live?.status === 'passed')
     return { letter: 'A', level: 'behaviour-tests', reason: `${live.reason} ${schema.reason}` };
   if (own && (own.letter === 'B' || own.letter === 'C'))
-    return { ...own, reason: `${schema.reason} ${own.reason}` };
+    return { ...own, reason: `${schema.reason} ${own.reason}${pins}` };
   return {
     letter: 'D',
     level: 'none',
     reason: `${schema.reason} Grade C also needs a passing type check over the changed files: ${own?.reason ?? 'no check passed.'}`,
   };
+}
+
+// The part of a document between two offsets, with its source mapping.
+function sliceDocument(document: AdminDocument, start: number, end: number) {
+  const segments: DocumentSegment[] = document.segments
+    .filter((entry) => entry.documentEnd > start && entry.documentStart < end)
+    .map((entry) => {
+      const from = Math.max(entry.documentStart, start);
+      return {
+        ...entry,
+        documentStart: from - start,
+        documentEnd: Math.min(entry.documentEnd, end) - start,
+        sourceStart: entry.sourceStart + from - entry.documentStart,
+      };
+    });
+  return { text: document.text.slice(start, end), segments };
+}
+
+// Fragments defined once across every document Refit read, by name: codegen and .graphql projects
+// define a fragment in one file and spread it in another. A name defined twice is left out.
+export function fragmentPool(documents: AdminDocument[]) {
+  const pool = new Map<string, ReturnType<typeof sliceDocument> | null>();
+  for (const document of documents) {
+    let ast: DocumentNode;
+    try {
+      ast = parse(document.text);
+    } catch {
+      continue;
+    }
+    for (const definition of ast.definitions) {
+      if (definition.kind !== 'FragmentDefinition' || !definition.loc) continue;
+      const piece = sliceDocument(document, definition.loc.start, definition.loc.end);
+      const known = pool.get(definition.name.value);
+      pool.set(
+        definition.name.value,
+        known === undefined || known?.text === piece.text ? piece : null,
+      );
+    }
+  }
+  return pool;
+}
+
+// The document with every fragment it spreads but does not define appended from the pool.
+export function withFragments(
+  document: AdminDocument,
+  pool: ReturnType<typeof fragmentPool>,
+): AdminDocument {
+  let current = document;
+  for (let round = 0; round < 16; round++) {
+    let ast: DocumentNode;
+    try {
+      ast = parse(current.text);
+    } catch {
+      return current;
+    }
+    const defined = new Set(
+      ast.definitions
+        .filter((entry): entry is FragmentDefinitionNode => entry.kind === 'FragmentDefinition')
+        .map((entry) => entry.name.value),
+    );
+    const missing = new Set<string>();
+    visit(ast, {
+      FragmentSpread(node) {
+        if (!defined.has(node.name.value) && pool.get(node.name.value))
+          missing.add(node.name.value);
+      },
+    });
+    if (!missing.size) return current;
+    let { text } = current;
+    const segments = [...current.segments];
+    for (const name of missing) {
+      const piece = pool.get(name)!;
+      text += '\n';
+      for (const entry of piece.segments)
+        segments.push({
+          ...entry,
+          documentStart: entry.documentStart + text.length,
+          documentEnd: entry.documentEnd + text.length,
+        });
+      text += piece.text;
+    }
+    current = { ...current, text, segments };
+  }
+  return current;
 }
 
 const documentId = (document: AdminDocument) => `${document.file}:${document.line}`;
@@ -386,11 +582,19 @@ export async function shopifyProof(options: {
   diff: string;
   summary: string;
   warnings: readonly string[];
+  // The .graphql and .gql documents of each side, which source reading skips (shopifyExtraFiles).
+  graphql?: { original: GraphqlFile[]; patched: GraphqlFile[] };
+  // Codegen configurations changed only in their version pin, left out of the checks' grade.
+  codegenPins?: readonly string[];
   ai?: AiOptions;
   environment: Record<string, string | undefined>;
   fetch?: typeof fetch;
+  reconstructed?: { file: string; line: number; document: string }[];
 }) {
-  const scans = { original: scanShopify(options.original), patched: scanShopify(options.patched) };
+  const scans = {
+    original: scanShopify(options.original, options.graphql?.original),
+    patched: scanShopify(options.patched, options.graphql?.patched),
+  };
   const schema = shopifySchemaProof({ ...options, scans });
   const versions = { before: options.before.version, after: options.after.version };
   const store = shopifyTestStore(options.environment);
@@ -466,7 +670,7 @@ export async function shopifyProof(options: {
       (value): value is number => typeof value === 'number',
     );
     return {
-      grade: shopifyGrade(options.own, schema, live),
+      grade: shopifyGrade(options.own, schema, live, options.codegenPins),
       record: {
         schema,
         ...(live ? { live } : {}),

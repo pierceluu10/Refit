@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join, posix, resolve } from 'node:path';
 import ts from 'typescript-compiler';
+import { applyReconstructions, type GraphReconstruction } from './meta-graph-ai.ts';
 import { metaSdkVersion, META_SDK, TEST_PATH } from './deadline-exposure.ts';
 import { readRepository } from './repository.ts';
 import { isObject, parseObject } from './specifications.ts';
@@ -76,6 +77,8 @@ export interface GraphCall {
   literals?: { fields: GraphSpan[]; metrics: GraphSpan[] };
   // The source line the request is made on, trimmed.
   text: string;
+  // The model whose reconstruction filled the parts the scan could not read (meta-graph-ai.ts).
+  reconstructed?: string;
 }
 
 export interface GraphCallScan {
@@ -167,6 +170,14 @@ export function partsOf(node: ts.Expression): Part[] {
 export function expressionName(expression: ts.Expression) {
   const node = unwrap(expression);
   if (ts.isIdentifier(node)) return node.text;
+  // `encodeURIComponent(pageId)` is the node ID `pageId`, escaped.
+  if (
+    ts.isCallExpression(node) &&
+    ts.isIdentifier(node.expression) &&
+    /^(?:encodeURIComponent|encodeURI|String)$/.test(node.expression.text) &&
+    node.arguments.length === 1
+  )
+    return expressionName(node.arguments[0]);
   if (ts.isPropertyAccessExpression(node)) return node.getText().replace(/\s+/g, '');
   return node.getText().replace(/\s+/g, ' ').slice(0, 40);
 }
@@ -851,6 +862,187 @@ export function extendedElsewhere(declaration: ts.VariableDeclaration) {
   return found;
 }
 
+const skipWrappers = (node: ts.Expression) => {
+  let current = node;
+  while (
+    current.parent &&
+    (ts.isParenthesizedExpression(current.parent) ||
+      ts.isAsExpression(current.parent) ||
+      ts.isNonNullExpression(current.parent) ||
+      ts.isSatisfiesExpression(current.parent))
+  )
+    current = current.parent;
+  return current;
+};
+
+// What carries a Graph URL to its request: a conditional that picks it (`ig ? IG_URL : FB_URL`),
+// `new URL(url)` (whose `searchParams` the request also sends), or a function that returns it, whose
+// callers pass the result on.
+function urlTarget(node: ts.Expression): {
+  node: ts.Expression;
+  urlObject: boolean;
+  builder?: ts.SignatureDeclaration;
+} {
+  let current = skipWrappers(node);
+  const parent = current.parent;
+  if (ts.isConditionalExpression(parent) && parent.condition !== current)
+    current = skipWrappers(parent);
+  const outer = current.parent;
+  if (
+    ts.isNewExpression(outer) &&
+    ts.isIdentifier(outer.expression) &&
+    outer.expression.text === 'URL' &&
+    outer.arguments?.length === 1 &&
+    outer.arguments[0] === current
+  )
+    return { node: skipWrappers(outer), urlObject: true };
+  const returned = current.parent;
+  const fn = ts.isReturnStatement(returned)
+    ? ts.findAncestor(returned, ts.isFunctionLike)
+    : ts.isArrowFunction(returned) && returned.body === current
+      ? returned
+      : undefined;
+  return fn
+    ? { node: current, urlObject: false, builder: fn }
+    : { node: current, urlObject: false };
+}
+
+// The name a function is called by: a function declaration's, or the `const` an arrow function or
+// function expression initializes. Exported functions and methods have callers the file does not
+// show, so they have none.
+function builderName(fn: ts.SignatureDeclaration) {
+  const exportedNode = (node: ts.Node) =>
+    ts.canHaveModifiers(node) &&
+    (ts.getModifiers(node)?.some((item) => item.kind === ts.SyntaxKind.ExportKeyword) ?? false);
+  if (ts.isFunctionDeclaration(fn) && fn.name && !exportedNode(fn)) return fn.name;
+  const holder = fn.parent;
+  if (
+    (ts.isArrowFunction(fn) || ts.isFunctionExpression(fn)) &&
+    ts.isVariableDeclaration(holder) &&
+    ts.isIdentifier(holder.name) &&
+    isConst(holder) &&
+    !exported(holder)
+  )
+    return holder.name;
+  return undefined;
+}
+
+// The requests a URL builder's result reaches: each call of the builder in its file, passed to a
+// request call directly or through a variable. A builder used any other way (passed on, stored, or
+// a call whose result reaches no request) has callers the scan cannot follow, and none is returned.
+function builderConsumers(fn: ts.SignatureDeclaration) {
+  const name = builderName(fn);
+  if (!name) return [];
+  const found: { call: ts.CallExpression; argument: number }[] = [];
+  let failed = false;
+  const visit = (child: ts.Node) => {
+    if (failed) return;
+    if (
+      ts.isIdentifier(child) &&
+      child.text === name.text &&
+      child !== name &&
+      isReference(child) &&
+      !ts.findAncestor(child, (item) => item === fn)
+    ) {
+      const call = child.parent;
+      if (!ts.isCallExpression(call) || call.expression !== child) failed = true;
+      else {
+        const reached = consumers(call);
+        if (!reached.length) failed = true;
+        found.push(...reached);
+      }
+    }
+    ts.forEachChild(child, visit);
+  };
+  visit(fn.getSourceFile());
+  return failed ? [] : found;
+}
+
+// Query parameters a `new URL(...)` held in a variable gains step by step:
+// `url.searchParams.set('fields', 'id')` or `.append(...)` with a literal name. Any other change
+// to the URL or its parameters is unknown.
+function searchParameters(declaration: ts.VariableDeclaration, request: Request) {
+  if (!ts.isIdentifier(declaration.name)) return;
+  const name = declaration.name.text;
+  const block = ts.findAncestor(declaration, (item) => ts.isBlock(item) || ts.isSourceFile(item));
+  if (!block) return;
+  const visit = (child: ts.Node) => {
+    if (
+      ts.isIdentifier(child) &&
+      child.text === name &&
+      isReference(child) &&
+      child !== declaration.name &&
+      findDeclaration(name, child) === declaration
+    ) {
+      const access = child.parent;
+      if (ts.isPropertyAccessExpression(access) && access.expression === child) {
+        const member = access.name.text;
+        const call = access.parent.parent;
+        if (
+          member === 'searchParams' &&
+          ts.isPropertyAccessExpression(access.parent) &&
+          ts.isCallExpression(call) &&
+          call.expression === access.parent &&
+          (access.parent.name.text === 'set' || access.parent.name.text === 'append')
+        ) {
+          const key = call.arguments[0] && unwrap(call.arguments[0]);
+          if (!key || !ts.isStringLiteralLike(key))
+            request.unknown.push(`a query parameter of \`${name}\` is named at runtime`);
+          else {
+            request.parameters.add(key.text);
+            const statement = call.parent;
+            const direct = ts.isExpressionStatement(statement) && statement.parent === block;
+            if (key.text === 'fields' || key.text === 'metric')
+              readList(request, key.text, direct ? call.arguments[1] : undefined);
+          }
+        } else if (
+          !(member === 'toString' && ts.isCallExpression(access.parent)) &&
+          member !== 'href' &&
+          !(
+            member === 'searchParams' &&
+            ts.isPropertyAccessExpression(access.parent) &&
+            (access.parent.name.text === 'get' || access.parent.name.text === 'has')
+          )
+        )
+          request.unknown.push(`\`${name}.${member}\` may change the URL after it is built`);
+      }
+    }
+    ts.forEachChild(child, visit);
+  };
+  visit(block);
+}
+
+// The call an expression is an argument of, through `x.toString()`, `x.href` and `String(x)`.
+function argumentOf(
+  node: ts.Expression,
+): { call: ts.CallExpression; argument: number } | undefined {
+  let current = skipWrappers(node);
+  const parent = current.parent;
+  if (
+    ts.isPropertyAccessExpression(parent) &&
+    parent.expression === current &&
+    (parent.name.text === 'href' ||
+      (parent.name.text === 'toString' &&
+        ts.isCallExpression(parent.parent) &&
+        parent.parent.expression === parent &&
+        !parent.parent.arguments.length))
+  )
+    current = skipWrappers(
+      parent.name.text === 'href' ? parent : (parent.parent as ts.CallExpression),
+    );
+  else if (
+    ts.isCallExpression(parent) &&
+    ts.isIdentifier(parent.expression) &&
+    parent.expression.text === 'String' &&
+    parent.arguments.length === 1
+  )
+    current = skipWrappers(parent);
+  const call = current.parent;
+  if (!ts.isCallExpression(call) || current === call.expression) return undefined;
+  const argument = call.arguments.indexOf(current);
+  return argument >= 0 ? { call, argument } : undefined;
+}
+
 // How a Graph URL reaches a request: the calls it is passed to, directly or through a variable.
 export function consumers(node: ts.Expression): { call: ts.CallExpression; argument: number }[] {
   let current: ts.Node = node;
@@ -863,10 +1055,9 @@ export function consumers(node: ts.Expression): { call: ts.CallExpression; argum
   )
     current = current.parent;
   const parent = current.parent;
-  if (ts.isCallExpression(parent)) {
-    const argument = parent.arguments.indexOf(current as ts.Expression);
-    return argument >= 0 ? [{ call: parent, argument }] : [];
-  }
+  const passed = argumentOf(current as ts.Expression);
+  if (passed) return [passed];
+  if (ts.isCallExpression(parent)) return [];
   // `axios({ url, method })`.
   if (ts.isPropertyAssignment(parent) && propertyName(parent.name) === 'url') {
     const object = parent.parent;
@@ -890,9 +1081,9 @@ export function consumers(node: ts.Expression): { call: ts.CallExpression; argum
           const object = child.parent.parent;
           if (ts.isCallExpression(object.parent) && object.parent.arguments[0] === object)
             found.push({ call: object.parent, argument: -1 });
-        } else if (ts.isCallExpression(child.parent)) {
-          const argument = child.parent.arguments.indexOf(child);
-          if (argument >= 0) found.push({ call: child.parent, argument });
+        } else {
+          const passed = argumentOf(child);
+          if (passed) found.push(passed);
         }
       }
       ts.forEachChild(child, visit);
@@ -965,7 +1156,18 @@ function writtenOptions(fn: ts.SignatureDeclaration, expression: ts.Expression) 
   if (!ts.isObjectLiteralExpression(object)) return undefined;
   let method: string | undefined;
   let body: number | undefined;
+  let spread: number | undefined;
   for (const property of object.properties) {
+    // `{ ...init, signal }`: the caller's options, sent with transport options only.
+    if (
+      ts.isSpreadAssignment(property) &&
+      spread === undefined &&
+      property === object.properties[0]
+    ) {
+      spread = parameterIndex(fn, property.expression);
+      if (spread < 0) return undefined;
+      continue;
+    }
     const name = propertyName(property.name);
     if (!name || ts.isSpreadAssignment(property)) return undefined;
     if (TRANSPORT_OPTIONS.has(name)) continue;
@@ -987,7 +1189,8 @@ function writtenOptions(fn: ts.SignatureDeclaration, expression: ts.Expression) 
       if (body < 0) return undefined;
     } else return undefined;
   }
-  return { method, body };
+  if (spread !== undefined && (method !== undefined || body !== undefined)) return undefined;
+  return { method, body, spread };
 }
 
 function parameterIndex(fn: ts.SignatureDeclaration, expression: ts.Expression | undefined) {
@@ -1043,9 +1246,15 @@ export function passthroughOf(fn: ts.SignatureDeclaration): Passthrough | undefi
   const written =
     options !== null && options < 0 ? writtenOptions(fn, inner.arguments[1]) : undefined;
   if (options !== null && options < 0 && !written) return undefined;
-  for (const index of [url, written ? null : options, written?.body ?? null])
+  for (const index of [
+    url,
+    written ? null : options,
+    written?.body ?? null,
+    written?.spread ?? null,
+  ])
     if (index !== null && assignsTo(body, (fn.parameters[index].name as ts.Identifier).text))
       return undefined;
+  if (written?.spread !== undefined) return { url, options: written.spread };
   return written
     ? {
         url,
@@ -1054,6 +1263,20 @@ export function passthroughOf(fn: ts.SignatureDeclaration): Passthrough | undefi
         ...(written.body !== undefined ? { body: written.body } : {}),
       }
     : { url, options };
+}
+
+function injectedFetch(call: ts.CallExpression) {
+  if (!ts.isIdentifier(call.expression) || !/fetch/i.test(call.expression.text)) return false;
+  const name = call.expression.text;
+  for (let scope: ts.Node | undefined = call; scope; scope = scope.parent) {
+    if (!ts.isFunctionLike(scope)) continue;
+    const parameter = scope.parameters.find(
+      (item) => ts.isIdentifier(item.name) && item.name.text === name,
+    );
+    if (parameter) return !parameter.type || /\bfetch\b|Fetch/.test(parameter.type.getText());
+    if (findDeclaration(name, scope)) return false;
+  }
+  return false;
 }
 
 // Reads the method and request options of a call a Graph URL is passed to.
@@ -1096,8 +1319,9 @@ function readCall(
     const method = objectProperty(object, 'method');
     return method ? (constantString(method)?.value ?? '?') : undefined;
   };
-  // fetch(url, init) and wrappers named fetch, such as `ctx.fetch`.
-  if (name === 'fetch' || name === '$fetch' || name === 'ofetch') {
+  // fetch(url, init), wrappers named fetch, such as `ctx.fetch`, and a fetch passed in as a
+  // parameter named for it (`fetcher`, `fetchImpl`), typed as fetch or not typed.
+  if (name === 'fetch' || name === '$fetch' || name === 'ofetch' || injectedFetch(call)) {
     if (argument !== 0) return { client, method: null, helper: true };
     const method = readOptions(options(1), 'request options');
     if (method === '?') request.unknown.push('HTTP method is chosen at runtime');
@@ -1231,7 +1455,12 @@ interface FileContext {
 // Lists every Graph API request a repository makes, with what is known about it.
 export async function scanGraphCalls(
   directory: string,
-  options: { repository?: Repository; edges?: SdkEdges } = {},
+  options: {
+    repository?: Repository;
+    edges?: SdkEdges;
+    // Kept AI reconstructions of requests the scan cannot read, applied at their sites.
+    reconstructions?: GraphReconstruction[];
+  } = {},
 ): Promise<GraphCallScan> {
   const repository = options.repository ?? (await readRepository(resolve(directory), META_SDK));
   const edges = options.edges ?? (await loadSdkEdges());
@@ -1329,7 +1558,11 @@ export async function scanGraphCalls(
     if (browserFile) calls.push(...browserCalls(current, browserVersion));
   }
   calls.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
-  return { calls, sdk, warnings: repository.warnings };
+  return {
+    calls: applyReconstructions(calls, options.reconstructions ?? []),
+    sdk,
+    warnings: repository.warnings,
+  };
 }
 
 // The SDK release a repository declares, and the Graph API version it targets: release 20.x
@@ -1582,14 +1815,16 @@ function urlRecord(
       return records;
     }
   }
-  const found = consumers(node);
+  // A base keeps its own node: requests built from it are read where they are built.
+  const target = parsed.base ? { node, urlObject: false } : urlTarget(node);
+  const found = target.builder ? builderConsumers(target.builder) : consumers(target.node);
   // A URL held in a variable that builds longer URLs is reported through those, and an
   // unversioned base says nothing about a version. A versioned base the code passes to a function
   // is a pin whose requests are not traced. `process.env.GRAPH_URL || '…'` holds its fallback.
   const holder =
     ts.isBinaryExpression(node.parent) && node.parent.right === node && envDefault(node.parent)
       ? node.parent.parent
-      : node.parent;
+      : target.node.parent;
   const declaration = ts.isVariableDeclaration(holder) ? holder : undefined;
   if (
     !found.length &&
@@ -1602,6 +1837,7 @@ function urlRecord(
   const records = (found.length ? found : [undefined]).map((consumer) => {
     const request = emptyRequest();
     readQuery(parsed.query, request);
+    if (target.urlObject && declaration) searchParameters(declaration, request);
     const unknown = [...parsed.unknown];
     let client: string | null = null;
     let method: GraphCall['method'] = null;

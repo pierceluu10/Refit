@@ -223,7 +223,9 @@ it('needs --validate and an --env with a key and model for --behaviour-tests, be
   await expect(
     run(root, join(root, 'out-c'), '--behaviour-tests', '--env', env, '--validate'),
   ).rejects.toMatchObject({
-    stderr: expect.stringContaining('AI operations require OPENAI_API_KEY and OPENAI_MODEL.'),
+    stderr: expect.stringContaining(
+      'AI operations require OPENAI_API_KEY and OPENAI_MODEL, or ANTHROPIC_API_KEY.',
+    ),
   });
 });
 

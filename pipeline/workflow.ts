@@ -1,3 +1,4 @@
+import type { GraphReconstruction } from './meta-graph-ai.ts';
 import type { GeneratedChecks } from './generated-checks.ts';
 import {
   migrationReviewReason,
@@ -390,6 +391,7 @@ export async function runWorkflow(options: {
       fullDiff: options.fullDiff,
       keepListedPaymentMethods: options.keepListedPaymentMethods,
       shopifySdkUpgrade: options.shopifySdkUpgrade,
+      metaGraphAi: options.aiPatch,
     };
     stage = 'scan';
     options.onProgress?.('Scanning repository for affected API usage...');
@@ -488,6 +490,10 @@ export async function runWorkflow(options: {
     const validate = (keepApiVersion: boolean) =>
       validateMigration({
         ...inputs,
+        // Meta: validation scans again with the scan's reconstructions, never asking AI again.
+        metaGraphReconstructions: (
+          scan as { metaGraph?: { reconstructed?: GraphReconstruction[] } }
+        ).metaGraph?.reconstructed,
         keepApiVersion,
         versionBump,
         image: options.image,

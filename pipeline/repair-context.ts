@@ -112,9 +112,7 @@ export function typeDeclarations(names: string[], files: { path: string; content
 // stripe-node's `types/*.d.ts` from a prepared dependency archive: the copy installed for the
 // package Refit checks when there is one, else the first one listed.
 export async function archivedStripeTypes(archive: string, packageDirectory?: string) {
-  const listed = (
-    await execute('tar', ['-tf', archive], { maxBuffer: 256 * 1024 * 1024 })
-  ).stdout.split('\n');
+  const listed = await archiveListing(archive);
   const typeFiles = listed.filter((path) =>
     /(?:^|\/)node_modules\/stripe\/types\/.*\.d\.ts$/.test(path),
   );
@@ -122,15 +120,48 @@ export async function archivedStripeTypes(archive: string, packageDirectory?: st
   const preferred = [`${packageDirectory ? `${packageDirectory}/` : ''}node_modules/stripe`];
   const root = roots.find((entry) => preferred.includes(entry)) ?? roots[0];
   if (!root) return [];
-  const files = typeFiles.filter((path) => path.startsWith(`${root}/types/`));
-  const directory = await mkdtemp(join(tmpdir(), 'refit-stripe-types-'));
+  return extracted(
+    archive,
+    typeFiles.filter((path) => path.startsWith(`${root}/types/`)),
+    root.length + 1,
+  );
+}
+
+// The `.d.ts` files of the @shopify packages installed for the package Refit checks (the root's
+// when it has none), named from the package (`@shopify/shopify-api/dist/ts/...`), so a Shopify
+// repair sees the SDK declarations its type errors name.
+export async function archivedShopifyTypes(archive: string, packageDirectory?: string) {
+  const listed = await archiveListing(archive);
+  const modules = (directory: string) => `${directory ? `${directory}/` : ''}node_modules/`;
+  const within = (directory: string) =>
+    listed.filter(
+      (path) =>
+        path.startsWith(`${modules(directory)}@shopify/`) &&
+        path.endsWith('.d.ts') &&
+        !path.slice(modules(directory).length).includes('node_modules/'),
+    );
+  let directory = packageDirectory ?? '';
+  let files = within(directory);
+  if (!files.length && directory) files = within((directory = ''));
+  return extracted(archive, files, modules(directory).length);
+}
+
+async function archiveListing(archive: string) {
+  return (await execute('tar', ['-tf', archive], { maxBuffer: 256 * 1024 * 1024 })).stdout.split(
+    '\n',
+  );
+}
+
+async function extracted(archive: string, files: string[], prefix: number) {
+  if (!files.length) return [];
+  const directory = await mkdtemp(join(tmpdir(), 'refit-sdk-types-'));
   try {
     await execute('tar', ['-xf', archive, '-C', directory, ...files], {
       maxBuffer: 16 * 1024 * 1024,
     });
     return await Promise.all(
       files.map(async (path) => ({
-        path: path.slice(root.length + 1),
+        path: path.slice(prefix),
         content: await readFile(join(directory, path), 'utf8'),
       })),
     );
@@ -164,13 +195,18 @@ export function typeCheckedFindings<
 // Founder decision (Otabek, 2026-10-28): when the model returns a patch already checked, the draft
 // says why that is likely, from the errors left: stripe-node was not upgraded while they name an API
 // version, every one is outside Stripe code, or the stripe-node types they name could not be read.
+export const STRIPE_SDK_NAMES = { sdk: 'stripe-node', code: 'Stripe', package: 'stripe' };
+export const SHOPIFY_SDK_NAMES = { sdk: 'the Shopify SDK', code: 'Shopify', package: '@shopify' };
+
 export function repeatedProposalReason(input: {
   errors: TypeError[];
   sdkUpgraded: boolean;
   stripeFiles: Set<string>;
   stripeTypes: { path: string; content: string }[];
+  // The provider's SDK as the draft names it; Shopify repairs pass SHOPIFY_SDK_NAMES.
+  sdk?: typeof STRIPE_SDK_NAMES;
 }) {
-  const { errors, sdkUpgraded, stripeFiles, stripeTypes } = input;
+  const { errors, sdkUpgraded, stripeFiles, stripeTypes, sdk = STRIPE_SDK_NAMES } = input;
   const sites = (list: TypeError[]) =>
     [...new Set(list.map((error) => `${error.file}:${error.line} ${error.code}`))]
       .slice(0, 3)
@@ -179,21 +215,21 @@ export function repeatedProposalReason(input: {
   if (!sdkUpgraded && versioned.length)
     return {
       kind: 'sdk-not-upgraded' as const,
-      text: `The model returned the same patch again, likely because stripe-node was not upgraded: the installed types still reject the API version at ${sites(versioned)}, which no code edit fixes. Upgrade stripe-node to the release for the target version, then rerun.`,
+      text: `The model returned the same patch again, likely because ${sdk.sdk} was not upgraded: the installed types still reject the API version at ${sites(versioned)}, which no code edit fixes. Upgrade ${sdk.sdk} to the release for the target version, then rerun.`,
     };
   if (errors.length && errors.every((error) => !stripeFiles.has(error.file)))
     return {
       kind: 'outside-stripe-code' as const,
-      text: `The model returned the same patch again, likely because the errors left are outside Stripe code (${sites(errors)}): no file there imports stripe or holds a finding, so the repair may not change them. Fix them by hand, then rerun.`,
+      text: `The model returned the same patch again, likely because the errors left are outside ${sdk.code} code (${sites(errors)}): no file there imports ${sdk.package} or holds a finding, so the repair may not change them. Fix them by hand, then rerun.`,
     };
   const names = namedTypes(errors);
   if (!stripeTypes.length || !typeDeclarations(names, stripeTypes).length)
     return {
       kind: 'missing-types' as const,
-      text: `The model returned the same patch again, likely because Refit could not show it the stripe-node types the errors name (${names.length ? names.join(', ') : 'none named'}), so it had nothing new to go on. Check ${sites(errors) || 'the failing check'} against the upgraded stripe-node types.`,
+      text: `The model returned the same patch again, likely because Refit could not show it the ${sdk.sdk} types the errors name (${names.length ? names.join(', ') : 'none named'}), so it had nothing new to go on. Check ${sites(errors) || 'the failing check'} against the upgraded ${sdk.sdk} types.`,
     };
   return {
     kind: 'unknown' as const,
-    text: `The model returned the same patch again although it saw the errors left (${sites(errors)}) and the stripe-node types they name. Fix them by hand.`,
+    text: `The model returned the same patch again although it saw the errors left (${sites(errors)}) and the ${sdk.sdk} types they name. Fix them by hand.`,
   };
 }

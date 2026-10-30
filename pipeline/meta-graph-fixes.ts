@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import ts from 'typescript-compiler';
 import { daysUntil, type DeadlineRegistry } from './deadline-registry.ts';
 import { META_SDK, TEST_PATH } from './deadline-exposure.ts';
+import type { GraphReconstruction } from './meta-graph-ai.ts';
 import { scanGraphCalls, sourceOf, type GraphCall } from './meta-graph-calls.ts';
 import type { MetaGraphChanges } from './meta-graph-changes.ts';
 import {
@@ -319,6 +320,7 @@ export async function planMetaGraphFixes(
     rules: AppliedRule[];
     alerts: MetaPlatformAlert[];
     now: Date;
+    reconstructions?: GraphReconstruction[];
   },
 ): Promise<MetaGraphFixPlan> {
   const proposal = await proposeVersionMoves(
@@ -328,9 +330,13 @@ export async function planMetaGraphFixes(
     options.registry,
     options.now,
     options.rules,
+    options.reconstructions,
   );
   const repository = await readRepository(directory, META_SDK);
-  const scan = await scanGraphCalls(directory, { repository });
+  const scan = await scanGraphCalls(directory, {
+    repository,
+    reconstructions: options.reconstructions,
+  });
   const found = literals(repository).filter((item) => !TEST_PATH.test(item.file));
   const migrations = [basicDisplay(found), onPremises(found, repository)].filter(
     (item) => item !== null,

@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { buildSchema, introspectionFromSchema } from 'graphql';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { addAgents, builtInPackage, detectProviders } from './agent-catalog.ts';
 import { runPipeline } from './run.ts';
 import { readRepository } from './repository.ts';
@@ -15,6 +15,18 @@ import {
   versionFromEnum,
 } from './shopify-versions.ts';
 import { digest, shopifySchemaUrl } from './specifications.ts';
+
+// Only the AI reconstruction test answers; other tests never pass aiPatch.
+const reply = vi.hoisted(() => ({ document: '' }));
+vi.mock('./openai.ts', async (actual) => ({
+  ...(await actual<typeof import('./openai.ts')>()),
+  requestStructuredOutput: async () => ({
+    model: 'gpt-5.6-luna',
+    usage: null,
+    budget: { costUsd: 0.01 },
+    content: JSON.stringify({ document: reply.document, explanation: 'FIELDS is id and title.' }),
+  }),
+}));
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -376,6 +388,11 @@ it('resolves LATEST_API_VERSION from the locked SDK and treats untraced other-AP
     'extensions/account/query.ts':
       'export const Q = `#graphql\n  query { customer { emailAddress } }`;\n',
     'test/admin.test.ts': 'export const run = (admin) => admin.graphql(`query { ok }`);\n',
+    // Codegen configuration is not runtime: its LATEST_API_VERSION is no untraced declaration.
+    '.graphqlrc.ts':
+      "import { LATEST_API_VERSION } from '@shopify/shopify-api';\nexport default { apiVersion: LATEST_API_VERSION };\n",
+    // A piece the code assembles at runtime: it never parses on its own.
+    'app/fallback.ts': 'export const EMPTY = `#graphql\n  # not implemented\n`;\n',
   });
   const report = (await runPipeline({
     repository: root,
@@ -383,7 +400,11 @@ it('resolves LATEST_API_VERSION from the locked SDK and treats untraced other-AP
     proposePatch: true,
   })) as any;
   expect(report.shopify.sdkRelease).toBe('11.14.1');
+  expect(
+    report.apiVersion.source.declarations.map((entry: { file: string }) => entry.file),
+  ).toEqual(['app/shopify.server.ts']);
   expect(report.shopify.otherApiDocuments).toEqual([
+    'app/fallback.ts:1',
     'extensions/account/query.ts:1',
     'test/admin.test.ts:1',
   ]);
@@ -391,7 +412,9 @@ it('resolves LATEST_API_VERSION from the locked SDK and treats untraced other-AP
     application: '2025-07',
     applicability: 'matches-before',
   });
-  expect(report.findings).toMatchObject([
+  expect(
+    report.findings.filter((finding: { file: string }) => finding.file !== '.graphqlrc.ts'),
+  ).toMatchObject([
     {
       file: 'app/shopify.server.ts',
       line: 2,
@@ -697,7 +720,9 @@ export async function sync(admin, session, shop, id, verb, url) {
   expect(report.patch.status).toBe('not-generated');
   expect(report.patch.reason).toContain('cannot read an Admin API call');
   expect(
-    report.findings.some((finding: any) => finding.contractReview?.includes('REST Admin API')),
+    report.findings.some((finding: any) =>
+      finding.contractReview?.includes('cannot prove this REST Admin call'),
+    ),
   ).toBe(true);
   expect(report.shopify.restCalls[1]).toEqual({
     file: 'app/rest.ts',
@@ -713,12 +738,59 @@ export async function sync(admin, session, shop, id, verb, url) {
       .filter((finding: any) => finding.changeId === 'shopify-rest')
       .map((finding: any) => finding.expression)
       .slice(0, 3),
+  ).toEqual(['shopify.clients.Rest', 'PUT metafields.json (client.put)', 'DELETE (client.delete)']);
+  // Calls with no reads, an empty body or a listed parameter (`status`) are in both REST contracts,
+  // and so is a record built with no field assigned (its save endpoints are kept).
+  expect(
+    report.shopify.restContract
+      .filter((entry: any) => entry.status === 'proven')
+      .map((entry: any) => [entry.line, entry.endpoints]),
   ).toEqual([
-    'GET products/count (admin.rest.get)',
-    'POST products/{id}/metafields (admin.rest.post)',
-    'shopify.clients.Rest',
+    [6, ['GET products/count.json']],
+    [7, ['POST products/<product_id>/metafields.json']],
+    [13, ['GET products.json']],
+    [16, ['GET orders.json']],
+    [17, ['POST orders.json']],
+    [20, ['GET shop.json']],
+    [22, ['POST products.json', 'PUT products/<id>.json']],
   ]);
   expect(renderScanResult(report)).toContain(
     'REST        15 REST Admin calls for review, not migrated: GET products/count at app/rest.ts:6, POST products/{id}/metafields at app/rest.ts:7, call at app/rest.ts:8, and 12 more',
   );
+});
+
+it('moves the pin when AI reads an unreadable document from the code and it validates on both versions', async () => {
+  const run = async (document: string) => {
+    reply.document = document;
+    const root = await directory({
+      'package.json': MANIFEST,
+      'package-lock.json': LOCK('14.0.1'),
+      'app/shopify.server.ts': SERVER('January26'),
+      'app/fields.ts': "export const FIELDS = ['id', 'title', 'legacyCode'];\n",
+      'app/routes/product.ts': `import { FIELDS } from '../fields';
+export const loader = (admin, picked) =>
+  admin.graphql('query Product { product(id: "1") { ' + FIELDS.filter(picked).join(' ') + ' } }');
+`,
+    });
+    return (await runPipeline({
+      repository: root,
+      ...(await snapshots(root)),
+      proposePatch: true,
+      aiPatch: { apiKey: 'k', model: 'gpt-5.6-luna' },
+    })) as any;
+  };
+  const read = await run('query Product { product(id: "1") { id title } }');
+  expect(read.patch.status).toBe('proposed');
+  expect(read.findings).toContainEqual(
+    expect.objectContaining({ changeId: 'shopify-graphql-reconstructed', line: 3 }),
+  );
+  expect(read.shopify.reconstructed).toMatchObject([{ status: 'kept', line: 3 }]);
+  expect(read.patch.warnings.join('\n')).toContain('AI read it from the code');
+  // A reconstruction that selects the removed field keeps the stop.
+  const removed = await run('query Product { product(id: "1") { id legacyCode } }');
+  expect(removed.patch.status).toBe('not-generated');
+  expect(
+    removed.findings.find((finding: any) => finding.changeId === 'shopify-graphql:unreadable')
+      .reason,
+  ).toContain('AI could not read it: The reconstruction does not hold on 2026-10');
 });
