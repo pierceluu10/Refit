@@ -65,7 +65,14 @@ A `graphql-migration` rule names a transform in `pipeline/shopify-migrations.ts`
 
 The GraphQL specification's "All Variables Used" rule is fixed the same way without a table entry (`graphql-unused-variable`): Shopify rejects a document that declares a variable it never uses on every version, so the declaration is removed. The value the code still sends is ignored; the development store case for a query sends it to show that.
 
-The other migrations the round-3 diagnosis lists (`Shop` policy fields, `Order.financialStatus` and `fulfillmentStatus`, `Customer.ordersCount`, the `ProductVariant` fields moved to `inventoryItem`, `AppPlanV2` spreads) have no rule yet: Shopify's pages for them predate the pinned schemas and are no longer published as Markdown, and `Order.financialStatus` and `fulfillmentStatus` look never to have existed in the Admin GraphQL API. None of the rows that use them would validate from that rule alone (each has other failing fields).
+The other migrations the round-3 diagnosis lists (`Shop` policy fields, `Order.financialStatus` and `fulfillmentStatus`, `Customer.ordersCount`, the `ProductVariant` fields moved to `inventoryItem`, `AppPlanV2` spreads) have no rule. Each member is absent from every pinned Admin schema, so Shopify removed it before 2025-01, and the changelog entries for those removals return 404 (read on 2026-10-30: `deprecated-fields-on-the-customer-object`, `product-variant-field-cleanup`, `inventory-item-new-fields-and-productvariant-deprecations`, `inventory-mutations-and-fields-removal`, `deprecating-mutations-inventoryadjustquantity-and-inventorybulkadjustquantityatlocation`). `https://shopify.dev/changelog/feed.xml` starts in October 2024, and the old API reference versions redirect to `latest`. A rule needs a quote from a page someone read, so none is written from search summaries or memory. The pinned Storefront 2026-10 schema has several of the same names (`ProductVariant.weight`, `Order.financialStatus`, `Shop.privacyPolicy`), but a shared name does not show the Admin field never existed, so it is not used as evidence.
+
+Such a document stops with a named reason instead of a bare "already fails" (`unmigratedReasons` in `pipeline/shopify-migrations.ts`):
+
+- a document that validates whole on the pinned Storefront schema is named as a Storefront document sent with an Admin client (such as a `cartCreate` mutation);
+- otherwise each member: a documented removal, quoted from its saved page (`metafieldDelete`, removed in 2025-01 for `metafieldsDelete`, which takes `ownerId`, `namespace` and `key`, not the GID the code sends; `discountsAllocatorFunctionRegister`, whose developer preview ended with no replacement), or a member no pinned Admin schema has and no saved page replaces.
+
+With AI enabled, these documents still go to the bounded AI rewrite (`pipeline/shopify-ai-rewrite.ts`), and its result stays `[Needs review]`.
 
 ## Alerts
 

@@ -719,11 +719,22 @@ const hasMember = (schema: GraphQLSchema, type: string, member?: string) => {
   return 'getFields' in named && Object.hasOwn(named.getFields(), member);
 };
 
-// Why no documented migration fixes the members a document's errors name, one sentence per member:
-// a documented removal, a Storefront API member sent to the Admin API (proven by the pinned
-// Storefront schema), or a member no pinned Admin schema has and no saved Shopify page replaces.
-// Errors about anything else name nothing.
-export function unmigratedReasons(errors: readonly GraphQLError[], target: GraphQLSchema) {
+// Why no documented migration fixes a document, one sentence per member its errors name: a
+// documented removal, or a member no pinned Admin schema has and no saved Shopify page replaces. A
+// document that validates whole on the pinned Storefront schema is a Storefront document sent to the
+// Admin API; a member that only shares a Storefront field's name proves nothing, since Admin had
+// many of the same names before it removed them. Errors about anything else name nothing.
+export function unmigratedReasons(
+  text: string,
+  errors: readonly GraphQLError[],
+  target: GraphQLSchema,
+) {
+  const { admin, schemas, storefront, shop } = referenceSchemas();
+  const pinned = `every pinned Admin schema (${admin[0]} to ${admin.at(-1)})`;
+  if (!errorsOn(shop, text).length)
+    return [
+      `The document validates on the Storefront API ${storefront} schema and fails on the Admin API: it is a Storefront document sent with an Admin client.`,
+    ];
   const reasons = new Map<string, string>();
   for (const error of errors) {
     const field = /^Cannot query field "(\w+)" on type "(\w+)"\./.exec(error.message);
@@ -733,17 +744,9 @@ export function unmigratedReasons(errors: readonly GraphQLError[], target: Graph
     const coordinate = member ? `${owner}.${member}` : owner;
     if (reasons.has(coordinate)) continue;
     const documented = DOCUMENTED_REMOVALS.find((entry) => entry.coordinate === coordinate);
-    const { admin, schemas, storefront, shop } = referenceSchemas();
-    const pinned = `every pinned Admin schema (${admin[0]} to ${admin.at(-1)})`;
     if (documented)
       reasons.set(coordinate, `${coordinate}: ${documented.reason} (${documented.source}).`);
-    else if ([...schemas, target].some((schema) => hasMember(schema, owner, member))) continue;
-    else if (hasMember(shop, owner, member))
-      reasons.set(
-        coordinate,
-        `${coordinate} is a Storefront API ${member ? 'field' : 'type'} (Storefront ${storefront} schema) absent from ${pinned}; send it with a Storefront client or select the Admin equivalent.`,
-      );
-    else
+    else if (![...schemas, target].some((schema) => hasMember(schema, owner, member)))
       reasons.set(
         coordinate,
         `${coordinate} is absent from ${pinned}, and no saved Shopify page names its replacement.`,
@@ -777,7 +780,7 @@ export function migrateDocument(options: {
         error.message.startsWith('Cannot query field "productVariantUpdate" on type "Mutation".'),
       ),
   );
-  const named = unmigratedReasons(errors, after);
+  const named = unmigratedReasons(text, errors, after);
   if (!unused && !variantRule)
     return named.length
       ? { refusal: `no documented migration covers this document. ${named.join(' ')}` }
@@ -853,7 +856,7 @@ export function migrateDocument(options: {
     return {
       refusal: [
         `After the migration the document still fails on the target schema: ${remaining[0].message}`,
-        ...unmigratedReasons(remaining, after),
+        ...unmigratedReasons(text, remaining, after),
       ].join(' '),
     };
   // Every variable type of the rewritten document exists on the target.

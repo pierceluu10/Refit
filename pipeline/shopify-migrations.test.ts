@@ -233,7 +233,7 @@ it('grades a patch whose changed variables the store did not run as D', () => {
   expect(shopifyGrade(own, schema, undefined, [], []).letter).toBe('C');
 });
 
-const failing = (text: string) => validate(after, parse(text));
+const named = (text: string) => unmigratedReasons(text, validate(after, parse(text)), after);
 
 it('quotes every documented removal from its saved page, for a member no pinned Admin schema has', async () => {
   const pages = await capturedPages(
@@ -251,47 +251,37 @@ it('quotes every documented removal from its saved page, for a member no pinned 
 });
 
 it('names the documented removal a document sends', () => {
-  const reasons = unmigratedReasons(
-    failing(
+  expect(
+    named(
       'mutation D($input: MetafieldDeleteInput!) { metafieldDelete(input: $input) { deletedId } }',
     ),
-    after,
-  );
-  expect(reasons).toEqual([
+  ).toEqual([
     expect.stringMatching(
       /^Mutation\.metafieldDelete: Shopify removed it in 2025-01 for metafieldsDelete, .*GID.*\(https:\/\/shopify\.dev\/changelog\/posts\/remove-metafielddelete-in-favor-of-metafieldsdelete\)\.$/,
     ),
   ]);
 });
 
-it('names Storefront API fields and types a document sends to the Admin API', () => {
+it('names a whole Storefront document sent to the Admin API, but not a shared field name', () => {
   expect(
-    unmigratedReasons(
-      failing(
-        '{ shop { name privacyPolicy { body } } orders(first: 1) { nodes { financialStatus } } }',
-      ),
-      after,
+    named(
+      'mutation C($input: CartInput) { cartCreate(input: $input) { cart { id checkoutUrl } } }',
     ),
   ).toEqual([
-    expect.stringMatching(
-      /^Shop\.privacyPolicy is a Storefront API field \(Storefront 2026-10 schema\)/,
-    ),
-    expect.stringMatching(/^Order\.financialStatus is a Storefront API field/),
+    'The document validates on the Storefront API 2026-10 schema and fails on the Admin API: it is a Storefront document sent with an Admin client.',
   ]);
-  // The input type is named only when no field is.
-  expect(unmigratedReasons(failing('query C($input: CartInput) { shop { name } }'), after)).toEqual(
-    [expect.stringMatching(/^CartInput is a Storefront API type/)],
-  );
+  // ProductVariant.weight is a Storefront field too, but Admin had it until Shopify moved it.
+  expect(named('{ productVariant(id: "1") { id weight } }')).toEqual([
+    'ProductVariant.weight is absent from every pinned Admin schema (2025-01 to 2026-10), and no saved Shopify page names its replacement.',
+  ]);
 });
 
-it('says when no saved page names a replacement, and names nothing the Admin schemas have', () => {
-  expect(
-    unmigratedReasons(
-      failing('{ customers(first: 1) { nodes { ordersCount numberOfOrders(x: 1) } } }'),
-      after,
-    ),
-  ).toEqual([
+it('names nothing the Admin schemas have, and an input type only without a field', () => {
+  expect(named('{ customers(first: 1) { nodes { ordersCount numberOfOrders(x: 1) } } }')).toEqual([
     'Customer.ordersCount is absent from every pinned Admin schema (2025-01 to 2026-10), and no saved Shopify page names its replacement.',
+  ]);
+  expect(named('query Q($input: InventoryAdjustQuantityInput) { shop { name } }')).toEqual([
+    expect.stringMatching(/^InventoryAdjustQuantityInput is absent/),
   ]);
 });
 
