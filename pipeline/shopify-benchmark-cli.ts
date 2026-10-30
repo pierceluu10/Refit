@@ -307,8 +307,11 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   const testScript: unknown = manifest.scripts?.test;
   const hasTests = typeof testScript === 'string' && !PLACEHOLDER_TEST.test(testScript);
   const typescript = existsSync(join(directory, 'tsconfig.json')) && Boolean(declared.typescript);
-  // The tests run with the root lockfile's manager, in check selection's order.
-  const manager = LOCKFILE_MANAGERS.find(([file]) => existsSync(join(directory, file)))?.[1];
+  // The tests run with the root lockfile's manager, in check selection's order. A repository that
+  // commits no lockfile runs with npm, as a generated configuration does: preparation refuses it
+  // (the patch stays untested, grade D) unless an SDK upgrade's lockfile resolution gives one.
+  const manager =
+    LOCKFILE_MANAGERS.find(([file]) => existsSync(join(directory, file)))?.[1] ?? 'npm';
   result.checks = !manager ? 'none' : hasTests ? 'tests' : typescript ? 'typecheck' : 'none';
   if (!values.validate || result.checks === 'none') {
     log(`patched (${String(result.checks)} checks)`);
