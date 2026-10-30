@@ -153,7 +153,11 @@ if (values['behaviour-tests-dry-run'] && (!values.validate || values['behaviour-
   );
 const writer = values['behaviour-tests'] || values['behaviour-tests-dry-run'];
 // Refuses a missing, live or malformed STRIPE_TEST_KEY before any repository runs.
-stripeTestMode(values['stripe-test-mode'], values['behaviour-tests']);
+// --ai writes behaviour tests by default unless --no-behaviour-tests.
+stripeTestMode(
+  values['stripe-test-mode'],
+  values['behaviour-tests'] || (values.ai && !values['no-behaviour-tests']),
+);
 // Copied after --env loads, so children get its keys. Benchmark runs never send Slack notices.
 const CHILD_ENV = { ...process.env };
 delete CHILD_ENV.REFIT_SLACK_WEBHOOK_URL;
