@@ -180,6 +180,37 @@
       }
     },
     {
+      "rule": "anthropic-ts-message-param-interface-alias",
+      "family": "interface-to-alias",
+      "status": "auto",
+      "page": "anthropic-2026-10-21",
+      "quote": "type StoredMessage = Anthropic.MessageParam & { id: string };",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "An interface that extends `MessageParam`, a union in v1, becomes the type alias the guide gives: the same members intersected with the union.",
+      "data": {
+        "names": [
+          "MessageParam",
+          "BetaMessageParam"
+        ]
+      }
+    },
+    {
+      "rule": "anthropic-ts-message-param-role-guard",
+      "family": "role-guard",
+      "status": "auto",
+      "page": "anthropic-2026-10-21",
+      "quote": "message.role === \"system\" ? message : { ...message, content: blocks };",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "Code that rebuilds a message of any role checks `role` first, as the guide does; messages had no system role before v1, so every message built before keeps its shape.",
+      "data": {
+        "type": "SystemMessageParam",
+        "role": "system",
+        "key": "content"
+      }
+    },
+    {
       "rule": "anthropic-ts-one-credential",
       "family": "credentials",
       "status": "review",

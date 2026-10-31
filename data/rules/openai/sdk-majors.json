@@ -887,6 +887,81 @@
       }
     },
     {
+      "rule": "openai-node-v5-core-error",
+      "family": "import-path",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "import 'openai/core/error';",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`openai/error` moved to `openai/core/error` in v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "openai/error",
+        "new": "openai/core/error"
+      }
+    },
+    {
+      "rule": "openai-node-v5-core-pagination",
+      "family": "import-path",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "import 'openai/core/pagination';",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`openai/pagination` moved to `openai/core/pagination` in v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "openai/pagination",
+        "new": "openai/core/pagination"
+      }
+    },
+    {
+      "rule": "openai-node-v5-core-resource",
+      "family": "import-path",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "import 'openai/core/resource';",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`openai/resource` moved to `openai/core/resource` in v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "openai/resource",
+        "new": "openai/core/resource"
+      }
+    },
+    {
+      "rule": "openai-node-v5-core-streaming",
+      "family": "import-path",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "import 'openai/core/streaming';",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`openai/streaming` moved to `openai/core/streaming` in v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "openai/streaming",
+        "new": "openai/core/streaming"
+      }
+    },
+    {
+      "rule": "openai-node-v5-core-uploads",
+      "family": "import-path",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "import 'openai/core/uploads';",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`openai/uploads` moved to `openai/core/uploads` in v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "openai/uploads",
+        "new": "openai/core/uploads"
+      }
+    },
+    {
       "rule": "openai-node-v5-event-function-call",
       "family": "runner-event",
       "status": "auto",
@@ -1084,6 +1159,214 @@
           "vectorStores.fileBatches.cancel",
           "vectorStores.fileBatches.listFiles"
         ]
+      }
+    },
+    {
+      "rule": "openai-node-v5-named-path-rewrite",
+      "family": "named-path-rewrite",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.parents.children.retrieve('c_456', { parent_id: 'p_123' });",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "Methods with several path parameters keep only the last one positional since v5; the leading ones move into the params object under the names the SDK gives them.",
+      "data": {
+        "fromMajor": 4,
+        "namesFrom": "openai@6.49.0 resources/**/*.js, the URL template of each method",
+        "methods": {
+          "fineTuning.checkpoints.permissions.delete": [
+            "fine_tuned_model_checkpoint"
+          ],
+          "vectorStores.files.retrieve": [
+            "vector_store_id"
+          ],
+          "vectorStores.files.update": [
+            "vector_store_id"
+          ],
+          "vectorStores.files.delete": [
+            "vector_store_id"
+          ],
+          "vectorStores.files.content": [
+            "vector_store_id"
+          ],
+          "vectorStores.fileBatches.retrieve": [
+            "vector_store_id"
+          ],
+          "vectorStores.fileBatches.cancel": [
+            "vector_store_id"
+          ],
+          "vectorStores.fileBatches.listFiles": [
+            "vector_store_id"
+          ],
+          "beta.threads.runs.retrieve": [
+            "thread_id"
+          ],
+          "beta.threads.runs.update": [
+            "thread_id"
+          ],
+          "beta.threads.runs.cancel": [
+            "thread_id"
+          ],
+          "beta.threads.runs.submitToolOutputs": [
+            "thread_id"
+          ],
+          "beta.threads.runs.steps.retrieve": [
+            "thread_id",
+            "run_id"
+          ],
+          "beta.threads.runs.steps.list": [
+            "thread_id"
+          ],
+          "beta.threads.messages.retrieve": [
+            "thread_id"
+          ],
+          "beta.threads.messages.update": [
+            "thread_id"
+          ],
+          "beta.threads.messages.delete": [
+            "thread_id"
+          ],
+          "admin.organization.users.roles.retrieve": [
+            "user_id"
+          ],
+          "admin.organization.users.roles.delete": [
+            "user_id"
+          ],
+          "admin.organization.groups.users.retrieve": [
+            "group_id"
+          ],
+          "admin.organization.groups.users.delete": [
+            "group_id"
+          ],
+          "admin.organization.groups.roles.retrieve": [
+            "group_id"
+          ],
+          "admin.organization.groups.roles.delete": [
+            "group_id"
+          ],
+          "admin.organization.projects.users.retrieve": [
+            "project_id"
+          ],
+          "admin.organization.projects.users.update": [
+            "project_id"
+          ],
+          "admin.organization.projects.users.delete": [
+            "project_id"
+          ],
+          "admin.organization.projects.users.roles.create": [
+            "project_id"
+          ],
+          "admin.organization.projects.users.roles.retrieve": [
+            "project_id",
+            "user_id"
+          ],
+          "admin.organization.projects.users.roles.list": [
+            "project_id"
+          ],
+          "admin.organization.projects.users.roles.delete": [
+            "project_id",
+            "user_id"
+          ],
+          "admin.organization.projects.serviceAccounts.retrieve": [
+            "project_id"
+          ],
+          "admin.organization.projects.serviceAccounts.update": [
+            "project_id"
+          ],
+          "admin.organization.projects.serviceAccounts.delete": [
+            "project_id"
+          ],
+          "admin.organization.projects.serviceAccounts.apiKeys.create": [
+            "project_id"
+          ],
+          "admin.organization.projects.apiKeys.retrieve": [
+            "project_id"
+          ],
+          "admin.organization.projects.apiKeys.delete": [
+            "project_id"
+          ],
+          "admin.organization.projects.rateLimits.updateRateLimit": [
+            "project_id"
+          ],
+          "admin.organization.projects.groups.retrieve": [
+            "project_id"
+          ],
+          "admin.organization.projects.groups.delete": [
+            "project_id"
+          ],
+          "admin.organization.projects.groups.roles.create": [
+            "project_id"
+          ],
+          "admin.organization.projects.groups.roles.retrieve": [
+            "project_id",
+            "group_id"
+          ],
+          "admin.organization.projects.groups.roles.list": [
+            "project_id"
+          ],
+          "admin.organization.projects.groups.roles.delete": [
+            "project_id",
+            "group_id"
+          ],
+          "admin.organization.projects.roles.retrieve": [
+            "project_id"
+          ],
+          "admin.organization.projects.roles.update": [
+            "project_id"
+          ],
+          "admin.organization.projects.roles.delete": [
+            "project_id"
+          ],
+          "admin.organization.projects.spendAlerts.retrieve": [
+            "project_id"
+          ],
+          "admin.organization.projects.spendAlerts.update": [
+            "project_id"
+          ],
+          "admin.organization.projects.spendAlerts.delete": [
+            "project_id"
+          ],
+          "conversations.items.retrieve": [
+            "conversation_id"
+          ],
+          "conversations.items.delete": [
+            "conversation_id"
+          ],
+          "evals.runs.retrieve": [
+            "eval_id"
+          ],
+          "evals.runs.delete": [
+            "eval_id"
+          ],
+          "evals.runs.cancel": [
+            "eval_id"
+          ],
+          "evals.runs.outputItems.retrieve": [
+            "eval_id",
+            "run_id"
+          ],
+          "evals.runs.outputItems.list": [
+            "eval_id"
+          ],
+          "containers.files.retrieve": [
+            "container_id"
+          ],
+          "containers.files.delete": [
+            "container_id"
+          ],
+          "containers.files.content.retrieve": [
+            "container_id"
+          ],
+          "skills.versions.retrieve": [
+            "skill_id"
+          ],
+          "skills.versions.delete": [
+            "skill_id"
+          ],
+          "skills.versions.content.retrieve": [
+            "skill_id"
+          ]
+        }
       }
     },
     {
