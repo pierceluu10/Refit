@@ -1168,6 +1168,30 @@ it('edits shared constants, enum and object members across files when every use 
   ]);
 });
 
+it('counts every caller of a helper that a shared constant reaches, and names a use that is not a request', async () => {
+  const helper = [
+    ...HEAD,
+    "const LEGACY = 'gpt-4';",
+    `function ask(model: string, prompt: string) { return ${send('model')} }`,
+    "export const a = () => ask(LEGACY, 'one');",
+    "export const b = async () => { const answer = await ask(LEGACY, 'two'); return answer; };",
+  ];
+  const root = await repository({ 'src/helper.ts': helper.join('\n') });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual(['src/helper.ts:3 gpt-4']);
+
+  // A cache record that stores the constant is not a request, so the edit would change it too.
+  const cached = await repository({
+    'src/helper.ts': [...helper, 'export const record = { model: LEGACY, tier: 1 };'].join('\n'),
+  });
+  const stopped = await proposeModelReplacements(cached, registry, NOW);
+  expect(edited(stopped)).toEqual([]);
+  expect(stopped.stops.map((item) => item.reason)).toEqual([
+    'The model comes from the constant LEGACY (src/helper.ts:3), which is also used at src/helper.ts:7, where no traced request reads it as its model, so a change would show up there too; change it by hand to gpt-5.6-sol.',
+  ]);
+});
+
 it('reads committed example env files for a model the environment sets, and never a real .env', async () => {
   const root = await repository({
     '.env.example': [
@@ -1416,15 +1440,10 @@ it('stops tracing within the work budget on self-referencing assignments', async
     ].join('\n'),
   });
   const first = await proposeModelReplacements(root, registry, NOW);
-  // The field's own read inside the assignment is a use no request reaches, so it stops.
-  expect(first.replacements).toEqual([]);
-  expect(first.stops.map((item) => [item.at.line, item.model, item.reason])).toEqual([
-    [
-      4,
-      'gpt-4',
-      'The model comes from the field model (src/dalle.ts:4), which is also used at src/dalle.ts:6, where no traced request reads it as its model, so a change would show up there too; change it by hand to gpt-5.6-sol.',
-    ],
-  ]);
+  // The field's own read inside the assignment carries the same default on to the request, so it
+  // is part of the model's path, not another use, and the default is edited where it is written.
+  expect(first.stops).toEqual([]);
+  expect(edited(first)).toEqual(['src/dalle.ts:4 gpt-4']);
   expect(await proposeModelReplacements(root, registry, NOW)).toEqual(first);
 });
 

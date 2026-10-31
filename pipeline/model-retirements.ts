@@ -1178,6 +1178,8 @@ interface Trace {
   // JSON files the model may be read from (`import config from './models.json'`), with the key
   // path read, as `file` relative to the repository.
   config: { file: string; keys: string[] }[];
+  // Every reference the model was followed through, including those a cached result skips.
+  uses: Set<ts.Node>;
 }
 
 const MAX_DEPTH = 10;
@@ -1438,6 +1440,7 @@ function declarationValues(
   trace: Trace,
   keys: string[],
 ): Terminal[] {
+  trace.uses.add(reference);
   const pass = (kind: Pass['kind'], node: ts.Node): Pass => ({
     symbol,
     node,
@@ -1763,6 +1766,7 @@ function callValues(
         ? initializer
         : undefined;
   if (!symbol || !fn) return [];
+  trace.uses.add(name);
   const bound = fn.parameters.length > 0;
   const ctx: CallContext | undefined = bound
     ? {
@@ -1814,6 +1818,7 @@ function modelSites(program: SourceProgram, value: ts.Expression) {
     cut: {},
     env: new Set(),
     config: [],
+    uses: new Set(),
   };
   const sites = new Map<ts.StringLiteralLike, Site>();
   for (const { via: _via, ...site } of valuesOf(program, value, trace)) {
@@ -1829,6 +1834,7 @@ function modelSites(program: SourceProgram, value: ts.Expression) {
     cut: trace.cut.by,
     env: [...trace.env].sort(),
     config: trace.config,
+    uses: trace.uses,
   };
 }
 
@@ -2719,6 +2725,7 @@ export async function proposeModelReplacements(
       const value = propertyValue(property);
       const trace = modelSites(program, value);
       for (const site of trace.sites) for (const pass of site.passes) reached.add(pass.use);
+      for (const use of trace.uses) reached.add(use);
       traced.push({ request, found, value, trace, from });
     }
   }
