@@ -1208,25 +1208,17 @@ export async function runAiFallback(options: {
     for (const file of changed) patched.set(file.path, file.after);
     gates.push(resolvesGate(input.items, after, hiddenFindings(input.items, after, patched)));
   }
+  // Python patches validate through the offline Python runner (python/validation.ts).
   if (!failed()) {
-    if (input.language === 'py')
-      gates.push({
-        gate: 'checks',
-        status: 'failed',
-        detail:
-          'Refit has no offline Python install-and-test runner yet, so the patch is unchecked.',
-      });
-    else {
-      const validation = await options.dependencies.validate(patch);
-      const noOp = validation.command.join(' ') === NO_OP_CHECK;
-      gates.push({
-        gate: 'checks',
-        status: validation.status === 'passed' && !noOp ? 'passed' : 'failed',
-        detail: noOp
-          ? 'No check runs the changed code.'
-          : `\`${validation.command.join(' ')}\` before and after in offline Docker: ${validation.status}. ${validation.reason}`.trim(),
-      });
-    }
+    const validation = await options.dependencies.validate(patch);
+    const noOp = validation.command.join(' ') === NO_OP_CHECK;
+    gates.push({
+      gate: 'checks',
+      status: validation.status === 'passed' && !noOp ? 'passed' : 'failed',
+      detail: noOp
+        ? 'No check runs the changed code.'
+        : `\`${validation.command.join(' ')}\` before and after in offline Docker: ${validation.status}. ${validation.reason}`.trim(),
+    });
   }
   if (!failed()) {
     const models = [...changed.flatMap((file) => [...modelLiterals(file.after)])].filter((model) =>

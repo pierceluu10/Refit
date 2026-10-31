@@ -32,6 +32,7 @@ import { gateNote, repositoryChecks } from './check-gate.ts';
 import { checkSources, loadSourcePages } from './deadline-sources.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { resolveNpmLockfile } from './lockfile-resolution.ts';
+import { validatePythonPatch } from './python/validation.ts';
 import { PipelineInputError } from './types.ts';
 import { validateSourcePatch } from './validation.ts';
 
@@ -409,6 +410,25 @@ export async function runFallbackOnRepository(options: {
           ...(await savedModelSettings(copy, files, input.items)),
         ]),
       validate: async (patch) => {
+        // A Python patch runs the repository's pytest and mypy offline, under the same gate.
+        if (language === 'py') {
+          const validation = await validatePythonPatch({
+            repository: directory,
+            image: options.image,
+            patch,
+            onProgress: options.onProgress,
+          }).catch((error: unknown) => ({
+            status: 'error',
+            command: ['python'],
+            reason: `Python validation refused the patch: ${error instanceof Error ? error.message.slice(0, 300) : 'failed'}`,
+            gate: undefined,
+          }));
+          return {
+            status: validation.status,
+            command: validation.command,
+            reason: `${validation.reason} ${gateNote(validation.gate).join(' ')}`.trim(),
+          };
+        }
         if (!checks.length)
           return {
             status: 'no-checks',

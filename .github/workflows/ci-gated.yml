@@ -77,6 +77,13 @@ jobs:
           REFIT_NPM_PREPARE: '1'
           REFIT_OASDIFF: '1'
         run: .github/scripts/run-gated.sh REFIT_DOCKER_IMAGE REFIT_NPM_PREPARE
+      # The Python sandbox (node:22-alpine above plus python3) is built from the repository, not pulled.
+      - name: Build the Python sandbox image and run the Python validation suite
+        env:
+          REFIT_PYTHON_DOCKER_IMAGE: refit-sandbox:python
+        run: |
+          docker build -q -t refit-sandbox:python -f docker/sandbox.Dockerfile docker
+          npx vitest run pipeline/python/validation.test.ts
 
   postgres:
     name: PostgreSQL suites

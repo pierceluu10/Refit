@@ -5,7 +5,8 @@ import { changedOldLines } from './ai-surface-lane.ts';
 // Static checks on an AI fallback patch that the repository's own checks can miss
 // (pipeline/ai-fallback.ts): the request shape each changed provider call really sends, values a
 // patch makes required at runtime that no caller supplies, and deprecated code a patch only hid
-// from Refit's rules. JavaScript and TypeScript only; Python patches never validate.
+// from Refit's rules. JavaScript and TypeScript only; a Python patch runs its own checks
+// (python/validation.ts), and its request shape stays unproven.
 
 const SCRIPT = /\.(?:[cm]?[jt]sx?)$/;
 const CALL =
