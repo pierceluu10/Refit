@@ -243,6 +243,20 @@ export interface ModelReplacement {
   via: string[];
   // Request parameters changed with the swap (only with a parameter change table).
   parameters?: ModelParameterEdit[];
+  // Environment variables the request reads before the edited value (`process.env.X || 'gpt-4'`).
+  // Where one is set it wins, and its value is outside the repository, so it needs review.
+  env?: string[];
+}
+
+// A request whose model comes only from an environment variable that no committed file sets, so
+// Refit cannot tell which model it sends. Never edited and never given an invented default.
+export interface ModelEnvironmentRead {
+  provider: DeadlineEntry['provider'];
+  file: string;
+  line: number;
+  call: string;
+  variable: string;
+  reason: string;
 }
 
 // One request parameter renamed or removed together with a model swap, with its sourced change.
@@ -286,6 +300,8 @@ export interface ModelReplacementProposal {
   replacements: ModelReplacement[];
   stops: ModelReplacementStop[];
   unresolved: ModelReplacementUnresolved[];
+  // Requests that read their model only from the environment, with no committed value.
+  environment: ModelEnvironmentRead[];
   // Python and Go files or languages that could not be read, with a named reason.
   tracerStops: TracerStop[];
   // A unified diff of every replacement; null when there is none. Never applied by Refit.
@@ -1157,6 +1173,11 @@ interface Trace {
   ctx?: CallContext;
   // Set when the depth or work limit stopped a path, so it is known not to be fully followed.
   cut: { by?: 'depth' | 'budget' };
+  // Environment variables the model may come from (`process.env.OPENAI_MODEL`), by name.
+  env: Set<string>;
+  // JSON files the model may be read from (`import config from './models.json'`), with the key
+  // path read, as `file` relative to the repository.
+  config: { file: string; keys: string[] }[];
 }
 
 const MAX_DEPTH = 10;
@@ -1206,7 +1227,9 @@ function inType(node: ts.Node) {
 
 // The existing shared-source sentence, when some use of a symbol the model passed through is not
 // a request this proposal reaches (D-09). `passes` run outermost first; the innermost reports.
-function sharedUse(program: SourceProgram, passes: Pass[], reached: Set<ts.Node>) {
+// With `shared`, a source every use of which is a traced request's model is edited once for all of
+// them; the requests must then agree (see `differentHandling`).
+function sharedUse(program: SourceProgram, passes: Pass[], reached: Set<ts.Node>, shared: boolean) {
   for (const pass of [...passes].reverse()) {
     if (program.opaque(pass.node.getSourceFile()))
       return 'The module that declares this model is also loaded dynamically or through a namespace the tracer cannot follow; change it by hand to';
@@ -1231,9 +1254,13 @@ function sharedUse(program: SourceProgram, passes: Pass[], reached: Set<ts.Node>
               use.parent.argumentExpression.text !== pass.keys[0]))
         ),
     );
-    // A source with any other use stops, even when every use is a traced request: editing a
-    // shared constant, member, field or helper waits on an owner decision (D-09, on hold).
-    if (uses.length !== 1 || !uses.includes(pass.use) || uses.some((use) => !reached.has(use)))
+    const other = uses.find((use) => !reached.has(use));
+    if (shared && uses.includes(pass.use) && !other) continue;
+    if (shared && other)
+      return `The model comes from the ${pass.kind} ${pass.name} (${pass.at}), which is also used at ${where(program, other)}, where no traced request reads it as its model, so a change would show up there too; change it by hand to`;
+    // Without `shared`, a source with any other use stops, even when every use is a traced
+    // request (D-09 as first held).
+    if (uses.length !== 1 || !uses.includes(pass.use) || other)
       return `The model comes from the ${pass.kind} ${pass.name} (${pass.at}), which is used ${all.length} times; change it by hand to`;
   }
   return undefined;
@@ -1276,6 +1303,13 @@ function valuesOf(
   const next = { ...trace, depth: trace.depth + 1 };
   const value = unwrap(expression);
   if (ts.isStringLiteralLike(value)) return keys.length ? [] : [{ literal: value, passes: [] }];
+  // A value set by the environment where the app runs, outside the repository: recorded by name,
+  // never a literal to edit.
+  const variable = !keys.length && environmentVariable(value);
+  if (variable) {
+    trace.env.add(variable);
+    return [];
+  }
   if (ts.isAwaitExpression(value)) return valuesOf(program, value.expression, next, keys);
   if (ts.isConditionalExpression(value))
     return [
@@ -1301,6 +1335,15 @@ function valuesOf(
   if (ts.isObjectLiteralExpression(value)) {
     const property = keys[0] ? objectProperty(value, keys[0]) : undefined;
     return property ? valuesOf(program, propertyValue(property), next, keys.slice(1)) : [];
+  }
+  if (
+    ts.isCallExpression(value) &&
+    ts.isIdentifier(value.expression) &&
+    value.expression.text === 'require'
+  ) {
+    const file = jsonModule(program, value, value.arguments[0]);
+    if (file) trace.config.push({ file, keys });
+    return [];
   }
   if (ts.isCallExpression(value)) return callValues(program, value, next, keys);
   if (ts.isPropertyAccessExpression(value)) {
@@ -1357,6 +1400,28 @@ function valuesOf(
     return valuesOf(program, value.expression, next, [key.text, ...keys]);
   }
   if (!ts.isIdentifier(value)) return [];
+  // The default or namespace import, or the `require`, of a JSON file, which is configuration, not
+  // a source module.
+  const imported = program.bindingOf(value)?.declarations?.[0];
+  const loaded = imported && ts.isVariableDeclaration(imported) && imported.initializer;
+  const required =
+    loaded && ts.isCallExpression(unwrap(loaded))
+      ? (unwrap(loaded) as ts.CallExpression)
+      : undefined;
+  const specifier = !imported
+    ? undefined
+    : ts.isImportClause(imported)
+      ? imported.parent.moduleSpecifier
+      : ts.isNamespaceImport(imported)
+        ? imported.parent.parent.moduleSpecifier
+        : required && ts.isIdentifier(required.expression) && required.expression.text === 'require'
+          ? required.arguments[0]
+          : undefined;
+  const file = specifier && jsonModule(program, value, specifier);
+  if (file) {
+    trace.config.push({ file, keys });
+    return [];
+  }
   const symbol = program.symbolOf(value);
   const declaration = symbol?.valueDeclaration;
   return symbol && declaration
@@ -1742,7 +1807,14 @@ function callValues(
 // members (also in other modules), class fields, fallbacks, returned values and parameters, with
 // the references each literal passed through. `cut` says whether a limit ended a path.
 function modelSites(program: SourceProgram, value: ts.Expression) {
-  const trace: Trace = { depth: 0, budget: { left: MAX_STEPS }, memo: new Map(), cut: {} };
+  const trace: Trace = {
+    depth: 0,
+    budget: { left: MAX_STEPS },
+    memo: new Map(),
+    cut: {},
+    env: new Set(),
+    config: [],
+  };
   const sites = new Map<ts.StringLiteralLike, Site>();
   for (const { via: _via, ...site } of valuesOf(program, value, trace)) {
     const known = sites.get(site.literal);
@@ -1752,7 +1824,42 @@ function modelSites(program: SourceProgram, value: ts.Expression) {
       known.passes = [...known.passes, ...site.passes];
     }
   }
-  return { sites: [...sites.values()], cut: trace.cut.by };
+  return {
+    sites: [...sites.values()],
+    cut: trace.cut.by,
+    env: [...trace.env].sort(),
+    config: trace.config,
+  };
+}
+
+// The repository JSON file a module specifier names: `import x from './models.json'` or
+// `require('./models.json')`, relative to the importing file.
+function jsonModule(program: SourceProgram, from: ts.Node, specifier: ts.Node | undefined) {
+  if (!specifier || !ts.isStringLiteralLike(specifier)) return undefined;
+  const name = specifier.text;
+  if (!/^\.\.?\//.test(name) || !name.endsWith('.json')) return undefined;
+  const file = join(program.path(from), '..', name).split('\\').join('/');
+  return file.startsWith('../') || file.includes('node_modules/') ? undefined : file;
+}
+
+// `process.env.NAME`, `process.env['NAME']` and `import.meta.env.NAME`: the variable's name.
+function environmentVariable(value: ts.Expression) {
+  const key = ts.isPropertyAccessExpression(value)
+    ? value.name
+    : ts.isElementAccessExpression(value) &&
+        ts.isStringLiteralLike(unwrap(value.argumentExpression))
+      ? (unwrap(value.argumentExpression) as ts.StringLiteralLike)
+      : undefined;
+  if (!key || ts.isPrivateIdentifier(key)) return undefined;
+  const owner = unwrap(
+    (value as ts.PropertyAccessExpression | ts.ElementAccessExpression).expression,
+  );
+  const environment =
+    ts.isPropertyAccessExpression(owner) &&
+    owner.name.text === 'env' &&
+    ((ts.isIdentifier(owner.expression) && owner.expression.text === 'process') ||
+      ts.isMetaProperty(owner.expression));
+  return environment && /^[A-Za-z_][A-Za-z0-9_]*$/.test(key.text) ? key.text : undefined;
 }
 
 // Text that points a client at another endpoint: a base URL option or variable, `withOptions`, or
@@ -2298,6 +2405,10 @@ export async function proposeModelReplacements(
     // Edit what the resolver reaches through class fields, object members and computed
     // initializers (D-06 to D-08). Off until the owner decision lands; until then those sites stop.
     indirect = false,
+    // Edit a constant, member, field, helper or parameter that several traced requests read, once
+    // for all of them, when every use is such a request and they all allow the same swap. Off, any
+    // shared source stops (D-09 as first held).
+    shared = true,
     reportOnly = REPORT_ONLY_SOURCES,
     // Edit requests whose own client sets no endpoint although the repository mentions one
     // elsewhere. Off until an owner decision; until then they stop with where the mention is.
@@ -2313,6 +2424,7 @@ export async function proposeModelReplacements(
     unavailable = [],
   }: {
     indirect?: boolean;
+    shared?: boolean;
     reportOnly?: ReportOnlySource[];
     endpoints?: boolean;
     parameters?: ModelParameterTable;
@@ -2346,7 +2458,7 @@ export async function proposeModelReplacements(
     unresolved: [...pythonReports.unresolved, ...goReports.unresolved],
     tracerStops: uniqueStops(tracerStops),
   };
-  const empty = { replacements: [], ...python, patch: null };
+  const empty = { replacements: [], environment: [], ...python, patch: null };
   if (
     ![...byProvider.keys()].some((provider) =>
       TRACERS.some((tracer) => tracer.provider === provider),
@@ -2376,7 +2488,18 @@ export async function proposeModelReplacements(
           return id !== undefined && byProvider.get(provider)!.has(id);
         }),
       ));
-  for (const provider of [...byProvider.keys()]) if (!quoted(provider)) byProvider.delete(provider);
+  // Or where a committed example env file, or a JSON file a source imports, sets one: a request
+  // may read it from there.
+  const examples = await environmentExamples(directory);
+  const jsonFiles = await importedJson(directory, repository);
+  const configured = (provider: string) =>
+    [...(byProvider.get(provider)?.keys() ?? [])].some(
+      (model) =>
+        [...examples.values()].some((list) => list.some((item) => item.value === model)) ||
+        jsonFiles.some((content) => content.includes(`"${model}"`)),
+    );
+  for (const provider of [...byProvider.keys()])
+    if (!quoted(provider) && !configured(provider)) byProvider.delete(provider);
   if (!byProvider.size) return empty;
   const program = sourceProgram(repository);
   // Every request a model can be read from: traced SDK calls first, then raw HTTP requests.
@@ -2547,6 +2670,8 @@ export async function proposeModelReplacements(
       parameterEdits: PlannedParameterEdit[];
       // Each request's own object literal, for the final parameter check.
       objects: { object: ts.ObjectLiteralExpression; call: string }[];
+      // Environment variables any of the requests reads before this literal.
+      env: Set<string>;
     }
   >();
   const stops: ModelReplacementStop[] = [];
@@ -2708,7 +2833,7 @@ export async function proposeModelReplacements(
               new Set(sensitive),
             )
           : undefined;
-      const stop = site.stop ?? sharedUse(program, site.passes, reached);
+      const stop = site.stop ?? sharedUse(program, site.passes, reached, shared);
       const missing =
         resolved.to &&
         unavailable.find(
@@ -2785,8 +2910,10 @@ export async function proposeModelReplacements(
         requests: [],
         parameterEdits: [],
         objects: [],
+        env: new Set<string>(),
       };
       decisions.set(site.literal, decision);
+      for (const name of trace.env) decision.env.add(name);
       decision.requests.push(request);
       decision.objects.push({ object: found.object, call: request.call });
       decision.reasons.push(reason ?? '');
@@ -2816,6 +2943,7 @@ export async function proposeModelReplacements(
       call: request.call,
     };
     const blocking =
+      differentHandling(program, literal, decision) ??
       decision.reasons.find(Boolean) ??
       decision.objects
         .map(({ object, call }) =>
@@ -2882,7 +3010,73 @@ export async function proposeModelReplacements(
       to: decision.to,
       via: decision.via,
       ...(parameterEdits.length ? { parameters: parameterEdits } : {}),
+      ...(decision.env.size ? { env: [...decision.env].sort() } : {}),
     });
+  }
+  // Requests whose model the environment sets. A committed example that sets a retiring model is a
+  // stop with what to set; with no committed value at all, a finding, never an invented default.
+  const environment: ModelEnvironmentRead[] = [];
+  const envStops = new Set<string>();
+  for (const { request, trace } of traced) {
+    // Only a plain text request to the official API can simply move to the replacement; for any
+    // other the stop says to check which model it needs.
+    const plain = request.text && !request.custom && !request.platform && !request.reportOnly;
+    const advice = (to: string | undefined, where: string) =>
+      plain
+        ? `set ${where} to ${to || 'a model that does not retire'}`
+        : `check which model this \`${request.call}\` request needs and change ${where} by hand`;
+    for (const read of trace.config) {
+      const models = byProvider.get(request.provider)!;
+      const found = await jsonValue(directory, read.file, read.keys);
+      const entry = found && models.get(found.value);
+      if (!found || !entry) continue;
+      const at = { file: read.file, line: found.line };
+      const key = `${program.path(request.node)}:${program.line(request.node)}\t${at.file}:${at.line}`;
+      if (envStops.has(key)) continue;
+      envStops.add(key);
+      const to = finalReplacement(entry, models)?.to;
+      stops.push({
+        deadline: entry.id,
+        provider: request.provider,
+        file: program.path(request.node),
+        line: program.line(request.node),
+        call: request.call,
+        at,
+        model: found.value,
+        reason: `The request reads its model from ${read.keys.join('.') || 'the value'} in ${read.file}, which sets it to ${found.value} at line ${found.line}. Refit traces JSON configuration but does not edit it yet; ${plain ? `change it there by hand to ${to || 'a model that does not retire'}` : advice(to, 'it there')}.`,
+      });
+    }
+    if (!trace.env.length) continue;
+    const models = byProvider.get(request.provider)!;
+    const base = {
+      provider: request.provider,
+      file: program.path(request.node),
+      line: program.line(request.node),
+      call: request.call,
+    };
+    for (const variable of trace.env) {
+      const set = examples.get(variable) ?? [];
+      for (const example of set) {
+        const entry = models.get(example.value);
+        const key = `${base.file}:${base.line}\t${example.file}:${example.line}`;
+        if (!entry || envStops.has(key)) continue;
+        envStops.add(key);
+        const to = finalReplacement(entry, models)?.to;
+        stops.push({
+          deadline: entry.id,
+          ...base,
+          at: { file: example.file, line: example.line },
+          model: example.value,
+          reason: `The request reads its model from the environment variable ${variable}, which ${example.file}:${example.line} sets to ${example.value}. Refit does not edit environment settings, because each deployment sets its own value; ${advice(to, variable)} wherever it is set, including hosting and CI secrets, and in ${example.file}.`,
+        });
+      }
+      if (!set.length && !trace.sites.length && plain)
+        environment.push({
+          ...base,
+          variable,
+          reason: `The request reads its model only from the environment variable ${variable}, which no committed file sets (Refit never reads .env files), so Refit cannot tell which model it sends and does not invent a default. Check ${variable} wherever the app runs; if it names a retiring model, set it to that model's replacement.`,
+        });
+    }
   }
   // Every other live match of a traced provider, with why no traced request sends it.
   const covered = new Set([
@@ -2944,9 +3138,119 @@ export async function proposeModelReplacements(
     replacements,
     stops: [...stops, ...python.stops],
     unresolved: [...unresolved, ...python.unresolved],
+    environment,
     tracerStops: python.tracerStops,
     patch: edits.length ? renderPatch(repository, edits) : null,
   };
+}
+
+// One model string several requests send, where some would be swapped and others stop. Changing it
+// changes every one of them, so it stops and names a request that cannot move.
+function differentHandling(
+  program: SourceProgram,
+  literal: ts.StringLiteralLike,
+  decision: { to: string; reasons: string[]; requests: { node: ts.Node; call: string }[] },
+) {
+  const index = decision.reasons.findIndex(Boolean);
+  if (index < 0 || !decision.reasons.some((reason) => !reason)) return undefined;
+  const count = new Set(decision.requests.map((request) => request.node)).size;
+  if (count < 2) return undefined;
+  const stopped = decision.requests[index];
+  const why = decision.reasons[index]
+    .replace(/[;,]?\s*change (?:it|its model|them) by hand(?: to [^\s]+?)?\.$/, '')
+    .replace(/\.$/, '')
+    .replace(/^The /, 'the ');
+  return `\`${literal.text}\` (${where(program, literal)}) is sent by ${count} requests that need different handling: the ${stopped.call} request at ${where(program, stopped.node)} cannot move (${why}). Changing it would change every one of them, so change them by hand to ${decision.to}.`;
+}
+
+// The contents of the repository JSON files a source imports or requires by a relative path.
+async function importedJson(directory: string, repository: Repository) {
+  const found = new Set<string>();
+  for (const file of repository.files)
+    for (const match of file.content.matchAll(
+      /(?:\bfrom\s*|\brequire\(\s*|\bimport\(\s*)['"](\.\.?\/[^'"\n]+\.json)['"]/g,
+    )) {
+      const path = join(file.path, '..', match[1]).split('\\').join('/');
+      if (!path.startsWith('../') && !path.includes('node_modules/')) found.add(path);
+    }
+  const contents: string[] = [];
+  for (const path of [...found].slice(0, MAX_EXAMPLE_FILES)) {
+    const full = join(directory, path);
+    const info = await stat(full).catch(() => undefined);
+    if (info?.isFile() && info.size <= MAX_EXAMPLE_BYTES)
+      contents.push(await readFile(full, 'utf8'));
+  }
+  return contents;
+}
+
+// The string a key path reads from a repository JSON file, with its line. Anything else (a missing
+// key, a computed value, an unreadable or oversized file) is undefined.
+async function jsonValue(directory: string, file: string, keys: string[]) {
+  const full = join(directory, file);
+  const content = await stat(full)
+    .then((info) => (info.isFile() && info.size <= MAX_EXAMPLE_BYTES ? readFile(full, 'utf8') : ''))
+    .catch(() => '');
+  if (!content) return undefined;
+  const source = ts.parseJsonText(full, content);
+  let node: ts.Expression | undefined = source.statements[0]?.expression;
+  for (const key of keys) {
+    if (!node || !ts.isObjectLiteralExpression(node)) return undefined;
+    const property: ts.ObjectLiteralElementLike | undefined = node.properties.find(
+      (item) => item.name && propertyName(item.name) === key,
+    );
+    node = property && ts.isPropertyAssignment(property) ? property.initializer : undefined;
+  }
+  if (!node || !ts.isStringLiteral(node)) return undefined;
+  return {
+    value: node.text,
+    line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+  };
+}
+
+// Committed example environment files: `.env.example`, `.env.sample`, `.env.template`,
+// `.env.defaults`, `.env.dist`, `example.env` and the like. Real `.env` files (`.env`,
+// `.env.local`, `.env.production`) are never read: they hold deployment values and secrets.
+const EXAMPLE_ENV =
+  /^(?:\.env(?:\.[\w-]+)?\.(?:example|sample|template|defaults|dist)|(?:example|sample)\.env|env\.(?:example|sample))$/i;
+const ENV_LINE =
+  /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*["']?([a-z0-9][a-z0-9./-]*)["']?\s*(?:#.*)?$/;
+const ENV_SKIPPED = new Set(['node_modules', '.git', 'dist', 'build', '.next', 'out', 'coverage']);
+const MAX_EXAMPLE_FILES = 200;
+const MAX_EXAMPLE_BYTES = 256 * 1024;
+
+interface EnvironmentExample {
+  file: string;
+  line: number;
+  value: string;
+}
+
+// Each variable an example environment file sets to a value shaped like a model ID, by name. Other
+// values are not kept.
+async function environmentExamples(directory: string) {
+  const found = new Map<string, EnvironmentExample[]>();
+  let count = 0;
+  const visit = async (path: string): Promise<void> => {
+    for (const entry of await readdir(path, { withFileTypes: true })) {
+      const full = join(path, entry.name);
+      if (entry.isDirectory()) {
+        if (!ENV_SKIPPED.has(entry.name)) await visit(full);
+        continue;
+      }
+      if (!entry.isFile() || !EXAMPLE_ENV.test(entry.name) || count >= MAX_EXAMPLE_FILES) continue;
+      const file = relative(directory, full).split('\\').join('/');
+      if (TEST_PATH.test(file) || (await stat(full)).size > MAX_EXAMPLE_BYTES) continue;
+      count += 1;
+      (await readFile(full, 'utf8')).split('\n').forEach((text, index) => {
+        const match = ENV_LINE.exec(text);
+        if (!match || !MODEL_ID.test(match[2])) return;
+        const list = found.get(match[1]) ?? [];
+        found.set(match[1], list);
+        list.push({ file, line: index + 1, value: match[2] });
+      });
+    }
+  };
+  await visit(directory).catch(() => undefined);
+  return found;
 }
 
 const SDK_PACKAGES: Record<string, string> = {

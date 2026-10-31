@@ -67,7 +67,7 @@ Lists API versions and models a repository pins, and SDK packages it declares, t
 --fail-within <days> exits 2 when a live exposure is past due or within that many days, for CI. Report-only deadlines (a derived date, or kind method, endpoint, field or feature) are listed but never fail it. Reviewed, expiring exceptions go in ${DEADLINE_IGNORE_FILE} at the repository root; --ignore-file reads another file. A deadline that has already passed keeps failing, with what to upgrade to and whether Refit can propose the upgrade. --allow-past-due <id> (repeatable or comma-separated) turns the named past-due deadlines into warnings; it never applies to a deadline that has not passed yet, and an ID the registry does not have is an error. Exit 0 means the check passed, 1 an error (including an invalid ignore file).
 --propose-model-fixes proposes replacing retiring OpenAI and Anthropic model IDs with the registry replacement, only where the ID is a literal model in a traced SDK call, lists every case that stops for review, and lists every other live model ID with why no traced request sends it. It prints a patch, or writes it to --output; it never applies, validates or publishes it.
 --sync reads a provider's deprecations page (Anthropic, OpenAI and Gemini API models; Shopify and Meta Graph API versions) and lists registry entries to add or update; --write saves them. It never deletes an entry. With --write, an OpenAI, Anthropic or Gemini sync also saves the page it read in docs/benchmarks/deprecation-pages/ with its SHA-256. A scheduled workflow runs every sync and opens a pull request for review.
-Model fixes apply the sourced parameter changes in data/model-parameter-changes.json with each swap (owner decision, 2026-10-29): a documented rename or removal is edited and named in the result, a documented stop gives its reason; --parameter-changes reads another table, and --parameter-changes none turns them off. They also edit indirect model sources (class fields, object members, env fallbacks, computed initializers); --direct-only edits only literals, defaults and single-use constants, as before. --check-parameter-changes checks that table and that every quote is on its saved page.
+Model fixes apply the sourced parameter changes in data/model-parameter-changes.json with each swap (owner decision, 2026-10-29): a documented rename or removal is edited and named in the result, a documented stop gives its reason; --parameter-changes reads another table, and --parameter-changes none turns them off. They also edit indirect model sources (class fields, object members, env fallbacks, computed initializers); --direct-only edits only literals, defaults and single-use constants, as before. A constant, member or parameter several traced requests read is edited once when every use is such a request and all allow the same swap; a model set by an environment variable or an imported JSON file is followed to its committed value and stops there, and one only the environment sets is listed under environment. --check-parameter-changes checks that table and that every quote is on its saved page.
 --check-sources re-reads those saved pages and fails unless they reproduce every OpenAI, Anthropic and Gemini model entry exactly, and every model with a replacement sits on a table row naming it. Nothing is fetched.
 --check-registry validates the registry and flags past-due entries, entries without a source and entries checked more than ${STALE_CHECK_DAYS} days ago. Nothing runs, installs or contacts a provider.
 --check-parameters validates the sourced model parameter table (data/model-parameters.json) and rejects the whole file on any error. Nothing runs, installs or contacts a provider.`;
@@ -266,7 +266,11 @@ try {
               (edit) =>
                 `\n  Parameter    ${edit.action === 'rename' ? `rename ${terminalText(edit.name)} to ${terminalText(edit.to ?? '')}` : `remove ${terminalText(edit.name)}`} at ${terminalText(`${edit.file}:${edit.line}`)} (${terminalText(edit.change)}): ${terminalText(edit.note)}`,
             )
-            .join('')}`,
+            .join('')}${
+            item.env?.length
+              ? `\n  Environment  ${item.env.map(terminalText).join(', ')} override${item.env.length === 1 ? 's' : ''} this value where set; set ${item.env.length === 1 ? 'it' : 'them'} to ${terminalText(item.to)} too`
+              : ''
+          }`,
         );
       if (proposal.stops.length) console.log('\nStopped for review:');
       for (const item of proposal.stops)
@@ -277,6 +281,11 @@ try {
       for (const item of proposal.unresolved)
         console.log(
           `  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.model)}${item.to ? ` (replacement ${terminalText(item.to)})` : ''}  ${terminalText(item.reason)}`,
+        );
+      if (proposal.environment.length) console.log('\nModel set only by the environment:');
+      for (const item of proposal.environment)
+        console.log(
+          `  ${terminalText(`${item.file}:${item.line}`)}  ${terminalText(item.variable)}  ${terminalText(item.reason)}`,
         );
       if (alerts.length) console.log('\nAlert only, never changed by Refit:');
       for (const item of alerts)

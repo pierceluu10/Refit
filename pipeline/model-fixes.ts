@@ -13,6 +13,7 @@ import {
 import { digest } from './specifications.ts';
 import {
   proposeModelReplacements,
+  type ModelEnvironmentRead,
   type ModelReplacement,
   type ModelReplacementStop,
 } from './model-retirements.ts';
@@ -107,6 +108,23 @@ export function requestEvidence(replacements: ModelReplacement[], proofs: Reques
   return [...seen.values()];
 }
 
+// Each edited value that environment variables override where they are set, by where it is edited.
+// The deployed value is outside the repository, so a draft with one is `[Needs review]`.
+export function environmentOverrides(replacements: ModelReplacement[]) {
+  const found = new Map<string, { at: string; variables: string[]; to: string }>();
+  for (const item of replacements) {
+    if (!item.env?.length) continue;
+    const at = `${item.edited.file}:${item.edited.line}`;
+    const known = found.get(at);
+    found.set(at, {
+      at,
+      to: item.to,
+      variables: [...new Set([...(known?.variables ?? []), ...item.env])].sort(),
+    });
+  }
+  return [...found.values()];
+}
+
 // The draft pull request description: what changed and why, what was checked and what was not,
 // and what stays for a person to review.
 export function modelFixBody(options: {
@@ -115,6 +133,8 @@ export function modelFixBody(options: {
   registry: DeadlineRegistry;
   // Embedding, fine-tuned and configuration uses Refit found and never changes.
   alerts?: ModelAlert[];
+  // Requests whose model only an environment variable sets, with no committed value.
+  environment?: ModelEnvironmentRead[];
   proofs?: RequestProofTable;
   validation: {
     revision: string;
@@ -136,9 +156,11 @@ export function modelFixBody(options: {
   const alerts = options.alerts ?? [];
   const evidence = requestEvidence(replacements, options.proofs ?? EMPTY_REQUEST_PROOFS);
   const unproven = evidence.filter((item) => item.pending);
+  const overridden = environmentOverrides(replacements);
+  const environment = options.environment ?? [];
   const render = (rowLimit: number, stopLimit: number) => {
     const lines = [
-      ...(noOp || unproven.length
+      ...(noOp || unproven.length || overridden.length
         ? [
             '## Why this needs review',
             '',
@@ -148,6 +170,10 @@ export function modelFixBody(options: {
             ...unproven.map(
               (item) =>
                 `- No request-level proof for ${code(item.to)}: ${item.pending} **Check:** send one request to ${code(item.to)} with this call's parameters and confirm the provider accepts it.`,
+            ),
+            ...overridden.map(
+              (item) =>
+                `- ${code(item.at)} reads ${item.variables.map(code).join(' or ')} first, and where one is set it overrides the edited value; its value is outside the repository. **Check:** set ${item.variables.map(code).join(' and ')} to ${code(item.to)} wherever ${item.variables.length === 1 ? 'it is' : 'they are'} set, including hosting and CI secrets.`,
             ),
             '',
           ]
@@ -251,6 +277,21 @@ export function modelFixBody(options: {
               `- ${code(`${item.at.file}:${item.at.line}`)} ${code(item.model)}: ${item.reason}`,
           ),
         ...more(stops.length - stopLimit, 'Refit records every use in its result'),
+      );
+    if (environment.length)
+      lines.push(
+        '',
+        '## Set in the environment',
+        '',
+        'These requests read their model only from an environment variable that no committed file sets, so Refit cannot tell which model they send and changed nothing. If one names a retiring model, set it to its replacement:',
+        '',
+        ...environment
+          .slice(0, stopLimit)
+          .map(
+            (item) =>
+              `- ${code(`${item.file}:${item.line}`)} ${code(item.call)} reads ${code(item.variable)}`,
+          ),
+        ...more(environment.length - stopLimit, 'Refit records every one in its result'),
       );
     if (alerts.length)
       lines.push(
@@ -427,7 +468,9 @@ export async function runModelFixes(options: {
     );
   const checked = { ...validation, compareTypeErrors: options.checks.compareTypeErrors };
   const review =
-    noOpChecked(validation) || requestEvidence(replacements, proofs).some((item) => item.pending);
+    noOpChecked(validation) ||
+    requestEvidence(replacements, proofs).some((item) => item.pending) ||
+    environmentOverrides(replacements).length > 0;
   const published = await publishFiles(options.publication, {
     revision: validation.revision,
     key: `model-fixes:${validation.revision}:${fixKey(replacements)}`,
@@ -439,6 +482,7 @@ export async function runModelFixes(options: {
       registry: options.registry,
       validation: checked,
       alerts,
+      environment: proposal?.environment,
       proofs,
     }),
     message: modelFixMessage({
