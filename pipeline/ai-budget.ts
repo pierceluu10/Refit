@@ -356,3 +356,90 @@ export async function reserveAiBudget(
     return own.value;
   };
 }
+
+// Reserves a fixed amount for usage Refit does not price itself, such as a coding agent's session
+// across several models, and settles it at the cost that session reports. The run-level limit
+// still applies; the amount only bounds one session.
+export async function reserveAiAmount(
+  budget: AiBudget,
+  maximumUsd: number,
+): Promise<(costUsd: number) => Promise<{ costUsd: number; spentUsd: number; limitUsd: number }>> {
+  const limitNano = Math.floor(budget.limitUsd * NANO_USD_PER_USD);
+  const maximumNano = Math.ceil(maximumUsd * NANO_USD_PER_USD);
+  const ledger = budget.ledger ?? fileLedger(budget.directory);
+  const id = randomUUID();
+  const load = (
+    value: Record<string, unknown> = {
+      formatVersion: 1,
+      limitNano,
+      spentNano: 0,
+      reservations: {},
+    },
+  ) => {
+    if (!intactLedger(value) || value.limitNano !== limitNano)
+      throw new PipelineInputError(
+        'AI budget state is invalid or its configured limit changed. Inspect the ledger before starting a new budget.',
+      );
+    return {
+      formatVersion: 1,
+      limitNano,
+      spentNano: Number(value.spentNano),
+      reservations: value.reservations as Record<string, number>,
+    };
+  };
+  await ledger.update((stored) => {
+    const state = load(stored);
+    const reserved = Object.values(state.reservations).reduce((sum, amount) => sum + amount, 0);
+    if (state.spentNano + reserved + maximumNano > limitNano)
+      throw new PipelineInputError(
+        'AI budget exhausted: this session would exceed the remaining allowance.',
+      );
+    state.reservations[id] = maximumNano;
+    return state;
+  });
+  let settleParent: Awaited<ReturnType<typeof reserveAiAmount>> | undefined;
+  if (budget.parent)
+    try {
+      settleParent = await reserveAiAmount(budget.parent, maximumUsd);
+    } catch (error) {
+      await ledger.update((stored) => {
+        const state = load(stored);
+        delete state.reservations[id];
+        return state;
+      });
+      throw error;
+    }
+  const settle = async (costUsd: number) => {
+    if (!Number.isFinite(costUsd) || costUsd < 0)
+      throw new PipelineInputError(
+        'The session reported an invalid cost; its reservation remains charged against the budget.',
+      );
+    const costNano = Math.ceil(costUsd * NANO_USD_PER_USD);
+    let spentNano = 0;
+    await ledger.update((stored) => {
+      const state = load(stored);
+      if (state.reservations[id] !== maximumNano)
+        throw new PipelineInputError('AI budget reservation is missing or already settled.');
+      delete state.reservations[id];
+      state.spentNano += costNano;
+      spentNano = state.spentNano;
+      return state;
+    });
+    // Checked after saving, so overspend stays recorded.
+    if (costNano > maximumNano || spentNano > limitNano)
+      throw new PipelineInputError(
+        'The session exceeded its reserved allowance; recorded usage requires review before further requests.',
+      );
+    return {
+      costUsd: costNano / NANO_USD_PER_USD,
+      spentUsd: spentNano / NANO_USD_PER_USD,
+      limitUsd: budget.limitUsd,
+    };
+  };
+  return async (costUsd) => {
+    const [own, parent] = await Promise.allSettled([settle(costUsd), settleParent?.(costUsd)]);
+    if (own.status === 'rejected') throw own.reason;
+    if (parent.status === 'rejected') throw parent.reason;
+    return own.value;
+  };
+}
