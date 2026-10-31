@@ -20,6 +20,26 @@
       "file": "docs/ai-docs/pages/openai-migrate-to-responses.md",
       "capturedAt": "2026-10-29",
       "raw": "https://developers.openai.com/api/docs/guides/migrate-to-responses.md"
+    },
+    "completions-reference": {
+      "url": "https://developers.openai.com/api/reference/resources/completions/methods/create",
+      "file": "docs/ai-docs/pages/openai-completions-create.md",
+      "capturedAt": "2026-10-31",
+      "raw": "https://developers.openai.com/api/reference/resources/completions/methods/create.md"
+    },
+    "responses-reference": {
+      "url": "https://developers.openai.com/api/reference/resources/responses/methods/create",
+      "file": "docs/ai-docs/pages/openai-responses-create.md",
+      "capturedAt": "2026-10-31",
+      "raw": "https://developers.openai.com/api/reference/resources/responses/methods/create.md",
+      "excerpt": "The page header and the input, max_output_tokens, stream, temperature, top_p and user body parameters, and the Streaming example."
+    },
+    "openai-node-changelog-4.87.0": {
+      "url": "https://github.com/openai/openai-node/blob/v4.87.0/CHANGELOG.md",
+      "file": "docs/ai-docs/pages/openai-node-changelog-4.87.0.md",
+      "capturedAt": "2026-10-31",
+      "raw": "https://github.com/openai/openai-node/raw/v4.87.0/CHANGELOG.md",
+      "excerpt": "The 4.87.0 section."
     }
   },
   "rules": [
@@ -56,6 +76,104 @@
           "calls": ["completions.create", "createCompletion"],
           "notCalls": ["chat.completions.create", "beta.chat.completions.create"]
         }
+      }
+    },
+    {
+      "rule": "openai-legacy-completions-to-responses",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "responses",
+      "quote": "Responses is recommended for all new projects.",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "A legacy Completions request (`completions.create`) whose retired model has a registry replacement moves to the Responses API (`responses.create`), with the replacement model, when every parameter and every read of its response has a mapping below. Anything else stops for review.",
+      "data": {
+        "from": "completions.create",
+        "to": "responses.create"
+      }
+    },
+    {
+      "rule": "openai-legacy-completions-sdk-release",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "openai-node-changelog-4.87.0",
+      "quote": "**api:** add /v1/responses and built-in tools",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`responses.create` exists from openai 4.87.0; a repository on an older release stops (the SDK-major migration moves it first).",
+      "data": {
+        "package": "openai",
+        "minRelease": "4.87.0"
+      }
+    },
+    {
+      "rule": "openai-legacy-completions-input",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "responses-reference",
+      "quote": "Text, image, or file inputs to the model, used to generate a response.",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`prompt` becomes `input`. Only a prompt Refit can see is one string moves; Completions also takes arrays of prompts or tokens, which `input` does not.",
+      "data": {
+        "from": "prompt",
+        "to": "input"
+      }
+    },
+    {
+      "rule": "openai-legacy-completions-max-output-tokens",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "responses-reference",
+      "quote": "An upper bound for the number of tokens that can be generated for a response, including visible output tokens and",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`max_tokens` becomes `max_output_tokens`, which also counts reasoning tokens and has a minimum of 16; a value below 16 or not written as a number stops.",
+      "data": {
+        "from": "max_tokens",
+        "to": "max_output_tokens",
+        "minimum": 16
+      }
+    },
+    {
+      "rule": "openai-legacy-completions-kept-parameters",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "responses-reference",
+      "quote": "What sampling temperature to use, between 0 and 2.",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`temperature`, `top_p`, `stream` and `user` keep their names on Responses; whether the replacement model accepts the sampling parameters is decided by the model-parameter rules, as for any swap. Every other Completions parameter (`stop`, `suffix`, `echo`, `best_of`, `n`, `logprobs`, `logit_bias`, penalties, `seed`) has no Responses parameter and stops.",
+      "data": {
+        "keep": ["model", "temperature", "top_p", "stream", "user"]
+      }
+    },
+    {
+      "rule": "openai-legacy-completions-output-text",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "responses",
+      "quote": "The Responses SDK has an `output_text` helper, which the Chat Completions SDK does not have.",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "A read of `choices[0].text` on the awaited response becomes `output_text`. Any other read of the response (`choices` as a whole, `usage`, `finish_reason`) stops.",
+      "data": {
+        "from": "choices[0].text",
+        "to": "output_text"
+      }
+    },
+    {
+      "rule": "openai-legacy-completions-stream-delta",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "responses",
+      "quote": "Update stream consumers to branch on each event's `type` and handle the events your UI or orchestration layer needs.",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "In a `for await` loop over a streamed response, `chunk.choices[0].text` becomes the text of `response.output_text.delta` events (`delta`), and '' for every other event. A stream handed to anything but such a loop stops.",
+      "data": {
+        "event": "response.output_text.delta",
+        "field": "delta"
       }
     },
     {

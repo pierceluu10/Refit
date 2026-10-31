@@ -8,6 +8,25 @@
       "file": "docs/ai-docs/pages/anthropic-migration-2026-10-21.md",
       "capturedAt": "2026-10-29",
       "raw": "https://platform.claude.com/docs/en/api/migration-2026-10-21.md"
+    },
+    "sdk-completions": {
+      "url": "https://github.com/anthropics/anthropic-sdk-typescript/blob/sdk-v0.27.3/src/resources/completions.ts",
+      "file": "docs/ai-docs/pages/anthropic-sdk-ts-0.27.3-completions.md",
+      "capturedAt": "2026-10-31",
+      "raw": "https://github.com/anthropics/anthropic-sdk-typescript/raw/sdk-v0.27.3/src/resources/completions.ts"
+    },
+    "sdk-messages": {
+      "url": "https://github.com/anthropics/anthropic-sdk-typescript/blob/sdk-v0.27.3/src/resources/messages.ts",
+      "file": "docs/ai-docs/pages/anthropic-sdk-ts-0.27.3-messages.md",
+      "capturedAt": "2026-10-31",
+      "raw": "https://github.com/anthropics/anthropic-sdk-typescript/raw/sdk-v0.27.3/src/resources/messages.ts"
+    },
+    "sdk-changelog-0.14.0": {
+      "url": "https://github.com/anthropics/anthropic-sdk-typescript/blob/main/CHANGELOG.md",
+      "file": "docs/ai-docs/pages/anthropic-sdk-ts-changelog-0.14.0.md",
+      "capturedAt": "2026-10-31",
+      "raw": "https://github.com/anthropics/anthropic-sdk-typescript/raw/main/CHANGELOG.md",
+      "excerpt": "The 0.14.0 section."
     }
   },
   "rules": [
@@ -28,6 +47,118 @@
           "identifiers": ["HUMAN_PROMPT", "AI_PROMPT"],
           "notCalls": ["chat.completions.create", "beta.chat.completions.create"]
         }
+      }
+    },
+    {
+      "rule": "anthropic-text-completions-to-messages",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "migration",
+      "quote": "Newer models and features don’t support it.",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "A Text Completions request (`completions.create`) whose retired model has a registry replacement moves to the Messages API (`messages.create`), with the replacement model, when its prompt, every parameter and every read of its response have a mapping below. Anything else stops for review.",
+      "data": {
+        "from": "completions.create",
+        "to": "messages.create"
+      }
+    },
+    {
+      "rule": "anthropic-text-completions-sdk-release",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "sdk-changelog-0.14.0",
+      "quote": "**api:** messages is generally available",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`messages.create` is generally available from @anthropic-ai/sdk 0.14.0; a repository on an older release stops.",
+      "data": {
+        "package": "@anthropic-ai/sdk",
+        "minRelease": "0.14.0"
+      }
+    },
+    {
+      "rule": "anthropic-text-completions-prompt-turns",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "sdk-completions",
+      "quote": "alternating `\\n\\nHuman:` and `\\n\\nAssistant:` conversational turns. For example:",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "A prompt written in the request (a string or template literal, or a `const` used only there) is split at its `\\n\\nHuman:` and `\\n\\nAssistant:` markers (or `HUMAN_PROMPT` / `AI_PROMPT`). It must start with a Human turn and end with an empty Assistant turn. Text before the first Human turn (no documented mapping), a non-empty final Assistant turn (prefill, which newer models reject), a marker Refit cannot see, or an empty turn stops.",
+      "data": {
+        "human": "\n\nHuman:",
+        "assistant": "\n\nAssistant:",
+        "identifiers": ["HUMAN_PROMPT", "AI_PROMPT"]
+      }
+    },
+    {
+      "rule": "anthropic-text-completions-messages-turns",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "sdk-messages",
+      "quote": "Our models are trained to operate on alternating `user` and `assistant`",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "Each Human turn becomes a `user` message and each earlier Assistant turn an `assistant` message, in order.",
+      "data": {
+        "Human": "user",
+        "Assistant": "assistant"
+      }
+    },
+    {
+      "rule": "anthropic-text-completions-max-tokens",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "sdk-messages",
+      "quote": "The maximum number of tokens to generate before stopping.",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`max_tokens_to_sample` becomes `max_tokens`; both SDK resources describe it with the same sentence.",
+      "data": {
+        "from": "max_tokens_to_sample",
+        "to": "max_tokens"
+      }
+    },
+    {
+      "rule": "anthropic-text-completions-kept-parameters",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "sdk-messages",
+      "quote": "Custom text sequences that will cause the model to stop generating.",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`stop_sequences`, `metadata`, `stream`, `temperature`, `top_p` and `top_k` keep their names on Messages; whether the replacement model accepts the sampling parameters is decided by the model-parameter rules, as for any swap.",
+      "data": {
+        "keep": ["model", "stop_sequences", "metadata", "stream", "temperature", "top_p", "top_k"]
+      }
+    },
+    {
+      "rule": "anthropic-text-completions-content",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "sdk-messages",
+      "quote": "Content generated by the model.",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "A read of `completion` on the awaited response becomes the text of its `text` content blocks, joined. Any other read (`stop_reason`, the response as a whole) stops.",
+      "data": {
+        "from": "completion",
+        "to": "content"
+      }
+    },
+    {
+      "rule": "anthropic-text-completions-stream-delta",
+      "family": "legacy-completions-rewrite",
+      "status": "auto",
+      "page": "sdk-messages",
+      "quote": "type: 'content_block_delta';",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "In a `for await` loop over a streamed response, `chunk.completion` becomes the text of `content_block_delta` events with a `text_delta`, and '' for every other event.",
+      "data": {
+        "event": "content_block_delta",
+        "delta": "text_delta"
       }
     },
     {

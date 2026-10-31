@@ -44,7 +44,7 @@ Run locally with `refit ai-migrations --repository <root> --edits-only` to list 
 
 `refit ai-migrations --review [--kind api-surface|response-format|beta-feature|sdk-major]` lists the sites whose change has no documented one-to-one mapping, each with its rule, the quoted page and whether it breaks today. Nothing is edited.
 
-- API surfaces (`data/rules/*/api-surfaces.json`): OpenAI Assistants (shut down 2026-08-26) and legacy Completions (every model shut down 2026-09-28), Anthropic Text Completions, Google PaLM (report only).
+- API surfaces (`data/rules/*/api-surfaces.json`): OpenAI Assistants (shut down 2026-08-26) and legacy Completions (every model shut down 2026-09-28), Anthropic Text Completions, Google PaLM (report only). The same tables hold the `auto` rules that move a legacy Completions or Text Completions request to Responses or Messages together with its model swap (`refit deadlines --propose-model-fixes`, [Legacy completion requests](DEADLINES.md#legacy-completion-requests)); `--review` still lists every legacy call site, moved or not.
 - Response formats (`response-formats.json`): Anthropic Admin and Analytics field renames on 2026-10-21, `BetaSkill` renamed `BetaContainerSkill`, Gemini `response.text()` (report only).
 - Beta features (`beta-features.json`): OpenAI `realtime=v1` (removed 2026-05-12) and `assistants=v1`, Anthropic's retired `context-1m-2025-08-07`, and graduated Anthropic betas (listed as cleanups, which still work).
 - SDK swaps that are report only: Python openai 0.x, `@google/generative-ai` and `google-generativeai`.

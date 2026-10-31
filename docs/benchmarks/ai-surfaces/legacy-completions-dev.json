@@ -1,0 +1,86 @@
+{
+  "checkedAt": "2026-10-31",
+  "description": "Legacy completion sites in the JS/TS rows of openai-dev-30 and anthropic-dev-30, with what refit deadlines --propose-model-fixes --parameter-changes data/model-parameter-changes.json does on the branch that adds pipeline/legacy-completions.ts. Dev sets only; no measurement set was opened.",
+  "sites": [
+    {
+      "set": "openai-dev-30",
+      "repo": "RaizenStyx/lore-forge",
+      "sdk": "openai 5.20.1",
+      "site": "src/app/api/generate-full/route.ts:33",
+      "shape": "completions.create, gpt-3.5-turbo-instruct, prompt const template, max_tokens, temperature 0.8; reads choices[0].text",
+      "outcome": "stop",
+      "reason": "temperature on gpt-5.6-terra (existing parameter rule; no OpenAI page states support)",
+      "verdict": "correct stop: the call and read shapes map; only temperature holds it"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "RaizenStyx/lore-forge",
+      "sdk": "openai 5.20.1",
+      "site": "src/app/api/generate-starter/route.ts:24",
+      "shape": "as above, temperature 0.7",
+      "outcome": "stop",
+      "reason": "temperature on gpt-5.6-terra",
+      "verdict": "correct stop"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "adeojoemmanuel/EDD-Kafka-Rest-Api",
+      "sdk": "openai 4.55.3",
+      "site": "src/openai-chat/src/service/chat.service.ts:17",
+      "shape": "completions.create, text-davinci-003; reads response.choices.length then choices[0].text",
+      "outcome": "stop",
+      "reason": "openai 4.55.3 predates 4.87.0 (no Responses API)",
+      "verdict": "correct stop (the choices.length read would stop it too)"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "kkb2849/nextjs-1zdevcamp-template",
+      "sdk": "openai 4.24.7",
+      "site": "src/app/api/openai/completion/route.ts:21",
+      "shape": "stream: true, prompt from req.json(), stream handed to OpenAIStream",
+      "outcome": "stop",
+      "reason": "openai 4.24.7 predates 4.87.0",
+      "verdict": "correct stop (the untyped prompt and the OpenAIStream consumer would stop it too)"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "ravi-aman/pureFeedback",
+      "sdk": "openai 4.78.1",
+      "site": "src/app/api/suggestMessages/route.ts:17",
+      "shape": "stream: true, const string prompt, stream handed to OpenAIStream",
+      "outcome": "stop",
+      "reason": "openai 4.78.1 predates 4.87.0",
+      "verdict": "correct stop (the OpenAIStream consumer would stop it too)"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "MRwangqi/chatGPT-nodejs",
+      "sdk": "openai 3.1.0",
+      "site": "index.js:22",
+      "shape": "v3 createCompletion, text-davinci-003; returns res.data.choices whole",
+      "outcome": "stop",
+      "reason": "v3-style client has no Responses API",
+      "verdict": "correct stop"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "nikolaev-gd/splitting-to-components-v0",
+      "sdk": "@anthropic-ai/sdk ^0.27.3",
+      "site": "app/lib/anthropicProvider.ts:18",
+      "shape": "completions.create, model 'claude-2', `Human: ${prompt}\\n\\nAssistant:`, stop_sequences, reads completion.completion twice",
+      "outcome": "not reached",
+      "reason": "'claude-2' (the bare alias) is not in the registry, which lists claude-2.0 and claude-2.1 from Anthropic's deprecations page, so the model-fix rule never sees the call",
+      "verdict": "follow-up: registry alias coverage (the same shape with claude-2.1 is rewritten in the synthetic fixtures)"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "jorkun/vue3-migration-extension",
+      "sdk": "@anthropic-ai/sdk 0.5.10",
+      "site": "src/ai/aiCodeFixer.ts:218",
+      "shape": "completions.create with a model variable and a temperature variable",
+      "outcome": "not reached",
+      "reason": "the model is not a retired literal the rule traces; 0.5.10 would stop anyway (before 0.14.0)",
+      "verdict": "n/a"
+    }
+  ]
+}
