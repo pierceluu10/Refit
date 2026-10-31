@@ -1,0 +1,184 @@
+{
+  "formatVersion": 1,
+  "reviewedAt": "2026-10-29",
+  "reviewer": "ai-sets session (single pass; second labeler pending)",
+  "pass": "after (engine stack 412963ef), scan-only proposals, before validation",
+  "sample": "The first proposed rows in list (seeded) order: 8 of 19 OpenAI, 6 of 12 Anthropic, 2 of 2 Gemini. Code read only at the edited sites.",
+  "summary": {
+    "correct": 14,
+    "partial": 2,
+    "wrong": 0
+  },
+  "reviews": [
+    {
+      "list": "subsets/openai-100.json",
+      "repo": "ConnectedDot/Free-quiz-taker",
+      "commit": "fd5f17e3a0fbf6f1384d6dee274cb72e6a1f2675",
+      "lanes": ["model replacement"],
+      "changeTypes": ["retired-model", "old-sdk-major"],
+      "verdict": "correct",
+      "note": "gpt-3.5-turbo literal in chat.completions.create, no sampling or length parameters; plain swap."
+    },
+    {
+      "list": "subsets/openai-100.json",
+      "repo": "ImMiguelP/gymify-me",
+      "commit": "3484e736f6baa76ec14dfbf9d802e13b851b00c8",
+      "lanes": ["model replacement"],
+      "changeTypes": ["retired-model", "old-sdk-major"],
+      "verdict": "correct",
+      "note": "gpt-4 literal (comment aside), system and user messages only."
+    },
+    {
+      "list": "subsets/openai-100.json",
+      "repo": "Haider1500/ai-saas",
+      "commit": "668ec5dd13b09b97988146bebedc7141f8c6cc7a",
+      "lanes": ["model replacement"],
+      "changeTypes": ["retired-model", "old-sdk-major"],
+      "verdict": "correct",
+      "note": "Two gpt-3.5-turbo literals in plain chat calls."
+    },
+    {
+      "list": "subsets/openai-100.json",
+      "repo": "REALMS-ORGANIZATION/YAPSTONE",
+      "commit": "bd2b013ef190cb463b145859c63d6d68236b8522",
+      "lanes": ["model replacement"],
+      "changeTypes": ["retired-model", "parameter-change", "old-sdk-major"],
+      "verdict": "partial",
+      "note": "Only the follow-up call (no functions) was swapped. The first call, with legacy `functions` and `function_call`, still sends the retired gpt-3.5-turbo-0613, so the request path stays broken. The draft must say that the swap is partial."
+    },
+    {
+      "list": "subsets/openai-100.json",
+      "repo": "swyxio/gptapiexperiment",
+      "commit": "fb877ec0b21ae2d045877de04f2cc3b0eb10480f",
+      "lanes": ["model replacement"],
+      "changeTypes": ["retired-model", "parameter-change", "old-sdk-major", "response-parsing"],
+      "verdict": "correct",
+      "note": "A tools call, a plain call and an `opt.model ||` default; all plain swaps."
+    },
+    {
+      "list": "subsets/openai-100.json",
+      "repo": "rahualrai/Interviewer",
+      "commit": "d3cbe6dcb284e787bae8c75eb10ae83538f6898f",
+      "lanes": ["sdk migration"],
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major"],
+      "verdict": "correct",
+      "note": "openai 4.87 to 6.x: files.del renamed to files.delete, as the v5 migration guide maps it."
+    },
+    {
+      "list": "subsets/openai-100.json",
+      "repo": "saalim24/NextRead",
+      "commit": "d7cbc0aa17071813be70aca2fc88262bad2e913f",
+      "lanes": ["sdk migration"],
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major", "response-parsing"],
+      "verdict": "correct",
+      "note": "openai 3.3 to 6.x: Configuration/OpenAIApi to new OpenAI({apiKey}), createChatCompletion to chat.completions.create, and completion.data.choices to completion.choices."
+    },
+    {
+      "list": "subsets/openai-100.json",
+      "repo": "gruz0/checkmvp",
+      "commit": "7fd7e741754fba3b0aa03f5b1e04a055e6379b93",
+      "lanes": ["sdk migration"],
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "verdict": "correct",
+      "note": "beta.chat.completions.parse to chat.completions.parse in three files, as v5 moved parse out of beta."
+    },
+    {
+      "list": "subsets/anthropic-100.json",
+      "repo": "larryhudson/claude-custom-tools-typescript",
+      "commit": "8574ada394fbd8a63ef53026e9e3d36ab2a21754",
+      "lanes": ["model replacement"],
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "verdict": "correct",
+      "note": "claude-3-haiku to claude-haiku-4-5 in four messages.create calls with tools; no sampling parameters."
+    },
+    {
+      "list": "subsets/anthropic-100.json",
+      "repo": "WebCFD/AlemanIA_Aprende_Aleman",
+      "commit": "f53197407ad7e054e91c397c6d99d00d709198dc",
+      "lanes": ["model replacement"],
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "verdict": "correct",
+      "note": "Five literal swaps, max_tokens only."
+    },
+    {
+      "list": "subsets/anthropic-100.json",
+      "repo": "johnmichaelkuczynski/INCOMPLETENESSOFDEDUCTIVELOGIC",
+      "commit": "77e0a78422ffa837d23c3fd00daf992733101620",
+      "lanes": ["model replacement"],
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "verdict": "correct",
+      "note": "Single-use constant swapped (claude-sonnet-4 to claude-sonnet-5-5); the call sets no sampling parameter."
+    },
+    {
+      "list": "subsets/anthropic-100.json",
+      "repo": "takato23/acomerlantigravity",
+      "commit": "6f5147c8e94293c44a8f2a8a4cae127f097100ac",
+      "lanes": ["model replacement"],
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "legacy-endpoint",
+        "old-sdk-major",
+        "response-parsing"
+      ],
+      "verdict": "correct",
+      "note": "A raw fetch to /v1/messages sends temperature 0.7; the proposal swaps claude-3-sonnet to claude-sonnet-5-5 and removes the temperature line (replacements[].parameters, change anthropic-sampling-4-7), as Anthropic's page says to omit it. Corrected 2026-10-29: the first review marked this wrong because the review script did not print replacements[].parameters."
+    },
+    {
+      "list": "subsets/anthropic-100.json",
+      "repo": "Maazaowski/MatchMyJob",
+      "commit": "bcfb449e2c5dc82eb22291ce2a6a4bd7eb447356",
+      "lanes": ["model replacement"],
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "legacy-endpoint",
+        "old-sdk-major",
+        "response-parsing"
+      ],
+      "verdict": "correct",
+      "note": "Literal swap in messages.create with max_tokens only."
+    },
+    {
+      "list": "subsets/anthropic-100.json",
+      "repo": "husohome/test-llm-with-desktop-genie",
+      "commit": "98776f9522be8d9bf2b99041bfc01bb8e74bee64",
+      "lanes": ["model replacement"],
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "verdict": "correct",
+      "note": "Two literal swaps with system and max_tokens only."
+    },
+    {
+      "list": "subsets/gemini-30.json",
+      "repo": "vidhip222/FittedDemo",
+      "commit": "3ccb079d439cd3e8acc8a12b2ccf89d0398b7e0b",
+      "lanes": ["sdk migration"],
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major", "response-parsing"],
+      "verdict": "partial",
+      "note": "The @google/generative-ai to @google/genai swap is mapped correctly (client, generateContent, .text), but it keeps the retired gemini-pro, which Refit does not replace, so the migrated request still fails."
+    },
+    {
+      "list": "subsets/gemini-30.json",
+      "repo": "astrayama/yggdrasil",
+      "commit": "ed767f7a317b403dcaaaf876b237c8904535471e",
+      "lanes": ["model replacement", "sdk migration"],
+      "changeTypes": [
+        "retired-model",
+        "legacy-endpoint",
+        "old-sdk-major",
+        "response-parsing",
+        "beta-header",
+        "embeddings-fine-tunes"
+      ],
+      "verdict": "correct",
+      "note": "gemini-2.0-flash to gemini-3.6-flash in parameter defaults behind env fallbacks; the blocked SDK swap is not part of the fix."
+    }
+  ],
+  "corrections": [
+    "2026-10-29: one verdict changed from wrong to correct; the review script now prints replacements[].parameters."
+  ],
+  "recheckedAt": {
+    "commit": "27ad6393 (bench/ai-provider-after-4)",
+    "result": "15 of the 16 sampled rows produce the identical fix (14 correct, 1 partial, 0 wrong); the OpenAI partial (legacy functions flow) now stops instead of proposing a fix."
+  }
+}

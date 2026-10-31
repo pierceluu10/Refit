@@ -3,6 +3,7 @@ import { readCommittedRepository } from './committed-repository.ts';
 import { chosenLockfile, legacyPeerDeps, readPreparationInputs } from './dependency-inputs.ts';
 import { lockChangesOutside, lockedReleases, type LockedProject } from './lockfile-graph.ts';
 import {
+  reachedWithout,
   RESOLUTION_LOCKFILES,
   resolveNpmLockfile,
   type ResolutionManager,
@@ -443,6 +444,96 @@ function requirers(packages: Packages, name: string) {
     }
   }
   return ranges;
+}
+
+// What an npm re-resolution changes outside the upgraded packages beyond moves those packages force,
+// or [] when nothing. Every package the app reaches without passing through them must keep its
+// own release and record (wherever npm now hoists it) and get the same release of each dependency
+// as before, or a newer one of the same major (minor for 0.x) that its range accepts and that an
+// upgraded package also reaches. The root record's other declarations must not change. Decision
+// of 2026-10-29 (AGENTS.md): dependents' declared ranges, not the lockfile layout, decide.
+export function sharedMovesOutside(before: string, after: string, names: string[]) {
+  const packages = (text: string) => {
+    const lock = parseJson(text);
+    return isObject(lock) && isObject(lock.packages) ? (lock.packages as Packages) : {};
+  };
+  const [old, changed] = [packages(before), packages(after)];
+  const skip = new Set(names);
+  const nameOf = (key: string) => key.slice(key.lastIndexOf('node_modules/') + 13);
+  const version = (entry: unknown) =>
+    isObject(entry) && typeof entry.version === 'string' ? entry.version : undefined;
+  // Keys an upgraded package reaches in the re-resolved lockfile.
+  const forced = new Set<string>();
+  const queue = Object.keys(changed).filter((key) => key && skip.has(nameOf(key)));
+  while (queue.length) {
+    const key = queue.pop()!;
+    const entry = changed[key];
+    if (!isObject(entry)) continue;
+    for (const name of edges(changed, key, entry).keys()) {
+      const target = resolveKey(changed, key, name);
+      if (target && !forced.has(target)) {
+        forced.add(target);
+        queue.push(target);
+      }
+    }
+  }
+  // Where each release was locked in the committed lockfile, by name@version.
+  const locked = new Map<string, string>();
+  for (const [key, entry] of Object.entries(old))
+    if (key && version(entry)) locked.set(`${nameOf(key)}@${version(entry)}`, key);
+  const moved = (from: string | undefined, to: string | undefined, range: string) => {
+    const [was, now] = [triple(from ?? ''), triple(to ?? '')];
+    return Boolean(
+      was &&
+      now &&
+      was[0] === now[0] &&
+      (was[0] || was[1] === now[1]) &&
+      compare(now, was) >= 0 &&
+      satisfies(to!, range) === true,
+    );
+  };
+  const problems: string[] = [];
+  for (const key of reachedWithout(changed, skip)) {
+    const entry = changed[key];
+    if (!isObject(entry) || entry.link === true) continue;
+    // The same release in the committed lockfile: at this key, else wherever npm hoisted it.
+    const oldKey = !key
+      ? ''
+      : version(old[key]) === version(entry)
+        ? key
+        : locked.get(`${nameOf(key)}@${version(entry)}`);
+    if (oldKey === undefined) {
+      // A release new to the lockfile: only a move an upgraded package forces (checked on its
+      // dependents' edges below), never a package the app alone reaches.
+      if (!forced.has(key)) problems.push(key);
+      continue;
+    }
+    // npm's dev and optional flags follow from the graph; an upgraded package dropping a
+    // dependency can only flip them.
+    const record = (value: unknown) =>
+      JSON.stringify(
+        Object.entries(isObject(value) ? value : {}).filter(
+          ([field]) => !(FLAGS as readonly string[]).includes(field),
+        ),
+      );
+    if (key && record(old[oldKey]) !== record(entry)) {
+      problems.push(key);
+      continue;
+    }
+    for (const dependency of edges(changed, key, entry).keys()) {
+      if (skip.has(dependency)) continue;
+      const range = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']
+        .map((section) => (isObject(entry[section]) ? entry[section][dependency] : undefined))
+        .find((value): value is string => typeof value === 'string');
+      const target = resolveKey(changed, key, dependency);
+      const was = version(old[resolveKey(old, oldKey, dependency) ?? '\0']);
+      const now = version(target ? changed[target] : undefined);
+      if (was === now) continue;
+      if (!range || !target || !forced.has(target) || !moved(was, now, range))
+        problems.push(target ?? `${key || 'package.json'} → ${dependency}`);
+    }
+  }
+  return [...new Set(problems)];
 }
 
 function describe(packages: Packages, key: string) {
@@ -931,19 +1022,20 @@ async function resolvedUpgrade(
     lockfile: resolved.lockfile,
     manifests: { ...manifests, '.': parseJson(manifestText) as Record<string, unknown> },
   };
+  // Prisma's packages count too, when session storage moves prisma (decision of 2026-10-29).
+  const upgraded = (name: string) =>
+    SDK_FAMILY.test(name) ||
+    FRAMEWORK.test(name) ||
+    (declaration.chosen.has('prisma') && /^(?:prisma|@prisma\/[a-z0-9-]+)$/.test(name));
   let outside: string[], was: ReturnType<typeof lockedReleases>, now: typeof was;
   try {
     [was, now] = [lockedReleases(manager, before), lockedReleases(manager, after)];
-    const names = [...new Set([...was.all.keys(), ...now.all.keys()])].filter(
-      (name) =>
-        SDK_FAMILY.test(name) ||
-        FRAMEWORK.test(name) ||
-        // Prisma's packages, when session storage moves prisma (decision of 2026-10-29).
-        (declaration.chosen.has('prisma') && /^(?:prisma|@prisma\/[a-z0-9-]+)$/.test(name)),
-    );
-    outside = lockChangesOutside(manager, before, after, names).map(
-      (key) => key || 'the root record',
-    );
+    const names = [...new Set([...was.all.keys(), ...now.all.keys()])].filter(upgraded);
+    outside = lockChangesOutside(manager, before, after, names);
+    // npm lockfiles: moves the upgraded packages force in shared packages pass (see above).
+    if (manager === 'npm' && outside.length && !outside.includes(''))
+      outside = sharedMovesOutside(lockText, resolved.lockfile, names);
+    outside = outside.map((key) => key || 'the root record');
   } catch (error) {
     if (!(error instanceof PipelineInputError)) throw error;
     return { reason: `Refit could not compare the re-resolved ${lockfile}: ${error.message}` };
@@ -975,9 +1067,7 @@ async function resolvedUpgrade(
     return {
       reason: `${label} did not lock ${primary} ${major} with ${SHOPIFY_API} ${since.join('.')} or later everywhere (it locks ${SHOPIFY_API} ${apiCopies.join(', ') || 'nowhere'}).`,
     };
-  const names = [...new Set([...was.all.keys(), ...now.all.keys()])].filter(
-    (name) => SDK_FAMILY.test(name) || FRAMEWORK.test(name),
-  );
+  const names = [...new Set([...was.all.keys(), ...now.all.keys()])].filter(upgraded);
   const changes = names
     .map((name) => ({ name, from: release(was, name) ?? null, to: release(now, name) }))
     .filter((change): change is { name: string; from: string | null; to: string } =>
@@ -1042,7 +1132,6 @@ interface LockFiles {
   otherLockfiles?: Record<string, string>;
   // No lockfile is committed: `packages` holds the lowest release each declaration allows.
   lockless?: true;
-  root?: string;
   // A pnpm, Yarn or Bun project: the upgrade re-resolves its lockfile with the release of the
   // manager preparation installs with, and `packages` holds what each root declaration installs.
   managed?: {
@@ -1053,6 +1142,7 @@ interface LockFiles {
     pnpmWorkspace?: string;
     arguments: string[];
   };
+  root?: string;
 }
 
 // A root pnpm, Yarn or Bun project, read as preparation reads it (readPreparationInputs): the same
@@ -1126,6 +1216,7 @@ async function managedLockFiles(
         { version: release },
       ]),
     ),
+    root,
     ...(inputs.lockfileChoice ? { otherLockfiles: inputs.lockfileChoice.others } : {}),
     managed: {
       manager,

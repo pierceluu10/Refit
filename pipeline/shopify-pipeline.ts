@@ -42,7 +42,13 @@ import {
   type ShopifyAiRewrite,
   type ShopifyReconstruction,
 } from './shopify-ai-rewrite.ts';
-import { SHOPIFY_SDK_RULE, shopifySdkSourceChanges } from './shopify-sdk-source.ts';
+import type { ShopifyLiveCase } from './shopify-live-proof.ts';
+import { loadShopifyMigrationRules, migrateDocument } from './shopify-migrations.ts';
+import {
+  SHOPIFY_SDK_RULE,
+  shopifySdkSourceChanges,
+  shopifyVersionStringPins,
+} from './shopify-sdk-source.ts';
 import { shopifySdkUpgrade } from './shopify-sdk-upgrade.ts';
 import {
   enumFromVersion,
@@ -478,11 +484,17 @@ function versionFindings(
   scan: ShopifyScan,
   versions: { before: string; after: string },
   sdkRelease: string | undefined,
-  upgrade?: { release: string; lockless?: boolean } | { refusal: string },
+  upgrade?:
+    | { release: string; lockless?: boolean }
+    | { refusal: string }
+    // The locked SDK stays and every pin becomes the dated string (shopifyVersionStringPins).
+    | { stringPin: true },
 ) {
   const stopped =
     upgrade && 'refusal' in upgrade ? ` The SDK upgrade stopped: ${upgrade.refusal}` : '';
   const upgradedRelease = upgrade && 'release' in upgrade ? upgrade.release : undefined;
+  const stringPin = Boolean(upgrade && 'stringPin' in upgrade);
+  const stringPinReason = `@shopify/shopify-api ${sdkRelease} has no ApiVersion.${enumFromVersion(versions.after)}, but it sends apiVersion only in GraphQL request URLs, and this app uses no REST, billing or Storefront client, so Refit pins the dated string '${versions.after}' without the SDK upgrade (docs/SHOPIFY-SDK-UPGRADE.md#dated-version-string).`;
   const findings: Finding[] = [];
   const edits: SourceEdit[] = [];
   const runtime = scan.versions.filter((entry) => !CODEGEN_CONFIG.test(entry.file) && !entry.api);
@@ -518,38 +530,46 @@ function versionFindings(
     });
   for (const entry of scan.unresolvedVersions.filter((entry) => !entry.note))
     findings.push(
-      entry.latest && latest && upgradedRelease
+      entry.latest && latest && stringPin
         ? {
             ...entry,
             changeId: SHOPIFY_VERSION_RULE,
-            expression: `LATEST_API_VERSION (${sdkRelease ? `${latest} in @shopify/shopify-api ${sdkRelease}` : `served as ${latest}; no lockfile`}) → ApiVersion.${member}`,
+            expression: `LATEST_API_VERSION (${latest} in @shopify/shopify-api ${sdkRelease}) → '${versions.after}'`,
             confidence: 'confirmed',
-            reason: `@shopify/shopify-api 12.0.0 removed LATEST_API_VERSION; the SDK upgrade to ${upgradedRelease} pins ApiVersion.${member}.`,
+            reason: stringPinReason,
           }
-        : entry.latest && latest
-          ? sdkBound({
+        : entry.latest && latest && upgradedRelease
+          ? {
               ...entry,
               changeId: SHOPIFY_VERSION_RULE,
-              expression: `LATEST_API_VERSION (${latest} in @shopify/shopify-api ${sdkRelease})`,
+              expression: `LATEST_API_VERSION (${sdkRelease ? `${latest} in @shopify/shopify-api ${sdkRelease}` : `served as ${latest}; no lockfile`}) → ApiVersion.${member}`,
               confidence: 'confirmed',
-              reason:
-                latest < versions.before
-                  ? `@shopify/shopify-api ${sdkRelease} resolves LATEST_API_VERSION to ${latest}, which Shopify no longer serves; requests already get ${versions.before}.`
-                  : `@shopify/shopify-api ${sdkRelease} resolves LATEST_API_VERSION to ${latest}.`,
-              contractReview: `LATEST_API_VERSION is ${latest} in @shopify/shopify-api ${sdkRelease}, and only an SDK upgrade changes it. ${
-                sdkHasEnumMember(sdkRelease!, member)
-                  ? `This SDK has ApiVersion.${member}; pin it explicitly to upgrade.`
-                  : `ApiVersion.${member} first ships in ${SHOPIFY_API_ENUM_SINCE[member] ?? 'an unknown release'}, a separate, reviewed SDK upgrade.`
-              }${stopped}`,
-            })
-          : {
-              ...entry,
-              changeId: SHOPIFY_VERSION_RULE,
-              expression: 'apiVersion',
-              confidence: 'review',
-              reason: entry.reason,
-              contractReview: `The Shopify Admin API version is not a literal Refit can verify and bump: ${entry.reason}`,
-            },
+              reason: `@shopify/shopify-api 12.0.0 removed LATEST_API_VERSION; the SDK upgrade to ${upgradedRelease} pins ApiVersion.${member}.`,
+            }
+          : entry.latest && latest
+            ? sdkBound({
+                ...entry,
+                changeId: SHOPIFY_VERSION_RULE,
+                expression: `LATEST_API_VERSION (${latest} in @shopify/shopify-api ${sdkRelease})`,
+                confidence: 'confirmed',
+                reason:
+                  latest < versions.before
+                    ? `@shopify/shopify-api ${sdkRelease} resolves LATEST_API_VERSION to ${latest}, which Shopify no longer serves; requests already get ${versions.before}.`
+                    : `@shopify/shopify-api ${sdkRelease} resolves LATEST_API_VERSION to ${latest}.`,
+                contractReview: `LATEST_API_VERSION is ${latest} in @shopify/shopify-api ${sdkRelease}, and only an SDK upgrade changes it. ${
+                  sdkHasEnumMember(sdkRelease!, member)
+                    ? `This SDK has ApiVersion.${member}; pin it explicitly to upgrade.`
+                    : `ApiVersion.${member} first ships in ${SHOPIFY_API_ENUM_SINCE[member] ?? 'an unknown release'}, a separate, reviewed SDK upgrade.`
+                }${stopped}`,
+              })
+            : {
+                ...entry,
+                changeId: SHOPIFY_VERSION_RULE,
+                expression: 'apiVersion',
+                confidence: 'review',
+                reason: entry.reason,
+                contractReview: `The Shopify Admin API version is not a literal Refit can verify and bump: ${entry.reason}`,
+              },
     );
   if (declared.length > 1) {
     for (const entry of runtime)
@@ -565,6 +585,7 @@ function versionFindings(
   }
   const enumRelease = upgradedRelease ?? sdkRelease;
   const enumMissing =
+    !stringPin &&
     runtime.some((entry) => entry.kind === 'enum') &&
     !(enumRelease && sdkHasEnumMember(enumRelease, member));
   for (const entry of scan.versions) {
@@ -572,7 +593,8 @@ function versionFindings(
     if (entry.value >= versions.after || entry.api) continue;
     const codegen = CODEGEN_CONFIG.test(entry.file);
     const missing = entry.kind === 'enum' && enumMissing;
-    if (!codegen || !missing)
+    // String pins replace the whole ApiVersion expression themselves.
+    if ((!codegen || !missing) && !(stringPin && entry.kind === 'enum'))
       edits.push({
         file: entry.file,
         start: entry.start,
@@ -584,12 +606,14 @@ function versionFindings(
     const finding: Finding = {
       ...entry,
       changeId: SHOPIFY_VERSION_RULE,
-      expression: `${entry.text} → ${entry.kind === 'enum' ? `ApiVersion.${member}` : versions.after}`,
+      expression: `${entry.text} → ${entry.kind === 'enum' ? (stringPin ? `'${versions.after}'` : `ApiVersion.${member}`) : versions.after}`,
       confidence: 'confirmed',
       reason:
-        entry.value < versions.before
-          ? `Pinned to ${entry.value}, which Shopify no longer serves; requests already get ${versions.before}.`
-          : `Pinned to ${entry.value}; the target is ${versions.after}.`,
+        stringPin && entry.kind === 'enum'
+          ? stringPinReason
+          : entry.value < versions.before
+            ? `Pinned to ${entry.value}, which Shopify no longer serves; requests already get ${versions.before}.`
+            : `Pinned to ${entry.value}; the target is ${versions.after}.`,
       ...(missing
         ? {
             contractReview: `@shopify/shopify-api ${sdkRelease ?? '(version not found in the lockfile)'} has no ApiVersion.${member}; it first ships in ${SHOPIFY_API_ENUM_SINCE[member] ?? 'an unknown release'}. Upgrading the SDK is a separate, reviewed change.${stopped}`,
@@ -767,6 +791,10 @@ async function shopifyRun(options: ShopifyRunOptions) {
   const otherApi: AdminDocument[] = [];
   const storefront: AdminDocument[] = [];
   const rules = loadShopifyDocumentRules(versions.after);
+  const migrationRules = loadShopifyMigrationRules(versions.after);
+  // Development store cases for documents whose variables a migration changed, at their lines.
+  const liveCases: (Omit<ShopifyLiveCase, 'document'> & { file: string; line: number })[] = [];
+  const migrationNotes: string[] = [];
   const documentEdits = new Map<string, SourceEdit>();
   const aiEdits: SourceEdit[] = [];
   const variableNotes = new Set<string>();
@@ -797,10 +825,74 @@ async function shopifyRun(options: ShopifyRunOptions) {
     } else if (rewritten)
       for (const finding of result.findings)
         finding.reason += ` A Shopify rule matched but was not applied: ${rewritten.refusal}`;
+    // Documents that already fail on the oldest supported version, or break on the target, and
+    // that no in-place rule fixed: the documented migrations and the unused-variable fix, which also
+    // edit the code around the document (pipeline/shopify-migrations.ts).
+    let migrated = false;
+    if (
+      !(rewritten && 'edits' in rewritten) &&
+      result.findings.length &&
+      !result.otherApi &&
+      result.findings.every(
+        (finding) =>
+          finding.reason.startsWith('This document already') ||
+          (finding.reason.startsWith('Valid on') &&
+            !finding.changeId.startsWith('shopify-graphql-input:')),
+      )
+    ) {
+      const migration = migrateDocument({
+        document,
+        source: patchRepository.files.find((file) => file.path === document.segments[0]?.file)
+          ?.content,
+        after,
+        rules: migrationRules,
+      });
+      const types =
+        migration && 'edits' in migration
+          ? typeChanges(
+              parse(migration.text),
+              { ...document, text: migration.text },
+              before,
+              after,
+              versions,
+              migration.text,
+            )
+          : undefined;
+      if (migration && 'edits' in migration && !types!.findings.length) {
+        migrated = true;
+        for (const edit of migration.edits)
+          documentEdits.set(`${edit.file}:${edit.start}:${edit.end}:${edit.replacement}`, edit);
+        liveCases.push(
+          ...migration.liveCases.map((entry) => ({
+            ...entry,
+            file: document.file,
+            line: document.line,
+          })),
+        );
+        for (const name of migration.uncovered)
+          migrationNotes.push(
+            `${document.file}:${document.line} (${name}): the migration changes the variables the code sends, and Refit could not write a development store case for it, so the patch stays [Needs review] until the operation is run.`,
+          );
+        const confidence = document.traced ? ('confirmed' as const) : ('review' as const);
+        result = {
+          deprecated: types!.deprecated,
+          findings: migration.notes.map((note) => ({
+            ...documentLocation(document, note.offset),
+            changeId: note.rule,
+            expression: note.expression,
+            confidence,
+            reason: `${note.reason} The rewritten document validates on ${versions.after}.`,
+          })),
+        };
+      } else if (migration)
+        for (const finding of result.findings)
+          finding.reason += ` A Shopify migration matched but was not applied: ${'refusal' in migration ? migration.refusal : 'a selected field changes type on the target.'}`;
+    }
     const segment = document === original && document.segments.length === 1 && document.segments[0];
     if (
       options.aiPatch &&
       segment &&
+      !migrated &&
       !(rewritten && 'edits' in rewritten) &&
       result.findings.length &&
       !result.otherApi &&
@@ -960,6 +1052,12 @@ async function shopifyRun(options: ShopifyRunOptions) {
       ? await shopifySdkUpgrade(repository.root, member, options.lockfileResolution)
       : undefined;
   const upgraded = upgradeResult && 'upgrade' in upgradeResult ? upgradeResult.upgrade : undefined;
+  // Without the upgrade, a GraphQL-only app may pin the dated string on its locked SDK.
+  const stringPins =
+    upgradeResult && !upgraded
+      ? shopifyVersionStringPins(repository, scan, sdkRelease, versions.after, after)
+      : undefined;
+  const stringEdits = stringPins && 'edits' in stringPins ? stringPins.edits : [];
   const source =
     upgraded && shopifySdkSourceChanges(repository, upgraded.primary, member!, upgraded.packages);
   for (const stop of source ? source.stops : [])
@@ -977,9 +1075,13 @@ async function shopifyRun(options: ShopifyRunOptions) {
     sdkRelease,
     upgraded
       ? { release: upgraded.apiRelease, lockless: upgraded.lockless }
-      : upgradeResult && 'reason' in upgradeResult
-        ? { refusal: upgradeResult.reason }
-        : undefined,
+      : stringEdits.length
+        ? { stringPin: true }
+        : upgradeResult && 'reason' in upgradeResult
+          ? {
+              refusal: `${upgradeResult.reason}${stringPins && 'reason' in stringPins ? ` A dated apiVersion string on the locked SDK does not apply either: ${stringPins.reason}` : ''}`,
+            }
+          : undefined,
   );
   findings.push(...pins.findings);
   const application = options.apiVersion ?? (pins.declared.length === 1 ? pins.declared[0] : null);
@@ -1021,7 +1123,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
   };
   const blocking = findings.find((finding) => finding.contractReview);
   // Rule edits to documents ship only with the version move they are for.
-  const versionEdits = [...pins.edits, ...(source ? source.edits : [])];
+  const versionEdits = [...pins.edits, ...(source ? source.edits : []), ...stringEdits];
   const ruleEdits = versionEdits.length ? [...versionEdits, ...documentEdits.values()] : [];
   const edits = [...(versionEdits.length ? [...ruleEdits, ...aiEdits] : []), ...restEdits];
   const environmentPins = scan.versions.filter((entry) => entry.envFallback && !entry.api);
@@ -1102,10 +1204,16 @@ async function shopifyRun(options: ShopifyRunOptions) {
                           ? `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')}. ${upgraded.resolved.manager} re-resolved ${upgraded.resolved.lockfile} from the committed one in networked Docker with lifecycle scripts off, as of ${upgraded.resolved.before}${upgraded.resolved.legacyPeerDeps ? ' with --legacy-peer-deps' : ''}, because the target SDK needs newer framework packages than the lockfile had${upgraded.resolved.frameworks.length ? ` (${upgraded.resolved.frameworks.join(', ')})` : ''}; nothing outside the Shopify and framework packages and what only they reach changed. Review it against the shopify-app-js changelogs: ${SHOPIFY_MIGRATION_GUIDE}`
                           : `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')} in package.json and package-lock.json from verified npm registry metadata (SHA-512 integrity)${upgraded.removed.length ? `, removing ${upgraded.removed.length} lock entries nothing requires any more` : ''}. Review it against the shopify-app-js changelogs and the v12 migration guide: ${SHOPIFY_MIGRATION_GUIDE}`,
                       ...sdkUpgradeNotes(upgraded.packages),
+                      ...(source ? source.notes : []),
                       ...Object.entries(upgraded.otherLockfiles ?? {}).map(
                         ([file, why]) =>
                           `${file} still locks the older Shopify packages: the repository installs from ${upgraded.resolved?.lockfile ?? 'package-lock.json'} (${why}). Delete the lockfile your package manager does not use.`,
                       ),
+                    ]
+                  : []),
+                ...(stringEdits.length
+                  ? [
+                      `Pins the dated string '${versions.after}' on the locked @shopify/shopify-api ${sdkRelease}, whose ApiVersion enum has no ${versions.after} member: that SDK sends apiVersion only in request URLs, and Refit validated every GraphQL document, including the SDK's webhook registration where the app registers webhooks, on ${versions.after}. The SDK upgrade did not apply: ${upgradeResult && 'reason' in upgradeResult ? upgradeResult.reason : ''}`,
                     ]
                   : []),
                 ...[...deprecated].map((entry) => `Deprecated on ${versions.after}: ${entry}`),
@@ -1115,6 +1223,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
                     ]
                   : []),
                 ...variableNotes,
+                ...migrationNotes,
                 ...reconstructed
                   .filter((attempt) => attempt.status === 'kept')
                   .map(
@@ -1240,6 +1349,8 @@ async function shopifyRun(options: ShopifyRunOptions) {
         reason: attempt.reason,
       })),
       deprecated: [...deprecated],
+      // Development store cases the migrations wrote (pipeline/shopify-migrations.ts).
+      liveCases,
     },
     warnings: [
       ...repository.warnings,

@@ -18,6 +18,9 @@ export interface RequestParameterRemoval {
   // Keep a literal list of `card` plus other methods under the replacement too, and move any other
   // value expression (the default since 2026-10-24; `stripePaymentMethodTypes: "keep-listed"`).
   keepListed?: boolean;
+  // The in-person methods (IN_PERSON_METHODS) the replacement accepts on this operation, read from
+  // the after contract's enum: endive adds them on PaymentIntents and SetupIntents, not Checkout.
+  inPerson?: string[];
   // A reviewed move to the parameter's documented replacement, named by it (data/packs).
   move?: string;
 }
@@ -48,6 +51,19 @@ export const PAYMENT_METHOD_RENAME_RULES = new Set<string>([
 ]);
 const CARD_REPLACEMENT = 'allowed_payment_method_types';
 const CARD_OPERATIONS = new Set(['PostCheckoutSessions', 'PostPaymentIntents', 'PostSetupIntents']);
+// In-person methods: what they offer depends on reader configuration offline checks cannot see.
+export const IN_PERSON_METHODS = new Set(['card_present', 'interac_present']);
+
+// The values of a list parameter's item enum, or none.
+function itemEnum(
+  schema: Record<string, unknown>,
+  parameter: string,
+  document: Record<string, unknown>,
+) {
+  const property = local((schema.properties as Record<string, unknown>)[parameter], document);
+  const items = property ? local(property.items, document) : undefined;
+  return items && Array.isArray(items.enum) ? (items.enum as unknown[]) : [];
+}
 
 const MAX_REFERENCE_HOPS = 8;
 const PATH_PARAMETER = /\{[^}]+\}/g;
@@ -78,6 +94,11 @@ export function bodySchema(operation: Record<string, unknown>, document: Record<
   if (content.length !== 1 || !isObject(content[0])) return undefined;
   const schema = local(content[0].schema, document);
   return schema && isObject(schema.properties) ? schema : undefined;
+}
+
+function inPerson(accepted: unknown[]) {
+  const methods = [...IN_PERSON_METHODS].filter((method) => accepted.includes(method));
+  return methods.length ? { inPerson: methods } : {};
 }
 
 export function removedRequestParameters(
@@ -132,6 +153,7 @@ export function removedRequestParameters(
                 // Owner decision (Pierce, 2026-10-24, Push 279 decision 2): keep-listed is the
                 // default; only an explicit `false` keeps the card-only rule.
                 ...(options.keepListedPaymentMethods !== false ? { keepListed: true } : {}),
+                ...inPerson(itemEnum(newSchema, CARD_REPLACEMENT, after)),
               }
             : {}),
           ...(move ? { move } : {}),

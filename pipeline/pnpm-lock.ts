@@ -21,10 +21,105 @@ export function parsePnpmLock(content: string) {
         'The leading pnpm document must describe its package-manager environment, not a second application graph.',
       );
   }
-  return { document: fromLockfileV6(documents.at(-1)!), environment };
+  return { document: fromLockfileV5(fromLockfileV6(documents.at(-1)!)), environment };
 }
 
 const IMPORTER_SECTIONS = ['dependencies', 'devDependencies', 'optionalDependencies'];
+
+// pnpm 7 writes lockfile 5.4 (YAML reads the unquoted version as a number).
+export const isLockfileV5 = (version: unknown) => version === 5.4 || version === '5.4';
+
+// Lockfile 5.4 keeps each importer's specifiers in their own map, keys records `/name/version`
+// and qualifies peers with an `_suffix` (`1.0.5_tailwindcss@3.2.4`, or a hash when long). The
+// suffix is carried over as the `(suffix)` v9 uses, unparsed, so a reference and its record still
+// meet by the same key. Anything that does not map cleanly is returned unchanged for the normal
+// checks to refuse.
+function fromLockfileV5(lock: Record<string, unknown>) {
+  if (!isLockfileV5(lock.lockfileVersion)) return lock;
+  // Registry versions start with a digit and cannot contain `_`; `/name/version` is an alias.
+  const reference = (value: unknown) => {
+    if (typeof value !== 'string') return value;
+    const alias = /^\/((?:@[^/]+\/)?[^/@]+)\/([^/]+)$/.exec(value);
+    const [prefix, version] = alias ? [`${alias[1]}@`, alias[2]] : ['', value];
+    if (!/^\d/.test(version)) return value;
+    const split = version.indexOf('_');
+    return split < 0
+      ? `${prefix}${version}`
+      : `${prefix}${version.slice(0, split)}(${version.slice(split + 1)})`;
+  };
+  const importer = (record: unknown) => {
+    if (!isObject(record) || !isObject(record.specifiers ?? {})) return undefined;
+    const specifiers = (record.specifiers ?? {}) as Record<string, unknown>;
+    const converted: Record<string, unknown> = {};
+    for (const [section, entries] of Object.entries(record)) {
+      if (section === 'specifiers') continue;
+      if (!IMPORTER_SECTIONS.includes(section) || !isObject(entries)) return undefined;
+      converted[section] = Object.fromEntries(
+        Object.entries(entries).map(([name, version]) => [
+          name,
+          { specifier: specifiers[name], version: reference(version) },
+        ]),
+      );
+    }
+    return converted;
+  };
+  const { importers, packages, specifiers, ...rest } = lock;
+  const root = Object.fromEntries(
+    IMPORTER_SECTIONS.flatMap((key) => (key in rest ? [[key, rest[key]]] : [])),
+  );
+  if ((Object.keys(root).length || specifiers !== undefined) && importers !== undefined)
+    return lock;
+  for (const key of IMPORTER_SECTIONS) delete rest[key];
+  const convertedImporters: Record<string, unknown> = {};
+  for (const [path, value] of Object.entries(
+    importers === undefined
+      ? { '.': { specifiers, ...root } }
+      : isObject(importers)
+        ? importers
+        : {},
+  )) {
+    const converted = importer(value);
+    if (!converted) return lock;
+    convertedImporters[path] = converted;
+  }
+  if (importers !== undefined && !isObject(importers)) return lock;
+  const converted: Record<string, unknown> = { ...rest, importers: convertedImporters };
+  if (packages === undefined) return converted;
+  if (!isObject(packages)) return lock;
+  const resolutions: Record<string, unknown> = {};
+  const snapshots: Record<string, unknown> = {};
+  for (const [key, record] of Object.entries(packages)) {
+    if (!isObject(record)) return lock;
+    const qualified = reference(key);
+    // Remote-tarball and local records keep their keys and fail the registry name/version check.
+    if (typeof qualified !== 'string' || qualified === key) {
+      resolutions[key] = record;
+      continue;
+    }
+    const base = qualified.split('(')[0];
+    const recorded = resolutions[base] as { resolution: unknown } | undefined;
+    if (recorded && JSON.stringify(recorded.resolution) !== JSON.stringify(record.resolution))
+      return lock;
+    resolutions[base] = { resolution: record.resolution };
+    snapshots[qualified] = Object.fromEntries(
+      Object.entries(record).flatMap(([section, entries]) =>
+        section === 'patched'
+          ? [[section, entries]]
+          : ['dependencies', 'optionalDependencies'].includes(section) && isObject(entries)
+            ? [
+                [
+                  section,
+                  Object.fromEntries(
+                    Object.entries(entries).map(([name, value]) => [name, reference(value)]),
+                  ),
+                ],
+              ]
+            : [],
+      ),
+    );
+  }
+  return { ...converted, packages: resolutions, snapshots };
+}
 
 // pnpm 8 writes lockfile v6: root importer sections at the top level and one record per
 // `/name@version(peers)` key, where v9 splits resolutions into `packages` and graphs into
@@ -114,8 +209,11 @@ export function resolvePnpmDependency(
     version: null,
     reason,
   });
-  if (![9, '9.0', '6.0'].includes(lock.lockfileVersion as string | number))
-    return unknown('Only pnpm lockfile versions 6 and 9 are supported.');
+  if (
+    ![9, '9.0', '6.0'].includes(lock.lockfileVersion as string | number) &&
+    !isLockfileV5(lock.lockfileVersion)
+  )
+    return unknown('Only pnpm lockfile versions 5.4, 6 and 9 are supported.');
   const directory = posix.dirname(dependency.file);
   const importer = isObject(lock.importers) ? lock.importers[directory] : undefined;
   const declarations = isObject(importer) ? importer[dependency.section] : undefined;

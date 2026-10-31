@@ -23,6 +23,10 @@ export interface TypedClient {
   start: number;
   end: number;
   source: 'type' | 'js-return';
+  // No code in its program writes to a stripe-node client or resource object (`stripe.x = …`,
+  // `delete`, `Object.assign`, `Object.defineProperty`), so every call on a client of this type
+  // runs stripe-node's own method.
+  sealed?: true;
 }
 
 // The checker builds a program per tsconfig project; larger repositories are reported, not traced.
@@ -162,6 +166,10 @@ export function functionReturns(fn: ts.SignatureDeclaration): ts.Expression[] | 
   };
   ts.forEachChild(body, walk);
   return bare || !values.length ? undefined : values;
+}
+
+function propertyText(name: ts.PropertyName) {
+  return ts.isIdentifier(name) || ts.isStringLiteral(name) ? name.text : undefined;
 }
 
 function strip(expression: ts.Expression): ts.Expression {
@@ -313,6 +321,44 @@ function programClients(
   }
   function honestDeclaration(declaration: ts.Declaration): boolean {
     if (inStripe(declaration)) return true;
+    // `const { stripe } = await clients()`: the property's declarations in the object it is taken
+    // from, such as `return { stripe: new Stripe(…) }`, with no default value.
+    if (
+      ts.isBindingElement(declaration) &&
+      ts.isIdentifier(declaration.name) &&
+      !declaration.dotDotDotToken &&
+      !declaration.initializer &&
+      ts.isObjectBindingPattern(declaration.parent) &&
+      ts.isVariableDeclaration(declaration.parent.parent) &&
+      declaration.parent.parent.initializer
+    ) {
+      const name = declaration.propertyName ?? declaration.name;
+      if (!ts.isIdentifier(name) && !ts.isStringLiteral(name)) return false;
+      const source = declaration.parent.parent.initializer;
+      if (!ts.isAwaitExpression(source) && !ts.isCallExpression(strip(source))) return false;
+      const call = strip(ts.isAwaitExpression(source) ? source.expression : source);
+      const signature = ts.isCallExpression(call)
+        ? checker.getResolvedSignature(call)?.declaration
+        : undefined;
+      const values = signature && !ts.isJSDocSignature(signature) && functionReturns(signature);
+      // Every object the function returns names the property with an honest client.
+      return Boolean(
+        values &&
+        values.length &&
+        values.every((value) => {
+          const object = strip(value);
+          if (!ts.isObjectLiteralExpression(object)) return false;
+          const entries = object.properties.filter(
+            (entry) => entry.name && propertyText(entry.name) === name.text,
+          );
+          return (
+            !object.properties.some(ts.isSpreadAssignment) &&
+            entries.length === 1 &&
+            honestDeclaration(entries[0])
+          );
+        }),
+      );
+    }
     if (
       ts.isVariableDeclaration(declaration) ||
       ts.isPropertyDeclaration(declaration) ||
@@ -458,6 +504,35 @@ function programClients(
     return values;
   }
 
+  // A stripe-node client, or one of its resource objects (`…Resource` classes).
+  const stripeObject = (node: ts.Expression) => {
+    const type = checker.getNonNullableType(checker.getTypeAtLocation(node));
+    const declaration = type.getSymbol()?.getDeclarations()?.[0];
+    return (
+      isClientType(type) ||
+      Boolean(declaration && inStripe(declaration) && /Resource$/.test(type.getSymbol()!.name))
+    );
+  };
+  const target = (node: ts.Node) =>
+    (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) &&
+    stripeObject(node.expression);
+  const sealed = !nodes.some(
+    (node) =>
+      (ts.isBinaryExpression(node) &&
+        node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+        node.operatorToken.kind <= ts.SyntaxKind.LastAssignment &&
+        target(strip(node.left))) ||
+      (ts.isDeleteExpression(node) && target(strip(node.expression))) ||
+      (ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        ts.isIdentifier(node.expression.expression) &&
+        node.expression.expression.text === 'Object' &&
+        /^(?:assign|defineProperty|defineProperties|setPrototypeOf)$/.test(
+          node.expression.name.text,
+        ) &&
+        node.arguments[0] !== undefined &&
+        stripeObject(strip(node.arguments[0]))),
+  );
   const found = new Map<string, Omit<TypedClient, 'file'>[]>();
   let javascript = false;
   let current: Omit<TypedClient, 'file'>[] = [];
@@ -487,7 +562,12 @@ function programClients(
     const key = `${client.getSourceFile().fileName}\0${client.getStart()}\0${client.end}`;
     if (seen.has(key)) return;
     seen.add(key);
-    current.push({ start: client.getStart(), end: client.end, source });
+    current.push({
+      start: client.getStart(),
+      end: client.end,
+      source,
+      ...(sealed && source === 'type' ? { sealed: true as const } : {}),
+    });
   };
   for (const source of sources) {
     javascript = JAVASCRIPT.test(source.fileName);

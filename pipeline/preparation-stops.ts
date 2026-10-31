@@ -17,6 +17,12 @@ export const PREPARATION_STOPS = [
       "The installed dependencies do not fit Refit's validation sandbox, so none of its checks ran on this patch.",
   },
   {
+    reason: 'git-dependency',
+    pattern: / from Git \(/,
+    summary: "a dependency is installed from Git, which Refit's own preparation does not fetch",
+    action: REFIT_BUILD,
+  },
+  {
     reason: 'non-registry-dependency',
     pattern:
       /^Automatic preparation supports public npm registry dependencies only|^Package tarballs must use public registry\.npmjs\.org|^Every pnpm package needs a registry name|^pnpm declarations must use public registry|^pnpm dependencies must resolve to recorded registry packages/,

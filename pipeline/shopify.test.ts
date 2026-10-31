@@ -560,7 +560,7 @@ await runQuery({}, \`query Fixture { shop { name } }\`);
     [
       'app/routes/app.ts',
       11,
-      'The document is built at runtime; Refit only reads literal or constant documents.',
+      'The document is `query`, from a parameter of a function nothing in the repository calls but code outside it can (an export, a public method or a callback), so Refit cannot list the documents it receives.',
     ],
   ]);
 });
@@ -600,7 +600,10 @@ export async function loader(admin, extra) {
   expect(scan.unreadable.map((entry) => [entry.line, entry.reason])).toEqual([
     [6, 'The document comes from an array Refit cannot read element by element.'],
     [7, 'An element of the array the document comes from has no static query.'],
-    [8, 'The document is built at runtime; Refit only reads literal or constant documents.'],
+    [
+      8,
+      'The document `QUERIES.missing` is built at runtime; Refit only reads literal or constant documents.',
+    ],
   ]);
 });
 

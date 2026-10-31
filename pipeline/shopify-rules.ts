@@ -30,13 +30,20 @@ import { isObject } from './specifications.ts';
 // - rest-to-graphql: a REST Admin endpoint and the GraphQL root field Shopify documents for it,
 //   which must exist at the table's version.
 // - webhook-topic-rename: a WebhookSubscriptionTopic value and its documented replacement.
+// - graphql-migration: a documented replacement that changes the document's shape (arguments,
+//   payload), made by a named transform in pipeline/shopify-migrations.ts that also rewrites the
+//   variables the call sends and the code's reads of the response. The replacement must exist at the
+//   table's version.
 // - package-major: a documented call rewrite in a major release of a Shopify npm package (table
 //   api `packages`, no schema version); only the quote and the published release are checked.
 // Founder decision (2026-10-29, relayed by the coordinating session: "proof decides, not caution")
 // replaces D3's benchmark requirement for Shopify: a rule may be `auto` when the schema diff confirms
 // the change, every edited document must validate on the target schema before a patch is kept
 // (pipeline/shopify-document-rules.ts and SH4's proof), and the response keys the code reads are
-// unchanged. Only two families can promise the last: `graphql-rename` within one type (a field is
+// unchanged. A `graphql-migration` keeps the keys the code reads by rewriting those reads, and its
+// transform refuses any read it cannot rewrite; where the variables change shape, the development
+// store must run the operation (pipeline/shopify-proof.ts). Otherwise only two families can promise
+// the last: `graphql-rename` within one type (a field is
 // selected under an alias of its old name; arguments, input fields and enum values are inputs) and
 // `graphql-argument-drop`. A move to another type, REST rewrites, webhook topics and package
 // rewrites change what the code reads or calls, so they stay review-only. An auto rule names the
@@ -54,12 +61,16 @@ const owner = (coordinate: string) =>
 // Whether a rule's edit can keep every response key the code reads.
 export const keysPreserved = (rule: Record<string, unknown>) =>
   rule.family === 'graphql-argument-drop' ||
+  rule.family === 'graphql-migration' ||
   (rule.family === 'graphql-rename' &&
     String(rule.coordinate).includes('.') &&
     owner(String(rule.coordinate)) === owner(String(rule.replacement)));
+// The transforms pipeline/shopify-migrations.ts implements.
+export const SHOPIFY_MIGRATIONS = ['variants-bulk-update'] as const;
 export const SHOPIFY_RULE_FAMILIES = [
   'graphql-rename',
   'graphql-argument-drop',
+  'graphql-migration',
   'rest-to-graphql',
   'webhook-topic-rename',
   'package-major',
@@ -78,6 +89,12 @@ export type ShopifyRule = ShopifyRuleBase &
         family: 'graphql-argument-drop';
         coordinate: string;
         value: string | number | boolean | null;
+      }
+    | {
+        family: 'graphql-migration';
+        coordinate: string;
+        replacement: string;
+        migration: (typeof SHOPIFY_MIGRATIONS)[number];
       }
     | { family: 'rest-to-graphql'; method: string; path: string; replacement: string }
     | { family: 'webhook-topic-rename'; topic: string; replacement: string }
@@ -123,7 +140,8 @@ const COORDINATE =
   /^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*(?:\([A-Za-z_][A-Za-z0-9_]*:\))?)?$/;
 const VERSION = /^\d{4}-(?:01|04|07|10)$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
-const SOURCE = /^https:\/\/(?:shopify\.dev|github\.com\/Shopify)\//;
+const SOURCE =
+  /^https:\/\/(?:shopify\.dev|github\.com\/Shopify|raw\.githubusercontent\.com\/Shopify\/[\w.-]+\/[0-9a-f]{40})\//;
 
 const text = (value: unknown) => typeof value === 'string' && value.length > 0;
 
@@ -162,8 +180,11 @@ export function parseShopifyRuleTable(value: unknown, file: string, names = new 
     if (entry.status === 'auto' && !keysPreserved(entry))
       fail(file, `${name} changes what the code reads, so it must be review-only.`);
     const shape =
-      entry.family === 'graphql-rename'
-        ? COORDINATE.test(String(entry.coordinate)) && COORDINATE.test(String(entry.replacement))
+      entry.family === 'graphql-rename' || entry.family === 'graphql-migration'
+        ? (entry.family === 'graphql-rename' ||
+            SHOPIFY_MIGRATIONS.includes(entry.migration as (typeof SHOPIFY_MIGRATIONS)[number])) &&
+          COORDINATE.test(String(entry.coordinate)) &&
+          COORDINATE.test(String(entry.replacement))
         : entry.family === 'graphql-argument-drop'
           ? COORDINATE.test(String(entry.coordinate)) &&
             (['string', 'number', 'boolean'].includes(typeof entry.value) || entry.value === null)

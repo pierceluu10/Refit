@@ -569,7 +569,11 @@ it('names the Stripe object that owns a changed response property', () => {
       'removed the required property `items/data/items/price` from the response with the `200` status',
       '/v1/subscriptions/{subscription_exposed_id}',
     ),
-  ).toMatchObject({ schema: 'subscription_item', property: 'price' });
+  ).toEqual({
+    schema: 'subscription_item',
+    property: 'price',
+    links: [{ schema: 'subscription', property: 'items' }],
+  });
   expect(
     owner(
       "the `custom_text/submit/anyOf[subschema #1: PaymentPagesCheckoutSessionCustomTextPosition]/message` response property's maxLength was increased from `500` to `1200` for the response status `200`",
@@ -1219,7 +1223,15 @@ it('names the owner of a property called items that is not an array', () => {
       },
       document,
     ),
-  ).toMatchObject({ schema: 'product', property: 'features' });
+  ).toEqual({
+    schema: 'product',
+    property: 'features',
+    links: [
+      { schema: 'subscription', property: 'items' },
+      { schema: 'subscription_item', property: 'price' },
+      { schema: 'price', property: 'product' },
+    ],
+  });
 });
 
 describe('a removed operation', () => {
@@ -1424,6 +1436,19 @@ describe('an enum successor sent as an object (endive billing_cycle_anchor)', ()
       "billing_cycle_anchor: reset ? { type: 'now' } : { type: 'unchanged' }",
     );
     expect(conditional.reach).toEqual(['handled', 'handled', 'handled', 'handled']);
+    // stripe-node leaves an undefined parameter out of the request.
+    const optional = run(
+      "export const go = (id, yearly) => stripe.subscriptions.update(id, { billing_cycle_anchor: yearly ? 'now' : undefined });",
+    );
+    expect(optional.patched).toContain(
+      "billing_cycle_anchor: yearly ? { type: 'now' } : undefined",
+    );
+    expect(optional.reach).toEqual(['handled', 'unused', 'handled', 'handled']);
+    // A local named `undefined` is a value Refit cannot read.
+    const shadowed = run(
+      "export const go = (id, yearly, undefined) => stripe.subscriptions.update(id, { billing_cycle_anchor: yearly ? 'now' : undefined });",
+    );
+    expect(shadowed.patched).not.toContain('type:');
   });
 
   it('keeps stopping where the value is not a literal in the call', () => {

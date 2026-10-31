@@ -202,6 +202,36 @@
         "operationId": "Mutation.productVariantsBulkDelete",
         "text": "DELETE products/{product_id}/variants/{variant_id}.json is answered by Mutation.productVariantsBulkDelete."
       }
+    },
+    {
+      "rule": "shopify-product-variant-update-to-bulk-update",
+      "family": "graphql-migration",
+      "coordinate": "Mutation.productVariantUpdate",
+      "replacement": "Mutation.productVariantsBulkUpdate",
+      "migration": "variants-bulk-update",
+      "source": "https://raw.githubusercontent.com/Shopify/shopify-app-template-remix/bd7c2efd6310b8e91c22e455d45cee4e89b57d85/CHANGELOG",
+      "warning": "productVariantUpdate(input:) becomes productVariantsBulkUpdate(productId:, variants: [input]) as in Shopify's own app template (commit bd7c2efd); the product ID comes from the response the variant ID was read from, and reads of productVariant read the first returned variant. The development store must run the rewritten mutation.",
+      "quote": "Replaced deprecated `productVariantUpdate` with `productVariantsBulkUpdate`",
+      "checkedAt": "2026-10-29",
+      "status": "auto",
+      "origin": "hand-written",
+      "diff": {
+        "id": "removed-before-pins",
+        "operationId": "Mutation.productVariantUpdate",
+        "text": "Mutation.productVariantUpdate is absent from the oldest pinned admin schema, 2025-01."
+      },
+      "also": [
+        {
+          "source": "https://shopify.dev/docs/apps/build/product-merchandising/products-and-collections/update-data",
+          "quote": "Use bulk variant mutations to [update](https://shopify.dev/docs/api/admin-graphql/latest/mutations/productVariantsBulkUpdate), [delete](https://shopify.dev/docs/api/admin-graphql/latest/mutations/productVariantsBulkDelete), or [reorder](https://shopify.dev/docs/api/admin-graphql/latest/mutations/productVariantsBulkReorder) multiple variants at once.",
+          "diff": {
+            "id": "removed-before-pins",
+            "operationId": "Mutation.productVariantUpdate",
+            "text": "Mutation.productVariantUpdate is absent from the oldest pinned admin schema, 2025-01."
+          }
+        }
+      ],
+      "decision": "Founder decision 2026-10-29 (proof decides): automatic when the schema diff confirms the change, the edited document validates on the target schema and the response keys the code reads are unchanged."
     }
   ]
 }

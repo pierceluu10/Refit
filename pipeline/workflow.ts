@@ -559,6 +559,9 @@ export async function runWorkflow(options: {
       Array.isArray(report.validation.advisoryTypeErrors)
         ? report.validation.advisoryTypeErrors.length
         : 0;
+    // The bump's validation is kept as evidence of why its checks did not pass.
+    if (versionBump && (report.validation.status !== 'passed' || advisory))
+      await save('report.json', `${JSON.stringify(report, null, 2)}\n`);
     if (versionBump && report.validation.status !== 'passed')
       return await bumpStop(`Validation returned ${report.validation.status}.`);
     if (versionBump && advisory)

@@ -122,6 +122,7 @@ Production is the hosted worker on Fly (`fly.toml`, `Dockerfile`). The Stripe wo
 - **Vendor notes:** the benchmark attaches the pinned Stripe changelog pages in `docs/benchmarks/stripe-changelog/` to AI requests. The worker attaches only documentation snapshots from a repository's configured documentation sources.
 - **Contracts and adapter:** the benchmark uses the frozen list's API versions and pinned Stripe specs, and reports production mode with its SDK-spec adapter; `customerMode` repeats the scan with the built-in adapter the worker uses (see [Collect the results](#collect-the-results)).
 - **Not exercised:** the worker's doctor and approval steps, draft publication (`--publish-draft --supersede-drafts`; the workflow refuses `--publish`), polling, and its dependency-bundle cache, which reuses only bundles whose inputs match.
+- **Yarn's package cache:** preparation mounts it from Refit's temporary directory, which on the worker is the Fly volume (`TMPDIR=/data/tmp`) and on a runner the root disk's `/tmp`. Both are disks outside the sandbox's tmpfs workspace; an install stops below 2 GiB free on either.
 - **Runtime:** the worker runs the packaged CLI on a 2-vCPU, 4 GB Fly machine; shards run the source at the pinned commit with `tsx` on 4-vCPU, 16 GB runners. Compare outcomes, not seconds.
 
 Shopify runs differ the same way, and on the Admin schemas read in the run (see [Shopify](#shopify)).

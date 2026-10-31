@@ -500,7 +500,7 @@ const packageName = (key: string) => key.slice(key.lastIndexOf('node_modules/') 
 
 // Lockfile keys Node reaches from the root without passing through `skip`, resolving each
 // dependency to the nearest node_modules directory up the tree, as Node does.
-function reachedWithout(packages: Record<string, unknown>, skip: Set<string>) {
+export function reachedWithout(packages: Record<string, unknown>, skip: Set<string>) {
   const seen = new Set<string>(['']);
   const pending = [''];
   while (pending.length) {

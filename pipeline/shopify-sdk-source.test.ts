@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { applySourceEdits } from './patches.ts';
-import { shopifySdkSourceChanges } from './shopify-sdk-source.ts';
+import { shopifySdkSourceChanges, shopifyVersionStringPins } from './shopify-sdk-source.ts';
+import { pinnedShopifySchema, shopifySchema } from './shopify-schemas.ts';
 
 const API = '@shopify/shopify-api';
 const REMIX = '@shopify/shopify-app-remix';
@@ -181,7 +182,11 @@ export const again = (session) => shopify.session.getJwt(session);
 export const rc = RELEASE_CANDIDATE_API_VERSION;
 `,
   });
-  expect(result.edits).toEqual([]);
+  // The adopted lineItemBilling flag goes (a5be0d0); the flat plan and shopify.billing still stop.
+  expect(result.after('app/billing.ts')).toContain(
+    '  billing: { plan: { amount: 5 } },\n  future: {},\n});',
+  );
+  expect(result.edits.map((edit) => edit.file)).toEqual(['app/billing.ts']);
   const byFile = (file: string) =>
     result.stops.filter((stop) => stop.file === file).map((stop) => stop.reason);
   expect(byFile('app/flags.ts')).toEqual([
@@ -211,10 +216,7 @@ export const shopify = shopifyApp({ apiVersion: ApiVersion.April26, future });
   ]);
   const billing =
     'Billing changed in @shopify/shopify-api 12.0.0: the lineItemBilling future flags and the billing config they changed were removed (a5be0d0), and billing.check returns an object (docs/migrating-to-v12.md).';
-  expect(byFile('app/billing.ts')).toEqual([
-    billing,
-    `future.lineItemBilling is not a flag of the upgraded ${REMIX}. ${billing}`,
-  ]);
+  expect(byFile('app/billing.ts')).toEqual([billing]);
   expect(byFile('app/changed.ts')).toEqual([
     'RELEASE_CANDIDATE_API_VERSION was removed in @shopify/shopify-api 12.0.0 (48d3631); choose a dated ApiVersion member.',
     '@shopify/shopify-api 12.0.0 (dc41d09) uses globalThis.crypto and says to remove setCrypto calls.',
@@ -335,4 +337,211 @@ export default { projects: { storefront: shopifyApiProject({ apiType: ApiType.St
     expect.stringContaining('sets a Storefront API version here'),
     expect.stringContaining('sets a Storefront API version here'),
   ]);
+});
+
+it("keeps the templates' SHOP_CUSTOM_DOMAIN line, which 13.0.0 ignores, and stops on other customShopDomains", () => {
+  const moves = [{ name: API, from: '11.12.0', to: '14.0.1' }];
+  const result = changes(
+    {
+      'app/shopify.server.ts': `import { shopifyApp } from '${REMIX}/server';
+export const shopify = shopifyApp({
+  apiVersion: ApiVersion.April26,
+  ...(process.env.SHOP_CUSTOM_DOMAIN
+    ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
+    : {}),
+});
+`,
+      'app/static.server.ts': `import { shopifyApp } from '${REMIX}/server';
+export const shopify = shopifyApp({ apiVersion: ApiVersion.April26, customShopDomains: ['a\\.example\\.com'] });
+`,
+    },
+    REMIX,
+    moves,
+  );
+  expect(result.edits).toEqual([]);
+  expect(result.notes).toEqual([expect.stringContaining('fa091e35')]);
+  expect(result.stops).toEqual([
+    expect.objectContaining({
+      file: 'app/static.server.ts',
+      reason: expect.stringContaining('78c8968'),
+    }),
+  ]);
+});
+
+it('replaces <AppProvider embedded={false}> with what it rendered, as 0dbb90c says', () => {
+  const ROUTER = '@shopify/shopify-app-react-router';
+  const moves = [{ name: ROUTER, from: '1.1.1', to: '2.0.1' }];
+  const login = `import { AppProvider } from '${ROUTER}/react';
+import { useState } from 'react';
+
+export default function Auth() {
+  return (
+    <AppProvider embedded={false}>
+      <s-page>Log in</s-page>
+    </AppProvider>
+  );
+}
+`;
+  const result = changes(
+    {
+      'app/routes/auth.login/route.tsx': login,
+      'app/routes/other.tsx': `import { AppProvider, other } from '${ROUTER}/react';
+export const a = <AppProvider embedded={false} i18n={x}><p /></AppProvider>;
+export const b = <AppProvider embedded={false}><p /></AppProvider>;
+`,
+      'app/routes/app.tsx': `import { AppProvider as ShopifyAppProvider } from '${ROUTER}/react';
+export const app = <ShopifyAppProvider embedded apiKey={key}><p /></ShopifyAppProvider>;
+`,
+    },
+    ROUTER,
+    moves,
+  );
+  expect(result.after('app/routes/auth.login/route.tsx')).toBe(`import { useState } from 'react';
+
+export default function Auth() {
+  return (
+    <>
+      <script src="https://cdn.shopify.com/shopifycloud/polaris.js" />
+      <s-page>Log in</s-page>
+    </>
+  );
+}
+`);
+  // An aliased import is the same component.
+  expect(result.after('app/routes/app.tsx')).toContain('<ShopifyAppProvider apiKey={key}>');
+  // Another prop stops, and the import stays while an element still uses it.
+  expect(result.after('app/routes/other.tsx')).toContain(`import { AppProvider, other }`);
+  expect(result.stops).toEqual([
+    expect.objectContaining({
+      file: 'app/routes/other.tsx',
+      reason: expect.stringContaining('0dbb90c'),
+    }),
+  ]);
+});
+
+it("lets line-item and one-time billing plans and the adapters' billing context through", () => {
+  const result = changes({
+    'app/shopify.server.ts': `import { shopifyApp, BillingInterval } from '${REMIX}/server';
+export const shopify = shopifyApp({
+  apiVersion: ApiVersion.April26,
+  billing: {
+    Pro: { lineItems: [{ amount: 5, currencyCode: 'USD', interval: BillingInterval.Every30Days }] },
+    Once: { amount: 9, currencyCode: 'USD', interval: BillingInterval.OneTime },
+  },
+});
+`,
+    'app/routes/app.tsx': `import { authenticate } from '${REMIX}/server';
+import '${REMIX}/server';
+export const loader = async ({ request }) => {
+  const { billing } = await authenticate.admin(request);
+  return billing.require({ plans: ['Pro'] });
+};
+`,
+    'app/flat.server.ts': `import { shopifyApp, BillingInterval } from '${REMIX}/server';
+export const flat = shopifyApp({
+  apiVersion: ApiVersion.April26,
+  billing: { Pro: { amount: 5, currencyCode: 'USD', interval: BillingInterval.Every30Days } },
+});
+`,
+  });
+  expect(result.stops.map((stop) => stop.file)).toEqual(['app/flat.server.ts']);
+});
+
+it('pins the dated string on the locked SDK only for GraphQL-only apps, webhook topics included', () => {
+  const schema = shopifySchema(pinnedShopifySchema('admin', '2026-10').content);
+  const pins = (files: Record<string, string>, release = '11.12.0', rest = 0) => {
+    const repository = {
+      root: '/repository',
+      files: Object.entries(files).map(([path, content]) => ({ path, content })),
+      dependencies: [],
+      lockfiles: [],
+      warnings: [],
+    };
+    const result = shopifyVersionStringPins(
+      repository,
+      {
+        rest: Array.from({ length: rest }, () => ({
+          file: 'a',
+          line: 1,
+          column: 1,
+          expression: '',
+        })),
+        versions: [],
+      },
+      release,
+      '2026-10',
+      schema,
+    );
+    return 'reason' in result
+      ? result.reason
+      : Object.fromEntries(
+          Object.entries(files).map(([path, content]) => [
+            path,
+            applySourceEdits(
+              content,
+              result.edits.filter((edit) => edit.file === path),
+            ),
+          ]),
+        );
+  };
+  const server = `import { LATEST_API_VERSION, shopifyApp, DeliveryMethod } from '${REMIX}/server';
+const shopify = shopifyApp({
+  apiVersion: LATEST_API_VERSION,
+  webhooks: { APP_UNINSTALLED: { deliveryMethod: DeliveryMethod.Http, callbackUrl: '/webhooks' } },
+  hooks: { afterAuth: async ({ session }) => shopify.registerWebhooks({ session }) },
+});
+`;
+  expect(
+    pins({
+      'app/shopify.server.ts': server,
+      'app/codegen.js': `const { ApiVersion } = require('${API}');\nmodule.exports = { apiVersion: ApiVersion.October24 };\n`,
+    }),
+  ).toEqual({
+    'app/shopify.server.ts': server
+      .replace('LATEST_API_VERSION, shopifyApp', 'ApiVersion, shopifyApp')
+      .replace('apiVersion: LATEST_API_VERSION', "apiVersion: '2026-10' as ApiVersion"),
+    'app/codegen.js': `const { ApiVersion } = require('${API}');\nmodule.exports = { apiVersion: '2026-10' };\n`,
+  });
+  expect(
+    pins({ 'app/shopify.server.ts': server.replace('APP_UNINSTALLED', 'NOT_A_TOPIC') }),
+  ).toContain(
+    'registers the webhook topic NOT_A_TOPIC, which is not a 2026-10 WebhookSubscriptionTopic',
+  );
+  expect(pins({ 'app/shopify.server.ts': server }, '14.0.1')).toContain('majors 8 to 13 only');
+  expect(pins({ 'app/shopify.server.ts': server }, '11.12.0', 1)).toContain('REST Admin requests');
+  expect(
+    pins({
+      'app/shopify.server.ts': server,
+      'app/routes/app.tsx': `import { authenticate } from '../shopify.server';\nexport const loader = async ({ request }) => (await authenticate.admin(request)).billing.require({});\n`,
+    }),
+  ).toContain('uses billing');
+});
+
+it('drops the template restResources crossing remix 4 when no code reads .rest', () => {
+  const moves = [{ name: REMIX, from: '3.8.2', to: '5.0.1' }];
+  const server = `import { shopifyApp } from '${REMIX}/server';
+import { restResources } from '${API}/rest/admin/2024-07';
+export const shopify = shopifyApp({
+  apiVersion: ApiVersion.April26,
+  restResources,
+  future: {},
+});
+`;
+  const result = changes({ 'app/shopify.server.ts': server }, REMIX, moves);
+  expect(result.after('app/shopify.server.ts')).toBe(`import { shopifyApp } from '${REMIX}/server';
+export const shopify = shopifyApp({
+  apiVersion: ApiVersion.April26,
+  future: {},
+});
+`);
+  // A `.rest` read anywhere keeps it, and REST stops elsewhere.
+  const rest = changes(
+    {
+      'app/shopify.server.ts': server,
+      'app/routes/app.tsx': `export const count = (admin) => admin.rest.resources.Product.count({});\n`,
+    },
+    REMIX,
+    moves,
+  );
+  expect(rest.edits).toEqual([]);
 });

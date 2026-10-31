@@ -203,6 +203,16 @@ All four follow the existing rule style:
 
 **Past rows.** One: dubbl-org/dubbl, whose six retrieve calls fail the upgraded type check with TS2353 in all three l2-push-249 runs (40624045392, 40688452206, 40637566055); [#384](https://github.com/pierceluu10/Refit/pull/384)'s AI repair made the same move and it was reviewed `correct`. dubbl also stops on compared `inbound_transfer` enum values, so the rule alone does not publish it validated. The hosted worker's built-in adapter maps no retrieve operations, so there the rule only applies to configured adapters.
 
+### `stripe-account-retrieve-current`
+
+**Change.** stripe-node 23 declares `retrieve(id: string | null, params?, options?)` on accounts, so `stripe.accounts.retrieve()` with no argument fails the upgraded type check with TS2554. No stripe-node CHANGELOG entry or migration guide states this (the CHANGELOG mentions `accounts.retrieve` only for URI encoding in 22.2.3, read 2026-10-28). The evidence is stripe-node 23.0.0's own files: `retrieve` is documented "Pass `null` as the account id to retrieve details about your own account" and, given no string id, requests `GET /v1/account`; `retrieveCurrent(params, options)` always requests `GET /v1/account` (`cjs/resources/Accounts.js`, `Accounts.d.ts`).
+
+**Edit.** A traced `accounts.retrieve()` call with no argument becomes `accounts.retrieveCurrent()` (`accountRetrieveCurrentEdits` in `pipeline/operation-reach.ts`): the same request.
+
+**Stops.** Any argument (an id, `null`, params), optional calls and test files are left alone.
+
+**Rollout.** As `stripe-request-options-last`: only when the target's stripe-node release is 22 or later, riding other rule edits or the version bump with the stripe-node upgrade, never a patch alone. Past rows: chessco/icellshoppos (two calls, TS2554 in run 40791364860).
+
 ### Required properties a kept request move sends
 
 `promotion` became required on `promotionCodes.create` in clover, and `stripe-promotion-code-promotion` sends the `coupon` there as `promotion: { type: 'coupon', coupon }`. The `new-required-request-property` reach did not credit the edit, so the change still blocked. It is now `handled` when a kept request move in the call's own literal has the required top-level property as its documented replacement. Past rows: boristenkes/shop.co, whose only contract stop with passing checks is this one in all three l2-push-249 runs. EngMajdSayedTaha/reelspy and helloworld9912/Stripe-Account-Migration build that request where Refit cannot read it, so they keep stopping.
