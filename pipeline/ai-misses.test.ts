@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { FallbackResult, OpenItem } from './ai-fallback.ts';
 import {
+  checkFailureCause,
   codeShape,
   missRecords,
   patternMatcher,
@@ -171,6 +172,49 @@ describe('miss records and rule candidates', () => {
     expect(record.ai).toEqual(
       expect.objectContaining({ status: 'no-attempt', gatesFailed: [], pattern: null }),
     );
+  });
+
+  it('lists check-infrastructure gaps apart from rules', () => {
+    const baseline = (repo: string) =>
+      missRecords(
+        { repo, commit: 'a'.repeat(40), provider: 'openai', language: 'js' },
+        [
+          item(
+            'a.ts',
+            'Refit proposed gpt-3.5-turbo → gpt-5.6-terra; its checks returned validation-failed: Validation returned baseline-failed; publication was not attempted.',
+            { kind: 'model-fix-failed' },
+          ),
+        ],
+        [source],
+        null,
+      );
+    const candidates = ruleCandidates([...baseline('dev/one'), ...baseline('dev/two')]);
+    expect(candidates.map((candidate) => candidate.status)).toEqual(['infrastructure']);
+    const text = renderProposal(candidates, {
+      lists: ['openai-dev-30'],
+      runs: ['1'],
+      commit: 'f'.repeat(40),
+      records: 2,
+      date: '2026-10-29',
+      infrastructure: { 'npm could not re-resolve the lockfile': 1 },
+    });
+    expect(text).toContain('## Check-infrastructure gaps (not rule candidates)');
+    expect(text).toContain('because of npm could not re-resolve the lockfile: 1');
+    expect(text).not.toContain('## Withheld groups');
+    expect(
+      checkFailureCause('`npm test` before and after in offline Docker: baseline-failed.'),
+    ).toBe('the checks already fail on the original code');
+    expect(
+      checkFailureCause(
+        'The AI changed dependency versions; Refit re-resolves only a single package-lock.json, and this repository commits yarn.lock.',
+      ),
+    ).toContain('pnpm or Yarn');
+    expect(checkFailureCause('`npm test` before and after in offline Docker: failed.')).toBe(null);
+    expect(
+      checkFailureCause(
+        'Neither the tests nor the type check passed on the original code, so no check shows the patch works.',
+      ),
+    ).toBe('the checks already fail on the original code');
   });
 
   it('withholds a group no saved quote backs', () => {
