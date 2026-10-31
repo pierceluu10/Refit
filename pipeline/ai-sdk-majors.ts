@@ -10,6 +10,7 @@ import { readRepository } from './repository.ts';
 import type { ProofCall } from './ai-request-proof.ts';
 import type { DeadlineEntry } from './deadline-registry.ts';
 import type { Repository, SourceEdit } from './types.ts';
+import { interfaceToAlias, namedPathEdit, type NamedPathMethod } from './sdk-type-repair.ts';
 
 // SDK major upgrades for the AI providers (item 4): finds the calls a major version changes and
 // rewrites them with the provider's documented mapping (data/rules/<provider>/sdk-majors.json).
@@ -31,6 +32,11 @@ export interface SdkMajorStop {
   // change its outputs with nothing forcing it (decision A, 2026-10-29). Reported as "SDK upgrade
   // available, not required", never as a failure.
   category?: 'optional-upgrade';
+  // A call on a receiver Refit did not trace whose method an `auto` rule renames: on a typed
+  // receiver the new SDK's type check reports it, and the type-error loop (sdk-type-repair.ts)
+  // renames it. It blocks unless the repository type-checks, and even then the draft is withheld
+  // while `old` is still called anywhere in the file after the loop.
+  deferred?: { old: string };
 }
 
 export interface SdkMajorProposal {
@@ -111,7 +117,7 @@ function callAt(source: ts.SourceFile, line: number, column: number, expression:
   return found;
 }
 
-function importsPackage(content: string, name: string) {
+export function importsPackage(content: string, name: string) {
   return [`'${name}'`, `"${name}"`, `'${name}/`, `"${name}/`].some((needle) =>
     content.includes(needle),
   );
@@ -226,6 +232,7 @@ function stop(
   reason: string,
   blocking = true,
   category?: SdkMajorStop['category'],
+  deferred?: SdkMajorStop['deferred'],
 ) {
   if (context.rules.has(rule)) context.used.add(rule);
   if (
@@ -233,7 +240,15 @@ function stop(
       (item) => item.file === file && item.line === line && item.reason === reason,
     )
   )
-    context.stops.push({ file, line, rule, reason, blocking, ...(category ? { category } : {}) });
+    context.stops.push({
+      file,
+      line,
+      rule,
+      reason,
+      blocking,
+      ...(category ? { category } : {}),
+      ...(deferred ? { deferred } : {}),
+    });
 }
 
 // `error.response` read only where it exists: `error.response?.x`, or inside `if (error.response)`
@@ -902,6 +917,9 @@ function openAiV4(
     (rule) => rule.family === 'removed-method' && applies(rule),
   );
   const named = [...context.rules.values()].find((rule) => rule.family === 'named-path-parameters');
+  const namedRewrite = [...context.rules.values()].find(
+    (rule) => rule.family === 'named-path-rewrite' && rule.status === 'auto',
+  );
   const web = [...context.rules.values()].find((rule) => rule.family === 'web-response');
   const tracedStarts = new Map<string, Set<number>>();
   for (const call of sdkCalls) {
@@ -962,8 +980,17 @@ function openAiV4(
       ) &&
       node.arguments.length >= 2 &&
       !ts.isObjectLiteralExpression(node.arguments[1])
-    )
-      stop(context, file.path, line, named.rule, named.summary);
+    ) {
+      // The leading ids move into the params object under the names the SDK gives them.
+      const methods = (namedRewrite?.data.methods ?? {}) as Record<string, NamedPathMethod>;
+      const method =
+        namedRewrite && applies(namedRewrite)
+          ? (methods[(rename?.data.new as string | undefined) ?? path] ?? methods[path])
+          : undefined;
+      const moved = method && namedPathEdit(node, method, source);
+      if (moved) edit(context, file.path, moved.start, moved.end, moved.text, namedRewrite!.rule);
+      else stop(context, file.path, line, named.rule, named.summary);
+    }
   }
   if (web && applies(web))
     for (const file of context.repository.files) {
@@ -1002,6 +1029,11 @@ function openAiV4(
             lineOf(source, node.getStart()),
             'openai-node-untraced-renamed-call',
             `\`${node.expression.getText(source)}\` ends like a method openai v5 renamed or removed (${hit.rule}), and Refit could not trace its receiver to the client.`,
+            true,
+            undefined,
+            hit.family === 'method-rename' && hit.status === 'auto'
+              ? { old: hit.data.old as string }
+              : undefined,
           );
       }
       ts.forEachChild(node, visit);
@@ -1807,6 +1839,7 @@ function anthropicClients(context: Context, file: string, source: ts.SourceFile)
   const header = context.rules.get('anthropic-ts-x-api-key-header');
   const compaction = context.rules.get('anthropic-ts-compaction-control');
   const union = context.rules.get('anthropic-ts-message-param-union');
+  const alias = context.rules.get('anthropic-ts-message-param-interface-alias');
   const platform = context.rules.get('anthropic-ts-platform-credentials');
   const visit = (node: ts.Node) => {
     if (
@@ -1860,8 +1893,16 @@ function anthropicClients(context: Context, file: string, source: ts.SourceFile)
           type.expression.getText(source).split('.').at(-1) ?? '',
         ),
       )
-    )
-      stop(context, file, line(), union.rule, union.summary);
+    ) {
+      // An interface over the union becomes the guide's type alias; a class still stops.
+      const declaration = node.parent;
+      const moved =
+        alias &&
+        ts.isInterfaceDeclaration(declaration) &&
+        interfaceToAlias(declaration, source, alias.data.names as string[]);
+      if (moved) edit(context, file, moved.start, moved.end, moved.text, alias!.rule);
+      else stop(context, file, line(), union.rule, union.summary);
+    }
     ts.forEachChild(node, visit);
   };
   visit(source);

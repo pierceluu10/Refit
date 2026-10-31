@@ -162,6 +162,18 @@ interface SdkStops {
   packageName?: string;
   targetMajor?: number;
   stops: Array<{ file: string; line: number; rule: string; reason: string; category?: string }>;
+  // The new type errors the SDK-major rules left after the package move (sdk-type-repair.ts).
+  typeRepair?: {
+    remaining: Array<{
+      file: string;
+      line: number;
+      code: string;
+      message: string;
+      text: string;
+      reason: string;
+      rules: Array<{ rule: string; summary: string }>;
+    }>;
+  };
 }
 
 const REVIEW_CHANGE: Record<string, ChangeType> = {
@@ -266,7 +278,25 @@ export function openItems(bundle: ScanBundle): OpenItem[] {
       target: sdk?.packageName ? `${sdk.packageName}@${sdk.targetMajor}` : null,
     });
   }
-  if (sdk && sdkFailed && !sdk.stops.length)
+  // Each type error the upgrade introduced and no rule repaired is its own item, at its line.
+  const typeErrors = sdkFailed ? (sdk?.typeRepair?.remaining ?? []) : [];
+  for (const error of typeErrors)
+    add({
+      kind: 'sdk-major',
+      provider: sdk?.provider ?? bundle.provider ?? '',
+      ref: `sdk-type-error:${error.code}`,
+      changeType: 'old-sdk-major',
+      file: error.file,
+      line: error.line,
+      text: error.text,
+      reason: `After the move to ${sdk?.packageName} ${sdk?.targetMajor}, the type check reports ${error.code} here: ${error.message} ${error.reason}${
+        error.rules.length
+          ? ` Related rules: ${error.rules.map((rule) => `${rule.rule} (${rule.summary})`).join('; ')}`
+          : ''
+      }`,
+      target: sdk?.packageName ? `${sdk.packageName}@${sdk.targetMajor}` : null,
+    });
+  if (sdk && sdkFailed && !sdk.stops.length && !typeErrors.length)
     add({
       kind: 'sdk-major',
       provider: sdk.provider ?? bundle.provider ?? '',
@@ -429,8 +459,13 @@ export function quotedSources(
       sources.set(item.ref, { ref: item.ref, url: found.url, quote: found.quote, summary: '' });
       continue;
     }
+    // A type error after an SDK upgrade: the provider's migration guide the upgrade follows.
+    const typeError = item.ref.startsWith('sdk-type-error:');
     for (const table of context.tables) {
-      const rule = table.rules.find((candidate) => candidate.rule === item.ref);
+      if (typeError && (table.provider !== item.provider || table.kind !== 'sdk-major')) continue;
+      const rule = table.rules.find((candidate) =>
+        typeError ? candidate.family === 'package-target' : candidate.rule === item.ref,
+      );
       if (!rule) continue;
       sources.set(item.ref, {
         ref: item.ref,

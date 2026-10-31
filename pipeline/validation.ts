@@ -168,6 +168,12 @@ import {
   ungradedEvidence,
 } from './check-selection.ts';
 import { checkGate, type NamedCheck } from './check-gate.ts';
+import type { SdkRule } from './ai-sdk-majors.ts';
+import {
+  introducedTypeErrors as introducedTypeErrorsAt,
+  typeRepairLoop,
+  type TypeRepairResult,
+} from './sdk-type-repair.ts';
 import {
   behaviourTestFeedback,
   behaviourTestSkip,
@@ -3727,6 +3733,17 @@ export async function validateSourcePatch(options: {
   // The tests, build and type check as separate checks, run on both sides and decided by the
   // shared gate (check-gate.ts); without them, `command` is one check that must pass before and after.
   checks?: NamedCheck[];
+  // An SDK major upgrade: when the patch's type check reports errors the original code did not,
+  // the SDK-major table repairs them by rule round by round (sdk-type-repair.ts), and every check
+  // runs again on the repaired patch. What the rules leave is returned for the AI fallback.
+  // Read once the patch is proposed, since the proposal names the SDK.
+  typeRepair?: () => {
+    rules: SdkRule[];
+    fromMajor: number | null;
+    maxRounds?: number;
+    // Refit's checkJs type check, for a repository without one of its own.
+    typecheck?: string[];
+  } | null;
   onProgress?: (message: string) => void;
   signal?: AbortSignal;
 }) {
@@ -3755,35 +3772,40 @@ export async function validateSourcePatch(options: {
     await mkdir(candidateDirectory);
     await applyPatch(archive, candidateDirectory, join(root, 'source.patch'), diff);
     // Only committed text files the patch changed are published, each checked against its blob.
-    const [original, changed] = await Promise.all([
-      readRepository(baselineDirectory),
-      readRepository(candidateDirectory),
-    ]);
-    // The root package.json and lockfiles are read apart from the sources, so an SDK upgrade's
-    // package move is published with them (or alone, when no call changes).
-    const packageFiles = await Promise.all(
-      PACKAGE_FILES.map(async (path) => ({
-        path,
-        before: await readFile(join(baselineDirectory, path), 'utf8').catch(() => undefined),
-        content: await readFile(join(candidateDirectory, path), 'utf8').catch(() => undefined),
-      })),
+    const original = await readRepository(baselineDirectory);
+    const published = async () => {
+      const changed = await readRepository(candidateDirectory);
+      // The root package.json and lockfiles are read apart from the sources, so an SDK upgrade's
+      // package move is published with them (or alone, when no call changes).
+      const packageFiles = await Promise.all(
+        PACKAGE_FILES.map(async (path) => ({
+          path,
+          before: await readFile(join(baselineDirectory, path), 'utf8').catch(() => undefined),
+          content: await readFile(join(candidateDirectory, path), 'utf8').catch(() => undefined),
+        })),
+      );
+      const files: (PublicationFile & { before: string })[] = [];
+      for (const file of [
+        ...changed.files.map((file) => ({
+          ...file,
+          before: original.files.find((source) => source.path === file.path)?.content,
+        })),
+        ...packageFiles,
+      ]) {
+        if (file.before === undefined || file.content === undefined || file.before === file.content)
+          continue;
+        files.push({
+          path: file.path,
+          mode: committedMode(entries, file.path, file.before),
+          content: file.content,
+          before: file.before,
+        });
+      }
+      return files;
+    };
+    const publicationFiles: PublicationFile[] = (await published()).map(
+      ({ before: _, ...file }) => file,
     );
-    const publicationFiles: PublicationFile[] = [];
-    for (const file of [
-      ...changed.files.map((file) => ({
-        ...file,
-        before: original.files.find((source) => source.path === file.path)?.content,
-      })),
-      ...packageFiles,
-    ]) {
-      if (file.before === undefined || file.content === undefined || file.before === file.content)
-        continue;
-      publicationFiles.push({
-        path: file.path,
-        mode: committedMode(entries, file.path, file.before),
-        content: file.content,
-      });
-    }
     // Every file the patch touches is published, or the patch stops: a draft never leaves part of
     // its change behind.
     const touched = [...diff.matchAll(/^diff --git a\/(\S+) b\/(\S+)$/gm)].flatMap((match) => [
@@ -3813,7 +3835,7 @@ export async function validateSourcePatch(options: {
       environment = await snapshotDependencies(prepared, dependencies);
     }
     options.signal?.throwIfAborted();
-    const common = {
+    let common = {
       revision,
       image,
       runtime,
@@ -3848,16 +3870,93 @@ export async function validateSourcePatch(options: {
       options.signal?.throwIfAborted();
       const prepared = await candidate();
       options.onProgress?.('Running patched checks in offline Docker...');
-      const after: CheckResult[] = [];
+      let after: CheckResult[] = [];
       for (const check of options.checks)
         after.push(await run(candidateDirectory, check.command, prepared.dependencies));
-      const gate = checkGate(
-        options.checks.map((check, index) => ({
-          name: check.name,
-          baseline: before[index],
-          patched: after[index],
-        })),
-      );
+      const gated = () =>
+        checkGate(
+          options.checks!.map((check, index) => ({
+            name: check.name,
+            baseline: before[index],
+            patched: after[index],
+          })),
+        );
+      let gate = gated();
+      const typed = options.checks.findIndex((check) => check.name === 'typecheck');
+      let typeRepair: TypeRepairResult | undefined;
+      const repairWith = options.typeRepair?.();
+      // Without a type check of its own the repository gets Refit's checkJs one, run for the loop
+      // only: it never counts in the gate, and what it still reports leaves the patch unvalidated.
+      const own = typed >= 0;
+      const typecheck = own ? options.checks[typed].command : repairWith?.typecheck;
+      let typeBaseline = own ? before[typed] : undefined;
+      let typePatched = own ? after[typed] : undefined;
+      if (repairWith && !own && typecheck) {
+        typeBaseline = await run(baselineDirectory, typecheck, dependencies);
+        typePatched = await run(candidateDirectory, typecheck, prepared.dependencies);
+      }
+      if (
+        repairWith &&
+        typecheck &&
+        typeBaseline &&
+        typePatched &&
+        typePatched.status === 'failed' &&
+        (own ? gate.checks[typed].outcome === 'regressed' : typeBaseline.status !== 'error')
+      ) {
+        options.onProgress?.('Repairing the type errors the upgrade introduces...');
+        const committed = new Set(original.files.map((file) => file.path));
+        const written = new Set<string>();
+        const baselineTypes = typeBaseline;
+        typeRepair = await typeRepairLoop({
+          rules: repairWith.rules,
+          fromMajor: repairWith.fromMajor,
+          maxRounds: repairWith.maxRounds,
+          errors: introducedTypeErrorsAt(baselineTypes, typePatched),
+          // Only committed sources: never an installed package or a file the build writes.
+          read: async (path) =>
+            committed.has(path)
+              ? readFile(join(candidateDirectory, path), 'utf8').catch(() => undefined)
+              : undefined,
+          typecheck: async (files) => {
+            for (const [path, content] of files) {
+              await writeFile(join(candidateDirectory, path), content);
+              written.add(path);
+            }
+            options.signal?.throwIfAborted();
+            const rerun = await run(candidateDirectory, typecheck, prepared.dependencies);
+            if (own) after[typed] = rerun;
+            return introducedTypeErrorsAt(baselineTypes, rerun);
+          },
+        });
+        if (!own) typeRepair = { ...typeRepair, checkJs: true };
+        if (written.size) {
+          options.onProgress?.('Running patched checks on the repaired patch in offline Docker...');
+          after = [];
+          for (const check of options.checks)
+            after.push(await run(candidateDirectory, check.command, prepared.dependencies));
+          gate = gated();
+          const files = await published();
+          const repaired = renderPatch(
+            {
+              ...original,
+              files: files.map((file) => ({ path: file.path, content: file.before })),
+            },
+            files.map((file) => ({
+              file: file.path,
+              start: 0,
+              end: file.before.length,
+              replacement: file.content,
+              changeId: 'sdk-type-repair',
+            })),
+          );
+          common = {
+            ...common,
+            diff: repaired,
+            patchHash: digest(repaired),
+            publicationFiles: files.map(({ before: _, ...file }) => file),
+          };
+        }
+      }
       const joined = (runs: CheckResult[]): CheckResult => ({
         status: runs.every((item) => item.status === 'passed') ? 'passed' : 'failed',
         exitCode: runs.find((item) => item.exitCode !== 0)?.exitCode ?? 0,
@@ -3877,6 +3976,9 @@ export async function validateSourcePatch(options: {
         baseline: joined(before),
         patched: joined(after),
         gate,
+        ...(typeRepair
+          ? { typeRepair: { ...typeRepair, files: [...typeRepair.files.keys()] } }
+          : {}),
         ...namedBaselineStop(gate.status, joined(before)),
         checks: options.checks.map((check, index) => ({
           ...check,

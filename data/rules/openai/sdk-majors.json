@@ -78,10 +78,7 @@
       "summary": "Replaces `new OpenAIApi(new Configuration({ apiKey, organization, basePath }))` with `new OpenAI({ apiKey, organization, baseURL })`.",
       "data": {
         "fromMajor": 3,
-        "oldClasses": [
-          "Configuration",
-          "OpenAIApi"
-        ],
+        "oldClasses": ["Configuration", "OpenAIApi"],
         "newClass": "OpenAI",
         "options": {
           "apiKey": "apiKey",
@@ -333,10 +330,7 @@
         "fromMajor": 3,
         "old": "createTranscription",
         "new": "audio.transcriptions.create",
-        "parameters": [
-          "file",
-          "model"
-        ]
+        "parameters": ["file", "model"]
       }
     },
     {
@@ -573,10 +567,7 @@
       "summary": "v3 type and enum exports (such as `ChatCompletionRequestMessage`) are not in v4 and the guide does not map them; files importing them stop for review.",
       "data": {
         "fromMajor": 3,
-        "keep": [
-          "Configuration",
-          "OpenAIApi"
-        ]
+        "keep": ["Configuration", "OpenAIApi"]
       }
     },
     {
@@ -864,11 +855,7 @@
         "fromMajor": 4,
         "old": "openai/resources/beta/chat/completions",
         "new": "openai/resources/chat/completions",
-        "names": [
-          "ParsedChatCompletion",
-          "ParsedChoice",
-          "ParsedFunction"
-        ]
+        "names": ["ParsedChatCompletion", "ParsedChoice", "ParsedFunction"]
       }
     },
     {
@@ -884,6 +871,81 @@
         "fromMajor": 4,
         "oldPrefix": "openai/src",
         "newPrefix": "openai"
+      }
+    },
+    {
+      "rule": "openai-node-v5-core-error",
+      "family": "import-path",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "import 'openai/core/error';",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`openai/error` moved to `openai/core/error` in v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "openai/error",
+        "new": "openai/core/error"
+      }
+    },
+    {
+      "rule": "openai-node-v5-core-pagination",
+      "family": "import-path",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "import 'openai/core/pagination';",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`openai/pagination` moved to `openai/core/pagination` in v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "openai/pagination",
+        "new": "openai/core/pagination"
+      }
+    },
+    {
+      "rule": "openai-node-v5-core-resource",
+      "family": "import-path",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "import 'openai/core/resource';",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`openai/resource` moved to `openai/core/resource` in v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "openai/resource",
+        "new": "openai/core/resource"
+      }
+    },
+    {
+      "rule": "openai-node-v5-core-streaming",
+      "family": "import-path",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "import 'openai/core/streaming';",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`openai/streaming` moved to `openai/core/streaming` in v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "openai/streaming",
+        "new": "openai/core/streaming"
+      }
+    },
+    {
+      "rule": "openai-node-v5-core-uploads",
+      "family": "import-path",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "import 'openai/core/uploads';",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "`openai/uploads` moved to `openai/core/uploads` in v5.",
+      "data": {
+        "fromMajor": 4,
+        "old": "openai/uploads",
+        "new": "openai/core/uploads"
       }
     },
     {
@@ -987,10 +1049,7 @@
       "summary": "`runFunctions` is gone and `runTools` takes tools, not functions; the call stops for review.",
       "data": {
         "fromMajor": 4,
-        "old": [
-          "chat.completions.runFunctions",
-          "beta.chat.completions.runFunctions"
-        ]
+        "old": ["chat.completions.runFunctions", "beta.chat.completions.runFunctions"]
       }
     },
     {
@@ -1030,9 +1089,7 @@
       "summary": "`fileFromPath` with more than the path, or used other than as a call, has no mapped form; a use stops for review.",
       "data": {
         "fromMajor": 4,
-        "names": [
-          "fileFromPath"
-        ]
+        "names": ["fileFromPath"]
       }
     },
     {
@@ -1087,6 +1144,270 @@
       }
     },
     {
+      "rule": "openai-node-v5-named-path-rewrite",
+      "family": "named-path-rewrite",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "client.parents.children.retrieve('c_456', { parent_id: 'p_123' });",
+      "checkedAt": "2026-10-31",
+      "origin": "docs",
+      "summary": "Methods with several path parameters keep only the last one positional since v5; the leading ones move into the params object under the names the SDK gives them.",
+      "data": {
+        "fromMajor": 4,
+        "namesFrom": "openai@6.49.0 resources/**/*.js, the URL template of each method",
+        "methods": {
+          "fineTuning.checkpoints.permissions.delete": {
+            "parents": ["fine_tuned_model_checkpoint"],
+            "body": false
+          },
+          "vectorStores.files.retrieve": {
+            "parents": ["vector_store_id"],
+            "body": false
+          },
+          "vectorStores.files.update": {
+            "parents": ["vector_store_id"],
+            "body": true
+          },
+          "vectorStores.files.delete": {
+            "parents": ["vector_store_id"],
+            "body": false
+          },
+          "vectorStores.files.content": {
+            "parents": ["vector_store_id"],
+            "body": false
+          },
+          "vectorStores.fileBatches.retrieve": {
+            "parents": ["vector_store_id"],
+            "body": false
+          },
+          "vectorStores.fileBatches.cancel": {
+            "parents": ["vector_store_id"],
+            "body": false
+          },
+          "vectorStores.fileBatches.listFiles": {
+            "parents": ["vector_store_id"],
+            "body": true
+          },
+          "beta.threads.runs.retrieve": {
+            "parents": ["thread_id"],
+            "body": false
+          },
+          "beta.threads.runs.update": {
+            "parents": ["thread_id"],
+            "body": true
+          },
+          "beta.threads.runs.cancel": {
+            "parents": ["thread_id"],
+            "body": false
+          },
+          "beta.threads.runs.submitToolOutputs": {
+            "parents": ["thread_id"],
+            "body": true
+          },
+          "beta.threads.runs.steps.retrieve": {
+            "parents": ["thread_id", "run_id"],
+            "body": true
+          },
+          "beta.threads.runs.steps.list": {
+            "parents": ["thread_id"],
+            "body": true
+          },
+          "beta.threads.messages.retrieve": {
+            "parents": ["thread_id"],
+            "body": false
+          },
+          "beta.threads.messages.update": {
+            "parents": ["thread_id"],
+            "body": true
+          },
+          "beta.threads.messages.delete": {
+            "parents": ["thread_id"],
+            "body": false
+          },
+          "admin.organization.users.roles.retrieve": {
+            "parents": ["user_id"],
+            "body": false
+          },
+          "admin.organization.users.roles.delete": {
+            "parents": ["user_id"],
+            "body": false
+          },
+          "admin.organization.groups.users.retrieve": {
+            "parents": ["group_id"],
+            "body": false
+          },
+          "admin.organization.groups.users.delete": {
+            "parents": ["group_id"],
+            "body": false
+          },
+          "admin.organization.groups.roles.retrieve": {
+            "parents": ["group_id"],
+            "body": false
+          },
+          "admin.organization.groups.roles.delete": {
+            "parents": ["group_id"],
+            "body": false
+          },
+          "admin.organization.projects.users.retrieve": {
+            "parents": ["project_id"],
+            "body": false
+          },
+          "admin.organization.projects.users.update": {
+            "parents": ["project_id"],
+            "body": true
+          },
+          "admin.organization.projects.users.delete": {
+            "parents": ["project_id"],
+            "body": false
+          },
+          "admin.organization.projects.users.roles.create": {
+            "parents": ["project_id"],
+            "body": true
+          },
+          "admin.organization.projects.users.roles.retrieve": {
+            "parents": ["project_id", "user_id"],
+            "body": false
+          },
+          "admin.organization.projects.users.roles.list": {
+            "parents": ["project_id"],
+            "body": true
+          },
+          "admin.organization.projects.users.roles.delete": {
+            "parents": ["project_id", "user_id"],
+            "body": false
+          },
+          "admin.organization.projects.serviceAccounts.retrieve": {
+            "parents": ["project_id"],
+            "body": false
+          },
+          "admin.organization.projects.serviceAccounts.update": {
+            "parents": ["project_id"],
+            "body": true
+          },
+          "admin.organization.projects.serviceAccounts.delete": {
+            "parents": ["project_id"],
+            "body": false
+          },
+          "admin.organization.projects.serviceAccounts.apiKeys.create": {
+            "parents": ["project_id"],
+            "body": true
+          },
+          "admin.organization.projects.apiKeys.retrieve": {
+            "parents": ["project_id"],
+            "body": false
+          },
+          "admin.organization.projects.apiKeys.delete": {
+            "parents": ["project_id"],
+            "body": false
+          },
+          "admin.organization.projects.rateLimits.updateRateLimit": {
+            "parents": ["project_id"],
+            "body": true
+          },
+          "admin.organization.projects.groups.retrieve": {
+            "parents": ["project_id"],
+            "body": true
+          },
+          "admin.organization.projects.groups.delete": {
+            "parents": ["project_id"],
+            "body": false
+          },
+          "admin.organization.projects.groups.roles.create": {
+            "parents": ["project_id"],
+            "body": true
+          },
+          "admin.organization.projects.groups.roles.retrieve": {
+            "parents": ["project_id", "group_id"],
+            "body": false
+          },
+          "admin.organization.projects.groups.roles.list": {
+            "parents": ["project_id"],
+            "body": true
+          },
+          "admin.organization.projects.groups.roles.delete": {
+            "parents": ["project_id", "group_id"],
+            "body": false
+          },
+          "admin.organization.projects.roles.retrieve": {
+            "parents": ["project_id"],
+            "body": false
+          },
+          "admin.organization.projects.roles.update": {
+            "parents": ["project_id"],
+            "body": true
+          },
+          "admin.organization.projects.roles.delete": {
+            "parents": ["project_id"],
+            "body": false
+          },
+          "admin.organization.projects.spendAlerts.retrieve": {
+            "parents": ["project_id"],
+            "body": false
+          },
+          "admin.organization.projects.spendAlerts.update": {
+            "parents": ["project_id"],
+            "body": true
+          },
+          "admin.organization.projects.spendAlerts.delete": {
+            "parents": ["project_id"],
+            "body": false
+          },
+          "conversations.items.retrieve": {
+            "parents": ["conversation_id"],
+            "body": true
+          },
+          "conversations.items.delete": {
+            "parents": ["conversation_id"],
+            "body": false
+          },
+          "evals.runs.retrieve": {
+            "parents": ["eval_id"],
+            "body": false
+          },
+          "evals.runs.delete": {
+            "parents": ["eval_id"],
+            "body": false
+          },
+          "evals.runs.cancel": {
+            "parents": ["eval_id"],
+            "body": false
+          },
+          "evals.runs.outputItems.retrieve": {
+            "parents": ["eval_id", "run_id"],
+            "body": false
+          },
+          "evals.runs.outputItems.list": {
+            "parents": ["eval_id"],
+            "body": true
+          },
+          "containers.files.retrieve": {
+            "parents": ["container_id"],
+            "body": false
+          },
+          "containers.files.delete": {
+            "parents": ["container_id"],
+            "body": false
+          },
+          "containers.files.content.retrieve": {
+            "parents": ["container_id"],
+            "body": false
+          },
+          "skills.versions.retrieve": {
+            "parents": ["skill_id"],
+            "body": false
+          },
+          "skills.versions.delete": {
+            "parents": ["skill_id"],
+            "body": false
+          },
+          "skills.versions.content.retrieve": {
+            "parents": ["skill_id"],
+            "body": false
+          }
+        }
+      }
+    },
+    {
       "rule": "openai-node-v5-web-response",
       "family": "web-response",
       "status": "review",
@@ -1097,10 +1418,7 @@
       "summary": "`withResponse()` and `asResponse()` return Web fetch objects since v5; a use stops for review.",
       "data": {
         "fromMajor": 4,
-        "methods": [
-          "withResponse",
-          "asResponse"
-        ]
+        "methods": ["withResponse", "asResponse"]
       }
     },
     {

@@ -2,6 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { loadAiRuleTables } from './ai-rules.ts';
 import {
   fallbackEligible,
   fallbackInput,
@@ -292,6 +293,77 @@ describe('open items', () => {
     ])
       expect(fallbackEligible(outcome, items)).toBe(false);
     expect(fallbackEligible('needs-review', [])).toBe(false);
+  });
+});
+
+describe('type errors left after an SDK upgrade', () => {
+  const remaining = [
+    {
+      file: 'src/assistant.ts',
+      line: 55,
+      code: 'TS2345',
+      message:
+        "Argument of type 'string' is not assignable to parameter of type 'RunRetrieveParams'.",
+      text: 'run = await openai.beta.threads.runs.retrieve(threadId!, run.id);',
+      reason: 'No mapping in the SDK-major table matches this error.',
+      rules: [{ rule: 'openai-node-v5-named-path-params', summary: 'Named path parameters.' }],
+    },
+    {
+      file: 'src/chat.ts',
+      line: 41,
+      code: 'TS2345',
+      message:
+        "Argument of type 'Stream<ChatCompletionChunk>' is not assignable to parameter of type 'Response'.",
+      text: 'const stream = OpenAIStream(response);',
+      reason: 'No mapping in the SDK-major table matches this error.',
+      rules: [],
+    },
+  ];
+  const failed = (status: string): ScanBundle => ({
+    provider: 'openai',
+    migrations: {
+      validation: {
+        status,
+        reason: 'Validation returned regression; nothing is published.',
+        proposal: {
+          provider: 'openai',
+          packageName: 'openai',
+          targetMajor: 6,
+          stops: [],
+          typeRepair: { remaining },
+        },
+      },
+    },
+  });
+
+  it('gives each error the rules left its own item at its line, with the related rules', async () => {
+    const items = openItems(failed('validation-failed'));
+    expect(items.map((item) => `${item.ref} ${item.file}:${item.line}`)).toEqual([
+      'sdk-type-error:TS2345 src/assistant.ts:55',
+      'sdk-type-error:TS2345 src/chat.ts:41',
+    ]);
+    expect(items[0]).toMatchObject({
+      kind: 'sdk-major',
+      changeType: 'old-sdk-major',
+      text: remaining[0].text,
+      target: 'openai@6',
+    });
+    expect(items[0].reason).toContain('After the move to openai 6, the type check reports TS2345');
+    expect(items[0].reason).toContain('openai-node-v5-named-path-params (Named path parameters.)');
+    // The page the upgrade's target comes from (openai's 6.0.0 changelog) is each item's source.
+    const sources = quotedSources(items, {
+      deadlines: [],
+      quotes: [],
+      tables: await loadAiRuleTables(),
+    });
+    expect(sources[0]).toMatchObject({
+      ref: 'sdk-type-error:TS2345',
+      url: 'https://github.com/openai/openai-node/blob/master/CHANGELOG.md',
+    });
+  });
+
+  it('lists none once the upgrade validated', () => {
+    expect(openItems(failed('validated'))).toEqual([]);
   });
 });
 

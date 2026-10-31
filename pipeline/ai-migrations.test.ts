@@ -2,7 +2,13 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
-import { aiMigrationBody, aiMigrationTitle, proposeAiMigrations } from './ai-migrations.ts';
+import {
+  aiMigrationBody,
+  aiMigrationTitle,
+  checkJsTypeCheck,
+  proposeAiMigrations,
+  sdkTypeRepair,
+} from './ai-migrations.ts';
 import { loadAiRuleTables } from './ai-rules.ts';
 import type { Resolve } from './ai-sdk-upgrade.ts';
 
@@ -150,4 +156,53 @@ it('reports an Anthropic upgrade blocked only by sampling parameters as optional
   expect(proposal?.upgradeRefusal).toMatch(
     /^SDK upgrade available, not required \(would change outputs\)/,
   );
+});
+
+it('leaves a renamed call on an untraced receiver to the type-error loop only when a type check runs', async () => {
+  const root = await project({
+    'package.json': `${JSON.stringify({ name: 'app', dependencies: { openai: '^4.104.0' } }, null, 2)}\n`,
+    'package-lock.json': lock('4.104.0'),
+    'drop.ts': `import OpenAI from 'openai';
+const openai = new OpenAI();
+export const ok = () => openai.files.del('a');
+export const drop = (client: { files: OpenAI['files'] }) => client.files.del('b');
+`,
+  });
+  const tables = await loadAiRuleTables();
+  const refused = await proposeAiMigrations(root, tables, settings);
+  expect(refused?.patch).toBeNull();
+  expect(refused?.stops).toEqual([
+    expect.objectContaining({
+      rule: 'openai-node-untraced-renamed-call',
+      line: 4,
+      blocking: true,
+      deferred: { old: 'files.del' },
+    }),
+  ]);
+  const deferred = await proposeAiMigrations(root, tables, { ...settings, typeChecked: true });
+  expect(deferred?.upgradeRefusal).toBeNull();
+  expect(deferred?.patch).toContain("+export const ok = () => openai.files.delete('a');");
+  // The untraced call is not edited here; the loop renames it once the type check reports it.
+  expect(deferred?.patch).not.toContain("client.files.delete('b')");
+});
+
+it("type-checks a JavaScript-only SDK repository with Refit's checkJs config for the loop", async () => {
+  const proposal = (await proposeAiMigrations(
+    await project({ 'ask.js': SOURCE }),
+    await loadAiRuleTables(),
+    settings,
+  ))!;
+  const tables = await loadAiRuleTables();
+  const js = sdkTypeRepair(proposal, tables, ['ask.js', 'lib/b.cjs'])!;
+  expect(js.rules.every((rule) => rule.source.url)).toBe(true);
+  expect(js.fromMajor).toBe(3);
+  expect(js.typecheck?.slice(0, 2)).toEqual(['sh', '-c']);
+  expect(js.typecheck?.[2]).toContain('/refit/typescript/lib/tsc.js');
+  expect(JSON.parse(js.typecheck![4])).toMatchObject({
+    compilerOptions: { checkJs: true, moduleResolution: 'node16' },
+    files: ['ask.js', 'lib/b.cjs'],
+  });
+  // TypeScript sources mean the repository needs its own type check; none is generated.
+  expect(sdkTypeRepair(proposal, tables, ['ask.js', 'b.ts'])?.typecheck).toBeUndefined();
+  expect(checkJsTypeCheck(['a.js'])[3]).toBe('refit-check');
 });
