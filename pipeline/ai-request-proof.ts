@@ -1,6 +1,8 @@
+import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 import type { RequestProof } from './ai-migrations.ts';
+import { loadDeadlineRegistry, type DeadlineEntry } from './deadline-registry.ts';
 
 // Request-level proof (b) and output-shape proof (c) for a migrated AI call: the smallest request
 // of each migrated call shape, sent with the upgraded SDK and Refit's own test key. Keys come only
@@ -15,12 +17,34 @@ export const PROOF_KEYS: Record<ProofProvider, string> = {
   gemini: 'GEMINI_API_KEY',
 };
 
-// The cheapest model each probe uses unless the environment names another.
-const PROOF_MODELS: Record<ProofProvider, { env: string; model: string }> = {
-  openai: { env: 'REFIT_PROOF_OPENAI_MODEL', model: 'gpt-5.6-luna' },
+// The model each probe uses unless the environment names another. Refit's OpenAI proof project
+// allows only gpt-6.1-sol; Gemini's comes from the deadline registry (proofGeminiModel), since
+// Google retires its cheap models often.
+const PROOF_MODELS: Record<ProofProvider, { env: string; model?: string }> = {
+  openai: { env: 'REFIT_PROOF_OPENAI_MODEL', model: 'gpt-6.1-sol' },
   anthropic: { env: 'REFIT_PROOF_ANTHROPIC_MODEL', model: 'claude-haiku-5-5' },
-  gemini: { env: 'REFIT_PROOF_GEMINI_MODEL', model: 'gemini-2.5-flash-lite' },
+  gemini: { env: 'REFIT_PROOF_GEMINI_MODEL' },
 };
+
+const GEMINI_TEXT = /^gemini-(\d+)(?:\.(\d+))?-flash(-lite)?$/;
+
+// The Gemini model a proof sends: a plain flash text model Google names as a replacement in the
+// registry and that no registry entry retires, on any date. Flash-lite is preferred, then the
+// newest version.
+export function proofGeminiModel(entries: DeadlineEntry[]) {
+  const gemini = entries.filter((entry) => entry.provider === 'gemini' && entry.kind === 'model');
+  const listed = new Set(gemini.flatMap((entry) => entry.versions));
+  const [best] = [...new Set(gemini.map((entry) => entry.replacement ?? ''))]
+    .map((model) => ({ model, match: GEMINI_TEXT.exec(model) }))
+    .filter((item) => item.match && !listed.has(item.model))
+    .sort(
+      (a, b) =>
+        Number(!!b.match![3]) - Number(!!a.match![3]) ||
+        Number(b.match![1]) - Number(a.match![1]) ||
+        Number(b.match![2] ?? 0) - Number(a.match![2] ?? 0),
+    );
+  return best?.model;
+}
 
 // What a migrated call's request uses, so the output shapes it parses are probed too.
 export interface ProofCall {
@@ -46,15 +70,24 @@ async function invoke(client: Client, path: string, body: unknown) {
   return (method as (body: unknown) => Promise<unknown>).call(owner, body);
 }
 
-// Provider errors can echo part of a key ("Incorrect API key provided: sk-...abcd"); refit-bench
-// logs are public, so anything key-shaped is removed before a message is kept.
+// Provider errors can echo part of a key ("Incorrect API key provided: sk-...abcd") or name the
+// project, organization or account behind it ("proj_...", "org-...", Google's "projects/123");
+// refit-bench logs and artifacts are public, so all of these are removed before a message is kept.
 export function redact(text: string) {
   return text
     .replace(/\b(?:sk|rk|pk)-[A-Za-z0-9_*.-]{2,}/g, '[redacted]')
     .replace(/\bsk-ant-[A-Za-z0-9_*.-]+/g, '[redacted]')
     .replace(/\bAIza[0-9A-Za-z_*-]{4,}/g, '[redacted]')
-    .replace(/(api[_ -]?key[^:]*:\s*)\S+/gi, '$1[redacted]');
+    .replace(/(api[_ -]?key[^:]*:\s*)\S+/gi, '$1[redacted]')
+    .replace(/\b(?:proj|org|user|acct)[_-][A-Za-z0-9]{6,}/g, '[redacted]')
+    .replace(/\b(projects?|organizations?|accounts?)\/[^\s/'",;)]+/gi, '$1/[redacted]')
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '[redacted]')
+    .replace(/(project[_ ]?(?:id|number)\W{0,3})[\w-]+/gi, '$1[redacted]')
+    .replace(/\b\d{9,}\b/g, '[redacted]');
 }
+
+// A probe that cannot send its request with the proof project's model stays pending, never failed.
+class ProofPending extends Error {}
 
 function expect(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -101,11 +134,15 @@ const OPENAI_PROBES: Record<string, Probe> = {
       done.push(`stream parsed (${chunks} chunks)`);
     }
     if (call.tools) {
+      // "Starting with GPT-5.4, Chat Completions does not support tool calling with
+      // `reasoning_effort` values other than `none`" (docs/ai-docs/pages/openai-migrate-to-responses.md),
+      // and the default is not `none`, so the tool request says it.
       const tooled = (await invoke(client, call.call, {
         model,
         messages: [{ role: 'user', content: 'Record the word ok.' }],
         tools: [TOOL],
         tool_choice: { type: 'function', function: { name: 'record' } },
+        reasoning_effort: 'none',
         max_completion_tokens: 512,
       })) as { choices?: { message?: { tool_calls?: { function?: { arguments?: string } }[] } }[] };
       const argumentsText = tooled.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
@@ -134,13 +171,12 @@ const OPENAI_PROBES: Record<string, Probe> = {
     expect(typeof response.output_text === 'string', 'no output_text');
     return 'text parsed';
   },
-  'embeddings.create': async (client, _model, call) => {
-    const response = (await invoke(client, call.call, {
-      model: 'text-embedding-3-small',
-      input: 'ok',
-    })) as { data?: { embedding?: unknown }[] };
-    expect(Array.isArray(response.data?.[0]?.embedding), 'no embedding');
-    return 'embedding parsed';
+  // Embeddings need an embedding model, and the proof project allows only its one chat model, so
+  // no request is sent and no other model is tried.
+  'embeddings.create': async (_client, model) => {
+    throw new ProofPending(
+      `project allows only ${model}, which is not an embedding model; no embeddings request was sent.`,
+    );
   },
   'moderations.create': async (client, _model, call) => {
     const response = (await invoke(client, call.call, { input: 'ok' })) as {
@@ -215,10 +251,34 @@ const ANTHROPIC_PROBES: Record<string, Probe> = {
   },
 };
 
+const GEMINI_PROBES: Record<string, Probe> = {
+  'models.generateContent': async (client, model, call) => {
+    const response = (await invoke(client, call.call, {
+      model,
+      contents: 'Reply with the single word ok.',
+    })) as { text?: unknown };
+    expect(typeof response.text === 'string', 'no response.text');
+    return 'text parsed';
+  },
+  'models.generateContentStream': async (client, model, call) => {
+    const stream = (await invoke(client, call.call, {
+      model,
+      contents: 'Reply with the single word ok.',
+    })) as AsyncIterable<{ text?: unknown }>;
+    let chunks = 0;
+    for await (const chunk of stream) {
+      expect(chunk.text === undefined || typeof chunk.text === 'string', 'a chunk without text');
+      chunks++;
+    }
+    expect(chunks > 0, 'an empty stream');
+    return `stream parsed (${chunks} chunks)`;
+  },
+};
+
 const PROBES: Record<ProofProvider, Record<string, Probe>> = {
   openai: OPENAI_PROBES,
   anthropic: ANTHROPIC_PROBES,
-  gemini: {},
+  gemini: GEMINI_PROBES,
 };
 
 // The SDK is loaded from `sdkDirectory` (a directory where only the target release is installed),
@@ -230,6 +290,8 @@ export async function proveRequests(options: {
   packageName?: string;
   env?: NodeJS.ProcessEnv;
   load?: (packageName: string) => Promise<unknown>;
+  // The deadline registry's entries; read from data/deadlines.json when a Gemini proof needs them.
+  models?: DeadlineEntry[];
 }): Promise<RequestProof> {
   const env = options.env ?? process.env;
   const key = PROOF_KEYS[options.provider];
@@ -244,23 +306,37 @@ export async function proveRequests(options: {
       `${key} is not set in this environment, so no request was sent to ${options.provider}. The proof runs only in refit-bench Actions with Refit's own test key.`,
     );
   const packageName =
-    options.packageName ?? (options.provider === 'anthropic' ? '@anthropic-ai/sdk' : 'openai');
+    options.packageName ??
+    { openai: 'openai', anthropic: '@anthropic-ai/sdk', gemini: '@google/genai' }[options.provider];
   const load =
     options.load ??
     ((name: string) =>
+      // Resolved from the SDK directory the way Node resolves it there (the package's exports).
       import(
         options.sdkDirectory
-          ? pathToFileURL(join(options.sdkDirectory, 'node_modules', name, 'index.js')).href
+          ? pathToFileURL(createRequire(join(options.sdkDirectory, 'package.json')).resolve(name))
+              .href
           : name
       ));
   const module = (await load(packageName)) as Record<string, unknown>;
-  const Constructor = (module.OpenAI ?? module.Anthropic ?? module.default) as new (
-    options: Record<string, unknown>,
-  ) => Client;
+  const Constructor = (module.OpenAI ??
+    module.Anthropic ??
+    module.GoogleGenAI ??
+    module.default) as new (options: Record<string, unknown>) => Client;
   // `apiKey` is passed from the environment variable; it is never logged.
-  const client = new Constructor({ apiKey: env[key], maxRetries: 1, timeout: 60_000 });
+  const client = new Constructor(
+    options.provider === 'gemini'
+      ? { apiKey: env[key] }
+      : { apiKey: env[key], maxRetries: 1, timeout: 60_000 },
+  );
   const model =
-    env[PROOF_MODELS[options.provider].env]?.trim() || PROOF_MODELS[options.provider].model;
+    env[PROOF_MODELS[options.provider].env]?.trim() ||
+    PROOF_MODELS[options.provider].model ||
+    proofGeminiModel(options.models ?? (await loadDeadlineRegistry()).deadlines);
+  if (!model)
+    return pending(
+      'The deadline registry names no current Gemini flash model to send the proof with.',
+    );
   const calls: RequestProof['calls'] = [];
   for (const call of options.calls) {
     const probe = PROBES[options.provider][call.call];
@@ -276,6 +352,21 @@ export async function proveRequests(options: {
       calls.push({ call: call.call, status: 'accepted', detail: await probe(client, model, call) });
     } catch (error) {
       const status = (error as { status?: unknown }).status;
+      if (error instanceof ProofPending) {
+        calls.push({ call: call.call, status: 'pending', detail: error.message });
+        continue;
+      }
+      // The proof keys belong to Refit's own restricted projects, so a 403 means the project has
+      // not enabled the model or endpoint, not that the call shape is wrong.
+      if (status === 403) {
+        const message = error instanceof Error ? redact(error.message).slice(0, 240) : '';
+        calls.push({
+          call: call.call,
+          status: 'pending',
+          detail: `${error instanceof Error && /\bmodel/i.test(error.message) ? 'model' : 'request'} not enabled for Refit's project (HTTP 403${message ? `: ${message}` : ''})`,
+        });
+        continue;
+      }
       calls.push({
         call: call.call,
         status: 'rejected',
@@ -290,7 +381,7 @@ export async function proveRequests(options: {
     reason: rejected.length
       ? rejected.map((call) => `${call.call}: ${call.detail}`).join('; ')
       : unproved.length
-        ? `No minimal request for ${unproved.map((call) => call.call).join(', ')}.`
+        ? unproved.map((call) => `${call.call}: ${call.detail}`).join('; ')
         : `Accepted with ${model}.`,
     calls,
   };

@@ -69,6 +69,7 @@ it('reports Python, PaLM and the Gemini SDK swap as report only', async () => {
   const findings = await review({
     'app.py': `import openai
 openai.api_key = "x"
+x = openai.Embedding.create(model="text-embedding-3-small", input="a")
 # openai.Completion.create(model="x")
 r = openai.ChatCompletion.create(model="gpt-4o", messages=[])
 `,
@@ -77,8 +78,8 @@ r = openai.ChatCompletion.create(model="gpt-4o", messages=[])
     'gem.ts': `import { GoogleGenerativeAI } from '@google/generative-ai';\nexport const f = async (m: any) => (await m.generateContent('x')).response.text();\n`,
   });
   expect(findings.map((item) => `${item.file}:${item.line}:${item.rule}:${item.status}`)).toEqual([
-    'app.py:2:openai-python-v1:report',
-    'app.py:4:openai-python-v1:report',
+    'app.py:3:openai-python-v1:report',
+    'app.py:5:openai-python-v1:report',
     'gem.ts:1:gemini-generative-ai-js:report',
     'gem.ts:2:gemini-response-text-method:report',
     'llm.py:1:anthropic-beta-graduated-files-api:report',
@@ -102,5 +103,14 @@ it("marks a call two providers' rules match in a file importing both SDKs", asyn
   expect(findings.map((item) => [item.rule, item.ambiguous])).toEqual([
     ['anthropic-text-completions', true],
     ['openai-legacy-completions', true],
+  ]);
+});
+
+it('labels findings in test paths', async () => {
+  const findings = await review({
+    'src/models.test.ts': "export const names = ['chat-bison-001'];\n",
+  });
+  expect(findings).toEqual([
+    expect.objectContaining({ rule: 'gemini-palm-decommissioned', test: true }),
   ]);
 });

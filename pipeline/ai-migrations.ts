@@ -1,15 +1,25 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { findReviewSites } from './ai-review-sites.ts';
+import {
+  LANE_RULES,
+  proposeAiSurfaceMigration,
+  type AiSurfaceProposal,
+} from './ai-surface-lane.ts';
+import type { AiOptions } from './ai-budget.ts';
+import { loadDeadlineRegistry } from './deadline-registry.ts';
 import type { AiRuleTable } from './ai-rules.ts';
 import {
   proposeAnthropicSdkMajor,
+  proposeGeminiSdkSwap,
   proposeOpenAiSdkMajor,
+  loadSurface,
   type SdkMajorProposal,
   type SdkRule,
 } from './ai-sdk-majors.ts';
 import { sdkMajorUpgrade, type Resolve } from './ai-sdk-upgrade.ts';
 import type { ModelFixChecks } from './model-fixes.ts';
-import { renderFileReplacements, renderPatch } from './patches.ts';
+import { applySourceEdits, renderFileReplacements, renderPatch } from './patches.ts';
 import { publicationConfiguration, publishFiles } from './publication.ts';
 import { readRepository } from './repository.ts';
 import {
@@ -22,6 +32,8 @@ import {
 import { loadSdkProofTable, storedRequestProof } from './sdk-request-proofs.ts';
 import { digest } from './specifications.ts';
 import type { PackageUpgrade } from './stripe-package-upgrade.ts';
+import { PipelineInputError } from './types.ts';
+import { gateNote, type CheckGate } from './check-gate.ts';
 import { validateSourcePatch } from './validation.ts';
 
 // AI provider migrations (SDK majors first): proposes the documented rewrites and the package
@@ -30,7 +42,12 @@ import { validateSourcePatch } from './validation.ts';
 
 const execute = promisify(execFile);
 
+export const OPTIONAL_UPGRADE = 'SDK upgrade available, not required (would change outputs)';
+
 export interface AiMigrationProposal extends SdkMajorProposal {
+  // Every blocking stop is an optional-upgrade stop: the code works as it is, and the upgrade
+  // would change its outputs (decision A). Reported as its own category, not as a failure.
+  optionalUpgrade?: boolean;
   upgrade: PackageUpgrade | null;
   // Why the package could not be moved; the code edits are then never proposed alone.
   upgradeRefusal: string | null;
@@ -47,11 +64,38 @@ export async function proposeAiMigrations(
     release?: string;
     // One SDK per draft; without it the first SDK below its target major, OpenAI first.
     packageName?: string;
+    // Off by default (decision A): see proposeAnthropicSdkMajor.
+    removeSampling?: boolean;
   },
 ): Promise<AiMigrationProposal | null> {
-  const proposal = await proposeSdkMajor(directory, tables, options.packageName);
+  const proposal = await proposeSdkMajor(directory, tables, options.packageName, {
+    removeSampling: options.removeSampling,
+  });
   if (!proposal) return null;
+  // Sites of the same provider that fail today for another reason (a shut-down API or beta) are
+  // listed in the draft too, so an SDK upgrade never reads as making those calls work.
+  for (const finding of await findReviewSites(directory, tables, [
+    'api-surface',
+    'beta-feature',
+    'response-format',
+  ]))
+    if (finding.provider === proposal.provider && finding.breaking && !finding.test)
+      proposal.stops.push({
+        file: finding.file,
+        line: finding.line,
+        rule: finding.rule,
+        reason: `${finding.summary}${finding.ambiguous ? ' The file imports two SDKs; the client is unclear.' : ''} The SDK upgrade does not change this.`,
+        blocking: false,
+      });
   const blocking = proposal.stops.filter((item) => item.blocking);
+  if (blocking.length && blocking.every((item) => item.category === 'optional-upgrade'))
+    return {
+      ...proposal,
+      optionalUpgrade: true,
+      upgrade: null,
+      upgradeRefusal: `${OPTIONAL_UPGRADE}: ${blocking.length} request${blocking.length === 1 ? '' : 's'} send sampling parameters that ${proposal.packageName} ${proposal.targetMajor} rejects; the code works on its current SDK.`,
+      patch: null,
+    };
   if (blocking.length)
     return {
       ...proposal,
@@ -66,6 +110,8 @@ export async function proposeAiMigrations(
     resolution: { image: options.image, before: options.before, resolve: options.resolve },
     release: options.release,
     companions: (companions?.data.packages as string[] | undefined) ?? [],
+    together: proposal.together,
+    replaces: proposal.replaces,
   });
   if ('reason' in result)
     return { ...proposal, upgrade: null, upgradeRefusal: result.reason, patch: null };
@@ -81,14 +127,23 @@ export async function proposeSdkMajor(
   directory: string,
   tables: AiRuleTable[],
   packageName?: string,
+  options: { removeSampling?: boolean } = {},
 ) {
   const proposers = [
     ['openai', proposeOpenAiSdkMajor],
     ['@anthropic-ai/sdk', proposeAnthropicSdkMajor],
+    ['@google/genai', proposeGeminiSdkSwap],
   ] as const;
+  const now = new Date();
+  const registry = await loadDeadlineRegistry(undefined, now).catch(() => undefined);
   for (const [name, propose] of proposers) {
     if (packageName && packageName !== name) continue;
-    const proposal = await propose(directory, tables);
+    const proposal = await propose(
+      directory,
+      tables,
+      registry && { entries: registry.deadlines, now },
+      options,
+    );
     if (proposal) return proposal;
   }
   return null;
@@ -105,7 +160,8 @@ export interface RequestProof {
 }
 
 export function aiMigrationTitle(proposal: AiMigrationProposal, needsReview: boolean) {
-  return `${needsReview ? NEEDS_REVIEW_PREFIX : ''}fix(deps): upgrade ${proposal.packageName} to ${proposal.upgrade?.to ?? `${proposal.targetMajor}.x`} and migrate its calls`;
+  const to = proposal.upgrade?.to ?? `${proposal.targetMajor}.x`;
+  return `${needsReview ? NEEDS_REVIEW_PREFIX : ''}fix(deps): ${proposal.replaces ? `replace ${proposal.replaces} with ${proposal.packageName} ${to}` : `upgrade ${proposal.packageName} to ${to}`} and migrate its calls`;
 }
 
 // Proof levels are reported separately: (a) code, (b) request, (c) output shape. A level without
@@ -120,6 +176,7 @@ export function aiMigrationBody(options: {
     compareTypeErrors?: boolean;
     baseline: { status: string; exitCode: number | null; stdout: string; stderr: string };
     patched: { status: string; exitCode: number | null; stdout: string; stderr: string };
+    gate?: CheckGate;
   };
   requestProof: RequestProof;
 }) {
@@ -153,7 +210,7 @@ export function aiMigrationBody(options: {
             '',
           ]
         : []),
-      `## ${proposal.packageName} ${proposal.upgrade?.from ?? proposal.installed} → ${proposal.upgrade?.to ?? proposal.targetMajor}`,
+      `## ${proposal.replaces ? `${proposal.replaces} ${proposal.upgrade?.from ?? proposal.installed} → ${proposal.packageName}` : `${proposal.packageName} ${proposal.upgrade?.from ?? proposal.installed} →`} ${proposal.upgrade?.to ?? proposal.targetMajor}`,
       '',
       `Refit moved ${code(proposal.packageName)} to its current major and rewrote the calls whose shape changed, using only the mappings in the provider's own migration guides. **The new SDK can behave differently even where the code reads the same: outputs, defaults, errors and retries may differ. Please check the quality of the results before merging.**`,
       '',
@@ -168,6 +225,7 @@ export function aiMigrationBody(options: {
       '## Proof',
       '',
       `- **(a) Code:** the repository's approved checks ran on ${code(validation.revision.slice(0, 12))} in offline Docker (${code(validation.image)}). Baseline ${code(validation.baselineCommand.join(' '))}: ${validation.baseline.status}. Patched ${code(validation.command.join(' '))}: ${validation.patched.status}${existing ? `; the type check ${existing}` : ''}.`,
+      ...gateNote(validation.gate).map((line) => `  ${line}`),
       `- **(b) Request:** ${requestProof.status === 'accepted' ? `the smallest request for each migrated call was accepted by the provider with Refit's own test key (${requestProof.calls.map((item) => code(item.call)).join(', ')}).` : `${requestProof.status}. ${requestProof.reason}`}`,
       `- **(c) Output shape:** ${requestProof.calls.length ? requestProof.calls.map((item) => `${code(item.call)} ${item.status}: ${item.detail}`).join('; ') : 'not checked, because no request was sent.'}`,
       '',
@@ -236,6 +294,7 @@ export function aiMigrationMessage(
 
 export type AiMigrationStatus =
   | 'no-change'
+  | 'upgrade-optional'
   | 'needs-review'
   | 'validation-failed'
   | 'validated'
@@ -251,6 +310,7 @@ export async function runAiMigrations(options: {
   publication?: ReturnType<typeof publicationConfiguration>;
   resolve?: Resolve;
   packageName?: string;
+  removeSampling?: boolean;
   signal?: AbortSignal;
   onProgress?: (message: string) => void;
 }) {
@@ -268,6 +328,7 @@ export async function runAiMigrations(options: {
         before,
         resolve: options.resolve,
         packageName: options.packageName,
+        removeSampling: options.removeSampling,
       });
       return proposal?.patch ?? null;
     },
@@ -287,7 +348,9 @@ export async function runAiMigrations(options: {
   });
   if (!found) return result('no-change', 'No AI SDK below its target major.');
   if (validation.status === 'no-patch')
-    return result('needs-review', `No patch: ${found.upgradeRefusal}`);
+    return found.optionalUpgrade
+      ? result('upgrade-optional', found.upgradeRefusal ?? OPTIONAL_UPGRADE)
+      : result('needs-review', `No patch: ${found.upgradeRefusal}`);
   if (validation.status !== 'passed')
     return result(
       'validation-failed',
@@ -330,4 +393,197 @@ export async function runAiMigrations(options: {
     needsReview,
     pullRequest: { url: published.url, number: published.number },
   });
+}
+
+// The AI lane for surfaces with no one-to-one mapping (pipeline/ai-surface-lane.ts): the SDK major
+// upgrade first when one is due, then the AI's rewrite of the flagged calls on top. It is
+// validated only when the repository's checks run real code and pass, every new call shape has
+// an accepted request proof, and every flagged site moved; otherwise [Needs review] with the
+// reason. AI runs only in GitHub Actions (refit-bench), never on a laptop.
+export async function runAiSurfaceMigrations(options: {
+  repository: string;
+  tables: AiRuleTable[];
+  checks: ModelFixChecks;
+  ai: AiOptions;
+  request?: Parameters<typeof proposeAiSurfaceMigration>[0]['request'];
+  resolve?: Resolve;
+  release?: string;
+  environment?: NodeJS.ProcessEnv;
+  publication?: ReturnType<typeof publicationConfiguration>;
+  onProgress?: (message: string) => void;
+}) {
+  if ((options.environment ?? process.env).GITHUB_ACTIONS !== 'true')
+    throw new PipelineInputError(
+      "The AI surface lane runs only in GitHub Actions (refit-bench), with Refit's key and AI budget.",
+    );
+  const { stdout } = await execute('git', ['-C', options.repository, 'log', '-1', '--format=%cI']);
+  const before = stdout.trim();
+  const now = new Date();
+  const registry = await loadDeadlineRegistry(undefined, now);
+  const target = options.tables
+    .flatMap((table) => table.rules)
+    .find((rule) => rule.rule === 'openai-node-target-6')!;
+  const surface = loadSurface({ ...target, source: undefined as never });
+  let sdk: AiMigrationProposal | null = null;
+  let lane: AiSurfaceProposal | null = null;
+  let refusal: string | null = null;
+  const validation = await validateSourcePatch({
+    repository: options.repository,
+    ...options.checks,
+    onProgress: options.onProgress,
+    propose: async (directory) => {
+      sdk = await proposeAiMigrations(directory, options.tables, {
+        image: options.checks.image,
+        before,
+        resolve: options.resolve,
+        release: options.release,
+        packageName: 'openai',
+      });
+      if (sdk && !sdk.patch) {
+        refusal = sdk.upgradeRefusal;
+        return null;
+      }
+      const original = await readRepository(directory, 'openai');
+      const upgraded = {
+        ...original,
+        files: original.files.map((file) => ({
+          ...file,
+          content: applySourceEdits(
+            file.content,
+            (sdk?.edits ?? []).filter((item) => item.file === file.path),
+          ),
+        })),
+      };
+      lane = await proposeAiSurfaceMigration({
+        repository: upgraded,
+        directory,
+        tables: options.tables,
+        ai: options.ai,
+        models: { entries: registry.deadlines, now },
+        surface: surface?.methods ?? new Set(),
+        request: options.request,
+      });
+      if (!lane?.edits.length) {
+        refusal = lane?.stops.map((item) => item.reason).join(' ') || 'No flagged site to migrate.';
+        return null;
+      }
+      const changed = new Map<string, string>();
+      for (const file of upgraded.files) {
+        const before = original.files.find((item) => item.path === file.path)!.content;
+        if (file.content !== before) changed.set(file.path, file.content);
+      }
+      for (const item of lane.edits) changed.set(item.file, item.replacement);
+      const files = [...changed].map(([path, after]) => ({
+        path,
+        before: original.files.find((item) => item.path === path)!.content,
+        after,
+      }));
+      return renderFileReplacements(
+        original,
+        [...files, ...(sdk?.upgrade?.files ?? [])],
+        'ai-surface-migration',
+      );
+    },
+  });
+  const found = lane as AiSurfaceProposal | null;
+  const base = {
+    revision: validation.revision,
+    ai: found?.ai ?? null,
+    lane: found,
+    sdk: sdk as AiMigrationProposal | null,
+  };
+  if (validation.status === 'no-patch')
+    return { ...base, status: 'needs-review' as const, reason: `No patch: ${refusal}` };
+  if (validation.status !== 'passed')
+    return {
+      ...base,
+      status: 'validation-failed' as const,
+      reason: `Validation returned ${validation.status}; nothing is published.`,
+    };
+  const requestProof = storedRequestProof(await loadSdkProofTable(), 'openai', 6, found!.calls);
+  const reasons = [
+    ...(validation.command.join(' ') === NO_OP_CHECK ? ['No check runs the changed code.'] : []),
+    ...(requestProof.status !== 'accepted' ? [`Request proof: ${requestProof.reason}`] : []),
+    ...found!.stops.map((item) => `${item.file}:${item.line}: ${item.reason}`),
+    // The flagged sites the lane migrated are no longer open review items.
+    ...((sdk as AiMigrationProposal | null)?.stops ?? [])
+      .filter(
+        (item) =>
+          !(LANE_RULES.has(item.rule) && found!.edits.some((edit) => edit.file === item.file)),
+      )
+      .map((item) => `${item.file}:${item.line}: ${item.reason}`),
+  ];
+  const needsReview = reasons.length > 0;
+  if (!options.publication)
+    return {
+      ...base,
+      status: needsReview ? ('needs-review' as const) : ('validated' as const),
+      reason: needsReview ? reasons.join(' ') : 'Checks, request proof and output shape passed.',
+      requestProof,
+    };
+  const published = await publishFiles(options.publication, {
+    revision: validation.revision,
+    key: `ai-surfaces:${validation.revision}:${digest(validation.diff)}`,
+    files: validation.publicationFiles,
+    title: `${needsReview ? NEEDS_REVIEW_PREFIX : ''}fix(openai): move shut-down Completions and Assistants calls to Responses`,
+    body: aiSurfaceBody({ lane: found!, reasons, requestProof, validation }),
+    message: `fix(openai): move shut-down Completions and Assistants calls to Responses\n\n${wrap(`AI-drafted (${found!.ai?.model}, ${found!.ai?.responseId}) under Refit's guards; ${found!.aiLines.reduce((sum, item) => sum + item.lines.length, 0)} AI-written lines.`)}\n`,
+  });
+  return {
+    ...base,
+    status: published.status === 'created' ? ('draft-created' as const) : ('existing-pr' as const),
+    reason: published.url,
+    requestProof,
+    needsReview,
+  };
+}
+
+export function aiSurfaceBody(options: {
+  lane: AiSurfaceProposal;
+  reasons: string[];
+  requestProof: RequestProof;
+  validation: {
+    revision: string;
+    image: string;
+    command: string[];
+    baseline: { status: string };
+    patched: { status: string };
+  };
+}) {
+  const { lane, reasons, requestProof, validation } = options;
+  const lines = [
+    ...(reasons.length
+      ? [
+          '## Why this needs review',
+          '',
+          "Refit opened this draft for review. **Don't merge until you have checked each item.**",
+          '',
+          ...reasons.map((reason) => `- ${reason}`),
+          '',
+        ]
+      : []),
+    '## Shut-down OpenAI APIs',
+    '',
+    "OpenAI shut down the Assistants API on 2026-08-26 and every legacy Completions model on 2026-09-28, so these calls fail today. OpenAI documents no one-to-one mapping to Responses, so **an AI model drafted this migration** from OpenAI's migration guides, and Refit kept it only because it passed every guard: only the flagged calls and their statements changed, the files parse, no legacy call remains, every new call exists in openai 6, and every model is the original or the replacement OpenAI names.",
+    '',
+    '**Outputs may differ: Responses and the replacement models answer differently from the old calls. Check the quality of the results before merging.**',
+    '',
+    `AI: ${lane.ai?.model ?? 'n/a'}, response ${lane.ai?.responseId ?? 'n/a'}${lane.ai?.costUsd != null ? `, $${lane.ai.costUsd.toFixed(4)}` : ''}.`,
+    '',
+    '### AI-written lines',
+    '',
+    ...lane.aiLines.map((item) => `- \`${item.file}\`: lines ${item.lines.join(', ')}`),
+    '',
+    ...(lane.notes.length
+      ? ['### Notes from the migration', '', ...lane.notes.map((note) => `- ${note}`), '']
+      : []),
+    '## Proof',
+    '',
+    `- **(a) Code:** \`${validation.command.join(' ')}\` on \`${validation.revision.slice(0, 12)}\` in offline Docker (\`${validation.image}\`): baseline ${validation.baseline.status}, patched ${validation.patched.status}.`,
+    `- **(b) Request:** ${requestProof.status}. ${requestProof.reason}`,
+    `- **(c) Output shape:** ${requestProof.calls.map((item) => `\`${item.call}\` ${item.status}: ${item.detail}`).join('; ') || 'no call shape to check.'}`,
+    '',
+    'Refit opened this as a draft and never merges it.',
+  ];
+  return `${lines.join('\n')}\n`.slice(0, MAX_BODY_CHARACTERS);
 }
