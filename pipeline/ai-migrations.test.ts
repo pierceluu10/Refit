@@ -112,3 +112,42 @@ it('says outputs may differ, reports each proof level and needs review without r
   expect(body).toContain('https://github.com/openai/openai-node/discussions/217');
   expect(body).not.toMatch(/equivalent|same behaviou?r/i);
 });
+
+it('lists sites of the same provider that fail today, without blocking the upgrade', async () => {
+  const proposal = await proposeAiMigrations(
+    await project({
+      'ask.js': SOURCE,
+      'old.js':
+        "const { Configuration, OpenAIApi } = require('openai');\nconst openai = new OpenAIApi(new Configuration({ apiKey: 'k' }));\nmodule.exports = async () => (await openai.createCompletion({ model: 'davinci-002', prompt: 'x' })).data.choices[0].text;\n",
+    }),
+    await loadAiRuleTables(),
+    settings,
+  );
+  expect(proposal?.patch).toContain('openai.completions.create');
+  expect(proposal?.stops).toEqual([
+    expect.objectContaining({ rule: 'openai-legacy-completions', file: 'old.js', blocking: false }),
+  ]);
+});
+
+it('reports an Anthropic upgrade blocked only by sampling parameters as optional, not as a failure', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'refit-ai-migrations-'));
+  roots.push(root);
+  await writeFile(
+    join(root, 'package.json'),
+    JSON.stringify({ dependencies: { '@anthropic-ai/sdk': '^0.79.0' } }),
+  );
+  await writeFile(
+    join(root, 'a.ts'),
+    "import Anthropic from '@anthropic-ai/sdk';\nconst c = new Anthropic();\nexport const f = () => c.messages.create({ model: 'm', max_tokens: 1, temperature: 0, messages: [] });\n",
+  );
+  const proposal = await proposeAiMigrations(root, await loadAiRuleTables(), {
+    ...settings,
+    packageName: '@anthropic-ai/sdk',
+    release: '1.3.0',
+  });
+  expect(proposal?.optionalUpgrade).toBe(true);
+  expect(proposal?.patch).toBeNull();
+  expect(proposal?.upgradeRefusal).toMatch(
+    /^SDK upgrade available, not required \(would change outputs\)/,
+  );
+});

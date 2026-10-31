@@ -325,7 +325,7 @@ describe('live proof', () => {
 });
 
 describe('AI second-opinion review', () => {
-  const MODEL = 'gpt-5.4-mini';
+  const MODEL = 'gpt-6.1-sol';
   const answer = (text: string) =>
     Response.json({
       id: 'resp_review',

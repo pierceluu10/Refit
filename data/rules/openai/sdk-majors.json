@@ -21,6 +21,32 @@
       "file": "docs/ai-docs/pages/openai-node-changelog-6.0.0.md",
       "capturedAt": "2026-10-29",
       "excerpt": "the 6.0.0 section"
+    },
+    "openai-node-readme": {
+      "url": "https://github.com/openai/openai-node/blob/master/README.md",
+      "raw": "https://raw.githubusercontent.com/openai/openai-node/master/README.md",
+      "file": "docs/ai-docs/pages/openai-node-readme-file-uploads.md",
+      "capturedAt": "2026-10-29",
+      "excerpt": "the File uploads section"
+    },
+    "openai-node-v4-client": {
+      "url": "https://github.com/openai/openai-node/blob/v4.104.0/src/index.ts",
+      "raw": "https://raw.githubusercontent.com/openai/openai-node/v4.104.0/src/index.ts",
+      "file": "docs/ai-docs/pages/openai-node-v4-client-options.md",
+      "capturedAt": "2026-10-29",
+      "excerpt": "ClientOptions and the OpenAI constructor"
+    },
+    "openai-node-v3-configuration": {
+      "url": "https://github.com/openai/openai-node/blob/v3.3.0/configuration.ts",
+      "raw": "https://raw.githubusercontent.com/openai/openai-node/v3.3.0/configuration.ts",
+      "file": "docs/ai-docs/pages/openai-node-v3-configuration.md",
+      "capturedAt": "2026-10-29"
+    },
+    "openai-node-v3-base": {
+      "url": "https://github.com/openai/openai-node/blob/v3.3.0/base.ts",
+      "raw": "https://raw.githubusercontent.com/openai/openai-node/v3.3.0/base.ts",
+      "file": "docs/ai-docs/pages/openai-node-v3-base.md",
+      "capturedAt": "2026-10-29"
     }
   },
   "rules": [
@@ -37,7 +63,8 @@
         "package": "openai",
         "targetMajor": 6,
         "applyBelowMajor": 6,
-        "oldestMajor": 3
+        "oldestMajor": 3,
+        "surface": "data/sdk-surfaces/openai-6.json"
       }
     },
     {
@@ -48,7 +75,7 @@
       "quote": "const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY // This is also the default, can be omitted });",
       "checkedAt": "2026-10-29",
       "origin": "docs",
-      "summary": "Replaces `new OpenAIApi(new Configuration({ apiKey }))` with `new OpenAI({ apiKey })`.",
+      "summary": "Replaces `new OpenAIApi(new Configuration({ apiKey, organization, basePath }))` with `new OpenAI({ apiKey, organization, baseURL })`.",
       "data": {
         "fromMajor": 3,
         "oldClasses": [
@@ -57,8 +84,62 @@
         ],
         "newClass": "OpenAI",
         "options": {
-          "apiKey": "apiKey"
+          "apiKey": "apiKey",
+          "organization": "organization",
+          "basePath": "baseURL"
         }
+      }
+    },
+    {
+      "rule": "openai-node-v4-client-organization",
+      "family": "client-option",
+      "status": "auto",
+      "page": "openai-node-v4-client",
+      "quote": "@param {string | null | undefined} [opts.organization=process.env['OPENAI_ORG_ID'] ?? null]",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`organization` keeps its name on the v4 client, which sends it as the same OpenAI-Organization header.",
+      "data": {
+        "fromMajor": 3
+      }
+    },
+    {
+      "rule": "openai-node-v4-client-organization-v3",
+      "family": "client-option",
+      "status": "auto",
+      "page": "openai-node-v3-configuration",
+      "quote": "this.baseOptions.headers['OpenAI-Organization'] = this.organization;",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "v3 sent `organization` as the OpenAI-Organization header.",
+      "data": {
+        "fromMajor": 3
+      }
+    },
+    {
+      "rule": "openai-node-v4-client-base-url",
+      "family": "client-option",
+      "status": "auto",
+      "page": "openai-node-v4-client",
+      "quote": "@param {string} [opts.baseURL=process.env['OPENAI_BASE_URL'] ?? https://api.openai.com/v1] - Override the default base URL for the API.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "v3 `basePath` becomes v4 `baseURL`: both are the full base URL, defaulting to https://api.openai.com/v1.",
+      "data": {
+        "fromMajor": 3
+      }
+    },
+    {
+      "rule": "openai-node-v4-client-base-path-v3",
+      "family": "client-option",
+      "status": "auto",
+      "page": "openai-node-v3-base",
+      "quote": "export const BASE_PATH = \"https://api.openai.com/v1\".replace(/\\/+$/, \"\");",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "v3 `basePath` defaulted to https://api.openai.com/v1, the same base v4 `baseURL` defaults to.",
+      "data": {
+        "fromMajor": 3
       }
     },
     {
@@ -913,6 +994,32 @@
       }
     },
     {
+      "rule": "openai-node-v5-file-from-path-stream",
+      "family": "file-stream",
+      "status": "auto",
+      "page": "openai-node-v5",
+      "quote": "OpenAI.fileFromPath('path/to/file'); // After import fs from 'fs'; fs.createReadStream('path/to/file');",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`fileFromPath(path)` with one argument becomes `createReadStream(path)` from node:fs.",
+      "data": {
+        "fromMajor": 4
+      }
+    },
+    {
+      "rule": "openai-node-v5-file-from-path-named",
+      "family": "file-named",
+      "status": "auto",
+      "page": "openai-node-readme",
+      "quote": "// `toFile()` creates a web File, so it must buffer stream inputs before sending them.",
+      "checkedAt": "2026-10-29",
+      "origin": "docs",
+      "summary": "`fileFromPath(path, name[, options])` becomes `toFile(createReadStream(path), name[, options])`: the same named web File, built from a Node stream.",
+      "data": {
+        "fromMajor": 4
+      }
+    },
+    {
       "rule": "openai-node-v5-file-from-path",
       "family": "removed-export",
       "status": "review",
@@ -920,7 +1027,7 @@
       "quote": "The deprecated `fileFromPath` helper has been removed in favor of native Node.js streams:",
       "checkedAt": "2026-10-29",
       "origin": "docs",
-      "summary": "`fileFromPath` is gone; a use stops for review.",
+      "summary": "`fileFromPath` with more than the path, or used other than as a call, has no mapped form; a use stops for review.",
       "data": {
         "fromMajor": 4,
         "names": [

@@ -51,16 +51,45 @@ export interface OutputLimits {
   timeoutMs?: number;
 }
 
+// Owner rule (2026-10-29): Refit's AI work (patches, the AI surface lane, test writing,
+// assessments) runs only on gpt-6.1-sol. Other models are used only for request-level proofs,
+// which send through the SDK, not through here. Another model needs REFIT_AI_MODEL_OVERRIDE set
+// to exactly that model, so a stray OPENAI_MODEL fails loudly instead of running.
+export const AI_MODEL = 'gpt-6.1-sol';
+
+export function checkAiModel(model: string, env: NodeJS.ProcessEnv = process.env) {
+  const override = env.REFIT_AI_MODEL_OVERRIDE?.trim();
+  if (override && override !== model)
+    throw new PipelineInputError(
+      `REFIT_AI_MODEL_OVERRIDE is ${override} but the AI model is ${model}; they must name the same model.`,
+    );
+  if (model !== AI_MODEL && !override)
+    throw new PipelineInputError(
+      `The AI model is ${model}; Refit's AI work runs only on ${AI_MODEL}. Set OPENAI_MODEL=${AI_MODEL}, or REFIT_AI_MODEL_OVERRIDE=${model} to use ${model} on purpose.`,
+    );
+  return model;
+}
+
 export async function requestStructuredOutput(
-  request: { evidence: unknown; instructions: string; name: string; schema: object },
+  request: {
+    evidence: unknown;
+    instructions: string;
+    name: string;
+    schema: object;
+    // How much the model reasons before answering; reasoning tokens count against the output
+    // limit, so a lower effort leaves more of it for the answer. Unset uses the model's default.
+    reasoningEffort?: 'low' | 'medium' | 'high';
+  },
   options: AiOptions,
   limits: OutputLimits = {},
 ) {
   if (options.provider === 'anthropic') return requestAnthropicOutput(request, options, limits);
   const maxOutputTokens = limits.maxOutputTokens ?? MAX_OUTPUT_TOKENS;
   const maxResponseBytes = limits.maxResponseBytes ?? MAX_RESPONSE_BYTES;
+  const effort = request.reasoningEffort ?? options.reasoningEffort;
   if (!options.apiKey.trim() || !options.model.trim())
     throw new PipelineInputError('AI requests require OPENAI_API_KEY and OPENAI_MODEL.');
+  checkAiModel(options.model);
   const input = JSON.stringify(request.evidence);
   if (Buffer.byteLength(input) > MAX_INPUT_BYTES)
     throw new PipelineInputError(
@@ -73,7 +102,8 @@ export async function requestStructuredOutput(
     instructions: request.instructions,
     input: [{ role: 'user', content: input }],
     max_output_tokens: maxOutputTokens,
-    ...(options.reasoningEffort ? { reasoning: { effort: options.reasoningEffort } } : {}),
+    // A request's own effort (the AI fallback's patch generation) wins over the caller's options.
+    ...(effort ? { reasoning: { effort } } : {}),
     text: {
       format: { type: 'json_schema', name: request.name, strict: true, schema: request.schema },
     },

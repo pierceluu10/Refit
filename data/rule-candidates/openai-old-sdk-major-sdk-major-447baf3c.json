@@ -1,0 +1,60 @@
+{
+  "formatVersion": 1,
+  "id": "openai-old-sdk-major-sdk-major-447baf3c",
+  "status": "needs-fix-example",
+  "provider": "openai",
+  "changeType": "old-sdk-major",
+  "kind": "sdk-major",
+  "pattern": "Calls the Assistants API, which OpenAI shut down on <date>, so these requests fail today. The move is not one-to-one: assistants become Prompts (configured in the dashboard), threads become Conversations, runs become Responses, and the tool-call loop moves into your code. Refit lists each call for review and does not rewrite it. The SDK upgrade does not change this.",
+  "match": "^Calls the Assistants API, which OpenAI shut down on .+?, so these requests fail today\\. The move is not one-to-one: assistants become Prompts \\(configured in the dashboard\\), threads become Conversations, runs become Responses, and the tool-call loop moves into your code\\. Refit lists each call for review and does not rewrite it\\. The SDK upgrade does not change this\\.$",
+  "shapes": [],
+  "refs": ["openai-assistants-removed"],
+  "sources": [
+    {
+      "url": "https://developers.openai.com/api/docs/assistants/migration",
+      "quote": "The Assistants API was officially sunset on August 26, 2026, and is no longer available."
+    }
+  ],
+  "repositories": 4,
+  "sites": 57,
+  "fixtures": [
+    {
+      "repo": "gvprime/pubragi",
+      "commit": "477430609c67000b5ab2799b5aff270a93da799f",
+      "file": "server/openai.ts",
+      "line": 134,
+      "stopReason": "Calls the Assistants API, which OpenAI shut down on 2026-08-26, so these requests fail today. The move is not one-to-one: assistants become Prompts (configured in the dashboard), threads become Conversations, runs become Responses, and the tool-call loop moves into your code. Refit lists each call for review and does not rewrite it. The SDK upgrade does not change this.",
+      "diff": null
+    },
+    {
+      "repo": "kkb2849/nextjs-1zdevcamp-template",
+      "commit": "0865bb268b395abac07042d6d6e627f92f24b159",
+      "file": "src/app/api/openai/assistant/route.ts",
+      "line": 29,
+      "stopReason": "Calls the Assistants API, which OpenAI shut down on 2026-08-26, so these requests fail today. The move is not one-to-one: assistants become Prompts (configured in the dashboard), threads become Conversations, runs become Responses, and the tool-call loop moves into your code. Refit lists each call for review and does not rewrite it. The SDK upgrade does not change this.",
+      "diff": null
+    },
+    {
+      "repo": "Jeffansah/whop-ai-chat",
+      "commit": "b2cc335859a12d359ac662e3ff3f10b8b6bfe227",
+      "file": "convex/ai/assistants.ts",
+      "line": 393,
+      "stopReason": "Calls the Assistants API, which OpenAI shut down on 2026-08-26, so these requests fail today. The move is not one-to-one: assistants become Prompts (configured in the dashboard), threads become Conversations, runs become Responses, and the tool-call loop moves into your code. Refit lists each call for review and does not rewrite it. The SDK upgrade does not change this.",
+      "diff": null
+    },
+    {
+      "repo": "ioiuea/assistant-api-openai",
+      "commit": "8b57e1392ca74ba85f495a431ec3610c4c58d98f",
+      "file": "app/api/assistant-file/create/route.ts",
+      "line": 35,
+      "stopReason": "Calls the Assistants API, which OpenAI shut down on 2026-08-26, so these requests fail today. The move is not one-to-one: assistants become Prompts (configured in the dashboard), threads become Conversations, runs become Responses, and the tool-call loop moves into your code. Refit lists each call for review and does not rewrite it. The SDK upgrade does not change this.",
+      "diff": null
+    }
+  ],
+  "aiPatterns": [],
+  "ai": {
+    "attempted": 4,
+    "validated": 0,
+    "costUsd": 0.351726
+  }
+}

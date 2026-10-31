@@ -712,7 +712,7 @@ it('passes the configured provider through AI generation and the rescan', async 
       return new Response(
         JSON.stringify({
           id: 'resp_catalog',
-          model: 'test-model',
+          model: 'gpt-6.1-sol',
           status: 'completed',
           output: [
             {
@@ -743,7 +743,7 @@ it('passes the configured provider through AI generation and the rescan', async 
   );
   const report = await runPipeline({
     ...INPUTS,
-    aiPatch: { apiKey: 'test-key', model: 'test-model' },
+    aiPatch: { apiKey: 'test-key', model: 'gpt-6.1-sol' },
   });
   expect(report.patch).toMatchObject({ generator: 'openai', edits: 1, unresolvedFindings: 0 });
   if (!('diff' in report.patch)) throw new Error('Expected patch');
@@ -764,7 +764,7 @@ export async function city(id: string) {
       return new Response(
         JSON.stringify({
           id: 'resp_nested_catalog',
-          model: 'test-model',
+          model: 'gpt-6.1-sol',
           status: 'completed',
           output: [
             {
@@ -796,7 +796,7 @@ export async function city(id: string) {
 
   const report = await runPipeline({
     ...input,
-    aiPatch: { apiKey: 'test-key', model: 'test-model' },
+    aiPatch: { apiKey: 'test-key', model: 'gpt-6.1-sol' },
   });
   expect(report.patch).toMatchObject({ generator: 'openai', edits: 1, unresolvedFindings: 0 });
   if (!('diff' in report.patch)) throw new Error('Expected proposed diff');

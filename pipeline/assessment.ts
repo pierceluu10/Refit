@@ -1,4 +1,9 @@
-import { REASONING_EFFORTS, requestStructuredOutput, type ReasoningEffort } from './openai.ts';
+import {
+  checkAiModel,
+  REASONING_EFFORTS,
+  requestStructuredOutput,
+  type ReasoningEffort,
+} from './openai.ts';
 import { ANTHROPIC_DEFAULT_MODEL, ANTHROPIC_ESCALATION_MODEL } from './anthropic.ts';
 import { assessmentReviewReason } from './migration-review.ts';
 import { digest, parseObject } from './specifications.ts';
@@ -98,7 +103,12 @@ export function assessmentConfiguration(
     throw new PipelineInputError(
       'AI operations require OPENAI_API_KEY and OPENAI_MODEL, or ANTHROPIC_API_KEY.',
     );
-  return { apiKey, model, budget: aiBudgetConfiguration(environment), ...aiEffort(environment) };
+  return {
+    apiKey,
+    model: checkAiModel(model, environment),
+    budget: aiBudgetConfiguration(environment),
+    ...aiEffort(environment),
+  };
 }
 
 // REFIT_AI_PROVIDER picks the backend; unset, Anthropic serves only when it is the one key given.

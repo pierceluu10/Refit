@@ -16,7 +16,7 @@ const INPUTS = {
   before: 'pipeline/fixtures/before.json',
   after: 'pipeline/fixtures/after.json',
 };
-const OPTIONS = { apiKey: 'test-key', model: 'test-model' };
+const OPTIONS = { apiKey: 'test-key', model: 'gpt-6.1-sol' };
 const REPLACEMENT = '(await stripe.charges.list({ payment_intent: intent.id })).data';
 
 async function fixture() {
@@ -1014,18 +1014,18 @@ it('never lets the model edit package files, which are not editable sources', as
 it('asks the stronger step once when the first answer proposes no edit', async () => {
   const { repository, report, edit } = await fixture();
   respond([], [edit]);
-  const escalated = { ...OPTIONS, escalation: { model: 'strong-model', reasoningEffort: 'high' } };
+  const escalated = { ...OPTIONS, escalation: { model: 'gpt-6.1-sol', reasoningEffort: 'high' } };
   const proposal = await proposeAiPatch(repository, report.changes, report.findings, escalated);
   const bodies = vi
     .mocked(fetch)
     .mock.calls.map(([, init]) => JSON.parse(String((init as RequestInit).body)));
   expect(bodies.map((body) => [body.model, body.reasoning?.effort])).toEqual([
-    ['test-model', undefined],
-    ['strong-model', 'high'],
+    ['gpt-6.1-sol', undefined],
+    ['gpt-6.1-sol', 'high'],
   ]);
   expect(proposal).toMatchObject({
     status: 'proposed',
-    escalation: { model: 'strong-model', reasoningEffort: 'high', edits: 1 },
+    escalation: { model: 'gpt-6.1-sol', reasoningEffort: 'high', edits: 1 },
   });
   expect(proposal.diff).toContain(REPLACEMENT);
 });
@@ -1033,7 +1033,7 @@ it('asks the stronger step once when the first answer proposes no edit', async (
 it('holds an escalated answer to the same checks as the first', async () => {
   const { repository, report, edit } = await fixture();
   respond([], [{ ...edit, file: 'elsewhere.ts' }]);
-  const escalated = { ...OPTIONS, escalation: { model: 'strong-model', reasoningEffort: 'high' } };
+  const escalated = { ...OPTIONS, escalation: { model: 'gpt-6.1-sol', reasoningEffort: 'high' } };
   await expect(
     proposeAiPatch(repository, report.changes, report.findings, escalated),
   ).rejects.toThrow(/outside its allowed scope/);
@@ -1048,7 +1048,7 @@ it('sends one request when no stronger step is configured or the first answer ha
   expect(none).not.toHaveProperty('escalation');
   expect(vi.mocked(fetch).mock.calls).toHaveLength(1);
   respond([edit]);
-  const escalated = { ...OPTIONS, escalation: { model: 'strong-model', reasoningEffort: 'high' } };
+  const escalated = { ...OPTIONS, escalation: { model: 'gpt-6.1-sol', reasoningEffort: 'high' } };
   await proposeAiPatch(repository, report.changes, report.findings, escalated);
   expect(vi.mocked(fetch).mock.calls).toHaveLength(1);
 });
