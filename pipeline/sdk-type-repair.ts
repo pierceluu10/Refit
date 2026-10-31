@@ -342,10 +342,13 @@ export function namedPathEdit(
   else if (ts.isObjectLiteralExpression(body))
     params = `{ ${[...pairs, ...body.properties.map(text)].join(', ')} }`;
   else params = `{ ${[...pairs, `...${text(body)}`].join(', ')} }`;
+  // The call's own separator, so arguments on their own lines stay on their own lines.
+  const separator = source.getFullText().slice(args[0].getEnd(), args[1].getStart(source));
+  const join = /^\s*,\s*$/.test(separator) ? separator : ', ';
   return {
     start: args[0].getStart(source),
     end: args.at(-1)!.getEnd(),
-    text: `${text(args[count])}, ${params}${options ? `, ${text(options)}` : ''}`,
+    text: [text(args[count]), params, ...(options ? [text(options)] : [])].join(join),
   };
 }
 

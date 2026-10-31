@@ -332,6 +332,12 @@ describe('namedPathEdit', () => {
       'c.files.retrieve(f, { vector_store_id: s }, opts)',
     );
     expect(rewrite('c.files.retrieve(s, f, query, opts)', retrieve)).toBeUndefined();
+    expect(
+      rewrite('c.runs.submitToolOutputs(\n  t,\n  r,\n  { tool_outputs },\n)', {
+        parents: ['thread_id'],
+        body: true,
+      }),
+    ).toBe('c.runs.submitToolOutputs(\n  r,\n  { thread_id: t, tool_outputs },\n)');
   });
 
   it('refuses a call that is not in the old positional form', () => {
