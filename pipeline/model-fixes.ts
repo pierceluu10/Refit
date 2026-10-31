@@ -5,6 +5,7 @@ import type { ModelParameterTable } from './model-parameters.ts';
 import {
   EMPTY_REQUEST_PROOFS,
   loadRequestProofs,
+  proofApi,
   unavailableTargets,
   requestProof,
   type RequestProof,
@@ -87,22 +88,33 @@ const noOpChecked = (validation: { command: string[] }) =>
   validation.command.join(' ') === NO_OP_CHECK;
 
 // Each replacement target and call family with its request-level proof, or the exact reason it has
-// none. A draft with any unproven target is `[Needs review]`.
+// none. A draft with any unproven target is `[Needs review]`. A legacy completion request moved to
+// the current API is proven as the call it becomes.
 export function requestEvidence(replacements: ModelReplacement[], proofs: RequestProofTable) {
   const seen = new Map<
     string,
     { provider: string; to: string; call: string; proof?: RequestProof; pending?: string }
   >();
   for (const item of replacements) {
-    const found = requestProof(proofs, item.provider, item.to, item.call);
-    const key = `${item.provider}\t${item.to}\t${'proof' in found ? found.proof.api : found.pending}`;
-    if (!seen.has(key))
-      seen.set(key, {
-        provider: item.provider,
-        to: item.to,
-        call: item.call,
-        ...('proof' in found ? { proof: found.proof } : { pending: found.pending }),
-      });
+    const calls = item.rewrites?.length
+      ? [
+          ...new Set([
+            ...item.rewrites.map((rewrite) => rewrite.to),
+            ...(proofApi(item.call) ? [item.call] : []),
+          ]),
+        ]
+      : [item.call];
+    for (const call of calls) {
+      const found = requestProof(proofs, item.provider, item.to, call);
+      const key = `${item.provider}\t${item.to}\t${'proof' in found ? found.proof.api : found.pending}`;
+      if (!seen.has(key))
+        seen.set(key, {
+          provider: item.provider,
+          to: item.to,
+          call,
+          ...('proof' in found ? { proof: found.proof } : { pending: found.pending }),
+        });
+    }
   }
   return [...seen.values()];
 }
@@ -175,6 +187,27 @@ export function modelFixBody(options: {
         'Where the registry replacement retires too, Refit followed the registry to a model that does not.',
         '',
       );
+    const rewrites = replacements.flatMap((item) =>
+      (item.rewrites ?? []).map((rewrite) => ({ ...rewrite, model: item.to })),
+    );
+    if (rewrites.length)
+      lines.push(
+        '## Retired APIs moved to the current API',
+        '',
+        "Every model these legacy completion calls served has retired, and the replacement is served only by the provider's current API, so Refit moved each call there, using only the mappings in its rule tables (each quotes a saved provider page). It rewrote the request parameters, the prompt and every read of the response; a call with anything it could not map is left for review instead.",
+        '',
+        ...rewrites.map(
+          (rewrite) =>
+            `- ${code(`${rewrite.file}:${rewrite.line}`)} ${code(rewrite.from)} → ${code(rewrite.to)} with ${code(rewrite.model)} (${rewrite.rules.map(code).join(', ')})`,
+        ),
+        '',
+        `${
+          rewrites.some((rewrite) => rewrite.to === 'responses.create')
+            ? "On Responses, `max_output_tokens` also counts the model's reasoning tokens, so a limit sized for the old model's visible text can leave less room for the answer. "
+            : ''
+        }The new API returns its text in a different shape; Refit reads only the text, as the old code did. **Check the answers, their length and any streaming output before merging.**`,
+        '',
+      );
     const parameterEdits = replacements.flatMap((item) => item.parameters ?? []);
     if (parameterEdits.length)
       lines.push(
@@ -223,9 +256,11 @@ export function modelFixBody(options: {
       '',
       '## Rollback',
       '',
-      replacements.some((item) => item.parameters?.length)
-        ? 'Revert this pull request. It changes only the model IDs in the table above and the request parameters listed with them: no dependency, configuration or environment variable.'
-        : 'Revert this pull request. It changes only the model IDs in the table above: no dependency, configuration or environment variable.',
+      replacements.some((item) => item.rewrites?.length)
+        ? 'Revert this pull request. It changes only the model IDs in the table above, the calls moved to the current API and the request parameters listed with them: no dependency, configuration or environment variable.'
+        : replacements.some((item) => item.parameters?.length)
+          ? 'Revert this pull request. It changes only the model IDs in the table above and the request parameters listed with them: no dependency, configuration or environment variable.'
+          : 'Revert this pull request. It changes only the model IDs in the table above: no dependency, configuration or environment variable.',
       '',
       '## Reviewer Checklist',
       '',

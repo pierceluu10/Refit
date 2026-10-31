@@ -385,7 +385,7 @@ it('follows v3 and openai-edge clients, request consts and model consts used onc
   expect(proposal.stops.map((item) => [`${item.file}:${item.line}`, item.reason])).toEqual([
     [
       'src/v3.ts:6',
-      '`createCompletion` is not a call Refit edits; gpt-5.6-sol may change formats or parameters; change it by hand to gpt-5.6-sol.',
+      '`createCompletion` is on an openai v3-style client (openai 3 or openai-edge), which has no Responses API; upgrade the SDK, then move this call by hand. The replacement model is gpt-5.6-sol.',
     ],
     [
       'src/shared.ts:4',
@@ -666,9 +666,19 @@ it('stops non-text OpenAI and Anthropic calls with a named reason and never edit
     [
       ['src/ai.ts:10', 'embeddings.create', NON_TEXT('embeddings.create', 'gpt-5.6-sol')],
       ['src/ai.ts:11', 'moderations.create', NON_TEXT('moderations.create', 'gpt-5.6-sol')],
-      ['src/ai.ts:12', 'completions.create', NON_TEXT('completions.create', 'gpt-5.6-sol')],
+      // Legacy completions move to the current API only on an SDK that has it
+      // (pipeline/legacy-completions.test.ts); here each names why it stays.
+      [
+        'src/ai.ts:12',
+        'completions.create',
+        'openai 4.80.0 predates 4.87.0, the first release with the Responses API; upgrade the SDK, then move this call by hand. The replacement model is gpt-5.6-sol.',
+      ],
       ['src/ai.ts:13', 'beta.assistants.create', NON_TEXT('beta.assistants.create', 'gpt-5.6-sol')],
-      ['src/ai.ts:14', 'completions.create', NON_TEXT('completions.create', 'claude-opus-4-8')],
+      [
+        'src/ai.ts:14',
+        'completions.create',
+        'The prompt is not written as a string or template literal Refit can split into Human and Assistant turns (or a constant used only here), so the conversation it sends is unknown; move this call by hand. The replacement model is claude-opus-4-8.',
+      ],
       ['src/ai.ts:6', 'images.generate', NON_TEXT('images.generate', 'gpt-image-2')],
       ['src/ai.ts:7', 'images.edit', NON_TEXT('images.edit', 'gpt-image-2')],
       ['src/ai.ts:8', 'audio.speech.create', NON_TEXT('audio.speech.create', 'gpt-4o-mini-tts')],
@@ -690,7 +700,11 @@ it('stops non-text OpenAI and Anthropic calls with a named reason and never edit
         'chat.completions.create',
         'The model comes from the constant MODEL (src/shared.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
       ],
-      ['src/v3.ts:3', 'createCompletion', NON_TEXT('createCompletion', 'gpt-5.6-sol')],
+      [
+        'src/v3.ts:3',
+        'createCompletion',
+        '`createCompletion` is on an openai v3-style client (openai 3 or openai-edge), which has no Responses API; upgrade the SDK, then move this call by hand. The replacement model is gpt-5.6-sol.',
+      ],
     ].sort(),
   );
 });

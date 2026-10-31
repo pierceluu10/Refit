@@ -2,6 +2,7 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript-compiler';
+import { loadAiRuleTables, type AiRuleTable } from './ai-rules.ts';
 import { analyzeRepository } from './analyzer.ts';
 import type { DeadlineEntry, DeadlineRegistry } from './deadline-registry.ts';
 import { daysUntil } from './deadline-registry.ts';
@@ -14,7 +15,7 @@ import {
 } from './model-parameter-changes.ts';
 import { proofApi, type UnavailableTarget } from './model-request-proofs.ts';
 import { modelWrapperStops } from './model-wrappers.ts';
-import { renderPatch } from './patches.ts';
+import { applySourceEdits, renderPatch } from './patches.ts';
 import {
   EMPTY_MODEL_PARAMETERS,
   MODEL_PARAMETER_NAMES,
@@ -27,6 +28,16 @@ import { readRepository } from './repository.ts';
 import { goModelReports } from './go/model-reports.ts';
 import { pythonModelReports, type ModelRules } from './python/model-reports.ts';
 import { isolated, uniqueStops, type TracerStop } from './tree-sitter.ts';
+import {
+  installedSdkRelease,
+  LEGACY_COMPLETION_CALLS,
+  legacyRules,
+  planLegacyCompletion,
+  unusedMarkerImports,
+  type LegacyPlan,
+  type LegacyProvider,
+  type LegacyRewrite,
+} from './legacy-completions.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import type { Repository, SourceEdit } from './types.ts';
 
@@ -243,6 +254,17 @@ export interface ModelReplacement {
   via: string[];
   // Request parameters changed with the swap (only with a parameter change table).
   parameters?: ModelParameterEdit[];
+  // Legacy completion requests moved to the provider's current API with the swap
+  // (pipeline/legacy-completions.ts), with the rules each move applied.
+  rewrites?: LegacyCompletionRewrite[];
+}
+
+export interface LegacyCompletionRewrite {
+  file: string;
+  line: number;
+  from: string;
+  to: string;
+  rules: string[];
 }
 
 // One request parameter renamed or removed together with a model swap, with its sourced change.
@@ -2170,6 +2192,8 @@ export function rejectedParametersLeft(options: {
   edits: readonly { item: ts.ObjectLiteralElementLike; change: ParameterChange }[];
   changes?: ParameterChangeTable;
   parameters?: ModelParameterTable;
+  // Parameters a legacy completion rewrite renames, under their new names.
+  renamed?: ReadonlyMap<string, string>;
 }): string | undefined {
   const { object, provider, to, call } = options;
   const api = proofApi(call);
@@ -2180,7 +2204,8 @@ export function rejectedParametersLeft(options: {
   const left: string[] = [];
   for (const item of object.properties) {
     if (handled.has(item)) continue;
-    const name = item.name && propertyName(item.name);
+    const written = item.name && propertyName(item.name);
+    const name = written && (options.renamed?.get(written) ?? written);
     if (!name) continue;
     const change = options.changes && parameterChange(options.changes, provider, to, api, name);
     const flagged =
@@ -2220,19 +2245,25 @@ function plannedParameterEdits(
   call: string,
   object: ts.ObjectLiteralExpression,
   sensitive: ReadonlySet<string>,
+  // Parameters a legacy completion rewrite renames, under their new names.
+  renamed?: ReadonlyMap<string, string>,
 ): { reason?: string; edits: PlannedParameterEdit[] } {
   const api = proofApi(call);
   const reasons: string[] = [];
   const edits: PlannedParameterEdit[] = [];
   const text = object.getSourceFile().text;
+  const nameOf = (item: ts.ObjectLiteralElementLike) => {
+    const written = item.name && propertyName(item.name);
+    return written && (renamed?.get(written) ?? written);
+  };
   const names = new Set(
     object.properties.flatMap((item) => {
-      const name = item.name && propertyName(item.name);
+      const name = nameOf(item);
       return name ? [name] : [];
     }),
   );
   object.properties.forEach((item, index) => {
-    const name = item.name && propertyName(item.name);
+    const name = nameOf(item);
     if (!name) return;
     const change = parameterChange(table, provider, model, api, name);
     if (!change) {
@@ -2240,6 +2271,10 @@ function plannedParameterEdits(
         reasons.push(`The request sets ${name}, which ${model} may reject or treat differently.`);
       return;
     }
+    if (renamed && name !== propertyName(item.name!))
+      return void reasons.push(
+        `The request's ${name} is renamed by the legacy completion rewrite and changed again by ${change.id}; change it by hand.`,
+      );
     if (change.action === 'stop')
       return void reasons.push(`The request sets ${name}. ${change.note}`);
     const blocker = change.stopIfPresent?.find((other) => names.has(other));
@@ -2311,6 +2346,9 @@ export async function proposeModelReplacements(
     parameterChanges,
     // Replacement targets a request proof got HTTP 404 for (`unavailableTargets`): never swapped to.
     unavailable = [],
+    // The AI rule tables whose `auto` rules move legacy completion requests to the current API;
+    // read from data/rules when a legacy request needs them.
+    aiRules,
   }: {
     indirect?: boolean;
     reportOnly?: ReportOnlySource[];
@@ -2318,6 +2356,7 @@ export async function proposeModelReplacements(
     parameters?: ModelParameterTable;
     parameterChanges?: ParameterChangeTable;
     unavailable?: UnavailableTarget[];
+    aiRules?: AiRuleTable[];
   } = {},
 ): Promise<ModelReplacementProposal> {
   const byProvider = new Map<string, Map<string, DeadlineEntry>>();
@@ -2546,7 +2585,13 @@ export async function proposeModelReplacements(
       requests: (typeof requests)[number][];
       parameterEdits: PlannedParameterEdit[];
       // Each request's own object literal, for the final parameter check.
-      objects: { object: ts.ObjectLiteralExpression; call: string }[];
+      objects: {
+        object: ts.ObjectLiteralExpression;
+        call: string;
+        renamed?: ReadonlyMap<string, string>;
+      }[];
+      // Legacy completion requests moved to the current API with this swap.
+      rewrites: { node: ts.CallExpression; call: string; rewrite: LegacyRewrite }[];
     }
   >();
   const stops: ModelReplacementStop[] = [];
@@ -2600,6 +2645,59 @@ export async function proposeModelReplacements(
   const endpointSet = requests.some((request) => request.sdk && !request.custom)
     ? await customEndpoint(directory, repository)
     : false;
+  // Legacy completion requests the rewrite rules can move to the current API, planned once each.
+  let legacyTables = aiRules;
+  const sdkRepositories = new Map<string, Repository>();
+  const legacyPlans = new Map<ts.Node, LegacyPlan>();
+  const planLegacy = async (
+    request: (typeof requests)[number],
+    found: NonNullable<ReturnType<typeof requestObject>>,
+    sites: Site[],
+    cut: boolean,
+  ): Promise<LegacyPlan | undefined> => {
+    const provider = request.provider as LegacyProvider;
+    if (!LEGACY_COMPLETION_CALLS[provider]?.has(request.call) || !request.sdk) return undefined;
+    // Requests that stop for their client or endpoint keep that reason.
+    if (request.custom || request.client || request.unverified || request.platform)
+      return undefined;
+    if (request.reportOnly) return undefined;
+    let plan = legacyPlans.get(request.node);
+    if (!plan) {
+      legacyTables ??= await loadAiRuleTables();
+      const rules = legacyRules(legacyTables, provider);
+      const packageName = provider === 'openai' ? 'openai' : '@anthropic-ai/sdk';
+      if (!sdkRepositories.has(packageName))
+        sdkRepositories.set(packageName, await readRepository(directory, packageName));
+      plan =
+        'reason' in rules
+          ? {
+              reason: `${rules.reason}, so this legacy completion request is not moved; move it by hand.`,
+            }
+          : cut || sites.length !== 1
+            ? {
+                reason:
+                  'The model of this legacy completion request comes from more than one place, so moving the call to the current API could send a model it does not serve; move it by hand.',
+              }
+            : unwrap(request.argument!) !== found.object
+              ? {
+                  reason:
+                    'The legacy completion request is built in a variable, which Refit does not rewrite; move the call to the current API by hand.',
+                }
+              : planLegacyCompletion({
+                  provider,
+                  call: request.call,
+                  node: request.node,
+                  program,
+                  rules: rules.rules,
+                  release: installedSdkRelease(
+                    sdkRepositories.get(packageName)!,
+                    program.path(request.node),
+                  ),
+                });
+      legacyPlans.set(request.node, plan);
+    }
+    return plan;
+  };
   for (const { request, found, value, trace, from } of traced) {
     const models = byProvider.get(request.provider)!;
     // A trace a limit cut cannot prove every source and use, so no literal it reaches is edited.
@@ -2644,13 +2742,20 @@ export async function proposeModelReplacements(
       const tabled = parameters.models.some(
         (item) => item.provider === request.provider && item.model === resolved.to,
       );
+      // A legacy completion request moved to the current API is judged as the new request: its
+      // call and its parameters under their new names.
+      const legacy = from ? undefined : await planLegacy(request, found, sites, Boolean(trace.cut));
+      const rewrite = legacy && 'rewrite' in legacy ? legacy.rewrite : undefined;
+      const effectiveCall = rewrite?.to ?? request.call;
+      const renamed = rewrite?.renamed;
       const sensitiveProperties = found.object.properties.flatMap((item) => {
-        const name = item.name && propertyName(item.name);
+        const written = item.name && propertyName(item.name);
+        const name = written && (renamed?.get(written) ?? written);
         return name &&
           (MODEL_PARAMETER_NAMES[request.provider]?.has(name) ||
             (chatToolsNeedNoReasoning(resolved.to) &&
               CHAT_TOOLS.has(name) &&
-              proofApi(request.call) === 'chat.completions'))
+              proofApi(effectiveCall) === 'chat.completions'))
           ? [{ item, name }]
           : [];
       });
@@ -2703,9 +2808,10 @@ export async function proposeModelReplacements(
               parameterChanges,
               request.provider,
               resolved.to,
-              request.call,
+              effectiveCall,
               found.object,
               new Set(sensitive),
+              renamed,
             )
           : undefined;
       const stop = site.stop ?? sharedUse(program, site.passes, reached);
@@ -2715,7 +2821,7 @@ export async function proposeModelReplacements(
           (item) =>
             item.provider === request.provider &&
             item.model === resolved.to &&
-            item.api === proofApi(request.call),
+            item.api === proofApi(effectiveCall),
         );
       const reason = !resolved.to
         ? 'The registry names no concrete replacement model ID.'
@@ -2736,8 +2842,10 @@ export async function proposeModelReplacements(
                       : // Images, audio, embeddings, moderation and legacy completions change formats, vector
                         // sizes or parameters with the model, so they are never edited. The wording is accurate for
                         // any call outside the text allow-list, such as beta.assistants.create (D-11, D-16).
-                        !request.text
-                        ? `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
+                        !request.text && !rewrite
+                        ? legacy && 'reason' in legacy
+                          ? `${legacy.reason} The replacement model is ${resolved.to}.`
+                          : `\`${request.call}\` is not a call Refit edits; ${resolved.to} may change formats or parameters; change it by hand to ${resolved.to}.`
                         : customUrl
                           ? request.sdk
                             ? client?.custom
@@ -2785,11 +2893,14 @@ export async function proposeModelReplacements(
         requests: [],
         parameterEdits: [],
         objects: [],
+        rewrites: [],
       };
       decisions.set(site.literal, decision);
       decision.requests.push(request);
-      decision.objects.push({ object: found.object, call: request.call });
+      decision.objects.push({ object: found.object, call: effectiveCall, renamed });
       decision.reasons.push(reason ?? '');
+      if (!reason && rewrite)
+        decision.rewrites.push({ node: request.node, call: request.call, rewrite });
       if (!reason && changed) decision.parameterEdits.push(...changed.edits);
     }
   }
@@ -2797,6 +2908,7 @@ export async function proposeModelReplacements(
   const replacements: ModelReplacement[] = [];
   const edits: SourceEdit[] = [];
   const editedParameters = new Set<ts.Node>();
+  const rewritten = new Set<ts.Node>();
   // A function-calling flow (`functions` on one request, the `function` role reply on the next)
   // moves together or not at all: when a request in a file stops on `functions` or `function_call`,
   // every other request in that file sending the same retiring model stops too.
@@ -2818,7 +2930,7 @@ export async function proposeModelReplacements(
     const blocking =
       decision.reasons.find(Boolean) ??
       decision.objects
-        .map(({ object, call }) =>
+        .map(({ object, call, renamed }) =>
           rejectedParametersLeft({
             object,
             provider: decision.entry.provider,
@@ -2827,6 +2939,7 @@ export async function proposeModelReplacements(
             edits: decision.parameterEdits,
             changes: parameterChanges,
             parameters,
+            renamed,
           }),
         )
         .find(Boolean) ??
@@ -2873,6 +2986,25 @@ export async function proposeModelReplacements(
         note: planned.change.note,
       });
     }
+    const rewrites: LegacyCompletionRewrite[] = [];
+    for (const { node, call, rewrite } of decision.rewrites) {
+      if (rewritten.has(node)) continue;
+      rewritten.add(node);
+      for (const edit of rewrite.edits)
+        edits.push({
+          file: program.path(node),
+          ...edit,
+          changeId: decision.entry.id,
+          rule: 'legacy-completions',
+        });
+      rewrites.push({
+        file: program.path(node),
+        line: program.line(node),
+        from: call,
+        to: rewrite.to,
+        rules: rewrite.rules,
+      });
+    }
     replacements.push({
       ...base,
       date: decision.entry.date,
@@ -2882,7 +3014,17 @@ export async function proposeModelReplacements(
       to: decision.to,
       via: decision.via,
       ...(parameterEdits.length ? { parameters: parameterEdits } : {}),
+      ...(rewrites.length ? { rewrites } : {}),
     });
+  }
+  // Prompt marker imports a moved Text Completions prompt leaves unused go with it.
+  for (const file of new Set(
+    edits.filter((edit) => edit.rule === 'legacy-completions').map((edit) => edit.file),
+  )) {
+    const source = program.source(file)!;
+    const own = edits.filter((edit) => edit.file === file);
+    for (const edit of unusedMarkerImports(source, applySourceEdits(source.text, own)))
+      edits.push({ file, ...edit, changeId: own[0].changeId, rule: 'legacy-completions' });
   }
   // Every other live match of a traced provider, with why no traced request sends it.
   const covered = new Set([
