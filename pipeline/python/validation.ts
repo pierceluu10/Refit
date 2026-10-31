@@ -318,9 +318,9 @@ export async function preparePython(options: {
     if (run.status !== 'passed') {
       const named = /refit-python-stop: (.*)/.exec(run.stderr)?.[1];
       if (named) throw new PythonPreparationStop(`Python preparation stopped: ${named}`);
-      if (/python3: not found|can't execute 'python3'/.test(run.stderr))
+      if (/python3: not found|can't execute 'python3'|'python3': No such file/.test(run.stderr))
         throw new PythonPreparationStop(
-          `The validation image ${options.image} has no python3 (docker/sandbox.Dockerfile builds one that does).`,
+          `The validation image ${options.image} has no python3 (docker/sandbox.Dockerfile's python target has).`,
         );
       throw new PythonPreparationStop(
         `Python preparation did not finish (${run.exitCode === null ? 'stopped' : `exit ${run.exitCode}`}): ${run.stderr.trim().split('\n').slice(-3).join(' | ')}`,

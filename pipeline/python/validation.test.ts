@@ -16,9 +16,9 @@ import {
 } from './validation.ts';
 
 // Synthetic repositories only (pipeline/fixtures/python-validation): no benchmark repository is
-// opened here. The Docker cases need an image with python3, built from docker/sandbox.Dockerfile
-// (`docker build -t refit-sandbox:python -f docker/sandbox.Dockerfile docker`), and the network for
-// preparation; the checks themselves run offline.
+// opened here. The Docker cases need docker/sandbox.Dockerfile's python target
+// (`docker build --target python -t refit-sandbox:python-glibc -f docker/sandbox.Dockerfile docker`)
+// and the network for preparation; the checks themselves run offline.
 const IMAGE = process.env.REFIT_PYTHON_DOCKER_IMAGE;
 const NODE_ONLY_IMAGE = process.env.REFIT_DOCKER_IMAGE;
 const gated = it.skipIf(!IMAGE);
@@ -277,6 +277,21 @@ describe('offline Python validation in Docker', () => {
   );
 
   gated(
+    "falls back to an older Python that the repository's requires-python allows",
+    async () => {
+      const { directory, patch } = await repository('older-python');
+      const result = await validatePythonPatch({
+        repository: directory,
+        image: IMAGE!,
+        patch: await patch('legacy.py', (text) => `${text}\n# reviewed\n`),
+      });
+      expect(result).toMatchObject({ status: 'passed' });
+      expect(result.python).toMatch(/^3\.12\./);
+    },
+    600_000,
+  );
+
+  gated(
     'prepares the patched side again when the patch changes a requirement',
     async () => {
       const { directory, patch } = await repository('requirements');
@@ -287,7 +302,7 @@ describe('offline Python validation in Docker', () => {
         patch: missing,
       });
       expect(result.status).toBe('preparation-failed');
-      expect(result.reason).toMatch(/^Python preparation stopped: `.+pip install/);
+      expect(result.reason).toMatch(/^Python preparation stopped: Python system: `.+pip install/);
     },
     600_000,
   );
