@@ -505,7 +505,7 @@ it('sends unmigrated webhook reads to AI with version-tolerant instructions', as
       return new Response(
         JSON.stringify({
           id: 'resp_webhook',
-          model: 'fixture-model',
+          model: 'gpt-6.1-sol',
           status: 'completed',
           output: [
             {
@@ -535,7 +535,7 @@ it('sends unmigrated webhook reads to AI with version-tolerant instructions', as
       );
     }),
   );
-  const ai = { apiKey: 'local-fixture', model: 'fixture-model' };
+  const ai = { apiKey: 'local-fixture', model: 'gpt-6.1-sol' };
   const report = await runPipeline({
     repository,
     before: beforePath,
@@ -562,7 +562,7 @@ it('stops an AI webhook fix that reads only the new shape, with no corrected req
     return new Response(
       JSON.stringify({
         id: 'resp_webhook',
-        model: 'fixture-model',
+        model: 'gpt-6.1-sol',
         status: 'completed',
         output: [
           {
@@ -597,7 +597,7 @@ it('stops an AI webhook fix that reads only the new shape, with no corrected req
     after: afterPath,
     apiVersion: VERSION,
     apiVersionPolicy: 'source-verified',
-    aiPatch: { apiKey: 'local-fixture', model: 'fixture-model' },
+    aiPatch: { apiKey: 'local-fixture', model: 'gpt-6.1-sol' },
   });
   await expect(run).rejects.toThrow(
     /^AI patch reads subscription\.current_period_end \(handler\.ts:\d+\) only in the new shape; .* stops for review\.$/,

@@ -66,7 +66,7 @@ it('runs from another directory using paths relative to the configuration and ex
   const environment = join(root, '.env');
   await writeFile(
     environment,
-    'export OPENAI_API_KEY="env-file-test-key"\nOPENAI_MODEL="test-model"\n',
+    'export OPENAI_API_KEY="env-file-test-key"\nOPENAI_MODEL="gpt-6.1-sol"\n',
   );
   try {
     await execute(
@@ -174,7 +174,7 @@ it('lets a CLI after override replace latest discovery without fetching a remote
 it('preserves existing environment values and rejects duplicate or missing environment file options', async () => {
   const { root, path } = await setup();
   const environment = join(root, '.env');
-  await writeFile(environment, 'OPENAI_API_KEY=test-key\nOPENAI_MODEL=test-model');
+  await writeFile(environment, 'OPENAI_API_KEY=test-key\nOPENAI_MODEL=gpt-6.1-sol');
   await expect(
     execute(
       process.execPath,

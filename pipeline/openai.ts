@@ -51,6 +51,25 @@ export interface OutputLimits {
   timeoutMs?: number;
 }
 
+// Owner rule (2026-10-29): Refit's AI work (patches, the AI surface lane, test writing,
+// assessments) runs only on gpt-6.1-sol. Other models are used only for request-level proofs,
+// which send through the SDK, not through here. Another model needs REFIT_AI_MODEL_OVERRIDE set
+// to exactly that model, so a stray OPENAI_MODEL fails loudly instead of running.
+export const AI_MODEL = 'gpt-6.1-sol';
+
+export function checkAiModel(model: string, env: NodeJS.ProcessEnv = process.env) {
+  const override = env.REFIT_AI_MODEL_OVERRIDE?.trim();
+  if (override && override !== model)
+    throw new PipelineInputError(
+      `REFIT_AI_MODEL_OVERRIDE is ${override} but the AI model is ${model}; they must name the same model.`,
+    );
+  if (model !== AI_MODEL && !override)
+    throw new PipelineInputError(
+      `The AI model is ${model}; Refit's AI work runs only on ${AI_MODEL}. Set OPENAI_MODEL=${AI_MODEL}, or REFIT_AI_MODEL_OVERRIDE=${model} to use ${model} on purpose.`,
+    );
+  return model;
+}
+
 export async function requestStructuredOutput(
   request: {
     evidence: unknown;
@@ -70,6 +89,7 @@ export async function requestStructuredOutput(
   const effort = request.reasoningEffort ?? options.reasoningEffort;
   if (!options.apiKey.trim() || !options.model.trim())
     throw new PipelineInputError('AI requests require OPENAI_API_KEY and OPENAI_MODEL.');
+  checkAiModel(options.model);
   const input = JSON.stringify(request.evidence);
   if (Buffer.byteLength(input) > MAX_INPUT_BYTES)
     throw new PipelineInputError(

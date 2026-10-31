@@ -17,14 +17,36 @@ export const PROOF_KEYS: Record<ProofProvider, string> = {
   gemini: 'GEMINI_API_KEY',
 };
 
-// The model each probe uses unless the environment names another. Refit's OpenAI proof project
-// allows only gpt-6.1-sol; Gemini's comes from the deadline registry (proofGeminiModel), since
-// Google retires its cheap models often.
+// The model each probe uses unless the environment names another. OpenAI's is gpt-6.1-sol, the
+// model Refit's AI work uses; an embeddings proof sends an embedding model (proofEmbeddingModel).
+// Gemini's comes from the deadline registry (proofGeminiModel), since Google retires its cheap
+// models often.
 const PROOF_MODELS: Record<ProofProvider, { env: string; model?: string }> = {
   openai: { env: 'REFIT_PROOF_OPENAI_MODEL', model: 'gpt-6.1-sol' },
   anthropic: { env: 'REFIT_PROOF_ANTHROPIC_MODEL', model: 'claude-haiku-5-5' },
   gemini: { env: 'REFIT_PROOF_GEMINI_MODEL' },
 };
+
+// Embeddings need an embedding model; the proof's model is a chat model.
+const OPENAI_EMBEDDING_ENV = 'REFIT_PROOF_OPENAI_EMBEDDING_MODEL';
+const OPENAI_EMBEDDING = /^text-embedding-(\d+)-(small|large)$/;
+
+// The OpenAI embedding model an embeddings proof sends: a text-embedding-N-small/large model OpenAI
+// names as a replacement in the registry and that no registry entry retires, on any date. Small is
+// preferred (the cheapest), then the newest generation.
+export function proofEmbeddingModel(entries: DeadlineEntry[]) {
+  const openai = entries.filter((entry) => entry.provider === 'openai' && entry.kind === 'model');
+  const listed = new Set(openai.flatMap((entry) => entry.versions));
+  const [best] = [...new Set(openai.map((entry) => entry.replacement ?? ''))]
+    .map((model) => ({ model, match: OPENAI_EMBEDDING.exec(model) }))
+    .filter((item) => item.match && !listed.has(item.model))
+    .sort(
+      (a, b) =>
+        Number(b.match![2] === 'small') - Number(a.match![2] === 'small') ||
+        Number(b.match![1]) - Number(a.match![1]),
+    );
+  return best?.model;
+}
 
 const GEMINI_TEXT = /^gemini-(\d+)(?:\.(\d+))?-flash(-lite)?$/;
 
@@ -55,7 +77,12 @@ export interface ProofCall {
 }
 
 type Client = Record<string, unknown>;
-type Probe = (client: Client, model: string, call: ProofCall) => Promise<string>;
+type Probe = (
+  client: Client,
+  model: string,
+  call: ProofCall,
+  models: { embedding?: string },
+) => Promise<string>;
 
 const at = (client: Client, path: string) =>
   path
@@ -135,16 +162,30 @@ const OPENAI_PROBES: Record<string, Probe> = {
     }
     if (call.tools) {
       // "Starting with GPT-5.4, Chat Completions does not support tool calling with
-      // `reasoning_effort` values other than `none`" (docs/ai-docs/pages/openai-migrate-to-responses.md),
-      // and the default is not `none`, so the tool request says it.
-      const tooled = (await invoke(client, call.call, {
-        model,
-        messages: [{ role: 'user', content: 'Record the word ok.' }],
-        tools: [TOOL],
-        tool_choice: { type: 'function', function: { name: 'record' } },
-        reasoning_effort: 'none',
-        max_completion_tokens: 512,
-      })) as { choices?: { message?: { tool_calls?: { function?: { arguments?: string } }[] } }[] };
+      // `reasoning_effort` values other than `none`" (docs/ai-docs/pages/openai-migrate-to-responses.md).
+      // gpt-6.1-sol supports no `none`, so the request is sent as a migrated call sends it and a
+      // refusal over reasoning_effort leaves the shape pending; no other effort is tried.
+      let tooled: {
+        choices?: { message?: { tool_calls?: { function?: { arguments?: string } }[] } }[];
+      };
+      try {
+        tooled = (await invoke(client, call.call, {
+          model,
+          messages: [{ role: 'user', content: 'Record the word ok.' }],
+          tools: [TOOL],
+          tool_choice: { type: 'function', function: { name: 'record' } },
+          max_completion_tokens: 512,
+        })) as typeof tooled;
+      } catch (error) {
+        if (
+          (error as { status?: unknown }).status === 400 &&
+          /reasoning_effort/.test(String((error as Error).message))
+        )
+          throw new ProofPending(
+            `${model} rejects function tools on Chat Completions at its default reasoning_effort and supports no \`none\`, so Chat with tools cannot be proved on it; the tools shape is proved on Responses (HTTP 400: ${redact((error as Error).message).slice(0, 200)})`,
+          );
+        throw error;
+      }
       const argumentsText = tooled.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
       expect(typeof argumentsText === 'string', 'no tool call');
       expect(typeof JSON.parse(argumentsText).word === 'string', 'tool arguments lack `word`');
@@ -162,21 +203,72 @@ const OPENAI_PROBES: Record<string, Probe> = {
     }
     return done.join(', ');
   },
+  // Tool and JSON shapes as the Responses migration guide writes them
+  // (docs/ai-docs/pages/openai-migrate-to-responses.md).
   'responses.create': async (client, model, call) => {
+    const done: string[] = [];
     const response = (await invoke(client, call.call, {
       model,
       input: 'Reply with the single word ok.',
       max_output_tokens: 256,
     })) as { output_text?: unknown };
     expect(typeof response.output_text === 'string', 'no output_text');
-    return 'text parsed';
+    done.push('text parsed');
+    if (call.stream) {
+      const stream = (await invoke(client, call.call, {
+        model,
+        input: 'Reply with the single word ok.',
+        max_output_tokens: 256,
+        stream: true,
+      })) as AsyncIterable<{ type?: string }>;
+      const types = new Set<string>();
+      for await (const event of stream) types.add(String(event.type));
+      expect(types.has('response.completed'), 'the stream did not end with response.completed');
+      done.push('stream parsed');
+    }
+    if (call.tools) {
+      const tooled = (await invoke(client, call.call, {
+        model,
+        input: 'Record the word ok.',
+        tools: [{ type: 'function', ...TOOL.function, strict: true }],
+        tool_choice: { type: 'function', name: 'record' },
+        max_output_tokens: 512,
+      })) as { output?: { type?: string; arguments?: string }[] };
+      const argumentsText = tooled.output?.find((item) => item.type === 'function_call')?.arguments;
+      expect(typeof argumentsText === 'string', 'no function_call');
+      expect(typeof JSON.parse(argumentsText).word === 'string', 'tool arguments lack `word`');
+      done.push('tool call parsed');
+    }
+    if (call.json) {
+      const json = (await invoke(client, call.call, {
+        model,
+        input: 'Record the word ok.',
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'record',
+            strict: true,
+            schema: TOOL.function.parameters,
+          },
+        },
+        max_output_tokens: 512,
+      })) as { output_text?: string };
+      expect(typeof JSON.parse(json.output_text ?? '').word === 'string', 'JSON lacks `word`');
+      done.push('JSON parsed');
+    }
+    return done.join(', ');
   },
-  // Embeddings need an embedding model, and the proof project allows only its one chat model, so
-  // no request is sent and no other model is tried.
-  'embeddings.create': async (_client, model) => {
-    throw new ProofPending(
-      `project allows only ${model}, which is not an embedding model; no embeddings request was sent.`,
-    );
+  'embeddings.create': async (client, _model, call, models) => {
+    if (!models.embedding)
+      throw new ProofPending(
+        `The deadline registry names no current OpenAI embedding model and ${OPENAI_EMBEDDING_ENV} is not set; no embeddings request was sent.`,
+      );
+    const response = (await invoke(client, call.call, {
+      model: models.embedding,
+      input: 'ok',
+    })) as { data?: { embedding?: unknown }[] };
+    expect(Array.isArray(response.data?.[0]?.embedding), 'no embedding');
+    return `embedding parsed (${models.embedding})`;
   },
   'moderations.create': async (client, _model, call) => {
     const response = (await invoke(client, call.call, { input: 'ok' })) as {
@@ -329,10 +421,20 @@ export async function proveRequests(options: {
       ? { apiKey: env[key] }
       : { apiKey: env[key], maxRetries: 1, timeout: 60_000 },
   );
+  let registry = options.models;
+  const entries = async () => (registry ??= (await loadDeadlineRegistry()).deadlines);
   const model =
     env[PROOF_MODELS[options.provider].env]?.trim() ||
     PROOF_MODELS[options.provider].model ||
-    proofGeminiModel(options.models ?? (await loadDeadlineRegistry()).deadlines);
+    proofGeminiModel(await entries());
+  // Only for the proof request: other models never write code (openai.ts checkAiModel).
+  const models = {
+    embedding:
+      options.provider === 'openai' &&
+      options.calls.some((call) => call.call === 'embeddings.create')
+        ? env[OPENAI_EMBEDDING_ENV]?.trim() || proofEmbeddingModel(await entries())
+        : undefined,
+  };
   if (!model)
     return pending(
       'The deadline registry names no current Gemini flash model to send the proof with.',
@@ -349,7 +451,11 @@ export async function proveRequests(options: {
       continue;
     }
     try {
-      calls.push({ call: call.call, status: 'accepted', detail: await probe(client, model, call) });
+      calls.push({
+        call: call.call,
+        status: 'accepted',
+        detail: await probe(client, model, call, models),
+      });
     } catch (error) {
       const status = (error as { status?: unknown }).status;
       if (error instanceof ProofPending) {
@@ -364,6 +470,16 @@ export async function proveRequests(options: {
           call: call.call,
           status: 'pending',
           detail: `${error instanceof Error && /\bmodel/i.test(error.message) ? 'model' : 'request'} not enabled for Refit's project (HTTP 403${message ? `: ${message}` : ''})`,
+        });
+        continue;
+      }
+      // A 429 is the key's quota or credit, never a verdict on the call shape.
+      if (status === 429) {
+        const message = error instanceof Error ? redact(error.message).slice(0, 240) : '';
+        calls.push({
+          call: call.call,
+          status: 'pending',
+          detail: `provider quota or credit limit (HTTP 429${message ? `: ${message}` : ''})`,
         });
         continue;
       }

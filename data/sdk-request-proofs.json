@@ -54,6 +54,15 @@
       "reason": "Not run yet: the sdk-proof workflow has not run in refit-bench Actions."
     },
     {
+      "package": "openai",
+      "major": 6,
+      "call": "responses.create",
+      "stream": true,
+      "tools": true,
+      "json": true,
+      "reason": "Not run yet: the sdk-proof workflow has not run in refit-bench Actions."
+    },
+    {
       "package": "@anthropic-ai/sdk",
       "major": 1,
       "call": "messages.create",

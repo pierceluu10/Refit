@@ -18,6 +18,7 @@ import type { SdkMajorProposal } from './ai-sdk-majors.ts';
 import { aiBudgetConfiguration } from './ai-budget.ts';
 import { FALLBACK_MODEL } from './ai-fallback.ts';
 import { runFallbackOnRepository } from './ai-fallback-run.ts';
+import { AI_MODEL, checkAiModel } from './openai.ts';
 import { cliErrorMessage } from './cli-errors.ts';
 import { readBoundedResponse } from './network.ts';
 import { isObject, parseJson } from './specifications.ts';
@@ -140,8 +141,8 @@ try {
       tables: await loadAiRuleTables(),
       ai: {
         apiKey: key,
-        // Refit's refit-bench OpenAI project allows only gpt-6.1-sol.
-        model: process.env.OPENAI_MODEL?.trim() || 'gpt-6.1-sol',
+        // Checked before anything runs: AI work uses gpt-6.1-sol only (openai.ts).
+        model: checkAiModel(process.env.OPENAI_MODEL?.trim() || AI_MODEL),
         budget: aiBudgetConfiguration(process.env),
       },
       checks: {
