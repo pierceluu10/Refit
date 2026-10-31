@@ -44,6 +44,7 @@ export interface TypeRepair {
   code: string;
   rule: string;
   family: string;
+  source: { url: string; capturedAt: string };
 }
 
 // A new error no rule resolves, for the AI fallback: the error, the code on its line and every
@@ -296,13 +297,23 @@ function unionInterface(node: ts.Node, rules: SdkRule[], source: ts.SourceFile) 
 
 // `client.vectorStores.files.retrieve(storeId, fileId)` → `retrieve(fileId, { vector_store_id:
 // storeId })`: the v5 guide keeps only the last path parameter positional. The rule lists, per
-// method, the path parameters that became named, in the URL's order, read from the SDK's published
-// code. The error must be on the argument that now has to be the kept id (the old positional
-// order puts a string where the params object goes); a body after the ids merges into the params.
-export function namedPathEdit(call: ts.CallExpression, parents: string[], source: ts.SourceFile) {
+// method, the path parameters that became named, in the URL's order, and whether the params object
+// also carries a body or query, both read from the SDK's published code. In v4 a body or query came
+// after the ids and the request options last; the body merges into the params, and the options
+// stay the last argument.
+export interface NamedPathMethod {
+  parents: string[];
+  body: boolean;
+}
+
+export function namedPathEdit(
+  call: ts.CallExpression,
+  method: NamedPathMethod,
+  source: ts.SourceFile,
+) {
   const args = call.arguments;
-  const count = parents.length;
-  if (args.length < count + 1 || args.length > count + 3) return undefined;
+  const count = method.parents.length;
+  if (args.length < count + 1 || args.length > count + (method.body ? 3 : 2)) return undefined;
   const leading = args.slice(0, count + 1);
   if (
     leading.some(
@@ -316,10 +327,11 @@ export function namedPathEdit(call: ts.CallExpression, parents: string[], source
   )
     return undefined;
   const text = (node: ts.Node) => node.getText(source);
-  const pairs = parents.map((name, index) =>
+  const pairs = method.parents.map((name, index) =>
     text(args[index]) === name ? name : `${name}: ${text(args[index])}`,
   );
-  const body = args[count + 1];
+  const body = method.body ? args[count + 1] : undefined;
+  const options = args[count + (method.body ? 2 : 1)];
   let params: string;
   if (
     !body ||
@@ -327,11 +339,9 @@ export function namedPathEdit(call: ts.CallExpression, parents: string[], source
     (ts.isIdentifier(body) && body.text === 'undefined')
   )
     params = `{ ${pairs.join(', ')} }`;
-  else if (ts.isObjectLiteralExpression(body)) {
-    const inner = body.properties.map(text);
-    params = `{ ${[...pairs, ...inner].join(', ')} }`;
-  } else params = `{ ${[...pairs, `...${text(body)}`].join(', ')} }`;
-  const options = args[count + 2];
+  else if (ts.isObjectLiteralExpression(body))
+    params = `{ ${[...pairs, ...body.properties.map(text)].join(', ')} }`;
+  else params = `{ ${[...pairs, `...${text(body)}`].join(', ')} }`;
   return {
     start: args[0].getStart(source),
     end: args.at(-1)!.getEnd(),
@@ -355,11 +365,12 @@ function namedPath(node: ts.Node, rules: SdkRule[], source: ts.SourceFile, extra
   const names = chainOf(call.expression.name).accesses.map((access) => access.name.text);
   for (const rule of rules) {
     if (rule.family !== 'named-path-rewrite') continue;
-    const methods = rule.data.methods as Record<string, string[]>;
+    const methods = rule.data.methods as Record<string, NamedPathMethod>;
     const path = Object.keys(methods).find(
       (method) => names.slice(-method.split('.').length).join('.') === method,
     );
-    if (!path || (extra ? index <= methods[path].length : methods[path].length !== index)) continue;
+    const count = path ? methods[path].parents.length : 0;
+    if (!path || (extra ? index <= count : count !== index)) continue;
     const edit = namedPathEdit(call, methods[path], source);
     if (edit) return { edit, rule };
   }
@@ -564,6 +575,7 @@ export function repairTypeErrors(
       code: error.code,
       rule: found.rule.rule,
       family: found.rule.family,
+      source: { url: found.rule.source.url, capturedAt: found.rule.source.capturedAt },
     });
   }
   return { edits, repairs, open };
@@ -577,6 +589,8 @@ export interface TypeRepairResult {
   remaining: OpenTypeError[];
   // Every file a rule changed, with its final content.
   files: Map<string, string>;
+  // The errors came from Refit's checkJs type check, which the repository does not run itself.
+  checkJs?: boolean;
 }
 
 // The loop: repair the new errors by rule, type-check again, until none is new, a round repairs

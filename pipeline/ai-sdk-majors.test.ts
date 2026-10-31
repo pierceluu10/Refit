@@ -285,11 +285,29 @@ export async function clean(id: string) {
     expect(changed['src/files.ts']).toContain(".on('functionToolCall'");
   });
 
-  it('stops on a renamed call that also moved to named path parameters', async () => {
-    const { proposal } = await propose('4.104.0', {
+  it('renames a call that also moved to named path parameters and moves its leading id', async () => {
+    const { proposal, changed } = await propose('4.104.0', {
       'v.ts': `import OpenAI from 'openai';
 const openai = new OpenAI();
 export const drop = (store: string, file: string) => openai.vectorStores.files.del(store, file);
+export const read = (s: string, f: string) => openai.vectorStores.files.retrieve(s, f, { timeout: 1 });
+`,
+    });
+    expect(proposal.stops).toEqual([]);
+    expect(changed['v.ts']).toContain(
+      'openai.vectorStores.files.delete(file, { vector_store_id: store })',
+    );
+    // retrieve takes no body, so v4's third argument was its request options, and stays them.
+    expect(changed['v.ts']).toContain(
+      'openai.vectorStores.files.retrieve(f, { vector_store_id: s }, { timeout: 1 })',
+    );
+  });
+
+  it('still stops on a named-path call it cannot rewrite', async () => {
+    const { proposal } = await propose('4.104.0', {
+      'v.ts': `import OpenAI from 'openai';
+const openai = new OpenAI();
+export const drop = (ids: [string, string]) => openai.vectorStores.files.del(ids[0], ...ids.slice(1));
 `,
     });
     expect(proposal.stops).toEqual([
@@ -474,13 +492,32 @@ export interface Stored extends Anthropic.MessageParam { id: string }
     ).toEqual([
       'anthropic-2026-10-21-assistant-documents',
       'anthropic-2026-10-21-sampling',
-      'anthropic-ts-message-param-union',
       'anthropic-ts-one-credential',
       'anthropic-ts-text-completions-removed',
+    ]);
+    // The interface over the new MessageParam union becomes the guide's type alias.
+    expect(proposal.edits.map((item) => [item.rule, item.replacement])).toContainEqual([
+      'anthropic-ts-message-param-interface-alias',
+      'export type Stored = Anthropic.MessageParam & { id: string };',
     ]);
     // The literal temperature and the untraced top_k are optional-upgrade stops (decision A).
     expect(proposal.stops.filter((item) => item.category === 'optional-upgrade')).toHaveLength(2);
     expect(proposal.stops.filter((item) => item.file === 'b.js')).toHaveLength(1);
+  });
+
+  it('stops on a class that implements the new MessageParam union', async () => {
+    const proposal = await anthropic('0.40.0', {
+      'a.ts': `import Anthropic from '@anthropic-ai/sdk';
+export class Stored implements Anthropic.MessageParam { role = 'user' as const; content = '' }
+interface Twice extends Anthropic.MessageParam { id: string }
+interface Twice { at: number }
+`,
+    });
+    expect(proposal.stops.map((item) => [item.line, item.rule])).toEqual([
+      [2, 'anthropic-ts-message-param-union'],
+      [3, 'anthropic-ts-message-param-union'],
+    ]);
+    expect(proposal.edits).toEqual([]);
   });
 
   it('reads conditional spreads of literals, and blocks calls the 1.x release does not have', async () => {

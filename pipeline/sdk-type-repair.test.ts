@@ -308,29 +308,36 @@ describe('namedPathEdit', () => {
     visit(source);
     return { source, node: found! };
   };
-  const rewrite = (text: string, parents: string[]) => {
+  const rewrite = (text: string, method: { parents: string[]; body: boolean }) => {
     const { source, node } = call(text);
-    const edit = namedPathEdit(node, parents, source);
+    const edit = namedPathEdit(node, method, source);
     return edit && text.slice(0, edit.start) + edit.text + text.slice(edit.end);
   };
 
   it('moves the leading ids into the params object, keeping a body and request options', () => {
-    expect(rewrite('c.runs.steps.retrieve(t, r, s)', ['thread_id', 'run_id'])).toBe(
+    const steps = { parents: ['thread_id', 'run_id'], body: true };
+    const update = { parents: ['vector_store_id'], body: true };
+    const retrieve = { parents: ['vector_store_id'], body: false };
+    expect(rewrite('c.runs.steps.retrieve(t, r, s)', steps)).toBe(
       'c.runs.steps.retrieve(s, { thread_id: t, run_id: r })',
     );
-    expect(rewrite('c.files.update(vector_store_id, f, body, opts)', ['vector_store_id'])).toBe(
+    expect(rewrite('c.files.update(vector_store_id, f, body, opts)', update)).toBe(
       'c.files.update(f, { vector_store_id, ...body }, opts)',
     );
-    expect(rewrite('c.files.retrieve(s, f, undefined, opts)', ['vector_store_id'])).toBe(
+    expect(rewrite('c.files.update(s, f, undefined, opts)', update)).toBe(
+      'c.files.update(f, { vector_store_id: s }, opts)',
+    );
+    // No body: v4's third argument was the request options.
+    expect(rewrite('c.files.retrieve(s, f, opts)', retrieve)).toBe(
       'c.files.retrieve(f, { vector_store_id: s }, opts)',
     );
+    expect(rewrite('c.files.retrieve(s, f, query, opts)', retrieve)).toBeUndefined();
   });
 
   it('refuses a call that is not in the old positional form', () => {
-    expect(
-      rewrite('c.files.retrieve(f, { vector_store_id: s })', ['vector_store_id']),
-    ).toBeUndefined();
-    expect(rewrite('c.files.retrieve(...ids)', ['vector_store_id'])).toBeUndefined();
-    expect(rewrite('c.files.retrieve(f)', ['vector_store_id'])).toBeUndefined();
+    const retrieve = { parents: ['vector_store_id'], body: false };
+    expect(rewrite('c.files.retrieve(f, { vector_store_id: s })', retrieve)).toBeUndefined();
+    expect(rewrite('c.files.retrieve(...ids)', retrieve)).toBeUndefined();
+    expect(rewrite('c.files.retrieve(f)', retrieve)).toBeUndefined();
   });
 });

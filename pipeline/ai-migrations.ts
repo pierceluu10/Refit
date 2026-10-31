@@ -1,4 +1,6 @@
 import { execFile } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { findReviewSites } from './ai-review-sites.ts';
 import {
@@ -8,11 +10,12 @@ import {
 } from './ai-surface-lane.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
-import type { AiRuleTable } from './ai-rules.ts';
+import { rulesOf, type AiRuleTable } from './ai-rules.ts';
 import {
   proposeAnthropicSdkMajor,
   proposeGeminiSdkSwap,
   proposeOpenAiSdkMajor,
+  importsPackage,
   loadSurface,
   type SdkMajorProposal,
   type SdkRule,
@@ -35,6 +38,8 @@ import type { PackageUpgrade } from './stripe-package-upgrade.ts';
 import { PipelineInputError } from './types.ts';
 import { gateNote, type CheckGate } from './check-gate.ts';
 import { validateSourcePatch } from './validation.ts';
+import { CHECKJS_TSCONFIG, REFIT_TSC } from './check-selection.ts';
+import type { TypeRepairResult } from './sdk-type-repair.ts';
 
 // AI provider migrations (SDK majors first): proposes the documented rewrites and the package
 // upgrade, validates them with the repository's approved checks in offline Docker and opens a
@@ -52,6 +57,62 @@ export interface AiMigrationProposal extends SdkMajorProposal {
   // Why the package could not be moved; the code edits are then never proposed alone.
   upgradeRefusal: string | null;
   patch: string | null;
+  // The type-error loop after the package move (sdk-type-repair.ts): what its rules repaired, and
+  // the new errors they left, which go to the AI fallback as open items.
+  typeRepair?: Omit<TypeRepairResult, 'files'> & { files: string[] };
+}
+
+const SDK_PROVIDERS: Record<string, 'openai' | 'anthropic' | 'gemini'> = {
+  openai: 'openai',
+  '@anthropic-ai/sdk': 'anthropic',
+  '@google/genai': 'gemini',
+};
+
+// The rules the type-error loop may apply for a proposal: its provider's SDK-major table. A
+// repository without a type check of its own whose SDK code is all JavaScript gets Refit's checkJs
+// one over the files that import the SDK, as #400 does for stripe-node (check-selection.ts).
+export function sdkTypeRepair(
+  proposal: SdkMajorProposal,
+  tables: AiRuleTable[],
+  sdkFiles?: string[],
+) {
+  const provider = SDK_PROVIDERS[proposal.packageName];
+  if (!provider) return null;
+  return {
+    rules: rulesOf(tables, provider, 'sdk-major') as SdkRule[],
+    fromMajor: proposal.major,
+    ...(sdkFiles?.length && sdkFiles.every((path) => JAVASCRIPT.test(path))
+      ? { typecheck: checkJsTypeCheck(sdkFiles) }
+      : {}),
+  };
+}
+
+const JAVASCRIPT = /\.(?:[cm]?js|jsx)$/;
+const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
+
+// Node's own module resolution, so `require('openai')` in a CommonJS file and `import` in an ES
+// module each get the SDK's typings for that module kind; the config is an argument, never script.
+export function checkJsTypeCheck(files: string[]) {
+  const configuration = {
+    compilerOptions: {
+      allowJs: true,
+      checkJs: true,
+      noEmit: true,
+      skipLibCheck: true,
+      target: 'es2022',
+      module: 'node16',
+      moduleResolution: 'node16',
+      rootDir: '.',
+    },
+    files,
+  };
+  return [
+    'sh',
+    '-c',
+    `printf '%s' "$1" > ${CHECKJS_TSCONFIG} && node ${REFIT_TSC} --noEmit --pretty false -p ${CHECKJS_TSCONFIG}`,
+    'refit-check',
+    JSON.stringify(configuration),
+  ];
 }
 
 export async function proposeAiMigrations(
@@ -69,6 +130,9 @@ export async function proposeAiMigrations(
     // The Git checkout `directory` was extracted from, at the same commit: preparation reads a
     // pnpm, Yarn or Bun project's committed lockfiles (and their history) from it.
     repository?: string;
+    // The repository's checks include a type check, so a renamed call on an untraced receiver
+    // can be left to the type-error loop (SdkMajorStop.deferred).
+    typeChecked?: boolean;
   },
 ): Promise<AiMigrationProposal | null> {
   const proposal = await proposeSdkMajor(directory, tables, options.packageName, {
@@ -90,7 +154,9 @@ export async function proposeAiMigrations(
         reason: `${finding.summary}${finding.ambiguous ? ' The file imports two SDKs; the client is unclear.' : ''} The SDK upgrade does not change this.`,
         blocking: false,
       });
-  const blocking = proposal.stops.filter((item) => item.blocking);
+  const blocking = proposal.stops.filter(
+    (item) => item.blocking && !(options.typeChecked && item.deferred),
+  );
   if (blocking.length && blocking.every((item) => item.category === 'optional-upgrade'))
     return {
       ...proposal,
@@ -125,6 +191,24 @@ export async function proposeAiMigrations(
     renderPatch(repository, proposal.edits) +
     renderFileReplacements(repository, result.upgrade.files, `${proposal.packageName}-upgrade`);
   return { ...proposal, upgrade: result.upgrade, upgradeRefusal: null, patch };
+}
+
+// `file:line` of each deferred stop whose old method its file still calls after validation.
+async function leftoverCalls(
+  proposal: AiMigrationProposal,
+  published: { path: string; content: string }[],
+  repository: string,
+) {
+  const left: string[] = [];
+  for (const item of proposal.stops) {
+    if (!item.deferred) continue;
+    const content =
+      published.find((file) => file.path === item.file)?.content ??
+      (await readFile(join(repository, item.file), 'utf8').catch(() => ''));
+    if (content.replace(/\s+/g, '').replace(/\?\./g, '.').includes(`.${item.deferred.old}(`))
+      left.push(`${item.file}:${item.line}`);
+  }
+  return left;
 }
 
 export async function proposeSdkMajor(
@@ -202,6 +286,16 @@ export function aiMigrationBody(options: {
   for (const rule of proposal.rules) sources.set(rule.source.url, rule.source);
   const editRules = new Map<string, number>();
   for (const item of proposal.edits) editRules.set(item.rule, (editRules.get(item.rule) ?? 0) + 1);
+  // Edits the type-error loop made after the package move, by the same table's rules.
+  const typeRules = new Map<
+    string,
+    { count: number; source: { url: string; capturedAt: string } }
+  >();
+  for (const item of proposal.typeRepair?.repairs ?? [])
+    typeRules.set(item.rule, {
+      count: (typeRules.get(item.rule)?.count ?? 0) + 1,
+      source: item.source,
+    });
   const render = (stopLimit: number) => {
     const lines = [
       ...(reasons.length
@@ -224,6 +318,10 @@ export function aiMigrationBody(options: {
         const source = proposal.rules.find((item) => item.rule === rule)?.source;
         return `| ${code(rule)} | ${count} | ${source ? `[guide](${source.url}), read ${source.capturedAt}` : 'package upgrade'} |`;
       }),
+      ...[...typeRules].map(
+        ([rule, { count, source }]) =>
+          `| ${code(rule)} | ${count}, at type errors the upgrade introduced | [guide](${source.url}), read ${source.capturedAt} |`,
+      ),
       '',
       ...(proposal.upgrade?.warning ? [proposal.upgrade.warning, ''] : []),
       '## Proof',
@@ -321,14 +419,35 @@ export async function runAiMigrations(options: {
   const { stdout } = await execute('git', ['-C', options.repository, 'log', '-1', '--format=%cI']);
   const before = stdout.trim();
   let proposal: AiMigrationProposal | null = null;
+  const typeChecked = Boolean(options.checks.checks?.some((check) => check.name === 'typecheck'));
+  let sdkFiles: string[] = [];
   const validation = await validateSourcePatch({
     repository: options.repository,
     ...options.checks,
     signal: options.signal,
     onProgress: options.onProgress,
+    // New type errors after the package move are repaired by the same provider's table.
+    typeRepair: () => {
+      const found = proposal as AiMigrationProposal | null;
+      return found?.patch
+        ? sdkTypeRepair(found, options.tables, typeChecked ? undefined : sdkFiles)
+        : null;
+    },
     propose: async (directory) => {
+      const repository = await readRepository(directory, options.packageName);
+      sdkFiles = repository.files
+        .filter((file) => SOURCE.test(file.path) && !/\.d\.[cm]?ts$/.test(file.path))
+        .filter((file) =>
+          [...Object.keys(SDK_PROVIDERS), '@google/generative-ai'].some((name) =>
+            importsPackage(file.content, name),
+          ),
+        )
+        .map((file) => file.path);
       proposal = await proposeAiMigrations(directory, options.tables, {
         repository: options.repository,
+        // A repository without a type check gets the checkJs one when its SDK code is JavaScript.
+        typeChecked:
+          typeChecked || (sdkFiles.length > 0 && sdkFiles.every((path) => JAVASCRIPT.test(path))),
         image: options.checks.image,
         before,
         resolve: options.resolve,
@@ -339,6 +458,8 @@ export async function runAiMigrations(options: {
     },
   });
   const found = proposal as AiMigrationProposal | null;
+  const repaired = 'typeRepair' in validation ? validation.typeRepair : undefined;
+  if (found && repaired) found.typeRepair = repaired;
   const result = (
     status: AiMigrationStatus,
     reason: string,
@@ -380,6 +501,22 @@ export async function runAiMigrations(options: {
       },
     );
   }
+  // What Refit's own checkJs type check still reports after the loop: the repository's checks
+  // passed, but the new SDK's types say these sites break, so nothing is validated.
+  if (found.typeRepair?.checkJs && found.typeRepair.remaining.length)
+    return result(
+      'validation-failed',
+      `The repository's checks passed, but Refit's checkJs type check still reports ${found.typeRepair.remaining.length} error${found.typeRepair.remaining.length === 1 ? '' : 's'} the upgrade introduced that no rule repairs, first ${found.typeRepair.remaining[0].file}:${found.typeRepair.remaining[0].line} ${found.typeRepair.remaining[0].code} ${found.typeRepair.remaining[0].message}`,
+    );
+  // A deferred stop is resolved only when its old method is no longer called in its file.
+  const left = await leftoverCalls(found, validation.publicationFiles, options.repository);
+  if (left.length)
+    return result(
+      'needs-review',
+      `No patch: ${left.length} call${left.length === 1 ? '' : 's'} on a receiver Refit could not trace still use a method ${found.packageName} ${found.targetMajor} renamed, and the type check did not reach ${left.length === 1 ? 'it' : 'them'}: ${left.slice(0, 3).join(', ')}.`,
+    );
+  // Every deferred site was renamed by the type-error loop, so none is left for review.
+  found.stops = found.stops.filter((item) => !item.deferred);
   const requestProof = options.requestProof
     ? await options.requestProof(found)
     : storedRequestProof(
