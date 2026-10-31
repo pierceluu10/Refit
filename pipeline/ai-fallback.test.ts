@@ -3,8 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  INSTRUCTIONS,
   fallbackEligible,
   fallbackInput,
+  itemExcerpts,
+  stopCategory,
   openItems,
   outputGate,
   quotedSources,
@@ -879,6 +882,7 @@ describe('runAiFallback', () => {
       'resolves passed',
       'checks passed',
       'request-proof passed',
+      'endpoint passed',
     ]);
     expect(result.patch).toBe('diff for src/ask.ts\n');
     expect(result.ai).toEqual({ model: 'gpt-6.1-sol', responseId: 'resp_1', costUsd: 0.04 });
@@ -1057,6 +1061,478 @@ describe('runAiFallback', () => {
       dependencies: { ...dependencies(), request },
     });
     expect(unfit.reason).toContain('src/ask.ts');
+    expect(called).toBe(false);
+  });
+});
+
+// Fix 2 of the accuracy plan: every stop Refit's rules make goes to the AI with its reason, and
+// the gates, not the prompt, decide what is kept. Synthetic fixtures; reasons are the engines'
+// own wording (pipeline/model-retirements.ts, pipeline/python/model-reports.ts).
+describe('every stop reaches the AI (fix 2)', () => {
+  const reasons: Array<[string, Pick<OpenItem, 'kind' | 'reason'>]> = [
+    [
+      'custom-host',
+      {
+        kind: 'model-stop',
+        reason:
+          "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.5.",
+      },
+    ],
+    [
+      'custom-host',
+      {
+        kind: 'model-stop',
+        reason:
+          "The request goes to a host other than the official API, so the model may name another provider's model or a deployment; change it by hand to gpt-5.5.",
+      },
+    ],
+    [
+      'custom-endpoint',
+      {
+        kind: 'model-stop',
+        reason:
+          "The repository mentions a custom endpoint (src/config.ts:3), but this request's client (new OpenAI()) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to gpt-5.5.",
+      },
+    ],
+    [
+      'platform',
+      {
+        kind: 'model-stop',
+        reason:
+          "The client is Claude on Amazon Bedrock, where model IDs and retirement dates are Amazon Bedrock's, not the Claude API's; check Amazon Bedrock's model lifecycle and change it by hand.",
+      },
+    ],
+    [
+      'untraced-client',
+      {
+        kind: 'model-stop',
+        reason:
+          'The client `this.client` is not one Refit can trace to the SDK constructor (a `let` variable, a typed parameter or field, or an object member), so this request is listed but not edited; change it by hand to gpt-5.5.',
+      },
+    ],
+    [
+      'untraced-model',
+      {
+        kind: 'model-stop',
+        reason:
+          'The model reaches this request through a variable, which Refit reports but does not edit yet; change it by hand to gpt-5.5.',
+      },
+    ],
+    [
+      'untraced-model',
+      {
+        kind: 'model-stop',
+        reason:
+          'The request takes its model from the options it spreads (`...options`), which Refit reports but does not edit; change it by hand to gpt-5.5.',
+      },
+    ],
+    ['untraced-model', { kind: 'model-unresolved', reason: 'No traced request sends this model.' }],
+    [
+      'unreadable-body',
+      {
+        kind: 'model-stop',
+        reason:
+          'The request spreads other options, which may set parameters the replacement rejects.',
+      },
+    ],
+    [
+      'unreadable-body',
+      {
+        kind: 'model-stop',
+        reason:
+          'The request sets a computed property, which may be a parameter the replacement rejects; change it by hand to gpt-5.5.',
+      },
+    ],
+    [
+      'not-edited-call',
+      {
+        kind: 'model-stop',
+        reason:
+          '`images.generate` is not a call Refit edits; gpt-image-2 may change formats or parameters; change it by hand to gpt-image-2.',
+      },
+    ],
+    [
+      'no-replacement',
+      { kind: 'model-stop', reason: 'The registry names no concrete replacement model ID.' },
+    ],
+    [
+      'parameter',
+      {
+        kind: 'model-stop',
+        reason: 'The request sets temperature, which gpt-5.5 may reject or treat differently.',
+      },
+    ],
+    ['checks', { kind: 'model-fix-failed', reason: 'Refit proposed a → b; its checks failed.' }],
+    [
+      'unfixed-match',
+      { kind: 'exposure', reason: 'A live use of gpt-4 that no Refit lane fixed.' },
+    ],
+    ['rule-gap', { kind: 'sdk-major', reason: 'gone in 1.x' }],
+    // Reasons seen on the dev sets (openai-dev-30, anthropic-dev-30, gemini-dev-15).
+    [
+      'custom-host',
+      {
+        kind: 'model-stop',
+        reason:
+          'OpenRouter model openai/o1: it routes to openai, so change it in the OpenRouter call.',
+      },
+    ],
+    [
+      'untraced-model',
+      {
+        kind: 'model-stop',
+        reason:
+          'The model comes from the constant SONNET (api/chunk.js:30), which is used 3 times; change it by hand to claude-sonnet-5-5.',
+      },
+    ],
+    [
+      'not-edited-call',
+      {
+        kind: 'model-stop',
+        reason:
+          'Refit reports Python requests but does not edit Python code yet; change it by hand to claude-sonnet-5-5.',
+      },
+    ],
+    [
+      'not-edited-call',
+      {
+        kind: 'model-stop',
+        reason:
+          'Gemini is report only, so Refit never edits its models; change it by hand to gemini-embedding-2.',
+      },
+    ],
+    [
+      'no-replacement',
+      {
+        kind: 'model-alert',
+        reason:
+          '`ft:x` is fine-tuned on `gpt-4o`, which retires on 2026-10-23, and a fine-tuned model stops with its base model. No model ID replaces it: it needs a new fine-tune.',
+      },
+    ],
+  ];
+
+  it('names the kind of every stop', () => {
+    for (const [category, item] of reasons) expect(stopCategory(item), item.reason).toBe(category);
+  });
+
+  const customRow: ScanBundle = {
+    provider: 'openai',
+    language: 'js',
+    replacements: [],
+    unresolved: [],
+    alerts: [],
+    validation: null,
+    stops: reasons
+      .filter(([, item]) => item.kind === 'model-stop')
+      .map(([, item], index) => ({
+        deadline: 'openai-gpt-4-0613',
+        provider: 'openai',
+        file: `src/site${index}.ts`,
+        line: 4,
+        call: 'chat.completions.create',
+        at: { file: `src/site${index}.ts`, line: 5 },
+        model: 'gpt-4-0613',
+        reason: item.reason,
+      })),
+  };
+
+  it('makes every model stop an open item with its kind, and sends the row', () => {
+    const items = openItems(customRow);
+    expect(items).toHaveLength(customRow.stops!.length);
+    expect(new Set(items.map((item) => item.stop))).toEqual(
+      new Set([
+        'custom-host',
+        'custom-endpoint',
+        'platform',
+        'untraced-client',
+        'untraced-model',
+        'unreadable-body',
+        'not-edited-call',
+        'no-replacement',
+        'parameter',
+      ]),
+    );
+    expect(fallbackEligible('needs-review', items)).toBe(true);
+  });
+
+  it('sends a row whose fix lane crashed after the scan, but not a row Refit never read', () => {
+    const items = openItems(customRow);
+    expect(fallbackEligible('error', items, true)).toBe(true);
+    expect(fallbackEligible('error', items)).toBe(false);
+    expect(fallbackEligible('error', [], true)).toBe(false);
+    expect(fallbackEligible('infrastructure', items, true)).toBe(false);
+  });
+
+  it('puts no limit on what the AI may edit in the prompt, and says the reasons are not one', () => {
+    expect(INSTRUCTIONS).not.toMatch(
+      /\b(?:do not|don't|never|must not) (?:modify|change|edit|touch)\b/i,
+    );
+    expect(INSTRUCTIONS).toContain('is not a limit on you');
+    expect(INSTRUCTIONS).toContain('"stop"');
+  });
+
+  it('sends a file too large to send whole as the lines around its items', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'refit-fallback-excerpt-'));
+    roots.push(root);
+    const lines = Array.from({ length: 4000 }, (_, index) => `const v${index} = ${index}; // pad`);
+    lines[1999] = "const model = 'gpt-4-0613';";
+    await writeFile(join(root, 'big.ts'), lines.join('\n'));
+    const item: OpenItem = {
+      id: 'model-stop:d:big.ts:2000',
+      kind: 'model-stop',
+      provider: 'openai',
+      ref: 'd',
+      changeType: 'retired-model',
+      file: 'big.ts',
+      line: 2000,
+      text: '',
+      reason: 'x',
+      target: null,
+    };
+    const input = await fallbackInput({
+      directory: root,
+      provider: 'openai',
+      language: 'js',
+      items: [item],
+      sources: [],
+      partial: [],
+    });
+    expect(input.files).toEqual([]);
+    expect(input.omitted).toEqual([]);
+    expect(input.excerpts).toEqual([
+      expect.objectContaining({ path: 'big.ts', from: 1960, to: 2040 }),
+    ]);
+    expect(input.excerpts![0].text).toContain("const model = 'gpt-4-0613';");
+    expect(itemExcerpts('a\nb\nc', [1, 3])).toEqual([{ from: 1, to: 3, text: 'a\nb\nc' }]);
+  });
+
+  it('tells the AI how many items did not fit, and records those as never seen', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'refit-fallback-items-'));
+    roots.push(root);
+    await writeFile(join(root, 'a.ts'), 'const a = 1;\n');
+    const many = Array.from({ length: 65 }, (_, index) => ({
+      id: `review:r:a.ts:${index + 1}`,
+      kind: 'review' as const,
+      provider: 'openai',
+      ref: 'r',
+      changeType: 'other' as const,
+      file: 'a.ts',
+      line: index + 1,
+      text: '',
+      reason: 'x',
+      target: null,
+    }));
+    const input = await fallbackInput({
+      directory: root,
+      provider: 'openai',
+      language: 'js',
+      items: many,
+      sources: [],
+      partial: [],
+    });
+    expect(input.items).toHaveLength(60);
+    expect(input.omittedItems).toBe(5);
+  });
+
+  const CUSTOM = `import OpenAI from 'openai';
+const client = new OpenAI({ baseURL: process.env.LLM_BASE_URL });
+
+export async function ask(content: string) {
+  const reply = await client.chat.completions.create({
+    model: 'gpt-4-0613',
+    messages: [{ role: 'user', content }],
+  });
+  return reply.choices[0].message.content;
+}
+`;
+  const OFFICIAL = CUSTOM.replace('{ baseURL: process.env.LLM_BASE_URL }', '');
+  const site = (stop: OpenItem['stop'], reason: string): OpenItem => ({
+    id: 'model-stop:openai-gpt-4-0613:src/ask.ts:6',
+    kind: 'model-stop',
+    provider: 'openai',
+    ref: 'openai-gpt-4-0613',
+    changeType: 'retired-model',
+    file: 'src/ask.ts',
+    line: 6,
+    text: 'chat.completions.create',
+    reason,
+    target: 'gpt-5.5',
+    stop,
+  });
+  const answer = (edits: Array<{ path: string; old: string; new: string }>) =>
+    (async () => ({
+      status: 'completed',
+      provider: 'openai',
+      model: 'gpt-6.1-sol',
+      responseId: 'resp_fix2',
+      evidenceHash: 'h',
+      usage: null,
+      budget: { costUsd: 0.01, spentUsd: 0.01, limitUsd: 1 },
+      content: JSON.stringify({
+        edits,
+        files: [],
+        calls: [{ call: 'chat.completions.create', stream: false, tools: false, json: false }],
+        notes: [],
+        unresolved: [],
+        patterns: [],
+      }),
+    })) as never;
+  const passing: FallbackDependencies = {
+    render: async () => ({ patch: 'diff --git a/src/ask.ts b/src/ask.ts\n', refusal: null }),
+    rescan: async () => [],
+    validate: async () => ({ status: 'passed', command: ['npm', 'test'], reason: '' }),
+    prove: async () => ({
+      status: 'accepted',
+      reason: 'Accepted with gpt-5.5.',
+      calls: [{ call: 'chat.completions.create', status: 'accepted', detail: 'text parsed' }],
+    }),
+  };
+  const attempt = (
+    item: OpenItem,
+    content: string,
+    request: never,
+    extra: Partial<FallbackInput> = {},
+    read?: (path: string) => Promise<string | null>,
+  ) =>
+    runAiFallback({
+      input: {
+        provider: 'openai',
+        language: 'js',
+        items: [item],
+        sources: [],
+        targets: [{ item: item.id, target: 'gpt-5.5' }],
+        partial: [],
+        files: [{ path: 'src/ask.ts', content }],
+        omitted: [],
+        ...extra,
+      },
+      ai: { apiKey: 'k', model: 'gpt-6.1-sol' },
+      repositoryModels: new Set(['gpt-4-0613']),
+      exists: async () => true,
+      read,
+      environment: {},
+      dependencies: { ...passing, request },
+    });
+  const swap = [{ path: 'src/ask.ts', old: "model: 'gpt-4-0613',", new: "model: 'gpt-5.5'," }];
+
+  it('keeps a fix behind a custom base URL a suggestion even when every other gate passes', async () => {
+    const result = await attempt(
+      site(
+        'custom-host',
+        "The client sets a custom base URL, so the model may name another provider's model or a deployment; change it by hand to gpt-5.5.",
+      ),
+      CUSTOM,
+      answer(swap),
+    );
+    expect(result.status).toBe('needs-review');
+    expect(result.suggestion).toBe(true);
+    expect(result.gates.map((gate) => `${gate.gate} ${gate.status}`)).toEqual([
+      'output passed',
+      'secrets passed',
+      'scope passed',
+      'runtime passed',
+      'resolves passed',
+      'checks passed',
+      'request-proof passed',
+      'endpoint failed',
+    ]);
+    expect(result.gates.at(-1)!.detail).toContain("Refit's request proof cannot reach");
+  });
+
+  it('validates a fix on an official client when the repository only mentions an endpoint', async () => {
+    const result = await attempt(
+      site(
+        'custom-endpoint',
+        "The repository mentions a custom endpoint (src/config.ts:3), but this request's client (new OpenAI()) sets none; editing it waits on an owner decision on endpoint tracing; change it by hand to gpt-5.5.",
+      ),
+      OFFICIAL,
+      answer(swap),
+    );
+    expect(result.status).toBe('validated');
+    expect(result.gates.at(-1)).toEqual(
+      expect.objectContaining({ gate: 'endpoint', status: 'passed' }),
+    );
+  });
+
+  it('never validates a model the registry does not name for a no-replacement stop', async () => {
+    const result = await attempt(
+      {
+        ...site('no-replacement', 'The registry names no concrete replacement model ID.'),
+        target: null,
+      },
+      OFFICIAL,
+      answer([{ path: 'src/ask.ts', old: "model: 'gpt-4-0613',", new: "model: 'gpt-9-made-up'," }]),
+      { targets: [] },
+    );
+    expect(result.status).toBe('needs-review');
+    expect(result.gates.find((gate) => gate.gate === 'scope')).toEqual(
+      expect.objectContaining({ status: 'failed' }),
+    );
+  });
+
+  it('never validates a replacement the provider rejects (a 404 model)', async () => {
+    const result = await runAiFallback({
+      input: {
+        provider: 'openai',
+        language: 'js',
+        items: [
+          site(
+            'untraced-model',
+            'The model reaches this request through a variable, which Refit reports but does not edit yet; change it by hand to gpt-5.5.',
+          ),
+        ],
+        sources: [],
+        targets: [{ item: 'x', target: 'gpt-5.5' }],
+        partial: [],
+        files: [{ path: 'src/ask.ts', content: OFFICIAL }],
+        omitted: [],
+      },
+      ai: { apiKey: 'k', model: 'gpt-6.1-sol' },
+      repositoryModels: new Set(['gpt-4-0613']),
+      exists: async () => true,
+      environment: {},
+      dependencies: {
+        ...passing,
+        prove: async () => ({
+          status: 'rejected',
+          reason: 'chat.completions.create: HTTP 404 model not found',
+          calls: [],
+        }),
+        request: answer(swap),
+      },
+    });
+    expect(result.status).toBe('needs-review');
+    expect(result.gates.at(-1)!.detail).toContain('HTTP 404');
+  });
+
+  it('applies an edit made from an excerpt to the whole file', async () => {
+    const big = `${'// filler line\n'.repeat(3000)}${CUSTOM.replace('{ baseURL: process.env.LLM_BASE_URL }', '')}`;
+    const item = {
+      ...site(
+        'untraced-model',
+        'The model reaches this request through a variable, which Refit reports but does not edit yet; change it by hand to gpt-5.5.',
+      ),
+      line: 3006,
+    };
+    const excerpt = { path: 'src/ask.ts', ...itemExcerpts(big, [3006])[0] };
+    const result = await attempt(
+      item,
+      '',
+      answer(swap),
+      { files: [], excerpts: [excerpt] },
+      async (path) => (path === 'src/ask.ts' ? big : null),
+    );
+    expect(result.status).toBe('validated');
+    let called = false;
+    const unread = await attempt(
+      item,
+      '',
+      (async () => {
+        called = true;
+      }) as never,
+      { files: [], excerpts: [excerpt], omitted: [] },
+    );
+    expect(unread.status).toBe('no-attempt');
     expect(called).toBe(false);
   });
 });

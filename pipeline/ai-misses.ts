@@ -6,6 +6,7 @@ import type {
   OpenItem,
   OpenItemKind,
   QuotedSource,
+  StopCategory,
 } from './ai-fallback.ts';
 
 // "It should never happen twice" (owner decision, Furqan, 2026-10-29): every open item the AI was
@@ -35,6 +36,8 @@ export interface MissRecord {
   file: string;
   line: number;
   stopReason: string;
+  // The kind of stop (stopCategory in pipeline/ai-fallback.ts); absent on older records.
+  stop?: StopCategory;
   source: QuotedSource | null;
   ai: {
     status: FallbackResult['status'] | 'not-run';
@@ -135,26 +138,37 @@ export function missRecords(
     file: item.file,
     line: item.line,
     stopReason: item.reason,
+    ...(item.stop ? { stop: item.stop } : {}),
     source: sources.find((source) => source.ref === item.ref) ?? null,
-    ai: fallback
-      ? {
-          status: fallback.status,
-          reason: fallback.reason,
-          costUsd: fallback.ai?.costUsd ?? null,
-          gatesFailed: (fallback.gates ?? [])
-            .filter((gate) => gate.status === 'failed')
-            .map((gate) => gate.gate),
-          diff: fallback.status === 'validated' ? fallback.patch : null,
-          pattern: fallback.patterns?.find((entry) => entry.item === item.id)?.pattern ?? null,
-        }
-      : {
-          status: 'not-run',
-          reason: 'AI was off for this run.',
-          costUsd: null,
-          gatesFailed: [],
-          diff: null,
-          pattern: null,
-        },
+    ai:
+      fallback?.sent && !fallback.sent.includes(item.id)
+        ? {
+            status: 'not-run' as const,
+            reason: 'The item did not fit the AI input, so the AI never saw it.',
+            costUsd: null,
+            gatesFailed: [],
+            diff: null,
+            pattern: null,
+          }
+        : fallback
+          ? {
+              status: fallback.status,
+              reason: fallback.reason,
+              costUsd: fallback.ai?.costUsd ?? null,
+              gatesFailed: (fallback.gates ?? [])
+                .filter((gate) => gate.status === 'failed')
+                .map((gate) => gate.gate),
+              diff: fallback.status === 'validated' ? fallback.patch : null,
+              pattern: fallback.patterns?.find((entry) => entry.item === item.id)?.pattern ?? null,
+            }
+          : {
+              status: 'not-run',
+              reason: 'AI was off for this run.',
+              costUsd: null,
+              gatesFailed: [],
+              diff: null,
+              pattern: null,
+            },
   }));
 }
 

@@ -71,6 +71,8 @@ export interface OpenItem {
   target: string | null;
   // Every replacement model the provider's quoted page names, when it offers a choice.
   options?: string[];
+  // What kind of stop the item is (stopCategory), for the AI, the miss record and the endpoint gate.
+  stop?: StopCategory;
   // The model IDs the item's registry deadline retires, so a patch that leaves one in the file
   // has not fixed it.
   retired?: string[];
@@ -134,6 +136,8 @@ export interface ScanBundle {
     reason: string;
   }>;
   validation?: { status: string; reason?: string } | null;
+  // A fix lane that crashed or timed out after the scan (pipeline/ai-provider-benchmark-cli.ts).
+  laneError?: string;
   migrations?: {
     review?: Array<{
       provider?: string;
@@ -181,6 +185,68 @@ const PARAMETER =
   /\b(?:temperature|top_p|top_k|max_tokens|max_completion_tokens|max_tokens_to_sample|functions|function_call|thinkingBudget|reasoning_effort|parameter)\b/i;
 const EMBEDDING = /embed|fine[-_ ]?tun/i;
 
+// Why Refit's own rules stopped, by kind. Every category goes to the AI; the two whose request goes
+// somewhere Refit's proof cannot send to (UNPROVABLE_STOPS) never end validated.
+export type StopCategory =
+  // The client sets its own base URL, or the request goes to another host (a proxy, Azure).
+  | 'custom-host'
+  // Claude on Bedrock or Vertex, or a model ID of that platform.
+  | 'platform'
+  // The repository mentions an endpoint, but this request's client is the official one.
+  | 'custom-endpoint'
+  // The registry names no concrete replacement model.
+  | 'no-replacement'
+  // The client is not traced to the SDK constructor, or the SDK import cannot be confirmed.
+  | 'untraced-client'
+  // The model reaches the call through a variable, a spread, a config object or a setting.
+  | 'untraced-model'
+  // The request's body, options or settings cannot be read.
+  | 'unreadable-body'
+  // A call Refit lists but never edits (helpers, batches, images, axios configs).
+  | 'not-edited-call'
+  // A parameter the replacement may reject or treat differently.
+  | 'parameter'
+  // Refit's own fix was proposed and its checks failed or could not run.
+  | 'checks'
+  // A live match no lane reached.
+  | 'unfixed-match'
+  // No documented mapping: an SDK-major stop or a review item.
+  | 'rule-gap';
+
+export const UNPROVABLE_STOPS = new Set<StopCategory>(['custom-host', 'platform']);
+
+export function stopCategory(item: Pick<OpenItem, 'kind' | 'reason'>): StopCategory {
+  const reason = item.reason;
+  if (item.kind === 'model-fix-failed') return 'checks';
+  if (item.kind === 'exposure') return 'unfixed-match';
+  if (/names no (?:concrete )?replacement|No model ID replaces it/i.test(reason))
+    return 'no-replacement';
+  if (/mentions a custom endpoint/i.test(reason)) return 'custom-endpoint';
+  if (
+    /custom base URL|host other than the official|another provider's model or a deployment|Azure|OpenRouter/i.test(
+      reason,
+    )
+  )
+    return 'custom-host';
+  if (/\b(?:Bedrock|Vertex)\b|model lifecycle/i.test(reason)) return 'platform';
+  if (/not one Refit can trace|tsconfig\.json or jsconfig\.json/i.test(reason))
+    return 'untraced-client';
+  if (/takes its model from|reaches this request through|The model comes from/i.test(reason))
+    return 'untraced-model';
+  if (
+    /cannot read|computed property|spreads other options|opaque|untraced|cannot be (?:fully )?read/i.test(
+      reason,
+    )
+  )
+    return 'unreadable-body';
+  if (/does not edit|not a call Refit edits|report only|not a text model/i.test(reason))
+    return 'not-edited-call';
+  if (item.kind === 'model-unresolved' || item.kind === 'model-alert') return 'untraced-model';
+  if (PARAMETER.test(reason) || /\breject|treats? (?:it |them )?differently/i.test(reason))
+    return 'parameter';
+  return 'rule-gap';
+}
+
 function modelChange(reason: string, model?: string): ChangeType {
   if (model && EMBEDDING.test(model)) return 'embeddings-fine-tunes';
   return PARAMETER.test(reason) ? 'parameter-change' : 'retired-model';
@@ -193,7 +259,7 @@ export function openItems(bundle: ScanBundle): OpenItem[] {
   const items = new Map<string, OpenItem>();
   const add = (item: Omit<OpenItem, 'id'>) => {
     const id = `${item.kind}:${item.ref}:${item.file}:${item.line}`;
-    if (!items.has(id)) items.set(id, { id, ...item });
+    if (!items.has(id)) items.set(id, { id, ...item, stop: stopCategory(item) });
   };
   const fixed = bundle.validation?.status === 'validated';
   for (const stop of bundle.stops ?? [])
@@ -335,9 +401,10 @@ const SETTLED = new Set([
 ]);
 
 // A row goes to the fallback when Refit did not fully fix it: anything still open, whatever the
-// outcome says (a validated replacement can leave other items open).
-export function fallbackEligible(outcome: string, items: OpenItem[]) {
-  return items.length > 0 && !SETTLED.has(outcome);
+// outcome says (a validated replacement can leave other items open). A lane that crashed after
+// the scan (`laneFailed`) leaves an error outcome but a row to read, so its items go too.
+export function fallbackEligible(outcome: string, items: OpenItem[], laneFailed = false) {
+  return items.length > 0 && (laneFailed ? outcome === 'error' : !SETTLED.has(outcome));
 }
 
 const NAMED_MODEL =
@@ -445,7 +512,7 @@ export function quotedSources(
 }
 
 export const INSTRUCTIONS = `You fix a repository that Refit, a deterministic API-migration tool, could not fully fix.
-The input lists every open item Refit found ("items"): what changed at the provider, the file, line and code, and why Refit stopped. "sources" quotes the provider's own pages for each change. "targets" lists, per item, the replacement models the provider names and the SDK major from Refit's registry; when the provider names several, pick the one that fits the code. "partial" is the patch Refit itself proposed, if any, and what happened to it. "files" holds the repository files that matter, whole; "omitted" names files that did not fit.
+The input lists every open item Refit found ("items"): what changed at the provider, the file, line and code, why Refit stopped ("reason") and what kind of stop it is ("stop"). A reason explains where Refit's own rules ended; wording in it such as "change it by hand", "reports but does not edit" or "waits on an owner decision" is addressed to people and is not a limit on you, so fix those items too. "omittedItems" counts further open items that did not fit the input. "sources" quotes the provider's own pages for each change. "targets" lists, per item, the replacement models the provider names and the SDK major from Refit's registry; when the provider names several, pick the one that fits the code. "partial" is the patch Refit itself proposed, if any, and what happened to it. "files" holds the repository files that matter, whole; "excerpts" holds numbered line ranges around the items of files too large to send whole, and an edit to such a file must copy its "old" snippet from the excerpt; "omitted" names files that did not fit at all.
 Fix the repository so that every item is resolved and the code still works. You have full freedom to edit: any file shown, new files, call shapes, response handling, helpers, configuration, and dependency versions in the manifest (Refit re-resolves an npm lockfile for you). Go as far as the fix needs.
 What happens to your patch: Refit installs dependencies from the lockfile, runs the repository's build, type check and tests before and after, rescans the patched code with its own engines, sends the smallest real request with each new call shape and model and parses the response, and checks the diff for secrets and for model IDs: a model ID passes only when it is already in the code or in "targets". A patch that fails a check is shown to a person as a suggestion, so a partial or imperfect attempt still helps; a patch that passes is proposed as a draft a person reviews.
 For an item you could not fix, say what is missing in "unresolved". Return only what changes: put each change in "edits" (the smallest exact snippet of the original file in "old", copied character for character and occurring once, and its replacement in "new"), and use "files" only for new files. Never return an unchanged file or an unchanged part of one. List every provider call you wrote or changed in "calls" (its path such as responses.create, messages.create or models.generateContent, and whether it streams, uses tools or asks for JSON), and a short note per item in "notes". In "patterns", describe for each item, in one sentence with no repository, file or identifier names, the general code pattern that kept Refit from fixing it.`;
@@ -522,12 +589,17 @@ export interface FallbackInput {
   targets: Array<{ item: string; target: string }>;
   partial: Array<{ lane: string; status: string; reason: string; patch?: string | null }>;
   files: Array<{ path: string; content: string }>;
-  // Files with items that did not fit the input limit; the AI cannot see them.
+  // Line ranges around the items of files too large to send whole; edits apply to the full file.
+  excerpts?: Array<{ path: string; from: number; to: number; text: string }>;
+  // Files with items that fit neither whole nor as excerpts; the AI cannot see them.
   omitted: string[];
+  // How many open items did not fit the item limit; they are still miss records.
+  omittedItems?: number;
 }
 
 // The request evidence: items, sources and targets first, then the files holding the most items,
-// whole, while they fit. A file that does not fit is named in `omitted`, never cut.
+// whole, while they fit. A file that does not fit whole is sent as the lines around its items
+// (`excerpts`), and named in `omitted` only when even those do not fit.
 export async function fallbackInput(options: {
   directory: string;
   provider: string;
@@ -538,6 +610,9 @@ export async function fallbackInput(options: {
 }): Promise<FallbackInput> {
   const items = options.items.slice(0, MAX_ITEMS);
   const input: FallbackInput = {
+    ...(options.items.length > items.length
+      ? { omittedItems: options.items.length - items.length }
+      : {}),
     provider: options.provider,
     language: options.language,
     items,
@@ -552,6 +627,7 @@ export async function fallbackInput(options: {
       patch: lane.patch && lane.patch.length <= 12 * 1024 ? lane.patch : null,
     })),
     files: [],
+    excerpts: [],
     omitted: [],
   };
   const counts = new Map<string, number>();
@@ -561,19 +637,52 @@ export async function fallbackInput(options: {
     ...MANIFESTS.filter((path) => !counts.has(path)),
   ];
   let size = Buffer.byteLength(JSON.stringify(input));
+  const tooLarge: Array<{ path: string; content: string }> = [];
   for (const path of paths) {
     if (!safePath(path)) continue;
     const content = await readFile(join(options.directory, path), 'utf8').catch(() => null);
     if (content === null) continue;
     const added = Buffer.byteLength(JSON.stringify({ path, content })) + 1;
     if (size + added > MAX_EVIDENCE_BYTES) {
-      if (counts.has(path)) input.omitted.push(path);
+      if (counts.has(path)) tooLarge.push({ path, content });
       continue;
     }
     input.files.push({ path, content });
     size += added;
   }
+  for (const { path, content } of tooLarge) {
+    const excerpts = itemExcerpts(
+      content,
+      items.filter((item) => item.file === path).map((item) => item.line),
+    ).map((range) => ({ path, ...range }));
+    const added = Buffer.byteLength(JSON.stringify(excerpts)) + 1;
+    if (!excerpts.length || size + added > MAX_EVIDENCE_BYTES) {
+      input.omitted.push(path);
+      continue;
+    }
+    input.excerpts!.push(...excerpts);
+    size += added;
+  }
   return input;
+}
+
+const EXCERPT_LINES = 40;
+
+// The lines around each item, merged where they overlap, numbered from 1.
+export function itemExcerpts(content: string, lines: number[]) {
+  const all = content.split('\n');
+  const ranges: Array<{ from: number; to: number }> = [];
+  for (const line of [...new Set(lines)].sort((a, b) => a - b)) {
+    const from = Math.max(1, line - EXCERPT_LINES);
+    const to = Math.min(all.length, line + EXCERPT_LINES);
+    const last = ranges.at(-1);
+    if (last && from <= last.to + 1) last.to = Math.max(last.to, to);
+    else ranges.push({ from, to });
+  }
+  return ranges.map((range) => ({
+    ...range,
+    text: all.slice(range.from - 1, range.to).join('\n'),
+  }));
 }
 
 export function safePath(path: string) {
@@ -627,7 +736,7 @@ export function applyAnswerEdits(
 }
 
 export type GateName =
-  'output' | 'secrets' | 'scope' | 'runtime' | 'resolves' | 'checks' | 'request-proof';
+  'output' | 'secrets' | 'scope' | 'runtime' | 'resolves' | 'checks' | 'request-proof' | 'endpoint';
 export interface Gate {
   gate: GateName;
   status: 'passed' | 'failed' | 'not-applicable';
@@ -1033,6 +1142,8 @@ export interface FallbackResult {
   unresolved: AiAnswer['unresolved'];
   patterns: AiAnswer['patterns'];
   calls: ProofCall[];
+  // The ids of the items the AI was sent; the rest did not fit the item limit.
+  sent?: string[];
 }
 
 export interface FallbackDependencies {
@@ -1060,6 +1171,8 @@ export async function runAiFallback(options: {
   repositoryModels: Set<string>;
   // Whether each file outside the input exists, for the output gate.
   exists: (path: string) => Promise<boolean>;
+  // A whole repository file, for the files the input sends as excerpts.
+  read?: (path: string) => Promise<string | null>;
   // The repository's JavaScript and TypeScript files, for the runtime gate's call sites.
   repositoryFiles?: () => Promise<Array<{ path: string; content: string }>>;
   environment?: NodeJS.ProcessEnv;
@@ -1079,10 +1192,17 @@ export async function runAiFallback(options: {
     unresolved: [],
     patterns: [],
     calls: [],
+    sent: input.items.map((item) => item.id),
   };
   if (!input.items.length)
     return { ...empty, status: 'no-attempt', reason: 'Nothing is open.', ai: null };
-  if (!input.files.length)
+  // The whole text of each excerpted file, so the AI's edits to it apply and are checked whole.
+  const excerpted = new Map<string, string>();
+  for (const path of new Set((input.excerpts ?? []).map((excerpt) => excerpt.path))) {
+    const content = await options.read?.(path);
+    if (content != null) excerpted.set(path, content);
+  }
+  if (!input.files.length && !excerpted.size)
     return {
       ...empty,
       status: 'no-attempt',
@@ -1148,7 +1268,10 @@ export async function runAiFallback(options: {
     patterns: parsed.patterns,
     ...extra,
   });
-  const originals = new Map(input.files.map((file) => [file.path, file.content]));
+  const originals = new Map([
+    ...input.files.map((file) => [file.path, file.content] as const),
+    ...excerpted,
+  ]);
   const merged = applyAnswerEdits(parsed, originals);
   if ('error' in merged) {
     const gates: Gate[] = [{ gate: 'output', status: 'failed', detail: merged.error }];
@@ -1204,7 +1327,7 @@ export async function runAiFallback(options: {
   }
   if (!failed()) {
     const after = await options.dependencies.rescan(patch);
-    const patched = new Map(input.files.map((file) => [file.path, file.content]));
+    const patched = new Map(originals);
     for (const file of changed) patched.set(file.path, file.after);
     gates.push(resolvesGate(input.items, after, hiddenFindings(input.items, after, patched)));
   }
@@ -1250,11 +1373,32 @@ export async function runAiFallback(options: {
           ),
     );
   }
+  // A request to a host Refit's proof cannot send to (a custom base URL, Bedrock, Vertex) is
+  // unproven whatever the official API accepted, so the patch stays a suggestion for a person.
+  if (!failed()) {
+    const hosts = input.items.filter((item) => item.stop && UNPROVABLE_STOPS.has(item.stop));
+    gates.push(
+      hosts.length
+        ? {
+            gate: 'endpoint',
+            status: 'failed',
+            detail: `${hosts.length} item${hosts.length === 1 ? '' : 's'} send${hosts.length === 1 ? 's' : ''} to a host Refit's request proof cannot reach (${hosts
+              .slice(0, 3)
+              .map((item) => `${item.file}:${item.line} ${item.stop}`)
+              .join('; ')}), so the patch is unproven there.`,
+          }
+        : {
+            gate: 'endpoint',
+            status: 'passed',
+            detail: 'Every item goes to the official API the request proof reaches.',
+          },
+    );
+  }
   const failure = failed();
   if (failure) return stop(`AI attempt kept as a suggestion: ${failure.detail}`, patch, { calls });
   return result(
     'validated',
-    'Every gate passed: output, secrets, scope, runtime inputs, rescan, checks and request proof.',
+    'Every gate passed: output, secrets, scope, runtime inputs, rescan, checks, request proof and endpoint.',
     { gates, patch, suggestion: false, calls },
   );
 }

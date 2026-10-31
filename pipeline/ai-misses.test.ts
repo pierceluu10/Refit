@@ -272,3 +272,39 @@ describe('benchmark rows', () => {
     });
   });
 });
+
+describe('miss records for every stop (fix 2)', () => {
+  it('records the kind of stop, and an item the AI never saw as not run', () => {
+    const seen = item('src/a.ts', 'The client sets a custom base URL.', { stop: 'custom-host' });
+    const unseen = item('src/b.ts', 'x', { id: 'model-stop:openai-gpt-4-0613:src/b.ts:4' });
+    const [a, b] = missRecords(
+      { repo: 'dev/one', commit: 'a'.repeat(40), provider: 'openai', language: 'js' },
+      [seen, unseen],
+      [source],
+      { ...fallback('needs-review', 'diff'), sent: [seen.id] },
+    );
+    expect(a.stop).toBe('custom-host');
+    expect(a.ai.status).toBe('needs-review');
+    expect(b.stop).toBeUndefined();
+    expect(b.ai).toEqual(
+      expect.objectContaining({ status: 'not-run', gatesFailed: [], diff: null }),
+    );
+    expect(b.ai.reason).toContain('never saw it');
+  });
+
+  it('counts a row whose fix lane crashed as an error unless the AI validated it', () => {
+    const row = {
+      language: 'js',
+      exposures: ['x'],
+      replacements: [],
+      stops: [{}],
+      alerts: [],
+      validation: null,
+      laneError: 'SDK migration: timed out (killed after the scan limit)',
+    };
+    expect(rowOutcome(row)).toBe('error');
+    expect(rowOutcome({ ...row, fallback: { status: 'needs-review' } })).toBe('error');
+    expect(rowOutcome({ ...row, fallback: { status: 'validated' } })).toBe('ai-validated');
+    expect(rowOutcome({ ...row, laneError: undefined })).toBe('needs-review');
+  });
+});

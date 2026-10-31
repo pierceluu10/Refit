@@ -49,7 +49,7 @@ and page. Nothing is edited.
 
 --ai-fallback: gives the AI every item a benchmark row (pipeline/ai-provider-benchmark-cli.ts)
 left open, with its stop reason, site, quoted source and target, and keeps the AI's patch as a fix
-only if it passes the output, secret, scope, rescan, checks and request-proof gates
+only if it passes the output, secret, scope, rescan, checks, request-proof and endpoint gates
 (pipeline/ai-fallback.ts). Otherwise the attempt is a suggestion. Prints the result and one miss
 record per item.
 
