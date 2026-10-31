@@ -212,7 +212,7 @@ it('stops for review where a swap could change the request, and skips what it ca
     [
       10,
       'gpt-4',
-      'The model comes from the constant MODEL (src/ai.ts:5), which is used 2 times; change it by hand to gpt-5.6-sol.',
+      'The model comes from the constant MODEL (src/ai.ts:5), which is also used at src/ai.ts:5, where no traced request reads it as its model, so a change would show up there too; change it by hand to gpt-5.6-sol.',
     ],
     [11, 'gpt-prose', 'The registry names no concrete replacement model ID.'],
     [
@@ -495,7 +495,7 @@ it('follows imported constants, enum members, helper parameters and raw HTTP req
   expect(proposal.stops.map((item) => [`${item.file}:${item.line}`, item.reason])).toEqual([
     [
       'src/chat.ts:8',
-      'The model comes from the constant LABEL_MODEL (src/models.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+      'The model comes from the constant LABEL_MODEL (src/models.ts:3), which is also used at src/chat.ts:9, where no traced request reads it as its model, so a change would show up there too; change it by hand to gpt-5.6-sol.',
     ],
     [
       'src/raw.ts:12',
@@ -684,11 +684,12 @@ it('stops non-text OpenAI and Anthropic calls with a named reason and never edit
       ],
       ['src/raw.ts:3', 'fetch /v1/embeddings', NON_TEXT('fetch /v1/embeddings', 'gpt-5.6-sol')],
       ['src/raw.ts:4', 'post /v1/complete', NON_TEXT('post /v1/complete', 'claude-opus-4-8')],
-      // The constant is shared, so it stops on the use count (D-09 is on hold).
+      // The constant feeds a Chat request and an embeddings request, which need different
+      // handling, so it stops rather than change both.
       [
         'src/shared.ts:4',
         'chat.completions.create',
-        'The model comes from the constant MODEL (src/shared.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+        '`gpt-4` (src/shared.ts:3) is sent by 2 requests that need different handling: the embeddings.create request at src/shared.ts:5 cannot move (`embeddings.create` is not a call Refit edits; gpt-5.6-sol may change formats or parameters). Changing it would change every one of them, so change them by hand to gpt-5.6-sol.',
       ],
       ['src/v3.ts:3', 'createCompletion', NON_TEXT('createCompletion', 'gpt-5.6-sol')],
     ].sort(),
@@ -1022,10 +1023,11 @@ it('still traces a descriptor-keyed model the scan classifies as catalog', async
   expect(edited(proposal)).toEqual(['src/catalog.ts:3 gpt-4']);
 });
 
-it('stops on a shared source even when every use is a traced request (D-09 on hold)', async () => {
+it('edits a shared source once when every use is a traced request that allows the swap', async () => {
   const root = await repository({
-    // Two requests share a constant, and two share a const object member. Editing a shared source
-    // waits on an owner decision, so both stop.
+    // Two requests share a constant, and two share a const object member. Every use is a traced
+    // request and each allows the swap, so each source is edited once for both; with `shared` off
+    // (D-09 as first held) both stop.
     'src/shared.ts': [
       ...HEAD,
       "const MODEL = 'gpt-4';",
@@ -1039,7 +1041,13 @@ it('stops on a shared source even when every use is a traced request (D-09 on ho
   });
   const used = (kind: string, name: string, at: string, times: number, to = 'gpt-5.6-sol') =>
     `The model comes from the ${kind} ${name} (${at}), which is used ${times} times; change it by hand to ${to}.`;
-  const shared = await proposeModelReplacements(root, registry, NOW);
+  // A use that is not a request, or two requests that need different handling, still stop.
+  const other = (kind: string, name: string, at: string, use: string) =>
+    `The model comes from the ${kind} ${name} (${at}), which is also used at ${use}, where no traced request reads it as its model, so a change would show up there too; change it by hand to gpt-5.6-sol.`;
+  const edits = await proposeModelReplacements(root, registry, NOW);
+  expect(edits.stops).toEqual([]);
+  expect(edited(edits)).toEqual(['src/shared.ts:3 gpt-4', 'src/shared.ts:4 o1-mini']);
+  const shared = await proposeModelReplacements(root, registry, NOW, { shared: false });
   expect(edited(shared)).toEqual([]);
   expect([...new Set(shared.stops.map((item) => item.reason))].sort()).toEqual(
     [
@@ -1094,14 +1102,198 @@ it('stops on a shared source even when every use is a traced request (D-09 on ho
   const proposal = await proposeModelReplacements(stopped, registry, NOW);
   expect(proposal.stops.map((item) => [item.file, item.reason]).sort()).toEqual(
     [
-      ['src/compare.ts', used('field', 'model', 'src/compare.ts:4', 2)],
-      ['src/in-test.ts', used('constant', 'MODEL', 'src/in-test.ts:3', 2)],
-      ['src/log.ts', used('constant', 'MODEL', 'src/log.ts:3', 2)],
-      ['src/temperature.ts', used('constant', 'MODEL', 'src/temperature.ts:3', 2)],
-      ['src/values.ts', used('constant', 'MODELS', 'src/values.ts:3', 2)],
+      ['src/compare.ts', other('field', 'model', 'src/compare.ts:4', 'src/compare.ts:5')],
+      ['src/in-test.ts', other('constant', 'MODEL', 'src/in-test.ts:3', 'src/in-test.test.ts:4')],
+      ['src/log.ts', other('constant', 'MODEL', 'src/log.ts:3', 'src/log.ts:4')],
+      [
+        'src/temperature.ts',
+        '`gpt-4` (src/temperature.ts:3) is sent by 2 requests that need different handling: the responses.create request at src/temperature.ts:5 cannot move (the request sets temperature, which gpt-5.6-sol may reject or treat differently). Changing it would change every one of them, so change them by hand to gpt-5.6-sol.',
+      ],
+      ['src/values.ts', other('constant', 'MODELS', 'src/values.ts:3', 'src/values.ts:4')],
     ].sort(),
   );
   expect(edited(proposal)).toEqual(['src/type-use.ts:3 o1-mini']);
+});
+
+it('edits shared constants, enum and object members across files when every use is a traced request', async () => {
+  const root = await repository({
+    'src/models.ts': [
+      "export const MODELS = { chat: 'gpt-4', fast: 'o1-mini' } as const;",
+      "export enum Model { Default = 'gpt-4' }",
+      "export const DEFAULT_MODEL = process.env.OPENAI_MODEL ?? 'gpt-4';",
+    ].join('\n'),
+    'src/a.ts': [
+      ...HEAD,
+      "import { MODELS, Model, DEFAULT_MODEL } from './models';",
+      `export const a = () => ${send('MODELS.chat')}`,
+      `export const b = () => ${send('Model.Default')}`,
+      `export const c = () => ${send('DEFAULT_MODEL')}`,
+    ].join('\n'),
+    'src/b.ts': [
+      ...HEAD,
+      "import { MODELS, Model, DEFAULT_MODEL } from './models';",
+      `export const a = () => ${send('MODELS.chat')}`,
+      `export const b = () => ${send('Model.Default')}`,
+      `export const c = () => ${send('DEFAULT_MODEL')}`,
+      `export const d = () => ${send('MODELS.fast')}`,
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual([
+    'src/models.ts:1 gpt-4',
+    'src/models.ts:1 o1-mini',
+    'src/models.ts:2 gpt-4',
+    'src/models.ts:3 gpt-4',
+  ]);
+  // One edit per definition, however many requests read it.
+  expect(proposal.patch!.match(/^\+export/gm)).toHaveLength(3);
+  expect(proposal.replacements.find((item) => item.edited.line === 3)?.env).toEqual([
+    'OPENAI_MODEL',
+  ]);
+
+  // A config object member that a Chat request and an embeddings request both read stops.
+  const mixed = await repository({
+    'src/config.ts': [
+      ...HEAD,
+      "export const config = { model: 'gpt-4' };",
+      `export const chat = () => ${send('config.model')}`,
+      "export const embed = () => openai.embeddings.create({ model: config.model, input: 'x' });",
+    ].join('\n'),
+  });
+  const stopped = await proposeModelReplacements(mixed, registry, NOW);
+  expect(edited(stopped)).toEqual([]);
+  expect(stopped.stops.map((item) => item.reason)).toEqual([
+    '`gpt-4` (src/config.ts:3) is sent by 2 requests that need different handling: the embeddings.create request at src/config.ts:5 cannot move (`embeddings.create` is not a call Refit edits; gpt-5.6-sol may change formats or parameters). Changing it would change every one of them, so change them by hand to gpt-5.6-sol.',
+  ]);
+});
+
+it('counts every caller of a helper that a shared constant reaches, and names a use that is not a request', async () => {
+  const helper = [
+    ...HEAD,
+    "const LEGACY = 'gpt-4';",
+    `function ask(model: string, prompt: string) { return ${send('model')} }`,
+    "export const a = () => ask(LEGACY, 'one');",
+    "export const b = async () => { const answer = await ask(LEGACY, 'two'); return answer; };",
+  ];
+  const root = await repository({ 'src/helper.ts': helper.join('\n') });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.stops).toEqual([]);
+  expect(edited(proposal)).toEqual(['src/helper.ts:3 gpt-4']);
+
+  // A cache record that stores the constant is not a request, so the edit would change it too.
+  const cached = await repository({
+    'src/helper.ts': [...helper, 'export const record = { model: LEGACY, tier: 1 };'].join('\n'),
+  });
+  const stopped = await proposeModelReplacements(cached, registry, NOW);
+  expect(edited(stopped)).toEqual([]);
+  expect(stopped.stops.map((item) => item.reason)).toEqual([
+    'The model comes from the constant LEGACY (src/helper.ts:3), which is also used at src/helper.ts:7, where no traced request reads it as its model, so a change would show up there too; change it by hand to gpt-5.6-sol.',
+  ]);
+});
+
+it('reads committed example env files for a model the environment sets, and never a real .env', async () => {
+  const root = await repository({
+    '.env.example': [
+      '# Example settings',
+      'OPENAI_MODEL=gpt-4',
+      'OK_MODEL=gpt-5.6-sol',
+      'EMBED_MODEL=gpt-4',
+    ].join('\n'),
+    // Not a text request: the stop says to check, not to set the replacement, and an
+    // environment-only read of one is not listed.
+    'src/embed.ts': [
+      ...HEAD,
+      "export const a = () => openai.embeddings.create({ model: process.env.EMBED_MODEL!, input: 'x' });",
+      "export const b = () => openai.embeddings.create({ model: process.env.RAW_EMBED!, input: 'x' });",
+    ].join('\n'),
+    'web/.env.sample': 'VITE_MODEL="o1-mini"',
+    // A real .env holds deployment values; Refit never reads it.
+    '.env': ['SECRET_MODEL=gpt-4', 'OPENAI_MODEL=o1-mini'].join('\n'),
+    'src/env.ts': [
+      ...HEAD,
+      `export const a = () => ${send('process.env.OPENAI_MODEL as string')}`,
+    ].join('\n'),
+    'web/vite.ts': [
+      ...HEAD,
+      `export const a = () => ${send("import.meta.env['VITE_MODEL']")}`,
+    ].join('\n'),
+    'src/secret.ts': [...HEAD, `export const a = () => ${send('process.env.SECRET_MODEL!')}`].join(
+      '\n',
+    ),
+    'src/ok.ts': [...HEAD, `export const a = () => ${send('process.env.OK_MODEL')}`].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.patch).toBeNull();
+  expect(proposal.stops.map((item) => [item.file, item.at, item.model, item.reason])).toEqual([
+    [
+      'src/embed.ts',
+      { file: '.env.example', line: 4 },
+      'gpt-4',
+      'The request reads its model from the environment variable EMBED_MODEL, which .env.example:4 sets to gpt-4. Refit does not edit environment settings, because each deployment sets its own value; check which model this `embeddings.create` request needs and change EMBED_MODEL by hand wherever it is set, including hosting and CI secrets, and in .env.example.',
+    ],
+    [
+      'src/env.ts',
+      { file: '.env.example', line: 2 },
+      'gpt-4',
+      'The request reads its model from the environment variable OPENAI_MODEL, which .env.example:2 sets to gpt-4. Refit does not edit environment settings, because each deployment sets its own value; set OPENAI_MODEL to gpt-5.6-sol wherever it is set, including hosting and CI secrets, and in .env.example.',
+    ],
+    [
+      'web/vite.ts',
+      { file: 'web/.env.sample', line: 1 },
+      'o1-mini',
+      'The request reads its model from the environment variable VITE_MODEL, which web/.env.sample:1 sets to o1-mini. Refit does not edit environment settings, because each deployment sets its own value; set VITE_MODEL to gpt-5.6-terra wherever it is set, including hosting and CI secrets, and in web/.env.sample.',
+    ],
+  ]);
+  // No committed value: a finding, with no default invented.
+  expect(proposal.environment).toEqual([
+    {
+      provider: 'openai',
+      file: 'src/secret.ts',
+      line: 3,
+      call: 'chat.completions.create',
+      variable: 'SECRET_MODEL',
+      reason:
+        "The request reads its model only from the environment variable SECRET_MODEL, which no committed file sets (Refit never reads .env files), so Refit cannot tell which model it sends and does not invent a default. Check SECRET_MODEL wherever the app runs; if it names a retiring model, set it to that model's replacement.",
+    },
+  ]);
+});
+
+it('traces a model read from an imported JSON file to its line and stops there', async () => {
+  const root = await repository({
+    'config/models.json': [
+      '{',
+      '  "chat": { "model": "gpt-4" },',
+      '  "other": "o1-mini"',
+      '}',
+    ].join('\n'),
+    'src/json.ts': [
+      ...HEAD,
+      "import config from '../config/models.json';",
+      `export const a = () => ${send('config.chat.model')}`,
+    ].join('\n'),
+    'src/req.js': [
+      "const OpenAI = require('openai');",
+      'const openai = new OpenAI();',
+      "const settings = require('../config/models.json');",
+      `exports.a = () => ${send('settings.other')}`,
+    ].join('\n'),
+  });
+  const proposal = await proposeModelReplacements(root, registry, NOW);
+  expect(proposal.replacements).toEqual([]);
+  expect(proposal.stops.map((item) => [item.file, item.at, item.reason])).toEqual([
+    [
+      'src/json.ts',
+      { file: 'config/models.json', line: 2 },
+      'The request reads its model from chat.model in config/models.json, which sets it to gpt-4 at line 2. Refit traces JSON configuration but does not edit it yet; change it there by hand to gpt-5.6-sol.',
+    ],
+    [
+      'src/req.js',
+      { file: 'config/models.json', line: 3 },
+      'The request reads its model from other in config/models.json, which sets it to o1-mini at line 3. Refit traces JSON configuration but does not edit it yet; change it there by hand to gpt-5.6-terra.',
+    ],
+  ]);
 });
 
 it('follows helper and method parameters to every caller site, including default exports', async () => {
@@ -1248,21 +1440,17 @@ it('stops tracing within the work budget on self-referencing assignments', async
     ].join('\n'),
   });
   const first = await proposeModelReplacements(root, registry, NOW);
-  // The field's own read inside the assignment is a use no request reaches, so it stops.
-  expect(first.replacements).toEqual([]);
-  expect(first.stops.map((item) => [item.at.line, item.model, item.reason])).toEqual([
-    [
-      4,
-      'gpt-4',
-      'The model comes from the field model (src/dalle.ts:4), which is used 2 times; change it by hand to gpt-5.6-sol.',
-    ],
-  ]);
+  // The field's own read inside the assignment carries the same default on to the request, so it
+  // is part of the model's path, not another use, and the default is edited where it is written.
+  expect(first.stops).toEqual([]);
+  expect(edited(first)).toEqual(['src/dalle.ts:4 gpt-4']);
   expect(await proposeModelReplacements(root, registry, NOW)).toEqual(first);
 });
 
 it('counts uses written under another name before editing a shared constant', async () => {
-  const reason =
-    'The model comes from the constant MODEL (src/c.ts:1), which is used 2 times; change it by hand to gpt-5.6-sol.';
+  // The first use that is not a request is named, under whatever name it is written.
+  const reason = (at: string) =>
+    `The model comes from the constant MODEL (src/c.ts:1), which is also used at ${at}, where no traced request reads it as its model, so a change would show up there too; change it by hand to gpt-5.6-sol.`;
   const cases: Record<string, Record<string, string>> = {
     'renamed import': {
       'src/b.ts': [
@@ -1299,7 +1487,7 @@ it('counts uses written under another name before editing a shared constant', as
     expect([label, proposal.replacements]).toEqual([label, []]);
     expect([label, proposal.stops.map((item) => item.reason)]).toEqual([
       label,
-      [reason.replace('2 times', label === 'renamed import' ? '3 times' : '2 times')],
+      [reason('src/b.ts:2')],
     ]);
   }
 });
@@ -1352,22 +1540,22 @@ it('stops when another read of the parameter an edited default or caller literal
     [
       'src/caller.ts',
       7,
-      'The model comes from the parameter model (src/caller.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+      'The model comes from the parameter model (src/caller.ts:3), which is also used at src/caller.ts:4, where no traced request reads it as its model, so a change would show up there too; change it by hand to gpt-5.6-sol.',
     ],
     [
       'src/default.ts',
       3,
-      'The model comes from the parameter model (src/default.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+      'The model comes from the parameter model (src/default.ts:3), which is also used at src/default.ts:4, where no traced request reads it as its model, so a change would show up there too; change it by hand to gpt-5.6-sol.',
     ],
     [
       'src/destructured.ts',
       3,
-      'The model comes from the parameter model (src/destructured.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+      'The model comes from the parameter model (src/destructured.ts:3), which is also used at src/destructured.ts:4, where no traced request reads it as its model, so a change would show up there too; change it by hand to gpt-5.6-sol.',
     ],
     [
       'src/leaked.ts',
       7,
-      'The model comes from the parameter options (src/leaked.ts:3), which is used 2 times; change it by hand to gpt-5.6-sol.',
+      'The model comes from the parameter options (src/leaked.ts:3), which is also used at src/leaked.ts:4, where no traced request reads it as its model, so a change would show up there too; change it by hand to gpt-5.6-sol.',
     ],
   ]);
 });
@@ -2095,7 +2283,7 @@ it('reports class property models at their initializers and assignments without 
       'src/priced.ts',
       { file: 'src/priced.ts', line: 7 },
       'gpt-4',
-      'The model comes from the field model (src/priced.ts:5), which is used 2 times; change it by hand to gpt-5.6-sol.',
+      'The model comes from the field model (src/priced.ts:5), which is also used at src/priced.ts:13, where no traced request reads it as its model, so a change would show up there too; change it by hand to gpt-5.6-sol.',
     ],
     [
       'src/summary.ts',
@@ -2221,7 +2409,7 @@ it('stops on a computed property name in a request, which may hide a sampling pa
 // Shapes from the 2026-10-21 Anthropic application benchmark: a model constant with an environment
 // or config fallback, a raw fetch to a configurable base URL, a tsconfig extending a generated file,
 // and model IDs that no traced request sends.
-it('replaces the fallback literal of a model constant used once', async () => {
+it('replaces the fallback literal of a model constant and names the variables that override it', async () => {
   const root = await repository({
     'src/agent.ts': [
       "import Anthropic from '@anthropic-ai/sdk';",
@@ -2240,24 +2428,28 @@ it('replaces the fallback literal of a model constant used once', async () => {
     ].join('\n'),
   });
   const proposal = await proposeModelReplacements(root, registry, NOW);
+  // The shared constant feeds two identical requests, so it is edited once for both.
   expect(proposal.replacements).toMatchObject([
     {
       file: 'src/agent.ts',
       edited: { file: 'src/agent.ts', line: 4 },
       from: 'claude-3-opus-20240229',
       to: 'claude-opus-4-8',
+      env: ['AGENT_MODEL'],
+    },
+    {
+      file: 'src/shared.ts',
+      edited: { file: 'src/shared.ts', line: 3 },
+      from: 'claude-3-opus-20240229',
+      to: 'claude-opus-4-8',
+      env: ['ANTHROPIC_MODEL', 'MODEL_ID'],
     },
   ]);
   expect(proposal.patch).toContain(
     "+  const model = process.env.AGENT_MODEL ?? 'claude-opus-4-8';",
   );
-  expect(proposal.stops).toMatchObject([
-    {
-      at: { file: 'src/shared.ts', line: 3 },
-      reason:
-        'The model comes from the constant MODEL (src/shared.ts:3), which is used 2 times; change it by hand to claude-opus-4-8.',
-    },
-  ]);
+  expect(proposal.stops).toEqual([]);
+  expect(proposal.environment).toEqual([]);
   expect(proposal.unresolved).toEqual([]);
 });
 

@@ -360,3 +360,37 @@ it('marks a draft [Needs review] with the exact reason when a replacement has no
   expect(body).toContain('## Alert only');
   expect(body).toContain('- `.env.example:1` `gpt-4` (configuration):');
 });
+
+// A fallback an environment variable overrides is edited, but the deployed value is not in the
+// repository, so the draft says what to set; a model only the environment sets is listed.
+it('marks a draft [Needs review] when an environment variable overrides an edited fallback', async () => {
+  const root = await repository({
+    'src/ai.ts': [
+      "import OpenAI from 'openai';",
+      'const openai = new OpenAI();',
+      "const MODEL = process.env.OPENAI_MODEL || 'gpt-4';",
+      'export const chat = (messages: any[]) => openai.chat.completions.create({ model: MODEL, messages });',
+      'export const again = (messages: any[]) => openai.chat.completions.create({ model: MODEL, messages });',
+      'export const other = (messages: any[]) => openai.chat.completions.create({ model: process.env.OTHER_MODEL!, messages });',
+    ].join('\n'),
+  });
+  const result = await runModelFixes({
+    repository: root,
+    registry,
+    parameters: EMPTY_MODEL_PARAMETERS,
+    proofs: PROVEN,
+    now: NOW,
+    checks: CHECKS,
+    publication: { repository: 'example/app', base: 'main', token: 'token' },
+  });
+  expect(result.replacements.map((item) => [item.edited.line, item.env])).toEqual([
+    [3, ['OPENAI_MODEL']],
+  ]);
+  expect(published[0].title).toBe('[Needs review] fix: replace 1 retiring AI model');
+  const body = published[0].body;
+  expect(body).toContain(
+    '- `src/ai.ts:3` reads `OPENAI_MODEL` first, and where one is set it overrides the edited value; its value is outside the repository. **Check:** set `OPENAI_MODEL` to `gpt-5.6-sol` wherever it is set, including hosting and CI secrets.',
+  );
+  expect(body).toContain('## Set in the environment');
+  expect(body).toContain('- `src/ai.ts:6` `chat.completions.create` reads `OTHER_MODEL`');
+});
