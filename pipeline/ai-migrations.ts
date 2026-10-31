@@ -66,6 +66,9 @@ export async function proposeAiMigrations(
     packageName?: string;
     // Off by default (decision A): see proposeAnthropicSdkMajor.
     removeSampling?: boolean;
+    // The Git checkout `directory` was extracted from, at the same commit: preparation reads a
+    // pnpm, Yarn or Bun project's committed lockfiles (and their history) from it.
+    repository?: string;
   },
 ): Promise<AiMigrationProposal | null> {
   const proposal = await proposeSdkMajor(directory, tables, options.packageName, {
@@ -109,6 +112,7 @@ export async function proposeAiMigrations(
     targetMajor: proposal.targetMajor,
     resolution: { image: options.image, before: options.before, resolve: options.resolve },
     release: options.release,
+    repository: options.repository,
     companions: (companions?.data.packages as string[] | undefined) ?? [],
     together: proposal.together,
     replaces: proposal.replaces,
@@ -324,6 +328,7 @@ export async function runAiMigrations(options: {
     onProgress: options.onProgress,
     propose: async (directory) => {
       proposal = await proposeAiMigrations(directory, options.tables, {
+        repository: options.repository,
         image: options.checks.image,
         before,
         resolve: options.resolve,
@@ -351,11 +356,30 @@ export async function runAiMigrations(options: {
     return found.optionalUpgrade
       ? result('upgrade-optional', found.upgradeRefusal ?? OPTIONAL_UPGRADE)
       : result('needs-review', `No patch: ${found.upgradeRefusal}`);
-  if (validation.status !== 'passed')
+  if (validation.status !== 'passed') {
+    // What failed, for the benchmark and the run's own record: the gate's checks, or the error.
+    const failed = validation as Partial<{
+      gate: unknown;
+      error: string;
+      checkFailures: unknown;
+      baseline: { status: string; error?: string; stderr: string };
+      patched: { status: string; error?: string; stderr: string };
+    }>;
+    const tail = (run?: { status: string; error?: string; stderr: string }) =>
+      run && { status: run.status, error: run.error, stderr: run.stderr.slice(-1500) };
     return result(
       'validation-failed',
       `Validation returned ${validation.status}; nothing is published.`,
+      {
+        ...(failed.gate ? { gate: failed.gate } : {}),
+        ...(failed.error ? { error: failed.error } : {}),
+        ...(failed.checkFailures ? { checkFailures: failed.checkFailures } : {}),
+        ...(failed.baseline
+          ? { baseline: tail(failed.baseline), patched: tail(failed.patched) }
+          : {}),
+      },
     );
+  }
   const requestProof = options.requestProof
     ? await options.requestProof(found)
     : storedRequestProof(
@@ -433,6 +457,7 @@ export async function runAiSurfaceMigrations(options: {
     onProgress: options.onProgress,
     propose: async (directory) => {
       sdk = await proposeAiMigrations(directory, options.tables, {
+        repository: options.repository,
         image: options.checks.image,
         before,
         resolve: options.resolve,
