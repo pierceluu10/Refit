@@ -297,6 +297,7 @@ export async function runFallbackOnRepository(options: {
           },
         ]
       : []),
+    ...(row.laneError ? [{ lane: 'Refit fix lanes', status: 'error', reason: row.laneError }] : []),
     ...(row.migrations?.ai
       ? [
           {
@@ -359,6 +360,8 @@ export async function runFallbackOnRepository(options: {
     ai: options.ai,
     repositoryModels,
     exists: async (path) => committed.has(path),
+    read: async (path) =>
+      committed.has(path) ? readFile(join(directory, path), 'utf8').catch(() => null) : null,
     repositoryFiles: async () => {
       const scripts: Array<{ path: string; content: string }> = [];
       for (const path of files.filter((name) => SCRIPT_FILE.test(name)).slice(0, 4000)) {

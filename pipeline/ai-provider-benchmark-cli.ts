@@ -149,9 +149,12 @@ export function rowOutcome(row: {
   validation?: { status: string } | null;
   migrations?: MigrationResult;
   fallback?: { status: string } | null;
+  // A fix lane that failed after the scan: the row is an error unless the AI fallback validated.
+  laneError?: string;
 }): Outcome {
   if (!row.error && !row.infrastructure && row.fallback?.status === 'validated')
     return 'ai-validated';
+  if (row.laneError && !row.error && !row.infrastructure) return 'error';
   const lanes: LaneStatus[] = [];
   if (row.validation) lanes.push(row.validation.status as LaneStatus);
   else if (row.replacements?.length)
@@ -516,28 +519,40 @@ async function main() {
     try {
       const found = await scan(directory);
       let validation: Record<string, unknown> | null = null;
-      if (values.validate && found.replacements.length && entry.language !== 'py') {
-        const { command, prepareDependencies } = await checks(directory);
-        if (!command) validation = { status: 'no-checks', reason: 'No test or build script.' };
-        else {
-          const result = await runModelFixes({
-            repository: directory,
-            registry,
-            parameters,
-            now,
-            checks: { image: values.image!, command, prepareDependencies },
-            onProgress: (message) => console.error(`  ${message}`),
-          });
-          validation = {
-            status: result.status,
-            reason: result.reason,
-            command,
-            prepareDependencies,
-            replacements: result.replacements.length,
-          };
+      // A fix lane that crashes or times out after the scan leaves the scan's items open: the row's
+      // outcome is an error, but its items still go to the AI fallback and become miss records.
+      let laneError: string | undefined;
+      let migrated: Awaited<ReturnType<typeof migrate>> = null;
+      try {
+        if (values.validate && found.replacements.length && entry.language !== 'py') {
+          const { command, prepareDependencies } = await checks(directory);
+          if (!command) validation = { status: 'no-checks', reason: 'No test or build script.' };
+          else {
+            const result = await runModelFixes({
+              repository: directory,
+              registry,
+              parameters,
+              now,
+              checks: { image: values.image!, command, prepareDependencies },
+              onProgress: (message) => console.error(`  ${message}`),
+            });
+            validation = {
+              status: result.status,
+              reason: result.reason,
+              command,
+              prepareDependencies,
+              replacements: result.replacements.length,
+            };
+          }
         }
+      } catch (error) {
+        laneError = `model fixes: ${errorSummary(error)}`;
       }
-      const migrated = await migrate(directory, entry);
+      try {
+        migrated = await migrate(directory, entry);
+      } catch (error) {
+        laneError = [laneError, `SDK migration: ${errorSummary(error)}`].filter(Boolean).join('; ');
+      }
       row = {
         ...base,
         exposures: found.exposures.map((item) => item.deadline.id),
@@ -548,12 +563,13 @@ async function main() {
         validation,
         ...(migrated ? { migrations: migrated } : {}),
         exposureSites: exposureSites(found.exposures),
+        ...(laneError ? { laneError } : {}),
       };
       row.outcome = rowOutcome(row as Parameters<typeof rowOutcome>[0]);
       // Whatever Refit left open: the AI fallback when it can run, a miss record per item always.
       const bundle = { ...row, provider } as ScanBundle;
       const items = openItems(bundle);
-      if (fallbackEligible(row.outcome as string, items)) {
+      if (fallbackEligible(row.outcome as string, items, Boolean(laneError))) {
         const sources = quotedSources(items, {
           ...sourceContext,
           findings: (migrated?.review ?? []) as never,
