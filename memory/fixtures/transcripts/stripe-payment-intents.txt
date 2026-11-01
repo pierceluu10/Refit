@@ -1,0 +1,47 @@
+Illustrative fixture: an invented harness transcript, not a real customer run.
+task: example-org/shop, stripe endpoint-removed "Charges API calls should move to PaymentIntents"
+
+[agent] Reading src/checkout.ts. stripe@12.0.0, one call site at line 42:
+  const charge = await stripe.charges.create({ amount, currency: 'usd', source: req.body.token });
+  if (charge.status === 'succeeded') await markPaid(order.id, charge.id);
+[agent] The client sends a card token from the legacy Checkout. PaymentIntents needs a PaymentMethod, not a source.
+[tool:shell] npm test -- checkout
+  PASS test/checkout.test.ts (3 tests)
+[agent] Baseline green. First attempt: swap the call and keep the token as-is.
+[tool:edit] src/checkout.ts
+  stripe.paymentIntents.create({ amount, currency: 'usd', source: req.body.token, confirm: true })
+[tool:shell] npm run typecheck
+  src/checkout.ts:42:58 - error TS2353: Object literal may only specify known properties, and 'source' does not exist in type 'PaymentIntentCreateParams'.
+[agent] Dead end: PaymentIntents does not take `source`. The token has to become a payment_method. Stripe accepts a tok_ id via payment_method_data, but the cleaner path is payment_method with a pm_ id from the client. The client already uses Elements, so I'll change the frontend to call stripe.createPaymentMethod and send pm_ ids.
+[tool:fetch] https://docs.stripe.com/payments/payment-intents/migration
+  "... pass payment_method and set confirm=true to charge immediately ... handle requires_action for 3D Secure ..."
+[tool:edit] src/checkout.ts
+[tool:edit] web/pay.js
+[tool:shell] npm run typecheck
+  ok
+[tool:shell] npm test -- checkout
+  FAIL test/checkout.test.ts > marks the order paid
+  expected markPaid to be called with "ch_123", got "pi_123"
+[agent] The order record stored the charge id. The PaymentIntent id is now the stable reference; latest_charge holds the charge id if code still needs it. Updating markPaid call to use intent.id and the test fixture to return a PaymentIntent.
+[tool:edit] test/checkout.test.ts
+[tool:shell] npm test -- checkout
+  PASS test/checkout.test.ts (4 tests)
+[agent] Added a test for status requires_action returning client_secret to the client. Done.
+
+diff --git a/src/checkout.ts b/src/checkout.ts
+-  const charge = await stripe.charges.create({ amount, currency: 'usd', source: req.body.token });
+-  if (charge.status === 'succeeded') await markPaid(order.id, charge.id);
++  const intent = await stripe.paymentIntents.create({
++    amount,
++    currency: 'usd',
++    payment_method: req.body.paymentMethodId,
++    confirm: true,
++    automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
++  });
++  if (intent.status === 'requires_action') return res.json({ clientSecret: intent.client_secret });
++  if (intent.status === 'succeeded') await markPaid(order.id, intent.id);
+diff --git a/web/pay.js b/web/pay.js
+-  const { token } = await stripe.createToken(card);
+-  await post('/checkout', { token: token.id });
++  const { paymentMethod } = await stripe.createPaymentMethod({ type: 'card', card });
++  await post('/checkout', { paymentMethodId: paymentMethod.id });

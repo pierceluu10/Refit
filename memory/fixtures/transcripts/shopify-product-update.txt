@@ -1,0 +1,51 @@
+Illustrative fixture: an invented harness transcript, not a real customer run.
+task: example-org/catalog-sync, shopify rest-to-graphql "REST product endpoints are legacy; use the Admin GraphQL productUpdate mutation"
+
+[agent] Reading src/sync.ts. Raw fetch, API version pinned at 2024-01:
+  await fetch(`https://${shop}/admin/api/2024-01/products/${id}.json`, {
+    method: 'PUT',
+    headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ product: { id, title, body_html: description, tags: tags.join(',') } }),
+  });
+[tool:shell] npm test
+  PASS test/sync.test.ts (3 tests)
+[agent] First attempt: post the same product object to the GraphQL endpoint as `input`.
+[tool:edit] src/sync.ts  mutation productUpdate($input: ProductInput!) with { input: { id, title, body_html, tags } }
+[tool:shell] npm test
+  FAIL test/sync.test.ts > updates the product title
+  GraphQL errors: Variable $input of type ProductInput! was provided invalid value for id (Invalid global id '8123456789')
+[agent] Dead end: GraphQL wants a global id (gid://shopify/Product/8123456789), and the field is descriptionHtml, not body_html. Also in API 2024-10 and later the argument is `product: ProductUpdateInput!`, and ProductInput is deprecated for this mutation. Bumping the version to 2025-01.
+[tool:fetch] https://shopify.dev/docs/api/admin-graphql/2025-01/mutations/productUpdate
+  "productUpdate(product: ProductUpdateInput) ... userErrors { field message }"
+[tool:edit] src/sync.ts
+[tool:shell] npm test
+  FAIL test/sync.test.ts > reports a failed update
+  expected sync() to throw, it resolved
+[agent] GraphQL returns HTTP 200 with userErrors on validation failures. The REST code relied on a 422. Checking userErrors and throwing.
+[tool:edit] src/sync.ts
+[tool:edit] test/sync.test.ts  (mock now returns userErrors for the failure case)
+[tool:shell] npm test
+  PASS test/sync.test.ts (3 tests)
+[agent] tags is now a list, not a comma string. Done.
+
+diff --git a/src/sync.ts b/src/sync.ts
+-  await fetch(`https://${shop}/admin/api/2024-01/products/${id}.json`, {
+-    method: 'PUT',
+-    headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+-    body: JSON.stringify({ product: { id, title, body_html: description, tags: tags.join(',') } }),
+-  });
++  const res = await fetch(`https://${shop}/admin/api/2025-01/graphql.json`, {
++    method: 'POST',
++    headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
++    body: JSON.stringify({
++      query: `mutation productUpdate($product: ProductUpdateInput!) {
++        productUpdate(product: $product) { product { id } userErrors { field message } }
++      }`,
++      variables: {
++        product: { id: `gid://shopify/Product/${id}`, title, descriptionHtml: description, tags },
++      },
++    }),
++  });
++  const { data, errors } = await res.json();
++  const userErrors = data?.productUpdate?.userErrors ?? [];
++  if (errors?.length || userErrors.length) throw new Error(JSON.stringify(errors ?? userErrors));
