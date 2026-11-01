@@ -13,6 +13,8 @@ const PROBLEMS = [
   /^(?:required by the spec but missing|required params missing):/im,
   /^enum mismatch:/im,
   /\bis not (?:supported|compatible)\b/i, // openai_check_request on reasoning models
+  /^endpoint note \((?!supported\b)/im, // openai_check_request: legacy, deprecated or shut down
+  /^old sdk shapes found:/im, // openai_sdk_migration
   /^status\b[^:\n]*:\s*(?:deprecated|shut down)/im, // openai_model_lookup on a retiring model
 ];
 

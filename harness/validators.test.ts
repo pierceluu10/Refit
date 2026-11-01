@@ -37,6 +37,8 @@ describe('gradeValidators', () => {
       'Deprecated parameters: none found.\nUnknown parameters: none.\nRequired parameters present (messages, model).\nModel gpt-6-luna: active.',
       'Operation: POST /v1/checkout/sessions (PostCheckoutSessions).\nNo problems found against this spec for the params given.',
       '## gpt-6-luna\nStatus: active as far as the snapshot shows (listed on the models page).',
+      'Endpoint note (supported): Chat Completions remains supported, but Responses is recommended for new projects.',
+      'No known old-SDK call shapes matched. That is not proof the code is current: the patterns are a hint list.',
     ];
     for (const output of clean) expect(runPassed(output), output).toBe(true);
     const problems = [
@@ -49,6 +51,8 @@ describe('gradeValidators', () => {
       'Required params missing: line_items.',
       'Enum mismatch: mode = "subscriptions" is not one of [payment, setup, subscription].',
       '## gpt-4o-2024-08-06\nStatus (as of 2026-11-01): deprecated, shutdown scheduled 2027-01-14',
+      "Endpoint note (legacy): Completions is a legacy endpoint (the model pages label it 'Completions (legacy)').",
+      'Old SDK shapes found:\n- [node] Configuration -> new OpenAI({ apiKey })',
     ];
     for (const output of problems) expect(runPassed(output), output).toBe(false);
   });
