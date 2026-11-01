@@ -20,7 +20,7 @@ export type FixWithAgent = (input: AgentFixInput) => Promise<AgentFixResult>;
 export { fixWithAgent };
 
 // What the hand-off produced: the agent's result, with `diff` replaced by the whole patch against
-// the original tree (the codemods' edits and the agent's), in Refit's patch format.
+// the original tree, in Refit's patch format.
 export type ShopifyHandOff = AgentFixResult & {
   files: string[];
   // GUT5's before/after check (typecheck, build, tests in the sandbox), when it could run: why a pass
@@ -56,11 +56,10 @@ const git = (directory: string, args: string[]) =>
     { maxBuffer: 256 * 1024 * 1024 },
   );
 
-// Runs the agent on a copy of the repository with the codemods' patch applied. Undefined when AI is
-// off and no earlier run with AI left a result for this tree.
+// Runs the agent on a copy of the repository. Undefined when AI is off and no earlier run with AI
+// left a result for this tree.
 export async function shopifyHandOff(options: {
   repository: Repository;
-  codemods: string;
   key: string;
   run: boolean;
   agent: FixWithAgent;
@@ -110,10 +109,6 @@ export async function shopifyHandOff(options: {
       };
     }
     const judged = baseline;
-    if (options.codemods) {
-      await writeFile(join(parent, 'codemods.patch'), options.codemods);
-      await git(directory, ['apply', join(parent, 'codemods.patch')]);
-    }
     const result = await options.agent({
       ...options.input,
       repoDir: directory,

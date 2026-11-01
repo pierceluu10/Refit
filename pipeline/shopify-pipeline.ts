@@ -16,7 +16,6 @@ import {
 } from 'graphql';
 import type { AiOptions } from './ai-budget.ts';
 import type { ApiVersionDeclaration, ApiVersionEvidence, ApiVersionPolicy } from './api-version.ts';
-import { renderFileReplacements, renderPatch } from './patches.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
 import {
@@ -26,13 +25,6 @@ import {
   type AdminDocument,
   type ShopifyScan,
 } from './shopify-analysis.ts';
-import {
-  loadShopifyDocumentRules,
-  rewriteDocument,
-  variableRules,
-  type DocumentEdit,
-  type ShopifyDocumentRule,
-} from './shopify-document-rules.ts';
 import { documentProof, fragmentPool, shopifySchemaProof, withFragments } from './shopify-proof.ts';
 import { shopifySchema } from './shopify-schemas.ts';
 import { diffSchemas } from './shopify-schema-diff.ts';
@@ -42,25 +34,16 @@ import {
   type ShopifyReconstruction,
 } from './shopify-ai-rewrite.ts';
 import { fixWithAgent, shopifyHandOff, type FixWithAgent } from './shopify-agent.ts';
-import type { ShopifyLiveCase } from './shopify-live-proof.ts';
-import { loadShopifyMigrationRules, migrateDocument } from './shopify-migrations.ts';
-import {
-  SHOPIFY_SDK_RULE,
-  shopifySdkSourceChanges,
-  shopifyVersionStringPins,
-} from './shopify-sdk-source.ts';
-import { shopifySdkUpgrade } from './shopify-sdk-upgrade.ts';
 import {
   enumFromVersion,
   latestApiVersion,
   SHOPIFY_API_ENUM_SINCE,
   sdkHasEnumMember,
 } from './shopify-versions.ts';
-import { loadDeadlineRegistry } from './deadline-registry.ts';
 import { digest, isObject } from './specifications.ts';
 import { proveShopifyRest } from './shopify-rest-contract.ts';
 import { loadShopifyRestRefusals, loadShopifyRestRules } from './shopify-rest-rewrite.ts';
-import type { Finding, Repository, SourceEdit } from './types.ts';
+import type { Finding, Repository } from './types.ts';
 
 export const SHOPIFY: ProviderAdapter = {
   id: 'shopify',
@@ -109,30 +92,6 @@ export async function shopifyExtraFiles(root: string) {
   await visit(root);
   const order = (a: { path: string }, b: { path: string }) => a.path.localeCompare(b.path);
   return { graphql: graphql.sort(order), configuration: configuration.sort(order) };
-}
-
-// The source edit for a rule's edit to an assembled document, or undefined when the document text
-// there is not the source text (an escape sequence in a string literal).
-function sourceEdit(document: AdminDocument, edit: DocumentEdit): SourceEdit | undefined {
-  const segment = document.segments.find(
-    (entry) => edit.start >= entry.documentStart && edit.end <= entry.documentEnd,
-  );
-  if (!segment) return undefined;
-  const length = segment.documentEnd - segment.documentStart;
-  if (
-    segment.sourceText.slice(segment.sourceStart, segment.sourceStart + length) !==
-    document.text.slice(segment.documentStart, segment.documentEnd)
-  )
-    return undefined;
-  const start = segment.sourceStart + edit.start - segment.documentStart;
-  return {
-    file: segment.file,
-    start,
-    end: start + edit.end - edit.start,
-    replacement: edit.replacement,
-    changeId: edit.rule.rule,
-    rule: edit.rule.rule,
-  };
 }
 
 type Snapshot = {
@@ -419,89 +378,23 @@ export function shopifyVersionDeclarations(repository: Repository) {
   return versionDeclarations(scanShopify(repository));
 }
 
-// What the draft says about each @shopify/shopify-api major the upgrade crosses, from its
-// CHANGELOG.md in Shopify/shopify-app-js (read 2026-10-29). Type changes are left to the type check.
-function sdkUpgradeNotes(packages: { name: string; from: string | null; to: string }[]) {
-  const api = packages.find((entry) => entry.name === '@shopify/shopify-api');
-  const [from, to] = [
-    Number((api?.from ?? '0').split('.')[0]),
-    Number((api?.to ?? '0').split('.')[0]),
-  ];
-  const crossed = (major: number) => from < major && to >= major;
-  const prisma = packages.find(
-    (entry) => entry.name === '@shopify/shopify-app-session-storage-prisma',
-  );
-  const prismaCrossed =
-    prisma &&
-    Number((prisma.from ?? '0').split('.')[0]) < 8 &&
-    Number(prisma.to.split('.')[0]) >= 8;
-  return [
-    to >= 14
-      ? '@shopify/shopify-api 14 requires Node.js 22 or later (9fec7af); check the deployment runtime.'
-      : '@shopify/shopify-api 12 requires Node.js 20.10 or later (dc41d09); check the deployment runtime.',
-    ...(crossed(13)
-      ? [
-          '@shopify/shopify-api 13 removed API versions 2022-10 to 2024-07 (0bb7837) and made WebhookFields a union keyed on webhookType (1eb863d); 13.1.0 signs OAuth and session cookies with a derived key, so merchants may need to sign in again.',
-        ]
-      : []),
-    ...(packages.some((entry) => entry.name === 'prisma')
-      ? [
-          `Prisma upgraded because session storage requires it: ${packages
-            .filter((entry) => entry.name === 'prisma' || entry.name === '@prisma/client')
-            .map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`)
-            .join(
-              ', ',
-            )}. Refit checked the schema against Prisma 6's documented breaking changes and changed no migration or model; run prisma generate and your migrations as usual.`,
-        ]
-      : []),
-    ...(prismaCrossed
-      ? [
-          '@shopify/shopify-app-session-storage-prisma 8 can store OAuth refresh tokens (700377f). Shopify documents it as backward-compatible: the new Session fields are optional. To keep refresh tokens, add refreshToken String? and refreshTokenExpires DateTime? to the Prisma Session model and run a migration.',
-        ]
-      : []),
-    ...(crossed(14)
-      ? [
-          '@shopify/shopify-api 14 hardens App Proxy validation and the OAuth callback can throw different errors (b1bcc27); check error handling around them.',
-        ]
-      : []),
-  ];
-}
-
 function sdkBound(finding: Finding) {
   SDK_BOUND.add(finding);
   return finding;
 }
 
-// `upgrade` is the opt-in SDK upgrade: the release it moves @shopify/shopify-api to, or why it
-// stopped.
+// Every Admin API pin, and what the agent fixer must do with it: each pin older than the target is
+// handed off, together with an ApiVersion member or LATEST_API_VERSION the locked SDK cannot give.
 function versionFindings(
   scan: ShopifyScan,
   versions: { before: string; after: string },
   sdkRelease: string | undefined,
-  upgrade?:
-    | { release: string; lockless?: boolean }
-    | { refusal: string }
-    // The locked SDK stays and every pin becomes the dated string (shopifyVersionStringPins).
-    | { stringPin: true },
 ) {
-  const stopped =
-    upgrade && 'refusal' in upgrade ? ` The SDK upgrade stopped: ${upgrade.refusal}` : '';
-  const upgradedRelease = upgrade && 'release' in upgrade ? upgrade.release : undefined;
-  const stringPin = Boolean(upgrade && 'stringPin' in upgrade);
-  const stringPinReason = `@shopify/shopify-api ${sdkRelease} has no ApiVersion.${enumFromVersion(versions.after)}, but it sends apiVersion only in GraphQL request URLs, and this app uses no REST, billing or Storefront client, so Refit pins the dated string '${versions.after}' without the SDK upgrade (docs/SHOPIFY-SDK-UPGRADE.md#dated-version-string).`;
   const findings: Finding[] = [];
-  const edits: SourceEdit[] = [];
   const runtime = scan.versions.filter((entry) => !CODEGEN_CONFIG.test(entry.file) && !entry.api);
   const member = enumFromVersion(versions.after)!;
   // LATEST_API_VERSION is fixed by the locked SDK release, so it counts as that release's pin.
-  // Without a lockfile the installed release is unknown, but LATEST_API_VERSION exists only before
-  // @shopify/shopify-api 12, where every value is older than the oldest supported version, which
-  // Shopify serves instead. The upgrade that replaces it then moves from that version.
-  const latest = sdkRelease
-    ? latestApiVersion(sdkRelease)
-    : upgrade && 'release' in upgrade && upgrade.lockless
-      ? versions.before
-      : undefined;
+  const latest = sdkRelease ? latestApiVersion(sdkRelease) : undefined;
   // Pins compared by the version Shopify serves: every pin older than the oldest supported version
   // gets that version, so they do not disagree.
   const pinned = [
@@ -514,6 +407,7 @@ function versionFindings(
     ...new Set(pinned.map((value) => (value < versions.before ? versions.before : value))),
   ];
   const declared = pinned.length > 1 ? served : pinned;
+  const sdkNeeded = `ApiVersion.${member} first ships in ${SHOPIFY_API_ENUM_SINCE[member] ?? 'an unknown release'}, so the SDK must be upgraded with the version.`;
   for (const entry of scan.unresolvedVersions.filter((entry) => entry.note))
     findings.push({
       ...entry,
@@ -524,84 +418,50 @@ function versionFindings(
     });
   for (const entry of scan.unresolvedVersions.filter((entry) => !entry.note))
     findings.push(
-      entry.latest && latest && stringPin
-        ? {
+      entry.latest && latest
+        ? sdkBound({
             ...entry,
             changeId: SHOPIFY_VERSION_RULE,
-            expression: `LATEST_API_VERSION (${latest} in @shopify/shopify-api ${sdkRelease}) → '${versions.after}'`,
+            expression: `LATEST_API_VERSION (${latest} in @shopify/shopify-api ${sdkRelease})`,
             confidence: 'confirmed',
-            reason: stringPinReason,
-          }
-        : entry.latest && latest && upgradedRelease
-          ? {
-              ...entry,
-              changeId: SHOPIFY_VERSION_RULE,
-              expression: `LATEST_API_VERSION (${sdkRelease ? `${latest} in @shopify/shopify-api ${sdkRelease}` : `served as ${latest}; no lockfile`}) → ApiVersion.${member}`,
-              confidence: 'confirmed',
-              reason: `@shopify/shopify-api 12.0.0 removed LATEST_API_VERSION; the SDK upgrade to ${upgradedRelease} pins ApiVersion.${member}.`,
-            }
-          : entry.latest && latest
-            ? sdkBound({
-                ...entry,
-                changeId: SHOPIFY_VERSION_RULE,
-                expression: `LATEST_API_VERSION (${latest} in @shopify/shopify-api ${sdkRelease})`,
-                confidence: 'confirmed',
-                reason:
-                  latest < versions.before
-                    ? `@shopify/shopify-api ${sdkRelease} resolves LATEST_API_VERSION to ${latest}, which Shopify no longer serves; requests already get ${versions.before}.`
-                    : `@shopify/shopify-api ${sdkRelease} resolves LATEST_API_VERSION to ${latest}.`,
-                contractReview: `LATEST_API_VERSION is ${latest} in @shopify/shopify-api ${sdkRelease}, and only an SDK upgrade changes it. ${
-                  sdkHasEnumMember(sdkRelease!, member)
-                    ? `This SDK has ApiVersion.${member}; pin it explicitly to upgrade.`
-                    : `ApiVersion.${member} first ships in ${SHOPIFY_API_ENUM_SINCE[member] ?? 'an unknown release'}, so the SDK must be upgraded with the version.`
-                }${stopped}`,
-              })
-            : {
-                ...entry,
-                changeId: SHOPIFY_VERSION_RULE,
-                expression: 'apiVersion',
-                confidence: 'review',
-                reason: entry.reason,
-                contractReview: `The Shopify Admin API version is not a literal Refit can verify and bump: ${entry.reason}`,
-              },
+            reason:
+              latest < versions.before
+                ? `@shopify/shopify-api ${sdkRelease} resolves LATEST_API_VERSION to ${latest}, which Shopify no longer serves; requests already get ${versions.before}.`
+                : `@shopify/shopify-api ${sdkRelease} resolves LATEST_API_VERSION to ${latest}.`,
+            contractReview: `LATEST_API_VERSION is ${latest} in @shopify/shopify-api ${sdkRelease}, and only an SDK upgrade changes it. ${
+              sdkHasEnumMember(sdkRelease!, member)
+                ? `This SDK has ApiVersion.${member}; pin it explicitly to upgrade.`
+                : sdkNeeded
+            }`,
+          })
+        : {
+            ...entry,
+            changeId: SHOPIFY_VERSION_RULE,
+            expression: 'apiVersion',
+            confidence: 'review',
+            reason: entry.reason,
+            contractReview: `The Shopify Admin API version is not a literal Refit can verify: ${entry.reason}`,
+          },
     );
-  // Several pins all move to the target; the schema proof judges every document they send.
-  const enumRelease = upgradedRelease ?? sdkRelease;
   const enumMissing =
-    !stringPin &&
     runtime.some((entry) => entry.kind === 'enum') &&
-    !(enumRelease && sdkHasEnumMember(enumRelease, member));
+    !(sdkRelease && sdkHasEnumMember(sdkRelease, member));
   for (const entry of scan.versions) {
     // Storefront clients keep their own version; this run checks only the Admin contract.
     if (entry.value >= versions.after || entry.api) continue;
-    const codegen = CODEGEN_CONFIG.test(entry.file);
     const missing = entry.kind === 'enum' && enumMissing;
-    // String pins replace the whole ApiVersion expression themselves.
-    if ((!codegen || !missing) && !(stringPin && entry.kind === 'enum'))
-      edits.push({
-        file: entry.file,
-        start: entry.start,
-        end: entry.end,
-        replacement: entry.kind === 'enum' ? member : versions.after,
-        changeId: SHOPIFY_VERSION_RULE,
-      });
-    if (codegen) continue;
     const finding: Finding = {
       ...entry,
       changeId: SHOPIFY_VERSION_RULE,
-      expression: `${entry.text} → ${entry.kind === 'enum' ? (stringPin ? `'${versions.after}'` : `ApiVersion.${member}`) : versions.after}`,
+      expression: `${entry.text} → ${entry.kind === 'enum' ? `ApiVersion.${member}` : versions.after}`,
       confidence: 'confirmed',
       reason:
-        stringPin && entry.kind === 'enum'
-          ? stringPinReason
-          : entry.value < versions.before
-            ? `Pinned to ${entry.value}, which Shopify no longer serves; requests already get ${versions.before}.`
-            : `Pinned to ${entry.value}; the target is ${versions.after}.`,
-      ...(missing
-        ? {
-            contractReview: `@shopify/shopify-api ${sdkRelease ?? '(version not found in the lockfile)'} has no ApiVersion.${member}; it first ships in ${SHOPIFY_API_ENUM_SINCE[member] ?? 'an unknown release'}, so the SDK must be upgraded with the version.${stopped}`,
-          }
-        : {}),
+        entry.value < versions.before
+          ? `Pinned to ${entry.value}, which Shopify no longer serves; requests already get ${versions.before}.`
+          : `Pinned to ${entry.value}; the target is ${versions.after}.`,
+      contractReview: missing
+        ? `@shopify/shopify-api ${sdkRelease ?? '(version not found in the lockfile)'} has no ApiVersion.${member}. ${sdkNeeded}`
+        : `Move every Shopify Admin API pin to ${versions.after}.`,
     };
     findings.push(missing ? sdkBound(finding) : finding);
   }
@@ -617,54 +477,7 @@ function versionFindings(
       contractReview:
         'Refit found Shopify Admin API calls but no pinned API version, so it cannot tell which contract they run against.',
     });
-  return { findings, edits, declared };
-}
-
-// When every finding on a document is a break the target version introduces, the documented rules'
-// rewrite of it: the source edits and confirmed findings that replace those breaks, or why the rules
-// could not fix it. Undefined when no rule applies.
-function rewriteBreakingDocument(
-  document: AdminDocument,
-  result: DocumentResult,
-  before: GraphQLSchema,
-  after: GraphQLSchema,
-  versions: { before: string; after: string },
-  rules: ShopifyDocumentRule[],
-): { result: DocumentResult; edits: SourceEdit[] } | { refusal: string } | undefined {
-  if (
-    !result.findings.length ||
-    result.otherApi ||
-    // Breaks the target brings, and breaks of documents that already fail on the oldest supported
-    // version, which Shopify serves today: a rule's rewrite must hold on the target either way.
-    !result.findings.every(
-      (finding) =>
-        finding.reason.startsWith('Valid on') || finding.reason.startsWith('This document already'),
-    )
-  )
-    return undefined;
-  const rewrite = rewriteDocument(document.text, before, after, rules);
-  if (!rewrite) return undefined;
-  if ('refusal' in rewrite) return { refusal: rewrite.refusal };
-  const edits = rewrite.edits.map((edit) => sourceEdit(document, edit));
-  if (edits.some((edit) => !edit))
-    return { refusal: 'An edit falls on an escaped string the source spells differently.' };
-  const types = typeChanges(parse(document.text), document, before, after, versions, rewrite.text);
-  if (types.findings.length)
-    return { refusal: 'A selected field that the rules leave changes type on the target.' };
-  const confidence = document.traced ? ('confirmed' as const) : ('review' as const);
-  return {
-    edits: edits as SourceEdit[],
-    result: {
-      deprecated: types.deprecated,
-      findings: rewrite.edits.map((edit) => ({
-        ...documentLocation(document, edit.start),
-        changeId: edit.rule.rule,
-        expression: `${document.text.slice(edit.start, edit.end)} → ${edit.replacement}`,
-        confidence,
-        reason: `Shopify rule ${edit.rule.rule} (${edit.rule.source}); the rewritten document validates on ${versions.after}.`,
-      })),
-    },
-  };
+  return { findings, declared };
 }
 
 const RULE_TABLES = new URL('../data/rules/shopify/', import.meta.url);
@@ -719,9 +532,7 @@ function shopifyChange(options: {
         ),
       ]
     : [];
-  const sdk = options.findings.some(
-    (finding) => SDK_BOUND.has(finding) || finding.changeId === SHOPIFY_SDK_RULE,
-  )
+  const sdk = options.findings.some((finding) => SDK_BOUND.has(finding))
     ? [`- The Shopify SDK migration guides: ${SHOPIFY_MIGRATION_GUIDE}`]
     : [];
   return [
@@ -739,13 +550,11 @@ function shopifyContext(options: {
   handoff: string[];
   versions: { before: string; after: string };
   sdkRelease: string | undefined;
-  upgrade: { skipped: string } | { from: string; to: string; primary: string } | undefined;
-  codemods: number;
   notes: string[];
 }) {
   return [
-    `Refit's codemods already made ${options.codemods} edit${options.codemods === 1 ? '' : 's'} in this tree. Each item below used to end the repository without a patch; fix all of them so the code works on Shopify Admin API ${options.versions.after}.`,
-    `Locked @shopify/shopify-api: ${options.sdkRelease ?? 'not found in a lockfile'}. SDK upgrade: ${!options.upgrade ? 'not attempted' : 'skipped' in options.upgrade ? `not applied: ${options.upgrade.skipped}` : `applied, ${options.upgrade.primary} ${options.upgrade.from} to ${options.upgrade.to}`}.`,
+    `Fix every item below so the code works on Shopify Admin API ${options.versions.after}, upgrading the Shopify SDK packages where the version needs it.`,
+    `Locked @shopify/shopify-api: ${options.sdkRelease ?? 'not found in a lockfile'}.`,
     'Stops:',
     ...options.handoff.map((reason) => {
       const sites = options.findings.filter((finding) => finding.contractReview === reason);
@@ -762,79 +571,14 @@ type ShopifyRunOptions = {
   proposePatch?: boolean;
   apiVersion?: string;
   apiVersionPolicy: ApiVersionPolicy;
-  // Opt-in: when the locked SDK cannot name the target version, propose its major upgrade.
-  sdkUpgrade?: boolean;
   // With AI enabled, every finding Refit used to stop on is handed to the agent fixer, and documents
   // Refit cannot read are read by the model (AI use 5).
   aiPatch?: AiOptions;
   // The agent fixer (pipeline/shopify-agent.ts); tests pass a stub.
   agent?: FixWithAgent;
-  // Validation's networked lockfile resolution (pipeline/lockfile-resolution.ts), for SDK upgrades.
-  lockfileResolution?: { image: string; before: string };
-  // The snapshot of another Admin API version, for the fallback below.
-  snapshot?: (version: string) => Promise<Snapshot>;
 };
 
-// Supported quarterly versions from `after` back to `before`, newest first, `after` excluded.
-function versionsBetween(before: string, after: string) {
-  const found: string[] = [];
-  let [year, month] = after.split('-').map(Number);
-  for (;;) {
-    [year, month] = month > 3 ? [year, month - 3] : [year - 1, month + 9];
-    const version = `${year}-${String(month).padStart(2, '0')}`;
-    if (version < before) return found;
-    found.push(version);
-  }
-}
-
-// When the agent fixer did not pass on the target and only the SDK the app has, or documents that
-// break on the target itself, hold the move, the newest supported version the app can move to
-// without any hand-off instead (each stays supported for about a year), with the version and SDK
-// moved together as for the target.
 export async function runShopifyPipeline(options: ShopifyRunOptions) {
-  const report = await shopifyRun(options);
-  if (
-    !options.proposePatch ||
-    !options.snapshot ||
-    report.shopify.agent.outcome === 'passed' ||
-    !report.shopify.handoff.length ||
-    !report.findings.every(
-      (finding) =>
-        !finding.contractReview ||
-        SDK_BOUND.has(finding) ||
-        finding.changeId === SHOPIFY_SDK_RULE ||
-        finding.reason.startsWith('Valid on'),
-    )
-  )
-    return report;
-  const target = report.apiVersion.after ?? '';
-  const why = report.shopify.handoff[0];
-  for (const version of versionsBetween(report.apiVersion.before ?? target, target)) {
-    // The fallback is the rules' patch alone: the agent already had its attempt on the target.
-    const fallback = await shopifyRun({
-      ...options,
-      aiPatch: undefined,
-      after: await options.snapshot(version),
-    });
-    if (fallback.patch.status !== 'proposed' || fallback.shopify.handoff.length) continue;
-    const deadline = (await loadDeadlineRegistry()).deadlines.find(
-      (entry) => entry.id === `shopify-admin-${version}`,
-    )?.date;
-    const note = `Moves to ${version}, not ${target}: ${why} ${version} is the newest supported version this app can take now${deadline ? `, and Shopify serves it until ${deadline}` : ''} (${VERSIONING}).`;
-    return {
-      ...fallback,
-      fallback: { target, version, reason: why, agent: report.shopify.agent },
-      patch: {
-        ...fallback.patch,
-        summary: `${note} ${'summary' in fallback.patch ? fallback.patch.summary : ''}`,
-        warnings: [note, ...('warnings' in fallback.patch ? fallback.patch.warnings : [])],
-      },
-    };
-  }
-  return report;
-}
-
-async function shopifyRun(options: ShopifyRunOptions) {
   const manifestPath = join(options.repository, 'package.json');
   const manifest: unknown = existsSync(manifestPath)
     ? JSON.parse(await readFile(manifestPath, 'utf8'))
@@ -870,13 +614,6 @@ async function shopifyRun(options: ShopifyRunOptions) {
   const deprecated = new Set<string>();
   const otherApi: AdminDocument[] = [];
   const storefront: AdminDocument[] = [];
-  const rules = loadShopifyDocumentRules(versions.after);
-  const migrationRules = loadShopifyMigrationRules(versions.after);
-  // Development store cases for documents whose variables a migration changed, at their lines.
-  const liveCases: (Omit<ShopifyLiveCase, 'document'> & { file: string; line: number })[] = [];
-  const migrationNotes: string[] = [];
-  const documentEdits = new Map<string, SourceEdit>();
-  const variableNotes = new Set<string>();
   const pool = fragmentPool(scan.documents);
   for (const original of scan.documents) {
     if (original.api === 'storefront') {
@@ -884,91 +621,12 @@ async function shopifyRun(options: ShopifyRunOptions) {
       continue;
     }
     const document = withFragments(original, pool);
-    try {
-      for (const rule of variableRules(document.text, rules))
-        variableNotes.add(
-          `${document.file}:${document.line} sends ${rule.type} through a variable; Shopify rule ${rule.rule} (${rule.type}.${rule.member} → ${rule.replacement}) edits only values written in the document, so check what the code sends.`,
-        );
-    } catch {
-      // A document that does not parse is reported by checkDocument.
-    }
-    let result = checkDocument(document, before, after, versions);
-    const rewritten = rules.length
-      ? rewriteBreakingDocument(document, result, before, after, versions, rules)
-      : undefined;
-    if (rewritten && 'edits' in rewritten) {
-      result = rewritten.result;
-      for (const edit of rewritten.edits)
-        documentEdits.set(`${edit.file}:${edit.start}:${edit.end}:${edit.replacement}`, edit);
-    } else if (rewritten)
-      for (const finding of result.findings)
-        finding.reason += ` A Shopify rule matched but was not applied: ${rewritten.refusal}`;
-    // Documents that already fail on the oldest supported version, or break on the target, and
-    // that no in-place rule fixed: the documented migrations and the unused-variable fix, which also
-    // edit the code around the document (pipeline/shopify-migrations.ts).
-    if (
-      !(rewritten && 'edits' in rewritten) &&
-      result.findings.length &&
-      !result.otherApi &&
-      result.findings.every(
-        (finding) =>
-          finding.reason.startsWith('This document already') ||
-          (finding.reason.startsWith('Valid on') &&
-            !finding.changeId.startsWith('shopify-graphql-input:')),
-      )
-    ) {
-      const migration = migrateDocument({
-        document,
-        source: patchRepository.files.find((file) => file.path === document.segments[0]?.file)
-          ?.content,
-        after,
-        rules: migrationRules,
-      });
-      const types =
-        migration && 'edits' in migration
-          ? typeChanges(
-              parse(migration.text),
-              { ...document, text: migration.text },
-              before,
-              after,
-              versions,
-              migration.text,
-            )
-          : undefined;
-      if (migration && 'edits' in migration && !types!.findings.length) {
-        for (const edit of migration.edits)
-          documentEdits.set(`${edit.file}:${edit.start}:${edit.end}:${edit.replacement}`, edit);
-        liveCases.push(
-          ...migration.liveCases.map((entry) => ({
-            ...entry,
-            file: document.file,
-            line: document.line,
-          })),
-        );
-        for (const name of migration.uncovered)
-          migrationNotes.push(
-            `${document.file}:${document.line} (${name}): the migration changes the variables the code sends, and Refit could not write a development store case for it, so the patch stays [Needs review] until the operation is run.`,
-          );
-        const confidence = document.traced ? ('confirmed' as const) : ('review' as const);
-        result = {
-          deprecated: types!.deprecated,
-          findings: migration.notes.map((note) => ({
-            ...documentLocation(document, note.offset),
-            changeId: note.rule,
-            expression: note.expression,
-            confidence,
-            reason: `${note.reason} The rewritten document validates on ${versions.after}.`,
-          })),
-        };
-      } else if (migration)
-        for (const finding of result.findings)
-          finding.reason += ` A Shopify migration matched but was not applied: ${'refusal' in migration ? migration.refusal : 'a selected field changes type on the target.'}`;
-    }
+    const result = checkDocument(document, before, after, versions);
     findings.push(...result.findings);
     for (const entry of result.deprecated) deprecated.add(entry);
     if (result.otherApi) otherApi.push(document);
   }
-  // A Storefront call's unreadable document does not reach the Admin version move.
+  // A Storefront call's unreadable document is not Admin usage.
   const storefrontUnreadable = scan.unreadable.filter((entry) => entry.api);
   const reconstructed: (ShopifyReconstruction & { file: string; line: number })[] = [];
   for (const entry of scan.unreadable.filter((item) => !item.api)) {
@@ -1025,47 +683,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
         reason: `REST Admin API usage Refit cannot prove: ${proof.reason}`,
         contractReview: `Refit cannot prove this REST Admin call against the ${versions.before} and ${versions.after} REST contracts (docs/SHOPIFY-REST.md): ${proof.reason}`,
       });
-  const member = enumFromVersion(versions.after);
-  const upgradeResult =
-    options.sdkUpgrade &&
-    member &&
-    (scan.unresolvedVersions.some((entry) => entry.latest) ||
-      scan.versions.some((entry) => entry.kind === 'enum' && !CODEGEN_CONFIG.test(entry.file))) &&
-    !(sdkRelease && sdkHasEnumMember(sdkRelease, member))
-      ? await shopifySdkUpgrade(repository.root, member, options.lockfileResolution)
-      : undefined;
-  const upgraded = upgradeResult && 'upgrade' in upgradeResult ? upgradeResult.upgrade : undefined;
-  // Without the upgrade, a GraphQL-only app may pin the dated string on its locked SDK.
-  const stringPins =
-    upgradeResult && !upgraded
-      ? shopifyVersionStringPins(repository, scan, sdkRelease, versions.after, after)
-      : undefined;
-  const stringEdits = stringPins && 'edits' in stringPins ? stringPins.edits : [];
-  const source =
-    upgraded && shopifySdkSourceChanges(repository, upgraded.primary, member!, upgraded.packages);
-  for (const stop of source ? source.stops : [])
-    findings.push({
-      ...stop,
-      changeId: SHOPIFY_SDK_RULE,
-      expression: `Shopify SDK upgrade to @shopify/shopify-api ${upgraded!.apiRelease}`,
-      confidence: 'review',
-      reason: stop.reason,
-      contractReview: `The Shopify SDK upgrade stops for review: ${stop.reason}`,
-    });
-  const pins = versionFindings(
-    scan,
-    versions,
-    sdkRelease,
-    upgraded
-      ? { release: upgraded.apiRelease, lockless: upgraded.lockless }
-      : stringEdits.length
-        ? { stringPin: true }
-        : upgradeResult && 'reason' in upgradeResult
-          ? {
-              refusal: `${upgradeResult.reason}${stringPins && 'reason' in stringPins ? ` A dated apiVersion string on the locked SDK does not apply either: ${stringPins.reason}` : ''}`,
-            }
-          : undefined,
-  );
+  const pins = versionFindings(scan, versions, sdkRelease);
   findings.push(...pins.findings);
   const application = options.apiVersion ?? (pins.declared.length === 1 ? pins.declared[0] : null);
   // Shopify answers requests for an unsupported version with the oldest supported one.
@@ -1149,56 +767,17 @@ async function shopifyRun(options: ShopifyRunOptions) {
     ];
     return { passed: !errors.length, errors: [...new Set(errors)] };
   };
-  // The codemods run first: the version move, the SDK upgrade and its source codemods, and the
-  // documented rule and migration edits, which now ship without a version move too.
-  const versionEdits = [...pins.edits, ...(source ? source.edits : []), ...stringEdits];
-  const ruleEdits = [...versionEdits, ...documentEdits.values()];
-  const edits = ruleEdits;
   const environmentPins = scan.versions.filter((entry) => entry.envFallback && !entry.api);
-  const sdkUpgradeEvidence = upgraded
-    ? {
-        primary: upgraded.primary,
-        from: upgraded.from,
-        to: upgraded.to,
-        apiRelease: upgraded.apiRelease,
-        packages: upgraded.packages,
-        removed: upgraded.removed,
-        ...(upgraded.otherLockfiles ? { otherLockfiles: upgraded.otherLockfiles } : {}),
-      }
-    : upgradeResult && 'reason' in upgradeResult
-      ? { skipped: upgradeResult.reason }
-      : undefined;
   const confirmed = findings.filter((finding) => finding.confidence === 'confirmed');
   const status = confirmed.length
     ? 'affected'
     : scan.adminCalls || scan.documents.length || scan.versions.length
       ? 'needs-review'
       : 'no-provider-signal';
-  const evidence = sdkUpgradeEvidence ? { shopifySdkUpgrade: sdkUpgradeEvidence } : {};
   const notes = [
     ...(restProven.length
       ? [
           `${restProven.length} REST Admin call${restProven.length === 1 ? '' : 's'} stay REST: every endpoint, parameter, body key and response field ${restProven.length === 1 ? 'it uses' : 'they use'} is in the ${versions.before} REST contract and unchanged in ${versions.after} (Shopify's generated REST resources and REST reference, data/shopify-rest-contract.json): ${restProven.map((item) => `${item.entry.file}:${item.entry.line}`).join(', ')}.`,
-        ]
-      : []),
-    ...(upgraded
-      ? [
-          upgraded.lockless
-            ? `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')} in package.json. No lockfile is committed, so the install resolves these ranges; Refit's checks ran against a lockfile it resolved in networked Docker, which is not part of this patch. Review it against the shopify-app-js changelogs: ${SHOPIFY_MIGRATION_GUIDE}`
-            : upgraded.resolved
-              ? `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')}. ${upgraded.resolved.manager} re-resolved ${upgraded.resolved.lockfile} from the committed one in networked Docker with lifecycle scripts off, as of ${upgraded.resolved.before}${upgraded.resolved.legacyPeerDeps ? ' with --legacy-peer-deps' : ''}, because the target SDK needs newer framework packages than the lockfile had${upgraded.resolved.frameworks.length ? ` (${upgraded.resolved.frameworks.join(', ')})` : ''}; nothing outside the Shopify and framework packages and what only they reach changed. Review it against the shopify-app-js changelogs: ${SHOPIFY_MIGRATION_GUIDE}`
-              : `Upgrades ${upgraded.packages.map((entry) => `${entry.name} ${entry.from ?? '(new)'} to ${entry.to}`).join(', ')} in package.json and package-lock.json from verified npm registry metadata (SHA-512 integrity)${upgraded.removed.length ? `, removing ${upgraded.removed.length} lock entries nothing requires any more` : ''}. Review it against the shopify-app-js changelogs and the v12 migration guide: ${SHOPIFY_MIGRATION_GUIDE}`,
-          ...sdkUpgradeNotes(upgraded.packages),
-          ...(source ? source.notes : []),
-          ...Object.entries(upgraded.otherLockfiles ?? {}).map(
-            ([file, why]) =>
-              `${file} still locks the older Shopify packages: the repository installs from ${upgraded.resolved?.lockfile ?? 'package-lock.json'} (${why}). Delete the lockfile your package manager does not use.`,
-          ),
-        ]
-      : []),
-    ...(stringEdits.length
-      ? [
-          `Pins the dated string '${versions.after}' on the locked @shopify/shopify-api ${sdkRelease}, whose ApiVersion enum has no ${versions.after} member: that SDK sends apiVersion only in request URLs, and Refit validated every GraphQL document, including the SDK's webhook registration where the app registers webhooks, on ${versions.after}. The SDK upgrade did not apply: ${upgradeResult && 'reason' in upgradeResult ? upgradeResult.reason : ''}`,
         ]
       : []),
     ...[...deprecated].map((entry) => `Deprecated on ${versions.after}: ${entry}`),
@@ -1207,8 +786,6 @@ async function shopifyRun(options: ShopifyRunOptions) {
           `${scan.documents.filter((document) => !document.traced).length} #graphql documents were not traced to an Admin call; they were checked against both contracts anyway.`,
         ]
       : []),
-    ...variableNotes,
-    ...migrationNotes,
     ...reconstructed
       .filter((attempt) => attempt.status === 'kept')
       .map(
@@ -1232,9 +809,6 @@ async function shopifyRun(options: ShopifyRunOptions) {
       : 'Webhook subscriptions keep their own API version in the app configuration (shopify.app.toml); review it separately.',
     'Patch contains source code. Review it for sensitive content before sharing.',
   ];
-  const codemods =
-    renderPatch(patchRepository, edits) +
-    (upgraded ? renderFileReplacements(repository, upgraded.files, SHOPIFY_SDK_RULE) : '');
   // Every finding that used to end the repository, and a pin that does not match the before
   // contract, goes to the agent fixer at once: stops are layered, so it sees them all.
   const handedOff = findings.filter((finding) => finding.contractReview);
@@ -1248,10 +822,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
     options.proposePatch && handoff.length
       ? await shopifyHandOff({
           repository: patchRepository,
-          codemods,
-          key: digest(
-            `${repositoryHash}:${options.before.hash}:${options.after.hash}:${Boolean(options.sdkUpgrade)}`,
-          ),
+          key: digest(`${repositoryHash}:${options.before.hash}:${options.after.hash}`),
           run: Boolean(options.aiPatch),
           agent: options.agent ?? fixWithAgent,
           input: {
@@ -1268,11 +839,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
               handoff,
               versions,
               sdkRelease,
-              upgrade: sdkUpgradeEvidence,
-              codemods: edits.length + (upgraded ? upgraded.files.length : 0),
               notes: [
-                ...variableNotes,
-                ...migrationNotes,
                 ...otherApi.map(
                   (document) =>
                     `${document.file}:${document.line} looks like another Shopify API's document and was not checked.`,
@@ -1318,7 +885,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
       };
   const agentNotes = agentPatched
     ? [
-        `The agent fixer wrote this patch on top of Refit's codemods. What it says it changed and could not verify: ${agentPatched.summary || '(no summary)'}`,
+        `The agent fixer wrote this patch. What it says it changed and could not verify: ${agentPatched.summary || '(no summary)'}`,
         ...(agentPatched.sandbox.status === 'unavailable'
           ? [
               `The sandbox check (type check, build and tests before and after) did not run while the agent worked: ${agentPatched.sandbox.reason}`,
@@ -1330,45 +897,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
             ]
           : []),
       ]
-    : handoff.length
-      ? [
-          `${handoff.length} finding${handoff.length === 1 ? '' : 's'} Refit could not fix with its codemods ${handoff.length === 1 ? 'is' : 'are'} left for review: ${handoff.join(' | ')} The agent fixer ${agent ? `did not produce a patch (${agent.outcome}): ${agent.summary || agent.errors.join(' | ')}` : `did not run: ${(agentEvidence as { reason: string }).reason}`}`,
-        ]
-      : [];
-  const proposed = (diff: string, agentWrote: boolean) => ({
-    generator: agentWrote ? ('openai' as const) : ('deterministic' as const),
-    summary: `${agentWrote ? `The agent fixer migrated the Shopify Admin API usage to ${versions.after} on top of Refit's codemods` : versionEdits.length ? `Move the pinned Shopify Admin API version to ${versions.after}` : `Apply ${documentEdits.size} documented Shopify GraphQL rule edits`}${
-      upgraded
-        ? `, upgrading ${upgraded.primary} ${upgraded.from} to ${upgraded.to} (@shopify/shopify-api ${upgraded.apiRelease}) so the code can name ApiVersion.${member}`
-        : ''
-    }${
-      documentEdits.size && (versionEdits.length || agentWrote)
-        ? `, and apply ${documentEdits.size} documented Shopify GraphQL rule edits (renamed fields keep their response key through an alias)`
-        : ''
-    }.${
-      agentWrote && agentPatched?.outcome === 'passed'
-        ? ` Refit's Shopify judges pass on the patched tree: every GraphQL document validates on ${versions.after}, every REST call is proven against the REST contract, and every pin names ${versions.after}.`
-        : !agentWrote && !handoff.length
-          ? ` Every traced GraphQL document validates against the ${versions.after} schema and no selected field changes type.`
-          : ''
-    }`,
-    status: 'proposed' as const,
-    edits: agentWrote
-      ? agentPatched!.files.length
-      : edits.length + (upgraded ? upgraded.files.length : 0),
-    // Hand-offs the agent did not clear keep the draft [Needs review].
-    unresolvedFindings:
-      agentWrote && agentPatched?.outcome === 'passed'
-        ? 0
-        : agentWrote
-          ? Math.max(1, agentPatched!.errors.length)
-          : handoff.length,
-    diff,
-    validation: 'not-run' as const,
-    ruleEdits,
-    ...evidence,
-    warnings: [...agentNotes, ...notes],
-  });
+    : [];
   const patch = !options.proposePatch
     ? {
         status: 'not-generated' as const,
@@ -1376,22 +905,35 @@ async function shopifyRun(options: ShopifyRunOptions) {
           'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
       }
     : agentPatched
-      ? proposed(agentPatched.diff, true)
-      : edits.length
-        ? proposed(codemods, false)
-        : handoff.length
-          ? {
-              status: 'not-generated' as const,
-              reason:
-                agent?.outcome === 'no-change'
-                  ? `The agent fixer changed nothing: ${agent.summary || handoff[0]}`
-                  : handoff[0],
-              ...evidence,
-            }
-          : {
-              status: 'not-generated' as const,
-              reason: `The code already pins Admin API ${versions.after}.`,
-            };
+      ? {
+          generator: 'openai' as const,
+          summary: `The agent fixer migrated the Shopify Admin API usage to ${versions.after}.${
+            agentPatched.outcome === 'passed'
+              ? ` Refit's Shopify judges pass on the patched tree: every GraphQL document validates on ${versions.after}, every REST call is proven against the REST contract, and every pin names ${versions.after}.`
+              : ''
+          }`,
+          status: 'proposed' as const,
+          edits: agentPatched.files.length,
+          // Judge errors the agent did not clear keep the draft [Needs review].
+          unresolvedFindings:
+            agentPatched.outcome === 'passed' ? 0 : Math.max(1, agentPatched.errors.length),
+          diff: agentPatched.diff,
+          validation: 'not-run' as const,
+          warnings: [...agentNotes, ...notes],
+        }
+      : handoff.length
+        ? {
+            status: 'not-generated' as const,
+            reason: !agent
+              ? `${handoff[0]} The agent fixer did not run: ${(agentEvidence as { reason: string }).reason}`
+              : agent.outcome === 'no-change'
+                ? `The agent fixer changed nothing: ${agent.summary || handoff[0]}`
+                : `The agent fixer did not produce a patch (${agent.outcome}): ${agent.summary || agent.errors.join(' | ') || handoff[0]}`,
+          }
+        : {
+            status: 'not-generated' as const,
+            reason: `The code already pins Admin API ${versions.after}.`,
+          };
   return {
     formatVersion: 1,
     provider: SHOPIFY.id,
@@ -1451,7 +993,6 @@ async function shopifyRun(options: ShopifyRunOptions) {
         (document) => `${document.file}:${document.line}`,
       ),
       webhookApiVersions: webhookVersions,
-      ruleEdits: documentEdits.size,
       restContract: restProofs.map((item) => ({
         file: item.entry.file,
         line: item.entry.line,
@@ -1471,14 +1012,12 @@ async function shopifyRun(options: ShopifyRunOptions) {
       handoff,
       agent: agentEvidence,
       deprecated: [...deprecated],
-      // Development store cases the migrations wrote (pipeline/shopify-migrations.ts).
-      liveCases,
     },
     warnings: [...repository.warnings, ...(agentPatched?.outcome === 'passed' ? [] : handoff)],
     assessment: { status: 'not-requested' as const },
     coverage: {
       specification: `Shopify Admin GraphQL schemas ${versions.before} and ${versions.after}, compared by introspection.`,
-      code: 'Admin GraphQL documents passed to admin.graphql, createAdminApiClient().request and clients.Graphql().query, resolved from literals, constants, imported and re-exported constants, constant fragments, constant arrays and objects, and helper parameters followed through every call, callback and closure factory, plus #graphql literals. ApiVersion enum members, apiVersion strings and /admin/api/<version>/ URLs are read as pins. REST Admin calls stay REST where the versioned REST contract proves them. Rule and migration edits, the version move and the SDK upgrade run first; everything else Refit cannot prove (runtime-built documents, unproven REST calls, unresolved pins, documented SDK breaks) is handed to the agent fixer, whose patch is judged by the same schema, REST and pin checks.',
+      code: 'Admin GraphQL documents passed to admin.graphql, createAdminApiClient().request and clients.Graphql().query, resolved from literals, constants, imported and re-exported constants, constant fragments, constant arrays and objects, and helper parameters followed through every call, callback and closure factory, plus #graphql literals. ApiVersion enum members, apiVersion strings and /admin/api/<version>/ URLs are read as pins. REST Admin calls stay REST where the versioned REST contract proves them. Every finding that needs an edit (pins below the target, breaking or runtime-built documents, unproven REST calls, unresolved pins) is handed to the agent fixer, whose patch is judged by the same schema, REST and pin checks.',
       decision:
         'No finding is not proof of no impact: documents Refit cannot read and behavior that validation cannot see (semantics, rate limits, webhook payload versions) remain outside this check.',
     },

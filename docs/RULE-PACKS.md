@@ -41,12 +41,10 @@ Moving the rules to data shows what a provider still costs in code. For Stripe, 
 
 ## What stays Shopify code
 
-Shopify's only automatic edits are the API-version pin move and the opt-in SDK upgrade. Neither fits an existing family, and neither became a new one:
+Shopify has no automatic edits since 2026-10-31: the agent fixer makes them. What stays Shopify code:
 
-- **Version-pin move** (`versionFindings` in `shopify-pipeline.ts`): Stripe's pin move (`run.ts`) shares only "replace the literal with the target". What counts as a pin (`ApiVersion` enum members, `apiVersion` strings, `/admin/api/<version>/` URLs, codegen configs that move without a finding, `LATEST_API_VERSION`), which version is served (Shopify answers an unsupported version with the oldest supported one) and the gate (every GraphQL document validates on the target and no selected field changes type) are all provider facts written as logic. A shared family would need a shared pin scanner and gate; forcing one would hide the differences rather than remove code.
 - **Contract format**: GraphQL introspection snapshots, document validation and type-change findings (`shopify-schemas.ts`, `checkDocument`). Stripe's contracts are OpenAPI, which the shared pipeline handles.
 - **Tracer**: `shopify-analysis.ts` finds Admin GraphQL documents, pins and REST calls.
-- **SDK upgrade**: the npm lockfile writer (`shopify-sdk-upgrade.ts`) and the source edits and stops it needs (`shopify-sdk-source.ts`: `LATEST_API_VERSION` → `ApiVersion.<member>`, dropping `future.removeRest: true`, the accepted future flags per package, billing and `apiVersion`-required stops). The flag lists stayed code because they only mean something to that checker.
 - **REST deprecations**: report only, from the generated [`data/shopify-rest-deprecations.json`](../data/shopify-rest-deprecations.json) (`npm run shopify-rest:check`), kept out of the pack because a script regenerates it.
 
 ## Per-provider cost

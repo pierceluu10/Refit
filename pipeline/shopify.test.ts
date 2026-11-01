@@ -252,113 +252,6 @@ export async function loader(admin, request) {
   ]);
 });
 
-it('bumps a sunset pin the SDK can name when every document validates on the target contract', async () => {
-  const root = await directory({
-    'package.json': MANIFEST,
-    'package-lock.json': LOCK('14.0.1'),
-    'app/shopify.server.ts': SERVER('January25'),
-    '.graphqlrc.ts':
-      "import { ApiVersion } from '@shopify/shopify-app-remix/server';\nexport default { apiVersion: ApiVersion.January25 };\n",
-    'app/routes/product.ts': `export async function loader(admin) {
-  return admin.graphql(\`#graphql
-    query { product(id: "1") { id title handle } }\`);
-}
-`,
-  });
-  const report = (await runPipeline({
-    repository: root,
-    ...(await snapshots(root)),
-    proposePatch: true,
-  })) as any;
-  expect(report.provider).toBe('shopify');
-  expect(report.apiVersion).toMatchObject({
-    application: '2025-01',
-    applicability: 'matches-before',
-  });
-  expect(report.apiVersion.reason).toContain('oldest supported');
-  expect(report.findings).toMatchObject([
-    {
-      file: 'app/shopify.server.ts',
-      line: 2,
-      confidence: 'confirmed',
-      changeId: 'shopify-api-version',
-    },
-  ]);
-  expect(report.findings[0].reason).toContain('no longer serves');
-  expect(report.patch.status).toBe('proposed');
-  expect(report.patch.diff).toContain(
-    '+export const shopify = shopifyApp({ apiVersion: ApiVersion.October26',
-  );
-  expect(report.patch.diff).toContain('+export default { apiVersion: ApiVersion.October26 };');
-  expect(report.patch.warnings.join('\n')).toContain(
-    'Deprecated on 2026-10: Product.handle: Use `slug` instead.',
-  );
-});
-
-it('hands removed fields, type changes and already-failing documents to the agent fixer, and falls back for SDKs without the member', async () => {
-  const base = {
-    'package.json': MANIFEST,
-    'package-lock.json': LOCK('12.3.0'),
-    'app/shopify.server.ts': SERVER('January26'),
-  };
-  const run = async (document: string, lock = '14.0.1') => {
-    const root = await directory({
-      ...base,
-      'package-lock.json': LOCK(lock),
-      'app/routes/product.ts': `export const loader = (admin) =>\n  admin.graphql(\`\n    query { product(id: "1") { ${document} } }\`);\n`,
-    });
-    return (await runPipeline({
-      repository: root,
-      ...(await snapshots(root)),
-      proposePatch: true,
-    })) as any;
-  };
-  // Without AI the agent does not run: the codemods' pin move is proposed and the hand-off stays for
-  // review.
-  const removed = await run('id legacyCode');
-  expect(removed.patch).toMatchObject({ status: 'proposed', generator: 'deterministic' });
-  expect(removed.patch.unresolvedFindings).toBeGreaterThan(0);
-  expect(removed.shopify.agent.outcome).toBe('not-run');
-  expect(removed.shopify.handoff).toEqual([
-    'A Shopify GraphQL document breaks on Admin API 2026-10 and the contract names no proven replacement.',
-  ]);
-  expect(
-    removed.findings.find((finding: any) => finding.changeId.startsWith('shopify-graphql:')),
-  ).toMatchObject({
-    file: 'app/routes/product.ts',
-    line: 3,
-    confidence: 'confirmed',
-    expression: 'Cannot query field "legacyCode" on type "Product".',
-    reason: 'Valid on 2026-01, invalid on 2026-10.',
-  });
-  const changed = await run('id publishedAt');
-  expect(
-    changed.findings.find((finding: any) => finding.changeId.startsWith('shopify-graphql-type')),
-  ).toMatchObject({
-    expression: 'Product.publishedAt: Date → DateTime',
-    line: 3,
-  });
-  expect(changed.shopify.handoff).toEqual([
-    'A selected Shopify field changes type on Admin API 2026-10; code reading it needs review.',
-  ]);
-  const failing = await run('id missingEverywhere');
-  expect(
-    failing.findings.find((finding: any) => finding.changeId.startsWith('shopify-graphql:')).reason,
-  ).toContain('already fails');
-  // 12.3.0 cannot name October26 or July26, so the patch moves to April26, the newest it has.
-  const oldSdk = await run('id title', '12.3.0');
-  expect(oldSdk.patch.status).toBe('proposed');
-  expect(oldSdk.fallback).toMatchObject({ target: '2026-10', version: '2026-04' });
-  expect(oldSdk.patch.diff).toContain(
-    '+export const shopify = shopifyApp({ apiVersion: ApiVersion.April26',
-  );
-  expect(oldSdk.patch.warnings[0]).toContain(
-    'Moves to 2026-04, not 2026-10: @shopify/shopify-api 12.3.0 has no ApiVersion.October26; it first ships in 14.0.0',
-  );
-  expect(oldSdk.patch.warnings[0]).toContain('Shopify serves it until 2027-04-16');
-  expect((await run('id title')).patch.status).toBe('proposed');
-});
-
 it('hands every stop to the agent fixer at once and keeps its patch only as the judge rates it', async () => {
   const root = await directory({
     'package.json': MANIFEST,
@@ -374,10 +267,12 @@ it('hands every stop to the agent fixer at once and keeps its patch only as the 
       aiPatch: { apiKey: 'k', model: 'claude-sonnet-5-5' },
     })) as any;
   const route = join(root, 'app/routes/product.ts');
-  // The agent drops the removed field: Refit's judge passes the tree with the codemods' pin move.
+  // The agent moves the pin and drops the removed field: Refit's judge passes the tree.
   agent.edit = async (repoDir) => {
     const path = join(repoDir, 'app/routes/product.ts');
     await writeFile(path, (await readFile(path, 'utf8')).replace(' legacyCode', ''));
+    const server = join(repoDir, 'app/shopify.server.ts');
+    await writeFile(server, (await readFile(server, 'utf8')).replace('January26', 'October26'));
     // An install it ran is not part of the patch.
     await mkdir(join(repoDir, 'node_modules/x'), { recursive: true });
     await writeFile(join(repoDir, 'node_modules/x/index.js'), '');
@@ -416,7 +311,7 @@ it('hands every stop to the agent fixer at once and keeps its patch only as the 
   expect(unproven.patch.warnings.join('\n')).toContain(
     'Cannot query field "oldCode" on type "Product".',
   );
-  expect(unproven.shopify.handoff).toHaveLength(1);
+  expect(unproven.shopify.handoff).toHaveLength(2);
 });
 
 it('produces every report field the OpenAPI pipeline does', async () => {
@@ -826,7 +721,6 @@ export async function sync(admin, session, shop, id, verb, url) {
     ...(await snapshots(root)),
     proposePatch: true,
   })) as any;
-  expect(report.patch.unresolvedFindings).toBeGreaterThan(0);
   expect(report.shopify.handoff.join('\n')).toContain('cannot read an Admin API call');
   expect(
     report.findings.some((finding: any) =>
@@ -866,42 +760,4 @@ export async function sync(admin, session, shop, id, verb, url) {
   expect(renderScanResult(report)).toContain(
     'REST        15 REST Admin calls for review, not migrated: GET products/count at app/rest.ts:6, POST products/{id}/metafields at app/rest.ts:7, call at app/rest.ts:8, and 12 more',
   );
-});
-
-it('moves the pin when AI reads an unreadable document from the code and it validates on both versions', async () => {
-  const run = async (document: string) => {
-    reply.document = document;
-    const root = await directory({
-      'package.json': MANIFEST,
-      'package-lock.json': LOCK('14.0.1'),
-      'app/shopify.server.ts': SERVER('January26'),
-      'app/fields.ts': "export const FIELDS = ['id', 'title', 'legacyCode'];\n",
-      'app/routes/product.ts': `import { FIELDS } from '../fields';
-export const loader = (admin, picked) =>
-  admin.graphql('query Product { product(id: "1") { ' + FIELDS.filter(picked).join(' ') + ' } }');
-`,
-    });
-    return (await runPipeline({
-      repository: root,
-      ...(await snapshots(root)),
-      proposePatch: true,
-      aiPatch: { apiKey: 'k', model: 'gpt-5.6-luna' },
-    })) as any;
-  };
-  const read = await run('query Product { product(id: "1") { id title } }');
-  expect(read.patch.status).toBe('proposed');
-  expect(read.findings).toContainEqual(
-    expect.objectContaining({ changeId: 'shopify-graphql-reconstructed', line: 3 }),
-  );
-  expect(read.shopify.reconstructed).toMatchObject([{ status: 'kept', line: 3 }]);
-  expect(read.patch.warnings.join('\n')).toContain('AI read it from the code');
-  // A reconstruction that selects the removed field goes to the agent fixer, which fails here, so
-  // the codemods' patch stays for review.
-  const removed = await run('query Product { product(id: "1") { id legacyCode } }');
-  expect(removed.patch.unresolvedFindings).toBeGreaterThan(0);
-  expect(removed.shopify.agent.outcome).toBe('failed');
-  expect(
-    removed.findings.find((finding: any) => finding.changeId === 'shopify-graphql:unreadable')
-      .reason,
-  ).toContain('AI could not read it: The reconstruction does not hold on 2026-10');
 });
