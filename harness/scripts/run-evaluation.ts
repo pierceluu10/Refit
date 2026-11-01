@@ -8,7 +8,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { MigrationTask } from '../../shared/types.ts';
+import type { MigrationTask, ToolPack } from '../../shared/types.ts';
 import { budgetFromEnv } from '../ledger.ts';
 import { TURN_RESERVE_USD, runTask } from '../run.ts';
 import { createSandbox } from '../sandbox.ts';
@@ -45,6 +45,9 @@ for (const entry of entries) {
     budgetUsd,
     outDir: join(work, 'out'),
     createSandbox: (dir) => createSandbox(dir, { mode: 'docker' }),
+    // The provider's validators and playbooks, loaded the way orchestrator/deps.ts loads them.
+    loadToolPack: async (provider) =>
+      ((await import(`../../providers/${provider}/tools.ts`)) as { toolPack: ToolPack }).toolPack,
     chargeRun: (usd) => (spentUsd += usd),
   });
   const results = join(evaluation, 'results', entry.id);
