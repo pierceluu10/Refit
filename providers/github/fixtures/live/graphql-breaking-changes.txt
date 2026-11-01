@@ -1,0 +1,477 @@
+In this article
+
+# Breaking changes
+
+Learn about recent and upcoming breaking changes to the GitHub GraphQL API.
+
+## In this article
+
+## About breaking changes
+
+Breaking changes are any changes that might require action from our integrators. We divide these changes into two categories:
+
+- Breaking: Changes that will break existing queries to the GraphQL API. For example, removing a field would be a breaking change.
+
+- Dangerous: Changes that won't break existing queries but could affect the runtime behavior of clients. Adding an enum value is an example of a dangerous change.
+
+We'll announce upcoming breaking changes at least three months before making changes to the GraphQL schema, to give integrators time to make the necessary adjustments. Changes go into effect on the first day of a quarter (January 1st, April 1st, July 1st, or October 1st). For example, if we announce a change on January 15th, it will be made on July 1st.
+
+## Changes scheduled for 2027-01-01
+
+- Breaking A change will be made to CheckAnnotation.databaseId. Description: databaseId will be removed. Use fullDatabaseId instead.
+
+Reason: databaseId will be removed because it does not support 64-bit signed integer identifiers.
+
+- Breaking A change will be made to Artifact.databaseId. Description: databaseId will be removed. Use fullDatabaseId instead.
+
+Reason: databaseId will be removed because it does not support 64-bit signed integer identifiers.
+
+## Changes scheduled for 2026-10-01
+
+- Breaking A change will be made to User.viewerRelevantRepositories. Description: viewerRelevantRepositories will be removed. Use viewerCopilotChatRepositorySuggestions instead.
+
+Reason: viewerRelevantRepositories has been renamed to viewerCopilotChatRepositorySuggestions.
+
+- Breaking A change will be made to CopilotAgentTask.type. Description: type will be removed. Use codingAgentFilter and codingAgentTypeFilter instead.
+
+Reason: type will be removed.
+
+## Changes scheduled for 2026-07-01
+
+- Breaking A change will be made to Team.viewerSubscription. Description: viewerSubscription will be removed.
+
+Reason: Team.viewerSubscription will be removed. Team notifications subscriptions are being deprecated.
+
+- Breaking A change will be made to Team.viewerCanSubscribe. Description: viewerCanSubscribe will be removed.
+
+Reason: Team.viewerCanSubscribe will be removed. Team notifications subscriptions are being deprecated.
+
+## Changes scheduled for 2026-04-01
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.userUrl. Description: userUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.userResourcePath. Description: userResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.userLogin. Description: userLogin will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.user. Description: user will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.organizationUrl. Description: organizationUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.organizationResourcePath. Description: organizationResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.organizationName. Description: organizationName will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.organization. Description: organization will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.operationType. Description: operationType will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.isLdapMapped. Description: isLdapMapped will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.createdAt. Description: createdAt will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.actorUrl. Description: actorUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.actorResourcePath. Description: actorResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.actorLogin. Description: actorLogin will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.actorLocation. Description: actorLocation will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.actorIp. Description: actorIp will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.actor. Description: actor will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveRepositoryAuditEntry.action. Description: action will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.userUrl. Description: userUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.userResourcePath. Description: userResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.userLogin. Description: userLogin will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.user. Description: user will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.organizationUrl. Description: organizationUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.organizationResourcePath. Description: organizationResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.organizationName. Description: organizationName will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.organization. Description: organization will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.operationType. Description: operationType will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.isLdapMapped. Description: isLdapMapped will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.createdAt. Description: createdAt will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.actorUrl. Description: actorUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.actorResourcePath. Description: actorResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.actorLogin. Description: actorLogin will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.actorLocation. Description: actorLocation will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.actorIp. Description: actorIp will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.actor. Description: actor will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamRemoveMemberAuditEntry.action. Description: action will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.userUrl. Description: userUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.userResourcePath. Description: userResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.userLogin. Description: userLogin will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.user. Description: user will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.parentTeamWasUrl. Description: parentTeamWasUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.parentTeamWasResourcePath. Description: parentTeamWasResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.parentTeamWas. Description: parentTeamWas will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.parentTeamUrl. Description: parentTeamUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.parentTeamResourcePath. Description: parentTeamResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.parentTeamNameWas. Description: parentTeamNameWas will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.parentTeamName. Description: parentTeamName will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.parentTeam. Description: parentTeam will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.organizationUrl. Description: organizationUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.organizationResourcePath. Description: organizationResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.organizationName. Description: organizationName will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.organization. Description: organization will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.operationType. Description: operationType will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.isLdapMapped. Description: isLdapMapped will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.createdAt. Description: createdAt will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.actorUrl. Description: actorUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.actorResourcePath. Description: actorResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.actorLogin. Description: actorLogin will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.actorLocation. Description: actorLocation will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.actorIp. Description: actorIp will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.actor. Description: actor will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamChangeParentTeamAuditEntry.action. Description: action will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.userUrl. Description: userUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.userResourcePath. Description: userResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.userLogin. Description: userLogin will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.user. Description: user will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.organizationUrl. Description: organizationUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.organizationResourcePath. Description: organizationResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.organizationName. Description: organizationName will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.organization. Description: organization will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.operationType. Description: operationType will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.isLdapMapped. Description: isLdapMapped will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.createdAt. Description: createdAt will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.actorUrl. Description: actorUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.actorResourcePath. Description: actorResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.actorLogin. Description: actorLogin will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.actorLocation. Description: actorLocation will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.actorIp. Description: actorIp will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.actor. Description: actor will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddRepositoryAuditEntry.action. Description: action will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.userUrl. Description: userUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.userResourcePath. Description: userResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.userLogin. Description: userLogin will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.user. Description: user will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.organizationUrl. Description: organizationUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.organizationResourcePath. Description: organizationResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.organizationName. Description: organizationName will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.organization. Description: organization will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.operationType. Description: operationType will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.isLdapMapped. Description: isLdapMapped will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.createdAt. Description: createdAt will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.actorUrl. Description: actorUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.actorResourcePath. Description: actorResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.actorLogin. Description: actorLogin will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.actorLocation. Description: actorLocation will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.actorIp. Description: actorIp will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.actor. Description: actor will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to TeamAddMemberAuditEntry.action. Description: action will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to ReviewRequest.requestedBy. Description: requestedBy will be removed. Use requestedByActor instead.
+
+Reason: requestedBy will be removed.
+
+- Breaking A change will be made to RepositoryVisibilityChangeEnableAuditEntry.userUrl. Description: userUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to RepositoryVisibilityChangeEnableAuditEntry.userResourcePath. Description: userResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to RepositoryVisibilityChangeEnableAuditEntry.userLogin. Description: userLogin will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to RepositoryVisibilityChangeEnableAuditEntry.user. Description: user will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to RepositoryVisibilityChangeEnableAuditEntry.organizationUrl. Description: organizationUrl will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to RepositoryVisibilityChangeEnableAuditEntry.organizationResourcePath. Description: organizationResourcePath will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to RepositoryVisibilityChangeEnableAuditEntry.organizationName. Description: organizationName will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Please use the REST API instead.
+
+- Breaking A change will be made to RepositoryVisibilityChangeEnableAuditEntry.organization. Description: organization will be removed.
+
+Reason: The GraphQL audit-log is deprecated. Pl

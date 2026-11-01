@@ -1,0 +1,57 @@
+{
+  "provider": "github",
+  "fetchedAt": "2026-11-01T05:07:57.971Z",
+  "note": "Live read of each source, saved as text and cut to 24000 characters. Test input only.",
+  "sources": [
+    {
+      "id": "changelog-feed",
+      "url": "https://github.blog/changelog/feed/",
+      "status": 200,
+      "ok": true,
+      "file": "changelog-feed.txt",
+      "chars": 24000,
+      "truncated": true,
+      "sha256": "58fcbbdaa0e723edff7802432307dadde38376c5e2b22e9be7e247422047346b"
+    },
+    {
+      "id": "rest-breaking-changes",
+      "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+      "status": 200,
+      "ok": true,
+      "file": "rest-breaking-changes.txt",
+      "chars": 24000,
+      "truncated": true,
+      "sha256": "5829d2c3402fb69acabb424a475649855367e460949602a89a3387234827d059"
+    },
+    {
+      "id": "rest-api-versions",
+      "url": "https://docs.github.com/en/rest/about-the-rest-api/api-versions",
+      "status": 200,
+      "ok": true,
+      "file": "rest-api-versions.txt",
+      "chars": 4979,
+      "truncated": false,
+      "sha256": "5f89177fbb206984c537b4775b67ad5e4c546c2ce81e753a2c6652b5cddc62ff"
+    },
+    {
+      "id": "graphql-breaking-changes",
+      "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+      "status": 200,
+      "ok": true,
+      "file": "graphql-breaking-changes.txt",
+      "chars": 24000,
+      "truncated": true,
+      "sha256": "f1425496e20ab67d05628ff2055b786411c052341326865f1a717a07c9c4cc65"
+    },
+    {
+      "id": "octokit-rest-releases",
+      "url": "https://api.github.com/repos/octokit/rest.js/releases?per_page=15",
+      "status": 200,
+      "ok": true,
+      "file": "octokit-rest-releases.txt",
+      "chars": 7511,
+      "truncated": false,
+      "sha256": "bed2a0642bed425f7a68fb4b5a625a7ecfd4a87ca5f72cc7e84497aa22e65c6a"
+    }
+  ]
+}

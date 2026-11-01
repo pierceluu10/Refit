@@ -1,0 +1,67 @@
+{
+  "provider": "meta",
+  "fetchedAt": "2026-11-01T05:12:38.653Z",
+  "note": "Live read of each source, saved as text and cut to 24000 characters. Test input only.",
+  "sources": [
+    {
+      "id": "graph-api-changelog",
+      "url": "https://developers.facebook.com/docs/graph-api/changelog",
+      "status": 200,
+      "ok": true,
+      "file": "graph-api-changelog.txt",
+      "chars": 2214,
+      "truncated": false,
+      "sha256": "ebce409de5078008b31a19fbb5b9438a33615be816109e80ed46f87c3f186352"
+    },
+    {
+      "id": "graph-api-v26",
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+      "status": 200,
+      "ok": true,
+      "file": "graph-api-v26.txt",
+      "chars": 11698,
+      "truncated": false,
+      "sha256": "93df4b02c3a1ecd4135430ca9a0394448372cc90dff7a47a1ce1e09287a2ce77"
+    },
+    {
+      "id": "graph-api-v25",
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+      "status": 200,
+      "ok": true,
+      "file": "graph-api-v25.txt",
+      "chars": 7384,
+      "truncated": false,
+      "sha256": "69b565dd03d2b7f9de9377c04e64976cd2354a854a215ce0d81b5a0224abc004"
+    },
+    {
+      "id": "graph-api-versions",
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+      "status": 200,
+      "ok": true,
+      "file": "graph-api-versions.txt",
+      "chars": 3821,
+      "truncated": false,
+      "sha256": "8c290e7719313d610ef30055ed0ba7ebe67c5c615ed138f895a1c2347aec9107"
+    },
+    {
+      "id": "marketing-api-changelog",
+      "url": "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog",
+      "status": 200,
+      "ok": true,
+      "file": "marketing-api-changelog.txt",
+      "chars": 2400,
+      "truncated": false,
+      "sha256": "b73216270105748bb4bd416ba7ebeeb4c8b71711831bb05c14fa81383bccb5c3"
+    },
+    {
+      "id": "nodejs-business-sdk-releases",
+      "url": "https://github.com/meta/facebook-nodejs-business-sdk/releases.atom",
+      "status": 200,
+      "ok": true,
+      "file": "nodejs-business-sdk-releases.txt",
+      "chars": 4910,
+      "truncated": false,
+      "sha256": "18b3322ebc9004d9b5ee86e6aa5c72f22e65e94172f0eaa51e984117c34459f4"
+    }
+  ]
+}

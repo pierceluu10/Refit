@@ -1,0 +1,143 @@
+{
+  "note": "Hand-drafted by the build agent from the saved live snapshot to exercise the watcher pipeline with a replay model. Not output of a live model run (no API key was available on 2026-11-01).",
+  "changes": [
+    {
+      "id": "meta:graph-api-v20-removed",
+      "kind": "api-version",
+      "title": "Graph API v20.0 is deprecated and removed on September 24, 2026",
+      "effectiveDate": "2026-09-24",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "quote": "**September 24, 2026:** Graph API v20.0 is deprecated and removed."
+      },
+      "affects": { "versions": ["v20.0", "v26.0"] }
+    },
+    {
+      "id": "meta:commerce-order-management-api-deprecated",
+      "kind": "endpoint-removed",
+      "title": "Commerce Order Management API (47 endpoints) removed from all versions with no replacement",
+      "effectiveDate": "2026-10-27",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "quote": "Calls on v26.0 and later are blocked beginning July 29, 2026. The affected surfaces are removed from all remaining versions on October 27, 2026. No replacement API is available."
+      },
+      "affects": {
+        "operations": [
+          "GET /{commerce-order-id}",
+          "GET /{commerce-order-id}/items",
+          "GET /{commerce-order-id}/shipments",
+          "GET /{commerce-order-id}/refunds",
+          "GET /{page-id}/commerce_orders",
+          "GET /{commerce-merchant-settings-id}/commerce_orders",
+          "GET /{commerce-merchant-settings-id}/commerce_returns"
+        ],
+        "versions": ["v26.0"]
+      }
+    },
+    {
+      "id": "meta:legacy-protocol-features-deprecated",
+      "kind": "other",
+      "title": "Legacy Graph API protocol features removed: date_format and GET /?ids= return errors; pretty, debug and ETag behaviour dropped",
+      "effectiveDate": "2026-10-27",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "quote": "Root requests using `GET /?ids=...` return an error. Use per-object requests or supported batching."
+      },
+      "affects": {
+        "operations": ["GET /?ids="],
+        "fields": ["date_format", "pretty", "debug", "If-None-Match", "ETag"],
+        "versions": ["v26.0"]
+      }
+    },
+    {
+      "id": "meta:rights-manager-owner-fields-replaced",
+      "kind": "field-renamed",
+      "title": "Rights Manager owner fields replaced by RightsHolderOwner-typed fields in v26.0",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "quote": "The `reference_owner`, `matched_reference_owner`, `sending_rights_holder`, and `receiving_rights_holder` fields are deprecated."
+      },
+      "affects": {
+        "fields": [
+          "reference_owner",
+          "matched_reference_owner",
+          "sending_rights_holder",
+          "receiving_rights_holder",
+          "reference_owner_rh_owner",
+          "matched_reference_owner_rh_owner",
+          "sending_rights_holder_owner",
+          "receiving_rights_holder_owner"
+        ],
+        "versions": ["v26.0"]
+      }
+    },
+    {
+      "id": "meta:delivery-estimate-fields-removed",
+      "kind": "field-removed",
+      "title": "Marketing API Delivery Estimate drops daily_outcomes_curve, budget_guardrail and estimate_dau",
+      "effectiveDate": "2026-10-27",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "quote": "The `daily_outcomes_curve`, `budget_guardrail`, and `estimate_dau` fields are removed from Delivery Estimate responses because the service powering these values has been deprecated."
+      },
+      "affects": {
+        "operations": [
+          "GET /{ad-account-id}/delivery_estimate",
+          "GET /{adset-id}/delivery_estimate"
+        ],
+        "fields": ["daily_outcomes_curve", "budget_guardrail", "estimate_dau"],
+        "versions": ["v26.0"]
+      }
+    },
+    {
+      "id": "meta:hecf-explicit-advantage-audience",
+      "kind": "other",
+      "title": "HEC-F ad sets with relaxable targeting must set targeting_automation.advantage_audience explicitly from v26.0",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "quote": "Omitting the field returns `ADS_TARGETING__REQUIRE_EXPLICIT_ADVANTAGE_AUDIENCE_FLAG`."
+      },
+      "affects": {
+        "operations": ["POST /{ad-account-id}/adsets"],
+        "fields": ["targeting_automation.advantage_audience"],
+        "versions": ["v26.0"]
+      }
+    },
+    {
+      "id": "meta:page-post-video-story-impression-metrics-deprecated",
+      "kind": "field-removed",
+      "title": "Page, post, video and story impression/reach insights metrics deprecated for all versions when v26.0 is released",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+        "quote": "When v26.0 is released later this year, page reach, page post reach, video impressions, and story impressions metrics listed below will be deprecated. Once deprecated, these metrics will return an error if requested using any API version."
+      },
+      "affects": {
+        "operations": [
+          "GET /{page-id}/insights",
+          "GET /{post-id}/insights",
+          "GET /{video-id}/video_insights"
+        ],
+        "fields": [
+          "page_impressions_unique",
+          "page_posts_impressions",
+          "page_video_views_unique",
+          "post_impressions_unique",
+          "post_video_views_unique",
+          "total_video_impressions",
+          "PAGE_STORY_IMPRESSIONS_BY_STORY_ID"
+        ],
+        "versions": ["v25.0", "v26.0"]
+      }
+    },
+    {
+      "id": "meta:business-sdk-v26",
+      "kind": "sdk-major",
+      "title": "Meta Business SDK v26.0.0 targets Graph API v26 and drops the Commerce Order Management API",
+      "source": {
+        "url": "https://github.com/meta/facebook-nodejs-business-sdk/releases.atom",
+        "quote": "The Commerce Order Management API (47 endpoints) is fully deprecated with no replacement."
+      },
+      "affects": { "versions": ["v26.0"], "sdk": "facebook-nodejs-business-sdk" }
+    }
+  ]
+}

@@ -1,0 +1,210 @@
+{
+  "provider": "github",
+  "updatedAt": "2026-11-01",
+  "draftedBy": "Drafted 2026-11-01 by the F1 build agent from the saved live read (fixtures/live) and the Octokit READMEs, read over web fetch. Not yet re-drafted by the knowledge agent (core/knowledge.ts).",
+  "versioning": {
+    "scheme": "The REST API is versioned by release date and selected per request with the X-GitHub-Api-Version header; requests without it get 2022-11-28. A version stays supported for at least 24 months after its successor ships, and closed-down versions return 410 Gone. The GraphQL API is not versioned: schema removals are announced at least three months ahead and take effect on the first day of a quarter.",
+    "source": {
+      "url": "https://docs.github.com/en/rest/about-the-rest-api/api-versions",
+      "retrievedAt": "2026-11-01",
+      "quote": "You should use the X-GitHub-Api-Version header to specify an API version."
+    }
+  },
+  "versions": [
+    {
+      "value": "2026-03-10",
+      "status": "current",
+      "releasedAt": "2026-03-10",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/api-versions",
+        "retrievedAt": "2026-11-01",
+        "quote": "For example, the API version 2026-03-10 was released on Tue, 10 Mar 2026."
+      },
+      "notes": "Shown as the latest REST API version in the docs header on 2026-11-01."
+    },
+    {
+      "value": "2022-11-28",
+      "status": "supported",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/api-versions",
+        "retrievedAt": "2026-11-01",
+        "quote": "Requests without the X-GitHub-Api-Version header will default to use the 2022-11-28 version."
+      },
+      "notes": "No closing-down date is published; the policy keeps it for at least 24 months after 2026-03-10."
+    }
+  ],
+  "retirements": [
+    {
+      "subject": "GraphQL CheckAnnotation.databaseId",
+      "kind": "field-removed",
+      "date": "2027-01-01",
+      "replacement": "CheckAnnotation.fullDatabaseId",
+      "source": {
+        "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+        "retrievedAt": "2026-11-01",
+        "quote": "Breaking A change will be made to CheckAnnotation.databaseId. Description: databaseId will be removed. Use fullDatabaseId instead."
+      }
+    },
+    {
+      "subject": "GraphQL Artifact.databaseId",
+      "kind": "field-removed",
+      "date": "2027-01-01",
+      "replacement": "Artifact.fullDatabaseId",
+      "source": {
+        "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+        "retrievedAt": "2026-11-01",
+        "quote": "Breaking A change will be made to Artifact.databaseId. Description: databaseId will be removed. Use fullDatabaseId instead."
+      }
+    },
+    {
+      "subject": "GraphQL User.viewerRelevantRepositories",
+      "kind": "field-renamed",
+      "date": "2026-10-01",
+      "replacement": "User.viewerCopilotChatRepositorySuggestions",
+      "source": {
+        "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+        "retrievedAt": "2026-11-01",
+        "quote": "Reason: viewerRelevantRepositories has been renamed to viewerCopilotChatRepositorySuggestions."
+      }
+    },
+    {
+      "subject": "GraphQL CopilotAgentTask.type",
+      "kind": "field-removed",
+      "date": "2026-10-01",
+      "replacement": "codingAgentFilter and codingAgentTypeFilter",
+      "source": {
+        "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+        "retrievedAt": "2026-11-01",
+        "quote": "Breaking A change will be made to CopilotAgentTask.type. Description: type will be removed. Use codingAgentFilter and codingAgentTypeFilter instead."
+      }
+    },
+    {
+      "subject": "GraphQL Team.viewerSubscription and Team.viewerCanSubscribe",
+      "kind": "field-removed",
+      "date": "2026-07-01",
+      "source": {
+        "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+        "retrievedAt": "2026-11-01",
+        "quote": "Reason: Team.viewerSubscription will be removed. Team notifications subscriptions are being deprecated."
+      }
+    },
+    {
+      "subject": "REST rate property of GET /rate_limit",
+      "kind": "field-removed",
+      "replacement": "resources.core",
+      "notes": "Removed in REST API version 2026-03-10; still returned to callers pinned to 2022-11-28.",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "retrievedAt": "2026-11-01",
+        "quote": "The rate property has been deprecated since 2021 and duplicates information available in the resources.core property."
+      }
+    },
+    {
+      "subject": "REST use_squash_pr_title_as_default repository property",
+      "kind": "field-renamed",
+      "replacement": "squash_merge_commit_title",
+      "notes": "Removed in REST API version 2026-03-10.",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "retrievedAt": "2026-11-01",
+        "quote": "This property has been replaced by squash_merge_commit_title."
+      }
+    }
+  ],
+  "docs": [
+    {
+      "label": "REST API versions",
+      "url": "https://docs.github.com/en/rest/about-the-rest-api/api-versions",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/api-versions",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "REST API breaking changes by version",
+      "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "GraphQL breaking changes",
+      "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+      "source": {
+        "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Rate limit endpoint",
+      "url": "https://docs.github.com/rest/rate-limit",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "retrievedAt": "2026-11-01",
+        "quote": "See https://docs.github.com/rest/rate-limit for updated documentation."
+      }
+    },
+    {
+      "label": "Libraries for the REST API",
+      "url": "https://docs.github.com/en/rest/using-the-rest-api/libraries-for-the-rest-api",
+      "source": {
+        "url": "https://docs.github.com/en/rest/using-the-rest-api/libraries-for-the-rest-api",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "GitHub changelog",
+      "url": "https://github.blog/changelog/",
+      "source": {
+        "url": "https://github.blog/changelog/feed/",
+        "retrievedAt": "2026-11-01"
+      }
+    }
+  ],
+  "sdks": [
+    {
+      "ecosystem": "npm",
+      "package": "octokit",
+      "repo": "https://github.com/octokit/octokit.js",
+      "source": {
+        "url": "https://raw.githubusercontent.com/octokit/octokit.js/main/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "npm/pnpm install octokit"
+      },
+      "notes": "Listed as the official JavaScript library on the Libraries page."
+    },
+    {
+      "ecosystem": "npm",
+      "package": "@octokit/rest",
+      "repo": "https://github.com/octokit/rest.js",
+      "latest": "22.0.1",
+      "source": {
+        "url": "https://raw.githubusercontent.com/octokit/rest.js/main/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "npm install @octokit/rest"
+      },
+      "notes": "latest is the top entry of the GitHub releases API on 2026-11-01 (v22.0.1, published 2025-10-31): https://api.github.com/repos/octokit/rest.js/releases?per_page=15"
+    },
+    {
+      "ecosystem": "rubygems",
+      "package": "octokit",
+      "repo": "https://github.com/octokit/octokit.rb",
+      "source": {
+        "url": "https://raw.githubusercontent.com/octokit/octokit.rb/main/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "gem install octokit"
+      }
+    },
+    {
+      "ecosystem": "nuget",
+      "package": "Octokit",
+      "repo": "https://github.com/octokit/octokit.net",
+      "source": {
+        "url": "https://raw.githubusercontent.com/octokit/octokit.net/main/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "dotnet add package Octokit"
+      }
+    }
+  ]
+}
