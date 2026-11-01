@@ -1,0 +1,324 @@
+{
+  "note": "Live-classified: claude-sonnet-5-5 called through the overnight spend guard on 2026-11-01. It read the pages saved by that day's live read (fixtures/live), each cut to 12000 characters, with live HTTP for any link outside the snapshot. Output recorded as returned, not edited.",
+  "runAt": "2026-11-01T05:28:06.341Z",
+  "model": "claude-sonnet-5-5",
+  "promptVersion": "watch-v1",
+  "input": {
+    "snapshot": "fixtures/live",
+    "maxCharsPerPage": 12000,
+    "liveFallback": true,
+    "maxTokens": 8000,
+    "maxTurns": 6
+  },
+  "report": {
+    "provider": "stripe",
+    "changes": [
+      {
+        "provider": "stripe",
+        "id": "stripe:2026-09-30-endive-api-version",
+        "kind": "api-version",
+        "title": "New major API version 2026-09-30.endive carries breaking changes; callers pinning or upgrading must migrate (later Endive versions, e.g. 2026-10-28.endive, are additive)",
+        "source": {
+          "url": "https://docs.stripe.com/changelog/endive.md",
+          "quote": "As the first version in the Endive release, `2026-09-30.endive` introduces both breaking changes and new features."
+        },
+        "affects": {
+          "versions": ["2026-09-30.endive", "2026-10-28.endive"]
+        },
+        "effectiveDate": "2026-09-30"
+      },
+      {
+        "provider": "stripe",
+        "id": "stripe:2026-03-25-dahlia-api-version",
+        "kind": "api-version",
+        "title": "Major API version 2026-03-25.dahlia introduced breaking changes (within last twelve months)",
+        "source": {
+          "url": "https://docs.stripe.com/changelog/dahlia.md",
+          "quote": "As the first version in the Dahlia release, `2026-03-25.dahlia` introduces both breaking changes and new features"
+        },
+        "affects": {
+          "versions": ["2026-03-25.dahlia"]
+        },
+        "effectiveDate": "2026-03-25"
+      },
+      {
+        "provider": "stripe",
+        "id": "stripe:2026-09-30-endive-checkout-remove-payment-method-types",
+        "kind": "field-removed",
+        "title": "payment_method_types removed from Create Checkout Session; passing it returns 400 on 2026-09-30.endive. Use dynamic payment methods, allowed_payment_method_types or excluded_payment_method_types",
+        "source": {
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions.md",
+          "quote": "You can no longer pass `payment_method_types` when you create a Checkout Session."
+        },
+        "affects": {
+          "operations": ["POST /v1/checkout/sessions"],
+          "fields": [
+            "payment_method_types",
+            "allowed_payment_method_types",
+            "excluded_payment_method_types"
+          ],
+          "versions": ["2026-09-30.endive"]
+        },
+        "effectiveDate": "2026-09-30"
+      },
+      {
+        "provider": "stripe",
+        "id": "stripe:2026-09-30-endive-elements-remove-paymentmethodtypes",
+        "kind": "field-removed",
+        "title": "Stripe.js Elements option paymentMethodTypes removed (deferred intent, elements.update); Stripe.js throws an integration error. Use allowedPaymentMethodTypes or Dashboard",
+        "source": {
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/remove-elements-deferred-intent-payment-method-types.md",
+          "quote": "If your integration sets `paymentMethodTypes`, Stripe.js now throws an integration error and prevents the Elements instance from being created or updated."
+        },
+        "affects": {
+          "operations": ["stripe.elements", "elements.update"],
+          "fields": ["paymentMethodTypes", "allowedPaymentMethodTypes"],
+          "versions": ["2026-09-30.endive"]
+        },
+        "effectiveDate": "2026-09-30"
+      },
+      {
+        "provider": "stripe",
+        "id": "stripe:2026-09-30-endive-pi-si-remove-payment-method-types",
+        "kind": "field-removed",
+        "title": "payment_method_types parameter removed from Payment Intents and Setup Intents (breaking in Endive; details page not read, verify scope)",
+        "source": {
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/remove-elements-deferred-intent-payment-method-types.md",
+          "quote": "Removes the payment method types parameter from Payment Intents and Setup Intents"
+        },
+        "affects": {
+          "operations": [
+            "POST /v1/payment_intents",
+            "POST /v1/payment_intents/{intent}",
+            "POST /v1/payment_intents/{intent}/confirm",
+            "POST /v1/setup_intents",
+            "POST /v1/setup_intents/{intent}",
+            "POST /v1/setup_intents/{intent}/confirm"
+          ],
+          "fields": [
+            "payment_method_types",
+            "allowed_payment_method_types",
+            "excluded_payment_method_types"
+          ],
+          "versions": ["2026-09-30.endive"]
+        },
+        "effectiveDate": "2026-09-30"
+      },
+      {
+        "provider": "stripe",
+        "id": "stripe:2026-09-30-endive-deprecate-payment-request-button",
+        "kind": "other",
+        "title": "Stripe.js payment request button deprecated in Endive (verify details and timeline)",
+        "source": {
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/remove-elements-deferred-intent-payment-method-types.md",
+          "quote": "Deprecates the payment request button"
+        },
+        "affects": {
+          "operations": ["elements.create('paymentRequestButton')", "PaymentRequestButtonElement"],
+          "versions": ["2026-09-30.endive"]
+        },
+        "effectiveDate": "2026-09-30"
+      },
+      {
+        "provider": "stripe",
+        "id": "stripe:2026-09-30-endive-remove-payto-fields",
+        "kind": "field-removed",
+        "title": "PayTo-specific fields removed from Payment Methods in Endive (unsure of exact fields; details page not read)",
+        "source": {
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/remove-elements-deferred-intent-payment-method-types.md",
+          "quote": "Removes PayTo-specific fields from Payment Methods"
+        },
+        "affects": {
+          "operations": ["POST /v1/payment_methods"],
+          "fields": ["payto"],
+          "versions": ["2026-09-30.endive"]
+        },
+        "effectiveDate": "2026-09-30"
+      },
+      {
+        "provider": "stripe",
+        "id": "stripe:2026-09-30-endive-eventually-due-errors",
+        "kind": "other",
+        "title": "Accounts, Persons and Capabilities APIs now return errors for eventually due requirements (behaviour change; unsure if breaking for code that treats errors as currently due)",
+        "source": {
+          "url": "https://docs.stripe.com/changelog/endive.md",
+          "quote": "Previously, these APIs only included errors for requirements that were currently due or past due."
+        },
+        "affects": {
+          "operations": [
+            "/v1/accounts",
+            "/v1/accounts/{account}/persons",
+            "/v1/accounts/{account}/capabilities"
+          ],
+          "fields": ["requirements.errors", "future_requirements.errors"],
+          "versions": ["2026-09-30.endive"]
+        },
+        "effectiveDate": "2026-09-30"
+      },
+      {
+        "provider": "stripe",
+        "id": "stripe:node-23-1-0-pause-schedules-required",
+        "kind": "sdk-major",
+        "title": "stripe-node 23.1.0 pins 2026-10-28.endive and makes SubscriptionSchedule.pause_schedules required (type change)",
+        "source": {
+          "url": "https://raw.githubusercontent.com/stripe/stripe-node/master/CHANGELOG.md",
+          "quote": "Change `SubscriptionSchedule.pause_schedules` to be required"
+        },
+        "affects": {
+          "fields": ["SubscriptionSchedule.pause_schedules"],
+          "versions": ["23.1.0", "2026-10-28.endive"],
+          "sdk": "stripe-node"
+        },
+        "effectiveDate": "2026-10-29"
+      },
+      {
+        "provider": "stripe",
+        "id": "stripe:python-3-10-support-drop-2028-03",
+        "kind": "sdk-major",
+        "title": "stripe-python will drop Python 3.10 support in the March 2028 major release (3.9 dropped March 2027)",
+        "source": {
+          "url": "https://docs.stripe.com/sdks/versioning.md",
+          "quote": "We’ll remove support for it in the March 2028 major release."
+        },
+        "affects": {
+          "sdk": "stripe-python"
+        },
+        "effectiveDate": "2028-03"
+      },
+      {
+        "provider": "stripe",
+        "id": "stripe:go-1-25-support-drop-2027-09",
+        "kind": "sdk-major",
+        "title": "stripe-go will drop Go 1.25 support in the September 2027 major release (Go 1.24 drops March 2027)",
+        "source": {
+          "url": "https://docs.stripe.com/sdks/versioning.md",
+          "quote": "We’ll drop support for it in the September 2027 major release."
+        },
+        "affects": {
+          "sdk": "stripe-go"
+        },
+        "effectiveDate": "2027-09"
+      },
+      {
+        "provider": "stripe",
+        "id": "stripe:ruby-3-4-support-drop-2029-09",
+        "kind": "sdk-major",
+        "title": "stripe-ruby will drop Ruby 3.4 in the September 2029 release (Ruby 3.0 drops March 2027, 3.1 and 3.2 later)",
+        "source": {
+          "url": "https://docs.stripe.com/sdks/versioning.md",
+          "quote": "We’ll drop support for 3.4 in the September 2029 release."
+        },
+        "affects": {
+          "sdk": "stripe-ruby"
+        },
+        "effectiveDate": "2029-09"
+      }
+    ],
+    "issues": [],
+    "unverifiedQuotes": [],
+    "sourcesRead": [
+      "https://docs.stripe.com/changelog.md",
+      "https://docs.stripe.com/changelog/endive.md",
+      "https://docs.stripe.com/sdks/versioning.md",
+      "https://docs.stripe.com/changelog/dahlia.md",
+      "https://raw.githubusercontent.com/stripe/stripe-node/master/CHANGELOG.md",
+      "https://docs.stripe.com/changelog/endive/2026-09-30/remove-elements-deferred-intent-payment-method-types.md",
+      "https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions.md",
+      "https://docs.stripe.com/changelog.md?channel=preview"
+    ],
+    "model": "claude-sonnet-5-5",
+    "costUsd": 0.249554,
+    "turns": 5,
+    "summary": "",
+    "log": [
+      {
+        "turn": 1,
+        "stopReason": "tool_use",
+        "inputTokens": 4473,
+        "outputTokens": 75,
+        "calls": [
+          {
+            "tool": "list_sources",
+            "input": "{}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"changelog\"}"
+          }
+        ]
+      },
+      {
+        "turn": 2,
+        "stopReason": "tool_use",
+        "inputTokens": 10139,
+        "outputTokens": 156,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"changelog\",\"offset\":11900}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://docs.stripe.com/changelog/endive.md\"}"
+          }
+        ]
+      },
+      {
+        "turn": 3,
+        "stopReason": "tool_use",
+        "inputTokens": 15074,
+        "outputTokens": 359,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://docs.stripe.com/changelog/endive.md\",\"offset\":11900}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://docs.stripe.com/changelog/dahlia.md\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"sdk-versioning\"}"
+          }
+        ]
+      },
+      {
+        "turn": 4,
+        "stopReason": "tool_use",
+        "inputTokens": 24746,
+        "outputTokens": 574,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions.md\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://docs.stripe.com/changelog/endive/2026-09-30/remove-elements-deferred-intent-payment-method-types.md\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://docs.stripe.com/changelog.md?channel=preview\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"stripe-node-changelog\"}"
+          }
+        ]
+      },
+      {
+        "turn": 5,
+        "stopReason": "tool_use",
+        "inputTokens": 43130,
+        "outputTokens": 4279,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{\"changes\":[{\"id\":\"2026-09-30-endive-api-version\",\"kind\":\"api-version\",\"title\":\"New major API version 2026-09-30.endive carries breaking changes; callers pinning or upgrading must migrate (later Endive versions, e.g. 2026-10-28.endive, are additive)\",\"effectiveDate\":\"2026-09-30\",\"source\":{\"url\":\"htt"
+          }
+        ]
+      }
+    ]
+  }
+}
