@@ -38,20 +38,20 @@ export async function packageManagerVersion(
   const declared = /"packageManager"\s*:\s*"(\w+)@(\d[\w.-]*)/.exec(await read('package.json'));
   if (declared?.[1] === pm) return declared[2];
   if (pm === 'npm') {
-    let lock: { lockfileVersion?: number; packages?: Record<string, object> };
-    try {
-      lock = JSON.parse(await read('package-lock.json'));
-    } catch {
-      return undefined;
-    }
     // npm 7+ rewrites a whole v1 lockfile as v3. Later releases keep v2 and v3, but 10.8+ adds a
     // license line to each entry it writes, so a v2 lockfile without them gets npm 8. A v3 one keeps
     // the sandbox's npm: that license line per new entry is all it adds.
-    if (lock.lockfileVersion === 1) return '6';
-    const licensed = Object.entries(lock.packages ?? {}).some(
-      ([key, entry]) => key !== '' && 'license' in entry,
-    );
-    return lock.lockfileVersion === 2 && !licensed ? '8' : undefined;
+    try {
+      const lock = JSON.parse(await read('package-lock.json'));
+      if (lock.lockfileVersion === 1) return '6';
+      const licensed = Object.entries(lock.packages ?? {}).some(
+        ([key, entry]) => key !== '' && 'license' in (entry as object),
+      );
+      return lock.lockfileVersion === 2 && !licensed ? '8' : undefined;
+    } catch {
+      // A missing or malformed lockfile only means the release is unknown.
+      return undefined;
+    }
   }
   if (pm === 'pnpm') {
     // Lockfile formats: 5.3 pnpm 6, 5.4 pnpm 7, 6.x pnpm 8, 9.0 pnpm 9 and 10.

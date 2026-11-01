@@ -220,6 +220,16 @@ describe('packageManagerVersion', () => {
     expect(await version('npm', { 'package.json': '{}' })).toBe(undefined);
   });
 
+  it('treats a malformed lockfile as an unknown release instead of throwing', async () => {
+    for (const lock of [
+      'null',
+      '{ "lockfileVersion": 2, "packages": { "a": null } }',
+      '{ "packages": "x" }',
+    ]) {
+      expect(await version('npm', { 'package-lock.json': lock }), lock).toBe(undefined);
+    }
+  });
+
   it("reads pnpm's and yarn's release from the lockfile format", async () => {
     expect(await version('pnpm', { 'pnpm-lock.yaml': 'lockfileVersion: 5.4\n' })).toBe('7');
     expect(await version('pnpm', { 'pnpm-lock.yaml': "lockfileVersion: '6.0'\n" })).toBe('8');
