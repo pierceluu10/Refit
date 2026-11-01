@@ -25,6 +25,38 @@ Why each repo is affected:
 - **pdfai** pins `apiVersion: "2023-10-16"`, reads `subscription.current_period_end` in its webhook
   and passes `payment_method_types` to `checkout.sessions.create`.
 
+## Hand-check guide
+
+What a mergeable diff has to cover in each task, from the code at its commit and the provider tool
+packs' own data on 2026-11-01. Use it with each run's `diff.patch` and `pr-body.md`.
+
+- **commitgpt-openai-v4:** in `client.ts`, the default `OpenAI` import, `new OpenAI({ apiKey })`,
+  `completions.create` and `result.choices` without `.data`; `openai` bumped in `package.json`; the
+  v2 lockfile rewritten by npm 8, so no new `license` lines. Under Unproven, the PR should say that
+  Completions' models were shut down on 2026-09-28 (per `openai_check_request`), so the endpoint
+  still needs its own migration.
+- **chatgpt-nodejs-openai-v4:** every v3 shape `openai_sdk_migration` finds in `index.js`:
+  `Configuration` and `OpenAIApi`, `createCompletion`, `createImage`, `listEngines` (removed in v4,
+  with no direct replacement) and `.data` unwrapping. Its models are retired too: `text-davinci-003`
+  shut down on 2024-01-04, and `image-alpha-001` isn't in OpenAI's catalog. A correct PR replaces
+  them or says plainly that it didn't. The repo has no checks, so check what the agent registered
+  as proof. Lockfile: yarn 1 format.
+- **ai-ui-demo-gpt-4o-shutdown:** `gpt-4o-2024-08-06` replaced in `app/api/ui/route.ts`, with
+  `openai_model_lookup` or `openai_check_request` run on the new model; the structured output through
+  `zodResponseFormat` still works with it; Unproven says output quality wasn't checked on real
+  prompts. No dependency change should be needed.
+- **infinite-bundler-shopify-2026-10:** `ApiVersion.October24` replaced in both places in
+  `app/shopify.server.js`, which needs an `@shopify/shopify-app-remix` release that exports the
+  2026-10 version; the GraphQL documents validated at 2026-10 (three deprecated fields today, see
+  below). Breaking changes accumulate across 2026-01, 2026-04, 2026-07 and 2026-10, per
+  `shopify_api_versions`.
+- **pdfai-stripe-endive:** `apiVersion` in `src/lib/stripe.ts` moved with a stripe-node release that
+  pins it; `subscription.current_period_end` (webhook route, lines 56 and 70) read from the
+  subscription items, since 2025-03-31.basil removed subscription-level periods;
+  `payment_method_types` dropped from `checkout.sessions.create`, stated as a behaviour change.
+  `stripe_api_versions` lists 95 breaking entries between the two versions, so check that the
+  agent looked past these three. Lockfile: pnpm 9 format.
+
 ## Running it
 
 With `ANTHROPIC_API_KEY` in the environment:
