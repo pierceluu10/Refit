@@ -101,8 +101,12 @@ export function installCommand(pm: PackageManager, version?: string): string {
     case 'bun':
       return 'bun install --frozen-lockfile --ignore-scripts || bun install --ignore-scripts';
     case 'pip':
+      // One requirement without a wheel (PyAudio, say) fails the whole file, so the fallback installs
+      // the rest one at a time and names what it could not.
       return (
-        'if [ -f requirements.txt ]; then python3 -m pip install --only-binary=:all: -r requirements.txt; ' +
+        'if [ -f requirements.txt ]; then python3 -m pip install --only-binary=:all: -r requirements.txt || ' +
+        "grep -vE '^[[:space:]]*(#|-|$)' requirements.txt | while read -r req; do " +
+        'python3 -m pip install -q --only-binary=:all: "$req" || echo "not installed, no wheel for this platform: $req"; done; ' +
         'else echo "installs only prebuilt wheels from requirements.txt; install other dependencies with pip --only-binary=:all:"; fi'
       );
     case 'poetry':
