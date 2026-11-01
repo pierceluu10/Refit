@@ -1,0 +1,7 @@
+{
+  "name": "example-stripe-billing",
+  "private": true,
+  "dependencies": {
+    "stripe": "^14.13.0"
+  }
+}

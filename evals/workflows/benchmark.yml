@@ -1,0 +1,120 @@
+# Aptitude benchmark: understand -> match -> harness -> score, one repo per shard.
+#
+# Founders: move this file to .github/workflows/benchmark.yml to enable it. It lives under
+# evals/ because the overnight prompts don't edit .github/. Nobody dispatches it until the
+# founders approve a first run and its budget.
+#
+# The dollar cap and concurrency are required inputs with no defaults. The plan job splits the
+# cap evenly across shards; each shard's runner and the harness ledger both enforce its share.
+name: Aptitude benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      set:
+        description: Dev set to run (a file name under evals/sets/dev/, without .json)
+        required: true
+        type: string
+      budget_usd:
+        description: Hard dollar cap for the whole run. No default.
+        required: true
+        type: string
+      concurrency:
+        description: How many shards (repos) run at once. No default.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+      shard_budget: ${{ steps.plan.outputs.shard_budget }}
+      concurrency: ${{ steps.plan.outputs.concurrency }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - id: plan
+        env:
+          SET: ${{ inputs.set }}
+          BUDGET_USD: ${{ inputs.budget_usd }}
+          CONCURRENCY: ${{ inputs.concurrency }}
+        run: |
+          if ! [[ "$CONCURRENCY" =~ ^[1-9][0-9]*$ ]]; then
+            echo "concurrency must be a positive integer" >&2
+            exit 1
+          fi
+          plan=$(node evals/runner/cli.ts matrix --set "$SET" --budget-usd "$BUDGET_USD")
+          echo "shards=$(jq -c '[.shards[].index]' <<<"$plan")" >> "$GITHUB_OUTPUT"
+          echo "shard_budget=$(jq -r .shardBudgetUsd <<<"$plan")" >> "$GITHUB_OUTPUT"
+          echo "concurrency=$CONCURRENCY" >> "$GITHUB_OUTPUT"
+
+  shard:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJSON(needs.plan.outputs.concurrency) }}
+      matrix:
+        index: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      # Repo code runs only inside the harness's Docker sandbox; the runner itself only fetches
+      # the frozen commit (no install, no hooks, no submodules).
+      - name: Run one repo
+        env:
+          SET: ${{ inputs.set }}
+          INDEX: ${{ matrix.index }}
+          SHARD_BUDGET_USD: ${{ needs.plan.outputs.shard_budget }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: >-
+          node evals/runner/cli.ts run --set "$SET" --shard "$INDEX"
+          --budget-usd "$SHARD_BUDGET_USD" --concurrency 1 --out results
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ matrix.index }}
+          path: results/
+          if-no-files-found: warn
+
+  score:
+    needs: shard
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: results-*
+          merge-multiple: true
+          path: results/
+      - name: Score and add hand-check entries
+        run: node evals/runner/cli.ts score --in results --reviews evals/reviews.json --report report.md
+      - if: always()
+        run: cat report.md >> "$GITHUB_STEP_SUMMARY" || true
+      # A founder commits the new pending entries and fills in each hand-check.
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: score
+          path: |
+            report.md
+            evals/reviews.json
