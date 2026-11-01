@@ -114,6 +114,8 @@ const deps = (turns: ScriptedTurn[], budgetUsd = 1) => ({
   createSandbox: (dir: string) => createSandbox(dir, { mode: 'local' }),
   loadToolPack: async () => toolPack,
   budgetUsd,
+  // The fake session's costs are exact, so no overshoot reserve is needed.
+  turnReserveUsd: 0,
   // A path that doesn't exist yet: runTask creates it.
   outDir: join(mkdtempSync(join(tmpdir(), 'aptitude-run-test-')), 'nested', 'out'),
 });
@@ -209,7 +211,7 @@ describe('runTask with a fake model', () => {
       },
     });
     expect(calls).toBe(3);
-    expect(record.outcome).toBe('needs-review');
+    expect(record.outcome).toBe('failed');
   });
 
   it('escalates to the bigger model when an iteration makes no progress', async () => {
@@ -242,7 +244,7 @@ describe('runTask with a fake model', () => {
     expect(record.diff).toBe('');
   });
 
-  it('turns a crashing model call into a needs-review record instead of stopping', async () => {
+  it('records a crashing model call that changed nothing as failed, after retrying', async () => {
     const record = await runTask(task, fixtureRepo(), {
       ...deps([]),
       session: async () => {
@@ -250,7 +252,25 @@ describe('runTask with a fake model', () => {
       },
       maxIterations: 2,
     });
-    expect(record.outcome).toBe('needs-review');
+    expect(record.outcome).toBe('failed');
+    expect(record.diff).toBe('');
     expect(record.models).toEqual([MODEL, ESCALATION_MODEL]);
+  });
+
+  it('keeps a reserve below the cap: no query starts inside it and each gets the rest', async () => {
+    const budgets: number[] = [];
+    const record = await runTask(task, fixtureRepo(), {
+      ...deps([]),
+      budgetUsd: 1.5,
+      turnReserveUsd: 1,
+      session: async (input) => {
+        budgets.push(input.budgetUsd);
+        input.ledger.charge({ model: input.model, costUsd: 0.3, note: 'turn' });
+        return { finalText: '', stopReason: 'done' as const };
+      },
+    });
+    expect(budgets).toEqual([0.5, expect.closeTo(0.2)]);
+    expect(record.costUsd).toBeCloseTo(0.6);
+    expect(record.outcome).toBe('failed');
   });
 });

@@ -35,8 +35,9 @@ export const claudeAgentSession: AgentSession = async (input) => {
         cwd: input.sandbox.dir,
         resume: input.resume,
         maxTurns: input.maxTurns,
-        // Second guard behind the ledger: the SDK stops the query once this is spent.
-        maxBudgetUsd: input.ledger.remainingUsd,
+        // Second guard behind the ledger. The SDK checks it only between turns, so the caller
+        // leaves a reserve for the turn that crosses it.
+        maxBudgetUsd: input.budgetUsd,
       },
     })) {
       input.log(message);

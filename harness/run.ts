@@ -38,6 +38,9 @@ import { gradeValidators } from './validators.ts';
 
 export const MODEL = 'claude-sonnet-5-5';
 export const ESCALATION_MODEL = 'claude-opus-5-5';
+// The Agent SDK enforces maxBudgetUsd only between turns; one turn overshot by about $0.80 on
+// 2026-11-01's dev run, so a query is given the remainder minus this and none starts below it.
+export const TURN_RESERVE_USD = 1;
 
 // shortcut: stubs until providers/ (F2) and memory/ (O3) land; the orchestrator passes the real ones.
 const emptyToolPack = async (provider: string): Promise<ToolPack> => ({
@@ -60,6 +63,8 @@ export function decideOutcome(input: {
   const { diff, report, comparisons, after, validatorRuns } = input;
   const changed = diff.trim() !== '';
   if (!changed && report?.verdict === 'not-affected') return 'not-affected';
+  // No edit and no word from the agent means no attempt happened (budget or model down).
+  if (!changed && !report) return 'failed';
   const proven =
     changed &&
     report !== undefined &&
@@ -176,8 +181,9 @@ export async function runTask(
     let silentErrors = 0;
 
     // Ends when the checks pass, the agent finishes with an explanation, or the budget runs out.
+    const reserveUsd = deps.turnReserveUsd ?? TURN_RESERVE_USD;
     for (let iteration = 0; iteration < (deps.maxIterations ?? Infinity); iteration++) {
-      if (ledger.exhausted) break;
+      if (ledger.remainingUsd <= reserveUsd) break;
       if (!models.includes(model)) models.push(model);
       finishedThisIteration = false;
       const spentBefore = ledger.spentUsd;
@@ -190,6 +196,7 @@ export async function runTask(
           tools,
           sandbox,
           ledger,
+          budgetUsd: ledger.remainingUsd - reserveUsd,
           resume: sessionId,
           maxTurns: 80,
           log,
@@ -226,9 +233,10 @@ export async function runTask(
     const diff = redactSecrets(await sandbox.diff());
     const finalReport = report as FinishReport | undefined;
     const outcome = decideOutcome({ diff, report: finalReport, comparisons, after, validatorRuns });
-    const notes = ledger.exhausted
-      ? [`The run hit its AI budget of $${ledger.capUsd.toFixed(2)} before the agent finished.`]
-      : [];
+    const notes =
+      ledger.remainingUsd <= reserveUsd
+        ? [`The run hit its AI budget of $${ledger.capUsd.toFixed(2)} before the agent finished.`]
+        : [];
     const prBody = writePrBody({
       task,
       outcome,

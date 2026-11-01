@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runTask, type HarnessRunRecord } from '../harness/index.ts';
@@ -12,7 +12,7 @@ import {
 } from '../memory/index.ts';
 import { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
 import { folderWatcher, listProviderIds } from '../providers/core/registry.ts';
-import type { ToolPack, WatchProvider } from '../shared/types.ts';
+import type { ProviderChange, RunRecord, ToolPack, WatchProvider } from '../shared/types.ts';
 import type { Budget } from './budget.ts';
 import type { LoopDeps } from './loop.ts';
 import { createMatchAgent } from './match.ts';
@@ -29,7 +29,28 @@ import {
 // Run records go outside the target repo; Aptitude never writes into a repo except through a PR.
 export const defaultOut = join(tmpdir(), 'aptitude-runs.jsonl');
 
+// Provider changelogs change at most daily, so one read per provider per UTC day serves every run.
+export const defaultWatchCache = join(tmpdir(), 'aptitude-watch');
+
+// Below this, a harness run cannot get past its overshoot reserve (TURN_RESERVE_USD) to edit.
+export const MIN_TASK_USD = 2;
+
 const remainingOf = (budget: Budget) => Math.max(budget.capUsd - budget.spentUsd(), 0);
+
+// Returns the cached result for key when there is one; otherwise runs the call and caches it.
+export async function cachedChanges(
+  dir: string,
+  key: string,
+  call: () => Promise<ProviderChange[]>,
+): Promise<ProviderChange[]> {
+  const file = join(dir, `${key.replace(/[^\w.-]+/g, '_')}.json`);
+  const cached = await readFile(file, 'utf8').catch(() => undefined);
+  if (cached !== undefined) return JSON.parse(cached) as ProviderChange[];
+  const changes = await call();
+  await mkdir(dir, { recursive: true });
+  await writeFile(file, JSON.stringify(changes));
+  return changes;
+}
 
 // Runs a part's call, then charges the run budget with what the part's own ledger spent.
 async function chargedTo<T>(
@@ -45,16 +66,33 @@ async function chargedTo<T>(
 }
 
 // One provider's changelog watcher: it may spend what is left of the run, then charges it.
-export function providerWatcher(id: string, budget: Budget): WatchProvider {
+export function providerWatcher(
+  id: string,
+  budget: Budget,
+  cacheDir = defaultWatchCache,
+): WatchProvider {
   return (since) => {
-    const ledger = new WatchLedger(remainingOf(budget));
-    return chargedTo(
-      budget,
-      () => ledger.spentUsd,
-      () => folderWatcher(id, { budget: ledger })(since),
-    );
+    const day = new Date().toISOString().slice(0, 10);
+    return cachedChanges(cacheDir, `${id}-${since ?? 'latest'}-${day}`, () => {
+      const ledger = new WatchLedger(remainingOf(budget));
+      return chargedTo(
+        budget,
+        () => ledger.spentUsd,
+        () => folderWatcher(id, { budget: ledger })(since),
+      );
+    });
   };
 }
+
+const budgetSkipped = (taskId: string, remainingUsd: number): RunRecord & { note: string } => ({
+  taskId,
+  outcome: 'failed',
+  diff: '',
+  checks: [],
+  costUsd: 0,
+  transcriptPath: '',
+  note: `not attempted: $${remainingUsd.toFixed(2)} of the run cap left, below the $${MIN_TASK_USD} a task needs`,
+});
 
 // The one place that picks real or stub modules for the loop.
 export function createDeps({
@@ -107,6 +145,7 @@ export function createDeps({
     watchers: providerIds.map((id) => providerWatcher(id, budget)),
     match: createMatchAgent({ budget }),
     runTask: async (task, dir) => {
+      if (remaining() < MIN_TASK_USD) return budgetSkipped(task.id, remaining());
       // Recipes come first, so the harness's cap is what is left after them.
       const ai = memory();
       const recipes = await charged(

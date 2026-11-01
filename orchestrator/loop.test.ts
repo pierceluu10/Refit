@@ -133,15 +133,17 @@ describe('runOrg', () => {
     expect(summary.errors).toEqual([expect.stringContaining('changelog unreachable')]);
   });
 
-  it('still attempts every change when the repo cannot be matched', async () => {
+  it('reports every change as failed, without running tasks, when the repo cannot be matched', async () => {
     const { deps } = fakeDeps(changes, runTask);
     deps.match = async () => {
       throw new Error('model unavailable');
     };
     const summary = await runOrg(org, deps);
-    const attempted = vi.mocked(deps.runTask).mock.calls.map(([task]) => task);
-    expect(new Set(attempted.map((t) => t.change.id))).toEqual(new Set(changes.map((c) => c.id)));
-    expect(attempted.every((t) => /no match verdict/.test(t.notes ?? ''))).toBe(true);
+    expect(deps.runTask).not.toHaveBeenCalled();
+    expect(summary.counts.failed).toBe(changes.length);
+    expect(summary.records.every((r) => /not attempted: match failed/.test(r.note ?? ''))).toBe(
+      true,
+    );
     expect(summary.errors).toEqual([expect.stringMatching(/match failed after retries/)]);
   });
 

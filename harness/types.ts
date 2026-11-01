@@ -72,6 +72,8 @@ export type SessionInput = {
   tools: AgentTool[];
   sandbox: Sandbox;
   ledger: BudgetLedger;
+  // What this query may spend: the ledger's remainder minus the overshoot reserve.
+  budgetUsd: number;
   resume?: string;
   maxTurns: number;
   log: (event: unknown) => void; // appended to the run transcript
@@ -95,6 +97,8 @@ export type HarnessDeps = {
   budgetUsd?: number; // defaults to APTITUDE_AI_BUDGET_USD
   outDir?: string; // where the transcript, diff and PR body are written
   maxIterations?: number; // unset: iterate until done or the budget cap
+  turnReserveUsd?: number; // defaults to TURN_RESERVE_USD
+
   fetch?: typeof fetch;
 };
 
