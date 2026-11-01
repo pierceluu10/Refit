@@ -90,6 +90,13 @@ gh workflow run meta.yml -R refit-dev/refit-bench --ref feat/meta-benchmark \
   -f commit=$(git rev-parse HEAD) -f list=subsets/meta-dev-60.json -f size=10
 ```
 
+## Agent fixer and sandbox check (gut plan)
+
+`shopify.yml` and `meta.yml` take two more inputs (refit-bench `gut/sandbox`; details in [GUT5](gut/GUT5.md)):
+
+- **`agent: true`** runs the agent fixer. The Refit commit must declare `@anthropic-ai/claude-agent-sdk`; the workflow checks that the SDK and its bundled `claude` CLI are installed at the locked version. The `ANTHROPIC_API_KEY` secret goes only into the private AI env file. It needs `size` 1, and each shard gets 360 minutes, enough for 3 attempts of 3 rounds.
+- **`mode: sandbox-check`** runs only the sandbox judge (`pipeline/validation-sandbox-check-cli.ts`) on each repository: unchanged, after a trivial edit and after a probe that adds one type error. No AI runs, and the merge job is skipped. The results are in each shard's `run/sandbox-check.json`.
+
 ## Shards
 
 A run has `count / size` shards, rounded up. Which repositories each shard runs comes from their measured durations: the merge job of every run without AI keeps each repository's newest `seconds` in a cache (`refit-timings-v1-…`, shared by every list), the plan job fills repositories the cache lacks from recent runs' `merged` results (newest first, up to 50), and then `.github/scripts/plan-shards.mjs` in refit-bench assigns repositories longest first to the least-loaded shard, counting a repository without a timing as the median. It balances only when at least half of the slice has a timing; otherwise, and if the planner fails, shards are the contiguous slices runs always had. A balanced plan is reused for the same list slice (list content, offset, count and size) for 24 hours, so a rerun of a commit, or a run of a nearby one, gets the same shards and so the same per-shard caches. Each shard runs setup on a list file of its own entries; the merged results list rows shard by shard, as before. On run 40144503063's timings the plan's slowest shard is 1,341 seconds, one repository on its own, where the contiguous slices' slowest took 3,545.

@@ -34,6 +34,7 @@ import {
   installPlan,
   namedHosts,
   needsCustomerEnvironment,
+  unlockedPlans,
   type InstallPlan,
 } from './repository-install.ts';
 import { PipelineInputError } from './types.ts';
@@ -129,7 +130,7 @@ server.listen(Number(process.argv[2] || ${PROXY_PORT}), "0.0.0.0", () => console
 // is written, and writes every node_modules as a tar to stdout.
 export const INSTALL_SCRIPT = [
   'set -e',
-  'export HOME=/workspace/.home npm_config_cache=/workspace/.npm-cache YARN_CACHE_FOLDER=/workspace/.yarn-cache YARN_NODE_LINKER=node-modules COREPACK_ENABLE_NETWORK=0 TMPDIR=/workspace/.tmp',
+  'export HOME=/workspace/.home npm_config_cache=/workspace/.npm-cache YARN_CACHE_FOLDER=/workspace/.yarn-cache YARN_NODE_LINKER=node-modules YARN_ENABLE_IMMUTABLE_INSTALLS=false COREPACK_ENABLE_NETWORK=0 TMPDIR=/workspace/.tmp',
   'mkdir -p "$HOME" "$TMPDIR"',
   'tool="$1"; shift',
   'if [ -n "$tool" ]; then npm install --prefix /workspace/.refit-tools --ignore-scripts --no-audit --no-fund "$tool" >&2; export PATH="/workspace/.refit-tools/node_modules/.bin:$PATH"; fi',
@@ -296,9 +297,11 @@ export async function buildRepositoryEnvironment(options: {
   copyArchiveTo?: string;
   signal?: AbortSignal;
   onProgress?: (message: string) => void;
+  // A plan to run instead of the one the committed files name (installInSandbox).
+  plan?: InstallPlan;
 }) {
   const files = await repositoryInstallFiles(options.repository);
-  const plan = installPlan(files);
+  const plan = options.plan ?? installPlan(files);
   if (!plan)
     throw new RepositoryInstallError(
       'The repository commits no install Refit recognises (a Dockerfile, devcontainer or CI install step, or a lockfile).',
@@ -425,16 +428,35 @@ export async function buildRepositoryEnvironment(options: {
   }
 }
 
-// Stops the repository's own install must not get around: a lockfile that is missing, out of
-// sync, unverifiable or rejected by npm would install versions the repository never committed
-// (owner decisions on lockfile drift), and the archive limit binds the build sandbox too.
-const KEPT_STOPS = new Set([
-  'dependency-archive-limit',
-  'no-lockfile',
-  'lockfile-out-of-sync',
-  'lockfile-integrity',
-  'peer-dependency-conflict',
-]);
+// Gut plan SC-S2: the repository's own install, then each unlocked plan (unlockedPlans) until one
+// installs. Only Docker or the host failing throws something other than RepositoryInstallError.
+export async function installInSandbox(options: Parameters<typeof buildRepositoryEnvironment>[0]) {
+  const files = await repositoryInstallFiles(options.repository);
+  const committed = installPlan(files);
+  const plans = [...(committed ? [committed] : []), ...unlockedPlans(files)].filter(
+    (plan, index, all) =>
+      all.findIndex((other) => other.command.join(' ') === plan.command.join(' ')) === index,
+  );
+  if (!plans.length)
+    throw new RepositoryInstallError('The repository commits no package.json to install.', false);
+  const failures: string[] = [];
+  for (const plan of plans) {
+    try {
+      return await buildRepositoryEnvironment({ ...options, plan });
+    } catch (error) {
+      options.signal?.throwIfAborted();
+      if (!(error instanceof RepositoryInstallError)) throw error;
+      failures.push(error.message);
+      options.onProgress?.(`${error.message.split('\n')[0]} Trying the next install.`);
+    }
+  }
+  throw new RepositoryInstallError(failures.join('\n'), false);
+}
+
+// The archive limit binds the build sandbox too. Gut plan SC-S2 (founder decision, 2026-10-31)
+// lifted the lockfile stops (no lockfile, out of sync, integrity, peer conflicts): those now
+// install unlocked in the sandbox (installInSandbox).
+const KEPT_STOPS = new Set(['dependency-archive-limit']);
 
 // Whether a refusal with this message falls back to the repository's own install (refit doctor).
 export function fallsBackToRepositoryInstall(message: string) {
@@ -461,7 +483,7 @@ export async function prepareEnvironment(options: Parameters<typeof prepareDepen
       `Refit's preparation refused (${failure.summary}); trying the repository's own install.`,
     );
     try {
-      return await buildRepositoryEnvironment(options);
+      return await installInSandbox(options);
     } catch (built) {
       options.signal?.throwIfAborted();
       // Docker could not build the sandbox (no network support, the host): the refusal stands.
