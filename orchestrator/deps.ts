@@ -12,7 +12,7 @@ import {
 } from '../memory/index.ts';
 import { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
 import { folderWatcher, listProviderIds } from '../providers/core/registry.ts';
-import type { ToolPack } from '../shared/types.ts';
+import type { ToolPack, WatchProvider } from '../shared/types.ts';
 import type { Budget } from './budget.ts';
 import type { LoopDeps } from './loop.ts';
 import { createMatchAgent } from './match.ts';
@@ -28,6 +28,33 @@ import {
 
 // Run records go outside the target repo; Aptitude never writes into a repo except through a PR.
 export const defaultOut = join(tmpdir(), 'aptitude-runs.jsonl');
+
+const remainingOf = (budget: Budget) => Math.max(budget.capUsd - budget.spentUsd(), 0);
+
+// Runs a part's call, then charges the run budget with what the part's own ledger spent.
+async function chargedTo<T>(
+  budget: Budget,
+  spentUsd: () => number,
+  call: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await call();
+  } finally {
+    budget.chargeUsd(spentUsd());
+  }
+}
+
+// One provider's changelog watcher: it may spend what is left of the run, then charges it.
+export function providerWatcher(id: string, budget: Budget): WatchProvider {
+  return (since) => {
+    const ledger = new WatchLedger(remainingOf(budget));
+    return chargedTo(
+      budget,
+      () => ledger.spentUsd,
+      () => folderWatcher(id, { budget: ledger })(since),
+    );
+  };
+}
 
 // The one place that picks real or stub modules for the loop.
 export function createDeps({
@@ -59,14 +86,9 @@ export function createDeps({
   if (!budget) throw new Error('ANTHROPIC_API_KEY is set, so pass a budget from createBudget().');
 
   // One cap for the whole run: each part may spend what is left of it, then charges what it spent.
-  const remaining = () => Math.max(budget.capUsd - budget.spentUsd(), 0);
-  const charged = async <T>(spentUsd: () => number, call: () => Promise<T>): Promise<T> => {
-    try {
-      return await call();
-    } finally {
-      budget.chargeUsd(spentUsd());
-    }
-  };
+  const remaining = () => remainingOf(budget);
+  const charged = <T>(spentUsd: () => number, call: () => Promise<T>) =>
+    chargedTo(budget, spentUsd, call);
   const memory = () => ({
     ...defaultMemory(),
     ...defaultAi(process.env, new MemoryBudget(remaining())),
@@ -82,13 +104,7 @@ export function createDeps({
         async () => (await runInventory(dir, repo, { ledger })).usages,
       );
     },
-    watchers: providerIds.map((id) => (since) => {
-      const ledger = new WatchLedger(remaining());
-      return charged(
-        () => ledger.spentUsd,
-        () => folderWatcher(id, { budget: ledger })(since),
-      );
-    }),
+    watchers: providerIds.map((id) => providerWatcher(id, budget)),
     match: createMatchAgent({ budget }),
     runTask: async (task, dir) => {
       // Recipes come first, so the harness's cap is what is left after them.

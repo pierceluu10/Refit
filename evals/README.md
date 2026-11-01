@@ -96,7 +96,8 @@ should come from the harness so it charges the same budget ledger.
 
 ## What's stubbed
 
-- The real inventory, match, harness and watcher entry points (other branches). The match
-  agent's type (`MatchChanges`) is local to `runner/types.ts` until O1 exports it.
+- Changelog watchers exist only for providers with a folder in `providers/`. Repos in the
+  Anthropic and Gemini sets stop before any spend until those exist. Real runs otherwise go
+  through the orchestrator's `createDeps`, under one run budget, and need `ANTHROPIC_API_KEY`.
 - The real reviewer model client.
 - No real benchmark has been run. The founders approve the first one and its budget.
