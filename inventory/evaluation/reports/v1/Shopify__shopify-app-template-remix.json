@@ -1,0 +1,113 @@
+{
+  "repo": "Shopify/shopify-app-template-remix",
+  "promptVersion": "inventory-v1",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "Shopify/shopify-app-template-remix",
+      "provider": "shopify",
+      "via": "graphql",
+      "callSites": [
+        {
+          "file": "app/routes/app._index.tsx",
+          "line": 30,
+          "operation": "mutation populateProduct",
+          "fields": ["product.title"],
+          "notes": "Reads data.productCreate.product (id, variants edges)."
+        },
+        {
+          "file": "app/routes/app._index.tsx",
+          "line": 65,
+          "operation": "mutation shopifyRemixTemplateUpdateVariant",
+          "fields": ["productId", "variants[].id", "variants[].price"],
+          "notes": "Returns productVariantsBulkUpdate.productVariants to the UI."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "ApiVersion.January25",
+        "file": "app/shopify.server.ts",
+        "line": 13
+      },
+      "sdk": {
+        "name": "@shopify/shopify-app-remix",
+        "version": "^4.1.0"
+      }
+    },
+    {
+      "repo": "Shopify/shopify-app-template-remix",
+      "provider": "shopify",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/routes/app._index.tsx",
+          "line": 26,
+          "operation": "authenticate.admin"
+        },
+        {
+          "file": "app/routes/app.tsx",
+          "line": 13,
+          "operation": "authenticate.admin"
+        },
+        {
+          "file": "app/routes/auth.$.tsx",
+          "line": 5,
+          "operation": "authenticate.admin",
+          "notes": "OAuth/token exchange callback"
+        },
+        {
+          "file": "app/routes/auth.login/route.tsx",
+          "line": 23,
+          "operation": "login(request)",
+          "notes": "Shop domain login"
+        },
+        {
+          "file": "app/shopify.server.ts",
+          "line": 10,
+          "operation": "shopifyApp(...)",
+          "fields": ["apiKey", "apiSecretKey", "apiVersion", "scopes", "appUrl"]
+        }
+      ],
+      "pinnedVersion": {
+        "value": "ApiVersion.January25",
+        "file": "app/shopify.server.ts",
+        "line": 13
+      },
+      "sdk": {
+        "name": "@shopify/shopify-app-remix",
+        "version": "^4.1.0"
+      }
+    },
+    {
+      "repo": "Shopify/shopify-app-template-remix",
+      "provider": "shopify",
+      "via": "webhook",
+      "callSites": [
+        {
+          "file": "app/routes/webhooks.app.scopes_update.tsx",
+          "line": 6,
+          "operation": "authenticate.webhook (app/scopes_update)",
+          "notes": "Updates session scope from payload"
+        },
+        {
+          "file": "app/routes/webhooks.app.uninstalled.tsx",
+          "line": 6,
+          "operation": "authenticate.webhook (app/uninstalled)",
+          "notes": "HMAC verified by SDK; deletes sessions for shop"
+        }
+      ]
+    }
+  ],
+  "purposes": {
+    "shopify": "Shopify webhooks app/uninstalled and app/scopes_update (declared in shopify.app.toml)"
+  },
+  "summary": "Shopify/shopify-app-template-remix uses shopify for Shopify app auth (OAuth/token exchange), session handling, login through @shopify/shopify-app-remix ^4.1.0, pinned to ApiVersion.January25 in 5 places; shopify for Shopify Admin GraphQL API: create demo product and update variant price through @shopify/shopify-app-remix ^4.1.0, pinned to ApiVersion.January25 in 2 places; shopify for Shopify webhooks app/uninstalled and app/scopes_update (declared in shopify.app.toml) through webhooks in 2 places.",
+  "agentSummary": "The repo talks to one external provider, Shopify, through three channels. I read the code and did not run anything.\n\n- **Shopify Admin GraphQL API (via `admin.graphql` from `@shopify/shopify-app-remix`):** The action in `app/routes/app._index.tsx` sends two mutations. `populateProduct` (line 30) creates a demo product. `shopifyRemixTemplateUpdateVariant` (line 65) sets the first variant's price. The API version is pinned to `ApiVersion.January25` at `app/shopify.server.ts:13`.\n- **Shopify app auth (SDK):** `shopifyApp()` is configured in `app/shopify.server.ts` and does the OAuth and session handling. Sessions are stored through the Prisma session storage package. I recorded these call sites:\n  - `authenticate.admin` in `app.tsx`, `auth.$.tsx` and `app._index.tsx`\n  - `login` in `auth.login/route.tsx`\n- **Shopify webhooks (receiver):** `app/routes/webhooks.app.uninstalled.tsx` and `app/routes/webhooks.app.scopes_update.tsx` verify requests with `authenticate.webhook`. The two subscriptions are declared in `shopify.app.toml`. Other webhook subscriptions in that file are commented out.\n\nThings to know:\n- There is no lockfile, so the SDK version is the manifest range `^4.1.0`, not a resolved version.\n- I didn't read the `extensions/` directory or any other config files beyond `shopify.app.toml`. I also didn't look at `.graphqlrc.ts` beyond the scanner hit. I found no other external hosts.\n- `unauthenticated` is exported from `app/shopify.server.ts` but nothing calls it.",
+  "outcome": "success",
+  "costUsd": 0.0512894,
+  "costByModel": {
+    "claude-haiku-5-5": 0.00013360000000000002,
+    "claude-sonnet-5-5": 0.0511558
+  },
+  "turns": 11,
+  "durationMs": 15995
+}

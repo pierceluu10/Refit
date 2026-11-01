@@ -1,0 +1,113 @@
+{
+  "repo": "Nutlope/roomGPT",
+  "promptVersion": "inventory-v1",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "Nutlope/roomGPT",
+      "provider": "replicate",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/generate/route.ts",
+          "line": 40,
+          "operation": "POST /v1/predictions",
+          "fields": ["version", "input.image", "input.prompt", "input.a_prompt", "input.n_prompt"],
+          "notes": "Reads urls.get from response."
+        },
+        {
+          "file": "app/generate/route.ts",
+          "line": 72,
+          "operation": "GET urls.get (prediction poll)",
+          "notes": "Polls every 1s until status succeeded/failed; returns output as JSON."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "854e8727697a057c525cdb45ab037f64ecca770a1769cc52287c2e56472a247b",
+        "file": "app/generate/route.ts",
+        "line": 47
+      }
+    },
+    {
+      "repo": "Nutlope/roomGPT",
+      "provider": "upstash",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/generate/route.ts",
+          "line": 21,
+          "operation": "Ratelimit.fixedWindow(5,'1440 m').limit(ip)",
+          "notes": "Returns 429 if not success; analytics enabled."
+        },
+        {
+          "file": "utils/redis.ts",
+          "line": 5,
+          "operation": "new Redis({url, token})"
+        }
+      ],
+      "sdk": {
+        "name": "@upstash/redis, @upstash/ratelimit",
+        "version": "^1.19.1, ^0.3.8",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "Nutlope/roomGPT",
+      "provider": "bytescale",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/dream/page.tsx",
+          "line": 56,
+          "operation": "UploadDropzone",
+          "fields": ["apiKey (NEXT_PUBLIC_UPLOAD_API_KEY or 'free')"],
+          "notes": "Uploaded file URL passed to /generate."
+        },
+        {
+          "file": "app/dream/page.tsx",
+          "line": 62,
+          "operation": "UrlBuilder.url",
+          "notes": "thumbnail preset transformation"
+        }
+      ],
+      "sdk": {
+        "name": "@bytescale/upload-widget-react (also imports @bytescale/sdk, @bytescale/upload-widget, not in package.json)",
+        "version": "^4.9.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "Nutlope/roomGPT",
+      "provider": "vercel-analytics",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/layout.tsx",
+          "line": 42,
+          "operation": "<Analytics />"
+        }
+      ],
+      "sdk": {
+        "name": "@vercel/analytics",
+        "version": "^0.1.11",
+        "lockfile": "package-lock.json"
+      }
+    }
+  ],
+  "purposes": {
+    "replicate": "ControlNet room image generation",
+    "upstash": "Rate limiting via Upstash Redis REST",
+    "bytescale": "Client-side image upload and URL building",
+    "vercel-analytics": "Web analytics"
+  },
+  "summary": "Nutlope/roomGPT uses replicate for ControlNet room image generation through raw HTTP, pinned to 854e8727697a057c525cdb45ab037f64ecca770a1769cc52287c2e56472a247b in 2 places; upstash for Rate limiting via Upstash Redis REST through @upstash/redis, @upstash/ratelimit ^1.19.1, ^0.3.8 in 2 places; bytescale for Client-side image upload and URL building through @bytescale/upload-widget-react (also imports @bytescale/sdk, @bytescale/upload-widget, not in package.json) ^4.9.0 in 2 places; vercel-analytics for Web analytics through @vercel/analytics ^0.1.11 in 1 place.",
+  "agentSummary": "The repo uses four external APIs. All call sites were accepted by `record_usage`.\n\n- **Replicate** (raw HTTP):\n  - `app/generate/route.ts` sends `POST https://api.replicate.com/v1/predictions` to generate the room image. The model is pinned by a version hash at line 47.\n  - It then polls the prediction's `urls.get` URL once a second until the status is `succeeded` or `failed`.\n  - It authenticates with `REPLICATE_API_KEY`.\n- **Upstash** (SDK, `@upstash/redis` and `@upstash/ratelimit`):\n  - `utils/redis.ts` creates the Redis client from `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.\n  - `app/generate/route.ts` uses it to limit each IP to 5 requests per 24 hours.\n  - The limiter only runs when both Upstash env vars are set.\n- **Bytescale** (SDK):\n  - `app/dream/page.tsx` uses `UploadDropzone` for client-side image upload and `UrlBuilder.url` to build a thumbnail URL. The key comes from `NEXT_PUBLIC_UPLOAD_API_KEY`, with a fallback to `\"free\"`.\n  - The code also imports `@bytescale/sdk` and `@bytescale/upload-widget`, which are not listed in `package.json`. I recorded the version as the manifest range `^4.9.0` for `@bytescale/upload-widget-react` only.\n- **Vercel Analytics** (SDK): `<Analytics />` in `app/layout.tsx`.\n\nI recorded SDK versions as manifest ranges and did not resolve them with `locked_versions`. The `fetch(\"/generate\")` call in `app/dream/page.tsx` goes to the app's own backend route, so I left it out. `utils/downloadPhoto.ts` fetches an arbitrary image URL, so I treated it as not a fixed external API and didn't record it. The other hosts that turned up are only links in the UI.",
+  "outcome": "success",
+  "costUsd": 0.07185770000000001,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0001332,
+    "claude-sonnet-5-5": 0.07172450000000001
+  },
+  "turns": 13,
+  "durationMs": 22159
+}
