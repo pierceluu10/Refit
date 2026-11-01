@@ -81,9 +81,9 @@ export async function recordRecipeOutcome(
   run: StoredRun,
   { store, now = () => new Date() }: { store: MemoryStore; now?: () => Date },
 ): Promise<MemoryRecipe[]> {
-  // A human's verdict outweighs the harness outcome, as in succeeded().
-  const verdict = run.record.humanVerdict;
-  const failed = verdict ? verdict === 'closed' : run.record.outcome === 'failed';
+  // Only a person closing the PR says the guidance was wrong. A harness 'failed' means nothing was
+  // attempted (the model was down, the budget ran out) or the PR couldn't be opened.
+  const failed = run.record.humanVerdict === 'closed';
   const demoted: MemoryRecipe[] = [];
   for (const id of new Set(run.usedRecipeIds)) {
     const recipe = await store.getRecipe(id);
@@ -121,8 +121,9 @@ function tally(ids: string[], id: string, failed: boolean): string[] {
   return failed ? [...new Set([...ids, id])] : ids.filter((other) => other !== id);
 }
 
-// The recipe a run was distilled into counts the run's repo only while some run from that repo still
-// counts as a success, so a human closing a verified PR takes its repo back off the recipe.
+// The recipe a run was distilled into counts the run's repo only while some run from that repo,
+// distilled into the same recipe, still counts as a success. So a human closing a verified PR takes
+// its repo back off the recipe.
 async function recountRepo(
   id: string,
   run: StoredRun,
@@ -134,7 +135,12 @@ async function recountRepo(
     recipe.sourceRuns.filter((source) => source !== run.id).map((source) => store.getRun(source)),
   );
   const verified = [run, ...others].some(
-    (source) => source?.task.repo === run.task.repo && succeeded(source.record),
+    (source) =>
+      source?.task.repo === run.task.repo &&
+      succeeded(source.record) &&
+      source.extraction?.status === 'done' &&
+      source.extraction.mode === 'recipe' &&
+      source.extraction.recipeId === id,
   );
   const repos = verified
     ? [...new Set([...recipe.repos, run.task.repo])]

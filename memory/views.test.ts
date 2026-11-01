@@ -1,7 +1,7 @@
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { writePrBody } from '../harness/pr.ts';
 import { storedRuns } from './fixtures/runs.ts';
 import { makeRecord, makeTask } from './fixtures/tasks.ts';
@@ -87,6 +87,30 @@ describe('listRunViews', () => {
 });
 
 describe('toRunView', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('redacts a secret before cutting the line, even one the cut would split', () => {
+    vi.stubEnv('EXAMPLE_DEPLOY_TOKEN', 'correct-horse-battery-staple-plain-words');
+    const pem = '-----BEGIN RSA PRIVATE KEY-----\nMIIEexample\n-----END RSA PRIVATE KEY-----';
+    const view = (note: string) => {
+      const record = { ...makeRecord({ outcome: 'failed', diff: '' }), note };
+      return toRunView({
+        id: 'run-1',
+        recordedAt: '2026-11-01T12:00:00.000Z',
+        task: makeTask(),
+        record,
+        transcript: '',
+        usedRecipeIds: [],
+      }).summary;
+    };
+
+    const nearTheCut = view(`${'x'.repeat(180)} correct-horse-battery-staple-plain-words`);
+    expect(nearTheCut).not.toContain('correct-horse');
+    expect(view(`clone failed: ${pem}`)).toBe('clone failed: [redacted]');
+  });
+
   // Built with the harness's own PR writer, so a change to its format fails here, not on the dashboard.
   it("reads the agent's summary out of a real harness PR body", () => {
     const task = makeTask();

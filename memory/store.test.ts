@@ -48,15 +48,19 @@ describe('JsonMemoryStore', () => {
     expect((await store.getRun(run.id))?.commit).toBe('abc1234');
   });
 
-  it('lets a final verdict replace an earlier one, but never a late edited', async () => {
+  it('keeps merged final and never lets a late edited replace a close', async () => {
     const store = await tempStore();
     const pr = 'https://github.com/example-org/shop/pull/8';
     const run = await store.recordRun({ task: makeTask(), record: makeRecord({ pr }) });
+    const verdictAfter = async (verdict: 'merged' | 'closed' | 'edited') =>
+      (await store.recordVerdict(pr, verdict))?.record.humanVerdict;
 
-    await store.recordVerdict(pr, 'edited');
-    await store.recordVerdict(pr, 'merged');
-    await store.recordVerdict(pr, 'edited');
-
+    expect(await verdictAfter('edited')).toBe('edited');
+    expect(await verdictAfter('closed')).toBe('closed');
+    expect(await verdictAfter('edited')).toBe('closed');
+    expect(await verdictAfter('merged')).toBe('merged');
+    // A redelivered close from before the reopen and merge.
+    expect(await verdictAfter('closed')).toBe('merged');
     expect((await store.getRun(run.id))?.record.humanVerdict).toBe('merged');
   });
 

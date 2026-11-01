@@ -46,12 +46,13 @@ function summarise({ task, record }: StoredRun): string {
     (outcome === 'not-affected'
       ? `Not affected by "${task.change.title}"; no reasoning was recorded.`
       : `Nothing changed for "${task.change.title}", and no reason was recorded.`);
-  const line = said
+  // The dashboard is a page people share, so secrets never reach it, even inside an error message.
+  // Redacted before it is cut down, since a secret split by truncation or rewrapping no longer matches.
+  const line = redactSecrets(said)
     .replace(/^[\s#>*-]+/, '')
     .replace(/\s+/g, ' ')
     .trim();
   const short =
     line.length > MAX_SUMMARY_CHARS ? `${line.slice(0, MAX_SUMMARY_CHARS - 1).trimEnd()}…` : line;
-  // The dashboard is a page people share, so secrets never reach it, even inside an error message.
-  return redactSecrets(humanVerdict ? `${short} ${VERDICTS[humanVerdict]}` : short);
+  return humanVerdict ? `${short} ${VERDICTS[humanVerdict]}` : short;
 }

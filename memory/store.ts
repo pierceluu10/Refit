@@ -16,8 +16,9 @@ export interface MemoryStore {
   saveRun(run: StoredRun): Promise<void>;
   getRun(id: string): Promise<StoredRun | undefined>;
   listRuns(): Promise<StoredRun[]>;
-  // Matches by run id or by PR URL, since the GitHub App only knows the PR. A late 'edited' never
-  // replaces 'merged' or 'closed': GitHub can deliver a push's event after the PR's close.
+  // Matches by run id or by PR URL, since the GitHub App only knows the PR. 'merged' is final, since a
+  // merged PR can't be reopened, and a late 'edited' never replaces 'closed': GitHub can deliver an
+  // event after a later one, and a redelivery can replay an old one.
   recordVerdict(runIdOrPr: string, verdict: HumanVerdict): Promise<StoredRun | undefined>;
 
   saveRecipe(recipe: MemoryRecipe): Promise<void>;
@@ -86,8 +87,8 @@ export class JsonMemoryStore implements MemoryStore {
         .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))
         .at(-1);
     if (!run) return undefined;
-    const final = run.record.humanVerdict === 'merged' || run.record.humanVerdict === 'closed';
-    if (verdict === 'edited' && final) return run;
+    const current = run.record.humanVerdict;
+    if (current === 'merged' || (current === 'closed' && verdict === 'edited')) return run;
     run.record = { ...run.record, humanVerdict: verdict };
     await this.write('runs', run.id, run);
     return run;

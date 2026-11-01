@@ -74,6 +74,10 @@ export async function extractRecipe(
 
   const now = (deps.now?.() ?? new Date()).toISOString();
   const prompt = buildPrompt(run, existing);
+  // Onto a fresh read of the run: a verdict can arrive while the model works.
+  // shortcut: one landing between this read and write is still lost; a store with row locks closes it.
+  const mark = async (extraction: StoredRun['extraction']) =>
+    deps.store.saveRun({ ...((await deps.store.getRun(run.id)) ?? run), extraction });
 
   let result: Extraction | Lesson;
   try {
@@ -90,10 +94,7 @@ export async function extractRecipe(
         );
   } catch (error) {
     // Save nothing that could mislead later prompts; mark the run so it can be re-extracted.
-    await deps.store.saveRun({
-      ...run,
-      extraction: { status: 'failed', reason: String(error), at: now },
-    });
+    await mark({ status: 'failed', reason: String(error), at: now });
     throw error;
   }
   const { sameAsRecipeId, ...rest } = result;
@@ -128,14 +129,11 @@ export async function extractRecipe(
     };
   }
   if (recipe) await deps.store.saveRecipe(recipe);
-  await deps.store.saveRun({
-    ...run,
-    extraction: {
-      status: 'done',
-      mode: success ? 'recipe' : 'pitfalls',
-      ...(recipe && { recipeId: recipe.id }),
-      at: now,
-    },
+  await mark({
+    status: 'done',
+    mode: success ? 'recipe' : 'pitfalls',
+    ...(recipe && { recipeId: recipe.id }),
+    at: now,
   });
   return recipe;
 }

@@ -1,7 +1,7 @@
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { LocalEmbedder, type JsonRequest, type Model } from './ai.ts';
 import { makeRecord, makeTask } from './fixtures/tasks.ts';
 import { createRetriever, learnFromRun, recordVerdict, renderMemoryForPrompt } from './index.ts';
@@ -50,13 +50,18 @@ describe('learnFromRun end to end', () => {
     expect(retrieved.map((r) => r.id)).toEqual([recipe.id]);
     expect(renderMemoryForPrompt(retrieved)).toContain('Skill: move Stripe Charges');
 
-    const failed = { task: makeTask(), usedRecipeIds: [recipe.id], transcript: '' };
-    await learnFromRun({ ...failed, record: makeRecord({ outcome: 'failed' }) }, deps);
-    const pr = 'https://github.com/example-org/e/pull/1';
-    await learnFromRun({ ...failed, record: makeRecord({ outcome: 'needs-review', pr }) }, deps);
+    const used = { task: makeTask(), usedRecipeIds: [recipe.id], transcript: '' };
+    const [first, second] = ['e', 'f'].map(
+      (repo) => `https://github.com/example-org/${repo}/pull/1`,
+    );
+    await learnFromRun({ ...used, record: makeRecord({ outcome: 'failed' }) }, deps);
+    for (const pr of [first, second]) {
+      await learnFromRun({ ...used, record: makeRecord({ outcome: 'needs-review', pr }) }, deps);
+    }
+    await recordVerdict(first, 'closed', deps);
     expect((await store.getRecipe(recipe.id))?.skill?.status).toBe('active');
 
-    const verdict = await recordVerdict(pr, 'closed', deps);
+    const verdict = await recordVerdict(second, 'closed', deps);
     expect(verdict?.demoted.map((r) => r.id)).toEqual([recipe.id]);
     expect(await store.getRecipe(recipe.id)).toBeDefined();
   });
@@ -170,7 +175,7 @@ describe('recordVerdict', () => {
     expect(recipe?.failedRunIds).toHaveLength(1);
     expect(recipe?.repos).toEqual(['example-org/a']);
     expect(renderMemoryForPrompt([recipe!])).toContain(
-      'verified on 1 repos; 1 later run that used it failed or had the PR closed by a human',
+      'verified on 1 repos; 1 later PR that used it closed by a human without merging',
     );
   });
 
@@ -212,6 +217,35 @@ describe('recordVerdict', () => {
     expect(late?.run.record.humanVerdict).toBe('closed');
     expect(late?.recipe).toBeUndefined();
     expect(await store.listRecipes()).toEqual([]);
+  });
+
+  it('writes a verdict at once, even while learning is busy', async () => {
+    const { store, deps } = await setup();
+    const pr = prFor('example-org/shop');
+    const { run } = await learnFromRun(
+      { task: makeTask(), record: makeRecord({ outcome: 'needs-review', pr }), transcript: '' },
+      { store, embedder: deps.embedder },
+    );
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const slow: Model = {
+      async json<T>(request: JsonRequest) {
+        await gate;
+        return fakeModel(store).json<T>(request);
+      },
+    };
+    const busy = learnFromRun(
+      { task: makeTask({ repo: 'example-org/a' }), record: makeRecord(), transcript: 'ok' },
+      { ...deps, model: slow },
+    );
+
+    const verdict = recordVerdict(pr, 'merged', deps);
+    await vi.waitFor(async () =>
+      expect((await store.getRun(run.id))?.record.humanVerdict).toBe('merged'),
+    );
+
+    release();
+    await Promise.all([busy, verdict]);
   });
 
   it('returns undefined for a PR memory never stored', async () => {

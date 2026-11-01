@@ -77,6 +77,26 @@ describe('selfeval command', () => {
     );
   });
 
+  it('stops the reruns when a harness throws, since what it spent is unknown', async () => {
+    const { made, runTask } = await parts();
+    runTask.mockRejectedValueOnce(new Error('sandbox crashed'));
+
+    expect(await main([], () => made)).toBe(0);
+
+    expect(runTask).toHaveBeenCalledTimes(1);
+    expect(print.mock.calls.flat().join('\n')).toContain(
+      'Stopped before 2 of 2 tasks: the rerun of task-a threw, so what it spent is unknown: sandbox crashed',
+    );
+  });
+
+  it('forces the Docker sandbox for the real parts', async () => {
+    vi.stubEnv('APTITUDE_SANDBOX', 'local');
+    vi.stubEnv('APTITUDE_AI_BUDGET_USD', '');
+
+    expect(await main([])).toBe(2);
+    expect(process.env.APTITUDE_SANDBOX).toBe('docker');
+  });
+
   it('refuses to measure anything without a model', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', '');
     const make = vi.fn();
@@ -86,6 +106,7 @@ describe('selfeval command', () => {
   });
 
   it('refuses to spend without APTITUDE_AI_BUDGET_USD', async () => {
+    vi.stubEnv('APTITUDE_SANDBOX', '');
     vi.stubEnv('APTITUDE_AI_BUDGET_USD', '');
     expect(await main([])).toBe(2);
   });

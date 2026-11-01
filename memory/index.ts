@@ -40,6 +40,7 @@ type Learned = {
 
 // Learning reads recipes, may ask the model, then writes them back, while runs and verdicts arrive at
 // once (parallel tasks, org runs, webhook deliveries). One at a time, so no write loses another's count.
+// Runs and verdicts themselves are written before they queue, so a restart loses neither.
 // shortcut: per process only; give the store row locks (Postgres) before two processes share it.
 let learning: Promise<unknown> = Promise.resolve();
 function oneAtATime<T>(task: () => Promise<T>): Promise<T> {
@@ -60,8 +61,11 @@ export async function learnFromRun(
   },
   deps: MemoryDeps = defaultMemory(),
 ): Promise<Learned> {
+  // Stored before it waits its turn, so a restart while it waits loses nothing.
+  const recorded = await deps.store.recordRun(input);
   return oneAtATime(async () => {
-    const run = await deps.store.recordRun(input);
+    // Read again: a verdict may have reached the run while it waited.
+    const run = (await deps.store.getRun(recorded.id)) ?? recorded;
     return learn(run, await recordRecipeOutcome(run, deps), deps);
   });
 }
@@ -75,9 +79,10 @@ export async function recordVerdict(
   verdict: HumanVerdict,
   deps: MemoryDeps = defaultMemory(),
 ): Promise<Learned | undefined> {
+  const recorded = await deps.store.recordVerdict(runIdOrPr, verdict);
+  if (!recorded) return undefined;
   return oneAtATime(async () => {
-    const run = await deps.store.recordVerdict(runIdOrPr, verdict);
-    if (!run) return undefined;
+    const run = (await deps.store.getRun(recorded.id)) ?? recorded;
     const demoted = await recordRecipeOutcome(run, deps);
     const distilled = run.extraction?.status === 'done' && run.extraction.mode === 'recipe';
     return learn(run, demoted, deps, succeeded(run.record) && !distilled);

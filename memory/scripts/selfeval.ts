@@ -3,9 +3,10 @@
 // Reruns the fixed set of stored tasks through the loop's own task path (today's memory, the harness,
 // the provider tool packs) and prints whether the verified rate moved. Reruns open no PR and are not
 // recorded as runs; the report is saved with the store's self-evals.
+import { execFile } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { parseArgs } from 'node:util';
+import { parseArgs, promisify } from 'node:util';
 import { gitCheckout } from '../../evals/runner/checkout.ts';
 import type { CheckoutRepo } from '../../evals/runner/types.ts';
 import { createBudget, type Budget } from '../../orchestrator/budget.ts';
@@ -28,8 +29,13 @@ export type SelfEvalParts = {
 
 // The real parts: the store APTITUDE_MEMORY_DIR names, a run budget (createBudget refuses to build
 // one without APTITUDE_AI_BUDGET_USD) and the loop's runTask, which picks recipes from that store.
-function realParts(): SelfEvalParts {
+async function realParts(): Promise<SelfEvalParts> {
+  // Reruns run stored repos' code, so in Docker only, never the harness's fallback to this host.
+  process.env.APTITUDE_SANDBOX = 'docker';
   const budget = createBudget();
+  await promisify(execFile)('docker', ['info'], { timeout: 20_000 }).catch(() => {
+    throw new Error('start Docker first: reruns run repo code, and only in a Docker sandbox');
+  });
   return {
     store: defaultMemory().store,
     budget,
@@ -42,7 +48,7 @@ const message = (error: unknown) => (error instanceof Error ? error.message : St
 
 export async function main(
   argv: string[],
-  parts: () => SelfEvalParts = realParts,
+  parts: () => SelfEvalParts | Promise<SelfEvalParts> = realParts,
 ): Promise<number> {
   let size: number;
   try {
@@ -63,7 +69,7 @@ export async function main(
   }
   let made: SelfEvalParts;
   try {
-    made = parts();
+    made = await parts();
   } catch (error) {
     console.error(`selfeval: ${message(error)}`);
     return 2;
@@ -89,8 +95,16 @@ export async function main(
       // Everything the rerun spent, memory's recipe pick included, not only the harness's share.
       runTask: async (task, dir) => {
         const before = budget.spentUsd();
-        const record = await runTask(task, dir);
-        return { ...record, costUsd: budget.spentUsd() - before };
+        try {
+          const record = await runTask(task, dir);
+          return { ...record, costUsd: budget.spentUsd() - before };
+        } catch (error) {
+          // shortcut: a harness that throws may have spent without charging the budget, so the reruns
+          // stop to keep the cap; drop this once the harness charges every call live (chargeRun).
+          throw new BudgetExceededError(
+            `the rerun of ${task.id} threw, so what it spent is unknown: ${message(error)}`,
+          );
+        }
       },
     });
     console.log(format(report, budget));

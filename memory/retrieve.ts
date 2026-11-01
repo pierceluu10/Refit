@@ -153,7 +153,7 @@ export function createRetriever(deps: {
 function track(recipe: MemoryRecipe): string {
   const failed = recipe.failedRunIds?.length ?? 0;
   const against = failed
-    ? `; ${failed} later run${failed === 1 ? '' : 's'} that used it failed or had the PR closed by a human`
+    ? `; ${failed} later PR${failed === 1 ? '' : 's'} that used it closed by a human without merging`
     : '';
   return `verified on ${recipe.verifiedRepos} repos${against}`;
 }
