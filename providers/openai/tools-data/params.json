@@ -1,0 +1,1028 @@
+{
+  "source": "https://github.com/openai/openai-openapi/blob/main/openapi.json",
+  "liveUrl": "https://raw.githubusercontent.com/openai/openai-openapi/main/openapi.json",
+  "specVersion": "2.3.0",
+  "retrieved": "2026-11-01",
+  "sourceNote": "Top-level request-body properties of POST operations, resolved through $ref/allOf. \"d\" is the first sentence of the spec description; \"deprecated\" means the spec marks the property deprecated; \"mentionsDeprecated\" means the description text mentions deprecation.",
+  "endpoints": {
+    "/chat/completions": {
+      "operationId": "createChatCompletion",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create chat completion",
+      "required": ["messages", "model"],
+      "params": {
+        "metadata": {
+          "d": "Set of 16 key-value pairs that can be attached to an object."
+        },
+        "top_logprobs": {
+          "d": "An integer between 0 and 20 specifying the maximum number of most likely tokens to return at each token position, each with an associated log probability."
+        },
+        "temperature": {
+          "d": "What sampling temperature to use, between 0 and 2."
+        },
+        "top_p": {
+          "d": "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass."
+        },
+        "user": {
+          "d": "This field is being replaced by `safety_identifier` and `prompt_cache_key`.",
+          "deprecated": true,
+          "note": "This field is being replaced by `safety_identifier` and `prompt_cache_key`. Use `prompt_cache_key` instead to maintain caching optimizations. A stable identifier for your end-users. Used to boost cache hit rates by better bucketing similar requests and to help OpenAI detect and prevent abuse. [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#implement-safety-identifi"
+        },
+        "safety_identifier": {
+          "d": "A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies."
+        },
+        "prompt_cache_key": {
+          "d": "Used by OpenAI to cache responses for similar requests to optimize your cache hit rates."
+        },
+        "prompt_cache_retention": {
+          "d": "Deprecated.",
+          "deprecated": true,
+          "note": "Deprecated. Use `prompt_cache_options.ttl` instead. The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](https://developers.openai.com/api/docs/guides/prompt-caching#prompt-cache-retention). This field expresses a maximum retention policy, while `prompt_cache_options.ttl` "
+        },
+        "prompt_cache_options": {
+          "d": "Options for prompt caching."
+        },
+        "messages": {
+          "d": "A list of messages comprising the conversation so far."
+        },
+        "model": {
+          "d": "Model ID used to generate the response, like `gpt-6-astra` or `o3`."
+        },
+        "service_tier": {
+          "d": "Specifies the processing type used for serving the request."
+        },
+        "modalities": {
+          "d": "Output types that you would like the model to generate."
+        },
+        "verbosity": {
+          "d": "Constrains the verbosity of the model's response."
+        },
+        "reasoning_effort": {
+          "d": "Constrains effort on reasoning for reasoning models."
+        },
+        "max_completion_tokens": {
+          "d": "An upper bound for the number of tokens that can be generated for a completion, including visible output tokens and reasoning tokens."
+        },
+        "frequency_penalty": {
+          "d": "Number between -2.0 and 2.0."
+        },
+        "presence_penalty": {
+          "d": "Number between -2.0 and 2.0."
+        },
+        "web_search_options": {
+          "d": "This tool searches the web for relevant results to use in a response."
+        },
+        "response_format": {
+          "d": "An object specifying the format that the model must output."
+        },
+        "audio": {
+          "d": "Parameters for audio output."
+        },
+        "store": {
+          "d": "Whether or not to store the output of this chat completion request for use in our model distillation or evals products."
+        },
+        "moderation": {
+          "d": "Configuration for running moderation on the input and output of this response."
+        },
+        "stream": {
+          "d": "If set to true, the model response data will be streamed to the client as it is generated using server-sent events."
+        },
+        "stop": {
+          "d": "Not supported with latest reasoning models `o3` and `o4-mini`."
+        },
+        "logit_bias": {
+          "d": "Modify the likelihood of specified tokens appearing in the completion."
+        },
+        "logprobs": {
+          "d": "Whether to return log probabilities of the output tokens or not."
+        },
+        "max_tokens": {
+          "d": "The maximum number of tokens that can be generated in the chat completion.",
+          "deprecated": true,
+          "note": "The maximum number of [tokens](https://platform.openai.com/tokenizer) that can be generated in the chat completion. This value can be used to control [costs](https://openai.com/api/pricing/) for text generated via API. This value is now deprecated in favor of `max_completion_tokens`, and is not compatible with [o-series models](https://developers.openai.com/api/docs/guides/reasoning)."
+        },
+        "n": {
+          "d": "How many chat completion choices to generate for each input message."
+        },
+        "prediction": {
+          "d": "Configuration for a Predicted Output, which can greatly improve response times when large parts of the model response are known ahead of time."
+        },
+        "seed": {
+          "d": "This feature is in Beta.",
+          "deprecated": true,
+          "note": "This feature is in Beta. If specified, our system will make a best effort to sample deterministically, such that repeated requests with the same `seed` and parameters should return the same result. Determinism is not guaranteed, and you should refer to the `system_fingerprint` response parameter to monitor changes in the backend."
+        },
+        "stream_options": {
+          "d": "Options for streaming response."
+        },
+        "tools": {
+          "d": "A list of tools the model may call."
+        },
+        "tool_choice": {
+          "d": "Controls which (if any) tool is called by the model."
+        },
+        "parallel_tool_calls": {
+          "d": "Whether to enable parallel function calling during tool use."
+        },
+        "function_call": {
+          "d": "Deprecated in favor of `tool_choice`.",
+          "deprecated": true,
+          "note": "Deprecated in favor of `tool_choice`. Controls which (if any) function is called by the model. `none` means the model will not call a function and instead generates a message. `auto` means the model can pick between generating a message or calling a function. Specifying a particular function via `{\"name\": \"my_function\"}` forces the model to call that function. `none` is the default when no functio"
+        },
+        "functions": {
+          "d": "Deprecated in favor of `tools`.",
+          "deprecated": true,
+          "note": "Deprecated in favor of `tools`. A list of functions the model may generate JSON inputs for."
+        }
+      }
+    },
+    "/responses": {
+      "operationId": "createResponse",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create a model response",
+      "required": [],
+      "params": {
+        "metadata": {
+          "d": "Set of 16 key-value pairs that can be attached to an object."
+        },
+        "top_logprobs": {
+          "d": "An integer between 0 and 20 specifying the maximum number of most likely tokens to return at each token position, each with an associated log probability."
+        },
+        "temperature": {
+          "d": "What sampling temperature to use, between 0 and 2."
+        },
+        "top_p": {
+          "d": "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass."
+        },
+        "user": {
+          "d": "This field is being replaced by `safety_identifier` and `prompt_cache_key`.",
+          "deprecated": true,
+          "note": "This field is being replaced by `safety_identifier` and `prompt_cache_key`. Use `prompt_cache_key` instead to maintain caching optimizations. A stable identifier for your end-users. Used to boost cache hit rates by better bucketing similar requests and to help OpenAI detect and prevent abuse. [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#implement-safety-identifi"
+        },
+        "safety_identifier": {
+          "d": "A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies."
+        },
+        "prompt_cache_key": {
+          "d": "Used by OpenAI to cache responses for similar requests to optimize your cache hit rates."
+        },
+        "prompt_cache_retention": {
+          "d": "Deprecated.",
+          "deprecated": true,
+          "note": "Deprecated. Use `prompt_cache_options.ttl` instead. The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](https://developers.openai.com/api/docs/guides/prompt-caching#prompt-cache-retention). This field expresses a maximum retention policy, while `prompt_cache_options.ttl` "
+        },
+        "prompt_cache_options": {
+          "d": "Options for prompt caching."
+        },
+        "previous_response_id": {
+          "d": "The unique ID of the previous response to the model."
+        },
+        "model": {
+          "d": "Model ID used to generate the response, like `gpt-6-astra`."
+        },
+        "background": {
+          "d": "Whether to run the model response in the background."
+        },
+        "max_tool_calls": {
+          "d": "The maximum number of total calls to built-in tools that can be processed in a response."
+        },
+        "text": {
+          "d": "Configuration options for a text response from the model."
+        },
+        "tools": {
+          "d": "An array of tools the model may call while generating a response."
+        },
+        "tool_choice": {
+          "d": "How the model should select which tool (or tools) to use when generating a response."
+        },
+        "prompt": {
+          "d": "Reference to a prompt template and its variables."
+        },
+        "access_programs": {
+          "d": "Domain-specific access programs to use for this request."
+        },
+        "service_tier": {
+          "d": "Specifies the processing type used for serving the request."
+        },
+        "truncation": {
+          "d": "The truncation strategy to use for the model response.",
+          "deprecated": true,
+          "note": "The truncation strategy to use for the model response. - `auto`: If the input to this Response exceeds the model's context window size, the model will truncate the response to fit the context window by dropping items from the beginning of the conversation. - `disabled` (default): If the input size will exceed the context window size for a model, the request will fail with a 400 error."
+        },
+        "reasoning": {
+          "d": "Configuration options for reasoning models."
+        },
+        "input": {
+          "d": "Text, image, or file inputs to the model, used to generate a response."
+        },
+        "include": {
+          "d": "Specify additional output data to include in the model response."
+        },
+        "parallel_tool_calls": {
+          "d": "Whether to allow the model to run tool calls in parallel."
+        },
+        "store": {
+          "d": "Whether to store the generated model response for later retrieval via API."
+        },
+        "instructions": {
+          "d": "A system (or developer) message inserted into the model's context."
+        },
+        "moderation": {
+          "d": "Configuration for running moderation on the input and output of this response."
+        },
+        "stream": {
+          "d": "If set to true, the model response data will be streamed to the client as it is generated using server-sent events."
+        },
+        "stream_options": {
+          "d": "Options for streaming responses."
+        },
+        "conversation": {
+          "d": "The conversation that this response belongs to."
+        },
+        "context_management": {
+          "d": "Context management configuration for this request."
+        },
+        "max_output_tokens": {
+          "d": "An upper bound for the number of tokens that can be generated for a response, including visible output tokens and reasoning tokens."
+        }
+      }
+    },
+    "/embeddings": {
+      "operationId": "createEmbedding",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create embeddings",
+      "required": ["input", "model"],
+      "params": {
+        "input": {
+          "d": "Input text to embed, encoded as a string or array of tokens."
+        },
+        "model": {
+          "d": "ID of the model to use."
+        },
+        "encoding_format": {
+          "d": "The format to return the embeddings in."
+        },
+        "dimensions": {
+          "d": "The number of dimensions the resulting output embeddings should have."
+        },
+        "user": {
+          "d": "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse."
+        }
+      }
+    },
+    "/images/generations": {
+      "operationId": "createImage",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create image",
+      "required": ["model", "prompt"],
+      "params": {
+        "prompt": {
+          "d": "A text description of the desired image(s)."
+        },
+        "model": {
+          "d": "The GPT image model to use for image generation."
+        },
+        "n": {
+          "d": "The number of images to generate."
+        },
+        "quality": {
+          "d": "The quality of the image that will be generated."
+        },
+        "response_format": {
+          "d": "Legacy response format parameter for retired image models.",
+          "deprecated": true,
+          "note": "Legacy response format parameter for retired image models. Unsupported for GPT image models, which always return base64-encoded images."
+        },
+        "output_format": {
+          "d": "The format in which the generated images are returned."
+        },
+        "output_compression": {
+          "d": "The compression level (0-100%) for the generated images."
+        },
+        "stream": {
+          "d": "Generate the image in streaming mode."
+        },
+        "partial_images": {
+          "d": "The number of partial images to generate."
+        },
+        "size": {
+          "d": "The size of the generated images."
+        },
+        "moderation": {
+          "d": "Control the content-moderation level for images generated by the GPT image models."
+        },
+        "background": {
+          "d": "Set the background of the generated image(s)."
+        },
+        "style": {
+          "d": "Legacy style parameter for retired image models.",
+          "deprecated": true,
+          "note": "Legacy style parameter for retired image models. Unsupported for GPT image models; describe the desired style in the prompt instead."
+        },
+        "safety_identifier": {
+          "d": "A stable identifier for an end user in your organization, used for safety monitoring and abuse detection.",
+          "mentionsDeprecated": "A stable identifier for an end user in your organization, used for safety monitoring and abuse detection. Hash a username or email address to avoid sending identifying information. A non-empty value takes precedence over the deprecated `user` parameter. If omitted, null, or empty, the API uses `user` when available. [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#i"
+        },
+        "user": {
+          "d": "Deprecated: use `safety_identifier` instead.",
+          "deprecated": true,
+          "note": "Deprecated: use `safety_identifier` instead. This parameter remains accepted for backward compatibility and is used when `safety_identifier` is omitted, null, or empty. [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#implement-safety-identifiers)."
+        }
+      }
+    },
+    "/images/edits": {
+      "operationId": "createImageEdit",
+      "contentType": "multipart/form-data",
+      "deprecated": false,
+      "summary": "Create image edit",
+      "required": ["image", "model", "prompt"],
+      "params": {
+        "image": {
+          "d": "The image(s) to edit."
+        },
+        "prompt": {
+          "d": "A text description of the desired image(s)."
+        },
+        "mask": {
+          "d": "An additional image whose fully transparent areas (e.g."
+        },
+        "markup": {
+          "d": "A transparent PNG overlaid on the first image to guide the edit."
+        },
+        "background": {
+          "d": "Set the background of the generated image(s)."
+        },
+        "model": {
+          "d": "The GPT image model to use for image editing (`gpt-image-1-mini`, `gpt-image-1.5`, `gpt-image-2`, `gpt-image-2-2026-04-21`, `gpt-image-2.5-sunburst`, `gpt-image"
+        },
+        "n": {
+          "d": "The number of images to generate."
+        },
+        "size": {
+          "d": "The size of the generated images."
+        },
+        "response_format": {
+          "d": "Legacy response format parameter for retired image models.",
+          "deprecated": true,
+          "note": "Legacy response format parameter for retired image models. Unsupported for GPT image models, which always return base64-encoded images."
+        },
+        "output_format": {
+          "d": "The format in which the generated images are returned."
+        },
+        "output_compression": {
+          "d": "The compression level (0-100%) for the generated images."
+        },
+        "safety_identifier": {
+          "d": "A stable identifier for an end user in your organization, used for safety monitoring and abuse detection.",
+          "mentionsDeprecated": "A stable identifier for an end user in your organization, used for safety monitoring and abuse detection. Hash a username or email address to avoid sending identifying information. A non-empty value takes precedence over the deprecated `user` parameter. If omitted, null, or empty, the API uses `user` when available. [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#i"
+        },
+        "user": {
+          "d": "Deprecated: use `safety_identifier` instead.",
+          "deprecated": true,
+          "note": "Deprecated: use `safety_identifier` instead. This parameter remains accepted for backward compatibility and is used when `safety_identifier` is omitted, null, or empty. [Learn more](https://developers.openai.com/api/docs/guides/safety-best-practices#implement-safety-identifiers)."
+        },
+        "input_fidelity": {
+          "d": "Control how much effort the model will exert to match the style and features, especially facial features, of input images."
+        },
+        "stream": {
+          "d": "Edit the image in streaming mode."
+        },
+        "partial_images": {
+          "d": "The number of partial images to generate."
+        },
+        "quality": {
+          "d": "The quality of the image that will be generated for GPT image models."
+        }
+      }
+    },
+    "/images/variations": {
+      "operationId": "createImageVariation",
+      "contentType": "multipart/form-data",
+      "deprecated": true,
+      "summary": "Create image variation",
+      "required": ["image"],
+      "params": {
+        "image": {
+          "d": "The image to use as the basis for the variation(s)."
+        },
+        "model": {
+          "d": "The legacy model used by the retired image variations endpoint."
+        },
+        "n": {
+          "d": "The number of images to generate."
+        },
+        "response_format": {
+          "d": "The format in which the generated images are returned."
+        },
+        "size": {
+          "d": "The size of the generated images."
+        },
+        "user": {
+          "d": "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse."
+        }
+      }
+    },
+    "/audio/transcriptions": {
+      "operationId": "createTranscription",
+      "contentType": "multipart/form-data",
+      "deprecated": false,
+      "summary": "Create transcription",
+      "required": ["file", "model"],
+      "params": {
+        "file": {
+          "d": "The audio file object (not file name) to transcribe, in one of these formats: flac, mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm."
+        },
+        "model": {
+          "d": "ID of the model to use."
+        },
+        "language": {
+          "d": "The language of the input audio."
+        },
+        "languages": {
+          "d": "Possible languages of the input audio, in ISO-639-1 format."
+        },
+        "keywords": {
+          "d": "Words or phrases to guide transcription of the input audio."
+        },
+        "prompt": {
+          "d": "An optional text to guide the model's style or continue a previous audio segment."
+        },
+        "response_format": {
+          "d": "The format of the output, in one of these options: `json`, `text`, `srt`, `verbose_json`, `vtt`, or `diarized_json`."
+        },
+        "temperature": {
+          "d": "The sampling temperature, between 0 and 1."
+        },
+        "include": {
+          "d": "Additional information to include in the transcription response."
+        },
+        "timestamp_granularities": {
+          "d": "The timestamp granularities to populate for this transcription."
+        },
+        "stream": {
+          "d": "If set to true, the model response data will be streamed to the client as it is generated using server-sent events."
+        },
+        "chunking_strategy": {
+          "d": "Controls how the audio is cut into chunks."
+        },
+        "known_speaker_names": {
+          "d": "Optional list of speaker names that correspond to the audio samples provided in `known_speaker_references[]`."
+        },
+        "known_speaker_references": {
+          "d": "Optional list of audio samples (as data URLs) that contain known speaker references matching `known_speaker_names[]`."
+        }
+      }
+    },
+    "/audio/translations": {
+      "operationId": "createTranslation",
+      "contentType": "multipart/form-data",
+      "deprecated": true,
+      "summary": "Create translation",
+      "required": ["file", "model"],
+      "params": {
+        "file": {
+          "d": "The audio file object (not file name) translate, in one of these formats: flac, mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm."
+        },
+        "model": {
+          "d": "ID of the model to use."
+        },
+        "prompt": {
+          "d": "An optional text to guide the model's style or continue a previous audio segment."
+        },
+        "response_format": {
+          "d": "The format of the output, in one of these options: `json`, `text`, `srt`, `verbose_json`, or `vtt`."
+        },
+        "temperature": {
+          "d": "The sampling temperature, between 0 and 1."
+        }
+      }
+    },
+    "/audio/speech": {
+      "operationId": "createSpeech",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create speech",
+      "required": ["input", "model", "voice"],
+      "params": {
+        "model": {
+          "d": "One of the available TTS models: `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`, or `gpt-4o-mini-tts-2025-12-15`."
+        },
+        "input": {
+          "d": "The text to generate audio for."
+        },
+        "instructions": {
+          "d": "Control the voice of your generated audio with additional instructions."
+        },
+        "voice": {
+          "d": "The voice to use when generating the audio."
+        },
+        "response_format": {
+          "d": "The format to audio in."
+        },
+        "speed": {
+          "d": "The speed of the generated audio."
+        },
+        "stream_format": {
+          "d": "The format to stream the audio in."
+        }
+      }
+    },
+    "/completions": {
+      "operationId": "createCompletion",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create completion",
+      "required": ["model", "prompt"],
+      "params": {
+        "model": {
+          "d": "ID of the model to use."
+        },
+        "prompt": {
+          "d": "The prompt(s) to generate completions for, encoded as a string, array of strings, array of tokens, or array of token arrays."
+        },
+        "best_of": {
+          "d": "Generates `best_of` completions server-side and returns the \"best\" (the one with the highest log probability per token)."
+        },
+        "echo": {
+          "d": "Echo back the prompt in addition to the completion"
+        },
+        "frequency_penalty": {
+          "d": "Number between -2.0 and 2.0."
+        },
+        "logit_bias": {
+          "d": "Modify the likelihood of specified tokens appearing in the completion."
+        },
+        "logprobs": {
+          "d": "Include the log probabilities on the `logprobs` most likely output tokens, as well the chosen tokens."
+        },
+        "max_tokens": {
+          "d": "The maximum number of tokens that can be generated in the completion."
+        },
+        "n": {
+          "d": "How many completions to generate for each prompt."
+        },
+        "presence_penalty": {
+          "d": "Number between -2.0 and 2.0."
+        },
+        "seed": {
+          "d": "If specified, our system will make a best effort to sample deterministically, such that repeated requests with the same `seed` and parameters should return the "
+        },
+        "stop": {
+          "d": "Not supported with latest reasoning models `o3` and `o4-mini`."
+        },
+        "stream": {
+          "d": "Whether to stream back partial progress."
+        },
+        "stream_options": {
+          "d": "Options for streaming response."
+        },
+        "suffix": {
+          "d": "The suffix that comes after a completion of inserted text."
+        },
+        "temperature": {
+          "d": "What sampling temperature to use, between 0 and 2."
+        },
+        "top_p": {
+          "d": "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass."
+        },
+        "user": {
+          "d": "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse."
+        }
+      }
+    },
+    "/assistants": {
+      "operationId": "createAssistant",
+      "contentType": "application/json",
+      "deprecated": true,
+      "summary": "Create assistant",
+      "required": ["model"],
+      "params": {
+        "model": {
+          "d": "ID of the model to use."
+        },
+        "name": {
+          "d": "The name of the assistant."
+        },
+        "description": {
+          "d": "The description of the assistant."
+        },
+        "instructions": {
+          "d": "The system instructions that the assistant uses."
+        },
+        "reasoning_effort": {
+          "d": "Constrains effort on reasoning for reasoning models."
+        },
+        "tools": {
+          "d": "A list of tool enabled on the assistant."
+        },
+        "tool_resources": {
+          "d": "A set of resources that are used by the assistant's tools."
+        },
+        "metadata": {
+          "d": "Set of 16 key-value pairs that can be attached to an object."
+        },
+        "temperature": {
+          "d": "What sampling temperature to use, between 0 and 2."
+        },
+        "top_p": {
+          "d": "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass."
+        },
+        "response_format": {
+          "d": "Specifies the format that the model must output."
+        }
+      }
+    },
+    "/threads": {
+      "operationId": "createThread",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create thread",
+      "required": [],
+      "params": {
+        "messages": {
+          "d": "A list of messages to start the thread with."
+        },
+        "tool_resources": {
+          "d": "A set of resources that are made available to the assistant's tools in this thread."
+        },
+        "metadata": {
+          "d": "Set of 16 key-value pairs that can be attached to an object."
+        }
+      }
+    },
+    "/threads/runs": {
+      "operationId": "createThreadAndRun",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create thread and run",
+      "required": ["assistant_id"],
+      "params": {
+        "assistant_id": {
+          "d": "The ID of the assistant to use to execute this run."
+        },
+        "thread": {
+          "d": "Options to create a new thread."
+        },
+        "model": {
+          "d": "The ID of the Model to be used to execute this run."
+        },
+        "instructions": {
+          "d": "Override the default system message of the assistant."
+        },
+        "tools": {
+          "d": "Override the tools the assistant can use for this run."
+        },
+        "tool_resources": {
+          "d": "A set of resources that are used by the assistant's tools."
+        },
+        "metadata": {
+          "d": "Set of 16 key-value pairs that can be attached to an object."
+        },
+        "temperature": {
+          "d": "What sampling temperature to use, between 0 and 2."
+        },
+        "top_p": {
+          "d": "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass."
+        },
+        "stream": {
+          "d": "If `true`, returns a stream of events that happen during the Run as server-sent events, terminating when the Run enters a terminal state with a `data: [DONE]` m"
+        },
+        "max_prompt_tokens": {
+          "d": "The maximum number of prompt tokens that may be used over the course of the run."
+        },
+        "max_completion_tokens": {
+          "d": "The maximum number of completion tokens that may be used over the course of the run."
+        },
+        "truncation_strategy": {
+          "d": ""
+        },
+        "tool_choice": {
+          "d": ""
+        },
+        "parallel_tool_calls": {
+          "d": "Whether to enable parallel function calling during tool use."
+        },
+        "response_format": {
+          "d": "Specifies the format that the model must output."
+        }
+      }
+    },
+    "/threads/{thread_id}/runs": {
+      "operationId": "createRun",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create run",
+      "required": ["assistant_id"],
+      "params": {
+        "assistant_id": {
+          "d": "The ID of the assistant to use to execute this run."
+        },
+        "model": {
+          "d": "The ID of the Model to be used to execute this run."
+        },
+        "reasoning_effort": {
+          "d": "Constrains effort on reasoning for reasoning models."
+        },
+        "instructions": {
+          "d": "Overrides the instructions of the assistant."
+        },
+        "additional_instructions": {
+          "d": "Appends additional instructions at the end of the instructions for the run."
+        },
+        "additional_messages": {
+          "d": "Adds additional messages to the thread before creating the run."
+        },
+        "tools": {
+          "d": "Override the tools the assistant can use for this run."
+        },
+        "metadata": {
+          "d": "Set of 16 key-value pairs that can be attached to an object."
+        },
+        "temperature": {
+          "d": "What sampling temperature to use, between 0 and 2."
+        },
+        "top_p": {
+          "d": "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass."
+        },
+        "stream": {
+          "d": "If `true`, returns a stream of events that happen during the Run as server-sent events, terminating when the Run enters a terminal state with a `data: [DONE]` m"
+        },
+        "max_prompt_tokens": {
+          "d": "The maximum number of prompt tokens that may be used over the course of the run."
+        },
+        "max_completion_tokens": {
+          "d": "The maximum number of completion tokens that may be used over the course of the run."
+        },
+        "truncation_strategy": {
+          "d": ""
+        },
+        "tool_choice": {
+          "d": ""
+        },
+        "parallel_tool_calls": {
+          "d": "Whether to enable parallel function calling during tool use."
+        },
+        "response_format": {
+          "d": "Specifies the format that the model must output."
+        }
+      }
+    },
+    "/threads/{thread_id}/messages": {
+      "operationId": "createMessage",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create message",
+      "required": ["content", "role"],
+      "params": {
+        "role": {
+          "d": "The role of the entity that is creating the message."
+        },
+        "content": {
+          "d": "The text contents of the message."
+        },
+        "attachments": {
+          "d": "A list of files attached to the message, and the tools they should be added to."
+        },
+        "metadata": {
+          "d": "Set of 16 key-value pairs that can be attached to an object."
+        }
+      }
+    },
+    "/moderations": {
+      "operationId": "createModeration",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create moderation",
+      "required": ["input"],
+      "params": {
+        "input": {
+          "d": "Input (or inputs) to classify."
+        },
+        "model": {
+          "d": "The content moderation model you would like to use."
+        }
+      }
+    },
+    "/batches": {
+      "operationId": "createBatch",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create batch",
+      "required": ["completion_window", "endpoint", "input_file_id"],
+      "params": {
+        "input_file_id": {
+          "d": "The ID of an uploaded file that contains requests for the new batch."
+        },
+        "endpoint": {
+          "d": "The endpoint to be used for all requests in the batch."
+        },
+        "completion_window": {
+          "d": "The time frame within which the batch should be processed."
+        },
+        "metadata": {
+          "d": "Set of 16 key-value pairs that can be attached to an object."
+        },
+        "output_expires_after": {
+          "d": "The expiration policy for the output and/or error file that are generated for a batch."
+        }
+      }
+    },
+    "/fine_tuning/jobs": {
+      "operationId": "createFineTuningJob",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create fine-tuning job",
+      "required": ["model", "training_file"],
+      "params": {
+        "model": {
+          "d": "The name of the model to fine-tune."
+        },
+        "training_file": {
+          "d": "The ID of an uploaded file that contains training data."
+        },
+        "hyperparameters": {
+          "d": "The hyperparameters used for the fine-tuning job.",
+          "deprecated": true,
+          "note": "The hyperparameters used for the fine-tuning job. This value is now deprecated in favor of `method`, and should be passed in under the `method` parameter."
+        },
+        "suffix": {
+          "d": "A string of up to 64 characters that will be added to your fine-tuned model name."
+        },
+        "validation_file": {
+          "d": "The ID of an uploaded file that contains validation data."
+        },
+        "integrations": {
+          "d": "A list of integrations to enable for your fine-tuning job."
+        },
+        "seed": {
+          "d": "The seed controls the reproducibility of the job."
+        },
+        "method": {
+          "d": "The method used for fine-tuning."
+        },
+        "metadata": {
+          "d": "Set of 16 key-value pairs that can be attached to an object."
+        }
+      }
+    },
+    "/conversations": {
+      "operationId": "createConversation",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create a conversation",
+      "required": [],
+      "params": {
+        "metadata": {
+          "d": ""
+        },
+        "items": {
+          "d": "Initial items to include in the conversation context."
+        }
+      }
+    },
+    "/realtime/client_secrets": {
+      "operationId": "create-realtime-client-secret",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create client secret",
+      "required": [],
+      "params": {
+        "expires_after": {
+          "d": "Configuration for the client secret expiration."
+        },
+        "session": {
+          "d": "Session configuration to use for the client secret."
+        }
+      }
+    },
+    "/vector_stores": {
+      "operationId": "createVectorStore",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create vector store",
+      "required": [],
+      "params": {
+        "file_ids": {
+          "d": "A list of File IDs that the vector store should use."
+        },
+        "name": {
+          "d": "The name of the vector store."
+        },
+        "description": {
+          "d": "A description for the vector store."
+        },
+        "expires_after": {
+          "d": "The expiration policy for a vector store."
+        },
+        "chunking_strategy": {
+          "d": "The chunking strategy used to chunk the file(s)."
+        },
+        "metadata": {
+          "d": "Set of 16 key-value pairs that can be attached to an object."
+        }
+      }
+    },
+    "/files": {
+      "operationId": "createFile",
+      "contentType": "multipart/form-data",
+      "deprecated": false,
+      "summary": "Upload file",
+      "required": ["file", "purpose"],
+      "params": {
+        "file": {
+          "d": "The File object (not file name) to be uploaded."
+        },
+        "purpose": {
+          "d": "The intended purpose of the uploaded file."
+        },
+        "expires_after": {
+          "d": "The expiration policy for a file."
+        }
+      }
+    },
+    "/uploads": {
+      "operationId": "createUpload",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Create upload",
+      "required": ["bytes", "filename", "mime_type", "purpose"],
+      "params": {
+        "filename": {
+          "d": "The name of the file to upload."
+        },
+        "purpose": {
+          "d": "The intended purpose of the uploaded file."
+        },
+        "bytes": {
+          "d": "The number of bytes in the file you are uploading."
+        },
+        "mime_type": {
+          "d": "The MIME type of the file."
+        },
+        "expires_after": {
+          "d": "The expiration policy for a file."
+        }
+      }
+    },
+    "/responses/compact": {
+      "operationId": "Compactconversation",
+      "contentType": "application/json",
+      "deprecated": false,
+      "summary": "Compact conversation",
+      "required": ["model"],
+      "params": {
+        "model": {
+          "d": "Model ID used to generate the response, like `gpt-6-astra`."
+        },
+        "input": {
+          "d": "Text, image, or file inputs to the model, used to generate a response"
+        },
+        "previous_response_id": {
+          "d": "The unique ID of the previous response to the model."
+        },
+        "instructions": {
+          "d": "A system (or developer) message inserted into the model's context."
+        },
+        "prompt_cache_key": {
+          "d": "A key to use when reading from or writing to the prompt cache."
+        },
+        "prompt_cache_retention": {
+          "d": ""
+        },
+        "prompt_cache_options": {
+          "d": "Options for prompt caching."
+        },
+        "service_tier": {
+          "d": ""
+        }
+      }
+    },
+    "/videos": {
+      "operationId": "createVideo",
+      "contentType": "multipart/form-data",
+      "deprecated": true,
+      "summary": "Create a video",
+      "required": ["prompt"],
+      "params": {
+        "model": {
+          "d": "The video generation model to use (allowed values: sora-2, sora-2-pro)."
+        },
+        "prompt": {
+          "d": "Text prompt that describes the video to generate."
+        },
+        "input_reference": {
+          "d": "Optional reference asset upload or reference object that guides generation."
+        },
+        "seconds": {
+          "d": "Clip duration in seconds (allowed values: 4, 8, 12)."
+        },
+        "size": {
+          "d": "Output resolution formatted as width x height (allowed values: 720x1280, 1280x720, 1024x1792, 1792x1024)."
+        }
+      }
+    }
+  }
+}
