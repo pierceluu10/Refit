@@ -690,7 +690,7 @@ interface CheckSandbox {
   packageDirectory?: string;
 }
 
-async function containerCheck({
+export async function containerCheck({
   directory,
   image,
   command: argumentsList,
@@ -801,7 +801,7 @@ async function roomForTwoSandboxes() {
 }
 
 // Archives the committed revision under `root` and extracts it as the baseline directory.
-async function extractSnapshot(repository: string, revision: string, root: string) {
+export async function extractSnapshot(repository: string, revision: string, root: string) {
   const archive = join(root, 'source.tar');
   const sourceBytes = sourceArchiveBytes();
   const archiveResult = await execute(

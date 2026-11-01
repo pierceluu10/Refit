@@ -22,8 +22,12 @@ vi.mock('./dependency-preparation.ts', async (original) => {
     ),
   };
 });
-const { prepareEnvironment, buildRepositoryEnvironment } =
-  await import('./repository-environment.ts');
+const {
+  prepareEnvironment,
+  buildRepositoryEnvironment,
+  fallsBackToRepositoryInstall,
+  installInSandbox,
+} = await import('./repository-environment.ts');
 
 afterEach(async () => {
   vi.unstubAllEnvs();
@@ -82,6 +86,17 @@ it('refuses a repository that commits no install it recognises', async () => {
   const repository = await commit({ 'README.md': '# none\n' });
   await expect(buildRepositoryEnvironment({ repository, image: 'node:22-alpine' })).rejects.toThrow(
     'commits no install Refit recognises',
+  );
+});
+
+it('sends lockfile refusals to the sandbox install, keeping only the archive limit (SC-S2)', async () => {
+  vi.stubEnv('REFIT_REPOSITORY_INSTALL', '1');
+  expect(
+    fallsBackToRepositoryInstall('The repository commits package.json without a lockfile.'),
+  ).toBe(true);
+  const repository = await commit({ 'README.md': '# none\n' });
+  await expect(installInSandbox({ repository, image: 'node:22-alpine' })).rejects.toThrow(
+    'commits no package.json',
   );
 });
 
