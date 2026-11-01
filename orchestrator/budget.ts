@@ -98,22 +98,24 @@ export function createBudget(capUsd = Number(process.env.APTITUDE_AI_BUDGET_USD)
     };
   }
 
-  // Grants every waiter that fits, oldest first. With no hold left open, nothing can free up, so the
-  // waiters that still do not fit are refused.
+  const refusal = (waiter: { label: string; minUsd: number }) =>
+    new BudgetExceededError(
+      `AI budget: $${(capUsd - spent).toFixed(2)} of the $${capUsd} cap left; ${waiter.label} needs $${waiter.minUsd.toFixed(2)}.`,
+    );
+
+  // Grants every waiter that fits, oldest first. Spent only grows, so a waiter whose minimum is more
+  // than the unspent rest of the cap is refused at once. With no hold left open nothing can free up,
+  // so every waiter that still does not fit is refused.
   function wake() {
     for (const waiter of [...waiting]) {
-      if (free() < waiter.minUsd) continue;
+      const fits = free() >= waiter.minUsd;
+      if (!fits && waiter.minUsd <= capUsd - spent + 1e-9) continue;
       waiting.splice(waiting.indexOf(waiter), 1);
-      waiter.resolve(grant(waiter.maxUsd));
+      if (fits) waiter.resolve(grant(waiter.maxUsd));
+      else waiter.reject(refusal(waiter));
     }
     if (open > 0) return;
-    for (const waiter of waiting.splice(0)) {
-      waiter.reject(
-        new BudgetExceededError(
-          `AI budget: $${(capUsd - spent).toFixed(2)} of the $${capUsd} cap left; ${waiter.label} needs $${waiter.minUsd.toFixed(2)}.`,
-        ),
-      );
-    }
+    for (const waiter of waiting.splice(0)) waiter.reject(refusal(waiter));
   }
 
   return {

@@ -123,6 +123,27 @@ describe('runRepoJob', () => {
     expect(recorded).toHaveLength(6);
   });
 
+  it('fails the job when it has errors and no records, instead of reporting nothing', async () => {
+    const { deps } = fakeDeps();
+    deps.inventory = async () => {
+      throw new Error('checkout unreadable');
+    };
+    deps.watchers = {
+      stripe: async () => {
+        throw new Error('changelog unreachable');
+      },
+    };
+    const failure = await createRunRepoJob(deps)({
+      repo: 'acme/shop',
+      dir: '/checkout/acme-shop',
+      openPullRequest: opener(),
+    }).catch((error: Error) => error);
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).toMatch(/^no run records for acme\/shop: /);
+    expect((failure as Error).message).toContain('changelog unreachable');
+    expect((failure as Error).message).toContain('checkout unreadable');
+  });
+
   it('runs offline end to end on the stubs', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', '');
     const dir = await mkdtemp(join(tmpdir(), 'aptitude-job-'));

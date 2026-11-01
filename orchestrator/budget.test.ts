@@ -67,6 +67,14 @@ describe('createBudget', () => {
     await expect(waiting).rejects.toBeInstanceOf(BudgetExceededError);
   });
 
+  it('refuses at once a minimum more than the unspent rest of the cap, even with holds open', async () => {
+    const budget = createBudget(5);
+    (await budget.reserve('first', 2)).settle(2);
+    await budget.reserve('still running', 1);
+    // $3 is unspent and spending only grows, so $3.50 can never be free.
+    await expect(budget.reserve('a task', 5, 3.5)).rejects.toThrow(/a task needs \$3\.50/);
+  });
+
   it('lets a smaller part through while a larger one waits', async () => {
     const budget = createBudget(5);
     const first = await budget.reserve('first', 4);

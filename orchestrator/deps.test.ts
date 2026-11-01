@@ -1,11 +1,12 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdir, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
 import { listProviderIds } from '../providers/core/registry.ts';
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
-import { createBudget } from './budget.ts';
+import { BudgetExceededError, createBudget } from './budget.ts';
 import {
   anyWatcher,
   cachedChanges,
@@ -38,6 +39,23 @@ vi.mock('../harness/index.ts', () => ({
   },
 }));
 
+// Each test may set `run`; an inventory charges its ledger as the real one does once the SDK returns.
+const inventory = vi.hoisted(() => ({
+  run: undefined as
+    undefined | ((ledger: { record: (spend: object) => Promise<unknown> }) => Promise<void>),
+}));
+vi.mock('../inventory/index.ts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../inventory/index.ts')>()),
+  runInventory: async (
+    _dir: string,
+    _repo: string,
+    { ledger }: { ledger: { record: (spend: object) => Promise<unknown> } },
+  ) => {
+    await inventory.run?.(ledger);
+    return { usages: [] };
+  },
+}));
+
 // No recipes, no model call and no store on disk: these tests are about the budget, not memory.
 const memory = vi.hoisted(() => ({ caps: [] as number[], commits: [] as (string | undefined)[] }));
 vi.mock('../memory/index.ts', async (importOriginal) => ({
@@ -54,6 +72,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
   harness.caps = [];
   harness.run = undefined;
+  inventory.run = undefined;
   memory.caps = [];
   memory.commits = [];
 });
@@ -123,16 +142,63 @@ describe('createDeps', () => {
     expect(records.some((r) => r.outcome === 'failed')).toBe(true);
   });
 
-  it('counts a harness that throws as having spent its whole share', async () => {
+  it('records a harness that throws as failed, counting its whole share once', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
     const budget = createBudget(8);
     const deps = createDeps({ budget, log: () => {} });
+    let calls = 0;
     harness.run = async () => {
+      calls++;
       throw new Error('harness crashed');
     };
-    await expect(deps.runTask(task('c'), '/unused')).rejects.toThrow('harness crashed');
+    // Through the queue, as the loop runs it: the failure comes back as a record, so no retry.
+    const record = await deps.queue.add('task', () => deps.runTask(task('c'), '/unused'));
+    expect(record).toMatchObject({ outcome: 'failed', costUsd: TASK_USD });
+    expect((record as { note?: string }).note).toMatch(
+      /runTask failed: harness crashed; its spend is unknown/,
+    );
+    expect(calls).toBe(1);
     expect(budget.spentUsd()).toBe(TASK_USD);
     expect(budget.heldUsd()).toBe(0);
+  });
+
+  it('lets a task in a big run hold a fair share of what is free', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
+    const deps = createDeps({ budget: createBudget(100), log: () => {} });
+    await deps.runTask(task('c'), '/unused');
+    // A quarter of the free $100, since four parts run at once.
+    expect(harness.caps).toEqual([25]);
+  });
+
+  it('counts an inventory that throws without a result as having spent its whole hold', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
+    const budget = createBudget(3);
+    const deps = createDeps({ budget, log: () => {} });
+    inventory.run = async () => {
+      throw new Error('the Agent SDK exited');
+    };
+    await expect(deps.inventory('/unused', 'acme/shop')).rejects.toThrow('the Agent SDK exited');
+    expect(budget.spentUsd()).toBe(DEFAULT_RUN_CAP_USD);
+
+    inventory.run = async (ledger) => {
+      await ledger.record({ repo: 'acme/shop', model: 'claude-sonnet-5-5', costUsd: 0.25 });
+    };
+    await deps.inventory('/unused', 'acme/shop');
+    expect(budget.spentUsd()).toBeCloseTo(DEFAULT_RUN_CAP_USD + 0.25, 10);
+    expect(budget.heldUsd()).toBe(0);
+  });
+
+  it('does not retry a refusal from the run budget', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
+    const deps = createDeps({ budget: createBudget(1), log: () => {} });
+    let calls = 0;
+    await expect(
+      deps.queue.add('refused', async () => {
+        calls++;
+        throw new BudgetExceededError('the run cannot free enough');
+      }),
+    ).rejects.toThrow('the run cannot free enough');
+    expect(calls).toBe(1);
   });
 });
 
@@ -186,6 +252,12 @@ describe('recordRun', () => {
     expect(budget.heldUsd()).toBe(0);
     // The commit the run read, for memory's self-eval.
     expect(memory.commits).toEqual([git('rev-parse', 'HEAD')]);
+
+    // A folder inside the checkout is not a checkout of its own, so it gives no commit.
+    const inside = join(checkout, 'packages');
+    await mkdir(inside);
+    await deps.recordRun(task('c'), attempt, inside);
+    expect(memory.commits[1]).toBeUndefined();
   });
 });
 

@@ -45,6 +45,23 @@ describe('createMemoryQueue', () => {
     await expect(queue.add('next', async () => 'still running')).resolves.toBe('still running');
   });
 
+  it('does not retry an error shouldRetry rules out', async () => {
+    const queue = createMemoryQueue({
+      concurrency: 1,
+      retries: 2,
+      backoffMs: 1,
+      shouldRetry: (error) => !(error instanceof RangeError),
+    });
+    let calls = 0;
+    await expect(
+      queue.add('final', async () => {
+        calls++;
+        throw new RangeError('final');
+      }),
+    ).rejects.toThrow('final');
+    expect(calls).toBe(1);
+  });
+
   it('onIdle waits for queued jobs', async () => {
     const queue = createMemoryQueue({ concurrency: 1, retries: 0 });
     const done: number[] = [];

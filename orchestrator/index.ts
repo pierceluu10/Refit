@@ -15,6 +15,9 @@ export function createRunRepoJob(
       { ...deps, openPullRequest },
       { dryRun, capUsd },
     );
+    // No records and errors would read as "nothing changed", so the job fails with the errors instead.
+    if (summary.records.length === 0 && summary.errors.length > 0)
+      throw new Error(`no run records for ${repo}: ${summary.errors.join('; ')}`);
     return summary.records;
   };
 }

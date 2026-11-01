@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -44,7 +44,8 @@ export const defaultWatchCache = join(tmpdir(), 'aptitude-watch');
 
 // Below this, a harness run cannot get past its overshoot reserve (TURN_RESERVE_USD) to edit.
 export const MIN_TASK_USD = 2;
-// The most one task holds of the run, so several tasks run at once. What it leaves goes back to the run.
+// The most one task holds of a small run, so several tasks run at once. In a big run a task may hold
+// a fair share of what is free instead: a CONCURRENCY-th of it. What it leaves goes back to the run.
 export const TASK_USD = 5;
 // One provider read. The six folder reads cost about $2.60 together on 2026-11-01's dev run.
 export const WATCH_USD = 1.5;
@@ -146,20 +147,29 @@ export function anyWatcher(
 
 // The commit a checkout is at, so memory's self-eval can rerun a task on what the run read. A read of
 // the checkout's own git metadata on the host; nothing in the repo runs.
-const headCommit = (dir: string) =>
-  promisify(execFile)('git', ['-C', dir, 'rev-parse', 'HEAD'], { timeout: 10_000 }).then(
-    ({ stdout }) => stdout.trim() || undefined,
-    () => undefined,
-  );
+async function headCommit(dir: string): Promise<string | undefined> {
+  try {
+    const { stdout } = await promisify(execFile)(
+      'git',
+      ['-C', dir, 'rev-parse', '--show-toplevel', 'HEAD'],
+      { timeout: 10_000 },
+    );
+    const [top, commit] = stdout.trim().split('\n');
+    // git looks up the tree, so a folder inside another repo would give that repo's commit.
+    return top === (await realpath(dir)) ? commit : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
-const budgetSkipped = (taskId: string, remainingUsd: number): RunRecord & { note: string } => ({
+const failed = (taskId: string, costUsd: number, note: string): RunRecord & { note: string } => ({
   taskId,
   outcome: 'failed',
   diff: '',
   checks: [],
-  costUsd: 0,
+  costUsd,
   transcriptPath: '',
-  note: `not attempted: $${remainingUsd.toFixed(2)} of the run cap left, below the $${MIN_TASK_USD} a task needs`,
+  note,
 });
 
 // The one place that picks real or stub modules for the loop.
@@ -174,7 +184,14 @@ export function createDeps({
   log?: (line: string) => void;
   watchCache?: string;
 }): LoopDeps {
-  const queue = createMemoryQueue({ concurrency: CONCURRENCY, retries: 2, backoffMs: 1000, log });
+  const queue = createMemoryQueue({
+    concurrency: CONCURRENCY,
+    retries: 2,
+    backoffMs: 1000,
+    log,
+    // A refusal from the run budget is final, so another try would only hold a slot.
+    shouldRetry: (error) => !(error instanceof BudgetExceededError),
+  });
   if (!process.env.ANTHROPIC_API_KEY) {
     log(
       'WARNING: ANTHROPIC_API_KEY is not set. Offline stubs stand in for every AI part; nothing is read, matched or migrated by a model.',
@@ -205,26 +222,43 @@ export function createDeps({
   const appendRecord = stubRecordRun(out);
 
   return {
-    inventory: (dir, repo) =>
-      held(
-        budget,
-        `the ${repo} inventory`,
-        DEFAULT_RUN_CAP_USD,
-        (capUsd) => new InventoryLedger({ capUsd }),
-        async (ledger) => (await runInventory(dir, repo, { ledger })).usages,
-      ),
+    inventory: async (dir, repo) => {
+      const hold = await budget.reserve(`the ${repo} inventory`, DEFAULT_RUN_CAP_USD);
+      // Inventory charges its ledger only once the Agent SDK returns a result, so until it returns
+      // its whole hold counts as spent.
+      let ledger: InventoryLedger | undefined;
+      let spentUsd = hold.usd;
+      try {
+        ledger = new InventoryLedger({ capUsd: hold.usd });
+        const { usages } = await runInventory(dir, repo, { ledger });
+        spentUsd = ledger.spentUsd;
+        return usages;
+      } finally {
+        hold.settle(Math.max(spentUsd, ledger?.spentUsd ?? 0));
+      }
+    },
     watchers: Object.fromEntries(
       providerIds.map((id) => [id, providerWatcher(id, budget, watchCache)]),
     ),
     watchAny: (provider, hints) => anyWatcher(provider, hints, budget, watchCache),
     match: createMatchAgent({ budget }),
     runTask: async (task, dir) => {
+      const freeUsd = budget.capUsd - budget.spentUsd() - budget.heldUsd();
       let hold: Hold;
       try {
-        hold = await budget.reserve(`task ${task.id}`, TASK_USD, MIN_TASK_USD);
+        hold = await budget.reserve(
+          `task ${task.id}`,
+          Math.max(TASK_USD, freeUsd / CONCURRENCY),
+          MIN_TASK_USD,
+        );
       } catch (error) {
         if (!(error instanceof BudgetExceededError)) throw error;
-        return budgetSkipped(task.id, budget.capUsd - budget.spentUsd());
+        const leftUsd = budget.capUsd - budget.spentUsd();
+        return failed(
+          task.id,
+          0,
+          `not attempted: $${leftUsd.toFixed(2)} of the run cap left, below the $${MIN_TASK_USD} a task needs`,
+        );
       }
       let spentUsd = 0;
       try {
@@ -253,6 +287,16 @@ export function createDeps({
         });
         spentUsd = recipesUsd + record.costUsd;
         return record;
+      } catch (error) {
+        // Returned rather than thrown: a queue retry would count the share as spent again.
+        const message = error instanceof Error ? error.message : String(error);
+        return failed(
+          task.id,
+          spentUsd,
+          spentUsd > 0
+            ? `runTask failed: ${message}; its spend is unknown, so its whole $${spentUsd.toFixed(2)} share counts as spent`
+            : `runTask failed: ${message}`,
+        );
       } finally {
         hold.settle(spentUsd);
       }

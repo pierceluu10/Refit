@@ -153,7 +153,8 @@ export function messagesApi(opts: {
 }): AskModel {
   const model = opts.model ?? 'claude-opus-5-5';
   return async ({ system, prompt, schema }) => {
-    const client = opts.client ?? new Anthropic();
+    // No silent SDK retries: each try is one request against one hold, and the queue retries.
+    const client = opts.client ?? new Anthropic({ maxRetries: 0 });
     // shortcut: chars/3.5 token estimate, switch to messages.countTokens if the cap gets tight
     const inputTokens = Math.ceil((system.length + prompt.length) / 3.5);
     // The call holds its worst case, so matches running at once cannot each spend the same remainder.
@@ -162,6 +163,9 @@ export function messagesApi(opts: {
       worstCaseUsd(model, inputTokens, MAX_TOKENS),
     );
     let response: Anthropic.Message;
+    // Unknown until the API says: an error the API answered with was not billed, but a dropped
+    // connection or a response without usage may have been, so those count the whole hold.
+    let costUsd = Number.NaN;
     try {
       response = await client.messages.create({
         model,
@@ -170,11 +174,13 @@ export function messagesApi(opts: {
         messages: [{ role: 'user', content: prompt }],
         output_config: { effort: 'high', format: { type: 'json_schema', schema } },
       });
+      costUsd = costOf(model, response.usage);
     } catch (error) {
-      hold.settle(0);
+      if (typeof (error as { status?: unknown } | undefined)?.status === 'number') costUsd = 0;
       throw error;
+    } finally {
+      costUsd = hold.settle(costUsd);
     }
-    const costUsd = hold.settle(costOf(model, response.usage));
 
     if (response.stop_reason === 'refusal') throw new Error('Match agent refused the request.');
     if (response.stop_reason === 'max_tokens') {
