@@ -1,14 +1,35 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fixWithAgent, type AgentFixInput } from './agent-fix.ts';
 import { metaGraphSnapshot } from './meta-graph-pipeline.ts';
 import { writeMetaGraphRun } from './meta-graph-workflow.ts';
 import { runPipeline } from './run.ts';
 import { readFile } from 'node:fs/promises';
 
+vi.mock('./agent-fix.ts', () => ({ fixWithAgent: vi.fn() }));
+const agent = vi.mocked(fixWithAgent);
+
+// A stand-in agent: rewrites one file, then grades itself with the judge it was given.
+function agentEdits(file: string, from: string, to: string) {
+  agent.mockImplementationOnce(async (input: AgentFixInput) => {
+    const path = join(input.repoDir, file);
+    await writeFile(path, (await readFile(path, 'utf8')).replace(from, to));
+    const { passed, errors } = await input.check(input.repoDir);
+    return {
+      outcome: passed ? 'passed' : 'unproven',
+      diff: '',
+      errors,
+      summary: `Changed ${file}.`,
+      costUsd: 0.5,
+    };
+  });
+}
+
 const roots: string[] = [];
 afterEach(async () => {
+  agent.mockReset();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -22,7 +43,7 @@ async function directory(files: Record<string, string>) {
   return root;
 }
 
-async function run(files: Record<string, string>) {
+async function run(files: Record<string, string>, ai = false) {
   const contracts = await directory({
     'before.json': JSON.stringify(await metaGraphSnapshot('v19.0')),
     'after.json': JSON.stringify(await metaGraphSnapshot('v25.0')),
@@ -32,6 +53,9 @@ async function run(files: Record<string, string>) {
     before: join(contracts, 'before.json'),
     after: join(contracts, 'after.json'),
     proposePatch: true,
+    ...(ai
+      ? { aiPatch: { apiKey: 'key', model: 'claude-sonnet-5-5' }, metaGraphReconstructions: [] }
+      : {}),
   }) as unknown as Promise<{
     provider: string;
     status: string;
@@ -42,7 +66,15 @@ async function run(files: Record<string, string>) {
       changeId: string;
       reason: string;
     }[];
-    patch: { status: string; diff?: string; unresolvedFindings?: number; reason?: string };
+    patch: {
+      status: string;
+      generator?: string;
+      diff?: string;
+      unresolvedFindings?: number;
+      reason?: string;
+      warnings?: string[];
+      agent?: { outcome: string; errors: string[]; costUsd: number };
+    };
   }>;
 }
 
@@ -99,7 +131,7 @@ export const me = () => fetch('https://graph.facebook.com/me?fields=id');`,
     ).toEqual([expect.stringContaining('send.js:6 GET /me stays on its version')]);
   });
 
-  it('proposes no patch when nothing can move, and says why', async () => {
+  it('without AI, proposes no patch when nothing can move, and says why', async () => {
     const report = await run({
       'send.js': `export const register = (phone, pin) =>
   fetch(\`https://graph.facebook.com/v19.0/\${phone}/register\`, {
@@ -110,6 +142,92 @@ export const me = () => fetch('https://graph.facebook.com/me?fields=id');`,
     expect(report.status).toBe('needs-review');
     expect(report.patch).toMatchObject({ status: 'not-generated' });
     expect(report.patch.reason).toContain('data_localization_region');
+  });
+
+  it('with AI, hands what the moves leave to the agent and publishes its judged patch', async () => {
+    agentEdits('me.js', '${version}', 'v25.0');
+    const report = await run(
+      {
+        'me.js': `const version = process.env.GRAPH_VERSION;
+export const me = () => fetch(\`https://graph.facebook.com/\${version}/me?fields=id\`);`,
+      },
+      true,
+    );
+    const input = agent.mock.calls[0][0];
+    expect(input).toMatchObject({ provider: 'meta-graph', target: 'v25.0' });
+    expect(input.context).toContain('the version is built at runtime');
+    expect(input.change).toContain('Move every Meta Graph API request to v25.0.');
+    expect(report.status).toBe('affected');
+    expect(report.patch).toMatchObject({
+      status: 'proposed',
+      generator: 'openai',
+      unresolvedFindings: 0,
+      agent: { outcome: 'passed', errors: [], costUsd: 0.5 },
+    });
+    expect(report.patch.diff).toContain(
+      '+export const me = () => fetch(`https://graph.facebook.com/v25.0/me?fields=id`);',
+    );
+    expect(report.patch.warnings?.[0]).toContain('An AI agent wrote this patch');
+  });
+
+  it('with AI, publishes an unproven agent patch for review with the judge errors left', async () => {
+    agentEdits('send.js', 'v19.0', 'v25.0');
+    const report = await run(
+      {
+        'post.js': `export const post = (page, token) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${page}/photos\`, {
+    method: 'POST',
+    body: JSON.stringify({ url: 'https://example.com/a.png', access_token: token }),
+  });`,
+        'send.js': `export const register = (phone, pin) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${phone}/register\`, {
+    method: 'POST',
+    body: JSON.stringify({ messaging_product: 'whatsapp', pin, data_localization_region: 'DE' }),
+  });`,
+      },
+      true,
+    );
+    // The agent starts from the moves' patch: post.js is already on the target.
+    expect(agent.mock.calls[0][0].context).toContain('v19.0 moved to v25.0');
+    expect(report.patch).toMatchObject({ status: 'proposed', generator: 'openai' });
+    expect(report.patch.diff).toContain('v25.0/${page}/photos');
+    expect(report.patch.diff).toContain('v25.0/${phone}/register');
+    expect(report.patch.agent?.outcome).toBe('unproven');
+    expect(report.patch.unresolvedFindings).toBeGreaterThan(0);
+    expect(report.patch.agent?.errors.join(' ')).toContain('data_localization_region');
+    expect(report.patch.warnings?.join(' ')).toContain("Refit's Meta judges still report");
+  });
+
+  it('with AI, keeps the moves when the agent produces nothing', async () => {
+    agent.mockResolvedValueOnce({
+      outcome: 'failed',
+      diff: '',
+      errors: ['timed out'],
+      summary: '',
+      costUsd: 0,
+    });
+    const report = await run(
+      {
+        'post.js': `export const post = (page, token) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${page}/photos\`, {
+    method: 'POST',
+    body: JSON.stringify({ url: 'https://example.com/a.png', access_token: token }),
+  });`,
+        'send.js': `// The agent runs once per commit and target.
+export const register = (phone, pin) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${phone}/register\`, {
+    method: 'POST',
+    body: JSON.stringify({ messaging_product: 'whatsapp', pin, data_localization_region: 'DE' }),
+  });`,
+      },
+      true,
+    );
+    expect(report.patch).toMatchObject({
+      status: 'proposed',
+      generator: 'deterministic',
+      unresolvedFindings: 1,
+      agent: { outcome: 'failed' },
+    });
   });
 
   it('rejects a snapshot whose change table was edited after it was taken', async () => {

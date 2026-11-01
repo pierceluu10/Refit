@@ -16,7 +16,7 @@ import { assertResults } from '../scripts/benchmark-results.mjs';
 import { summarizeAiLedger } from './ai-budget.ts';
 import { assessmentConfiguration } from './assessment.ts';
 import { loadDeadlineRegistry } from './deadline-registry.ts';
-import { metaRow, summaryTable } from './meta-benchmark.ts';
+import { metaResult, metaRow, summaryTable } from './meta-benchmark.ts';
 import { META_SDK } from './deadline-exposure.ts';
 import { reconstructGraphCalls } from './meta-graph-ai.ts';
 import { scanGraphCalls } from './meta-graph-calls.ts';
@@ -31,9 +31,10 @@ import { PipelineInputError } from './types.ts';
 
 // Runs Refit's Meta Graph engine on a frozen Meta list (docs/benchmarks/subsets/meta-*.json):
 // the request scan and the version-move proposal to the list's target, per repository. With
-// --validate, a repository with a patch then runs `refit run` as a customer's would
-// (writeMetaGraphRun): its checks offline in Docker, AI patches and repair with --ai, and the draft
-// artifacts. Meta is never contacted.
+// --validate, a repository with a patch, or with --ai one whose pins the moves leave behind, then
+// runs `refit run` as a customer's would (writeMetaGraphRun): the agent fixer on what the moves
+// leave (meta-graph-agent.ts), its checks offline in Docker, and the draft artifacts. Each row ends
+// validated, needs-review, no-change or infrastructure (metaResult). Meta is never contacted.
 const USAGE =
   'Usage: npm run benchmark:meta -- --root <benchmark-dir> --list <frozen.json> --output <new-dir> [--validate [--env .env] [--ai [--repair-attempts 0-4]]] [--resume] [--allow-dirty] [--limit N]';
 const VALIDATION_TIMEOUT_MS = 30 * 60 * 1000;
@@ -160,6 +161,16 @@ async function validate(directory: string, work: string, before: string, version
       ? { proven: Boolean(report.validation.metaGraph.proof.proven) }
       : {}),
     unresolved: Number(report.patch?.unresolvedFindings ?? 0),
+    ...(report.patch?.generator ? { generator: String(report.patch.generator) } : {}),
+    ...(report.patch?.agent
+      ? {
+          agent: {
+            outcome: String(report.patch.agent.outcome),
+            costUsd: Number(report.patch.agent.costUsd ?? 0),
+            errors: (report.patch.agent.errors ?? []).length,
+          },
+        }
+      : {}),
     ...(report.metaGraph?.reconstructed?.length
       ? {
           reconstructed: report.metaGraph.reconstructed.filter(
@@ -230,7 +241,8 @@ for (const [index, entry] of repos.entries()) {
       await writeFile(join(work, 'scan.json'), json(scan));
       await writeFile(join(work, 'proposal.json'), json(proposal));
       if (patch) await writeFile(join(work, 'moves.patch'), patch);
-      if (patch && values.validate) {
+      // With AI, no stop ends a row: the agent fixer takes what the moves leave.
+      if (values.validate && (patch || (ai && row.outcome === 'needs-review'))) {
         const runBefore = await spentUsd();
         result.workflow = await validate(
           directory,
@@ -251,9 +263,10 @@ for (const [index, entry] of repos.entries()) {
     }
   result.seconds = Math.round((Date.now() - started) / 1000);
   Object.assign(result, classifyRow('meta-graph-results', result));
+  result.result = metaResult(result);
   results[index] = result;
   console.error(
-    `[${index + 1}/${repos.length}] ${entry.repo}: ${String(result.error ?? result.outcome)}`,
+    `[${index + 1}/${repos.length}] ${entry.repo}: ${String(result.result)}${result.error ? ` (${String(result.error)})` : ''}`,
   );
   await writeFile(join(output, 'results.json'), json(results));
 }

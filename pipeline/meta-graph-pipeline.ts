@@ -21,6 +21,7 @@ import {
   type VersionMoveStop,
 } from './meta-graph-moves.ts';
 import { loadMetaGraphRules } from './meta-graph-rule-edits.ts';
+import { changeText, contextText, handOffToAgent } from './meta-graph-agent.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
 import { digest, META_GRAPH_CHANGELOG, parseObject } from './specifications.ts';
@@ -173,6 +174,28 @@ interface Snapshot {
 
 const where = (file: string, line: number) => `${file}:${line}`;
 
+// `refit run` proposes the patch in its scan and again in validation, on a copy of the same commit;
+// both get the one agent run, so it is paid for once and the validated patch is the scanned one.
+const agentRuns = new Map<string, ReturnType<typeof handOffToAgent>>();
+function cachedAgent(key: string, run: () => ReturnType<typeof handOffToAgent>) {
+  // An agent or workspace failure ends as the agent's `failed` outcome, never the run.
+  if (!agentRuns.has(key))
+    agentRuns.set(
+      key,
+      run().catch((error: unknown) => ({
+        outcome: 'failed' as const,
+        diff: '',
+        errors: [
+          `The agent fixer could not run: ${error instanceof Error ? error.message : String(error)}`,
+        ],
+        summary: '',
+        costUsd: 0,
+        patch: '',
+      })),
+    );
+  return agentRuns.get(key)!;
+}
+
 export async function runMetaGraphPipeline(options: {
   repository: string;
   before: Snapshot;
@@ -280,11 +303,6 @@ export async function runMetaGraphPipeline(options: {
       `Meta alert (${alert.effective ?? 'undated'}, ${alert.status}) at ${where(alert.file, alert.line)}, ${alert.matched}: ${alert.summary}${alert.replacement ? ` Replacement: ${alert.replacement.join(', ')}.` : ''} ${alert.source}`,
   );
   const live = scan.calls.filter((call) => call.use === 'live');
-  const status = proposal.moves.length
-    ? ('affected' as const)
-    : review.length || live.length
-      ? ('needs-review' as const)
-      : ('no-provider-signal' as const);
   const pinned = [...new Set(live.flatMap((call) => (call.version ? [call.version] : [])))].sort();
   const apiVersion: ApiVersionEvidence = {
     application: pinned.length === 1 ? pinned[0] : null,
@@ -307,55 +325,18 @@ export async function runMetaGraphPipeline(options: {
       reason: 'Meta Graph pins are read by the request scan, one per place a version is written.',
     },
   };
-  const firstStop = review[0]?.reason;
-  const patch = !options.proposePatch
-    ? {
-        status: 'not-generated' as const,
-        reason:
-          'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
-      }
-    : !proposal.edits.length
-      ? {
-          status: 'not-generated' as const,
-          reason: firstStop ?? `No request pins a Graph API version older than ${target}.`,
-        }
-      : {
-          generator: 'deterministic' as const,
-          summary: `Move ${proposal.moves.length} pinned Graph API ${proposal.moves.length === 1 ? 'version' : 'versions'} to ${target}. The reviewed changelogs crossed list nothing the moved requests use${proposal.moves.some((move) => move.rules.length) ? ', after the documented rules applied with them' : ''}.`,
-          status: 'proposed' as const,
-          edits: proposal.edits.length,
-          rules: [...new Set(proposal.edits.map((edit) => edit.rule!).filter(Boolean))].sort(),
-          unresolvedFindings: review.length,
-          ...(review.length
-            ? {
-                unresolvedSites: review.map(({ file, line, changeId, expression, confidence }) => ({
-                  file,
-                  line,
-                  changeId,
-                  expression,
-                  confidence,
-                })),
-              }
-            : {}),
-          diff: proposal.patch!,
-          validation: 'not-run',
-          ruleEdits: proposal.edits,
-          warnings: [
-            'Requests through WhatsApp, Messenger, the business SDK, project helpers or options built at runtime stay on their version; each is listed for review.',
-            ...alerts,
-            ...reconstructions
-              .filter((item) => item.status === 'kept')
-              .map(
-                (item) =>
-                  `${where(item.file, item.line)}: Refit could not read this request statically; AI (${item.model}) read ${item.requests!.map((request) => `${request.method} ${request.path}`).join(', ')}${item.version ? ` on ${item.version} (${where(item.pin!.file, item.pin!.line)})` : ''} from the code, and Refit checked that every name is written there and ran it through the change table. Check that this is what the code sends.`,
-              ),
-            ...cautions.map(
-              (note) =>
-                `Left on its version, with no Meta problem found there (not counted as unresolved): ${note}`,
-            ),
-            'Patch contains source code. Review it for sensitive content before sharing.',
-          ],
-        };
+  // The gut plan (docs/GUT-PLAN.md): no stop ends the repository. With AI on, every request the
+  // moves leave behind, every finding and every note goes to the agent fixer at once, starting from
+  // the moves' patch, and Meta's judges grade its tree (meta-graph-agent.ts). The scan's
+  // reconstructions are finder and judge input only.
+  const kept = reconstructions.filter((item) => item.status === 'kept');
+  const reconstructionNotes = kept.map(
+    (item) =>
+      `${where(item.file, item.line)}: Refit could not read this request statically; AI (${item.model}) read ${item.requests!.map((request) => `${request.method} ${request.path}`).join(', ')}${item.version ? ` on ${item.version} (${where(item.pin!.file, item.pin!.line)})` : ''} from the code, and Refit checked that every name is written there and ran it through the change table. Check that this is what the code sends.`,
+  );
+  const handOff = proposal.stops.filter(
+    (stop) => !(stop.from && compareVersions(stop.from, target) > 0),
+  );
   const repositoryHash = digest(
     JSON.stringify({
       files: repository.files,
@@ -363,6 +344,148 @@ export async function runMetaGraphPipeline(options: {
       lockfiles: repository.lockfiles,
     }),
   );
+  const agent =
+    options.proposePatch && options.aiPatch && (handOff.length || review.length)
+      ? await cachedAgent(`${repositoryHash}:${target}:${digest(proposal.patch ?? '')}`, () =>
+          handOffToAgent({
+            repository: options.repository,
+            original: repository,
+            target,
+            changes,
+            reconstructions: kept,
+            patch: proposal.patch,
+            change: changeText(scan.calls, changes, target, now),
+            context: contextText({
+              stops: handOff,
+              findings: review.map(
+                (finding) => `${where(finding.file, finding.line)}: ${finding.reason}`,
+              ),
+              notes: [...alerts, ...cautions, ...reconstructionNotes],
+              headStart: proposal.moves.map(
+                (move) =>
+                  `${where(move.file, move.line)}: ${move.from} moved to ${move.to}${move.rules.length ? ` with the documented rules ${move.rules.join(', ')}` : ''}`,
+              ),
+            }),
+          }),
+        )
+      : undefined;
+  const agentPatch =
+    agent?.patch && (agent.outcome === 'passed' || agent.outcome === 'unproven')
+      ? agent
+      : undefined;
+  const agentRecord = agent && {
+    outcome: agent.outcome,
+    summary: agent.summary,
+    errors: agent.errors,
+    costUsd: agent.costUsd,
+  };
+  const rules = [...new Set(proposal.edits.map((edit) => edit.rule!).filter(Boolean))].sort();
+  const notes = [
+    ...alerts,
+    ...reconstructionNotes,
+    ...cautions.map(
+      (note) =>
+        `Left on its version, with no Meta problem found there (not counted as unresolved): ${note}`,
+    ),
+    'Patch contains source code. Review it for sensitive content before sharing.',
+  ];
+  const agentSites = (agentPatch?.outcome === 'unproven' ? agentPatch.errors : []).flatMap(
+    (error) => {
+      const site = /^(.+?):(\d+): /.exec(error);
+      return site
+        ? [
+            {
+              file: site[1],
+              line: Number(site[2]),
+              changeId: `${META_GRAPH_VERSION_RULE}:agent`,
+              expression: error.slice(site[0].length, site[0].length + 200),
+              confidence: 'review' as const,
+            },
+          ]
+        : [];
+    },
+  );
+  const patch = !options.proposePatch
+    ? {
+        status: 'not-generated' as const,
+        reason:
+          'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
+      }
+    : agentPatch
+      ? {
+          // The codebase's label for an AI-written patch; the agent is Claude (agent-fix.ts).
+          generator: 'openai' as const,
+          summary: `Move the Meta Graph API requests to ${target}. ${agentPatch.outcome === 'passed' ? "Refit's Meta judges pass on the result." : "Refit's Meta judges still report problems, listed below."}`,
+          status: 'proposed' as const,
+          edits: (agentPatch.patch.match(/^diff --git /gm) ?? []).length,
+          rules,
+          unresolvedFindings: agentPatch.outcome === 'passed' ? 0 : agentPatch.errors.length,
+          ...(agentSites.length ? { unresolvedSites: agentSites } : {}),
+          diff: agentPatch.patch,
+          validation: 'not-run',
+          ruleEdits: proposal.edits,
+          agent: agentRecord,
+          warnings: [
+            `An AI agent wrote this patch${proposal.edits.length ? ` on top of Refit's ${proposal.edits.length} deterministic ${proposal.edits.length === 1 ? 'edit' : 'edits'}` : ''}. What it says it changed: ${agentPatch.summary || 'no summary.'}`,
+            ...(agentPatch.outcome === 'unproven'
+              ? [`Refit's Meta judges still report: ${agentPatch.errors.join(' ')}`]
+              : []),
+            ...notes,
+          ],
+        }
+      : !proposal.edits.length
+        ? {
+            status: 'not-generated' as const,
+            reason: [
+              review[0]?.reason ?? `No request pins a Graph API version older than ${target}.`,
+              agent
+                ? `The agent fixer ${agent.outcome === 'no-change' ? 'changed nothing' : 'did not produce a patch'}: ${agent.summary || agent.errors.join(' ')}`
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' '),
+            ...(agentRecord ? { agent: agentRecord } : {}),
+          }
+        : {
+            generator: 'deterministic' as const,
+            summary: `Move ${proposal.moves.length} pinned Graph API ${proposal.moves.length === 1 ? 'version' : 'versions'} to ${target}. The reviewed changelogs crossed list nothing the moved requests use${proposal.moves.some((move) => move.rules.length) ? ', after the documented rules applied with them' : ''}.`,
+            status: 'proposed' as const,
+            edits: proposal.edits.length,
+            rules,
+            unresolvedFindings: review.length,
+            ...(review.length
+              ? {
+                  unresolvedSites: review.map(
+                    ({ file, line, changeId, expression, confidence }) => ({
+                      file,
+                      line,
+                      changeId,
+                      expression,
+                      confidence,
+                    }),
+                  ),
+                }
+              : {}),
+            diff: proposal.patch!,
+            validation: 'not-run',
+            ruleEdits: proposal.edits,
+            ...(agentRecord ? { agent: agentRecord } : {}),
+            warnings: [
+              'Requests through WhatsApp, Messenger, the business SDK, project helpers or options built at runtime stay on their version; each is listed for review.',
+              ...(agent
+                ? [
+                    `The agent fixer did not improve on this patch (${agent.outcome}): ${agent.summary || agent.errors.join(' ')}`,
+                  ]
+                : []),
+              ...notes,
+            ],
+          };
+  const status =
+    proposal.moves.length || agentPatch
+      ? ('affected' as const)
+      : review.length || live.length
+        ? ('needs-review' as const)
+        : ('no-provider-signal' as const);
   return {
     formatVersion: 1,
     provider: META_GRAPH.id,
@@ -419,7 +542,7 @@ export async function runMetaGraphPipeline(options: {
     assessment: { status: 'not-requested' as const },
     coverage: {
       specification: `Reviewed Graph API changelogs up to ${target}, read from developers.facebook.com.`,
-      code: 'Graph API requests to graph.facebook.com and graph.instagram.com through fetch, axios, axios instances, pass-through helpers and FB.api, with versions from URLs, constants, environment defaults and FB.init, and fields, metrics and parameters written literally or set step by step. Requests through other helpers, options built at runtime, the business SDK, WhatsApp and Messenger stop for review.',
+      code: 'Graph API requests to graph.facebook.com and graph.instagram.com through fetch, axios, axios instances, pass-through helpers and FB.api, with versions from URLs, constants, environment defaults and FB.init, and fields, metrics and parameters written literally or set step by step. Requests through other helpers, options built at runtime, the business SDK, WhatsApp and Messenger go to the agent fixer when AI is on, and are listed for review otherwise.',
       decision:
         'No finding is not proof of no impact: response reads, permissions, app review and behaviour the change table does not record stay outside this check.',
     },
