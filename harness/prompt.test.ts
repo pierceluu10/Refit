@@ -79,7 +79,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-01.4');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-01.5');
   });
 
   it('puts the sections in the plan order', () => {
@@ -112,6 +112,20 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('Docker container, network off');
     expect(prompt).toContain('$5.00');
     expect(prompt).toContain("'not-affected'");
+  });
+
+  it('shows match notes and asks the agent to find the usage when none is recorded', () => {
+    const noted = buildSystemPrompt({
+      task: { ...task, usages: [], notes: 'no usage map, read the repo yourself' },
+      toolPack: { provider: 'stripe', tools: [], playbooks: {} },
+      recipes: [],
+      tools: [],
+      budgetUsd: 5,
+      sandboxNote: 'Local temp copy',
+    });
+    expect(noted).toContain('Notes from matching:\n> no usage map, read the repo yourself');
+    expect(noted).toContain('- None recorded. Find the usage yourself');
+    expect(prompt).not.toContain('Notes from matching');
   });
 
   it('says real env files are absent and points at the templates', () => {

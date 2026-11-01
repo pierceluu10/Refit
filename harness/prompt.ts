@@ -4,10 +4,13 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-01.4';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-01.5';
+
+// shortcut: `notes` is on MigrationTask in O1's branch only; drop this local type once that merges.
+export type TaskWithNotes = MigrationTask & { notes?: string };
 
 export type PromptInput = {
-  task: MigrationTask;
+  task: TaskWithNotes;
   toolPack: ToolPack;
   recipes: Recipe[];
   tools: { name: string; description: string }[];
@@ -23,7 +26,7 @@ const quote = (text: string) =>
 
 const tail = (text: string, lines = 40) => text.trimEnd().split('\n').slice(-lines).join('\n');
 
-function taskSection(task: MigrationTask): string {
+function taskSection(task: TaskWithNotes): string {
   const { change } = task;
   const affects = [
     change.affects.operations?.length && `- Operations: ${change.affects.operations.join(', ')}`,
@@ -67,9 +70,14 @@ function taskSection(task: MigrationTask): string {
       : 'What it affects: not specified.',
     [
       'Affected usage in this repo (from the inventory; read the code to confirm it and find anything it missed):',
-      usages.length ? usages.join('\n') : '- None recorded. Search the repo yourself.',
+      usages.length
+        ? usages.join('\n')
+        : '- None recorded. Find the usage yourself: search the repo for the SDK, its imports, API hosts and the affected operations.',
     ].join('\n'),
-  ].join('\n\n');
+    task.notes ? `Notes from matching:\n${quote(task.notes)}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 function workflowSection(task: MigrationTask, toolPack: ToolPack, recipes: Recipe[]): string {
