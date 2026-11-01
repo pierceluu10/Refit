@@ -77,8 +77,7 @@ export const claudeAgentSession: AgentSession = async (input) => {
         cwd: input.sandbox.dir,
         resume: input.resume,
         maxTurns: input.maxTurns,
-        // Second guard behind the ledger. The SDK checks it only between turns, so the caller
-        // leaves a reserve for the turn that crosses it.
+        // Second guard: it also counts calls the stream does not show (inside tools), between turns.
         maxBudgetUsd: input.budgetUsd,
         abortController,
         // Stream events carry each model call's usage, so the ledger is charged while the call runs.
