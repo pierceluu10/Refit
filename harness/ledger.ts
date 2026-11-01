@@ -5,7 +5,8 @@ export class BudgetExceededError extends Error {}
 export type LedgerEntry = { model: string; costUsd: number; note: string };
 
 // Called with every charge as it happens (HarnessDeps.chargeRun), so the run budget sees the spend
-// even if the harness throws later.
+// even if the harness throws later. It must not throw: it runs inside the model stream, where a
+// throw ends the query as an error. The harness's own ledger already enforces its cap.
 export type ChargeRun = (usd: number, label: string) => void;
 
 // Dollars per million tokens. Source: Anthropic model pricing (claude-api skill, cached 2026-10-06),
@@ -98,6 +99,9 @@ export class BudgetLedger {
 
 export function budgetFromEnv(env: NodeJS.ProcessEnv = process.env): number {
   const raw = env.APTITUDE_AI_BUDGET_USD;
-  if (!raw) throw new Error('Set APTITUDE_AI_BUDGET_USD to the dollar cap for this run');
-  return Number(raw);
+  const capUsd = Number(raw);
+  if (!raw || !Number.isFinite(capUsd) || capUsd <= 0) {
+    throw new Error('Set APTITUDE_AI_BUDGET_USD to a positive dollar cap for this run');
+  }
+  return capUsd;
 }

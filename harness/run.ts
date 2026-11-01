@@ -298,7 +298,7 @@ export async function runTask(
         const comparison = comparisons.find((c) => c.name === name);
         return {
           name,
-          command,
+          command: redactSecrets(command),
           before: comparison?.before ?? 'not run',
           after: comparison?.after ?? 'not run',
         };

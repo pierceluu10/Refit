@@ -43,8 +43,8 @@ packs' own data on 2026-11-01. Use it with each run's `diff.patch` and `pr-body.
   as proof. Lockfile: yarn 1 format.
 - **ai-ui-demo-gpt-4o-shutdown:** `gpt-4o-2024-08-06` replaced in `app/api/ui/route.ts`, with
   `openai_model_lookup` or `openai_check_request` run on the new model; the structured output through
-  `zodResponseFormat` still works with it; Unproven says output quality wasn't checked on real
-  prompts. No dependency change should be needed.
+  `zodResponseFormat` still works with it; Behaviour changes says the new model's output wasn't
+  checked on real prompts. No dependency change should be needed.
 - **infinite-bundler-shopify-2026-10:** `ApiVersion.October24` replaced in both places in
   `app/shopify.server.js`, which needs an `@shopify/shopify-app-remix` release that exports the
   2026-10 version; the GraphQL documents validated at 2026-10 (three deprecated fields today, see
@@ -66,11 +66,12 @@ APTITUDE_AI_BUDGET_USD=6 node harness/scripts/run-evaluation.ts [task id ...]
 ```
 
 `APTITUDE_AI_BUDGET_USD` caps the whole batch: every model call is counted through `chargeRun`, and
-each task gets `APTITUDE_TASK_BUDGET_USD` (default $1.50) or what is left. Repos are cloned outside
-this repo and run in the Docker sandbox. Each run writes `results/<id>/` with `record.json`
-(outcome, checks, cost, models), `diff.patch`, `pr-body.md` and `summary.md`. Nothing is pushed or
-opened. pdfai's migration crosses five Stripe major versions, so it may need
-`APTITUDE_TASK_BUDGET_USD=2`.
+each task gets `APTITUDE_TASK_BUDGET_USD` (default $2) or what is left. The harness keeps
+`TURN_RESERVE_USD` ($1) of a task's budget back for the call that crosses it, so a $2 task gets
+about $1 of agent work; pdfai's migration crosses five Stripe major versions and may need $3. Repos
+are cloned outside this repo and run in the Docker sandbox. Each run writes `results/<id>/` with
+`record.json` (outcome, checks, cost, models), `diff.patch`, `pr-body.md` and `summary.md`.
+Nothing is pushed or opened.
 
 ## Results
 

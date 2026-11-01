@@ -30,6 +30,8 @@ const SANDBOX_ENV = {
   // corepack fetches the repo's pnpm or yarn release without asking, and never pins it into package.json.
   COREPACK_ENABLE_DOWNLOAD_PROMPT: '0',
   COREPACK_ENABLE_AUTO_PIN: '0',
+  // CI makes Yarn 2+ refuse any lockfile change, which would block the agent's `yarn add`.
+  YARN_ENABLE_IMMUTABLE_INSTALLS: 'false',
   // pnpm puts its store at the mount's root when home is on another disk: the copy, and so the diff.
   npm_config_store_dir: '/tmp/aptitude-pnpm-store',
 };
