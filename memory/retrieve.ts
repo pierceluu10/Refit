@@ -102,7 +102,7 @@ export function createRetriever(deps: {
       [
         `### ${recipe.id}`,
         `Provider: ${recipe.provider}, kind: ${recipe.kind}`,
-        `Active skill: ${recipe.skill?.status === 'active' ? 'yes' : 'no'}; verified on ${recipe.verifiedRepos} repos`,
+        `Active skill: ${recipe.skill?.status === 'active' ? 'yes' : 'no'}; ${track(recipe)}`,
         `Preconditions: ${recipe.preconditions}`,
         `Steps: ${recipe.steps}`,
         `Pitfalls: ${recipe.pitfalls}`,
@@ -143,6 +143,15 @@ export function createRetriever(deps: {
   };
 }
 
+// How a recipe has fared, for the judge and the harness to weigh. A count to read, never a filter.
+function track(recipe: MemoryRecipe): string {
+  const failed = recipe.failedRunIds?.length ?? 0;
+  const against = failed
+    ? `; ${failed} later run${failed === 1 ? '' : 's'} that used it failed or had the PR closed by a human`
+    : '';
+  return `verified on ${recipe.verifiedRepos} repos${against}`;
+}
+
 export function renderMemoryForPrompt(recipes: MemoryRecipe[]): string {
   if (recipes.length === 0) return '';
   const isSkill = (recipe: MemoryRecipe) => recipe.skill?.status === 'active';
@@ -151,15 +160,12 @@ export function renderMemoryForPrompt(recipes: MemoryRecipe[]): string {
     'Advice from verified past migrations. Use your judgement: follow what fits this repo, ignore what does not.',
     ...recipes
       .filter(isSkill)
-      .map(
-        (recipe) =>
-          `### Proven skill (verified on ${recipe.verifiedRepos} repos)\n${recipe.skill!.prompt}`,
-      ),
+      .map((recipe) => `### Proven skill (${track(recipe)})\n${recipe.skill!.prompt}`),
     ...recipes
       .filter((recipe) => !isSkill(recipe))
       .map((recipe) =>
         [
-          `### Recipe: ${recipe.provider} ${recipe.kind} (verified on ${recipe.verifiedRepos} repos)`,
+          `### Recipe: ${recipe.provider} ${recipe.kind} (${track(recipe)})`,
           `Preconditions: ${recipe.preconditions}`,
           `Steps:\n${recipe.steps}`,
           `Pitfalls: ${recipe.pitfalls}`,

@@ -90,3 +90,94 @@ describe('learnFromRun end to end', () => {
     expect(await store.listRecipes()).toHaveLength(1);
   });
 });
+
+describe('recordVerdict', () => {
+  async function setup() {
+    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-memory-')));
+    return { store, deps: { store, embedder: new LocalEmbedder(), model: fakeModel(store) } };
+  }
+  const prFor = (repo: string) => `https://github.com/${repo}/pull/1`;
+
+  it('distils merged needs-review runs into one recipe and promotes it at 3 repos', async () => {
+    const { store, deps } = await setup();
+    let last;
+    for (const repo of ['example-org/a', 'example-org/b', 'example-org/c']) {
+      const record = makeRecord({ outcome: 'needs-review', pr: prFor(repo) });
+      await learnFromRun({ task: makeTask({ repo }), record, transcript: 'ok' }, deps);
+      last = await recordVerdict(prFor(repo), 'merged', deps);
+    }
+
+    const [recipe] = await store.listRecipes();
+    expect(recipe.repos).toEqual(['example-org/a', 'example-org/b', 'example-org/c']);
+    expect(last?.promoted.map((r) => r.id)).toEqual([recipe.id]);
+    expect(recipe.skill?.status).toBe('active');
+  });
+
+  it('counts a PR a human edited as a success and distils it', async () => {
+    const { deps } = await setup();
+    const pr = prFor('example-org/shop');
+    await learnFromRun(
+      { task: makeTask(), record: makeRecord({ outcome: 'needs-review', pr }), transcript: '' },
+      deps,
+    );
+
+    const edited = await recordVerdict(pr, 'edited', deps);
+
+    expect(edited?.run.record.humanVerdict).toBe('edited');
+    expect(edited?.recipe?.repos).toEqual(['example-org/shop']);
+  });
+
+  it('counts a closed PR against the recipes its run used and takes its repo off the recipe it made', async () => {
+    const { store, deps } = await setup();
+    const verified = { outcome: 'verified' as const };
+    for (const repo of ['example-org/a', 'example-org/b']) {
+      const record = makeRecord({ ...verified, pr: prFor(repo) });
+      await learnFromRun({ task: makeTask({ repo }), record, transcript: 'ok' }, deps);
+    }
+    const [made] = await store.listRecipes();
+    expect(made.verifiedRepos).toBe(2);
+
+    const usedPr = prFor('example-org/c');
+    await learnFromRun(
+      {
+        task: makeTask({ repo: 'example-org/c' }),
+        record: makeRecord({ outcome: 'needs-review', pr: usedPr }),
+        transcript: '',
+        usedRecipeIds: [made.id],
+      },
+      deps,
+    );
+    await recordVerdict(usedPr, 'closed', deps);
+    await recordVerdict(prFor('example-org/b'), 'closed', deps);
+
+    const recipe = await store.getRecipe(made.id);
+    expect(recipe?.failedRunIds).toHaveLength(1);
+    expect(recipe?.repos).toEqual(['example-org/a']);
+    expect(renderMemoryForPrompt([recipe!])).toContain(
+      'verified on 1 repos; 1 later run that used it failed or had the PR closed by a human',
+    );
+  });
+
+  it('keeps a close when a late push event says edited', async () => {
+    const { store, deps } = await setup();
+    const pr = prFor('example-org/shop');
+    await learnFromRun(
+      { task: makeTask(), record: makeRecord({ outcome: 'needs-review', pr }), transcript: '' },
+      deps,
+    );
+
+    await recordVerdict(pr, 'closed', deps);
+    const late = await recordVerdict(pr, 'edited', deps);
+
+    expect(late?.run.record.humanVerdict).toBe('closed');
+    expect(late?.recipe).toBeUndefined();
+    expect(await store.listRecipes()).toEqual([]);
+  });
+
+  it('returns undefined for a PR memory never stored', async () => {
+    const { deps } = await setup();
+    expect(await recordVerdict('https://github.com/example-org/x/pull/9', 'merged', deps)).toBe(
+      undefined,
+    );
+  });
+});

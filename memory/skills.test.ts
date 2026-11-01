@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import type { RunRecord } from '../shared/types.ts';
 import type { Model } from './ai.ts';
 import { makeRecipe, makeRecord, makeTask } from './fixtures/tasks.ts';
-import { promoteSkills, recordSkillOutcome } from './skills.ts';
+import { promoteSkills, recordRecipeOutcome } from './skills.ts';
 import { JsonMemoryStore } from './store.ts';
 import type { StoredRun } from './types.ts';
 
@@ -91,14 +91,14 @@ describe('promoteSkills', () => {
   });
 });
 
-describe('recordSkillOutcome', () => {
+describe('recordRecipeOutcome', () => {
   it('demotes after two distinct failed runs and keeps the recipe as guidance', async () => {
     const store = await storeWithSkill();
 
     expect(
-      await recordSkillOutcome(makeRun('run-a', { outcome: 'failed' }), { store, now }),
+      await recordRecipeOutcome(makeRun('run-a', { outcome: 'failed' }), { store, now }),
     ).toEqual([]);
-    const demoted = await recordSkillOutcome(makeRun('run-b', { outcome: 'failed' }), {
+    const demoted = await recordRecipeOutcome(makeRun('run-b', { outcome: 'failed' }), {
       store,
       now,
     });
@@ -118,8 +118,8 @@ describe('recordSkillOutcome', () => {
     const store = await storeWithSkill();
     const run = makeRun('run-a', { outcome: 'failed' });
 
-    await recordSkillOutcome(run, { store, now });
-    await recordSkillOutcome(
+    await recordRecipeOutcome(run, { store, now });
+    await recordRecipeOutcome(
       { ...run, record: { ...run.record, humanVerdict: 'closed' } },
       { store, now },
     );
@@ -132,7 +132,7 @@ describe('recordSkillOutcome', () => {
 
   it('ignores a run recorded before the skill was promoted', async () => {
     const store = await storeWithSkill();
-    await recordSkillOutcome(makeRun('old', { outcome: 'failed' }, '2026-11-01T00:00:00.000Z'), {
+    await recordRecipeOutcome(makeRun('old', { outcome: 'failed' }, '2026-11-01T00:00:00.000Z'), {
       store,
       now,
     });
@@ -142,11 +142,11 @@ describe('recordSkillOutcome', () => {
 
   it('counts a closed PR as a failure and a verified run as not', async () => {
     const store = await storeWithSkill();
-    await recordSkillOutcome(makeRun('ok', { outcome: 'verified', humanVerdict: 'merged' }), {
+    await recordRecipeOutcome(makeRun('ok', { outcome: 'verified', humanVerdict: 'merged' }), {
       store,
       now,
     });
-    await recordSkillOutcome(makeRun('closed', { outcome: 'verified', humanVerdict: 'closed' }), {
+    await recordRecipeOutcome(makeRun('closed', { outcome: 'verified', humanVerdict: 'closed' }), {
       store,
       now,
     });
@@ -154,5 +154,107 @@ describe('recordSkillOutcome', () => {
     expect((await store.getRecipe('recipe-stripe-charges'))?.skill?.failedRunIds).toEqual([
       'closed',
     ]);
+  });
+
+  it('counts a failed or closed run against every recipe it used, skill or not', async () => {
+    const store = await tempStore();
+    await store.saveRecipe(makeRecipe());
+    await store.saveRecipe(makeRecipe({ id: 'other' }));
+    const run = makeRun('closed', { outcome: 'needs-review', humanVerdict: 'closed' });
+
+    await recordRecipeOutcome(
+      { ...run, usedRecipeIds: ['recipe-stripe-charges', 'other'] },
+      {
+        store,
+        now,
+      },
+    );
+    await recordRecipeOutcome(makeRun('fine', { outcome: 'verified' }), { store, now });
+
+    expect((await store.getRecipe('recipe-stripe-charges'))?.failedRunIds).toEqual(['closed']);
+    expect((await store.getRecipe('other'))?.failedRunIds).toEqual(['closed']);
+  });
+
+  it('takes a failure back when a later verdict reverses it', async () => {
+    const store = await storeWithSkill();
+    const closed = makeRun('reopened', { outcome: 'needs-review', humanVerdict: 'closed' });
+    await recordRecipeOutcome(closed, { store, now });
+    expect((await store.getRecipe('recipe-stripe-charges'))?.skill?.failedRunIds).toEqual([
+      'reopened',
+    ]);
+
+    await recordRecipeOutcome(
+      { ...closed, record: { ...closed.record, humanVerdict: 'merged' } },
+      { store, now },
+    );
+
+    const recipe = await store.getRecipe('recipe-stripe-charges');
+    expect(recipe?.failedRunIds).toEqual([]);
+    expect(recipe?.skill).toMatchObject({ status: 'active', failedRunIds: [] });
+  });
+
+  it('writes nothing for a run that changes no count', async () => {
+    const store = await tempStore();
+    await store.saveRecipe(makeRecipe());
+    const save = vi.spyOn(store, 'saveRecipe');
+
+    await recordRecipeOutcome(makeRun('fine', { outcome: 'verified' }), { store, now });
+
+    expect(save).not.toHaveBeenCalled();
+  });
+});
+
+describe('recordRecipeOutcome on the recipe a run was distilled into', () => {
+  // Illustrative: a verified run from example-org/c that became one of the recipe's three repos.
+  async function storeWithSource(otherFromSameRepo?: Partial<RunRecord>) {
+    const store = await tempStore();
+    const sourceRuns = ['run-a', 'run-b', 'run-c'];
+    const repos = ['example-org/a', 'example-org/b', 'example-org/c'];
+    await store.saveRecipe(makeRecipe({ sourceRuns, repos, verifiedRepos: 3 }));
+    if (otherFromSameRepo) {
+      await store.saveRun({
+        ...makeRun('run-b', otherFromSameRepo),
+        task: makeTask({ repo: 'example-org/c' }),
+      });
+    }
+    const run: StoredRun = {
+      ...makeRun('run-c', { outcome: 'verified', humanVerdict: 'closed' }),
+      task: makeTask({ repo: 'example-org/c' }),
+      usedRecipeIds: [],
+      extraction: {
+        status: 'done',
+        mode: 'recipe',
+        recipeId: 'recipe-stripe-charges',
+        at: '2026-11-03T00:00:00.000Z',
+      },
+    };
+    return { store, run };
+  }
+
+  it('takes the repo of a closed verified PR off the recipe, and puts it back on a later merge', async () => {
+    const { store, run } = await storeWithSource();
+
+    await recordRecipeOutcome(run, { store, now });
+    expect(await store.getRecipe('recipe-stripe-charges')).toMatchObject({
+      repos: ['example-org/a', 'example-org/b'],
+      verifiedRepos: 2,
+    });
+
+    await recordRecipeOutcome(
+      { ...run, record: { ...run.record, humanVerdict: 'merged' } },
+      { store, now },
+    );
+    expect(await store.getRecipe('recipe-stripe-charges')).toMatchObject({
+      repos: ['example-org/a', 'example-org/b', 'example-org/c'],
+      verifiedRepos: 3,
+    });
+  });
+
+  it('keeps the repo while another successful run from it still backs the recipe', async () => {
+    const { store, run } = await storeWithSource({ outcome: 'verified' });
+
+    await recordRecipeOutcome(run, { store, now });
+
+    expect((await store.getRecipe('recipe-stripe-charges'))?.verifiedRepos).toBe(3);
   });
 });

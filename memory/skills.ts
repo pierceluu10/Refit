@@ -1,4 +1,5 @@
 import type { Model } from './ai.ts';
+import { succeeded } from './extract.ts';
 import type { MemoryStore } from './store.ts';
 import type { MemoryRecipe, StoredRun } from './types.ts';
 
@@ -73,35 +74,77 @@ async function skillPrompt(recipe: MemoryRecipe, model?: Model): Promise<string>
   ].join('\n\n');
 }
 
-// Idempotent per run: called at record time and again when the human verdict arrives.
-export async function recordSkillOutcome(
+// Records what a run's outcome says about the recipes it touched. Idempotent per run: called when the
+// run is recorded and again on every human verdict, so a later verdict (closed, then reopened and merged)
+// moves the run's count with it. Returns the skills it demoted.
+export async function recordRecipeOutcome(
   run: StoredRun,
   { store, now = () => new Date() }: { store: MemoryStore; now?: () => Date },
 ): Promise<MemoryRecipe[]> {
-  if (run.record.outcome !== 'failed' && run.record.humanVerdict !== 'closed') return [];
+  // A human's verdict outweighs the harness outcome, as in succeeded().
+  const verdict = run.record.humanVerdict;
+  const failed = verdict ? verdict === 'closed' : run.record.outcome === 'failed';
   const demoted: MemoryRecipe[] = [];
   for (const id of new Set(run.usedRecipeIds)) {
     const recipe = await store.getRecipe(id);
-    const skill = recipe?.skill;
-    if (
-      !recipe ||
-      !skill ||
-      skill.status !== 'active' ||
-      Date.parse(skill.promotedAt) > Date.parse(run.recordedAt) ||
-      skill.failedRunIds.includes(run.id)
-    ) {
-      continue;
+    if (!recipe) continue;
+    const failedRunIds = tally(recipe.failedRunIds ?? [], run.id, failed);
+    let skill = recipe.skill;
+    // A skill answers only for runs it was shown as a skill, not for runs from before its promotion.
+    // shortcut: a demotion stays even if a later verdict takes back one of its failures; re-promote by hand.
+    if (skill?.status === 'active' && Date.parse(skill.promotedAt) <= Date.parse(run.recordedAt)) {
+      const skillFailures = tally(skill.failedRunIds, run.id, failed);
+      skill =
+        skillFailures.length >= DEMOTE_AT_FAILURES
+          ? {
+              ...skill,
+              failedRunIds: skillFailures,
+              status: 'demoted',
+              demotedAt: now().toISOString(),
+            }
+          : { ...skill, failedRunIds: skillFailures };
     }
-    const failedRunIds = [...skill.failedRunIds, run.id];
-    const demote = failedRunIds.length >= DEMOTE_AT_FAILURES;
-    const updated: MemoryRecipe = {
-      ...recipe,
-      skill: demote
-        ? { ...skill, failedRunIds, status: 'demoted', demotedAt: now().toISOString() }
-        : { ...skill, failedRunIds },
-    };
+    const updated: MemoryRecipe = { ...recipe, skill };
+    if (failedRunIds.length || recipe.failedRunIds) updated.failedRunIds = failedRunIds;
+    if (JSON.stringify(updated) === JSON.stringify(recipe)) continue;
     await store.saveRecipe(updated);
-    if (demote) demoted.push(updated);
+    if (skill?.status === 'demoted' && recipe.skill?.status === 'active') demoted.push(updated);
+  }
+  const { extraction } = run;
+  if (extraction?.status === 'done' && extraction.mode === 'recipe' && extraction.recipeId) {
+    await recountRepo(extraction.recipeId, run, { store, now });
   }
   return demoted;
+}
+
+function tally(ids: string[], id: string, failed: boolean): string[] {
+  return failed ? [...new Set([...ids, id])] : ids.filter((other) => other !== id);
+}
+
+// The recipe a run was distilled into counts the run's repo only while some run from that repo still
+// counts as a success, so a human closing a verified PR takes its repo back off the recipe.
+async function recountRepo(
+  id: string,
+  run: StoredRun,
+  { store, now }: { store: MemoryStore; now: () => Date },
+): Promise<void> {
+  const recipe = await store.getRecipe(id);
+  if (!recipe) return;
+  const others = await Promise.all(
+    recipe.sourceRuns.filter((source) => source !== run.id).map((source) => store.getRun(source)),
+  );
+  const verified = [run, ...others].some(
+    (source) => source?.task.repo === run.task.repo && succeeded(source.record),
+  );
+  const repos = verified
+    ? [...new Set([...recipe.repos, run.task.repo])]
+    : recipe.repos.filter((repo) => repo !== run.task.repo);
+  // Only this run's repo can move, so an unchanged length means nothing changed.
+  if (repos.length === recipe.repos.length) return;
+  await store.saveRecipe({
+    ...recipe,
+    repos,
+    verifiedRepos: repos.length,
+    updatedAt: now().toISOString(),
+  });
 }

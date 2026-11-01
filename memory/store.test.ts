@@ -37,6 +37,29 @@ describe('JsonMemoryStore', () => {
     expect(await store.recordVerdict('https://example.invalid/none', 'closed')).toBeUndefined();
   });
 
+  it('keeps the commit a run read', async () => {
+    const store = await tempStore();
+    const run = await store.recordRun({
+      task: makeTask(),
+      record: makeRecord(),
+      commit: 'abc1234',
+    });
+
+    expect((await store.getRun(run.id))?.commit).toBe('abc1234');
+  });
+
+  it('lets a final verdict replace an earlier one, but never a late edited', async () => {
+    const store = await tempStore();
+    const pr = 'https://github.com/example-org/shop/pull/8';
+    const run = await store.recordRun({ task: makeTask(), record: makeRecord({ pr }) });
+
+    await store.recordVerdict(pr, 'edited');
+    await store.recordVerdict(pr, 'merged');
+    await store.recordVerdict(pr, 'edited');
+
+    expect((await store.getRun(run.id))?.record.humanVerdict).toBe('merged');
+  });
+
   it('keeps ids with path characters inside the store folder', async () => {
     const store = await tempStore();
     await store.saveRecipe(makeRecipe({ id: '../../escape/me' }));

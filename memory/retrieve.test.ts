@@ -104,6 +104,21 @@ describe('createRetriever', () => {
     expect(requests[0].schema).toMatchObject({ additionalProperties: false });
   });
 
+  it('shows the judge how often runs that used a recipe failed, without filtering it out', async () => {
+    const struggling = makeRecipe({ failedRunIds: ['run-x', 'run-y'] });
+    const { model, requests } = fakeModel([{ id: struggling.id, why: 'still the closest match' }]);
+    const retrieve = createRetriever({
+      store: await storeWith(struggling),
+      embedder: new LocalEmbedder(),
+      model,
+    });
+
+    expect((await retrieve(makeTask())).map((recipe) => recipe.id)).toEqual([struggling.id]);
+    expect(requests[0].prompt).toContain(
+      'verified on 1 repos; 2 later runs that used it failed or had the PR closed by a human',
+    );
+  });
+
   it('shows the model every recipe while the store is small, and a shortlist once it is not', async () => {
     const many = Array.from({ length: 12 }, (_, i) =>
       makeRecipe({ id: `recipe-unrelated-${i}`, provider: 'twilio', steps: `step ${i}` }),

@@ -10,6 +10,8 @@ export type StoredRun = {
   record: RunRecord;
   transcript: string;
   usedRecipeIds: string[];
+  // The commit the run read, so the self-eval can rerun the task on the same code.
+  commit?: string;
   // Set once extraction has been tried; a failed one can be re-extracted later.
   extraction?:
     | { status: 'done'; mode: 'recipe' | 'pitfalls'; recipeId?: string; at: string }
@@ -34,6 +36,8 @@ export type MemoryRecipe = Recipe & {
   updatedAt: string;
   embedding?: { model: string; vector: number[] };
   skill?: Skill;
+  // Runs that were shown this recipe and failed, or whose PR a human closed. Retrieval shows the count.
+  failedRunIds?: string[];
 };
 
 export type SelfEvalReport = {
