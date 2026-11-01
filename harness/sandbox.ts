@@ -13,10 +13,10 @@ const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
 const OUTPUT_CAP = 2 * 1024 * 1024;
 const DEFAULT_IMAGE = 'node:22-bookworm';
 const EXCLUDED = new Set(['.git', 'node_modules']);
-// Hard limit 4: real env files never enter the sandbox; templates (.env.example etc.) do.
+// Hard limit 4: real env files (and direnv's .envrc) never enter the sandbox; templates (.env.example etc.) do.
 const ENV_TEMPLATE = /^\.env\.(?:example|sample|template|dist)$/;
 export const isRealEnvFile = (name: string) =>
-  (name === '.env' || name.startsWith('.env.')) && !ENV_TEMPLATE.test(name);
+  (name === '.env' || name === '.envrc' || name.startsWith('.env.')) && !ENV_TEMPLATE.test(name);
 
 // The only env repo code gets beyond the scrubbed host env (local) or nothing (Docker). Install scripts stay off.
 const SANDBOX_ENV = {

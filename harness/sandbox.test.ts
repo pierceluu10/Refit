@@ -113,7 +113,14 @@ describe('local sandbox', () => {
 
 describe('env files', () => {
   it('copies env templates but never real env files', async () => {
-    const names = ['.env', '.env.local', '.env.production', '.env.example', '.env.sample'];
+    const names = [
+      '.env',
+      '.envrc',
+      '.env.local',
+      '.env.production',
+      '.env.example',
+      '.env.sample',
+    ];
     for (const name of [...names, '.env.template', '.env.dist']) {
       await fs.writeFile(path.join(repoDir, name), 'API_KEY=x\n');
     }
