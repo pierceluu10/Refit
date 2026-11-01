@@ -22,6 +22,7 @@ export type ApiUsage = {
   sdk?: { name: string; version: string; lockfile?: string };
   pinnedVersion?: { value: string; file: string; line: number };
   callSites: { file: string; line: number; operation: string; fields?: string[]; notes?: string }[];
+  hints?: ProviderHints;
 };
 
 export type ProviderChange = {
@@ -84,3 +85,37 @@ export type InventoryRepo = (repoDir: string, repo: string) => Promise<ApiUsage[
 export type WatchProvider = (since?: string) => Promise<ProviderChange[]>;
 export type RetrieveRecipes = (task: MigrationTask) => Promise<Recipe[]>;
 export type RunTask = (task: MigrationTask, repoDir: string) => Promise<RunRecord>;
+
+// Round 2 contracts (2026-11-01). Additive only.
+
+// Opens the PR for one finished task and returns its URL. The app implements it (P4).
+export type OpenPullRequest = (
+  task: MigrationTask,
+  record: RunRecord,
+  repoDir: string,
+) => Promise<string>;
+
+// Runs the whole loop on one checked-out repo. The orchestrator implements it (O4); the app calls it (P4).
+export type RunRepoJob = (input: {
+  repo: string; // owner/name
+  dir: string; // a fresh checkout to read; repo code never runs on the host
+  openPullRequest: OpenPullRequest;
+  dryRun?: boolean; // stop before opening PRs
+}) => Promise<RunRecord[]>;
+
+// Where to look for a provider's changes. The inventory fills it (P5); the watchers read it (F4).
+export type ProviderHints = { packages?: string[]; hosts?: string[]; docsUrls?: string[] };
+
+// One run as the dashboard shows it. Memory produces it (O6), the app serves it (P4), the site renders it (P6).
+export type RunView = {
+  id: string;
+  repo: string;
+  taskId: string;
+  provider: string;
+  changeId: string;
+  outcome: RunRecord['outcome'];
+  pr?: string;
+  costUsd: number;
+  summary: string; // one line: what changed, or why nothing did
+  finishedAt: string;
+};
