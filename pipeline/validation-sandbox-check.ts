@@ -7,7 +7,7 @@
 
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { cp, mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { chmod, cp, mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { promisify } from 'node:util';
@@ -114,6 +114,16 @@ const errorLines = (check: CheckResult) =>
     .filter((line) => ERROR_LINE.test(line))
     .map((line) => line.slice(0, 300));
 
+// The last lines a check printed, for a failure that names no error line.
+const tail = (check: CheckResult) =>
+  `${check.stdout}\n${check.stderr}`
+    .replace(ANSI, '')
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter(Boolean)
+    .slice(-10)
+    .map((line) => line.slice(0, 300));
+
 // The failures `after` has that `before` did not, and why a check proves nothing when it fails on
 // the original code too. Exported for the unit tests.
 export function newFailures(
@@ -125,7 +135,7 @@ export function newFailures(
   const name = `the ${kind === 'tests' ? 'test' : kind === 'typecheck' ? 'type check' : 'build'} (${command.join(' ')})`;
   const baselineNote = () => {
     const stop = baselineStop(`${before.stdout}\n${before.stderr}`);
-    return `${name[0].toUpperCase()}${name.slice(1)} already ${before.status === 'error' ? 'does not finish' : 'fails'} on the original code${stop ? ` (${stop.summary})` : ''}, so it proves nothing about the patch beyond the new failures it shows.`;
+    return `${name[0].toUpperCase()}${name.slice(1)} already ${before.status === 'error' ? 'does not run or finish' : 'fails'} on the original code${stop ? ` (${stop.summary})` : ''}, so it proves nothing about the patch beyond the new failures it shows.`;
   };
   if (after.status === 'passed' || after.status === 'not-run')
     return { errors: [], ...(before.status === 'passed' ? {} : { unproven: baselineNote() }) };
@@ -151,10 +161,10 @@ export function newFailures(
   const lines = errorLines(after);
   if (before.status === 'passed')
     return {
-      errors: (lines.length ? lines : [`${name} exited with ${after.exitCode}`]).slice(
-        0,
-        MAX_LINES,
-      ),
+      errors: (lines.length
+        ? lines
+        : [`${name} exited with ${after.exitCode}:`, ...tail(after)]
+      ).slice(0, MAX_LINES),
     };
   const known = new Set(errorLines(before).map(normalized));
   return {
@@ -332,6 +342,8 @@ export async function sandboxCheck(
   baseline: SandboxBaseline,
   options: { signal?: AbortSignal; onProgress?: (message: string) => void } = {},
 ): Promise<SandboxCheckResult> {
+  // The sandbox user reads the mount; a mkdtemp copy (mode 700) would fail every check.
+  await chmod(repoDir, 0o755);
   const fingerprint = await packageFiles(repoDir);
   let dependencies = baseline.dependencies;
   const unproven: string[] = [];

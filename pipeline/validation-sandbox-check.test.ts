@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -91,7 +91,7 @@ it('counts only type errors the original code did not have, whatever line they m
   expect(counted.unproven).toMatch(/already fails on the original code/);
   expect(
     newFailures('typecheck', ['tsc'], result('passed'), result('failed', 'oops\n')).errors,
-  ).toEqual(['the type check (tsc) exited with 1']);
+  ).toEqual(['the type check (tsc) exited with 1:', 'oops']);
 });
 
 it('counts only tests that newly fail where the original already fails', () => {
@@ -193,7 +193,9 @@ it('judges an edited tree against the original, reinstalling only when package f
       command === 'npm test'
         ? result('failed', '× creates a product\nTests  1 failed | 0 passed (1)\n')
         : result('failed', 'gen.ts(1,1): error TS2307: Cannot find module "./generated".\n');
+    await chmod(edited, 0o700);
     const broken = await sandboxCheck(edited, baseline);
+    expect((await stat(edited)).mode & 0o777).toBe(0o755);
     expect(broken.passed).toBe(false);
     expect(broken.errors).toEqual([
       '[tests] × creates a product',

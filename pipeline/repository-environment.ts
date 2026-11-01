@@ -132,6 +132,8 @@ export const INSTALL_SCRIPT = [
   'set -e',
   'export HOME=/workspace/.home npm_config_cache=/workspace/.npm-cache YARN_CACHE_FOLDER=/workspace/.yarn-cache YARN_NODE_LINKER=node-modules YARN_ENABLE_IMMUTABLE_INSTALLS=false COREPACK_ENABLE_NETWORK=0 TMPDIR=/workspace/.tmp',
   'mkdir -p "$HOME" "$TMPDIR"',
+  // pnpm's use-node-version downloads a glibc Node, which fails on the Alpine image (ERR_PNPM_MUSL).
+  'if [ -f .npmrc ]; then sed -i "/^[[:space:]]*use-node-version[[:space:]]*=/d" .npmrc; fi',
   'tool="$1"; shift',
   'if [ -n "$tool" ]; then npm install --prefix /workspace/.refit-tools --ignore-scripts --no-audit --no-fund "$tool" >&2; export PATH="/workspace/.refit-tools/node_modules/.bin:$PATH"; fi',
   'printf "REFIT_NODE_VERSION=%s\\n" "$(node --version)" >&2',
