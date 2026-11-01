@@ -14,6 +14,14 @@ const OUTPUT_CAP = 2 * 1024 * 1024;
 const DEFAULT_IMAGE = 'node:22-bookworm';
 const EXCLUDED = new Set(['.git', 'node_modules']);
 
+// The only env repo code gets beyond the scrubbed host env (local) or nothing (Docker). Install scripts stay off.
+const SANDBOX_ENV = {
+  CI: '1',
+  npm_config_ignore_scripts: 'true',
+  YARN_ENABLE_SCRIPTS: 'false',
+  PIP_ONLY_BINARY: ':all:', // no sdist builds, so no setup.py runs
+};
+
 export type SandboxOptions = { mode?: 'docker' | 'local'; image?: string };
 
 export async function createSandbox(
@@ -47,13 +55,7 @@ export async function createSandbox(
     const remove = () => fs.rm(root, { recursive: true, force: true });
 
     if (mode === 'local') {
-      const env = {
-        ...scrubbedEnv(),
-        CI: '1',
-        npm_config_ignore_scripts: 'true',
-        YARN_ENABLE_SCRIPTS: 'false',
-        PIP_ONLY_BINARY: ':all:', // no sdist builds, so no setup.py runs
-      };
+      const env = { ...scrubbedEnv(), ...SANDBOX_ENV };
       return {
         dir,
         mode,
@@ -72,7 +74,8 @@ export async function createSandbox(
     const started = await run('docker', [
       'run', '-d', '--rm', '--name', name, ...user,
       '--memory', '4g', '--cpus', '2', '--security-opt', 'no-new-privileges',
-      '-e', 'CI=1', '-e', 'HOME=/tmp',
+      ...Object.entries(SANDBOX_ENV).flatMap(([key, value]) => ['-e', `${key}=${value}`]),
+      '-e', 'HOME=/tmp',
       '-v', `${dir}:/work`, '-w', '/work', image, 'sleep', 'infinity',
     ]);
     if (started.code !== 0) throw new Error(`docker run ${image} failed: ${started.stderr.trim()}`);
@@ -102,7 +105,7 @@ export async function createSandbox(
 
 export function sandboxEnvNote(sandbox: Sandbox & { image?: string }): string {
   return sandbox.mode === 'docker'
-    ? `Docker container ${sandbox.image ?? DEFAULT_IMAGE}; install scripts allowed inside the container`
+    ? `Docker container ${sandbox.image ?? DEFAULT_IMAGE}; install scripts disabled; no host env or mounts besides the repo copy`
     : 'Local temp copy; install scripts disabled; no Docker';
 }
 

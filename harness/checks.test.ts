@@ -182,9 +182,9 @@ describe('detectPackageManager and detectChecks', () => {
 describe('installCommand', () => {
   const managers: PackageManager[] = ['npm', 'pnpm', 'yarn', 'bun', 'pip', 'poetry'];
 
-  it('always disables install scripts in local mode', () => {
+  it('always disables install scripts, in Docker too', () => {
     for (const pm of managers) {
-      const command = installCommand(pm, 'local');
+      const command = installCommand(pm);
       const safe = /ignore-scripts|only-binary|ONLY_BINARY/;
       for (const part of command.split(/\|\||;|\bthen\b|\belse\b/)) {
         if (/\b(?:npm|pnpm|yarn|bun|pip|poetry) (?:ci|install)\b/.test(part)) {
@@ -197,10 +197,10 @@ describe('installCommand', () => {
   });
 
   it('prefers a frozen install and falls back to a plain one', () => {
-    expect(installCommand('npm', 'docker')).toBe(
-      'npm ci --no-audit --no-fund || npm install --no-audit --no-fund',
+    expect(installCommand('npm')).toBe(
+      'npm ci --ignore-scripts --no-audit --no-fund || npm install --ignore-scripts --no-audit --no-fund',
     );
-    expect(installCommand('pnpm', 'local')).toBe(
+    expect(installCommand('pnpm')).toBe(
       'pnpm install --frozen-lockfile --ignore-scripts || pnpm install --ignore-scripts',
     );
   });

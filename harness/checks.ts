@@ -27,41 +27,32 @@ export async function detectPackageManager(dir: string): Promise<PackageManager>
   return 'none';
 }
 
-// Local mode runs untrusted code on the host, so install scripts are always off there (hard limit 1).
-export function installCommand(pm: PackageManager, mode: 'docker' | 'local'): string {
-  const local = mode === 'local';
+// Install scripts are always off, in Docker too: untrusted repo code runs only in a sandbox with
+// install scripts off (Otabek's rule, stricter than the plan; allowing them in Docker is for the founders).
+export function installCommand(pm: PackageManager): string {
   switch (pm) {
-    case 'npm': {
-      const flags = `${local ? '--ignore-scripts ' : ''}--no-audit --no-fund`;
-      return `npm ci ${flags} || npm install ${flags}`;
-    }
-    case 'pnpm': {
-      const flags = local ? ' --ignore-scripts' : '';
-      return `pnpm install --frozen-lockfile${flags} || pnpm install${flags}`;
-    }
+    case 'npm':
+      return 'npm ci --ignore-scripts --no-audit --no-fund || npm install --ignore-scripts --no-audit --no-fund';
+    case 'pnpm':
+      return 'pnpm install --frozen-lockfile --ignore-scripts || pnpm install --ignore-scripts';
     case 'yarn': {
       // Yarn 1 takes --ignore-scripts; Yarn 2+ rejects that flag and reads YARN_ENABLE_SCRIPTS.
-      const classic = local
-        ? 'yarn install --frozen-lockfile --ignore-scripts || yarn install --ignore-scripts'
-        : 'yarn install --frozen-lockfile || yarn install';
-      const env = local ? 'YARN_ENABLE_SCRIPTS=false ' : '';
-      const berry = `${env}yarn install --immutable || ${env}yarn install`;
+      const classic =
+        'yarn install --frozen-lockfile --ignore-scripts || yarn install --ignore-scripts';
+      const berry =
+        'YARN_ENABLE_SCRIPTS=false yarn install --immutable || YARN_ENABLE_SCRIPTS=false yarn install';
       return `if yarn --version | grep -q '^1\\.'; then ${classic}; else ${berry}; fi`;
     }
-    case 'bun': {
-      const flags = local ? ' --ignore-scripts' : '';
-      return `bun install --frozen-lockfile${flags} || bun install${flags}`;
-    }
+    case 'bun':
+      return 'bun install --frozen-lockfile --ignore-scripts || bun install --ignore-scripts';
     case 'pip':
-      return local
-        ? 'if [ -f requirements.txt ]; then python3 -m pip install --only-binary=:all: -r requirements.txt; ' +
-            'else echo "local mode installs only prebuilt wheels from requirements.txt; install other dependencies with pip --only-binary=:all:"; fi'
-        : 'if [ -f requirements.txt ]; then python3 -m pip install -r requirements.txt; else python3 -m pip install -e .; fi';
+      return (
+        'if [ -f requirements.txt ]; then python3 -m pip install --only-binary=:all: -r requirements.txt; ' +
+        'else echo "installs only prebuilt wheels from requirements.txt; install other dependencies with pip --only-binary=:all:"; fi'
+      );
     case 'poetry':
-      // shortcut: Poetry before 1.8 ignores installer.only-binary and may build sdists; use Docker mode there.
-      return local
-        ? 'POETRY_INSTALLER_ONLY_BINARY=:all: PIP_ONLY_BINARY=:all: poetry install --no-root'
-        : 'poetry install';
+      // shortcut: Poetry before 1.8 ignores installer.only-binary and may build sdists; pin Poetry 1.8+ in the image.
+      return 'POETRY_INSTALLER_ONLY_BINARY=:all: PIP_ONLY_BINARY=:all: poetry install --no-root';
     case 'none':
       return 'echo "no package manager detected"';
   }

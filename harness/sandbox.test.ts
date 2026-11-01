@@ -118,7 +118,7 @@ describe('docker sandbox', () => {
       sandbox = await createSandbox(repoDir, { mode: 'docker' });
       expect(sandbox.mode).toBe('docker');
       expect(sandboxEnvNote(sandbox)).toBe(
-        'Docker container node:22-bookworm; install scripts allowed inside the container',
+        'Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy',
       );
       const node = await sandbox.exec('node -v');
       expect(node.code).toBe(0);
@@ -132,6 +132,41 @@ describe('docker sandbox', () => {
       const root = path.dirname(sandbox.dir);
       await sandbox.dispose();
       await expect(fs.access(root)).rejects.toThrow();
+    },
+    10 * 60 * 1000,
+  );
+
+  it.skipIf(!dockerAvailable())(
+    'gives the container no host env, credentials or home mount, and keeps install scripts off',
+    async () => {
+      process.env.FOO_TOKEN = 'host-secret-value-123';
+      try {
+        await fs.writeFile(
+          path.join(repoDir, 'package.json'),
+          JSON.stringify({
+            name: 'fixture',
+            version: '1.0.0',
+            scripts: { preinstall: 'touch RAN' },
+          }),
+        );
+        sandbox = await createSandbox(repoDir, { mode: 'docker' });
+        const env = await sandbox.exec('env');
+        expect(env.stdout).not.toContain('host-secret-value-123');
+        expect(env.stdout).not.toContain(os.homedir());
+        expect(env.stdout).toContain('npm_config_ignore_scripts=true');
+        expect(env.stdout).toContain('HOME=/tmp');
+        // The only bind mount is the repo copy at /work.
+        const mounts = await sandbox.exec(`awk '{print $5}' /proc/self/mountinfo`);
+        expect(mounts.stdout).toContain('/work');
+        expect(mounts.stdout).not.toContain(os.homedir());
+        expect((await sandbox.exec(`test -e ${os.homedir()}`)).code).not.toBe(0);
+        // Even a plain install the agent runs itself skips lifecycle scripts.
+        const install = await sandbox.exec('npm install --no-audit --no-fund');
+        expect(install.code).toBe(0);
+        await expect(fs.access(path.join(sandbox.dir, 'RAN'))).rejects.toThrow();
+      } finally {
+        delete process.env.FOO_TOKEN;
+      }
     },
     10 * 60 * 1000,
   );

@@ -12,7 +12,7 @@ sandboxed copy of the repo and returns a `RunRecord` plus the PR body.
 | `prompt.ts`       | The versioned system prompt (`PROMPT_VERSION`), kickoff and retry messages         |
 | `tools.ts`        | The tool registry: files, shell, install, checks, fetch, recipes, ToolPack, finish |
 | `checks.ts`       | Package manager and check detection, before/after comparison of failures           |
-| `sandbox.ts`      | Docker container, or a local temp copy with install scripts disabled               |
+| `sandbox.ts`      | Docker container, or a local temp copy; install scripts off in both                |
 | `ledger.ts`       | The run-level dollar cap every model call is charged to                            |
 | `pr.ts`           | The PR body: change, why, proof, unproven, behaviour changes                       |
 | `secrets.ts`      | Redaction and a scrubbed env for untrusted code                                    |

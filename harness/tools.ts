@@ -294,7 +294,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
         if (pm === 'none') {
           return 'no lockfile or manifest found. Install what the repo needs with the shell tool.';
         }
-        const command = installCommand(pm, sandbox.mode);
+        const command = installCommand(pm);
         const result = await sandbox.exec(command, { timeoutMs: 15 * 60_000 });
         return `package manager: ${pm}\ncommand: ${command}\n${formatExec(result)}`;
       },

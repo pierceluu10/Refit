@@ -113,8 +113,7 @@ export async function runTask(
     const recipes = await retrieveRecipes(task).catch(() => []);
 
     const pm = await detectPackageManager(sandbox.dir);
-    const install =
-      pm === 'none' ? undefined : await sandbox.exec(installCommand(pm, sandbox.mode));
+    const install = pm === 'none' ? undefined : await sandbox.exec(installCommand(pm));
     const checks = await detectChecks(sandbox.dir, pm);
     const before = await runChecks(sandbox, checks);
     log({ type: 'harness', phase: 'baseline', pm, install, checks, before });
