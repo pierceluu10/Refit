@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   BookOpen,
   CaretRight,
+  ClockCounterClockwise,
   FolderSimple,
   GithubLogo,
   GitPullRequest,
@@ -38,6 +39,7 @@ import {
 } from '../fixtures';
 import './workspace.css';
 import { CallSites, PageHeading, Status, WorkspaceMissing } from '../components/WorkspaceUI';
+import { Runs } from './Runs';
 import { TaskDetail, TaskList, Tasks } from './Tasks';
 import type { ApiUsage } from '../../shared/types.ts';
 
@@ -45,6 +47,7 @@ const navigation = [
   { path: '/app', name: 'Overview', icon: House, exact: true },
   { path: '/app/repositories', name: 'Repositories', icon: FolderSimple },
   { path: '/app/tasks', name: 'Tasks', icon: GitPullRequest },
+  { path: '/app/runs', name: 'Runs', icon: ClockCounterClockwise },
 ];
 
 export function Workspace() {
@@ -173,6 +176,7 @@ export function Workspace() {
             <Route path="repositories/:id" element={<RepositoryDetail />} />
             <Route path="tasks" element={<Tasks />} />
             <Route path="tasks/:id" element={<TaskDetail />} />
+            <Route path="runs" element={<Runs />} />
             <Route path="*" element={<WorkspaceMissing />} />
           </Routes>
         </main>
@@ -470,6 +474,13 @@ function RepositoryDetail() {
             <span>No provider change touches this repository’s call sites.</span>
           </div>
         )}
+      </section>
+      <section className="detail-section">
+        <h2>Runs</h2>
+        <p>What the agent did on each task, what it cost and the pull request it opened.</p>
+        <Link className="text-link" to={`/app/runs?repo=${encodeURIComponent(repo.name)}`}>
+          View runs for {repo.name} <ArrowRight />
+        </Link>
       </section>
     </>
   );

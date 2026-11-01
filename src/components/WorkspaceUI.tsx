@@ -1,15 +1,21 @@
-import { CheckCircle, WarningCircle, FolderSimple } from '@phosphor-icons/react';
+import { CheckCircle, FolderSimple, WarningCircle, XCircle } from '@phosphor-icons/react';
 import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
-import type { ApiUsage } from '../../shared/types.ts';
+import type { ApiUsage, RunRecord } from '../../shared/types.ts';
 import { outcomeLabels } from '../fixtures';
-import type { Outcome } from '../fixtures';
 
-export function Status({ outcome }: { outcome: Outcome }) {
-  const positive = outcome !== 'needs-review';
+const outcomeStyles = {
+  verified: { className: 'status-positive', Icon: CheckCircle },
+  'not-affected': { className: 'status-positive', Icon: CheckCircle },
+  'needs-review': { className: 'status-attention', Icon: WarningCircle },
+  failed: { className: 'status-negative', Icon: XCircle },
+} satisfies Record<RunRecord['outcome'], object>;
+
+export function Status({ outcome }: { outcome: RunRecord['outcome'] }) {
+  const { className, Icon } = outcomeStyles[outcome];
   return (
-    <span className={`resource-status ${positive ? 'status-positive' : 'status-attention'}`}>
-      {positive ? <CheckCircle /> : <WarningCircle />}
+    <span className={`resource-status ${className}`}>
+      <Icon />
       {outcomeLabels[outcome]}
     </span>
   );
@@ -19,15 +25,17 @@ export function PageHeading({
   title,
   description,
   action,
+  example = true,
 }: {
   title: string;
   description: string;
   action?: ReactNode;
+  example?: boolean;
 }) {
   return (
     <div className="app-page-heading">
       <div>
-        <span className="example-chip">Example data</span>
+        {example && <span className="example-chip">Example data</span>}
         <h1>{title}</h1>
         <p>{description}</p>
       </div>
