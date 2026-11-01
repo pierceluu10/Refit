@@ -1,65 +1,80 @@
-// Wires the runner to the real Aptitude modules. They land on other branches tonight, so this
-// loads them by path at run time and refuses to start (before any spend) if one is missing.
+// Wires the runner to the real Aptitude modules through the orchestrator's createDeps, so the
+// benchmark runs what the loop runs, under one run budget. It refuses to start without a key.
+import { createBudget } from '../../orchestrator/budget.ts';
+import { createDeps, providerWatcher } from '../../orchestrator/deps.ts';
+import { listProviderIds } from '../../providers/core/registry.ts';
+import type { ProviderChange } from '../../shared/types.ts';
 import { createReviewer } from '../reviewer/reviewer.ts';
 import { unwiredModelClient } from '../reviewer/model.ts';
-import type { InventoryRepo, ProviderChange, RunTask, WatchProvider } from '../../shared/types.ts';
 import { gitCheckout } from './checkout.ts';
-import type { MatchChanges, PipelineFactory } from './types.ts';
-
-/**
- * Where each entry point is expected once the owning branch merges. Update these in the morning
- * if a module exports under another name.
- */
-export const REAL_MODULES = {
-  inventory: { path: '../../inventory/index.ts', export: 'inventoryRepo' },
-  match: { path: '../../orchestrator/match.ts', export: 'matchChanges' },
-  runTask: { path: '../../harness/index.ts', export: 'runTask' },
-  watch: { path: '../../providers/index.ts', export: 'watchProvider' },
-} as const;
-
-async function loadExport<T>(spec: { path: string; export: string }): Promise<T | undefined> {
-  try {
-    const url = new URL(spec.path, import.meta.url).href;
-    const module = (await import(url)) as Record<string, unknown>;
-    const value = module[spec.export];
-    return typeof value === 'function' ? (value as T) : undefined;
-  } catch {
-    return undefined;
-  }
-}
+import type { Meter, PipelineFactory } from './types.ts';
 
 export async function loadRealPipeline(budgetUsd: number): Promise<PipelineFactory> {
-  const inventory = await loadExport<InventoryRepo>(REAL_MODULES.inventory);
-  const match = await loadExport<MatchChanges>(REAL_MODULES.match);
-  const runTask = await loadExport<RunTask>(REAL_MODULES.runTask);
-  const watchProvider = await loadExport<(provider: string) => WatchProvider>(REAL_MODULES.watch);
-  const missing = Object.entries({ inventory, match, runTask, watchProvider })
-    .filter(([, value]) => value === undefined)
-    .map(([name]) => name);
-  if (!inventory || !match || !runTask || !watchProvider || missing.length > 0) {
+  // Without a key createDeps falls back to offline stubs, and the benchmark would grade fake work.
+  if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error(
-      `real modules not available yet: ${missing.join(', ')}. Merge the owning branches first; for a $0 check run "npm run smoke -w evals".`,
+      'Set ANTHROPIC_API_KEY for a real run. For a $0 check run "npm run smoke -w evals".',
     );
   }
-  // The harness enforces its own hard cap; give it this run's cap so both limits agree.
-  process.env.APTITUDE_AI_BUDGET_USD = String(budgetUsd);
+  const budget = createBudget(budgetUsd);
+  const deps = createDeps({ budget });
+  const providerIds = listProviderIds();
+
+  // One spending call at a time: each part may spend what is left of the run, so calls from
+  // repos running in parallel could each spend the same remainder.
+  let last: Promise<unknown> = Promise.resolve();
+  const oneAtATime = <T>(call: () => Promise<T>): Promise<T> => {
+    const run = last.then(call);
+    last = run.catch(() => {});
+    return run;
+  };
+  // Charges the repo's meter with what the call spent from the run budget.
+  const spending = <T>(meter: Meter, label: string, call: () => Promise<T>): Promise<T> =>
+    oneAtATime(async () => {
+      const before = budget.spentUsd();
+      try {
+        return await call();
+      } finally {
+        meter.charge(budget.spentUsd() - before, label);
+      }
+    });
+
   const checkout = gitCheckout();
   const review = createReviewer(unwiredModelClient);
   const changesByProvider = new Map<string, Promise<ProviderChange[]>>();
-  return ({ provider }) => ({
+  return ({ entry, provider, meter }) => ({
     checkout,
-    inventory,
+    // Inventory is the first step that spends, so a provider with no watcher stops before any spend.
+    inventory: (repoDir, repo) =>
+      providerIds.includes(provider)
+        ? spending(meter, 'inventory', () => deps.inventory(repoDir, repo))
+        : Promise.reject(
+            new Error(
+              `no changelog watcher for ${provider} yet: providers/ has no ${provider} folder`,
+            ),
+          ),
     watch: () => {
       // One watcher read per provider per run, so every repo is matched against the same changes.
       let changes = changesByProvider.get(provider);
       if (!changes) {
-        changes = watchProvider(provider)();
+        changes = spending(meter, 'watch', () => providerWatcher(provider, budget)());
         changesByProvider.set(provider, changes);
       }
       return changes;
     },
-    match,
-    runTask,
+    match: (changes, usages) =>
+      spending(meter, 'match', async () => {
+        const result = await deps.match({ repo: entry.repo, changes, usages });
+        return {
+          tasks: result.tasks,
+          reasoning: [
+            ...result.tasks.map((task) => `${task.id}: ${task.reasoning}`),
+            ...result.notAffected.map((n) => `${n.changeId}: not affected: ${n.reasoning}`),
+          ].join('\n'),
+        };
+      }),
+    // The runner charges each record's costUsd to the meter itself.
+    runTask: (task, repoDir) => oneAtATime(() => deps.runTask(task, repoDir)),
     review,
   });
 }
