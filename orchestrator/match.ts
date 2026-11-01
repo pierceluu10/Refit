@@ -20,6 +20,8 @@ export type MatchChanges = (input: {
   repo: string;
   changes: ProviderChange[];
   usages: ApiUsage[];
+  // The repo checkout, for transports that let the agent read code. Read-only; nothing in it is executed.
+  repoDir?: string;
 }) => Promise<MatchResult>;
 
 const MAX_TOKENS = 16000;
@@ -137,6 +139,7 @@ export type AskModel = (req: {
   system: string;
   prompt: string;
   schema: Record<string, unknown>;
+  repoDir?: string;
 }) => Promise<{ output: unknown; costUsd: number }>;
 
 // The production transport: the Messages API, priced from token usage against the run budget.
@@ -176,17 +179,17 @@ export function createMatchAgent(opts: {
   model?: string;
 }): MatchChanges {
   const ask = opts.ask ?? messagesApi(opts);
-  return async ({ repo, changes, usages }) => {
+  return async ({ repo, changes, usages, repoDir }) => {
     if (changes.length === 0) return { tasks: [], notAffected: [], costUsd: 0 };
     const prompt = buildPrompt(repo, changes, usages);
-    const answer = await ask({ system: SYSTEM_PROMPT, prompt, schema: SCHEMA });
+    const answer = await ask({ system: SYSTEM_PROMPT, prompt, schema: SCHEMA, repoDir });
     const output = answer.output as AgentOutput;
     const costUsd = answer.costUsd;
 
     const byId = new Map(changes.map((c) => [c.id, c]));
     const ids = new Set<string>();
     const tasks: MatchedTask[] = [];
-    // Unknown change ids are model slips; the real change still gets a verdict below.
+    // Unknown change ids are model slips; the real change is still attempted below.
     for (const t of output.tasks.filter((t) => byId.has(t.changeId))) {
       const change = byId.get(t.changeId)!;
       let id = `${repo}:${change.id}`;
@@ -199,6 +202,7 @@ export function createMatchAgent(opts: {
         usages: t.usageIndexes.flatMap((i) => (usages[i] ? [usages[i]] : [])),
         deadline: change.effectiveDate ?? (t.deadline || undefined),
         priority: tasks.length + 1,
+        notes: t.reasoning,
         reasoning: t.reasoning,
         urgency: t.urgency,
         callSites: t.callSites,
@@ -213,10 +217,21 @@ export function createMatchAgent(opts: {
       judged.add(n.changeId);
       notAffected.push({ changeId: n.changeId, reasoning: n.reasoning });
     }
-    for (const c of changes.filter((c) => !judged.has(c.id))) {
-      notAffected.push({
-        changeId: c.id,
-        reasoning: 'the match agent returned no verdict for this change',
+    // No verdict is not a "not affected": hand the change to the harness to judge with the code in front of it.
+    for (const change of changes.filter((c) => !judged.has(c.id))) {
+      const reasoning =
+        'The match agent returned no verdict for this change. Check the repo for any use of it, then migrate or conclude not affected.';
+      tasks.push({
+        id: `${repo}:${change.id}`,
+        repo,
+        change,
+        usages,
+        deadline: change.effectiveDate,
+        priority: tasks.length + 1,
+        notes: reasoning,
+        reasoning,
+        urgency: 'unknown',
+        callSites: [],
       });
     }
     return { tasks, notAffected, costUsd };

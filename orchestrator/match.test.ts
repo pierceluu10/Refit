@@ -57,6 +57,7 @@ describe('createMatchAgent', () => {
     expect(result.tasks.map((t) => [t.id, t.priority])).toEqual([
       ['example/shop:openai-gpt-4o-retirement', 1],
       ['example/shop:stripe-charges-source-removed', 2],
+      ['example/shop:shopify-rest-products-deprecated', 3],
     ]);
     const [first] = result.tasks;
     expect(first.change).toBe(changes[1]);
@@ -66,7 +67,7 @@ describe('createMatchAgent', () => {
     expect(first.callSites[0].why).toBe('names gpt-4o');
   });
 
-  it('returns a change the model omitted as notAffected instead of dropping it', async () => {
+  it('attempts a change the model omitted instead of dropping it or calling it not affected', async () => {
     const { client } = fakeClient(agentOutput);
     const result = await createMatchAgent({ client, budget: createBudget(2) })({
       repo,
@@ -75,11 +76,10 @@ describe('createMatchAgent', () => {
     });
     expect(result.notAffected).toEqual([
       { changeId: 'twilio-conversations-webhook-payload', reasoning: 'Only sends SMS.' },
-      {
-        changeId: 'shopify-rest-products-deprecated',
-        reasoning: 'the match agent returned no verdict for this change',
-      },
     ]);
+    const omitted = result.tasks.find((t) => t.change.id === 'shopify-rest-products-deprecated');
+    expect(omitted?.usages).toEqual(usages);
+    expect(omitted?.notes).toMatch(/no verdict/);
   });
 
   it('charges the budget from the response usage', async () => {

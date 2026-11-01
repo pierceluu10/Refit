@@ -127,18 +127,26 @@ export async function runRepo(
   try {
     usages = await queue.add(`${repo}:inventory`, () => deps.inventory(dir, repo));
     stage = 'match';
-    const matched = await queue.add(`${repo}:match`, () => deps.match({ repo, changes, usages }));
+    const matched = await queue.add(`${repo}:match`, () =>
+      deps.match({ repo, changes, usages, repoDir: dir }),
+    );
     state.costUsd += matched.costUsd;
     ({ tasks, notAffected } = matched);
   } catch (error) {
-    // Without a usage map or verdicts nothing can be attempted yet, so every change is recorded as failed.
-    const note = `${stage} failed after retries: ${errorText(error)}`;
-    return Promise.all(
-      changes.map((change) => {
-        const task = verdictTask(repo, change, usages);
-        return finish(task, record(task.id, 'failed', note));
-      }),
-    );
+    // No usage map or verdicts: still attempt every change and let the harness read the repo itself.
+    const failure = `${stage} failed after retries: ${errorText(error)}`;
+    state.errors.push(`${repo}: ${failure}`);
+    log(`ERROR ${repo}: ${failure}`);
+    const notes = `${failure}. There is no ${stage === 'inventory' ? 'usage map' : 'match verdict'} for this repo: read the code yourself to find any use of this change, then migrate it or conclude not affected.`;
+    tasks = changes.map((change, i) => ({
+      ...verdictTask(repo, change, usages),
+      priority: i + 1,
+      notes,
+      reasoning: notes,
+      urgency: 'unknown',
+      callSites: [],
+    }));
+    notAffected = [];
   }
 
   const capReached = () => opts.capUsd !== undefined && state.costUsd >= opts.capUsd;
@@ -178,18 +186,26 @@ export async function runRepo(
     return finish(task, result);
   }
 
-  const verdicts = changes
-    .filter((change) => !tasks.some((task) => task.change.id === change.id))
-    .map((change) => {
+  const verdicts: Promise<LoopRecord>[] = [];
+  for (const change of changes.filter((c) => !tasks.some((t) => t.change.id === c.id))) {
+    const verdict = notAffected.find((v) => v.changeId === change.id);
+    if (verdict) {
       const task = verdictTask(repo, change, usages);
-      const verdict = notAffected.find((v) => v.changeId === change.id);
-      return finish(
-        task,
-        verdict
-          ? record(task.id, 'not-affected', verdict.reasoning)
-          : record(task.id, 'failed', 'match agent returned no verdict for this change'),
-      );
+      verdicts.push(finish(task, record(task.id, 'not-affected', verdict.reasoning)));
+      continue;
+    }
+    // A matcher that gave no verdict does not end the change: the harness judges it.
+    const notes =
+      'The match agent returned no verdict for this change. Check the repo for any use of it, then migrate or conclude not affected.';
+    tasks.push({
+      ...verdictTask(repo, change, usages),
+      priority: tasks.length + 1,
+      notes,
+      reasoning: notes,
+      urgency: 'unknown',
+      callSites: [],
     });
+  }
 
   return Promise.all([...verdicts, ...tasks.map(attempt)]);
 }

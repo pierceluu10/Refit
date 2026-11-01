@@ -41,6 +41,7 @@ export type MigrationTask = {
   usages: ApiUsage[];
   deadline?: string;
   priority: number;
+  notes?: string; // the match agent's reasoning, or why the harness must find the usage itself
 };
 
 export type AgentTool = {
