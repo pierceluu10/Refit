@@ -210,25 +210,25 @@ pre {
   letter-spacing: -0.055em;
   font-weight: 620;
 }
-.refit-mark {
+.brand-mark {
   position: relative;
   display: inline-block;
   width: 28px;
   height: 28px;
   flex-shrink: 0;
 }
-.refit-mark > span {
+.brand-mark > span {
   position: absolute;
   width: 19px;
   height: 19px;
   border-top: 7px solid currentColor;
   border-left: 7px solid currentColor;
 }
-.refit-mark > span:first-child {
+.brand-mark > span:first-child {
   top: 1px;
   left: 0;
 }
-.refit-mark > span:last-child {
+.brand-mark > span:last-child {
   bottom: 1px;
   right: 0;
   transform: rotate(180deg);
@@ -391,7 +391,7 @@ pre {
     0 8px 20px -8px #235bdf66,
     inset 0 1px 0 #ffffff55;
 }
-.engine-node .refit-mark {
+.engine-node .brand-mark {
   transform: scale(1.15);
 }
 .map-center > span {
@@ -643,6 +643,7 @@ pre {
   margin: 23px 24px 15px;
 }
 .spec-content p,
+.usage-content > p,
 .validation-content > p,
 .review-content > p {
   margin: 17px 24px;
@@ -752,9 +753,13 @@ pre {
 .result-panel .inline-notice {
   margin: 20px 0;
 }
-.notice-warning {
+.notice-warning,
+.badge-warning {
   color: var(--warning);
   background: #fff7e9;
+}
+.badge-warning {
+  border-color: #efdcb8;
 }
 .standalone-code {
   font-size: 11px;
@@ -786,17 +791,7 @@ pre {
   font-size: 15px;
   font-weight: 550;
   color: #656d7b;
-}
-.stripe-wordmark {
-  font-size: 25px;
-  font-weight: 750;
-  letter-spacing: -0.055em;
-}
-.typescript-icon {
-  border: 1px solid #8992a1;
-  padding: 3px;
-  font-size: 11px;
-  font-weight: 600;
+  white-space: nowrap;
 }
 .scope-strip > a {
   display: flex;
@@ -941,6 +936,12 @@ pre {
 .configuration-title svg {
   width: 17px;
 }
+.configuration-title > .configuration-label {
+  font:
+    10px 'Geist Variable',
+    sans-serif;
+  color: #9aa8c0;
+}
 .configuration-panel pre {
   overflow: auto;
   padding: 23px;
@@ -1033,7 +1034,7 @@ pre {
   color: var(--blue);
   border-radius: 7px;
 }
-.sheet-avatar .refit-mark {
+.sheet-avatar .brand-mark {
   transform: scale(0.55);
 }
 .sheet-title strong {
@@ -1610,7 +1611,7 @@ pre {
     height: 48px;
     border-radius: 11px;
   }
-  .engine-node .refit-mark {
+  .engine-node .brand-mark {
     transform: scale(0.82);
   }
   .map-center > span {
@@ -1728,6 +1729,7 @@ pre {
     margin: 20px 16px 14px;
   }
   .spec-content p,
+  .usage-content > p,
   .validation-content > p,
   .review-content > p {
     margin: 15px 16px;
@@ -1776,7 +1778,9 @@ pre {
     gap: 20px;
   }
   .scope-strip > div {
-    gap: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px 24px;
   }
   .scope-strip > div > span {
     font-size: 13px;

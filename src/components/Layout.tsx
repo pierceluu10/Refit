@@ -41,7 +41,7 @@ export function Header() {
             <GithubLogo weight="bold" /> GitHub <ArrowUpRight size={12} />
           </a>
           <Link className="button button-small button-dark" to="/app">
-            Explore Refit <ArrowRight />
+            Explore the dashboard <ArrowRight />
           </Link>
         </nav>
       </div>
@@ -63,8 +63,8 @@ export function Footer() {
         </div>
       </div>
       <div className="footer-bottom">
-        <span>© {new Date().getFullYear()} Refit</span>
-        <span>Open source. Human reviewed.</span>
+        <span>© {new Date().getFullYear()} Aptitude</span>
+        <span>Pull requests only. Human reviewed.</span>
         <span className="footer-status">
           <span /> In development
         </span>
@@ -80,11 +80,11 @@ export function PagePosition() {
     if (target) target.scrollIntoView();
     else window.scrollTo(0, 0);
     const titlesByPath: Record<string, string> = {
-      '/': 'Refit: Keep your integrations current',
-      '/demo': 'Refit: Interactive workflow',
-      '/docs': 'Refit: Documentation',
+      '/': 'Aptitude: Keep your integrations current',
+      '/demo': 'Aptitude: Interactive workflow',
+      '/docs': 'Aptitude: Documentation',
     };
-    document.title = titlesByPath[pathname] ?? 'Refit: Workspace preview';
+    document.title = titlesByPath[pathname] ?? 'Aptitude: Dashboard preview';
   }, [pathname, hash]);
   return null;
 }

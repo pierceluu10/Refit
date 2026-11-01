@@ -4,9 +4,8 @@ import {
   BracketsCurly,
   Check,
   CheckCircle,
-  Code,
+  Eye,
   FileCode,
-  GitDiff,
   GitPullRequest,
   MagnifyingGlass,
   Pause,
@@ -34,11 +33,16 @@ export function useReducedMotion() {
   return reduced;
 }
 
-const stageIcons = [MagnifyingGlass, Code, ShieldCheck, GitPullRequest];
+const stageIcons = [MagnifyingGlass, Eye, ShieldCheck, GitPullRequest];
 const FINAL_STAGE = stages.length - 1;
-const stageSubtitles = ['Provider change', 'Code impact', 'Project checks', 'Draft pull request'];
+const stageSubtitles = [
+  'API usage map',
+  'Provider change',
+  'Checks before and after',
+  'Pull request',
+];
 
-export function CodeDiff() {
+function CodeDiff() {
   return (
     <div className="code-diff" aria-label="Illustrative TypeScript migration diff" tabIndex={0}>
       <div className="code-line">
@@ -95,30 +99,59 @@ export function CodeDiff() {
   );
 }
 
-export function StageContent({
-  stage,
-  scenario = 'affected',
-}: {
-  stage: number;
-  scenario?: Scenario;
-}) {
-  if (scenario === 'unaffected' && stage > 0)
+const affectedUsage = [
+  { fact: 'Stripe via SDK', value: 'stripe-node' },
+  { fact: 'Pinned apiVersion', value: 'src/lib/stripe.ts:4' },
+  { fact: 'paymentIntents.retrieve', value: 'src/billing/payments.ts:12' },
+  { fact: 'Reads charges.data[0]', value: 'src/billing/payments.ts:14' },
+];
+const usageMaps: Record<Scenario, typeof affectedUsage> = {
+  affected: affectedUsage,
+  failed: affectedUsage,
+  unaffected: [
+    { fact: 'Stripe via SDK', value: 'stripe-node' },
+    { fact: 'Pinned apiVersion', value: 'src/lib/stripe.ts:4' },
+    { fact: 'checkout.sessions.create', value: 'src/checkout/create-session.ts:8' },
+    { fact: 'Reads session.url', value: 'src/checkout/create-session.ts:9' },
+  ],
+};
+
+const checks = ['npm run typecheck', 'npm run build', 'npm test'];
+const FAILING_CHECK = checks.length - 1;
+
+function StageContent({ stage, scenario = 'affected' }: { stage: number; scenario?: Scenario }) {
+  if (stage === 0)
     return (
-      <div className="result-panel">
-        <CheckCircle size={32} weight="duotone" className="positive" />
-        <h2>No affected usage</h2>
+      <div className="usage-content">
+        <div className="artifact-label">
+          <MagnifyingGlass /> API usage map <span>Illustrative evidence</span>
+        </div>
+        <div className="evidence-trace">
+          <span>checkout route</span>
+          <ArrowRight />
+          <span>PaymentService</span>
+          <ArrowRight />
+          <span className="trace-active">StripeGateway</span>
+        </div>
+        <div className="check-list">
+          {usageMaps[scenario].map((row) => (
+            <div key={row.fact}>
+              <span>{row.fact}</span>
+              <code>{row.value}</code>
+            </div>
+          ))}
+        </div>
         <p>
-          The sample checkout code creates a session. It does not read <code>payment.charges</code>.
+          The agent reads each repository like a new engineer. It records every external API it
+          finds, not only the ones a scanner knows.
         </p>
-        <div className="inline-notice">No migration or pull request is needed in this example.</div>
-        <code className="standalone-code">stripe.checkout.sessions.create(options)</code>
       </div>
     );
-  if (stage === 0)
+  if (stage === 1)
     return (
       <div className="spec-content">
         <div className="artifact-label">
-          <BracketsCurly /> Provider specification <span>Example change</span>
+          <BracketsCurly /> Stripe changelog <span>Example change</span>
         </div>
         <h2>
           A field changes.
@@ -130,7 +163,10 @@ export function StageContent({
           <ArrowRight />
           <code>payment_intent.latest_charge</code>
         </div>
-        <p>Trace a changed response field from the API contract to the code that consumes it.</p>
+        <p>
+          An agent reads the provider’s changelog, records the change with its source, and decides
+          which of your call sites it touches.
+        </p>
         <a
           href="https://docs.stripe.com/api/payment_intents/object"
           target="_blank"
@@ -140,39 +176,35 @@ export function StageContent({
         </a>
       </div>
     );
-  if (stage === 1)
+  if (scenario === 'unaffected')
     return (
-      <div className="evidence-content">
-        <div className="artifact-label">
-          <FileCode /> src/billing/payments.ts <span>Illustrative evidence</span>
-        </div>
-        <div className="evidence-trace">
-          <span>checkout route</span>
-          <ArrowRight />
-          <span>PaymentService</span>
-          <ArrowRight />
-          <span className="trace-active">StripeGateway</span>
-        </div>
-        <CodeDiff />
-        <p className="artifact-footnote">
-          <GitDiff size={15} /> A focused change at the point of use. The surrounding code stays
-          yours.
+      <div className="result-panel">
+        <CheckCircle size={32} weight="duotone" className="positive" />
+        <h2>Not affected</h2>
+        <p>
+          The sample checkout code creates a session. It never reads <code>payment.charges</code>.
         </p>
+        <div className="inline-notice">
+          The verdict is recorded with its reason. No migration or pull request is needed in this
+          example.
+        </div>
+        <code className="standalone-code">stripe.checkout.sessions.create(options)</code>
       </div>
     );
+  const failed = scenario === 'failed';
   if (stage === 2)
     return (
       <div className="validation-content">
         <div className="artifact-label">
-          <ShieldCheck /> Validation plan <span>Illustrative outcome</span>
+          <ShieldCheck /> Sandbox run <span>Illustrative outcome</span>
         </div>
-        <h2>Your checks set the bar.</h2>
+        <CodeDiff />
         <div className="check-list">
-          {['npm run typecheck', 'npm run lint', 'npm test'].map((command, index) => (
+          {checks.map((command, index) => (
             <div key={command}>
               <code>{command}</code>
-              <span className={scenario === 'failed' && index === 2 ? 'negative' : 'positive'}>
-                {scenario === 'failed' && index === 2 ? (
+              <span className={failed && index === FAILING_CHECK ? 'negative' : 'positive'}>
+                {failed && index === FAILING_CHECK ? (
                   <>
                     <WarningCircle /> Example failure
                   </>
@@ -186,39 +218,27 @@ export function StageContent({
           ))}
         </div>
         <p>
-          {scenario === 'failed'
-            ? 'A failed assertion blocks publication. Refit would attempt a bounded repair before returning a failure.'
-            : 'In the connected product, these commands run inside an isolated environment. This preview does not execute them.'}
+          {failed
+            ? 'A new failure after the edit. The agent keeps iterating, and says why in the PR if it still can’t make it pass.'
+            : 'Checks run before and after the edit. Only new failures count. This preview does not execute them.'}
         </p>
-      </div>
-    );
-  if (scenario === 'failed')
-    return (
-      <div className="result-panel">
-        <WarningCircle size={32} className="negative" />
-        <h2>No passing checks. No PR.</h2>
-        <p>
-          The example test still fails after the repair limit. Review the retained diff and failure
-          evidence before retrying.
-        </p>
-        <div className="inline-notice notice-warning">
-          Publication is blocked. No pull request was created.
-        </div>
       </div>
     );
   return (
     <div className="review-content">
       <div className="artifact-label">
-        <GitPullRequest /> Draft pull request <span>Preview only</span>
+        <GitPullRequest /> Pull request <span>Preview only</span>
       </div>
       <h2>Adapt payment charge lookup</h2>
       <div className="review-meta">
-        <span className="draft-badge">Draft</span>
-        <code>refit/stripe/charge-reference</code>
+        <span className={`draft-badge ${failed ? 'badge-warning' : ''}`}>
+          {failed ? 'Needs review' : 'Verified'}
+        </span>
+        <code>aptitude/stripe/charge-reference</code>
       </div>
       <p>
-        A small, reviewable patch with the provider change, affected code, and validation evidence
-        in one place.
+        What changed and why, the proof, and what is unproven, in one place. Aptitude never merges
+        and never pushes to your default branch.
       </p>
       <div className="review-summary">
         <span>
@@ -228,9 +248,16 @@ export function StageContent({
         <span className="negative">−1</span>
         <span>Human review required</span>
       </div>
-      <div className="inline-notice">
-        This is an illustration. No repository was accessed and no PR was created.
-      </div>
+      {failed ? (
+        <div className="inline-notice notice-warning">
+          Unproven: <code>npm test</code> still fails one example assertion. The PR says which one
+          and why.
+        </div>
+      ) : (
+        <div className="inline-notice">
+          This is an illustration. No repository was accessed and no PR was created.
+        </div>
+      )}
     </div>
   );
 }
@@ -299,7 +326,7 @@ export function Workflow({
             <div className="provider-symbol">S</div>
             <div>
               <strong>API change</strong>
-              <span>stripe / openapi</span>
+              <span>stripe / changelog</span>
             </div>
             <span className="map-dot" />
           </div>
@@ -307,13 +334,13 @@ export function Workflow({
             <div className="engine-node">
               <Mark />
             </div>
-            <span>refit</span>
+            <span>aptitude</span>
           </div>
           <div className="map-endpoint map-output">
             <GitPullRequest size={24} />
             <div>
-              <strong>Draft pull request</strong>
-              <span>Ready for your review</span>
+              <strong>Pull request</strong>
+              <span>Verified or needs review</span>
             </div>
           </div>
           <div className="map-caption">From upstream change to downstream fix.</div>
@@ -327,7 +354,7 @@ export function Workflow({
             <i />
           </div>
           <span>
-            <FileCode size={14} /> {expanded ? 'Refit / interactive walkthrough' : 'acme / api'}
+            <FileCode size={14} /> {expanded ? 'Aptitude / interactive walkthrough' : 'acme / api'}
           </span>
           <span className="preview-label">Illustrative example</span>
         </div>
