@@ -377,7 +377,8 @@ export async function liveShopifyProof(options: {
       entry.versions = {};
       entry.status = 'passed';
       // Each version gets its own setup, so the target never reads objects the original created.
-      for (const version of [options.versions.before, options.versions.after]) {
+      // A judge of one version (before equal to after) sends each operation once.
+      for (const version of new Set([options.versions.before, options.versions.after])) {
         const ids = new Set<string>();
         const stepResults: Record<string, unknown> = {};
         const refuse = (reason: string) => {
@@ -442,7 +443,11 @@ export async function liveShopifyProof(options: {
           // Only the patched operation failing at the target, after the original passed at the
           // original version, is the patch's failure. The original failing too means the store or
           // the case's inputs cannot run it (docs/SHOPIFY-PROOF.md).
-          if (result.error && version === options.versions.before)
+          if (
+            result.error &&
+            version === options.versions.before &&
+            options.versions.before !== options.versions.after
+          )
             refuse(
               `the original operation fails on ${version} too, so the store cannot compare it: ${result.error}`,
             );

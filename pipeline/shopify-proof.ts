@@ -163,7 +163,7 @@ function inputChanges(
   return changes;
 }
 
-function checkDocument(
+export function checkDocument(
   document: AdminDocument,
   schema: GraphQLSchema,
   original?: GraphQLSchema,

@@ -1,4 +1,5 @@
-import { resolve } from 'node:path';
+import { readdir, readFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { createSourceImportResolver } from './source-imports.ts';
 import { isShopifyVersion, versionFromEnum } from './shopify-versions.ts';
@@ -2554,4 +2555,53 @@ export function documentLocation(document: AdminDocument, offset: number): Locat
   const before = segment.sourceText.slice(0, position);
   const line = before.split('\n').length;
   return { file: segment.file, line, column: position - before.lastIndexOf('\n') };
+}
+
+export interface InstalledShopifyApi {
+  release: string;
+  // The Admin API version LATEST_API_VERSION names, or null when the release does not export it
+  // (12.0.0 removed it), so `import { LATEST_API_VERSION }` reads undefined.
+  latest: string | null;
+  // Every Admin API version the release's ApiVersion enum names.
+  versions: string[];
+}
+
+// The @shopify/shopify-api release installed under `root` (at the top of node_modules or nested
+// under an app framework package), read from its own type declarations rather than Refit's release
+// table. Undefined when none is installed, several different releases are, or its declarations do
+// not have the shape Refit reads.
+export async function installedShopifyApi(root: string): Promise<InstalledShopifyApi | undefined> {
+  const copies = [join(root, 'node_modules/@shopify/shopify-api')];
+  const scoped = join(root, 'node_modules/@shopify');
+  for (const entry of await readdir(scoped).catch(() => []))
+    copies.push(join(scoped, entry, 'node_modules/@shopify/shopify-api'));
+  const found = new Map<string, InstalledShopifyApi | undefined>();
+  for (const directory of copies) {
+    let manifest: { version?: unknown; types?: unknown };
+    try {
+      manifest = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'));
+    } catch {
+      continue;
+    }
+    if (typeof manifest.version !== 'string' || found.has(manifest.version)) continue;
+    const types = typeof manifest.types === 'string' ? manifest.types : 'dist/ts/lib/index.d.ts';
+    const declarations = await readFile(
+      join(directory, dirname(types), 'types.d.ts'),
+      'utf8',
+    ).catch(() => '');
+    const body = /enum ApiVersion \{([^}]*)\}/.exec(declarations)?.[1];
+    const versions = [...(body ?? '').matchAll(/\w+ = "(\d{4}-\d{2})"/g)].map((match) => match[1]);
+    const latest = /LATEST_API_VERSION = ApiVersion\.(\w+)/.exec(declarations)?.[1];
+    found.set(
+      manifest.version,
+      versions.length
+        ? {
+            release: manifest.version,
+            latest: latest ? (versionFromEnum(latest) ?? null) : null,
+            versions,
+          }
+        : undefined,
+    );
+  }
+  return found.size === 1 ? [...found.values()][0] : undefined;
 }
