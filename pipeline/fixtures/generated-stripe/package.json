@@ -1,9 +1,0 @@
-{
-  "name": "app",
-  "scripts": {
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "stripe": "^22.1.1"
-  }
-}

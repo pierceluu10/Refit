@@ -24,4 +24,4 @@ jobs:
         with:
           node-version: 22
       # Reads package-lock.json only; nothing is installed or run from dependencies.
-      - run: node scripts/audit-gate.mjs
+      - run: npm audit --package-lock-only --audit-level=high

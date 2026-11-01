@@ -1,8 +1,0 @@
-{
-  "name": "refit-openai-contract-fixture",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "openai": "7.32.0"
-  }
-}
