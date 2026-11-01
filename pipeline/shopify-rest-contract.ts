@@ -505,6 +505,8 @@ export function proveRestCall(
 export interface RestEntryProof {
   entry: ShopifyScan['rest'][number];
   proof: RestCallProof;
+  // Refit could not trace what the call sends, so the contract never judged it.
+  untraced?: true;
 }
 
 // Every REST call the scan found, traced and checked against the contract. A REST client
@@ -527,6 +529,7 @@ export function proveShopifyRest(
         proofs.push({
           entry,
           proof: { status: 'unproven', reason: 'Refit could not read the file again.' },
+          untraced: true,
         });
       continue;
     }
@@ -605,6 +608,7 @@ export function proveShopifyRest(
           reason:
             result?.status === 'stopped' ? result.reason : 'Refit could not trace this REST call.',
         },
+        untraced: true,
       });
     }
   }

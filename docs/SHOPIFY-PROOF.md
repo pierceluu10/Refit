@@ -62,6 +62,20 @@ With `--assess` (or `--ai-patch`), every Shopify patch gets a second opinion (`r
 
 The cost of each AI request is recorded: `review.costUsd`, `liveCases.costUsd`, and their sum, `aiCostUsd`. The Shopify benchmark copies the grade, both proof statuses and `aiCostUsd` into each row, and passes `--assess` to `refit run` with `npm run benchmark:shopify -- --validate --assess`.
 
+## The judge (`shopifyJudge`)
+
+`shopifyJudge(repoDir, target, options)` in `pipeline/shopify-judge.ts` grades one migrated repository at one Admin API version. It is the `check` the agent fixer gets (docs/GUT-PLAN.md). It returns `{ passed, errors, unjudged, extracted, sdk, live, costUsd }`. Each error reads `file:line: reason`. `unjudged` lists the errors that mean "Refit cannot tell" rather than "this fails". Those still count against `passed`.
+
+- **Versions.** Each Admin pin must be at or after the target. `LATEST_API_VERSION` and `ApiVersion` members are read from the installed `@shopify/shopify-api` type declarations (`installedShopifyApi`): the top-level copy, or one nested under an app package. Without `node_modules`, they come from the lockfile's release and Refit's release table. From 12.0.0 the release does not export `LATEST_API_VERSION`, so `import { LATEST_API_VERSION }` reads undefined, and that is an error. `shopify.app.toml`'s `api_version` is not judged, because it sets the webhook payload version.
+- **GraphQL documents.** Each traced Admin document must validate against the pinned target schema. An untraced literal that fails on every pinned version belongs to another Shopify API and is skipped.
+- **REST calls.** Each call must use only what the target's REST contract lists. Reasons where the contract cannot decide are `unjudged`. One example is a read inside a field that the contract types only as an object.
+- **AI extraction (`aiExtractShopifyRequests`).** It covers documents and REST URLs that static reading cannot follow, with `options.ai` or `options.extract`.
+  - The model returns the exact document, or the method, path, parameters, body keys and reads, with the source lines each came from.
+  - An extraction is kept only if it cites the call's own line and every name in it is written in the code.
+  - The schema or contract then judges it. The model never grades.
+  - Extracted requests are listed in `extracted`. Their errors say "AI read from lines …", so their evidence is never reported as static proof.
+- **Live (`shopifyLiveJudge`).** With `SHOPIFY_TEST_STORE` and its credentials in `options.environment`, each document that passed the schema check is sent to the development store once, at the target. A rejection is an error. Store-side failures and operations it cannot run (a mutation without a case) are `not-run`, never failed.
+
 ## Not covered
 
 - Behaviour that validation cannot see: semantics, defaults, pagination, rate limits and webhook payload versions.
