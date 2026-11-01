@@ -4,7 +4,7 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-01.3';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-01.4';
 
 export type PromptInput = {
   task: MigrationTask;
@@ -183,7 +183,7 @@ export function buildKickoffMessage(before: CheckRun[], installOutput?: string):
           'Baseline checks, run before any change. Failures here already existed; only new failures count against you:',
           ...before.map(checkLine),
         ].join('\n')
-      : 'No baseline checks were run. Find and run the repo checks yourself if you can.',
+      : "No checks were detected. Find the repo's tests, build or type check and register them with `run_checks` `add`, so they run on the original code and after your edit and count toward proof.",
   );
   return parts.join('\n\n');
 }

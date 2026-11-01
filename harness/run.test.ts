@@ -38,17 +38,12 @@ const ORIGINAL = `export function createPayment(stripe, amount) {
 }
 `;
 
-function fixtureRepo(): string {
+function fixtureRepo(scripts: Record<string, string> = { test: 'node check.js' }): string {
   const dir = mkdtempSync(join(tmpdir(), 'aptitude-fixture-'));
   mkdirSync(join(dir, 'src'));
   writeFileSync(
     join(dir, 'package.json'),
-    JSON.stringify({
-      name: 'fixture',
-      version: '1.0.0',
-      type: 'module',
-      scripts: { test: 'node check.js' },
-    }),
+    JSON.stringify({ name: 'fixture', version: '1.0.0', type: 'module', scripts }),
   );
   writeFileSync(
     join(dir, 'package-lock.json'),
@@ -151,6 +146,56 @@ describe('runTask with a fake model', () => {
       'Validator check_params was claimed by the agent, but the harness recorded no call of it.',
     );
     expect(record.prBody).toContain('not proof');
+  });
+
+  it('counts a check the agent registers toward proof', async () => {
+    const addVerify: ScriptedTurn = async (call) => {
+      const output = await call('run_checks', {
+        add: [{ name: 'verify', command: 'npm run verify' }],
+      });
+      expect(output).toContain('registered verify; on the original code it passes');
+      await fixIt(call, {} as never);
+    };
+    const record = await runTask(task, fixtureRepo({ verify: 'node check.js' }), deps([addVerify]));
+    expect(record.outcome).toBe('verified');
+    expect(record.checks).toEqual([{ name: 'verify', before: 'pass', after: 'pass' }]);
+  });
+
+  it('ends when the agent finishes with an explanation of what is still failing', async () => {
+    const explain: ScriptedTurn = async (call, input) => {
+      await breakIt(call, input);
+      await call('finish', {
+        verdict: 'migrated',
+        summary: 'Started the move to paymentIntents.create.',
+        why: 'Charges is being replaced.',
+        validators: [],
+        unproven: ['The test fails because the fixture needs a live key.'],
+        behaviourChanges: [],
+      });
+    };
+    const record = await runTask(task, fixtureRepo(), deps([explain]));
+    expect(record.outcome).toBe('needs-review');
+    expect(record.costUsd).toBeCloseTo(0.01);
+  });
+
+  it('has no fixed iteration cap: it keeps going until the budget runs out', async () => {
+    const record = await runTask(task, fixtureRepo(), deps([breakIt], 0.055));
+    expect(record.costUsd).toBeCloseTo(0.06);
+    expect(record.models).toEqual([MODEL, ESCALATION_MODEL]);
+    expect(record.outcome).toBe('needs-review');
+  });
+
+  it('stops a loop of model calls that error without spending', async () => {
+    let calls = 0;
+    const record = await runTask(task, fixtureRepo(), {
+      ...deps([]),
+      session: async () => {
+        calls++;
+        return { finalText: '', stopReason: 'error' as const, error: 'auth failed' };
+      },
+    });
+    expect(calls).toBe(3);
+    expect(record.outcome).toBe('needs-review');
   });
 
   it('escalates to the bigger model when an iteration makes no progress', async () => {

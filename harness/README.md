@@ -23,6 +23,11 @@ The only hard limits, enforced in code: repo code runs only in the sandbox; the
 else refuses or gates the agent: tools only return information, and every run ends as verified,
 needs-review or not-affected (`failed` only when the sandbox cannot be created).
 
+The loop has no fixed iteration cap. It ends when the checks pass, when the agent finishes with an
+explanation of what still fails, or when the dollar cap is reached. Checks the detection misses can be
+registered by the agent with `run_checks` `add`. They run on an untouched copy for the baseline and
+count toward proof.
+
 Outcome: **verified** when the agent changed code, called `finish`, at least one check ran, no
 check has a failure it didn't have before, every provider validator it claims is backed by a
 passing ToolPack call the harness recorded (`validators.ts`), and it lists nothing unproven.

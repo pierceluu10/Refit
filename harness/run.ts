@@ -24,6 +24,7 @@ import { createSandbox, sandboxEnvNote } from './sandbox.ts';
 import { redactSecrets } from './secrets.ts';
 import { buildTools } from './tools.ts';
 import type {
+  CheckCommand,
   CheckComparison,
   CheckRun,
   FinishReport,
@@ -105,6 +106,7 @@ export async function runTask(
     };
   }
 
+  let baselineSandbox: Promise<Sandbox> | undefined;
   try {
     const toolPack = await (deps.loadToolPack ?? emptyToolPack)(task.change.provider).catch(() =>
       emptyToolPack(task.change.provider),
@@ -118,7 +120,22 @@ export async function runTask(
     const before = await runChecks(sandbox, checks);
     log({ type: 'harness', phase: 'baseline', pm, install, checks, before });
 
+    // Agent-named checks get their baseline from a second, untouched copy of the repo.
+    const addCheck = async (check: CheckCommand): Promise<CheckRun> => {
+      baselineSandbox ??= (async () => {
+        const box = await (deps.createSandbox ?? createSandbox)(repoDir);
+        if (pm !== 'none') await box.exec(installCommand(pm));
+        return box;
+      })();
+      const [run] = await runChecks(await baselineSandbox, [check]);
+      checks.push(check);
+      before.push(run);
+      log({ type: 'harness', phase: 'agent-check', check, before: run });
+      return run;
+    };
+
     let report: FinishReport | undefined;
+    let finishedThisIteration = false;
     const validatorRuns: ValidatorRun[] = [];
     const tools = buildTools({
       sandbox,
@@ -128,7 +145,9 @@ export async function runTask(
       checks,
       onFinish: (finished) => {
         report = finished;
+        finishedThisIteration = true;
       },
+      addCheck,
       onToolPackCall: (run) => validatorRuns.push(run),
       fetch: deps.fetch,
     });
@@ -150,10 +169,14 @@ export async function runTask(
     let after = before;
     let comparisons = compareChecks(before, after);
     let previousNewFailures = Infinity;
+    let silentErrors = 0;
 
-    for (let iteration = 0; iteration < (deps.maxIterations ?? 4); iteration++) {
+    // Ends when the checks pass, the agent finishes with an explanation, or the budget runs out.
+    for (let iteration = 0; iteration < (deps.maxIterations ?? Infinity); iteration++) {
       if (ledger.exhausted) break;
       if (!models.includes(model)) models.push(model);
+      finishedThisIteration = false;
+      const spentBefore = ledger.spentUsd;
       let result: SessionResult;
       try {
         result = await session({
@@ -176,6 +199,12 @@ export async function runTask(
       const newFailures = newFailureCount(comparisons);
       log({ type: 'harness', phase: 'iteration', iteration, model, result, after, comparisons });
       if (newFailures === 0 && report) break;
+      const finished = report as FinishReport | undefined;
+      if (finishedThisIteration && finished && finished.unproven.length > 0) break;
+      // Loop-safety net: a model call that keeps erroring without spending anything is down, not stuck.
+      silentErrors =
+        result.stopReason === 'error' && ledger.spentUsd === spentBefore ? silentErrors + 1 : 0;
+      if (silentErrors >= 3) break;
 
       // Stuck: the session ended abnormally or the new failures did not go down.
       const stuck = result.stopReason !== 'done' || newFailures >= previousNewFailures;
@@ -228,6 +257,7 @@ export async function runTask(
     return record;
   } finally {
     await sandbox.dispose();
+    await baselineSandbox?.then((box) => box.dispose()).catch(() => {});
   }
 }
 

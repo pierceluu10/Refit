@@ -60,6 +60,8 @@ export type ToolContext = {
   checks: CheckCommand[];
   onFinish: (report: FinishReport) => void;
   onToolPackCall?: (run: ValidatorRun) => void;
+  // Registers an agent-named check: the harness runs it on the baseline and returns that run.
+  addCheck?: (check: CheckCommand) => Promise<CheckRun>;
   fetch?: typeof fetch;
 };
 
@@ -92,7 +94,7 @@ export type HarnessDeps = {
   createSandbox?: (repoDir: string) => Promise<Sandbox>;
   budgetUsd?: number; // defaults to APTITUDE_AI_BUDGET_USD
   outDir?: string; // where the transcript, diff and PR body are written
-  maxIterations?: number;
+  maxIterations?: number; // unset: iterate until done or the budget cap
   fetch?: typeof fetch;
 };
 

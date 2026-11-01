@@ -301,12 +301,42 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
     ),
     tool(
       'run_checks',
-      'Run the detected type check, build and tests. Shows failures for each.',
-      { names: { type: 'array', items: { type: 'string' }, description: 'Only these checks' } },
+      'Run the type check, build and tests. Shows failures for each. Use `add` to register checks the detection missed (e.g. `make test`): the harness runs them on the original code and after your edit, and they count toward proof like the detected ones.',
+      {
+        names: { type: 'array', items: { type: 'string' }, description: 'Only these checks' },
+        add: {
+          type: 'array',
+          description: 'Extra checks to register, run and count toward proof',
+          items: {
+            type: 'object',
+            properties: { name: { type: 'string' }, command: { type: 'string' } },
+            required: ['name', 'command'],
+          },
+        },
+      },
       [],
       async (args) => {
+        const notes: string[] = [];
+        for (const item of Array.isArray(args.add) ? args.add : []) {
+          const { name, command } = (item ?? {}) as { name?: unknown; command?: unknown };
+          if (typeof name !== 'string' || typeof command !== 'string' || !name || !command) {
+            notes.push('skipped an added check without a name and command');
+          } else if (ctx.checks.some((check) => check.name === name)) {
+            notes.push(`a check named ${name} already exists; pick another name`);
+          } else if (!ctx.addCheck) {
+            notes.push(`${name} was not registered: this run cannot add checks`);
+          } else {
+            const baseline = await ctx.addCheck({ name, command });
+            notes.push(
+              `registered ${name}; on the original code it ${baseline.ok ? 'passes' : `fails (${baseline.failures.length})`}`,
+            );
+          }
+        }
         if (ctx.checks.length === 0) {
-          return 'no checks were detected for this repo. Run its tests, build or type check yourself with the shell tool.';
+          return [
+            ...notes,
+            'no checks were detected for this repo. Register its tests, build or type check with `add` so they count toward proof.',
+          ].join('\n');
         }
         const names = Array.isArray(args.names) ? args.names.map(String) : [];
         const selected = names.length
@@ -316,7 +346,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
           return `no check matches ${names.join(', ')}. Available: ${ctx.checks.map((c) => c.name).join(', ')}`;
         }
         const runs = await runChecks(sandbox, selected);
-        return runs
+        const report = runs
           .map((run) => {
             const head = `## ${run.name}: ${run.ok ? 'pass' : 'fail'}\ncommand: ${run.command}`;
             if (run.ok) return head;
@@ -324,6 +354,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
             return `${head}\nfailures:\n${failures.join('\n')}\noutput (tail):\n${run.output.slice(-3000)}`;
           })
           .join('\n\n');
+        return [...notes, report].join('\n\n');
       },
     ),
     tool(
