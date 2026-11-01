@@ -5,18 +5,18 @@ Aptitude's migration agent. `runTask(task, repoDir)` runs a Claude agent on the 
 down; never just to get the report, since Opus re-reads the whole session uncached) in a
 sandboxed copy of the repo and returns a `RunRecord` plus the PR body.
 
-| File              | What it does                                                                             |
-| ----------------- | ---------------------------------------------------------------------------------------- |
-| `run.ts`          | The loop: sandbox, install, baseline checks, agent, re-check, iterate, outcome           |
-| `agent.ts`        | The real session: one SDK `query()` over the harness tools as an in-process MCP          |
-| `fake-session.ts` | A scripted fake model that drives the real tools, for tests and smoke runs               |
-| `prompt.ts`       | The versioned system prompt (`PROMPT_VERSION`), kickoff and retry messages               |
-| `tools.ts`        | The tool registry: files, shell, install, checks, diff, fetch, recipes, ToolPack, finish |
-| `checks.ts`       | Package manager, its release and check detection, before/after comparison of failures    |
-| `sandbox.ts`      | Docker container, or a local temp copy; install scripts off in both                      |
-| `ledger.ts`       | The run-level dollar cap every model call is charged to, as the call streams             |
-| `pr.ts`           | The PR body: change, why, proof, unproven, behaviour changes                             |
-| `secrets.ts`      | Redaction and a scrubbed env for untrusted code                                          |
+| File              | What it does                                                                                                                  |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `run.ts`          | The loop: sandbox, install, baseline checks, agent, re-check, iterate, outcome                                                |
+| `agent.ts`        | The real session: one SDK `query()` over the harness tools as an in-process MCP                                               |
+| `fake-session.ts` | A scripted fake model that drives the real tools, for tests and smoke runs                                                    |
+| `prompt.ts`       | The versioned system prompt (`PROMPT_VERSION`), kickoff and retry messages                                                    |
+| `tools.ts`        | The tool registry: files, shell, install, checks, diff, fetch, recipes, ToolPack, finish                                      |
+| `checks.ts`       | Package manager, its release and check detection, before/after comparison of failures                                         |
+| `sandbox.ts`      | Docker container (the Python image for a Python repo without package.json), or a local temp copy; install scripts off in both |
+| `ledger.ts`       | The run-level dollar cap every model call is charged to, as the call streams                                                  |
+| `pr.ts`           | The PR body: change, why, proof, unproven, behaviour changes                                                                  |
+| `secrets.ts`      | Redaction and a scrubbed env for untrusted code                                                                               |
 
 The only hard limits, enforced in code: repo code runs only in the sandbox; the
 `APTITUDE_AI_BUDGET_USD` cap; no pushing (the sandbox's git has no remotes, the PR is opened by

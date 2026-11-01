@@ -160,6 +160,18 @@ describe('docker sandbox', () => {
   );
 
   it.skipIf(!dockerAvailable())(
+    'gives a Python repo without package.json the Python image, which has pip',
+    async () => {
+      await fs.writeFile(path.join(repoDir, 'requirements.txt'), '');
+      sandbox = await createSandbox(repoDir, { mode: 'docker' });
+      expect(sandboxEnvNote(sandbox)).toMatch(/^Docker container python:3\.12-bookworm;/);
+      const pip = await sandbox.exec('python3 -m pip --version');
+      expect(pip.code).toBe(0);
+    },
+    10 * 60 * 1000,
+  );
+
+  it.skipIf(!dockerAvailable())(
     'gives the container no host env, credentials or home mount, and keeps install scripts off',
     async () => {
       process.env.FOO_TOKEN = 'host-secret-value-123';

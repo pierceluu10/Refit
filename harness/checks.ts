@@ -153,7 +153,10 @@ export async function detectChecks(
     pyproject !== '' ||
     setupCfg !== '' ||
     (await exists(path.join(dir, 'requirements.txt')));
-  if (pytest && python) checks.push({ name: 'pytest', command: 'python3 -m pytest -q' });
+  // Requirements files rarely list pytest, so the check installs it (as a wheel) when it is missing.
+  const command =
+    '(python3 -m pytest --version >/dev/null 2>&1 || python3 -m pip install -q --only-binary=:all: pytest) && python3 -m pytest -q';
+  if (pytest && python) checks.push({ name: 'pytest', command });
   return checks;
 }
 

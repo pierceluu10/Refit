@@ -183,7 +183,11 @@ describe('detectPackageManager and detectChecks', () => {
   it('finds pytest for Python repos and nothing for empty ones', async () => {
     const dir = await fixture({ 'requirements.txt': 'openai\n', 'tests/test_a.py': '' });
     expect(await detectChecks(dir, 'pip')).toEqual([
-      { name: 'pytest', command: 'python3 -m pytest -q' },
+      {
+        name: 'pytest',
+        command:
+          '(python3 -m pytest --version >/dev/null 2>&1 || python3 -m pip install -q --only-binary=:all: pytest) && python3 -m pytest -q',
+      },
     ]);
     expect(await detectChecks(await fixture({}), 'none')).toEqual([]);
   });
