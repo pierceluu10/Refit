@@ -25,4 +25,20 @@ Branch `gut/shopify`, from `refit/gut` with `gut/agent-fix` (GUT1) merged. Plan:
 
 ## Measurement
 
-Pending.
+Baselines on dev-60: 3 validated at #427's head; at #434's head (`396c5b1e`, run 40973528148) 9 validated, 22 patched but not validated, 29 stopped.
+
+**Run 41268580516** (`b6e43f4c`, refit-bench `gut/sandbox`, `size=1`, `count=60`, `--sdk-upgrade`, `agent=true`, `claude-sonnet-5-5`, budget $300) is void as a measurement:
+
+- 0 validated, 60 needs-review.
+- Every row's validation was `untested` with `dependency-preparation`, including the 30 rows where nothing was handed off. Preparation failed with `cp: can't open ... Permission denied`.
+- The cause is the `gut/sandbox` workflow: it sets `umask 077` before writing the AI env file and never restores it, so every clone and dependency archive written afterwards is unreadable in the sandboxes. The fix is on refit-bench `gut/shopify-bench` (`1186d79`) and was reported to GUT5. `meta.yml` has the same bug.
+
+What the run still shows:
+
+- **Hand-off:** 30 rows were handed to the agent: 21 passed the judges and 9 were unproven. The other 30 rows needed no hand-off.
+- **Agent spend:** $9.20 in the scan.
+- **Schema proof:** proven on every agent-patched row that reached validation. The development store gave grade A on 8 of them, but none could validate without dependencies.
+- **Errors:** 2 rows ended with `Cannot read properties of null (reading 'replace')` during validation: iamgenesistech-hub/IAGT_AI_VIRAL_ENGINE and sanjeev744/smart-slidecart. No stack trace was recorded, and it is not investigated yet.
+- **For review:** on sanjeev744/smart-slidecart the agent also edited `shopify.app.toml` (the webhook `api_version`). That changes webhook payloads and needs a reviewer.
+
+**Run 41269399890** (`b6e43f4c`, refit-bench `gut/shopify-bench` with the umask fix, same inputs) was dispatched before the founder's spend freeze and is still running. Its counts and the hand-check of each newly validated row go here once it finishes. No further run is started without the founder's approval.
