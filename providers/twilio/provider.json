@@ -1,0 +1,34 @@
+{
+  "id": "twilio",
+  "name": "Twilio",
+  "sources": [
+    {
+      "id": "changelog-feed",
+      "kind": "changelog",
+      "url": "https://www.twilio.com/en-us/changelog.feed.xml",
+      "format": "rss",
+      "note": "Twilio changelog RSS, latest 30 items. End-of-life notices (products, API versions, SDK versions) are posted here mixed with product and console news; the HTML changelog page filters client-side, so the feed is the readable copy."
+    },
+    {
+      "id": "twilio-oai-changes",
+      "kind": "openapi",
+      "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+      "format": "markdown",
+      "note": "Changelog of Twilio's OpenAPI definitions, grouped per product. Lists added and removed paths, parameters and properties, and marks breaking changes."
+    },
+    {
+      "id": "twilio-node-changes",
+      "kind": "sdk-releases",
+      "url": "https://raw.githubusercontent.com/twilio/twilio-node/main/CHANGES.md",
+      "format": "markdown",
+      "note": "twilio-node (npm `twilio`) release notes: library fixes plus the same per-API changes generated from the OpenAPI specs."
+    },
+    {
+      "id": "twilio-node-upgrade",
+      "kind": "sdk-releases",
+      "url": "https://raw.githubusercontent.com/twilio/twilio-node/main/UPGRADE.md",
+      "format": "markdown",
+      "note": "Upgrade notes for every twilio-node major version, with the breaking changes."
+    }
+  ]
+}

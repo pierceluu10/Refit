@@ -1,0 +1,708 @@
+# Changelog
+
+## 15.0.1
+
+### Patch Changes
+
+- 79671d2: Set the `HttpOnly` flag on cookies by default, including the OAuth state and session cookies, so browser JavaScript can no longer read them. Pass `httpOnly: false` to opt out. Boolean cookie attributes are now written as flags, so `secure=true` is now just `secure`.
+- Updated dependencies [d7be864]
+- @shopify/graphql-client@2.0.1
+- @shopify/admin-api-client@2.0.1
+- @shopify/storefront-api-client@2.0.1
+
+## 15.0.0
+
+### Major Changes
+
+- d641a62: Remove `eventId` and `resourceId` from events webhooks
+
+Shopify is dropping the `shopify-event-id` and `shopify-resource-id` headers from events deliveries, so the libraries no longer read them. Both fields are gone from the public types, which makes this a breaking change.
+
+Webhooks are unaffected. They keep the `X-Shopify-Event-Id` header and the `eventId` field.
+
+## Migration Guide
+
+Stop reading `eventId` and `resourceId` on events deliveries. Neither field has a direct equivalent: `eventId` identified the event behind a delivery, and `resourceId` carried the root resource's GID, which you can read from the payload instead.
+
+To deduplicate events deliveries, use `webhookId`. It comes from the `shopify-webhook-id` header, which Shopify still sends, and it is unique per delivery.
+
+### For @shopify/shopify-app-remix and @shopify/shopify-app-react-router
+
+**Before:**
+
+```typescript
+export const action = async ({request}: ActionFunctionArgs) => {
+const {webhookType, eventId, resourceId} =
+await authenticate.webhook(request);
+
+if (webhookType === 'events') {
+console.log(`Event ${eventId} for resource ${resourceId}`);
+}
+
+return new Response();
+};
+```
+
+**After:**
+
+```typescript
+export const action = async ({request}: ActionFunctionArgs) => {
+const {webhookType, payload} = await authenticate.webhook(request);
+
+if (webhookType === 'events') {
+// eventId and resourceId are no longer set on events deliveries.
+// The root resource's GID is in the payload.
+console.log(payload);
+}
+
+return new Response();
+};
+```
+
+## 14.0.1
+
+### Patch Changes
+
+- 8689457: Redact OAuth credentials from HTTP debug logs. The request body of OAuth token endpoint calls is no longer written to the debug log, and credential headers (`Authorization`, `Cookie`, `Set-Cookie`, `X-Shopify-Access-Token`, `Shopify-Storefront-Private-Token`, `X-Shopify-Storefront-Access-Token`) are replaced with `****` in API client debug logs.
+
+## 14.0.0
+
+### Major Changes
+
+- 9fec7af: Require Node.js 22 or later. Node.js 20 is no longer supported. Upgrade your runtime to Node.js 22 or newer before updating.
+- 493094d: Tighten the public GraphQL client types for better type safety and editor hints.
+
+- `ResponseErrors.graphQLErrors` is now typed as `GraphQLError[]` (with `message`, `locations`, `path`, and error `extensions`) instead of `any[]`. A new `GraphQLError` type is exported.
+- `GQLExtensions` now documents the Admin `cost`/`throttleStatus` and Storefront `context` shapes, while keeping a permissive index signature so any other extension key still works.
+- `RequestOptions` fields are now `readonly`.
+
+These types are re-exported or surfaced by `@shopify/admin-api-client`, `@shopify/storefront-api-client`, `@shopify/shopify-api`, `@shopify/shopify-app-remix`, `@shopify/shopify-app-react-router`, and `@shopify/shopify-app-express`, so the change flows through to those packages too.
+
+This is marked as a major out of caution, but it is very unlikely to affect an app in a meaningful way: the extension types keep a permissive index signature, so existing property access keeps working, and most callers only gain better autocomplete. The main things a strict compiler could flag are reassigning `readonly` `RequestOptions` fields, or reading non-standard properties off a `graphQLErrors` entry.
+
+- b1bcc27: Harden App Proxy validation.
+
+As a result of this change An OAuth callback route can throw different errors for invalid URLs. This is technically a breaking change, but it's unlikely consumers are affected by this.
+
+- 84397d9: Removed deprecated `subTopic` from webhooks. The subTopic feature was deprecated in API version 2024-04 and fully removed in 2024-07.
+
+## Migration Guide
+
+The `subTopic` feature was deprecated in API version 2024-04 and fully removed in 2024-07. Use [webhook filters](https://shopify.dev/docs/apps/build/webhooks/customize/filters) instead.
+
+### For @shopify/shopify-api
+
+**Webhook Handlers** - Remove the `subTopic` parameter:
+
+**Before:**
+
+```typescript
+async function handler(
+topic: string,
+shop: string,
+body: string,
+webhookId: string,
+apiVersion: string,
+subTopic: string,
+) {
+console.log(`SubTopic: ${subTopic}`);
+// handler logic
+}
+```
+
+**After:**
+
+```typescript
+async function handler(
+topic: string,
+shop: string,
+body: string,
+webhookId: string,
+apiVersion: string,
+) {
+// subTopic is no longer available
+// Use filters when registering webhooks instead
+// handler logic
+}
+```
+
+**Webhook Registration** - Replace `subTopic` with `filter`:
+
+**Before:**
+
+```typescript
+shopify.webhooks.addHandlers({
+METAOBJECTS_CREATE: {
+deliveryMethod: DeliveryMethod.Http,
+callbackUrl: '/webhooks',
+subTopic: 'type:my-metaobject-type',
+},
+});
+```
+
+**After:**
+
+```typescript
+// For metaobjects webhooks, filters are now REQUIRED
+shopify.webhooks.addHandlers({
+METAOBJECTS_CREATE: {
+deliveryMethod: DeliveryMethod.Http,
+callbackUrl: '/webhooks',
+},
+});
+
+// Apply filters via the GraphQL Admin API or app configuration:
+// filter: "type:my-metaobject-type"
+// Multiple types: "type:banana OR type:apple"
+```
+
+### For @shopify/shopify-app-remix and @shopify/shopify-app-react-router
+
+Remove `subTopic` from webhook context:
+
+**Before:**
+
+```typescript
+export const action = async ({request}: ActionFunctionArgs) => {
+const {topic, subTopic, payload} = await authenticate.webhook(request);
+console.log(`SubTopic: ${subTopic}`);
+return new Response();
+};
+```
+
+**After:**
+
+```typescript
+export const action = async ({request}: ActionFunctionArgs) => {
+const {topic, payload} = await authenticate.webhook(request);
+// Use the payload data to determine specifics
+// For metaobjects: payload.type contains the metaobject type
+return new Response();
+};
+```
+
+### Important Notes
+- **Metaobjects webhooks** (`metaobjects/create`, `metaobjects/update`, `metaobjects/delete`) now **require filters**
+- Use `filter: "type:{type}"` format where `{type}` is the metaobject definition's type
+- Wildcard filters like `type:*` are not supported - explicitly specify each type
+- For app-owned metaobject definitions, use the full type value: `app--{your-app-id}--{some-namespace}`
+
+Learn more: [Webhook filters documentation](https://shopify.dev/docs/apps/build/webhooks/customize/filters)
+
+### Minor Changes
+
+- c439dab: Add `cookiePath` config option for multi-shop non-embedded apps
+
+Non-embedded apps that need to support multiple shops simultaneously in
+separate browser tabs were affected by a cookie collision: all shops shared
+a single `shopify_app_session` cookie at `path=/`, so authenticating a new
+shop would silently overwrite the previous shop's session.
+
+The new optional `cookiePath` config option lets you scope the session
+cookie to a shop-specific URL prefix, so each shop's cookie coexists
+independently in the browser.
+
+```ts
+// Static path (default behaviour, unchanged)
+cookiePath: '/';
+
+// Factory function — recommended for multi-shop apps
+cookiePath: (session) => `/shops/${session.shop}/`;
+```
+
+**Requirement:** the configured path must match your app's URL structure.
+Each shop must be served under a distinct URL prefix for the browser to
+deliver the correct cookie per request.
+
+- 45f1a4b: Add REST resources for API version 2026-07
+
+### Patch Changes
+
+- c7ab037: Updated `isbot`, ` mongodb`, ` mysql2`, ` pg`, ` pg-connection-string` dependencies
+- 6675463: Fix HMAC verification failure when query parameter values contain spaces. `URLSearchParams.toString()` encodes spaces as `+` (application/x-www-form-urlencoded), but Shopify signs using percent-encoding (`%20`). The mismatch caused `api.utils.validateHmac()` to return `false` for valid requests with space-containing params.
+- 857c598: Harden app proxy authentication by rejecting repeated security parameters while preserving repeated application query parameters. App proxy HMAC validation now consumes structured URL search parameters in the shared API package.
+- Updated dependencies [493094d]
+- @shopify/graphql-client@2.0.0
+- @shopify/admin-api-client@2.0.0
+- @shopify/storefront-api-client@2.0.0
+
+## 13.1.0
+
+### Minor Changes
+
+- 9264a64: Add REST resources for API version 2026-04
+- e4db082: Add `webhookId` (`shopify-webhook-id`) as a required field on Events webhooks. This is the true idempotency key for webhook deliveries. Previously, only `eventId` was extracted for Events webhooks and was used as a fallback for `webhookId` in downstream packages. This is no longer true. Both fields now coexist and represent distinct values.
+
+### Patch Changes
+
+- e510582: Updated `@graphql-codegen/introspection`, ` @graphql-codegen/typescript`, ` isbot` dependencies
+- 832fad0: Updated `isbot` dependencies
+- 6c95ae1: Use a cookie-specific derived key when signing OAuth state and session cookies instead of signing them directly with the app API secret. This prevents signed OAuth state cookies from being reused as valid Shopify webhook HMACs. OAuth state values are also now generated with 32 random bytes encoded as hex.
+
+Token-exchange-only flows that do not use signed OAuth/session cookies are not affected.
+
+- 7ec655a: Fix TypeScript type errors for consumers using ES2024+ lib targets
+
+Widen `ArrayBuffer` parameter types to `ArrayBuffer | Uint8Array` in crypto
+utilities and safe-compare, fixing TS2345 errors introduced by TypeScript 5.7's
+generic `Uint8Array<ArrayBuffer>` type.
+
+## 13.0.0
+
+### Major Changes
+
+- 78c8968: **BREAKING CHANGE**: Removed `customShopDomains` configuration parameter. Use `domainTransformations` instead, which provides both validation and transformation capabilities.
+
+The `SHOP_CUSTOM_DOMAIN` environment variable is no longer supported.
+
+**Migration Guide**:
+
+If you were using `customShopDomains` for validation only:
+
+```typescript
+// Before
+shopifyApi({
+customShopDomains: ['custom\.domain\.com'],
+});
+
+// After
+shopifyApi({
+domainTransformations: [
+{
+match: /^([a-zA-Z0-9][a-zA-Z0-9-_]*)\.custom\.domain\.com$/,
+transform: '$1.custom.domain.com',
+},
+],
+});
+```
+
+- 0bb7837: Removed support for older API versions: 2022-10, 2023-01, 2023-04, 2023-07, 2023-10, 2024-01, 2024-04, 2024-07.
+
+The corresponding `ApiVersion` enum values and REST resource directories have been removed.
+Apps using these versions must update to `2024-10` or later.
+
+- 1eb863d: Add support for verifying webhooks delivered with the new `shopify-*` headers (replacing the previous `x-shopify-*` headers), and refactor webhook validation types to a discriminated union on `webhookType`.
+
+**Breaking change in `@shopify/shopify-api`:** `WebhookFields` is now a discriminated union (`WebhooksWebhookFields | EventsWebhookFields`) keyed on the required `webhookType` field. `webhookId` only exists on `WebhooksWebhookFields`; `eventId` is required on `EventsWebhookFields`. Consumers must narrow on `webhookType` to access type-specific fields. Both `WebhooksWebhookFields` and `EventsWebhookFields` are exported for use in type narrowing.
+
+Before:
+
+```typescript
+const check = await shopify.webhooks.validate({rawBody, rawRequest: request});
+if (check.valid) {
+console.log(check.webhookId);
+}
+```
+
+After:
+
+```typescript
+const check = await shopify.webhooks.validate({rawBody, rawRequest: request});
+if (check.valid) {
+if (check.webhookType === 'webhooks') {
+console.log(check.webhookId); // only on webhooks
+console.log(check.subTopic); // only on webhooks
+} else {
+console.log(check.eventId); // only on events
+console.log(check.handle); // only on events
+console.log(check.action); // only on events
+console.log(check.resourceId); // only on events
+}
+}
+```
+
+**`@shopify/shopify-app-react-router` and `@shopify/shopify-app-remix`:** The webhook context now includes new fields based on the new webhook headers, such as `webhookType`, `handle`, `action`, `resourceId`, `triggeredAt`, and `eventId`. For events webhooks, `webhookId` is set to the value of the `eventId` header for backwards compatibility — prefer using `eventId` directly for events webhooks, as `webhookId` will be removed from events webhooks in the next major version.
+
+```typescript
+export const action = async ({request}: ActionFunctionArgs) => {
+const {webhookType, handle, action, resourceId, triggeredAt, eventId} =
+await authenticate.webhook(request);
+return new Response();
+};
+```
+
+### Patch Changes
+
+- 0d4a3f7: Updated `express` from v4 to v5 and `@types/express` from v4 to v5.
+
+**Breaking changes for consumers of `@shopify/shopify-app-express`:**
+- `express` has been moved from `dependencies` to `peerDependencies`. You must install `express@^5.0.0` directly in your project.
+- Express 5 requires Node.js >= 18 (this package already requires >= 20).
+- If you use wildcard route patterns, update them for Express 5 syntax. `app.use()` already matches all subpaths, so the `/*` suffix is unnecessary:
+- `app.use('/api/*', ...)` → `app.use('/api', ...)`
+- `app.use('/*', ...)` → `app.use('/', ...)`
+- For `app.get`/`app.post` routes, wildcards must be named: `app.get('/api/*path', ...)`
+- `req.body` now defaults to `undefined` (was `{}` in v4) when no body-parser middleware is applied. Ensure you use `express.json()`, `express.text()`, or similar middleware before accessing `req.body`.
+- `req.query` is now read-only and uses the `querystring` parser by default instead of `qs`. Nested object query parameters are no longer parsed by default.
+- See the [Express 5 migration guide](https://expressjs.com/en/guide/migrating-5.html) for the full list of changes.
+
+Added a null guard in `graphqlProxy` to handle `req.body` being `undefined`.
+
+- 4c1789b: Updated `@graphql-codegen/typescript`, ` @parcel/watcher`, ` isbot` dependencies
+- d5ae946: Publish TypeScript source files to npm so "Go to Definition" in IDEs navigates to real source code instead of compiled `.d.ts` declaration files. Source maps already pointed to the correct paths — the source files just weren't included in the published packages.
+- Updated dependencies [df81075]
+- Updated dependencies [d5ae946]
+- @shopify/graphql-client@1.4.2
+- @shopify/admin-api-client@1.1.2
+- @shopify/storefront-api-client@1.0.10
+
+## 12.3.0
+
+### Minor Changes
+
+- 0fa5ef7: Add REST version 2026-01
+
+### Patch Changes
+
+- 60dc5ce: Updated `isbot` dependencies
+
+## 12.2.0
+
+### Minor Changes
+
+- f1af47e: This change introduces full support for OAuth refresh tokens in the `@shopify/shopify-api` package, enabling apps to use expiring access tokens and rotate them securely.
+- **Session Model Updates**: The `Session` class now includes properties to store refresh token information:
+- `refreshToken`: The refresh token string.
+- `refreshTokenExpires`: The date when the refresh token expires.
+- Serialization logic has been updated to persist these fields.
+- **New Auth Methods**:
+- `shopify.auth.refreshToken`: A new method to exchange a refresh token for a new access token.
+- `shopify.auth.migrateToExpiringToken`: A helper method to migrate existing non-expiring offline tokens to expiring tokens.
+- **Token Exchange Updates**:
+- The `tokenExchange` method now accepts an `expiring` parameter to request expiring access tokens.
+
+```ts
+// Migrating a non-expiring token
+const {session} = await shopify.auth.migrateToExpiringToken({
+shop: 'my-shop.myshopify.com',
+nonExpiringOfflineAccessToken: 'shpo_...',
+});
+
+// Refreshing an expired token
+const {session: newSession} = await shopify.auth.refreshToken({
+shop: session.shop,
+refreshToken: session.refreshToken,
+});
+
+console.log(newSession.accessToken); // New access token
+console.log(newSession.refreshToken); // New refresh token
+```
+
+### Patch Changes
+
+- a6a13bf: Updated `lossless-json` dependencies
+
+## 12.1.2
+
+### Patch Changes
+
+- 98f1be9: Add Web API and CF Worker adapter intialized constants for aggressive tree-shakers
+
+For example with the web-api adapter:
+
+```ts
+// Instead of just:
+import '@shopify/shopify-api/adapters/web-api';
+
+// You can now also import:
+import {webApiAdapterInitialized} from '@shopify/shopify-api/adapters/web-api';
+import {shopifyApi} from '@shopify/shopify-api';
+
+// And check the adapter is initialized, which forces bundlers to keep the import
+if (!webApiAdapterInitialized) {
+throw new Error('Failed to initialize web API adapter');
+}
+```
+
+## 12.1.1
+
+### Patch Changes
+
+- b3716f8: Add back in correctly removed REST resources
+
+## 12.1.0
+
+### Minor Changes
+
+- a6c4fed: Add 2025-10 REST resources
+
+## 12.0.0
+
+### Major Changes
+
+- dc41d09: Swapped `jsonwebtoken` dependency for `jose`
+
+If you use the `getJwt` function, it is now async.
+
+Before
+
+```javascript
+import {getJwt} from '@shopify/shopify-api/test-helpers';
+
+describe(() => {
+it('tests something', () => {
+const jwt = getJwt(TEST_SHOP_NAME, API_KEY, API_SECRET_KEY);
+
+//...etc
+});
+});
+```
+
+After:
+
+```javascript
+import {getJwt} from '@shopify/shopify-api/test-helpers';
+
+describe(() => {
+it('tests something', async () => {
+const jwt = await getJwt(TEST_SHOP_NAME, API_KEY, API_SECRET_KEY);
+
+//...etc
+});
+});
+```
+
+This change gives you smaller packages and more standards compliance.
+
+- c3005a6: REST API IDs change from number to string
+- **BREAKING**: All REST API responses now return ID properties as `string` instead of `number` to prevent precision loss for IDs approaching JavaScript's MAX_SAFE_INTEGER (2^53-1). This affects both REST resources and the REST client.
+
+#### What Changed
+- All `id` properties changed from `number` to `string`
+- All `*_id` properties (like `product_id`, `customer_id`) changed from `number` to `string`
+- All `*_ids` array properties (like `variant_ids`) changed from `number[]` to `string[]`
+
+#### Affected APIs
+- **REST Resources**: `Product.find()`, `Order.save()`, etc.
+- **REST Client**: Direct usage of `shopify.clients.Rest`
+
+#### Why This Change
+- Shopify IDs are 64-bit integers that can exceed JavaScript's safe integer limit
+- IDs beyond 2^53-1 lose precision when stored as numbers
+- Prevents data corruption for merchants with large IDs
+
+#### Migration Examples
+
+**REST Resources:**
+
+```typescript
+// Before (v11)
+const product = await shopify.rest.Product.find({session, id: 123});
+if (product.id === 123) {
+}
+
+// After (v12)
+const product = await shopify.rest.Product.find({session, id: '123'});
+if (product.id === '123') {
+}
+```
+
+**REST Client:**
+
+```typescript
+// Before (v11)
+const client = new shopify.clients.Rest({session});
+const response = await client.get({path: 'products/123'});
+if (response.body.product.id === 123) {
+}
+
+// After (v12)
+const client = new shopify.clients.Rest({session});
+const response = await client.get({path: 'products/123'});
+if (response.body.product.id === '123') {
+} // ID is now a string
+```
+
+#### Migration Guide
+
+See [MIGRATION_GUIDE_V12.md](./MIGRATION_GUIDE_V12.md) for detailed migration instructions.
+
+#### Backward Compatibility
+- Methods still accept numeric IDs as parameters (automatically converted to strings)
+- Uses lossless-json parsing to preserve precision for large IDs
+- No manual conversion needed for API responses
+
+- dc41d09: Require Node >= v20.10.0. Remove crypto dependency in favor of globalThis.crypto
+
+If you are using Node, make sure you are using Node version 20 or above
+
+If you are using `setCrypto` from `'@shopify/shopify-api'` you can remove this code.
+
+- a5be0d0: Removed the `v10_lineItemBilling` and `lineItemBilling` future flags.
+
+## If you've adopted either flag
+
+If you have already adopted either of these flags you only need to remove the flags from your shopifyApi config.
+
+Before
+
+```ts
+import {shopifyApi} from '@shopify/shopify-api';
+
+const shopify = shopifyApi({
+future: {
+lineItemBilling: true, // Or v10_lineItemBilling: true
+},
+// ...
+});
+```
+
+After:
+
+```ts
+import {shopifyApi} from '@shopify/shopify-api';
+
+const shopify = shopifyApi({
+// ...
+});
+```
+
+## If you have not adopted either flag
+
+If your shopifyApi config does not contain `future.lineItemBilling` or `future.v10_lineItemBilling` you need may need to change your billing configs:
+
+Before:
+
+```ts
+const shopify = shopifyApi({
+// ...
+billing: {
+'My billing plan': {
+interval: BillingInterval.Every30Days,
+amount: 30,
+currencyCode: 'USD',
+replacementBehavior: BillingReplacementBehavior.ApplyImmediately,
+discount: {
+durationLimitInIntervals: 3,
+value: {
+amount: 10,
+},
+},
+},
+},
+});
+```
+
+After:
+
+```ts
+const shopify = shopifyApi({
+// ...
+billing: {
+'My billing plan': {
+replacementBehavior: BillingReplacementBehavior.ApplyImmediately,
+lineItems: [
+{
+interval: BillingInterval.Every30Days,
+amount: 30,
+currencyCode: 'USD',
+discount: {
+durationLimitInIntervals: 3,
+value: {
+amount: 10,
+},
+},
+},
+],
+},
+},
+});
+```
+
+- 48d3631: The `LATEST_API_VERSION` and `RELEASE_CANDIDATE_API_VERSION` constants have been removed from the package. The `apiVersion` parameter is now **required** in the `shopifyApp` configuration.
+
+We are making this change to ensure the API versions do not change without the developer explicitly opting into the new version. This removes the potential for apps to break unexpectedly and should reduce overall maintenance.
+
+### Migration Steps
+
+**Before:**
+
+```typescript
+import {shopifyApi, LATEST_API_VERSION} from '@shopify/shopify-api';
+
+const shopify = shopifyApi({
+apiVersion: LATEST_API_VERSION,
+// ...
+});
+```
+
+**After:**
+
+```typescript
+import {shopifyApi, ApiVersion} from '@shopify/shopify-api';
+
+const shopify = shopifyApi({
+apiVersion: ApiVersion.July25,
+// ...
+});
+```
+
+### Patch Changes
+
+- 6606d39: Fix adapter initialization issues with modern bundlers (Vite, Webpack) in SSR frameworks
+
+Adds `sideEffects` configuration to package.json to prevent bundlers from incorrectly tree-shaking adapter initialization code. This resolves the "Missing adapter implementation for 'abstractRuntimeString'" error that occurred when using the library with Nuxt 3, TanStack Start, and other frameworks.
+
+The adapters use side effects to initialize runtime functions, and modern bundlers were optimizing these away, causing runtime errors. The fix ensures these critical initialization side effects are preserved during the bundling process.
+
+Some bundlers may still tree-shake pure side-effect imports. If you encounter issues after this update, you can use the newly
+exported `nodeAdapterInitialized` constant to ensure the adapter is loaded:
+
+```javascript
+// Instead of just:
+import '@shopify/shopify-api/adapters/node';
+
+// You can now also import and check:
+import {nodeAdapterInitialized} from '@shopify/shopify-api/adapters/node';
+import {shopifyApi} from '@shopify/shopify-api';
+
+// Optional: Ensure adapter is initialized (forces bundlers to keep the import)
+if (!nodeAdapterInitialized) {
+throw new Error('Node adapter not initialized');
+}
+
+const shopify = shopifyApi({
+// your config
+});
+```
+
+- 7d8aa81: # Remove deprecated package
+
+Removes the deprecated `@shopify/network` package. No change in functionality.
+
+- 089f4fd: Update loggings for session utils
+- dc41d09: Remove node-fetch from the node adapter since Node >=20 supports globalThis.fetch
+
+## 11.14.1
+
+### Patch Changes
+
+- 818450f: Update docs
+
+## 11.14.0
+
+### Minor Changes
+
+- 3d9457f: Add 2025-07 REST Resources
+
+### Patch Changes
+
+- 447348f: Resolve bug with signal option on requests
+- e298a0c: Fix issue with missing sourcemaps
+- 25bf95f: Export RestClient from lib/clients/types
+- Updated dependencies [056f464]
+- Updated dependencies [447348f]
+- Updated dependencies [e298a0c]
+- @shopify/graphql-client@1.4.1
+- @shopify/admin-api-client@1.1.1
+- @shopify/storefront-api-client@1.0.9
+
+## 11.13.0
+
+### Minor Changes
+
+- b05d09b: # Add Logging for Shopify GraphQL Admin API Deprecated Reason
+
+Enable logging to now show any detected detected deprecations from the Shopify GraphQL Admin API.
+
+For more information about dep

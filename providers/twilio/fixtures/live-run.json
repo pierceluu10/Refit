@@ -1,0 +1,244 @@
+{
+  "note": "Live-classified: claude-sonnet-5-5 called through the overnight spend guard on 2026-11-01. It read the pages saved by that day's live read (fixtures/live), each cut to 12000 characters, with live HTTP for any link outside the snapshot. Output recorded as returned, not edited.",
+  "runAt": "2026-11-01T05:31:11.888Z",
+  "model": "claude-sonnet-5-5",
+  "promptVersion": "watch-v1",
+  "input": {
+    "snapshot": "fixtures/live",
+    "maxCharsPerPage": 12000,
+    "liveFallback": true,
+    "maxTokens": 8000,
+    "maxTurns": 6
+  },
+  "report": {
+    "provider": "twilio",
+    "changes": [
+      {
+        "provider": "twilio",
+        "id": "twilio:2026-10-events-remove-replays-api",
+        "kind": "endpoint-removed",
+        "title": "Event Streams Replays API (/v1/Replays, beta feature api.eventstreams.replay) removed from the spec (breaking)",
+        "source": {
+          "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+          "quote": "Remove the Replays API (`/v1/Replays`, beta feature `api.eventstreams.replay`); the feature was never GA and is being sunset **(breaking change)**"
+        },
+        "affects": {
+          "operations": ["/v1/Replays"],
+          "fields": ["api.eventstreams.replay"],
+          "versions": ["v1"]
+        },
+        "effectiveDate": "2026-10-12"
+      },
+      {
+        "provider": "twilio",
+        "id": "twilio:2026-09-twiml-session-deprecated-for-twiml-process",
+        "kind": "endpoint-removed",
+        "title": "twiml_session resource deprecated in favour of the new twiml_process resource; twiml_session will be removed in a future release",
+        "source": {
+          "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+          "quote": "Add `twiml_process` resource alongside `twiml_session` (`twiml_session` is deprecated and will be removed in a future release)"
+        },
+        "affects": {
+          "operations": ["twiml_session", "twiml_process", "CreateTwimlProcess"],
+          "fields": ["TwimlProcessStatusCallbackEvents"]
+        },
+        "effectiveDate": "2026-09-28"
+      },
+      {
+        "provider": "twilio",
+        "id": "twilio:2026-09-iam-post-login-webhook-payload",
+        "kind": "webhook-payload",
+        "title": "IAM POST /v1/actions/post_login webhook payload changed: user_context removed, acr/completed_factors replaced by authentication_context, request_context and ip_address now required",
+        "source": {
+          "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+          "quote": "Removed user_context from the POST /v1/actions/post_login (PostLoginActionRequest) webhook payload; the login email is read from authentication_context.methods"
+        },
+        "affects": {
+          "operations": ["POST /v1/actions/post_login", "PostLoginActionRequest"],
+          "fields": [
+            "user_context",
+            "acr",
+            "completed_factors",
+            "authentication_context",
+            "request_context",
+            "request_context.ip_address"
+          ]
+        },
+        "effectiveDate": "2026-09-28"
+      },
+      {
+        "provider": "twilio",
+        "id": "twilio:2026-09-memory-update-requires-body",
+        "kind": "other",
+        "title": "Memory API UpdateStore, UpdateTraitGroup and UpdateDataMapping now reject an empty body with 400 (behaviour change)",
+        "source": {
+          "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+          "quote": "`UpdateStore`, `UpdateTraitGroup`, and `UpdateDataMapping` now require a body with at least one property. An empty `{}` gets a 400."
+        },
+        "affects": {
+          "operations": ["UpdateStore", "UpdateTraitGroup", "UpdateDataMapping"]
+        },
+        "effectiveDate": "2026-09-03"
+      },
+      {
+        "provider": "twilio",
+        "id": "twilio:2026-09-destinations-webhook-method-get-removed",
+        "kind": "field-removed",
+        "title": "Destinations: GET removed from the method enum for webhook destination type config options",
+        "source": {
+          "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+          "quote": "Removed `GET` from the `method` enum on the `webhook` destination type's config options"
+        },
+        "affects": {
+          "operations": ["CreateDestination", "UpdateDestination", "ListDestinationTypes"],
+          "fields": ["method"]
+        },
+        "effectiveDate": "2026-09-24"
+      },
+      {
+        "provider": "twilio",
+        "id": "twilio:2026-09-audiences-renamed-cohorts",
+        "kind": "field-renamed",
+        "title": "Unified Audiences API renamed to Cohorts; audienceId replaced by cohortId in OperationPayload/OperationResult, Get* operations renamed Fetch*, header-based-versioning specs removed, storeType MEMORA changed to TWILIO (preview/hidden API, unsure impact)",
+        "source": {
+          "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+          "quote": "Removed the deprecated header-based-versioning unified specs, consolidating audiences onto the path-based `api.twilio.com/v1` surface."
+        },
+        "affects": {
+          "operations": [
+            "FetchCohort",
+            "FetchSnapshot",
+            "FetchOperation",
+            "AdminListCohortOperations"
+          ],
+          "fields": ["audienceId", "cohortId", "storeType", "MEMORA", "TWILIO"],
+          "versions": ["api.twilio.com/v1", "/preview/Cohorts"]
+        },
+        "effectiveDate": "2026-09-28"
+      },
+      {
+        "provider": "twilio",
+        "id": "twilio:2026-09-data-ingress-path-params-renamed",
+        "kind": "other",
+        "title": "Data-ingress v1: 31 paths removed and re-added with lower-camel-case path parameter names (e.g. {SyncId} to {syncId}); likely a spec-casing change but check generated clients (unsure)",
+        "source": {
+          "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+          "quote": "- **Removed 31 path(s)**:"
+        },
+        "affects": {
+          "operations": [
+            "FetchDataSync",
+            "ListCloudAppObjects",
+            "CreateWarehousePreview",
+            "FetchWarehousePreview",
+            "FetchDataSample",
+            "FetchCloudAppSource",
+            "FetchWarehouseSource"
+          ],
+          "fields": ["SyncId", "SourceId", "OperationId", "DatasetId"]
+        },
+        "effectiveDate": "2026-09-09"
+      },
+      {
+        "provider": "twilio",
+        "id": "twilio:2026-09-webhooks-settings-list-full-setting",
+        "kind": "other",
+        "title": "Webhooks API: GET /v1/Webhooks/Settings list items now documented as full Setting (adds auth, signature, connection, edgeZones) (response shape change, unsure)",
+        "source": {
+          "url": "https://raw.githubusercontent.com/twilio/twilio-node/main/CHANGES.md",
+          "quote": "`GET /v1/Webhooks/Settings` now documents each item as the full `Setting` rather than `SettingSummary`, adding `auth`, `signature`, `connection` and `edgeZones` to the list response."
+        },
+        "affects": {
+          "operations": ["GET /v1/Webhooks/Settings"],
+          "fields": ["auth", "signature", "connection", "edgeZones"]
+        },
+        "effectiveDate": "2026-09-24"
+      },
+      {
+        "provider": "twilio",
+        "id": "twilio:2026-04-20-twilio-node-6-node20",
+        "kind": "sdk-major",
+        "title": "twilio-node 6.0.0 raises minimum Node.js to 20; Node versions below 20 are no longer supported",
+        "source": {
+          "url": "https://raw.githubusercontent.com/twilio/twilio-node/main/UPGRADE.md",
+          "quote": "Upgrade to Node.js >= 20 before updating to `twilio` 6.x.x"
+        },
+        "affects": {
+          "versions": ["5.x.x", "6.x.x"],
+          "sdk": "twilio"
+        },
+        "effectiveDate": "2026-04-20"
+      }
+    ],
+    "issues": [],
+    "unverifiedQuotes": [],
+    "sourcesRead": [
+      "https://www.twilio.com/en-us/changelog.feed.xml",
+      "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+      "https://raw.githubusercontent.com/twilio/twilio-node/main/CHANGES.md",
+      "https://raw.githubusercontent.com/twilio/twilio-node/main/UPGRADE.md"
+    ],
+    "model": "claude-sonnet-5-5",
+    "costUsd": 0.13358799999999998,
+    "turns": 3,
+    "summary": "",
+    "log": [
+      {
+        "turn": 1,
+        "stopReason": "tool_use",
+        "inputTokens": 4246,
+        "outputTokens": 216,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"changelog-feed\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"twilio-oai-changes\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"twilio-node-changes\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"twilio-node-upgrade\"}"
+          }
+        ]
+      },
+      {
+        "turn": 2,
+        "stopReason": "tool_use",
+        "inputTokens": 21967,
+        "outputTokens": 296,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"changelog-feed\",\"offset\":11900}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"twilio-oai-changes\",\"offset\":11900}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"twilio-node-changes\",\"offset\":11900}"
+          }
+        ]
+      },
+      {
+        "turn": 3,
+        "stopReason": "tool_use",
+        "inputTokens": 22766,
+        "outputTokens": 3051,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{\"changes\":[{\"id\":\"2026-10-events-remove-replays-api\",\"kind\":\"endpoint-removed\",\"title\":\"Event Streams Replays API (/v1/Replays, beta feature api.eventstreams.replay) removed from the spec (breaking)\",\"effectiveDate\":\"2026-10-12\",\"source\":{\"url\":\"https://raw.githubusercontent.com/twilio/twilio-oai/m"
+          }
+        ]
+      }
+    ]
+  }
+}

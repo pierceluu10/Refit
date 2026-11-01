@@ -1,0 +1,226 @@
+# How SDK versioning works
+
+Learn about Stripe's versioning and support policy for SDKs.
+
+Stripe’s SDK versioning policy is based on the semantic versioning standard. For example, in version 4.3.2, 4 is the *major*, 3 is the *minor*, and 2 is the *patch*. When we release a new SDK version for new features or bug fixes, we increment one of these three version components depending on the type of change introduced.
+
+- **Major**. We increment the *major* version component when the version contains breaking changes that are backwards incompatible with the latest version: to add a required parameter, change a type, property, method, or parameter. For example, renaming the SDK’s exception classes.
+- **Minor**. We increment the *minor* version component when the version contains new features that are backwards compatible with the latest version: to add a new type, property, method, optional parameter, or supported parameter value. For example, clarifying the SDK’s metadata deletion message.
+- **Patch**. We increment the *patch* version component when the version contains backward-compatible bug fixes: to modify a behavior if correcting that behavior doesn’t change any documented types, properties, methods, or parameters. For example, fixing a bug where file uploads weren’t listed properly.
+
+Each SDK version uses the API version that is current at the time of its release to make API requests. Refer to [Set a Stripe API version](https://docs.stripe.com/sdks/set-version.md) to see how to override this.
+
+### Stripe SDK support policy
+
+New features and bug fixes are released on the latest *major* version of the SDK. If you’re on an older *major* SDK version, we recommend upgrading to the latest major version to take advantage of these features and bug fixes. Older major versions of the package continue to be available for use, but won’t receive any additional updates.
+
+### Migration guides
+
+We provide migration guides to help you upgrade from older major SDK versions. You can find them in the wiki section of our SDK GitHub repositories. The same wiki also has the mapping between SDK major versions and the API versions.
+
+- [Python SDK wiki](https://github.com/stripe/stripe-python/wiki)
+- [.NET SDK wiki](https://github.com/stripe/stripe-dotnet/wiki)
+- [Java SDK wiki](https://github.com/stripe/stripe-java/wiki)
+- [Go SDK wiki](https://github.com/stripe/stripe-go/wiki)
+- [PHP SDK wiki](https://github.com/stripe/stripe-php/wiki)
+- [Ruby SDK wiki](https://github.com/stripe/stripe-ruby/wiki)
+- [Node.js SDK wiki](https://github.com/stripe/stripe-node/wiki)
+
+### Stripe SDK language runtime version support policy
+
+When a language runtime version reaches its end of life, we mark it as “deprecated” in the tables below and begin its extended support window. The exact length of the extended support window varies by language, but the range is 1 to 2 years.
+
+After the extended support window for a language version ends, the following major version of the SDK will no longer support that language version. However, previous versions of the SDK will still be compatible with those older language versions. We’ll pre-announce all runtime deprecations on this page, in each SDK’s README, and in each language’s changelog.
+
+> Though an SDK *might* continue to work on an unsupported language version, don’t continue to use it. SDKs that run on unsupported versions might break unexpectedly in any release, and the cause of that breakage might not be included in the changelog.
+
+#### Language policies
+
+#### Python
+
+Python 3.10 reaches end of life in October 2026. We’ll keep supporting it for the March and September 2027 API releases. We’ll remove support for it in the March 2028 major release.
+
+We support *Python 3.9+*. This includes all versions of Python that are [currently receiving security support](https://endoflife.date/python), plus those within the extended support window.
+
+Python versions that have reached their end of life dates will begin an extended support window of *1 year* (two major API releases). We’ll drop support for the oldest supported Python version with the March API release every year.
+
+Here’s the deprecation schedule:
+
+| Python version | Status | End of life | support dropped | Last Compatible SDK | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 3.14 | (supported) | October 2030 | March 2032 | TBD | |
+| 3.13 | (supported) | October 2029 | March 2031 | TBD | |
+| 3.12 | (supported) | October 2028 | March 2030 | TBD | |
+| 3.11 | (supported) | October 2027 | March 2029 | TBD | |
+| 3.10 | (supported) | October 2026 | March 2028 | TBD | |
+| 3.9 | (deprecated) | October 2025 | March 2027 | TBD | |
+| 3.8 | (unsupported) | October 2024 | March 2026 | `v14.4.1` | 3.8 is the first version to lose support on the schedule defined in this policy. |
+| 3.7 | (unsupported) | June 2023 | March 2026 | `v14.4.1` | To ease the transition into this policy, we’re lengthening the support window for 3.7 to give users more time to update their integrations. |
+| 3.6 | (unsupported) | December 2021 | September 2025 | `v12.5.1` | The decision to drop 3.6 predates this policy and as a result, doesn’t follow the above pattern. |
+
+#### Ruby
+
+Ruby 3.4 reaches end of life in March 2028. We’ll keep supporting it for 3 API releases (March 2028, September 2028, and March 2029). We’ll drop support for 3.4 in the September 2029 release.
+
+We support *Ruby 3.0+*. This includes all versions of Ruby that are [currently supported](https://endoflife.date/ruby), plus those within the extended support window.
+
+Ruby versions that have reached their end of life dates will have an extended support window of *1.5 years* (three major API releases). After we catch up with our schedule, we’ll drop support for the oldest supported Ruby version with the September API release every year.
+
+Here’s the deprecation schedule:
+
+| Ruby version | Status | End of life | support dropped | Last Compatible SDK | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 4.0 | (supported) | March 2029 | September 2030 | TBD | |
+| 3.4 | (supported) | March 2028 | September 2029 | TBD | |
+| 3.3 | (supported) | March 2027 | September 2028 | TBD | 3.3 is the first version to lose support on the schedule defined in this policy. |
+| 3.2 | (deprecated) | March 2026 | March 2028 | TBD | To ease the transition into this policy, we’re lengthening the support window for 3.2 to give users more time to update their integrations. |
+| 3.1 | (deprecated) | March 2025 | September 2027 | TBD | To ease the transition into this policy, we’re lengthening the support window for 3.1 to give users more time to update their integrations. |
+| 3.0 | (deprecated) | April 2024 | March 2027 | TBD | To ease the transition into this policy, we’re lengthening the support window for 3.0 to give users more time to update their integrations. |
+| 2.7 | (unsupported) | March 2023 | September 2026 | `v19.6.2` | To ease the transition into this policy, we’re lengthening the support window for 2.7 to give users more time to update their integrations. |
+| 2.6 | (unsupported) | March 2022 | March 2026 | `v18.4.2` | To ease the transition into this policy, we’re lengthening the support window for 2.6 to give users more time to update their integrations. |
+| 2.5 | (unsupported) | March 2021 | September 2025 | `v15.5.0` | The decision to drop 2.5 predates this policy and as a result, doesn’t follow the above schedule. |
+| 2.4 | (unsupported) | March 2020 | September 2025 | `v15.5.0` | The decision to drop 2.4 predates this policy and as a result, doesn’t follow the above schedule. |
+| 2.3 | (unsupported) | March 2019 | September 2025 | `v15.5.0` | The decision to drop 2.3 predates this policy and as a result, doesn’t follow the above schedule. |
+
+#### PHP
+
+We support *PHP 7.4+*.
+
+We still don’t have a firm PHP version deprecation policy and therefore don’t yet have a schedule that we can provide for all future releases. In spite of this, we’re pre-announcing some deprecations for PHP versions that have been end of life for a long time (see the table below).
+
+We plan to continue deprecating versions that have reached their end of life. If you’re using a PHP version earlier than 7.4, we recommend upgrading (or contacting your shared host to facilitate the process). We’ll update our guidance as it changes.
+
+Here’s the deprecation schedule:
+
+| PHP version | Status | End of life | support dropped | Last Compatible SDK |
+| --- | --- | --- | --- | --- |
+| 8.5 | (supported) | December 2029 | No deprecation plans at this time | TBD |
+| 8.4 | (supported) | December 2028 | No deprecation plans at this time | TBD |
+| 8.3 | (supported) | December 2027 | No deprecation plans at this time | TBD |
+| 8.2 | (supported) | December 2026 | No deprecation plans at this time | TBD |
+| 8.1 | (supported) | December 2025 | No deprecation plans at this time | TBD |
+| 8.0 | (supported) | November 2023 | No deprecation plans at this time | TBD |
+| 7.4 | (supported) | November 2022 | No deprecation plans at this time | TBD |
+| 7.3 | (unsupported) | November 2020 | September 2026 | `v21.3.2` |
+| 7.2 | (unsupported) | December 2019 | September 2026 | `v21.3.2` |
+| 7.1 | (unsupported) | December 2019 | March 2026 | `v19.4.1` |
+| 7.0 | (unsupported) | January 2019 | March 2026 | `v19.4.1` |
+| 5.6 | (unsupported) | December 2018 | March 2026 | `v19.4.1` |
+
+#### Go
+
+Go 1.25 reaches end of life in August 2026. We’ll keep supporting it for the September 2026 and March 2027 API releases. We’ll drop support for it in the September 2027 major release.
+
+We support *Go 1.24+*. This includes all versions of Go that are [currently receiving support](https://endoflife.date/go), plus those within the extended support window.
+
+Go versions that have reached their end of life dates will begin an extended support window of *1 year* (two major API releases). After we catch up with our schedule, we’ll drop support for the oldest supported Go version with every major API release.
+
+Here’s the deprecation schedule:
+
+| Go version | Status | End of life | support dropped | Last Compatible SDK | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 1.27 | (supported) | August 2027 | September 2028 | TBD | |
+| 1.26 | (supported) | February 2027 | March 2028 | TBD | |
+| 1.25 | (supported) | August 2026 | September 2027 | TBD | |
+| 1.24 | (deprecated) | February 2026 | March 2027 | TBD | |
+| 1.23 | (unsupported) | August 2025 | September 2026 | `v86.4.2` | 1.23 will be the first version to be deprecated on schedule. |
+| 1.22 | (unsupported) | February 2025 | September 2026 | `v86.4.2` | To ease the transition into this policy, we’re lengthening the support window for 1.22 to give users more time to update their integrations. |
+| 1.21 | (unsupported) | August 2024 | March 2026 | `v84.4.1` | To ease the transition into this policy, we’re lengthening the support window for 1.21 to give users more time to update their integrations. |
+| 1.20 | (unsupported) | February 2024 | March 2026 | `v84.4.1` | To ease the transition into this policy, we’re lengthening the support window for 1.20 to give users more time to update their integrations. |
+| 1.19 | (unsupported) | September 2023 | September 2025 | `v82.5.1` | The decision to drop 1.19 predates this policy and as a result, doesn’t follow the above pattern. |
+| 1.18 | (unsupported) | February 2023 | September 2025 | `v82.5.1` | The decision to drop 1.18 predates this policy and as a result, doesn’t follow the above pattern. |
+
+#### Node.js
+
+Node 22 reaches end of life in April 2027. We’ll keep supporting it for the September 2027 and March 2028 API releases. We’ll drop support for it in the September 2028 major release.
+
+We support LTS (even numbered) versions of *Node 20+\** This includes all versions of Node that are [currently receiving support](https://endoflife.date/nodejs), plus those within the extended support window.
+
+> The Node.js release schedule is [changing in October 2026](https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule), so this schedule will be amended accordingly. The length of the extended support window won’t change, but the deprecation cadence will.
+
+Node.js versions that have reached their end of life dates will begin an extended support window of 1 year (two major API releases). After we catch up with our schedule, we’ll drop support for the oldest supported Node LTS version each year with the September API release.
+
+Here’s the deprecation schedule:
+
+| Node version | Status | End of life | support dropped | Last Compatible SDK | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 26 | (supported) | April 2029 | September 2030 | TBD | |
+| 24 | (supported) | April 2028 | September 2029 | TBD | |
+| 22 | (supported) | April 2027 | September 2028 | TBD | |
+| 20 | (deprecated) | April 2026 | September 2027 | TBD | |
+| 18 | (unsupported) | April 2025 | September 2026 | `v22.6.2` | 18 is the first version to lose support on the schedule defined in this policy. |
+| 16 | (unsupported) | September 2023 | March 2026 | `v20.4.1` | To ease the transition into this policy, we’re lengthening the support window for 16 to give users more time to update their integrations. |
+| 14 | (unsupported) | April 2023 | September 2025 | `v18.5.0` | The decision to drop 14 predates this policy and as a result, doesn’t follow the above pattern. |
+| 12 | (unsupported) | April 2022 | September 2025 | `v18.5.0` | The decision to drop 12 predates this policy and as a result, doesn’t follow the above pattern. |
+
+#### .NET
+
+.NET 9.0 reaches end of life in May 2026. As an STS version, we’ll drop support in the next major release (September 2026). If it were an LTS version, we’d instead drop support in the September 2027 API release.
+
+.NET support falls into two categories.
+
+- For .NET Framework, we support *4.6.2+*.
+- For .NET Core, we support *.NET 8+*.
+
+We’ll provide support for .NET core versions according to the following schedule:
+
+- LTS (even numbered) releases for *1 year* after their end of life (two major API releases)
+- STS (odd numbered) releases for only as long as they’re the active version
+
+Here’s the deprecation schedule:
+
+| .NET Core version | Status | End of life | support dropped | Last Compatible SDK | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 10 | (supported) | November 2028 | March 2030 | TBD | |
+| 9 | (supported) | November 2026 | March 2027 | TBD | |
+| 8 | (supported) | November 2026 | March 2028 | TBD | 8 is the first version to lose support on the schedule defined in this policy. |
+| 7 | (unsupported) | May 2024 | March 2026 | `v50.4.1` | To ease the transition into this policy, we’re lengthening the support window for 7 to give users more time to update their integrations. |
+| 6 | (unsupported) | Nov 2024 | September 2026 | `v52.4.2` | To ease the transition into this policy, we’re lengthening the support window for 6 to give users more time to update their integrations. |
+| 5 | (unsupported) | May 2022 | March 2026 | `v50.4.1` | To ease the transition into this policy, we’re lengthening the support window for 5 to give users more time to update their integrations. |
+| 3.1 | (unsupported) | December 2022 | September 2025 | `v48.5.0` | The decision to drop 3.1 predates this policy and as a result, doesn’t follow the above pattern. |
+
+#### Java
+
+We support all LTS versions of Java. That’s currently Java versions:
+
+- 25
+- 21
+- 17
+- 11
+- 8 (1.8)
+
+## Public preview release channel
+
+We have a [public preview release channel](https://stripe.dev/blog/introducing-stripes-new-public-preview-release-channel), which uses preview API versions that are distinct from [general availability](https://docs.stripe.com/release-phases.md) (GA) versions. For example, `2025-04-30.preview` instead of `2025-04-30.basil`. The current preview API version is **2026-10-28.preview**.
+
+To access the new features and enhancements in the [preview](https://docs.stripe.com/release-phases.md) stage, use versions of our SDKs that have the `beta` or `b` suffix. For example, `5.1.0b3` in Python and `5.1.0-beta.3` in other language SDKs.
+
+For installation instructions and details about passing preview headers in the `Stripe-Version` header, see the **Public Preview SDKs** section in the README files in the respective SDK GitHub repositories.
+
+- [Python SDK public preview](https://github.com/stripe/stripe-python/?tab=readme-ov-file#public-preview-sdks)
+- [.NET SDK public preview](https://github.com/stripe/stripe-dotnet?tab=readme-ov-file#public-preview-sdks)
+- [Java SDK public preview](https://github.com/stripe/stripe-java?tab=readme-ov-file#public-preview-sdks)
+- [Go SDK public preview](https://github.com/stripe/stripe-go?tab=readme-ov-file#public-preview-sdks)
+- [PHP SDK public preview](https://github.com/stripe/stripe-php?tab=readme-ov-file#public-preview-sdks)
+- [Ruby SDK public preview](https://github.com/stripe/stripe-ruby?tab=readme-ov-file#public-preview-sdks)
+- [Node.js SDK public preview](https://github.com/stripe/stripe-node?tab=readme-ov-file#public-preview-sdks)
+
+## Private preview release channel
+
+We also publish features in the [private preview phase](https://docs.stripe.com/release-phases.md) that require invite-only access. These features also use the preview API versions.
+
+To access private preview features and enhancements after invitation, use versions of our SDKs that have the `alpha` or `a` suffix. For example, `5.1.0a3` in Python and `5.1.0-alpha.3` in other language SDKs.
+
+For installation instructions and details about passing preview headers in the `Stripe-Version` header, see the **Private Preview SDKs** section in the README files in the respective SDK GitHub repositories.
+
+- [Python SDK private preview](https://github.com/stripe/stripe-python/?tab=readme-ov-file#private-preview-sdks)
+- [.NET SDK private preview](https://github.com/stripe/stripe-dotnet?tab=readme-ov-file#private-preview-sdks)
+- [Java SDK private preview](https://github.com/stripe/stripe-java?tab=readme-ov-file#private-preview-sdks)
+- [Go SDK private preview](https://github.com/stripe/stripe-go?tab=readme-ov-file#private-preview-sdks)
+- [PHP SDK private preview](https://github.com/stripe/stripe-php?tab=readme-ov-file#private-preview-sdks)
+- [Ruby SDK private preview](https://github.com/stripe/stripe-ruby?tab=readme-ov-file#private-preview-sdks)
+- [Node.js SDK private preview](https://github.com/stripe/stripe-node?tab=readme-ov-file#private-preview-sdks)
+
+## See also
+
+- [Handle webhook versioning](https://docs.stripe.com/webhooks/versioning.md)

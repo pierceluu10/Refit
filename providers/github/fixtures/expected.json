@@ -1,0 +1,136 @@
+{
+  "note": "Hand-drafted by the F1 build agent from the saved live snapshot to exercise the watcher pipeline with a replay model. Not output of a live model run.",
+  "changes": [
+    {
+      "id": "rest-api-version-2026-03-10",
+      "kind": "api-version",
+      "title": "REST API version 2026-03-10 is the latest; callers on the default 2022-11-28 get its breaking changes only when they move the X-GitHub-Api-Version header.",
+      "effectiveDate": "2026-03-10",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/api-versions",
+        "quote": "The GitHub REST API is versioned. The API version name is based on the date when the API version was released. For example, the API version 2026-03-10 was released on Tue, 10 Mar 2026."
+      },
+      "affects": {
+        "versions": ["2022-11-28", "2026-03-10"]
+      }
+    },
+    {
+      "id": "rate-limit-rate-property-removed",
+      "kind": "field-removed",
+      "title": "REST 2026-03-10 removes the deprecated rate property from GET /rate_limit; read resources.core instead.",
+      "effectiveDate": "2026-03-10",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "quote": "The rate property has been deprecated since 2021 and duplicates information available in the resources.core property."
+      },
+      "affects": {
+        "operations": ["GET /rate_limit"],
+        "fields": ["rate", "resources.core"],
+        "versions": ["2026-03-10"],
+        "sdk": "@octokit/rest"
+      }
+    },
+    {
+      "id": "team-create-permission-removed",
+      "kind": "field-removed",
+      "title": "REST 2026-03-10 removes the deprecated permission parameter when creating a team.",
+      "effectiveDate": "2026-03-10",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "quote": "Remove deprecated permission property from request when a team is created"
+      },
+      "affects": {
+        "operations": ["POST /orgs/{org}/teams"],
+        "fields": ["permission"],
+        "versions": ["2026-03-10"]
+      }
+    },
+    {
+      "id": "contents-submodule-type",
+      "kind": "other",
+      "title": "REST 2026-03-10 reports submodules as type \"submodule\" instead of \"file\" when listing directory contents.",
+      "effectiveDate": "2026-03-10",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "quote": "Updates the \"Get repository content\" API, so that, when listing the contents of a directory, submodules have the type \"submodule\" instead of the type \"file\""
+      },
+      "affects": {
+        "operations": ["GET /repos/{owner}/{repo}/contents/{path}"],
+        "fields": ["type"],
+        "versions": ["2026-03-10"]
+      }
+    },
+    {
+      "id": "squash-pr-title-default-replaced",
+      "kind": "field-renamed",
+      "title": "REST 2026-03-10 drops use_squash_pr_title_as_default from repository objects in favour of squash_merge_commit_title (every endpoint that returns a repository).",
+      "effectiveDate": "2026-03-10",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "quote": "Remove deprecated use_squash_pr_title_as_default property from repo settings endpoints This property has been replaced by squash_merge_commit_title."
+      },
+      "affects": {
+        "operations": [
+          "GET /repos/{owner}/{repo}",
+          "PATCH /repos/{owner}/{repo}",
+          "GET /user/repos"
+        ],
+        "fields": ["use_squash_pr_title_as_default", "squash_merge_commit_title"],
+        "versions": ["2026-03-10"]
+      }
+    },
+    {
+      "id": "graphql-check-annotation-database-id",
+      "kind": "field-removed",
+      "title": "GraphQL removes CheckAnnotation.databaseId on 2027-01-01; use fullDatabaseId.",
+      "effectiveDate": "2027-01-01",
+      "source": {
+        "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+        "quote": "Breaking A change will be made to CheckAnnotation.databaseId. Description: databaseId will be removed. Use fullDatabaseId instead."
+      },
+      "affects": {
+        "fields": ["CheckAnnotation.databaseId", "CheckAnnotation.fullDatabaseId"]
+      }
+    },
+    {
+      "id": "graphql-artifact-database-id",
+      "kind": "field-removed",
+      "title": "GraphQL removes Artifact.databaseId on 2027-01-01; use fullDatabaseId.",
+      "effectiveDate": "2027-01-01",
+      "source": {
+        "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+        "quote": "Breaking A change will be made to Artifact.databaseId. Description: databaseId will be removed. Use fullDatabaseId instead."
+      },
+      "affects": {
+        "fields": ["Artifact.databaseId", "Artifact.fullDatabaseId"]
+      }
+    },
+    {
+      "id": "graphql-viewer-relevant-repositories-renamed",
+      "kind": "field-renamed",
+      "title": "GraphQL User.viewerRelevantRepositories was removed on 2026-10-01; use viewerCopilotChatRepositorySuggestions.",
+      "effectiveDate": "2026-10-01",
+      "source": {
+        "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+        "quote": "Breaking A change will be made to User.viewerRelevantRepositories. Description: viewerRelevantRepositories will be removed. Use viewerCopilotChatRepositorySuggestions instead."
+      },
+      "affects": {
+        "fields": ["User.viewerRelevantRepositories", "User.viewerCopilotChatRepositorySuggestions"]
+      }
+    },
+    {
+      "id": "webhook-delivery-ip-ranges-added",
+      "kind": "other",
+      "title": "New webhook delivery IP ranges: receivers with a static allowlist must add them (maybe affects code that hard-codes GitHub hook IPs).",
+      "effectiveDate": "2026-10-29",
+      "source": {
+        "url": "https://github.blog/changelog/feed/",
+        "quote": "If you maintain a static network allowlist for incoming webhook deliveries, add these CIDR prefixes alongside your existing webhook IP ranges to avoid rejecting deliveries:"
+      },
+      "affects": {
+        "operations": ["GET /meta"],
+        "fields": ["hooks"]
+      }
+    }
+  ]
+}

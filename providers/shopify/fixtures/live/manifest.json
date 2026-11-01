@@ -1,0 +1,57 @@
+{
+  "provider": "shopify",
+  "fetchedAt": "2026-11-01T05:13:51.369Z",
+  "note": "Live read of each source, saved as text and cut to 24000 characters. Test input only.",
+  "sources": [
+    {
+      "id": "changelog",
+      "url": "https://shopify.dev/changelog.md",
+      "status": 200,
+      "ok": true,
+      "file": "changelog.txt",
+      "chars": 24000,
+      "truncated": true,
+      "sha256": "dfa4f1ea1e0b06173430b68c81d3c0a75ae05a04d11c2e7efa86b9b8f31eb084"
+    },
+    {
+      "id": "release-notes",
+      "url": "https://shopify.dev/changelog/release-notes/latest.md",
+      "status": 200,
+      "ok": true,
+      "file": "release-notes.txt",
+      "chars": 19241,
+      "truncated": false,
+      "sha256": "1239d6791ba8e2fc39625cac67f9045a941b76a4ee591d332e8a7d0f8c590ecb"
+    },
+    {
+      "id": "api-versioning",
+      "url": "https://shopify.dev/docs/api/usage/versioning.md",
+      "status": 200,
+      "ok": true,
+      "file": "api-versioning.txt",
+      "chars": 9205,
+      "truncated": false,
+      "sha256": "26cfcee5e24169cc23ce29c86dde93e4c957d7dd7cc5b721391e5f21964ed485"
+    },
+    {
+      "id": "rest-admin-legacy",
+      "url": "https://shopify.dev/docs/api/admin-rest.md",
+      "status": 200,
+      "ok": true,
+      "file": "rest-admin-legacy.txt",
+      "chars": 17465,
+      "truncated": false,
+      "sha256": "929bda196f96a95cb72ad3dc87d113ee078ed4a1b91bcddc186c4cd0017a8a17"
+    },
+    {
+      "id": "shopify-api-changelog",
+      "url": "https://raw.githubusercontent.com/Shopify/shopify-app-js/main/packages/apps/shopify-api/CHANGELOG.md",
+      "status": 200,
+      "ok": true,
+      "file": "shopify-api-changelog.txt",
+      "chars": 24000,
+      "truncated": true,
+      "sha256": "f1226cce2374c41867b2604294838fb6020d79d7ae6a7f00e7463dbf7def9da1"
+    }
+  ]
+}

@@ -1,0 +1,571 @@
+{
+  "note": "Live-classified: claude-sonnet-5-5 called through the overnight spend guard on 2026-11-01. It read the pages saved by that day's live read (fixtures/live), each cut to 12000 characters, with live HTTP for any link outside the snapshot. Output recorded as returned, not edited.",
+  "runAt": "2026-11-01T05:26:13.036Z",
+  "model": "claude-sonnet-5-5",
+  "promptVersion": "watch-v1",
+  "input": {
+    "snapshot": "fixtures/live",
+    "maxCharsPerPage": 12000,
+    "liveFallback": true,
+    "maxTokens": 6000,
+    "maxTurns": 8
+  },
+  "report": {
+    "provider": "github",
+    "changes": [
+      {
+        "provider": "github",
+        "id": "github:2026-03-10-rest-api-version",
+        "kind": "api-version",
+        "title": "New REST API version 2026-03-10 released with breaking changes; callers must update X-GitHub-Api-Version and adapt (2022-11-28 remains default for unversioned requests)",
+        "source": {
+          "url": "https://docs.github.com/en/rest/about-the-rest-api/api-versions",
+          "quote": "For example, the API version 2026-03-10 was released on Tue, 10 Mar 2026."
+        },
+        "affects": {
+          "fields": ["X-GitHub-Api-Version"],
+          "versions": ["2022-11-28", "2026-03-10"]
+        },
+        "effectiveDate": "2026-03-10"
+      },
+      {
+        "provider": "github",
+        "id": "github:2022-11-28-version-end-of-support",
+        "kind": "api-version",
+        "title": "REST API version 2022-11-28 supported until March 10, 2028; afterwards 410 Gone for pinned requests and unversioned requests fall to the next oldest supported version",
+        "source": {
+          "url": "https://docs.github.com/en/rest/about-the-rest-api/api-versions",
+          "quote": "2022-11-28 March 10, 2028"
+        },
+        "affects": {
+          "fields": ["X-GitHub-Api-Version", "Deprecation", "Sunset"],
+          "versions": ["2022-11-28", "2026-03-10"]
+        },
+        "effectiveDate": "2028-03-10"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-03-10-remove-rate-limit-rate",
+        "kind": "field-removed",
+        "title": "Version 2026-03-10 removes the deprecated `rate` property from GET /rate_limit; read resources.core instead",
+        "source": {
+          "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+          "quote": "To migrate, update your integration\nto read rate limit information from resources.core instead of rate."
+        },
+        "affects": {
+          "operations": ["GET /rate_limit"],
+          "fields": ["rate", "resources.core"],
+          "versions": ["2026-03-10"]
+        },
+        "effectiveDate": "2026-03-10"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-03-10-remove-team-create-permission",
+        "kind": "field-removed",
+        "title": "Version 2026-03-10 removes the deprecated `permission` property from the create-team request",
+        "source": {
+          "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+          "quote": "Remove deprecated permission property from request when a team is created"
+        },
+        "affects": {
+          "operations": ["POST /orgs/{org}/teams"],
+          "fields": ["permission"],
+          "versions": ["2026-03-10"]
+        },
+        "effectiveDate": "2026-03-10"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-03-10-contents-submodule-type",
+        "kind": "other",
+        "title": "Version 2026-03-10: directory listings from Get repository content return type \"submodule\" instead of \"file\" for submodules",
+        "source": {
+          "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+          "quote": "submodules have the type \"submodule\" instead of the type \"file\""
+        },
+        "affects": {
+          "operations": ["GET /repos/{owner}/{repo}/contents/{path}"],
+          "fields": ["type"],
+          "versions": ["2026-03-10"]
+        },
+        "effectiveDate": "2026-03-10"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-03-10-sarif-content-type",
+        "kind": "other",
+        "title": "Version 2026-03-10: SARIF response Content-Type is corrected to application/sarif+json (was application/json+sarif) when Accept is application/sarif+json",
+        "source": {
+          "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+          "quote": "This change corrects this so the response Content-Type in this case becomes application/sarif+json."
+        },
+        "affects": {
+          "operations": ["GET /repos/{owner}/{repo}/code-scanning/analyses/{analysis_id}"],
+          "fields": ["Content-Type"],
+          "versions": ["2026-03-10"]
+        },
+        "effectiveDate": "2026-03-10"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-03-10-remove-use-squash-pr-title-as-default",
+        "kind": "field-removed",
+        "title": "Version 2026-03-10 removes deprecated `use_squash_pr_title_as_default` from repo settings and repository responses; use squash_merge_commit_title",
+        "source": {
+          "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+          "quote": "Remove deprecated use_squash_pr_title_as_default property from repo settings endpoints\nThis property has been replaced by squash_merge_commit_title."
+        },
+        "affects": {
+          "operations": [
+            "GET /repos/{owner}/{repo}",
+            "PATCH /repos/{owner}/{repo}",
+            "POST /orgs/{org}/repos",
+            "POST /user/repos",
+            "POST /repos/{template_owner}/{template_repo}/generate",
+            "POST /repos/{owner}/{repo}/forks"
+          ],
+          "fields": ["use_squash_pr_title_as_default", "squash_merge_commit_title"],
+          "versions": ["2026-03-10"]
+        },
+        "effectiveDate": "2026-03-10"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-03-10-remove-root-authorizations-url",
+        "kind": "field-removed",
+        "title": "Version 2026-03-10 removes authorizations_url from the API root response (GET /)",
+        "source": {
+          "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+          "quote": "Remove authorizations_url from the API root (GET /)\nThe OAuth Authorization API has been deprecated since 2020."
+        },
+        "affects": {
+          "operations": ["GET /"],
+          "fields": ["authorizations_url"],
+          "versions": ["2026-03-10"]
+        },
+        "effectiveDate": "2026-03-10"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-03-10-beta-media-type-deprecated",
+        "kind": "field-removed",
+        "title": "Version 2026-03-10 deprecates support for the beta media type: flat emails array, pull_request property, user (use owner), master_branch (use default_branch) go away on many issue/PR/repo/gist/event endpoints",
+        "source": {
+          "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+          "quote": "Deprecate support for the beta media type\nThis media type was officially deprecated in 2014."
+        },
+        "affects": {
+          "operations": [
+            "GET /repos/{owner}/{repo}",
+            "GET /issues",
+            "GET /repos/{owner}/{repo}/pulls",
+            "GET /gists",
+            "GET /events",
+            "GET /user/repos"
+          ],
+          "fields": ["emails", "pull_request", "user", "owner", "master_branch", "default_branch"],
+          "versions": ["2026-03-10"]
+        },
+        "effectiveDate": "2026-03-10"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-03-10-gist-remove-history-forks",
+        "kind": "field-removed",
+        "title": "Version 2026-03-10 removes the underspecified `history` and `forks` fields from the base-gist object",
+        "source": {
+          "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+          "quote": "This changeset removes the underspecified fields history and forks from the base-gist object"
+        },
+        "affects": {
+          "operations": [
+            "GET /gists",
+            "GET /gists/public",
+            "GET /gists/starred",
+            "GET /gists/{gist_id}",
+            "GET /gists/{gist_id}/forks",
+            "GET /gists/{gist_id}/{sha}",
+            "GET /users/{username}/gists",
+            "PATCH /gists/{gist_id}",
+            "POST /gists",
+            "POST /gists/{gist_id}/forks"
+          ],
+          "fields": ["history", "forks"],
+          "versions": ["2026-03-10"]
+        },
+        "effectiveDate": "2026-03-10"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-03-10-delete-installation-202",
+        "kind": "other",
+        "title": "Version 2026-03-10: deleting an app installation returns 202 instead of 204 (deletion moved to background)",
+        "source": {
+          "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+          "quote": "Change success status code from 204 to 202 for deleting an installation"
+        },
+        "affects": {
+          "operations": ["DELETE /app/installations/{installation_id}"],
+          "versions": ["2026-03-10"]
+        },
+        "effectiveDate": "2026-03-10"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-03-10-remove-secret-scanning-push-protection-custom-link-enabled",
+        "kind": "field-removed",
+        "title": "Version 2026-03-10 removes secret_scanning_push_protection_custom_link_enabled from organization request and response",
+        "source": {
+          "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+          "quote": "Remove secret_scanning_push_protection_custom_link_enabled from the organization request and response"
+        },
+        "affects": {
+          "operations": ["GET /orgs/{org}", "PATCH /orgs/{org}"],
+          "fields": ["secret_scanning_push_protection_custom_link_enabled"],
+          "versions": ["2026-03-10"]
+        },
+        "effectiveDate": "2026-03-10"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-03-10-code-scanning-languages-enum",
+        "kind": "field-removed",
+        "title": "Version 2026-03-10 removes javascript and typescript values from the languages enum in code scanning default setup response (page was cut off; details unconfirmed)",
+        "source": {
+          "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+          "quote": "Remove javascript and typescript values from the languages enum in code scanning default setup"
+        },
+        "affects": {
+          "operations": ["GET /repos/{owner}/{repo}/code-scanning/default-setup"],
+          "fields": ["languages"],
+          "versions": ["2026-03-10"]
+        },
+        "effectiveDate": "2026-03-10"
+      },
+      {
+        "provider": "github",
+        "id": "github:2027-01-01-graphql-checkannotation-databaseid",
+        "kind": "field-removed",
+        "title": "GraphQL CheckAnnotation.databaseId will be removed; use fullDatabaseId",
+        "source": {
+          "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+          "quote": "A change will be made to CheckAnnotation.databaseId. Description: databaseId will be removed. Use fullDatabaseId instead."
+        },
+        "affects": {
+          "fields": ["CheckAnnotation.databaseId", "CheckAnnotation.fullDatabaseId"]
+        },
+        "effectiveDate": "2027-01-01"
+      },
+      {
+        "provider": "github",
+        "id": "github:2027-01-01-graphql-artifact-databaseid",
+        "kind": "field-removed",
+        "title": "GraphQL Artifact.databaseId will be removed; use fullDatabaseId",
+        "source": {
+          "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+          "quote": "A change will be made to Artifact.databaseId. Description: databaseId will be removed. Use fullDatabaseId instead."
+        },
+        "affects": {
+          "fields": ["Artifact.databaseId", "Artifact.fullDatabaseId"]
+        },
+        "effectiveDate": "2027-01-01"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-10-01-graphql-user-viewerrelevantrepositories",
+        "kind": "field-renamed",
+        "title": "GraphQL User.viewerRelevantRepositories removed (renamed to viewerCopilotChatRepositorySuggestions)",
+        "source": {
+          "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+          "quote": "A change will be made to User.viewerRelevantRepositories. Description: viewerRelevantRepositories will be removed. Use viewerCopilotChatRepositorySuggestions instead."
+        },
+        "affects": {
+          "fields": [
+            "User.viewerRelevantRepositories",
+            "User.viewerCopilotChatRepositorySuggestions"
+          ]
+        },
+        "effectiveDate": "2026-10-01"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-10-01-graphql-copilotagenttask-type",
+        "kind": "field-removed",
+        "title": "GraphQL CopilotAgentTask.type removed; use codingAgentFilter and codingAgentTypeFilter",
+        "source": {
+          "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+          "quote": "A change will be made to CopilotAgentTask.type. Description: type will be removed. Use codingAgentFilter and codingAgentTypeFilter instead."
+        },
+        "affects": {
+          "fields": ["CopilotAgentTask.type"]
+        },
+        "effectiveDate": "2026-10-01"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-07-01-graphql-team-viewersubscription",
+        "kind": "field-removed",
+        "title": "GraphQL Team.viewerSubscription removed (team notification subscriptions deprecated)",
+        "source": {
+          "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+          "quote": "A change will be made to Team.viewerSubscription. Description: viewerSubscription will be removed."
+        },
+        "affects": {
+          "fields": ["Team.viewerSubscription"]
+        },
+        "effectiveDate": "2026-07-01"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-07-01-graphql-team-viewercansubscribe",
+        "kind": "field-removed",
+        "title": "GraphQL Team.viewerCanSubscribe removed (team notification subscriptions deprecated)",
+        "source": {
+          "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+          "quote": "A change will be made to Team.viewerCanSubscribe. Description: viewerCanSubscribe will be removed."
+        },
+        "affects": {
+          "fields": ["Team.viewerCanSubscribe"]
+        },
+        "effectiveDate": "2026-07-01"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-04-01-graphql-team-audit-entries",
+        "kind": "field-removed",
+        "title": "GraphQL audit-log fields on TeamRemoveRepositoryAuditEntry, TeamRemoveMemberAuditEntry, TeamChangeParentTeamAuditEntry (actor*, user*, organization*, action, createdAt, operationType, etc.) removed; use REST audit log (list truncated, other audit entry types may also be affected)",
+        "source": {
+          "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+          "quote": "A change will be made to TeamRemoveRepositoryAuditEntry.userUrl. Description: userUrl will be removed."
+        },
+        "affects": {
+          "fields": [
+            "TeamRemoveRepositoryAuditEntry.*",
+            "TeamRemoveMemberAuditEntry.*",
+            "TeamChangeParentTeamAuditEntry.*"
+          ]
+        },
+        "effectiveDate": "2026-04-01"
+      },
+      {
+        "provider": "github",
+        "id": "github:2025-05-25-octokit-rest-v22",
+        "kind": "sdk-major",
+        "title": "@octokit/rest v22.0.0 drops Node 18 and removes deprecated Projects and Copilot usage metrics endpoints (released May 2025, just outside window; included in case unsure)",
+        "source": {
+          "url": "https://api.github.com/repos/octokit/rest.js/releases?per_page=15",
+          "quote": "Drop support for NodeJS v18"
+        },
+        "affects": {
+          "versions": ["22.0.0", "22.0.1"],
+          "sdk": "@octokit/rest"
+        },
+        "effectiveDate": "2025-05-25"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-10-29-meta-api-webhook-ip-ranges",
+        "kind": "webhook-payload",
+        "title": "Meta API hooks field adds new webhook delivery IP ranges; update static allowlists",
+        "source": {
+          "url": "https://github.blog/changelog/feed/",
+          "quote": "add these CIDR prefixes alongside your existing webhook IP ranges to avoid rejecting deliveries:"
+        },
+        "affects": {
+          "operations": ["GET /meta"],
+          "fields": ["hooks"]
+        },
+        "effectiveDate": "2026-10-29"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-10-22-meta-api-actions-blob-storage",
+        "kind": "other",
+        "title": "Meta API adds new Actions blob storage hosts; update network allowlists to avoid broken job summaries and logs",
+        "source": {
+          "url": "https://github.blog/changelog/label/actions/feed/",
+          "quote": "If you allow individual hosts, add the new hosts to avoid interruptions to job summaries and logs."
+        },
+        "affects": {
+          "operations": ["GET /meta"]
+        },
+        "effectiveDate": "2026-10-22"
+      },
+      {
+        "provider": "github",
+        "id": "github:2026-10-28-actions-multi-cloud-runners-allowlist",
+        "kind": "other",
+        "title": "GitHub-hosted Linux runners may now run on AWS with new outbound IPs; update IP allowlists (rolling change, may break Azure-only allowlists)",
+        "source": {
+          "url": "https://github.blog/changelog/label/actions/feed/",
+          "quote": "Runners in the expanded compute pool use additional outbound IP addresses, so policies that allow only Azure or Microsoft-owned ranges, including Microsoft Entra Conditional Access policies, can block connections or authentication from these runners."
+        },
+        "affects": {
+          "operations": ["GET /meta"],
+          "fields": ["actions"]
+        },
+        "effectiveDate": "2026-10-28"
+      }
+    ],
+    "issues": [],
+    "unverifiedQuotes": [],
+    "sourcesRead": [
+      "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+      "https://docs.github.com/en/graphql/overview/breaking-changes",
+      "https://docs.github.com/en/rest/about-the-rest-api/api-versions",
+      "https://api.github.com/repos/octokit/rest.js/releases?per_page=15",
+      "https://github.blog/changelog/feed/",
+      "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes.md",
+      "https://github.blog/changelog/feed/?paged=2",
+      "https://github.blog/changelog/label/actions/feed/",
+      "https://github.blog/changelog/feed/?paged=3"
+    ],
+    "model": "claude-sonnet-5-5",
+    "costUsd": 0.5367200000000001,
+    "turns": 7,
+    "summary": "",
+    "log": [
+      {
+        "turn": 1,
+        "stopReason": "tool_use",
+        "inputTokens": 3657,
+        "outputTokens": 293,
+        "calls": [
+          {
+            "tool": "list_sources",
+            "input": "{}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"rest-breaking-changes\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"graphql-breaking-changes\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"rest-api-versions\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"octokit-rest-releases\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"changelog-feed\"}"
+          }
+        ]
+      },
+      {
+        "turn": 2,
+        "stopReason": "tool_use",
+        "inputTokens": 23909,
+        "outputTokens": 255,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"rest-breaking-changes\",\"offset\":12000}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"graphql-breaking-changes\",\"offset\":12000}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"changelog-feed\",\"offset\":12000}"
+          }
+        ]
+      },
+      {
+        "turn": 3,
+        "stopReason": "tool_use",
+        "inputTokens": 24516,
+        "outputTokens": 282,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://github.blog/changelog/label/api/feed/\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://github.blog/changelog/feed/?paged=2\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://docs.github.com/en/rest/about-the-rest-api/breaking-changes.md\",\"offset\":11000}"
+          }
+        ]
+      },
+      {
+        "turn": 4,
+        "stopReason": "tool_use",
+        "inputTokens": 29723,
+        "outputTokens": 576,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://github.blog/changelog/feed/?paged=3\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://github.blog/changelog/label/rest-api/feed/\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://github.blog/changelog/label/webhooks/feed/\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://github.blog/changelog/label/actions/feed/\"}"
+          }
+        ]
+      },
+      {
+        "turn": 5,
+        "stopReason": "tool_use",
+        "inputTokens": 39118,
+        "outputTokens": 377,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://github.blog/changelog/label/ecosystem-accessibility/feed/\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://github.blog/changelog/label/apps/feed/\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://github.blog/changelog/label/api/\"}"
+          }
+        ]
+      },
+      {
+        "turn": 6,
+        "stopReason": "max_tokens",
+        "inputTokens": 39919,
+        "outputTokens": 6000,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{}"
+          }
+        ]
+      },
+      {
+        "turn": 7,
+        "stopReason": "tool_use",
+        "inputTokens": 40668,
+        "outputTokens": 5587,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{\"changes\":[{\"id\":\"2026-03-10-rest-api-version\",\"kind\":\"api-version\",\"title\":\"New REST API version 2026-03-10 released with breaking changes; callers must update X-GitHub-Api-Version and adapt (2022-11-28 remains default for unversioned requests)\",\"effectiveDate\":\"2026-03-10\",\"source\":{\"url\":\"https:"
+          }
+        ]
+      }
+    ]
+  }
+}
