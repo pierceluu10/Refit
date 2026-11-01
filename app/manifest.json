@@ -1,0 +1,16 @@
+{
+  "name": "Aptitude",
+  "url": "https://github.com/pierceluu10/Refit",
+  "hook_attributes": {
+    "url": "https://smee.io/replace-with-your-channel",
+    "active": true
+  },
+  "public": false,
+  "default_permissions": {
+    "contents": "write",
+    "pull_requests": "write",
+    "checks": "write",
+    "metadata": "read"
+  },
+  "default_events": ["push", "pull_request"]
+}
