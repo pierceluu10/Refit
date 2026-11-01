@@ -4,7 +4,16 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
-import { agentWorkspace, requestsBelowTarget, workspaceDiff } from './meta-graph-agent.ts';
+import { META_SDK } from './deadline-exposure.ts';
+import {
+  agentWorkspace,
+  metaGraphJudge,
+  requestsBelowTarget,
+  workspaceDiff,
+} from './meta-graph-agent.ts';
+import { loadMetaGraphChanges } from './meta-graph-changes.ts';
+import { metaGraphChangeTable } from './meta-graph-proof.ts';
+import { readRepository } from './repository.ts';
 import { scanGraphCalls } from './meta-graph-calls.ts';
 
 const exec = promisify(execFile);
@@ -64,5 +73,35 @@ fetch(\`https://graph.facebook.com/\${process.env.V}/me\`);`,
   expect(requestsBelowTarget(calls, 'v25.0')).toEqual([
     expect.stringMatching(/^a\.js:1: .* still sends v19\.0, not v25\.0$/),
     expect.stringMatching(/^a\.js:3: .* sends no Graph API version Refit can read/),
+  ]);
+});
+
+it('passes a request-string move and names an edit outside request strings', async () => {
+  const original = await directory({
+    'me.js':
+      "const label = 'x';\nexport const me = () => fetch('https://graph.facebook.com/v19.0/me?fields=id');\n",
+  });
+  const judge = metaGraphJudge({
+    original: await readRepository(original, META_SDK),
+    target: 'v25.0',
+    changes: await loadMetaGraphChanges(metaGraphChangeTable()),
+  });
+  const workspace = await agentWorkspace(original, null);
+  roots.push(workspace);
+  const edit = (from: string, to: string) =>
+    readFile(join(workspace, 'me.js'), 'utf8').then((text) =>
+      writeFile(join(workspace, 'me.js'), text.replace(from, to)),
+    );
+  expect((await judge(workspace)).errors).toEqual(
+    [
+      expect.stringContaining('still sends v19.0, not v25.0'),
+      expect.stringContaining('The patch changes no Graph API request'),
+    ].reverse(),
+  );
+  await edit('v19.0', 'v25.0');
+  expect(await judge(workspace)).toEqual({ passed: true, errors: [] });
+  await writeFile(join(workspace, 'NOTES.md'), 'Moved to v25.0.\n');
+  expect((await judge(workspace)).errors).toEqual([
+    expect.stringContaining('Refit proves only edits to the strings that build Graph API requests'),
   ]);
 });

@@ -369,8 +369,11 @@ export async function runMetaGraphPipeline(options: {
           }),
         )
       : undefined;
+  // A judged agent patch replaces the moves' patch; an unproven one is used only where the moves
+  // wrote nothing, since the moves' own patch can still validate (meta-dev-60 run 41267723524).
   const agentPatch =
-    agent?.patch && (agent.outcome === 'passed' || agent.outcome === 'unproven')
+    agent?.patch &&
+    (agent.outcome === 'passed' || (agent.outcome === 'unproven' && !proposal.edits.length))
       ? agent
       : undefined;
   const agentRecord = agent && {

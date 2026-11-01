@@ -8,6 +8,17 @@ import { writeMetaGraphRun } from './meta-graph-workflow.ts';
 import { runPipeline } from './run.ts';
 import { readFile } from 'node:fs/promises';
 
+const PHOTOS = `export const post = (page, token) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${page}/photos\`, {
+    method: 'POST',
+    body: JSON.stringify({ url: 'https://example.com/a.png', access_token: token }),
+  });`;
+const REGISTER = `export const register = (phone, pin) =>
+  fetch(\`https://graph.facebook.com/v19.0/\${phone}/register\`, {
+    method: 'POST',
+    body: JSON.stringify({ messaging_product: 'whatsapp', pin, data_localization_region: 'DE' }),
+  });`;
+
 vi.mock('./agent-fix.ts', () => ({ fixWithAgent: vi.fn() }));
 const agent = vi.mocked(fixWithAgent);
 
@@ -170,32 +181,28 @@ export const me = () => fetch(\`https://graph.facebook.com/\${version}/me?fields
     expect(report.patch.warnings?.[0]).toContain('An AI agent wrote this patch');
   });
 
-  it('with AI, publishes an unproven agent patch for review with the judge errors left', async () => {
+  it('with AI, publishes an unproven agent patch for review where the moves wrote nothing', async () => {
     agentEdits('send.js', 'v19.0', 'v25.0');
-    const report = await run(
-      {
-        'post.js': `export const post = (page, token) =>
-  fetch(\`https://graph.facebook.com/v19.0/\${page}/photos\`, {
-    method: 'POST',
-    body: JSON.stringify({ url: 'https://example.com/a.png', access_token: token }),
-  });`,
-        'send.js': `export const register = (phone, pin) =>
-  fetch(\`https://graph.facebook.com/v19.0/\${phone}/register\`, {
-    method: 'POST',
-    body: JSON.stringify({ messaging_product: 'whatsapp', pin, data_localization_region: 'DE' }),
-  });`,
-      },
-      true,
-    );
-    // The agent starts from the moves' patch: post.js is already on the target.
-    expect(agent.mock.calls[0][0].context).toContain('v19.0 moved to v25.0');
+    const report = await run({ 'send.js': REGISTER }, true);
     expect(report.patch).toMatchObject({ status: 'proposed', generator: 'openai' });
-    expect(report.patch.diff).toContain('v25.0/${page}/photos');
     expect(report.patch.diff).toContain('v25.0/${phone}/register');
     expect(report.patch.agent?.outcome).toBe('unproven');
     expect(report.patch.unresolvedFindings).toBeGreaterThan(0);
     expect(report.patch.agent?.errors.join(' ')).toContain('data_localization_region');
     expect(report.patch.warnings?.join(' ')).toContain("Refit's Meta judges still report");
+  });
+
+  it('with AI, keeps the moves over an unproven agent patch, starting the agent from them', async () => {
+    agentEdits('send.js', 'v19.0', 'v25.0');
+    const report = await run({ 'post.js': PHOTOS, 'send.js': REGISTER }, true);
+    expect(agent.mock.calls[0][0].context).toContain('v19.0 moved to v25.0');
+    expect(report.patch).toMatchObject({
+      status: 'proposed',
+      generator: 'deterministic',
+      agent: { outcome: 'unproven' },
+    });
+    expect(report.patch.diff).toContain('v25.0/${page}/photos');
+    expect(report.patch.diff).not.toContain('v25.0/${phone}/register');
   });
 
   it('with AI, keeps the moves when the agent produces nothing', async () => {
