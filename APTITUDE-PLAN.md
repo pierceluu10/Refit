@@ -170,9 +170,9 @@ export type RunTask = (task: MigrationTask, repoDir: string) => Promise<RunRecor
 6. **Style:** the smallest correct change. Keep behaviour the same unless the API change forces otherwise, and say so.
 7. **Hard limits:** the four above, and nothing else.
 
-## Budget (needs founder approval before launch)
+## Budget (approved by the founders on 2026-11-01)
 
-- **AI cap per laptop overnight: $20** (proposed), enforced by the budget ledger and stated in each prompt.
+- **AI cap per laptop overnight: $20** (approved), enforced by the budget ledger and stated in each prompt.
 - Development uses 3–5 dev repos at a time. **No full benchmark tonight.**
 - Each prompt stops spending at its cap and reports what it got.
 
@@ -274,7 +274,7 @@ Use subagents per component. Branch `aptitude/memory`, draft PR into `aptitude`.
 ### P1: the GitHub App and install flow
 
 ```text
-Build Aptitude's GitHub App in app/. Read APTITUDE-PLAN.md and shared/types.ts on origin/aptitude.
+Build Aptitude's GitHub App in app/. Reuse the existing GitHub App, "Refit Agent" (App ID 5275879, owned by refit-dev, slug refit-agent[bot]), rather than registering a new one. A founder renames it to Aptitude, changes its logo, turns on webhooks and adds the permissions and events below, in GitHub settings. Write app/SETUP.md with the exact settings to change. Read APTITUDE-PLAN.md and shared/types.ts on origin/aptitude.
 
 Deliver:
 - An app manifest:
@@ -286,7 +286,7 @@ Deliver:
   - push: queue a re-read;
   - pull_request merged or closed: send the human verdict to memory.
 - An installation-token client and a PR opener (branch, commit, PR) that the harness calls.
-- A local dev setup (smee or a tunnel) and docs for registering the app. Don't register it yourself; a founder does that with their own account.
+- A local dev setup (smee or a tunnel). Don't change the App's GitHub settings yourself; a founder does that.
 - Secrets only from env. Never commit or print them.
 
 Tests with recorded webhook payloads. No AI calls needed here.
@@ -404,4 +404,4 @@ Use subagents for the repo-set recovery, the runner and the scoring. Branch `apt
    9. F3 evals.
 3. Regenerate the lockfile if needed, then run F3's smoke test end to end.
 4. Approve a budget for the first real dev benchmark (suggestion: 20 repos, $40), and read the hand-checks before trusting any number.
-5. Register the Aptitude GitHub App and install it on a test org first.
+5. In the existing Refit Agent App's settings (ID 5275879): rename it to Aptitude, swap the logo, turn on webhooks, and add the permissions and events from app/SETUP.md. Then install it on a test org first.
