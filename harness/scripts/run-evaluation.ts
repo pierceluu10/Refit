@@ -51,7 +51,8 @@ for (const entry of entries) {
   mkdirSync(results, { recursive: true });
   writeFileSync(join(results, 'diff.patch'), record.diff);
   writeFileSync(join(results, 'pr-body.md'), record.prBody);
-  const { diff, prBody, transcriptPath, ...rest } = record;
+  writeFileSync(join(results, 'summary.md'), record.summary);
+  const { diff, prBody, summary, transcriptPath, ...rest } = record;
   const saved = { repo: entry.repo, commit: entry.commit, ...rest };
   writeFileSync(join(results, 'record.json'), JSON.stringify(saved, null, 2) + '\n');
   console.log(

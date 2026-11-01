@@ -135,6 +135,26 @@ describe('runTask with a fake model', () => {
     expect(readFileSync(record.transcriptPath, 'utf8')).toContain('"phase":"iteration"');
   });
 
+  it('summarises every tool call and the checks after each iteration, for memory', async () => {
+    const { outDir, ...rest } = deps([breakIt, fixIt]);
+    const record = await runTask(task, fixtureRepo(), { ...rest, outDir });
+    const lines = record.summary.split('\n');
+    expect(lines[0]).toBe('# fixture-stripe-charges: verified, $0.0200');
+    expect(lines).toContain('Baseline checks: test pass');
+    expect(record.summary).toMatch(
+      /## Iteration 1 \(claude-sonnet-5-5, done\)\n1\. edit_file path=src\/pay\.js .*→ edited src\/pay\.js \(1 replacement\)\nChecks after: test pass → fail \(1\) \(new: /,
+    );
+    expect(record.summary).toContain(
+      '2. stripe__check_params operation=paymentIntents.create → params valid for paymentIntents.create',
+    );
+    expect(record.summary).toMatch(/1\. write_file path=src\/pay\.js content=<\d+ chars>/);
+    expect(lines).toContain('Files changed: src/pay.js');
+    expect(lines).toContain(
+      'Verdict: migrated. Replaced charges.create with paymentIntents.create.',
+    );
+    expect(readFileSync(join(outDir, 'summary.md'), 'utf8')).toBe(record.summary);
+  });
+
   it('grades a validator the agent claims but never ran as needs-review', async () => {
     const claimOnly: ScriptedTurn = async (call) => {
       await call('write_file', {

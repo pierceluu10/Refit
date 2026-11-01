@@ -14,7 +14,7 @@ import {
   runChecks,
 } from './checks.ts';
 import { BudgetLedger, budgetFromEnv } from './ledger.ts';
-import { writePrBody } from './pr.ts';
+import { filesFromDiff, writePrBody } from './pr.ts';
 import {
   PROMPT_VERSION,
   buildKickoffMessage,
@@ -24,6 +24,7 @@ import {
 } from './prompt.ts';
 import { createSandbox, sandboxEnvNote } from './sandbox.ts';
 import { redactSecrets } from './secrets.ts';
+import { summarizeRun, type IterationSummary, type Step } from './summary.ts';
 import { buildTools } from './tools.ts';
 import type {
   CheckCommand,
@@ -112,6 +113,7 @@ export async function runTask(
       promptVersion: PROMPT_VERSION,
       recipeIds: [],
       agentChecks: [],
+      summary: `# ${task.id}: failed\nThe harness could not create a sandbox: ${message}\n`,
     };
   }
 
@@ -149,6 +151,9 @@ export async function runTask(
     let report: FinishReport | undefined;
     let finishedThisIteration = false;
     const validatorRuns: ValidatorRun[] = [];
+    // Every tool call of the current iteration, for the run summary.
+    let steps: Step[] = [];
+    const iterations: IterationSummary[] = [];
     const tools = buildTools({
       sandbox,
       task,
@@ -162,7 +167,14 @@ export async function runTask(
       addCheck,
       onToolPackCall: (run) => validatorRuns.push(run),
       fetch: deps.fetch,
-    });
+    }).map((tool) => ({
+      ...tool,
+      run: async (input: unknown, context: { repoDir: string }) => {
+        const output = await tool.run(input, context);
+        steps.push({ tool: tool.name, input, output });
+        return output;
+      },
+    }));
     const sandboxNote = sandboxEnvNote(sandbox);
     const systemPrompt = buildSystemPrompt({
       task,
@@ -189,6 +201,7 @@ export async function runTask(
       if (ledger.remainingUsd <= reserveUsd) break;
       if (!models.includes(model)) models.push(model);
       finishedThisIteration = false;
+      steps = [];
       const spentBefore = ledger.spentUsd;
       let result: SessionResult;
       try {
@@ -212,6 +225,7 @@ export async function runTask(
       comparisons = compareChecks(before, after);
       const newFailures = newFailureCount(comparisons);
       log({ type: 'harness', phase: 'iteration', iteration, model, result, after, comparisons });
+      iterations.push({ model, stopReason: result.stopReason, steps, comparisons });
       if (newFailures === 0 && report) break;
       const finished = report as FinishReport | undefined;
       if (finishedThisIteration && finished && finished.unproven.length > 0) break;
@@ -254,6 +268,15 @@ export async function runTask(
       sandboxNote,
       notes,
     });
+    const summary = summarizeRun({
+      task,
+      outcome,
+      costUsd: ledger.spentUsd,
+      before,
+      iterations,
+      report: finalReport,
+      files: filesFromDiff(diff),
+    });
     const record: HarnessRunRecord = {
       taskId: task.id,
       outcome,
@@ -274,10 +297,12 @@ export async function runTask(
           after: comparison?.after ?? 'not run',
         };
       }),
+      summary,
     };
     log({ type: 'harness', phase: 'done', outcome, ledger: ledger.entries });
     await writeFile(join(outDir, 'diff.patch'), diff);
     await writeFile(join(outDir, 'pr-body.md'), prBody);
+    await writeFile(join(outDir, 'summary.md'), summary);
     await writeFile(join(outDir, 'record.json'), JSON.stringify(record, null, 2));
     return record;
   } finally {

@@ -110,6 +110,9 @@ export type HarnessRunRecord = RunRecord & {
   recipeIds: string[]; // the recipes injected into the prompt, for memory's learnFromRun
   // Checks the agent registered itself; they count toward proof, so reviewers see their exact commands.
   agentChecks: { name: string; command: string; before: string; after: string }[];
+  // Every tool call in order with what it returned, and the checks after each iteration: a short
+  // stand-in for the transcript, for memory's recipe extraction.
+  summary: string;
 };
 
 export type { Recipe };
