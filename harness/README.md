@@ -24,8 +24,10 @@ else refuses or gates the agent: tools only return information, and every run en
 needs-review or not-affected (`failed` only when the sandbox cannot be created).
 
 Outcome: **verified** when the agent changed code, called `finish`, at least one check ran, no
-check has a failure it didn't have before, every provider validator it reports passed and it lists
-nothing unproven. Otherwise **needs-review**.
+check has a failure it didn't have before, every provider validator it claims is backed by a
+passing ToolPack call the harness recorded (`validators.ts`), and it lists nothing unproven.
+Otherwise **needs-review**. The dollar cap can overshoot by up to one model turn, because cost is
+known only after a turn ends.
 
 One run by hand (writes `transcript.jsonl`, `diff.patch`, `pr-body.md`, `record.json`):
 

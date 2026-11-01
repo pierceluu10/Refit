@@ -4,7 +4,7 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-01.1';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-01.2';
 
 export type PromptInput = {
   task: MigrationTask;
@@ -134,6 +134,7 @@ export function buildSystemPrompt(input: PromptInput): string {
       [
         '- **verified**: the checks pass before and after your change, and the provider validators pass. Only NEW failures count. Failures that existed before your change are noted, not fixed, unless your change touches them.',
         '- **needs-review**: state exactly what is unproven, and any behaviour change.',
+        '- A provider validator counts only if you called it: in `finish`, list the provider tools you ran by tool name. The harness grades them from its own record of those calls, not from your report.',
       ].join('\n'),
       "Always end by calling `finish`. If the code genuinely does not use the changed API, call `finish` with verdict 'not-affected' and explain why.",
     ].join('\n\n'),

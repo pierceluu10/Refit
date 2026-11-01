@@ -54,6 +54,10 @@ const base: PrBodyInput = {
     },
     { name: 'build', before: 'pass', after: 'not run', newFailures: [] },
   ],
+  validatorRuns: [
+    { tool: 'stripe__openapi-params', output: 'params match 2026-10-01', passed: true },
+    { tool: 'stripe__live-call', output: 'no test key', passed: false },
+  ],
   diff,
   costUsd: 0.123456,
   models: ['claude-sonnet-5-5', 'claude-opus-5-5'],
@@ -134,6 +138,7 @@ describe('writePrBody', () => {
         unproven: [],
         validators: [{ name: 'v', passed: true, detail: '' }],
       },
+      validatorRuns: [{ tool: 'stripe__v', output: 'ok', passed: true }],
       comparisons: [{ name: 'test', before: 'pass', after: 'pass', newFailures: [] }],
     });
     expect(clean).toContain('[Verified]');

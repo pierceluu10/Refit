@@ -49,6 +49,9 @@ export type FinishReport = {
   behaviourChanges: string[];
 };
 
+// A ToolPack call as the harness saw it. This, not the agent's report, is validator proof.
+export type ValidatorRun = { tool: string; output: string; passed: boolean };
+
 export type ToolContext = {
   sandbox: Sandbox;
   task: MigrationTask;
@@ -56,6 +59,7 @@ export type ToolContext = {
   retrieveRecipes: RetrieveRecipes;
   checks: CheckCommand[];
   onFinish: (report: FinishReport) => void;
+  onToolPackCall?: (run: ValidatorRun) => void;
   fetch?: typeof fetch;
 };
 

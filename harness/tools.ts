@@ -5,6 +5,7 @@ import path from 'node:path';
 import type { AgentTool } from '../shared/types.ts';
 import { detectPackageManager, installCommand, runChecks } from './checks.ts';
 import { redactSecrets } from './secrets.ts';
+import { runPassed } from './validators.ts';
 import type { ExecResult, FinishReport, ToolContext } from './types.ts';
 
 type Args = Record<string, unknown>;
@@ -384,7 +385,9 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
         } catch (error) {
           out = `error: ${error instanceof Error ? error.message : String(error)}`;
         }
-        return truncate(redactSecrets(out));
+        const output = truncate(redactSecrets(out));
+        ctx.onToolPackCall?.({ tool: name, output, passed: runPassed(out) });
+        return output;
       },
     });
   }
@@ -399,6 +402,8 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
         why: { type: 'string', description: 'Why the API change forced it' },
         validators: {
           type: 'array',
+          description:
+            'Provider tools you called, by tool name. The harness grades them from its own record of those calls.',
           items: {
             type: 'object',
             properties: {

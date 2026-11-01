@@ -1,14 +1,15 @@
 // The PR body: change, why, proof, unproven, behaviour changes. It states only facts passed in.
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
 import { redactSecrets } from './secrets.ts';
-import type { CheckComparison, FinishReport } from './types.ts';
+import type { CheckComparison, FinishReport, ValidatorRun } from './types.ts';
+import { gradeValidators, type ValidatorGrade } from './validators.ts';
 
 export type PrBodyInput = {
   task: MigrationTask;
   outcome: RunRecord['outcome'];
   report?: FinishReport;
   comparisons: CheckComparison[];
-  validators?: FinishReport['validators'];
+  validatorRuns?: ValidatorRun[]; // ToolPack calls the harness recorded
   diff: string;
   costUsd: number;
   models: string[];
@@ -34,7 +35,7 @@ const notRun = (summary: string) => /not run/i.test(summary);
 const cell = (text: string) => text.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 const list = (items: string[]) => items.map((item) => `- ${item}`).join('\n');
 
-function unprovenItems(input: PrBodyInput, validators: FinishReport['validators']): string[] {
+function unprovenItems(input: PrBodyInput, grades: ValidatorGrade[]): string[] {
   const items = [...(input.report?.unproven ?? []), ...(input.notes ?? [])];
   if (!input.report) items.push('The agent did not call finish, so there is no report from it.');
   if (!input.comparisons.length) items.push('No checks were run.');
@@ -47,21 +48,26 @@ function unprovenItems(input: PrBodyInput, validators: FinishReport['validators'
     );
     if (preExisting) items.push(`${c.name} was already failing before the change and still fails.`);
   }
-  if (!validators.length && input.outcome !== 'not-affected') {
+  if (!grades.some((grade) => grade.ran) && input.outcome !== 'not-affected') {
     items.push('No provider validator was run.');
   }
-  for (const v of validators.filter((validator) => !validator.passed)) {
-    items.push(`Validator ${v.name} failed: ${v.detail}`);
+  for (const grade of grades.filter((g) => !g.ran)) {
+    items.push(`Validator ${grade.name} was ${grade.detail}.`);
+  }
+  for (const grade of grades.filter((g) => g.ran && !g.passed)) {
+    items.push(`Validator ${grade.name} failed: ${grade.detail}`);
   }
   return items;
 }
 
 export function writePrBody(input: PrBodyInput): string {
   const { task, report, comparisons } = input;
-  const validators = input.validators ?? report?.validators ?? [];
+  const claims = report?.validators ?? [];
+  const runs = input.validatorRuns ?? [];
+  const grades = gradeValidators(claims, runs);
   const files = filesFromDiff(input.diff);
   const newFailures = comparisons.reduce((sum, c) => sum + c.newFailures.length, 0);
-  const unproven = unprovenItems(input, validators);
+  const unproven = unprovenItems(input, grades);
   const behaviour = report?.behaviourChanges ?? [];
 
   const proof = [
@@ -76,16 +82,22 @@ export function writePrBody(input: PrBodyInput): string {
         ].join('\n')
       : 'No checks were run.',
     `New failures: ${newFailures}`,
-    validators.length
+    runs.length
       ? [
-          'Provider validators:',
+          'Provider tool calls recorded by the harness:',
+          list(runs.map((run) => `\`${run.tool}\`: ${run.passed ? 'pass' : 'fail'}`)),
+        ].join('\n')
+      : 'Provider validators: none run.',
+    claims.length
+      ? [
+          "The agent's validator claims (not proof; graded against the recorded calls):",
           list(
-            validators.map(
+            claims.map(
               (v) => `${v.name}: ${v.passed ? 'pass' : 'fail'}${v.detail ? ` (${v.detail})` : ''}`,
             ),
           ),
         ].join('\n')
-      : 'Provider validators: none run.',
+      : '',
     `Where checks ran: ${input.sandboxNote}`,
   ];
 
@@ -107,7 +119,7 @@ export function writePrBody(input: PrBodyInput): string {
         .join('\n'),
       `Source: ${task.change.source.url}`,
     ].join('\n\n'),
-    ['### Proof', ...proof].join('\n\n'),
+    ['### Proof', ...proof.filter(Boolean)].join('\n\n'),
     ['### Unproven', unproven.length ? list(unproven) : 'Nothing known.'].join('\n\n'),
     ['### Behaviour changes', behaviour.length ? list(behaviour) : 'None intended.'].join('\n\n'),
     [

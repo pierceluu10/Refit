@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { MigrationTask } from '../shared/types.ts';
+import type { MigrationTask, ToolPack } from '../shared/types.ts';
 import { scriptedSession, type ScriptedTurn } from './fake-session.ts';
 import { ESCALATION_MODEL, MODEL, runTask } from './run.ts';
 import { createSandbox } from './sandbox.ts';
@@ -81,24 +81,43 @@ const breakIt: ScriptedTurn = async (call) => {
   });
 };
 
+const finishMigrated = (call: Parameters<ScriptedTurn>[0]) =>
+  call('finish', {
+    verdict: 'migrated',
+    summary: 'Replaced charges.create with paymentIntents.create.',
+    why: 'The Charges API is being replaced by Payment Intents.',
+    validators: [{ name: 'check_params', passed: true, detail: 'params accepted' }],
+    unproven: [],
+    behaviourChanges: [],
+  });
+
 const fixIt: ScriptedTurn = async (call) => {
   await call('write_file', {
     path: 'src/pay.js',
     content: ORIGINAL.replace('charges.create', 'paymentIntents.create'),
   });
-  await call('finish', {
-    verdict: 'migrated',
-    summary: 'Replaced charges.create with paymentIntents.create.',
-    why: 'The Charges API is being replaced by Payment Intents.',
-    validators: [{ name: 'fixture check', passed: true, detail: 'node check.js passes' }],
-    unproven: [],
-    behaviourChanges: [],
-  });
+  await call('stripe__check_params', { operation: 'paymentIntents.create' });
+  await finishMigrated(call);
+};
+
+// Illustrative provider validator standing in for F2's ToolPack.
+const toolPack: ToolPack = {
+  provider: 'stripe',
+  playbooks: {},
+  tools: [
+    {
+      name: 'check_params',
+      description: 'Check params against the API',
+      inputSchema: { type: 'object', properties: { operation: { type: 'string' } } },
+      run: async () => 'params valid for paymentIntents.create',
+    },
+  ],
 };
 
 const deps = (turns: ScriptedTurn[], budgetUsd = 1) => ({
   session: scriptedSession(turns),
   createSandbox: (dir: string) => createSandbox(dir, { mode: 'local' }),
+  loadToolPack: async () => toolPack,
   budgetUsd,
   outDir: mkdtempSync(join(tmpdir(), 'aptitude-run-test-')),
 });
@@ -116,6 +135,22 @@ describe('runTask with a fake model', () => {
     expect(record.costUsd).toBeCloseTo(0.02);
     expect(record.prBody).toContain('Replaced charges.create');
     expect(readFileSync(record.transcriptPath, 'utf8')).toContain('"phase":"iteration"');
+  });
+
+  it('grades a validator the agent claims but never ran as needs-review', async () => {
+    const claimOnly: ScriptedTurn = async (call) => {
+      await call('write_file', {
+        path: 'src/pay.js',
+        content: ORIGINAL.replace('charges.create', 'paymentIntents.create'),
+      });
+      await finishMigrated(call);
+    };
+    const record = await runTask(task, fixtureRepo(), deps([claimOnly]));
+    expect(record.outcome).toBe('needs-review');
+    expect(record.prBody).toContain(
+      'Validator check_params was claimed by the agent, but the harness recorded no call of it.',
+    );
+    expect(record.prBody).toContain('not proof');
   });
 
   it('escalates to the bigger model when an iteration makes no progress', async () => {

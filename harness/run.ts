@@ -31,7 +31,9 @@ import type {
   HarnessRunRecord,
   Sandbox,
   SessionResult,
+  ValidatorRun,
 } from './types.ts';
+import { gradeValidators } from './validators.ts';
 
 export const MODEL = 'claude-sonnet-5-5';
 export const ESCALATION_MODEL = 'claude-opus-5-5';
@@ -52,8 +54,9 @@ export function decideOutcome(input: {
   report?: FinishReport;
   comparisons: CheckComparison[];
   after: CheckRun[];
+  validatorRuns: ValidatorRun[];
 }): HarnessRunRecord['outcome'] {
-  const { diff, report, comparisons, after } = input;
+  const { diff, report, comparisons, after, validatorRuns } = input;
   const changed = diff.trim() !== '';
   if (!changed && report?.verdict === 'not-affected') return 'not-affected';
   const proven =
@@ -61,7 +64,7 @@ export function decideOutcome(input: {
     report !== undefined &&
     after.length > 0 &&
     newFailureCount(comparisons) === 0 &&
-    report.validators.every((validator) => validator.passed) &&
+    gradeValidators(report.validators, validatorRuns).every((grade) => grade.passed) &&
     report.unproven.length === 0;
   return proven ? 'verified' : 'needs-review';
 }
@@ -117,6 +120,7 @@ export async function runTask(
     log({ type: 'harness', phase: 'baseline', pm, install, checks, before });
 
     let report: FinishReport | undefined;
+    const validatorRuns: ValidatorRun[] = [];
     const tools = buildTools({
       sandbox,
       task,
@@ -126,6 +130,7 @@ export async function runTask(
       onFinish: (finished) => {
         report = finished;
       },
+      onToolPackCall: (run) => validatorRuns.push(run),
       fetch: deps.fetch,
     });
     const sandboxNote = sandboxEnvNote(sandbox);
@@ -188,7 +193,7 @@ export async function runTask(
 
     const diff = redactSecrets(await sandbox.diff());
     const finalReport = report as FinishReport | undefined;
-    const outcome = decideOutcome({ diff, report: finalReport, comparisons, after });
+    const outcome = decideOutcome({ diff, report: finalReport, comparisons, after, validatorRuns });
     const notes = ledger.exhausted
       ? [`The run hit its AI budget of $${ledger.capUsd.toFixed(2)} before the agent finished.`]
       : [];
@@ -197,7 +202,7 @@ export async function runTask(
       outcome,
       report: finalReport,
       comparisons,
-      validators: finalReport?.validators,
+      validatorRuns,
       diff,
       costUsd: ledger.spentUsd,
       models,
