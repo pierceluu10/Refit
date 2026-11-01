@@ -1,7 +1,0 @@
-packages:
-  - packages/*
-catalog:
-  typescript: 5.9.3
-catalogs:
-  legacy:
-    stripe: 10.17.0

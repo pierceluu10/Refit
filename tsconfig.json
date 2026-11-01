@@ -15,12 +15,5 @@
     "verbatimModuleSyntax": true,
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": [
-    "src",
-    "pipeline/*.ts",
-    "pipeline/python/*.ts",
-    "pipeline/go/*.ts",
-    "pipeline/test/*.ts",
-    "vite.config.ts"
-  ]
+  "include": ["src", "vite.config.ts"]
 }

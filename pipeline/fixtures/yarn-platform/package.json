@@ -1,9 +1,0 @@
-{
-  "name": "yarn-platform-lab",
-  "private": true,
-  "packageManager": "yarn@4.9.2",
-  "dependencies": {
-    "esbuild": "0.25.0",
-    "is-number": "^7.0.0"
-  }
-}
