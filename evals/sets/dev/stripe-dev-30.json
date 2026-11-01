@@ -1,0 +1,281 @@
+{
+  "name": "stripe-dev-30",
+  "provider": "stripe",
+  "kind": "dev",
+  "source": {
+    "path": "docs/benchmarks/subsets/dev-30.json",
+    "commit": "83e01bfe64c0b5ec0812ae4e87c1590ba2cafa93",
+    "blob": "bd45a886834a4087dadf936a2a5f61057936b41c"
+  },
+  "frozenAt": "2026-10-24",
+  "purpose": "Development set for the Push 279 AI work: every 9th repository of push-279-affected.json sorted by repo name, starting at index 0, first 30. All AI iteration and tuning uses only this set.",
+  "criteria": "From subsets/push-279-affected.json (Entries of subsets/f5-tuned-sets.json whose row in refit-bench run 40117208880 (main fc4dc00 + #287 reporting, default flags, no AI) has fullAdapter.status \"affected\". Entries unchanged, in list order.), sorted by lowercase repo name; indices 0, 0+9, ... first 30. Entries unchanged.",
+  "repos": [
+    {
+      "repo": "4lbatr0s/jiro",
+      "stars": 1,
+      "commit": "313dbd324b09519252ab0791c8a5a2654be31ada",
+      "before": "2023-10-16",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^14.13.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "stars": 1,
+      "commit": "6b409f3db888e0792800d10942ea361e0a338500",
+      "before": "2024-06-20",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^16.12.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "stars": 65,
+      "commit": "cf8f84cc8bfc4b6fc35ae462deea9369ff7afc27",
+      "before": "2024-04-10",
+      "beforeSource": "SDK version",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Anassarwar14/Chat-Nest-AI",
+      "stars": 3,
+      "commit": "38dd23e1031c5fdad36e3a830092f00d519baac6",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.5.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "ArhanAnsari/InspireGem",
+      "stars": 16,
+      "commit": "a6bf456cd830a5f5d7267d69407c5c0a5fcc8336",
+      "before": "2024-06-20",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "benlamiro/ShipGenAI",
+      "stars": 254,
+      "commit": "10037d3d3fcf47b5c637bc37ab9bb05872f6e6ab",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "brunobola-portfolio/GitHub-Repo-Manager",
+      "stars": 4,
+      "commit": "982052f27557a18b93e2fe6cc7bd0b3308b6778f",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.6.2",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "createdbymax/Loopletter-Open-source-email-marketing-platform",
+      "stars": 6,
+      "commit": "3c91a83e792d84178c86be02a486cfb7f14b6d00",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin (oldest of 2)",
+      "stripeDependency": "^18.3.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Devanshjain2110/QueryPDF",
+      "stars": 4,
+      "commit": "66283a61d344b1785604f935ac85f437ab8e6ffe",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "origin": "next-by-stars"
+    },
+    {
+      "repo": "doganarif/build-it",
+      "stars": 4,
+      "commit": "7c1a3e5fff4f12e106658cc2a1fc409e00c455d4",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.0.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "Emmah-oo/spotify-clone",
+      "stars": 2,
+      "commit": "23f84d4d703ea005c12f60bc9ae42148158cc0f8",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.22.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "ggallon/type-last",
+      "stars": 2,
+      "commit": "f2c76e13f28f30e1b7ca09d4acb89087be6f7105",
+      "before": "2022-11-15",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "12.2.0",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "Harries/startfast-free",
+      "stars": 9,
+      "commit": "567f2bfa4a3596fd6058e05dd53bf70fc3164733",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.0.0",
+      "packageManager": "none"
+    },
+    {
+      "repo": "imran-farooq7/next-gen-ai-yt",
+      "stars": 5,
+      "commit": "7e7ab76d9395a6188bcb93be4fa65d742ed676fa",
+      "before": "2024-09-30.acacia",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "origin": "unused-candidate"
+    },
+    {
+      "repo": "JensenMPillay/pdfai",
+      "stars": 6,
+      "commit": "76eee198ded23bf4fafba0e2d431cf01d2f60290",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.25.0",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "karljuhl/Club_Connect",
+      "stars": 2,
+      "commit": "5c3cc8acc606128a130463137e12f1e3442d75fd",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.7.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "liamstamper/lamp-bot",
+      "stars": 2,
+      "commit": "3bd2634ceeb9c820666f2369ddf3ceea8651da98",
+      "before": "2025-04-30.basil",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^18.0.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "manu14357/smartdoc",
+      "stars": 5,
+      "commit": "9041f9ba1adac5d7f16ebf89967b0b7a91e5ee60",
+      "before": "2023-08-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "origin": "unused-candidate"
+    },
+    {
+      "repo": "Miguel07Alm/text2question",
+      "stars": 20,
+      "commit": "ce789503da89a1a7cc488c96e0717727b5abb4ec",
+      "before": "2025-04-30.basil",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "MuhammadTanveerAbbas/Clario-ai",
+      "stars": 14,
+      "commit": "1cb1754244fcec19b23e8ce809606a20a24920a9",
+      "before": "2026-02-25.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.4.1",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "nicuk/docsflow",
+      "stars": 19,
+      "commit": "3e6fd7136b36f30fe6ef70ff4a2ebf3b3de4343a",
+      "before": "2025-08-27.basil",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^18.5.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "palashb01/DocuChat",
+      "stars": 8,
+      "commit": "4f222d3a5131129ebeb7f4239c96bdd6392e38da",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.1.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "pretzelai/lumen",
+      "stars": 30,
+      "commit": "c689c56b32414c4a82c14816a8c2e4a98adea84d",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "qesmsep/noir-crm-dashboard",
+      "stars": 1,
+      "commit": "1f59675a9636716b8efc028c9a637c9568e8fb8e",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2023-08-16",
+      "beforeSource": "apiVersion pin (oldest of 3)",
+      "stripeDependency": "^18.1.0"
+    },
+    {
+      "repo": "rishabhsingroha/MusicListeningPlatform",
+      "stars": 2,
+      "commit": "0726851cc55569983b1e14db7b64468395012191",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.5.0",
+      "packageManager": "none"
+    },
+    {
+      "repo": "samiamjidkhan/dota2-helper",
+      "stars": 4,
+      "commit": "91e32cce572510c11c7aa82388abac3cc163ce96",
+      "before": "2026-03-25.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.0.0",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "shagunmistry/FlowCraft",
+      "stars": 2,
+      "commit": "ae2e307c4e725bde23e9829d8d1bc97946338c8d",
+      "before": "2023-10-16",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^14.23.0",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "Small-Web-Co/tinypivot",
+      "stars": 13,
+      "commit": "69caa7e039014cd4b3dafd35361deaa27a02399a",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin (oldest of 2)",
+      "stripeDependency": "^22.1.1",
+      "packageManager": "pnpm"
+    },
+    {
+      "repo": "tejashVaishnav/Fast-saas-next.js-boilerplate",
+      "stars": 30,
+      "commit": "cf9770e6e04a535cbcd9ce6b5ae0d5fa035f890d",
+      "before": "2024-06-20",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm"
+    },
+    {
+      "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+      "stars": 2,
+      "commit": "96a68ad7967b112a75956d37a51b3bef30c717c7",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.12.0",
+      "packageManager": "none"
+    }
+  ]
+}

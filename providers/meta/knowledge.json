@@ -1,0 +1,403 @@
+{
+  "provider": "meta",
+  "updatedAt": "2026-11-01",
+  "draftedBy": "Drafted 2026-11-01 by a build agent reading the provider docs over web fetch. Not yet re-drafted by the knowledge agent (core/knowledge.ts), because no model API key was available.",
+  "versioning": {
+    "scheme": "Version in the URL path (graph.facebook.com/vNN.0/...), a few releases a year. Each version remains for at least two years; the Marketing API has its own shorter expiry schedule. Unversioned calls use the app dashboard's configured version, and calls to an expired version default to the next oldest usable version.",
+    "source": {
+      "url": "https://developers.facebook.com/docs/graph-api/guides/versioning",
+      "retrievedAt": "2026-11-01",
+      "quote": "Each version will remain for at least 2 years from release."
+    }
+  },
+  "versions": [
+    {
+      "value": "v26.0",
+      "status": "current",
+      "releasedAt": "2026-07-29",
+      "notes": "Graph API. Expiration date TBD on the versions page.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "value": "v25.0",
+      "status": "supported",
+      "releasedAt": "2026-02-18",
+      "retiresAt": "2028-07-29",
+      "notes": "Graph API.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "value": "v24.0",
+      "status": "supported",
+      "releasedAt": "2025-10-08",
+      "retiresAt": "2028-02-18",
+      "notes": "Graph API.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "value": "v23.0",
+      "status": "supported",
+      "releasedAt": "2025-05-29",
+      "retiresAt": "2027-10-08",
+      "notes": "Graph API.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "value": "v22.0",
+      "status": "supported",
+      "releasedAt": "2025-01-21",
+      "retiresAt": "2027-05-20",
+      "notes": "Graph API.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "value": "v21.0",
+      "status": "supported",
+      "releasedAt": "2024-10-02",
+      "retiresAt": "2027-01-21",
+      "notes": "Graph API.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "retrievedAt": "2026-11-01",
+        "quote": "**January 21, 2027:** Graph API v21.0 is deprecated and removed."
+      }
+    },
+    {
+      "value": "v20.0",
+      "status": "retired",
+      "releasedAt": "2024-05-21",
+      "retiresAt": "2026-09-24",
+      "notes": "Graph API. Expired before 2026-11-01.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "retrievedAt": "2026-11-01",
+        "quote": "**September 24, 2026:** Graph API v20.0 is deprecated and removed."
+      }
+    },
+    {
+      "value": "v19.0",
+      "status": "retired",
+      "releasedAt": "2024-01-23",
+      "retiresAt": "2026-05-21",
+      "notes": "Graph API. Expired before 2026-11-01.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "value": "Marketing API v26.0",
+      "status": "current",
+      "releasedAt": "2026-07-29",
+      "notes": "Marketing API. Available until TBD.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "value": "Marketing API v25.0",
+      "status": "supported",
+      "releasedAt": "2026-02-18",
+      "retiresAt": "2027-02-23",
+      "notes": "Marketing API. The Marketing API changelog gives February 23, 2027; the Graph API versions page still says TBD.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "value": "Marketing API v24.0",
+      "status": "deprecated",
+      "releasedAt": "2025-10-08",
+      "notes": "Marketing API. Sources disagree on expiry: the versions page and changelog index say October 6, 2026, the Marketing API changelog says November 10, 2026. Either way it is at or past end of life on 2026-11-01.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "value": "Marketing API v23.0",
+      "status": "retired",
+      "releasedAt": "2025-05-29",
+      "retiresAt": "2026-06-09",
+      "notes": "Marketing API.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+        "retrievedAt": "2026-11-01"
+      }
+    }
+  ],
+  "retirements": [
+    {
+      "subject": "Graph API v20.0",
+      "kind": "api-version",
+      "date": "2026-09-24",
+      "replacement": "v26.0",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "retrievedAt": "2026-11-01",
+        "quote": "**September 24, 2026:** Graph API v20.0 is deprecated and removed."
+      }
+    },
+    {
+      "subject": "Graph API v21.0",
+      "kind": "api-version",
+      "date": "2027-01-21",
+      "replacement": "v26.0",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "retrievedAt": "2026-11-01",
+        "quote": "**January 21, 2027:** Graph API v21.0 is deprecated and removed."
+      }
+    },
+    {
+      "subject": "Commerce Order Management API (47 endpoints, e.g. GET /{commerce-order-id}, GET /{page-id}/commerce_orders)",
+      "kind": "endpoint-removed",
+      "date": "2026-10-27",
+      "notes": "No replacement. Blocked on v26.0+ from 2026-07-29.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "retrievedAt": "2026-11-01",
+        "quote": "The affected surfaces are removed from all remaining versions on October 27, 2026. No replacement API is available."
+      }
+    },
+    {
+      "subject": "Legacy protocol features: pretty, debug, date_format, GET /?ids=, If-None-Match/ETag",
+      "kind": "other",
+      "date": "2026-10-27",
+      "replacement": "Per-object requests or batching instead of GET /?ids=",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "retrievedAt": "2026-11-01",
+        "quote": "Applies to v26.0+ beginning July 29, 2026. Applies to all remaining supported Graph API versions beginning October 27, 2026."
+      }
+    },
+    {
+      "subject": "Delivery Estimate fields daily_outcomes_curve, budget_guardrail, estimate_dau",
+      "kind": "field-removed",
+      "date": "2026-10-27",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "retrievedAt": "2026-11-01",
+        "quote": "The `daily_outcomes_curve`, `budget_guardrail`, and `estimate_dau` fields are removed from Delivery Estimate responses because the service powering these values has been deprecated."
+      }
+    },
+    {
+      "subject": "Messenger Stories placement (story in messenger_positions)",
+      "kind": "other",
+      "date": "2026-10-27",
+      "notes": "Applies to all Marketing API versions, including unversioned calls.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "retrievedAt": "2026-11-01",
+        "quote": "Applies to v26.0+. Applies to all Marketing API versions, including unversioned calls, on October 27, 2026."
+      }
+    },
+    {
+      "subject": "Poll ad creation (poll_spec, poll type under interactive_components_spec)",
+      "kind": "field-removed",
+      "date": "2026-10-27",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "retrievedAt": "2026-11-01",
+        "quote": "The `poll_spec` field and `poll` type under `interactive_components_spec` are unavailable."
+      }
+    },
+    {
+      "subject": "Page, post, video and story impression/reach insights metrics (e.g. page_impressions_unique, post_impressions_unique)",
+      "kind": "field-removed",
+      "replacement": "page_total_media_view_unique / page_media_view, post_total_media_view_unique / post_media_view, STORY_MEDIA_VIEW",
+      "notes": "Deprecated for all versions when v26.0 was released (v26.0 released 2026-07-29).",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+        "retrievedAt": "2026-11-01",
+        "quote": "Once deprecated, these metrics will return an error if requested using any API version."
+      }
+    },
+    {
+      "subject": "Advantage+ Shopping Campaigns and Advantage+ App Campaigns creation/updates",
+      "kind": "product-shutdown",
+      "date": "2026-05-19",
+      "replacement": "Advantage+ campaigns",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+        "retrievedAt": "2026-11-01",
+        "quote": "Applies to v25.0+. Will apply to all versions May 19, 2026."
+      }
+    },
+    {
+      "subject": "Node metadata query parameter (metadata=1)",
+      "kind": "other",
+      "date": "2026-05-19",
+      "replacement": "Graph API Explorer or API references",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+        "retrievedAt": "2026-11-01",
+        "quote": "Applies to v25.0+. Will apply to all versions May 19, 2026."
+      }
+    },
+    {
+      "subject": "Webhooks mTLS certificate moves to a Meta-owned CA",
+      "kind": "webhook-payload",
+      "date": "2026-03-31",
+      "notes": "Servers verifying the client certificate must trust meta-outbound-api-ca-2025-12.pem.",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+        "retrievedAt": "2026-11-01",
+        "quote": "Failure to update your trust store by March 31, 2026, will result in TLS handshake failures, and your servers will stop receiving all webhooks events."
+      }
+    }
+  ],
+  "docs": [
+    {
+      "label": "Graph API changelog",
+      "url": "https://developers.facebook.com/docs/graph-api/changelog",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Graph API and Marketing API versions with release and expiration dates",
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Graph API v26.0 changelog",
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Graph API v25.0 changelog",
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Platform versioning guide",
+      "url": "https://developers.facebook.com/docs/graph-api/guides/versioning",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/guides/versioning",
+        "retrievedAt": "2026-11-01",
+        "quote": "For APIs, once a version is no longer usable, any calls made to it will be defaulted to the next oldest, usable version."
+      }
+    },
+    {
+      "label": "API upgrade guide",
+      "url": "https://developers.facebook.com/docs/graph-api/advanced/api-upgrade",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/advanced/api-upgrade",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Marketing API changelog",
+      "url": "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog",
+      "source": {
+        "url": "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Out-of-cycle changes",
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/out-of-cycle-changes",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/out-of-cycle-changes",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Graph API webhooks",
+      "url": "https://developers.facebook.com/docs/graph-api/webhooks",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/webhooks",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Meta Business SDK getting started",
+      "url": "https://developers.facebook.com/documentation/business-sdk/getting-started",
+      "source": {
+        "url": "https://developers.facebook.com/documentation/business-sdk/getting-started",
+        "retrievedAt": "2026-11-01"
+      }
+    }
+  ],
+  "sdks": [
+    {
+      "ecosystem": "npm",
+      "package": "facebook-nodejs-business-sdk",
+      "repo": "https://github.com/meta/facebook-nodejs-business-sdk",
+      "latest": "26.0.2",
+      "notes": "Latest GitHub release tag v26.0.2 (2026-09-21) per the releases feed; the npm registry latest dist-tag still read 24.0.1 on 2026-11-01. Docs link github.com/facebook/..., which redirects to meta/.",
+      "source": {
+        "url": "https://github.com/meta/facebook-nodejs-business-sdk/releases.atom",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "ecosystem": "pypi",
+      "package": "facebook_business",
+      "repo": "https://github.com/meta/facebook-python-business-sdk",
+      "latest": "26.0.2",
+      "notes": "Install command from the getting-started page; latest 26.0.2 read from PyPI JSON (https://pypi.org/pypi/facebook_business/json) on 2026-11-01.",
+      "source": {
+        "url": "https://developers.facebook.com/documentation/business-sdk/getting-started",
+        "retrievedAt": "2026-11-01",
+        "quote": "pip install facebook_business"
+      }
+    },
+    {
+      "ecosystem": "composer",
+      "package": "facebook/php-business-sdk",
+      "repo": "https://github.com/meta/facebook-php-business-sdk",
+      "source": {
+        "url": "https://developers.facebook.com/documentation/business-sdk/getting-started",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "ecosystem": "maven",
+      "package": "com.facebook.business.sdk:facebook-java-business-sdk",
+      "repo": "https://github.com/meta/facebook-java-business-sdk",
+      "source": {
+        "url": "https://developers.facebook.com/documentation/business-sdk/getting-started",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "ecosystem": "rubygems",
+      "package": "facebookbusiness",
+      "repo": "https://github.com/meta/facebook-ruby-business-sdk",
+      "source": {
+        "url": "https://developers.facebook.com/documentation/business-sdk/getting-started",
+        "retrievedAt": "2026-11-01",
+        "quote": "gem install facebookbusiness"
+      }
+    }
+  ]
+}

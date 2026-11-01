@@ -1,0 +1,141 @@
+{
+  "note": "Hand-drafted by the build agent from the saved live snapshot to exercise the watcher pipeline with a replay model. Not output of a live model run (no API key was available on 2026-11-01).",
+  "changes": [
+    {
+      "id": "gpt-4-series-shutdown-2027-01-14",
+      "kind": "model-retirement",
+      "title": "GPT-4o, GPT-4o mini, GPT-4.1 and GPT-4.1 mini snapshots shut down on 2027-01-14; replace with gpt-6-luna",
+      "effectiveDate": "2027-01-14",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations.md",
+        "quote": "On October 14, 2026, we notified developers using certain GPT-4 series models of their deprecation and removal from the API on January 14, 2027."
+      },
+      "affects": {
+        "fields": [
+          "model:gpt-4o-2024-08-06",
+          "model:gpt-4o-2024-11-20",
+          "model:gpt-4o-mini-2024-07-18",
+          "model:gpt-4.1-2025-04-14",
+          "model:gpt-4.1-mini-2025-04-14"
+        ]
+      }
+    },
+    {
+      "id": "gpt-5-3-codex-5-1-5-4-nano-shutdown-2027-04-01",
+      "kind": "model-retirement",
+      "title": "gpt-5.3-codex, gpt-5.1 and gpt-5.4-nano shut down on 2027-04-01; replace with gpt-6-sol or gpt-6-luna",
+      "effectiveDate": "2027-04-01",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations.md",
+        "quote": "The following models are deprecated and will be removed from the API on April 1, 2027, with six months' notice. Migrate to the recommended replacements before the shutdown date."
+      },
+      "affects": {
+        "fields": [
+          "model:gpt-5.3-codex",
+          "model:gpt-5.4-nano",
+          "model:gpt-5.4-nano-2026-03-17",
+          "model:gpt-5.1",
+          "model:gpt-5.1-2025-11-13"
+        ]
+      }
+    },
+    {
+      "id": "transcription-models-and-audio-translations-shutdown-2027-02-26",
+      "kind": "model-retirement",
+      "title": "whisper-1 and gpt-4o transcription models, plus /v1/audio/translations, shut down on 2027-02-26; replace with gpt-live-transcribe or gpt-transcribe",
+      "effectiveDate": "2027-02-26",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations.md",
+        "quote": "On August 26, 2026, we notified developers using `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`, and `gpt-4o-transcribe-diarize` of their deprecation and removal from the API on February 26, 2027."
+      },
+      "affects": {
+        "operations": ["POST /v1/audio/translations", "POST /v1/audio/transcriptions"],
+        "fields": [
+          "model:whisper-1",
+          "model:gpt-4o-transcribe",
+          "model:gpt-4o-mini-transcribe",
+          "model:gpt-4o-mini-transcribe-2025-12-15",
+          "model:gpt-4o-transcribe-diarize"
+        ]
+      }
+    },
+    {
+      "id": "gpt-5-and-o3-shutdown-2026-12-11",
+      "kind": "model-retirement",
+      "title": "Older GPT-5 and o3 snapshots shut down on 2026-12-11; replace with gpt-5.6-sol, gpt-5.6-terra or gpt-5.6-luna",
+      "effectiveDate": "2026-12-11",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations.md",
+        "quote": "On June 11, 2026, we notified developers using older GPT-5 and o3 model snapshots of their deprecation and removal from the API on December 11, 2026."
+      },
+      "affects": {
+        "fields": [
+          "model:gpt-5",
+          "model:gpt-5-2025-08-07",
+          "model:gpt-5-mini",
+          "model:gpt-5-mini-2025-08-07",
+          "model:gpt-5-nano",
+          "model:gpt-5-nano-2025-08-07",
+          "model:gpt-5-pro",
+          "model:gpt-5-pro-2025-10-06",
+          "model:o3",
+          "model:o3-2025-04-16",
+          "model:o3-pro",
+          "model:o3-pro-2025-06-10"
+        ]
+      }
+    },
+    {
+      "id": "reusable-prompts-api-shutdown-2026-11-30",
+      "kind": "endpoint-removed",
+      "title": "The /v1/prompts API and reusable prompt objects shut down on 2026-11-30; move prompt content into application code",
+      "effectiveDate": "2026-11-30",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations.md",
+        "quote": "The `v1/prompts` API and reusable prompt objects are scheduled to shut down."
+      },
+      "affects": {
+        "operations": ["/v1/prompts"]
+      }
+    },
+    {
+      "id": "assistants-api-shut-down",
+      "kind": "product-shutdown",
+      "title": "The Assistants API has shut down; migrate to the Responses API and Conversations API",
+      "effectiveDate": "2026-08-26",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/changelog.md",
+        "quote": "The Assistants API shut down on August 26, 2026. Migrate to the Responses API and Conversations API using the [migration guide](https://developers.openai.com/api/docs/assistants/migration)."
+      },
+      "affects": {
+        "operations": ["/v1/assistants", "/v1/threads"]
+      }
+    },
+    {
+      "id": "openai-node-7-44-0-live-decision-item-union",
+      "kind": "other",
+      "title": "openai (npm) 7.44.0 makes Live Decision item events unions, a breaking type change in a minor release",
+      "source": {
+        "url": "https://api.github.com/repos/openai/openai-node/releases?per_page=15",
+        "quote": "`DecisionItemCreatedEvent.item` and `DecisionItemCreateEvent.item` are unions, so callers that directly access `item.content` or `item.role` may no longer compile."
+      },
+      "affects": {
+        "sdk": "openai (npm) 7.44.0",
+        "fields": ["DecisionItemCreatedEvent.item", "DecisionItemCreateEvent.item"]
+      }
+    },
+    {
+      "id": "openai-python-3-37-0-decisions-instructions-union",
+      "kind": "other",
+      "title": "openai (pypi) 3.37.0: Decisions question instructions can be a string or a list of parts, a breaking type change in a minor release",
+      "source": {
+        "url": "https://api.github.com/repos/openai/openai-python/releases?per_page=15",
+        "quote": "In Live response models, question `instructions` can now be a string or a list of structured text, image, or JSON parts; check `isinstance(question.instructions, str)` before using string operations and handle the structured form."
+      },
+      "affects": {
+        "sdk": "openai (pypi) 3.37.0",
+        "fields": ["question.instructions", "DecisionInputMessageParam"]
+      }
+    }
+  ]
+}

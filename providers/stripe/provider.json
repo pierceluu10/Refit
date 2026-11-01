@@ -1,0 +1,41 @@
+{
+  "id": "stripe",
+  "name": "Stripe API",
+  "sources": [
+    {
+      "id": "changelog",
+      "kind": "changelog",
+      "url": "https://docs.stripe.com/changelog.md",
+      "format": "markdown",
+      "note": "Stripe API changelog in Markdown, grouped by API version (e.g. 2026-09-30.endive). Each row says Breaking or Non-breaking and links to a detail page with the affected params and migration steps. The HTML page at /changelog drops the breaking flag and the links."
+    },
+    {
+      "id": "upgrades",
+      "kind": "versioning",
+      "url": "https://docs.stripe.com/upgrades.md",
+      "format": "markdown",
+      "note": "API upgrade guide: pinning Stripe-Version, SDK pinning, webhook endpoint and event destination api_version."
+    },
+    {
+      "id": "api-versioning",
+      "kind": "versioning",
+      "url": "https://docs.stripe.com/api/versioning.md",
+      "format": "markdown",
+      "note": "Release model (monthly additive versions, two breaking majors a year) and the current version."
+    },
+    {
+      "id": "sdk-versioning",
+      "kind": "versioning",
+      "url": "https://docs.stripe.com/sdks/versioning.md",
+      "format": "markdown",
+      "note": "SDK semver and support policy, language runtime deprecation schedule, preview API versions."
+    },
+    {
+      "id": "stripe-node-changelog",
+      "kind": "sdk-releases",
+      "url": "https://raw.githubusercontent.com/stripe/stripe-node/master/CHANGELOG.md",
+      "format": "markdown",
+      "note": "stripe-node CHANGELOG. Each release names its pinned API version and marks breaking changes with a warning sign. The GitHub releases API for stripe-node only links to this file, so the raw file is read instead."
+    }
+  ]
+}

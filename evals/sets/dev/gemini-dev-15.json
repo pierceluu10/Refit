@@ -1,0 +1,209 @@
+{
+  "name": "gemini-dev-15",
+  "provider": "gemini",
+  "kind": "dev",
+  "source": {
+    "path": "docs/benchmarks/subsets/gemini-dev-15.json",
+    "commit": "8e2ecc759950615169babf2455dae7768adbec05",
+    "blob": "571d7221b3c4904a4c7dcb568959f4485d655235"
+  },
+  "frozenAt": "2026-10-29",
+  "purpose": "Debugging set for gemini: open, trace and tune on it freely. Disjoint from the measurement set gemini-30, drawn the same way from the same population.",
+  "criteria": "GitHub code searches for gemini SDK use, one stratum per change type plus a general stratum (docs/benchmarks/ai-provider-selection/gemini-search.json), excluding every owner/name any tracked Refit file mentions at origin/main and every other origin branch (docs/benchmarks/ai-provider-selection/gemini-candidates.json namesAt). Kept, as for the Stripe holdout sets: not archived, not a fork, under 50 MB, pushed since 2024-01-01, and the SDK (@google/genai, @google/generative-ai, google-genai, google-generativeai) declared in a root manifest. Ordered by SHA-256 of the seed \"refit-ai-providers-2026-10-29\", a newline and the lower-cased name, and walked in that order with shallow clones at the default-branch HEAD, read only for SDK use, language, SDK version and change types, then deleted. Kept: an application file (not a test, example, spec, fixture or mock) imports the SDK and one constructs a client; JS/TS when that holds for JS/TS code, else Python. Each set takes its JS/TS and Python repositories by first giving every change type its minimum (walking that type's search stratum in seeded order and keeping only clones whose application code shows the type) and then following plain seeded order. Measurement sets are filled first, then dev sets, so they are disjoint.",
+  "seed": "refit-ai-providers-2026-10-29",
+  "repos": [
+    {
+      "repo": "ShamWuo/Prasic",
+      "stars": 0,
+      "commit": "99690dd831fda1d0bac47834b92df147e6e8db98",
+      "language": "js",
+      "sdk": {
+        "@google/generative-ai": "0.24.1"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "retired-model"
+    },
+    {
+      "repo": "XDTerminated/t2-chat-t3c-2025",
+      "stars": 3,
+      "commit": "89102edbbb3f10dd78f1483cfb5aa3dba73880ed",
+      "language": "js",
+      "sdk": {
+        "@google/genai": "1.35.0",
+        "@google/generative-ai": "0.24.1"
+      },
+      "packageManager": "pnpm",
+      "changeTypes": ["retired-model", "parameter-change", "old-sdk-major", "response-parsing"],
+      "stratum": "parameter-change"
+    },
+    {
+      "repo": "PRIYESHSINGH24/buddy_connect",
+      "stars": 0,
+      "commit": "4e5e7e7bd7c9645d5a889f4c9ad51dc9b3917f03",
+      "language": "js",
+      "sdk": {
+        "@google/generative-ai": "0.24.1"
+      },
+      "packageManager": "pnpm",
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major", "response-parsing"],
+      "stratum": "legacy-endpoint"
+    },
+    {
+      "repo": "WeWake1/BSOMS",
+      "stars": 0,
+      "commit": "8053651d1cf4db4b11d3cdc7621654115deff84e",
+      "language": "js",
+      "sdk": {
+        "@google/genai": "1.51.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "beta-header"],
+      "stratum": "beta-header"
+    },
+    {
+      "repo": "djnightmare9909/Dungeon-master-OS-WFGY",
+      "stars": 23,
+      "commit": "c684edaa0df21272fd65954be3255fa33996354b",
+      "language": "js",
+      "sdk": {
+        "@google/genai": "1.48.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": [
+        "retired-model",
+        "old-sdk-major",
+        "response-parsing",
+        "embeddings-fine-tunes"
+      ],
+      "stratum": "embeddings-fine-tunes"
+    },
+    {
+      "repo": "saurabhbisht95/ai-career-coach",
+      "stars": 1,
+      "commit": "9cb184c4efca809ced17dfd06da7de4705995fb4",
+      "language": "js",
+      "sdk": {
+        "@google/generative-ai": "0.24.1"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "kousalyaChintha/InfiniteCode",
+      "stars": 0,
+      "commit": "7c1cf590f549584a4fa3f4f4000687bc2f18e092",
+      "language": "js",
+      "sdk": {
+        "@google/genai": "1.7.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "InnovateTechWorld/remotion-auto-explainer",
+      "stars": 0,
+      "commit": "4834b7f154fb8875f322bfbc056e65c9590db2c5",
+      "language": "js",
+      "sdk": {
+        "@google/genai": "0.9.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["parameter-change", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "SamirAkhtar7/AI-Healthcare-Bot-System",
+      "stars": 0,
+      "commit": "0f37f139afdd1e3da050a5187d927757b892d0cf",
+      "language": "js",
+      "sdk": {
+        "@google/generative-ai": "0.24.1"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "zhangsgithub04/lddebate",
+      "stars": 0,
+      "commit": "80e650c1a1ce0cd4639ab5df9f8bc04ba2d97362",
+      "language": "js",
+      "sdk": {
+        "@google/generative-ai": "0.24.1"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "AravindKVishwanath/uplyticBackend",
+      "stars": 0,
+      "commit": "0077f61a34f4fb76b90bf4d5b353925b2c3ab1d9",
+      "language": "js",
+      "sdk": {
+        "@google/generative-ai": "0.21.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order"
+    },
+    {
+      "repo": "KajamHamza/pdf-chat",
+      "stars": 0,
+      "commit": "73a8cf464e4396ea28761acf7f938e2f8a1c0535",
+      "language": "py",
+      "sdk": {
+        "google-generativeai": ""
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "old-sdk-major", "embeddings-fine-tunes"],
+      "stratum": "retired-model"
+    },
+    {
+      "repo": "sriyaa-p/heritage-vanguards",
+      "stars": 0,
+      "commit": "beb4080dcc12b5a2a5a340a188b6741b14b72935",
+      "language": "py",
+      "sdk": {
+        "google-genai": "",
+        "google-generativeai": ""
+      },
+      "packageManager": "none",
+      "changeTypes": ["parameter-change", "old-sdk-major"],
+      "stratum": "parameter-change"
+    },
+    {
+      "repo": "Pittawat2542/null-shot-prompting",
+      "stars": 3,
+      "commit": "a736bc25bd6867bdc3f82757db2b05895f2e9b63",
+      "language": "py",
+      "sdk": {
+        "google-generativeai": "~=0.3.2"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major"],
+      "stratum": "legacy-endpoint"
+    },
+    {
+      "repo": "NateviratYungram/crypto-stream-ai",
+      "stars": 1,
+      "commit": "afc0aae51977bc8f74632d3be5c674fc5ce0a1e5",
+      "language": "py",
+      "sdk": {
+        "google-genai": ""
+      },
+      "packageManager": "none",
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "response-parsing",
+        "beta-header",
+        "embeddings-fine-tunes"
+      ],
+      "stratum": "response-parsing"
+    }
+  ]
+}

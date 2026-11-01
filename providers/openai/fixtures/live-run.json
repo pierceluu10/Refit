@@ -1,0 +1,496 @@
+{
+  "note": "Live-classified: claude-sonnet-5-5 called through the overnight spend guard on 2026-11-01. It read the pages saved by that day's live read (fixtures/live), each cut to 12000 characters, with live HTTP for any link outside the snapshot. Output recorded as returned, not edited.",
+  "runAt": "2026-11-01T05:30:43.751Z",
+  "model": "claude-sonnet-5-5",
+  "promptVersion": "watch-v1",
+  "input": {
+    "snapshot": "fixtures/live",
+    "maxCharsPerPage": 12000,
+    "liveFallback": true,
+    "maxTokens": 8000,
+    "maxTurns": 6
+  },
+  "report": {
+    "provider": "openai",
+    "changes": [
+      {
+        "provider": "openai",
+        "id": "openai:2026-10-14-gpt-4-series-shutdown",
+        "kind": "model-retirement",
+        "title": "GPT-4o, GPT-4o mini, GPT-4.1 and GPT-4.1 mini snapshots (and their fine-tunes) shut down Jan 14, 2027; replace with gpt-6-luna",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "On October 14, 2026, we notified developers using certain GPT-4 series models of their deprecation and removal from the API on January 14, 2027."
+        },
+        "affects": {
+          "fields": [
+            "model:gpt-4o-2024-08-06",
+            "model:gpt-4o-2024-11-20",
+            "model:gpt-4o-mini-2024-07-18",
+            "model:gpt-4.1-2025-04-14",
+            "model:gpt-4.1-mini-2025-04-14"
+          ]
+        },
+        "effectiveDate": "2027-01-14"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-10-01-gpt-5-3-codex-5-1-5-4-nano",
+        "kind": "model-retirement",
+        "title": "gpt-5.3-codex, gpt-5.4-nano and gpt-5.1 removed Apr 1, 2027; replace with gpt-6-sol (codex, 5.1) or gpt-6-luna (5.4-nano)",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "The following models are deprecated and will be removed from the API on April 1, 2027, with six months' notice."
+        },
+        "affects": {
+          "fields": [
+            "model:gpt-5.3-codex",
+            "model:gpt-5.4-nano",
+            "model:gpt-5.4-nano-2026-03-17",
+            "model:gpt-5.1",
+            "model:gpt-5.1-2025-11-13"
+          ]
+        },
+        "effectiveDate": "2027-04-01"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-10-01-tts-models-shutdown",
+        "kind": "model-retirement",
+        "title": "tts-1, tts-1-hd and gpt-4o-mini-tts removed Jan 6, 2027; migrate to gpt-realtime-2.1-mini",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "The following text-to-speech models are deprecated and will be removed from the API on January 6, 2027, with at least three months' notice."
+        },
+        "affects": {
+          "fields": [
+            "model:tts-1",
+            "model:tts-1-hd",
+            "model:gpt-4o-mini-tts",
+            "model:gpt-4o-mini-tts-2025-03-20",
+            "model:gpt-4o-mini-tts-2025-12-15"
+          ]
+        },
+        "effectiveDate": "2027-01-06"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-08-26-transcription-models-shutdown",
+        "kind": "model-retirement",
+        "title": "whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe and gpt-4o-transcribe-diarize removed Feb 26, 2027; replace with gpt-live-transcribe or gpt-transcribe",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "On August 26, 2026, we notified developers using `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`, and `gpt-4o-transcribe-diarize` of their deprecation and removal from the API on February 26, 2027."
+        },
+        "affects": {
+          "operations": ["POST /v1/audio/transcriptions"],
+          "fields": [
+            "model:whisper-1",
+            "model:gpt-4o-transcribe",
+            "model:gpt-4o-mini-transcribe",
+            "model:gpt-4o-mini-transcribe-2025-12-15",
+            "model:gpt-4o-transcribe-diarize"
+          ]
+        },
+        "effectiveDate": "2027-02-26"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-08-26-audio-translations-endpoint-removed",
+        "kind": "endpoint-removed",
+        "title": "/v1/audio/translations shuts down Feb 26, 2027 (same announcement as transcription models); replacement is v1/realtime/translations",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "On August 26, 2026, we notified developers using `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`, and `gpt-4o-transcribe-diarize` of their deprecation and removal from the API on February 26, 2027."
+        },
+        "affects": {
+          "operations": ["POST /v1/audio/translations"]
+        },
+        "effectiveDate": "2027-02-26"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-07-20-legacy-audio-realtime-models",
+        "kind": "model-retirement",
+        "title": "Legacy gpt-realtime, gpt-audio, gpt-4o-audio/realtime and mini variants removed Jan 20, 2027; replace with gpt-realtime-2.1, gpt-realtime-2.1-mini or gpt-audio-1.5",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "On July 20, 2026, we notified developers using legacy audio, realtime, and transcription model families and snapshots of their deprecation and removal from the API on January 20, 2027."
+        },
+        "affects": {
+          "fields": [
+            "model:gpt-realtime",
+            "model:gpt-realtime-2025-08-28",
+            "model:gpt-audio",
+            "model:gpt-audio-2025-08-28",
+            "model:gpt-4o-audio",
+            "model:gpt-4o-realtime",
+            "model:gpt-realtime-mini",
+            "model:gpt-realtime-mini-2025-12-15",
+            "model:gpt-audio-mini",
+            "model:gpt-audio-mini-2025-12-15",
+            "model:gpt-4o-mini-realtime",
+            "model:gpt-4o-mini-audio",
+            "model:gpt-4o-mini-transcribe-2025-03-20"
+          ]
+        },
+        "effectiveDate": "2027-01-20"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-06-11-gpt-5-o3-shutdown",
+        "kind": "model-retirement",
+        "title": "gpt-5, gpt-5-mini, gpt-5-nano, gpt-5-pro, o3 and o3-pro snapshots removed Dec 11, 2026; replace with gpt-5.6-sol/terra/luna",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "On June 11, 2026, we notified developers using older GPT-5 and o3 model snapshots of their deprecation and removal from the API on December 11, 2026."
+        },
+        "affects": {
+          "fields": [
+            "model:gpt-5",
+            "model:gpt-5-2025-08-07",
+            "model:gpt-5-mini",
+            "model:gpt-5-mini-2025-08-07",
+            "model:gpt-5-nano",
+            "model:gpt-5-nano-2025-08-07",
+            "model:gpt-5-pro",
+            "model:gpt-5-pro-2025-10-06",
+            "model:o3",
+            "model:o3-2025-04-16",
+            "model:o3-pro",
+            "model:o3-pro-2025-06-10"
+          ]
+        },
+        "effectiveDate": "2026-12-11"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-06-03-reusable-prompts-shutdown",
+        "kind": "endpoint-removed",
+        "title": "Reusable prompts and the v1/prompts API shut down Nov 30, 2026; move prompt content into application code",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "On June 3, 2026, we notified developers using reusable prompts in the dashboard and API that reusable prompt objects are being deprecated."
+        },
+        "affects": {
+          "operations": ["/v1/prompts"]
+        },
+        "effectiveDate": "2026-11-30"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-06-03-evals-shutdown",
+        "kind": "product-shutdown",
+        "title": "Evals platform: existing evals read-only Oct 31, 2026; dashboard and API shut down Nov 30, 2026",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "On June 3, 2026, we notified developers using the Evals platform that the product is being deprecated."
+        },
+        "affects": {
+          "operations": ["/v1/evals"]
+        },
+        "effectiveDate": "2026-11-30"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-06-03-agent-builder-shutdown",
+        "kind": "product-shutdown",
+        "title": "Agent Builder shuts down Nov 30, 2026; migrate to the Agents SDK (ChatKit remains)",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "On June 3, 2026, we notified developers using Agent Builder that the product is being deprecated."
+        },
+        "affects": {},
+        "effectiveDate": "2026-11-30"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-06-02-gpt-image-models-shutdown",
+        "kind": "model-retirement",
+        "title": "gpt-image-1-mini, gpt-image-1.5 and chatgpt-image-latest removed Dec 1, 2026; replace with gpt-image-2.5-sunburst or gpt-image-2.5-flare",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "On June 2, 2026, we notified developers using older GPT Image models of their deprecation and removal from the API on December 1, 2026."
+        },
+        "affects": {
+          "fields": [
+            "model:gpt-image-1-mini",
+            "model:gpt-image-1.5",
+            "model:gpt-image-1.5-2025-12-16",
+            "model:chatgpt-image-latest"
+          ]
+        },
+        "effectiveDate": "2026-12-01"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-05-07-self-serve-fine-tuning-limits",
+        "kind": "pagination-or-limits",
+        "title": "Self-serve fine-tuning job creation is closed to new orgs and ends for existing active customers on Jan 6, 2027",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "On May 7th, 2026, we notified developers using OpenAI’s self-serve fine-tuning platform of updates to availability."
+        },
+        "affects": {
+          "operations": ["POST /v1/fine_tuning/jobs"]
+        },
+        "effectiveDate": "2027-01-06"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-09-11-gpt-5-4-cyber-shutdown",
+        "kind": "model-retirement",
+        "title": "gpt-5.4-cyber removed Oct 1, 2026; migrate to the most capable cyber model available to you",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations",
+          "quote": "The gpt-5.4-cyber model is deprecated and will be removed from the API on October 1, 2026."
+        },
+        "affects": {
+          "fields": ["model:gpt-5.4-cyber"]
+        },
+        "effectiveDate": "2026-10-01"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-05-08-chat-latest-5-2-5-3-shutdown",
+        "kind": "model-retirement",
+        "title": "gpt-5.2-chat-latest and gpt-5.3-chat-latest removed Aug 10, 2026; replace with gpt-5.6-sol",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations",
+          "quote": "On May 8th, 2026, we notified developers using gpt-5.2-chat-latest and gpt-5.3-chat-latest model snapshots of their deprecation and removal from the API."
+        },
+        "affects": {
+          "fields": ["model:gpt-5.2-chat-latest", "model:gpt-5.3-chat-latest"]
+        },
+        "effectiveDate": "2026-08-10"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-04-22-legacy-gpt-snapshots-oct-2026",
+        "kind": "model-retirement",
+        "title": "Legacy GPT snapshots (gpt-3.5-turbo, gpt-4, gpt-4-turbo, gpt-4.1-nano, gpt-4o-2024-05-13, gpt-image-1, o1, o1-pro, o3-mini, o4-mini and fine-tunes) shut down Oct 23, 2026; replacements gpt-5.6-sol/terra/luna",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations",
+          "quote": "On April 22, 2026, we announced the deprecation of the following older OpenAI models. Access to these models was shut down on October 23, 2026."
+        },
+        "affects": {
+          "fields": [
+            "model:gpt-3.5-turbo-0125",
+            "model:gpt-3.5-turbo",
+            "model:gpt-4-0613",
+            "model:gpt-4",
+            "model:gpt-4-1106-preview",
+            "model:gpt-4-turbo",
+            "model:gpt-4-turbo-2024-04-09",
+            "model:gpt-4.1-nano",
+            "model:gpt-4.1-nano-2025-04-14",
+            "model:gpt-4o-2024-05-13",
+            "model:gpt-image-1",
+            "model:o1",
+            "model:o1-2024-12-17",
+            "model:o1-pro",
+            "model:o1-pro-2025-03-19",
+            "model:o3-mini",
+            "model:o3-mini-2025-01-31",
+            "model:o4-mini",
+            "model:o4-mini-2025-04-16",
+            "model:ft-o4-mini-2025-04-16"
+          ]
+        },
+        "effectiveDate": "2026-10-23"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-04-22-legacy-gpt-snapshots-jul-2026",
+        "kind": "model-retirement",
+        "title": "Second batch of legacy GPT snapshots shut down Jul 23, 2026 (model list not fully read; e.g. computer-use-preview, gpt-5-codex, o3-deep-research)",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations",
+          "quote": "Access to these models was shut down on July 23, 2026."
+        },
+        "affects": {
+          "fields": [
+            "model:computer-use-preview",
+            "model:gpt-5-codex",
+            "model:o3-deep-research",
+            "model:o4-mini-deep-research"
+          ]
+        },
+        "effectiveDate": "2026-07-23"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-10-22-node-7-43-decisions-instructions-type",
+        "kind": "other",
+        "title": "Breaking type change in a minor release: Live Decisions question instructions can be string or array of parts (openai npm 7.43.0)",
+        "source": {
+          "url": "https://api.github.com/repos/openai/openai-node/releases?per_page=15",
+          "quote": "A Live response's Decisions question `instructions` can now be a string or an array of text, image, or JSON parts."
+        },
+        "affects": {
+          "fields": ["Decisions question instructions"],
+          "sdk": "openai (npm) 7.43.0"
+        },
+        "effectiveDate": "2026-10-22"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-10-25-node-7-44-decision-item-union",
+        "kind": "other",
+        "title": "Breaking type change in a minor release: DecisionItemCreatedEvent.item and DecisionItemCreateEvent.item are now unions; Responses image-generation default documented as gpt-image-2 (openai npm 7.44.0)",
+        "source": {
+          "url": "https://api.github.com/repos/openai/openai-node/releases?per_page=15",
+          "quote": "`DecisionItemCreatedEvent.item` and `DecisionItemCreateEvent.item` are unions, so callers that directly access `item.content` or `item.role` may no longer compile."
+        },
+        "affects": {
+          "fields": ["DecisionItemCreatedEvent.item", "DecisionItemCreateEvent.item"],
+          "sdk": "openai (npm) 7.44.0"
+        },
+        "effectiveDate": "2026-10-25"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-10-22-python-3-37-decisions-types",
+        "kind": "other",
+        "title": "Breaking change in a minor release to Decisions types: question instructions may be str or structured list; more input roles (openai pypi 3.37.0)",
+        "source": {
+          "url": "https://api.github.com/repos/openai/openai-python/releases?per_page=15",
+          "quote": "This minor release includes a breaking change to Decisions types."
+        },
+        "affects": {
+          "fields": ["question.instructions", "DecisionInputMessageParam"],
+          "sdk": "openai (pypi) 3.37.0"
+        },
+        "effectiveDate": "2026-10-22"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-10-06-usage-tiers-simplified",
+        "kind": "pagination-or-limits",
+        "title": "API usage tiers simplified from five to three (Build, Launch, Grow); rate limits may change per org",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/changelog.md",
+          "quote": "Simplified API usage tiers from five to three: Build, Launch, and Grow."
+        },
+        "affects": {},
+        "effectiveDate": "2026-10-06"
+      },
+      {
+        "provider": "openai",
+        "id": "openai:2026-09-02-error-codes-slow-down-overloaded",
+        "kind": "other",
+        "title": "New 429 slow_down and 503 server_is_overloaded error codes with Retry-After; retry handling may need updating",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/changelog",
+          "quote": "Traffic that increases too quickly can return a 429 error with the slow_down code."
+        },
+        "affects": {},
+        "effectiveDate": "2026-09-02"
+      }
+    ],
+    "issues": [],
+    "unverifiedQuotes": [],
+    "sourcesRead": [
+      "https://developers.openai.com/api/docs/deprecations.md",
+      "https://developers.openai.com/api/docs/changelog.md",
+      "https://api.github.com/repos/openai/openai-node/releases?per_page=15",
+      "https://api.github.com/repos/openai/openai-python/releases?per_page=15",
+      "https://developers.openai.com/api/docs/deprecations",
+      "https://developers.openai.com/api/docs/changelog"
+    ],
+    "model": "claude-sonnet-5-5",
+    "costUsd": 0.307514,
+    "turns": 5,
+    "summary": "",
+    "log": [
+      {
+        "turn": 1,
+        "stopReason": "tool_use",
+        "inputTokens": 6050,
+        "outputTokens": 100,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"deprecations\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"changelog\"}"
+          }
+        ]
+      },
+      {
+        "turn": 2,
+        "stopReason": "tool_use",
+        "inputTokens": 15863,
+        "outputTokens": 305,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"deprecations\",\"offset\":11900}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"changelog\",\"offset\":11900}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"openai-node-releases\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"openai-python-releases\"}"
+          }
+        ]
+      },
+      {
+        "turn": 3,
+        "stopReason": "tool_use",
+        "inputTokens": 27868,
+        "outputTokens": 527,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://developers.openai.com/api/docs/deprecations\",\"offset\":11000}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://api.github.com/repos/openai/openai-node/releases?per_page=15&page=2\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://api.github.com/repos/openai/openai-python/releases?per_page=15&page=2\"}"
+          }
+        ]
+      },
+      {
+        "turn": 4,
+        "stopReason": "tool_use",
+        "inputTokens": 29491,
+        "outputTokens": 273,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://developers.openai.com/api/docs/deprecations\",\"offset\":7000}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://developers.openai.com/api/docs/changelog\",\"offset\":11000}"
+          }
+        ]
+      },
+      {
+        "turn": 5,
+        "stopReason": "tool_use",
+        "inputTokens": 32575,
+        "outputTokens": 7177,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{\"changes\":[{\"id\":\"2026-10-14-gpt-4-series-shutdown\",\"kind\":\"model-retirement\",\"title\":\"GPT-4o, GPT-4o mini, GPT-4.1 and GPT-4.1 mini snapshots (and their fine-tunes) shut down Jan 14, 2027; replace with gpt-6-luna\",\"effectiveDate\":\"2027-01-14\",\"source\":{\"url\":\"https://developers.openai.com/api/docs"
+          }
+        ]
+      }
+    ]
+  }
+}

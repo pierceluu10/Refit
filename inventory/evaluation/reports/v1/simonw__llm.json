@@ -1,0 +1,150 @@
+{
+  "repo": "simonw/llm",
+  "promptVersion": "inventory-v1",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "simonw/llm",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 518,
+          "operation": "embeddings.create",
+          "notes": "returns .data embeddings"
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 773,
+          "operation": "models.list",
+          "notes": "model listing for endpoint command"
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 1379,
+          "operation": "openai.OpenAI(**kwargs) client construction (get_client)",
+          "notes": "base_url from api_base if set; async variant at 1377; logging http_client at 1375"
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 1441,
+          "operation": "chat.completions.create",
+          "notes": "sync; also 1494"
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 1494,
+          "operation": "chat.completions.create"
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 1559,
+          "operation": "chat.completions.create (async)"
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 1610,
+          "operation": "chat.completions.create (async)"
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 2552,
+          "operation": "responses.create (stream)"
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 2677,
+          "operation": "responses.create"
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 2799,
+          "operation": "responses.create (async stream)"
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 2926,
+          "operation": "responses.create (async)"
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 2998,
+          "operation": "completions.create (legacy)"
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 3017,
+          "operation": "completions.create (legacy)"
+        }
+      ],
+      "sdk": {
+        "name": "openai",
+        "version": ">3"
+      }
+    },
+    {
+      "repo": "simonw/llm",
+      "provider": "openai",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 878,
+          "operation": "GET https://api.openai.com/v1/models",
+          "fields": ["Authorization"],
+          "notes": "non-200 raises ClickException; otherwise prints model list"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "/v1/models",
+        "file": "llm/default_plugins/openai_models.py",
+        "line": 879
+      }
+    },
+    {
+      "repo": "simonw/llm",
+      "provider": "user-supplied-urls",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "llm/cli.py",
+          "line": 275,
+          "operation": "GET <fragment url>",
+          "notes": "httpx2 client with User-Agent, follows redirects; uses response.text"
+        },
+        {
+          "file": "llm/cli.py",
+          "line": 4368,
+          "operation": "GET <template url>",
+          "notes": "loads template from URL"
+        },
+        {
+          "file": "llm/models.py",
+          "line": 96,
+          "operation": "httpx2 Client GET attachment URL",
+          "notes": "follows redirects (max 3); second at line 111"
+        },
+        {
+          "file": "llm/models.py",
+          "line": 111,
+          "operation": "httpx2 Client attachment URL (HEAD/GET)"
+        }
+      ]
+    }
+  ],
+  "purposes": {
+    "openai": "List models",
+    "user-supplied-urls": "Fetch fragments, templates and attachments from arbitrary user URLs"
+  },
+  "summary": "simonw/llm uses openai for Chat, Responses, legacy completions, embeddings, model listing; also OpenAI-compatible endpoints via api_base through openai >3 in 13 places; user-supplied-urls for Fetch fragments, templates and attachments from arbitrary user URLs through raw HTTP in 4 places; openai for List models through raw HTTP, pinned to /v1/models in 1 place.",
+  "agentSummary": "I found two external APIs in the repo: OpenAI, and arbitrary user-supplied URLs. I read only the call sites I recorded and skimmed nothing else, so a missed call site is possible. All the line numbers were checked by `record_usage`.\n\n- **OpenAI through the `openai` SDK**\n  - **Where:** `llm/default_plugins/openai_models.py`.\n  - **What it calls:** chat completions (sync and async), the Responses API (sync and async, streaming and not), legacy completions, embeddings and `models.list`.\n  - **Client setup:** the client is built in `get_client`. It sets `base_url` from `api_base`, so the same code serves custom OpenAI-compatible endpoints. The SDK is declared as `openai>3`, and there is no lockfile, so no resolved version.\n- **OpenAI through raw HTTP:** `GET https://api.openai.com/v1/models` at line 878 of the same file, with a Bearer key. It is the \"list models\" command. `/v1/` is the only version pinned.\n- **User-supplied URLs through `httpx2`:** the code fetches whatever URL the user gives it, so there is no fixed host.\n  - `llm/cli.py` lines 275 and 4368 fetch fragments and templates.\n  - `llm/models.py` lines 96 and 111 fetch attachments.\n\nI recorded the last group under the made-up provider id `user-supplied-urls`. It isn't a vendor, so you may want to treat it differently from the other two.\n\nI didn't record the `example.test` and `localai.localhost` hosts, which appear only in tests. The other hosts the scanner listed (GitHub, docs links, sqlite.org) are docs, comments or metadata, not calls the code makes. I found no webhooks, no GraphQL and no other SDKs. Plugins for other providers live outside this repo.\n\nI didn't read the `tests/cassettes` files or the docs beyond what the scanner surfaced.",
+  "outcome": "success",
+  "costUsd": 0.0925936,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0001302,
+    "claude-sonnet-5-5": 0.0924634
+  },
+  "turns": 10,
+  "durationMs": 20306
+}

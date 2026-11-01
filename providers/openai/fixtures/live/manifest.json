@@ -1,0 +1,47 @@
+{
+  "provider": "openai",
+  "fetchedAt": "2026-11-01T05:10:55.009Z",
+  "note": "Live read of each source, saved as text and cut to 24000 characters. Test input only.",
+  "sources": [
+    {
+      "id": "deprecations",
+      "url": "https://developers.openai.com/api/docs/deprecations.md",
+      "status": 200,
+      "ok": true,
+      "file": "deprecations.txt",
+      "chars": 24000,
+      "truncated": true,
+      "sha256": "4c69c540c8116a04abe14d56e4accdc169cb38f395a718757794c4c04fcd7af9"
+    },
+    {
+      "id": "changelog",
+      "url": "https://developers.openai.com/api/docs/changelog.md",
+      "status": 200,
+      "ok": true,
+      "file": "changelog.txt",
+      "chars": 24000,
+      "truncated": true,
+      "sha256": "2591aaf96579e8d11442a32ab5e253ea964dea9ae15e2b9eab71a62fdcced9ab"
+    },
+    {
+      "id": "openai-node-releases",
+      "url": "https://api.github.com/repos/openai/openai-node/releases?per_page=15",
+      "status": 200,
+      "ok": true,
+      "file": "openai-node-releases.txt",
+      "chars": 24000,
+      "truncated": true,
+      "sha256": "18dcbee40f255f627b6a55e6405f5ae1107a52d6a4a78b1507e31611e2654f93"
+    },
+    {
+      "id": "openai-python-releases",
+      "url": "https://api.github.com/repos/openai/openai-python/releases?per_page=15",
+      "status": 200,
+      "ok": true,
+      "file": "openai-python-releases.txt",
+      "chars": 24000,
+      "truncated": true,
+      "sha256": "e744286d7dee4311cdca08d68727efddc2e41c3abfa1183236db6e2e76caaa1f"
+    }
+  ]
+}

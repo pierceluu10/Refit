@@ -1,0 +1,368 @@
+---
+title: '2026-10: Release notes'
+description: >-
+Covers order tax recalculation, metafield filter errors, and removed checkout
+fields.
+source_url:
+html: 'https://shopify.dev/changelog/release-notes/2026-10'
+md: 'https://shopify.dev/changelog/release-notes/2026-10.md'
+api_version: 2026-10
+metadata:
+description: >-
+Covers order tax recalculation, metafield filter errors, and removed
+checkout fields.
+---
+
+Latest
+
+# 2026-10: Release notes
+
+The 2026-10 release focuses on order, metafield, customer account, tax, analytics, and Storefront API changes.
+
+Several changes in this version require code updates, especially around order taxes, draft order discounts, metafield filters, and customer account checkouts. Review and adjust affected integrations before adopting 2026-10.
+
+2026-10 is the latest stable API version. It's available for production use until at least October 1, 2027 at 15:00 UTC:
+
+[Learn more about API versioning](https://shopify.dev/docs/api/usage/versioning)
+
+| Stable version | Release date | Accessible until | Status |
+| - | - | - | - |
+| 2026-10 | October 1, 2026 | October 16, 2027 15:00 UTC | Latest stable |
+
+***
+
+## Graph​QL Admin API
+
+GraphQL Admin API changes affect order imports, taxes, draft order discounts, metafield filters, and carrier services.
+
+### Customers
+
+Customer integrations need updates for SMS marketing consent and segment query syntax.
+
+Breaking change:
+
+Segment query language functions now use `MATCHES` and `NOT MATCHES` instead of `= true` and `= false`, and function parameters take their own operators. The `12_months_ago`, `90_days_ago`, `30_days_ago`, and `7_days_ago` named dates are deprecated in favor of date offsets such as `-12m`.
+
+[Oct 1, 2026](https://shopify.dev/changelog/posts/updated-function-syntax-on-the-segment-query-language)
+
+Action required:
+
+`CustomerPhoneNumber` now has an `smsMarketingConsent` field that uses the same structured consent model as WhatsApp. The flat SMS marketing consent fields on `CustomerPhoneNumber` are deprecated, so plan to migrate existing integrations to `smsMarketingConsent`.
+
+[Oct 1, 2026](https://shopify.dev/changelog/posts/sms-marketing-consent-now-available-on-the-customerphonenumber-object)
+
+### Discounts and marketing
+
+Discount integrations need to account for Rollouts.
+
+Action required:
+
+Discount types now expose a read-only `rollouts` connection. Add the `read_rollouts` access scope and read `Discount.rollouts`, `Rollout` schedules, and effective traffic allocation alongside `startsAt` and `endsAt`, because a discount's native dates don't describe its availability when it's part of a rollout.
+
+[Oct 1, 2026](https://shopify.dev/changelog/posts/discounts-can-now-be-included-in-rollouts)
+
+### Inventory
+
+Inventory quantity mutations remove an obsolete stocking error.
+
+Action required:
+
+The obsolete `ITEM_NOT_STOCKED_AT_LOCATION` error is removed from `InventoryAdjustQuantities`, `InventoryMoveQuantities`, and `InventorySetOnHandQuantities`, and from the `InventorySetQuantitiesUserErrorCode` enum. Remove app logic that handles this specific error.
+
+[Jun 19, 2026](https://shopify.dev/changelog/removal-of-itemnotstockedatlocation-error)
+
+Update:
+
+`inventoryShipmentReceive` now accepts a `CANCELED` reason for shipment units that won't arrive. `InventoryShipment.totalCanceledQuantity` and `InventoryShipmentLineItem.canceledQuantity` report canceled units, and `inventory_shipments/receive_items` webhook payloads include canceled quantities.
+
+[Sep 17, 2026](https://shopify.dev/changelog/adding-a-canceled-receive-action-to-the-inventory-shipments-api)
+
+### Orders
+
+Update order integrations for imports, tax recalculation, draft order discounts, subscription contract calculations, and fulfillment statuses.
+
+Action required:
+
+Changing the shipping address on an unfulfilled order with `orderUpdate` or the REST Admin API order update endpoint now recalculates taxes for the new destination. After updating, query updated `taxLines`, `totalTaxSet`, totals, and compare balances to handle payment or refund differences.
+
+[Jul 30, 2026](https://shopify.dev/changelog/updating-an-orders-shipping-address-returns-accurate-financial-data)
+
+Action required:
+
+The deprecated `priceRule` field is removed from `DraftOrderDiscountNotAppliedWarning`. The legacy `PriceRule` object and related types are also removed from the public schema. Update queries from `draftOrderCalculate`, `draftOrderCreate`, and `draftOrderUpdate` to select `discountTitle` and `discountCode` instead.
+
+[Jun 23, 2026](https://shopify.dev/changelog/remove-pricerule-from-draft-order-discount-warning)
+
+Action required:
+
+The `SubscriptionContractCalculation` API runs subscription contract edits through Shopify's checkout engine, supports Shopify Functions during calculation, and previews totals, delivery options, and warnings before you commit changes. Migrate from `SubscriptionDraft`, which remains available but won't support these capabilities.
+
+[Oct 1, 2026](https://shopify.dev/changelog/posts/new-subscriptioncontractcalculation-api-for-subscription-management)
+
+Update:
+
+`OrderCreateFulfillmentInput` now includes `trackingNumbers`, so `orderCreate` can attach multiple tracking numbers when importing orders with multi-package fulfillments. If both `trackingNumber` and `trackingNumbers` are provided, `trackingNumber` takes precedence.
+
+[Aug 3, 2026](https://shopify.dev/changelog/order-create-fulfillment-tracking-numbers)
+
+Update:
+
+The GraphQL Admin API adds `SubscriptionContractCalculation` as the successor to `SubscriptionDraft` for creating, updating, and editing subscription contracts. It replaces the multi-step draft workflow with a stateless `calculate` → poll → `commit` lifecycle through Shopify’s checkout engine.
+
+[Jul 27, 2026](https://shopify.dev/changelog/subscription-contract-calculation-api-now-available-in-early-access)
+
+Update:
+
+`Order.displayFulfillmentStatus` and other fields typed as `OrderDisplayFulfillmentStatus` can now return `FULFILLMENT_NOT_REQUIRED` for orders with zero remaining fulfillable quantity, instead of `UNFULFILLED`. Handle the new enum value if you exhaustively map fulfillment statuses.
+
+[Jul 3, 2026](https://shopify.dev/changelog/orderdisplayfulfillmentstatus-now-returns-fulfillmentnotrequired)
+
+Update:
+
+The new `paymentInstrumentSendAddEmail` mutation emails a customer a link to add a payment method to a specific subscription contract, order, or draft order, without requiring them to sign in. Apps need the `write_customers` access scope to call it.
+
+[Sep 3, 2026](https://shopify.dev/changelog/new-paymentinstrumentsendaddemail-mutation)
+
+Update:
+
+Buyers can now request removal of unfulfilled line items. The GraphQL Admin API adds `RequestedOrderEdit`, `requestedOrderEditCreate`, `requestedOrderEditResolve`, `requestedOrderEditDecline`, and `requestedOrderEditCalculate`. The Customer Account API adds `orderRequestEdit`, and three `requested_order_edit` webhook topics report each request's lifecycle.
+
+[Oct 1, 2026](https://shopify.dev/changelog/posts/new-apis-for-buyer-requested-order-edits)
+
+Update:
+
+`CalculatedReturnShippingFee.taxAmountSet` returns the estimated tax on a return shipping fee from `returnCalculate`, and `ReturnShippingFee.finalizedTaxAmountSet` returns the tax charged when the return is processed. Use them to show and reconcile tax on return shipping fees.
+
+[Oct 1, 2026](https://shopify.dev/changelog/posts/new-return-shipping-fee-tax-fields)
+
+Update:
+
+`orderCancel` now returns a `jobResult` field of type `OrderCancelJobResult` with the cancellation status, any errors, and the affected order, so you can confirm that the asynchronous cancellation succeeded. The existing `job` field is unchanged.
+
+[Oct 1, 2026](https://shopify.dev/changelog/posts/the-ordercancel-mutation-now-returns-a-structured-jobresult)
+
+### POS
+
+POS device data adds a fiscal register identifier.
+
+Update:
+
+`PointOfSaleDevice.fiscalDeviceIdentifier` returns the Shopify-assigned fiscal register identifier for a POS device, such as Sweden's manufacturing number. It returns `null` for devices in countries that don't require cash register registration, so only in-person fiscal compliance apps need it.
+
+[Oct 1, 2026](https://shopify.dev/changelog/posts/new-fiscaldeviceidentifier-field-on-pointofsaledevice)
+
+### Products and collections
+
+Products and collections changes affect exchange line item queries and metafield filters.
+
+Action required:
+
+The GraphQL Admin API now returns an error when a query filters by a `metafield` that isn't valid for filtering, instead of silently ignoring the predicate. Update affected metafield filter queries before you upgrade. Check that definitions support filtering and comparison operators.
+
+[Jul 24, 2026](https://shopify.dev/changelog/invalid-metafield-queries-now-return-errors-in-the-graphql-admin-api)
+
+Action required:
+
+`ProductVariant` now has a `barcodes` connection for up to 20 typed barcodes, and `ProductVariant.barcode` is deprecated. Update integrations that sync product identifiers to read `barcodes`, because `barcode` returns only the first entry.
+
+[Sep 8, 2026](https://shopify.dev/changelog/product-variant-barcode-is-being-replaced-by-barcodes)
+
+Update:
+
+`ExchangeLineItem` now includes `productId`, `title`, `variantSku`, and `variantTitle` fields, so apps can access product and variant details directly when querying exchange line items.
+
+[Jul 15, 2026](https://shopify.dev/docs/api/admin-graphql/2026-10/objects/ExchangeLineItem?source=/changelog/new-fields-on-exchangelineitem#fields)
+
+Update:
+
+Apps with the `read_markets` access scope can traverse a store's market hierarchy with the new `marketRelationships` query and the `parentMarkets` and `childMarkets` fields on `Market`. Poll `marketRelationshipsStatus.version` to detect when the asynchronously rebuilt relationships change.
+
+[Sep 17, 2026](https://shopify.dev/changelog/market-relationships)
+
+Update:
+
+`ProductVariantContextualPricing.auditTrail` returns the ordered price adjustments Shopify applied to a contextual variant price, each with a `type`, `value`, resulting `price`, and display `label`. An empty `priceAdjustments` list means no complete audit trail is available.
+
+[Sep 17, 2026](https://shopify.dev/changelog/pricing-audit-trail-for-contextual-product-variant-prices)
+
+Update:
+
+The `Metafield` object now has a non-null `translatable` field that reports whether a metafield's value can be translated. Read it instead of querying `translatableResources` with the deprecated `TranslatableResourceType.METAFIELD` value.
+
+[Sep 21, 2026](https://shopify.dev/changelog/is-translatable-metafield-field)
+
+### Rollouts
+
+Apps can discover Rollouts and react when they change.
+
+Update:
+
+The `rollouts` and `rollout` queries return Rollouts with their schedules, `trafficAllocation`, `effectiveTrafficAllocation`, and changes to discounts, catalogs, themes, and checkout and accounts configurations. Rollout webhooks report lifecycle, effective-allocation, and resource changes.
+
+[Oct 1, 2026](https://shopify.dev/changelog/posts/read_rollouts)
+
+### Shipping and fulfillment
+
+Carrier services no longer add rates to the General shipping profile by default.
+
+Update:
+
+Creating carrier services with `carrierServiceCreate` or `POST /admin/api/{version}/carrier_services.json` now registers only the service. It doesn't add rates to the General shipping profile. Configure carrier-calculated rates in a shipping profile for checkout visibility.
+
+[Jun 26, 2026](https://shopify.dev/changelog/carrier-services-will-no-longer-be-automatically-added-to-the-default-shipping-profile)
+
+### Shopify Payments
+
+Shopify Payments adds a currency conversion balance transaction type.
+
+Update:
+
+The `ShopifyPaymentsTransactionType` enum now includes `CURRENCY_CONVERSION`, so `ShopifyPaymentsBalanceTransaction.type` can identify currency conversions in a shop's Shopify Payments balance transactions.
+
+[Sep 25, 2026](https://shopify.dev/changelog/shopify-payments-balance-transaction-graphql-type-supports-currency-conversion-type)
+
+### Store properties
+
+Market return rules are available as structured data.
+
+Update:
+
+The `returnPolicyProfile` and `returnPolicyProfiles` queries return the structured return rules that markets reference, and `marketCreate` and `marketUpdate` can assign or remove a profile. Reading profiles requires `read_legal_policies`, and assigning them requires `write_markets`.
+
+[Oct 1, 2026](https://shopify.dev/changelog/posts/return-policy-profiles-are-now-available-in-the-graphql-admin-api)
+
+***
+
+## Customer Account API
+
+Customer Account API removes deprecated incomplete checkout fields.
+
+Action required:
+
+The deprecated `Customer.lastIncompleteCheckout` field is removed, along with the unreachable `Checkout` type subtree. Remove any queries for `Customer.lastIncompleteCheckout` or nested `Checkout` fields before upgrading; there is no Customer Account API replacement.
+
+[Jul 6, 2026](https://shopify.dev/changelog/customer-account-api-last-incomplete-checkout-and-checkout-types-removed)
+
+Update:
+
+`CustomerAddressInput` and `CustomerAddress` now include `countryCode`, which takes two-letter codes such as `US` from the `CountryCode` enum. `territoryCode` is deprecated but keeps working, and `countryCode` takes precedence when an address input sets both.
+
+[Sep 8, 2026](https://shopify.dev/changelog/customer-address-apis-now-support-countrycode)
+
+***
+
+## Events & webhooks
+
+Events become generally available, and Orders and inventory shipment webhook payloads include new identifiers.
+
+Update:
+
+Next Gen Events, the successor to classic webhooks, are generally available. Configure subscriptions in `shopify.app.toml` with `triggers`, a GraphQL Admin API `query`, and a `query_filter` to receive only the changes your app needs, together with the data it needs.
+
+[Oct 1, 2026](https://shopify.dev/changelog/blog/next-generation-events-are-now-generally-available)
+
+Update:
+
+Line items in Orders webhook payloads now include `selling_plan_id`, which identifies the selling plan applied to a subscription line item and is `null` for other line items, so apps no longer need a follow-up API call to look it up.
+
+[Oct 1, 2026](https://shopify.dev/changelog/posts/orders-webhooks-now-include-selling_plan_id-on-line-items)
+
+Update:
+
+`inventory_shipments` webhook payloads, including `inventory_shipments/create`, `inventory_shipments/receive_items`, and `inventory_shipments/update_tracking`, now include an `inventory_transfer_id` field that identifies the related inventory transfer, if any.
+
+[Oct 1, 2026](https://shopify.dev/changelog/posts/inventory-shipment-webhooks-include-inventory-transfer-ids)
+
+***
+
+## Functions
+
+Shopify Functions adds access to customer creation dates.
+
+Update:
+
+The `Customer` object in Shopify Functions now exposes `createdAt`. Request `createdAt` from `Cart.buyerIdentity.customer` when Function logic needs the date and time a customer account was created. Continue handling guest buyers where customer data is unavailable.
+
+[Jul 30, 2026](https://shopify.dev/changelog/createdat-is-now-available-on-the-customer-object-in-shopify-functions)
+
+Update:
+
+Functions can now read metafields on delivery options: request `metafield(namespace:, key:)` on `CartDeliveryOption` in input queries. Delivery Customization Functions can read data that a delivery option generator or carrier service attached, instead of parsing option titles or handles.
+
+[Sep 15, 2026](https://shopify.dev/changelog/delivery-options-in-shopify-functions-input-now-expose-their-metafields)
+
+Update:
+
+Apps that create discount types with Shopify Functions can register `shopify/Discount` app intents with `create` and `edit` actions, so Sidekick can launch the app's discount flows through the `admin.app.intent.link` or `admin.app.intent.render` targets.
+
+[Sep 30, 2026](https://shopify.dev/changelog/posts/use-app-intents-for-your-discount-app)
+
+***
+
+## Polaris
+
+Polaris updates add metafield owner types for checkout and customer account UI extensions, and change POS UI extension session and cart behavior.
+
+### Checkout and customer accounts
+
+Checkout and customer account UI extensions can scope metafield declarations to a resource type.
+
+Action required:
+
+Metafield declarations in `[[extensions.metafields]]` and `[[extensions.targeting.metafields]]` now accept an `owner_type`, such as `PRODUCT` or `CUSTOMER`, so Shopify fetches only the metafields your extension needs. Add `owner_type` to each declaration before you upgrade, because later API versions block deployments that omit it.
+
+[Oct 8, 2026](https://shopify.dev/changelog/posts/metafield-owner-types-required-for-checkout-and-customer-account-ui-extensions)
+
+### POS
+
+POS UI extensions remove a deprecated Session API field and reject unconfirmed cart writes, so extensions need updates.
+
+Breaking change:
+
+The deprecated `session.currentSession.staffMemberId` field is removed from the POS UI extensions Session API. Read `session.staffMember.value?.id` instead, or subscribe to the `session.staffMember` signal to react when a different staff member pins in.
+
+[Sep 17, 2026](https://shopify.dev/changelog/removed-session-currentsession-staffmemberid-from-pos-ui-extensions-2026-10)
+
+Breaking change:
+
+Cart API mutations, such as `applyCartDiscount`, `bulkCartUpdate`, and `setCustomer`, now reject when Shopify POS doesn't confirm that the cart changed, instead of resolving silently. Add rejection handling to every cart mutation call before you update your extension's `api_version`.
+
+[Oct 7, 2026](https://shopify.dev/changelog/posts/cart-mutations-reject-unconfirmed-writes-in-pos-ui-extensions-2026-10)
+
+***
+
+## Shopify​QL
+
+ShopifyQL adds app analytics capabilities for modeling, querying, embedding, and enriching analytics data.
+
+Update:
+
+Apps can now model Shopify Analytics data with analytics-queryable metafields and the App Events API, query it with the ShopifyQL API, embed analytics web components, and add annotations and metric targets to charts.
+
+[Jul 21, 2026](https://shopify.dev/changelog/full-stack-capabilities-to-power-app-analytics)
+
+Update:
+
+`ShopifyqlQueryResponse` now includes a `parseWarnings` field that lists non-fatal issues, such as fields scheduled for deprecation, on queries that ran successfully. Check it alongside `parseErrors` to catch problems before they cause failures.
+
+[Oct 1, 2026](https://shopify.dev/changelog/posts/added-parsewarnings-to-shopifyqlqueryresponse)
+
+Update:
+
+The `shop_campaign_insights` schema adds a `shop_campaign_orders` metric and `country` and `country_code` dimensions. The `sales` schema adds four Shop Campaign dimensions, such as `shop_campaign_name` and `shop_campaign_handle`, so you can break down sales by the campaign that drove them.
+
+[Oct 1, 2026](https://shopify.dev/changelog/posts/new-shop-campaigns-metrics-and-dimensions-on-api-version-2026-10)
+
+***
+
+## Storefront API
+
+Storefront API adds sales channel context for queries.
+
+Update:
+
+`@inContext` directive now accepts an optional `channelId` argument to apply a sales channel’s context across a query, including channel-specific product availability and pricing.
+
+[Jul 15, 2026](https://shopify.dev/changelog/new-channelid-argument-for-incontext-directive-in-storefront-api-2026-10)
+
+***

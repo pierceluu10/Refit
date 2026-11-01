@@ -1,0 +1,1557 @@
+{
+  "repo": "mckaywrigley/chatbot-ui",
+  "promptVersion": "inventory-v2",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "ollama",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "components/chat/chat-helpers/index.ts",
+          "line": 257,
+          "operation": "POST {NEXT_PUBLIC_OLLAMA_URL}/api/chat",
+          "fields": ["model", "messages", "options.temperature"],
+          "notes": "Reached via handleLocalChat (line 162) -> fetchChatResponse. URL built at line 163 from NEXT_PUBLIC_OLLAMA_URL + '/api/chat'. Response is streamed NDJSON; processResponse (around line 301-313) parses each line's message.content. Requests are aborted via AbortController signal. Chat is invoked from components/chat/chat-hooks/use-chat-handler.tsx when modelData.provider === 'ollama' (line 310)."
+        },
+        {
+          "file": "lib/models/fetch-models.ts",
+          "line": 57,
+          "operation": "GET {NEXT_PUBLIC_OLLAMA_URL}/api/tags",
+          "notes": "Called from fetchOllamaModels (browser). Reads data.models[].name to build LLM entries with provider 'ollama'. Only runs when NEXT_PUBLIC_OLLAMA_URL is set (components/utility/global-state.tsx:147-150, called from the startup effect). Errors are logged and swallowed."
+        }
+      ]
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "openrouter",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "lib/models/fetch-models.ts",
+          "line": 84,
+          "operation": "GET https://openrouter.ai/api/v1/models",
+          "notes": "Unauthenticated, called from the browser. Reads data[].id, name, context_length to build OpenRouterLLM entries (maxContext from context_length). Called from components/utility/global-state.tsx:141 (startup, when profile or env has an openrouter key), components/utility/profile-settings.tsx:198 (when a key is saved), and app/[locale]/setup/page.tsx:88 (outside my area). Errors show a toast and return undefined."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "v1",
+        "file": "lib/models/fetch-models.ts",
+        "line": 84
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "supabase",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "components/sidebar/items/folders/delete-folder.tsx",
+          "line": 87,
+          "operation": "from(contentType).delete().eq('folder_id', ...)",
+          "notes": "Deletes rows from a table selected by contentType (chats/files/etc.) for the folder. Result error is checked."
+        },
+        {
+          "file": "components/utility/change-password.tsx",
+          "line": 28,
+          "operation": "auth.updateUser",
+          "fields": ["password"],
+          "notes": "Updates the current user's password."
+        },
+        {
+          "file": "components/utility/global-state.tsx",
+          "line": 156,
+          "operation": "auth.getSession",
+          "notes": "Reads session to load profile, workspaces and workspace image URLs at startup."
+        },
+        {
+          "file": "components/utility/profile-settings.tsx",
+          "line": 122,
+          "operation": "auth.signOut",
+          "notes": "Signs the user out on logout."
+        },
+        {
+          "file": "lib/server/server-chat-helpers.ts",
+          "line": 20,
+          "operation": "auth.getUser()",
+          "notes": "Validates the session cookie against Supabase Auth. Throws 'User not found' when absent. Used by every route calling getServerProfile."
+        },
+        {
+          "file": "lib/server/server-chat-helpers.ts",
+          "line": 26,
+          "operation": "from('profiles').select('*').eq('user_id').single()",
+          "notes": "Loads the user's profile, including stored API keys, which are merged with env keys in addApiKeysToProfile."
+        },
+        {
+          "file": "lib/supabase/browser-client.ts",
+          "line": 4,
+          "operation": "createBrowserClient (client construction, not a request)",
+          "notes": "Shared browser client exported as 'supabase'. Constructed from NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY. Used by components below and by db/ modules (outside this area)."
+        }
+      ],
+      "sdk": {
+        "name": "@supabase/ssr",
+        "version": "0.0.10",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "supabase",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/[locale]/[workspaceid]/layout.tsx",
+          "line": 64,
+          "operation": "auth.getSession",
+          "notes": "browser client; reads session for client-side layout"
+        },
+        {
+          "file": "app/[locale]/layout.tsx",
+          "line": 85,
+          "operation": "auth.getSession",
+          "notes": "server client (@supabase/ssr createServerClient, cookies get only); session decides whether GlobalState wraps children"
+        },
+        {
+          "file": "app/[locale]/login/page.tsx",
+          "line": 34,
+          "operation": "auth.getSession",
+          "notes": "server client; redirects to home workspace if logged in"
+        },
+        {
+          "file": "app/[locale]/login/page.tsx",
+          "line": 38,
+          "operation": "from(workspaces).select.single",
+          "fields": ["user_id eq", "is_home eq true"],
+          "notes": "home workspace lookup for already-logged-in user; redirect"
+        },
+        {
+          "file": "app/[locale]/login/page.tsx",
+          "line": 59,
+          "operation": "auth.signInWithPassword",
+          "fields": ["email", "password"],
+          "notes": "server action signIn; error message echoed in redirect query"
+        },
+        {
+          "file": "app/[locale]/login/page.tsx",
+          "line": 69,
+          "operation": "from(workspaces).select.single",
+          "fields": ["user_id eq data.user.id", "is_home eq true"],
+          "notes": "server action; home workspace lookup after sign-in"
+        },
+        {
+          "file": "app/[locale]/login/page.tsx",
+          "line": 125,
+          "operation": "auth.signUp",
+          "fields": ["email", "password", "options (empty)"],
+          "notes": "server action signUp; email whitelist checked first via EMAIL_DOMAIN_WHITELIST / EMAIL_WHITELIST (Edge Config or env)"
+        },
+        {
+          "file": "app/[locale]/login/page.tsx",
+          "line": 153,
+          "operation": "auth.resetPasswordForEmail",
+          "fields": ["email", "redirectTo origin/auth/callback?next=/login/password"],
+          "notes": "server action; Supabase sends the reset email"
+        },
+        {
+          "file": "app/[locale]/login/password/page.tsx",
+          "line": 15,
+          "operation": "auth.getSession",
+          "notes": "browser client"
+        },
+        {
+          "file": "app/[locale]/setup/page.tsx",
+          "line": 66,
+          "operation": "auth.getSession",
+          "notes": "browser client"
+        },
+        {
+          "file": "app/[locale]/setup/page.tsx",
+          "line": 115,
+          "operation": "auth.getSession",
+          "notes": "browser client"
+        },
+        {
+          "file": "app/api/chat/custom/route.ts",
+          "line": 26,
+          "operation": "from('models').select('*').eq('id').single()",
+          "notes": "Reads the user's custom model row, including api_key and base_url, which then configure the outbound OpenAI-compatible call at line 40. Client built with service role key at lines 20-23."
+        },
+        {
+          "file": "app/api/retrieval/process/docx/route.ts",
+          "line": 101,
+          "operation": "from('file_items').upsert(file_items)",
+          "notes": "Same as process route; docx path."
+        },
+        {
+          "file": "app/api/retrieval/process/docx/route.ts",
+          "line": 106,
+          "operation": "from('files').update({tokens}).eq('id')",
+          "notes": "Same as process route; docx path."
+        },
+        {
+          "file": "app/api/retrieval/process/route.ts",
+          "line": 31,
+          "operation": "from('files').select('*').eq('id').single()",
+          "notes": "Reads file metadata; checks user_id against profile.user_id."
+        },
+        {
+          "file": "app/api/retrieval/process/route.ts",
+          "line": 52,
+          "operation": "storage.from('files').download(file_path)",
+          "notes": "Downloads the uploaded file bytes from the 'files' bucket; result converted to a Blob for processing."
+        },
+        {
+          "file": "app/api/retrieval/process/route.ts",
+          "line": 155,
+          "operation": "from('file_items').upsert(file_items)",
+          "notes": "Writes chunks with content, tokens, openai_embedding or local_embedding."
+        },
+        {
+          "file": "app/api/retrieval/process/route.ts",
+          "line": 160,
+          "operation": "from('files').update({tokens}).eq('id')",
+          "notes": "Stores the total token count on the file row."
+        },
+        {
+          "file": "app/api/retrieval/retrieve/route.ts",
+          "line": 60,
+          "operation": "rpc('match_file_items_openai', {query_embedding, match_count, file_ids})",
+          "notes": "Vector similarity search; returned rows sorted by similarity and returned to the client."
+        },
+        {
+          "file": "app/api/retrieval/retrieve/route.ts",
+          "line": 75,
+          "operation": "rpc('match_file_items_local', {query_embedding, match_count, file_ids})",
+          "notes": "Local-embedding variant of the same search."
+        },
+        {
+          "file": "app/api/username/available/route.ts",
+          "line": 19,
+          "operation": "from('profiles').select('username').eq('username')",
+          "notes": "Checks whether a username is taken; returns isAvailable."
+        },
+        {
+          "file": "app/api/username/get/route.ts",
+          "line": 19,
+          "operation": "from('profiles').select('username').eq('user_id').single()",
+          "notes": "Returns username for a user id from the request body."
+        },
+        {
+          "file": "app/auth/callback/route.ts",
+          "line": 13,
+          "operation": "auth.exchangeCodeForSession",
+          "fields": ["code"],
+          "notes": "OAuth/email link code exchange; cookies set via server client"
+        },
+        {
+          "file": "components/utility/change-password.tsx",
+          "line": 28,
+          "operation": "auth.updateUser",
+          "fields": ["password"],
+          "notes": "outside my area (components); recorded for completeness"
+        },
+        {
+          "file": "components/utility/global-state.tsx",
+          "line": 156,
+          "operation": "auth.getSession",
+          "notes": "outside my area (components); recorded for completeness"
+        },
+        {
+          "file": "components/utility/profile-settings.tsx",
+          "line": 122,
+          "operation": "auth.signOut",
+          "notes": "outside my area (components); recorded for completeness"
+        },
+        {
+          "file": "db/assistant-collections.ts",
+          "line": 8,
+          "operation": "from(assistants).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/assistant-collections.ts",
+          "line": 30,
+          "operation": "from(assistant_collections).insert.select",
+          "fields": ["assistantCollection"],
+          "notes": "insert join row"
+        },
+        {
+          "file": "db/assistant-collections.ts",
+          "line": 45,
+          "operation": "from(assistant_collections).insert.select",
+          "fields": ["assistantCollections[] bulk"],
+          "notes": "bulk insert"
+        },
+        {
+          "file": "db/assistant-collections.ts",
+          "line": 61,
+          "operation": "from(assistant_collections).delete",
+          "notes": "delete"
+        },
+        {
+          "file": "db/assistant-files.ts",
+          "line": 6,
+          "operation": "from(assistants).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/assistant-files.ts",
+          "line": 28,
+          "operation": "from(assistant_files).insert.select",
+          "fields": ["assistantFile"],
+          "notes": "insert"
+        },
+        {
+          "file": "db/assistant-files.ts",
+          "line": 43,
+          "operation": "from(assistant_files).insert.select",
+          "fields": ["assistantFiles[] bulk"],
+          "notes": "bulk insert"
+        },
+        {
+          "file": "db/assistant-files.ts",
+          "line": 59,
+          "operation": "from(assistant_files).delete",
+          "notes": "delete"
+        },
+        {
+          "file": "db/assistant-tools.ts",
+          "line": 6,
+          "operation": "from(assistants).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/assistant-tools.ts",
+          "line": 28,
+          "operation": "from(assistant_tools).insert.select",
+          "fields": ["assistantTool"],
+          "notes": "insert"
+        },
+        {
+          "file": "db/assistant-tools.ts",
+          "line": 43,
+          "operation": "from(assistant_tools).insert.select",
+          "fields": ["assistantTools[] bulk"],
+          "notes": "bulk insert"
+        },
+        {
+          "file": "db/assistant-tools.ts",
+          "line": 59,
+          "operation": "from(assistant_tools).delete",
+          "notes": "delete"
+        },
+        {
+          "file": "db/assistants.ts",
+          "line": 6,
+          "operation": "from(assistants).select",
+          "notes": "getAssistantById-style read; returns data"
+        },
+        {
+          "file": "db/assistants.ts",
+          "line": 22,
+          "operation": "from(workspaces).select",
+          "notes": "read, joins assistant_workspaces via workspace lookup"
+        },
+        {
+          "file": "db/assistants.ts",
+          "line": 44,
+          "operation": "from(assistants).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/assistants.ts",
+          "line": 67,
+          "operation": "from(assistants).insert.select.single",
+          "fields": ["assistant (TablesInsert)"],
+          "notes": "createAssistant; returns created row"
+        },
+        {
+          "file": "db/assistants.ts",
+          "line": 90,
+          "operation": "from(assistants).insert.select",
+          "fields": ["assistants[] (bulk)"],
+          "notes": "createAssistants"
+        },
+        {
+          "file": "db/assistants.ts",
+          "line": 115,
+          "operation": "from(assistant_workspaces).insert.select",
+          "fields": ["item"],
+          "notes": "createAssistantWorkspace"
+        },
+        {
+          "file": "db/assistants.ts",
+          "line": 131,
+          "operation": "from(assistant_workspaces).insert.select",
+          "fields": ["items[] (bulk)"],
+          "notes": "bulk join insert"
+        },
+        {
+          "file": "db/assistants.ts",
+          "line": 145,
+          "operation": "from(assistants).update.select.single",
+          "fields": ["assistant (TablesUpdate)"],
+          "notes": "updateAssistant"
+        },
+        {
+          "file": "db/assistants.ts",
+          "line": 160,
+          "operation": "from(assistants).delete",
+          "notes": "deleteAssistant; checks error only"
+        },
+        {
+          "file": "db/assistants.ts",
+          "line": 176,
+          "operation": "from(assistant_workspaces).delete",
+          "notes": "delete join row"
+        },
+        {
+          "file": "db/chat-files.ts",
+          "line": 6,
+          "operation": "from(chats).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/chat-files.ts",
+          "line": 26,
+          "operation": "from(chat_files).insert.select",
+          "fields": ["chatFile"],
+          "notes": "insert"
+        },
+        {
+          "file": "db/chat-files.ts",
+          "line": 41,
+          "operation": "from(chat_files).insert.select",
+          "fields": ["chatFiles[] bulk"],
+          "notes": "bulk insert"
+        },
+        {
+          "file": "db/chats.ts",
+          "line": 6,
+          "operation": "from(chats).select.maybeSingle",
+          "fields": ["id eq"],
+          "notes": "getChatById; returns chat"
+        },
+        {
+          "file": "db/chats.ts",
+          "line": 16,
+          "operation": "from(chats).select.order",
+          "fields": ["workspace_id eq", "created_at desc"],
+          "notes": "getChatsByWorkspaceId; throws error.message if no data"
+        },
+        {
+          "file": "db/chats.ts",
+          "line": 30,
+          "operation": "from(chats).insert.select.single",
+          "fields": ["chat (TablesInsert)"],
+          "notes": "createChat; throws on error"
+        },
+        {
+          "file": "db/chats.ts",
+          "line": 44,
+          "operation": "from(chats).insert.select",
+          "fields": ["chats[] bulk"],
+          "notes": "createChats; throws on error"
+        },
+        {
+          "file": "db/chats.ts",
+          "line": 60,
+          "operation": "from(chats).update.select.single",
+          "fields": ["chat (TablesUpdate)", "id eq"],
+          "notes": "updateChat"
+        },
+        {
+          "file": "db/chats.ts",
+          "line": 74,
+          "operation": "from(chats).delete",
+          "fields": ["id eq"],
+          "notes": "deleteChat"
+        },
+        {
+          "file": "db/collection-files.ts",
+          "line": 8,
+          "operation": "from(collections).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/collection-files.ts",
+          "line": 30,
+          "operation": "from(collection_files).insert.select",
+          "fields": ["collectionFile"],
+          "notes": "insert"
+        },
+        {
+          "file": "db/collection-files.ts",
+          "line": 45,
+          "operation": "from(collection_files).insert.select",
+          "fields": ["collectionFiles[] bulk"],
+          "notes": "bulk insert"
+        },
+        {
+          "file": "db/collection-files.ts",
+          "line": 61,
+          "operation": "from(collection_files).delete",
+          "notes": "delete"
+        },
+        {
+          "file": "db/collections.ts",
+          "line": 6,
+          "operation": "from(collections).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/collections.ts",
+          "line": 22,
+          "operation": "from(workspaces).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/collections.ts",
+          "line": 44,
+          "operation": "from(collections).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/collections.ts",
+          "line": 67,
+          "operation": "from(collections).insert.select.single",
+          "fields": ["collection (TablesInsert)"],
+          "notes": "create"
+        },
+        {
+          "file": "db/collections.ts",
+          "line": 90,
+          "operation": "from(collections).insert.select",
+          "fields": ["collections[] bulk"],
+          "notes": "bulk create"
+        },
+        {
+          "file": "db/collections.ts",
+          "line": 115,
+          "operation": "from(collection_workspaces).insert.select",
+          "fields": ["item"],
+          "notes": "join insert"
+        },
+        {
+          "file": "db/collections.ts",
+          "line": 131,
+          "operation": "from(collection_workspaces).insert.select",
+          "fields": ["items[] bulk"],
+          "notes": "bulk join insert"
+        },
+        {
+          "file": "db/collections.ts",
+          "line": 145,
+          "operation": "from(collections).update.select.single",
+          "fields": ["collection (TablesUpdate)"],
+          "notes": "update"
+        },
+        {
+          "file": "db/collections.ts",
+          "line": 160,
+          "operation": "from(collections).delete",
+          "notes": "delete"
+        },
+        {
+          "file": "db/collections.ts",
+          "line": 176,
+          "operation": "from(collection_workspaces).delete",
+          "notes": "delete join row"
+        },
+        {
+          "file": "db/files.ts",
+          "line": 9,
+          "operation": "from(files).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/files.ts",
+          "line": 23,
+          "operation": "from(workspaces).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/files.ts",
+          "line": 43,
+          "operation": "from(files).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/files.ts",
+          "line": 105,
+          "operation": "from(files).insert.select",
+          "fields": ["fileRecord"],
+          "notes": "create file row after upload"
+        },
+        {
+          "file": "db/files.ts",
+          "line": 165,
+          "operation": "from(files).insert.select",
+          "fields": ["fileRecord"],
+          "notes": "create file row"
+        },
+        {
+          "file": "db/files.ts",
+          "line": 225,
+          "operation": "from(files).insert.select",
+          "fields": ["files[] bulk"],
+          "notes": "bulk create"
+        },
+        {
+          "file": "db/files.ts",
+          "line": 250,
+          "operation": "from(file_workspaces).insert.select",
+          "fields": ["item"],
+          "notes": "join insert"
+        },
+        {
+          "file": "db/files.ts",
+          "line": 266,
+          "operation": "from(file_workspaces).insert.select",
+          "fields": ["items[] bulk"],
+          "notes": "bulk join insert"
+        },
+        {
+          "file": "db/files.ts",
+          "line": 280,
+          "operation": "from(files).update.select",
+          "fields": ["file (TablesUpdate)"],
+          "notes": "update"
+        },
+        {
+          "file": "db/files.ts",
+          "line": 294,
+          "operation": "from(files).delete",
+          "fields": ["id eq"],
+          "notes": "deleteFile; error only"
+        },
+        {
+          "file": "db/files.ts",
+          "line": 308,
+          "operation": "from(file_workspaces).delete",
+          "notes": "delete join row"
+        },
+        {
+          "file": "db/folders.ts",
+          "line": 6,
+          "operation": "from(folders).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/folders.ts",
+          "line": 19,
+          "operation": "from(folders).insert.select",
+          "fields": ["folder"],
+          "notes": "create"
+        },
+        {
+          "file": "db/folders.ts",
+          "line": 36,
+          "operation": "from(folders).update.select",
+          "fields": ["folder (TablesUpdate)"],
+          "notes": "update"
+        },
+        {
+          "file": "db/folders.ts",
+          "line": 50,
+          "operation": "from(folders).delete",
+          "fields": ["id eq"],
+          "notes": "delete"
+        },
+        {
+          "file": "db/message-file-items.ts",
+          "line": 6,
+          "operation": "from(messages).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/message-file-items.ts",
+          "line": 27,
+          "operation": "from(message_file_items).insert.select",
+          "fields": ["messageFileItems"],
+          "notes": "bulk insert"
+        },
+        {
+          "file": "db/messages.ts",
+          "line": 6,
+          "operation": "from(messages).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/messages.ts",
+          "line": 20,
+          "operation": "from(messages).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/messages.ts",
+          "line": 33,
+          "operation": "from(messages).insert.select.single",
+          "fields": ["message"],
+          "notes": "create"
+        },
+        {
+          "file": "db/messages.ts",
+          "line": 47,
+          "operation": "from(messages).insert.select",
+          "fields": ["messages[] bulk"],
+          "notes": "bulk create"
+        },
+        {
+          "file": "db/messages.ts",
+          "line": 63,
+          "operation": "from(messages).update.select.single",
+          "fields": ["message (TablesUpdate)"],
+          "notes": "update"
+        },
+        {
+          "file": "db/messages.ts",
+          "line": 77,
+          "operation": "from(messages).delete",
+          "fields": ["id eq"],
+          "notes": "delete"
+        },
+        {
+          "file": "db/messages.ts",
+          "line": 91,
+          "operation": "rpc(delete_messages_including_and_after)",
+          "fields": ["chat/message identifiers (see file)"],
+          "notes": "server-side Postgres function via PostgREST RPC; error only"
+        },
+        {
+          "file": "db/models.ts",
+          "line": 6,
+          "operation": "from(models).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/models.ts",
+          "line": 20,
+          "operation": "from(workspaces).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/models.ts",
+          "line": 40,
+          "operation": "from(models).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/models.ts",
+          "line": 63,
+          "operation": "from(models).insert.select.single",
+          "fields": ["model"],
+          "notes": "create"
+        },
+        {
+          "file": "db/models.ts",
+          "line": 86,
+          "operation": "from(models).insert.select",
+          "fields": ["models[] bulk"],
+          "notes": "bulk create"
+        },
+        {
+          "file": "db/models.ts",
+          "line": 111,
+          "operation": "from(model_workspaces).insert.select",
+          "fields": ["item"],
+          "notes": "join insert"
+        },
+        {
+          "file": "db/models.ts",
+          "line": 127,
+          "operation": "from(model_workspaces).insert.select",
+          "fields": ["items[] bulk"],
+          "notes": "bulk join insert"
+        },
+        {
+          "file": "db/models.ts",
+          "line": 141,
+          "operation": "from(models).update.select.single",
+          "fields": ["model (TablesUpdate)"],
+          "notes": "update"
+        },
+        {
+          "file": "db/models.ts",
+          "line": 155,
+          "operation": "from(models).delete",
+          "fields": ["id eq"],
+          "notes": "delete"
+        },
+        {
+          "file": "db/models.ts",
+          "line": 169,
+          "operation": "from(model_workspaces).delete",
+          "notes": "delete join row"
+        },
+        {
+          "file": "db/presets.ts",
+          "line": 6,
+          "operation": "from(presets).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/presets.ts",
+          "line": 20,
+          "operation": "from(workspaces).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/presets.ts",
+          "line": 40,
+          "operation": "from(presets).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/presets.ts",
+          "line": 63,
+          "operation": "from(presets).insert.select.single",
+          "fields": ["preset"],
+          "notes": "create"
+        },
+        {
+          "file": "db/presets.ts",
+          "line": 86,
+          "operation": "from(presets).insert.select",
+          "fields": ["presets[] bulk"],
+          "notes": "bulk create"
+        },
+        {
+          "file": "db/presets.ts",
+          "line": 111,
+          "operation": "from(preset_workspaces).insert.select",
+          "fields": ["item"],
+          "notes": "join insert"
+        },
+        {
+          "file": "db/presets.ts",
+          "line": 127,
+          "operation": "from(preset_workspaces).insert.select",
+          "fields": ["items[] bulk"],
+          "notes": "bulk join insert"
+        },
+        {
+          "file": "db/presets.ts",
+          "line": 141,
+          "operation": "from(presets).update.select.single",
+          "fields": ["preset (TablesUpdate)"],
+          "notes": "update"
+        },
+        {
+          "file": "db/presets.ts",
+          "line": 155,
+          "operation": "from(presets).delete",
+          "fields": ["id eq"],
+          "notes": "delete"
+        },
+        {
+          "file": "db/presets.ts",
+          "line": 169,
+          "operation": "from(preset_workspaces).delete",
+          "notes": "delete join row"
+        },
+        {
+          "file": "db/profile.ts",
+          "line": 6,
+          "operation": "from(profiles).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/profile.ts",
+          "line": 20,
+          "operation": "from(profiles).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/profile.ts",
+          "line": 33,
+          "operation": "from(profiles).insert.select",
+          "fields": ["profile"],
+          "notes": "create"
+        },
+        {
+          "file": "db/profile.ts",
+          "line": 50,
+          "operation": "from(profiles).update.select",
+          "fields": ["profile (TablesUpdate)"],
+          "notes": "update"
+        },
+        {
+          "file": "db/profile.ts",
+          "line": 64,
+          "operation": "from(profiles).delete",
+          "fields": ["id eq"],
+          "notes": "delete"
+        },
+        {
+          "file": "db/prompts.ts",
+          "line": 6,
+          "operation": "from(prompts).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/prompts.ts",
+          "line": 20,
+          "operation": "from(workspaces).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/prompts.ts",
+          "line": 40,
+          "operation": "from(prompts).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/prompts.ts",
+          "line": 63,
+          "operation": "from(prompts).insert.select.single",
+          "fields": ["prompt"],
+          "notes": "create"
+        },
+        {
+          "file": "db/prompts.ts",
+          "line": 86,
+          "operation": "from(prompts).insert.select",
+          "fields": ["prompts[] bulk"],
+          "notes": "bulk create"
+        },
+        {
+          "file": "db/prompts.ts",
+          "line": 111,
+          "operation": "from(prompt_workspaces).insert.select",
+          "fields": ["item"],
+          "notes": "join insert"
+        },
+        {
+          "file": "db/prompts.ts",
+          "line": 127,
+          "operation": "from(prompt_workspaces).insert.select",
+          "fields": ["items[] bulk"],
+          "notes": "bulk join insert"
+        },
+        {
+          "file": "db/prompts.ts",
+          "line": 141,
+          "operation": "from(prompts).update.select.single",
+          "fields": ["prompt (TablesUpdate)"],
+          "notes": "update"
+        },
+        {
+          "file": "db/prompts.ts",
+          "line": 155,
+          "operation": "from(prompts).delete",
+          "fields": ["id eq"],
+          "notes": "delete"
+        },
+        {
+          "file": "db/prompts.ts",
+          "line": 169,
+          "operation": "from(prompt_workspaces).delete",
+          "notes": "delete join row"
+        },
+        {
+          "file": "db/storage/assistant-images.ts",
+          "line": 22,
+          "operation": "storage.from(assistant_images).remove",
+          "fields": ["[currentPath]"],
+          "notes": "deletes previous image before upload; throws on error"
+        },
+        {
+          "file": "db/storage/assistant-images.ts",
+          "line": 31,
+          "operation": "storage.from(assistant_images).upload",
+          "fields": ["filePath", "image File", "upsert: true"],
+          "notes": "uploads with 6MB client-side limit; returns filePath"
+        },
+        {
+          "file": "db/storage/assistant-images.ts",
+          "line": 46,
+          "operation": "storage.from(assistant_images).createSignedUrl",
+          "fields": ["filePath", "expiresIn 86400"],
+          "notes": "returns data.signedUrl; errors are logged and swallowed (returns undefined)"
+        },
+        {
+          "file": "db/storage/files.ts",
+          "line": 26,
+          "operation": "storage.from(files).upload",
+          "fields": ["filePath", "file", "upsert: true"],
+          "notes": "uploads user file; size limit from NEXT_PUBLIC_USER_FILE_SIZE_LIMIT"
+        },
+        {
+          "file": "db/storage/files.ts",
+          "line": 38,
+          "operation": "storage.from(files).remove",
+          "fields": ["[filePath]"],
+          "notes": "deleteFileFromStorage; toast on error"
+        },
+        {
+          "file": "db/storage/files.ts",
+          "line": 49,
+          "operation": "storage.from(files).createSignedUrl",
+          "fields": ["filePath", "expiresIn 86400"],
+          "notes": "returns signed URL; throws on error"
+        },
+        {
+          "file": "db/storage/message-images.ts",
+          "line": 12,
+          "operation": "storage.from(message_images).upload",
+          "fields": ["path", "image File", "upsert: true"],
+          "notes": "uploads message image (6MB limit)"
+        },
+        {
+          "file": "db/storage/message-images.ts",
+          "line": 26,
+          "operation": "storage.from(message_images).createSignedUrl",
+          "fields": ["filePath", "expiresIn 86400"],
+          "notes": "returns signed URL"
+        },
+        {
+          "file": "db/storage/profile-images.ts",
+          "line": 22,
+          "operation": "storage.from(profile_images).remove",
+          "fields": ["[currentPath]"],
+          "notes": "deletes previous avatar before upload"
+        },
+        {
+          "file": "db/storage/profile-images.ts",
+          "line": 31,
+          "operation": "storage.from(profile_images).upload",
+          "fields": ["filePath", "image File", "upsert: true"],
+          "notes": "uploads avatar (2MB limit)"
+        },
+        {
+          "file": "db/storage/profile-images.ts",
+          "line": 41,
+          "operation": "storage.from(profile_images).getPublicUrl",
+          "fields": ["filePath"],
+          "notes": "returns publicUrl; no network call, URL built from project URL; returned to caller as url"
+        },
+        {
+          "file": "db/storage/workspace-images.ts",
+          "line": 22,
+          "operation": "storage.from(workspace_images).remove",
+          "fields": ["[currentPath]"],
+          "notes": "deletes previous image before upload"
+        },
+        {
+          "file": "db/storage/workspace-images.ts",
+          "line": 31,
+          "operation": "storage.from(workspace_images).upload",
+          "fields": ["filePath", "image File", "upsert: true"],
+          "notes": "uploads workspace image (6MB limit)"
+        },
+        {
+          "file": "db/storage/workspace-images.ts",
+          "line": 46,
+          "operation": "storage.from(workspace_images).createSignedUrl",
+          "fields": ["filePath", "expiresIn 86400"],
+          "notes": "returns signed URL; errors swallowed"
+        },
+        {
+          "file": "db/tools.ts",
+          "line": 6,
+          "operation": "from(tools).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/tools.ts",
+          "line": 20,
+          "operation": "from(workspaces).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/tools.ts",
+          "line": 40,
+          "operation": "from(tools).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/tools.ts",
+          "line": 63,
+          "operation": "from(tools).insert.select.single",
+          "fields": ["tool"],
+          "notes": "create"
+        },
+        {
+          "file": "db/tools.ts",
+          "line": 86,
+          "operation": "from(tools).insert.select",
+          "fields": ["tools[] bulk"],
+          "notes": "bulk create"
+        },
+        {
+          "file": "db/tools.ts",
+          "line": 111,
+          "operation": "from(tool_workspaces).insert.select",
+          "fields": ["item"],
+          "notes": "join insert"
+        },
+        {
+          "file": "db/tools.ts",
+          "line": 127,
+          "operation": "from(tool_workspaces).insert.select",
+          "fields": ["items[] bulk"],
+          "notes": "bulk join insert"
+        },
+        {
+          "file": "db/tools.ts",
+          "line": 141,
+          "operation": "from(tools).update.select.single",
+          "fields": ["tool (TablesUpdate)"],
+          "notes": "update"
+        },
+        {
+          "file": "db/tools.ts",
+          "line": 155,
+          "operation": "from(tools).delete",
+          "fields": ["id eq"],
+          "notes": "delete"
+        },
+        {
+          "file": "db/tools.ts",
+          "line": 169,
+          "operation": "from(tool_workspaces).delete",
+          "notes": "delete join row"
+        },
+        {
+          "file": "db/workspaces.ts",
+          "line": 6,
+          "operation": "from(workspaces).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/workspaces.ts",
+          "line": 21,
+          "operation": "from(workspaces).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/workspaces.ts",
+          "line": 35,
+          "operation": "from(workspaces).select",
+          "notes": "read"
+        },
+        {
+          "file": "db/workspaces.ts",
+          "line": 51,
+          "operation": "from(workspaces).insert.select",
+          "fields": ["workspace"],
+          "notes": "create"
+        },
+        {
+          "file": "db/workspaces.ts",
+          "line": 68,
+          "operation": "from(workspaces).update.select",
+          "fields": ["workspace (TablesUpdate)"],
+          "notes": "update"
+        },
+        {
+          "file": "db/workspaces.ts",
+          "line": 83,
+          "operation": "from(workspaces).delete",
+          "notes": "delete"
+        },
+        {
+          "file": "lib/server/server-chat-helpers.ts",
+          "line": 20,
+          "operation": "auth.getUser",
+          "notes": "outside my area (lib/server); getUser validates token with Supabase Auth server"
+        },
+        {
+          "file": "middleware.ts",
+          "line": 13,
+          "operation": "auth.getSession",
+          "notes": "runs on every matched request via lib/supabase/middleware createServerClient; redirects / to the home workspace when a session exists; errors swallowed"
+        },
+        {
+          "file": "middleware.ts",
+          "line": 19,
+          "operation": "from(workspaces).select.single",
+          "fields": ["user_id eq session user id", "is_home eq true"],
+          "notes": "home workspace lookup for redirect from /"
+        }
+      ],
+      "sdk": {
+        "name": "@supabase/supabase-js",
+        "version": "2.39.3",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "supabase",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/[locale]/[workspaceid]/layout.tsx",
+          "line": 108,
+          "operation": "GET <supabase storage signed URL>",
+          "notes": "fetch of the signed URL returned by storage.from(assistant_images).createSignedUrl (db/storage/assistant-images.ts getAssistantImageFromStorage). Reads blob and converts to base64. Follows the storage response per signed URL; the host is the project's Supabase storage host."
+        },
+        {
+          "file": "components/chat/chat-ui.tsx",
+          "line": 89,
+          "operation": "GET <supabase storage signed URL (message image)>",
+          "notes": "URL from getMessageImageFromStorage (createSignedUrl, db/storage/message-images.ts). Blob converted to base64 for MessageImage."
+        },
+        {
+          "file": "components/sidebar/items/all/sidebar-create-item.tsx",
+          "line": 132,
+          "operation": "GET <supabase storage signed URL (assistant image)>",
+          "notes": "URL from getAssistantImageFromStorage (createSignedUrl, db/storage/assistant-images.ts). Blob converted to base64."
+        },
+        {
+          "file": "components/sidebar/items/all/sidebar-update-item.tsx",
+          "line": 517,
+          "operation": "GET <supabase storage signed URL (assistant image)>",
+          "notes": "Same as sidebar-create-item, on update flow."
+        },
+        {
+          "file": "components/utility/global-state.tsx",
+          "line": 180,
+          "operation": "GET <supabase storage signed URL (workspace image)>",
+          "notes": "URL comes from getWorkspaceImageFromStorage (createSignedUrl, 24h expiry, db/storage/workspace-images.ts). Blob is converted to base64 and kept in workspaceImages state."
+        },
+        {
+          "file": "components/workspace/workspace-settings.tsx",
+          "line": 89,
+          "operation": "GET <supabase storage signed URL (workspace image)>",
+          "notes": "URL from getWorkspaceImageFromStorage; blob read for display/base64."
+        }
+      ]
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/assistants/openai/route.ts",
+          "line": 18,
+          "operation": "beta.assistants.list",
+          "fields": ["limit=100"],
+          "notes": "GET handler; returns myAssistants.data to client unchanged."
+        },
+        {
+          "file": "app/api/chat/openai/route.ts",
+          "line": 27,
+          "operation": "chat.completions.create",
+          "fields": ["model", "messages", "temperature", "max_tokens", "stream"],
+          "notes": "Streams response through OpenAIStream from 'ai' into StreamingTextResponse; client uses profile.openai_api_key and openai_organization_id; edge runtime."
+        },
+        {
+          "file": "app/api/chat/tools/route.ts",
+          "line": 62,
+          "operation": "chat.completions.create",
+          "fields": ["model", "messages", "tools"],
+          "notes": "Non-streaming first call with OpenAI function tools generated from user-selected OpenAPI schemas. Reads choices[0].message and tool_calls; if none, returns message.content."
+        },
+        {
+          "file": "app/api/chat/tools/route.ts",
+          "line": 201,
+          "operation": "chat.completions.create",
+          "fields": ["model", "messages", "stream"],
+          "notes": "Second call after tool execution; streamed via OpenAIStream."
+        },
+        {
+          "file": "app/api/command/route.ts",
+          "line": 23,
+          "operation": "chat.completions.create",
+          "fields": [
+            "model (hardcoded gpt-4-1106-preview)",
+            "messages",
+            "temperature",
+            "max_tokens"
+          ],
+          "notes": "Non-streaming; returns choices[0].message.content to client."
+        },
+        {
+          "file": "app/api/retrieval/process/docx/route.ts",
+          "line": 65,
+          "operation": "embeddings.create",
+          "fields": ["model text-embedding-3-small", "input (chunk contents)"],
+          "notes": "Same as process route; docx upload path."
+        },
+        {
+          "file": "app/api/retrieval/process/route.ts",
+          "line": 118,
+          "operation": "embeddings.create",
+          "fields": ["model text-embedding-3-small", "input (chunk contents)"],
+          "notes": "Only when embeddingsProvider is openai; uses response.data[].embedding and stores in file_items.openai_embedding. Client is Azure-configured when profile.use_azure_openai is set (see azure-openai usage)."
+        },
+        {
+          "file": "app/api/retrieval/retrieve/route.ts",
+          "line": 52,
+          "operation": "embeddings.create",
+          "fields": ["model text-embedding-3-small", "input (user query)"],
+          "notes": "Embedding of user query, result passed to rpc match_file_items_openai."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "text-embedding-3-small (embedding model); gpt-4-1106-preview hardcoded in command route",
+        "file": "app/api/retrieval/process/route.ts",
+        "line": 119
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "4.24.7",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "azure-openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/azure/route.ts",
+          "line": 54,
+          "operation": "chat.completions.create",
+          "fields": ["model (deployment id)", "messages", "temperature", "max_tokens", "stream"],
+          "notes": "Base URL is {azure_openai_endpoint}/openai/deployments/{deployment} from profile or env; api-key header; streamed via OpenAIStream. Deployment id chosen by model name."
+        },
+        {
+          "file": "app/api/retrieval/process/docx/route.ts",
+          "line": 65,
+          "operation": "embeddings.create",
+          "fields": ["input (chunk contents)"],
+          "notes": "Same as process route when use_azure_openai; Azure client built at lines 51-56."
+        },
+        {
+          "file": "app/api/retrieval/process/route.ts",
+          "line": 118,
+          "operation": "embeddings.create",
+          "fields": [
+            "model text-embedding-3-small (Azure deployment is the baseURL)",
+            "input (chunk contents)"
+          ],
+          "notes": "Same call line as openai usage; client is Azure-configured when profile.use_azure_openai is true (baseURL built at lines 104-109). Api-version 2023-12-01-preview pinned at line 107."
+        },
+        {
+          "file": "app/api/retrieval/retrieve/route.ts",
+          "line": 52,
+          "operation": "embeddings.create",
+          "fields": ["input (user query)"],
+          "notes": "Azure client built at lines 38-43 when use_azure_openai; embedding feeds match_file_items_openai."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "2023-12-01-preview",
+        "file": "app/api/chat/azure/route.ts",
+        "line": 50
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "4.24.7",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "anthropic",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/anthropic/route.ts",
+          "line": 63,
+          "operation": "messages.create",
+          "fields": [
+            "model",
+            "messages",
+            "temperature",
+            "system (first message content)",
+            "max_tokens (from CHAT_SETTING_LIMITS)",
+            "stream=true"
+          ],
+          "notes": "Streamed via AnthropicStream from 'ai' into StreamingTextResponse. Converts image_url content to base64 image blocks. Client keyed by profile.anthropic_api_key."
+        }
+      ],
+      "sdk": {
+        "name": "@anthropic-ai/sdk",
+        "version": "0.18.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "custom-openai-compatible",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/custom/route.ts",
+          "line": 40,
+          "operation": "chat.completions.create",
+          "fields": ["model", "messages", "temperature", "stream"],
+          "notes": "Host is user-supplied: baseURL is customModel.base_url read from the Supabase models row (line 37), so the destination is not a fixed vendor. Recorded because it is an outbound OpenAI-protocol call; streamed via OpenAIStream. Supabase read at line 26 is recorded under supabase."
+        }
+      ],
+      "sdk": {
+        "name": "openai",
+        "version": "4.24.7",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "google",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/google/route.ts",
+          "line": 31,
+          "operation": "ChatSession.sendMessageStream (generativelanguage streamGenerateContent)",
+          "fields": [
+            "lastMessage.parts",
+            "history (prior messages)",
+            "generationConfig.temperature"
+          ],
+          "notes": "Model chosen at line 20 (getGenerativeModel, no network call) and chat started at line 24 (no network call). Streams chunks via chunk.text() to a plain text ReadableStream. API key from profile.google_gemini_api_key."
+        }
+      ],
+      "sdk": {
+        "name": "@google/generative-ai",
+        "version": "0.11.4",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "groq",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/groq/route.ts",
+          "line": 26,
+          "operation": "chat.completions.create",
+          "fields": ["model", "messages", "max_tokens", "stream"],
+          "notes": "baseURL https://api.groq.com/openai/v1 set at line 23. Streamed via OpenAIStream."
+        }
+      ],
+      "sdk": {
+        "name": "openai",
+        "version": "4.24.7",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "mistral",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/mistral/route.ts",
+          "line": 27,
+          "operation": "chat.completions.create",
+          "fields": ["model", "messages", "max_tokens", "stream"],
+          "notes": "baseURL https://api.mistral.ai/v1 set at line 24. Streamed via OpenAIStream."
+        }
+      ],
+      "sdk": {
+        "name": "openai",
+        "version": "4.24.7",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "perplexity",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/perplexity/route.ts",
+          "line": 26,
+          "operation": "chat.completions.create",
+          "fields": ["model", "messages", "stream"],
+          "notes": "baseURL https://api.perplexity.ai/ set at line 23. Streamed via OpenAIStream."
+        }
+      ],
+      "sdk": {
+        "name": "openai",
+        "version": "4.24.7",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "openrouter",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/openrouter/route.ts",
+          "line": 27,
+          "operation": "chat.completions.create",
+          "fields": ["model", "messages", "temperature", "max_tokens (undefined)", "stream"],
+          "notes": "baseURL https://openrouter.ai/api/v1 set at line 24. Streamed via OpenAIStream. The model list fetch to openrouter.ai/api/v1/models lives in lib/models/fetch-models.ts:84, outside this area."
+        }
+      ],
+      "sdk": {
+        "name": "openai",
+        "version": "4.24.7",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "huggingface",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "lib/generate-local-embedding.ts",
+          "line": 4,
+          "operation": "pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2')",
+          "notes": "Network call is the model download from the Hugging Face Hub (not a per-request API); inference runs locally. Called from retrieval/process (line 129), retrieval/process/docx (line 76) and retrieval/retrieve (line 72). Unsure whether the cached model means no network call after first run; recorded for the initial fetch."
+        }
+      ],
+      "sdk": {
+        "name": "@xenova/transformers",
+        "version": "2.14.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "vercel",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/[locale]/login/page.tsx",
+          "line": 87,
+          "operation": "edgeConfig.get(name)",
+          "notes": "Only when process.env.EDGE_CONFIG is set; the call happens in the signUp server action via getEnvVarOrEdgeConfigValue (line 99/106 callers). Import at line 8. Value used to build the email whitelist; not stored."
+        }
+      ],
+      "sdk": {
+        "name": "@vercel/edge-config",
+        "version": "0.4.1",
+        "lockfile": "package-lock.json"
+      }
+    }
+  ],
+  "purposes": {
+    "ollama": "Local models: list installed models and chat completions, called from the browser at NEXT_PUBLIC_OLLAMA_URL",
+    "openrouter": "OpenRouter chat completions through its OpenAI-compatible endpoint",
+    "supabase": "Downloads assistant images from Supabase Storage signed URLs in the browser to convert them to base64",
+    "openai": "Chat completions (OpenAI models), tools chat with function calling, command completion, assistants listing, text embeddings for retrieval",
+    "azure-openai": "Azure OpenAI chat completions and embeddings, using the openai SDK pointed at Azure deployment URLs",
+    "anthropic": "Claude chat completions with streaming",
+    "custom-openai-compatible": "User-configured custom OpenAI-compatible model endpoint, base_url and api_key stored per model in the Supabase models table",
+    "google": "Google Gemini chat via generative language API (streaming)",
+    "groq": "Groq chat completions through its OpenAI-compatible endpoint",
+    "mistral": "Mistral chat completions through its OpenAI-compatible endpoint",
+    "perplexity": "Perplexity chat completions through its OpenAI-compatible endpoint",
+    "huggingface": "Local embeddings: @xenova/transformers downloads the Xenova/all-MiniLM-L6-v2 model from the Hugging Face Hub on first use, then runs it in-process",
+    "vercel": "Vercel Edge Config read for email sign-up whitelist values (EMAIL_DOMAIN_WHITELIST, EMAIL_WHITELIST), falling back to env vars"
+  },
+  "summary": "mckaywrigley/chatbot-ui uses supabase for Supabase Auth (session read, password sign-in/sign-up, reset email, code exchange, password update, sign-out) and home-workspace lookups from pages, layouts, auth callback and middleware through @supabase/supabase-js 2.39.3 in 163 places; openai for Chat completions (OpenAI models), tools chat with function calling, command completion, assistants listing, text embeddings for retrieval through openai 4.24.7, pinned to text-embedding-3-small (embedding model); gpt-4-1106-preview hardcoded in command route in 8 places; supabase for Per-request user-scoped auth and profile lookup for all chat routes (getServerProfile), using the anon key and request cookies through @supabase/ssr 0.0.10 in 7 places; supabase for Downloads assistant images from Supabase Storage signed URLs in the browser to convert them to base64 through raw HTTP in 6 places; azure-openai for Azure OpenAI chat completions and embeddings, using the openai SDK pointed at Azure deployment URLs through openai 4.24.7, pinned to 2023-12-01-preview in 4 places; ollama for Local models: list installed models and chat completions, called from the browser at NEXT_PUBLIC_OLLAMA_URL through raw HTTP in 2 places; openrouter for Fetch the OpenRouter model catalog for the model picker; chat itself goes through the server route app/api/chat/openrouter through raw HTTP, pinned to v1 in 1 place; anthropic for Claude chat completions with streaming through @anthropic-ai/sdk 0.18.0 in 1 place; custom-openai-compatible for User-configured custom OpenAI-compatible model endpoint, base_url and api_key stored per model in the Supabase models table through openai 4.24.7 in 1 place; google for Google Gemini chat via generative language API (streaming) through @google/generative-ai 0.11.4 in 1 place; groq for Groq chat completions through its OpenAI-compatible endpoint through openai 4.24.7 in 1 place; mistral for Mistral chat completions through its OpenAI-compatible endpoint through openai 4.24.7 in 1 place; perplexity for Perplexity chat completions through its OpenAI-compatible endpoint through openai 4.24.7 in 1 place; openrouter for OpenRouter chat completions through its OpenAI-compatible endpoint through openai 4.24.7 in 1 place; huggingface for Local embeddings: @xenova/transformers downloads the Xenova/all-MiniLM-L6-v2 model from the Hugging Face Hub on first use, then runs it in-process through @xenova/transformers 2.14.0 in 1 place; vercel for Vercel Edge Config read for email sign-up whitelist values (EMAIL_DOMAIN_WHITELIST, EMAIL_WHITELIST), falling back to env vars through @vercel/edge-config 0.4.1 in 1 place.",
+  "agentSummary": "The inventory is complete. I did not re-read every call site the area readers recorded. I reviewed the recorded list and checked that the callers of the OpenRouter and Ollama wrappers are covered.\n\n**LLM providers**\n- **OpenAI** (`openai` SDK 4.24.7, via `app/api/*`): chat in `chat/openai` and `chat/tools`, `command` (hardcoded `gpt-4-1106-preview`) and `assistants.list`. Embeddings use `text-embedding-3-small` in the three retrieval routes.\n- **Azure OpenAI** (same `openai` SDK, with the base URL set to the Azure deployment): chat in `chat/azure` and the Azure branch of the embedding calls. The API version is pinned to `2023-12-01-preview`.\n- **Anthropic** (`@anthropic-ai/sdk` 0.18.0): streamed `messages.create`.\n- **Google Gemini** (`@google/generative-ai` 0.11.4): streamed `sendMessageStream`.\n- **Groq, Mistral, Perplexity, OpenRouter chat** (`openai` SDK, each with its own base URL): one streamed chat call per vendor.\n- **Custom model route** (`openai` SDK): the base URL is user-supplied per model row. I recorded it as `custom-openai-compatible`.\n- **OpenRouter model list** (raw HTTP): `GET https://openrouter.ai/api/v1/models`, called from the browser. It is reached through `fetchOpenRouterModels`, called from `global-state.tsx`, `profile-settings.tsx` and `setup/page.tsx`.\n- **Ollama** (raw HTTP to `NEXT_PUBLIC_OLLAMA_URL`): `/api/tags` for the model list and streamed `/api/chat`, both called from the browser.\n- **Hugging Face** (`@xenova/transformers` 2.14.0): downloads the `Xenova/all-MiniLM-L6-v2` model for local embeddings on first use. Inference then runs in-process, so I'm unsure whether there is any network use after the first run.\n\n**Supabase**\n- **`@supabase/supabase-js` 2.39.3:** about 200 call sites. They cover `db/*` table modules, one RPC, storage uploads, removals and signed URLs, auth in the pages, middleware and `auth/callback`, and the service-role calls in the API routes.\n- **`@supabase/ssr` 0.0.10:** the browser client, plus the server helper in `lib/server/server-chat-helpers.ts`. It is recorded as a separate usage because it is a different SDK.\n- **Raw HTTP:** six `fetch` calls on Supabase Storage signed URLs, which convert images to base64.\n\n**Vercel**\n- **`@vercel/edge-config` 0.4.1:** the login sign-up action reads the email whitelist, only when `EDGE_CONFIG` is set.\n\n**Not recorded or uncertain**\n- **User-supplied URLs:** `app/api/chat/tools/route.ts` (lines 153 and 178) fetches URLs taken from user-configured OpenAPI schemas. I did not record these as a provider.\n- **Unused dependencies:** `@vercel/analytics`, `@azure/openai` and `@mistralai/mistralai` are in `package.json`, but the readers found no imports of them.\n- **Webhooks:** there are no webhook receivers.\n- **Internal fetches:** the `fetch` calls to `/api/*` go to the repo's own backend, so they are not external.",
+  "outcome": "success",
+  "costUsd": 0.23657991499999997,
+  "costByModel": {
+    "claude-haiku-5-5": 0.049878315000000006,
+    "claude-sonnet-5-5": 0.1867016
+  },
+  "turns": 3,
+  "durationMs": 102782
+}

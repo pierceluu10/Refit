@@ -1,0 +1,76 @@
+{
+  "repo": "chubin/wttr.in",
+  "promptVersion": "inventory-v1",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "chubin/wttr.in",
+      "provider": "opencagedata",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "internal/location/nominatim_locationiq.go",
+          "line": 23,
+          "operation": "GET {url} (LocationIQ type 'iq', not in default config)",
+          "fields": ["q", "format", "language", "limit", "key"],
+          "notes": "Reads lat, lon, display_name. Host comes from config; likely locationiq.com."
+        },
+        {
+          "file": "internal/location/nominatim_opencage.go",
+          "line": 27,
+          "operation": "GET /geocode/v1/json",
+          "fields": ["q", "language", "limit", "key"],
+          "notes": "Reads results[0].geometry.lat/lng, formatted, country. URL from share/config/config.yaml:31."
+        },
+        {
+          "file": "internal/location/nominatim.go",
+          "line": 59,
+          "operation": "GET {geo.nominatim[].url} (https://api.opencagedata.com/geocode/v1/json)",
+          "notes": "Shared makeQuery; JSON parsed, error field checked."
+        }
+      ]
+    },
+    {
+      "repo": "chubin/wttr.in",
+      "provider": "wttr.in",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "internal/weather/weatherer_wwo.go",
+          "line": 103,
+          "operation": "GET {weather.wwo.baseUrl}",
+          "fields": ["lat", "lon", "lang", "key"],
+          "notes": "Default config baseUrl is http://wttr.in/{lat},{lon}?format=j1&lang={lang} (share/config/config.yaml:36); can be pointed at World Weather Online with {key}. Strips optional 'data' wrapper and returns JSON bytes."
+        }
+      ]
+    },
+    {
+      "repo": "chubin/wttr.in",
+      "provider": "wttr.in-uplink",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "internal/uplink/uplink.go",
+          "line": 103,
+          "operation": "proxy request to http://{Host}{RequestURI}",
+          "notes": "Dialer forced to configured Address1-4; likely the project's own backend, not external. Headers X-Forwarded-For, X-Location forwarded."
+        }
+      ]
+    }
+  ],
+  "purposes": {
+    "opencagedata": "Geocoding location names (also LocationIQ-style \"iq\" provider supported)",
+    "wttr.in": "Upstream weather data (WWO j1 format) via configurable baseUrl",
+    "wttr.in-uplink": "Proxy of requests to backend uplink servers (likely internal, uncertain)"
+  },
+  "summary": "chubin/wttr.in uses opencagedata for Geocoding location names (also LocationIQ-style \"iq\" provider supported) through raw HTTP in 3 places; wttr.in for Upstream weather data (WWO j1 format) via configurable baseUrl through raw HTTP in 1 place; wttr.in-uplink for Proxy of requests to backend uplink servers (likely internal, uncertain) through raw HTTP in 1 place.",
+  "agentSummary": "I found three outbound HTTP integrations in wttr.in and recorded each one. I read only the Go code that makes the requests and the config file. I didn't read the shell scripts or the `share/defs/ds/*/info.json` files.\n\n- **OpenCage geocoding** (`opencagedata`, raw HTTP): turns location names into lat/lon. The shared `makeQuery` in `internal/location/nominatim.go:59` makes the call. It is invoked from `nominatim_opencage.go:27` and, for the LocationIQ-style `iq` type, from `nominatim_locationiq.go:23`. The URL and token come from `share/config/config.yaml`, and nothing pins an API version. The LocationIQ host isn't in the repo, so I couldn't confirm it. It is likely `locationiq.com`, and I recorded it under the OpenCage usage with a note.\n- **Weather data** (`wttr.in`, raw HTTP): `internal/weather/weatherer_wwo.go:103` fetches weather JSON from the configurable `weather.wwo.baseUrl`. The default config points it at wttr.in's own `?format=j1` endpoint. The `{key}` placeholder means it can also be pointed at World Weather Online. The code strips the optional `data` wrapper from the response.\n- **Uplink proxy** (`wttr.in-uplink`, raw HTTP): `internal/uplink/uplink.go:103` forwards incoming requests to up to four backend servers at configured addresses. This is probably the project's own backend rather than an external API. I recorded it with a note saying so.\n\nTwo things I left out on purpose. The MaxMind GeoLite2 lookup in `internal/ip` reads a local `.mmdb` file, so there is no network call. The `share/defs/ds/*/info.json` files are only descriptive entries for other weather providers. They have no call sites.\n\n`build.sh:144` also downloads a CSS file from raw.githubusercontent.com at build time. I didn't record that one.",
+  "outcome": "success",
+  "costUsd": 0.0876068,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0001305,
+    "claude-sonnet-5-5": 0.0874763
+  },
+  "turns": 15,
+  "durationMs": 20758
+}

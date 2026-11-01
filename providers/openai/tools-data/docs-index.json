@@ -1,0 +1,219 @@
+{
+  "provider": "openai",
+  "retrieved": "2026-11-01",
+  "note": "Short notes written from the OpenAI developer docs on 2026-11-01. platform.openai.com/docs/* now redirects to developers.openai.com/api/docs/*; appending .md to a docs URL returns a markdown version.",
+  "pages": [
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "title": "Deprecations",
+      "passages": [
+        "Lists every API deprecation with shutdown date and recommended replacement, newest first, split into upcoming and past. Deprecated means a shutdown date exists; shut down / sunset means the model or endpoint no longer answers; legacy means no more updates and a future deprecation is likely.",
+        "Monitor shutdowns programmatically: GET /v1/models (and retrieve a model) return an optional shutdown_date field, YYYY-MM-DD or null.",
+        "Minimum notice: generally available models at least 6 months; specialized variants (chat-latest, codex, deep-research) at least 3 months; preview models (name contains preview) can be retired with about 2 weeks notice. Fine-tuned models follow their base model's shutdown schedule.",
+        "Upcoming as of 2026-11-01: GPT-4o/4o-mini/4.1/4.1-mini dated snapshots shut down 2027-01-14 (replacement gpt-6-luna); gpt-5, gpt-5-mini, gpt-5-nano, gpt-5-pro, o3, o3-pro shut down 2026-12-11 (gpt-5.6-sol/terra/luna); gpt-image-1-mini and gpt-image-1.5 shut down 2026-12-01; tts-1, tts-1-hd, gpt-4o-mini-tts shut down 2027-01-06; whisper-1 and gpt-4o-transcribe family shut down 2027-02-26; gpt-5.1, gpt-5.3-codex, gpt-5.4-nano shut down 2027-04-01."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations#2025-08-20-assistants-api",
+      "title": "Assistants API sunset",
+      "passages": [
+        "The Assistants API (assistants, threads, runs, run steps, OpenAI-Beta: assistants=v2) was deprecated on 2025-08-26 and shut down on 2026-08-26. Replacement: Responses API plus Conversations API. Assistants beta v1 (OpenAI-Beta: assistants=v1) was shut down earlier, on 2024-12-18."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/assistants/migration",
+      "title": "Assistants migration guide",
+      "passages": [
+        "Concept map: Assistants become Prompts (created in the dashboard), Threads become Conversations (which store items, not only messages), Runs become Responses, Run steps become Items. The guide notes reusable prompt objects are also being deprecated, so check that timeline before relying on them.",
+        "Thread history can no longer be fetched from the Assistants API after the sunset; migrate history from messages your own application stored. Start new chats on Conversations + Responses."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/migrate-to-responses",
+      "title": "Migrate to the Responses API",
+      "passages": [
+        "Chat Completions stays supported; Responses is recommended for new work. Move POST /v1/chat/completions to POST /v1/responses, read the typed output array (or the SDK output_text helper) instead of choices[0].message.content, and pick a state strategy.",
+        "Mapping: messages -> input (string or Items); system/developer guidance -> top-level instructions; assistant message -> output message Item; tool call -> function_call Item; tool result -> function_call_output Item with call_id; n (multiple choices) has no equivalent.",
+        "Structured Outputs move from response_format to text.format. Function definitions are internally tagged in Responses and strict by default when possible (set strict:false to keep non-strict). Streaming uses typed events such as response.output_text.delta and response.function_call_arguments.delta.",
+        "State: previous_response_id (instructions are not carried over; previous tokens are still billed), manual replay of output Items, or the Conversations API. Responses are stored by default; set store:false, and for ZDR replay encrypted reasoning items.",
+        "Starting with GPT-5.4, Chat Completions does not support tool calling with reasoning_effort other than none."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/latest-model",
+      "title": "Using GPT-6 (latest model guide)",
+      "passages": [
+        "Current family: gpt-6-astra (highest intelligence), gpt-6.1-sol, gpt-6.1-terra, gpt-6-luna (fastest, cheapest). GPT-5.6 introduced the sol/terra/luna naming; the gpt-5.6 alias routes to gpt-5.6-sol.",
+        "Migration checklist: preserve effective reasoning effort; GPT-6 Astra and GPT-6.1 Sol do not support effort none (use low). Tool calling on Astra / 6.1 Sol / 6.1 Terra requires Responses. When reasoning effort is not none, remove temperature, top_p and top_logprobs (Chat: also logprobs; Responses: drop message.output_text.logprobs from include). Replace prompt_cache_retention with prompt_cache_options.ttl (\"30m\")."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/reasoning",
+      "title": "Reasoning models",
+      "passages": [
+        "Effort is set with reasoning.effort in Responses and reasoning_effort in Chat Completions; supported values are model-dependent (none, minimal, low, medium, high, xhigh, max). Unsupported values can return HTTP 400.",
+        "Limit generated tokens, including hidden reasoning tokens, with max_output_tokens. Hitting the limit returns status incomplete with incomplete_details.reason max_output_tokens, possibly before any visible text; reserve generous headroom (the guide suggests about 25k to start)."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/models/all",
+      "title": "All models",
+      "passages": [
+        "Catalog of current and retired models. Each model page lists supported endpoints, snapshots and aliases, and badges a snapshot as Deprecated or Shut down. Aliases (e.g. gpt-4o) point to a dated snapshot (gpt-4o -> gpt-4o-2024-08-06); pin a dated snapshot for stable behavior."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/reference/overview",
+      "title": "API overview: auth, headers, compatibility",
+      "passages": [
+        "Authentication is HTTP Bearer: Authorization: Bearer <API key or workload-identity access token>. Users in several organizations, or using a legacy user key for projects, pass OpenAI-Organization and OpenAI-Project headers; usage is billed to that org/project.",
+        "Response headers: openai-organization, openai-processing-ms, openai-version (REST API version, currently 2020-10-01), x-request-id, and x-ratelimit-limit/remaining/reset for requests and tokens (plus project-token variants). You can send your own X-Client-Request-Id (ASCII, max 512 chars).",
+        "Backwards compatibility: the REST API is v1 and avoids breaking changes; first-party SDKs follow semver; model families are stable but behavior changes between snapshots. Adding endpoints, optional params, response properties or stream event types is considered backwards-compatible. There is no dated API-version header to pin."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/workload-identity-federation",
+      "title": "Workload identity federation",
+      "passages": [
+        "A trusted workload can exchange an identity it already has (OIDC or X.509) for a short-lived OpenAI access token mapped to a service account, instead of storing a long-lived API key. The token is sent as a Bearer credential."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/production-best-practices",
+      "title": "Production best practices (organizations, projects, keys)",
+      "passages": [
+        "Organizations have IDs usable in the OpenAI-Organization header; usage goes to the default org when no header is sent. Project API keys should get an expiration date and a rotation process; admins can enforce a maximum key lifetime and restrict key types (service-account only, user-owned project keys, or none) via API Key Governance."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/rate-limits",
+      "title": "Rate limits",
+      "passages": [
+        "Limits are measured in RPM, RPD, TPM, TPD, IPM and audio minutes, set per organization and per project, vary by model, and some model families share a limit. Batch queue limits count queued input tokens.",
+        "Usage tiers were simplified to Build, Launch and Grow (October 2026), upgrading automatically with total credit purchases. Check limits in Settings > Organization > Limits. Vector store file ingestion is limited to 300 requests/minute per vector store.",
+        "Read x-ratelimit-* response headers. When retrying your own HTTP calls, follow Retry-After when present, otherwise use exponential backoff with jitter and cap the retries; the official SDKs retry automatically."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/reference/resources/files/methods/list",
+      "title": "List pagination (after / has_more)",
+      "passages": [
+        "List endpoints use cursor pagination: pass after=<last object id> to get the next page, limit to size the page, and order asc/desc by created_at. The list object returns data, first_id, last_id and has_more. The SDKs auto-paginate list() calls (python since v1; for await in node)."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/webhooks",
+      "title": "Webhooks",
+      "passages": [
+        "Project webhooks notify you of events such as response.completed (background responses), batch completion and fine-tuning job status. Endpoints and event subscriptions are configured in the dashboard (project settings > webhooks); you get a signing secret once.",
+        "Delivery follows the Standard Webhooks spec with webhook-id, webhook-timestamp and webhook-signature headers. Verify with client.webhooks.unwrap(body, headers) using the raw body (python: OpenAI(webhook_secret=...); node: new OpenAI({webhookSecret})), which raises InvalidWebhookSignatureError on mismatch.",
+        "Return 2xx quickly; failures or slow responses are retried with exponential backoff for up to 72 hours; 3xx redirects are not followed. Duplicates are possible, so dedupe on webhook-id. Payloads carry the object id (event.data.id); fetch the object for details."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/libraries",
+      "title": "SDKs and CLI",
+      "passages": [
+        "Official SDKs: openai-python, openai-node (TypeScript/JavaScript), .NET, Java, Go, Ruby, plus a generated openai CLI and the Agents SDK (Python and JS). Microsoft maintains Azure OpenAI client libraries that also work with the OpenAI API."
+      ]
+    },
+    {
+      "url": "https://github.com/openai/openai-python/discussions/742",
+      "title": "openai-python v1.0.0 migration guide",
+      "passages": [
+        "v1 (2023-11-06) is a rewrite: instantiate client = OpenAI(); openai.ChatCompletion.create -> client.chat.completions.create, openai.Completion.create -> client.completions.create, openai.Embedding.create -> client.embeddings.create, openai.Image.create -> client.images.generate, openai.Audio.transcribe -> client.audio.transcriptions.create. Responses are pydantic models (no dict indexing). a* async methods are gone; use AsyncOpenAI. openai.InvalidRequestError -> openai.BadRequestError. `openai migrate` (grit) automates much of it."
+      ]
+    },
+    {
+      "url": "https://github.com/openai/openai-node/discussions/217",
+      "title": "openai-node v3 to v4 migration guide",
+      "passages": [
+        "v4 is a rewrite: import OpenAI from 'openai'; new OpenAI({apiKey}) replaces Configuration + OpenAIApi. createChatCompletion -> chat.completions.create, createCompletion -> completions.create, createEmbedding -> embeddings.create, createImage -> images.generate, createTranscription -> audio.transcriptions.create. Results are no longer under .data; errors are OpenAI.APIError; headers via .withResponse(). `npm exec openai migrate` automates much of it."
+      ]
+    },
+    {
+      "url": "https://github.com/openai/openai-node/blob/main/MIGRATION.md",
+      "title": "openai-node v5+ migration (built-in fetch)",
+      "passages": [
+        "v5 (2025-05-29) uses the built-in fetch with zero dependencies: Web types for asResponse/withResponse and APIError.headers, named path parameters for multi-parameter methods, del() renamed to delete(), httpAgent replaced by fetchOptions, beta.chat namespace and runFunctions removed, openai/src removed. v6 (2025-09-30) widened tool call output to string or content array. v7 (2026-07-27) requires Node.js 22."
+      ]
+    },
+    {
+      "url": "https://github.com/openai/openai-python/blob/main/CHANGELOG.md",
+      "title": "openai-python changelog (v2, v3)",
+      "passages": [
+        "v2.0.0 (2025-09-30): function/custom tool call output may be a string or an array of input text/image/file parts. v3.0.0 (2026-08-12): HTTPX2 is the default HTTP client and httpx is no longer installed automatically; custom httpx clients/transports must move to HTTPX2 (see httpx2.md). Latest on 2026-11-01: v3.42.0."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/changelog",
+      "title": "API changelog",
+      "passages": [
+        "Dated list of features, updates and fixes. Recent items: GPT-6.1 Terra (Oct 26 2026), 12-hour prompt caching (Oct 20), usage tiers simplified to Build/Launch/Grow (Oct 6), GPT-6.1 Sol (Sep 29). Upcoming deprecations live on the deprecations page, not the changelog."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/safety-best-practices",
+      "title": "Safety identifiers",
+      "passages": [
+        "Send safety_identifier, a stable hashed id for your end user, so OpenAI can attribute abuse. It replaces the older user parameter, alongside prompt_cache_key for cache bucketing."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/prompt-caching",
+      "title": "Prompt caching",
+      "passages": [
+        "Caching is automatic for repeated prefixes. prompt_cache_key improves cache bucketing. prompt_cache_retention is deprecated in favor of prompt_cache_options.ttl; 12-hour caching is available and cache writes may be billed for some models."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/structured-outputs",
+      "title": "Structured Outputs",
+      "passages": [
+        "JSON-schema constrained output. In Chat Completions use response_format: {type: 'json_schema', json_schema: {...}}; in Responses use text: {format: {type: 'json_schema', name, schema, strict}}."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/function-calling",
+      "title": "Function calling",
+      "passages": [
+        "Define tools with type function. Chat Completions nests the definition under function: {...} (externally tagged); Responses puts name/parameters at the top level of the tool (internally tagged). The legacy functions / function_call parameters are deprecated in favor of tools / tool_choice."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/conversation-state",
+      "title": "Conversation state",
+      "passages": [
+        "Carry context with previous_response_id, by resending Items, or with the Conversations API (POST /v1/conversations, then pass conversation to responses.create)."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/error-codes",
+      "title": "Error codes",
+      "passages": [
+        "Documented API errors include 400 invalid service_tier, 401 invalid authentication / incorrect API key / not a member of an organization, 429 rate limit reached, credit balance exhausted, organization or project spend limit reached, organization usage limit reached, and 503 model overloaded. The python SDK maps these to typed errors (BadRequestError, AuthenticationError, NotFoundError for a missing resource, RateLimitError, APIConnectionError, APITimeoutError)."
+      ]
+    },
+    {
+      "url": "https://github.com/openai/openai-openapi",
+      "title": "OpenAI OpenAPI spec",
+      "passages": [
+        "The public OpenAPI spec (openapi.yaml / openapi.json on the main branch, version 2.3.0 on 2026-11-01) lists every path and schema, marks deprecated operations (assistants, audio translations, image variations, videos) and deprecated properties (functions, function_call, max_tokens, user, prompt_cache_retention, seed)."
+      ]
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/api-version-lifecycle",
+      "title": "Azure OpenAI api-version and v1 API (different provider)",
+      "passages": [
+        "Azure OpenAI historically required a dated api-version query parameter and the AzureOpenAI client. Since August 2025 Azure offers a v1 API at <endpoint>/openai/v1/ that drops the api-version requirement and works with the standard OpenAI() client via base_url. Treat Azure as its own provider; OpenAI's own API has no api-version parameter."
+      ]
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/deprecations#2026-06-03-reusable-prompts",
+      "title": "Reusable prompts, Evals and Agent Builder shutdowns",
+      "passages": [
+        "Reusable prompt objects and v1/prompts shut down 2026-11-30 (move prompt content into code). The Evals platform became read-only 2026-10-31 and shuts down 2026-11-30 (migration path: Promptfoo). Agent Builder shuts down 2026-11-30 (ChatKit stays; move to the Agents SDK). The Videos API and Sora 2 models were removed 2026-09-24. The Realtime API beta (OpenAI-Beta: realtime=v1) was removed 2026-05-12."
+      ]
+    }
+  ]
+}
