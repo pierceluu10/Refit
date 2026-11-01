@@ -59,6 +59,9 @@ export const claudeAgentSession: AgentSession = async (input) => {
   });
   const result: SessionResult = { sessionId: input.resume, finalText: '', stopReason: 'error' };
   const meter = streamMeter(input.ledger, input.model);
+  // The SDK checks maxBudgetUsd only between turns; the meter sees each call as it streams, so the
+  // query stops the moment its grant is spent and can overshoot by at most the call in flight.
+  const abortController = new AbortController();
   try {
     for await (const message of query({
       prompt: input.prompt,
@@ -77,6 +80,7 @@ export const claudeAgentSession: AgentSession = async (input) => {
         // Second guard behind the ledger. The SDK checks it only between turns, so the caller
         // leaves a reserve for the turn that crosses it.
         maxBudgetUsd: input.budgetUsd,
+        abortController,
         // Stream events carry each model call's usage, so the ledger is charged while the call runs.
         includePartialMessages: true,
       },
@@ -84,6 +88,7 @@ export const claudeAgentSession: AgentSession = async (input) => {
       // Stream events go to the meter, not the transcript: the assistant messages already hold their text.
       if (message.type === 'stream_event') {
         meter.observe(message.event, message.parent_tool_use_id);
+        if (meter.liveUsd >= input.budgetUsd) abortController.abort();
         continue;
       }
       input.log(message);
@@ -116,6 +121,10 @@ export const claudeAgentSession: AgentSession = async (input) => {
     }
   } catch (error) {
     result.error = error instanceof Error ? error.message : String(error);
+  }
+  if (abortController.signal.aborted) {
+    result.stopReason = 'budget';
+    result.error = `stopped mid-turn: $${meter.liveUsd.toFixed(4)} spent of this query's $${input.budgetUsd.toFixed(4)}`;
   }
   return result;
 };

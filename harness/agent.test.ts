@@ -66,11 +66,16 @@ const result = (totalCostUsd: number) =>
 // At Sonnet 5.5 rates: 1,000 input at $2/M, 10,000 5-minute cache writes at $2.50/M, 500 output at $10/M.
 const CALL_USD = 0.002 + 0.025 + 0.005;
 
-function session(messages: SDKMessage[], failure?: Error) {
-  vi.mocked(query).mockImplementation(async function* () {
-    yield* messages;
-    if (failure) throw failure;
-  } as unknown as typeof query);
+function session(messages: SDKMessage[], failure?: Error, budgetUsd = 4) {
+  // Like the SDK, the fake stops when the session aborts the query.
+  vi.mocked(query).mockImplementation((({ options }: Parameters<typeof query>[0]) =>
+    (async function* () {
+      for (const message of messages) {
+        if (options?.abortController?.signal.aborted) throw new Error('aborted by the caller');
+        yield message;
+      }
+      if (failure) throw failure;
+    })()) as unknown as typeof query);
   const charges: [number, string][] = [];
   const logged: unknown[] = [];
   const ledger = new BudgetLedger(5, (usd, label) => charges.push([usd, label]));
@@ -81,7 +86,7 @@ function session(messages: SDKMessage[], failure?: Error) {
     tools: [],
     sandbox: { dir: '/sandbox' } as Sandbox,
     ledger,
-    budgetUsd: 4,
+    budgetUsd,
     maxTurns: 10,
     log: (message) => logged.push(message),
   });
@@ -113,6 +118,15 @@ describe('claudeAgentSession charging', () => {
       costUsd: expect.closeTo(0.05 - CALL_USD),
       note: expect.stringContaining('beyond its live charges'),
     });
+  });
+
+  it('stops the query mid-turn once its metered spend reaches the grant', async () => {
+    const { run, ledger } = session([callStart, callEnd, callStart, callEnd], undefined, 0.02);
+    const outcome = await run;
+    expect(outcome.stopReason).toBe('budget');
+    expect(outcome.error).toMatch(/^stopped mid-turn: \$0\.0270 spent of this query's \$0\.0200/);
+    // The first call's input crossed the grant; its output and the second call never ran.
+    expect(ledger.entries).toHaveLength(1);
   });
 
   it('keeps a live charge that came out above the SDK total rather than refunding it', async () => {
