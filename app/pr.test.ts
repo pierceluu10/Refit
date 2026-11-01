@@ -1,0 +1,168 @@
+import { describe, expect, it, vi } from 'vitest';
+import { GITHUB_API, GitHubApiError } from './github.ts';
+import { EmptyChangeError, UnsafeBranchError, openPullRequest } from './pr.ts';
+import type { InstallationTokens, OpenPullRequestInput } from './types.ts';
+
+const INSTALLATION = 42;
+const REPO = '/repos/acme/shop';
+
+type Call = { method: string; path: string; body: unknown; authorization: string };
+type Reply = { status?: number; body: unknown };
+
+function fakeGitHub(overrides: Record<string, Reply> = {}) {
+  const routes: Record<string, Reply> = {
+    [`GET ${REPO}`]: { body: { default_branch: 'main' } },
+    [`GET ${REPO}/git/ref/heads/main`]: { body: { object: { sha: 'base-sha' } } },
+    [`GET ${REPO}/git/ref/heads/release/v2`]: { body: { object: { sha: 'release-sha' } } },
+    [`GET ${REPO}/git/commits/base-sha`]: { body: { tree: { sha: 'base-tree' } } },
+    [`GET ${REPO}/git/commits/release-sha`]: { body: { tree: { sha: 'release-tree' } } },
+    [`POST ${REPO}/git/trees`]: { status: 201, body: { sha: 'new-tree' } },
+    [`POST ${REPO}/git/commits`]: { status: 201, body: { sha: 'new-commit' } },
+    [`POST ${REPO}/git/refs`]: { status: 201, body: { ref: 'refs/heads/x' } },
+    [`POST ${REPO}/pulls`]: {
+      status: 201,
+      body: { html_url: 'https://github.com/acme/shop/pull/9', number: 9 },
+    },
+    ...overrides,
+  };
+  const calls: Call[] = [];
+  const fetchImpl = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+    const path = String(url).slice(GITHUB_API.length);
+    const method = init?.method ?? 'GET';
+    const headers = init?.headers as Record<string, string>;
+    calls.push({
+      method,
+      path,
+      body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      authorization: headers.Authorization,
+    });
+    const reply = routes[`${method} ${path}`];
+    if (!reply)
+      throw new Error(`unrouted ${method} ${path}; calls so far: ${JSON.stringify(calls)}`);
+    return new Response(JSON.stringify(reply.body), { status: reply.status ?? 200 });
+  });
+  return { calls, fetchImpl: fetchImpl as unknown as typeof fetch };
+}
+
+const tokens: InstallationTokens = { token: async () => 'inst-token' };
+
+const input = (overrides: Partial<OpenPullRequestInput> = {}): OpenPullRequestInput => ({
+  repo: 'acme/shop',
+  branch: 'aptitude/stripe-2026-10',
+  title: 'Upgrade Stripe API version',
+  body: 'Illustrative body',
+  commitMessage: 'chore: upgrade stripe',
+  files: [
+    { path: 'src/billing.ts', content: 'export const version = "2026-10-01";\n' },
+    { path: 'src/legacy.ts', delete: true },
+  ],
+  ...overrides,
+});
+
+describe('openPullRequest', () => {
+  it('builds a commit on the default branch and opens a draft PR', async () => {
+    const github = fakeGitHub();
+    const token = vi.fn(tokens.token);
+    const opened = await openPullRequest({ token }, INSTALLATION, input(), github.fetchImpl);
+
+    expect(opened).toEqual({
+      url: 'https://github.com/acme/shop/pull/9',
+      number: 9,
+      branch: 'aptitude/stripe-2026-10',
+      sha: 'new-commit',
+    });
+    expect(token).toHaveBeenCalledWith(INSTALLATION);
+    expect(github.calls.map(({ method, path }) => `${method} ${path}`)).toEqual([
+      `GET ${REPO}`,
+      `GET ${REPO}/git/ref/heads/main`,
+      `GET ${REPO}/git/commits/base-sha`,
+      `POST ${REPO}/git/trees`,
+      `POST ${REPO}/git/commits`,
+      `POST ${REPO}/git/refs`,
+      `POST ${REPO}/pulls`,
+    ]);
+    expect(github.calls.every((call) => call.authorization === 'Bearer inst-token')).toBe(true);
+    const bodies = github.calls.map((call) => call.body);
+    expect(bodies[3]).toEqual({
+      base_tree: 'base-tree',
+      tree: [
+        {
+          path: 'src/billing.ts',
+          mode: '100644',
+          type: 'blob',
+          content: 'export const version = "2026-10-01";\n',
+        },
+        { path: 'src/legacy.ts', mode: '100644', type: 'blob', sha: null },
+      ],
+    });
+    expect(bodies[4]).toEqual({
+      message: 'chore: upgrade stripe',
+      tree: 'new-tree',
+      parents: ['base-sha'],
+    });
+    expect(bodies[5]).toEqual({ ref: 'refs/heads/aptitude/stripe-2026-10', sha: 'new-commit' });
+    expect(bodies[6]).toEqual({
+      title: 'Upgrade Stripe API version',
+      body: 'Illustrative body',
+      head: 'aptitude/stripe-2026-10',
+      base: 'main',
+      draft: true,
+    });
+  });
+
+  it('uses an explicit base without looking up the repo and honours draft false', async () => {
+    const github = fakeGitHub();
+    await openPullRequest(
+      tokens,
+      INSTALLATION,
+      input({ base: 'release/v2', draft: false }),
+      github.fetchImpl,
+    );
+    const paths = github.calls.map(({ method, path }) => `${method} ${path}`);
+    expect(paths).not.toContain(`GET ${REPO}`);
+    expect(paths[0]).toBe(`GET ${REPO}/git/ref/heads/release/v2`);
+    expect(github.calls[2].body).toMatchObject({ base_tree: 'release-tree' });
+    expect(github.calls[3].body).toMatchObject({ parents: ['release-sha'] });
+    expect(github.calls.at(-1)?.body).toMatchObject({ base: 'release/v2', draft: false });
+  });
+
+  it.each([
+    ['branch without the prefix', input({ branch: 'stripe-upgrade' }), UnsafeBranchError],
+    ['the prefix only as a substring', input({ branch: 'x/aptitude/y' }), UnsafeBranchError],
+    [
+      'branch equal to the base',
+      input({ branch: 'aptitude/main', base: 'aptitude/main' }),
+      UnsafeBranchError,
+    ],
+    ['no files', input({ files: [] }), EmptyChangeError],
+  ])('rejects %s before any request', async (_, request, errorClass) => {
+    const github = fakeGitHub();
+    await expect(
+      openPullRequest(tokens, INSTALLATION, request, github.fetchImpl),
+    ).rejects.toBeInstanceOf(errorClass);
+    expect(github.calls, JSON.stringify(github.calls)).toEqual([]);
+  });
+
+  it('rejects a branch equal to the default branch before any write', async () => {
+    const github = fakeGitHub({
+      [`GET ${REPO}`]: { body: { default_branch: 'aptitude/stripe-2026-10' } },
+    });
+    await expect(
+      openPullRequest(tokens, INSTALLATION, input(), github.fetchImpl),
+    ).rejects.toBeInstanceOf(UnsafeBranchError);
+    expect(github.calls.map(({ method, path }) => `${method} ${path}`)).toEqual([`GET ${REPO}`]);
+  });
+
+  it('propagates GitHubApiError when the branch already exists and opens no PR', async () => {
+    const github = fakeGitHub({
+      [`POST ${REPO}/git/refs`]: { status: 422, body: { message: 'Reference already exists' } },
+    });
+    const error = await openPullRequest(tokens, INSTALLATION, input(), github.fetchImpl).catch(
+      (caught: unknown) => caught,
+    );
+    expect(error).toBeInstanceOf(GitHubApiError);
+    expect(error).toMatchObject({ status: 422, method: 'POST', path: `${REPO}/git/refs` });
+    expect((error as Error).message).toContain('Reference already exists');
+    expect(github.calls.map((call) => call.path)).not.toContain(`${REPO}/pulls`);
+  });
+});
