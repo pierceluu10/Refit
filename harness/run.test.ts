@@ -240,6 +240,22 @@ describe('runTask with a fake model', () => {
     expect(record.outcome).toBe('verified');
   });
 
+  it('stays on the first model when the checks pass and only the report is missing', async () => {
+    const fixWithoutReport: ScriptedTurn = async (call) => {
+      await call('write_file', {
+        path: 'src/pay.js',
+        content: ORIGINAL.replace('charges.create', 'paymentIntents.create'),
+      });
+    };
+    const record = await runTask(
+      task,
+      fixtureRepo(),
+      deps([fixWithoutReport, async () => {}, fixIt]),
+    );
+    expect(record.models).toEqual([MODEL]);
+    expect(record.outcome).toBe('verified');
+  });
+
   it('stops spending at the budget cap and still returns a needs-review record', async () => {
     const record = await runTask(task, fixtureRepo(), deps([breakIt], 0.005));
     expect(record.outcome).toBe('needs-review');

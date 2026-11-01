@@ -234,8 +234,12 @@ export async function runTask(
         result.stopReason === 'error' && ledger.spentUsd === spentBefore ? silentErrors + 1 : 0;
       if (silentErrors >= 3) break;
 
-      // Stuck: the session ended abnormally or the new failures did not go down.
-      const stuck = result.stopReason !== 'done' || newFailures >= previousNewFailures;
+      // Stuck: the session failed, or new failures remain and did not go down. Green checks with only
+      // the report missing are not: caches are per model, so Opus would re-read the whole session
+      // uncached (about $0.75 at 150k tokens) just to call finish.
+      const stuck =
+        result.stopReason === 'error' ||
+        (newFailures > 0 && (result.stopReason !== 'done' || newFailures >= previousNewFailures));
       const escalated = stuck && model === MODEL;
       if (escalated) model = ESCALATION_MODEL;
       previousNewFailures = newFailures;

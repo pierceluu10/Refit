@@ -1,7 +1,8 @@
 # harness
 
 Aptitude's migration agent. `runTask(task, repoDir)` runs a Claude agent on the Claude Agent SDK
-(`claude-sonnet-5-5`, escalating to `claude-opus-5-5` when an iteration makes no progress) in a
+(`claude-sonnet-5-5`, escalating to `claude-opus-5-5` when the session fails or new failures don't go
+down; never just to get the report, since Opus re-reads the whole session uncached) in a
 sandboxed copy of the repo and returns a `RunRecord` plus the PR body.
 
 | File              | What it does                                                                             |
