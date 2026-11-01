@@ -472,7 +472,7 @@ it('keeps unmigrated webhook reads at review without AI, before networked or exe
     reason: expect.stringContaining('migration-policy'),
   });
   // Founder decision (2026-10-28): the advisory assessment is no longer blocked by this policy
-  // (assessmentReviewReason in migration-review.test.ts).
+  // (migration-review.ts).
   const workflow = await runWorkflow({
     repository,
     before: beforePath,

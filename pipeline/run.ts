@@ -1,10 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import {
-  assessmentReviewReason,
-  migrationReviewReasons,
-  unresolvedSites,
-} from './migration-review.ts';
+import { migrationReviewReasons, unresolvedSites } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
 import type { proposeAiPatch } from './ai-patches.ts';
@@ -21,7 +17,6 @@ import {
 } from './operation-reach.ts';
 import { measureCoverage } from './sdk-coverage.ts';
 import { stripeHandOff } from './stripe-agent.ts';
-import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
 import {
   applySourceEdits,
   editCovers,
@@ -623,10 +618,6 @@ async function runOpenApiPipeline(options: {
       ).findings
     : [];
   const reviews = migrationReviewReasons(reviewEvidence, true, true).map((entry) => entry.reason);
-  const advisoryReviewReason = assessmentReviewReason({
-    findings: analysis.findings,
-    skippedFiles,
-  });
   if (deterministicRequested)
     options.onProgress?.('Generating a deterministic migration proposal...');
   const versionBump =
@@ -978,24 +969,8 @@ async function runOpenApiPipeline(options: {
           ]
         : []),
     ],
-    assessment: advisoryReviewReason
-      ? {
-          status: 'blocked' as const,
-          reason: advisoryReviewReason,
-        }
-      : options.assessment
-        ? await assessMigration(
-            buildAssessmentEvidence(
-              repository,
-              changes,
-              analysis.findings,
-              provider,
-              operationImpacts,
-              operationChanges,
-            ),
-            options.assessment,
-          )
-        : { status: 'not-requested' },
+    // The agent's summary replaces the advisory AI assessment (docs/GUT-PLAN.md).
+    assessment: { status: 'not-requested' as const },
     coverage: {
       specification: specificationDiff
         ? specificationDiff.coverage

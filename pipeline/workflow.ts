@@ -4,7 +4,6 @@ import {
   migrationReviewReason,
   REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
   removedParameterSites,
-  reviewBlocksAi,
   targetReached,
 } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
@@ -116,13 +115,11 @@ export function scanReviewReason(
   leaveReviewedFindings: boolean,
 ) {
   const reason = scanStop(scan, aiPatch);
-  if (!reason || !leaveReviewedFindings) return reason;
+  // The gut plan (docs/GUT-PLAN.md): with AI on, every stop but "nothing to fix" goes to the agent.
+  if (!reason || (aiPatch && reason !== NO_USAGE_REASON)) return undefined;
+  if (!leaveReviewedFindings) return reason;
   if (apiVersionSourceBlocked(scan.apiVersion, true)) return scan.apiVersion.reason;
-  const aiWrites =
-    aiPatch &&
-    !reviewBlocksAi(scan) &&
-    scan.findings.some((finding) => finding.confidence === 'confirmed');
-  if (scan.patch.status !== 'proposed' && !aiWrites) return `${reason} ${NO_PATCH_NOTE}`;
+  if (scan.patch.status !== 'proposed') return `${reason} ${NO_PATCH_NOTE}`;
 }
 
 function scanStop(scan: Awaited<ReturnType<typeof runPipeline>>, aiPatch: boolean) {

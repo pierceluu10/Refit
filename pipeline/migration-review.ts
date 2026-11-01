@@ -100,18 +100,6 @@ export function migrationReviewReason(...evidence: Parameters<typeof migrationRe
   return migrationReviewReasons(...evidence)[0]?.reason;
 }
 
-// Owner decision 1: under it AI never writes the first patch beside a finding that needs review or a
-// traced breaking operation change; the rules' patch comes first, and validation lets AI build on
-// it unless aiSafetyStop holds.
-export function reviewBlocksAi(
-  evidence: Parameters<typeof migrationReviewReasons>[0] & { operationImpacts: readonly unknown[] },
-) {
-  return (
-    evidence.operationImpacts.length > 0 ||
-    Boolean(migrationReviewReason(evidence, true, true, true))
-  );
-}
-
 // Owner decisions 1 and 8 (2026-10-24): with AI on, coverage stops (a removed request parameter,
 // call sites traced to breaking changes, contract changes outside the rules, findings the rules
 // leave unresolved) let AI build on the rules' patch. These safety stops still keep AI out: the
@@ -127,16 +115,6 @@ export function aiSafetyStop(
     return evidence.apiVersion.reason;
   return migrationReviewReasons(evidence, true, true, true).find(
     (entry) => entry.reason !== REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
-  )?.reason;
-}
-
-// Founder decision (2026-10-28): the advisory AI assessment reads the evidence wherever its source is
-// sound. The webhook payload version and removed request parameter policies stop edits, not reading.
-export function assessmentReviewReason(evidence: Parameters<typeof migrationReviewReasons>[0]) {
-  return migrationReviewReasons(evidence).find(
-    (entry) =>
-      entry.reason !== WEBHOOK_REVIEW_REASON &&
-      entry.reason !== REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
   )?.reason;
 }
 
