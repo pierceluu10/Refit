@@ -68,7 +68,9 @@ APTITUDE_AI_BUDGET_USD=6 node harness/scripts/run-evaluation.ts [task id ...]
 `APTITUDE_AI_BUDGET_USD` caps the whole batch: every model call is counted through `chargeRun`, and
 each task gets `APTITUDE_TASK_BUDGET_USD` (default $1.50) or what is left. Repos are cloned outside
 this repo and run in the Docker sandbox. Each run writes `results/<id>/` with `record.json`
-(outcome, checks, cost, models), `diff.patch` and `pr-body.md`. Nothing is pushed or opened.
+(outcome, checks, cost, models), `diff.patch`, `pr-body.md` and `summary.md`. Nothing is pushed or
+opened. pdfai's migration crosses five Stripe major versions, so it may need
+`APTITUDE_TASK_BUDGET_USD=2`.
 
 ## Results
 
