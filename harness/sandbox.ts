@@ -24,6 +24,9 @@ const SANDBOX_ENV = {
   npm_config_ignore_scripts: 'true',
   YARN_ENABLE_SCRIPTS: 'false',
   PIP_ONLY_BINARY: ':all:', // no sdist builds, so no setup.py runs
+  // corepack fetches the repo's pnpm or yarn release without asking, and never pins it into package.json.
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0',
+  COREPACK_ENABLE_AUTO_PIN: '0',
 };
 
 export type SandboxOptions = { mode?: 'docker' | 'local'; image?: string };

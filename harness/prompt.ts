@@ -1,10 +1,11 @@
 // The harness system prompt, in the order set by "The harness system prompt" in APTITUDE-PLAN.md.
 import type { MigrationTask, Recipe, ToolPack } from '../shared/types.ts';
+import { packageManagerBinary, type PackageManager } from './checks.ts';
 import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-01.5';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-01.6';
 
 // shortcut: `notes` is on MigrationTask in O1's branch only; drop this local type once that merges.
 export type TaskWithNotes = MigrationTask & { notes?: string };
@@ -153,6 +154,8 @@ export function buildSystemPrompt(input: PromptInput): string {
         '- Make the smallest correct change.',
         '- Keep behaviour the same unless the API change forces otherwise, and say so.',
         "- Don't reformat unrelated code. Don't upgrade unrelated dependencies.",
+        "- When a dependency must change, change it with the repo's own package manager and release (the kickoff message names them) and let it rewrite the lockfile. Never edit a lockfile by hand or switch package managers.",
+        '- Before you call `finish`, look at your change with `diff`: the lockfile should change only for the dependencies you moved, and no file should change by accident.',
       ].join('\n'),
     ].join('\n\n'),
     [
@@ -177,8 +180,24 @@ function checkLine(run: CheckRun): string {
   return [`- ${run.name} (\`${run.command}\`): fail`, ...shown, ...more].join('\n');
 }
 
-export function buildKickoffMessage(before: CheckRun[], installOutput?: string): string {
+// Names the release that wrote the lockfile, so a dependency change keeps its format and the diff stays small.
+export function packageManagerNote(pm: PackageManager, version?: string): string | undefined {
+  if (!['npm', 'pnpm', 'yarn', 'bun'].includes(pm)) return undefined;
+  const bin = packageManagerBinary(pm, version);
+  const add = `${bin} ${pm === 'npm' ? 'install' : 'add'} <package>@<version>`;
+  return [
+    `Package manager: ${pm}${version ? ` ${version}, the repo's own release (from its packageManager field or its lockfile format)` : ''}.`,
+    `\`install\` runs it as \`${bin}\`. Make any dependency change with that same command, for example \`${add}\`, so the lockfile keeps its format and its diff holds only what you changed.`,
+  ].join(' ');
+}
+
+export function buildKickoffMessage(
+  before: CheckRun[],
+  installOutput?: string,
+  packageManager?: string,
+): string {
   const parts = ['Start the migration described in the system prompt.'];
+  if (packageManager) parts.push(packageManager);
   if (installOutput) {
     parts.push(
       'Dependency install output (tail):',

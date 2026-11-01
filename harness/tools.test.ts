@@ -148,6 +148,29 @@ describe('shell, install and checks', () => {
     expect(out.length).toBeLessThan(20_100);
   });
 
+  it('diff summarises the change per file and shows one file in full', async () => {
+    const lockfile = [
+      'diff --git a/package-lock.json b/package-lock.json',
+      '--- a/package-lock.json',
+      '+++ b/package-lock.json',
+      '@@ -1,2 +1,3 @@',
+      ' {',
+      '-  "a": 1',
+      '+  "a": 2,',
+      '+  "b": 3',
+      '',
+    ].join('\n');
+    const source =
+      'diff --git a/src/pay.ts b/src/pay.ts\n--- a/src/pay.ts\n+++ b/src/pay.ts\n@@ -1 +1 @@\n-old\n+new\n';
+    const { call } = setup({
+      sandbox: { ...fakeSandbox(dir), diff: async () => lockfile + source },
+    });
+    expect(await call('diff')).toBe('package-lock.json: +2 -1\nsrc/pay.ts: +1 -1');
+    expect(await call('diff', { path: 'src/pay.ts' })).toBe(source);
+    expect(await call('diff', { path: 'README.md' })).toBe('no change to README.md');
+    expect(await setup().call('diff')).toBe('no changes yet');
+  });
+
   it('install reports when there is no package manager', async () => {
     const { call } = setup();
     expect(await call('install')).toMatch(/no lockfile or manifest/);

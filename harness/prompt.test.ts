@@ -5,6 +5,7 @@ import {
   buildKickoffMessage,
   buildRetryMessage,
   buildSystemPrompt,
+  packageManagerNote,
 } from './prompt.ts';
 import type { CheckRun } from './types.ts';
 
@@ -79,7 +80,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-01.5');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-01.6');
   });
 
   it('puts the sections in the plan order', () => {
@@ -180,6 +181,15 @@ describe('buildKickoffMessage', () => {
     expect(message).toContain('test (`npm run test`): fail');
     expect(message).toContain('a.test.ts > adds');
     expect(message).toContain('added 12 packages');
+  });
+
+  it("names the repo's package manager release and the command for dependency changes", () => {
+    const note = packageManagerNote('npm', '8');
+    expect(note).toContain("Package manager: npm 8, the repo's own release");
+    expect(note).toContain('`npx -y npm@8 install <package>@<version>`');
+    expect(buildKickoffMessage([], undefined, note)).toContain(note);
+    expect(packageManagerNote('pnpm', '8.15.9')).toContain('`corepack pnpm@8.15.9 add');
+    expect(packageManagerNote('pip')).toBe(undefined);
   });
 });
 
