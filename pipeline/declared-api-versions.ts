@@ -34,9 +34,6 @@ export function declaredApiVersions(options: {
     endpoint?: true;
     declaration?: number;
   }[];
-  // Receives the declaration indexes that decide each client binding's and each SDK call's
-  // version, so a caller can check one request's own path.
-  paths?: { clients: Map<ts.Symbol, number[]>; calls: Map<ts.CallExpression, number[]> };
 }): ApiVersionDeclaration[] {
   const mapping = options.provider.apiVersion;
   if (!mapping) return [];
@@ -433,11 +430,6 @@ export function declaredApiVersions(options: {
             ? { untraced: true as const }
             : {}),
         });
-      if (binding && options.paths)
-        options.paths.clients.set(binding, [
-          ...(options.paths.clients.get(binding) ?? []),
-          declarations.length,
-        ]);
       declarations.push({
         ...location(node),
         kind: 'constructor',
@@ -467,7 +459,6 @@ export function declaredApiVersions(options: {
       node.arguments.some(ts.isSpreadElement) ||
       results.some((result) => result.status === 'unknown') ||
       new Set(literal.map((result) => result.value)).size > 1;
-    const first = declarations.length;
     for (const result of literal) {
       literalSpan(result.node!, result.value!);
       declarations.push({
@@ -490,10 +481,6 @@ export function declaredApiVersions(options: {
           ? 'Request options are dynamic, conflicting or optional; the effective override is unverified.'
           : 'No override in the adapter-declared option arguments; inherits the client version.',
       });
-    options.paths?.calls.set(
-      node,
-      Array.from({ length: declarations.length - first }, (_, index) => first + index),
-    );
   }
   // Founder decision (2026-10-28, docs/AI-REPAIR.md): the version move updates every `apiVersion`
   // string literal in a file that loads stripe, not only traced clients' pins. Outside a traced

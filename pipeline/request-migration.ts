@@ -1,12 +1,6 @@
 import ts from 'typescript-compiler';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
-import {
-  CARD_PAYMENT_METHOD_RULE,
-  IN_PERSON_METHODS,
-  LISTED_PAYMENT_METHODS_RULE,
-  MOVED_PAYMENT_METHODS_RULE,
-  type RequestParameterRemoval,
-} from './request-removals.ts';
+import type { RequestParameterRemoval } from './request-removals.ts';
 import { TEST_PATH } from './source-paths.ts';
 
 function propertyName(name: ts.PropertyName) {
@@ -86,92 +80,6 @@ export function sendsSibling(property: ts.ObjectLiteralElementLike, name: string
   );
 }
 
-// In-person methods stop unless the operation's replacement accepts them: endive adds
-// `card_present` and `interac_present` to `allowed_payment_method_types` on PaymentIntents and
-// SetupIntents only, "You can now specify `card_present` or `interac_present` when setting
-// allowed_payment_method_types on a PaymentIntent or SetupIntent"
-// (https://docs.stripe.com/changelog/endive/2026-09-30/card-present-and-interac-present-enum-values-for-allowed-payment-method-types,
-// read 2026-10-28). Founder decision 2026-10-28 moves them there (`inPerson`, from the contract).
-const MAX_VALUE_HOPS = 4;
-
-// Whether a `payment_method_types` value on a creation call's own object literal may move to
-// `allowed_payment_method_types` unchanged (owner decision, 2026-10-24): any expression except one
-// that spells an in-person method, itself or through a declaration it names (a const, a property,
-// a function), and except an empty or repeated literal list.
-export function movablePaymentMethods(
-  property: ts.PropertyAssignment | ts.ShorthandPropertyAssignment,
-  checker: ts.TypeChecker,
-  accepted: readonly string[] = [],
-) {
-  if (ts.isShorthandPropertyAssignment(property) && property.objectAssignmentInitializer)
-    return false;
-  const value = ts.isPropertyAssignment(property) ? property.initializer : property.name;
-  if (ts.isArrayLiteralExpression(value) && value.elements.every(ts.isStringLiteralLike)) {
-    const methods = value.elements.map((element) => (element as ts.StringLiteralLike).text);
-    if (!methods.length || new Set(methods).size !== methods.length) return false;
-  }
-  const seen = new Set<ts.Node>();
-  const inPerson = (node: ts.Node, hops: number): boolean => {
-    if (seen.has(node)) return false;
-    seen.add(node);
-    if (ts.isStringLiteralLike(node))
-      return IN_PERSON_METHODS.has(node.text) && !accepted.includes(node.text);
-    if (ts.isIdentifier(node) && hops < MAX_VALUE_HOPS) {
-      const symbol = ts.isShorthandPropertyAssignment(node.parent)
-        ? checker.getShorthandAssignmentValueSymbol(node.parent)
-        : checker.getSymbolAtLocation(node);
-      const target =
-        symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-      for (const declaration of target?.declarations ?? [])
-        if (
-          !declaration.getSourceFile().isDeclarationFile &&
-          (ts.isVariableDeclaration(declaration) ||
-            ts.isPropertyAssignment(declaration) ||
-            ts.isFunctionDeclaration(declaration) ||
-            ts.isMethodDeclaration(declaration)) &&
-          inPerson(declaration, hops + 1)
-        )
-          return true;
-    }
-    return ts.forEachChild(node, (child) => inPerson(child, hops) || undefined) ?? false;
-  };
-  return !inPerson(value, 0);
-}
-
-type PaymentMethodRule =
-  | typeof CARD_PAYMENT_METHOD_RULE
-  | typeof LISTED_PAYMENT_METHODS_RULE
-  | typeof MOVED_PAYMENT_METHODS_RULE;
-
-// The rule that renames a `payment_method_types` property of a creation call body: an exact
-// `['card']`; with keep-listed, a literal list of `card` plus other distinct methods or any other
-// movable expression. Never one whose body already sends the replacement.
-export function paymentMethodRule(
-  property: ts.PropertyAssignment | ts.ShorthandPropertyAssignment,
-  options: { keepListed?: boolean; checker?: ts.TypeChecker; inPerson?: readonly string[] },
-): PaymentMethodRule | undefined {
-  if (sendsSibling(property, 'allowed_payment_method_types')) return undefined;
-  const methods =
-    ts.isPropertyAssignment(property) &&
-    ts.isArrayLiteralExpression(property.initializer) &&
-    property.initializer.elements.every(ts.isStringLiteralLike)
-      ? property.initializer.elements.map((element) => (element as ts.StringLiteralLike).text)
-      : undefined;
-  if (methods?.length === 1 && methods[0] === 'card') return CARD_PAYMENT_METHOD_RULE;
-  if (!options.keepListed || !options.checker) return undefined;
-  if (
-    methods &&
-    methods.length > 1 &&
-    methods.includes('card') &&
-    !methods.some((method) => IN_PERSON_METHODS.has(method)) &&
-    new Set(methods).size === methods.length
-  )
-    return LISTED_PAYMENT_METHODS_RULE;
-  return movablePaymentMethods(property, options.checker, options.inPerson)
-    ? MOVED_PAYMENT_METHODS_RULE
-    : undefined;
-}
-
 // An object only turned into text: an argument of `JSON.stringify` or `console.*`, directly or as
 // what a `.map` callback returns into such an argument. Text sends no request, so the key in it is
 // output, such as `{ payment_method_types: pi.payment_method_types }` logged from a response.
@@ -206,14 +114,10 @@ function printedOnly(object: ts.Expression): boolean {
 
 // Object-literal keys spelling the removed `payment_method_types` outside every traced SDK call
 // body. A body built in a variable, assembled by a wrapper or sent by an untraced client still
-// sends it once the pin moves, so each one stops for review (docs/STRIPE-PAYMENT-METHOD-TYPES.md).
+// sends it once the pin moves, so each one goes to the agent fixer.
 // Only top-level body keys count: a nested `payment_settings.payment_method_types` is still valid
 // on subscriptions and invoices. Test files send no production request, and an object value is a
 // schema definition such as Mongoose's `{ type: [String] }`, never a payment method list.
-// `rule` marks a value in a local variable that only reaches confirmed SDK calls of the operations
-// whose removal has the owner-approved replacement: the same site as a direct
-// `create({ payment_method_types: … })`, so the rule a direct body would get renames it (an exact
-// `['card']`, or with keep-listed a literal list with card or a movable expression).
 export function untracedRemovedParameters(
   nodes: ts.Node[],
   removals: RequestParameterRemoval[],
@@ -288,8 +192,6 @@ export function untracedRemovedParameters(
   const sites: {
     property: ts.Node;
     removal: RequestParameterRemoval;
-    rule?: PaymentMethodRule;
-    calls?: ts.CallExpression[];
   }[] = [];
   for (const node of nodes) {
     // `params.payment_method_types = …` onto a local body: never renamed, and a stop unless that
@@ -333,23 +235,9 @@ export function untracedRemovedParameters(
     const calls = localCalls(node.parent, removal.parameter);
     // Only SDK calls that still accept the parameter, such as `stripe.paymentLinks.create(params)`.
     if (calls?.every((call) => !removalFor(removal.parameter, call))) continue;
-    const targets = calls?.map((call) => removalFor(removal.parameter, call));
-    const rule =
-      targets?.every((target) => target?.cardReplacement) &&
-      calls!.every((call) => sdkOperation(call)!.confirmed)
-        ? paymentMethodRule(node, {
-            keepListed: targets.every((target) => target?.keepListed),
-            checker,
-            // Accepted only where every call it reaches accepts it.
-            inPerson: [...IN_PERSON_METHODS].filter((method) =>
-              targets.every((target) => target?.inPerson?.includes(method)),
-            ),
-          })
-        : undefined;
     sites.push({
       property: node,
-      removal: targets?.[0] ?? removal,
-      ...(rule ? { rule, calls } : {}),
+      removal: calls?.map((call) => removalFor(removal.parameter, call))[0] ?? removal,
     });
   }
   return sites;

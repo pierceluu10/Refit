@@ -18,7 +18,6 @@ import type { OperationReplacement } from './provider-operation-replacements.ts'
 import type { RequestPropertyRename } from './provider-request-renames.ts';
 import type { PropertyMove } from './provider-renames.ts';
 import {
-  paymentMethodRule,
   removedParameterProperty,
   requestPropertyEdit,
   untracedRemovedParameters,
@@ -331,7 +330,6 @@ export function analyzeRepository(
   const wrappedResponses = new Map<ts.Symbol, ts.Symbol>();
   const edits: SourceEdit[] = [];
   // The creation calls each payment-method rename's body reaches, for its API-version path.
-  const renameCalls = new Map<SourceEdit, ts.CallExpression[]>();
   const nodes: ts.Node[] = [];
   const locations = new Map(
     [...sources.keys()].map((path, index) => [path, repository.files[index].path]),
@@ -1379,23 +1377,11 @@ export function analyzeRepository(
       const property = removedParameterProperty(node, removal);
       if (!property) continue;
       const confirmed = requestClient(call);
-      // Only the exact literal `['card']` has a reviewed replacement, and, where the repository
-      // opted in, a literal list of `card` plus other distinct methods, or any other value
-      // expression that names no in-person method (request-migration.ts). run.ts keeps the edit
-      // only with the API version bump (and, for TypeScript, the SDK upgrade) in the same patch.
-      const rule = removal.cardReplacement
-        ? paymentMethodRule(property, {
-            keepListed: removal.keepListed,
-            checker,
-            inPerson: removal.inPerson,
-          })
-        : undefined;
       // A reviewed move to the documented replacement (stripe-request-moves.ts), which also rides
       // with the version bump and, for TypeScript, the SDK upgrade in run.ts.
       const moved =
         confirmed &&
         removal.move &&
-        !rule &&
         (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property))
           ? requestMoveEdit(property, removal.move)
           : undefined;
@@ -1408,21 +1394,6 @@ export function analyzeRepository(
           changeId: removal.id,
           rule: moved.rule,
         });
-      if (confirmed && removal.cardReplacement && rule) {
-        const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
-        const edit = {
-          file: location(property).file,
-          start: property.name.getStart(),
-          end: property.name.getEnd(),
-          replacement: ts.isShorthandPropertyAssignment(property)
-            ? `${removal.cardReplacement}: ${property.name.text}`
-            : `${quote}${removal.cardReplacement}${quote}`,
-          changeId: removal.id,
-          rule,
-        };
-        edits.push(edit);
-        renameCalls.set(edit, [node]);
-      }
       findings.push({
         ...location(property),
         changeId: removal.id,
@@ -1457,9 +1428,8 @@ export function analyzeRepository(
       });
     }
   }
-  // A removed parameter set outside every traced SDK body stops for review, unless it is an exact
-  // `['card']` in a local body only confirmed card-rule calls receive (request-migration.ts).
-  for (const { property, removal, rule, calls: bodyCalls } of untracedRemovedParameters(
+  // A removed parameter set outside every traced SDK body goes to the agent fixer.
+  for (const { property, removal } of untracedRemovedParameters(
     nodes,
     requestParameterRemovals,
     (node) => {
@@ -1475,31 +1445,14 @@ export function analyzeRepository(
     (node) => location(node).file,
     checker,
   )) {
-    const rename = Boolean(rule);
-    if (rule && (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property))) {
-      const quote = ts.isStringLiteral(property.name) ? property.name.getText()[0] : '';
-      const edit = {
-        file: location(property).file,
-        start: property.name.getStart(),
-        end: property.name.getEnd(),
-        replacement: ts.isShorthandPropertyAssignment(property)
-          ? `${removal.cardReplacement}: ${property.name.text}`
-          : `${quote}${removal.cardReplacement}${quote}`,
-        changeId: removal.id,
-        rule,
-      };
-      edits.push(edit);
-      renameCalls.set(edit, bodyCalls ?? []);
-    }
     findings.push({
       ...location(property),
       changeId: removal.id,
-      expression: `${removal.parameter} ${rename ? 'in a local request body' : 'outside a traced SDK request body'}`,
-      confidence: rename ? 'confirmed' : 'review',
+      expression: `${removal.parameter} outside a traced SDK request body`,
+      confidence: 'review',
       requestParameter: { operationId: removal.operationId, parameter: removal.parameter },
-      reason: rename
-        ? 'The target API version no longer accepts this request parameter. The local body reaches only traced SDK calls the owner-approved payment method rule covers.'
-        : 'This object sets a request parameter the target API version removed, but Refit cannot trace it to an SDK call body: a request built in a variable, assembled by a wrapper or sent by an untraced client may still send it once the API version moves.',
+      reason:
+        'This object sets a request parameter the target API version removed, but Refit cannot trace it to an SDK call body: a request built in a variable, assembled by a wrapper or sent by an untraced client may still send it once the API version moves.',
     });
   }
   for (const node of nodes) {
@@ -2495,10 +2448,6 @@ export function analyzeRepository(
       }
     }
   }
-  const versionPaths = {
-    clients: new Map<ts.Symbol, number[]>(),
-    calls: new Map<ts.CallExpression, number[]>(),
-  };
   const apiVersionDeclarations = declaredApiVersions({
     nodes,
     mutationNodes,
@@ -2526,43 +2475,7 @@ export function analyzeRepository(
     location,
     references: { ...clientReferences, localArgument: helperBindings.visibleArgument },
     literals: apiVersionLiterals,
-    paths: versionPaths,
   });
-  // The constructors of a client binding, through `const` aliases such as `const stripe = getStripe()`.
-  const constructorsOf = (
-    binding: ts.Symbol,
-    seen = new Set<ts.Symbol>(),
-  ): number[] | undefined => {
-    const recorded = versionPaths.clients.get(binding);
-    if (recorded || seen.has(binding)) return recorded;
-    const declaration = binding.valueDeclaration;
-    if (
-      !declaration ||
-      !ts.isVariableDeclaration(declaration) ||
-      !declaration.initializer ||
-      !ts.isVariableDeclarationList(declaration.parent) ||
-      !(declaration.parent.flags & ts.NodeFlags.Const)
-    )
-      return undefined;
-    const next = clientBinding(declaration.initializer);
-    return next && constructorsOf(next, new Set([...seen, binding]));
-  };
-  // The declarations that decide the version each rename's calls send: the call's own request
-  // options and every constructor of its client. Undefined when one of them is not recorded.
-  const renamePaths = new Map<SourceEdit, number[] | undefined>();
-  for (const [edit, targets] of renameCalls) {
-    const path = targets.flatMap((call) => {
-      const traced = sdkCall(call);
-      const binding = traced && clientBinding(traced.client);
-      const constructors = binding && constructorsOf(binding);
-      const request = versionPaths.calls.get(call);
-      return constructors && request ? [...constructors, ...request] : [undefined];
-    });
-    renamePaths.set(
-      edit,
-      path.length && path.every((index) => index !== undefined) ? (path as number[]) : undefined,
-    );
-  }
   return {
     imports,
     calls,
@@ -2570,7 +2483,6 @@ export function analyzeRepository(
     clientMethodCalls,
     expandedFields: [...expandedFields()].sort(),
     apiVersionDeclarations,
-    renamePaths,
     apiVersionLiterals,
     findings,
     enumChecks,
