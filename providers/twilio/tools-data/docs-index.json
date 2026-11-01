@@ -1,0 +1,228 @@
+{
+  "provider": "twilio",
+  "retrieved": "2026-11-01",
+  "note": "Short notes written from Twilio docs, changelog and GitHub pages on 2026-11-01. Confirm on the linked page before relying on details.",
+  "pages": [
+    {
+      "url": "https://www.twilio.com/docs/usage/requests-to-twilio",
+      "title": "Twilio API requests (auth, base URL, content type)",
+      "passages": [
+        "Core API base URL is https://api.twilio.com/2010-04-01/ and paths end in .json, e.g. Accounts/{AccountSid}/Messages.json. The version 2010-04-01 is part of the path and responses echo it as api_version.",
+        "Authentication is HTTP Basic. Twilio recommends API keys: key SID as username, key secret as password. Account SID + Auth Token is used only where a reference says so. Main keys equal account credentials; Standard keys cannot reach Accounts or Keys resources; Restricted keys give fine-grained access (v1 only).",
+        "Send request bodies as application/x-www-form-urlencoded or multipart/form-data; other content types may misbehave. Store credentials in environment variables. Regional accounts need regional API credentials; subaccounts use their own credentials."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/usage/twilios-response",
+      "title": "Twilio API responses and pagination",
+      "passages": [
+        "2010 API endpoints return XML by default; append .json (or .csv) for other formats. Product APIs (verify, messaging, conversations, ...) return JSON only.",
+        "Pagination: page_size defaults to 50 and is set with PageSize. Pages are zero-indexed. 2010 list responses carry uri, first_page_uri, next_page_uri and previous_page_uri; follow next_page_uri rather than building page numbers. SDKs page automatically (list/stream/each).",
+        "Product APIs (v1/v2 hosts) put paging links under a meta object: meta.next_page_url, meta.previous_page_url, meta.first_page_url, meta.page_size and meta.key (the name of the array). The OAI spec lists PageSize (1-1000), Page and PageToken query parameters."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/usage/rest-api-best-practices",
+      "title": "API best practices (concurrency, 429, retries)",
+      "passages": [
+        "Accounts have REST API concurrency limits and many products have rate limits. Bursts beyond the limit get HTTP 429 Too Many Requests; a 429 request was not processed, so it is safe to retry.",
+        "Watch the Twilio-Concurrent-Requests response header to see current concurrency. It counts requests that got a 429 too. Subaccount requests do not roll up to the parent.",
+        "Retry with exponential backoff, throttle or queue sends during spikes, and pick an edge location / processing region for traffic if needed."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/api/errors/20429",
+      "title": "Error 20429: Too many requests",
+      "passages": [
+        "20429 means the account exceeded its allowed REST API concurrency (HTTP 429). On Verify it can also mean repeated verification starts for the same number, attempt limits, configured service rate limits, or polling status too often. Back off and retry; 429s are safe to retry."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/usage/webhooks/webhooks-security",
+      "title": "Webhooks security (X-Twilio-Signature)",
+      "passages": [
+        "Twilio signs webhook requests with the X-Twilio-Signature header: HMAC-SHA1 keyed with the account Auth Token over the full URL plus, for form posts, the POST parameters sorted by name and appended. Use the exact URL Twilio called, including query string; re-encoding breaks validation.",
+        "For application/json webhooks Twilio adds a bodySHA256 query parameter (SHA-256 of the raw body). Validate with the raw body (Node validateRequestWithBody, other SDKs validateBody/ValidateBody), not parsed JSON.",
+        "Use the SDK validators (Node validateRequest / webhook() middleware, Python RequestValidator.validate) instead of hand-rolled code. Validate against all received parameters: Twilio adds parameters without notice. HTTPS URLs must have a non-self-signed certificate. Basic/Digest credentials in the webhook URL are also supported."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/usage/security",
+      "title": "Security (signature key during auth token rotation)",
+      "passages": [
+        "When computing the webhook signature use the primary Auth Token. If a secondary token was just created, keep validating with the previous primary until the secondary is promoted; after promotion, validate with the new primary."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/iam/api-keys",
+      "title": "API keys",
+      "passages": [
+        "API keys are the preferred way to authenticate to Twilio REST APIs. Types: Main (full access, same as Account SID + Auth Token, Console only), Standard (most resources, not Accounts or Keys), Restricted (fine-grained permissions; REST creation only via Key resource v1). Keys can be revoked without changing account credentials."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/iam/api/authtoken",
+      "title": "Auth Token resource (rotation / promote)",
+      "passages": [
+        "Rotate the Auth Token by creating a secondary token, moving apps to it, then POST to the AuthTokens/Promote endpoint, which deletes the old primary and makes the secondary primary. The old token stops working immediately.",
+        "Auth Token rotation endpoints do not accept API keys (error 20003). Functions/Services with a hard-coded token can fail with 403 for about a minute after rotation. Set SuppressEmailNotification when rotating in bulk."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/iam/api/secondary_authtoken",
+      "title": "Secondary Auth Token resource",
+      "passages": [
+        "Create or delete a secondary Auth Token (accounts.twilio.com/v1/AuthTokens/Secondary). The secondary works immediately alongside the primary, which allows zero-downtime rotation."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/messaging/guides/track-outbound-message-status",
+      "title": "Track outbound message status (status callbacks)",
+      "passages": [
+        "Pass StatusCallback on Message create, or set a Messaging Service delivery status callback; the per-message URL wins. Callbacks are form-encoded POSTs with MessageStatus (queued, sent, delivered, undelivered, failed, read, ...) and ErrorCode for failed/undelivered.",
+        "SMS/MMS callbacks often include RawDlrDoneDate (YYMMDDhhmm). WhatsApp/RCS add ChannelInstallSid, ChannelPrefix, ChannelStatusMessage and EventType=READ for read receipts. Callbacks can arrive out of order; Twilio may add parameters without notice. Return 200."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/events/webhook-quickstart",
+      "title": "Event Streams webhook sink",
+      "passages": [
+        "Event Streams delivers to a Sink (webhook, Kinesis, Segment) through Subscriptions that name event types and a schema_version. Webhook bodies are a JSON array of CloudEvents 1.0 (specversion, type, source, id, dataschema, time, data); currently one event per array but iterate anyway.",
+        "Validate sink requests with the SDK request validator using the sink destination URL plus received query string and the raw body. Optional Basic auth credentials in the sink URL are sent with every request. 5 second response timeout; source CIDRs 35.90.102.128/25 and 3.80.20.0/25."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/events/event-streams/sink-resource",
+      "title": "Event Streams Sink resource",
+      "passages": [
+        "Sink statuses: initialized, validating, active, failed; a sink must be validated before use. Webhook sink config has destination, method and batch_events. Delivery is at-least-once with retries for 24 hours; no latency SLA. Limit 100 sinks and 100 subscriptions per account."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/en-us/changelog/reminder--end-of-life-for-twilio-2008-api",
+      "title": "End of Life for Twilio 2008 API",
+      "passages": [
+        "The 2008 version of the Twilio API reached End of Life on 2023-12-15. Code calling api.twilio.com/2008-08-01 must move to /2010-04-01 (see the 2008-to-2010 upgrade guide)."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/en-us/changelog/programmable-chat-end-of-life-notice",
+      "title": "Programmable Chat end of life notice",
+      "passages": [
+        "January 2021 notice: the Programmable Chat API sunsets on 2022-07-25 in favour of the Conversations API. Most functionality carries over but application code must change; existing Chat channels are migrated into Conversations."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/chat",
+      "title": "Programmable Chat docs status",
+      "passages": [
+        "Programmable Chat is deprecated and receives no support; Twilio points everyone to Conversations and a Chat-to-Conversations migration guide. chat.twilio.com and ip-messaging.twilio.com are the Chat hosts."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/en-us/changelog/programmable-chat-in-flex-reaching-end-of-life-on-june-1--2026",
+      "title": "Programmable Chat in Flex EOL (2026-06-01)",
+      "passages": [
+        "Programmable Chat inside Flex reached End of Life on 2026-06-01: no fixes or security updates afterwards. Migrate to Flex Conversations (Webchat, SMS, WhatsApp); billing is the same."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/notify",
+      "title": "Notify status",
+      "passages": [
+        "Twilio stopped supporting Notify in October 2022. For bulk SMS use the Bulk Messaging API; for push, the Push API private beta (or send directly via FCM/APNs). The changelog set the final EOL to 2025-12-31."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/proxy",
+      "title": "Proxy status",
+      "passages": [
+        "Proxy is a Public Beta with no SLA and is closed to new customers. Twilio suggests building masked-number flows directly with Conversations and Programmable Voice. No formal EOL date published as of 2026-11-01."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/en-us/changelog/-twilio-video-will-remain-a-standalone-product",
+      "title": "Twilio Video will remain a standalone product (EOL reversed)",
+      "passages": [
+        "Twilio had announced (March 2024) that Programmable Video would reach EOL on 2026-12-05. On 2024-10-21 it reversed that: Video stays a standalone product, existing customers need no action, and Twilio is investing in Voice/Messaging/Flex integrations. Do not migrate off Video because of the old notice."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/verify/authy-vs-verify",
+      "title": "Authy API vs Verify",
+      "passages": [
+        "The Authy API is at End of Support: SMS/Voice-only customers lost support in November 2022, TOTP/Push users from before March 2023 are still supported, and it is closed to new customers. No EOL date is published. Use Verify v2 (verify.twilio.com/v2) for new work; a migration guide covers SMS. Authy apps are not supported by Verify Push."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/en-us/changelog/frontline-is-entering-eol--here-s-what-that-means-for-customers",
+      "title": "Frontline EOL",
+      "passages": [
+        "Frontline entered End of Sale on 2023-02-09 and was retired on 2026-09-30. frontline-api.twilio.com calls should be considered dead or about to be."
+      ]
+    },
+    {
+      "url": "https://twilio.com/en-us/changelog/programmable-fax-end-of-life-one-year-notice",
+      "title": "Programmable Fax end of life",
+      "passages": [
+        "Programmable Fax was disabled for all accounts on 2021-12-17 after a one-year notice; Fax API calls fail. Twilio partnered with FAX.PLUS for migration. fax.twilio.com resources are gone from current SDKs."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/lookup/v1-api",
+      "title": "Lookup v1 (legacy)",
+      "passages": [
+        "Lookup v1 is in maintenance mode: no new features, all development in v2. Moving to v2 changes the path (lookups.twilio.com/v2/PhoneNumbers/{PhoneNumber}) and uses Fields=line_type_intelligence, caller_name, ... instead of v1 Type=carrier/caller-name; response shapes differ."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/conversations/versioning-and-support-lifecycle",
+      "title": "Versioning and support lifecycle (client SDKs)",
+      "passages": [
+        "Client SDKs (Conversations classic, Sync, Voice, Video mobile/JS) follow semver. Latest major is fully supported; the previous major gets 12 months of bug/security fixes, then is Deprecated for 12 months, then End of Life where it may stop working without notice."
+      ]
+    },
+    {
+      "url": "https://www.twilio.com/docs/libraries",
+      "title": "Helper libraries (server-side SDKs)",
+      "passages": [
+        "Official server-side SDKs: C#/.NET, Java, Node.js, PHP, Python, Ruby, Go, plus the Twilio OpenAPI spec (github.com/twilio/twilio-oai). No formal support window is published for server-side SDK majors; runtime support is listed in each README (e.g. twilio-node 6 supports Node 20/22/24)."
+      ]
+    },
+    {
+      "url": "https://github.com/twilio/twilio-node/blob/main/UPGRADE.md",
+      "title": "twilio-node upgrade guide",
+      "passages": [
+        "5.x to 6.x (2026): Node.js >= 20 required, no API changes. 4.x to 5.x (2024): generated from OpenAPI, no breaking API changes, JSON bodies supported. 3.x to 4.x (2023): TypeScript rewrite, Node >= 14, lazy loading, AccessToken needs identity, IpMessagingGrant removed, Say.ssmlX() -> Say.x(), TaskRouter worker statistics moved off the worker context."
+      ]
+    },
+    {
+      "url": "https://github.com/twilio/twilio-python/blob/main/UPGRADE.md",
+      "title": "twilio-python upgrade guide",
+      "passages": [
+        "8.x to 9.x (2024): generated from OpenAPI, no breaking API changes. 7.x to 8.x (2023): Python 3.7+, Say.ssml_x() removed, IpMessagingGrant removed, available_phone_number renamed available_phone_number_country, TaskRouter statistics without WorkerSid, _properties removed. 6 to 7: drops Python 2.7/3.4/3.5, PyJWT 2."
+      ]
+    },
+    {
+      "url": "https://github.com/twilio/twilio-java/blob/main/UPGRADE.md",
+      "title": "twilio-java upgrade guide",
+      "passages": [
+        "12 to 13 (2026-08): nested model/enum names keep digits (ConversationsVConversationGroupingType -> ConversationsV2ConversationGroupingType). 11 to 12 (2026-04): SignatureAlgorithm -> Jwts.SIG SecureDigestAlgorithm for request validation and JWT. 10 to 11 (2025-09): HttpClient 4 -> 5 in NetworkHttpClient, anyType fields become Object."
+      ]
+    },
+    {
+      "url": "https://github.com/twilio/twilio-csharp/blob/main/UPGRADE.md",
+      "title": "twilio-csharp upgrade guide",
+      "passages": [
+        "7 to 8 (2026): minimum .NET 8.0, .NET 6.0 dropped. 6 to 7 (2024): .NET target support change, JSON bodies, no API breaks. 5 to 6 (2022): generated from OpenAPI."
+      ]
+    },
+    {
+      "url": "https://github.com/twilio/twilio-oai",
+      "title": "Twilio OpenAPI specification (twilio-oai)",
+      "passages": [
+        "spec/json holds one OpenAPI 3 file per product and version, e.g. twilio_api_v2010.json, twilio_messaging_v1.json, twilio_verify_v2.json. Each file lists the product host in servers and every path. All helper libraries are generated from it. The spec has no deprecation markers, so deprecated products (chat, notify, proxy, frontline) still appear."
+      ]
+    }
+  ]
+}

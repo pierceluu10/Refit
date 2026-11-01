@@ -1,0 +1,2488 @@
+{
+  "provider": "twilio",
+  "retrieved": "2026-11-01",
+  "source": [
+    "https://github.com/twilio/twilio-oai/tree/main/spec/json",
+    "https://github.com/twilio/twilio-oai/releases/tag/2.10.0",
+    "https://github.com/twilio/twilio-node/blob/main/src/rest/Twilio.ts"
+  ],
+  "oaiRelease": "2.10.0 (2026-10-12)",
+  "note": "Hosts, versions and paths come from twilio-oai spec/json (release 2.10.0). Status, EOL dates and migration targets come from Twilio changelog/docs pages cited per product. The OAI spec carries no deprecation markers, so a product being in the spec does NOT mean it is supported (Chat, Notify, Proxy, Frontline are still listed).",
+  "shortcuts": {
+    "addresses": "Addresses",
+    "applications": "Applications",
+    "authorizedConnectApps": "AuthorizedConnectApps",
+    "availablePhoneNumbers": "AvailablePhoneNumbers",
+    "balance": "Balance",
+    "calls": "Calls",
+    "conferences": "Conferences",
+    "connectApps": "ConnectApps",
+    "incomingPhoneNumbers": "IncomingPhoneNumbers",
+    "keys": "Keys",
+    "messages": "Messages",
+    "newKeys": "Keys",
+    "newSigningKeys": "SigningKeys",
+    "notifications": "Notifications",
+    "outgoingCallerIds": "OutgoingCallerIds",
+    "queues": "Queues",
+    "recordings": "Recordings",
+    "shortCodes": "SMS/ShortCodes",
+    "signingKeys": "SigningKeys",
+    "sip": "SIP",
+    "tokens": "Tokens",
+    "transcriptions": "Transcriptions",
+    "usage": "Usage",
+    "validationRequests": "OutgoingCallerIds"
+  },
+  "products": [
+    {
+      "id": "accounts",
+      "name": "Accounts (credentials, auth token rotation, safelist)",
+      "hosts": ["accounts.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_accounts_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_accounts_v1.json",
+          "title": "Twilio - Accounts",
+          "sdkAccessor": {
+            "node": "client.accounts.v1",
+            "python": "client.accounts.v1"
+          },
+          "operations": 20,
+          "paths": [
+            "POST /v1/AuthTokens/Promote",
+            "POST /v1/Consents/Bulk",
+            "POST /v1/Contacts/Bulk",
+            "GET,POST /v1/Credentials/AWS",
+            "GET,POST,DELETE /v1/Credentials/AWS/{Sid}",
+            "GET,POST /v1/Credentials/PublicKeys",
+            "GET,POST,DELETE /v1/Credentials/PublicKeys/{Sid}",
+            "GET,PATCH /v1/Messaging/GeoPermissions",
+            "GET,POST,DELETE /v1/SafeList/Numbers",
+            "POST,DELETE /v1/AuthTokens/Secondary"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.accounts",
+        "python": "client.accounts"
+      },
+      "docs": ["https://www.twilio.com/docs/iam/api/authtoken"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "api",
+      "name": "Core REST API (Accounts, Messages, Calls, Recordings, IncomingPhoneNumbers, ...)",
+      "hosts": ["api.twilio.com"],
+      "versions": [
+        {
+          "version": "v2010",
+          "pathPrefix": "/2010-04-01",
+          "oaiFile": "twilio_api_v2010.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_api_v2010.json",
+          "title": "Twilio - Api",
+          "sdkAccessor": {
+            "node": "client.api.v2010",
+            "python": "client.api.v2010"
+          },
+          "operations": 197,
+          "paths": [
+            "GET,POST /2010-04-01/Accounts.json",
+            "GET,POST /2010-04-01/Accounts/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/Addresses.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/Addresses/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/Applications.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/Applications/{Sid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/AuthorizedConnectApps/{ConnectAppSid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/AuthorizedConnectApps.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/AvailablePhoneNumbers.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/AvailablePhoneNumbers/{CountryCode}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/AvailablePhoneNumbers/{CountryCode}/Local.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/AvailablePhoneNumbers/{CountryCode}/MachineToMachine.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/AvailablePhoneNumbers/{CountryCode}/Mobile.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/AvailablePhoneNumbers/{CountryCode}/National.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/AvailablePhoneNumbers/{CountryCode}/SharedCost.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/AvailablePhoneNumbers/{CountryCode}/TollFree.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/AvailablePhoneNumbers/{CountryCode}/Voip.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Balance.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/Calls.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/Calls/{Sid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/Events.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/Notifications/{Sid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/Notifications.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/Recordings.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/Recordings/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/Conferences/{Sid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Conferences.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Conferences/{ConferenceSid}/Recordings.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/Conferences/{ConferenceSid}/Recordings/{Sid}.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/ConnectApps/{Sid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/ConnectApps.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Addresses/{AddressSid}/DependentPhoneNumbers.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/IncomingPhoneNumbers/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/IncomingPhoneNumbers.json",
+            "GET,DELETE /2010-04-01/Accounts/{AccountSid}/IncomingPhoneNumbers/{ResourceSid}/AssignedAddOns/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/IncomingPhoneNumbers/{ResourceSid}/AssignedAddOns.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/IncomingPhoneNumbers/{ResourceSid}/AssignedAddOns/{AssignedAddOnSid}/Extensions/{Sid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/IncomingPhoneNumbers/{ResourceSid}/AssignedAddOns/{AssignedAddOnSid}/Extensions.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/IncomingPhoneNumbers/Local.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/IncomingPhoneNumbers/Mobile.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/IncomingPhoneNumbers/TollFree.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/Keys/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/Keys.json",
+            "GET,DELETE /2010-04-01/Accounts/{AccountSid}/Messages/{MessageSid}/Media/{Sid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Messages/{MessageSid}/Media.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/Queues/{QueueSid}/Members/{CallSid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Queues/{QueueSid}/Members.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/Messages.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/Messages/{Sid}.json",
+            "POST /2010-04-01/Accounts/{AccountSid}/Messages/{MessageSid}/Feedback.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/SigningKeys.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Notifications/{Sid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Notifications.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/OutgoingCallerIds/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/OutgoingCallerIds.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/Conferences/{ConferenceSid}/Participants/{CallSid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/Conferences/{ConferenceSid}/Participants.json",
+            "POST /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/Payments.json",
+            "POST /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/Payments/{Sid}.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/Queues/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/Queues.json",
+            "POST /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/Transcriptions.json",
+            "POST /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/Transcriptions/{Sid}.json",
+            "GET,DELETE /2010-04-01/Accounts/{AccountSid}/Recordings/{Sid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Recordings.json",
+            "GET,DELETE /2010-04-01/Accounts/{AccountSid}/Recordings/{ReferenceSid}/AddOnResults/{Sid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Recordings/{ReferenceSid}/AddOnResults.json",
+            "GET,DELETE /2010-04-01/Accounts/{AccountSid}/Recordings/{ReferenceSid}/AddOnResults/{AddOnResultSid}/Payloads/{Sid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Recordings/{ReferenceSid}/AddOnResults/{AddOnResultSid}/Payloads.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Recordings/{ReferenceSid}/AddOnResults/{AddOnResultSid}/Payloads/{PayloadSid}/Data.json",
+            "GET,DELETE /2010-04-01/Accounts/{AccountSid}/Recordings/{RecordingSid}/Transcriptions/{Sid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Recordings/{RecordingSid}/Transcriptions.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/SMS/ShortCodes/{Sid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/SMS/ShortCodes.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/SigningKeys/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/SIP/Domains/{DomainSid}/Auth/Calls/CredentialListMappings.json",
+            "GET,DELETE /2010-04-01/Accounts/{AccountSid}/SIP/Domains/{DomainSid}/Auth/Calls/CredentialListMappings/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/SIP/Domains/{DomainSid}/Auth/Calls/IpAccessControlListMappings.json",
+            "GET,DELETE /2010-04-01/Accounts/{AccountSid}/SIP/Domains/{DomainSid}/Auth/Calls/IpAccessControlListMappings/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/SIP/Domains/{DomainSid}/Auth/Registrations/CredentialListMappings.json",
+            "GET,DELETE /2010-04-01/Accounts/{AccountSid}/SIP/Domains/{DomainSid}/Auth/Registrations/CredentialListMappings/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/SIP/CredentialLists/{CredentialListSid}/Credentials.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/SIP/CredentialLists/{CredentialListSid}/Credentials/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/SIP/CredentialLists.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/SIP/CredentialLists/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/SIP/Domains/{DomainSid}/CredentialListMappings.json",
+            "GET,DELETE /2010-04-01/Accounts/{AccountSid}/SIP/Domains/{DomainSid}/CredentialListMappings/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/SIP/Domains.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/SIP/Domains/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/SIP/IpAccessControlLists.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/SIP/IpAccessControlLists/{Sid}.json",
+            "GET,DELETE /2010-04-01/Accounts/{AccountSid}/SIP/Domains/{DomainSid}/IpAccessControlListMappings/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/SIP/Domains/{DomainSid}/IpAccessControlListMappings.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/SIP/IpAccessControlLists/{IpAccessControlListSid}/IpAddresses.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/SIP/IpAccessControlLists/{IpAccessControlListSid}/IpAddresses/{Sid}.json",
+            "POST /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/Siprec.json",
+            "POST /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/Siprec/{Sid}.json",
+            "POST /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/Streams.json",
+            "POST /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/Streams/{Sid}.json",
+            "POST /2010-04-01/Accounts/{AccountSid}/Tokens.json",
+            "GET,DELETE /2010-04-01/Accounts/{AccountSid}/Transcriptions/{Sid}.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Transcriptions.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Usage/Records.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Usage/Records/AllTime.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Usage/Records/Daily.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Usage/Records/LastMonth.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Usage/Records/Monthly.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Usage/Records/ThisMonth.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Usage/Records/Today.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Usage/Records/Yearly.json",
+            "GET /2010-04-01/Accounts/{AccountSid}/Usage/Records/Yesterday.json",
+            "GET,POST,DELETE /2010-04-01/Accounts/{AccountSid}/Usage/Triggers/{Sid}.json",
+            "GET,POST /2010-04-01/Accounts/{AccountSid}/Usage/Triggers.json",
+            "POST /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/UserDefinedMessages.json",
+            "POST /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/UserDefinedMessageSubscriptions.json",
+            "DELETE /2010-04-01/Accounts/{AccountSid}/Calls/{CallSid}/UserDefinedMessageSubscriptions/{Sid}.json"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.api",
+        "python": "client.api"
+      },
+      "docs": ["https://www.twilio.com/docs/usage/requests-to-twilio"],
+      "status": "current",
+      "note": "2010-04-01 is the only supported version of the core API. The older 2008 version reached End of Life on 2023-12-15 (migrate to 2010-04-01). 2010 endpoints return XML by default; append .json for JSON.",
+      "sources": [
+        "https://www.twilio.com/en-us/changelog/reminder--end-of-life-for-twilio-2008-api",
+        "https://www.twilio.com/docs/usage/twilios-response",
+        "https://www.twilio.com/docs/usage/requests-to-twilio"
+      ],
+      "latestVersion": "v2010"
+    },
+    {
+      "id": "bulkexports",
+      "name": "Bulk Exports",
+      "hosts": ["bulkexports.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_bulkexports_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_bulkexports_v1.json",
+          "title": "Twilio - Bulkexports",
+          "sdkAccessor": {
+            "node": "client.bulkexports.v1",
+            "python": "client.bulkexports.v1"
+          },
+          "operations": 9,
+          "paths": [
+            "GET /v1/Exports/{ResourceType}/Days/{Day}",
+            "GET /v1/Exports/{ResourceType}/Days",
+            "GET /v1/Exports/{ResourceType}",
+            "GET,POST /v1/Exports/{ResourceType}/Configuration",
+            "GET,POST /v1/Exports/{ResourceType}/Jobs",
+            "GET,DELETE /v1/Exports/Jobs/{JobSid}"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.bulkexports",
+        "python": "client.bulkexports"
+      },
+      "docs": [],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "chat",
+      "name": "Programmable Chat",
+      "hosts": ["chat.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_chat_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_chat_v1.json",
+          "title": "Twilio - Chat",
+          "sdkAccessor": {
+            "node": "client.chat.v1",
+            "python": "client.chat.v1"
+          },
+          "operations": 40,
+          "paths": [
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Channels/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Channels",
+            "GET,POST /v1/Credentials",
+            "GET,POST,DELETE /v1/Credentials/{Sid}",
+            "GET,DELETE /v1/Services/{ServiceSid}/Channels/{ChannelSid}/Invites/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Channels/{ChannelSid}/Invites",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Channels/{ChannelSid}/Members/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Channels/{ChannelSid}/Members",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Channels/{ChannelSid}/Messages/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Channels/{ChannelSid}/Messages",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Roles/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Roles",
+            "GET,POST,DELETE /v1/Services/{Sid}",
+            "GET,POST /v1/Services",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Users/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Users",
+            "GET /v1/Services/{ServiceSid}/Users/{UserSid}/Channels"
+          ]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_chat_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_chat_v2.json",
+          "title": "Twilio - Chat",
+          "sdkAccessor": {
+            "node": "client.chat.v2",
+            "python": "client.chat.v2"
+          },
+          "operations": 54,
+          "paths": [
+            "GET /v2/Services/{ServiceSid}/Bindings",
+            "GET,DELETE /v2/Services/{ServiceSid}/Bindings/{Sid}",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Channels/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Channels",
+            "GET,POST /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Webhooks",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Webhooks/{Sid}",
+            "GET,POST /v2/Credentials",
+            "GET,POST,DELETE /v2/Credentials/{Sid}",
+            "GET,DELETE /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Invites/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Invites",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Members/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Members",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Messages/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Messages",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Roles/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Roles",
+            "GET,POST,DELETE /v2/Services/{Sid}",
+            "GET,POST /v2/Services",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Users/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Users",
+            "GET /v2/Services/{ServiceSid}/Users/{UserSid}/Bindings",
+            "GET,DELETE /v2/Services/{ServiceSid}/Users/{UserSid}/Bindings/{Sid}",
+            "GET /v2/Services/{ServiceSid}/Users/{UserSid}/Channels",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Users/{UserSid}/Channels/{ChannelSid}"
+          ]
+        },
+        {
+          "version": "v3",
+          "pathPrefix": "/v3",
+          "oaiFile": "twilio_chat_v3.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_chat_v3.json",
+          "title": "Twilio - Chat",
+          "sdkAccessor": {
+            "node": "client.chat.v3",
+            "python": "client.chat.v3"
+          },
+          "operations": 1,
+          "paths": ["POST /v3/Services/{ServiceSid}/Channels/{Sid}"]
+        }
+      ],
+      "sdk": {
+        "node": "client.chat",
+        "python": "client.chat"
+      },
+      "docs": ["https://www.twilio.com/docs/chat"],
+      "status": "end-of-life",
+      "eolDate": "2022-07-25",
+      "migrationTarget": "Conversations (conversations.twilio.com/v1); in Flex, Flex Conversations",
+      "note": "Programmable Chat was deprecated (Jan 2021 notice set the API sunset for 2022-07-25) and 'receives no support'. Programmable Chat inside Flex has its own EOL on 2026-06-01. Chat channels were migrated into Conversations, so existing data is visible via the Conversations API.",
+      "sources": [
+        "https://www.twilio.com/en-us/changelog/programmable-chat-end-of-life-notice",
+        "https://www.twilio.com/docs/chat",
+        "https://www.twilio.com/en-us/changelog/programmable-chat-in-flex-reaching-end-of-life-on-june-1--2026"
+      ],
+      "latestVersion": "v3"
+    },
+    {
+      "id": "content",
+      "name": "Content API (templates)",
+      "hosts": ["content.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_content_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_content_v1.json",
+          "title": "Twilio - Content",
+          "sdkAccessor": {
+            "node": "client.content.v1",
+            "python": "client.content.v1"
+          },
+          "operations": 9,
+          "paths": [
+            "POST /v1/Content/{ContentSid}/ApprovalRequests/whatsapp",
+            "GET /v1/Content/{Sid}/ApprovalRequests",
+            "GET,PUT,DELETE /v1/Content/{Sid}",
+            "GET,POST /v1/Content",
+            "GET /v1/ContentAndApprovals",
+            "GET /v1/LegacyContent"
+          ]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_content_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_content_v2.json",
+          "title": "Twilio - Content",
+          "sdkAccessor": {
+            "node": "client.content.v2",
+            "python": "client.content.v2"
+          },
+          "operations": 2,
+          "paths": ["GET /v2/Content", "GET /v2/ContentAndApprovals"]
+        }
+      ],
+      "sdk": {
+        "node": "client.content",
+        "python": "client.content"
+      },
+      "docs": ["https://www.twilio.com/docs/content"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v2"
+    },
+    {
+      "id": "conversations",
+      "name": "Conversations",
+      "hosts": ["conversations.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_conversations_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_conversations_v1.json",
+          "title": "Twilio - Conversations",
+          "sdkAccessor": {
+            "node": "client.conversations.v1",
+            "python": "client.conversations.v1"
+          },
+          "operations": 103,
+          "paths": [
+            "GET,POST /v1/Configuration",
+            "GET,POST /v1/Configuration/Addresses",
+            "GET,POST,DELETE /v1/Configuration/Addresses/{Sid}",
+            "GET,POST /v1/Configuration/Webhooks",
+            "GET,POST /v1/Conversations",
+            "GET,POST,DELETE /v1/Conversations/{Sid}",
+            "GET,POST /v1/Conversations/{ConversationSid}/Messages",
+            "GET,POST,DELETE /v1/Conversations/{ConversationSid}/Messages/{Sid}",
+            "GET /v1/Conversations/{ConversationSid}/Messages/{MessageSid}/Receipts/{Sid}",
+            "GET /v1/Conversations/{ConversationSid}/Messages/{MessageSid}/Receipts",
+            "GET,POST /v1/Conversations/{ConversationSid}/Participants",
+            "GET,POST,DELETE /v1/Conversations/{ConversationSid}/Participants/{Sid}",
+            "GET,POST /v1/Conversations/{ConversationSid}/Webhooks",
+            "GET,POST,DELETE /v1/Conversations/{ConversationSid}/Webhooks/{Sid}",
+            "POST /v1/ConversationWithParticipants",
+            "GET,POST /v1/Credentials",
+            "GET,POST,DELETE /v1/Credentials/{Sid}",
+            "GET /v1/ParticipantConversations",
+            "GET,POST /v1/Roles",
+            "GET,POST,DELETE /v1/Roles/{Sid}",
+            "GET,POST /v1/Services",
+            "GET,DELETE /v1/Services/{Sid}",
+            "GET,DELETE /v1/Services/{ChatServiceSid}/Bindings/{Sid}",
+            "GET /v1/Services/{ChatServiceSid}/Bindings",
+            "GET,POST /v1/Services/{ChatServiceSid}/Configuration",
+            "GET,POST /v1/Services/{ChatServiceSid}/Conversations",
+            "GET,POST,DELETE /v1/Services/{ChatServiceSid}/Conversations/{Sid}",
+            "GET,POST /v1/Services/{ChatServiceSid}/Conversations/{ConversationSid}/Messages",
+            "GET,POST,DELETE /v1/Services/{ChatServiceSid}/Conversations/{ConversationSid}/Messages/{Sid}",
+            "GET /v1/Services/{ChatServiceSid}/Conversations/{ConversationSid}/Messages/{MessageSid}/Receipts/{Sid}",
+            "GET /v1/Services/{ChatServiceSid}/Conversations/{ConversationSid}/Messages/{MessageSid}/Receipts",
+            "GET,POST /v1/Services/{ChatServiceSid}/Conversations/{ConversationSid}/Participants",
+            "GET,POST,DELETE /v1/Services/{ChatServiceSid}/Conversations/{ConversationSid}/Participants/{Sid}",
+            "GET,POST /v1/Services/{ChatServiceSid}/Conversations/{ConversationSid}/Webhooks",
+            "GET,POST,DELETE /v1/Services/{ChatServiceSid}/Conversations/{ConversationSid}/Webhooks/{Sid}",
+            "POST /v1/Services/{ChatServiceSid}/ConversationWithParticipants",
+            "GET,POST /v1/Services/{ChatServiceSid}/Configuration/Notifications",
+            "GET /v1/Services/{ChatServiceSid}/ParticipantConversations",
+            "GET,POST /v1/Services/{ChatServiceSid}/Roles",
+            "GET,POST,DELETE /v1/Services/{ChatServiceSid}/Roles/{Sid}",
+            "GET,POST /v1/Services/{ChatServiceSid}/Users",
+            "GET,POST,DELETE /v1/Services/{ChatServiceSid}/Users/{Sid}",
+            "GET,POST,DELETE /v1/Services/{ChatServiceSid}/Users/{UserSid}/Conversations/{ConversationSid}",
+            "GET /v1/Services/{ChatServiceSid}/Users/{UserSid}/Conversations",
+            "GET,POST /v1/Services/{ChatServiceSid}/Configuration/Webhooks",
+            "GET,POST /v1/Users",
+            "GET,POST,DELETE /v1/Users/{Sid}",
+            "GET,POST,DELETE /v1/Users/{UserSid}/Conversations/{ConversationSid}",
+            "GET /v1/Users/{UserSid}/Conversations"
+          ]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_conversations_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_conversations_v2.json",
+          "title": "Conversation Orchestrator",
+          "sdkAccessor": {
+            "node": "client.conversations.v2",
+            "python": "client.conversations.v2"
+          },
+          "operations": 22,
+          "paths": [
+            "GET,POST /v2/ControlPlane/Configurations",
+            "GET,PUT,PATCH,DELETE /v2/ControlPlane/Configurations/{id}",
+            "GET,POST /v2/Conversations",
+            "GET,PUT,PATCH,DELETE /v2/Conversations/{id}",
+            "POST /v2/Conversations/{ConversationId}/Actions",
+            "GET /v2/Conversations/{ConversationId}/Actions/{ActionId}",
+            "GET,POST /v2/Conversations/{ConversationId}/Participants",
+            "GET,PUT /v2/Conversations/{ConversationId}/Participants/{id}",
+            "GET,POST /v2/Conversations/{ConversationId}/Communications",
+            "GET /v2/Conversations/{ConversationId}/Communications/{id}",
+            "GET /v2/ControlPlane/Operations/{id}"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.conversations",
+        "python": "client.conversations"
+      },
+      "docs": ["https://www.twilio.com/docs/conversations"],
+      "status": "current",
+      "versionStatus": {
+        "v1": "current",
+        "v2": "new (Conversation Orchestrator)"
+      },
+      "note": "v1 is the Conversations API most code uses (the SDK docs now call the client SDKs 'Conversations (classic)'). v2 in twilio-oai is titled 'Conversation Orchestrator' and is a different, newer API, not a drop-in upgrade.",
+      "sources": [
+        "https://www.twilio.com/docs/conversations",
+        "https://www.twilio.com/docs/conversations/versioning-and-support-lifecycle",
+        "https://github.com/twilio/twilio-oai/blob/main/spec/json/twilio_conversations_v2.json"
+      ],
+      "latestVersion": "v2"
+    },
+    {
+      "id": "events",
+      "name": "Event Streams",
+      "hosts": ["events.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_events_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_events_v1.json",
+          "title": "Twilio - Events",
+          "sdkAccessor": {
+            "node": "client.events.v1",
+            "python": "client.events.v1"
+          },
+          "operations": 22,
+          "paths": [
+            "GET /v1/Types",
+            "GET /v1/Types/{Type}",
+            "GET /v1/Schemas/{Id}",
+            "GET /v1/Schemas/{Id}/Versions",
+            "GET /v1/Schemas/{Id}/Versions/{SchemaVersion}",
+            "GET,POST,DELETE /v1/Sinks/{Sid}",
+            "GET,POST /v1/Sinks",
+            "POST /v1/Sinks/{Sid}/Test",
+            "POST /v1/Sinks/{Sid}/Validate",
+            "GET,POST /v1/Subscriptions/{SubscriptionSid}/SubscribedEvents",
+            "GET,POST,DELETE /v1/Subscriptions/{SubscriptionSid}/SubscribedEvents/{Type}",
+            "GET,POST /v1/Subscriptions",
+            "GET,POST,DELETE /v1/Subscriptions/{Sid}"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.events",
+        "python": "client.events"
+      },
+      "docs": ["https://www.twilio.com/docs/events"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "flex",
+      "name": "Flex API",
+      "hosts": ["flex-api.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_flex_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_flex_v1.json",
+          "title": "Twilio - Flex",
+          "sdkAccessor": {
+            "node": "client.flexApi.v1",
+            "python": "client.flex_api.v1"
+          },
+          "operations": 73,
+          "paths": [
+            "GET,POST /v1/Channels",
+            "GET,DELETE /v1/Channels/{Sid}",
+            "GET,POST /v1/Configuration",
+            "GET /v1/PluginService/Configurations/{ConfigurationSid}/Plugins",
+            "GET /v1/PluginService/Configurations/{ConfigurationSid}/Plugins/{PluginSid}",
+            "GET,POST /v1/FlexFlows",
+            "GET,POST,DELETE /v1/FlexFlows/{Sid}",
+            "GET,POST /v1/Insights/QualityManagement/Assessments",
+            "POST /v1/Insights/QualityManagement/Assessments/{AssessmentSid}",
+            "GET,POST /v1/Insights/QualityManagement/Assessments/Comments",
+            "GET /v1/Insights/Conversations",
+            "GET,POST /v1/Insights/QualityManagement/Questionnaires",
+            "GET,POST,DELETE /v1/Insights/QualityManagement/Questionnaires/{QuestionnaireSid}",
+            "GET,POST /v1/Insights/QualityManagement/Categories",
+            "POST,DELETE /v1/Insights/QualityManagement/Categories/{CategorySid}",
+            "GET,POST /v1/Insights/QualityManagement/Questions",
+            "POST,DELETE /v1/Insights/QualityManagement/Questions/{QuestionSid}",
+            "GET /v1/Insights/Segments",
+            "POST /v1/Insights/Session",
+            "GET /v1/Insights/QualityManagement/Settings/AnswerSets",
+            "GET /v1/Insights/QualityManagement/Settings/CommentTags",
+            "GET /v1/Insights/UserRoles",
+            "GET,POST /v1/Interactions/{Sid}",
+            "POST /v1/Interactions",
+            "GET,POST /v1/Interactions/{InteractionSid}/Channels/{Sid}",
+            "GET /v1/Interactions/{InteractionSid}/Channels",
+            "GET,POST /v1/Interactions/{InteractionSid}/Channels/{ChannelSid}/Invites",
+            "GET,POST /v1/Interactions/{InteractionSid}/Channels/{ChannelSid}/Participants",
+            "POST /v1/Interactions/{InteractionSid}/Channels/{ChannelSid}/Participants/{Sid}",
+            "POST /v1/Interactions/{InteractionSid}/Channels/{ChannelSid}/Transfers",
+            "GET,POST /v1/Interactions/{InteractionSid}/Channels/{ChannelSid}/Transfers/{Sid}",
+            "GET,POST /v1/PluginService/Plugins",
+            "GET,POST /v1/PluginService/Plugins/{Sid}",
+            "POST /v1/PluginService/Plugins/{Sid}/Archive",
+            "GET,POST /v1/PluginService/Configurations",
+            "GET /v1/PluginService/Configurations/{Sid}",
+            "POST /v1/PluginService/Configurations/{Sid}/Archive",
+            "GET,POST /v1/PluginService/Releases",
+            "GET /v1/PluginService/Releases/{Sid}",
+            "GET,POST /v1/PluginService/Plugins/{PluginSid}/Versions",
+            "GET /v1/PluginService/Plugins/{PluginSid}/Versions/{Sid}",
+            "POST /v1/PluginService/Plugins/{PluginSid}/Versions/{Sid}/Archive",
+            "GET /v1/account/provision/status",
+            "GET,POST /v1/WebChannels",
+            "GET,POST,DELETE /v1/WebChannels/{Sid}"
+          ]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_flex_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_flex_v2.json",
+          "title": "Twilio - Flex",
+          "sdkAccessor": {
+            "node": "client.flexApi.v2",
+            "python": "client.flex_api.v2"
+          },
+          "operations": 3,
+          "paths": ["GET,POST /v2/Instances/{InstanceSid}/Users/{FlexUserSid}", "POST /v2/WebChats"]
+        }
+      ],
+      "sdk": {
+        "node": "client.flexApi",
+        "python": "client.flex_api"
+      },
+      "docs": ["https://www.twilio.com/docs/flex"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v2"
+    },
+    {
+      "id": "frontline",
+      "name": "Frontline",
+      "hosts": ["frontline-api.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_frontline_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_frontline_v1.json",
+          "title": "Twilio - Frontline",
+          "sdkAccessor": {
+            "node": "client.frontlineApi.v1",
+            "python": "client.frontline_api.v1"
+          },
+          "operations": 2,
+          "paths": ["GET,POST /v1/Users/{Sid}"]
+        }
+      ],
+      "sdk": {
+        "node": "client.frontlineApi",
+        "python": "client.frontline_api"
+      },
+      "docs": ["https://www.twilio.com/docs/frontline"],
+      "status": "end-of-life",
+      "eolDate": "2026-09-30",
+      "migrationTarget": "No direct replacement named; Flex / Conversations are the closest Twilio products (talk to the account team)",
+      "note": "End of Sale 2023-02-09; retirement announced for 2026-09-30, which has passed.",
+      "sources": [
+        "https://www.twilio.com/en-us/changelog/frontline-is-entering-eol--here-s-what-that-means-for-customers",
+        "https://www.twilio.com/en-us/changelog/limitation-of-new-sales-of-frontline"
+      ],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "iam_organizations",
+      "name": "Organizations (preview IAM)",
+      "hosts": ["preview-iam.twilio.com"],
+      "versions": [
+        {
+          "version": "unversioned",
+          "pathPrefix": "",
+          "oaiFile": "twilio_iam_organizations.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_iam_organizations.json",
+          "title": "Organization Public API",
+          "sdkAccessor": {
+            "node": "client.previewIam",
+            "python": "client.preview_iam"
+          },
+          "operations": 13,
+          "paths": [
+            "GET,POST /Organizations/{OrganizationSid}/scim/Users",
+            "GET,PUT,PATCH,DELETE /Organizations/{OrganizationSid}/scim/Users/{UserSid}",
+            "GET /Organizations/{OrganizationSid}/Accounts",
+            "GET /Organizations/{OrganizationSid}/Accounts/{AccountSid}",
+            "GET,POST /Organizations/{OrganizationSid}/RoleAssignments",
+            "DELETE /Organizations/{OrganizationSid}/RoleAssignments/{RoleAssignmentSid}",
+            "GET /v1/authorize",
+            "POST /v1/token"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.previewIam",
+        "python": "client.preview_iam"
+      },
+      "docs": [],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "unversioned"
+    },
+    {
+      "id": "iam",
+      "name": "IAM (API keys v1)",
+      "hosts": ["iam.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_iam_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_iam_v1.json",
+          "title": "Twilio - Iam",
+          "sdkAccessor": {
+            "node": "client.iam.v1",
+            "python": "client.iam.v1"
+          },
+          "operations": 10,
+          "paths": [
+            "GET,POST /v1/Keys",
+            "GET,POST,DELETE /v1/Keys/{Sid}",
+            "GET /v1/Roles/{RoleSid}/Permissions",
+            "POST /v1/token",
+            "PUT,DELETE /v1/Account/OAuthApps/{sid}",
+            "POST /v1/Account/OAuthApps"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.iam",
+        "python": "client.iam"
+      },
+      "docs": ["https://www.twilio.com/docs/iam/api-keys"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "insights",
+      "name": "Voice/Conversation Insights",
+      "hosts": ["insights.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_insights_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_insights_v1.json",
+          "title": "Twilio - Insights",
+          "sdkAccessor": {
+            "node": "client.insights.v1",
+            "python": "client.insights.v1"
+          },
+          "operations": 17,
+          "paths": [
+            "GET,POST /v1/Voice/Settings",
+            "GET,POST /v1/Voice/{CallSid}/Annotation",
+            "GET /v1/Voice/{Sid}",
+            "GET /v1/Voice/Summaries",
+            "GET /v1/Conferences/{ConferenceSid}",
+            "GET /v1/Conferences",
+            "GET /v1/Conferences/{ConferenceSid}/Participants/{ParticipantSid}",
+            "GET /v1/Conferences/{ConferenceSid}/Participants",
+            "GET /v1/Voice/{CallSid}/Events",
+            "GET /v1/Voice/{CallSid}/Metrics",
+            "GET /v1/Voice/{CallSid}/Summary",
+            "GET /v1/Video/Rooms/{RoomSid}/Participants/{ParticipantSid}",
+            "GET /v1/Video/Rooms/{RoomSid}/Participants",
+            "GET /v1/Video/Rooms/{RoomSid}",
+            "GET /v1/Video/Rooms"
+          ]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_insights_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_insights_v2.json",
+          "title": "Sample/reference Twilio API.",
+          "sdkAccessor": {
+            "node": "client.insights.v2",
+            "python": "client.insights.v2"
+          },
+          "operations": 6,
+          "paths": [
+            "POST /v2/Voice/Reports",
+            "GET /v2/Voice/Reports/{reportId}",
+            "POST /v2/Voice/Reports/PhoneNumbers/Inbound",
+            "GET /v2/Voice/Reports/PhoneNumbers/Inbound/{reportId}",
+            "POST /v2/Voice/Reports/PhoneNumbers/Outbound",
+            "GET /v2/Voice/Reports/PhoneNumbers/Outbound/{reportId}"
+          ]
+        },
+        {
+          "version": "v3",
+          "pathPrefix": "/v3",
+          "oaiFile": "twilio_insights_v3.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_insights_v3.json",
+          "title": "Twilio - Insights",
+          "sdkAccessor": {
+            "node": "client.insights.v3",
+            "python": "client.insights.v3"
+          },
+          "operations": 12,
+          "paths": [
+            "GET,POST /v3/InsightsDomains/Conversations/Query",
+            "GET /v3/InsightsDomains/Conversations/Metadata",
+            "GET,POST /v3/InsightsDomains/Conversations/QueryJobs",
+            "GET /v3/InsightsDomains/Conversations/QueryJobs/{operationId}",
+            "GET /v3/InsightsDomains/Conversations/QueryJobs/{operationId}/Results",
+            "GET,POST /v3/ControlPlane/ConversationInsights/CustomFieldMappings",
+            "GET,PATCH /v3/ControlPlane/ConversationInsights/CustomFieldMappings/{mappingId}",
+            "GET /v3/ControlPlane/ConversationInsights/CustomFieldMappingsCapacity"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.insights",
+        "python": "client.insights"
+      },
+      "docs": ["https://www.twilio.com/docs/voice/voice-insights"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v3"
+    },
+    {
+      "id": "intelligence",
+      "name": "Conversational Intelligence",
+      "hosts": ["intelligence.twilio.com"],
+      "versions": [
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_intelligence_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_intelligence_v2.json",
+          "title": "Twilio - Intelligence",
+          "sdkAccessor": {
+            "node": "client.intelligence.v2",
+            "python": "client.intelligence.v2"
+          },
+          "operations": 29,
+          "paths": [
+            "GET,POST /v2/Operators/Custom",
+            "GET,POST,DELETE /v2/Operators/Custom/{Sid}",
+            "GET /v2/Transcripts/{TranscriptSid}/OperatorResults/Encrypted",
+            "GET /v2/Transcripts/{TranscriptSid}/Sentences/Encrypted",
+            "GET /v2/Transcripts/{Sid}/Media",
+            "GET /v2/Operators/{Sid}",
+            "GET /v2/Operators",
+            "POST,DELETE /v2/Services/{ServiceSid}/Operators/{OperatorSid}",
+            "GET /v2/Services/{ServiceSid}/Operators",
+            "GET /v2/Transcripts/{TranscriptSid}/OperatorResults",
+            "GET /v2/Transcripts/{TranscriptSid}/OperatorResults/{OperatorSid}",
+            "GET /v2/OperatorTypes",
+            "GET /v2/OperatorTypes/{Sid}",
+            "GET /v2/Operators/PreBuilt/{Sid}",
+            "GET /v2/Operators/PreBuilt",
+            "GET /v2/Transcripts/{TranscriptSid}/Sentences",
+            "GET,POST /v2/Services",
+            "GET,POST,DELETE /v2/Services/{Sid}",
+            "GET,POST /v2/Transcripts",
+            "GET,DELETE /v2/Transcripts/{Sid}"
+          ]
+        },
+        {
+          "version": "v3",
+          "pathPrefix": "/v3",
+          "oaiFile": "twilio_intelligence_v3.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_intelligence_v3.json",
+          "title": "Twilio Conversational Intelligence API",
+          "sdkAccessor": {
+            "node": "client.intelligence.v3",
+            "python": "client.intelligence.v3"
+          },
+          "operations": 18,
+          "paths": [
+            "GET,POST /v3/ControlPlane/Configurations",
+            "GET,PUT,DELETE /v3/ControlPlane/Configurations/{id}",
+            "GET,POST /v3/ControlPlane/Operators",
+            "GET,PUT,DELETE /v3/ControlPlane/Operators/{id}",
+            "GET /v3/ControlPlane/Operators/{id}/Versions",
+            "GET /v3/ControlPlane/Operators/{id}/Versions/{version}",
+            "GET /v3/OperatorResults",
+            "GET,DELETE /v3/OperatorResults/{operatorResultId}",
+            "GET /v3/Conversations",
+            "GET /v3/Conversations/{id}",
+            "POST /v3/RuleExecutions"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.intelligence",
+        "python": "client.intelligence"
+      },
+      "docs": ["https://www.twilio.com/docs/conversational-intelligence"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v3"
+    },
+    {
+      "id": "ip_messaging",
+      "name": "IP Messaging (legacy alias of Programmable Chat)",
+      "hosts": ["ip-messaging.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_ip_messaging_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_ip_messaging_v1.json",
+          "title": "Twilio - Ip_messaging",
+          "sdkAccessor": {
+            "node": "client.ipMessaging.v1",
+            "python": "client.ip_messaging.v1"
+          },
+          "operations": 40,
+          "paths": [
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Channels/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Channels",
+            "GET,POST /v1/Credentials",
+            "GET,POST,DELETE /v1/Credentials/{Sid}",
+            "GET,DELETE /v1/Services/{ServiceSid}/Channels/{ChannelSid}/Invites/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Channels/{ChannelSid}/Invites",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Channels/{ChannelSid}/Members/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Channels/{ChannelSid}/Members",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Channels/{ChannelSid}/Messages/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Channels/{ChannelSid}/Messages",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Roles/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Roles",
+            "GET,POST,DELETE /v1/Services/{Sid}",
+            "GET,POST /v1/Services",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Users/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Users",
+            "GET /v1/Services/{ServiceSid}/Users/{UserSid}/Channels"
+          ]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_ip_messaging_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_ip_messaging_v2.json",
+          "title": "Twilio - Ip_messaging",
+          "sdkAccessor": {
+            "node": "client.ipMessaging.v2",
+            "python": "client.ip_messaging.v2"
+          },
+          "operations": 54,
+          "paths": [
+            "GET /v2/Services/{ServiceSid}/Bindings",
+            "GET,DELETE /v2/Services/{ServiceSid}/Bindings/{Sid}",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Channels/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Channels",
+            "GET,POST /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Webhooks",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Webhooks/{Sid}",
+            "GET,POST /v2/Credentials",
+            "GET,POST,DELETE /v2/Credentials/{Sid}",
+            "GET,DELETE /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Invites/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Invites",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Members/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Members",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Messages/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Channels/{ChannelSid}/Messages",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Roles/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Roles",
+            "GET,POST,DELETE /v2/Services/{Sid}",
+            "GET,POST /v2/Services",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Users/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Users",
+            "GET /v2/Services/{ServiceSid}/Users/{UserSid}/Bindings",
+            "GET,DELETE /v2/Services/{ServiceSid}/Users/{UserSid}/Bindings/{Sid}",
+            "GET /v2/Services/{ServiceSid}/Users/{UserSid}/Channels",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Users/{UserSid}/Channels/{ChannelSid}"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.ipMessaging",
+        "python": "client.ip_messaging"
+      },
+      "docs": ["https://www.twilio.com/docs/chat"],
+      "status": "end-of-life",
+      "eolDate": "2022-07-25",
+      "migrationTarget": "Conversations (conversations.twilio.com/v1)",
+      "note": "ip-messaging.twilio.com is the legacy name of Programmable Chat (same resources as chat v1/v2). Treat exactly like Chat: deprecated, no support, migrate to Conversations.",
+      "sources": [
+        "https://www.twilio.com/en-us/changelog/programmable-chat-end-of-life-notice",
+        "https://www.twilio.com/docs/chat"
+      ],
+      "latestVersion": "v2"
+    },
+    {
+      "id": "knowledge",
+      "name": "Knowledge",
+      "hosts": ["knowledge.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_knowledge_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_knowledge_v1.json",
+          "title": "Twilio - Knowledge",
+          "sdkAccessor": {
+            "node": "client.knowledge.v1",
+            "python": "client.knowledge.v1"
+          },
+          "operations": 7,
+          "paths": [
+            "GET,POST /v1/Knowledge",
+            "GET,PUT,DELETE /v1/Knowledge/{id}",
+            "GET /v1/Knowledge/{id}/Status",
+            "GET /v1/Knowledge/{id}/Chunks"
+          ]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_knowledge_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_knowledge_v2.json",
+          "title": "Twilio Knowledge API",
+          "sdkAccessor": {
+            "node": "client.knowledge.v2",
+            "python": "client.knowledge.v2"
+          },
+          "operations": 13,
+          "paths": [
+            "GET,POST /v2/KnowledgeBases/{kbId}/Knowledge",
+            "POST /v2/KnowledgeBases/{kbId}/Search",
+            "GET,PATCH,DELETE /v2/KnowledgeBases/{kbId}/Knowledge/{knowledgeId}",
+            "GET /v2/KnowledgeBases/{kbId}/Knowledge/{knowledgeId}/Chunks",
+            "GET,POST /v2/ControlPlane/KnowledgeBases",
+            "GET,PATCH,DELETE /v2/ControlPlane/KnowledgeBases/{kbId}",
+            "GET /v2/ControlPlane/Operations/{operationId}"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.knowledge",
+        "python": "client.knowledge"
+      },
+      "docs": [],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v2"
+    },
+    {
+      "id": "lookups",
+      "name": "Lookup",
+      "hosts": ["lookups.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_lookups_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_lookups_v1.json",
+          "title": "Twilio - Lookups",
+          "sdkAccessor": {
+            "node": "client.lookups.v1",
+            "python": "client.lookups.v1"
+          },
+          "operations": 1,
+          "paths": ["GET /v1/PhoneNumbers/{PhoneNumber}"]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_lookups_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_lookups_v2.json",
+          "title": "Twilio - Lookups",
+          "sdkAccessor": {
+            "node": "client.lookups.v2",
+            "python": "client.lookups.v2"
+          },
+          "operations": 10,
+          "paths": [
+            "GET /v2/PhoneNumbers/{PhoneNumber}",
+            "POST /v2/batch/query",
+            "GET /v2/RateLimits",
+            "GET,PUT,DELETE /v2/RateLimits/Fields/{Field}/Bucket/{Bucket}",
+            "GET,POST,PUT,DELETE /v2/PhoneNumbers/{PhoneNumber}/Overrides/{Field}"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.lookups",
+        "python": "client.lookups"
+      },
+      "docs": ["https://www.twilio.com/docs/lookup"],
+      "status": "current",
+      "versionStatus": {
+        "v1": "deprecated",
+        "v2": "current"
+      },
+      "migrationTarget": "Lookup v2 (lookups.twilio.com/v2/PhoneNumbers/{PhoneNumber}?Fields=...)",
+      "note": "Lookup v1 is in maintenance mode (no new features); use v2. v1 carrier/caller-name map to v2 Fields such as line_type_intelligence and caller_name. No v1 shutdown date found.",
+      "sources": [
+        "https://www.twilio.com/docs/lookup/v1-api",
+        "https://www.twilio.com/en-us/blog/migrate-lookup-v2"
+      ],
+      "latestVersion": "v2"
+    },
+    {
+      "id": "marketplace",
+      "name": "Marketplace (Add-ons)",
+      "hosts": ["marketplace.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_marketplace_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_marketplace_v1.json",
+          "title": "Twilio - Marketplace",
+          "sdkAccessor": {
+            "node": "client.marketplace.v1",
+            "python": "client.marketplace.v1"
+          },
+          "operations": 18,
+          "paths": [
+            "GET /v1/AvailableAddOns",
+            "GET /v1/AvailableAddOns/{Sid}",
+            "GET /v1/AvailableAddOns/{AvailableAddOnSid}/Extensions",
+            "GET /v1/AvailableAddOns/{AvailableAddOnSid}/Extensions/{Sid}",
+            "GET,POST /v1/InstalledAddOns",
+            "GET,POST,DELETE /v1/InstalledAddOns/{Sid}",
+            "GET /v1/InstalledAddOns/{InstalledAddOnSid}/Extensions",
+            "GET,POST /v1/InstalledAddOns/{InstalledAddOnSid}/Extensions/{Sid}",
+            "POST /v1/InstalledAddOns/{InstalledAddOnSid}/Usage",
+            "POST /v1/ReferralConversion",
+            "GET,POST /v1/Listings",
+            "GET,POST /v1/Listing/{Sid}"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.marketplace",
+        "python": "client.marketplace"
+      },
+      "docs": [],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "memory",
+      "name": "Memory",
+      "hosts": ["memory.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_memory_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_memory_v1.json",
+          "title": "Twilio Memory API",
+          "sdkAccessor": {
+            "node": "client.memory.v1",
+            "python": "client.memory.v1"
+          },
+          "operations": 46,
+          "paths": [
+            "GET,PATCH,DELETE /v1/Stores/{storeId}/Profiles/{profileId}",
+            "POST /v1/Stores/{storeId}/Profiles/Lookup",
+            "GET,POST /v1/Stores/{storeId}/Profiles/{profileId}/Identifiers",
+            "GET,PATCH,DELETE /v1/Stores/{storeId}/Profiles/{profileId}/Identifiers/{idType}",
+            "POST /v1/Stores/{storeId}/Profiles/{profileId}/Recall",
+            "GET,POST /v1/Stores/{storeId}/Profiles/{profileId}/Observations",
+            "GET,PATCH,DELETE /v1/Stores/{storeId}/Profiles/{profileId}/Observations/{observationId}",
+            "GET /v1/Stores/{storeId}/Profiles/{profileId}/Observations/{observationId}/Revisions",
+            "GET,POST /v1/Stores/{storeId}/Profiles/{profileId}/ConversationSummaries",
+            "GET,POST /v1/Stores/{storeId}/Profiles",
+            "PUT /v1/Stores/{storeId}/Profiles/Bulk",
+            "GET /v1/Stores/{storeId}/Profiles/{profileId}/Traits",
+            "GET,POST /v1/ControlPlane/Stores",
+            "GET,PATCH,DELETE /v1/ControlPlane/Stores/{storeId}",
+            "GET,PUT /v1/ControlPlane/Stores/{storeId}/IdentityResolutionSettings",
+            "GET,POST /v1/ControlPlane/Stores/{storeId}/TraitGroups",
+            "GET,PATCH,DELETE /v1/ControlPlane/Stores/{storeId}/TraitGroups/{traitGroupName}",
+            "GET,POST /v1/ControlPlane/Stores/{storeId}/DataMappings",
+            "GET,PATCH,DELETE /v1/ControlPlane/Stores/{storeId}/DataMappings/{dataMappingId}",
+            "GET,PATCH,DELETE /v1/Stores/{storeId}/Profiles/{profileId}/ConversationSummaries/{summaryId}",
+            "GET,POST /v1/Stores/{storeId}/Profiles/Imports",
+            "GET /v1/Stores/{storeId}/Profiles/Imports/{importId}",
+            "GET /v1/ControlPlane/Operations/{operationId}"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.memory",
+        "python": "client.memory"
+      },
+      "docs": [],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "messaging",
+      "name": "Messaging (Services, A2P, senders)",
+      "hosts": ["messaging.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_messaging_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_messaging_v1.json",
+          "title": "Twilio - Messaging",
+          "sdkAccessor": {
+            "node": "client.messaging.v1",
+            "python": "client.messaging.v1"
+          },
+          "operations": 58,
+          "paths": [
+            "GET,POST /v1/Services/{ServiceSid}/AlphaSenders",
+            "GET,DELETE /v1/Services/{ServiceSid}/AlphaSenders/{Sid}",
+            "POST /v1/a2p/BrandRegistrations/{BrandRegistrationSid}/SmsOtp",
+            "GET,POST /v1/a2p/BrandRegistrations/{Sid}",
+            "GET,POST /v1/a2p/BrandRegistrations",
+            "GET,POST /v1/a2p/BrandRegistrations/{BrandSid}/Vettings",
+            "GET /v1/a2p/BrandRegistrations/{BrandSid}/Vettings/{BrandVettingSid}",
+            "GET,POST /v1/Services/{MessagingServiceSid}/ChannelSenders",
+            "GET,DELETE /v1/Services/{MessagingServiceSid}/ChannelSenders/{Sid}",
+            "GET /v1/Deactivations",
+            "GET,POST /v1/Services/{ServiceSid}/DestinationAlphaSenders",
+            "GET,DELETE /v1/Services/{ServiceSid}/DestinationAlphaSenders/{Sid}",
+            "GET,POST,DELETE /v1/LinkShortening/Domains/{DomainSid}/Certificate",
+            "GET,POST /v1/LinkShortening/Domains/{DomainSid}/Config",
+            "GET /v1/LinkShortening/MessagingService/{MessagingServiceSid}/DomainConfig",
+            "GET /v1/LinkShortening/Domains/{DomainSid}/ValidateDns",
+            "POST /v1/Services/PreregisteredUsa2p",
+            "POST,DELETE /v1/LinkShortening/Domains/{DomainSid}/MessagingServices/{MessagingServiceSid}",
+            "GET /v1/LinkShortening/MessagingServices/{MessagingServiceSid}/Domain",
+            "GET,POST /v1/Services/{ServiceSid}/PhoneNumbers",
+            "GET,DELETE /v1/Services/{ServiceSid}/PhoneNumbers/{Sid}",
+            "POST /v1/LinkShortening/Domains/{DomainSid}/RequestManagedCert",
+            "GET,POST /v1/Services",
+            "GET,POST,DELETE /v1/Services/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/ShortCodes",
+            "GET,DELETE /v1/Services/{ServiceSid}/ShortCodes/{Sid}",
+            "GET,POST,DELETE /v1/Tollfree/Verifications/{Sid}",
+            "GET,POST /v1/Tollfree/Verifications",
+            "GET,POST /v1/Services/{MessagingServiceSid}/Compliance/Usa2p",
+            "GET,POST,DELETE /v1/Services/{MessagingServiceSid}/Compliance/Usa2p/{Sid}",
+            "GET /v1/Services/{MessagingServiceSid}/Compliance/Usa2p/Usecases",
+            "GET /v1/Services/Usecases"
+          ]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_messaging_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_messaging_v2.json",
+          "title": "Twilio - Messaging",
+          "sdkAccessor": {
+            "node": "client.messaging.v2",
+            "python": "client.messaging.v2"
+          },
+          "operations": 7,
+          "paths": [
+            "POST /v2/Indicators/Typing.json",
+            "GET,POST /v2/Channels/Senders",
+            "GET,POST,DELETE /v2/Channels/Senders/{Sid}",
+            "GET /v2/LinkShortening/Domains/{DomainSid}/Certificate"
+          ]
+        },
+        {
+          "version": "v3",
+          "pathPrefix": "/v3",
+          "oaiFile": "twilio_messaging_v3.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_messaging_v3.json",
+          "title": "Twilio - Messaging",
+          "sdkAccessor": {
+            "node": "client.messaging.v3",
+            "python": "client.messaging.v3"
+          },
+          "operations": 1,
+          "paths": ["POST /v3/Indicators/Typing.json"]
+        }
+      ],
+      "sdk": {
+        "node": "client.messaging",
+        "python": "client.messaging"
+      },
+      "docs": ["https://www.twilio.com/docs/messaging"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v3"
+    },
+    {
+      "id": "monitor",
+      "name": "Monitor (Alerts, Events)",
+      "hosts": ["monitor.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_monitor_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_monitor_v1.json",
+          "title": "Twilio - Monitor",
+          "sdkAccessor": {
+            "node": "client.monitor.v1",
+            "python": "client.monitor.v1"
+          },
+          "operations": 4,
+          "paths": [
+            "GET /v1/Alerts/{Sid}",
+            "GET /v1/Alerts",
+            "GET /v1/Events/{Sid}",
+            "GET /v1/Events"
+          ]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_monitor_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_monitor_v2.json",
+          "title": "Twilio - Alarms",
+          "sdkAccessor": {
+            "node": "client.monitor.v2",
+            "python": "client.monitor.v2"
+          },
+          "operations": 6,
+          "paths": [
+            "GET,POST /v2/Alarms",
+            "GET,PUT,DELETE /v2/Alarms/{Sid}",
+            "PUT /v2/Alarms/{Sid}/status"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.monitor",
+        "python": "client.monitor"
+      },
+      "docs": [],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v2"
+    },
+    {
+      "id": "notify",
+      "name": "Notify",
+      "hosts": ["notify.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_notify_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_notify_v1.json",
+          "title": "Twilio - Notify",
+          "sdkAccessor": {
+            "node": "client.notify.v1",
+            "python": "client.notify.v1"
+          },
+          "operations": 15,
+          "paths": [
+            "GET,DELETE /v1/Services/{ServiceSid}/Bindings/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Bindings",
+            "GET,POST /v1/Credentials",
+            "GET,POST,DELETE /v1/Credentials/{Sid}",
+            "POST /v1/Services/{ServiceSid}/Notifications",
+            "GET,POST /v1/Services",
+            "GET,POST,DELETE /v1/Services/{Sid}"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.notify",
+        "python": "client.notify"
+      },
+      "docs": ["https://www.twilio.com/docs/notify"],
+      "status": "end-of-life",
+      "eolDate": "2025-12-31",
+      "migrationTarget": "Bulk SMS -> Bulk Messaging API; push -> Push API (private beta) or channel-native push (FCM/APNs)",
+      "note": "Docs: 'Twilio stopped supporting Notify in October 2022'. Changelog (Jan 2024) moved EOL to 2025-12-31, which has passed. Push sent via Verify/Voice/Conversations is not affected.",
+      "sources": [
+        "https://www.twilio.com/docs/notify",
+        "https://twilio.com/en-us/changelog/notify-api-end-of-life-further-extension-notice"
+      ],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "numbers",
+      "name": "Numbers (regulatory compliance, porting, hosted numbers)",
+      "hosts": ["numbers.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_numbers_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_numbers_v1.json",
+          "title": "Twilio - Numbers",
+          "sdkAccessor": {
+            "node": "client.numbers.v1",
+            "python": "client.numbers.v1"
+          },
+          "operations": 20,
+          "paths": [
+            "POST /v1/HostedNumber/Eligibility/Bulk",
+            "GET /v1/HostedNumber/Eligibility/Bulk/{RequestId}",
+            "POST /v1/HostedNumber/Eligibility",
+            "POST /v1/Porting/PortIn",
+            "GET,DELETE /v1/Porting/PortIn/{PortInRequestSid}",
+            "GET /v1/Porting/PortIn/PortInRequests",
+            "GET,DELETE /v1/Porting/PortIn/{PortInRequestSid}/PhoneNumber/{PhoneNumberSid}",
+            "GET /v1/Porting/Portability/PhoneNumber/{PhoneNumber}",
+            "GET,POST /v1/Porting/Configuration/Webhook",
+            "DELETE /v1/Porting/Configuration/Webhook/{WebhookType}",
+            "GET,POST /v1/SigningRequest/Configuration",
+            "POST /v1/SenderIdRegistrations",
+            "POST /v1/SenderIdRegistrations/{BundleSid}/EmbeddedSessions",
+            "POST /v1/CallerIds/SmsVerifications",
+            "POST /v1/CallerIds/SmsVerificationChecks",
+            "POST /v1/CallerIds/VoiceVerifications"
+          ]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_numbers_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_numbers_v2.json",
+          "title": "Twilio - Numbers",
+          "sdkAccessor": {
+            "node": "client.numbers.v2",
+            "python": "client.numbers.v2"
+          },
+          "operations": 47,
+          "paths": [
+            "GET,DELETE /v2/HostedNumber/AuthorizationDocuments/{Sid}",
+            "GET,POST /v2/HostedNumber/AuthorizationDocuments",
+            "GET /v2/HostedNumber/Orders/Bulk/{BulkHostingSid}",
+            "POST /v2/HostedNumber/Orders/Bulk",
+            "GET,POST /v2/RegulatoryCompliance/Bundles",
+            "GET,POST,DELETE /v2/RegulatoryCompliance/Bundles/{Sid}",
+            "POST /v2/RegulatoryCompliance/Bundles/{BundleSid}/Clones",
+            "GET,POST /v2/RegulatoryCompliance/Bundles/{BundleSid}/Copies",
+            "GET /v2/HostedNumber/AuthorizationDocuments/{SigningDocumentSid}/DependentHostedNumberOrders",
+            "GET,POST /v2/RegulatoryCompliance/EndUsers",
+            "GET,POST,DELETE /v2/RegulatoryCompliance/EndUsers/{Sid}",
+            "GET /v2/RegulatoryCompliance/EndUserTypes",
+            "GET /v2/RegulatoryCompliance/EndUserTypes/{Sid}",
+            "GET,POST /v2/RegulatoryCompliance/Bundles/{BundleSid}/Evaluations",
+            "GET /v2/RegulatoryCompliance/Bundles/{BundleSid}/Evaluations/{Sid}",
+            "GET,POST,DELETE /v2/HostedNumber/Orders/{Sid}",
+            "GET,POST /v2/HostedNumber/Orders",
+            "GET,POST /v2/RegulatoryCompliance/Bundles/{BundleSid}/ItemAssignments",
+            "GET,DELETE /v2/RegulatoryCompliance/Bundles/{BundleSid}/ItemAssignments/{Sid}",
+            "GET /v2/RegulatoryCompliance/Regulations",
+            "GET /v2/RegulatoryCompliance/Regulations/{Sid}",
+            "POST /v2/RegulatoryCompliance/Bundles/{BundleSid}/ReplaceItems",
+            "GET,POST /v2/RegulatoryCompliance/SupportingDocuments",
+            "GET,POST,DELETE /v2/RegulatoryCompliance/SupportingDocuments/{Sid}",
+            "GET /v2/RegulatoryCompliance/SupportingDocumentTypes",
+            "GET /v2/RegulatoryCompliance/SupportingDocumentTypes/{Sid}",
+            "GET,POST /v2/ShortCodes/Applications",
+            "GET /v2/ShortCodes/Applications/{sid}"
+          ]
+        },
+        {
+          "version": "v3",
+          "pathPrefix": "/v3",
+          "oaiFile": "twilio_numbers_v3.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_numbers_v3.json",
+          "title": "Twilio - Numbers",
+          "sdkAccessor": {
+            "node": "client.numbers.v3",
+            "python": "client.numbers.v3"
+          },
+          "operations": 1,
+          "paths": ["POST /v3/HostedNumbers/HostedNumberOrders"]
+        }
+      ],
+      "sdk": {
+        "node": "client.numbers",
+        "python": "client.numbers"
+      },
+      "docs": ["https://www.twilio.com/docs/phone-numbers"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v3"
+    },
+    {
+      "id": "oauth",
+      "name": "OAuth",
+      "hosts": ["oauth.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_oauth_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_oauth_v1.json",
+          "title": "Twilio - Oauth",
+          "sdkAccessor": {
+            "node": "client.oauth.v1",
+            "python": "client.oauth.v1"
+          },
+          "operations": 2,
+          "paths": ["GET /v1/authorize", "POST /v1/token"]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_oauth_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_oauth_v2.json",
+          "title": "User OAuth API",
+          "sdkAccessor": {
+            "node": "client.oauth.v2",
+            "python": "client.oauth.v2"
+          },
+          "operations": 3,
+          "paths": [
+            "POST /v2/token",
+            "GET /v2/authorize",
+            "GET /.well-known/oauth-authorization-server"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.oauth",
+        "python": "client.oauth"
+      },
+      "docs": [],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v2"
+    },
+    {
+      "id": "preview",
+      "name": "Preview APIs (HostedNumbers, marketplace, wireless \u2014 preview host)",
+      "hosts": ["preview.twilio.com"],
+      "versions": [
+        {
+          "version": "unversioned",
+          "pathPrefix": "",
+          "oaiFile": "twilio_preview.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_preview.json",
+          "title": "Twilio - Preview",
+          "sdkAccessor": {
+            "node": "client.preview",
+            "python": "client.preview"
+          },
+          "operations": 35,
+          "paths": [
+            "GET,POST,DELETE /HostedNumbers/AuthorizationDocuments/{Sid}",
+            "GET,POST /HostedNumbers/AuthorizationDocuments",
+            "GET /HostedNumbers/AuthorizationDocuments/{SigningDocumentSid}/DependentHostedNumberOrders",
+            "GET,POST,DELETE /HostedNumbers/HostedNumberOrders/{Sid}",
+            "GET,POST /HostedNumbers/HostedNumberOrders",
+            "GET /marketplace/AvailableAddOns/{Sid}",
+            "GET /marketplace/AvailableAddOns",
+            "GET /marketplace/AvailableAddOns/{AvailableAddOnSid}/Extensions/{Sid}",
+            "GET /marketplace/AvailableAddOns/{AvailableAddOnSid}/Extensions",
+            "GET,POST /marketplace/InstalledAddOns",
+            "GET,POST,DELETE /marketplace/InstalledAddOns/{Sid}",
+            "GET,POST /marketplace/InstalledAddOns/{InstalledAddOnSid}/Extensions/{Sid}",
+            "GET /marketplace/InstalledAddOns/{InstalledAddOnSid}/Extensions",
+            "GET /wireless/Commands/{Sid}",
+            "GET,POST /wireless/Commands",
+            "GET,POST /wireless/RatePlans",
+            "GET,POST,DELETE /wireless/RatePlans/{Sid}",
+            "GET,POST /wireless/Sims/{Sid}",
+            "GET /wireless/Sims",
+            "GET /wireless/Sims/{SimSid}/Usage"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.preview",
+        "python": "client.preview"
+      },
+      "docs": [],
+      "status": "preview",
+      "note": "preview.twilio.com hosts preview/beta resources (HostedNumbers, marketplace, wireless). Preview APIs can change without the usual notice; check whether the resource has a GA home (numbers.twilio.com/v2 HostedNumbers, marketplace.twilio.com/v1, supersim/wireless).",
+      "sources": ["https://github.com/twilio/twilio-oai/blob/main/spec/json/twilio_preview.json"],
+      "latestVersion": "unversioned"
+    },
+    {
+      "id": "pricing",
+      "name": "Pricing",
+      "hosts": ["pricing.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_pricing_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_pricing_v1.json",
+          "title": "Twilio - Pricing",
+          "sdkAccessor": {
+            "node": "client.pricing.v1",
+            "python": "client.pricing.v1"
+          },
+          "operations": 7,
+          "paths": [
+            "GET /v1/Messaging/Countries",
+            "GET /v1/Messaging/Countries/{IsoCountry}",
+            "GET /v1/PhoneNumbers/Countries",
+            "GET /v1/PhoneNumbers/Countries/{IsoCountry}",
+            "GET /v1/Voice/Countries",
+            "GET /v1/Voice/Countries/{IsoCountry}",
+            "GET /v1/Voice/Numbers/{Number}"
+          ]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_pricing_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_pricing_v2.json",
+          "title": "Twilio - Pricing",
+          "sdkAccessor": {
+            "node": "client.pricing.v2",
+            "python": "client.pricing.v2"
+          },
+          "operations": 6,
+          "paths": [
+            "GET /v2/Trunking/Countries",
+            "GET /v2/Trunking/Countries/{IsoCountry}",
+            "GET /v2/Trunking/Numbers/{DestinationNumber}",
+            "GET /v2/Voice/Countries",
+            "GET /v2/Voice/Countries/{IsoCountry}",
+            "GET /v2/Voice/Numbers/{DestinationNumber}"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.pricing",
+        "python": "client.pricing"
+      },
+      "docs": ["https://www.twilio.com/docs/pricing"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v2"
+    },
+    {
+      "id": "proxy",
+      "name": "Proxy",
+      "hosts": ["proxy.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_proxy_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_proxy_v1.json",
+          "title": "Twilio - Proxy",
+          "sdkAccessor": {
+            "node": "client.proxy.v1",
+            "python": "client.proxy.v1"
+          },
+          "operations": 25,
+          "paths": [
+            "GET,DELETE /v1/Services/{ServiceSid}/Sessions/{SessionSid}/Interactions/{Sid}",
+            "GET /v1/Services/{ServiceSid}/Sessions/{SessionSid}/Interactions",
+            "GET,POST /v1/Services/{ServiceSid}/Sessions/{SessionSid}/Participants/{ParticipantSid}/MessageInteractions",
+            "GET /v1/Services/{ServiceSid}/Sessions/{SessionSid}/Participants/{ParticipantSid}/MessageInteractions/{Sid}",
+            "GET,DELETE /v1/Services/{ServiceSid}/Sessions/{SessionSid}/Participants/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Sessions/{SessionSid}/Participants",
+            "GET,POST /v1/Services/{ServiceSid}/PhoneNumbers",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/PhoneNumbers/{Sid}",
+            "GET,POST,DELETE /v1/Services/{Sid}",
+            "GET,POST /v1/Services",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Sessions/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Sessions"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.proxy",
+        "python": "client.proxy"
+      },
+      "docs": ["https://www.twilio.com/docs/proxy"],
+      "status": "deprecated",
+      "note": "Proxy is a Public Beta that is closed to new customers; docs suggest building number-masking directly with Conversations and Programmable Voice. No formal EOL date was found in the docs on 2026-11-01.",
+      "migrationTarget": "Conversations + Programmable Voice",
+      "confidence": "no EOL date published",
+      "sources": ["https://www.twilio.com/docs/proxy", "https://www.twilio.com/docs/proxy/api"],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "routes",
+      "name": "Routes (Inbound Processing Region)",
+      "hosts": ["routes.twilio.com"],
+      "versions": [
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_routes_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_routes_v2.json",
+          "title": "Twilio - Routes",
+          "sdkAccessor": {
+            "node": "client.routes.v2",
+            "python": "client.routes.v2"
+          },
+          "operations": 6,
+          "paths": [
+            "GET,POST /v2/PhoneNumbers/{PhoneNumber}",
+            "GET,POST /v2/SipDomains/{SipDomain}",
+            "GET,POST /v2/Trunks/{SipTrunkDomain}"
+          ]
+        },
+        {
+          "version": "v3",
+          "pathPrefix": "/v3",
+          "oaiFile": "twilio_routes_v3.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_routes_v3.json",
+          "title": "Twilio - Routes",
+          "sdkAccessor": {
+            "node": "client.routes.v3",
+            "python": "client.routes.v3"
+          },
+          "operations": 4,
+          "paths": [
+            "GET,POST /v3/PhoneNumbers/{phoneNumber}",
+            "GET,POST /v3/ShortCodes/{isoCountryCode}/{shortCode}"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.routes",
+        "python": "client.routes"
+      },
+      "docs": [],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v3"
+    },
+    {
+      "id": "serverless",
+      "name": "Serverless (Functions and Assets)",
+      "hosts": ["serverless.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_serverless_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_serverless_v1.json",
+          "title": "Twilio - Serverless",
+          "sdkAccessor": {
+            "node": "client.serverless.v1",
+            "python": "client.serverless.v1"
+          },
+          "operations": 39,
+          "paths": [
+            "GET,POST /v1/Services/{ServiceSid}/Assets",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Assets/{Sid}",
+            "GET /v1/Services/{ServiceSid}/Assets/{AssetSid}/Versions",
+            "GET /v1/Services/{ServiceSid}/Assets/{AssetSid}/Versions/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Builds",
+            "GET,DELETE /v1/Services/{ServiceSid}/Builds/{Sid}",
+            "GET /v1/Services/{ServiceSid}/Builds/{Sid}/Status",
+            "GET,POST /v1/Services/{ServiceSid}/Environments/{EnvironmentSid}/Deployments",
+            "GET /v1/Services/{ServiceSid}/Environments/{EnvironmentSid}/Deployments/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Environments",
+            "GET,DELETE /v1/Services/{ServiceSid}/Environments/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Functions",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Functions/{Sid}",
+            "GET /v1/Services/{ServiceSid}/Functions/{FunctionSid}/Versions",
+            "GET /v1/Services/{ServiceSid}/Functions/{FunctionSid}/Versions/{Sid}",
+            "GET /v1/Services/{ServiceSid}/Functions/{FunctionSid}/Versions/{Sid}/Content",
+            "GET /v1/Services/{ServiceSid}/Environments/{EnvironmentSid}/Logs",
+            "GET /v1/Services/{ServiceSid}/Environments/{EnvironmentSid}/Logs/{Sid}",
+            "GET,POST /v1/Services",
+            "GET,POST,DELETE /v1/Services/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Environments/{EnvironmentSid}/Variables",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Environments/{EnvironmentSid}/Variables/{Sid}"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.serverless",
+        "python": "client.serverless"
+      },
+      "docs": ["https://www.twilio.com/docs/serverless/api"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "studio",
+      "name": "Studio",
+      "hosts": ["studio.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_studio_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_studio_v1.json",
+          "title": "Twilio - Studio",
+          "sdkAccessor": {
+            "node": "client.studio.v1",
+            "python": "client.studio.v1"
+          },
+          "operations": 20,
+          "paths": [
+            "GET,POST /v1/Flows/{FlowSid}/Engagements",
+            "GET,DELETE /v1/Flows/{FlowSid}/Engagements/{Sid}",
+            "GET /v1/Flows/{FlowSid}/Engagements/{EngagementSid}/Context",
+            "GET,POST /v1/Flows/{FlowSid}/Executions",
+            "GET,POST,DELETE /v1/Flows/{FlowSid}/Executions/{Sid}",
+            "GET /v1/Flows/{FlowSid}/Executions/{ExecutionSid}/Context",
+            "GET /v1/Flows/{FlowSid}/Executions/{ExecutionSid}/Steps",
+            "GET /v1/Flows/{FlowSid}/Executions/{ExecutionSid}/Steps/{Sid}",
+            "GET /v1/Flows/{FlowSid}/Executions/{ExecutionSid}/Steps/{StepSid}/Context",
+            "GET /v1/Flows",
+            "GET,DELETE /v1/Flows/{Sid}",
+            "GET /v1/Flows/{FlowSid}/Engagements/{EngagementSid}/Steps",
+            "GET /v1/Flows/{FlowSid}/Engagements/{EngagementSid}/Steps/{Sid}",
+            "GET /v1/Flows/{FlowSid}/Engagements/{EngagementSid}/Steps/{StepSid}/Context"
+          ]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_studio_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_studio_v2.json",
+          "title": "Twilio - Studio",
+          "sdkAccessor": {
+            "node": "client.studio.v2",
+            "python": "client.studio.v2"
+          },
+          "operations": 19,
+          "paths": [
+            "GET,POST /v2/Flows/{FlowSid}/Executions",
+            "GET,POST,DELETE /v2/Flows/{FlowSid}/Executions/{Sid}",
+            "GET /v2/Flows/{FlowSid}/Executions/{ExecutionSid}/Context",
+            "GET /v2/Flows/{FlowSid}/Executions/{ExecutionSid}/Steps",
+            "GET /v2/Flows/{FlowSid}/Executions/{ExecutionSid}/Steps/{Sid}",
+            "GET /v2/Flows/{FlowSid}/Executions/{ExecutionSid}/Steps/{StepSid}/Context",
+            "GET,POST /v2/Flows",
+            "GET,POST,DELETE /v2/Flows/{Sid}",
+            "GET /v2/Flows/{Sid}/Revisions",
+            "GET /v2/Flows/{Sid}/Revisions/{Revision}",
+            "POST /v2/Flows/Validate",
+            "GET,POST /v2/Flows/{Sid}/TestUsers"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.studio",
+        "python": "client.studio"
+      },
+      "docs": ["https://www.twilio.com/docs/studio"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v2"
+    },
+    {
+      "id": "supersim",
+      "name": "Super SIM",
+      "hosts": ["supersim.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_supersim_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_supersim_v1.json",
+          "title": "Twilio - Supersim",
+          "sdkAccessor": {
+            "node": "client.supersim.v1",
+            "python": "client.supersim.v1"
+          },
+          "operations": 31,
+          "paths": [
+            "GET /v1/Sims/{SimSid}/BillingPeriods",
+            "GET,POST /v1/ESimProfiles",
+            "GET /v1/ESimProfiles/{Sid}",
+            "GET,POST /v1/Fleets",
+            "GET,POST /v1/Fleets/{Sid}",
+            "GET,POST /v1/IpCommands",
+            "GET /v1/IpCommands/{Sid}",
+            "GET /v1/Networks/{Sid}",
+            "GET /v1/Networks",
+            "GET,POST /v1/NetworkAccessProfiles",
+            "GET,POST /v1/NetworkAccessProfiles/{Sid}",
+            "GET,POST /v1/NetworkAccessProfiles/{NetworkAccessProfileSid}/Networks",
+            "GET,DELETE /v1/NetworkAccessProfiles/{NetworkAccessProfileSid}/Networks/{Sid}",
+            "GET /v1/SettingsUpdates",
+            "GET,POST /v1/Sims",
+            "GET,POST /v1/Sims/{Sid}",
+            "GET /v1/Sims/{SimSid}/IpAddresses",
+            "GET,POST /v1/SmsCommands",
+            "GET /v1/SmsCommands/{Sid}",
+            "GET /v1/UsageRecords"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.supersim",
+        "python": "client.supersim"
+      },
+      "docs": ["https://www.twilio.com/docs/iot/supersim"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "sync",
+      "name": "Sync",
+      "hosts": ["sync.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_sync_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_sync_v1.json",
+          "title": "Twilio - Sync",
+          "sdkAccessor": {
+            "node": "client.sync.v1",
+            "python": "client.sync.v1"
+          },
+          "operations": 48,
+          "paths": [
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Documents/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Documents",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Documents/{DocumentSid}/Permissions/{Identity}",
+            "GET /v1/Services/{ServiceSid}/Documents/{DocumentSid}/Permissions",
+            "GET,POST,DELETE /v1/Services/{Sid}",
+            "GET,POST /v1/Services",
+            "POST /v1/Services/{ServiceSid}/Streams/{StreamSid}/Messages",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Lists/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Lists",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Lists/{ListSid}/Items/{Index}",
+            "GET,POST /v1/Services/{ServiceSid}/Lists/{ListSid}/Items",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Lists/{ListSid}/Permissions/{Identity}",
+            "GET /v1/Services/{ServiceSid}/Lists/{ListSid}/Permissions",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Maps/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Maps",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Maps/{MapSid}/Items/{Key}",
+            "GET,POST /v1/Services/{ServiceSid}/Maps/{MapSid}/Items",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Maps/{MapSid}/Permissions/{Identity}",
+            "GET /v1/Services/{ServiceSid}/Maps/{MapSid}/Permissions",
+            "GET,POST,DELETE /v1/Services/{ServiceSid}/Streams/{Sid}",
+            "GET,POST /v1/Services/{ServiceSid}/Streams"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.sync",
+        "python": "client.sync"
+      },
+      "docs": ["https://www.twilio.com/docs/sync"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "taskrouter",
+      "name": "TaskRouter",
+      "hosts": ["taskrouter.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_taskrouter_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_taskrouter_v1.json",
+          "title": "Twilio - Taskrouter",
+          "sdkAccessor": {
+            "node": "client.taskrouter.v1",
+            "python": "client.taskrouter.v1"
+          },
+          "operations": 61,
+          "paths": [
+            "GET,POST,DELETE /v1/Workspaces/{WorkspaceSid}/Activities/{Sid}",
+            "GET,POST /v1/Workspaces/{WorkspaceSid}/Activities",
+            "GET /v1/Workspaces/{WorkspaceSid}/Events/{Sid}",
+            "GET /v1/Workspaces/{WorkspaceSid}/Events",
+            "GET,POST,DELETE /v1/Workspaces/{WorkspaceSid}/Tasks/{Sid}",
+            "GET,POST /v1/Workspaces/{WorkspaceSid}/Tasks",
+            "GET,POST,DELETE /v1/Workspaces/{WorkspaceSid}/TaskChannels/{Sid}",
+            "GET,POST /v1/Workspaces/{WorkspaceSid}/TaskChannels",
+            "GET,POST,DELETE /v1/Workspaces/{WorkspaceSid}/TaskQueues/{Sid}",
+            "GET,POST /v1/Workspaces/{WorkspaceSid}/TaskQueues",
+            "POST /v1/Workspaces/{WorkspaceSid}/TaskQueues/RealTimeStatistics",
+            "GET /v1/Workspaces/{WorkspaceSid}/TaskQueues/{TaskQueueSid}/CumulativeStatistics",
+            "GET /v1/Workspaces/{WorkspaceSid}/TaskQueues/{TaskQueueSid}/RealTimeStatistics",
+            "GET /v1/Workspaces/{WorkspaceSid}/TaskQueues/{TaskQueueSid}/Statistics",
+            "GET /v1/Workspaces/{WorkspaceSid}/TaskQueues/Statistics",
+            "GET /v1/Workspaces/{WorkspaceSid}/Tasks/{TaskSid}/Reservations",
+            "GET,POST /v1/Workspaces/{WorkspaceSid}/Tasks/{TaskSid}/Reservations/{Sid}",
+            "GET,POST /v1/Workspaces/{WorkspaceSid}/Workers",
+            "GET,POST,DELETE /v1/Workspaces/{WorkspaceSid}/Workers/{Sid}",
+            "GET /v1/Workspaces/{WorkspaceSid}/Workers/{WorkerSid}/Channels",
+            "GET,POST /v1/Workspaces/{WorkspaceSid}/Workers/{WorkerSid}/Channels/{Sid}",
+            "GET /v1/Workspaces/{WorkspaceSid}/Workers/{WorkerSid}/Statistics",
+            "GET /v1/Workspaces/{WorkspaceSid}/Workers/{WorkerSid}/Reservations",
+            "GET,POST /v1/Workspaces/{WorkspaceSid}/Workers/{WorkerSid}/Reservations/{Sid}",
+            "GET /v1/Workspaces/{WorkspaceSid}/Workers/Statistics",
+            "GET /v1/Workspaces/{WorkspaceSid}/Workers/CumulativeStatistics",
+            "GET /v1/Workspaces/{WorkspaceSid}/Workers/RealTimeStatistics",
+            "GET,POST,DELETE /v1/Workspaces/{WorkspaceSid}/Workflows/{Sid}",
+            "GET,POST /v1/Workspaces/{WorkspaceSid}/Workflows",
+            "GET /v1/Workspaces/{WorkspaceSid}/Workflows/{WorkflowSid}/CumulativeStatistics",
+            "GET /v1/Workspaces/{WorkspaceSid}/Workflows/{WorkflowSid}/RealTimeStatistics",
+            "GET /v1/Workspaces/{WorkspaceSid}/Workflows/{WorkflowSid}/Statistics",
+            "GET,POST,DELETE /v1/Workspaces/{Sid}",
+            "GET,POST /v1/Workspaces",
+            "GET /v1/Workspaces/{WorkspaceSid}/CumulativeStatistics",
+            "GET /v1/Workspaces/{WorkspaceSid}/RealTimeStatistics",
+            "GET /v1/Workspaces/{WorkspaceSid}/Statistics"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.taskrouter",
+        "python": "client.taskrouter"
+      },
+      "docs": ["https://www.twilio.com/docs/taskrouter"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "trunking",
+      "name": "Elastic SIP Trunking",
+      "hosts": ["trunking.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_trunking_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_trunking_v1.json",
+          "title": "Twilio - Trunking",
+          "sdkAccessor": {
+            "node": "client.trunking.v1",
+            "python": "client.trunking.v1"
+          },
+          "operations": 24,
+          "paths": [
+            "GET,DELETE /v1/Trunks/{TrunkSid}/CredentialLists/{Sid}",
+            "GET,POST /v1/Trunks/{TrunkSid}/CredentialLists",
+            "GET,DELETE /v1/Trunks/{TrunkSid}/IpAccessControlLists/{Sid}",
+            "GET,POST /v1/Trunks/{TrunkSid}/IpAccessControlLists",
+            "GET,POST,DELETE /v1/Trunks/{TrunkSid}/OriginationUrls/{Sid}",
+            "GET,POST /v1/Trunks/{TrunkSid}/OriginationUrls",
+            "GET,DELETE /v1/Trunks/{TrunkSid}/PhoneNumbers/{Sid}",
+            "GET,POST /v1/Trunks/{TrunkSid}/PhoneNumbers",
+            "GET,POST /v1/Trunks/{TrunkSid}/Recording",
+            "GET,POST,DELETE /v1/Trunks/{Sid}",
+            "GET,POST /v1/Trunks"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.trunking",
+        "python": "client.trunking"
+      },
+      "docs": ["https://www.twilio.com/docs/sip-trunking"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "trusthub",
+      "name": "Trust Hub",
+      "hosts": ["trusthub.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_trusthub_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_trusthub_v1.json",
+          "title": "Twilio - Trusthub",
+          "sdkAccessor": {
+            "node": "client.trusthub.v1",
+            "python": "client.trusthub.v1"
+          },
+          "operations": 61,
+          "paths": [
+            "POST /v1/A2PBrandRegistrations",
+            "POST /v1/A2PBrandRegistrations/{Id}/EmbeddedSessions",
+            "POST /v1/A2PCampaignRegistrations",
+            "POST /v1/A2PCampaignRegistrations/{Id}/EmbeddedSessions",
+            "POST /v1/ComplianceInquiries/Customers/Initialize",
+            "POST /v1/ComplianceInquiries/Customers/{CustomerId}/Initialize",
+            "POST /v1/ComplianceInquiries/Registration/RegulatoryCompliance/GB/Initialize",
+            "POST /v1/ComplianceInquiries/Registration/{RegistrationId}/RegulatoryCompliance/GB/Initialize",
+            "POST /v1/ComplianceInquiries/Tollfree/Initialize",
+            "GET,POST /v1/CustomerProfiles",
+            "GET,POST,DELETE /v1/CustomerProfiles/{Sid}",
+            "GET,POST /v1/CustomerProfiles/{CustomerProfileSid}/ChannelEndpointAssignments",
+            "GET,DELETE /v1/CustomerProfiles/{CustomerProfileSid}/ChannelEndpointAssignments/{Sid}",
+            "GET,POST /v1/CustomerProfiles/{CustomerProfileSid}/EntityAssignments",
+            "GET,DELETE /v1/CustomerProfiles/{CustomerProfileSid}/EntityAssignments/{Sid}",
+            "GET,POST /v1/CustomerProfiles/{CustomerProfileSid}/Evaluations",
+            "GET /v1/CustomerProfiles/{CustomerProfileSid}/Evaluations/{Sid}",
+            "GET,POST /v1/CustomerProfiles/{CustomerProfileSid}/ProvisionalCopy",
+            "GET,POST /v1/EndUsers",
+            "GET,POST,DELETE /v1/EndUsers/{Sid}",
+            "GET /v1/EndUserTypes",
+            "GET /v1/EndUserTypes/{Sid}",
+            "GET /v1/Policies",
+            "GET /v1/Policies/{Sid}",
+            "GET,POST /v1/SupportingDocuments",
+            "GET,POST,DELETE /v1/SupportingDocuments/{Sid}",
+            "GET /v1/SupportingDocumentTypes",
+            "GET /v1/SupportingDocumentTypes/{Sid}",
+            "GET,POST /v1/TrustProducts",
+            "GET,POST,DELETE /v1/TrustProducts/{Sid}",
+            "GET,POST /v1/TrustProducts/{TrustProductSid}/ChannelEndpointAssignments",
+            "GET,DELETE /v1/TrustProducts/{TrustProductSid}/ChannelEndpointAssignments/{Sid}",
+            "GET,POST /v1/TrustProducts/{TrustProductSid}/EntityAssignments",
+            "GET,DELETE /v1/TrustProducts/{TrustProductSid}/EntityAssignments/{Sid}",
+            "GET,POST /v1/TrustProducts/{TrustProductSid}/Evaluations",
+            "GET /v1/TrustProducts/{TrustProductSid}/Evaluations/{Sid}",
+            "GET,POST /v1/TrustProducts/{TrustProductSid}/ProvisionalCopy"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.trusthub",
+        "python": "client.trusthub"
+      },
+      "docs": ["https://www.twilio.com/docs/trust-hub"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "verify",
+      "name": "Verify",
+      "hosts": ["verify.twilio.com"],
+      "versions": [
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_verify_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_verify_v2.json",
+          "title": "Twilio - Verify",
+          "sdkAccessor": {
+            "node": "client.verify.v2",
+            "python": "client.verify.v2"
+          },
+          "operations": 57,
+          "paths": [
+            "POST /v2/Services/{ServiceSid}/AccessTokens",
+            "GET /v2/Services/{ServiceSid}/AccessTokens/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/RateLimits/{RateLimitSid}/Buckets",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/RateLimits/{RateLimitSid}/Buckets/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Entities/{Identity}/Challenges",
+            "GET,POST /v2/Services/{ServiceSid}/Entities/{Identity}/Challenges/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Entities",
+            "GET,DELETE /v2/Services/{ServiceSid}/Entities/{Identity}",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Entities/{Identity}/Factors/{Sid}",
+            "GET,POST /v2/Services/{ServiceSid}/Entities/{Identity}/Factors",
+            "GET /v2/Forms/{FormType}",
+            "GET,POST /v2/Services/{ServiceSid}/MessagingConfigurations",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/MessagingConfigurations/{Country}",
+            "POST /v2/Services/{ServiceSid}/Entities/{Identity}/Challenges/{ChallengeSid}/Notifications",
+            "GET,POST /v2/Services/{ServiceSid}/RateLimits",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/RateLimits/{Sid}",
+            "POST /v2/SafeList/Numbers",
+            "GET,DELETE /v2/SafeList/Numbers/{PhoneNumber}",
+            "GET,POST /v2/Services",
+            "GET,POST,DELETE /v2/Services/{Sid}",
+            "POST /v2/Services/{ServiceSid}/Verifications",
+            "GET,POST /v2/Services/{ServiceSid}/Verifications/{Sid}",
+            "GET /v2/Attempts",
+            "GET /v2/Attempts/{Sid}",
+            "GET /v2/Attempts/Summary",
+            "POST /v2/Services/{ServiceSid}/VerificationCheck",
+            "GET /v2/Templates",
+            "GET,POST /v2/Services/{ServiceSid}/Webhooks",
+            "GET,POST,DELETE /v2/Services/{ServiceSid}/Webhooks/{Sid}",
+            "POST /v2/Services/{ServiceSid}/Passkeys/VerifyFactor",
+            "POST /v2/Services/{ServiceSid}/Passkeys/Factors",
+            "POST /v2/Services/{ServiceSid}/Passkeys/Challenges",
+            "POST /v2/Services/{ServiceSid}/Passkeys/ApproveChallenge"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.verify",
+        "python": "client.verify"
+      },
+      "docs": ["https://www.twilio.com/docs/verify"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v2"
+    },
+    {
+      "id": "video",
+      "name": "Programmable Video",
+      "hosts": ["video.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_video_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_video_v1.json",
+          "title": "Twilio - Video",
+          "sdkAccessor": {
+            "node": "client.video.v1",
+            "python": "client.video.v1"
+          },
+          "operations": 39,
+          "paths": [
+            "GET,DELETE /v1/Compositions/{Sid}",
+            "GET,POST /v1/Compositions",
+            "GET,POST,DELETE /v1/CompositionHooks/{Sid}",
+            "GET,POST /v1/CompositionHooks",
+            "GET,POST /v1/CompositionSettings/Default",
+            "GET,DELETE /v1/Recordings/{Sid}",
+            "GET /v1/Recordings",
+            "GET,POST /v1/RecordingSettings/Default",
+            "GET,POST /v1/Rooms/{Sid}",
+            "GET,POST /v1/Rooms",
+            "GET,POST /v1/Rooms/{RoomSid}/Participants/{Sid}",
+            "GET /v1/Rooms/{RoomSid}/Participants",
+            "POST /v1/Rooms/{RoomSid}/Participants/{Sid}/Anonymize",
+            "GET /v1/Rooms/{RoomSid}/Participants/{ParticipantSid}/PublishedTracks/{Sid}",
+            "GET /v1/Rooms/{RoomSid}/Participants/{ParticipantSid}/PublishedTracks",
+            "GET,POST /v1/Rooms/{RoomSid}/Participants/{ParticipantSid}/SubscribeRules",
+            "GET /v1/Rooms/{RoomSid}/Participants/{ParticipantSid}/SubscribedTracks/{Sid}",
+            "GET /v1/Rooms/{RoomSid}/Participants/{ParticipantSid}/SubscribedTracks",
+            "GET,DELETE /v1/Rooms/{RoomSid}/Recordings/{Sid}",
+            "GET /v1/Rooms/{RoomSid}/Recordings",
+            "GET,POST /v1/Rooms/{RoomSid}/RecordingRules",
+            "GET,POST /v1/Rooms/{RoomSid}/Transcriptions/{Ttid}",
+            "GET,POST /v1/Rooms/{RoomSid}/Transcriptions"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.video",
+        "python": "client.video"
+      },
+      "docs": ["https://www.twilio.com/docs/video"],
+      "status": "current",
+      "note": "Twilio announced (March 2024) a Video EOL of 2026-12-05, then REVERSED it on 2024-10-21: Video remains a standalone product, existing customers need no action. Do not migrate away from Video because of the old EOL notice.",
+      "sources": [
+        "https://www.twilio.com/en-us/changelog/-twilio-video-will-remain-a-standalone-product"
+      ],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "voice",
+      "name": "Voice (product API: dialing permissions, BYOC, archived calls, ...)",
+      "hosts": ["voice.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_voice_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_voice_v1.json",
+          "title": "Twilio - Voice",
+          "sdkAccessor": {
+            "node": "client.voice.v1",
+            "python": "client.voice.v1"
+          },
+          "operations": 32,
+          "paths": [
+            "DELETE /v1/Archives/{Date}/Calls/{Sid}",
+            "GET,POST /v1/ByocTrunks",
+            "GET,POST,DELETE /v1/ByocTrunks/{Sid}",
+            "GET,POST /v1/ConnectionPolicies",
+            "GET,POST,DELETE /v1/ConnectionPolicies/{Sid}",
+            "GET,POST /v1/ConnectionPolicies/{ConnectionPolicySid}/Targets",
+            "GET,POST,DELETE /v1/ConnectionPolicies/{ConnectionPolicySid}/Targets/{Sid}",
+            "GET /v1/DialingPermissions/Countries/{IsoCode}",
+            "GET /v1/DialingPermissions/Countries",
+            "POST /v1/DialingPermissions/BulkCountryUpdates",
+            "GET /v1/DialingPermissions/Countries/{IsoCode}/HighRiskSpecialPrefixes",
+            "GET,POST /v1/Settings",
+            "GET,POST /v1/IpRecords",
+            "GET,POST,DELETE /v1/IpRecords/{Sid}",
+            "GET,POST /v1/SourceIpMappings",
+            "GET,POST,DELETE /v1/SourceIpMappings/{Sid}"
+          ]
+        },
+        {
+          "version": "v2",
+          "pathPrefix": "/v2",
+          "oaiFile": "twilio_voice_v2.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_voice_v2.json",
+          "title": "Twilio API definition for public-api voice",
+          "sdkAccessor": {
+            "node": "client.voice.v2",
+            "python": "client.voice.v2"
+          },
+          "operations": 22,
+          "paths": [
+            "POST /v2/Configurations/Recording",
+            "GET,PUT,DELETE /v2/Configurations/Recording/{IdOrUniqueName}",
+            "POST /v2/Configurations/Transcription",
+            "GET,PUT,DELETE /v2/Configurations/Transcription/{IdOrUniqueName}",
+            "GET,PUT,DELETE /v2/Configurations/{Type}/{IdOrUniqueName}",
+            "POST /v2/Configurations/{Type}",
+            "GET,POST /v2/Configurations/{Type}/Default",
+            "GET,POST,PUT,DELETE /v2/AccountDefaultConfiguration/{Type}",
+            "GET,POST,PUT,DELETE /v2/AccountDefaultConfiguration/Recording"
+          ]
+        },
+        {
+          "version": "v3",
+          "pathPrefix": "/v3",
+          "oaiFile": "twilio_voice_v3.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_voice_v3.json",
+          "title": "Twilio API definition for public-api voice",
+          "sdkAccessor": {
+            "node": "client.voice.v3",
+            "python": "client.voice.v3"
+          },
+          "operations": 3,
+          "paths": ["GET /v3/Transcriptions/{transcriptionId}", "GET,POST /v3/Transcriptions"]
+        }
+      ],
+      "sdk": {
+        "node": "client.voice",
+        "python": "client.voice"
+      },
+      "docs": ["https://www.twilio.com/docs/voice"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v3"
+    },
+    {
+      "id": "wireless",
+      "name": "Programmable Wireless",
+      "hosts": ["wireless.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "oaiFile": "twilio_wireless_v1.json",
+          "oaiUrl": "https://raw.githubusercontent.com/twilio/twilio-oai/main/spec/json/twilio_wireless_v1.json",
+          "title": "Twilio - Wireless",
+          "sdkAccessor": {
+            "node": "client.wireless.v1",
+            "python": "client.wireless.v1"
+          },
+          "operations": 16,
+          "paths": [
+            "GET /v1/UsageRecords",
+            "GET,DELETE /v1/Commands/{Sid}",
+            "GET,POST /v1/Commands",
+            "GET /v1/Sims/{SimSid}/DataSessions",
+            "GET,POST /v1/RatePlans",
+            "GET,POST,DELETE /v1/RatePlans/{Sid}",
+            "GET,POST,DELETE /v1/Sims/{Sid}",
+            "GET /v1/Sims",
+            "GET /v1/Sims/{SimSid}/UsageRecords"
+          ]
+        }
+      ],
+      "sdk": {
+        "node": "client.wireless",
+        "python": "client.wireless"
+      },
+      "docs": ["https://www.twilio.com/docs/iot/wireless"],
+      "status": "current",
+      "note": "Listed in the public twilio-oai spec; no deprecation notice captured in this snapshot.",
+      "sources": ["https://github.com/twilio/twilio-oai/tree/main/spec/json"],
+      "latestVersion": "v1"
+    },
+    {
+      "id": "api2008",
+      "name": "Core REST API, 2008 version",
+      "hosts": ["api.twilio.com"],
+      "versions": [
+        {
+          "version": "2008-08-01",
+          "pathPrefix": "/2008-08-01",
+          "paths": []
+        }
+      ],
+      "status": "end-of-life",
+      "eolDate": "2023-12-15",
+      "migrationTarget": "2010-04-01 API (api.twilio.com/2010-04-01)",
+      "note": "Not in twilio-oai. The changelog says the '2008 version of Twilio API' reached EOL on 2023-12-15.",
+      "sources": [
+        "https://www.twilio.com/en-us/changelog/reminder--end-of-life-for-twilio-2008-api"
+      ],
+      "sdk": {},
+      "docs": ["https://www.twilio.com/docs/usage/requests-to-twilio"]
+    },
+    {
+      "id": "authy",
+      "name": "Authy API",
+      "hosts": ["api.authy.com"],
+      "versions": [],
+      "status": "deprecated",
+      "migrationTarget": "Verify v2 (verify.twilio.com/v2)",
+      "note": "Authy API reached End of Support (SMS/Voice-only customers unsupported since Nov 2022), is closed to new customers and 'will be fully deprecated in the future'; no EOL date published. Host api.authy.com is from the authy client libraries, not the OAI spec.",
+      "confidence": "host from authy client libraries; EOL date unpublished",
+      "sources": [
+        "https://www.twilio.com/docs/verify/authy-vs-verify",
+        "https://github.com/twilio/authy-devise"
+      ],
+      "sdk": {
+        "node": "authy (separate npm package)",
+        "python": "authy (separate PyPI package)"
+      },
+      "docs": ["https://www.twilio.com/docs/verify/authy-vs-verify"]
+    },
+    {
+      "id": "fax",
+      "name": "Programmable Fax",
+      "hosts": ["fax.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "paths": []
+        }
+      ],
+      "status": "end-of-life",
+      "eolDate": "2021-12-17",
+      "migrationTarget": "FAX.PLUS partner (Twilio migration guide); no Twilio API replacement",
+      "note": "Fax was disabled for all accounts on 2021-12-17; calls to it fail. Removed from twilio-oai and current SDKs.",
+      "sources": [
+        "https://twilio.com/en-us/changelog/programmable-fax-end-of-life-one-year-notice",
+        "https://support.twilio.com/hc/en-us/articles/4407687336859-Programmable-Fax-Migration-Guide-for-FAX-PLUS"
+      ],
+      "sdk": {
+        "node": "client.fax.v1 (removed from current SDKs)",
+        "python": "client.fax.v1 (removed from current SDKs)"
+      },
+      "docs": []
+    },
+    {
+      "id": "autopilot",
+      "name": "Autopilot",
+      "hosts": ["autopilot.twilio.com"],
+      "versions": [
+        {
+          "version": "v1",
+          "pathPrefix": "/v1",
+          "paths": []
+        }
+      ],
+      "status": "end-of-life",
+      "eolDate": "2023-08-25",
+      "migrationTarget": "Virtual Agent / Dialogflow CX via Studio or <Connect>, or an LLM via ConversationRelay",
+      "note": "Autopilot is gone from twilio-oai and the docs. The EOL date comes from third-party sources (Twilio's own notice was not found); Twilio's Dialogflow CX announcement names it as a migration path from 'legacy solutions such as Twilio Autopilot'.",
+      "confidence": "unverified date",
+      "sources": [
+        "https://docs.cognigy.com/release-notes/4.60.md",
+        "https://www.twilio.com/en-us/changelog/twilio-virtual-agent-with-google-dialogflow-cx-now-generally-ava"
+      ],
+      "sdk": {
+        "node": "client.autopilot.v1 (removed from current SDKs)",
+        "python": "client.autopilot.v1 (removed from current SDKs)"
+      },
+      "docs": []
+    }
+  ]
+}
