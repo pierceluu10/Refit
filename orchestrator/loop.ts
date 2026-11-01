@@ -133,20 +133,17 @@ export async function runRepo(
     state.costUsd += matched.costUsd;
     ({ tasks, notAffected } = matched);
   } catch (error) {
-    // No usage map or verdicts: still attempt every change and let the harness read the repo itself.
+    // Without a match there is no ranking, and running the harness on every change (160+ on
+    // 2026-11-01's dev run) spends the cap on doomed tasks. Report the repo as failed instead.
     const failure = `${stage} failed after retries: ${errorText(error)}`;
     state.errors.push(`${repo}: ${failure}`);
     log(`ERROR ${repo}: ${failure}`);
-    const notes = `${failure}. There is no ${stage === 'inventory' ? 'usage map' : 'match verdict'} for this repo: read the code yourself to find any use of this change, then migrate it or conclude not affected.`;
-    tasks = changes.map((change, i) => ({
-      ...verdictTask(repo, change, usages),
-      priority: i + 1,
-      notes,
-      reasoning: notes,
-      urgency: 'unknown',
-      callSites: [],
-    }));
-    notAffected = [];
+    return Promise.all(
+      changes.map((change) => {
+        const task = verdictTask(repo, change, usages);
+        return finish(task, record(task.id, 'failed', `not attempted: ${failure}`));
+      }),
+    );
   }
 
   const capReached = () => opts.capUsd !== undefined && state.costUsd >= opts.capUsd;

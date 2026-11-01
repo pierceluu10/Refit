@@ -7,27 +7,30 @@ import { createBudget } from './budget.ts';
 import { createDeps, defaultOut } from './deps.ts';
 import { runOrg, type RunSummary } from './loop.ts';
 
-const USAGE = 'usage: aptitude run --repo <path> [--dry-run] [--out <file>]';
+const USAGE = 'usage: aptitude run --repo <path> [--repo <path> ...] [--dry-run] [--out <file>]';
 
 function parse(argv: string[]) {
   const { values, positionals } = parseArgs({
     args: argv,
     allowPositionals: true,
     options: {
-      repo: { type: 'string' },
+      repo: { type: 'string', multiple: true },
       'dry-run': { type: 'boolean', default: false },
       out: { type: 'string' },
     },
   });
   if (positionals.length !== 1 || positionals[0] !== 'run') throw new Error('expected `run`');
-  if (!values.repo) throw new Error('--repo is required');
-  const dir = resolve(values.repo);
-  if (!statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
-    throw new Error(`${dir} is not a directory`);
-  }
+  if (!values.repo?.length) throw new Error('--repo is required');
+  const repos = values.repo.map((path) => {
+    const dir = resolve(path);
+    if (!statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
+      throw new Error(`${dir} is not a directory`);
+    }
+    return { repo: basename(dir), dir };
+  });
   return {
-    dir,
-    repo: basename(dir),
+    repos,
+    name: repos.length === 1 ? repos[0].repo : `${repos.length} repos`,
     dryRun: values['dry-run'],
     out: values.out ? resolve(values.out) : defaultOut,
   };
@@ -66,17 +69,14 @@ export async function main(argv: string[]): Promise<number> {
     const budget = process.env.ANTHROPIC_API_KEY ? createBudget() : undefined;
     const deps = createDeps({ out: args.out, budget });
     // SECURITY: nothing here runs the repo's code or scripts on this host; runTask hands it to the harness sandbox.
-    const summary = await runOrg(
-      { name: args.repo, repos: [{ repo: args.repo, dir: args.dir }] },
-      deps,
-      {
-        dryRun: args.dryRun,
-        capUsd: budget?.capUsd,
-      },
-    );
+    // One org run, so the changelogs are watched once for every repo.
+    const summary = await runOrg({ name: args.name, repos: args.repos }, deps, {
+      dryRun: args.dryRun,
+      capUsd: budget?.capUsd,
+    });
     // The loop counts match and task costs; the budget also saw inventory, watchers and memory.
     const costUsd = budget?.spentUsd() ?? summary.costUsd;
-    console.log(formatSummary(args.repo, { ...summary, costUsd }, args));
+    console.log(formatSummary(args.name, { ...summary, costUsd }, args));
     return 0;
   } catch (error) {
     console.error(`aptitude: ${error instanceof Error ? error.message : String(error)}`);

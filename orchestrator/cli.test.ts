@@ -38,6 +38,22 @@ describe('aptitude CLI', () => {
     }
   });
 
+  it('runs several repos in one org run', async () => {
+    const second = await mkdtemp(join(tmpdir(), 'aptitude-cli-'));
+    const out = join(dir, 'runs.jsonl');
+    const print = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    expect(await main(['run', '--repo', dir, '--repo', second, '--dry-run', '--out', out])).toBe(0);
+
+    expect(print.mock.calls.flat().join('\n')).toContain('Aptitude run on 2 repos');
+    const repos = (await readFile(out, 'utf8'))
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l).repo);
+    expect(new Set(repos)).toEqual(new Set([dir, second].map((d) => d.split('/').pop())));
+    await rm(second, { recursive: true, force: true });
+  });
+
   it('exits non-zero on a usage error', async () => {
     expect(await main(['run'])).toBe(2);
     expect(await main(['run', '--repo', join(dir, 'missing')])).toBe(2);
