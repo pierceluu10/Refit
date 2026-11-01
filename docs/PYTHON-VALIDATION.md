@@ -6,7 +6,7 @@ Refit validates a patch on a Python repository the way it validates a Node one: 
 
 `docker/sandbox.Dockerfile` builds two images, each on a base pinned by digest:
 
-- `--target python`: the image Python repositories validate in. Debian (glibc) from the `node:22-bookworm-slim` digest the hosted worker pins, plus Debian's Python 3.11, venv and pip. It is glibc because most Python packages publish manylinux wheels only: on Alpine (musl), five of the eight dev-set rows that stopped had a pinned package with no wheel at all (for example `contourpy==1.1.1`, `sqlite-vec`), on every Python version.
+- `--target python`: the image Python repositories validate in. Debian (glibc) from the `node:22-bookworm-slim` digest the hosted worker pins, plus Debian's Python 3.11, venv and pip. It is glibc because most Python packages publish manylinux wheels only: on Alpine (musl), four of the eight dev-set rows that stopped in preparation had a package with no musl wheel on any interpreter (`torch`, `contourpy==1.1.1`, `ast-grep-cli`, `sqlite-vec`). On the glibc image one of them and one resolution conflict prepare.
 - the default target: `node:22-alpine`, Refit's Node check image, plus Alpine's Python 3.14 and pip. Node checks behave as on `node:22-alpine`, and a Node repository whose tests or native builds call `python3` now finds it.
 
 ```sh
