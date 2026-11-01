@@ -56,7 +56,9 @@ export function summarizeRun(input: {
   input.iterations.forEach((iteration, index) => {
     lines.push('', `## Iteration ${index + 1} (${iteration.model}, ${iteration.stopReason})`);
     iteration.steps.forEach((step, n) => {
-      const output = clip(step.output.trim().split('\n')[0] ?? '', 160);
+      // Three lines, since the verdict often follows a header (an exit code, an endpoint note).
+      const shown = step.output.split('\n').filter((line) => line.trim());
+      const output = clip(shown.slice(0, 3).join(' | '), 240);
       lines.push(`${n + 1}. ${step.tool} ${args(step.input)} → ${output}`);
     });
     lines.push(`Checks after: ${checks(iteration.comparisons)}`);
