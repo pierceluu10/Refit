@@ -80,7 +80,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-01.6');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-01.7');
   });
 
   it('puts the sections in the plan order', () => {
@@ -181,6 +181,8 @@ describe('buildKickoffMessage', () => {
     expect(message).toContain('test (`npm run test`): fail');
     expect(message).toContain('a.test.ts > adds');
     expect(message).toContain('added 12 packages');
+    expect(message).toContain('A check that already fails cannot prove your change.');
+    expect(buildKickoffMessage([run('build', true)])).not.toContain('already fails');
   });
 
   it("names the repo's package manager release and the command for dependency changes", () => {

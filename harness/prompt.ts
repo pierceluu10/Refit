@@ -5,7 +5,7 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-01.6';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-01.7';
 
 // shortcut: `notes` is on MigrationTask in O1's branch only; drop this local type once that merges.
 export type TaskWithNotes = MigrationTask & { notes?: string };
@@ -212,6 +212,11 @@ export function buildKickoffMessage(
         ].join('\n')
       : "No checks were detected. Find the repo's tests, build or type check and register them with `run_checks` `add`, so they run on the original code and after your edit and count toward proof.",
   );
+  if (before.some((run) => !run.ok)) {
+    parts.push(
+      "A check that already fails cannot prove your change. If one fails only because the sandbox lacks something the code reads at build or test time, such as an env var like `OPENAI_API_KEY` or a generated client like Prisma's, register a variant with `run_checks` `add` that supplies it with a placeholder, never a real secret (for example `OPENAI_API_KEY=placeholder npm run build`), so it passes on the original code and can prove your edit.",
+    );
+  }
   return parts.join('\n\n');
 }
 
