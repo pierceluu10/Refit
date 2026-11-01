@@ -16,6 +16,8 @@ If the model's answer is degraded (a safety classifier interrupted it, it refuse
 
 The orchestrator calls `learnFromRun({ task, record, transcript, usedRecipeIds, commit })` after each run. `commit` is the commit the run's checkout was at (`git rev-parse HEAD` in it); it is optional, but without it the self-eval reruns that task on today's code.
 
+`learnFromRun` and `recordVerdict` run one at a time within a process, because each reads recipes, may ask the model and writes them back: runs from parallel tasks or repos would otherwise overwrite each other's counts. Two processes must not share one store until it moves to a database with row locks.
+
 ## Where memory lives
 
 Memory is one folder, `APTITUDE_MEMORY_DIR`. Unset, it is `.aptitude/memory` under the directory the process was started in, which the root `.gitignore` ignores (`.aptitude/`).
@@ -53,6 +55,8 @@ What memory does with each verdict:
 Verdicts are safe to repeat and to reverse. A redelivered event changes nothing. A later final verdict replaces an earlier one, so a PR closed, reopened and merged ends up merged, and its failure is taken back off the recipes it used. A late `edited` never replaces `merged` or `closed`, since GitHub can deliver a push's event after the close.
 
 `recordVerdict` returns `undefined` when no stored run has that PR URL (a PR from before memory stored runs, or from another store); log it and move on. A failed AI pass never makes it throw (the result carries `error`); it throws only when the store can't be read or written. It returns what it learned, so wrap it to match the app's `RecordVerdict` type: `async (pr, verdict) => { await recordVerdict(pr, verdict); }`.
+
+A verdict can take a minute or more: a merge can trigger a model call, and it waits for any learning already running. GitHub gives a webhook delivery 10 seconds, so answer the delivery first and record the verdict after it (or on the app's queue).
 
 ## Runs for the dashboard
 

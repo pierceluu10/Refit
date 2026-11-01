@@ -61,6 +61,22 @@ describe('learnFromRun end to end', () => {
     expect(await store.getRecipe(recipe.id)).toBeDefined();
   });
 
+  it('keeps every count when runs from parallel repos learn at once', async () => {
+    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-memory-')));
+    const deps = { store, embedder: new LocalEmbedder(), model: fakeModel(store) };
+
+    await Promise.all(
+      ['example-org/a', 'example-org/b', 'example-org/c'].map((repo) =>
+        learnFromRun({ task: makeTask({ repo }), record: makeRecord(), transcript: 'ok' }, deps),
+      ),
+    );
+
+    const recipes = await store.listRecipes();
+    expect(recipes).toHaveLength(1);
+    expect(recipes[0].verifiedRepos).toBe(3);
+    expect(recipes[0].skill?.status).toBe('active');
+  });
+
   it('stores the run even without a model', async () => {
     const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-memory-')));
     const result = await learnFromRun(

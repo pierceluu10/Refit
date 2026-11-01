@@ -38,6 +38,16 @@ type Learned = {
   error?: string;
 };
 
+// Learning reads recipes, may ask the model, then writes them back, while runs and verdicts arrive at
+// once (parallel tasks, org runs, webhook deliveries). One at a time, so no write loses another's count.
+// shortcut: per process only; give the store row locks (Postgres) before two processes share it.
+let learning: Promise<unknown> = Promise.resolve();
+function oneAtATime<T>(task: () => Promise<T>): Promise<T> {
+  const result = learning.then(task);
+  learning = result.catch(() => undefined);
+  return result;
+}
+
 // Called by the orchestrator after every run. The run is stored first, so a failed AI pass loses nothing.
 // `commit` is the commit the run read; the self-eval reruns the task on it.
 export async function learnFromRun(
@@ -50,8 +60,10 @@ export async function learnFromRun(
   },
   deps: MemoryDeps = defaultMemory(),
 ): Promise<Learned> {
-  const run = await deps.store.recordRun(input);
-  return learn(run, await recordRecipeOutcome(run, deps), deps);
+  return oneAtATime(async () => {
+    const run = await deps.store.recordRun(input);
+    return learn(run, await recordRecipeOutcome(run, deps), deps);
+  });
 }
 
 // Called by the GitHub App for what a person did with an Aptitude PR; memory/README.md lists exactly
@@ -63,11 +75,13 @@ export async function recordVerdict(
   verdict: HumanVerdict,
   deps: MemoryDeps = defaultMemory(),
 ): Promise<Learned | undefined> {
-  const run = await deps.store.recordVerdict(runIdOrPr, verdict);
-  if (!run) return undefined;
-  const demoted = await recordRecipeOutcome(run, deps);
-  const distilled = run.extraction?.status === 'done' && run.extraction.mode === 'recipe';
-  return learn(run, demoted, deps, succeeded(run.record) && !distilled);
+  return oneAtATime(async () => {
+    const run = await deps.store.recordVerdict(runIdOrPr, verdict);
+    if (!run) return undefined;
+    const demoted = await recordRecipeOutcome(run, deps);
+    const distilled = run.extraction?.status === 'done' && run.extraction.mode === 'recipe';
+    return learn(run, demoted, deps, succeeded(run.record) && !distilled);
+  });
 }
 
 // The runs the dashboard shows, newest first. The app serves them at GET /api/runs.

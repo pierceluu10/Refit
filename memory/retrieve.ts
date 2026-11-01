@@ -81,9 +81,15 @@ export function createRetriever(deps: {
       ...stale.map(describeRecipe),
     ]);
     await Promise.all(
-      stale.map((recipe, i) => {
+      stale.map(async (recipe, i) => {
         recipe.embedding = { model: embedder.name, vector: vectors[i] };
-        return store.saveRecipe(recipe);
+        // Cache onto a fresh read, since learning may have rewritten the recipe while it was embedded.
+        // shortcut: a learning write that lands between this read and write is still lost; retrieval
+        // stays off the learning queue because it must never wait behind a model call.
+        const fresh = await store.getRecipe(recipe.id);
+        if (fresh && describeRecipe(fresh) === describeRecipe(recipe)) {
+          await store.saveRecipe({ ...fresh, embedding: recipe.embedding });
+        }
       }),
     );
 
