@@ -1,4 +1,4 @@
-// STUBS for tonight. Each stands in for a module landing in another branch; deps.ts swaps them out.
+// Offline stand-ins: deps.ts uses them when no model is available, and the PR opener until the app passes its own.
 import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,11 +30,11 @@ export const stubRunTask: RunTask = async (task) => {
   const result: LoopRecord = {
     taskId: task.id,
     outcome: 'needs-review',
-    diff: `# stub: placeholder diff for ${task.id}; the harness is not wired yet, no code was changed\n`,
+    diff: `# stub: placeholder diff for ${task.id}; offline run, no code was changed\n`,
     checks: [],
     costUsd: 0,
     transcriptPath: '',
-    note: 'stub runTask: harness/ is not wired yet, so nothing was migrated or proven',
+    note: 'stub runTask: offline run without ANTHROPIC_API_KEY, so nothing was migrated or proven',
   };
   return result;
 };

@@ -32,7 +32,11 @@ type Collection = 'runs' | 'recipes' | 'selfevals';
 
 // Local JSON: one file per item under <dir>/<collection>/, written atomically.
 export class JsonMemoryStore implements MemoryStore {
-  constructor(readonly dir: string) {}
+  readonly dir: string;
+
+  constructor(dir: string) {
+    this.dir = dir;
+  }
 
   static fromEnv(env: NodeJS.ProcessEnv = process.env): JsonMemoryStore {
     return new JsonMemoryStore(

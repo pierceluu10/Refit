@@ -59,13 +59,13 @@ export const MODEL = 'claude-opus-5-5';
 const INPUT_USD_PER_TOKEN = 4 / 1_000_000;
 const OUTPUT_USD_PER_TOKEN = 20 / 1_000_000;
 
+// Plain fields, not parameter properties: node runs these files by stripping types, and can't strip those.
 export class AnthropicModel implements Model {
+  private readonly budget: Budget;
   private readonly client: Anthropic;
 
-  constructor(
-    private readonly budget: Budget,
-    client?: Anthropic,
-  ) {
+  constructor(budget: Budget, client?: Anthropic) {
+    this.budget = budget;
     this.client = client ?? new Anthropic();
   }
 
@@ -104,10 +104,13 @@ function worstCaseUsd({ system, prompt, schema, maxTokens }: Required<JsonReques
 // Same contract through the Claude Agent SDK, using the machine's logged-in Claude Code credentials.
 // Charges the SDK's own cost estimate (total_cost_usd), not a bill, and caps the query at what is left.
 export class AgentSdkModel implements Model {
-  constructor(
-    private readonly budget: Budget,
-    private readonly run: typeof query = query,
-  ) {}
+  private readonly budget: Budget;
+  private readonly run: typeof query;
+
+  constructor(budget: Budget, run: typeof query = query) {
+    this.budget = budget;
+    this.run = run;
+  }
 
   async json<T>({ system, prompt, schema, maxTokens = 16_000 }: JsonRequest): Promise<T> {
     this.budget.reserve(worstCaseUsd({ system, prompt, schema, maxTokens }));
@@ -165,11 +168,13 @@ const VOYAGE_USD_PER_TOKEN = 0.18 / 1_000_000;
 
 export class VoyageEmbedder implements Embedder {
   readonly name = 'voyage-code-3';
+  private readonly budget: Budget;
+  private readonly apiKey: string;
 
-  constructor(
-    private readonly budget: Budget,
-    private readonly apiKey: string,
-  ) {}
+  constructor(budget: Budget, apiKey: string) {
+    this.budget = budget;
+    this.apiKey = apiKey;
+  }
 
   async embed(texts: string[]): Promise<number[][]> {
     if (texts.length === 0) return [];
