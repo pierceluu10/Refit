@@ -110,6 +110,26 @@ describe('claudeAgentSession charging', () => {
     expect(logged).toEqual([]);
   });
 
+  it('estimates the web searches the stream did not show when no result arrives', async () => {
+    const search = event({
+      type: 'content_block_start',
+      index: 1,
+      content_block: { type: 'tool_use', id: 'toolu_1', name: 'WebSearch', input: {} },
+    });
+    const stopped = session([callStart, search, callEnd], new Error('connection reset'));
+    await stopped.run;
+    // 20,000 input tokens at $2/M plus the $0.01 search fee.
+    expect(stopped.ledger.entries.at(-1)).toMatchObject({
+      costUsd: expect.closeTo(0.05),
+      note: '1 web search, estimated',
+    });
+    const finished = session([callStart, search, callEnd, result(0.1)]);
+    await finished.run;
+    expect(finished.ledger.entries.map((entry) => entry.note)).not.toContain(
+      '1 web search, estimated',
+    );
+  });
+
   it("charges only what the SDK's total adds beyond the live charges", async () => {
     const { run, ledger } = session([callStart, callEnd, result(0.05)]);
     expect(await run).toMatchObject({ stopReason: 'done', sessionId: 'session-1' });

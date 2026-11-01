@@ -14,9 +14,15 @@ export function streamMeter(ledger: BudgetLedger, defaultModel: string) {
   // The open call per stream: the main loop, or a subagent keyed by its parent tool use.
   const open = new Map<string, { model: string; usage: TokenUsage; costUsd: number }>();
   let liveUsd = 0;
+  let searches = 0;
   return {
     observe(event: StreamEvent, parentToolUseId: string | null = null): void {
       const key = parentToolUseId ?? 'main';
+      if (event.type === 'content_block_start') {
+        const block = event.content_block;
+        if (block.type === 'tool_use' && block.name === 'WebSearch') searches++;
+        return;
+      }
       if (event.type === 'message_start') {
         const { model, usage } = event.message;
         open.set(key, { model: model || defaultModel, usage: { ...usage }, costUsd: 0 });
@@ -39,8 +45,16 @@ export function streamMeter(ledger: BudgetLedger, defaultModel: string) {
     get liveUsd(): number {
       return liveUsd;
     },
+    // WebSearch makes its own model call, which the stream does not show.
+    get searches(): number {
+      return searches;
+    },
   };
 }
+
+// shortcut: about 20k tokens of results per search at the session model's input rate is a guess;
+// it is charged only when no result arrives, since the SDK's total replaces it otherwise.
+const SEARCH_USAGE = { input_tokens: 20_000, server_tool_use: { web_search_requests: 1 } };
 
 export function toSdkTool(agentTool: AgentTool, repoDir: string) {
   const schema = z.fromJSONSchema(agentTool.inputSchema as Parameters<typeof z.fromJSONSchema>[0]);
@@ -62,6 +76,7 @@ export const claudeAgentSession: AgentSession = async (input) => {
   // The SDK checks maxBudgetUsd only between turns; the meter sees each call as it streams, so the
   // query stops the moment its grant is spent and can overshoot by at most the call in flight.
   const abortController = new AbortController();
+  let reconciled = false;
   try {
     for await (const message of query({
       prompt: input.prompt,
@@ -95,6 +110,7 @@ export const claudeAgentSession: AgentSession = async (input) => {
         result.sessionId = message.session_id;
       }
       if (message.type !== 'result') continue;
+      reconciled = true;
       result.sessionId = message.session_id;
       input.ledger.chargeCumulative(
         message.session_id,
@@ -120,6 +136,15 @@ export const claudeAgentSession: AgentSession = async (input) => {
     }
   } catch (error) {
     result.error = error instanceof Error ? error.message : String(error);
+  }
+  // Stopped or crashed before its result, the query never reports its total, so the calls the
+  // stream did not show are estimated instead of lost.
+  if (!reconciled && meter.searches > 0) {
+    input.ledger.charge({
+      model: input.model,
+      costUsd: meter.searches * usageCostUsd(input.model, SEARCH_USAGE),
+      note: `${meter.searches} web search${meter.searches === 1 ? '' : 'es'}, estimated`,
+    });
   }
   if (abortController.signal.aborted) {
     result.stopReason = 'budget';
