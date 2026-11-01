@@ -1,0 +1,39 @@
+{
+  "id": "github",
+  "name": "GitHub API",
+  "sources": [
+    {
+      "id": "changelog-feed",
+      "kind": "changelog",
+      "url": "https://github.blog/changelog/feed/",
+      "format": "rss",
+      "note": "GitHub changelog RSS; API, Actions and Apps changes are mixed with product news."
+    },
+    {
+      "id": "rest-breaking-changes",
+      "kind": "deprecations",
+      "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+      "format": "html",
+      "note": "Breaking changes per REST API version."
+    },
+    {
+      "id": "rest-api-versions",
+      "kind": "versioning",
+      "url": "https://docs.github.com/en/rest/about-the-rest-api/api-versions",
+      "format": "html"
+    },
+    {
+      "id": "graphql-breaking-changes",
+      "kind": "deprecations",
+      "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+      "format": "html",
+      "note": "Scheduled GraphQL schema removals with dates."
+    },
+    {
+      "id": "octokit-rest-releases",
+      "kind": "sdk-releases",
+      "url": "https://api.github.com/repos/octokit/rest.js/releases?per_page=15",
+      "format": "github-releases"
+    }
+  ]
+}

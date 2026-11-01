@@ -2,5 +2,10 @@
   "name": "@aptitude/evals",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "smoke": "node smoke/smoke.ts",
+    "bench": "node runner/cli.ts",
+    "recover-sets": "node sets/recover.ts --repo .."
+  }
 }

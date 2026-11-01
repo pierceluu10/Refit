@@ -1,0 +1,95 @@
+{
+  "note": "Hand-drafted by the build agent from the saved live snapshot to exercise the watcher pipeline with a replay model. Not output of a live model run (no API key was available on 2026-11-01).",
+  "changes": [
+    {
+      "id": "twilio:events-replays-api-removed",
+      "kind": "endpoint-removed",
+      "title": "Event Streams Replays API (/v1/Replays) removed",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+        "quote": "Remove the Replays API (`/v1/Replays`, beta feature `api.eventstreams.replay`); the feature was never GA and is being sunset **(breaking change)**"
+      },
+      "affects": { "operations": ["/v1/Replays"], "versions": ["twilio-oai 2.10.0"] }
+    },
+    {
+      "id": "twilio:conversations-start-conversation-body-restructured",
+      "kind": "field-removed",
+      "title": "Conversations StartConversation request body drops channel/from/to/content for participants + action",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+        "quote": "Restructured the `StartConversation` request body: removed the top-level `channel`, `from`, `to`, `content`, and `orchestratorPolicy` fields in favor of a `participants` roster plus a single dispatched `action` (`SEND_MESSAGE`, `START_FLOW`, or `CALL`) **(breaking change)**"
+      },
+      "affects": {
+        "operations": ["StartConversation"],
+        "fields": [
+          "channel",
+          "from",
+          "to",
+          "content",
+          "orchestratorPolicy",
+          "participants",
+          "action"
+        ],
+        "versions": ["twilio-oai 2.8.1"]
+      }
+    },
+    {
+      "id": "twilio:whatsapp-senders-v1-removed",
+      "kind": "endpoint-removed",
+      "title": "WhatsApp Senders v1 endpoints removed; use Senders v2 (/v2/Channels/Senders)",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+        "quote": "Remove the WhatsApp Senders v1 endpoints (`/v1/Channels/WhatsApp/Senders`) from RestProxy; the sender was routed to the sunsetting `messaging-whatsapp-k8s-orch` downstream. Use the Senders v2 API (`/v2/Channels/Senders`) instead."
+      },
+      "affects": {
+        "operations": ["/v1/Channels/WhatsApp/Senders", "/v2/Channels/Senders"],
+        "versions": ["v1", "v2"]
+      }
+    },
+    {
+      "id": "twilio:iam-post-login-webhook-user-context-removed",
+      "kind": "webhook-payload",
+      "title": "IAM post_login action webhook payload drops user_context",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+        "quote": "Removed user_context from the POST /v1/actions/post_login (PostLoginActionRequest) webhook payload; the login email is read from authentication_context.methods"
+      },
+      "affects": {
+        "operations": ["POST /v1/actions/post_login"],
+        "fields": ["user_context", "authentication_context.methods"]
+      }
+    },
+    {
+      "id": "twilio:api-twiml-session-deprecated",
+      "kind": "endpoint-removed",
+      "title": "twiml_session resource deprecated in favor of twiml_process",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+        "quote": "Add `twiml_process` resource alongside `twiml_session` (`twiml_session` is deprecated and will be removed in a future release)"
+      },
+      "affects": { "operations": ["twiml_session", "twiml_process"] }
+    },
+    {
+      "id": "twilio:verify-attempt-dlr-event-discontinued",
+      "kind": "webhook-payload",
+      "title": "Verify Events: Verification Attempt DLR event type discontinued",
+      "effectiveDate": "2026-09-22",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog.feed.xml",
+        "quote": "The Attempt DLR event type will be discontinued after September 22, 2026 at 10:00PM UTC."
+      },
+      "affects": { "fields": ["Verification Attempt DLR event type"] }
+    },
+    {
+      "id": "twilio:twilio-node-6-requires-node-20",
+      "kind": "sdk-major",
+      "title": "twilio-node 6.x drops Node.js versions below 20",
+      "effectiveDate": "2026-04-20",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-node/main/UPGRADE.md",
+        "quote": "Upgrade to Node.js >= 20 before updating to `twilio` 6.x.x"
+      },
+      "affects": { "versions": ["5.x.x", "6.x.x"], "sdk": "twilio" }
+    }
+  ]
+}

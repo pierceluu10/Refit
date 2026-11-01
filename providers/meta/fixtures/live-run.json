@@ -1,0 +1,568 @@
+{
+  "note": "Live-classified: claude-sonnet-5-5 called through the overnight spend guard on 2026-11-01. It read the pages saved by that day's live read (fixtures/live), each cut to 12000 characters, with live HTTP for any link outside the snapshot. Output recorded as returned, not edited.",
+  "runAt": "2026-11-01T05:29:52.140Z",
+  "model": "claude-sonnet-5-5",
+  "promptVersion": "watch-v1",
+  "input": {
+    "snapshot": "fixtures/live",
+    "maxCharsPerPage": 12000,
+    "liveFallback": true,
+    "maxTokens": 8000,
+    "maxTurns": 6
+  },
+  "report": {
+    "provider": "meta",
+    "changes": [
+      {
+        "provider": "meta",
+        "id": "meta:2026-10-27-commerce-order-management-api-removed",
+        "kind": "endpoint-removed",
+        "title": "Commerce Order Management API (47 endpoints, no replacement) blocked on v26.0+ and removed from all versions on Oct 27, 2026",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "The affected surfaces are removed from all remaining versions on October 27, 2026. No replacement API is available."
+        },
+        "affects": {
+          "operations": [
+            "GET /{commerce-order-id}",
+            "GET /{commerce-order-id}/items",
+            "GET /{commerce-order-id}/payments",
+            "GET /{commerce-order-id}/refunds",
+            "GET /{commerce-order-id}/shipments",
+            "GET /{commerce-order-id}/cancellations",
+            "GET /{page-id}/commerce_orders",
+            "GET /{commerce-merchant-settings-id}/commerce_orders",
+            "GET /{commerce-merchant-settings-id}/commerce_returns",
+            "GET /{commerce-return-id}"
+          ],
+          "versions": ["v26.0"]
+        },
+        "effectiveDate": "2026-10-27"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-07-29-rights-manager-owner-fields",
+        "kind": "field-renamed",
+        "title": "Rights Manager owner fields deprecated in favour of RightsHolderOwner-typed fields (v26.0+)",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "The `reference_owner`, `matched_reference_owner`, `sending_rights_holder`, and `receiving_rights_holder` fields are deprecated."
+        },
+        "affects": {
+          "fields": [
+            "reference_owner",
+            "matched_reference_owner",
+            "sending_rights_holder",
+            "receiving_rights_holder",
+            "reference_owner_rh_owner",
+            "matched_reference_owner_rh_owner",
+            "sending_rights_holder_owner",
+            "receiving_rights_holder_owner"
+          ],
+          "versions": ["v26.0"]
+        },
+        "effectiveDate": "2026-07-29"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-10-27-legacy-protocol-features",
+        "kind": "other",
+        "title": "Legacy Graph API protocol features (pretty, debug, date_format, GET /?ids=, If-None-Match/ETag) ignored or erroring on v26.0+, all versions Oct 27, 2026",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "Requests that include `date_format` return an error."
+        },
+        "affects": {
+          "operations": ["GET /?ids=..."],
+          "fields": ["pretty", "debug", "date_format", "ids", "If-None-Match", "ETag"],
+          "versions": ["v26.0"]
+        },
+        "effectiveDate": "2026-10-27"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-v26-page-legacy-fields-npe",
+        "kind": "field-removed",
+        "title": "Legacy Page fields removed for New Pages Experience pages on v26.0+ (all versions about 90 days after launch, date TBC)",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "For New Pages Experience pages, the `current_location`, `genre`, `network`, `parking`, and `start_info` fields are deprecated because they are no longer maintained."
+        },
+        "affects": {
+          "operations": [
+            "GET /{page-id}?fields=current_location",
+            "GET /{page-id}?fields=genre",
+            "GET /{page-id}?fields=network",
+            "GET /{page-id}?fields=parking",
+            "GET /{page-id}?fields=start_info",
+            "GET /{page-id}?fields=settings"
+          ],
+          "fields": [
+            "current_location",
+            "genre",
+            "network",
+            "parking",
+            "start_info",
+            "auto_publish_page_info_updates"
+          ],
+          "versions": ["v26.0"]
+        },
+        "effectiveDate": "2026-07-29"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-10-27-delivery-estimate-fields-removed",
+        "kind": "field-removed",
+        "title": "Delivery Estimate fields daily_outcomes_curve, budget_guardrail, estimate_dau removed (v26.0+, all versions Oct 27, 2026)",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "The `daily_outcomes_curve`, `budget_guardrail`, and `estimate_dau` fields are removed from Delivery Estimate responses because the service powering these values has been deprecated."
+        },
+        "affects": {
+          "operations": [
+            "GET /{ad-account-id}/delivery_estimate",
+            "GET /{adset-id}/delivery_estimate"
+          ],
+          "fields": ["daily_outcomes_curve", "budget_guardrail", "estimate_dau"],
+          "versions": ["v26.0"]
+        },
+        "effectiveDate": "2026-10-27"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-v26-require-advantage-audience-hecf",
+        "kind": "other",
+        "title": "HEC-F ad sets with relaxable targeting must explicitly set targeting_automation.advantage_audience on v26.0+ (all versions once v25.0 deprecated, date TBD)",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "Omitting the field returns `ADS_TARGETING__REQUIRE_EXPLICIT_ADVANTAGE_AUDIENCE_FLAG`."
+        },
+        "affects": {
+          "operations": ["POST /{ad-account-id}/adsets"],
+          "fields": ["targeting_automation.advantage_audience"],
+          "versions": ["v26.0"]
+        },
+        "effectiveDate": "2026-07-29"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-v26-instagram-explore-placement-removed",
+        "kind": "field-removed",
+        "title": "Instagram Explore Feed ad placement removed; requests specifying it error on v26.0+",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "The Instagram Explore Feed placement is no longer available."
+        },
+        "affects": {
+          "operations": ["POST /act_{ad-account-id}/adsets", "POST /{ad-set-id}"],
+          "fields": ["instagram_positions", "explore"],
+          "versions": ["v26.0"]
+        },
+        "effectiveDate": "2026-07-29"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-10-27-web-only-destination-web-app",
+        "kind": "other",
+        "title": "Creatives with applink_treatment=web_only can no longer be attached to Web+App campaign ads (v26.0+, all versions Oct 27, 2026)",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "A creative with `applink_treatment=web_only` can no longer be attached to an ad in a campaign using Website and App conversion locations."
+        },
+        "affects": {
+          "operations": ["POST /act_{ad-account-id}/ads", "POST /{ad-id}"],
+          "fields": ["applink_treatment"],
+          "versions": ["v26.0"]
+        },
+        "effectiveDate": "2026-10-27"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-10-27-messenger-stories-placement",
+        "kind": "field-removed",
+        "title": "Messenger Stories placement (story in messenger_positions) removed on v26.0+ and for all versions Oct 27, 2026",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "The `story` value in `messenger_positions` is silently removed for versioned v26.0 or later calls and no longer appears in effective placements."
+        },
+        "affects": {
+          "operations": ["POST /act_{ad-account-id}/adsets", "POST /{ad-set-id}"],
+          "fields": ["messenger_positions", "story"],
+          "versions": ["v26.0"]
+        },
+        "effectiveDate": "2026-10-27"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-10-27-poll-ads-deprecated",
+        "kind": "field-removed",
+        "title": "Poll ad creation (poll_spec, poll under interactive_components_spec) unavailable on v26.0+, all versions Oct 27, 2026",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "The `poll_spec` field and `poll` type under `interactive_components_spec` are unavailable."
+        },
+        "affects": {
+          "operations": [
+            "POST /{ad-account-id}/adcreatives",
+            "POST /{ad-account-id}/ads",
+            "POST /{ad-id}",
+            "GET /{ad-account-id}/generatepreviews"
+          ],
+          "fields": ["poll_spec", "interactive_components_spec"],
+          "versions": ["v26.0"]
+        },
+        "effectiveDate": "2026-10-27"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-v26-shop-ads-default-destination",
+        "kind": "other",
+        "title": "From v26.0 eligible ad creatives default to destination_type WEBSITE_AND_SHOP when advertiser has a shop; opt out with WEBSITE_AND_SHOP_OPT_OUT",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "Starting in API v26.0, eligible ad creatives will automatically default to destination_spec.destination_type = WEBSITE_AND_SHOP when the advertiser has a shop."
+        },
+        "affects": {
+          "operations": ["POST {ad-account-id}/adcreatives", "POST /{ad-account-id}/ads"],
+          "fields": ["destination_spec.destination_type"],
+          "versions": ["v26.0"]
+        },
+        "effectiveDate": "2026-07-29"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-07-29-graph-api-v26",
+        "kind": "api-version",
+        "title": "Graph API v26.0 and Marketing API v26.0 released; callers should move to v26.0",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "**Released** July 29, 2026 | **Available until** TBD"
+        },
+        "affects": {
+          "versions": ["v26.0"]
+        },
+        "effectiveDate": "2026-07-29"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-09-24-graph-v20-expiry",
+        "kind": "api-version",
+        "title": "Graph API v20.0 expires; calls are served by the oldest available version",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "**September 24, 2026:** Graph API v20.0 is deprecated and removed."
+        },
+        "affects": {
+          "versions": ["v20.0"]
+        },
+        "effectiveDate": "2026-09-24"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2027-01-21-graph-v21-expiry",
+        "kind": "api-version",
+        "title": "Graph API v21.0 expires on January 21, 2027",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "**January 21, 2027:** Graph API v21.0 is deprecated and removed."
+        },
+        "affects": {
+          "versions": ["v21.0"]
+        },
+        "effectiveDate": "2027-01-21"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-marketing-v24-expiry",
+        "kind": "api-version",
+        "title": "Marketing API v24.0 expiry (sources conflict: Oct 6, 2026 on Graph changelog vs Nov 10, 2026 on Marketing changelog)",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+          "quote": "Marketing API version auto-upgrade will release on July 29, 2026."
+        },
+        "affects": {
+          "versions": ["Marketing API v24.0"]
+        },
+        "effectiveDate": "2026-10-06"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2027-02-23-marketing-v25-expiry",
+        "kind": "api-version",
+        "title": "Marketing API v25.0 expiry listed as February 23, 2027 on Marketing changelog (TBD on Graph changelog)",
+        "source": {
+          "url": "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog",
+          "quote": "| [v25.0](https://developers.facebook.com/documentation/ads-commerce/marketing-api/marketing-api-changelog/version25.0) | February 18, 2026 | February 23, 2027 |"
+        },
+        "affects": {
+          "versions": ["Marketing API v25.0"]
+        },
+        "effectiveDate": "2027-02-23"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-v26-insights-reach-impressions-removed",
+        "kind": "field-removed",
+        "title": "Page, post, video and story unique impression/reach insights metrics error on all versions after v26.0 release; some have replacements (page_total_media_view_unique, post_total_media_view_unique, STORY_MEDIA_VIEW)",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+          "quote": "Once deprecated, these metrics will return an error if requested using any API version."
+        },
+        "affects": {
+          "operations": [
+            "GET /{page-id}/insights",
+            "GET /{post-id}/insights",
+            "GET /{video-id}/video_insights"
+          ],
+          "fields": [
+            "page_impressions_unique",
+            "page_impressions_paid_unique",
+            "page_impressions_viral_unique",
+            "page_impressions_nonviral_unique",
+            "page_posts_impressions",
+            "page_posts_impressions_unique",
+            "page_video_views_unique",
+            "post_impressions_unique",
+            "post_impressions_paid_unique",
+            "post_video_views_unique",
+            "total_video_impressions",
+            "total_video_impressions_unique",
+            "total_video_views_unique",
+            "PAGE_STORY_IMPRESSIONS_BY_STORY_ID",
+            "PAGE_STORY_IMPRESSIONS_BY_STORY_ID_UNIQUE"
+          ]
+        },
+        "effectiveDate": "2026-07-29"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-05-19-node-metadata-param",
+        "kind": "field-removed",
+        "title": "Node metadata query parameter (metadata=1) deprecated for all versions May 19, 2026",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+          "quote": "The [metadata query parameter](https://developers.facebook.com/docs/graph-api/overview#node-metadata) (`metadata=1`) is deprecated and will no longer return metadata about supported fields for the targeted node."
+        },
+        "affects": {
+          "fields": ["metadata"],
+          "versions": ["v25.0"]
+        },
+        "effectiveDate": "2026-05-19"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-03-31-webhooks-mtls-ca",
+        "kind": "webhook-payload",
+        "title": "Webhooks mTLS certificate signed by new Meta-owned CA from March 31, 2026; servers verifying it must trust meta-outbound-api-ca-2025-12.pem",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+          "quote": "Failure to update your trust store by March 31, 2026, will result in TLS handshake failures, and your servers will stop receiving all webhooks events."
+        },
+        "affects": {
+          "fields": ["client.webhooks.fbclientcerts.com"],
+          "versions": ["v25.0"]
+        },
+        "effectiveDate": "2026-03-31"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-05-19-advantage-plus-asc-aac",
+        "kind": "other",
+        "title": "Creation, duplication and updates of Advantage+ Shopping and App Campaigns disallowed for all versions May 19, 2026",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+          "quote": "Creation, duplication, and updates to [Advantage+ shopping campaigns](https://developers.facebook.com/documentation/ads-commerce/marketing-api/advantage-shopping-campaigns) and [Advantage+ app campaigns](docs/app-ads/advantage-app-campaigns/) is no longer allowed."
+        },
+        "affects": {
+          "operations": ["POST /{ad-account-id}/campaigns", "POST /{campaign-id}/copies"],
+          "versions": ["v25.0"]
+        },
+        "effectiveDate": "2026-05-19"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-v25-async-report-error-fields",
+        "kind": "other",
+        "title": "Failed async ad reports return new error fields; error_code type changes from uint to int (v25.0+)",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+          "quote": "For any developers with access to the `error_code` field, the type will be changed from `uint` to `int`."
+        },
+        "affects": {
+          "operations": ["GET /{ad-report-run-id}"],
+          "fields": [
+            "error_code",
+            "error_message",
+            "error_subcode",
+            "error_user_title",
+            "error_user_msg"
+          ],
+          "versions": ["v25.0"]
+        },
+        "effectiveDate": "2026-02-18"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-05-04-marketing-api-access-tier",
+        "kind": "auth-change",
+        "title": "Marketing API access tier renamed and approval thresholds changed (Limited/Full access; auto-approval 500 calls in 15 days)",
+        "source": {
+          "url": "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog",
+          "quote": "Auto-approval threshold lowered: 1,500 → 500 Marketing API calls in 15 days"
+        },
+        "affects": {},
+        "effectiveDate": "2026-05-04"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-01-06-flagged-audiences-conversions",
+        "kind": "other",
+        "title": "Updates to flagged custom audiences/custom conversions, and campaigns/ad sets using them, fail on all versions from Jan 6, 2026; lookalike_spec must match valid types",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version24.0",
+          "quote": "Updating [customer file custom audiences](https://developers.facebook.com/documentation/ads-commerce/marketing-api/audiences/guides/custom-audiences) that are [flagged custom audiences](https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/custom-audience#flagged) will fail."
+        },
+        "affects": {
+          "operations": [
+            "POST {ad-account-id}/customaudiences",
+            "POST {custom-audience-id}/users",
+            "POST {custom-audience-id}/usersreplace",
+            "POST /{custom-conversion-id}",
+            "POST /{ad-set-id}",
+            "POST /{ad-account-id}/adsets"
+          ],
+          "fields": ["lookalike_spec"],
+          "versions": ["v24.0"]
+        },
+        "effectiveDate": "2026-01-06"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-v26-business-sdk-major",
+        "kind": "sdk-major",
+        "title": "Meta Business SDK v26.0.0 released (Commerce Order Management removal, Explore/Messenger Stories placement removal, CAPI Parameter Builder)",
+        "source": {
+          "url": "https://github.com/meta/facebook-nodejs-business-sdk/releases.atom",
+          "quote": "The Commerce Order Management API (47 endpoints) is fully deprecated with no replacement."
+        },
+        "affects": {
+          "versions": ["v26.0.0"],
+          "sdk": "facebook-nodejs-business-sdk"
+        },
+        "effectiveDate": "2026-08-06"
+      },
+      {
+        "provider": "meta",
+        "id": "meta:2026-business-sdk-v20-v21-deprecation",
+        "kind": "sdk-major",
+        "title": "Facebook Platform SDK v20.0 deprecated Sept 2026 and v21.0 Jan 2027",
+        "source": {
+          "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+          "quote": "**Jan, 2027:**: Facebook Platform SDK v21.0 will be deprecated"
+        },
+        "affects": {
+          "versions": ["v20.0", "v21.0"],
+          "sdk": "facebook-nodejs-business-sdk"
+        },
+        "effectiveDate": "2027-01"
+      }
+    ],
+    "issues": [],
+    "unverifiedQuotes": [],
+    "sourcesRead": [
+      "https://developers.facebook.com/docs/graph-api/changelog",
+      "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+      "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+      "https://developers.facebook.com/docs/graph-api/changelog/versions",
+      "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog",
+      "https://github.com/meta/facebook-nodejs-business-sdk/releases.atom",
+      "https://developers.facebook.com/docs/graph-api/changelog/version24.0"
+    ],
+    "model": "claude-sonnet-5-5",
+    "costUsd": 0.25637,
+    "turns": 5,
+    "summary": "",
+    "log": [
+      {
+        "turn": 1,
+        "stopReason": "tool_use",
+        "inputTokens": 4956,
+        "outputTokens": 236,
+        "calls": [
+          {
+            "tool": "list_sources",
+            "input": "{}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"graph-api-changelog\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"graph-api-v26\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"graph-api-v25\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"graph-api-versions\"}"
+          }
+        ]
+      },
+      {
+        "turn": 2,
+        "stopReason": "tool_use",
+        "inputTokens": 16477,
+        "outputTokens": 115,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"marketing-api-changelog\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"nodejs-business-sdk-releases\"}"
+          }
+        ]
+      },
+      {
+        "turn": 3,
+        "stopReason": "tool_use",
+        "inputTokens": 19697,
+        "outputTokens": 308,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://developers.facebook.com/docs/graph-api/changelog/version24.0\"}"
+          }
+        ]
+      },
+      {
+        "turn": 4,
+        "stopReason": "tool_use",
+        "inputTokens": 24676,
+        "outputTokens": 311,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://developers.facebook.com/docs/graph-api/changelog/version24.0\",\"offset\":12000}"
+          }
+        ]
+      },
+      {
+        "turn": 5,
+        "stopReason": "tool_use",
+        "inputTokens": 25119,
+        "outputTokens": 6482,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{\"changes\":[{\"id\":\"2026-10-27-commerce-order-management-api-removed\",\"kind\":\"endpoint-removed\",\"title\":\"Commerce Order Management API (47 endpoints, no replacement) blocked on v26.0+ and removed from all versions on Oct 27, 2026\",\"effectiveDate\":\"2026-10-27\",\"source\":{\"url\":\"https://developers.faceb"
+          }
+        ]
+      }
+    ]
+  }
+}

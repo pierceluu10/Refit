@@ -1,0 +1,1266 @@
+{
+  "provider": "stripe",
+  "retrieved": "2026-11-01",
+  "source": [
+    "https://docs.stripe.com/api/events/types",
+    "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
+  ],
+  "note": "events: v1 snapshot event types and their data.object types from docs.stripe.com/api/events/types (2026-11-01). specEnabledEvents: the enabled_events enum of POST /v1/webhook_endpoints in openapi/spec3.json (info.version 2026-09-30.endive). Thin (v2) event types are listed at https://docs.stripe.com/api/v2/core/events/event-types and are not in this snapshot.",
+  "events": [
+    {
+      "type": "account.application.authorized",
+      "objects": ["application"]
+    },
+    {
+      "type": "account.application.deauthorized",
+      "objects": ["application"]
+    },
+    {
+      "type": "account.external_account.created",
+      "objects": ["alipay_account", "bank_account", "bitcoin_receiver", "card", "source"]
+    },
+    {
+      "type": "account.external_account.deleted",
+      "objects": ["alipay_account", "bank_account", "bitcoin_receiver", "card", "source"]
+    },
+    {
+      "type": "account.external_account.updated",
+      "objects": ["alipay_account", "bank_account", "bitcoin_receiver", "card", "source"]
+    },
+    {
+      "type": "account.updated",
+      "objects": ["account"]
+    },
+    {
+      "type": "application_fee.created",
+      "objects": ["application_fee"]
+    },
+    {
+      "type": "application_fee.refund.updated",
+      "objects": ["fee_refund"]
+    },
+    {
+      "type": "application_fee.refunded",
+      "objects": ["application_fee"]
+    },
+    {
+      "type": "apps.install.created",
+      "objects": ["apps.install"]
+    },
+    {
+      "type": "apps.install.deleted",
+      "objects": ["apps.install"]
+    },
+    {
+      "type": "apps.install.updated",
+      "objects": ["apps.install"]
+    },
+    {
+      "type": "balance.available",
+      "objects": ["balance"]
+    },
+    {
+      "type": "balance_settings.updated",
+      "objects": ["balance_settings"]
+    },
+    {
+      "type": "billing.alert.triggered",
+      "objects": ["billing.alert_triggered"]
+    },
+    {
+      "type": "billing.credit_balance_transaction.created",
+      "objects": ["billing.credit_balance_transaction"]
+    },
+    {
+      "type": "billing.credit_grant.created",
+      "objects": ["billing.credit_grant"]
+    },
+    {
+      "type": "billing.credit_grant.updated",
+      "objects": ["billing.credit_grant"]
+    },
+    {
+      "type": "billing.meter.created",
+      "objects": ["billing.meter"]
+    },
+    {
+      "type": "billing.meter.deactivated",
+      "objects": ["billing.meter"]
+    },
+    {
+      "type": "billing.meter.reactivated",
+      "objects": ["billing.meter"]
+    },
+    {
+      "type": "billing.meter.updated",
+      "objects": ["billing.meter"]
+    },
+    {
+      "type": "billing_portal.configuration.created",
+      "objects": ["billing_portal.configuration"]
+    },
+    {
+      "type": "billing_portal.configuration.updated",
+      "objects": ["billing_portal.configuration"]
+    },
+    {
+      "type": "billing_portal.session.created",
+      "objects": ["billing_portal.session"]
+    },
+    {
+      "type": "capability.updated",
+      "objects": ["capability"]
+    },
+    {
+      "type": "cash_balance.funds_available",
+      "objects": ["cash_balance"]
+    },
+    {
+      "type": "charge.captured",
+      "objects": ["charge"]
+    },
+    {
+      "type": "charge.dispute.closed",
+      "objects": ["dispute"]
+    },
+    {
+      "type": "charge.dispute.created",
+      "objects": ["dispute"]
+    },
+    {
+      "type": "charge.dispute.funds_reinstated",
+      "objects": ["dispute"]
+    },
+    {
+      "type": "charge.dispute.funds_withdrawn",
+      "objects": ["dispute"]
+    },
+    {
+      "type": "charge.dispute.updated",
+      "objects": ["dispute"]
+    },
+    {
+      "type": "charge.expired",
+      "objects": ["charge"]
+    },
+    {
+      "type": "charge.failed",
+      "objects": ["charge"]
+    },
+    {
+      "type": "charge.pending",
+      "objects": ["charge"]
+    },
+    {
+      "type": "charge.refund.updated",
+      "objects": ["refund"]
+    },
+    {
+      "type": "charge.refunded",
+      "objects": ["charge"]
+    },
+    {
+      "type": "charge.succeeded",
+      "objects": ["charge"]
+    },
+    {
+      "type": "charge.updated",
+      "objects": ["charge"]
+    },
+    {
+      "type": "checkout.session.async_payment_failed",
+      "objects": ["checkout.session"]
+    },
+    {
+      "type": "checkout.session.async_payment_succeeded",
+      "objects": ["checkout.session"]
+    },
+    {
+      "type": "checkout.session.completed",
+      "objects": ["checkout.session"]
+    },
+    {
+      "type": "checkout.session.expired",
+      "objects": ["checkout.session"]
+    },
+    {
+      "type": "climate.order.canceled",
+      "objects": ["climate.order"]
+    },
+    {
+      "type": "climate.order.created",
+      "objects": ["climate.order"]
+    },
+    {
+      "type": "climate.order.delayed",
+      "objects": ["climate.order"]
+    },
+    {
+      "type": "climate.order.delivered",
+      "objects": ["climate.order"]
+    },
+    {
+      "type": "climate.order.product_substituted",
+      "objects": ["climate.order"]
+    },
+    {
+      "type": "climate.product.created",
+      "objects": ["climate.product"]
+    },
+    {
+      "type": "climate.product.pricing_updated",
+      "objects": ["climate.product"]
+    },
+    {
+      "type": "coupon.created",
+      "objects": ["coupon"]
+    },
+    {
+      "type": "coupon.deleted",
+      "objects": ["coupon"]
+    },
+    {
+      "type": "coupon.updated",
+      "objects": ["coupon"]
+    },
+    {
+      "type": "credit_note.created",
+      "objects": ["credit_note"]
+    },
+    {
+      "type": "credit_note.updated",
+      "objects": ["credit_note"]
+    },
+    {
+      "type": "credit_note.voided",
+      "objects": ["credit_note"]
+    },
+    {
+      "type": "customer.created",
+      "objects": ["customer"]
+    },
+    {
+      "type": "customer.deleted",
+      "objects": ["customer"]
+    },
+    {
+      "type": "customer.discount.created",
+      "objects": ["discount"]
+    },
+    {
+      "type": "customer.discount.deleted",
+      "objects": ["discount"]
+    },
+    {
+      "type": "customer.discount.updated",
+      "objects": ["discount"]
+    },
+    {
+      "type": "customer.source.created",
+      "objects": ["alipay_account", "bank_account", "bitcoin_receiver", "card", "source"]
+    },
+    {
+      "type": "customer.source.deleted",
+      "objects": ["alipay_account", "bank_account", "bitcoin_receiver", "card", "source"]
+    },
+    {
+      "type": "customer.source.expiring",
+      "objects": ["card", "source"]
+    },
+    {
+      "type": "customer.source.updated",
+      "objects": ["alipay_account", "bank_account", "bitcoin_receiver", "card", "source"]
+    },
+    {
+      "type": "customer.subscription.created",
+      "objects": ["subscription"]
+    },
+    {
+      "type": "customer.subscription.deleted",
+      "objects": ["subscription"]
+    },
+    {
+      "type": "customer.subscription.paused",
+      "objects": ["subscription"]
+    },
+    {
+      "type": "customer.subscription.pending_update_applied",
+      "objects": ["subscription"]
+    },
+    {
+      "type": "customer.subscription.pending_update_expired",
+      "objects": ["subscription"]
+    },
+    {
+      "type": "customer.subscription.resumed",
+      "objects": ["subscription"]
+    },
+    {
+      "type": "customer.subscription.trial_will_end",
+      "objects": ["subscription"]
+    },
+    {
+      "type": "customer.subscription.updated",
+      "objects": ["subscription"]
+    },
+    {
+      "type": "customer.tax_id.created",
+      "objects": ["tax_id"]
+    },
+    {
+      "type": "customer.tax_id.deleted",
+      "objects": ["tax_id"]
+    },
+    {
+      "type": "customer.tax_id.updated",
+      "objects": ["tax_id"]
+    },
+    {
+      "type": "customer.updated",
+      "objects": ["customer"]
+    },
+    {
+      "type": "customer_cash_balance_transaction.created",
+      "objects": ["customer_cash_balance_transaction"]
+    },
+    {
+      "type": "entitlements.active_entitlement_summary.updated",
+      "objects": ["entitlements.active_entitlement_summary"]
+    },
+    {
+      "type": "file.created",
+      "objects": ["file"]
+    },
+    {
+      "type": "financial_connections.account.account_numbers_updated",
+      "objects": ["financial_connections.account"]
+    },
+    {
+      "type": "financial_connections.account.created",
+      "objects": ["financial_connections.account"]
+    },
+    {
+      "type": "financial_connections.account.deactivated",
+      "objects": ["financial_connections.account"]
+    },
+    {
+      "type": "financial_connections.account.disconnected",
+      "objects": ["financial_connections.account"]
+    },
+    {
+      "type": "financial_connections.account.expected_deactivation_date_updated",
+      "objects": ["financial_connections.account"]
+    },
+    {
+      "type": "financial_connections.account.reactivated",
+      "objects": ["financial_connections.account"]
+    },
+    {
+      "type": "financial_connections.account.refreshed_balance",
+      "objects": ["financial_connections.account"]
+    },
+    {
+      "type": "financial_connections.account.refreshed_ownership",
+      "objects": ["financial_connections.account"]
+    },
+    {
+      "type": "financial_connections.account.refreshed_transactions",
+      "objects": ["financial_connections.account"]
+    },
+    {
+      "type": "financial_connections.account.supported_payment_method_types_updated",
+      "objects": ["financial_connections.account"]
+    },
+    {
+      "type": "financial_connections.account.upcoming_account_number_expiry",
+      "objects": ["financial_connections.account"]
+    },
+    {
+      "type": "financial_connections.account.upcoming_deactivation",
+      "objects": ["financial_connections.account"]
+    },
+    {
+      "type": "financial_connections.authorization.expected_deactivation_date_updated",
+      "objects": ["financial_connections.authorization"]
+    },
+    {
+      "type": "financial_connections.authorization.upcoming_deactivation",
+      "objects": ["financial_connections.authorization"]
+    },
+    {
+      "type": "identity.verification_session.canceled",
+      "objects": ["identity.verification_session"]
+    },
+    {
+      "type": "identity.verification_session.created",
+      "objects": ["identity.verification_session"]
+    },
+    {
+      "type": "identity.verification_session.processing",
+      "objects": ["identity.verification_session"]
+    },
+    {
+      "type": "identity.verification_session.redacted",
+      "objects": ["identity.verification_session"]
+    },
+    {
+      "type": "identity.verification_session.requires_input",
+      "objects": ["identity.verification_session"]
+    },
+    {
+      "type": "identity.verification_session.verified",
+      "objects": ["identity.verification_session"]
+    },
+    {
+      "type": "invoice.created",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.deleted",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.finalization_failed",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.finalized",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.marked_uncollectible",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.overdue",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.overpaid",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.paid",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.payment_action_required",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.payment_attempt_required",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.payment_failed",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.payment_succeeded",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.sent",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.upcoming",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.updated",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.voided",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice.will_be_due",
+      "objects": ["invoice"]
+    },
+    {
+      "type": "invoice_payment.paid",
+      "objects": ["invoice_payment"]
+    },
+    {
+      "type": "invoiceitem.created",
+      "objects": ["invoiceitem"]
+    },
+    {
+      "type": "invoiceitem.deleted",
+      "objects": ["invoiceitem"]
+    },
+    {
+      "type": "issuing_authorization.created",
+      "objects": ["issuing.authorization"]
+    },
+    {
+      "type": "issuing_authorization.request",
+      "objects": ["issuing.authorization"]
+    },
+    {
+      "type": "issuing_authorization.updated",
+      "objects": ["issuing.authorization"]
+    },
+    {
+      "type": "issuing_card.created",
+      "objects": ["issuing.card"]
+    },
+    {
+      "type": "issuing_card.updated",
+      "objects": ["issuing.card"]
+    },
+    {
+      "type": "issuing_cardholder.created",
+      "objects": ["issuing.cardholder"]
+    },
+    {
+      "type": "issuing_cardholder.updated",
+      "objects": ["issuing.cardholder"]
+    },
+    {
+      "type": "issuing_dispute.closed",
+      "objects": ["issuing.dispute"]
+    },
+    {
+      "type": "issuing_dispute.created",
+      "objects": ["issuing.dispute"]
+    },
+    {
+      "type": "issuing_dispute.funds_reinstated",
+      "objects": ["issuing.dispute"]
+    },
+    {
+      "type": "issuing_dispute.funds_rescinded",
+      "objects": ["issuing.dispute"]
+    },
+    {
+      "type": "issuing_dispute.submitted",
+      "objects": ["issuing.dispute"]
+    },
+    {
+      "type": "issuing_dispute.updated",
+      "objects": ["issuing.dispute"]
+    },
+    {
+      "type": "issuing_personalization_design.activated",
+      "objects": ["issuing.personalization_design"]
+    },
+    {
+      "type": "issuing_personalization_design.deactivated",
+      "objects": ["issuing.personalization_design"]
+    },
+    {
+      "type": "issuing_personalization_design.rejected",
+      "objects": ["issuing.personalization_design"]
+    },
+    {
+      "type": "issuing_personalization_design.updated",
+      "objects": ["issuing.personalization_design"]
+    },
+    {
+      "type": "issuing_token.created",
+      "objects": ["issuing.token"]
+    },
+    {
+      "type": "issuing_token.updated",
+      "objects": ["issuing.token"]
+    },
+    {
+      "type": "issuing_transaction.created",
+      "objects": ["issuing.transaction"]
+    },
+    {
+      "type": "issuing_transaction.purchase_details_receipt_updated",
+      "objects": ["issuing.transaction"]
+    },
+    {
+      "type": "issuing_transaction.updated",
+      "objects": ["issuing.transaction"]
+    },
+    {
+      "type": "mandate.updated",
+      "objects": ["mandate"]
+    },
+    {
+      "type": "payment_intent.amount_capturable_updated",
+      "objects": ["payment_intent"]
+    },
+    {
+      "type": "payment_intent.canceled",
+      "objects": ["payment_intent"]
+    },
+    {
+      "type": "payment_intent.created",
+      "objects": ["payment_intent"]
+    },
+    {
+      "type": "payment_intent.partially_funded",
+      "objects": ["payment_intent"]
+    },
+    {
+      "type": "payment_intent.payment_failed",
+      "objects": ["payment_intent"]
+    },
+    {
+      "type": "payment_intent.processing",
+      "objects": ["payment_intent"]
+    },
+    {
+      "type": "payment_intent.requires_action",
+      "objects": ["payment_intent"]
+    },
+    {
+      "type": "payment_intent.succeeded",
+      "objects": ["payment_intent"]
+    },
+    {
+      "type": "payment_link.created",
+      "objects": ["payment_link"]
+    },
+    {
+      "type": "payment_link.updated",
+      "objects": ["payment_link"]
+    },
+    {
+      "type": "payment_method.attached",
+      "objects": ["payment_method"]
+    },
+    {
+      "type": "payment_method.automatically_updated",
+      "objects": ["payment_method"]
+    },
+    {
+      "type": "payment_method.detached",
+      "objects": ["payment_method"]
+    },
+    {
+      "type": "payment_method.updated",
+      "objects": ["payment_method"]
+    },
+    {
+      "type": "payout.canceled",
+      "objects": ["payout"]
+    },
+    {
+      "type": "payout.created",
+      "objects": ["payout"]
+    },
+    {
+      "type": "payout.failed",
+      "objects": ["payout"]
+    },
+    {
+      "type": "payout.paid",
+      "objects": ["payout"]
+    },
+    {
+      "type": "payout.reconciliation_completed",
+      "objects": ["payout"]
+    },
+    {
+      "type": "payout.updated",
+      "objects": ["payout"]
+    },
+    {
+      "type": "person.created",
+      "objects": ["person"]
+    },
+    {
+      "type": "person.deleted",
+      "objects": ["person"]
+    },
+    {
+      "type": "person.updated",
+      "objects": ["person"]
+    },
+    {
+      "type": "plan.created",
+      "objects": ["plan"]
+    },
+    {
+      "type": "plan.deleted",
+      "objects": ["plan"]
+    },
+    {
+      "type": "plan.updated",
+      "objects": ["plan"]
+    },
+    {
+      "type": "price.created",
+      "objects": ["price"]
+    },
+    {
+      "type": "price.deleted",
+      "objects": ["price"]
+    },
+    {
+      "type": "price.updated",
+      "objects": ["price"]
+    },
+    {
+      "type": "product.created",
+      "objects": ["product"]
+    },
+    {
+      "type": "product.deleted",
+      "objects": ["product"]
+    },
+    {
+      "type": "product.updated",
+      "objects": ["product"]
+    },
+    {
+      "type": "promotion_code.created",
+      "objects": ["promotion_code"]
+    },
+    {
+      "type": "promotion_code.updated",
+      "objects": ["promotion_code"]
+    },
+    {
+      "type": "quote.accepted",
+      "objects": ["quote"]
+    },
+    {
+      "type": "quote.canceled",
+      "objects": ["quote"]
+    },
+    {
+      "type": "quote.created",
+      "objects": ["quote"]
+    },
+    {
+      "type": "quote.finalized",
+      "objects": ["quote"]
+    },
+    {
+      "type": "quote.will_expire",
+      "objects": ["quote"]
+    },
+    {
+      "type": "radar.early_fraud_warning.created",
+      "objects": ["radar.early_fraud_warning"]
+    },
+    {
+      "type": "radar.early_fraud_warning.updated",
+      "objects": ["radar.early_fraud_warning"]
+    },
+    {
+      "type": "refund.created",
+      "objects": ["refund"]
+    },
+    {
+      "type": "refund.failed",
+      "objects": ["refund"]
+    },
+    {
+      "type": "refund.updated",
+      "objects": ["refund"]
+    },
+    {
+      "type": "reporting.report_run.failed",
+      "objects": ["reporting.report_run"]
+    },
+    {
+      "type": "reporting.report_run.succeeded",
+      "objects": ["reporting.report_run"]
+    },
+    {
+      "type": "reporting.report_type.updated",
+      "objects": ["reporting.report_type"]
+    },
+    {
+      "type": "reserve.hold.created",
+      "objects": ["reserve.hold"]
+    },
+    {
+      "type": "reserve.hold.updated",
+      "objects": ["reserve.hold"]
+    },
+    {
+      "type": "reserve.plan.created",
+      "objects": ["reserve.plan"]
+    },
+    {
+      "type": "reserve.plan.disabled",
+      "objects": ["reserve.plan"]
+    },
+    {
+      "type": "reserve.plan.expired",
+      "objects": ["reserve.plan"]
+    },
+    {
+      "type": "reserve.plan.updated",
+      "objects": ["reserve.plan"]
+    },
+    {
+      "type": "reserve.release.created",
+      "objects": ["reserve.release"]
+    },
+    {
+      "type": "review.closed",
+      "objects": ["review"]
+    },
+    {
+      "type": "review.opened",
+      "objects": ["review"]
+    },
+    {
+      "type": "setup_intent.canceled",
+      "objects": ["setup_intent"]
+    },
+    {
+      "type": "setup_intent.created",
+      "objects": ["setup_intent"]
+    },
+    {
+      "type": "setup_intent.requires_action",
+      "objects": ["setup_intent"]
+    },
+    {
+      "type": "setup_intent.setup_failed",
+      "objects": ["setup_intent"]
+    },
+    {
+      "type": "setup_intent.succeeded",
+      "objects": ["setup_intent"]
+    },
+    {
+      "type": "sigma.scheduled_query_run.created",
+      "objects": ["scheduled_query_run"]
+    },
+    {
+      "type": "source.canceled",
+      "objects": ["source"]
+    },
+    {
+      "type": "source.chargeable",
+      "objects": ["source"]
+    },
+    {
+      "type": "source.failed",
+      "objects": ["source"]
+    },
+    {
+      "type": "source.mandate_notification",
+      "objects": ["source_mandate_notification"]
+    },
+    {
+      "type": "source.refund_attributes_required",
+      "objects": ["source"]
+    },
+    {
+      "type": "source.transaction.created",
+      "objects": ["source_transaction"]
+    },
+    {
+      "type": "source.transaction.updated",
+      "objects": ["source_transaction"]
+    },
+    {
+      "type": "subscription_schedule.aborted",
+      "objects": ["subscription_schedule"]
+    },
+    {
+      "type": "subscription_schedule.canceled",
+      "objects": ["subscription_schedule"]
+    },
+    {
+      "type": "subscription_schedule.completed",
+      "objects": ["subscription_schedule"]
+    },
+    {
+      "type": "subscription_schedule.created",
+      "objects": ["subscription_schedule"]
+    },
+    {
+      "type": "subscription_schedule.expiring",
+      "objects": ["subscription_schedule"]
+    },
+    {
+      "type": "subscription_schedule.released",
+      "objects": ["subscription_schedule"]
+    },
+    {
+      "type": "subscription_schedule.updated",
+      "objects": ["subscription_schedule"]
+    },
+    {
+      "type": "tax.settings.updated",
+      "objects": ["tax.settings"]
+    },
+    {
+      "type": "tax_rate.created",
+      "objects": ["tax_rate"]
+    },
+    {
+      "type": "tax_rate.updated",
+      "objects": ["tax_rate"]
+    },
+    {
+      "type": "terminal.reader.action_failed",
+      "objects": ["terminal.reader"]
+    },
+    {
+      "type": "terminal.reader.action_succeeded",
+      "objects": ["terminal.reader"]
+    },
+    {
+      "type": "terminal.reader.action_updated",
+      "objects": ["terminal.reader"]
+    },
+    {
+      "type": "test_helpers.test_clock.advancing",
+      "objects": ["test_helpers.test_clock"]
+    },
+    {
+      "type": "test_helpers.test_clock.created",
+      "objects": ["test_helpers.test_clock"]
+    },
+    {
+      "type": "test_helpers.test_clock.deleted",
+      "objects": ["test_helpers.test_clock"]
+    },
+    {
+      "type": "test_helpers.test_clock.internal_failure",
+      "objects": ["test_helpers.test_clock"]
+    },
+    {
+      "type": "test_helpers.test_clock.ready",
+      "objects": ["test_helpers.test_clock"]
+    },
+    {
+      "type": "three_d_secure.authentication.canceled",
+      "objects": ["three_d_secure.authentication"]
+    },
+    {
+      "type": "three_d_secure.authentication.challenge_started",
+      "objects": ["three_d_secure.authentication"]
+    },
+    {
+      "type": "three_d_secure.authentication.errored",
+      "objects": ["three_d_secure.authentication"]
+    },
+    {
+      "type": "three_d_secure.authentication.failed",
+      "objects": ["three_d_secure.authentication"]
+    },
+    {
+      "type": "three_d_secure.authentication.requires_challenge",
+      "objects": ["three_d_secure.authentication"]
+    },
+    {
+      "type": "three_d_secure.authentication.requires_submission",
+      "objects": ["three_d_secure.authentication"]
+    },
+    {
+      "type": "three_d_secure.authentication.succeeded",
+      "objects": ["three_d_secure.authentication"]
+    },
+    {
+      "type": "topup.canceled",
+      "objects": ["topup"]
+    },
+    {
+      "type": "topup.created",
+      "objects": ["topup"]
+    },
+    {
+      "type": "topup.failed",
+      "objects": ["topup"]
+    },
+    {
+      "type": "topup.reversed",
+      "objects": ["topup"]
+    },
+    {
+      "type": "topup.succeeded",
+      "objects": ["topup"]
+    },
+    {
+      "type": "transfer.created",
+      "objects": ["transfer"]
+    },
+    {
+      "type": "transfer.reversed",
+      "objects": ["transfer"]
+    },
+    {
+      "type": "transfer.updated",
+      "objects": ["transfer"]
+    }
+  ],
+  "specEnabledEvents": [
+    "*",
+    "account.application.authorized",
+    "account.application.deauthorized",
+    "account.external_account.created",
+    "account.external_account.deleted",
+    "account.external_account.updated",
+    "account.updated",
+    "application_fee.created",
+    "application_fee.refund.updated",
+    "application_fee.refunded",
+    "apps.install.created",
+    "apps.install.deleted",
+    "apps.install.updated",
+    "balance.available",
+    "balance_settings.updated",
+    "billing.alert.triggered",
+    "billing.credit_balance_transaction.created",
+    "billing.credit_grant.created",
+    "billing.credit_grant.updated",
+    "billing.meter.created",
+    "billing.meter.deactivated",
+    "billing.meter.reactivated",
+    "billing.meter.updated",
+    "billing_portal.configuration.created",
+    "billing_portal.configuration.updated",
+    "billing_portal.session.created",
+    "capability.updated",
+    "cash_balance.funds_available",
+    "charge.captured",
+    "charge.dispute.closed",
+    "charge.dispute.created",
+    "charge.dispute.funds_reinstated",
+    "charge.dispute.funds_withdrawn",
+    "charge.dispute.updated",
+    "charge.expired",
+    "charge.failed",
+    "charge.pending",
+    "charge.refund.updated",
+    "charge.refunded",
+    "charge.succeeded",
+    "charge.updated",
+    "checkout.session.async_payment_failed",
+    "checkout.session.async_payment_succeeded",
+    "checkout.session.completed",
+    "checkout.session.expired",
+    "climate.order.canceled",
+    "climate.order.created",
+    "climate.order.delayed",
+    "climate.order.delivered",
+    "climate.order.product_substituted",
+    "climate.product.created",
+    "climate.product.pricing_updated",
+    "coupon.created",
+    "coupon.deleted",
+    "coupon.updated",
+    "credit_note.created",
+    "credit_note.updated",
+    "credit_note.voided",
+    "customer.created",
+    "customer.deleted",
+    "customer.discount.created",
+    "customer.discount.deleted",
+    "customer.discount.updated",
+    "customer.source.created",
+    "customer.source.deleted",
+    "customer.source.expiring",
+    "customer.source.updated",
+    "customer.subscription.created",
+    "customer.subscription.deleted",
+    "customer.subscription.paused",
+    "customer.subscription.pending_update_applied",
+    "customer.subscription.pending_update_expired",
+    "customer.subscription.resumed",
+    "customer.subscription.trial_will_end",
+    "customer.subscription.updated",
+    "customer.tax_id.created",
+    "customer.tax_id.deleted",
+    "customer.tax_id.updated",
+    "customer.updated",
+    "customer_cash_balance_transaction.created",
+    "entitlements.active_entitlement_summary.updated",
+    "file.created",
+    "financial_connections.account.account_numbers_updated",
+    "financial_connections.account.created",
+    "financial_connections.account.deactivated",
+    "financial_connections.account.disconnected",
+    "financial_connections.account.expected_deactivation_date_updated",
+    "financial_connections.account.reactivated",
+    "financial_connections.account.refreshed_balance",
+    "financial_connections.account.refreshed_ownership",
+    "financial_connections.account.refreshed_transactions",
+    "financial_connections.account.supported_payment_method_types_updated",
+    "financial_connections.account.upcoming_account_number_expiry",
+    "financial_connections.account.upcoming_deactivation",
+    "financial_connections.authorization.expected_deactivation_date_updated",
+    "financial_connections.authorization.upcoming_deactivation",
+    "identity.verification_session.canceled",
+    "identity.verification_session.created",
+    "identity.verification_session.processing",
+    "identity.verification_session.redacted",
+    "identity.verification_session.requires_input",
+    "identity.verification_session.verified",
+    "invoice.created",
+    "invoice.deleted",
+    "invoice.finalization_failed",
+    "invoice.finalized",
+    "invoice.marked_uncollectible",
+    "invoice.overdue",
+    "invoice.overpaid",
+    "invoice.paid",
+    "invoice.payment_action_required",
+    "invoice.payment_attempt_required",
+    "invoice.payment_failed",
+    "invoice.payment_succeeded",
+    "invoice.sent",
+    "invoice.upcoming",
+    "invoice.updated",
+    "invoice.voided",
+    "invoice.will_be_due",
+    "invoice_payment.paid",
+    "invoiceitem.created",
+    "invoiceitem.deleted",
+    "issuing_authorization.created",
+    "issuing_authorization.request",
+    "issuing_authorization.updated",
+    "issuing_card.created",
+    "issuing_card.updated",
+    "issuing_cardholder.created",
+    "issuing_cardholder.updated",
+    "issuing_dispute.closed",
+    "issuing_dispute.created",
+    "issuing_dispute.funds_reinstated",
+    "issuing_dispute.funds_rescinded",
+    "issuing_dispute.submitted",
+    "issuing_dispute.updated",
+    "issuing_personalization_design.activated",
+    "issuing_personalization_design.deactivated",
+    "issuing_personalization_design.rejected",
+    "issuing_personalization_design.updated",
+    "issuing_token.created",
+    "issuing_token.updated",
+    "issuing_transaction.created",
+    "issuing_transaction.purchase_details_receipt_updated",
+    "issuing_transaction.updated",
+    "mandate.updated",
+    "payment_intent.amount_capturable_updated",
+    "payment_intent.canceled",
+    "payment_intent.created",
+    "payment_intent.partially_funded",
+    "payment_intent.payment_failed",
+    "payment_intent.processing",
+    "payment_intent.requires_action",
+    "payment_intent.succeeded",
+    "payment_link.created",
+    "payment_link.updated",
+    "payment_method.attached",
+    "payment_method.automatically_updated",
+    "payment_method.detached",
+    "payment_method.updated",
+    "payout.canceled",
+    "payout.created",
+    "payout.failed",
+    "payout.paid",
+    "payout.reconciliation_completed",
+    "payout.updated",
+    "person.created",
+    "person.deleted",
+    "person.updated",
+    "plan.created",
+    "plan.deleted",
+    "plan.updated",
+    "price.created",
+    "price.deleted",
+    "price.updated",
+    "product.created",
+    "product.deleted",
+    "product.updated",
+    "promotion_code.created",
+    "promotion_code.updated",
+    "quote.accepted",
+    "quote.canceled",
+    "quote.created",
+    "quote.finalized",
+    "radar.early_fraud_warning.created",
+    "radar.early_fraud_warning.updated",
+    "refund.created",
+    "refund.failed",
+    "refund.updated",
+    "reporting.report_run.failed",
+    "reporting.report_run.succeeded",
+    "reporting.report_type.updated",
+    "reserve.hold.created",
+    "reserve.hold.updated",
+    "reserve.plan.created",
+    "reserve.plan.disabled",
+    "reserve.plan.expired",
+    "reserve.plan.updated",
+    "reserve.release.created",
+    "review.closed",
+    "review.opened",
+    "setup_intent.canceled",
+    "setup_intent.created",
+    "setup_intent.requires_action",
+    "setup_intent.setup_failed",
+    "setup_intent.succeeded",
+    "sigma.scheduled_query_run.created",
+    "source.canceled",
+    "source.chargeable",
+    "source.failed",
+    "source.mandate_notification",
+    "source.refund_attributes_required",
+    "source.transaction.created",
+    "source.transaction.updated",
+    "subscription_schedule.aborted",
+    "subscription_schedule.canceled",
+    "subscription_schedule.completed",
+    "subscription_schedule.created",
+    "subscription_schedule.expiring",
+    "subscription_schedule.released",
+    "subscription_schedule.updated",
+    "tax.settings.updated",
+    "tax_rate.created",
+    "tax_rate.updated",
+    "terminal.reader.action_failed",
+    "terminal.reader.action_succeeded",
+    "terminal.reader.action_updated",
+    "test_helpers.test_clock.advancing",
+    "test_helpers.test_clock.created",
+    "test_helpers.test_clock.deleted",
+    "test_helpers.test_clock.internal_failure",
+    "test_helpers.test_clock.ready",
+    "topup.canceled",
+    "topup.created",
+    "topup.failed",
+    "topup.reversed",
+    "topup.succeeded",
+    "transfer.created",
+    "transfer.reversed",
+    "transfer.updated",
+    "treasury.credit_reversal.created",
+    "treasury.credit_reversal.posted",
+    "treasury.debit_reversal.completed",
+    "treasury.debit_reversal.created",
+    "treasury.debit_reversal.initial_credit_granted",
+    "treasury.financial_account.closed",
+    "treasury.financial_account.created",
+    "treasury.financial_account.features_status_updated",
+    "treasury.inbound_transfer.canceled",
+    "treasury.inbound_transfer.created",
+    "treasury.inbound_transfer.failed",
+    "treasury.inbound_transfer.succeeded",
+    "treasury.outbound_payment.canceled",
+    "treasury.outbound_payment.created",
+    "treasury.outbound_payment.expected_arrival_date_updated",
+    "treasury.outbound_payment.failed",
+    "treasury.outbound_payment.posted",
+    "treasury.outbound_payment.returned",
+    "treasury.outbound_payment.tracking_details_updated",
+    "treasury.outbound_transfer.canceled",
+    "treasury.outbound_transfer.created",
+    "treasury.outbound_transfer.expected_arrival_date_updated",
+    "treasury.outbound_transfer.failed",
+    "treasury.outbound_transfer.posted",
+    "treasury.outbound_transfer.returned",
+    "treasury.outbound_transfer.tracking_details_updated",
+    "treasury.received_credit.created",
+    "treasury.received_credit.failed",
+    "treasury.received_credit.succeeded",
+    "treasury.received_debit.created"
+  ]
+}

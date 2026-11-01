@@ -1,0 +1,3994 @@
+{
+  "provider": "stripe",
+  "retrieved": "2026-11-01",
+  "source": [
+    "https://docs.stripe.com/changelog",
+    "https://docs.stripe.com/api/versioning",
+    "https://docs.stripe.com/upgrades",
+    "https://docs.stripe.com/sdks/versioning",
+    "https://github.com/stripe/openapi"
+  ],
+  "note": "Built from docs.stripe.com/changelog.md on 2026-11-01. Since 2024-09-30.acacia Stripe ships monthly non-breaking versions and two major releases a year whose first version holds the breaking changes. Every dated version before acacia could contain breaking changes. .preview versions are public-preview tracks and are left out. Only breaking entries are listed per version; non-breaking entries are counted.",
+  "currentVersion": "2026-10-28.endive",
+  "releases": [
+    {
+      "name": "acacia",
+      "firstVersion": "2024-09-30.acacia",
+      "date": "2024-09-30",
+      "changelogUrl": "https://docs.stripe.com/changelog/acacia",
+      "versions": [
+        "2024-09-30.acacia",
+        "2024-10-28.acacia",
+        "2024-11-20.acacia",
+        "2024-12-18.acacia",
+        "2025-01-27.acacia",
+        "2025-02-24.acacia"
+      ]
+    },
+    {
+      "name": "basil",
+      "firstVersion": "2025-03-31.basil",
+      "date": "2025-03-31",
+      "changelogUrl": "https://docs.stripe.com/changelog/basil",
+      "versions": [
+        "2025-03-31.basil",
+        "2025-04-30.basil",
+        "2025-05-28.basil",
+        "2025-06-30.basil",
+        "2025-07-30.basil",
+        "2025-08-27.basil"
+      ]
+    },
+    {
+      "name": "clover",
+      "firstVersion": "2025-09-30.clover",
+      "date": "2025-09-30",
+      "changelogUrl": "https://docs.stripe.com/changelog/clover",
+      "versions": [
+        "2025-09-30.clover",
+        "2025-10-29.clover",
+        "2025-11-17.clover",
+        "2025-12-15.clover",
+        "2026-01-28.clover",
+        "2026-02-25.clover"
+      ]
+    },
+    {
+      "name": "dahlia",
+      "firstVersion": "2026-03-25.dahlia",
+      "date": "2026-03-25",
+      "changelogUrl": "https://docs.stripe.com/changelog/dahlia",
+      "versions": [
+        "2026-03-25.dahlia",
+        "2026-04-22.dahlia",
+        "2026-05-27.dahlia",
+        "2026-06-24.dahlia",
+        "2026-07-29.dahlia",
+        "2026-08-26.dahlia"
+      ]
+    },
+    {
+      "name": "endive",
+      "firstVersion": "2026-09-30.endive",
+      "date": "2026-09-30",
+      "changelogUrl": "https://docs.stripe.com/changelog/endive",
+      "versions": ["2026-09-30.endive", "2026-10-28.endive"]
+    }
+  ],
+  "versions": [
+    {
+      "version": "2011-06-21",
+      "date": "2011-06-21",
+      "breaking": [
+        {
+          "title": "Errors now produce exceptions for unrecognized API parameters",
+          "url": "https://docs.stripe.com/changelog/2011-06-21/exceptions-unrecognized-api-parameters",
+          "products": "All products"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2011-06-28",
+      "date": "2011-06-28",
+      "breaking": [
+        {
+          "title": "Plans no longer include the identifier field",
+          "url": "https://docs.stripe.com/changelog/2011-06-28/plans-no-longer-identifier-field",
+          "products": "Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2011-08-01",
+      "date": "2011-08-01",
+      "breaking": [
+        {
+          "title": "Lists now provide a total count of items and a data field",
+          "url": "https://docs.stripe.com/changelog/2011-08-01/lists-provide-total-count-data-field",
+          "products": "All products"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2011-09-15",
+      "date": "2011-09-15",
+      "breaking": [
+        {
+          "title": "Cards validate differently when creating tokens",
+          "url": "https://docs.stripe.com/changelog/2011-09-15/cards-validate-differently-creating-tokens",
+          "products": "Elements, Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2012-02-23",
+      "date": "2012-02-23",
+      "breaking": [
+        {
+          "title": "Fields with null values are now included in API responses",
+          "url": "https://docs.stripe.com/changelog/2012-02-23/fields-null-values-included-api-responses",
+          "products": "All products"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2012-03-25",
+      "date": "2012-03-25",
+      "breaking": [
+        {
+          "title": "Customers no longer include a next_recurring_charge field",
+          "url": "https://docs.stripe.com/changelog/2012-03-25/customers-no-longer-next-recurring-charge-field",
+          "products": "Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2012-06-18",
+      "date": "2012-06-18",
+      "breaking": [
+        {
+          "title": "Tokens no longer include the amount and currency properties",
+          "url": "https://docs.stripe.com/changelog/2012-06-18/tokens-no-longer-amount-currency-fields",
+          "products": "Elements, Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2012-07-09",
+      "date": "2012-07-09",
+      "breaking": [
+        {
+          "title": "Customers no longer include the uncaptured field",
+          "url": "https://docs.stripe.com/changelog/2012-07-09/customers-no-longer-uncaptured-field",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2012-09-24",
+      "date": "2012-09-24",
+      "breaking": [
+        {
+          "title": "Discounts no longer include an extraneous id field",
+          "url": "https://docs.stripe.com/changelog/2012-09-24/discounts-no-longer-extraneous-id-field",
+          "products": "Billing, Invoicing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2012-10-26",
+      "date": "2012-10-26",
+      "breaking": [
+        {
+          "title": "Invoices now include a sublist of invoice line items",
+          "url": "https://docs.stripe.com/changelog/2012-10-26/invoices-include-invoice-line-items-sublist",
+          "products": "Billing, Invoicing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2012-11-07",
+      "date": "2012-11-07",
+      "breaking": [
+        {
+          "title": "Renames the disputed field for Charges to dispute",
+          "url": "https://docs.stripe.com/changelog/2012-11-07/renames-disputed-field-charges-dispute",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2013-02-11",
+      "date": "2013-02-11",
+      "breaking": [
+        {
+          "title": "Failed invoice payments now return an HTTP error",
+          "url": "https://docs.stripe.com/changelog/2013-02-11/failed-invoice-payments-return-http-error",
+          "products": "Invoicing, Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2013-02-13",
+      "date": "2013-02-13",
+      "breaking": [
+        {
+          "title": "Disputes on charges are now tracked through the stripe_fee field and included in the fee total",
+          "url": "https://docs.stripe.com/changelog/2013-02-13/disputes-tracked-stripe-fee-field-fee-total",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2013-07-05",
+      "date": "2013-07-05",
+      "breaking": [
+        {
+          "title": "Customers now include a cards sublist and default_card field",
+          "url": "https://docs.stripe.com/changelog/2013-07-05/customers-include-cards-sublist-default-card-field",
+          "products": "Payments, Billing, Invoicing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2013-08-12",
+      "date": "2013-08-12",
+      "breaking": [
+        {
+          "title": "Lets the description and email fields be null on several objects",
+          "url": "https://docs.stripe.com/changelog/2013-08-12/allows-description-email-fields-null",
+          "products": "Payments, Billing, Invoicing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2013-08-13",
+      "date": "2013-08-13",
+      "breaking": [
+        {
+          "title": "Fee details have moved from charges to their corresponding balance transactions",
+          "url": "https://docs.stripe.com/changelog/2013-08-13/fee-details-moved-balance-transactions",
+          "products": "Payments"
+        },
+        {
+          "title": "Fee details have moved from transfers to their corresponding balance transactions",
+          "url": "https://docs.stripe.com/changelog/2013-08-13/fee-details-moved-balance-transactions-transfers",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2013-10-29",
+      "date": "2013-10-29",
+      "breaking": [
+        {
+          "title": "Coupons only apply to an invoice’s total balance, no longer applying to zero-cost invoices",
+          "url": "https://docs.stripe.com/changelog/2013-10-29/coupons-apply-invoice-total-balance",
+          "products": "Invoicing, Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2013-12-03",
+      "date": "2013-12-03",
+      "breaking": [
+        {
+          "title": "Application fees now provide an expandable account field to obtain user details",
+          "url": "https://docs.stripe.com/changelog/2013-12-03/application-fees-provide-expandable-account-field",
+          "products": "Connect"
+        },
+        {
+          "title": "Application fee refunds are now proportional to the charged amount",
+          "url": "https://docs.stripe.com/changelog/2013-12-03/application-fee-refunds-proportional-charged-amount",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2014-01-31",
+      "date": "2014-01-31",
+      "breaking": [
+        {
+          "title": "Customers now support multiple subscriptions",
+          "url": "https://docs.stripe.com/changelog/2014-01-31/customers-support-multiple-subscriptions",
+          "products": "Billing"
+        },
+        {
+          "title": "Trial end dates are no longer computed for canceled subscriptions",
+          "url": "https://docs.stripe.com/changelog/2014-01-31/trial-end-dates-canceled-subscriptions",
+          "products": "Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2014-03-13",
+      "date": "2014-03-13",
+      "breaking": [
+        {
+          "title": "Renames the statement descriptor field",
+          "url": "https://docs.stripe.com/changelog/2014-03-13/renames-statement-descriptor-field-transfers",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2014-03-28",
+      "date": "2014-03-28",
+      "breaking": [
+        {
+          "title": "Lists no longer include the count field",
+          "url": "https://docs.stripe.com/changelog/2014-03-28/lists-no-longer-include-count-field",
+          "products": "All products"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2014-05-19",
+      "date": "2014-05-19",
+      "breaking": [
+        {
+          "title": "Replaces the account field on transfers",
+          "url": "https://docs.stripe.com/changelog/2014-05-19/renames-account-field-transfers-bank-account",
+          "products": "Connect, Payouts"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2014-06-13",
+      "date": "2014-06-13",
+      "breaking": [
+        {
+          "title": "Renames the type field on cards to brand",
+          "url": "https://docs.stripe.com/changelog/2014-06-13/renames-type-field-cards-brand",
+          "products": "Payments, Elements"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2014-06-17",
+      "date": "2014-06-17",
+      "breaking": [
+        {
+          "title": "Charges now include a sublist of refunds through the refunds field",
+          "url": "https://docs.stripe.com/changelog/2014-06-17/invoices-include-refunds-sublist-refunds-field",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2014-07-22",
+      "date": "2014-07-22",
+      "breaking": [],
+      "nonBreakingCount": 1,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 0
+    },
+    {
+      "version": "2014-07-26",
+      "date": "2014-07-26",
+      "breaking": [
+        {
+          "title": "Application fees now include a sublist of refunds through the refunds field",
+          "url": "https://docs.stripe.com/changelog/2014-07-26/application-fees-include-refunds-sublist-refunds-field",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2014-08-04",
+      "date": "2014-08-04",
+      "breaking": [
+        {
+          "title": "You can now retrieve balance histories rather than relying on Transfer fields",
+          "url": "https://docs.stripe.com/changelog/2014-08-04/retrieve-balance-histories-transfer-fields",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2014-08-20",
+      "date": "2014-08-20",
+      "breaking": [
+        {
+          "title": "Disputes now provide several new statuses",
+          "url": "https://docs.stripe.com/changelog/2014-08-20/disputes-provide-several-new-statuses",
+          "products": "Payments"
+        },
+        {
+          "title": "Disputes now include multiple balance transactions",
+          "url": "https://docs.stripe.com/changelog/2014-08-20/disputes-include-multiple-balance-transactions",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2014-09-08",
+      "date": "2014-09-08",
+      "breaking": [
+        {
+          "title": "Bank Accounts now include a status enum that replace multiple fields",
+          "url": "https://docs.stripe.com/changelog/2014-09-08/bank-accounts-include-status-enum",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2014-10-07",
+      "date": "2014-10-07",
+      "breaking": [
+        {
+          "title": "You can no longer retrieve tokens with publishable keys",
+          "url": "https://docs.stripe.com/changelog/2014-10-07/no-longer-retrieve-tokens-publishable-keys",
+          "products": "Elements"
+        },
+        {
+          "title": "Creating a Card or Bank Account with a publishable key omits fingerprints in API responses",
+          "url": "https://docs.stripe.com/changelog/2014-10-07/create-card-bank-account-omit-fingerprints",
+          "products": "Elements"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2014-11-05",
+      "date": "2014-11-05",
+      "breaking": [
+        {
+          "title": "Account activation status terms updated for payments and transfers",
+          "url": "https://docs.stripe.com/changelog/2014-11-05/renames-charge-account-enabled-fields",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2014-11-20",
+      "date": "2014-11-20",
+      "breaking": [
+        {
+          "title": "Disputes are now reported as won even if the charge is refunded",
+          "url": "https://docs.stripe.com/changelog/2014-11-20/disputes-reported-won-refunded-charge",
+          "products": "Payments"
+        },
+        {
+          "title": "Invoice items now reflect the metadata for their associated subscription, rather than plan",
+          "url": "https://docs.stripe.com/changelog/2014-11-20/invoice-items-reflect-subscription-metadata",
+          "products": "Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2014-12-08",
+      "date": "2014-12-08",
+      "breaking": [
+        {
+          "title": "Disputes now include an evidence_details object for evidence documentation",
+          "url": "https://docs.stripe.com/changelog/2014-12-08/disputes-include-evidence-details-object",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2014-12-17",
+      "date": "2014-12-17",
+      "breaking": [
+        {
+          "title": "Introduces the statement_description field and logic for how charges, invoices, plans, and transfers render statement descriptors",
+          "url": "https://docs.stripe.com/changelog/2014-12-17/introduces-statement-description-field-logic",
+          "products": "Payments, Billing, Invoicing, Connect"
+        },
+        {
+          "title": "Creating accounts using the API requires the 2014-12-17 version or newer",
+          "url": "https://docs.stripe.com/changelog/2014-12-17/creating-accounts-requires-2014-12-17-version",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2014-12-22",
+      "date": "2014-12-22",
+      "breaking": [
+        {
+          "title": "Cards now use both the unchecked and unavailable values to describe address and CVC checks by issuing banks",
+          "url": "https://docs.stripe.com/changelog/2014-12-22/cards-use-unchecked-unavailable-address-cvc-checks",
+          "products": "Payments"
+        },
+        {
+          "title": "Tokens with cards no longer include the customer field",
+          "url": "https://docs.stripe.com/changelog/2014-12-22/tokens-cards-no-longer-include-customer-field",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2015-01-11",
+      "date": "2015-01-11",
+      "breaking": [
+        {
+          "title": "File uploads describe their file type with the simpler type field and format",
+          "url": "https://docs.stripe.com/changelog/2015-01-11/file-uploads-describe-type-format",
+          "products": "All products"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2015-01-26",
+      "date": "2015-01-26",
+      "breaking": [
+        {
+          "title": "Events with the previous_attributes field now only render the differences to objects across updates",
+          "url": "https://docs.stripe.com/changelog/2015-01-26/events-previous-attributes-render-differences",
+          "products": "All products"
+        },
+        {
+          "title": "Subscriptions now only report the timestamp for API or invoice payment failures for the canceled_at field",
+          "url": "https://docs.stripe.com/changelog/2015-01-26/subscriptions-report-api-invoice-failures",
+          "products": "Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2015-02-10",
+      "date": "2015-02-10",
+      "breaking": [
+        {
+          "title": "Dispute statuses now include the warning_closed value",
+          "url": "https://docs.stripe.com/changelog/2015-02-10/dispute-statuses-include-warning-closed",
+          "products": "Payments"
+        },
+        {
+          "title": "Transfers now require a sufficient account balance in test mode to better simulate live mode",
+          "url": "https://docs.stripe.com/changelog/2015-02-10/transfers-require-sufficient-balance-test-mode",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2015-02-16",
+      "date": "2015-02-16",
+      "breaking": [
+        {
+          "title": "Renames the transfer.canceled event type to transfer.reversed",
+          "url": "https://docs.stripe.com/changelog/2015-02-16/renames-transfer-canceled-event-transfer-reversed",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2015-02-18",
+      "date": "2015-02-18",
+      "breaking": [
+        {
+          "title": "Charges that succeed now have a succeeded status",
+          "url": "https://docs.stripe.com/changelog/2015-02-18/charges-succeed-have-succeeded-status",
+          "products": "Payments"
+        },
+        {
+          "title": "Charges now have a source field that accepts a source or card",
+          "url": "https://docs.stripe.com/changelog/2015-02-18/charges-have-source-field-accepts-source-card",
+          "products": "Payments"
+        },
+        {
+          "title": "Customers now have a source field that accepts a source or card, and updates related event types",
+          "url": "https://docs.stripe.com/changelog/2015-02-18/customers-have-source-field-accepts-source-card",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 3
+    },
+    {
+      "version": "2015-03-24",
+      "date": "2015-03-24",
+      "breaking": [
+        {
+          "title": "By default, coupons no longer apply to invoice items with negative amounts",
+          "url": "https://docs.stripe.com/changelog/2015-03-24/coupons-no-longer-apply-negative-invoice-items",
+          "products": "Billing, Invoicing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2015-04-07",
+      "date": "2015-04-07",
+      "breaking": [
+        {
+          "title": "Updates how ending periods are calculated on prorated invoice line items",
+          "url": "https://docs.stripe.com/changelog/2015-04-07/updates-ending-periods-prorated-invoice-line-items",
+          "products": "Billing"
+        },
+        {
+          "title": "Changes the sorting order of lines for invoices",
+          "url": "https://docs.stripe.com/changelog/2015-04-07/changes-sorting-order-lines-invoices",
+          "products": "Billing, Invoicing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2015-06-15",
+      "date": "2015-06-15",
+      "breaking": [
+        {
+          "title": "Accounts on manual payout schedules now throw a new error",
+          "url": "https://docs.stripe.com/changelog/2015-06-15/accounts-manual-payout-schedules-throw-error",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2015-07-07",
+      "date": "2015-07-07",
+      "breaking": [
+        {
+          "title": "Transfers submitted to the bank that haven’t arrived now provide an in_transit status",
+          "url": "https://docs.stripe.com/changelog/2015-07-07/transfers-in-transit-provide-status",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2015-07-13",
+      "date": "2015-07-13",
+      "breaking": [
+        {
+          "title": "Accounts now include the verification[disabled_reason] field to describe why they can’t make transfers or charges",
+          "url": "https://docs.stripe.com/changelog/2015-07-13/accounts-include-verification-disabled-reason-field",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2015-07-28",
+      "date": "2015-07-28",
+      "breaking": [
+        {
+          "title": "Transfers that are immediately processed now trigger the balance.available event",
+          "url": "https://docs.stripe.com/changelog/2015-07-28/transfers-immediately-processed-trigger-balance-available",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2015-08-07",
+      "date": "2015-08-07",
+      "breaking": [
+        {
+          "title": "Stripe now ensures the tos_acceptance[date] field on accounts is a valid timestamp",
+          "url": "https://docs.stripe.com/changelog/2015-08-07/stripe-ensures-tos-acceptance-date-valid-timestamp",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2015-08-19",
+      "date": "2015-08-19",
+      "breaking": [
+        {
+          "title": "Balance transactions with refunds or disputes now specify the corresponding ID in the source field",
+          "url": "https://docs.stripe.com/changelog/2015-08-19/balance-transactions-refunds-disputes-specify-source",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2015-09-03",
+      "date": "2015-09-03",
+      "breaking": [
+        {
+          "title": "Requests that reuse idempotency tokens but alter request parameters now throw an error",
+          "url": "https://docs.stripe.com/changelog/2015-09-03/reuse-idempotency-tokens-alter-error",
+          "products": "All products"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2015-09-08",
+      "date": "2015-09-08",
+      "breaking": [
+        {
+          "title": "Rate-limited requests now return an HTTP 429 error, no longer including the rate_limit field",
+          "url": "https://docs.stripe.com/changelog/2015-09-08/rate-limited-requests-return-429-no-rate-limit",
+          "products": "All products"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2015-09-23",
+      "date": "2015-09-23",
+      "breaking": [
+        {
+          "title": "The charge field now always reflects the latest charge on invoices",
+          "url": "https://docs.stripe.com/changelog/2015-09-23/invoice-charge-field-reflect-latest-charge",
+          "products": "Invoicing, Billing"
+        },
+        {
+          "title": "Invoices no longer include the payment property",
+          "url": "https://docs.stripe.com/changelog/2015-09-23/invoices-no-longer-include-payment-field",
+          "products": "Invoicing, Billing"
+        },
+        {
+          "title": "Listing all charges now includes payments from all funding sources",
+          "url": "https://docs.stripe.com/changelog/2015-09-23/listing-charges-includes-payments-funding-sources",
+          "products": "Payments"
+        },
+        {
+          "title": "Charges only support an offset for list pagination when filtering by source",
+          "url": "https://docs.stripe.com/changelog/2015-09-23/charges-support-offset-list-pagination-source",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 4
+    },
+    {
+      "version": "2015-10-01",
+      "date": "2015-10-01",
+      "breaking": [
+        {
+          "title": "Bank account information renamed to external accounts on user profiles",
+          "url": "https://docs.stripe.com/changelog/2015-10-01/accounts-include-external-accounts-field",
+          "products": "Connect"
+        },
+        {
+          "title": "Accounts now include an external_accounts field",
+          "url": "https://docs.stripe.com/changelog/2015-10-01/accounts-specify-additional-fields-bank-accounts",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2015-10-12",
+      "date": "2015-10-12",
+      "breaking": [
+        {
+          "title": "Using invalid parameters to create cards or bank accounts for tokens, sources, or external bank accounts now throws an HTTP 400 error",
+          "url": "https://docs.stripe.com/changelog/2015-10-12/invalid-parameters-throw-400-error",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2015-10-16",
+      "date": "2015-10-16",
+      "breaking": [
+        {
+          "title": "Creating or updating customers must now include a plan if a tax percentage is specified",
+          "url": "https://docs.stripe.com/changelog/2015-10-16/customers-must-include-plan-tax-percentage",
+          "products": "Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2016-02-03",
+      "date": "2016-02-03",
+      "breaking": [
+        {
+          "title": "Accounts now only show country-specific subfields for the legal_entity field",
+          "url": "https://docs.stripe.com/changelog/2016-02-03/accounts-only-show-country-fields-legal-entity",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2016-02-19",
+      "date": "2016-02-19",
+      "breaking": [
+        {
+          "title": "Renames the name field on Bank Accounts to account_holder_name",
+          "url": "https://docs.stripe.com/changelog/2016-02-19/renames-name-field-bank-accounts-account-holder-name",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2016-02-22",
+      "date": "2016-02-22",
+      "breaking": [
+        {
+          "title": "You can no longer add more than 250 invoice items to an invoice",
+          "url": "https://docs.stripe.com/changelog/2016-02-22/no-more-than-250-invoice-items",
+          "products": "Billing, Invoicing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2016-02-23",
+      "date": "2016-02-23",
+      "breaking": [
+        {
+          "title": "Orders that are paid or fulfilled, and then become canceled or returned, now automatically refund associated charges",
+          "url": "https://docs.stripe.com/changelog/2016-02-23/orders-paid-fulfilled-refund-associated-charges",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2016-02-29",
+      "date": "2016-02-29",
+      "breaking": [
+        {
+          "title": "Creating or updating an account now validates the postal code for its legal entity",
+          "url": "https://docs.stripe.com/changelog/2016-02-29/creating-updating-account-validates-postal-code",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2016-03-07",
+      "date": "2016-03-07",
+      "breaking": [
+        {
+          "title": "Supported currencies are defined on the country spec for an account’s country",
+          "url": "https://docs.stripe.com/changelog/2016-03-07/supported-currencies-defined-country-spec",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2016-06-15",
+      "date": "2016-06-15",
+      "breaking": [
+        {
+          "title": "Deactivating a product no longer automatically deactivates its SKUs",
+          "url": "https://docs.stripe.com/changelog/2016-06-15/deactivating-product-deactivates-skus",
+          "products": "Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2016-07-06",
+      "date": "2016-07-06",
+      "breaking": [
+        {
+          "title": "Filter lists of subscriptions for canceled subscriptions",
+          "url": "https://docs.stripe.com/changelog/2016-07-06/filter-canceled-subscriptions-retrieve-individually",
+          "products": "Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2016-10-19",
+      "date": "2016-10-19",
+      "breaking": [
+        {
+          "title": "Using insufficient permissions to make API requests now throws an HTTP 403 error",
+          "url": "https://docs.stripe.com/changelog/2016-10-19/insufficient-permissions-throw-403-error",
+          "products": "All products"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2017-01-27",
+      "date": "2017-01-27",
+      "breaking": [
+        {
+          "title": "Balance transactions no longer include the sourced_transfers field",
+          "url": "https://docs.stripe.com/changelog/2017-01-27/balance-transactions-no-longer-include-sourced-transfers",
+          "products": "Payments, Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2017-02-14",
+      "date": "2017-02-14",
+      "breaking": [
+        {
+          "title": "Charges now specify the ID for the rule blocking a transaction, which can be expanded",
+          "url": "https://docs.stripe.com/changelog/2017-02-14/charges-specify-rule-blocking-transaction",
+          "products": "Payments, Radar"
+        },
+        {
+          "title": "Charges now specify the ID for the dispute associated with a transaction, which can be expanded",
+          "url": "https://docs.stripe.com/changelog/2017-02-14/charges-specify-dispute-associated-transaction",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2017-04-06",
+      "date": "2017-04-06",
+      "breaking": [
+        {
+          "title": "Transfers are now split into payouts and transfers",
+          "url": "https://docs.stripe.com/changelog/2017-04-06/transfers-split-payouts-transfers",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2017-05-25",
+      "date": "2017-05-25",
+      "breaking": [
+        {
+          "title": "Events for Connect now specify the originating connected account using the account field",
+          "url": "https://docs.stripe.com/changelog/2017-05-25/events-connect-specify-originating-account",
+          "products": "Connect"
+        },
+        {
+          "title": "The request field of the Events object now specifies both the request ID and idempotency key",
+          "url": "https://docs.stripe.com/changelog/2017-05-25/events-specify-request-id-idempotency-key",
+          "products": "All products"
+        },
+        {
+          "title": "Events with the previous_attributes field now render the complete affected sub-array",
+          "url": "https://docs.stripe.com/changelog/2017-05-25/events-previous-attributes-render-complete-sub-array",
+          "products": "All products"
+        },
+        {
+          "title": "Accounts must now specify one of three types (Standard, Express, or Custom)",
+          "url": "https://docs.stripe.com/changelog/2017-05-25/accounts-specify-type-standard-express-custom",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 4
+    },
+    {
+      "version": "2017-06-05",
+      "date": "2017-06-05",
+      "breaking": [
+        {
+          "title": "Accounts can now specify why an account isn’t enabled with the new reason under_review",
+          "url": "https://docs.stripe.com/changelog/2017-06-05/accounts-specify-under-review-reason",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2017-08-15",
+      "date": "2017-08-15",
+      "breaking": [
+        {
+          "title": "Sources can now specify that an authentication redirect isn’t required",
+          "url": "https://docs.stripe.com/changelog/2017-08-15/sources-specify-no-authentication-redirect-required",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2017-12-14",
+      "date": "2017-12-14",
+      "breaking": [
+        {
+          "title": "Invoice line items now must always set a description",
+          "url": "https://docs.stripe.com/changelog/2017-12-14/invoice-line-items-must-set-description",
+          "products": "Invoicing, Billing"
+        },
+        {
+          "title": "Invoice payment failures now return a card_error when a charge is declined",
+          "url": "https://docs.stripe.com/changelog/2017-12-14/invoice-payment-failures-return-card-error",
+          "products": "Invoicing, Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2018-01-23",
+      "date": "2018-01-23",
+      "breaking": [
+        {
+          "title": "Connect platforms can identify reused card or bank accounts across connected accounts as they now will share the same fingerprint",
+          "url": "https://docs.stripe.com/changelog/2018-01-23/connect-platforms-identify-reused-cards-bank-accounts",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2018-02-05",
+      "date": "2018-02-05",
+      "breaking": [
+        {
+          "title": "Free plans with prorations now produce zero-dollar invoices",
+          "url": "https://docs.stripe.com/changelog/2018-02-05/free-plans-with-prorations-produce-zero-dollar-invoices",
+          "products": "Billing"
+        },
+        {
+          "title": "Subscriptions can now delay the first full invoice to a future date (and optionally include a free trial)",
+          "url": "https://docs.stripe.com/changelog/2018-02-05/subscriptions-delay-first-full-invoice-future-date",
+          "products": "Billing"
+        },
+        {
+          "title": "Plans now link to individual products, with several fields moving to the product resource",
+          "url": "https://docs.stripe.com/changelog/2018-02-05/plans-link-individual-products-several-fields-moved",
+          "products": "Billing"
+        },
+        {
+          "title": "Products now require a type field, differentiating their use with order SKUs or subscriptions and plans",
+          "url": "https://docs.stripe.com/changelog/2018-02-05/products-require-type-field-differentiating-use",
+          "products": "Billing, Invoicing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 4
+    },
+    {
+      "version": "2018-02-06",
+      "date": "2018-02-06",
+      "breaking": [
+        {
+          "title": "Sources now provide a recommended value when the issuer advises using 3D Secure",
+          "url": "https://docs.stripe.com/changelog/2018-02-06/sources-provide-recommended-use-3d-secure",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2018-02-28",
+      "date": "2018-02-28",
+      "breaking": [
+        {
+          "title": "Updating a canceled subscription on a future date no longer resets its status",
+          "url": "https://docs.stripe.com/changelog/2018-02-28/updating-canceled-subscription-no-longer-resets-status",
+          "products": "Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2018-05-21",
+      "date": "2018-05-21",
+      "breaking": [
+        {
+          "title": "Products no longer embed lists of SKUs",
+          "url": "https://docs.stripe.com/changelog/2018-05-21/products-no-longer-embed-sku-lists",
+          "products": "Checkout"
+        },
+        {
+          "title": "Invoice line items now have unique IDs and can’t be used in place of a subscription",
+          "url": "https://docs.stripe.com/changelog/2018-05-21/invoice-line-items-have-unique-ids-cannot-use-subscription",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "Coupons, SKUs, customers, products, and plans now limit the valid characters for IDs",
+          "url": "https://docs.stripe.com/changelog/2018-05-21/valid-characters-ids-coupons-skus-customers-products-plans",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "Subscriptions now default to not defining their trial periods depending on a plan",
+          "url": "https://docs.stripe.com/changelog/2018-05-21/subscriptions-default-no-trial-period-plan",
+          "products": "Billing"
+        },
+        {
+          "title": "Changing a subscription to a new plan with a trial now extends the trial period",
+          "url": "https://docs.stripe.com/changelog/2018-05-21/changing-subscription-new-plan-extends-trial",
+          "products": "Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 5
+    },
+    {
+      "version": "2018-07-27",
+      "date": "2018-07-27",
+      "breaking": [
+        {
+          "title": "Subscriptions no longer support modifying the source parameter directly",
+          "url": "https://docs.stripe.com/changelog/2018-07-27/subscriptions-no-longer-support-modifying-source",
+          "products": "Billing"
+        },
+        {
+          "title": "Ending a subscription trial now uses the timestamp of that API request",
+          "url": "https://docs.stripe.com/changelog/2018-07-27/ending-subscription-trial-uses-request-timestamp",
+          "products": "Billing"
+        },
+        {
+          "title": "Coupons now use floats rather than integers to specify percent_off",
+          "url": "https://docs.stripe.com/changelog/2018-07-27/coupons-use-floats-specify-percent-off",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "Stripe now validates email addresses when creating or updating customers",
+          "url": "https://docs.stripe.com/changelog/2018-07-27/stripe-validates-email-addresses-customers",
+          "products": "All products"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 4
+    },
+    {
+      "version": "2018-08-23",
+      "date": "2018-08-23",
+      "breaking": [
+        {
+          "title": "A subscription’s ending period can no longer be configured while canceling it",
+          "url": "https://docs.stripe.com/changelog/2018-08-23/subscription-ending-period-cannot-configured-canceling",
+          "products": "Billing"
+        },
+        {
+          "title": "Customers now provide a tax_info object with their tax ID details",
+          "url": "https://docs.stripe.com/changelog/2018-08-23/customers-provide-tax-info-object",
+          "products": "All products"
+        },
+        {
+          "title": "Renames the amount field for plan tiers to unit_amount",
+          "url": "https://docs.stripe.com/changelog/2018-08-23/renames-amount-field-plan-tiers-unit-amount",
+          "products": "Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 3
+    },
+    {
+      "version": "2018-09-06",
+      "date": "2018-09-06",
+      "breaking": [
+        {
+          "title": "SKU values no longer need to be unique",
+          "url": "https://docs.stripe.com/changelog/2018-09-06/sku-values-no-longer-need-unique",
+          "products": "Checkout"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2018-09-24",
+      "date": "2018-09-24",
+      "breaking": [
+        {
+          "title": "Renames the FileUpload object to Files, which now require secret keys to download files",
+          "url": "https://docs.stripe.com/changelog/2018-09-24/file-uploads-renamed-files-require-secret-keys",
+          "products": "All products"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2018-10-31",
+      "date": "2018-10-31",
+      "breaking": [
+        {
+          "title": "Descriptions for customers now have a character limit",
+          "url": "https://docs.stripe.com/changelog/2018-10-31/descriptions-customers-character-limit",
+          "products": "All products"
+        },
+        {
+          "title": "Product names now have a character limit",
+          "url": "https://docs.stripe.com/changelog/2018-10-31/names-products-character-limit",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "Descriptions for invoice line items now have a character limit",
+          "url": "https://docs.stripe.com/changelog/2018-10-31/descriptions-invoice-line-items-character-limit",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "The billing_reason of the first invoice of a subscription is now subscription_create",
+          "url": "https://docs.stripe.com/changelog/2018-10-31/first-invoice-subscription-billing-reason-subscription-create",
+          "products": "Billing, Invoicing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 4
+    },
+    {
+      "version": "2018-11-08",
+      "date": "2018-11-08",
+      "breaking": [
+        {
+          "title": "Invoices now specify their automatic collection behavior using the auto_advance field",
+          "url": "https://docs.stripe.com/changelog/2018-11-08/invoices-specify-auto-advance-field",
+          "products": "Invoicing, Billing"
+        },
+        {
+          "title": "One-off Invoices no longer automatically collect payment by default",
+          "url": "https://docs.stripe.com/changelog/2018-11-08/one-off-invoices-no-longer-auto-collect-payment",
+          "products": "Invoicing"
+        },
+        {
+          "title": "Replaces the forgiven field with a new uncollectible status for invoices",
+          "url": "https://docs.stripe.com/changelog/2018-11-08/mark-invoice-uncollectible-instead-forgiven",
+          "products": "Invoicing, Billing"
+        },
+        {
+          "title": "Renames an invoice error code to invoice_already_finalized",
+          "url": "https://docs.stripe.com/changelog/2018-11-08/renames-invoice-error-code-invoice-already-finalized",
+          "products": "Invoicing, Billing"
+        },
+        {
+          "title": "Includes several changes for users of the Payment Intents API private beta",
+          "url": "https://docs.stripe.com/changelog/2018-11-08/several-changes-payment-intents-private-beta",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 5
+    },
+    {
+      "version": "2019-02-11",
+      "date": "2019-02-11",
+      "breaking": [
+        {
+          "title": "Renames several statuses for PaymentIntents",
+          "url": "https://docs.stripe.com/changelog/2019-02-11/renames-several-statuses-payment-intents",
+          "products": "Payments"
+        },
+        {
+          "title": "Renames the save_source_to_customer field for sources to save_payment_method",
+          "url": "https://docs.stripe.com/changelog/2019-02-11/renames-save-source-to-customer-save-payment-method",
+          "products": "Payments"
+        },
+        {
+          "title": "Renames the allowed_source_types field for sources to payment_method_types",
+          "url": "https://docs.stripe.com/changelog/2019-02-11/renames-allowed-source-types-payment-method-types",
+          "products": "Payments"
+        },
+        {
+          "title": "Renames the next_source_action field for Payment Intents to next_action",
+          "url": "https://docs.stripe.com/changelog/2019-02-11/renames-next-source-action-next-action",
+          "products": "Payments"
+        },
+        {
+          "title": "Renames the authorize_with_url field for Payment Intents to redirect_to_url",
+          "url": "https://docs.stripe.com/changelog/2019-02-11/renames-authorize-with-url-redirect-to-url",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 5
+    },
+    {
+      "version": "2019-02-19",
+      "date": "2019-02-19",
+      "breaking": [
+        {
+          "title": "Changes statement descriptor behaviors for card payments created with Charges",
+          "url": "https://docs.stripe.com/changelog/2019-02-19/changes-statement-descriptor-behaviors-charges",
+          "products": "Payments"
+        },
+        {
+          "title": "Several account fields have been refactored to better describe legal entity, verification status and requirements, and configurable settings",
+          "url": "https://docs.stripe.com/changelog/2019-02-19/several-fields-accounts-refactored",
+          "products": "Connect"
+        },
+        {
+          "title": "Several fields describing an account’s business details have moved to the business_profile subhash",
+          "url": "https://docs.stripe.com/changelog/2019-02-19/business-details-moved-business-profile-object",
+          "products": "Connect"
+        },
+        {
+          "title": "Verification of accounts or persons now supports uploading both front and back sides",
+          "url": "https://docs.stripe.com/changelog/2019-02-19/verification-accounts-persons-supports-front-back",
+          "products": "Connect"
+        },
+        {
+          "title": "Accounts no longer provide a keys field. Platforms should use their own API key to authenticate as their connected accounts",
+          "url": "https://docs.stripe.com/changelog/2019-02-19/accounts-no-longer-provide-keys-field",
+          "products": "Connect"
+        },
+        {
+          "title": "Accounts in the US now require specifying capabilities at creation time",
+          "url": "https://docs.stripe.com/changelog/2019-02-19/accounts-us-require-specifying-capabilities-creation",
+          "products": "Connect"
+        },
+        {
+          "title": "Renames the business_id_number for an account’s legal entity to business_registration_number",
+          "url": "https://docs.stripe.com/changelog/2019-02-19/renames-business-id-number-business-registration-number",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 7
+    },
+    {
+      "version": "2019-03-14",
+      "date": "2019-03-14",
+      "breaking": [
+        {
+          "title": "Renames application_fee on invoices to application_fee_amount",
+          "url": "https://docs.stripe.com/changelog/2019-03-14/renames-application-fee-invoices-application-fee-amount",
+          "products": "Connect, Invoicing"
+        },
+        {
+          "title": "Subscriptions are now successfully created even if the first payment fails",
+          "url": "https://docs.stripe.com/changelog/2019-03-14/subscriptions-successfully-created-first-payment-fails",
+          "products": "Billing"
+        },
+        {
+          "title": "Invoices now provide timestamps for each state transition",
+          "url": "https://docs.stripe.com/changelog/2019-03-14/invoices-provide-timestamps-state-transitions",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "Renames the date field for invoices to created",
+          "url": "https://docs.stripe.com/changelog/2019-03-14/renames-date-field-invoices-created",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "Invoices now specify when they’re finalized alongside other status transitions",
+          "url": "https://docs.stripe.com/changelog/2019-03-14/invoices-specify-finalized-alongside-status-transitions",
+          "products": "Billing, Invoicing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 5
+    },
+    {
+      "version": "2019-05-16",
+      "date": "2019-05-16",
+      "breaking": [
+        {
+          "title": "Bank pull payments no longer expose internal system refunds on failure",
+          "url": "https://docs.stripe.com/changelog/2019-05-16/renames-platform-payments-capability-card-payments",
+          "products": "Payments"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2019-08-14",
+      "date": "2019-08-14",
+      "breaking": [
+        {
+          "title": "Renames the platform_payments capability for accounts to card_payments, requiring the manual specification of the added transfers capability",
+          "url": "https://docs.stripe.com/changelog/2019-08-14/configuring-person-account-opener-no-longer-sets-executive",
+          "products": "Connect"
+        },
+        {
+          "title": "Configuring a person as an account opener no longer automatically sets them as an executive",
+          "url": "https://docs.stripe.com/changelog/2019-08-14/accounts-many-countries-require-specifying-capabilities",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2019-09-09",
+      "date": "2019-09-09",
+      "breaking": [
+        {
+          "title": "Accounts in many countries now require specifying capabilities at creation time",
+          "url": "https://docs.stripe.com/changelog/2019-09-09/2019-09-09-1",
+          "products": "Connect"
+        },
+        {
+          "title": "Adds new details_code values to person document verification",
+          "url": "https://docs.stripe.com/changelog/2019-09-09/adds-detail-code-person-document-verification",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2019-10-08",
+      "date": "2019-10-08",
+      "breaking": [
+        {
+          "title": "Renames a Person object relationship attribute",
+          "url": "https://docs.stripe.com/changelog/2019-10-08/renames-person-object-relationship-attribute",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2019-10-17",
+      "date": "2019-10-17",
+      "breaking": [
+        {
+          "title": "Renames and updates subscription schedule renewal properties",
+          "url": "https://docs.stripe.com/changelog/2019-10-17/updates-subscription-renewal-properties",
+          "products": "Billing"
+        },
+        {
+          "title": "Replaces the subscription start field with start_date",
+          "url": "https://docs.stripe.com/changelog/2019-10-17/replaces-subscription-start-field",
+          "products": "Billing"
+        },
+        {
+          "title": "Renames billing to collection_method on invoices, subscriptions, and subscription schedules",
+          "url": "https://docs.stripe.com/changelog/2019-10-17/renames-billing-attribute",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "The due_date property is always null on auto-billed invoices",
+          "url": "https://docs.stripe.com/changelog/2019-10-17/invoice-due-date-null",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "Renames account_balance to balance on Customer object",
+          "url": "https://docs.stripe.com/changelog/2019-10-17/renames-account-balance-customer-object",
+          "products": "Billing, Invoicing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 5
+    },
+    {
+      "version": "2019-11-05",
+      "date": "2019-11-05",
+      "breaking": [
+        {
+          "title": "Adds requirement for requested_capabilities on custom account creation",
+          "url": "https://docs.stripe.com/changelog/2019-11-05/adds-requested-capabilities-requirement-custom-account",
+          "products": "Connect"
+        },
+        {
+          "title": "Nested subscription schedule settings under default_settings",
+          "url": "https://docs.stripe.com/changelog/2019-11-05/nests-subscription-schedule-settings",
+          "products": "Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2019-12-03",
+      "date": "2019-12-03",
+      "breaking": [
+        {
+          "title": "Standardizes invoice line item IDs",
+          "url": "https://docs.stripe.com/changelog/2019-12-03/standardizes-invoice-line-item-ids",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "New requirement for out_of_band_amount when creating post-payment credit notes",
+          "url": "https://docs.stripe.com/changelog/2019-12-03/post-payment-credit-note-requirement",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "Customer balances are now returned when voiding invoices",
+          "url": "https://docs.stripe.com/changelog/2019-12-03/customer-balances-returned-voided-invoices",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "Removes deprecated tax information fields from the Customer object",
+          "url": "https://docs.stripe.com/changelog/2019-12-03/removes-deprecated-tax-information-fields",
+          "products": "All products"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 4
+    },
+    {
+      "version": "2020-03-02",
+      "date": "2020-03-02",
+      "breaking": [
+        {
+          "title": "Invoices can now be numbered sequentially across your account",
+          "url": "https://docs.stripe.com/changelog/2020-03-02/sequentially-number-invoices",
+          "products": "Billing, Invoicing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 1
+    },
+    {
+      "version": "2020-08-27",
+      "date": "2020-08-27",
+      "breaking": [
+        {
+          "title": "Removes the tax_percent attribute",
+          "url": "https://docs.stripe.com/changelog/2020-08-27/removes-tax-percent-attribute",
+          "products": "Checkout, Billing, Invoicing"
+        },
+        {
+          "title": "Renames phases attributes in subscription schedules",
+          "url": "https://docs.stripe.com/changelog/2020-08-27/renames-phases-attributes-subscription-schedules",
+          "products": "Billing"
+        },
+        {
+          "title": "Renames event type that triggers on automatic updates",
+          "url": "https://docs.stripe.com/changelog/2020-08-27/renames-automatically-updated-event-type",
+          "products": "Payments"
+        },
+        {
+          "title": "Removes the display_items property from Checkout Sessions",
+          "url": "https://docs.stripe.com/changelog/2020-08-27/removes-display-items-checkout-session",
+          "products": "Checkout"
+        },
+        {
+          "title": "Formats requirements for key persons associated with accounts",
+          "url": "https://docs.stripe.com/changelog/2020-08-27/formats-requirements-key-persons-accounts",
+          "products": "Connect"
+        },
+        {
+          "title": "Adds new error codes to the Accounts, Persons, and Capabilities APIs",
+          "url": "https://docs.stripe.com/changelog/2020-08-27/adds-error-codes-accounts-persons-capabilities",
+          "products": "Connect"
+        },
+        {
+          "title": "Updates to 3D Secure details in Charge object",
+          "url": "https://docs.stripe.com/changelog/2020-08-27/updates-3d-scure-charge-object",
+          "products": "Payments"
+        },
+        {
+          "title": "Customer subscriptions are no longer auto-expanded by default",
+          "url": "https://docs.stripe.com/changelog/2020-08-27/deprecates-auto-expansion-customer-subscriptions",
+          "products": "Billing"
+        },
+        {
+          "title": "Plan tiers are no longer auto-expanded by default",
+          "url": "https://docs.stripe.com/changelog/2020-08-27/deprecates-auto-expansion-plan-tiers",
+          "products": "Billing"
+        },
+        {
+          "title": "Customer sources are no longer auto-expanded by default",
+          "url": "https://docs.stripe.com/changelog/2020-08-27/deprecates-auto-expansion-customer-sources",
+          "products": "Payments, Billing, Invoicing"
+        },
+        {
+          "title": "Tax IDs are no longer auto-expanded on the Customer object",
+          "url": "https://docs.stripe.com/changelog/2020-08-27/deprecates-auto-expansion-tax-id-customer",
+          "products": "All products"
+        },
+        {
+          "title": "Deprecates subscription prorate and subscription_prorate parameters",
+          "url": "https://docs.stripe.com/changelog/2020-08-27/deprecates-prorate-parameters-subscriptions",
+          "products": "Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 12
+    },
+    {
+      "version": "2022-08-01",
+      "date": "2022-08-01",
+      "breaking": [
+        {
+          "title": "Removes the include_and_require value when creating invoices",
+          "url": "https://docs.stripe.com/changelog/2022-08-01/removes-include-require-value-invoices",
+          "products": "Invoicing"
+        },
+        {
+          "title": "Default customer creation in Checkout Session payment mode changed to if_required",
+          "url": "https://docs.stripe.com/changelog/2022-08-01/default-customer-creation-checkout-session",
+          "products": "Checkout"
+        },
+        {
+          "title": "Deferred PaymentIntent creation in Checkout Session payment mode",
+          "url": "https://docs.stripe.com/changelog/2022-08-01/deferred-paymentintent-checkout-session",
+          "products": "Checkout, Payments"
+        },
+        {
+          "title": "Removes the setup_intent property from Checkout Sessions in subscription mode",
+          "url": "https://docs.stripe.com/changelog/2022-08-01/removes-setupintent-checkout-session",
+          "products": "Checkout"
+        },
+        {
+          "title": "Replaces line item parameters from the Create Checkout Session endpoint",
+          "url": "https://docs.stripe.com/changelog/2022-08-01/replaces-line-item-create-checkout-session",
+          "products": "Checkout"
+        },
+        {
+          "title": "Removes the subscription data parameter from the Create Checkout Session endpoint",
+          "url": "https://docs.stripe.com/changelog/2022-08-01/removes-subscription-data-create-checkout-session",
+          "products": "Checkout, Billing"
+        },
+        {
+          "title": "Removes the shipping rate parameter from Create Checkout Session endpoint",
+          "url": "https://docs.stripe.com/changelog/2022-08-01/removes-shipping-rate-create-checkout-session",
+          "products": "Checkout"
+        },
+        {
+          "title": "Updates Checkout Session shipping properties",
+          "url": "https://docs.stripe.com/changelog/2022-08-01/updates-shipping-property-checkout-session",
+          "products": "Checkout"
+        },
+        {
+          "title": "Adds 3D Secure exemption status to card charges",
+          "url": "https://docs.stripe.com/changelog/2022-08-01/adds-3d-secure-exemption-charges",
+          "products": "Payments"
+        },
+        {
+          "title": "New error code for invalid terms of service acceptance in Accounts API",
+          "url": "https://docs.stripe.com/changelog/2022-08-01/error-code-invalid-tos-accounts",
+          "products": "Connect"
+        },
+        {
+          "title": "New endpoints for managing a physical card’s shipping status in test mode",
+          "url": "https://docs.stripe.com/changelog/2022-08-01/endpoints-shipping-status-cards",
+          "products": "Issuing"
+        },
+        {
+          "title": "Adds design_rejected as a possible cancellation reason for issued cards",
+          "url": "https://docs.stripe.com/changelog/2022-08-01/adds-design-rejected-value-cards",
+          "products": "Issuing"
+        },
+        {
+          "title": "Removes the default_currency attribute from the Customer object",
+          "url": "https://docs.stripe.com/changelog/2022-08-01/removes-default-currency-customer-object",
+          "products": "All products"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 13
+    },
+    {
+      "version": "2022-11-15",
+      "date": "2022-11-15",
+      "breaking": [
+        {
+          "title": "The Charges object no longer auto-expands refunds by default",
+          "url": "https://docs.stripe.com/changelog/2022-11-15/deprecates-charges-auto-expand",
+          "products": "Payments"
+        },
+        {
+          "title": "Removes the charges attribute from the PaymentIntent object",
+          "url": "https://docs.stripe.com/changelog/2022-11-15/removes-charges-attribute-paymentintent",
+          "products": "Payments"
+        },
+        {
+          "title": "Adds new decline codes to the PaymentIntent and PaymentMethod APIs",
+          "url": "https://docs.stripe.com/changelog/2022-11-15/adds-decline-codes-paymentintent-paymentmethod",
+          "products": "Payments"
+        },
+        {
+          "title": "Adds new decline codes to the SetupIntent API",
+          "url": "https://docs.stripe.com/changelog/2022-11-15/adds-decline-codes-setupintent",
+          "products": "Payments"
+        },
+        {
+          "title": "Adds a new structure error code to the Accounts API",
+          "url": "https://docs.stripe.com/changelog/2022-11-15/adds-structure-error-code-accounts",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 5
+    },
+    {
+      "version": "2023-08-16",
+      "date": "2023-08-16",
+      "breaking": [
+        {
+          "title": "Enables automatic payment methods by default for PaymentIntents and SetupIntents",
+          "url": "https://docs.stripe.com/changelog/2023-08-16/automatic-payment-methods",
+          "products": "Payments, Elements"
+        },
+        {
+          "title": "One-time payments in Checkout Sessions support no-cost orders",
+          "url": "https://docs.stripe.com/changelog/2023-08-16/no-cost-orders-checkout-session",
+          "products": "Checkout"
+        },
+        {
+          "title": "Platform-scope rendering for select PaymentMethod fingerprints",
+          "url": "https://docs.stripe.com/changelog/2023-08-16/platform-scope-rendering-payment-method",
+          "products": "Connect, Payments, Billing"
+        },
+        {
+          "title": "Adds specific error codes for failed Klarna payments",
+          "url": "https://docs.stripe.com/changelog/2023-08-16/klarna-payment-failure-error-code",
+          "products": "Payments, Checkout"
+        },
+        {
+          "title": "Adds new director verification error codes to the Accounts API",
+          "url": "https://docs.stripe.com/changelog/2023-08-16/adds-director-verfication-error-accounts",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 5
+    },
+    {
+      "version": "2023-10-16",
+      "date": "2023-10-16",
+      "breaking": [
+        {
+          "title": "Adds new account requirement error codes to the Accounts API",
+          "url": "https://docs.stripe.com/changelog/2023-10-16/adds-account-requirement-error-accounts",
+          "products": "Connect"
+        },
+        {
+          "title": "Auto-populates the statement descriptor and prefix in the Accounts API",
+          "url": "https://docs.stripe.com/changelog/2023-10-16/auto-populates-statement-descriptor-accounts",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 2
+    },
+    {
+      "version": "2024-04-10",
+      "date": "2024-04-10",
+      "breaking": [
+        {
+          "title": "Makes automatic async the default capture method for PaymentIntents when not specified",
+          "url": "https://docs.stripe.com/changelog/2024-04-10/automatic-sync-default-paymentintents",
+          "products": "Payments"
+        },
+        {
+          "title": "Renames the rendering_options attribute for invoices to rendering",
+          "url": "https://docs.stripe.com/changelog/2024-04-10/renames-rendering-options-invoicing",
+          "products": "Invoicing, Billing"
+        },
+        {
+          "title": "Renames the features attribute of the Product object",
+          "url": "https://docs.stripe.com/changelog/2024-04-10/renames-features-attribute-product-object",
+          "products": "Invoicing, Billing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 3
+    },
+    {
+      "version": "2024-06-20",
+      "date": "2024-06-20",
+      "breaking": [
+        {
+          "title": "Renames a fuel attribute of the Authorization object",
+          "url": "https://docs.stripe.com/changelog/2024-06-20/renames-fuel-attribute-authorization-object",
+          "products": "Issuing"
+        },
+        {
+          "title": "Renames a purchase_details attribute of the Transaction object",
+          "url": "https://docs.stripe.com/changelog/2024-06-20/renames-purchase-details-transaction-object",
+          "products": "Issuing"
+        },
+        {
+          "title": "Removes undocumented fuel fields",
+          "url": "https://docs.stripe.com/changelog/2024-06-20/removes-undocumented-fuel-fields-issuing",
+          "products": "Issuing"
+        },
+        {
+          "title": "Removes undocumented fleet fields",
+          "url": "https://docs.stripe.com/changelog/2024-06-20/removes-undocumented-fleet-fields-issuing",
+          "products": "Issuing"
+        },
+        {
+          "title": "Adds enum values for fuel units",
+          "url": "https://docs.stripe.com/changelog/2024-06-20/adds-enum-fuel-units-issuing",
+          "products": "Issuing"
+        },
+        {
+          "title": "Deprecates alphanumeric_id for Issuing Authorization",
+          "url": "https://docs.stripe.com/changelog/2024-06-20/deprecates-alphanumeric-id-issuing",
+          "products": "Issuing"
+        },
+        {
+          "title": "Adds enum values for disabled reasons",
+          "url": "https://docs.stripe.com/changelog/2024-06-20/adds-enum-disabled-reasons-capabilities",
+          "products": "Connect"
+        },
+        {
+          "title": "Deprecates the bank_transfer_payments capability type in favor of newer capability types",
+          "url": "https://docs.stripe.com/changelog/2024-06-20/deprecates-bank-transfer-payments-capabilities",
+          "products": "Connect"
+        },
+        {
+          "title": "Adds new enum values for request history reasons",
+          "url": "https://docs.stripe.com/changelog/2024-06-20/adds-enum-request-history-reasons-issuing",
+          "products": "Issuing"
+        }
+      ],
+      "nonBreakingCount": 0,
+      "kind": "legacy",
+      "changelogUrl": "https://docs.stripe.com/changelog",
+      "breakingCount": 9
+    },
+    {
+      "version": "2024-09-30.acacia",
+      "date": "2024-09-30",
+      "release": "acacia",
+      "breaking": [
+        {
+          "title": "Adds contextual filters to billing alerts",
+          "url": "https://docs.stripe.com/changelog/acacia/2024-09-30/billing-alerts-contextualizing-filters",
+          "products": "Billing"
+        },
+        {
+          "title": "Updates consent modeling for saving cards with Terminal",
+          "url": "https://docs.stripe.com/changelog/acacia/2024-09-30/terminal-remove-customer-consent-require-allow-redisplay",
+          "products": "Terminal"
+        },
+        {
+          "title": "Updates the default value for shipping address validation",
+          "url": "https://docs.stripe.com/changelog/acacia/2024-09-30/card-shipping-status-submitted-address-validation",
+          "products": "Issuing"
+        },
+        {
+          "title": "Adds risk verification details for connected accounts",
+          "url": "https://docs.stripe.com/changelog/acacia/2024-09-30/additional-risk-verification-details-connected-accounts",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 56,
+      "kind": "major",
+      "changelogUrl": "https://docs.stripe.com/changelog/acacia#2024-09-30.acacia",
+      "breakingCount": 4
+    },
+    {
+      "version": "2024-10-28.acacia",
+      "date": "2024-10-28",
+      "release": "acacia",
+      "breaking": [],
+      "nonBreakingCount": 22,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/acacia#2024-10-28.acacia",
+      "breakingCount": 0
+    },
+    {
+      "version": "2024-11-20.acacia",
+      "date": "2024-11-20",
+      "release": "acacia",
+      "breaking": [],
+      "nonBreakingCount": 17,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/acacia#2024-11-20.acacia",
+      "breakingCount": 0
+    },
+    {
+      "version": "2024-12-18.acacia",
+      "date": "2024-12-18",
+      "release": "acacia",
+      "breaking": [],
+      "nonBreakingCount": 20,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/acacia#2024-12-18.acacia",
+      "breakingCount": 0
+    },
+    {
+      "version": "2025-01-27.acacia",
+      "date": "2025-01-27",
+      "release": "acacia",
+      "breaking": [],
+      "nonBreakingCount": 12,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/acacia#2025-01-27.acacia",
+      "breakingCount": 0
+    },
+    {
+      "version": "2025-02-24.acacia",
+      "date": "2025-02-24",
+      "release": "acacia",
+      "breaking": [],
+      "nonBreakingCount": 9,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/acacia#2025-02-24.acacia",
+      "breakingCount": 0
+    },
+    {
+      "version": "2025-03-31.basil",
+      "date": "2025-03-31",
+      "release": "basil",
+      "breaking": [
+        {
+          "title": "Adds subscription item-level billing periods and removes subscription-level periods",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end",
+          "products": "Billing"
+        },
+        {
+          "title": "Invoicing resources now specify how they were generated",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "Checkout Session removes shipping details",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/checkout-session-remove-shipping-details",
+          "products": "Checkout"
+        },
+        {
+          "title": "Checkout Sessions have lower latency and new update semantics",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/checkout-legacy-subscription-upgrade",
+          "products": "Checkout"
+        },
+        {
+          "title": "Removes support for discount coupons that don’t have a specified end time",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/restrict-coupon-duration",
+          "products": "Billing"
+        },
+        {
+          "title": "Removes coupon and promotion code parameters with stackable discounts",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-singular-coupon-promotion-code",
+          "products": "Billing"
+        },
+        {
+          "title": "Replaces Upcoming Invoice API methods with the Create Preview Invoice API",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/invoice-preview-api-deprecations",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "Removes legacy usage-based billing",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-legacy-usage-based-billing",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "Replaces top-level price fields with improved price modeling on Invoice Items and Invoice Line Items",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/invoice-pricing-configurations",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "Replaces top-level tax-related properties with improved tax modeling on Invoices, Invoice Line Items, and Credit Note Line Items",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/invoice-tax-configurations",
+          "products": "Billing, Invoicing"
+        },
+        {
+          "title": "Adds support for multiple (partial) payments on invoices",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/add-support-for-multiple-partial-payments-on-invoices",
+          "products": "Billing, Invoicing, Payments"
+        },
+        {
+          "title": "Adds reason code for Issuing authorizations created while Stripe is unavailable",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/new-network-fallback-issuing-authorization-reason-code",
+          "products": "Issuing"
+        },
+        {
+          "title": "HTTP Accept headers for webhooks now specify JSON during Issuing authorizations",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/issuing-json-webhook",
+          "products": "Issuing"
+        },
+        {
+          "title": "Adds expired status for Issuing Authorizations",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/issuing-authorizations-expired",
+          "products": "Issuing"
+        },
+        {
+          "title": "Updates the Vault and Forward API to return a 402 status code for upstream request timeouts",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/vault-forward-api-returns-402",
+          "products": "Payments"
+        },
+        {
+          "title": "Removes manual capture method for Interac cards",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-interac-present-manual-capture-method",
+          "products": "Payments, Terminal"
+        },
+        {
+          "title": "Payment Methods won’t allow modifying fields for Naver Pay after the object is first created",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/naver-pay-payment-method",
+          "products": "Payments"
+        },
+        {
+          "title": "Partially capturing or canceling payments no longer creates a Refund",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/remove-refund-from-partial-capture-and-payment-cancellation-flow",
+          "products": "Payments"
+        },
+        {
+          "title": "Removes total count expansion for list API methods",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-total-count-expansion",
+          "products": "All products"
+        },
+        {
+          "title": "Adds new error codes for required verifications",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/adds-requirement-error-codes",
+          "products": "Connect"
+        },
+        {
+          "title": "Updates the default layout for Payment Element",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/default-layout-of-payment-element",
+          "products": "Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Changes the political exposure property of the Person object from a string to an enum",
+          "url": "https://docs.stripe.com/changelog/basil/2025-03-31/political-exposure-persons-api",
+          "products": "Connect"
+        }
+      ],
+      "nonBreakingCount": 24,
+      "kind": "major",
+      "changelogUrl": "https://docs.stripe.com/changelog/basil#2025-03-31.basil",
+      "breakingCount": 22
+    },
+    {
+      "version": "2025-04-30.basil",
+      "date": "2025-04-30",
+      "release": "basil",
+      "breaking": [],
+      "nonBreakingCount": 14,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/basil#2025-04-30.basil",
+      "breakingCount": 0
+    },
+    {
+      "version": "2025-05-28.basil",
+      "date": "2025-05-28",
+      "release": "basil",
+      "breaking": [],
+      "nonBreakingCount": 16,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/basil#2025-05-28.basil",
+      "breakingCount": 0
+    },
+    {
+      "version": "2025-06-30.basil",
+      "date": "2025-06-30",
+      "release": "basil",
+      "breaking": [],
+      "nonBreakingCount": 11,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/basil#2025-06-30.basil",
+      "breakingCount": 0
+    },
+    {
+      "version": "2025-07-30.basil",
+      "date": "2025-07-30",
+      "release": "basil",
+      "breaking": [],
+      "nonBreakingCount": 15,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/basil#2025-07-30.basil",
+      "breakingCount": 0
+    },
+    {
+      "version": "2025-08-27.basil",
+      "date": "2025-08-27",
+      "release": "basil",
+      "breaking": [],
+      "nonBreakingCount": 18,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/basil#2025-08-27.basil",
+      "breakingCount": 0
+    },
+    {
+      "version": "2025-09-30.clover",
+      "date": "2025-09-30",
+      "release": "clover",
+      "breaking": [
+        {
+          "title": "Removes iterations parameter for subscription schedules",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/remove-iterations",
+          "products": "Billing"
+        },
+        {
+          "title": "Promotion Codes now reference Coupons using a polymorphic field for promotions",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/polymorphic-coupon",
+          "products": "Billing"
+        },
+        {
+          "title": "Adds the Discount source property and removes the Discount coupon property",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/add-discount-source-property",
+          "products": "Billing"
+        },
+        {
+          "title": "Makes flexible billing mode the default for new subscriptions",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/billing-mode-default-flexible",
+          "products": "Billing, Checkout"
+        },
+        {
+          "title": "Updates computation of subscription schedule phase end date to consider billing cycle anchor changes",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/billing-cycle-anchor-resets-during-phase-computation",
+          "products": "Billing"
+        },
+        {
+          "title": "Removes postal code for card payments in certain regions on Checkout and Payment Element",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/postal_code_in_card_form_for_non_us_countries",
+          "products": "Checkout, Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Removes currency conversion field from Checkout Sessions",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/remove-checkout-session-currency-conversion-field",
+          "products": "Checkout"
+        },
+        {
+          "title": "Removes support for the redirectToCheckout method",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/remove-redirect-to-checkout",
+          "products": "Checkout",
+          "category": "stripejs"
+        },
+        {
+          "title": "Updates initCheckout to be synchronous",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/update-init-checkout-synchronous",
+          "products": "Checkout, Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Adds specific descriptions for risk requirements during legal, PEP, and sanctions review",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/expanded-risk-requirement-descriptions",
+          "products": "Connect"
+        },
+        {
+          "title": "Adds a new error code for business type validations",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/business-type-error-code",
+          "products": "Connect"
+        },
+        {
+          "title": "Updates default behavior for saved payment methods in Elements with Checkout Sessions",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/custom-checkout-saved-payment-method-defaults",
+          "products": "Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Prevents reusing client secrets for Intents in certain states when initializing Elements",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/client-secret-reuse",
+          "products": "Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Removes deprecated messaging and bank elements that were replaced",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/stripejs-deprecated-elements-removal",
+          "products": "Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Changes the set of decline codes used for Alma, Amazon Pay, Billie, Satispay, and South Korean payment methods",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/lpm-descriptive-decline-codes",
+          "products": "Payments"
+        },
+        {
+          "title": "Adds a processing status to submitted stablecoin payments",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/stablecoin-payments-processing-status",
+          "products": "Payments"
+        },
+        {
+          "title": "Adds additional enum values for Radar manual reviews",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/radar-manual-review-enum",
+          "products": "Radar"
+        },
+        {
+          "title": "Updates risk levels for Issuing Authorizations to use standard values",
+          "url": "https://docs.stripe.com/changelog/clover/2025-09-30/risk-levels-issuing-authorizations",
+          "products": "Issuing"
+        }
+      ],
+      "nonBreakingCount": 18,
+      "kind": "major",
+      "changelogUrl": "https://docs.stripe.com/changelog/clover#2025-09-30.clover",
+      "breakingCount": 18
+    },
+    {
+      "version": "2025-10-29.clover",
+      "date": "2025-10-29",
+      "release": "clover",
+      "breaking": [],
+      "nonBreakingCount": 26,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/clover#2025-10-29.clover",
+      "breakingCount": 0
+    },
+    {
+      "version": "2025-11-17.clover",
+      "date": "2025-11-17",
+      "release": "clover",
+      "breaking": [],
+      "nonBreakingCount": 13,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/clover#2025-11-17.clover",
+      "breakingCount": 0
+    },
+    {
+      "version": "2025-12-15.clover",
+      "date": "2025-12-15",
+      "release": "clover",
+      "breaking": [],
+      "nonBreakingCount": 12,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/clover#2025-12-15.clover",
+      "breakingCount": 0
+    },
+    {
+      "version": "2026-01-28.clover",
+      "date": "2026-01-28",
+      "release": "clover",
+      "breaking": [],
+      "nonBreakingCount": 12,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/clover#2026-01-28.clover",
+      "breakingCount": 0
+    },
+    {
+      "version": "2026-02-25.clover",
+      "date": "2026-02-25",
+      "release": "clover",
+      "breaking": [],
+      "nonBreakingCount": 13,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/clover#2026-02-25.clover",
+      "breakingCount": 0
+    },
+    {
+      "version": "2026-03-25.dahlia",
+      "date": "2026-03-25",
+      "release": "dahlia",
+      "breaking": [
+        {
+          "title": "Updates Checkout Session UI mode enum values",
+          "url": "https://docs.stripe.com/changelog/dahlia/2026-03-25/updates-available-checkout-session-ui-modes",
+          "products": "Checkout, Paymentlinks"
+        },
+        {
+          "title": "Adds risk requirements to the Capabilities API",
+          "url": "https://docs.stripe.com/changelog/dahlia/2026-03-25/capabilities-api-risk-requirements",
+          "products": "Connect"
+        },
+        {
+          "title": "Changes the Address Element state field to default to Latin-formatted characters",
+          "url": "https://docs.stripe.com/changelog/dahlia/2026-03-25/address-element-getvalue-and-change-event-formatting",
+          "products": "Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Updates the elements.update() method to return a Promise",
+          "url": "https://docs.stripe.com/changelog/dahlia/2026-03-25/elements-update-returns-promise",
+          "products": "Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Removes support for boolean values in options.layout.radios",
+          "url": "https://docs.stripe.com/changelog/dahlia/2026-03-25/disallow-booleans-for-radios",
+          "products": "Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Removes deprecated Payment Intents, Setup Intents, and Sources methods from Stripe.js",
+          "url": "https://docs.stripe.com/changelog/dahlia/2026-03-25/remove-legacy-stripejs-methods",
+          "products": "Payments",
+          "category": "stripejs"
+        },
+        {
+          "title": "Renames Checkout initialization method",
+          "url": "https://docs.stripe.com/changelog/dahlia/2026-03-25/rename-init-checkout-to-init-checkout-elements",
+          "products": "Checkout, Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Renames Embedded Checkout initialization method",
+          "url": "https://docs.stripe.com/changelog/dahlia/2026-03-25/rename-init-embedded-checkout-to-create-embedded-checkout-page",
+          "products": "Checkout",
+          "category": "stripejs"
+        },
+        {
+          "title": "Updates the Issuing Token card reference ID for Visa to be optional",
+          "url": "https://docs.stripe.com/changelog/dahlia/2026-03-25/visa-card-reference-id-optional",
+          "products": "Issuing"
+        },
+        {
+          "title": "Adds retention policy cancellation reason to Subscriptions",
+          "url": "https://docs.stripe.com/changelog/dahlia/2026-03-25/adds-new-cancellation-reason-subscription-test-retention-policy",
+          "products": "Billing"
+        },
+        {
+          "title": "Updates the events_from parameter on event destinations to accept string values",
+          "url": "https://docs.stripe.com/changelog/dahlia/2026-03-25/updates-eventsfrom-parameter-on-event-destinations",
+          "products": "All products"
+        }
+      ],
+      "nonBreakingCount": 13,
+      "kind": "major",
+      "changelogUrl": "https://docs.stripe.com/changelog/dahlia#2026-03-25.dahlia",
+      "breakingCount": 11
+    },
+    {
+      "version": "2026-04-22.dahlia",
+      "date": "2026-04-22",
+      "release": "dahlia",
+      "breaking": [],
+      "nonBreakingCount": 16,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/dahlia#2026-04-22.dahlia",
+      "breakingCount": 0
+    },
+    {
+      "version": "2026-05-27.dahlia",
+      "date": "2026-05-27",
+      "release": "dahlia",
+      "breaking": [],
+      "nonBreakingCount": 21,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/dahlia#2026-05-27.dahlia",
+      "breakingCount": 0
+    },
+    {
+      "version": "2026-06-24.dahlia",
+      "date": "2026-06-24",
+      "release": "dahlia",
+      "breaking": [],
+      "nonBreakingCount": 17,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/dahlia#2026-06-24.dahlia",
+      "breakingCount": 0
+    },
+    {
+      "version": "2026-07-29.dahlia",
+      "date": "2026-07-29",
+      "release": "dahlia",
+      "breaking": [],
+      "nonBreakingCount": 28,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/dahlia#2026-07-29.dahlia",
+      "breakingCount": 0
+    },
+    {
+      "version": "2026-08-26.dahlia",
+      "date": "2026-08-26",
+      "release": "dahlia",
+      "breaking": [],
+      "nonBreakingCount": 11,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/dahlia#2026-08-26.dahlia",
+      "breakingCount": 0
+    },
+    {
+      "version": "2026-09-30.endive",
+      "date": "2026-09-30",
+      "release": "endive",
+      "breaking": [
+        {
+          "title": "Unifies the billing cycle anchor format across Subscriptions and Invoices",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/polymorphic-billing-cycle-anchor",
+          "products": "Billing"
+        },
+        {
+          "title": "Adds address validation errors for CMRAs and registered agents to Accounts v1 and Accounts v2",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/address-validation-cmra-registered-agents-accounts-v2",
+          "products": "Issuing, Treasury"
+        },
+        {
+          "title": "Adds rejected status for Accounts v2 capabilities",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/rejected-accounts-v2-capabilities",
+          "products": "Connect"
+        },
+        {
+          "title": "Replaces the generic fraud rejection reason with specific fraud reasons",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/updated-reject-reason-codes",
+          "products": "Connect"
+        },
+        {
+          "title": "Removes the configurations parameter from the Account Links v2 API",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/removes-configurations-parameter-from-v2-core-account-links-api",
+          "products": "All products"
+        },
+        {
+          "title": "Standardizes SEPA Direct Debit payment settings in the Accounts API",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/sepa-debit-settings-accounts",
+          "products": "Connect, Payments"
+        },
+        {
+          "title": "Shows errors for eventually due requirements",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/shows-errors-for-eventually-due-requirements",
+          "products": "Connect"
+        },
+        {
+          "title": "Distinguishes platform-initiated account rejections from Stripe rejections",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/platform-rejection-reasons",
+          "products": "Connect"
+        },
+        {
+          "title": "Renames the countries filter to country on Financial Connections Sessions",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/rename-financial-connections-countries-filter-to-country",
+          "products": "Financialconnections"
+        },
+        {
+          "title": "Updates Financial Connections Session defaults",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/financial-connections-session-defaults",
+          "products": "Financialconnections"
+        },
+        {
+          "title": "Removes the payment method types parameter from Checkout Sessions",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions",
+          "products": "Checkout"
+        },
+        {
+          "title": "Adds support for Data Share Only for 3D Secure authentication",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/data-share-only",
+          "products": "Payments"
+        },
+        {
+          "title": "Makes Payment Evaluation signal scores nullable",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/payment-evaluations-nullable-score",
+          "products": "Radar"
+        },
+        {
+          "title": "Removes PayTo-specific fields from Payment Methods",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/removed-payto-fields",
+          "products": "Payments"
+        },
+        {
+          "title": "Removes the payment method types parameter from Payment Intents and Setup Intents",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/removes-the-payment-method-types-parameter-from-payment-intents-and-setup-intents",
+          "products": "Payments"
+        },
+        {
+          "title": "Returns specific decline codes for BLIK payment failures",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/blik-granular-decline-codes",
+          "products": "Payments"
+        },
+        {
+          "title": "Deprecates the payment request button",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/deprecate-payment-request-button",
+          "products": "Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Shows pending-authorization UI for MB WAY, Bizum, and BLIK with stripe.handleNextAction",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/handle-next-action-mb-way-bizum-ui",
+          "products": "Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Removes support for the payment method types option in Elements",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/remove-elements-deferred-intent-payment-method-types",
+          "products": "Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Adds Failed Tax Calculation error",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/failed-tax-calculation-error",
+          "products": "Tax, Billing, Invoicing, Checkout"
+        },
+        {
+          "title": "Renames the Reserve Release reason enum value",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/reserve-release-reason",
+          "products": "Radar"
+        },
+        {
+          "title": "Adds destination property and new enum values to Reserve Plans, Holds and Releases",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/settlement-reserve-api",
+          "products": "Treasury, Payments"
+        },
+        {
+          "title": "Adds page limit validation for dispute evidence",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/page-limit-validation-dispute-evidence",
+          "products": "Payments"
+        },
+        {
+          "title": "Rejects duplicate references for pending India card mandates",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/duplicate-reference-validation-for-india-pending-mandates",
+          "products": "Payments"
+        },
+        {
+          "title": "Surfaces India card mandates on Charges and SetupIntents even when inactive",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/surface-india-card-mandate-even-when-inactive",
+          "products": "Payments"
+        },
+        {
+          "title": "Sets canConfirm to false while updates are pending in Elements with Checkout Sessions",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/block-custom-checkout-confirmation-pending-updates",
+          "products": "Checkout, Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Allows empty optional address fields in Elements with Checkout Sessions",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/skip-format-validation-empty-optional-address-fields",
+          "products": "Checkout, Elements",
+          "category": "stripejs"
+        },
+        {
+          "title": "Requires billing details when Payment Element collection is disabled",
+          "url": "https://docs.stripe.com/changelog/endive/2026-09-30/strict-billing-details-validation",
+          "products": "Checkout, Elements",
+          "category": "stripejs"
+        }
+      ],
+      "nonBreakingCount": 39,
+      "kind": "major",
+      "changelogUrl": "https://docs.stripe.com/changelog/endive#2026-09-30.endive",
+      "breakingCount": 28
+    },
+    {
+      "version": "2026-10-28.endive",
+      "date": "2026-10-28",
+      "release": "endive",
+      "breaking": [],
+      "nonBreakingCount": 38,
+      "kind": "monthly",
+      "changelogUrl": "https://docs.stripe.com/changelog/endive#2026-10-28.endive",
+      "breakingCount": 0
+    }
+  ],
+  "knownVersions": {
+    "source": "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json (webhook_endpoints create api_version enum)",
+    "values": [
+      "2011-01-01",
+      "2011-06-21",
+      "2011-06-28",
+      "2011-08-01",
+      "2011-09-15",
+      "2011-11-17",
+      "2012-02-23",
+      "2012-03-25",
+      "2012-06-18",
+      "2012-06-28",
+      "2012-07-09",
+      "2012-09-24",
+      "2012-10-26",
+      "2012-11-07",
+      "2013-02-11",
+      "2013-02-13",
+      "2013-07-05",
+      "2013-08-12",
+      "2013-08-13",
+      "2013-10-29",
+      "2013-12-03",
+      "2014-01-31",
+      "2014-03-13",
+      "2014-03-28",
+      "2014-05-19",
+      "2014-06-13",
+      "2014-06-17",
+      "2014-07-22",
+      "2014-07-26",
+      "2014-08-04",
+      "2014-08-20",
+      "2014-09-08",
+      "2014-10-07",
+      "2014-11-05",
+      "2014-11-20",
+      "2014-12-08",
+      "2014-12-17",
+      "2014-12-22",
+      "2015-01-11",
+      "2015-01-26",
+      "2015-02-10",
+      "2015-02-16",
+      "2015-02-18",
+      "2015-03-24",
+      "2015-04-07",
+      "2015-06-15",
+      "2015-07-07",
+      "2015-07-13",
+      "2015-07-28",
+      "2015-08-07",
+      "2015-08-19",
+      "2015-09-03",
+      "2015-09-08",
+      "2015-09-23",
+      "2015-10-01",
+      "2015-10-12",
+      "2015-10-16",
+      "2016-02-03",
+      "2016-02-19",
+      "2016-02-22",
+      "2016-02-23",
+      "2016-02-29",
+      "2016-03-07",
+      "2016-06-15",
+      "2016-07-06",
+      "2016-10-19",
+      "2017-01-27",
+      "2017-02-14",
+      "2017-04-06",
+      "2017-05-25",
+      "2017-06-05",
+      "2017-08-15",
+      "2017-12-14",
+      "2018-01-23",
+      "2018-02-05",
+      "2018-02-06",
+      "2018-02-28",
+      "2018-05-21",
+      "2018-07-27",
+      "2018-08-23",
+      "2018-09-06",
+      "2018-09-24",
+      "2018-10-31",
+      "2018-11-08",
+      "2019-02-11",
+      "2019-02-19",
+      "2019-03-14",
+      "2019-05-16",
+      "2019-08-14",
+      "2019-09-09",
+      "2019-10-08",
+      "2019-10-17",
+      "2019-11-05",
+      "2019-12-03",
+      "2020-03-02",
+      "2020-08-27",
+      "2022-08-01",
+      "2022-11-15",
+      "2023-08-16",
+      "2023-10-16",
+      "2024-04-10",
+      "2024-06-20",
+      "2024-09-30.acacia",
+      "2024-10-28.acacia",
+      "2024-11-20.acacia",
+      "2024-12-18.acacia",
+      "2025-01-27.acacia",
+      "2025-02-24.acacia",
+      "2025-03-01.dashboard",
+      "2025-03-31.basil",
+      "2025-04-30.basil",
+      "2025-05-28.basil",
+      "2025-06-30.basil",
+      "2025-07-30.basil",
+      "2025-08-27.basil",
+      "2025-09-30.clover",
+      "2025-10-29.clover",
+      "2025-11-17.clover",
+      "2025-12-15.clover",
+      "2026-01-28.clover",
+      "2026-02-25.clover",
+      "2026-03-25.dahlia",
+      "2026-04-22.dahlia",
+      "2026-05-27.dahlia",
+      "2026-06-24.dahlia",
+      "2026-07-29.dahlia",
+      "2026-08-26.dahlia",
+      "2026-09-30.endive"
+    ]
+  },
+  "sdks": {
+    "source": "SDK CHANGELOG.md files on GitHub (master), parsed for the pinned API version stated in each release; https://docs.stripe.com/sdks/versioning says each SDK version uses the API version current at its release.",
+    "note": "apiVersionAtRelease is the version pinned by x.0.0; latestApiVersionInMajor is the newest GA version a minor of that major pinned (from changelog text). Majors from 2022-08 onward.",
+    "libraries": {
+      "node": {
+        "repo": "https://github.com/stripe/stripe-node",
+        "package": "stripe (npm)",
+        "pinsApiVersionSince": "v12",
+        "source": "https://github.com/stripe/stripe-node/blob/master/CHANGELOG.md",
+        "majors": [
+          {
+            "major": 10,
+            "released": "2022-08-02",
+            "apiVersionAtRelease": "2022-08-01",
+            "latestApiVersionInMajor": "2022-08-01",
+            "lastRelease": "10.17.0",
+            "lastReleaseDate": "2022-11-08"
+          },
+          {
+            "major": 11,
+            "released": "2022-11-16",
+            "apiVersionAtRelease": "2022-11-15",
+            "latestApiVersionInMajor": "2022-11-15",
+            "lastRelease": "11.18.0",
+            "lastReleaseDate": "2023-04-06"
+          },
+          {
+            "major": 12,
+            "released": "2023-04-06",
+            "apiVersionAtRelease": "2022-11-15",
+            "latestApiVersionInMajor": "2022-11-15",
+            "lastRelease": "12.18.0",
+            "lastReleaseDate": "2023-08-10"
+          },
+          {
+            "major": 13,
+            "released": "2023-08-16",
+            "apiVersionAtRelease": "2023-08-16",
+            "latestApiVersionInMajor": "2023-08-16",
+            "lastRelease": "13.11.0",
+            "lastReleaseDate": "2023-10-16"
+          },
+          {
+            "major": 14,
+            "released": "2023-10-16",
+            "apiVersionAtRelease": "2023-10-16",
+            "latestApiVersionInMajor": "2023-10-16",
+            "lastRelease": "14.25.0",
+            "lastReleaseDate": "2024-04-09"
+          },
+          {
+            "major": 15,
+            "released": "2024-04-10",
+            "apiVersionAtRelease": "2024-04-10",
+            "latestApiVersionInMajor": "2024-04-10",
+            "lastRelease": "15.12.0",
+            "lastReleaseDate": "2024-06-17"
+          },
+          {
+            "major": 16,
+            "released": "2024-06-24",
+            "apiVersionAtRelease": "2024-06-20",
+            "latestApiVersionInMajor": "2024-06-20",
+            "lastRelease": "16.12.0",
+            "lastReleaseDate": "2024-09-18"
+          },
+          {
+            "major": 17,
+            "released": "2024-10-01",
+            "apiVersionAtRelease": "2024-09-30.acacia",
+            "latestApiVersionInMajor": "2025-02-24.acacia",
+            "lastRelease": "17.7.0",
+            "lastReleaseDate": "2025-02-24"
+          },
+          {
+            "major": 18,
+            "released": "2025-04-01",
+            "apiVersionAtRelease": "2025-03-31.basil",
+            "latestApiVersionInMajor": "2025-08-27.basil",
+            "lastRelease": "18.5.0",
+            "lastReleaseDate": "2025-08-27"
+          },
+          {
+            "major": 19,
+            "released": "2025-09-30",
+            "apiVersionAtRelease": "2025-09-30.clover",
+            "latestApiVersionInMajor": "2025-10-29.clover",
+            "lastRelease": "19.3.1",
+            "lastReleaseDate": "2025-11-12"
+          },
+          {
+            "major": 20,
+            "released": "2025-11-18",
+            "apiVersionAtRelease": "2025-11-17.clover",
+            "latestApiVersionInMajor": "2026-02-25.clover",
+            "lastRelease": "20.4.1",
+            "lastReleaseDate": "2026-03-06"
+          },
+          {
+            "major": 21,
+            "released": "2026-03-25",
+            "apiVersionAtRelease": "2026-03-25.dahlia",
+            "latestApiVersionInMajor": "2026-03-25.dahlia",
+            "lastRelease": "21.0.1",
+            "lastReleaseDate": "2026-03-26"
+          },
+          {
+            "major": 22,
+            "released": "2026-04-02",
+            "apiVersionAtRelease": "2026-03-25.dahlia",
+            "latestApiVersionInMajor": "2026-08-26.dahlia",
+            "lastRelease": "22.6.2",
+            "lastReleaseDate": "2026-09-09"
+          },
+          {
+            "major": 23,
+            "released": "2026-09-30",
+            "apiVersionAtRelease": "2026-09-30.endive",
+            "latestApiVersionInMajor": "2026-10-28.endive",
+            "lastRelease": "23.1.0",
+            "lastReleaseDate": "2026-10-29"
+          }
+        ]
+      },
+      "python": {
+        "repo": "https://github.com/stripe/stripe-python",
+        "package": "stripe (PyPI)",
+        "pinsApiVersionSince": "v6",
+        "source": "https://github.com/stripe/stripe-python/blob/master/CHANGELOG.md",
+        "majors": [
+          {
+            "major": 4,
+            "released": "2022-08-02",
+            "apiVersionAtRelease": "2022-08-01",
+            "latestApiVersionInMajor": "2022-08-01",
+            "lastRelease": "4.2.0",
+            "lastReleaseDate": "2022-09-23"
+          },
+          {
+            "major": 5,
+            "released": "2022-11-16",
+            "apiVersionAtRelease": "2022-11-15",
+            "latestApiVersionInMajor": "2022-11-15",
+            "lastRelease": "5.5.0",
+            "lastReleaseDate": "2023-07-13"
+          },
+          {
+            "major": 6,
+            "released": "2023-08-16",
+            "apiVersionAtRelease": "2023-08-16",
+            "latestApiVersionInMajor": "2023-08-16",
+            "lastRelease": "6.7.0",
+            "lastReleaseDate": "2023-10-05"
+          },
+          {
+            "major": 7,
+            "released": "2023-10-16",
+            "apiVersionAtRelease": "2023-10-16",
+            "latestApiVersionInMajor": "2023-10-16",
+            "lastRelease": "7.14.0",
+            "lastReleaseDate": "2024-01-25"
+          },
+          {
+            "major": 8,
+            "released": "2024-01-25",
+            "apiVersionAtRelease": "2023-10-16",
+            "lastRelease": "8.11.0",
+            "lastReleaseDate": "2024-04-09"
+          },
+          {
+            "major": 9,
+            "released": "2024-04-10",
+            "apiVersionAtRelease": "2024-04-10",
+            "latestApiVersionInMajor": "2024-04-10",
+            "lastRelease": "9.12.0",
+            "lastReleaseDate": "2024-06-17"
+          },
+          {
+            "major": 10,
+            "released": "2024-06-24",
+            "apiVersionAtRelease": "2024-06-20",
+            "latestApiVersionInMajor": "2024-06-20",
+            "lastRelease": "10.12.0",
+            "lastReleaseDate": "2024-09-18"
+          },
+          {
+            "major": 11,
+            "released": "2024-10-01",
+            "apiVersionAtRelease": "2024-09-30.acacia",
+            "latestApiVersionInMajor": "2025-02-24.acacia",
+            "lastRelease": "11.6.0",
+            "lastReleaseDate": "2025-02-24"
+          },
+          {
+            "major": 12,
+            "released": "2025-04-01",
+            "apiVersionAtRelease": "2025-03-31.basil",
+            "latestApiVersionInMajor": "2025-08-27.basil",
+            "lastRelease": "12.5.1",
+            "lastReleaseDate": "2025-09-05"
+          },
+          {
+            "major": 13,
+            "released": "2025-09-30",
+            "apiVersionAtRelease": "2025-09-30.clover",
+            "latestApiVersionInMajor": "2025-10-29.clover",
+            "lastRelease": "13.2.0",
+            "lastReleaseDate": "2025-11-05"
+          },
+          {
+            "major": 14,
+            "released": "2025-11-18",
+            "apiVersionAtRelease": "2025-11-17.clover",
+            "latestApiVersionInMajor": "2026-02-25.clover",
+            "lastRelease": "14.4.1",
+            "lastReleaseDate": "2026-03-06"
+          },
+          {
+            "major": 15,
+            "released": "2026-03-25",
+            "apiVersionAtRelease": "2026-03-25.dahlia",
+            "latestApiVersionInMajor": "2026-08-26.dahlia",
+            "lastRelease": "15.6.1",
+            "lastReleaseDate": "2026-09-01"
+          },
+          {
+            "major": 16,
+            "released": "2026-09-30",
+            "apiVersionAtRelease": "2026-09-30.endive",
+            "latestApiVersionInMajor": "2026-10-28.endive",
+            "lastRelease": "16.1.0",
+            "lastReleaseDate": "2026-10-29"
+          }
+        ]
+      },
+      "ruby": {
+        "repo": "https://github.com/stripe/stripe-ruby",
+        "package": "stripe (RubyGems)",
+        "pinsApiVersionSince": "v9",
+        "source": "https://github.com/stripe/stripe-ruby/blob/master/CHANGELOG.md",
+        "majors": [
+          {
+            "major": 7,
+            "released": "2022-08-02",
+            "apiVersionAtRelease": "2022-08-01",
+            "latestApiVersionInMajor": "2022-08-01",
+            "lastRelease": "7.1.0",
+            "lastReleaseDate": "2022-08-19"
+          },
+          {
+            "major": 8,
+            "released": "2022-11-16",
+            "apiVersionAtRelease": "2022-11-15",
+            "latestApiVersionInMajor": "2022-11-15",
+            "lastRelease": "8.7.0",
+            "lastReleaseDate": "2023-08-10"
+          },
+          {
+            "major": 9,
+            "released": "2023-08-16",
+            "apiVersionAtRelease": "2023-08-16",
+            "latestApiVersionInMajor": "2023-08-16",
+            "lastRelease": "9.4.0",
+            "lastReleaseDate": "2023-10-05"
+          },
+          {
+            "major": 10,
+            "released": "2023-10-16",
+            "apiVersionAtRelease": "2023-10-16",
+            "latestApiVersionInMajor": "2023-10-16",
+            "lastRelease": "10.15.0",
+            "lastReleaseDate": "2024-04-09"
+          },
+          {
+            "major": 11,
+            "released": "2024-04-10",
+            "apiVersionAtRelease": "2024-04-10",
+            "latestApiVersionInMajor": "2024-04-10",
+            "lastRelease": "11.7.0",
+            "lastReleaseDate": "2024-06-13"
+          },
+          {
+            "major": 12,
+            "released": "2024-06-24",
+            "apiVersionAtRelease": "2024-06-20",
+            "latestApiVersionInMajor": "2024-06-20",
+            "lastRelease": "12.6.0",
+            "lastReleaseDate": "2024-09-12"
+          },
+          {
+            "major": 13,
+            "released": "2024-10-01",
+            "apiVersionAtRelease": "2024-09-30.acacia",
+            "latestApiVersionInMajor": "2025-02-24.acacia",
+            "lastRelease": "13.5.1",
+            "lastReleaseDate": "2025-04-21"
+          },
+          {
+            "major": 14,
+            "released": "2025-04-01",
+            "apiVersionAtRelease": "2025-03-31.basil",
+            "latestApiVersionInMajor": "2025-03-31.basil",
+            "lastRelease": "14.0.0",
+            "lastReleaseDate": "2025-04-01"
+          },
+          {
+            "major": 15,
+            "released": "2025-04-09",
+            "apiVersionAtRelease": "2025-03-31.basil",
+            "lastRelease": "15.5.0",
+            "lastReleaseDate": "2025-08-27",
+            "latestApiVersionInMajor": "2025-08-27.basil"
+          },
+          {
+            "major": 16,
+            "released": "2025-09-30",
+            "apiVersionAtRelease": "2025-09-30.clover",
+            "latestApiVersionInMajor": "2025-09-30.clover",
+            "lastRelease": "16.0.0",
+            "lastReleaseDate": "2025-09-30"
+          },
+          {
+            "major": 17,
+            "released": "2025-10-09",
+            "apiVersionAtRelease": "2025-09-30.clover",
+            "lastRelease": "17.2.0",
+            "lastReleaseDate": "2025-11-05",
+            "latestApiVersionInMajor": "2025-10-29.clover"
+          },
+          {
+            "major": 18,
+            "released": "2025-11-18",
+            "apiVersionAtRelease": "2025-11-17.clover",
+            "latestApiVersionInMajor": "2026-02-25.clover",
+            "lastRelease": "18.4.2",
+            "lastReleaseDate": "2026-03-10"
+          },
+          {
+            "major": 19,
+            "released": "2026-03-25",
+            "apiVersionAtRelease": "2026-03-25.dahlia",
+            "latestApiVersionInMajor": "2026-08-26.dahlia",
+            "lastRelease": "19.6.2",
+            "lastReleaseDate": "2026-09-09"
+          },
+          {
+            "major": 20,
+            "released": "2026-09-30",
+            "apiVersionAtRelease": "2026-09-30.endive",
+            "latestApiVersionInMajor": "2026-10-28.endive",
+            "lastRelease": "20.1.0",
+            "lastReleaseDate": "2026-10-29"
+          }
+        ]
+      },
+      "go": {
+        "repo": "https://github.com/stripe/stripe-go",
+        "package": "github.com/stripe/stripe-go/vNN",
+        "pinsApiVersionSince": "always (strongly typed)",
+        "source": "https://github.com/stripe/stripe-go/blob/master/CHANGELOG.md",
+        "majors": [
+          {
+            "major": 73,
+            "released": "2022-08-02",
+            "apiVersionAtRelease": "2022-08-01",
+            "latestApiVersionInMajor": "2022-08-01",
+            "lastRelease": "73.16.0",
+            "lastReleaseDate": "2022-11-08"
+          },
+          {
+            "major": 74,
+            "released": "2022-11-16",
+            "apiVersionAtRelease": "2022-11-15",
+            "latestApiVersionInMajor": "2022-11-15",
+            "lastRelease": "74.30.0",
+            "lastReleaseDate": "2023-08-10"
+          },
+          {
+            "major": 75,
+            "released": "2023-08-16",
+            "apiVersionAtRelease": "2023-08-16",
+            "latestApiVersionInMajor": "2023-08-16",
+            "lastRelease": "75.11.0",
+            "lastReleaseDate": "2023-10-16"
+          },
+          {
+            "major": 76,
+            "released": "2023-10-16",
+            "apiVersionAtRelease": "2023-10-16",
+            "latestApiVersionInMajor": "2023-10-16",
+            "lastRelease": "76.25.0",
+            "lastReleaseDate": "2024-04-09"
+          },
+          {
+            "major": 78,
+            "released": "2024-04-10",
+            "apiVersionAtRelease": "2024-04-10",
+            "latestApiVersionInMajor": "2024-04-10",
+            "lastRelease": "78.12.0",
+            "lastReleaseDate": "2024-06-17"
+          },
+          {
+            "major": 79,
+            "released": "2024-06-24",
+            "apiVersionAtRelease": "2024-06-20",
+            "latestApiVersionInMajor": "2024-06-20",
+            "lastRelease": "79.12.0",
+            "lastReleaseDate": "2024-09-18"
+          },
+          {
+            "major": 80,
+            "released": "2024-10-01",
+            "apiVersionAtRelease": "2024-09-30.acacia",
+            "latestApiVersionInMajor": "2024-09-30.acacia",
+            "lastRelease": "80.2.1",
+            "lastReleaseDate": "2024-10-29"
+          },
+          {
+            "major": 81,
+            "released": "2024-10-29",
+            "apiVersionAtRelease": "2024-10-28.acacia",
+            "latestApiVersionInMajor": "2025-02-24.acacia",
+            "lastRelease": "81.4.0",
+            "lastReleaseDate": "2025-02-24"
+          },
+          {
+            "major": 82,
+            "released": "2025-04-01",
+            "apiVersionAtRelease": "2025-03-31.basil",
+            "latestApiVersionInMajor": "2025-08-27.basil",
+            "lastRelease": "82.5.1",
+            "lastReleaseDate": "2025-09-17"
+          },
+          {
+            "major": 83,
+            "released": "2025-09-30",
+            "apiVersionAtRelease": "2025-09-30.clover",
+            "latestApiVersionInMajor": "2025-10-29.clover",
+            "lastRelease": "83.2.1",
+            "lastReleaseDate": "2025-11-13"
+          },
+          {
+            "major": 84,
+            "released": "2025-11-18",
+            "apiVersionAtRelease": "2025-11-17.clover",
+            "latestApiVersionInMajor": "2026-02-25.clover",
+            "lastRelease": "84.4.1",
+            "lastReleaseDate": "2026-03-06"
+          },
+          {
+            "major": 85,
+            "released": "2026-03-25",
+            "apiVersionAtRelease": "2026-03-25.dahlia",
+            "latestApiVersionInMajor": "2026-05-27.dahlia",
+            "lastRelease": "85.2.0",
+            "lastReleaseDate": "2026-05-27"
+          },
+          {
+            "major": 86,
+            "released": "2026-06-05",
+            "apiVersionAtRelease": "2026-05-27.dahlia",
+            "latestApiVersionInMajor": "2026-08-26.dahlia",
+            "lastRelease": "86.4.2",
+            "lastReleaseDate": "2026-09-09"
+          },
+          {
+            "major": 87,
+            "released": "2026-09-30",
+            "apiVersionAtRelease": "2026-09-30.endive",
+            "latestApiVersionInMajor": "2026-10-28.endive",
+            "lastRelease": "87.1.0",
+            "lastReleaseDate": "2026-10-29"
+          }
+        ]
+      },
+      "java": {
+        "repo": "https://github.com/stripe/stripe-java",
+        "package": "com.stripe:stripe-java (Maven)",
+        "pinsApiVersionSince": "always (strongly typed)",
+        "source": "https://github.com/stripe/stripe-java/blob/master/CHANGELOG.md",
+        "majors": [
+          {
+            "major": 21,
+            "released": "2022-08-02",
+            "apiVersionAtRelease": "2022-08-01",
+            "latestApiVersionInMajor": "2022-08-01",
+            "lastRelease": "21.15.0",
+            "lastReleaseDate": "2022-11-08"
+          },
+          {
+            "major": 22,
+            "released": "2022-11-16",
+            "apiVersionAtRelease": "2022-11-15",
+            "latestApiVersionInMajor": "2022-11-15",
+            "lastRelease": "22.31.0",
+            "lastReleaseDate": "2023-08-10"
+          },
+          {
+            "major": 23,
+            "released": "2023-08-16",
+            "apiVersionAtRelease": "2023-08-16",
+            "latestApiVersionInMajor": "2023-08-16",
+            "lastRelease": "23.10.0",
+            "lastReleaseDate": "2023-10-16"
+          },
+          {
+            "major": 24,
+            "released": "2023-10-16",
+            "apiVersionAtRelease": "2023-10-16",
+            "latestApiVersionInMajor": "2023-10-16",
+            "lastRelease": "24.24.0",
+            "lastReleaseDate": "2024-04-09"
+          },
+          {
+            "major": 25,
+            "released": "2024-04-10",
+            "apiVersionAtRelease": "2024-04-10",
+            "latestApiVersionInMajor": "2024-04-10",
+            "lastRelease": "25.13.0",
+            "lastReleaseDate": "2024-06-17"
+          },
+          {
+            "major": 26,
+            "released": "2024-06-24",
+            "apiVersionAtRelease": "2024-06-20",
+            "latestApiVersionInMajor": "2024-09-30.acacia",
+            "lastRelease": "26.13.0",
+            "lastReleaseDate": "2024-10-01"
+          },
+          {
+            "major": 27,
+            "released": "2024-10-01",
+            "apiVersionAtRelease": "2024-09-30.acacia",
+            "latestApiVersionInMajor": "2024-09-30.acacia",
+            "lastRelease": "27.1.2",
+            "lastReleaseDate": "2024-10-29"
+          },
+          {
+            "major": 28,
+            "released": "2024-10-29",
+            "apiVersionAtRelease": "2024-10-28.acacia",
+            "latestApiVersionInMajor": "2025-02-24.acacia",
+            "lastRelease": "28.4.0",
+            "lastReleaseDate": "2025-02-24"
+          },
+          {
+            "major": 29,
+            "released": "2025-04-01",
+            "apiVersionAtRelease": "2025-03-31.basil",
+            "latestApiVersionInMajor": "2025-08-27.basil",
+            "lastRelease": "29.5.0",
+            "lastReleaseDate": "2025-08-27"
+          },
+          {
+            "major": 30,
+            "released": "2025-09-30",
+            "apiVersionAtRelease": "2025-09-30.clover",
+            "latestApiVersionInMajor": "2025-10-29.clover",
+            "lastRelease": "30.2.0",
+            "lastReleaseDate": "2025-11-05"
+          },
+          {
+            "major": 31,
+            "released": "2025-11-18",
+            "apiVersionAtRelease": "2025-11-17.clover",
+            "latestApiVersionInMajor": "2026-02-25.clover",
+            "lastRelease": "31.4.1",
+            "lastReleaseDate": "2026-03-06"
+          },
+          {
+            "major": 32,
+            "released": "2026-03-25",
+            "apiVersionAtRelease": "2026-03-25.dahlia",
+            "latestApiVersionInMajor": "2026-05-27.dahlia",
+            "lastRelease": "32.2.0",
+            "lastReleaseDate": "2026-05-27"
+          },
+          {
+            "major": 33,
+            "released": "2026-06-05",
+            "apiVersionAtRelease": "2026-05-27.dahlia",
+            "latestApiVersionInMajor": "2026-08-26.dahlia",
+            "lastRelease": "33.4.2",
+            "lastReleaseDate": "2026-09-09"
+          },
+          {
+            "major": 34,
+            "released": "2026-09-30",
+            "apiVersionAtRelease": "2026-09-30.endive",
+            "latestApiVersionInMajor": "2026-10-28.endive",
+            "lastRelease": "34.1.0",
+            "lastReleaseDate": "2026-10-29"
+          }
+        ]
+      },
+      "php": {
+        "repo": "https://github.com/stripe/stripe-php",
+        "package": "stripe/stripe-php (Composer)",
+        "pinsApiVersionSince": "v11",
+        "source": "https://github.com/stripe/stripe-php/blob/master/CHANGELOG.md",
+        "majors": [
+          {
+            "major": 9,
+            "released": "2022-08-02",
+            "apiVersionAtRelease": "2022-08-01",
+            "latestApiVersionInMajor": "2022-08-01",
+            "lastRelease": "9.9.0",
+            "lastReleaseDate": "2022-11-08"
+          },
+          {
+            "major": 10,
+            "released": "2022-11-16",
+            "apiVersionAtRelease": "2022-11-15",
+            "latestApiVersionInMajor": "2022-11-15",
+            "lastRelease": "10.21.0",
+            "lastReleaseDate": "2023-08-10"
+          },
+          {
+            "major": 11,
+            "released": "2023-08-16",
+            "apiVersionAtRelease": "2023-08-16",
+            "latestApiVersionInMajor": "2023-08-16",
+            "lastRelease": "11.0.0",
+            "lastReleaseDate": "2023-08-16"
+          },
+          {
+            "major": 12,
+            "released": "2023-08-18",
+            "apiVersionAtRelease": "2023-08-16",
+            "latestApiVersionInMajor": "2023-08-16",
+            "lastRelease": "12.8.0",
+            "lastReleaseDate": "2023-10-16"
+          },
+          {
+            "major": 13,
+            "released": "2023-10-16",
+            "apiVersionAtRelease": "2023-10-16",
+            "latestApiVersionInMajor": "2023-10-16",
+            "lastRelease": "13.18.0",
+            "lastReleaseDate": "2024-04-09"
+          },
+          {
+            "major": 14,
+            "released": "2024-04-10",
+            "apiVersionAtRelease": "2024-04-10",
+            "latestApiVersionInMajor": "2024-04-10",
+            "lastRelease": "14.10.0",
+            "lastReleaseDate": "2024-06-13"
+          },
+          {
+            "major": 15,
+            "released": "2024-06-24",
+            "apiVersionAtRelease": "2024-06-20",
+            "latestApiVersionInMajor": "2024-06-20",
+            "lastRelease": "15.10.0",
+            "lastReleaseDate": "2024-09-18"
+          },
+          {
+            "major": 16,
+            "released": "2024-10-01",
+            "apiVersionAtRelease": "2024-09-30.acacia",
+            "latestApiVersionInMajor": "2025-02-24.acacia",
+            "lastRelease": "16.6.0",
+            "lastReleaseDate": "2025-02-24"
+          },
+          {
+            "major": 17,
+            "released": "2025-04-01",
+            "apiVersionAtRelease": "2025-03-31.basil",
+            "latestApiVersionInMajor": "2025-08-27.basil",
+            "lastRelease": "17.6.0",
+            "lastReleaseDate": "2025-08-27"
+          },
+          {
+            "major": 18,
+            "released": "2025-09-30",
+            "apiVersionAtRelease": "2025-09-30.clover",
+            "latestApiVersionInMajor": "2025-10-29.clover",
+            "lastRelease": "18.2.0",
+            "lastReleaseDate": "2025-11-05"
+          },
+          {
+            "major": 19,
+            "released": "2025-11-18",
+            "apiVersionAtRelease": "2025-11-17.clover",
+            "latestApiVersionInMajor": "2026-02-25.clover",
+            "lastRelease": "19.4.1",
+            "lastReleaseDate": "2026-03-06"
+          },
+          {
+            "major": 20,
+            "released": "2026-03-25",
+            "apiVersionAtRelease": "2026-03-25.dahlia",
+            "latestApiVersionInMajor": "2026-06-24.dahlia",
+            "lastRelease": "20.3.1",
+            "lastReleaseDate": "2026-07-09"
+          },
+          {
+            "major": 21,
+            "released": "2026-07-15",
+            "apiVersionAtRelease": "2026-06-24.dahlia",
+            "latestApiVersionInMajor": "2026-08-26.dahlia",
+            "lastRelease": "21.3.2",
+            "lastReleaseDate": "2026-09-09"
+          },
+          {
+            "major": 22,
+            "released": "2026-09-30",
+            "apiVersionAtRelease": "2026-09-30.endive",
+            "latestApiVersionInMajor": "2026-10-28.endive",
+            "lastRelease": "22.1.0",
+            "lastReleaseDate": "2026-10-29"
+          }
+        ]
+      },
+      "dotnet": {
+        "repo": "https://github.com/stripe/stripe-dotnet",
+        "package": "Stripe.net (NuGet)",
+        "pinsApiVersionSince": "always (strongly typed)",
+        "source": "https://github.com/stripe/stripe-dotnet/blob/master/CHANGELOG.md",
+        "majors": [
+          {
+            "major": 40,
+            "released": "2022-08-02",
+            "apiVersionAtRelease": "2022-08-01",
+            "latestApiVersionInMajor": "2022-08-01",
+            "lastRelease": "40.16.0",
+            "lastReleaseDate": "2022-11-08"
+          },
+          {
+            "major": 41,
+            "released": "2022-11-16",
+            "apiVersionAtRelease": "2022-11-15",
+            "latestApiVersionInMajor": "2022-11-15",
+            "lastRelease": "41.28.0",
+            "lastReleaseDate": "2023-08-10"
+          },
+          {
+            "major": 42,
+            "released": "2023-08-16",
+            "apiVersionAtRelease": "2023-08-16",
+            "latestApiVersionInMajor": "2023-08-16",
+            "lastRelease": "42.10.0",
+            "lastReleaseDate": "2023-10-16"
+          },
+          {
+            "major": 43,
+            "released": "2023-10-16",
+            "apiVersionAtRelease": "2023-10-16",
+            "latestApiVersionInMajor": "2023-10-16",
+            "lastRelease": "43.23.0",
+            "lastReleaseDate": "2024-04-09"
+          },
+          {
+            "major": 44,
+            "released": "2024-04-10",
+            "apiVersionAtRelease": "2024-04-10",
+            "latestApiVersionInMajor": "2024-04-10",
+            "lastRelease": "44.13.0",
+            "lastReleaseDate": "2024-06-17"
+          },
+          {
+            "major": 45,
+            "released": "2024-06-24",
+            "apiVersionAtRelease": "2024-06-20",
+            "latestApiVersionInMajor": "2024-09-30.acacia",
+            "lastRelease": "45.15.0",
+            "lastReleaseDate": "2024-10-01"
+          },
+          {
+            "major": 46,
+            "released": "2024-10-01",
+            "apiVersionAtRelease": "2024-09-30.acacia",
+            "latestApiVersionInMajor": "2024-09-30.acacia",
+            "lastRelease": "46.2.2",
+            "lastReleaseDate": "2024-10-29"
+          },
+          {
+            "major": 47,
+            "released": "2024-10-29",
+            "apiVersionAtRelease": "2024-10-28.acacia",
+            "latestApiVersionInMajor": "2025-02-24.acacia",
+            "lastRelease": "47.4.0",
+            "lastReleaseDate": "2025-02-24"
+          },
+          {
+            "major": 48,
+            "released": "2025-04-01",
+            "apiVersionAtRelease": "2025-03-31.basil",
+            "latestApiVersionInMajor": "2025-08-27.basil",
+            "lastRelease": "48.5.0",
+            "lastReleaseDate": "2025-08-27"
+          },
+          {
+            "major": 49,
+            "released": "2025-09-30",
+            "apiVersionAtRelease": "2025-09-30.clover",
+            "latestApiVersionInMajor": "2025-10-29.clover",
+            "lastRelease": "49.2.0",
+            "lastReleaseDate": "2025-11-05"
+          },
+          {
+            "major": 50,
+            "released": "2025-11-18",
+            "apiVersionAtRelease": "2025-11-17.clover",
+            "latestApiVersionInMajor": "2026-02-25.clover",
+            "lastRelease": "50.4.1",
+            "lastReleaseDate": "2026-03-06"
+          },
+          {
+            "major": 51,
+            "released": "2026-03-25",
+            "apiVersionAtRelease": "2026-03-25.dahlia",
+            "latestApiVersionInMajor": "2026-05-27.dahlia",
+            "lastRelease": "51.2.0",
+            "lastReleaseDate": "2026-05-27"
+          },
+          {
+            "major": 52,
+            "released": "2026-06-05",
+            "apiVersionAtRelease": "2026-05-27.dahlia",
+            "latestApiVersionInMajor": "2026-08-26.dahlia",
+            "lastRelease": "52.4.2",
+            "lastReleaseDate": "2026-09-09"
+          },
+          {
+            "major": 53,
+            "released": "2026-09-30",
+            "apiVersionAtRelease": "2026-09-30.endive",
+            "latestApiVersionInMajor": "2026-10-28.endive",
+            "lastRelease": "53.1.0",
+            "lastReleaseDate": "2026-10-29"
+          }
+        ]
+      }
+    }
+  },
+  "openapiTags": {
+    "source": "https://github.com/stripe/openapi/tags",
+    "note": "stripe/openapi tags are sequential release numbers (v1, v2, ... v2596), not API versions. Each tag snapshots the spec at that moment; openapi/spec3.json info.version names the API version it describes. Since v2191 (2026-03-11) release notes list info.version per spec file. The table maps each GA API version to the last tag whose openapi/spec3.json info.version still equalled it (found by reading info.version at tags). Note: the public openapi/spec3.json info.version can lag the SDK spec (spec3.sdk.json) by one monthly version.",
+    "versions": [
+      {
+        "apiVersion": "2022-08-01",
+        "lastTag": "v207",
+        "lastTagDate": "2022-11-10",
+        "specInfoVersion": "2022-08-01",
+        "verified": true
+      },
+      {
+        "apiVersion": "2022-11-15",
+        "lastTag": "v460",
+        "lastTagDate": "2023-08-11",
+        "specInfoVersion": "2022-11-15",
+        "verified": true
+      },
+      {
+        "apiVersion": "2023-08-16",
+        "lastTag": "v602",
+        "lastTagDate": "2023-10-13",
+        "specInfoVersion": "2023-08-16",
+        "verified": true
+      },
+      {
+        "apiVersion": "2023-10-16",
+        "lastTag": "v934",
+        "lastTagDate": "2024-04-05",
+        "specInfoVersion": "2023-10-16",
+        "verified": true
+      },
+      {
+        "apiVersion": "2024-04-10",
+        "lastTag": "v1087",
+        "lastTagDate": "2024-06-18",
+        "specInfoVersion": "2024-04-10",
+        "verified": true
+      },
+      {
+        "apiVersion": "2024-06-20",
+        "lastTag": "v1267",
+        "lastTagDate": "2024-09-18",
+        "specInfoVersion": "2024-06-20",
+        "verified": true
+      },
+      {
+        "apiVersion": "2024-09-30.acacia",
+        "lastTag": "v1317",
+        "lastTagDate": "2024-10-18",
+        "specInfoVersion": "2024-09-30.acacia",
+        "verified": true
+      },
+      {
+        "apiVersion": "2024-10-28.acacia",
+        "lastTag": "v1346",
+        "lastTagDate": "2024-11-13",
+        "specInfoVersion": "2024-10-28.acacia",
+        "verified": true
+      },
+      {
+        "apiVersion": "2024-11-20.acacia",
+        "lastTag": "v1398",
+        "lastTagDate": "2024-12-09",
+        "specInfoVersion": "2024-11-20.acacia",
+        "verified": true
+      },
+      {
+        "apiVersion": "2024-12-18.acacia",
+        "lastTag": "v1454",
+        "lastTagDate": "2025-01-17",
+        "specInfoVersion": "2024-12-18.acacia",
+        "verified": true
+      },
+      {
+        "apiVersion": "2025-01-27.acacia",
+        "lastTag": "v1493",
+        "lastTagDate": "2025-02-14",
+        "specInfoVersion": "2025-01-27.acacia",
+        "verified": true
+      },
+      {
+        "apiVersion": "2025-02-24.acacia",
+        "lastTag": "v1617",
+        "lastTagDate": "2025-03-24",
+        "specInfoVersion": "2025-02-24.acacia",
+        "verified": true
+      },
+      {
+        "apiVersion": "2025-03-31.basil",
+        "lastTag": "v1712",
+        "lastTagDate": "2025-04-21",
+        "specInfoVersion": "2025-03-31.basil",
+        "verified": true
+      },
+      {
+        "apiVersion": "2025-04-30.basil",
+        "lastTag": "v1769",
+        "lastTagDate": "2025-05-16",
+        "specInfoVersion": "2025-04-30.basil",
+        "verified": true
+      },
+      {
+        "apiVersion": "2025-05-28.basil",
+        "lastTag": "v1818",
+        "lastTagDate": "2025-06-23",
+        "specInfoVersion": "2025-05-28.basil",
+        "verified": true
+      },
+      {
+        "apiVersion": "2025-06-30.basil",
+        "lastTag": "v1867",
+        "lastTagDate": "2025-07-21",
+        "specInfoVersion": "2025-06-30.basil",
+        "verified": true
+      },
+      {
+        "apiVersion": "2025-07-30.basil",
+        "lastTag": "v1927",
+        "lastTagDate": "2025-08-18",
+        "specInfoVersion": "2025-07-30.basil",
+        "verified": true
+      },
+      {
+        "apiVersion": "2025-08-27.basil",
+        "lastTag": "v2017",
+        "lastTagDate": "2025-09-22",
+        "specInfoVersion": "2025-08-27.basil",
+        "verified": true
+      },
+      {
+        "apiVersion": "2025-09-30.clover",
+        "lastTag": "v2092",
+        "lastTagDate": "2025-10-21",
+        "specInfoVersion": "2025-09-30.clover",
+        "verified": true
+      },
+      {
+        "apiVersion": "2025-10-29.clover",
+        "lastTag": "v2110",
+        "lastTagDate": "2025-11-05",
+        "specInfoVersion": "2025-10-29.clover",
+        "verified": true
+      },
+      {
+        "apiVersion": "2025-11-17.clover",
+        "lastTag": "v2132",
+        "lastTagDate": "2025-12-03",
+        "specInfoVersion": "2025-11-17.clover",
+        "verified": true
+      },
+      {
+        "apiVersion": "2025-12-15.clover",
+        "lastTag": "v2139",
+        "lastTagDate": "2025-12-12",
+        "specInfoVersion": "2025-12-15.clover",
+        "verified": true
+      },
+      {
+        "apiVersion": "2026-01-28.clover",
+        "lastTag": "v2182",
+        "lastTagDate": "2026-02-20",
+        "specInfoVersion": "2026-01-28.clover",
+        "verified": true
+      },
+      {
+        "apiVersion": "2026-02-25.clover",
+        "lastTag": "v2203",
+        "lastTagDate": "2026-03-16",
+        "specInfoVersion": "2026-02-25.clover",
+        "verified": true
+      },
+      {
+        "apiVersion": "2026-03-25.dahlia",
+        "lastTag": "v2248",
+        "lastTagDate": "2026-04-17",
+        "specInfoVersion": "2026-03-25.dahlia",
+        "verified": true
+      },
+      {
+        "apiVersion": "2026-04-22.dahlia",
+        "lastTag": "v2274",
+        "lastTagDate": "2026-05-20",
+        "specInfoVersion": "2026-04-22.dahlia",
+        "verified": true
+      },
+      {
+        "apiVersion": "2026-05-27.dahlia",
+        "lastTag": "v2323",
+        "lastTagDate": "2026-06-22",
+        "specInfoVersion": "2026-05-27.dahlia",
+        "verified": true
+      },
+      {
+        "apiVersion": "2026-06-24.dahlia",
+        "lastTag": "v2348",
+        "lastTagDate": "2026-07-29",
+        "specInfoVersion": "2026-06-24.dahlia",
+        "verified": true
+      },
+      {
+        "apiVersion": "2026-07-29.dahlia",
+        "lastTag": "v2441",
+        "lastTagDate": "2026-08-26",
+        "specInfoVersion": "2026-07-29.dahlia",
+        "verified": true
+      },
+      {
+        "apiVersion": "2026-08-26.dahlia",
+        "lastTag": "v2516",
+        "lastTagDate": "2026-09-22",
+        "specInfoVersion": "2026-08-26.dahlia",
+        "verified": true
+      },
+      {
+        "apiVersion": "2026-09-30.endive",
+        "lastTag": "v2596",
+        "lastTagDate": "2026-10-29",
+        "specInfoVersion": "2026-09-30.endive",
+        "verified": true
+      },
+      {
+        "apiVersion": "2026-10-28.endive",
+        "lastTag": null,
+        "lastTagDate": "2026-10-29",
+        "specInfoVersion": "2026-09-30.endive",
+        "verified": false,
+        "note": "No tag yet has openapi/spec3.json info.version = this version (master still says 2026-09-30.endive on 2026-11-01, while spec3.sdk.json says 2026-10-28.endive). Use master."
+      }
+    ]
+  }
+}

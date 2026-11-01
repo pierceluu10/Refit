@@ -1,0 +1,102 @@
+tag:github.com,2008:https://github.com/meta/facebook-nodejs-business-sdk/releases
+
+Release notes from facebook-nodejs-business-sdk
+
+2026-09-21T05:48:40Z
+
+tag:github.com,2008:Repository/101788376/v26.0.2
+2026-09-21T05:55:10Z
+
+v26.0.2
+
+Full Changelog : v26.0.1...v26.0.2
+
+satwikareddy3
+
+tag:github.com,2008:Repository/101788376/v26.0.1
+2026-08-25T20:21:24Z
+
+v26.0.1
+
+Full Changelog : v26.0.0...v26.0.1
+
+satwikareddy3
+
+tag:github.com,2008:Repository/101788376/v26.0.0
+2026-08-06T06:04:12Z
+
+Meta Business SDK v26.0.0
+
+The Meta Business SDK v26 release will be published shortly after the release of Graph API v26. This release will include dependency upgrades, Conversions API Parameter Builder integration , new API features, and deprecation of the Commerce Order Management API and several legacy protocol features.
+The Business SDK is now integrated with open sourced Conversions API Parameter Builder . You can leverage this new integration to improve the quality of your Conversions API integration. Key features: Auto-generates (gated by preference set by advertisers) and enhances parameters fbc, fbp, event_source_url, referrer_url, client_ip_address and automatic PII normalization/hashing for supported languages, see more here . The Commerce Order Management API (47 endpoints) is fully deprecated with no replacement. The Instagram Explore Feed ad placement is removed and returns errors if specified. Messenger Stories placement is silently removed from messenger_positions. Ads in WhatsApp Status gain new capabilities including identity spec, carousel up to 10 cards, and offsite-conversion optimization.
+As part of our 2-year deprecation schedule for Platform SDKs, please note the upcoming deprecations and sunsets:
+Sept, 2026: Facebook Platform SDK v20.0 will be deprecated
+Jan, 2027:: Facebook Platform SDK v21.0 will be deprecated
+
+satwikareddy3
+
+tag:github.com,2008:Repository/101788376/v25.0.3
+2026-07-17T17:36:37Z
+
+v25.0.3
+
+Full Changelog : v25.0.2...v25.0.3
+
+satwikareddy3
+
+tag:github.com,2008:Repository/101788376/v25.0.2
+2026-07-06T18:26:23Z
+
+v25.0.2
+
+In this release, we added Conversions API Parameter Builder integration . The server-side Event/ServerEvent can now auto-fill Conversions API parameters from the incoming HTTP request: call setRequestContext(request) (optionally with a Preference allowlist) and the SDK fills any empty fbc, fbp, event_source_url, and referrer_url fields at send time — plus client_ip_address and automatic PII normalization/hashing on PHP and NodeJS. Auto-fill is gated by Preference, never overwrites values you set, and is fully opt-in (no behavior change unless you call setRequestContext).
+Full Changelog : v25.0.1...v25.0.2
+
+satwikareddy3
+
+tag:github.com,2008:Repository/101788376/v25.0.1
+2026-03-30T16:40:03Z
+
+v25.0.1
+
+Full Changelog : v25.0.0...v25.0.1
+
+satwikareddy3
+
+tag:github.com,2008:Repository/101788376/v25.0.0
+2026-03-10T17:49:44Z
+
+Meta Business SDK 25.0.0
+
+In this release, Advantage+ Shopping Campaigns (ASC) and Advantage+ App Campaigns (AAC) can no longer be created or updated via the Marketing API starting v25.0, extending to all versions by May 19, 2026, as part of the Automation Unification toward the streamlined Advantage+ setup. The Ads Insights Async API now returns detailed error information on report failures, and several legacy metrics including Page Reach, Impressions, and 3-second Viewers are planned for deprecation in June 2026 in favor of the new Media Views and Media Viewers metrics. Webhooks mTLS certificates will transition to a new Meta-owned Certificate Authority starting March 31, 2026. For full details, see the official blog post
+Full Changelog : v24.0.1...v25.0.0
+
+satwikareddy3
+
+tag:github.com,2008:Repository/101788376/v24.0.1
+2025-11-21T07:51:37Z
+
+v24.0.1
+
+Full Changelog : v24.0.0...v24.0.1
+
+satwikareddy3
+
+tag:github.com,2008:Repository/101788376/v24.0.0
+2025-10-24T20:44:04Z
+
+Meta Business SDK v24.0.0
+
+In this release, there are major changes like Dynamic Media will be enabled by default for Advantage+ Catalog ads via the Marketing API, requiring developers to explicitly opt out if desired. The daily budget flexibility is increased from 25% to 75%, allowing higher spend on days with better opportunities while maintaining weekly spend limits. A new feature allows up to 20% of an ad set’s daily budget to be shared with other ad sets in the same campaign for improved performance without campaign budget optimization. The Facebook video feeds ad placement is no longer available in Marketing API v24.0, and attempts to use it will result in errors. Third-party access to create Click to Messenger Lead Gen (CTMLG) ads through the Marketing API is discontinued, though Ads Manager creation remains available.
+Full Changelog : v23.0.3...v24.0.0
+
+satwikareddy3
+
+tag:github.com,2008:Repository/101788376/v23.0.3
+2025-10-14T16:17:30Z
+
+v23.0.3
+
+Full Changelog : v23.0.2...v23.0.3
+
+satwikareddy3

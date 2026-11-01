@@ -1,0 +1,5 @@
+GitHub's REST API is versioned by date: callers send an `X-GitHub-Api-Version` header (for example `2022-11-28`), and a version stays supported for at least 24 months after its successor ships. Breaking changes only land in a new version, so a new REST version is an `api-version` change whose `affects.versions` names the old and new values, and each breaking change listed under it is its own change with the endpoints and fields it touches.
+
+The GraphQL API is not versioned. Removals are announced on the breaking-changes page with a date; report each one with the type and field (e.g. `Repository.collaborators`) in `affects.fields` and the date as `effectiveDate`.
+
+The changelog feed mixes API changes with product news. Report only items that change how code calls GitHub: REST endpoints, GraphQL schema, webhooks and their payloads, GitHub Apps and token permissions, Actions workflow syntax or runner images that break workflows, rate limits. Octokit (`@octokit/rest`, `octokit`) majors that drop Node versions or rename methods are `sdk-major`.

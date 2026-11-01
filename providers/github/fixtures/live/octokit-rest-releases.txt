@@ -1,0 +1,141 @@
+## v22.0.1 (v22.0.1, published 2025-10-31T20:59:33Z)
+https://github.com/octokit/rest.js/releases/tag/v22.0.1
+## [22.0.1](https://github.com/octokit/rest.js/compare/v22.0.0...v22.0.1) (2025-10-31)
+
+### Bug Fixes
+
+* **deps:** update octokit monorepo (major) ([#538](https://github.com/octokit/rest.js/issues/538)) ([ded2f17](https://github.com/octokit/rest.js/commit/ded2f177625fc1ac6b42a85b36930b46f47012ee))
+
+## v22.0.0 (v22.0.0, published 2025-05-25T23:12:48Z)
+https://github.com/octokit/rest.js/releases/tag/v22.0.0
+# [22.0.0](https://github.com/octokit/rest.js/compare/v21.1.1...v22.0.0) (2025-05-25)
+
+### Bug Fixes
+
+* **deps:** update octokit monorepo (major) ([#504](https://github.com/octokit/rest.js/issues/504)) ([77530ab](https://github.com/octokit/rest.js/commit/77530abd535b0c97017de24a035018d36ba93f71))
+
+### BREAKING CHANGES
+
+* **deps:** Drop support for NodeJS v18
+* **deps:** Remove deprecated Projects endpoints
+* **deps:** Remove deprecated Copilot usage metrics endpoints
+
+## v20.1.2 (v20.1.2, published 2025-02-26T22:20:26Z)
+https://github.com/octokit/rest.js/releases/tag/v20.1.2
+## [20.1.2](https://github.com/octokit/rest.js/compare/v20.1.1...v20.1.2) (2025-02-26)
+
+### Bug Fixes
+
+* **deps:** bump Octokit dependencies to address ReDos vulnerabilities, bump `devDependencies` ([#487](https://github.com/octokit/rest.js/issues/487)) ([711f2ee](https://github.com/octokit/rest.js/commit/711f2ee36dc349cc3c35d8f4a610886a59082c80)), closes [#486](https://github.com/octokit/rest.js/issues/486)
+
+## v21.1.1 (v21.1.1, published 2025-02-14T22:01:57Z)
+https://github.com/octokit/rest.js/releases/tag/v21.1.1
+## [21.1.1](https://github.com/octokit/rest.js/compare/v21.1.0...v21.1.1) (2025-02-14)
+
+### Bug Fixes
+
+* **deps:** update Octokit dependencies to mitigate ReDos [security] ([#484](https://github.com/octokit/rest.js/issues/484)) ([ca256c3](https://github.com/octokit/rest.js/commit/ca256c33490c671d7f2d9806ddd85be92808396d))
+
+## v21.1.0 (v21.1.0, published 2025-01-08T22:33:57Z)
+https://github.com/octokit/rest.js/releases/tag/v21.1.0
+# [21.1.0](https://github.com/octokit/rest.js/compare/v21.0.2...v21.1.0) (2025-01-08)
+
+### Features
+
+* new endpoints, bump Octokit deps to fix Deno ([#477](https://github.com/octokit/rest.js/issues/477)) ([908b1c8](https://github.com/octokit/rest.js/commit/908b1c8fdd4d0570b832da952c1cfb66afcbea47))
+
+## v21.0.2 (v21.0.2, published 2024-08-16T21:47:41Z)
+https://github.com/octokit/rest.js/releases/tag/v21.0.2
+## [21.0.2](https://github.com/octokit/rest.js/compare/v21.0.1...v21.0.2) (2024-08-16)
+
+### Bug Fixes
+
+* **docs:** update to react 18 and latest gatsby deps ([#462](https://github.com/octokit/rest.js/issues/462)) ([9a80f06](https://github.com/octokit/rest.js/commit/9a80f0607ecd1054e9c3dcce114dfc3ed8f762e7)), closes [#216](https://github.com/octokit/rest.js/issues/216) [#230](https://github.com/octokit/rest.js/issues/230) [#460](https://github.com/octokit/rest.js/issues/460)
+
+## v21.0.1 (v21.0.1, published 2024-07-17T00:00:15Z)
+https://github.com/octokit/rest.js/releases/tag/v21.0.1
+## [21.0.1](https://github.com/octokit/rest.js/compare/v21.0.0...v21.0.1) (2024-07-17)
+
+### Bug Fixes
+
+* update deps ([#456](https://github.com/octokit/rest.js/issues/456)) ([93d5afb](https://github.com/octokit/rest.js/commit/93d5afb3433ae30e76f22f06e42067bada959b6e))
+
+## v21.0.0 (v21.0.0, published 2024-06-20T21:42:27Z)
+https://github.com/octokit/rest.js/releases/tag/v21.0.0
+# [21.0.0](https://github.com/octokit/rest.js/compare/v20.1.1...v21.0.0) (2024-06-20)
+
+### Features
+
+* v21 ([#413](https://github.com/octokit/rest.js/issues/413)) ([12b6c65](https://github.com/octokit/rest.js/commit/12b6c6521dc767a8c127fbbfcc74b0c76d1ab056))
+
+### BREAKING CHANGES
+
+* package is now ESM
+
+## v21.0.0-beta.4 (v21.0.0-beta.4, published 2024-06-19T21:15:40Z, prerelease)
+https://github.com/octokit/rest.js/releases/tag/v21.0.0-beta.4
+# [21.0.0-beta.4](https://github.com/octokit/rest.js/compare/v21.0.0-beta.3...v21.0.0-beta.4) (2024-06-19)
+
+### Bug Fixes
+
+* update REST endpoints ([#428](https://github.com/octokit/rest.js/issues/428)) ([7058346](https://github.com/octokit/rest.js/commit/7058346922bede2db35bbf1c2145b1976310df69))
+
+## v20.1.1 (v20.1.1, published 2024-05-03T16:40:41Z)
+https://github.com/octokit/rest.js/releases/tag/v20.1.1
+## [20.1.1](https://github.com/octokit/rest.js/compare/v20.1.0...v20.1.1) (2024-05-03)
+
+### Bug Fixes
+
+* update REST endpoints ([#428](https://github.com/octokit/rest.js/issues/428)) ([7058346](https://github.com/octokit/rest.js/commit/7058346922bede2db35bbf1c2145b1976310df69))
+
+## v21.0.0-beta.3 (v21.0.0-beta.3, published 2024-04-30T17:38:12Z, prerelease)
+https://github.com/octokit/rest.js/releases/tag/v21.0.0-beta.3
+# [21.0.0-beta.3](https://github.com/octokit/rest.js/compare/v21.0.0-beta.2...v21.0.0-beta.3) (2024-04-30)
+
+### Features
+
+* **security:** Add provenance ([#420](https://github.com/octokit/rest.js/issues/420)) ([9adf1a4](https://github.com/octokit/rest.js/commit/9adf1a4a3da67afab4895b22877fa5c93e99bd74))
+
+## v21.0.0-beta.2 (v21.0.0-beta.2, published 2024-04-16T19:13:02Z, prerelease)
+https://github.com/octokit/rest.js/releases/tag/v21.0.0-beta.2
+# [21.0.0-beta.2](https://github.com/octokit/rest.js/compare/v21.0.0-beta.1...v21.0.0-beta.2) (2024-04-16)
+
+### Bug Fixes
+
+* **deps:** bump Octokit deps ([5d8da12](https://github.com/octokit/rest.js/commit/5d8da1266134075568d69d9fb0fc6644b894b411))
+* **pkg:** add a default fallback export ([1b6e582](https://github.com/octokit/rest.js/commit/1b6e5829faaaefb9e4133685f719a56234a304b1))
+
+## v20.1.0 (v20.1.0, published 2024-04-03T19:02:13Z)
+https://github.com/octokit/rest.js/releases/tag/v20.1.0
+# [20.1.0](https://github.com/octokit/rest.js/compare/v20.0.2...v20.1.0) (2024-04-03)
+
+### Features
+
+* **security:** Add provenance ([#420](https://github.com/octokit/rest.js/issues/420)) ([9adf1a4](https://github.com/octokit/rest.js/commit/9adf1a4a3da67afab4895b22877fa5c93e99bd74))
+
+## v21.0.0-beta.1 (v21.0.0-beta.1, published 2024-03-05T19:06:53Z, prerelease)
+https://github.com/octokit/rest.js/releases/tag/v21.0.0-beta.1
+# [21.0.0-beta.1](https://github.com/octokit/rest.js/compare/v20.0.2...v21.0.0-beta.1) (2024-03-05)
+
+### Bug Fixes
+
+* add explicit type anotation ([3ddd79e](https://github.com/octokit/rest.js/commit/3ddd79ecbd9f6db9ed4780263180e563fddd329a))
+* **build:** adapt for ESM ([aad55f4](https://github.com/octokit/rest.js/commit/aad55f47f1e6348fa3d246697d7503985eff4c06))
+* bump deps ([21f1aaa](https://github.com/octokit/rest.js/commit/21f1aaa72776dd8e45b44d0a6d59aa13ac230e94))
+* **deps:** bump deps ([f179b0b](https://github.com/octokit/rest.js/commit/f179b0b4672a5c91b866876b553ecdd5c3b1ff4f))
+* **deps:** update octokit monorepo ([aed67c2](https://github.com/octokit/rest.js/commit/aed67c2af3f79535beed08db283e6578bbbfdc66))
+* **docs:** update for ESM ([42be65a](https://github.com/octokit/rest.js/commit/42be65a46ae5cdf4df2913feaa5812f29c36216b))
+
+* Empty commit to trigger release ([828467b](https://github.com/octokit/rest.js/commit/828467b3b6e9ec77dc8384ef46daca265cbbc09a))
+
+### BREAKING CHANGES
+
+* package is now ESM
+
+## v20.0.2 (v20.0.2, published 2023-09-25T21:33:13Z)
+https://github.com/octokit/rest.js/releases/tag/v20.0.2
+## [20.0.2](https://github.com/octokit/rest.js/compare/v20.0.1...v20.0.2) (2023-09-25)
+
+### Bug Fixes
+
+* **deps:** update octokit monorepo (major) ([#363](https://github.com/octokit/rest.js/issues/363)) ([258bf80](https://github.com/octokit/rest.js/commit/258bf80a891579aefa3e6c303b91445bff4d19f9))

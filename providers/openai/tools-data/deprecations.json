@@ -1,0 +1,1603 @@
+{
+  "source": "https://developers.openai.com/api/docs/deprecations",
+  "sourceNote": "platform.openai.com/docs/deprecations redirects here (developers.openai.com). Parsed from the live HTML tables.",
+  "retrieved": "2026-11-01",
+  "monitoring": "GET /v1/models returns an optional shutdown_date (YYYY-MM-DD or null) per model; also on Retrieve a model.",
+  "noticePeriods": {
+    "generallyAvailable": "at least 6 months",
+    "specializedVariants": "at least 3 months (chat-latest, codex, deep-research variants)",
+    "preview": "may be much shorter, e.g. 2 weeks"
+  },
+  "sections": [
+    {
+      "announced": "2026-10-14",
+      "title": "GPT-4 series model deprecations",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-10-14-gpt-4-series-model-deprecations",
+      "status": "upcoming",
+      "summary": "On October 14, 2026, we notified developers using certain GPT-4 series models of their deprecation and removal from the API on January 14, 2027. Fine-tuned versions of these models follow the same shutdown schedule as their underlying base models.",
+      "rows": [
+        {
+          "shutdown": "2027-01-14",
+          "shutdownText": "January 14, 2027",
+          "item": "GPT-4o ( gpt-4o-2024-08-06 , gpt-4o-2024-11-20 )",
+          "ids": ["gpt-4o-2024-08-06", "gpt-4o-2024-11-20"],
+          "replacement": "gpt-6-luna",
+          "replacementIds": ["gpt-6-luna"]
+        },
+        {
+          "shutdown": "2027-01-14",
+          "shutdownText": "January 14, 2027",
+          "item": "GPT-4o mini ( gpt-4o-mini-2024-07-18 )",
+          "ids": ["gpt-4o-mini-2024-07-18"],
+          "replacement": "gpt-6-luna",
+          "replacementIds": ["gpt-6-luna"]
+        },
+        {
+          "shutdown": "2027-01-14",
+          "shutdownText": "January 14, 2027",
+          "item": "GPT-4.1 ( gpt-4.1-2025-04-14 )",
+          "ids": ["gpt-4.1-2025-04-14"],
+          "replacement": "gpt-6-luna",
+          "replacementIds": ["gpt-6-luna"]
+        },
+        {
+          "shutdown": "2027-01-14",
+          "shutdownText": "January 14, 2027",
+          "item": "GPT-4.1 mini ( gpt-4.1-mini-2025-04-14 )",
+          "ids": ["gpt-4.1-mini-2025-04-14"],
+          "replacement": "gpt-6-luna",
+          "replacementIds": ["gpt-6-luna"]
+        }
+      ]
+    },
+    {
+      "announced": "2026-10-01",
+      "title": "GPT-5.3-Codex, GPT-5.1, GPT-5.4-Nano",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-10-01-gpt-53-codex-gpt-51-gpt-54-nano",
+      "status": "upcoming",
+      "summary": "The following models are deprecated and will be removed from the API on April 1, 2027, with six months’ notice. Migrate to the recommended replacements before the shutdown date.",
+      "rows": [
+        {
+          "shutdown": "2027-04-01",
+          "shutdownText": "Apr 1, 2027",
+          "item": "gpt-5.3-codex",
+          "ids": ["gpt-5.3-codex"],
+          "replacement": "gpt-6-sol",
+          "replacementIds": ["gpt-6-sol"]
+        },
+        {
+          "shutdown": "2027-04-01",
+          "shutdownText": "Apr 1, 2027",
+          "item": "gpt-5.4-nano | gpt-5.4-nano-2026-03-17",
+          "ids": ["gpt-5.4-nano", "gpt-5.4-nano-2026-03-17"],
+          "replacement": "gpt-6-luna",
+          "replacementIds": ["gpt-6-luna"]
+        },
+        {
+          "shutdown": "2027-04-01",
+          "shutdownText": "Apr 1, 2027",
+          "item": "gpt-5.1 | gpt-5.1-2025-11-13",
+          "ids": ["gpt-5.1", "gpt-5.1-2025-11-13"],
+          "replacement": "gpt-6-sol",
+          "replacementIds": ["gpt-6-sol"]
+        }
+      ]
+    },
+    {
+      "announced": "2026-10-01",
+      "title": "Text-to-speech models",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-10-01-text-to-speech-models",
+      "status": "upcoming",
+      "summary": "The following text-to-speech models are deprecated and will be removed from the API on January 6, 2027, with at least three months’ notice. Migrate to gpt-realtime-2.1-mini before the shutdown date. See the Realtime API guide to plan your migration.",
+      "rows": [
+        {
+          "shutdown": "2027-01-06",
+          "shutdownText": "Jan 6, 2027",
+          "item": "tts-1",
+          "ids": ["tts-1"],
+          "replacement": "gpt-realtime-2.1-mini",
+          "replacementIds": ["gpt-realtime-2.1-mini"]
+        },
+        {
+          "shutdown": "2027-01-06",
+          "shutdownText": "Jan 6, 2027",
+          "item": "tts-1-hd",
+          "ids": ["tts-1-hd"],
+          "replacement": "gpt-realtime-2.1-mini",
+          "replacementIds": ["gpt-realtime-2.1-mini"]
+        },
+        {
+          "shutdown": "2027-01-06",
+          "shutdownText": "Jan 6, 2027",
+          "item": "gpt-4o-mini-tts | gpt-4o-mini-tts-2025-03-20",
+          "ids": ["gpt-4o-mini-tts", "gpt-4o-mini-tts-2025-03-20"],
+          "replacement": "gpt-realtime-2.1-mini",
+          "replacementIds": ["gpt-realtime-2.1-mini"]
+        },
+        {
+          "shutdown": "2027-01-06",
+          "shutdownText": "Jan 6, 2027",
+          "item": "gpt-4o-mini-tts | gpt-4o-mini-tts-2025-12-15",
+          "ids": ["gpt-4o-mini-tts", "gpt-4o-mini-tts-2025-12-15"],
+          "replacement": "gpt-realtime-2.1-mini",
+          "replacementIds": ["gpt-realtime-2.1-mini"]
+        }
+      ]
+    },
+    {
+      "announced": "2026-08-26",
+      "title": "Transcription models",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-08-26-transcription-models",
+      "status": "upcoming",
+      "summary": "On August 26, 2026, we notified developers using whisper-1 , gpt-4o-transcribe , gpt-4o-mini-transcribe , and gpt-4o-transcribe-diarize of their deprecation and removal from the API on February 26, 2027. For information about the recommended replacements, see the transcription guide .",
+      "rows": [
+        {
+          "shutdown": "2027-02-26",
+          "shutdownText": "Feb 26, 2027",
+          "item": "whisper-1",
+          "ids": ["whisper-1"],
+          "replacement": "gpt-live-transcribe or gpt-transcribe",
+          "replacementIds": ["gpt-live-transcribe", "gpt-transcribe"]
+        },
+        {
+          "shutdown": "2027-02-26",
+          "shutdownText": "Feb 26, 2027",
+          "item": "gpt-4o-transcribe",
+          "ids": ["gpt-4o-transcribe"],
+          "replacement": "gpt-live-transcribe or gpt-transcribe",
+          "replacementIds": ["gpt-live-transcribe", "gpt-transcribe"]
+        },
+        {
+          "shutdown": "2027-02-26",
+          "shutdownText": "Feb 26, 2027",
+          "item": "gpt-4o-mini-transcribe | gpt-4o-mini-transcribe-2025-12-15",
+          "ids": ["gpt-4o-mini-transcribe", "gpt-4o-mini-transcribe-2025-12-15"],
+          "replacement": "gpt-live-transcribe or gpt-transcribe",
+          "replacementIds": ["gpt-live-transcribe", "gpt-transcribe"]
+        },
+        {
+          "shutdown": "2027-02-26",
+          "shutdownText": "Feb 26, 2027",
+          "item": "gpt-4o-transcribe-diarize",
+          "ids": ["gpt-4o-transcribe-diarize"],
+          "replacement": "gpt-live-transcribe or gpt-transcribe",
+          "replacementIds": ["gpt-live-transcribe", "gpt-transcribe"]
+        },
+        {
+          "shutdown": "2027-02-26",
+          "shutdownText": "Feb 26, 2027",
+          "item": "/v1/audio/translations",
+          "ids": ["/v1/audio/translations"],
+          "replacement": "v1/realtime/translations",
+          "replacementIds": ["v1/realtime/translations"]
+        }
+      ]
+    },
+    {
+      "announced": "2026-07-20",
+      "title": "Legacy audio, realtime, and transcription models",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-07-20-legacy-audio-realtime-and-transcription-models",
+      "status": "upcoming",
+      "summary": "On July 20, 2026, we notified developers using legacy audio, realtime, and transcription model families and snapshots of their deprecation and removal from the API on January 20, 2027.",
+      "rows": [
+        {
+          "shutdown": "2027-01-20",
+          "shutdownText": "Jan 20, 2027",
+          "item": "gpt-realtime | gpt-realtime-2025-08-28",
+          "ids": ["gpt-realtime", "gpt-realtime-2025-08-28"],
+          "replacement": "gpt-realtime-2.1",
+          "replacementIds": ["gpt-realtime-2.1"]
+        },
+        {
+          "shutdown": "2027-01-20",
+          "shutdownText": "Jan 20, 2027",
+          "item": "gpt-audio | gpt-audio-2025-08-28",
+          "ids": ["gpt-audio", "gpt-audio-2025-08-28"],
+          "replacement": "gpt-audio-1.5",
+          "replacementIds": ["gpt-audio-1.5"]
+        },
+        {
+          "shutdown": "2027-01-20",
+          "shutdownText": "Jan 20, 2027",
+          "item": "gpt-4o-audio",
+          "ids": ["gpt-4o-audio"],
+          "replacement": "gpt-audio-1.5",
+          "replacementIds": ["gpt-audio-1.5"]
+        },
+        {
+          "shutdown": "2027-01-20",
+          "shutdownText": "Jan 20, 2027",
+          "item": "gpt-4o-realtime",
+          "ids": ["gpt-4o-realtime"],
+          "replacement": "gpt-realtime-2.1",
+          "replacementIds": ["gpt-realtime-2.1"]
+        },
+        {
+          "shutdown": "2027-01-20",
+          "shutdownText": "Jan 20, 2027",
+          "item": "gpt-realtime-mini | gpt-realtime-mini-2025-12-15",
+          "ids": ["gpt-realtime-mini", "gpt-realtime-mini-2025-12-15"],
+          "replacement": "gpt-realtime-2.1-mini",
+          "replacementIds": ["gpt-realtime-2.1-mini"]
+        },
+        {
+          "shutdown": "2027-01-20",
+          "shutdownText": "Jan 20, 2027",
+          "item": "gpt-audio-mini | gpt-audio-mini-2025-12-15",
+          "ids": ["gpt-audio-mini", "gpt-audio-mini-2025-12-15"],
+          "replacement": "gpt-audio-1.5",
+          "replacementIds": ["gpt-audio-1.5"]
+        },
+        {
+          "shutdown": "2027-01-20",
+          "shutdownText": "Jan 20, 2027",
+          "item": "gpt-4o-mini-realtime",
+          "ids": ["gpt-4o-mini-realtime"],
+          "replacement": "gpt-realtime-2.1-mini",
+          "replacementIds": ["gpt-realtime-2.1-mini"]
+        },
+        {
+          "shutdown": "2027-01-20",
+          "shutdownText": "Jan 20, 2027",
+          "item": "gpt-4o-mini-audio",
+          "ids": ["gpt-4o-mini-audio"],
+          "replacement": "gpt-audio-1.5",
+          "replacementIds": ["gpt-audio-1.5"]
+        },
+        {
+          "shutdown": "2027-01-20",
+          "shutdownText": "Jan 20, 2027",
+          "item": "gpt-4o-mini-transcribe-2025-03-20",
+          "ids": ["gpt-4o-mini-transcribe-2025-03-20"],
+          "replacement": "gpt-4o-mini-transcribe-2025-12-15",
+          "replacementIds": ["gpt-4o-mini-transcribe-2025-12-15"]
+        }
+      ]
+    },
+    {
+      "announced": "2026-06-11",
+      "title": "GPT-5 and o3 model deprecations",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-06-11-gpt-5-and-o3-model-deprecations",
+      "status": "upcoming",
+      "summary": "On June 11, 2026, we notified developers using older GPT-5 and o3 model snapshots of their deprecation and removal from the API on December 11, 2026.",
+      "rows": [
+        {
+          "shutdown": "2026-12-11",
+          "shutdownText": "Dec 11, 2026",
+          "item": "gpt-5 | gpt-5-2025-08-07",
+          "ids": ["gpt-5", "gpt-5-2025-08-07"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-12-11",
+          "shutdownText": "Dec 11, 2026",
+          "item": "gpt-5-mini | gpt-5-mini-2025-08-07",
+          "ids": ["gpt-5-mini", "gpt-5-mini-2025-08-07"],
+          "replacement": "gpt-5.6-terra",
+          "replacementIds": ["gpt-5.6-terra"]
+        },
+        {
+          "shutdown": "2026-12-11",
+          "shutdownText": "Dec 11, 2026",
+          "item": "gpt-5-nano | gpt-5-nano-2025-08-07",
+          "ids": ["gpt-5-nano", "gpt-5-nano-2025-08-07"],
+          "replacement": "gpt-5.6-luna",
+          "replacementIds": ["gpt-5.6-luna"]
+        },
+        {
+          "shutdown": "2026-12-11",
+          "shutdownText": "Dec 11, 2026",
+          "item": "gpt-5-pro | gpt-5-pro-2025-10-06",
+          "ids": ["gpt-5-pro", "gpt-5-pro-2025-10-06"],
+          "replacement": "gpt-5.6-sol ( reasoning.mode: pro )",
+          "replacementIds": ["gpt-5.6-sol", "reasoning.mode: pro"]
+        },
+        {
+          "shutdown": "2026-12-11",
+          "shutdownText": "Dec 11, 2026",
+          "item": "o3 | o3-2025-04-16",
+          "ids": ["o3", "o3-2025-04-16"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-12-11",
+          "shutdownText": "Dec 11, 2026",
+          "item": "o3-pro | o3-pro-2025-06-10",
+          "ids": ["o3-pro", "o3-pro-2025-06-10"],
+          "replacement": "gpt-5.6-sol ( reasoning.mode: pro )",
+          "replacementIds": ["gpt-5.6-sol", "reasoning.mode: pro"]
+        }
+      ]
+    },
+    {
+      "announced": "2026-06-03",
+      "title": "Reusable prompts",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-06-03-reusable-prompts",
+      "status": "upcoming",
+      "summary": "On June 3, 2026, we notified developers using reusable prompts in the dashboard and API that reusable prompt objects are being deprecated. To migrate, move reusable prompt content into your application code. See Migrate from prompt objects .",
+      "timeline": [
+        {
+          "date": "2026-06-03",
+          "update": "Deprecation announced and prompt creation de-emphasized in the platform."
+        },
+        {
+          "date": "2026-11-30",
+          "update": "The v1/prompts API and reusable prompt objects are scheduled to shut down."
+        }
+      ]
+    },
+    {
+      "announced": "2026-06-03",
+      "title": "Evals platform",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-06-03-evals-platform",
+      "status": "upcoming",
+      "summary": "On June 3, 2026, we notified developers using the Evals platform that the product is being deprecated. Graders documented for eval workflows are part of this transition. Fine-tuning-related timelines remain covered in the self-serve fine-tuning section below. See Moving from OpenAI Evals to Promptfoo for a migration path.",
+      "timeline": [
+        {
+          "date": "2026-06-03",
+          "update": "Deprecation announced for the Evals platform."
+        },
+        {
+          "date": "2026-10-31",
+          "update": "Existing evals become read-only."
+        },
+        {
+          "date": "2026-11-30",
+          "update": "The Evals dashboard and API are scheduled to shut down."
+        }
+      ]
+    },
+    {
+      "announced": "2026-06-03",
+      "title": "Agent Builder",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-06-03-agent-builder",
+      "status": "upcoming",
+      "summary": "On June 3, 2026, we notified developers using Agent Builder that the product is being deprecated. ChatKit remains available. See Migrate from Agent Builder to continue with the Agents SDK or ChatGPT Workspace Agents.",
+      "timeline": [
+        {
+          "date": "2026-06-03",
+          "update": "Deprecation announced for Agent Builder."
+        },
+        {
+          "date": "2026-11-30",
+          "update": "Agent Builder is scheduled to shut down."
+        }
+      ]
+    },
+    {
+      "announced": "2026-06-02",
+      "title": "GPT Image model deprecations",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-06-02-gpt-image-model-deprecations",
+      "status": "upcoming",
+      "summary": "On June 2, 2026, we notified developers using older GPT Image models of their deprecation and removal from the API on December 1, 2026.",
+      "rows": [
+        {
+          "shutdown": "2026-12-01",
+          "shutdownText": "Dec 1, 2026",
+          "item": "gpt-image-1-mini",
+          "ids": ["gpt-image-1-mini"],
+          "replacement": "gpt-image-2.5-sunburst or gpt-image-2.5-flare",
+          "replacementIds": ["gpt-image-2.5-sunburst", "gpt-image-2.5-flare"]
+        },
+        {
+          "shutdown": "2026-12-01",
+          "shutdownText": "Dec 1, 2026",
+          "item": "gpt-image-1.5 | gpt-image-1.5-2025-12-16",
+          "ids": ["gpt-image-1.5", "gpt-image-1.5-2025-12-16"],
+          "replacement": "gpt-image-2.5-sunburst or gpt-image-2.5-flare",
+          "replacementIds": ["gpt-image-2.5-sunburst", "gpt-image-2.5-flare"]
+        },
+        {
+          "shutdown": "2026-12-01",
+          "shutdownText": "Dec 1, 2026",
+          "item": "chatgpt-image-latest",
+          "ids": ["chatgpt-image-latest"],
+          "replacement": "gpt-image-2.5-sunburst or gpt-image-2.5-flare",
+          "replacementIds": ["gpt-image-2.5-sunburst", "gpt-image-2.5-flare"]
+        }
+      ]
+    },
+    {
+      "announced": null,
+      "title": "Update to OpenAI’s self-serve fine-tuning",
+      "link": "https://developers.openai.com/api/docs/deprecations#update-to-openais-self-serve-fine-tuning",
+      "status": "upcoming",
+      "summary": "On May 7th, 2026, we notified developers using OpenAI’s self-serve fine-tuning platform of updates to availability. Inference on fine-tuned models will continue to be available until the base models are deprecated. Past deprecations are listed below, with the most recent announcements at the top.",
+      "timeline": [
+        {
+          "date": "2026-05-07",
+          "update": "Creating fine-tuning jobs or training is not available to organizations that have not previously run fine-tuning."
+        },
+        {
+          "date": "2026-07-02",
+          "update": "Creating fine-tuning jobs is no longer available to organizations that have not run inference on a fine-tuned model in the past 60 days."
+        },
+        {
+          "date": "2027-01-06",
+          "update": "Active existing customers will no longer be able to create new fine-tuning jobs on this date. Inference on fine-tuned models will be disabled only when the underlying base model is deprecated."
+        }
+      ]
+    },
+    {
+      "announced": "2026-09-11",
+      "title": "GPT-5.4-Cyber",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-09-11-gpt-54-cyber",
+      "status": "past",
+      "summary": "The gpt-5.4-cyber model is deprecated and will be removed from the API on October 1, 2026. Migrate to the most capable cyber model available to you before the shutdown date.",
+      "rows": [
+        {
+          "shutdown": "2026-10-01",
+          "shutdownText": "Oct 1, 2026",
+          "item": "gpt-5.4-cyber",
+          "ids": ["gpt-5.4-cyber"],
+          "replacement": "The most capable cyber model available to you.",
+          "replacementIds": []
+        }
+      ]
+    },
+    {
+      "announced": "2026-05-08",
+      "title": "gpt-5.2-chat-latest and gpt-5.3-chat-latest model snapshots",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-05-08-gpt-52-chat-latest-and-gpt-53-chat-latest-model-snapshots",
+      "status": "past",
+      "summary": "On May 8th, 2026, we notified developers using gpt-5.2-chat-latest and gpt-5.3-chat-latest model snapshots of their deprecation and removal from the API.",
+      "rows": [
+        {
+          "shutdown": "2026-08-10",
+          "shutdownText": "Aug 10, 2026",
+          "item": "gpt-5.2-chat-latest",
+          "ids": ["gpt-5.2-chat-latest"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-08-10",
+          "shutdownText": "Aug 10, 2026",
+          "item": "gpt-5.3-chat-latest",
+          "ids": ["gpt-5.3-chat-latest"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        }
+      ]
+    },
+    {
+      "announced": "2026-04-22",
+      "title": "Legacy GPT model snapshots",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-04-22-legacy-gpt-model-snapshots",
+      "status": "past",
+      "summary": "On April 22, 2026, we announced the deprecation of the following older OpenAI models. Access to these models was shut down on October 23, 2026. Fine-tuned versions of these models follow the same shutdown schedule as their underlying base models.",
+      "rows": [
+        {
+          "shutdown": "2026-10-23",
+          "shutdownText": "October 23, 2026",
+          "item": "gpt-3.5-turbo-0125 | gpt-3.5-turbo , gpt-3.5-turbo-completions",
+          "ids": ["gpt-3.5-turbo-0125", "gpt-3.5-turbo", "gpt-3.5-turbo-completions"],
+          "replacement": "gpt-5.6-terra",
+          "replacementIds": ["gpt-5.6-terra"]
+        },
+        {
+          "shutdown": "2026-10-23",
+          "shutdownText": "October 23, 2026",
+          "item": "gpt-4-0613 | gpt-4 , gpt-4-0613-completions , gpt-4-completions",
+          "ids": ["gpt-4-0613", "gpt-4", "gpt-4-0613-completions", "gpt-4-completions"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-10-23",
+          "shutdownText": "October 23, 2026",
+          "item": "gpt-4-1106-preview",
+          "ids": ["gpt-4-1106-preview"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-10-23",
+          "shutdownText": "October 23, 2026",
+          "item": "gpt-4-turbo | gpt-4-turbo-2024-04-09 , gpt-4-turbo-completions",
+          "ids": ["gpt-4-turbo", "gpt-4-turbo-2024-04-09", "gpt-4-turbo-completions"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-10-23",
+          "shutdownText": "October 23, 2026",
+          "item": "gpt-4.1-nano | gpt-4.1-nano-2025-04-14",
+          "ids": ["gpt-4.1-nano", "gpt-4.1-nano-2025-04-14"],
+          "replacement": "gpt-5.6-luna",
+          "replacementIds": ["gpt-5.6-luna"]
+        },
+        {
+          "shutdown": "2026-10-23",
+          "shutdownText": "October 23, 2026",
+          "item": "gpt-4o-2024-05-13",
+          "ids": ["gpt-4o-2024-05-13"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-10-23",
+          "shutdownText": "October 23, 2026",
+          "item": "gpt-image-1",
+          "ids": ["gpt-image-1"],
+          "replacement": "gpt-image-2.5-sunburst or gpt-image-2.5-flare",
+          "replacementIds": ["gpt-image-2.5-sunburst", "gpt-image-2.5-flare"]
+        },
+        {
+          "shutdown": "2026-10-23",
+          "shutdownText": "October 23, 2026",
+          "item": "o1-2024-12-17 | o1",
+          "ids": ["o1-2024-12-17", "o1"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-10-23",
+          "shutdownText": "October 23, 2026",
+          "item": "o1-pro-2025-03-19 | o1-pro",
+          "ids": ["o1-pro-2025-03-19", "o1-pro"],
+          "replacement": "gpt-5.6-sol ( reasoning.mode: pro )",
+          "replacementIds": ["gpt-5.6-sol", "reasoning.mode: pro"]
+        },
+        {
+          "shutdown": "2026-10-23",
+          "shutdownText": "October 23, 2026",
+          "item": "o3-mini-2025-01-31 | o3-mini",
+          "ids": ["o3-mini-2025-01-31", "o3-mini"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-10-23",
+          "shutdownText": "October 23, 2026",
+          "item": "ft-o4-mini-2025-04-16",
+          "ids": ["ft-o4-mini-2025-04-16"],
+          "replacement": "gpt-5.6-terra",
+          "replacementIds": ["gpt-5.6-terra"]
+        },
+        {
+          "shutdown": "2026-10-23",
+          "shutdownText": "October 23, 2026",
+          "item": "o4-mini-2025-04-16 | o4-mini",
+          "ids": ["o4-mini-2025-04-16", "o4-mini"],
+          "replacement": "gpt-5.6-terra",
+          "replacementIds": ["gpt-5.6-terra"]
+        }
+      ]
+    },
+    {
+      "announced": "2026-04-22",
+      "title": "Legacy GPT model snapshots (July 2026 shutdown)",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-04-22-legacy-gpt-model-snapshots-july-2026-shutdown",
+      "status": "past",
+      "summary": "On April 22, 2026, we announced the deprecation of the following older OpenAI models. Access to these models was shut down on July 23, 2026.",
+      "rows": [
+        {
+          "shutdown": "2026-07-23",
+          "shutdownText": "July 23, 2026",
+          "item": "computer-use-preview-2025-03-11 | computer-use-preview",
+          "ids": ["computer-use-preview-2025-03-11", "computer-use-preview"],
+          "replacement": "gpt-5.6-terra",
+          "replacementIds": ["gpt-5.6-terra"]
+        },
+        {
+          "shutdown": "2026-07-23",
+          "shutdownText": "July 23, 2026",
+          "item": "gpt-4o-mini-search-preview-2025-03-11",
+          "ids": ["gpt-4o-mini-search-preview-2025-03-11"],
+          "replacement": "gpt-5.6-terra",
+          "replacementIds": ["gpt-5.6-terra"]
+        },
+        {
+          "shutdown": "2026-07-23",
+          "shutdownText": "July 23, 2026",
+          "item": "gpt-4o-search-preview-2025-03-11",
+          "ids": ["gpt-4o-search-preview-2025-03-11"],
+          "replacement": "gpt-5.6-terra",
+          "replacementIds": ["gpt-5.6-terra"]
+        },
+        {
+          "shutdown": "2026-07-23",
+          "shutdownText": "July 23, 2026",
+          "item": "gpt-5-chat-latest",
+          "ids": ["gpt-5-chat-latest"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-07-23",
+          "shutdownText": "July 23, 2026",
+          "item": "gpt-5-codex",
+          "ids": ["gpt-5-codex"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-07-23",
+          "shutdownText": "July 23, 2026",
+          "item": "gpt-5.1-chat-latest",
+          "ids": ["gpt-5.1-chat-latest"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-07-23",
+          "shutdownText": "July 23, 2026",
+          "item": "gpt-5.1-codex",
+          "ids": ["gpt-5.1-codex"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-07-23",
+          "shutdownText": "July 23, 2026",
+          "item": "gpt-5.1-codex-max",
+          "ids": ["gpt-5.1-codex-max"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-07-23",
+          "shutdownText": "July 23, 2026",
+          "item": "gpt-5.1-codex-mini",
+          "ids": ["gpt-5.1-codex-mini"],
+          "replacement": "gpt-5.6-terra",
+          "replacementIds": ["gpt-5.6-terra"]
+        },
+        {
+          "shutdown": "2026-07-23",
+          "shutdownText": "July 23, 2026",
+          "item": "gpt-audio-mini-2025-10-06",
+          "ids": ["gpt-audio-mini-2025-10-06"],
+          "replacement": "gpt-audio-1.5",
+          "replacementIds": ["gpt-audio-1.5"]
+        },
+        {
+          "shutdown": "2026-07-23",
+          "shutdownText": "July 23, 2026",
+          "item": "gpt-realtime-mini-2025-10-06",
+          "ids": ["gpt-realtime-mini-2025-10-06"],
+          "replacement": "gpt-realtime-2.1-mini",
+          "replacementIds": ["gpt-realtime-2.1-mini"]
+        },
+        {
+          "shutdown": "2026-07-23",
+          "shutdownText": "July 23, 2026",
+          "item": "o3-deep-research-2025-06-26 | o3-deep-research",
+          "ids": ["o3-deep-research-2025-06-26", "o3-deep-research"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-07-23",
+          "shutdownText": "July 23, 2026",
+          "item": "o4-mini-deep-research-2025-06-26 | o4-mini-deep-research",
+          "ids": ["o4-mini-deep-research-2025-06-26", "o4-mini-deep-research"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        },
+        {
+          "shutdown": "2026-07-23",
+          "shutdownText": "July 23, 2026",
+          "item": "gpt-5.2-codex",
+          "ids": ["gpt-5.2-codex"],
+          "replacement": "gpt-5.6-sol",
+          "replacementIds": ["gpt-5.6-sol"]
+        }
+      ]
+    },
+    {
+      "announced": "2026-03-24",
+      "title": "Sora 2 video generation models and Videos API",
+      "link": "https://developers.openai.com/api/docs/deprecations#2026-03-24-sora-2-video-generation-models-and-videos-api",
+      "status": "past",
+      "summary": "On March 24th, 2026, we notified developers using the Videos API and Sora 2 video generation model aliases and snapshots of their deprecation and removal from the API on September 24, 2026.",
+      "rows": [
+        {
+          "shutdown": "2026-09-24",
+          "shutdownText": "2026-09-24",
+          "item": "Videos API",
+          "ids": [],
+          "replacement": "—",
+          "replacementIds": []
+        },
+        {
+          "shutdown": "2026-09-24",
+          "shutdownText": "2026-09-24",
+          "item": "sora-2",
+          "ids": ["sora-2"],
+          "replacement": "—",
+          "replacementIds": []
+        },
+        {
+          "shutdown": "2026-09-24",
+          "shutdownText": "2026-09-24",
+          "item": "sora-2-pro",
+          "ids": ["sora-2-pro"],
+          "replacement": "—",
+          "replacementIds": []
+        },
+        {
+          "shutdown": "2026-09-24",
+          "shutdownText": "2026-09-24",
+          "item": "sora-2-2025-10-06",
+          "ids": ["sora-2-2025-10-06"],
+          "replacement": "—",
+          "replacementIds": []
+        },
+        {
+          "shutdown": "2026-09-24",
+          "shutdownText": "2026-09-24",
+          "item": "sora-2-2025-12-08",
+          "ids": ["sora-2-2025-12-08"],
+          "replacement": "—",
+          "replacementIds": []
+        },
+        {
+          "shutdown": "2026-09-24",
+          "shutdownText": "2026-09-24",
+          "item": "sora-2-pro-2025-10-06",
+          "ids": ["sora-2-pro-2025-10-06"],
+          "replacement": "—",
+          "replacementIds": []
+        }
+      ]
+    },
+    {
+      "announced": "2025-11-18",
+      "title": "chatgpt-4o-latest snapshot",
+      "link": "https://developers.openai.com/api/docs/deprecations#2025-11-18-chatgpt-4o-latest-snapshot",
+      "status": "past",
+      "summary": "On November 18th, 2025, we notified developers using chatgpt-4o-latest model snapshot of its deprecation and removal from the API on February 17, 2026.",
+      "rows": [
+        {
+          "shutdown": "2026-02-17",
+          "shutdownText": "2026-02-17",
+          "item": "chatgpt-4o-latest",
+          "ids": ["chatgpt-4o-latest"],
+          "replacement": "gpt-5.1-chat-latest",
+          "replacementIds": ["gpt-5.1-chat-latest"]
+        }
+      ]
+    },
+    {
+      "announced": "2025-11-17",
+      "title": "codex-mini-latest model snapshot",
+      "link": "https://developers.openai.com/api/docs/deprecations#2025-11-17-codex-mini-latest-model-snapshot",
+      "status": "past",
+      "summary": "On November 17th, 2025, we notified developers using codex-mini-latest model of its deprecation and removal from the API on February 12, 2026. As part of this deprecation, we will no longer support our legacy local shell tool, which is only available for use with codex-mini-latest . For new use cases, please use our latest shell tool.",
+      "rows": [
+        {
+          "shutdown": "2026-02-12",
+          "shutdownText": "2026-02-12",
+          "item": "codex-mini-latest",
+          "ids": ["codex-mini-latest"],
+          "replacement": "gpt-5-codex-mini",
+          "replacementIds": ["gpt-5-codex-mini"]
+        }
+      ]
+    },
+    {
+      "announced": "2025-11-14",
+      "title": "DALL·E model snapshots",
+      "link": "https://developers.openai.com/api/docs/deprecations#2025-11-14-dalle-model-snapshots",
+      "status": "past",
+      "summary": "On November 14th, 2025, we notified developers using DALL·E model snapshots of their deprecation and removal from the API on May 12, 2026.",
+      "rows": [
+        {
+          "shutdown": "2026-05-12",
+          "shutdownText": "2026-05-12",
+          "item": "dall-e-2",
+          "ids": ["dall-e-2"],
+          "replacement": "gpt-image-2 , gpt-image-1 , or gpt-image-1-mini",
+          "replacementIds": ["gpt-image-2", "gpt-image-1", "gpt-image-1-mini"]
+        },
+        {
+          "shutdown": "2026-05-12",
+          "shutdownText": "2026-05-12",
+          "item": "dall-e-3",
+          "ids": ["dall-e-3"],
+          "replacement": "gpt-image-2 , gpt-image-1 , or gpt-image-1-mini",
+          "replacementIds": ["gpt-image-2", "gpt-image-1", "gpt-image-1-mini"]
+        }
+      ]
+    },
+    {
+      "announced": "2025-09-26",
+      "title": "Legacy GPT model snapshots",
+      "link": "https://developers.openai.com/api/docs/deprecations#2025-09-26-legacy-gpt-model-snapshots",
+      "status": "past",
+      "summary": "To improve reliability and make it easier for developers to choose the right models, we deprecated a set of older OpenAI models with declining usage. Access to these models was shut down on September 28, 2026.",
+      "rows": [
+        {
+          "shutdown": "2026-09-28",
+          "shutdownText": "2026-09-28",
+          "item": "gpt-3.5-turbo-instruct",
+          "ids": ["gpt-3.5-turbo-instruct"],
+          "replacement": "gpt-5.6-terra",
+          "replacementIds": ["gpt-5.6-terra"]
+        },
+        {
+          "shutdown": "2026-09-28",
+          "shutdownText": "2026-09-28",
+          "item": "babbage-002",
+          "ids": ["babbage-002"],
+          "replacement": "gpt-5.6-terra",
+          "replacementIds": ["gpt-5.6-terra"]
+        },
+        {
+          "shutdown": "2026-09-28",
+          "shutdownText": "2026-09-28",
+          "item": "davinci-002",
+          "ids": ["davinci-002"],
+          "replacement": "gpt-5.6-terra",
+          "replacementIds": ["gpt-5.6-terra"]
+        },
+        {
+          "shutdown": "2026-09-28",
+          "shutdownText": "2026-09-28",
+          "item": "gpt-3.5-turbo-1106",
+          "ids": ["gpt-3.5-turbo-1106"],
+          "replacement": "gpt-5.6-terra",
+          "replacementIds": ["gpt-5.6-terra"]
+        }
+      ]
+    },
+    {
+      "announced": "2025-09-26",
+      "title": "Legacy GPT model snapshots (March 2026 shutdown)",
+      "link": "https://developers.openai.com/api/docs/deprecations#2025-09-26-legacy-gpt-model-snapshots-march-2026-shutdown",
+      "status": "past",
+      "summary": "To improve reliability and make it easier for developers to choose the right models, we deprecated a set of older OpenAI models with declining usage. Access to these models was shut down on March 26, 2026. *For tasks that are especially latency sensitive and don’t require reasoning",
+      "rows": [
+        {
+          "shutdown": "2026-03-26",
+          "shutdownText": "2026‑03‑26",
+          "item": "gpt-4-0314",
+          "ids": ["gpt-4-0314"],
+          "replacement": "gpt-5 or gpt-4.1*",
+          "replacementIds": ["gpt-5", "gpt-4.1*"]
+        },
+        {
+          "shutdown": "2026-03-26",
+          "shutdownText": "2026‑03‑26",
+          "item": "gpt-4-0125-preview (including gpt-4-turbo-preview and gpt-4-turbo-preview-completions , which point to this snapshot)",
+          "ids": ["gpt-4-0125-preview", "gpt-4-turbo-preview", "gpt-4-turbo-preview-completions"],
+          "replacement": "gpt-5 or gpt-4.1*",
+          "replacementIds": ["gpt-5", "gpt-4.1*"]
+        }
+      ]
+    },
+    {
+      "announced": "2025-09-15",
+      "title": "Realtime API Beta",
+      "link": "https://developers.openai.com/api/docs/deprecations#2025-09-15-realtime-api-beta",
+      "status": "past",
+      "summary": "The Realtime API Beta was deprecated and removed from the API on May 12, 2026. The interfaces in the Realtime beta API and the released GA API have a few key differences. See the migration guide for the current GA interface and related Realtime docs.",
+      "rows": [
+        {
+          "shutdown": "2026-05-12",
+          "shutdownText": "2026‑05‑12",
+          "item": "OpenAI-Beta: realtime=v1",
+          "ids": [],
+          "replacement": "Realtime API",
+          "replacementIds": []
+        }
+      ]
+    },
+    {
+      "announced": "2025-09-15",
+      "title": "gpt-4o-realtime-preview models",
+      "link": "https://developers.openai.com/api/docs/deprecations#2025-09-15-gpt-4o-realtime-preview-models",
+      "status": "past",
+      "summary": "In September, 2025, we notified developers using gpt-4o-realtime-preview models of their deprecation and removal from the API in six months.",
+      "rows": [
+        {
+          "shutdown": "2026-05-07",
+          "shutdownText": "2026-05-07",
+          "item": "gpt-4o-realtime-preview",
+          "ids": ["gpt-4o-realtime-preview"],
+          "replacement": "gpt-realtime-1.5",
+          "replacementIds": ["gpt-realtime-1.5"]
+        },
+        {
+          "shutdown": "2026-05-07",
+          "shutdownText": "2026-05-07",
+          "item": "gpt-4o-realtime-preview-2025-06-03",
+          "ids": ["gpt-4o-realtime-preview-2025-06-03"],
+          "replacement": "gpt-realtime-1.5",
+          "replacementIds": ["gpt-realtime-1.5"]
+        },
+        {
+          "shutdown": "2026-05-07",
+          "shutdownText": "2026-05-07",
+          "item": "gpt-4o-realtime-preview-2024-12-17",
+          "ids": ["gpt-4o-realtime-preview-2024-12-17"],
+          "replacement": "gpt-realtime-1.5",
+          "replacementIds": ["gpt-realtime-1.5"]
+        },
+        {
+          "shutdown": "2026-05-07",
+          "shutdownText": "2026-05-07",
+          "item": "gpt-4o-mini-realtime-preview",
+          "ids": ["gpt-4o-mini-realtime-preview"],
+          "replacement": "gpt-realtime-mini",
+          "replacementIds": ["gpt-realtime-mini"]
+        },
+        {
+          "shutdown": "2026-05-07",
+          "shutdownText": "2026-05-07",
+          "item": "gpt-4o-audio-preview",
+          "ids": ["gpt-4o-audio-preview"],
+          "replacement": "gpt-audio-1.5",
+          "replacementIds": ["gpt-audio-1.5"]
+        },
+        {
+          "shutdown": "2026-05-07",
+          "shutdownText": "2026-05-07",
+          "item": "gpt-4o-mini-audio-preview",
+          "ids": ["gpt-4o-mini-audio-preview"],
+          "replacement": "gpt-audio-mini",
+          "replacementIds": ["gpt-audio-mini"]
+        }
+      ]
+    },
+    {
+      "announced": "2025-08-20",
+      "title": "Assistants API",
+      "link": "https://developers.openai.com/api/docs/deprecations#2025-08-20-assistants-api",
+      "status": "past",
+      "summary": "On August 26th, 2025, we notified developers using the Assistants API of its deprecation and removal from the API one year later, on August 26, 2026. When we released the Responses API in March 2025 , we announced plans to bring all Assistants API features to the easier to use Responses API, with a sunset date in 2026. See the Assistants to Conversations migration guide to learn more about how to migrate your current integration to the Responses API and Conversations API.",
+      "rows": [
+        {
+          "shutdown": "2026-08-26",
+          "shutdownText": "2026‑08‑26",
+          "item": "Assistants API",
+          "ids": [],
+          "replacement": "Responses API and Conversations API",
+          "replacementIds": []
+        }
+      ]
+    },
+    {
+      "announced": "2025-06-10",
+      "title": "gpt-4o-realtime-preview-2024-10-01",
+      "link": "https://developers.openai.com/api/docs/deprecations#2025-06-10-gpt-4o-realtime-preview-2024-10-01",
+      "status": "past",
+      "summary": "On June 10th, 2025, we notified developers using gpt-4o-realtime-preview-2024-10-01 of its deprecation and removal from the API in three months.",
+      "rows": [
+        {
+          "shutdown": "2025-10-10",
+          "shutdownText": "2025-10-10",
+          "item": "gpt-4o-realtime-preview-2024-10-01",
+          "ids": ["gpt-4o-realtime-preview-2024-10-01"],
+          "replacement": "gpt-realtime-1.5",
+          "replacementIds": ["gpt-realtime-1.5"]
+        }
+      ]
+    },
+    {
+      "announced": "2025-06-10",
+      "title": "gpt-4o-audio-preview-2024-10-01",
+      "link": "https://developers.openai.com/api/docs/deprecations#2025-06-10-gpt-4o-audio-preview-2024-10-01",
+      "status": "past",
+      "summary": "On June 10th, 2025, we notified developers using gpt-4o-audio-preview-2024-10-01 of its deprecation and removal from the API in three months.",
+      "rows": [
+        {
+          "shutdown": "2025-10-10",
+          "shutdownText": "2025-10-10",
+          "item": "gpt-4o-audio-preview-2024-10-01",
+          "ids": ["gpt-4o-audio-preview-2024-10-01"],
+          "replacement": "gpt-audio-1.5",
+          "replacementIds": ["gpt-audio-1.5"]
+        }
+      ]
+    },
+    {
+      "announced": "2025-04-28",
+      "title": "text-moderation",
+      "link": "https://developers.openai.com/api/docs/deprecations#2025-04-28-text-moderation",
+      "status": "past",
+      "summary": "On April 28th, 2025, we notified developers using text-moderation of its deprecation and removal from the API in six months.",
+      "rows": [
+        {
+          "shutdown": "2025-10-27",
+          "shutdownText": "2025-10-27",
+          "item": "text-moderation-007",
+          "ids": ["text-moderation-007"],
+          "replacement": "omni-moderation",
+          "replacementIds": ["omni-moderation"]
+        },
+        {
+          "shutdown": "2025-10-27",
+          "shutdownText": "2025-10-27",
+          "item": "text-moderation-stable",
+          "ids": ["text-moderation-stable"],
+          "replacement": "omni-moderation",
+          "replacementIds": ["omni-moderation"]
+        },
+        {
+          "shutdown": "2025-10-27",
+          "shutdownText": "2025-10-27",
+          "item": "text-moderation-latest",
+          "ids": ["text-moderation-latest"],
+          "replacement": "omni-moderation",
+          "replacementIds": ["omni-moderation"]
+        }
+      ]
+    },
+    {
+      "announced": "2025-04-28",
+      "title": "o1-preview and o1-mini",
+      "link": "https://developers.openai.com/api/docs/deprecations#2025-04-28-o1-preview-and-o1-mini",
+      "status": "past",
+      "summary": "On April 28th, 2025, we notified developers using o1-preview and o1-mini of their deprecations and removal from the API in three months and six months respectively.",
+      "rows": [
+        {
+          "shutdown": "2025-07-28",
+          "shutdownText": "2025-07-28",
+          "item": "o1-preview",
+          "ids": ["o1-preview"],
+          "replacement": "o3",
+          "replacementIds": ["o3"]
+        },
+        {
+          "shutdown": "2025-10-27",
+          "shutdownText": "2025-10-27",
+          "item": "o1-mini",
+          "ids": ["o1-mini"],
+          "replacement": "o4-mini",
+          "replacementIds": ["o4-mini"]
+        }
+      ]
+    },
+    {
+      "announced": "2025-04-14",
+      "title": "GPT-4.5-preview",
+      "link": "https://developers.openai.com/api/docs/deprecations#2025-04-14-gpt-45-preview",
+      "status": "past",
+      "summary": "On April 14th, 2025, we notified developers that the gpt-4.5-preview model is deprecated and will be removed from the API in the coming months.",
+      "rows": [
+        {
+          "shutdown": "2025-07-14",
+          "shutdownText": "2025-07-14",
+          "item": "gpt-4.5-preview",
+          "ids": ["gpt-4.5-preview"],
+          "replacement": "gpt-4.1",
+          "replacementIds": ["gpt-4.1"]
+        }
+      ]
+    },
+    {
+      "announced": "2024-10-02",
+      "title": "Assistants API beta v1",
+      "link": "https://developers.openai.com/api/docs/deprecations#2024-10-02-assistants-api-beta-v1",
+      "status": "past",
+      "summary": "In April 2024 when we released the v2 beta version of the Assistants API, we announced that access to the v1 beta would be shut off by the end of 2024. Access to the v1 beta will be discontinued on December 18, 2024. See the Assistants API v2 beta migration guide to learn more about how to migrate your tool usage to the latest version of the Assistants API.",
+      "rows": [
+        {
+          "shutdown": "2024-12-18",
+          "shutdownText": "2024-12-18",
+          "item": "OpenAI-Beta: assistants=v1",
+          "ids": [],
+          "replacement": "OpenAI-Beta: assistants=v2",
+          "replacementIds": []
+        }
+      ]
+    },
+    {
+      "announced": "2024-08-29",
+      "title": "Fine-tuning training on babbage-002 and davinci-002 models",
+      "link": "https://developers.openai.com/api/docs/deprecations#2024-08-29-fine-tuning-training-on-babbage-002-and-davinci-002-models",
+      "status": "past",
+      "summary": "On August 29th, 2024, we notified developers fine-tuning babbage-002 and davinci-002 that new fine-tuning training runs on these models will no longer be supported starting October 28, 2024. Fine-tuned models created from these base models are not affected by this deprecation, but you will no longer be able to create new fine-tuned versions with these models.",
+      "rows": [
+        {
+          "shutdown": "2024-10-28",
+          "shutdownText": "2024-10-28",
+          "item": "New fine-tuning training on babbage-002",
+          "ids": ["babbage-002"],
+          "replacement": "gpt-4o-mini",
+          "replacementIds": ["gpt-4o-mini"]
+        },
+        {
+          "shutdown": "2024-10-28",
+          "shutdownText": "2024-10-28",
+          "item": "New fine-tuning training on davinci-002",
+          "ids": ["davinci-002"],
+          "replacement": "gpt-4o-mini",
+          "replacementIds": ["gpt-4o-mini"]
+        }
+      ]
+    },
+    {
+      "announced": "2024-06-06",
+      "title": "GPT-4-32K and Vision Preview models",
+      "link": "https://developers.openai.com/api/docs/deprecations#2024-06-06-gpt-4-32k-and-vision-preview-models",
+      "status": "past",
+      "summary": "On June 6th, 2024, we notified developers using gpt-4-32k and gpt-4-vision-preview of their upcoming deprecations in one year and six months respectively. As of June 17, 2024, only existing users of these models will be able to continue using them.",
+      "rows": [
+        {
+          "shutdown": "2025-06-06",
+          "shutdownText": "2025-06-06",
+          "item": "gpt-4-32k",
+          "ids": ["gpt-4-32k"],
+          "replacement": "gpt-4o",
+          "replacementIds": ["gpt-4o"]
+        },
+        {
+          "shutdown": "2025-06-06",
+          "shutdownText": "2025-06-06",
+          "item": "gpt-4-32k-0613",
+          "ids": ["gpt-4-32k-0613"],
+          "replacement": "gpt-4o",
+          "replacementIds": ["gpt-4o"]
+        },
+        {
+          "shutdown": "2025-06-06",
+          "shutdownText": "2025-06-06",
+          "item": "gpt-4-32k-0314",
+          "ids": ["gpt-4-32k-0314"],
+          "replacement": "gpt-4o",
+          "replacementIds": ["gpt-4o"]
+        },
+        {
+          "shutdown": "2024-12-06",
+          "shutdownText": "2024-12-06",
+          "item": "gpt-4-vision-preview",
+          "ids": ["gpt-4-vision-preview"],
+          "replacement": "gpt-4o",
+          "replacementIds": ["gpt-4o"]
+        },
+        {
+          "shutdown": "2024-12-06",
+          "shutdownText": "2024-12-06",
+          "item": "gpt-4-1106-vision-preview",
+          "ids": ["gpt-4-1106-vision-preview"],
+          "replacement": "gpt-4o",
+          "replacementIds": ["gpt-4o"]
+        }
+      ]
+    },
+    {
+      "announced": "2023-11-06",
+      "title": "Chat model updates",
+      "link": "https://developers.openai.com/api/docs/deprecations#2023-11-06-chat-model-updates",
+      "status": "past",
+      "summary": "On November 6th, 2023, we announced the release of an updated GPT-3.5-Turbo model (which now comes by default with 16k context) along with deprecation of gpt-3.5-turbo-0613 and gpt-3.5-turbo-16k-0613 . As of June 17, 2024, only existing users of these models will be able to continue using them. Fine-tuned models created from these base models are not affected by this deprecation, but you will no longer be able to create new fine-tuned versions with these models.",
+      "rows": [
+        {
+          "shutdown": "2024-09-13",
+          "shutdownText": "2024-09-13",
+          "item": "gpt-3.5-turbo-0613",
+          "ids": ["gpt-3.5-turbo-0613"],
+          "replacement": "gpt-3.5-turbo",
+          "replacementIds": ["gpt-3.5-turbo"]
+        },
+        {
+          "shutdown": "2024-09-13",
+          "shutdownText": "2024-09-13",
+          "item": "gpt-3.5-turbo-16k-0613",
+          "ids": ["gpt-3.5-turbo-16k-0613"],
+          "replacement": "gpt-3.5-turbo",
+          "replacementIds": ["gpt-3.5-turbo"]
+        }
+      ]
+    },
+    {
+      "announced": "2023-08-22",
+      "title": "Fine-tunes endpoint",
+      "link": "https://developers.openai.com/api/docs/deprecations#2023-08-22-fine-tunes-endpoint",
+      "status": "past",
+      "summary": "On August 22nd, 2023, we announced the new fine-tuning API ( /v1/fine_tuning/jobs ) and that the original /v1/fine-tunes API along with legacy models (including those fine-tuned with the /v1/fine-tunes API) will be shut down on January 04, 2024. This means that models fine-tuned using the /v1/fine-tunes API will no longer be accessible and you would have to fine-tune new models with the updated endpoint and associated base models.",
+      "rows": [
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "/v1/fine-tunes",
+          "ids": ["/v1/fine-tunes"],
+          "replacement": "/v1/fine_tuning/jobs",
+          "replacementIds": ["/v1/fine_tuning/jobs"]
+        }
+      ]
+    },
+    {
+      "announced": "2023-07-06",
+      "title": "GPT and embeddings",
+      "link": "https://developers.openai.com/api/docs/deprecations#2023-07-06-gpt-and-embeddings",
+      "status": "past",
+      "summary": "On July 06, 2023, we announced the upcoming retirements of older GPT-3 and GPT-3.5 models served via the completions endpoint. We also announced the upcoming retirement of our first-generation text embedding models. They will be shut down on January 04, 2024. Pricing for the replacement gpt-3.5-turbo-instruct model can be found on the pricing page . Pricing for the replacement babbage-002 and davinci-002 models can be found on the pricing page .",
+      "rows": [
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-ada-001",
+          "ids": ["text-ada-001"],
+          "replacement": "gpt-3.5-turbo-instruct",
+          "replacementIds": ["gpt-3.5-turbo-instruct"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-babbage-001",
+          "ids": ["text-babbage-001"],
+          "replacement": "gpt-3.5-turbo-instruct",
+          "replacementIds": ["gpt-3.5-turbo-instruct"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-curie-001",
+          "ids": ["text-curie-001"],
+          "replacement": "gpt-3.5-turbo-instruct",
+          "replacementIds": ["gpt-3.5-turbo-instruct"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-davinci-001",
+          "ids": ["text-davinci-001"],
+          "replacement": "gpt-3.5-turbo-instruct",
+          "replacementIds": ["gpt-3.5-turbo-instruct"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-davinci-002",
+          "ids": ["text-davinci-002"],
+          "replacement": "gpt-3.5-turbo-instruct",
+          "replacementIds": ["gpt-3.5-turbo-instruct"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-davinci-003",
+          "ids": ["text-davinci-003"],
+          "replacement": "gpt-3.5-turbo-instruct",
+          "replacementIds": ["gpt-3.5-turbo-instruct"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "ada",
+          "ids": ["ada"],
+          "replacement": "babbage-002",
+          "replacementIds": ["babbage-002"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "babbage",
+          "ids": ["babbage"],
+          "replacement": "babbage-002",
+          "replacementIds": ["babbage-002"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "curie",
+          "ids": ["curie"],
+          "replacement": "davinci-002",
+          "replacementIds": ["davinci-002"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "davinci",
+          "ids": ["davinci"],
+          "replacement": "davinci-002",
+          "replacementIds": ["davinci-002"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "code-davinci-002",
+          "ids": ["code-davinci-002"],
+          "replacement": "gpt-3.5-turbo-instruct",
+          "replacementIds": ["gpt-3.5-turbo-instruct"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-davinci-edit-001",
+          "ids": ["text-davinci-edit-001"],
+          "replacement": "gpt-4o",
+          "replacementIds": ["gpt-4o"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "code-davinci-edit-001",
+          "ids": ["code-davinci-edit-001"],
+          "replacement": "gpt-4o",
+          "replacementIds": ["gpt-4o"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "/v1/edits",
+          "ids": ["/v1/edits"],
+          "replacement": "/v1/chat/completions",
+          "replacementIds": ["/v1/chat/completions"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "ada",
+          "ids": ["ada"],
+          "replacement": "babbage-002",
+          "replacementIds": ["babbage-002"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "babbage",
+          "ids": ["babbage"],
+          "replacement": "babbage-002",
+          "replacementIds": ["babbage-002"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "curie",
+          "ids": ["curie"],
+          "replacement": "davinci-002",
+          "replacementIds": ["davinci-002"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "davinci",
+          "ids": ["davinci"],
+          "replacement": "davinci-002 , gpt-3.5-turbo , gpt-4o",
+          "replacementIds": ["davinci-002", "gpt-3.5-turbo", "gpt-4o"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-similarity-ada-001",
+          "ids": ["text-similarity-ada-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-search-ada-doc-001",
+          "ids": ["text-search-ada-doc-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-search-ada-query-001",
+          "ids": ["text-search-ada-query-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "code-search-ada-code-001",
+          "ids": ["code-search-ada-code-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "code-search-ada-text-001",
+          "ids": ["code-search-ada-text-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-similarity-babbage-001",
+          "ids": ["text-similarity-babbage-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-search-babbage-doc-001",
+          "ids": ["text-search-babbage-doc-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-search-babbage-query-001",
+          "ids": ["text-search-babbage-query-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "code-search-babbage-code-001",
+          "ids": ["code-search-babbage-code-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "code-search-babbage-text-001",
+          "ids": ["code-search-babbage-text-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-similarity-curie-001",
+          "ids": ["text-similarity-curie-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-search-curie-doc-001",
+          "ids": ["text-search-curie-doc-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-search-curie-query-001",
+          "ids": ["text-search-curie-query-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-similarity-davinci-001",
+          "ids": ["text-similarity-davinci-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-search-davinci-doc-001",
+          "ids": ["text-search-davinci-doc-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        },
+        {
+          "shutdown": "2024-01-04",
+          "shutdownText": "2024-01-04",
+          "item": "text-search-davinci-query-001",
+          "ids": ["text-search-davinci-query-001"],
+          "replacement": "text-embedding-3-small",
+          "replacementIds": ["text-embedding-3-small"]
+        }
+      ]
+    },
+    {
+      "announced": "2023-06-13",
+      "title": "Updated chat models",
+      "link": "https://developers.openai.com/api/docs/deprecations#2023-06-13-updated-chat-models",
+      "status": "past",
+      "summary": "On June 13, 2023, we announced new chat model versions in the Function calling and other API updates blog post. The three original versions will be retired in June 2024 at the earliest. As of January 10, 2024, only existing users of these models will be able to continue using them.",
+      "rows": [
+        {
+          "shutdown": null,
+          "shutdownText": "at earliest 2024-06-13",
+          "item": "gpt-4-0314",
+          "ids": ["gpt-4-0314"],
+          "replacement": "gpt-4o",
+          "replacementIds": ["gpt-4o"]
+        },
+        {
+          "shutdown": "2024-09-13",
+          "shutdownText": "2024-09-13",
+          "item": "gpt-3.5-turbo-0301",
+          "ids": ["gpt-3.5-turbo-0301"],
+          "replacement": "gpt-3.5-turbo",
+          "replacementIds": ["gpt-3.5-turbo"]
+        },
+        {
+          "shutdown": "2025-06-06",
+          "shutdownText": "2025-06-06",
+          "item": "gpt-4-32k-0314",
+          "ids": ["gpt-4-32k-0314"],
+          "replacement": "gpt-4o",
+          "replacementIds": ["gpt-4o"]
+        }
+      ]
+    },
+    {
+      "announced": "2023-03-20",
+      "title": "Codex models",
+      "link": "https://developers.openai.com/api/docs/deprecations#2023-03-20-codex-models",
+      "status": "past",
+      "summary": "",
+      "rows": [
+        {
+          "shutdown": "2023-03-23",
+          "shutdownText": "2023-03-23",
+          "item": "code-davinci-002",
+          "ids": ["code-davinci-002"],
+          "replacement": "gpt-4o",
+          "replacementIds": ["gpt-4o"]
+        },
+        {
+          "shutdown": "2023-03-23",
+          "shutdownText": "2023-03-23",
+          "item": "code-davinci-001",
+          "ids": ["code-davinci-001"],
+          "replacement": "gpt-4o",
+          "replacementIds": ["gpt-4o"]
+        },
+        {
+          "shutdown": "2023-03-23",
+          "shutdownText": "2023-03-23",
+          "item": "code-cushman-002",
+          "ids": ["code-cushman-002"],
+          "replacement": "gpt-4o",
+          "replacementIds": ["gpt-4o"]
+        },
+        {
+          "shutdown": "2023-03-23",
+          "shutdownText": "2023-03-23",
+          "item": "code-cushman-001",
+          "ids": ["code-cushman-001"],
+          "replacement": "gpt-4o",
+          "replacementIds": ["gpt-4o"]
+        }
+      ]
+    },
+    {
+      "announced": "2022-06-03",
+      "title": "Legacy endpoints",
+      "link": "https://developers.openai.com/api/docs/deprecations#2022-06-03-legacy-endpoints",
+      "status": "past",
+      "summary": "",
+      "rows": [
+        {
+          "shutdown": "2022-12-03",
+          "shutdownText": "2022-12-03",
+          "item": "/v1/engines",
+          "ids": ["/v1/engines"],
+          "replacement": "/v1/models",
+          "replacementIds": []
+        },
+        {
+          "shutdown": "2022-12-03",
+          "shutdownText": "2022-12-03",
+          "item": "/v1/search",
+          "ids": ["/v1/search"],
+          "replacement": "View transition guide",
+          "replacementIds": []
+        },
+        {
+          "shutdown": "2022-12-03",
+          "shutdownText": "2022-12-03",
+          "item": "/v1/classifications",
+          "ids": ["/v1/classifications"],
+          "replacement": "View transition guide",
+          "replacementIds": []
+        },
+        {
+          "shutdown": "2022-12-03",
+          "shutdownText": "2022-12-03",
+          "item": "/v1/answers",
+          "ids": ["/v1/answers"],
+          "replacement": "View transition guide",
+          "replacementIds": []
+        }
+      ]
+    }
+  ]
+}

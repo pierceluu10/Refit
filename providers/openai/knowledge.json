@@ -1,0 +1,556 @@
+{
+  "provider": "openai",
+  "updatedAt": "2026-11-01",
+  "draftedBy": "Drafted 2026-11-01 by a build agent reading the provider docs over web fetch. Not yet re-drafted by the knowledge agent (core/knowledge.ts), because no model API key was available.",
+  "versioning": {
+    "scheme": "The REST API is versioned by path and is currently v1 (https://api.openai.com/v1/...); responses carry an openai-version header (currently 2020-10-01). OpenAI avoids breaking changes within a major API version; adding resources, optional parameters, response properties and streaming event types counts as backwards compatible. Models are versioned separately as families with aliases and dated snapshots (e.g. gpt-5 | gpt-5-2025-08-07); pin a snapshot for stable behaviour. Breaking change mostly arrives as model and endpoint deprecations with a shutdown date (at least 6 months' notice for generally available models, 3 months for specialized variants, possibly 2 weeks for preview models). First-party client libraries follow semantic versioning.",
+    "source": {
+      "url": "https://developers.openai.com/api/reference/overview",
+      "retrievedAt": "2026-11-01",
+      "quote": "OpenAI provides stability to API users by avoiding breaking changes in major API versions whenever reasonably possible."
+    }
+  },
+  "versions": [
+    {
+      "value": "v1",
+      "status": "current",
+      "notes": "REST API path version; the openai-version response header reports 2020-10-01.",
+      "source": {
+        "url": "https://developers.openai.com/api/reference/overview",
+        "retrievedAt": "2026-11-01",
+        "quote": "The REST API (currently `v1`)"
+      }
+    },
+    {
+      "value": "Realtime API beta (OpenAI-Beta: realtime=v1)",
+      "status": "retired",
+      "retiresAt": "2026-05-12",
+      "notes": "Replaced by the GA Realtime API.",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "The Realtime API Beta was deprecated and removed from the API on May 12, 2026."
+      }
+    },
+    {
+      "value": "Assistants API beta v1",
+      "status": "retired",
+      "retiresAt": "2024-12-18",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "Access to the v1 beta will be discontinued on December 18, 2024."
+      }
+    },
+    {
+      "value": "openai (npm) 7.47.0",
+      "status": "current",
+      "releasedAt": "2026-10-31",
+      "source": {
+        "url": "https://api.github.com/repos/openai/openai-node/releases?per_page=15",
+        "retrievedAt": "2026-11-01",
+        "quote": "## v7.47.0 (v7.47.0, published 2026-10-31T04:46:03Z)"
+      }
+    },
+    {
+      "value": "openai (pypi) 3.42.0",
+      "status": "current",
+      "releasedAt": "2026-10-31",
+      "source": {
+        "url": "https://api.github.com/repos/openai/openai-python/releases?per_page=15",
+        "retrievedAt": "2026-11-01",
+        "quote": "## v3.42.0 (v3.42.0, published 2026-10-31T00:26:41Z)"
+      }
+    }
+  ],
+  "retirements": [
+    {
+      "subject": "GPT-4o, GPT-4o mini, GPT-4.1, GPT-4.1 mini snapshots (gpt-4o-2024-08-06, gpt-4o-2024-11-20, gpt-4o-mini-2024-07-18, gpt-4.1-2025-04-14, gpt-4.1-mini-2025-04-14)",
+      "kind": "model-retirement",
+      "date": "2027-01-14",
+      "replacement": "gpt-6-luna",
+      "notes": "Fine-tuned versions follow the base model's schedule.",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "On October 14, 2026, we notified developers using certain GPT-4 series models of their deprecation and removal from the API on January 14, 2027."
+      }
+    },
+    {
+      "subject": "gpt-5.3-codex",
+      "kind": "model-retirement",
+      "date": "2027-04-01",
+      "replacement": "gpt-6-sol",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "The following models are deprecated and will be removed from the API on April 1, 2027, with six months' notice."
+      }
+    },
+    {
+      "subject": "gpt-5.4-nano, gpt-5.4-nano-2026-03-17",
+      "kind": "model-retirement",
+      "date": "2027-04-01",
+      "replacement": "gpt-6-luna",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "The following models are deprecated and will be removed from the API on April 1, 2027, with six months' notice."
+      }
+    },
+    {
+      "subject": "gpt-5.1, gpt-5.1-2025-11-13",
+      "kind": "model-retirement",
+      "date": "2027-04-01",
+      "replacement": "gpt-6-sol",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "The following models are deprecated and will be removed from the API on April 1, 2027, with six months' notice."
+      }
+    },
+    {
+      "subject": "Text-to-speech models tts-1, tts-1-hd, gpt-4o-mini-tts (2025-03-20 and 2025-12-15 snapshots)",
+      "kind": "model-retirement",
+      "date": "2027-01-06",
+      "replacement": "gpt-realtime-2.1-mini",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "The following text-to-speech models are deprecated and will be removed from the API on January 6, 2027, with at least three months' notice."
+      }
+    },
+    {
+      "subject": "Transcription models whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe (incl. 2025-12-15), gpt-4o-transcribe-diarize",
+      "kind": "model-retirement",
+      "date": "2027-02-26",
+      "replacement": "gpt-live-transcribe or gpt-transcribe",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "On August 26, 2026, we notified developers using `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`, and `gpt-4o-transcribe-diarize` of their deprecation and removal from the API on February 26, 2027."
+      }
+    },
+    {
+      "subject": "/v1/audio/translations",
+      "kind": "endpoint-removed",
+      "date": "2027-02-26",
+      "replacement": "v1/realtime/translations",
+      "notes": "Listed in the 2026-08-26 transcription models table.",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "subject": "Legacy audio and realtime models: gpt-realtime(-2025-08-28), gpt-4o-realtime, gpt-realtime-mini(-2025-12-15), gpt-4o-mini-realtime",
+      "kind": "model-retirement",
+      "date": "2027-01-20",
+      "replacement": "gpt-realtime-2.1 / gpt-realtime-2.1-mini",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "On July 20, 2026, we notified developers using legacy audio, realtime, and transcription model families and snapshots of their deprecation and removal from the API on January 20, 2027."
+      }
+    },
+    {
+      "subject": "Legacy audio models: gpt-audio(-2025-08-28), gpt-4o-audio, gpt-audio-mini(-2025-12-15), gpt-4o-mini-audio",
+      "kind": "model-retirement",
+      "date": "2027-01-20",
+      "replacement": "gpt-audio-1.5",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "On July 20, 2026, we notified developers using legacy audio, realtime, and transcription model families and snapshots of their deprecation and removal from the API on January 20, 2027."
+      }
+    },
+    {
+      "subject": "gpt-4o-mini-transcribe-2025-03-20",
+      "kind": "model-retirement",
+      "date": "2027-01-20",
+      "replacement": "gpt-4o-mini-transcribe-2025-12-15",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "subject": "Older GPT-5 and o3 snapshots: gpt-5, gpt-5-mini, gpt-5-nano, gpt-5-pro, o3, o3-pro (and their dated snapshots)",
+      "kind": "model-retirement",
+      "date": "2026-12-11",
+      "replacement": "gpt-5.6-sol (gpt-5-mini -> gpt-5.6-terra, gpt-5-nano -> gpt-5.6-luna; pro variants use reasoning.mode: pro)",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "On June 11, 2026, we notified developers using older GPT-5 and o3 model snapshots of their deprecation and removal from the API on December 11, 2026."
+      }
+    },
+    {
+      "subject": "Reusable prompts: the v1/prompts API and reusable prompt objects",
+      "kind": "endpoint-removed",
+      "date": "2026-11-30",
+      "replacement": "Move reusable prompt content into application code",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "The `v1/prompts` API and reusable prompt objects are scheduled to shut down."
+      }
+    },
+    {
+      "subject": "Evals platform (dashboard and API)",
+      "kind": "product-shutdown",
+      "date": "2026-11-30",
+      "replacement": "Promptfoo (migration cookbook)",
+      "notes": "Existing evals became read-only on 2026-10-31.",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "The Evals dashboard and API are scheduled to shut down."
+      }
+    },
+    {
+      "subject": "Agent Builder",
+      "kind": "product-shutdown",
+      "date": "2026-11-30",
+      "replacement": "Agents SDK or ChatGPT Workspace Agents",
+      "notes": "ChatKit remains available.",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "Agent Builder is scheduled to shut down."
+      }
+    },
+    {
+      "subject": "GPT Image models gpt-image-1-mini, gpt-image-1.5(-2025-12-16), chatgpt-image-latest",
+      "kind": "model-retirement",
+      "date": "2026-12-01",
+      "replacement": "gpt-image-2.5-sunburst or gpt-image-2.5-flare",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "On June 2, 2026, we notified developers using older GPT Image models of their deprecation and removal from the API on December 1, 2026."
+      }
+    },
+    {
+      "subject": "Self-serve fine-tuning job creation for active existing customers",
+      "kind": "product-shutdown",
+      "date": "2027-01-06",
+      "notes": "Inference on fine-tuned models continues until the base model is deprecated.",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "Active existing customers will no longer be able to create new fine-tuning jobs on this date."
+      }
+    },
+    {
+      "subject": "gpt-5.4-cyber",
+      "kind": "model-retirement",
+      "date": "2026-10-01",
+      "replacement": "The most capable cyber model available to you",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "The `gpt-5.4-cyber` model is deprecated and will be removed from the API on October 1, 2026."
+      }
+    },
+    {
+      "subject": "gpt-5.2-chat-latest, gpt-5.3-chat-latest",
+      "kind": "model-retirement",
+      "date": "2026-08-10",
+      "replacement": "gpt-5.6-sol",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "On May 8th, 2026, we notified developers using `gpt-5.2-chat-latest` and `gpt-5.3-chat-latest` model snapshots of their deprecation and removal from the API."
+      }
+    },
+    {
+      "subject": "Legacy GPT snapshots incl. gpt-3.5-turbo(-0125), gpt-4(-0613), gpt-4-1106-preview, gpt-4-turbo, gpt-4.1-nano, gpt-4o-2024-05-13, gpt-image-1, o1, o1-pro, o3-mini, o4-mini",
+      "kind": "model-retirement",
+      "date": "2026-10-23",
+      "replacement": "gpt-5.6-sol / gpt-5.6-terra / gpt-5.6-luna; gpt-image-2.5-sunburst or gpt-image-2.5-flare for gpt-image-1",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "Access to these models was shut down on October 23, 2026."
+      }
+    },
+    {
+      "subject": "Legacy snapshots incl. computer-use-preview, gpt-4o(-mini)-search-preview, gpt-5-chat-latest, gpt-5-codex, gpt-5.1-codex(-max/-mini), gpt-5.2-codex, o3-deep-research, o4-mini-deep-research",
+      "kind": "model-retirement",
+      "date": "2026-07-23",
+      "replacement": "gpt-5.6-sol or gpt-5.6-terra",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "Access to these models was shut down on July 23, 2026."
+      }
+    },
+    {
+      "subject": "Videos API and Sora 2 models (sora-2, sora-2-pro and snapshots)",
+      "kind": "product-shutdown",
+      "date": "2026-09-24",
+      "notes": "No replacement listed.",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "On March 24th, 2026, we notified developers using the Videos API and Sora 2 video generation model aliases and snapshots of their deprecation and removal from the API on September 24, 2026."
+      }
+    },
+    {
+      "subject": "chatgpt-4o-latest",
+      "kind": "model-retirement",
+      "date": "2026-02-17",
+      "replacement": "gpt-5.1-chat-latest",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "On November 18th, 2025, we notified developers using `chatgpt-4o-latest` model snapshot of its deprecation and removal from the API on February 17, 2026."
+      }
+    },
+    {
+      "subject": "codex-mini-latest and the legacy local shell tool",
+      "kind": "model-retirement",
+      "date": "2026-02-12",
+      "replacement": "gpt-5-codex-mini",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "As part of this deprecation, we will no longer support our legacy local shell tool, which is only available for use with `codex-mini-latest`."
+      }
+    },
+    {
+      "subject": "dall-e-2, dall-e-3",
+      "kind": "model-retirement",
+      "date": "2026-05-12",
+      "replacement": "gpt-image-2, gpt-image-1, or gpt-image-1-mini",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "On November 14th, 2025, we notified developers using DALL·E model snapshots of their deprecation and removal from the API on May 12, 2026."
+      }
+    },
+    {
+      "subject": "gpt-3.5-turbo-instruct, babbage-002, davinci-002, gpt-3.5-turbo-1106",
+      "kind": "model-retirement",
+      "date": "2026-09-28",
+      "replacement": "gpt-5.6-terra",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "Access to these models was shut down on September 28, 2026."
+      }
+    },
+    {
+      "subject": "gpt-4-0314, gpt-4-0125-preview (incl. gpt-4-turbo-preview)",
+      "kind": "model-retirement",
+      "date": "2026-03-26",
+      "replacement": "gpt-5 or gpt-4.1",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "Access to these models was shut down on March 26, 2026."
+      }
+    },
+    {
+      "subject": "Realtime API beta (OpenAI-Beta: realtime=v1 header)",
+      "kind": "api-version",
+      "date": "2026-05-12",
+      "replacement": "Realtime API (GA)",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "The Realtime API Beta was deprecated and removed from the API on May 12, 2026."
+      }
+    },
+    {
+      "subject": "gpt-4o-realtime-preview, gpt-4o-mini-realtime-preview, gpt-4o-audio-preview, gpt-4o-mini-audio-preview (and snapshots)",
+      "kind": "model-retirement",
+      "date": "2026-05-07",
+      "replacement": "gpt-realtime-1.5 / gpt-realtime-mini / gpt-audio-1.5 / gpt-audio-mini",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "In September, 2025, we notified developers using `gpt-4o-realtime-preview` models of their deprecation and removal from the API in six months."
+      }
+    },
+    {
+      "subject": "Assistants API",
+      "kind": "product-shutdown",
+      "date": "2026-08-26",
+      "replacement": "Responses API and Conversations API",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "On August 26th, 2025, we notified developers using the Assistants API of its deprecation and removal from the API one year later, on August 26, 2026."
+      }
+    },
+    {
+      "subject": "Assistants API beta v1",
+      "kind": "api-version",
+      "date": "2024-12-18",
+      "replacement": "Assistants API v2 beta",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "Access to the v1 beta will be discontinued on December 18, 2024."
+      }
+    },
+    {
+      "subject": "/v1/fine-tunes",
+      "kind": "endpoint-removed",
+      "date": "2024-01-04",
+      "replacement": "/v1/fine_tuning/jobs",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "subject": "/v1/edits",
+      "kind": "endpoint-removed",
+      "date": "2024-01-04",
+      "replacement": "/v1/chat/completions",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "subject": "/v1/engines",
+      "kind": "endpoint-removed",
+      "date": "2022-12-03",
+      "replacement": "/v1/models",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01"
+      }
+    }
+  ],
+  "docs": [
+    {
+      "label": "Deprecations (markdown)",
+      "url": "https://developers.openai.com/api/docs/deprecations.md",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "This page lists all API deprecations, along with recommended replacements."
+      }
+    },
+    {
+      "label": "API changelog (markdown)",
+      "url": "https://developers.openai.com/api/docs/changelog.md",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/changelog",
+        "retrievedAt": "2026-11-01",
+        "quote": "The latest features and updates to the OpenAI API."
+      }
+    },
+    {
+      "label": "API reference overview: versioning and backwards compatibility",
+      "url": "https://developers.openai.com/api/reference/overview",
+      "source": {
+        "url": "https://developers.openai.com/api/reference/overview",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Libraries (official SDKs)",
+      "url": "https://developers.openai.com/api/docs/libraries",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/libraries",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Assistants to Responses/Conversations migration guide",
+      "url": "https://developers.openai.com/api/docs/assistants/migration",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/assistants/migration",
+        "retrievedAt": "2026-11-01",
+        "quote": "The Assistants API was officially sunset on August 26, 2026, and is no longer available."
+      }
+    },
+    {
+      "label": "Migrate to the Responses API",
+      "url": "https://developers.openai.com/api/docs/guides/migrate-to-responses",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/guides/migrate-to-responses",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Model shutdown dates via GET /v1/models (shutdown_date field)",
+      "url": "https://developers.openai.com/api/reference/resources/models/methods/list",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/deprecations",
+        "retrievedAt": "2026-11-01",
+        "quote": "To monitor model shutdowns programmatically, call the [List models endpoint](https://developers.openai.com/api/reference/resources/models/methods/list) (`GET /v1/models`) and check each model's optional `shutdown_date` field."
+      }
+    }
+  ],
+  "sdks": [
+    {
+      "ecosystem": "npm",
+      "package": "openai",
+      "repo": "https://github.com/openai/openai-node",
+      "latest": "7.47.0",
+      "source": {
+        "url": "https://api.github.com/repos/openai/openai-node/releases?per_page=15",
+        "retrievedAt": "2026-11-01",
+        "quote": "## v7.47.0 (v7.47.0, published 2026-10-31T04:46:03Z)"
+      }
+    },
+    {
+      "ecosystem": "pypi",
+      "package": "openai",
+      "repo": "https://github.com/openai/openai-python",
+      "latest": "3.42.0",
+      "source": {
+        "url": "https://api.github.com/repos/openai/openai-python/releases?per_page=15",
+        "retrievedAt": "2026-11-01",
+        "quote": "## v3.42.0 (v3.42.0, published 2026-10-31T00:26:41Z)"
+      }
+    },
+    {
+      "ecosystem": "nuget",
+      "package": "OpenAI",
+      "notes": "Official C# library, built with Microsoft.",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/libraries",
+        "retrievedAt": "2026-11-01",
+        "quote": "dotnet add package OpenAI"
+      }
+    },
+    {
+      "ecosystem": "maven",
+      "package": "openai-java",
+      "repo": "https://github.com/openai/openai-java",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/libraries",
+        "retrievedAt": "2026-11-01",
+        "quote": "<artifactId>openai-java</artifactId>"
+      }
+    },
+    {
+      "ecosystem": "go",
+      "package": "github.com/openai/openai-go/v3",
+      "repo": "https://github.com/openai/openai-go",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/libraries",
+        "retrievedAt": "2026-11-01",
+        "quote": "\"github.com/openai/openai-go/v3\""
+      }
+    },
+    {
+      "ecosystem": "rubygems",
+      "package": "openai",
+      "repo": "https://github.com/openai/openai-ruby",
+      "source": {
+        "url": "https://developers.openai.com/api/docs/libraries",
+        "retrievedAt": "2026-11-01",
+        "quote": "official [OpenAI SDK for Ruby](https://github.com/openai/openai-ruby)"
+      }
+    }
+  ]
+}

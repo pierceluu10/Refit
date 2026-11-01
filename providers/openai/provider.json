@@ -1,0 +1,34 @@
+{
+  "id": "openai",
+  "name": "OpenAI API",
+  "sources": [
+    {
+      "id": "deprecations",
+      "kind": "deprecations",
+      "url": "https://developers.openai.com/api/docs/deprecations.md",
+      "format": "markdown",
+      "note": "Markdown copy of the deprecations page (platform.openai.com/docs/deprecations redirects to developers.openai.com and serves a large JS-heavy HTML page). Model and endpoint shutdowns with dates and recommended replacements, newest first."
+    },
+    {
+      "id": "changelog",
+      "kind": "changelog",
+      "url": "https://developers.openai.com/api/docs/changelog.md",
+      "format": "markdown",
+      "note": "Markdown copy of the API changelog. Each entry is tagged with the models and endpoints it touches; model launches and product news are mixed in."
+    },
+    {
+      "id": "openai-node-releases",
+      "kind": "sdk-releases",
+      "url": "https://api.github.com/repos/openai/openai-node/releases?per_page=15",
+      "format": "github-releases",
+      "note": "Releases of the `openai` npm package."
+    },
+    {
+      "id": "openai-python-releases",
+      "kind": "sdk-releases",
+      "url": "https://api.github.com/repos/openai/openai-python/releases?per_page=15",
+      "format": "github-releases",
+      "note": "Releases of the `openai` PyPI package."
+    }
+  ]
+}

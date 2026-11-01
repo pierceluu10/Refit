@@ -1,0 +1,118 @@
+{
+  "note": "Hand-drafted by the build agent from the saved live snapshot to exercise the watcher pipeline with a replay model. Not output of a live model run (no API key was available on 2026-11-01).",
+  "changes": [
+    {
+      "id": "shopify:api-version-2026-10",
+      "kind": "api-version",
+      "title": "API version 2026-10 is the latest stable version, supported until at least October 2027",
+      "effectiveDate": "2026-10-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/release-notes/latest.md",
+        "quote": "2026-10 is the latest stable API version. It's available for production use until at least October 1, 2027 at 15:00 UTC:"
+      },
+      "affects": {
+        "versions": ["2026-10"]
+      }
+    },
+    {
+      "id": "shopify:draft-order-price-rule-removed",
+      "kind": "field-removed",
+      "title": "priceRule removed from DraftOrderDiscountNotAppliedWarning and PriceRule types removed in 2026-10",
+      "effectiveDate": "2026-10",
+      "source": {
+        "url": "https://shopify.dev/changelog/release-notes/latest.md",
+        "quote": "The deprecated `priceRule` field is removed from `DraftOrderDiscountNotAppliedWarning`. The legacy `PriceRule` object and related types are also removed from the public schema."
+      },
+      "affects": {
+        "operations": ["draftOrderCalculate", "draftOrderCreate", "draftOrderUpdate"],
+        "fields": ["DraftOrderDiscountNotAppliedWarning.priceRule", "PriceRule"],
+        "versions": ["2026-10"]
+      }
+    },
+    {
+      "id": "shopify:item-not-stocked-at-location-removed",
+      "kind": "field-removed",
+      "title": "ITEM_NOT_STOCKED_AT_LOCATION error removed from inventory quantity mutations in 2026-10",
+      "effectiveDate": "2026-10",
+      "source": {
+        "url": "https://shopify.dev/changelog/release-notes/latest.md",
+        "quote": "The obsolete `ITEM_NOT_STOCKED_AT_LOCATION` error is removed from `InventoryAdjustQuantities`, `InventoryMoveQuantities`, and `InventorySetOnHandQuantities`, and from the `InventorySetQuantitiesUserErrorCode` enum."
+      },
+      "affects": {
+        "operations": [
+          "inventoryAdjustQuantities",
+          "inventoryMoveQuantities",
+          "inventorySetOnHandQuantities"
+        ],
+        "fields": ["InventorySetQuantitiesUserErrorCode.ITEM_NOT_STOCKED_AT_LOCATION"],
+        "versions": ["2026-10"]
+      }
+    },
+    {
+      "id": "shopify:customer-last-incomplete-checkout-removed",
+      "kind": "field-removed",
+      "title": "Customer Account API removes Customer.lastIncompleteCheckout and the Checkout type in 2026-10",
+      "effectiveDate": "2026-10",
+      "source": {
+        "url": "https://shopify.dev/changelog/release-notes/latest.md",
+        "quote": "The deprecated `Customer.lastIncompleteCheckout` field is removed, along with the unreachable `Checkout` type subtree."
+      },
+      "affects": {
+        "fields": ["Customer.lastIncompleteCheckout", "Checkout"],
+        "versions": ["2026-10"]
+      }
+    },
+    {
+      "id": "shopify:rest-admin-api-legacy",
+      "kind": "rest-to-graphql",
+      "title": "REST Admin API is legacy; new public apps must use the GraphQL Admin API",
+      "effectiveDate": "2025-04-01",
+      "source": {
+        "url": "https://shopify.dev/docs/api/admin-rest.md",
+        "quote": "The REST Admin API is a legacy API as of October 1, 2024. Starting April 1, 2025, all new public apps must be built exclusively with the"
+      },
+      "affects": {
+        "operations": ["/admin/api/{version}/*.json"]
+      }
+    },
+    {
+      "id": "shopify:expiring-offline-access-tokens",
+      "kind": "auth-change",
+      "title": "Migrate to expiring offline access tokens before January 1, 2027",
+      "effectiveDate": "2027-01-01",
+      "source": {
+        "url": "https://shopify.dev/changelog.md",
+        "quote": "Migrate to expiring offline access tokens before January 1, 2027"
+      },
+      "affects": {
+        "operations": ["OAuth token exchange", "offline access tokens"]
+      }
+    },
+    {
+      "id": "shopify:shopify-api-15-events-ids-removed",
+      "kind": "sdk-major",
+      "title": "@shopify/shopify-api 15.0.0 removes eventId and resourceId from events webhook deliveries",
+      "source": {
+        "url": "https://raw.githubusercontent.com/Shopify/shopify-app-js/main/packages/apps/shopify-api/CHANGELOG.md",
+        "quote": "Shopify is dropping the `shopify-event-id` and `shopify-resource-id` headers from events deliveries, so the libraries no longer read them. Both fields are gone from the public types, which makes this a breaking change."
+      },
+      "affects": {
+        "fields": ["eventId", "resourceId"],
+        "sdk": "@shopify/shopify-api@15"
+      }
+    },
+    {
+      "id": "shopify:shopify-api-14-node-22",
+      "kind": "sdk-major",
+      "title": "@shopify/shopify-api 14.0.0 requires Node.js 22 and removes webhook subTopic",
+      "source": {
+        "url": "https://raw.githubusercontent.com/Shopify/shopify-app-js/main/packages/apps/shopify-api/CHANGELOG.md",
+        "quote": "Require Node.js 22 or later. Node.js 20 is no longer supported. Upgrade your runtime to Node.js 22 or newer before updating."
+      },
+      "affects": {
+        "fields": ["subTopic"],
+        "sdk": "@shopify/shopify-api@14"
+      }
+    }
+  ]
+}
