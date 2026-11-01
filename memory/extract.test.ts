@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { JsonRequest, Model } from './ai.ts';
+import { DegradedOutputError, type JsonRequest, type Model } from './ai.ts';
 import { extractRecipe } from './extract.ts';
 import { makeRecipe, makeRecord, makeTask } from './fixtures/tasks.ts';
 import { JsonMemoryStore } from './store.ts';
@@ -138,5 +138,53 @@ describe('extractRecipe', () => {
     expect(prompt).toContain('TAIL-MARKER');
     expect(prompt).toContain(`${transcript.length - 600_000} characters elided`);
     expect(prompt.length).toBeLessThan(610_000);
+  });
+
+  it('retries once when the answer is degraded and marks the run done', async () => {
+    const { store, run } = await setup();
+    const { model: good } = fakeModel();
+    const json = vi
+      .fn()
+      .mockRejectedValueOnce(new DegradedOutputError('stopped by a safety classifier'))
+      .mockImplementation(good.json);
+
+    const recipe = await extractRecipe(run, { store, model: { json }, now: () => NOW });
+
+    expect(json).toHaveBeenCalledTimes(2);
+    expect(await store.listRecipes()).toEqual([recipe]);
+    expect((await store.getRun(run.id))?.extraction).toEqual({
+      status: 'done',
+      recipeId: recipe!.id,
+      at: NOW.toISOString(),
+    });
+  });
+
+  it('saves no recipe and records why when the retry is degraded too', async () => {
+    const { store, run } = await setup();
+    await store.saveRecipe(makeRecipe());
+    const placeholder = { sameAsRecipeId: 'recipe-stripe-charges', preconditions: 'x', steps: ' ' };
+    const json = vi.fn().mockResolvedValue({ ...placeholder, pitfalls: 'x', diffSketch: '' });
+
+    await expect(
+      extractRecipe(run, { store, model: { json }, now: () => NOW }),
+    ).rejects.toBeInstanceOf(DegradedOutputError);
+
+    expect(json).toHaveBeenCalledTimes(2);
+    expect(await store.listRecipes()).toEqual([makeRecipe()]);
+    expect((await store.getRun(run.id))?.extraction).toEqual({
+      status: 'failed',
+      reason: 'Error: Extraction left steps, diffSketch blank',
+      at: NOW.toISOString(),
+    });
+  });
+
+  it('does not retry other errors but still records them on the run', async () => {
+    const { store, run } = await setup();
+    const json = vi.fn().mockRejectedValue(new Error('network down'));
+
+    await expect(extractRecipe(run, { store, model: { json } })).rejects.toThrow('network down');
+
+    expect(json).toHaveBeenCalledTimes(1);
+    expect((await store.getRun(run.id))?.extraction?.status).toBe('failed');
   });
 });

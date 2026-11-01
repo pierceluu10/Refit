@@ -1,8 +1,11 @@
-import { query } from '@anthropic-ai/claude-agent-sdk';
+import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import Anthropic from '@anthropic-ai/sdk';
 import { tmpdir } from 'node:os';
 
 export class BudgetExceededError extends Error {}
+
+// The model's answer was cut off or refused, so its output can't be trusted as guidance.
+export class DegradedOutputError extends Error {}
 
 // In-process dollar ledger. Every model and embedding call in memory/ is charged here.
 // shortcut: lives in one process only; move onto the harness budget ledger once harness/ lands.
@@ -82,7 +85,9 @@ export class AnthropicModel implements Model {
     );
 
     if (response.stop_reason === 'refusal') {
-      throw new Error(`Model refused: ${response.stop_details?.explanation ?? 'no explanation'}`);
+      throw new DegradedOutputError(
+        `Model refused: ${response.stop_details?.explanation ?? 'no explanation'}`,
+      );
     }
     if (response.stop_reason === 'max_tokens') throw new Error('Model output hit max_tokens');
     const text = response.content.flatMap((block) => (block.type === 'text' ? [block.text] : []));
@@ -99,12 +104,16 @@ function worstCaseUsd({ system, prompt, schema, maxTokens }: Required<JsonReques
 // Same contract through the Claude Agent SDK, using the machine's logged-in Claude Code credentials.
 // Charges the SDK's own cost estimate (total_cost_usd), not a bill, and caps the query at what is left.
 export class AgentSdkModel implements Model {
-  constructor(private readonly budget: Budget) {}
+  constructor(
+    private readonly budget: Budget,
+    private readonly run: typeof query = query,
+  ) {}
 
   async json<T>({ system, prompt, schema, maxTokens = 16_000 }: JsonRequest): Promise<T> {
     this.budget.reserve(worstCaseUsd({ system, prompt, schema, maxTokens }));
     let result;
-    for await (const message of query({
+    let interrupted: string | undefined;
+    for await (const message of this.run({
       prompt,
       options: {
         model: MODEL,
@@ -119,14 +128,36 @@ export class AgentSdkModel implements Model {
       },
     })) {
       if (message.type === 'result') result = message;
+      interrupted ??= interruption(message);
     }
     if (!result) throw new Error('Agent SDK returned no result');
     this.budget.charge(result.total_cost_usd);
+    // The model may "recover" after an interruption with placeholder text, so distrust the whole answer.
+    if (interrupted)
+      throw new DegradedOutputError(`Agent SDK answer was interrupted: ${interrupted}`);
     if (result.subtype !== 'success' || result.structured_output === undefined) {
       throw new Error(`Agent SDK query failed: ${result.subtype}`);
     }
     return result.structured_output as T;
   }
+}
+
+function interruption(message: SDKMessage): string | undefined {
+  if (
+    message.type === 'system' &&
+    (message.subtype === 'model_refusal_fallback' ||
+      message.subtype === 'model_refusal_no_fallback')
+  ) {
+    return message.content;
+  }
+  // shortcut: a mid-answer classifier stop reaches the stream only as this notice to the model; switch to a structured signal if the SDK adds one.
+  if (
+    message.type === 'user' &&
+    JSON.stringify(message.message.content).includes('stopped by a safety classifier')
+  ) {
+    return 'stopped by a safety classifier';
+  }
+  return undefined;
 }
 
 // Source: Voyage AI list price for voyage-code-3, $0.18 per million tokens, recalled 2026-11-01 and not re-checked.

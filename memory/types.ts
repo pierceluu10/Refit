@@ -10,6 +10,10 @@ export type StoredRun = {
   record: RunRecord;
   transcript: string;
   usedRecipeIds: string[];
+  // Set once extraction has been tried; a failed one can be re-extracted later.
+  extraction?:
+    | { status: 'done'; recipeId: string; at: string }
+    | { status: 'failed'; reason: string; at: string };
 };
 
 // A recipe verified on enough repos becomes a skill: a reusable prompt block the harness injects.

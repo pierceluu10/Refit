@@ -12,6 +12,7 @@ export interface MemoryStore {
     transcript?: string;
     usedRecipeIds?: string[];
   }): Promise<StoredRun>;
+  saveRun(run: StoredRun): Promise<void>;
   getRun(id: string): Promise<StoredRun | undefined>;
   listRuns(): Promise<StoredRun[]>;
   // Matches by run id or by PR URL, since the GitHub App only knows the PR.
@@ -55,6 +56,10 @@ export class JsonMemoryStore implements MemoryStore {
     };
     await this.write('runs', run.id, run);
     return run;
+  }
+
+  saveRun(run: StoredRun) {
+    return this.write('runs', run.id, run);
   }
 
   getRun(id: string) {

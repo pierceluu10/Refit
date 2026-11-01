@@ -10,6 +10,8 @@ Aptitude's self-learning (Otabek, O3). Memory is guidance the agent reads, never
 | Skills            | `promoteSkills`, `recordSkillOutcome`            | A recipe verified on 3+ repos becomes a skill (a reusable prompt block). A skill that fails twice after promotion is demoted back to an ordinary recipe.                                       |
 | Self-eval         | `runSelfEval(deps)`                              | Reruns a fixed set of past tasks with today's memory through the harness's `RunTask` and reports whether the verified rate moved.                                                              |
 
+If the model's answer is degraded (a safety classifier interrupted it, it refused, or it left a field blank), extraction retries once. If the retry is degraded too, no recipe is saved or merged, and the run is marked `extraction: { status: 'failed', reason }` so it can be re-extracted later. The migration itself is never blocked.
+
 The orchestrator calls `learnFromRun({ task, record, transcript, usedRecipeIds })` after each run, and the GitHub App calls `recordVerdict(prUrl, verdict)` when a PR is merged, closed or edited.
 
 ## Keys and budget

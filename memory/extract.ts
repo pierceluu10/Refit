@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import type { Model } from './ai.ts';
+import { DegradedOutputError, type Model } from './ai.ts';
 import type { MemoryStore } from './store.ts';
 import type { MemoryRecipe, StoredRun } from './types.ts';
 
@@ -48,13 +48,20 @@ export async function extractRecipe(
     (recipe) => recipe.provider === provider,
   );
 
-  const result = await deps.model.json<Extraction>({
-    system: SYSTEM,
-    prompt: buildPrompt(run, existing),
-    schema: SCHEMA,
-  });
-  const { sameAsRecipeId, ...guidance } = result;
   const now = (deps.now?.() ?? new Date()).toISOString();
+
+  let result: Extraction;
+  try {
+    result = await distil(run, existing, deps.model);
+  } catch (error) {
+    // Save nothing that could mislead later prompts; mark the run so it can be re-extracted.
+    await deps.store.saveRun({
+      ...run,
+      extraction: { status: 'failed', reason: String(error), at: now },
+    });
+    throw error;
+  }
+  const { sameAsRecipeId, ...guidance } = result;
   const same = existing.find((recipe) => recipe.id === sameAsRecipeId);
 
   let recipe: MemoryRecipe;
@@ -83,7 +90,28 @@ export async function extractRecipe(
     };
   }
   await deps.store.saveRecipe(recipe);
+  await deps.store.saveRun({
+    ...run,
+    extraction: { status: 'done', recipeId: recipe.id, at: now },
+  });
   return recipe;
+}
+
+// One retry when the answer comes back degraded; any other error goes straight up.
+async function distil(run: StoredRun, existing: MemoryRecipe[], model: Model): Promise<Extraction> {
+  const request = { system: SYSTEM, prompt: buildPrompt(run, existing), schema: SCHEMA };
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const result = await model.json<Extraction>(request);
+      const blank = (['preconditions', 'steps', 'pitfalls', 'diffSketch'] as const).filter(
+        (field) => !result[field]?.trim(),
+      );
+      if (blank.length) throw new DegradedOutputError(`Extraction left ${blank.join(', ')} blank`);
+      return result;
+    } catch (error) {
+      if (!(error instanceof DegradedOutputError) || attempt === 2) throw error;
+    }
+  }
 }
 
 function buildPrompt(run: StoredRun, existing: MemoryRecipe[]): string {
