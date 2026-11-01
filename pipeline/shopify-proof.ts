@@ -21,7 +21,7 @@ import {
 } from 'graphql';
 import type { AiOptions } from './ai-budget.ts';
 import type { EvidenceGrade } from './check-selection.ts';
-import { reviewShopifyPatch, writeShopifyLiveCases } from './shopify-ai.ts';
+import { writeShopifyLiveCases } from './shopify-ai.ts';
 import {
   documentLocation,
   scanShopify,
@@ -721,17 +721,7 @@ export async function shopifyProof(options: {
   return finish(live);
 
   async function finish(live: ShopifyLiveProof | undefined) {
-    const review = options.ai
-      ? await reviewShopifyPatch({
-          ai: options.ai,
-          diff: options.diff,
-          summary: options.summary,
-          versions,
-          schemaProof: schema,
-          warnings: options.warnings,
-        })
-      : undefined;
-    const costs = [liveCases?.costUsd, review?.costUsd].filter(
+    const costs = [liveCases?.costUsd].filter(
       (value): value is number => typeof value === 'number',
     );
     return {
@@ -740,7 +730,6 @@ export async function shopifyProof(options: {
         schema,
         ...(live ? { live } : {}),
         ...(liveCases ? { liveCases } : {}),
-        ...(review ? { review } : {}),
         ...(options.ai ? { aiCostUsd: costs.reduce((sum, value) => sum + value, 0) } : {}),
       },
     };

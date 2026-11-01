@@ -59,13 +59,7 @@ Every rule's quote must be in its saved page (`docs/benchmarks/shopify-changelog
 
 ### Migrations
 
-A `graphql-migration` rule names a transform in `pipeline/shopify-migrations.ts`. Unlike a rename, it also edits the code around the document: the variables the call sends and the code's reads of the response. It may be `auto` because the transform rewrites every read it allows and refuses any other, the rewritten document must validate on the target, and where the variables change shape the development store must run the operation before the patch can be graded above D ([Shopify proof](SHOPIFY-PROOF.md)). One transform exists:
-
-- `variants-bulk-update` (`shopify-product-variant-update-to-bulk-update`): `productVariantUpdate(input: $input)` becomes `productVariantsBulkUpdate(productId: $productId, variants: $variants)`, as Shopify's Remix app template made the change in commit `bd7c2efd`. The call sends `productId: <product>.id` and `variants: [<the old input>]`, and reads of `.productVariantUpdate.productVariant` read `.productVariantsBulkUpdate.productVariants[0]`. It stops unless the document is one mutation with only that field, its payload selects only `productVariant` and `userErrors`, the input is an object literal sending only `id`, `price`, `compareAtPrice`, `barcode`, `taxable`, `taxCode` or `inventoryPolicy`, the variant ID is read as `<product>.variants.edges[n].node.id` (or `.nodes[n].id`) from a response whose document selects the product's `id`, and every read of the response goes through `data.productVariantUpdate.productVariant` or `.userErrors`.
-
-The GraphQL specification's "All Variables Used" rule is fixed the same way without a table entry (`graphql-unused-variable`): Shopify rejects a document that declares a variable it never uses on every version, so the declaration is removed. The value the code still sends is ignored; the development store case for a query sends it to show that.
-
-The other migrations the round-3 diagnosis lists (`Shop` policy fields, `Order.financialStatus` and `fulfillmentStatus`, `Customer.ordersCount`, the `ProductVariant` fields moved to `inventoryItem`, `AppPlanV2` spreads) have no rule yet: Shopify's pages for them predate the pinned schemas and are no longer published as Markdown, and `Order.financialStatus` and `fulfillmentStatus` look never to have existed in the Admin GraphQL API. None of the rows that use them would validate from that rule alone (each has other failing fields).
+A `graphql-migration` rule records a documented replacement that changes the document's shape. Refit no longer applies rules itself: the tables are checked changelog data, quoted to the agent fixer as context ([Shopify](SHOPIFY.md#agent-fixer)).
 
 ## Alerts
 

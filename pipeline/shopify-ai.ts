@@ -12,13 +12,10 @@ import {
 import { usageCostUsd, type AiOptions } from './ai-budget.ts';
 import { requestStructuredOutput, UnusableAiResponse } from './openai.ts';
 import type { ShopifyLiveCase } from './shopify-live-proof.ts';
-import type { ShopifySchemaProof } from './shopify-proof.ts';
 
-// The two AI uses Shopify proof makes (docs/SHOPIFY-META-ENGINES.md, AI uses 3 and 5). Both are
-// bounded: the model writes inputs that Refit checks and runs itself, or an opinion that is recorded
-// and shown, and neither can raise a grade or clear a stop on its own.
+// The AI use Shopify proof makes (docs/SHOPIFY-META-ENGINES.md, AI use 3): the model writes inputs
+// that Refit checks and runs itself, and it cannot raise a grade on its own.
 
-const MAX_DIFF = 60_000;
 const MAX_INPUT_TYPES = 40;
 
 export interface ShopifyAiRecord {
@@ -191,79 +188,5 @@ export async function writeShopifyLiveCases(options: {
     };
   } catch (error) {
     return { record: { ...failure(options.ai, error), dropped: [] }, cases: [] };
-  }
-}
-
-export interface ShopifyReview extends ShopifyAiRecord {
-  // Advisory only: recorded and shown in the draft, never a gate and never proof.
-  advisory: true;
-  verdict?: 'no-concerns' | 'concerns';
-  concerns?: { file: string; line: number; concern: string }[];
-}
-
-const REVIEW_INSTRUCTIONS = `You are a second reviewer of a Shopify migration patch Refit wrote. Refit has already validated the GraphQL documents against the target Admin API schema; its result is given. Read the diff and name only concrete problems a Shopify app developer would need to fix before merging: behaviour the version change alters that schema validation cannot see (semantics, defaults, pagination, rate limits, webhooks, REST calls), code the patch breaks, or an edit that does not do what its summary says. Do not repeat what the schema proof states. Return verdict "no-concerns" with an empty list when you find none. Each concern names a file and line from the diff.`;
-
-// AI use 5: a second opinion on every Shopify patch. Its verdict is advisory: it never clears a stop,
-// never sets the grade and never blocks publication.
-export async function reviewShopifyPatch(options: {
-  ai: AiOptions;
-  diff: string;
-  summary: string;
-  versions: { before: string; after: string };
-  schemaProof: Pick<ShopifySchemaProof, 'status' | 'reason'>;
-  warnings: readonly string[];
-}): Promise<ShopifyReview> {
-  try {
-    const response = await requestStructuredOutput(
-      {
-        name: 'shopify_patch_review',
-        instructions: REVIEW_INSTRUCTIONS,
-        evidence: {
-          versions: options.versions,
-          summary: options.summary,
-          schemaProof: options.schemaProof,
-          warnings: options.warnings,
-          diff:
-            options.diff.length > MAX_DIFF
-              ? `${options.diff.slice(0, MAX_DIFF)}\n[diff truncated]`
-              : options.diff,
-        },
-        schema: {
-          type: 'object',
-          additionalProperties: false,
-          required: ['verdict', 'concerns'],
-          properties: {
-            verdict: { type: 'string', enum: ['no-concerns', 'concerns'] },
-            concerns: {
-              type: 'array',
-              items: {
-                type: 'object',
-                additionalProperties: false,
-                required: ['file', 'line', 'concern'],
-                properties: {
-                  file: { type: 'string' },
-                  line: { type: 'integer' },
-                  concern: { type: 'string' },
-                },
-              },
-            },
-          },
-        },
-      },
-      options.ai,
-    );
-    const answer = JSON.parse(response.content) as {
-      concerns: NonNullable<ShopifyReview['concerns']>;
-    };
-    return {
-      advisory: true,
-      status: 'completed',
-      model: response.model,
-      costUsd: cost(response),
-      verdict: answer.concerns.length ? 'concerns' : 'no-concerns',
-      concerns: answer.concerns.slice(0, 20),
-    };
-  } catch (error) {
-    return { advisory: true, ...failure(options.ai, error) };
   }
 }

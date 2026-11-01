@@ -1,6 +1,6 @@
 # Shopify proof
 
-Written 2026-10-29. This covers the Proof column of [Shopify and Meta Graph engines](SHOPIFY-META-ENGINES.md), and AI uses 3 (behaviour tests) and 5 (second opinion). Proof levels are the ones in [Proof-based validation](PROOF-BASED-VALIDATION.md).
+Written 2026-10-29. This covers the Proof column of [Shopify and Meta Graph engines](SHOPIFY-META-ENGINES.md), and AI use 3 (behaviour tests). Proof levels are the ones in [Proof-based validation](PROOF-BASED-VALIDATION.md).
 
 Shopify publishes a GraphQL schema for each Admin API version. Every document the code sends can be checked against the schema of the version it will run on. That is the main proof for a Shopify patch, ahead of the repository's own checks.
 
@@ -54,13 +54,11 @@ A codegen configuration the patch changes only in its version pin (`codegenPinFi
 
 Passing checks without schema proof stay grade D, because they say nothing about the documents.
 
-A patch that changes a document's variable definitions (a migration in `pipeline/shopify-migrations.ts`) is also grade D unless the development store ran every such operation and it passed: schema validation cannot see whether the code sends what the document now declares. The migration writes that operation's case itself (a product it creates, the variant it updates, the keys the code sends with stand-ins where the code computes a value, and the product deleted afterwards). Where the original document already fails on the before version, the live run sends the patched document at both versions.
+A patch that changes a document's variable definitions is also grade D unless the development store ran every such operation and it passed: schema validation cannot see whether the code sends what the document now declares. The migration writes that operation's case itself (a product it creates, the variant it updates, the keys the code sends with stand-ins where the code computes a value, and the product deleted afterwards). Where the original document already fails on the before version, the live run sends the patched document at both versions.
 
-## AI second opinion (advisory)
+The advisory AI second opinion was removed on 2026-10-31; the agent fixer's summary says what it could not verify.
 
-With `--assess` (or `--ai-patch`), every Shopify patch gets a second opinion (`reviewShopifyPatch`). The model reads the diff, the summary, the warnings and the schema proof's result. It names concrete problems that schema validation cannot see. Its verdict is recorded under `validation.shopifyProof.review`, and the draft shows it as "AI Second Opinion (advisory; it does not change the grade)". It never sets the grade, clears a stop or holds a draft.
-
-The cost of each AI request is recorded: `review.costUsd`, `liveCases.costUsd`, and their sum, `aiCostUsd`. The Shopify benchmark copies the grade, both proof statuses and `aiCostUsd` into each row, and passes `--assess` to `refit run` with `npm run benchmark:shopify -- --validate --assess`.
+The cost of each AI request is recorded: `liveCases.costUsd`, and the total, `aiCostUsd`. The Shopify benchmark copies the grade, both proof statuses and `aiCostUsd` into each row, and passes `--assess` to `refit run` with `npm run benchmark:shopify -- --validate --assess`.
 
 ## The judge (`shopifyJudge`)
 

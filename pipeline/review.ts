@@ -1,5 +1,4 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
-import type { ShopifyReview } from './shopify-ai.ts';
 import { join, resolve } from 'node:path';
 import { structuredPatch } from 'diff';
 import ts from 'typescript-compiler';
@@ -658,10 +657,6 @@ export function createReviewArtifacts(
   ).toLowerCase();
   // O2's evidence grade: what the passing checks proved about the changed files.
   const grade = 'grade' in validation ? validation.grade : undefined;
-  const shopifyReview =
-    'shopifyProof' in validation
-      ? (validation.shopifyProof as { review?: ShopifyReview }).review
-      : undefined;
   // A passing patch graded D, which no check fully reached, publishes only as [Needs review]
   // (AGENTS.md, 2026-10-24).
   const unchecked =
@@ -1487,21 +1482,6 @@ export function createReviewArtifacts(
           ? `- Evidence Grade: **${grade.letter ? `${grade.letter}, ` : ''}${EVIDENCE_LABELS[grade.level]}.** ${plainText(grade.reason)}`
           : `- Evidence Strength: ${evidenceStrength(validation, generatedPassed)}`,
         `- Test Suite Output: ${checks}${generatedResult}`,
-        // AI use 5 (docs/SHOPIFY-PROOF.md): advisory, it never sets the grade or holds the draft.
-        ...(shopifyReview?.status === 'completed'
-          ? [
-              `- AI Second Opinion (advisory; it does not change the grade): ${
-                shopifyReview.concerns?.length
-                  ? summaryList(
-                      shopifyReview.concerns.map(
-                        (entry) =>
-                          `${code(`${entry.file}:${entry.line}`)} ${plainText(entry.concern)}`,
-                      ),
-                    )
-                  : 'no concerns.'
-              }`,
-            ]
-          : []),
         // Owner decision D2a: the type check stood in for tests the repository does not have.
         ...(validation.coverageAi?.gate?.typeCheckOnly
           ? [

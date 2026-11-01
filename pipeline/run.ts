@@ -83,7 +83,6 @@ import {
 } from './api-version.ts';
 import { PipelineInputError, type Finding, type Repository, type SourceEdit } from './types.ts';
 import { digest, findRemovedProperties, isObject, readSpecification } from './specifications.ts';
-import { shopifySnapshotPath } from './shopify-schemas.ts';
 import { stripeAdapterFor } from './stripe-operations.ts';
 import {
   addTypeEvidence,
@@ -149,8 +148,6 @@ async function runOpenApiPipeline(options: {
   // Validation only: of several committed lockfiles, the one preparation installs; the stripe-node
   // upgrade edits that one alone (dependency-inputs.ts chosenLockfile).
   lockfile?: string;
-  // Shopify only: propose the SDK major upgrade a target version needs (docs/SHOPIFY-SDK-UPGRADE.md).
-  shopifySdkUpgrade?: boolean;
   // Validation only: subscription-period reads its patched type check rejected (analyzer.ts).
   typeCheckedPeriodReads?: { file: string; position: number }[];
   onProgress?: (message: string) => void;
@@ -1147,10 +1144,6 @@ export async function runPipeline(
     proposePatch: options.proposePatch,
     apiVersion: validateApiVersion(options.apiVersion),
     apiVersionPolicy: validateApiVersionPolicy(options.apiVersionPolicy),
-    sdkUpgrade: options.shopifySdkUpgrade,
     aiPatch: options.aiPatch,
-    lockfileResolution: options.lockfileResolution,
-    snapshot: async (version) =>
-      readSpecification(await shopifySnapshotPath(version, options.after)),
   })) as unknown as PipelineReport;
 }

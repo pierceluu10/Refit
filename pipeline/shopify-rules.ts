@@ -31,15 +31,14 @@ import { isObject } from './specifications.ts';
 //   which must exist at the table's version.
 // - webhook-topic-rename: a WebhookSubscriptionTopic value and its documented replacement.
 // - graphql-migration: a documented replacement that changes the document's shape (arguments,
-//   payload), made by a named transform in pipeline/shopify-migrations.ts that also rewrites the
-//   variables the call sends and the code's reads of the response. The replacement must exist at the
-//   table's version.
+//   payload), named by the transform the old migration engine used. The replacement must exist at
+//   the table's version.
 // - package-major: a documented call rewrite in a major release of a Shopify npm package (table
 //   api `packages`, no schema version); only the quote and the published release are checked.
 // Founder decision (2026-10-29, relayed by the coordinating session: "proof decides, not caution")
 // replaces D3's benchmark requirement for Shopify: a rule may be `auto` when the schema diff confirms
 // the change, every edited document must validate on the target schema before a patch is kept
-// (pipeline/shopify-document-rules.ts and SH4's proof), and the response keys the code reads are
+// (SH4's proof), and the response keys the code reads are
 // unchanged. A `graphql-migration` keeps the keys the code reads by rewriting those reads, and its
 // transform refuses any read it cannot rewrite; where the variables change shape, the development
 // store must run the operation (pipeline/shopify-proof.ts). Otherwise only two families can promise
@@ -65,7 +64,8 @@ export const keysPreserved = (rule: Record<string, unknown>) =>
   (rule.family === 'graphql-rename' &&
     String(rule.coordinate).includes('.') &&
     owner(String(rule.coordinate)) === owner(String(rule.replacement)));
-// The transforms pipeline/shopify-migrations.ts implements.
+// The transform names a `graphql-migration` rule may carry; since 2026-10-31 Refit applies no rule
+// itself, and the agent fixer gets the tables as context.
 export const SHOPIFY_MIGRATIONS = ['variants-bulk-update'] as const;
 export const SHOPIFY_RULE_FAMILIES = [
   'graphql-rename',

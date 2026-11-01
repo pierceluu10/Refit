@@ -1,5 +1,4 @@
 import { existsSync, readFileSync } from 'node:fs';
-import type { GraphQLSchema } from 'graphql';
 import ts from 'typescript-compiler';
 import type { ShopifyScan } from './shopify-analysis.ts';
 
@@ -76,14 +75,6 @@ interface RestRequest {
   body?: ts.Expression;
 }
 
-type Transport =
-  | { kind: 'fetch'; prefix: Part[]; options?: ts.ObjectLiteralExpression }
-  | { kind: 'axios'; prefix: Part[]; receiver: string; config?: ts.ObjectLiteralExpression }
-  | { kind: 'remix'; admin: string }
-  | { kind: 'client'; variable: string; declaration: ts.VariableStatement }
-  | { kind: 'resource-remix'; admin: string; operation: string }
-  | { kind: 'resource'; factory: string; session: string; operation: string };
-
 // What the code does with the response: REST body paths it reads ('[]' steps into an array),
 // whether a read uses the whole value, and the reads Refit cannot follow.
 export interface Read {
@@ -107,17 +98,12 @@ export interface RestTrace {
 interface Trace {
   reads: Read[];
   stops: string[];
-  pagination: boolean;
-  // A read the contract check accepts but a GraphQL adapter does not rebuild (the body as text).
-  unrebuilt?: string;
 }
 
 export interface RestStop {
   status: 'stopped';
   entry: ShopifyScan['rest'][number];
   reason: string;
-  // Present when Refit understands the call's request.
-  request?: { method: string; path: string; query: string[]; reads: string[]; transport: string };
   trace?: RestTrace;
   // A `new <shopify>.clients.Rest(...)` construction: where each use of the client is called, or
   // null when a use is anything but a call on it.
@@ -529,11 +515,7 @@ function follow(
         if (name === 'json' && called) return next(called, { kind: 'body', path: [] }, true);
         if (name === 'ok' || name === 'status' || name === 'statusText') return;
         // `text()` is the whole body as a string.
-        if (name === 'text' && called) {
-          trace.unrebuilt =
-            "The code reads the response's `text`, which the rewrite cannot rebuild.";
-          return void trace.reads.push({ path: [], whole: true });
-        }
+        if (name === 'text' && called) return void trace.reads.push({ path: [], whole: true });
         return void trace.stops.push(
           `The code reads the response's \`${name}\`, which the rewrite cannot rebuild.`,
         );
@@ -545,17 +527,15 @@ function follow(
         );
       case 'client':
         if (name === 'body') return next(access, { kind: 'body', path: [] });
-        if (name === 'pageInfo') return void (trace.pagination = true);
+        if (name === 'pageInfo') return;
         return void trace.stops.push(
           `The code reads the response's \`${name}\`, which the rewrite cannot rebuild.`,
         );
       case 'resource-all':
         if (name === 'data') return next(access, { kind: 'body', path: ['[]'] });
-        if (name === 'pageInfo') return void (trace.pagination = true);
+        if (name === 'pageInfo') return;
         // The SDK's result object has no `length`: the read is undefined in every version.
-        if (name === 'length' && !called)
-          return void (trace.unrebuilt =
-            "The code reads the result's `length`, which the rewrite cannot rebuild.");
+        if (name === 'length' && !called) return;
         return void trace.stops.push(
           `The code reads the result's \`${name}\`, which the rewrite cannot rebuild.`,
         );
@@ -715,10 +695,7 @@ function follow(
               : to.kind === 'resource-all' && field === 'data'
                 ? { kind: 'body', path: ['[]'] }
                 : undefined;
-      if ((to.kind === 'client' || to.kind === 'resource-all') && field === 'pageInfo') {
-        trace.pagination = true;
-        continue;
-      }
+      if ((to.kind === 'client' || to.kind === 'resource-all') && field === 'pageInfo') continue;
       if (!target)
         return void trace.stops.push(
           `The code destructures \`${field}\` from the response, which the rewrite cannot rebuild.`,
@@ -736,7 +713,7 @@ function follow(
 
 // Every read of a REST body value `node` holds at `path`, for tracers outside this file.
 export function followBody(node: ts.Expression, path: string[]) {
-  const trace: Trace = { reads: [], stops: [], pagination: false };
+  const trace: Trace = { reads: [], stops: [] };
   follow(node, { kind: 'body', path }, false, trace);
   return trace;
 }
@@ -745,10 +722,6 @@ export interface RestRewriteOptions {
   file: string;
   content: string;
   entries: ShopifyScan['rest'];
-  // Ignored since the rewrite went (docs/GUT-PLAN.md); wave 3 drops them with the prover's call.
-  rules?: RestRule[];
-  schemas?: { version: string; schema: GraphQLSchema }[];
-  traceOnly?: boolean;
 }
 
 // Traces the REST calls of one file for the contract check; every entry comes back as a stop that
@@ -773,11 +746,10 @@ export function rewriteRestCalls(options: RestRewriteOptions): RestStop[] {
   const results: RestStop[] = [];
   for (const entry of options.entries) {
     let trace: RestTrace | undefined;
-    const stop = (reason: string, request?: RestStop['request']): RestStop => ({
+    const stop = (reason: string): RestStop => ({
       status: 'stopped',
       entry,
       reason,
-      ...(request ? { request } : {}),
       ...(trace ? { trace } : {}),
     });
     const at = offset(entry);
@@ -792,16 +764,14 @@ export function rewriteRestCalls(options: RestRewriteOptions): RestStop[] {
       results.push(stop(recognized));
       continue;
     }
-    const { call, transport, request, initial } = recognized;
-    const followed: Trace = { reads: [], stops: [], pagination: false };
+    const { call, request, initial } = recognized;
+    const followed: Trace = { reads: [], stops: [] };
     follow(call, initial, true, followed);
     if (followed.stops.length) {
       results.push(stop(followed.stops[0]));
       continue;
     }
-    const readText = [...new Set(followed.reads.map((read) => read.path.join('.')))];
     const description = {
-      method: request.method,
       path:
         entry.resource ??
         (() => {
@@ -812,8 +782,6 @@ export function rewriteRestCalls(options: RestRewriteOptions): RestStop[] {
           return /\.json$/.test(path) ? path : `${path}.json`;
         })(),
       query: [...request.query.keys()],
-      reads: readText,
-      transport: transport.kind,
     };
     const resourceCall = entry.resource && /^(\w+)\.(\w+)$/.exec(entry.resource);
     trace = {
@@ -832,10 +800,10 @@ export function rewriteRestCalls(options: RestRewriteOptions): RestStop[] {
       ...(request.body ? { body: bodyKeys(request.body) } : {}),
     };
     if (request.method === 'GET' && request.body) {
-      results.push(stop('The GET request sends a body.', description));
+      results.push(stop('The GET request sends a body.'));
       continue;
     }
-    results.push(stop('Traced for the contract check.', description));
+    results.push(stop('Traced for the contract check.'));
   }
   // Constructions: a REST client or resource record built in this file.
   for (const entry of options.entries) {
@@ -1016,7 +984,6 @@ function recognize(node: ts.Node, entry: ShopifyScan['rest'][number], source: ts
   if (!ts.isCallExpression(node)) {
     let literal = unwrapParent(node) as ts.Expression;
     const declaration = literal.parent;
-    let removable: ts.VariableStatement | undefined;
     if (
       ts.isVariableDeclaration(declaration) &&
       declaration.initializer === literal &&
@@ -1031,7 +998,6 @@ function recognize(node: ts.Node, entry: ShopifyScan['rest'][number], source: ts
         !ts.isVariableStatement(declaration.parent.parent)
       )
         return 'The REST URL constant shares its declaration with other variables.';
-      removable = declaration.parent.parent;
       const moved = movableUrl(literal, uses[0]);
       if (moved) return moved;
       literal = unwrapParent(uses[0]) as ts.Expression;
@@ -1044,7 +1010,6 @@ function recognize(node: ts.Node, entry: ShopifyScan['rest'][number], source: ts
     if (!method) return 'Refit cannot tell the HTTP method of this request.';
     const parsed = urlRequest(node as ts.Expression, method);
     if (!parsed) return 'Refit cannot read the REST path and query of this URL.';
-    const extra = removable ? [removable] : [];
     if (/^(?:globalThis\.|window\.)?fetch$/.test(callee)) {
       const options = call.arguments[1] && unwrap(call.arguments[1]);
       if (options && !ts.isObjectLiteralExpression(options))
@@ -1053,10 +1018,8 @@ function recognize(node: ts.Node, entry: ShopifyScan['rest'][number], source: ts
       const body = options && property(options as ts.ObjectLiteralExpression, 'body');
       return {
         call,
-        transport: { kind: 'fetch', prefix: parsed.prefix, options } as Transport,
         request: { ...parsed.request, ...(body ? { body } : {}) },
         initial: { kind: 'response' } as Value,
-        removable: extra,
       };
     }
     const axios = /^(\w+)\.(get|post|put|delete)$/.exec(callee);
@@ -1068,18 +1031,11 @@ function recognize(node: ts.Node, entry: ShopifyScan['rest'][number], source: ts
         return 'The axios config is not an object literal.';
       return {
         call,
-        transport: {
-          kind: 'axios',
-          prefix: parsed.prefix,
-          receiver: axios[1],
-          config,
-        } as Transport,
         request: {
           ...parsed.request,
           ...(writes && call.arguments[1] ? { body: call.arguments[1] } : {}),
         },
         initial: { kind: 'axios' } as Value,
-        removable: extra,
       };
     }
     return `The REST URL is sent by ${callee.slice(0, 60)}(), which Refit does not rewrite.`;
@@ -1106,25 +1062,7 @@ function recognize(node: ts.Node, entry: ShopifyScan['rest'][number], source: ts
     const request: RestRequest = { method: 'GET', path: [], query: new Map() };
     if (!SIMPLE.test(resource[1]))
       return 'The resource is reached through an expression Refit cannot repeat.';
-    if (/\.resources$/.test(receiver.replace(/\.[A-Z]\w*$/, '')) || /^admin$/.test(resource[1]))
-      return {
-        call: node,
-        transport: { kind: 'resource-remix', admin: resource[1], operation } as Transport,
-        request,
-        initial,
-      };
-    const session = property(options, 'session');
-    return {
-      call: node,
-      transport: {
-        kind: 'resource',
-        factory: resource[1],
-        session: session?.getText() ?? '',
-        operation,
-      } as Transport,
-      request,
-      initial,
-    };
+    return { call: node, request, initial };
   }
   const method = entry.method;
   if (!method) return 'Refit cannot tell the HTTP method of this request.';
@@ -1137,7 +1075,6 @@ function recognize(node: ts.Node, entry: ShopifyScan['rest'][number], source: ts
   if (remix && SIMPLE.test(remix[1]))
     return {
       call: node,
-      transport: { kind: 'remix', admin: remix[1] } as Transport,
       request,
       initial: { kind: 'response' } as Value,
     };
@@ -1174,11 +1111,6 @@ function recognize(node: ts.Node, entry: ShopifyScan['rest'][number], source: ts
           return 'The REST client is not a const Refit can follow to this call.';
         return {
           call: node,
-          transport: {
-            kind: 'client',
-            variable: receiver.text,
-            declaration: statement,
-          } as Transport,
           request,
           initial: { kind: 'client' } as Value,
         };

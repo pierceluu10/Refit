@@ -13,18 +13,18 @@ When a patch is proposed and the app has a root npm lockfile, it is validated li
 
 ## Results (Refit `4529530`)
 
-| Outcome | Apps |
-|---|---|
-| Patched and validated | **1** |
-| Already on `2026-10` | 3 |
-| On the newest version the locked SDK can name (`2026-10` needs SDK 14) | 3 |
-| Stopped: an SDK upgrade is needed to reach a supported version | 15 |
-| Stopped: REST Admin calls (no published versioned contract) | 7 |
-| Stopped: a GraphQL document is built at runtime | 6 |
-| Stopped: the pin is dynamic (environment or configuration value) | 6 |
-| Stopped: a GraphQL document already fails on the served version | 5 |
-| No Admin API usage | 2 |
-| Repository exceeds Refit's scan limits (50 MB) | 2 |
+| Outcome                                                                | Apps  |
+| ---------------------------------------------------------------------- | ----- |
+| Patched and validated                                                  | **1** |
+| Already on `2026-10`                                                   | 3     |
+| On the newest version the locked SDK can name (`2026-10` needs SDK 14) | 3     |
+| Stopped: an SDK upgrade is needed to reach a supported version         | 15    |
+| Stopped: REST Admin calls (no published versioned contract)            | 7     |
+| Stopped: a GraphQL document is built at runtime                        | 6     |
+| Stopped: the pin is dynamic (environment or configuration value)       | 6     |
+| Stopped: a GraphQL document already fails on the served version        | 5     |
+| No Admin API usage                                                     | 2     |
+| Repository exceeds Refit's scan limits (50 MB)                         | 2     |
 
 The same commit run a second time gave the **same outcome for 50 of 50 apps**. Per-app outcomes, pins, SDK releases and stop reasons are in [`2026-10-16-shopify-results.json`](benchmarks/2026-10-16-shopify-results.json).
 
@@ -45,14 +45,14 @@ The validated app, `samirjabib/shopify-apps-convex-template`, moved `ApiVersion.
 
 The first run (`844adee`) found three Refit bugs, each fixed with a test:
 
-| Outcome | First run | Final |
-|---|---|---|
-| Already on `2026-10`, or on the newest version the SDK can name | 1 | 6 |
-| Stopped: dynamic pin | 14 | 6 |
-| Stopped: SDK upgrade needed | 8 | 15 |
-| Stopped: document already fails | 6 | 5 |
-| Stopped: runtime-built document | 8 | 6 |
-| Misclassified as stopped while already on `2026-10` | 1 | 0 |
+| Outcome                                                         | First run | Final |
+| --------------------------------------------------------------- | --------- | ----- |
+| Already on `2026-10`, or on the newest version the SDK can name | 1         | 6     |
+| Stopped: dynamic pin                                            | 14        | 6     |
+| Stopped: SDK upgrade needed                                     | 8         | 15    |
+| Stopped: document already fails                                 | 6         | 5     |
+| Stopped: runtime-built document                                 | 8         | 6     |
+| Misclassified as stopped while already on `2026-10`             | 1         | 0     |
 
 The fixes:
 
@@ -68,21 +68,21 @@ Refit now follows default-exported documents, Remix-style `./shopify.server` imp
 
 The 200 apps in [`2026-10-16-shopify-fresh-repos.json`](benchmarks/2026-10-16-shopify-fresh-repos.json) were frozen before any run, and none of them was in the original 50 or the 10 development apps. A wider search covered 13 queries: Shopify SDK dependencies in `package.json`, `authenticate.admin`, `admin.graphql` with `#graphql`, `ApiVersion` with `shopifyApp`, `clients.Graphql` and `createAdminApiClient`. It returned 3,496 repositories. 2,139 met the same criteria as above, and the 200 most starred were pinned at HEAD (1 to 562 stars).
 
-| Outcome (Refit `5f94ab4`) | Apps |
-|---|---|
-| **Patched and validated** in offline Docker (2 with tests, 4 with `tsc`) | **6** |
-| Patched, no runnable checks (no npm lockfile or test script) | 5 |
-| Patched, baseline checks already fail | 1 |
-| Patched, repository refused for validation (tracked symbolic link) | 1 |
-| Already on `2026-10` | 1 |
-| Stopped: an SDK upgrade is needed to reach a supported version | 44 |
-| Stopped: REST Admin calls | 39 |
-| Stopped: a GraphQL document is built at runtime | 26 |
+| Outcome (Refit `5f94ab4`)                                                   | Apps   |
+| --------------------------------------------------------------------------- | ------ |
+| **Patched and validated** in offline Docker (2 with tests, 4 with `tsc`)    | **6**  |
+| Patched, no runnable checks (no npm lockfile or test script)                | 5      |
+| Patched, baseline checks already fail                                       | 1      |
+| Patched, repository refused for validation (tracked symbolic link)          | 1      |
+| Already on `2026-10`                                                        | 1      |
+| Stopped: an SDK upgrade is needed to reach a supported version              | 44     |
+| Stopped: REST Admin calls                                                   | 39     |
+| Stopped: a GraphQL document is built at runtime                             | 26     |
 | Stopped: a GraphQL document **already fails** on the version Shopify serves | **23** |
-| Stopped: the pin is dynamic, missing or set from configuration | 21 |
-| Stopped: a document does not parse, or two pins conflict | 3 |
-| No Admin API usage (Storefront, Functions, themes or extensions only) | 28 |
-| Repository exceeds Refit's scan limits | 2 |
+| Stopped: the pin is dynamic, missing or set from configuration              | 21     |
+| Stopped: a document does not parse, or two pins conflict                    | 3      |
+| No Admin API usage (Storefront, Functions, themes or extensions only)       | 28     |
+| Repository exceeds Refit's scan limits                                      | 2      |
 
 Refit found 677 Admin calls and 895 GraphQL documents, 628 of them traced to an Admin call. Per-app outcomes are in [`2026-10-16-shopify-fresh-results.json`](benchmarks/2026-10-16-shopify-fresh-results.json). Scanning all 200 took 134 seconds of CPU time on one machine; validation ran in Docker with concurrency 1, and no AI was used.
 
@@ -99,27 +99,27 @@ Refit found 677 Admin calls and 895 GraphQL documents, 628 of them traced to an 
 
 Before changing tracing, every Admin call whose document Refit could not read was classified by the pattern hiding it, on both frozen sets (250 apps, Refit `c262f8f`). Scan-level runs only: no Docker validation, no AI, no store.
 
-| Pattern hiding the document | Apps | Unread calls before | After (`4a99c1e`) |
-|---|---|---|---|
-| Template literal interpolating a runtime value (ID, cursor, filter) | 22 | 45 | 45, still stops: correct |
-| Helper reached through a callback, a `const` arrow passed on, or a closure factory | 6 | 18 | 0; 5 stop where the function later leaves Refit's reach |
-| Helper stored as an object property | 3 | 3 | 3, now stop at the property line |
-| Document built by a function call (`queryForProducts(params)`) | 5 | 10 | 10, still stops |
-| Class or object method parameter | 4 | 5 | 5, still stops (needs the receiver's type) |
-| Member of a constant array or object (`for (const tier of TIERS)`) | 2 | 2 | 1 |
-| Other (destructured or reassignable bindings, unresolved names) | 7 | 7 | 7 |
+| Pattern hiding the document                                                        | Apps | Unread calls before | After (`4a99c1e`)                                       |
+| ---------------------------------------------------------------------------------- | ---- | ------------------- | ------------------------------------------------------- |
+| Template literal interpolating a runtime value (ID, cursor, filter)                | 22   | 45                  | 45, still stops: correct                                |
+| Helper reached through a callback, a `const` arrow passed on, or a closure factory | 6    | 18                  | 0; 5 stop where the function later leaves Refit's reach |
+| Helper stored as an object property                                                | 3    | 3                   | 3, now stop at the property line                        |
+| Document built by a function call (`queryForProducts(params)`)                     | 5    | 10                  | 10, still stops                                         |
+| Class or object method parameter                                                   | 4    | 5                   | 5, still stops (needs the receiver's type)              |
+| Member of a constant array or object (`for (const tier of TIERS)`)                 | 2    | 2                   | 1                                                       |
+| Other (destructured or reassignable bindings, unresolved names)                    | 7    | 7                   | 7                                                       |
 
 The first and the builder rows are real runtime documents and must stop. The tracing change follows a function value from the call that sends the document to every call of that function: named helpers through named, namespace and re-exported imports (`export { a as b } from`, `export *`), callbacks passed into repository functions, `const` arrows and closures returned by factories, plus constant arrays and object members. A use it cannot follow stops at that use's line instead of leaving callers unseen.
 
-| Measure | Original 50 before | after | Fresh 200 before | after |
-|---|---|---|---|---|
-| Traced Admin documents | 336 | **350** | 628 | **644** |
-| Admin calls with an unread document | 27 | **22** | 63 | **54** |
-| Stopped: runtime-built or unfollowable document | 5 | 4 | 26 | 25 |
-| Stopped: query already fails | 5 | 5 | 23 | **24** |
-| Stopped: SDK upgrade needed | 14 | 15 | 44 | 44 |
-| Patched | 1 | 1 | 13 | 13 |
-| Same outcome on a second run at `4a99c1e` | | 50/50 | | 200/200 |
+| Measure                                         | Original 50 before | after   | Fresh 200 before | after   |
+| ----------------------------------------------- | ------------------ | ------- | ---------------- | ------- |
+| Traced Admin documents                          | 336                | **350** | 628              | **644** |
+| Admin calls with an unread document             | 27                 | **22**  | 63               | **54**  |
+| Stopped: runtime-built or unfollowable document | 5                  | 4       | 26               | 25      |
+| Stopped: query already fails                    | 5                  | 5       | 23               | **24**  |
+| Stopped: SDK upgrade needed                     | 14                 | 15      | 44               | 44      |
+| Patched                                         | 1                  | 1       | 13               | 13      |
+| Same outcome on a second run at `4a99c1e`       |                    | 50/50   |                  | 200/200 |
 
 Two apps changed outcome, and no other app's outcome changed. Per-app before and after values are in [`2026-10-20-shopify-tracing-results.json`](benchmarks/2026-10-20-shopify-tracing-results.json).
 
@@ -132,19 +132,19 @@ Scanning the fresh 200 took the same CPU time as before (1 min 42 s). The schema
 
 Before, each REST finding gave only the matching expression (`admin.rest.resources.Product.all`, or the first 120 characters of a URL). Now every REST Admin call is reported at its file and line with the HTTP method and the path or REST resource operation wherever the code states them, under `shopify.restCalls` in the report and in `refit scan`'s summary. Refit still never migrates them. Measured at `0b5480b` against `4a99c1e`, scan level:
 
-| | Original 50 | Fresh 200 |
-|---|---|---|
-| Apps with REST calls | 10 → 8 | 54 → 46 |
-| REST calls reported | 32 → 28 | 184 → 152 |
-| … raw `graphql.json` requests removed from REST | 4 (2 apps) | 56 (11 apps) |
-| … calls on REST client variables, newly reported one by one | 0 | 24 |
-| … with method and path (`GET products/{id}.json`) | 3 | 80 |
-| … resource operation with method (`Product.all`, GET) | 11 | 20 |
-| … new resource record (`new Metafield`, sent by `save()`) | 14 | 5 |
-| … path only, or method only | 0 | 19 |
-| … client construction, nothing else stated | 0 | 28 |
-| Stopped: REST Admin calls | 8 → **6** | 39 → **32** |
-| Same outcome on a second run | 50/50 | 200/200 |
+|                                                             | Original 50 | Fresh 200    |
+| ----------------------------------------------------------- | ----------- | ------------ |
+| Apps with REST calls                                        | 10 → 8      | 54 → 46      |
+| REST calls reported                                         | 32 → 28     | 184 → 152    |
+| … raw `graphql.json` requests removed from REST             | 4 (2 apps)  | 56 (11 apps) |
+| … calls on REST client variables, newly reported one by one | 0           | 24           |
+| … with method and path (`GET products/{id}.json`)           | 3           | 80           |
+| … resource operation with method (`Product.all`, GET)       | 11          | 20           |
+| … new resource record (`new Metafield`, sent by `save()`)   | 14          | 5            |
+| … path only, or method only                                 | 0           | 19           |
+| … client construction, nothing else stated                  | 0           | 28           |
+| Stopped: REST Admin calls                                   | 8 → **6**   | 39 → **32**  |
+| Same outcome on a second run                                | 50/50       | 200/200      |
 
 The drop is a fix. A URL to `/admin/api/<version>/graphql.json` matched the REST pattern, so 9 apps (`tomhooker/Post-Purchase-Extension`, `ersinkoc/CouponEngine`, `drizzle-team/tento`, `callobuzz/cob-shopify-mcp`, `evigauge-org/helix`, `CABlank/referrd-react-app-shopify`, `LazerTechnologies/shopify-app-development-course`, `Priyadharshini29-M/Combo-page-app`, `tahmidbintaslim/shopify-ucp`) were counted as REST while they only `POST` GraphQL documents with `fetch`. Refit does not read those documents, so each still stops, now as an unread Admin GraphQL document at the exact line. No other outcome changed.
 

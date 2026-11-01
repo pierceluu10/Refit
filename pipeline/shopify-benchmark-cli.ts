@@ -14,24 +14,18 @@ import {
 } from '../scripts/benchmark-harness.mjs';
 import { assertResults } from '../scripts/benchmark-results.mjs';
 import { assessmentConfiguration } from './assessment.ts';
-import { lockfileResolutionEnabled } from './lockfile-resolution.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
 import { scanShopify, SHOPIFY_PACKAGES } from './shopify-analysis.ts';
 import { lockedShopifyApi } from './shopify-pipeline.ts';
-import {
-  enumFromVersion,
-  latestApiVersion,
-  SHOPIFY_API_ENUM_SINCE,
-  sdkHasEnumMember,
-} from './shopify-versions.ts';
+import { enumFromVersion, latestApiVersion, sdkHasEnumMember } from './shopify-versions.ts';
 import { readEvidence } from './state-files.ts';
 import { PipelineInputError } from './types.ts';
 import { HOSTED_REPAIR_ATTEMPTS } from './validation-options.ts';
 
 const execute = promisify(execFile);
 const USAGE =
-  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--list <frozen.json>] [--env .env] [--ai] [--validate [--assess (AI second opinion, OPENAI_API_KEY)]] [--sdk-upgrade] [--limit N] [--concurrency N]';
+  'Usage: npm run benchmark:shopify -- --root <benchmark-dir> --output <new-dir> [--resume] [--allow-dirty] [--list <frozen.json>] [--env .env] [--ai] [--validate [--assess (AI second opinion, OPENAI_API_KEY)]] [--limit N] [--concurrency N]';
 const PINNED = 'docs/benchmarks/2026-10-16-shopify-repos.json';
 const VALIDATION_IMAGE = 'node:22-alpine';
 // Default `npm init` script; it is not a check.
@@ -58,7 +52,6 @@ const { values } = parseArgs({
     // AI on every Shopify path: document rewrites and reconstructions, REST mappings, repair of
     // patches that break the build (HOSTED_REPAIR_ATTEMPTS) and the second opinion.
     ai: { type: 'boolean' },
-    'sdk-upgrade': { type: 'boolean' },
     limit: { type: 'string' },
     concurrency: { type: 'string' },
     // Continue an interrupted run in the same --output; see docs/BENCHMARK-HARNESS.md.
@@ -94,7 +87,6 @@ const { rows: previous } = await openRunDirectory(
     options: {
       validate: values.validate,
       ai: values.ai,
-      sdkUpgrade: values['sdk-upgrade'],
       limit: values.limit,
       concurrency: values.concurrency,
     },
@@ -162,24 +154,13 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   const enumPinned = scan.versions.some(
     (pin) => pin.kind === 'enum' && !CODEGEN_CONFIG.test(pin.file),
   );
-  const upgrade = Boolean(values['sdk-upgrade']);
-  // With --sdk-upgrade, LATEST_API_VERSION and the enum can name any member a release ships; when
-  // the upgrade cannot reach it, the pipeline falls back to the newest version the app can take.
-  const sdkNames = (version: string) => {
-    const member = enumFromVersion(version)!;
-    return Boolean(
-      (sdk && sdkHasEnumMember(sdk, member)) || (upgrade && SHOPIFY_API_ENUM_SINCE[member]),
-    );
-  };
-  const sdkLimited = enumPinned || (upgrade && Boolean(latest));
-  // The before contract is what Shopify serves for the pin; the target is the newest pinned schema
-  // the code can name: any version for strings and URLs, members the locked SDK has for the enum.
+  // The before contract is what Shopify serves for the pin; the target is the newest pinned schema,
+  // since the agent fixer upgrades the SDK where the enum needs it.
   const before =
     pins.length === 1
       ? ([...versions].reverse().find((version) => version <= pins[0]) ?? versions[0])
       : versions[0];
-  const reachable = versions.filter((version) => !sdkLimited || sdkNames(version));
-  const after = reachable.at(-1);
+  const after = versions.at(-1);
   Object.assign(result, {
     packageName,
     sdk: sdk ?? null,
@@ -217,19 +198,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
       before: snapshot(before),
       after: snapshot(target),
       proposePatch: true,
-      shopifySdkUpgrade: upgrade,
       ...(ai ? { aiPatch: ai } : {}),
-      // As validation does: npm may re-resolve the lockfile for an SDK upgrade, as of the commit.
-      ...(upgrade && lockfileResolutionEnabled()
-        ? {
-            lockfileResolution: {
-              image: VALIDATION_IMAGE,
-              before: (
-                await execute('git', ['-C', directory, 'log', '-1', '--format=%cI'])
-              ).stdout.trim(),
-            },
-          }
-        : {}),
     })) as unknown as {
       status: string;
       findings: {
@@ -245,7 +214,6 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         reason?: string;
         diff?: string;
         warnings?: string[];
-        shopifySdkUpgrade?: unknown;
       };
       shopify: {
         deprecated: string[];
@@ -280,7 +248,6 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         review: finding.contractReview,
       })),
     };
-    if (report.patch.shopifySdkUpgrade) result.sdkUpgrade = report.patch.shopifySdkUpgrade;
     if (report.patch.diff) await writeFile(join(work, 'proposal.patch'), report.patch.diff);
     // No stops any more (docs/GUT-PLAN.md): a row without a patch either has nothing to change or
     // is a hand-off the agent fixer could not patch, which stays for review.
@@ -301,7 +268,7 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   const typescript = existsSync(join(directory, 'tsconfig.json')) && Boolean(declared.typescript);
   // The tests run with the root lockfile's manager, in check selection's order. A repository that
   // commits no lockfile runs with npm, as a generated configuration does: preparation refuses it
-  // (the patch stays untested, grade D) unless an SDK upgrade's lockfile resolution gives one.
+  // (the patch stays untested, grade D).
   const manager =
     LOCKFILE_MANAGERS.find(([file]) => existsSync(join(directory, file)))?.[1] ?? 'npm';
   result.checks = !manager ? 'none' : hasTests ? 'tests' : typescript ? 'typecheck' : 'none';
@@ -330,7 +297,6 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         bundle,
         '--quiet',
         '--json',
-        ...(upgrade ? ['--shopify-sdk-upgrade'] : []),
         ...(ai
           ? ['--ai-patch', '--repair-attempts', String(HOSTED_REPAIR_ATTEMPTS), '--assess']
           : values.assess

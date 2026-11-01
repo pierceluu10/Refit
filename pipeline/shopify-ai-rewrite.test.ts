@@ -15,8 +15,7 @@ vi.mock('./openai.ts', async (actual) => ({
     content: reply.content,
   }),
 }));
-const { aiReconstructDocument, aiRewriteDocument, reconstructionSources, rewriteProblem } =
-  await import('./shopify-ai-rewrite.ts');
+const { aiReconstructDocument, reconstructionSources } = await import('./shopify-ai-rewrite.ts');
 
 afterEach(() => {
   reply.content = '';
@@ -36,91 +35,7 @@ const after = buildSchema(`
   type QueryRoot { product(id: ID!): Product }
   schema { query: QueryRoot }
 `);
-const ORIGINAL = 'query Product($id: ID!) { product(id: $id) { id legacyId title } }';
 const ai = { apiKey: 'k', model: 'gpt-5.6-luna' } as never;
-
-it('keeps a rewrite that validates and returns every original key with the same type', async () => {
-  reply.content = JSON.stringify({
-    document: 'query Product($id: ID!) { product(id: $id) { id legacyId: numericId title } }',
-    explanation: 'legacyId was renamed numericId.',
-  });
-  const result = await aiRewriteDocument({
-    text: ORIGINAL,
-    errors: ['Cannot query field "legacyId" on type "Product".'],
-    before,
-    after,
-    versions: { before: '2026-01', after: '2026-10' },
-    ai,
-  });
-  expect(result).toMatchObject({ status: 'kept', costUsd: 0.01, model: 'gpt-5.6-luna' });
-});
-
-it('refuses rewrites that drop a key, change its shape, its variables or its validity', () => {
-  const problem = (rewritten: string, original = ORIGINAL) =>
-    rewriteProblem(original, rewritten, before, after);
-  expect(problem('query Product($id: ID!) { product(id: $id) { id title } }')).toBe(
-    'The rewrite no longer returns query:Product.product.legacyId.',
-  );
-  expect(problem('query Product($id: ID!) { product(id: $id) { id numericId title } }')).toBe(
-    'The rewrite no longer returns query:Product.product.legacyId.',
-  );
-  expect(
-    problem('query Product($id: ID) { product(id: $id) { id legacyId: numericId title } }'),
-  ).toBe(
-    'The rewrite fails the schema proof on the target: Variable "$id" of type "ID" used in position expecting type "ID!".',
-  );
-  expect(
-    problem('query Item($id: ID!) { product(id: $id) { id legacyId: numericId title } }'),
-  ).toBe('The rewrite changes an operation, its name or its variables.');
-  expect(
-    problem(
-      'query P($id: ID!) { product(id: $id) { images: images(first: 10) { nodes { url } } } }',
-      'query P($id: ID!) { product(id: $id) { images { url } } }',
-    ),
-  ).toBe(
-    'The rewrite fails the schema proof on the target: Product.images changes from [Image!]! to ImageConnection!',
-  );
-  expect(problem('query {')).toMatch(/^The rewrite does not parse/);
-});
-
-it('records a declined rewrite without an edit', async () => {
-  reply.content = JSON.stringify({ document: '', explanation: 'The list became a connection.' });
-  const result = await aiRewriteDocument({
-    text: ORIGINAL,
-    errors: [],
-    before,
-    after,
-    versions: { before: '2026-01', after: '2026-10' },
-    ai,
-  });
-  expect(result).toEqual({
-    status: 'refused',
-    model: 'gpt-5.6-luna',
-    costUsd: 0.01,
-    reason: 'The model declined: The list became a connection.',
-  });
-});
-
-it('keeps every key of a document that already fails, under the type the target returns', () => {
-  // `legacyId` is already gone from `before` here: the original document fails on it.
-  const original = 'query P($id: ID!) { product(id: $id) { id legacyId } }';
-  const gone = buildSchema(`
-    type Product { id: ID! title: String }
-    type QueryRoot { product(id: ID!): Product }
-    schema { query: QueryRoot }
-  `);
-  expect(
-    rewriteProblem(original, 'query P($id: ID!) { product(id: $id) { id } }', gone, after),
-  ).toBe('The rewrite no longer returns query:P.product.legacyId.');
-  expect(
-    rewriteProblem(
-      original,
-      'query P($id: ID!) { product(id: $id) { id legacyId: numericId } }',
-      gone,
-      after,
-    ),
-  ).toBeUndefined();
-});
 
 // A call whose document is assembled from a field list at runtime.
 const BUILT = {
@@ -179,15 +94,4 @@ it('refuses a reconstruction that invents a name, breaks on either version or is
     reason: expect.stringContaining('does not validate on 2026-01'),
   });
   expect(await reconstruct('')).toMatchObject({ status: 'refused' });
-});
-
-it('refuses a rewrite that hides an error behind a selection that never runs', () => {
-  expect(
-    rewriteProblem(
-      ORIGINAL,
-      'query Product($id: ID!) { product(id: $id) { id legacyId: numericId title } shop: product(id: $id) @skip(if: true) { id } }',
-      before,
-      after,
-    ),
-  ).toContain('never runs');
 });
