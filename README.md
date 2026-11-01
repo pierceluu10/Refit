@@ -1,7 +1,7 @@
 <p align="center">
   <img src="public/refit-agent-avatar.png" alt="Refit logo" width="96" height="96" />
 </p>
-<h1 align="center">Refit</h1>
+<h1 align="center">Aptitude</h1>
 <p align="center"><strong>Turn upstream API changes into reviewed code updates.</strong></p>
 
 This repository holds the Refit website. The migration engine was removed on 2026-10-31 and is being rebuilt; its history stays in git.
