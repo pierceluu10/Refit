@@ -14,58 +14,66 @@ describe('migration walkthrough', () => {
         <Workflow />
       </MemoryRouter>,
     );
-    fireEvent.click(screen.getByRole('button', { name: /Detect Provider change/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Watch Provider change/ }));
     expect(screen.getByText(/A field changes/)).toBeVisible();
     act(() => vi.advanceTimersByTime(STEP_DURATION * 5));
-    expect(screen.getByRole('button', { name: /Detect Provider change/ })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /Watch Provider change/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
     expect(screen.getByRole('button', { name: 'Play walkthrough' })).toBeVisible();
   });
 
-  it('plays to the final step once and supports replay', () => {
+  it('plays to a verified pull request once and supports replay', () => {
     vi.useFakeTimers();
     render(
       <MemoryRouter>
         <Workflow expanded />
       </MemoryRouter>,
     );
+    expect(screen.getByText('paymentIntents.retrieve')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Play walkthrough' }));
     for (let step = 0; step < 4; step += 1) act(() => vi.advanceTimersByTime(STEP_DURATION));
     expect(screen.getByRole('heading', { name: 'Adapt payment charge lookup' })).toBeVisible();
+    expect(screen.getByText('Verified')).toBeVisible();
     expect(screen.getByText(/No repository was accessed/)).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Replay walkthrough' }));
-    expect(screen.getByRole('button', { name: /Detect Provider change/ })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /Understand API usage map/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
   });
 
-  it('never shows a draft PR when the example validation fails', () => {
+  it('marks the pull request needs-review and names what is unproven when checks fail', () => {
     render(
       <MemoryRouter>
         <Workflow expanded scenario="failed" />
       </MemoryRouter>,
     );
-    fireEvent.click(screen.getByRole('button', { name: /Validate Project checks/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Migrate Checks before and after/ }));
     expect(screen.getByText('Example failure')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: /Review Draft pull request/ }));
-    expect(screen.getByRole('heading', { name: 'No passing checks. No PR.' })).toBeVisible();
-    expect(
-      screen.queryByRole('heading', { name: 'Adapt payment charge lookup' }),
-    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Review Pull request/ }));
+    expect(screen.getByRole('heading', { name: 'Adapt payment charge lookup' })).toBeVisible();
+    expect(screen.getByText('Needs review')).toBeVisible();
+    expect(screen.getByText(/Unproven:/)).toBeVisible();
+    expect(screen.queryByText('Verified')).not.toBeInTheDocument();
   });
 
-  it('does not propose a migration for unaffected usage', () => {
+  it('maps unaffected usage and returns a not-affected verdict instead of a migration', () => {
     render(
       <MemoryRouter>
         <Workflow expanded scenario="unaffected" />
       </MemoryRouter>,
     );
-    fireEvent.click(screen.getByRole('button', { name: /Understand Code impact/ }));
-    expect(screen.getByRole('heading', { name: 'No affected usage' })).toBeVisible();
+    expect(screen.getByText('checkout.sessions.create')).toBeVisible();
+    expect(screen.queryByText('paymentIntents.retrieve')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Migrate Checks before and after/ }));
+    expect(screen.getByRole('heading', { name: 'Not affected' })).toBeVisible();
     expect(screen.getByText(/No migration or pull request is needed/)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: /Review Pull request/ }));
+    expect(
+      screen.queryByRole('heading', { name: 'Adapt payment charge lookup' }),
+    ).not.toBeInTheDocument();
   });
 
   it('does not autoplay with reduced motion and cleans up its timer on unmount', () => {

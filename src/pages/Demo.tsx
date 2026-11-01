@@ -15,7 +15,7 @@ export function Demo() {
       <Header />
       <main id="main-content" className="demo-page content-width">
         <Link className="back-link" to="/">
-          ← Back to Refit
+          ← Back to Aptitude
         </Link>
         <div className="demo-heading">
           <h1>
@@ -53,14 +53,14 @@ export function Demo() {
         <div className="demo-next">
           <div>
             <h2>See where the work lives.</h2>
-            <p>Browse the repositories, changes, and run details in the sample workspace.</p>
+            <p>Browse the repositories, API changes and run details in the sample dashboard.</p>
           </div>
           <Link className="button button-dark" to="/app">
-            Explore the workspace <ArrowRight />
+            Explore the dashboard <ArrowRight />
           </Link>
         </div>
-        <Link className="text-link" to="/docs#replay">
-          How the real replay pipeline is planned <ArrowUpRight />
+        <Link className="text-link" to="/docs#outcomes">
+          How every task ends <ArrowUpRight />
         </Link>
       </main>
       <Footer />

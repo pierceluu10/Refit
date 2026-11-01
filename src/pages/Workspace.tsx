@@ -4,7 +4,6 @@ import {
   ArrowUpRight,
   BookOpen,
   CaretRight,
-  Code,
   FolderSimple,
   GithubLogo,
   GitPullRequest,
@@ -12,8 +11,8 @@ import {
   Info,
   List,
   MagnifyingGlass,
-  Pulse,
-  SlidersHorizontal,
+  Plugs,
+  WarningCircle,
   X,
 } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
@@ -27,19 +26,25 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import { Brand } from '../components/Brand';
-import { CodeDiff } from '../components/Workflow';
-import { PROJECT_URL, sampleRepositories } from '../data';
+import { PROJECT_URL } from '../data';
+import {
+  organization,
+  providerName,
+  providersOf,
+  repositories,
+  resultOf,
+  tasks,
+  usages,
+} from '../fixtures';
 import './workspace.css';
-import { PageHeading, Status, WorkspaceMissing } from '../components/WorkspaceUI';
-import { Changes, ChangeDetail, Runs, RunDetail } from './Activity';
-import { Settings } from './Settings';
+import { CallSites, PageHeading, Status, WorkspaceMissing } from '../components/WorkspaceUI';
+import { TaskDetail, TaskList, Tasks } from './Tasks';
+import type { ApiUsage } from '../../shared/types.ts';
 
 const navigation = [
   { path: '/app', name: 'Overview', icon: House, exact: true },
   { path: '/app/repositories', name: 'Repositories', icon: FolderSimple },
-  { path: '/app/changes', name: 'API changes', icon: Pulse },
-  { path: '/app/runs', name: 'Migration runs', icon: GitPullRequest },
-  { path: '/app/settings', name: 'Settings', icon: SlidersHorizontal },
+  { path: '/app/tasks', name: 'Tasks', icon: GitPullRequest },
 ];
 
 export function Workspace() {
@@ -105,10 +110,10 @@ export function Workspace() {
           </button>
         </div>
         <div className="workspace-identity">
-          <span className="workspace-avatar">A</span>
+          <span className="workspace-avatar">E</span>
           <div>
-            <strong>Acme workspace</strong>
-            <small>Sample organization</small>
+            <strong>{organization.name}</strong>
+            <small>Example organization</small>
           </div>
         </div>
         <nav aria-label="Workspace navigation">
@@ -127,7 +132,7 @@ export function Workspace() {
             <GithubLogo /> Source code <ArrowUpRight />
           </a>
           <Link to="/">
-            <ArrowLeft /> Back to Refit
+            <ArrowLeft /> Back to Aptitude
           </Link>
         </div>
       </aside>
@@ -150,14 +155,14 @@ export function Workspace() {
             <List />
           </button>
           <span>
-            Workspace <CaretRight /> <strong>{current?.name ?? 'Not found'}</strong>
+            Dashboard <CaretRight /> <strong>{current?.name ?? 'Not found'}</strong>
           </span>
-          <span className="preview-chip">Product preview</span>
+          <span className="preview-chip">In development</span>
         </header>
         <main id="main-content" className="app-content">
           <div className="workspace-notice">
             <Info />
-            <p>You’re exploring sample data. GitHub is not connected.</p>
+            <p>This dashboard shows example data. GitHub isn’t connected yet.</p>
             <Link to="/docs#installation">
               What’s next <ArrowRight />
             </Link>
@@ -166,11 +171,8 @@ export function Workspace() {
             <Route index element={<Overview />} />
             <Route path="repositories" element={<Repositories />} />
             <Route path="repositories/:id" element={<RepositoryDetail />} />
-            <Route path="changes" element={<Changes />} />
-            <Route path="changes/:id" element={<ChangeDetail />} />
-            <Route path="runs" element={<Runs />} />
-            <Route path="runs/:id" element={<RunDetail />} />
-            <Route path="settings" element={<Settings />} />
+            <Route path="tasks" element={<Tasks />} />
+            <Route path="tasks/:id" element={<TaskDetail />} />
             <Route path="*" element={<WorkspaceMissing />} />
           </Routes>
         </main>
@@ -179,12 +181,26 @@ export function Workspace() {
   );
 }
 
+const viaLabels: Record<ApiUsage['via'], string> = {
+  sdk: 'SDK',
+  http: 'Raw HTTP',
+  graphql: 'GraphQL',
+  webhook: 'Webhook',
+};
+const providers = [...new Set(usages.map((usage) => usage.provider))];
+
+function tasksOf(repo: string) {
+  return tasks.filter((task) => task.repo === repo);
+}
+
 function Overview() {
+  const openPullRequests = tasks.filter((task) => resultOf(task.id)?.pr);
+  const needsReview = tasks.filter((task) => resultOf(task.id)?.outcome === 'needs-review');
   return (
     <>
       <PageHeading
-        title="A little change. The full picture."
-        description="An overview of the example workspace and what needs attention."
+        title={organization.name}
+        description="Every external API your repositories use, and the work it creates."
         action={
           <Link className="button button-secondary button-small" to="/demo">
             Open walkthrough <ArrowUpRight />
@@ -193,54 +209,65 @@ function Overview() {
       />
       <div className="overview-summary">
         <div>
-          <span className="summary-number">03</span>
-          <span>Sample repositories</span>
+          <span className="summary-number">{repositories.length}</span>
+          <span>Repositories</span>
         </div>
         <div>
-          <span className="summary-number">01</span>
-          <span>Illustrated API change</span>
+          <span className="summary-number">{providers.length}</span>
+          <span>APIs in use</span>
         </div>
         <div>
-          <span className="summary-number">02</span>
-          <span>Run scenarios to explore</span>
+          <span className="summary-number">{openPullRequests.length}</span>
+          <span>Open pull requests</span>
         </div>
       </div>
       <section className="attention-section">
         <div className="app-section-heading">
-          <h2>Needs a closer look</h2>
-          <span>Example impact analysis</span>
+          <h2>Pull requests that need review</h2>
+          <span>
+            {needsReview.length} of {tasks.length} tasks
+          </span>
         </div>
-        <Link className="attention-item" to="/app/repositories/acme-api">
-          <span className="attention-icon">
-            <Code />
-          </span>
-          <div>
-            <strong>A changed field reaches your billing code</strong>
-            <p>
-              acme / api <span>·</span> src/billing/payments.ts
-            </p>
-          </div>
-          <Status value="Affected" />
-          <CaretRight />
-        </Link>
-        <Link className="attention-item" to="/app/repositories/acme-worker">
-          <span className="attention-icon neutral">
-            <MagnifyingGlass />
-          </span>
-          <div>
-            <strong>One dynamic access needs a human review</strong>
-            <p>
-              acme / worker <span>·</span> jobs/reconcile-payments.js
-            </p>
-          </div>
-          <Status value="Needs review" />
-          <CaretRight />
-        </Link>
+        {needsReview.map((task) => (
+          <Link className="attention-item" key={task.id} to={`/app/tasks/${task.id}`}>
+            <span className="attention-icon">
+              <WarningCircle />
+            </span>
+            <div>
+              <strong>{task.change.title}</strong>
+              <p>
+                {task.repo} <span>·</span> {providerName(task.change.provider)}
+              </p>
+            </div>
+            <Status outcome="needs-review" />
+            <CaretRight />
+          </Link>
+        ))}
       </section>
       <div className="overview-bottom">
         <section>
-          <h2>Your repositories</h2>
-          {sampleRepositories.map((repo) => (
+          <h2>APIs in use</h2>
+          {providers.map((provider) => {
+            const providerUsages = usages.filter((usage) => usage.provider === provider);
+            const repoCount = new Set(providerUsages.map((usage) => usage.repo)).size;
+            return (
+              <div className="compact-repository" key={provider}>
+                <Plugs />
+                <strong>{providerName(provider)}</strong>
+                <span>
+                  {[...new Set(providerUsages.map((usage) => viaLabels[usage.via]))].join(', ')} ·{' '}
+                  {repoCount} {repoCount === 1 ? 'repository' : 'repositories'}
+                </span>
+              </div>
+            );
+          })}
+          <Link className="text-link" to="/app/tasks">
+            View all tasks <ArrowRight />
+          </Link>
+        </section>
+        <section>
+          <h2>Repositories</h2>
+          {repositories.map((repo) => (
             <Link className="compact-repository" key={repo.id} to={`/app/repositories/${repo.id}`}>
               <FolderSimple />
               <strong>{repo.name}</strong>
@@ -252,39 +279,22 @@ function Overview() {
             View all repositories <ArrowRight />
           </Link>
         </section>
-        <section className="overview-guide">
-          <GitPullRequest size={27} />
-          <h2>
-            Start at the change.
-            <br />
-            End at the review.
-          </h2>
-          <p>
-            Trace the same example through detection, impact analysis, validation, and the draft-PR
-            boundary.
-          </p>
-          <Link className="text-link" to="/demo">
-            Take the walkthrough <ArrowRight />
-          </Link>
-        </section>
       </div>
     </>
   );
 }
 
-export function Repositories() {
+function Repositories() {
   const [parameters, setParameters] = useSearchParams();
   const search = parameters.get('q') ?? '';
-  const requestedStatus = parameters.get('status') ?? 'all';
-  const status = ['all', 'Affected', 'Unaffected', 'Needs review'].includes(requestedStatus)
-    ? requestedStatus
-    : 'all';
-  const repositories = sampleRepositories.filter(
+  const requestedProvider = parameters.get('provider') ?? 'all';
+  const provider = providers.includes(requestedProvider) ? requestedProvider : 'all';
+  const matches = repositories.filter(
     (repo) =>
-      `${repo.name} ${repo.language} ${repo.provider}`
+      `${repo.name} ${repo.language} ${providersOf(repo.name).map(providerName).join(' ')}`
         .toLowerCase()
         .includes(search.toLowerCase()) &&
-      (status === 'all' || status === repo.status),
+      (provider === 'all' || providersOf(repo.name).includes(provider)),
   );
   function updateParameter(key: string, value: string) {
     const next = new URLSearchParams(parameters);
@@ -296,7 +306,7 @@ export function Repositories() {
     <>
       <PageHeading
         title="Repositories"
-        description="See where a provider change meets your code."
+        description="What each repository calls, and through what."
         action={
           <Link className="button button-secondary button-small" to="/docs#installation">
             About connecting GitHub <ArrowUpRight />
@@ -314,53 +324,61 @@ export function Repositories() {
           />
         </label>
         <label className="filter-field">
-          <span>Status</span>
+          <span>API</span>
           <select
-            aria-label="Filter repositories by status"
-            value={status}
-            onChange={(event) => updateParameter('status', event.target.value)}
+            aria-label="Filter repositories by API"
+            value={provider}
+            onChange={(event) => updateParameter('provider', event.target.value)}
           >
-            <option value="all">All statuses</option>
-            <option>Affected</option>
-            <option>Unaffected</option>
-            <option>Needs review</option>
+            <option value="all">All APIs</option>
+            {providers.map((item) => (
+              <option key={item} value={item}>
+                {providerName(item)}
+              </option>
+            ))}
           </select>
         </label>
       </div>
       <div className="resource-table">
         <div className="resource-table-header">
           <span>Repository</span>
-          <span>Provider</span>
-          <span>Impact</span>
+          <span>APIs</span>
+          <span>Tasks</span>
           <span />
         </div>
-        {repositories.map((repo) => (
-          <Link
-            aria-label={`View ${repo.name}, ${repo.language}, ${repo.status}`}
-            className="resource-row"
-            key={repo.id}
-            to={`/app/repositories/${repo.id}`}
-          >
-            <div className="resource-name">
-              <FolderSimple />
-              <div>
-                <strong>{repo.name}</strong>
-                <small>{repo.language}</small>
+        {matches.map((repo) => {
+          const taskCount = tasksOf(repo.name).length;
+          return (
+            <Link
+              aria-label={`View ${repo.name}, ${repo.language}, ${taskCount} tasks`}
+              className="resource-row"
+              key={repo.id}
+              to={`/app/repositories/${repo.id}`}
+            >
+              <div className="resource-name">
+                <FolderSimple />
+                <div>
+                  <strong>{repo.name}</strong>
+                  <small>{repo.language}</small>
+                </div>
               </div>
-            </div>
-            <span className="provider-label">
-              <span className="provider-mini">S</span>
-              {repo.provider}
-            </span>
-            <Status value={repo.status} />
-            <CaretRight />
-          </Link>
-        ))}
-        {repositories.length === 0 && (
+              <span className="provider-chips">
+                {providersOf(repo.name).map((item) => (
+                  <span key={item}>{providerName(item)}</span>
+                ))}
+              </span>
+              <span className="task-count">
+                {taskCount} {taskCount === 1 ? 'task' : 'tasks'}
+              </span>
+              <CaretRight />
+            </Link>
+          );
+        })}
+        {matches.length === 0 && (
           <div className="empty-state">
             <MagnifyingGlass size={30} />
             <h2>No repositories match.</h2>
-            <p>Try a different name or clear the status filter.</p>
+            <p>Try a different name or clear the API filter.</p>
             <button
               className="button button-secondary button-small"
               onClick={() => setParameters({})}
@@ -371,8 +389,7 @@ export function Repositories() {
         )}
       </div>
       <p className="list-footnote">
-        {repositories.length} of {sampleRepositories.length} sample repositories. No live monitoring
-        is active.
+        {matches.length} of {repositories.length} example repositories. Nothing is being monitored.
       </p>
     </>
   );
@@ -380,69 +397,80 @@ export function Repositories() {
 
 function RepositoryDetail() {
   const { id } = useParams();
-  const repo = sampleRepositories.find((item) => item.id === id);
+  const repo = repositories.find((item) => item.id === id);
   if (!repo) return <WorkspaceMissing />;
+  const repoUsages = usages.filter((usage) => usage.repo === repo.name);
+  const repoTasks = tasksOf(repo.name);
   return (
     <>
       <Link className="back-link" to="/app/repositories">
         ← All repositories
       </Link>
-      <PageHeading
-        title={repo.name}
-        description={repo.description}
-        action={<Status value={repo.status} />}
-      />
+      <PageHeading title={repo.name} description={repo.description} />
       <div className="detail-metadata">
         <div>
           <span>Language</span>
           <strong>{repo.language}</strong>
         </div>
         <div>
-          <span>Provider</span>
-          <strong>{repo.provider}</strong>
+          <span>APIs</span>
+          <strong>{providersOf(repo.name).map(providerName).join(', ')}</strong>
         </div>
         <div>
-          <span>Source</span>
-          <strong>Illustrative fixture</strong>
+          <span>Tasks</span>
+          <strong>{repoTasks.length}</strong>
         </div>
       </div>
       <section className="detail-section">
-        <h2>Impact evidence</h2>
-        <p>
-          {repo.status === 'Affected'
-            ? 'The example payment wrapper reads the changed charges field. A targeted update handles the latest-charge reference.'
-            : repo.status === 'Unaffected'
-              ? 'The checkout code does not read the changed response property. This example needs no migration.'
-              : 'A dynamic property access cannot be classified confidently. The planned pipeline would retain evidence and request human review.'}
-        </p>
-        <div className="detail-file">
-          <Code />
-          <code>{repo.file}</code>
-        </div>
-        {repo.status === 'Affected' ? (
-          <CodeDiff />
+        <h2>APIs in use</h2>
+        <p>What an agent found reading this repository: each API, how it’s called, and where.</p>
+        {repoUsages.map((usage) => (
+          <article className="api-usage" key={`${usage.provider}-${usage.via}`}>
+            <header>
+              <h3>{providerName(usage.provider)}</h3>
+              <span>{viaLabels[usage.via]}</span>
+            </header>
+            {(usage.sdk || usage.pinnedVersion) && (
+              <dl>
+                {usage.sdk && (
+                  <div>
+                    <dt>SDK</dt>
+                    <dd>
+                      <code>
+                        {usage.sdk.name} {usage.sdk.version}
+                      </code>
+                      {usage.sdk.lockfile && <> in {usage.sdk.lockfile}</>}
+                    </dd>
+                  </div>
+                )}
+                {usage.pinnedVersion && (
+                  <div>
+                    <dt>Pinned version</dt>
+                    <dd>
+                      <code>{usage.pinnedVersion.value}</code> at{' '}
+                      <code>
+                        {usage.pinnedVersion.file}:{usage.pinnedVersion.line}
+                      </code>
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            )}
+            <CallSites callSites={usage.callSites} />
+          </article>
+        ))}
+      </section>
+      <section className="detail-section">
+        <h2>Tasks</h2>
+        {repoTasks.length > 0 ? (
+          <TaskList items={repoTasks} />
         ) : (
           <div className="detail-explanation">
             <Info />
-            <span>
-              {repo.status === 'Unaffected'
-                ? 'Unaffected is a result of analysis, not a synonym for “not scanned.”'
-                : 'Uncertainty does not authorize an automatic patch.'}
-            </span>
+            <span>No provider change touches this repository’s call sites.</span>
           </div>
         )}
       </section>
-      <div className="detail-actions">
-        <Link
-          className="button button-primary"
-          to={`/demo?scenario=${repo.status === 'Unaffected' ? 'unaffected' : 'affected'}`}
-        >
-          Explore the scenario <ArrowRight />
-        </Link>
-        <Link className="text-link" to="/docs#review">
-          Review policy <ArrowUpRight />
-        </Link>
-      </div>
     </>
   );
 }
