@@ -7,6 +7,12 @@ import { promisify } from 'node:util';
 import { fixWithAgent, type AgentFixInput, type AgentFixResult } from './agent-fix.ts';
 import { renderPatch } from './patches.ts';
 import type { Repository, SourceEdit } from './types.ts';
+import {
+  disposeSandboxBaseline,
+  sandboxBaseline,
+  sandboxCheck,
+  type SandboxBaseline,
+} from './validation-sandbox-check.ts';
 
 const execute = promisify(execFile);
 
@@ -15,7 +21,12 @@ export { fixWithAgent };
 
 // What the hand-off produced: the agent's result, with `diff` replaced by the whole patch against
 // the original tree (the codemods' edits and the agent's), in Refit's patch format.
-export type ShopifyHandOff = AgentFixResult & { files: string[] };
+export type ShopifyHandOff = AgentFixResult & {
+  files: string[];
+  // GUT5's before/after check (typecheck, build, tests in the sandbox), when it could run: why a pass
+  // proves less than it says, or why it could not run at all.
+  sandbox: { status: 'ran'; unproven: string[] } | { status: 'unavailable'; reason: string };
+};
 
 const SKIPPED = new Set(['node_modules', '.git']);
 // The scan, the workflow and validation each run the pipeline on the same committed tree; the
@@ -61,6 +72,7 @@ export async function shopifyHandOff(options: {
     return JSON.parse(await readFile(cached, 'utf8')) as ShopifyHandOff;
   if (!options.run) return undefined;
   const parent = await mkdtemp(join(tmpdir(), 'refit-shopify-agent-'));
+  let baseline: SandboxBaseline | undefined;
   const directory = join(parent, basename(options.repository.root) || 'repository');
   try {
     await cp(options.repository.root, directory, {
@@ -72,6 +84,32 @@ export async function shopifyHandOff(options: {
     await writeFile(join(directory, '.git', 'info', 'exclude'), 'node_modules/\n');
     await git(directory, ['add', '-A']);
     await git(directory, ['commit', '-q', '--no-verify', '--allow-empty', '-m', 'original']);
+    // The original tree's checks, once; the agent's edits are judged against them. Without Docker
+    // the Shopify judge still runs, and validation runs the checks afterwards.
+    let sandbox: ShopifyHandOff['sandbox'];
+    try {
+      baseline = await sandboxBaseline({ repository: directory });
+      sandbox = {
+        status: 'ran',
+        unproven: [
+          ...(baseline.install.status === 'failed'
+            ? [
+                `The original tree did not install in the sandbox: ${baseline.install.error.slice(0, 300)}`,
+              ]
+            : []),
+          ...(baseline.parts.length ? [] : ['The repository has no type check, build or tests.']),
+          ...baseline.parts
+            .filter((part) => part.result.status !== 'passed')
+            .map((part) => `${part.command.join(' ')} already fails on the original code.`),
+        ],
+      };
+    } catch (error) {
+      sandbox = {
+        status: 'unavailable',
+        reason: error instanceof Error ? error.message.slice(0, 300) : String(error),
+      };
+    }
+    const judged = baseline;
     if (options.codemods) {
       await writeFile(join(parent, 'codemods.patch'), options.codemods);
       await git(directory, ['apply', join(parent, 'codemods.patch')]);
@@ -80,6 +118,14 @@ export async function shopifyHandOff(options: {
       ...options.input,
       repoDir: directory,
       provider: 'shopify',
+      check: async (repoDir) => {
+        const shopify = await options.input.check(repoDir);
+        const box = judged ? await sandboxCheck(repoDir, judged) : undefined;
+        return {
+          passed: shopify.passed && (box?.passed ?? true),
+          errors: [...shopify.errors, ...(box?.errors ?? [])],
+        };
+      },
     });
     await git(directory, ['add', '-A']);
     const changes = (
@@ -111,6 +157,7 @@ export async function shopifyHandOff(options: {
       outcome: diff ? result.outcome : 'no-change',
       diff,
       files: edits.map((edit) => edit.file),
+      sandbox,
     };
     // A failed attempt (an error, the budget) may succeed on a later run.
     if (cache && cached && handOff.outcome !== 'failed') {
@@ -119,6 +166,7 @@ export async function shopifyHandOff(options: {
     }
     return handOff;
   } finally {
+    if (baseline) await disposeSandboxBaseline(baseline);
     await rm(parent, { recursive: true, force: true });
   }
 }

@@ -57,6 +57,13 @@ vi.mock('./agent-fix.ts', () => ({
   },
 }));
 
+// GUT5's sandbox judge without Docker: the original tree has no checks, and every edit passes.
+vi.mock('./validation-sandbox-check.ts', () => ({
+  sandboxBaseline: async () => ({ install: { status: 'installed' }, parts: [] }),
+  sandboxCheck: async () => ({ passed: true, errors: [], unproven: [], parts: [] }),
+  disposeSandboxBaseline: async () => undefined,
+}));
+
 const roots: string[] = [];
 afterEach(async () => {
   agent.edit = undefined;
@@ -391,7 +398,12 @@ it('hands every stop to the agent fixer at once and keeps its patch only as the 
   expect(passed.patch.diff).toContain('+    query { product(id: "1") { id } }');
   expect(passed.findings.some((finding: any) => finding.contractReview)).toBe(false);
   expect(passed.patch.diff).not.toContain('node_modules');
-  expect(passed.shopify.agent).toMatchObject({ outcome: 'passed', costUsd: 0.5 });
+  expect(passed.shopify.agent).toMatchObject({
+    outcome: 'passed',
+    costUsd: 0.5,
+    sandbox: { status: 'ran', unproven: ['The repository has no type check, build or tests.'] },
+  });
+  expect(passed.patch.warnings).toContain('The repository has no type check, build or tests.');
   expect(await readFile(route, 'utf8')).toContain('legacyCode');
   // An edit the judge still rejects ships for review, with its errors in the draft.
   agent.edit = async (repoDir) => {

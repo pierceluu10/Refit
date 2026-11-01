@@ -1306,6 +1306,7 @@ async function shopifyRun(options: ShopifyRunOptions) {
         summary: agent.summary,
         costUsd: agent.costUsd,
         files: agent.files,
+        sandbox: agent.sandbox,
       }
     : {
         outcome: 'not-run' as const,
@@ -1318,6 +1319,11 @@ async function shopifyRun(options: ShopifyRunOptions) {
   const agentNotes = agentPatched
     ? [
         `The agent fixer wrote this patch on top of Refit's codemods. What it says it changed and could not verify: ${agentPatched.summary || '(no summary)'}`,
+        ...(agentPatched.sandbox.status === 'unavailable'
+          ? [
+              `The sandbox check (type check, build and tests before and after) did not run while the agent worked: ${agentPatched.sandbox.reason}`,
+            ]
+          : agentPatched.sandbox.unproven),
         ...(agentPatched.outcome === 'unproven'
           ? [
               `Refit's Shopify judges still report ${agentPatched.errors.length} error${agentPatched.errors.length === 1 ? '' : 's'} on the patch: ${agentPatched.errors.join(' | ')}`,
