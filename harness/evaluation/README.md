@@ -100,9 +100,11 @@ edit.
 ### $0 rehearsal of the verified path on commitgpt
 
 A scripted agent replayed round 1's commitgpt diff through the real harness, the Docker sandbox and
-the OpenAI tool pack: `install` ran `npx -y npm@8`, typecheck and build passed before and after,
-`openai_sdk_migration` found the v3 call shapes before the edit and none after, and the run graded
-**verified**. It also showed two things:
+the OpenAI tool pack: `install` ran `npx -y npm@8`, typecheck and build passed before and after, and
+`openai_sdk_migration` found the v3 call shapes before the edit and none after. At first the run
+graded **verified**. After the review's fixes it grades **needs-review**: `openai_check_request`
+reports the Completions endpoint as legacy, and the agent left that failing check out of `finish`.
+That's right for this code, as the second point below explains. The rehearsal showed:
 
 - **Validator grading had holes.** Reports of problems from `openai_sdk_migration` (old SDK shapes
   found) and `openai_check_request` (a legacy endpoint) were graded as passing, as were bad inputs
