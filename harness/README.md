@@ -49,7 +49,8 @@ the end of each query adds only what the stream did not show. Pass `chargeRun(us
 `HarnessDeps` and every ledger charge reaches the run budget as it happens, so a run that throws has
 already reported what it spent. `record.costUsd` is the same money: count one or the other, not both.
 
-One run by hand (writes `transcript.jsonl`, `diff.patch`, `pr-body.md`, `record.json`):
+Real-repo tasks for hand-checking live in `evaluation/`; `scripts/run-evaluation.ts` runs them under
+one batch cap. One run by hand (writes `transcript.jsonl`, `diff.patch`, `pr-body.md`, `record.json`):
 
 ```sh
 APTITUDE_AI_BUDGET_USD=5 node harness/scripts/run-task.ts task.json /path/to/clone ./out

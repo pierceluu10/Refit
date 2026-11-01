@@ -1,0 +1,70 @@
+{
+  "id": "infinite-bundler-shopify-2026-10",
+  "repo": "sachin21kumar/Infinite-bundler",
+  "change": {
+    "provider": "shopify",
+    "id": "shopify:api-version-2026-10",
+    "kind": "api-version",
+    "title": "API version 2026-10 is the latest stable version, supported until at least October 2027",
+    "effectiveDate": "2026-10-01",
+    "source": {
+      "url": "https://shopify.dev/changelog/release-notes/latest.md",
+      "quote": "2026-10 is the latest stable API version. It's available for production use until at least October 1, 2027 at 15:00 UTC:"
+    },
+    "affects": {
+      "versions": ["2026-10"]
+    }
+  },
+  "usages": [
+    {
+      "repo": "sachin21kumar/Infinite-bundler",
+      "provider": "shopify",
+      "via": "graphql",
+      "sdk": {
+        "name": "@shopify/shopify-app-remix",
+        "version": "^3.4.0",
+        "lockfile": "package-lock.json"
+      },
+      "pinnedVersion": {
+        "value": "ApiVersion.October24",
+        "file": "app/shopify.server.js",
+        "line": 13
+      },
+      "callSites": [
+        {
+          "file": "app/shopify.server.js",
+          "line": 29,
+          "operation": "export const apiVersion",
+          "notes": "ApiVersion.October24"
+        },
+        {
+          "file": ".graphqlrc.js",
+          "line": 9,
+          "operation": "graphql codegen apiVersion",
+          "notes": "LATEST_API_VERSION"
+        },
+        {
+          "file": "app/routes/app._index.jsx",
+          "line": 33,
+          "operation": "admin.graphql"
+        },
+        {
+          "file": "app/routes/app._index.jsx",
+          "line": 66,
+          "operation": "admin.graphql"
+        },
+        {
+          "file": "app/routes/app.products.jsx",
+          "line": 11,
+          "operation": "admin.graphql"
+        },
+        {
+          "file": "app/routes/app.optionset.jsx",
+          "line": 35,
+          "operation": "admin.graphql"
+        }
+      ]
+    }
+  ],
+  "priority": 1
+}
