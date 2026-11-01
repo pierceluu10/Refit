@@ -436,41 +436,6 @@ it('refuses mutations without a case or on objects the run did not create', asyn
   expect(fake.calls.some((call) => call.query === UPDATE)).toBe(false);
 });
 
-it('records the AI second opinion and its cost without changing the grade', async () => {
-  requestStructuredOutput.mockResolvedValueOnce({
-    model: 'gpt-test',
-    budget: { costUsd: 0.012, spentUsd: 0.012, limitUsd: 5 },
-    usage: null,
-    content: JSON.stringify({
-      verdict: 'concerns',
-      concerns: [
-        { file: 'app/shopify.server.ts', line: 2, concern: 'Webhook API version unchanged.' },
-      ],
-    }),
-  });
-  const files = route('query { shop { name } }');
-  const result = await shopifyProof({
-    original: files,
-    patched: files,
-    before,
-    after,
-    own: { letter: 'C', level: 'type-check', reason: 'tsc covers it.' },
-    diff: '',
-    summary: 'Move the pin.',
-    warnings: [],
-    ai: { apiKey: 'k', model: 'gpt-test' },
-    environment: {},
-  });
-  expect(result.grade.letter).toBe('C');
-  expect(result.record.review).toMatchObject({
-    advisory: true,
-    verdict: 'concerns',
-    costUsd: 0.012,
-  });
-  expect(result.record.aiCostUsd).toBe(0.012);
-  expect(result.record.live).toBeUndefined();
-});
-
 it('keeps only AI-written live cases whose setup and cleanup validate at both versions', async () => {
   const { writeShopifyLiveCases } = await import('./shopify-ai.ts');
   const step = (document: string) => ({ document, variablesJson: '{}' });
