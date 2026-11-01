@@ -2,5 +2,10 @@
   "name": "@aptitude/app",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "start": "node --experimental-strip-types main.ts",
+    "dev": "node --experimental-strip-types --env-file-if-exists=.env --watch main.ts",
+    "tunnel": "set -a; [ -f .env ] && . ./.env; set +a; npx --yes smee-client@5.0.0 --url \"$SMEE_URL\" --target \"http://127.0.0.1:${PORT:-3000}/webhooks\""
+  }
 }

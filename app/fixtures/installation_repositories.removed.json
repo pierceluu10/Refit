@@ -1,0 +1,62 @@
+{
+  "action": "removed",
+  "installation": {
+    "id": 70000001,
+    "node_id": "MDIzOkludGVncmF0aW9uSW5zdGFsbGF0aW9uNzAwMDAwMDE=",
+    "client_id": "Iv1.0000000000example",
+    "account": {
+      "login": "aptitude-example-org",
+      "id": 900000001,
+      "node_id": "O_kgDOExample1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/900000001?v=4",
+      "url": "https://api.github.com/users/aptitude-example-org",
+      "html_url": "https://github.com/aptitude-example-org",
+      "type": "Organization",
+      "site_admin": false
+    },
+    "repository_selection": "selected",
+    "access_tokens_url": "https://api.github.com/app/installations/70000001/access_tokens",
+    "repositories_url": "https://api.github.com/installation/repositories",
+    "html_url": "https://github.com/organizations/aptitude-example-org/settings/installations/70000001",
+    "app_id": 5275879,
+    "app_slug": "refit-agent",
+    "target_id": 900000001,
+    "target_type": "Organization",
+    "permissions": {
+      "checks": "write",
+      "contents": "write",
+      "metadata": "read",
+      "pull_requests": "write"
+    },
+    "events": ["installation_target", "pull_request", "push"],
+    "created_at": "2026-11-01T09:00:00.000Z",
+    "updated_at": "2026-11-01T09:00:00.000Z",
+    "single_file_name": null,
+    "has_multiple_single_files": false,
+    "single_file_paths": [],
+    "suspended_by": null,
+    "suspended_at": null
+  },
+  "repository_selection": "selected",
+  "repositories_added": [],
+  "repositories_removed": [
+    {
+      "id": 800000002,
+      "node_id": "R_kgDOExample2",
+      "name": "storefront",
+      "full_name": "aptitude-example-org/storefront",
+      "private": true
+    }
+  ],
+  "requester": null,
+  "sender": {
+    "login": "example-admin",
+    "id": 900000002,
+    "node_id": "U_kgDOExample2",
+    "avatar_url": "https://avatars.githubusercontent.com/u/900000002?v=4",
+    "url": "https://api.github.com/users/example-admin",
+    "html_url": "https://github.com/example-admin",
+    "type": "User",
+    "site_admin": false
+  }
+}
