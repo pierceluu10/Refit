@@ -241,8 +241,7 @@ it('tells a configured Stripe app where the removed parameter is sent and which 
   expect(report.checks.find((check) => check.id === 'source-provenance')).toMatchObject({
     detail:
       'Code sets a request parameter that API version 2026-09-30.endive removes, and Refit leaves it in place: payment_method_types at checkout.js:3.',
-    action:
-      'Refit does not remove or replace it; check it before merging a draft. docs/STRIPE-PAYMENT-METHOD-TYPES.md says which payment_method_types values Refit replaces, and the API version and SDK changes that replacement needs.',
+    action: 'Refit does not remove or replace it; check it before merging a draft.',
   });
   // Before: "Verify the application client/account version and configure an exact
   // before-contract API-version pin."
@@ -296,8 +295,7 @@ it('names every removed parameter Refit leaves, including a card list the versio
   expect(report.checks.find((check) => check.id === 'source-provenance')).toMatchObject({
     detail:
       'Code sets request parameters that API version 2026-09-30.endive removes, and Refit leaves them in place: payment_method_types at billing.js:3 and coupon at billing.js:4.',
-    action:
-      'Refit does not remove or replace them; check each one before merging a draft. docs/STRIPE-PAYMENT-METHOD-TYPES.md says which payment_method_types values Refit replaces, and the API version and SDK changes that replacement needs.',
+    action: 'Refit does not remove or replace them; check each one before merging a draft.',
   });
 });
 

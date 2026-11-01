@@ -237,11 +237,7 @@ function provenanceStop(
     const one = set.length === 1;
     return {
       detail: `Code sets ${one ? 'a request parameter' : 'request parameters'} that ${targetVersion(after)} removes, and Refit leaves ${one ? 'it' : 'them'} in place: ${listed(set)}.`,
-      action: `Refit does not remove or replace ${one ? 'it' : 'them'}; check ${one ? 'it' : 'each one'} before merging a draft.${
-        findings.some((finding) => finding.requestParameter!.parameter === 'payment_method_types')
-          ? ' docs/STRIPE-PAYMENT-METHOD-TYPES.md says which payment_method_types values Refit replaces, and the API version and SDK changes that replacement needs.'
-          : ''
-      }`,
+      action: `Refit does not remove or replace ${one ? 'it' : 'them'}; check ${one ? 'it' : 'each one'} before merging a draft.`,
     };
   }
   if (reason === DECLARED_TYPE_REVIEW_REASON) {

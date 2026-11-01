@@ -126,7 +126,7 @@ OpenAI for candidate rules per page and verifies each one as check does. Writes 
 candidate and why it was kept or refused, and which shipped rules the kept rules reproduce)
 and audit.json (every prompt and model output). --write also saves the kept rules, review-only,
 as data/rules/stripe/<version>.json. Needs OPENAI_API_KEY and OPENAI_MODEL; spends at most
-REFIT_AI_BUDGET_USD (default $1). See docs/MINED-RULES.md.`);
+REFIT_AI_BUDGET_USD (default $1)..`);
   process.exit(0);
 }
 
