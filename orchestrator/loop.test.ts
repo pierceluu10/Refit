@@ -37,7 +37,8 @@ function fakeDeps(changes: ProviderChange[], runTask: LoopDeps['runTask']) {
   const opened: string[] = [];
   const deps: LoopDeps = {
     inventory: async () => usages,
-    watchers: [async () => changes],
+    watchers: { stripe: async () => changes },
+    watchAny: vi.fn(() => async () => []),
     match: stubMatch,
     runTask: vi.fn(runTask),
     openPullRequest: async (task) => {
@@ -125,12 +126,12 @@ describe('runOrg', () => {
 
   it('keeps going when one watcher fails, and reports it', async () => {
     const { deps } = fakeDeps([change('verified')], runTask);
-    deps.watchers.push(async () => {
+    deps.watchers.meta = async () => {
       throw new Error('changelog unreachable');
-    });
+    };
     const summary = await runOrg(org, deps);
     expect(summary.counts.verified).toBe(1);
-    expect(summary.errors).toEqual([expect.stringContaining('changelog unreachable')]);
+    expect(summary.errors).toEqual(['watcher meta failed: changelog unreachable']);
   });
 
   it('reports every change as failed, without running tasks, when the repo cannot be matched', async () => {
@@ -153,5 +154,86 @@ describe('runOrg', () => {
     await runOrg(org, deps);
     const attempted = vi.mocked(deps.runTask).mock.calls.map(([task]) => task.change.id);
     expect(new Set(attempted)).toEqual(new Set(changes.map((c) => c.id)));
+  });
+
+  it('records the folder watchers’ changes as failed when the inventory fails', async () => {
+    const { deps } = fakeDeps(changes, runTask);
+    deps.inventory = async () => {
+      throw new Error('repo unreadable');
+    };
+    const summary = await runOrg(org, deps);
+    expect(deps.runTask).not.toHaveBeenCalled();
+    expect(deps.watchAny).not.toHaveBeenCalled();
+    expect(summary.counts.failed).toBe(changes.length);
+    expect(summary.records[0].note).toMatch(/not attempted: inventory failed after retries/);
+  });
+});
+
+describe('watching what the inventory finds', () => {
+  const runTask: LoopDeps['runTask'] = async (task) =>
+    ok(task, 'verified', 'diff --git a/src/mail.ts b/src/mail.ts\n', 0.25);
+  const resend: ApiUsage = {
+    repo: 'acme/shop',
+    provider: 'Resend',
+    via: 'sdk',
+    sdk: { name: 'resend', version: '3.2.0' },
+    callSites: [{ file: 'src/mail.ts', line: 8, operation: 'emails.send' }],
+    hints: { hosts: ['api.resend.com'], docsUrls: ['https://resend.com/changelog'] },
+  };
+
+  it('gives a provider with no folder its own watcher, and its change becomes a task', async () => {
+    const { deps } = fakeDeps([], runTask);
+    deps.inventory = async () => [...usages, resend];
+    deps.watchAny = vi.fn((provider: string) => async () => [change('resend-v2-send', provider)]);
+    const summary = await runOrg(org, deps);
+
+    expect(deps.watchAny).toHaveBeenCalledExactlyOnceWith('resend', {
+      packages: ['resend'],
+      hosts: ['api.resend.com'],
+      docsUrls: ['https://resend.com/changelog'],
+    });
+    const attempted = vi.mocked(deps.runTask).mock.calls.map(([task]) => task.change.id);
+    expect(attempted).toEqual(['resend-v2-send']);
+    expect(summary.records.map((r) => [r.taskId, r.outcome])).toEqual([
+      ['acme/shop:resend-v2-send', 'verified'],
+    ]);
+  });
+
+  it('runs the repos of an org at once and reads each provider once', async () => {
+    const { deps } = fakeDeps([change('verified')], runTask);
+    const folder = vi.fn(async () => [change('verified')]);
+    deps.watchers = { stripe: folder };
+    deps.watchAny = vi.fn(() => async () => []);
+    let started = 0;
+    let bothStarted!: () => void;
+    const both = new Promise<void>((resolve) => (bothStarted = resolve));
+    deps.inventory = async (_dir, repo) => {
+      if (++started === 2) bothStarted();
+      await Promise.race([
+        both,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('repos ran one at a time')), 2000),
+        ),
+      ]);
+      return [...usages, { ...resend, repo }];
+    };
+    const summary = await runOrg(
+      {
+        name: 'acme',
+        repos: [
+          { repo: 'acme/shop', dir: '/nonexistent/shop' },
+          { repo: 'acme/admin', dir: '/nonexistent/admin' },
+        ],
+      },
+      deps,
+    );
+
+    expect(summary.errors).toEqual([]);
+    expect(folder).toHaveBeenCalledTimes(1);
+    expect(deps.watchAny).toHaveBeenCalledTimes(1);
+    expect(summary.records.map((r) => r.taskId)).toEqual([
+      'acme/shop:verified',
+      'acme/admin:verified',
+    ]);
   });
 });

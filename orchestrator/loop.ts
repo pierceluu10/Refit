@@ -2,7 +2,9 @@ import type {
   ApiUsage,
   InventoryRepo,
   MigrationTask,
+  OpenPullRequest,
   ProviderChange,
+  ProviderHints,
   RunRecord,
   RunTask,
   WatchProvider,
@@ -10,12 +12,7 @@ import type {
 import type { MatchChanges, MatchedTask } from './match.ts';
 import type { Queue } from './queue.ts';
 
-// The real versions land in app/ (PR opener, with harness/'s PR writer) and memory/ (run records).
-export type OpenPullRequest = (
-  task: MigrationTask,
-  record: RunRecord,
-  repoDir: string,
-) => Promise<string>;
+// The real version lands in memory/ (run records).
 export type RecordRun = (task: MigrationTask, record: RunRecord) => Promise<void>;
 
 // RunRecord has no free-text field, so `note` carries the match agent's reasoning for a not-affected
@@ -24,7 +21,10 @@ export type LoopRecord = RunRecord & { note?: string };
 
 export type LoopDeps = {
   inventory: InventoryRepo;
-  watchers: WatchProvider[];
+  // Head starts, never the limit: a watcher for each provider with a folder in providers/, by id.
+  watchers: Record<string, WatchProvider>;
+  // A watcher for any other provider an inventory finds (F4's anyProviderWatcher).
+  watchAny: (provider: string, hints: ProviderHints) => WatchProvider;
   match: MatchChanges;
   runTask: RunTask;
   openPullRequest: OpenPullRequest;
@@ -36,6 +36,8 @@ export type LoopDeps = {
 export type Org = { name: string; repos: { repo: string; dir: string }[] };
 export type RunOptions = { dryRun?: boolean; since?: string; capUsd?: number };
 export type RunState = { costUsd: number; errors: string[] };
+// The changes to match one repo against, given its usage map.
+export type WatchRepo = (usages: ApiUsage[]) => Promise<ProviderChange[]>;
 
 export type RunSummary = {
   counts: Record<RunRecord['outcome'], number>;
@@ -67,25 +69,86 @@ const verdictTask = (repo: string, change: ProviderChange, usages: ApiUsage[]): 
   priority: 0,
 });
 
+// Every provider in a usage map that has no folder watcher, with the hints of all its usages.
+// The SDK's package name is a hint too, for inventories that leave `hints` empty.
+export function unlistedProviders(
+  usages: ApiUsage[],
+  folders: string[],
+): Map<string, ProviderHints> {
+  const found = new Map<string, Required<ProviderHints>>();
+  for (const usage of usages) {
+    const provider = usage.provider.trim().toLowerCase();
+    if (!provider || folders.includes(provider)) continue;
+    const hints = found.get(provider) ?? { packages: [], hosts: [], docsUrls: [] };
+    hints.packages.push(...(usage.hints?.packages ?? []), ...(usage.sdk ? [usage.sdk.name] : []));
+    hints.hosts.push(...(usage.hints?.hosts ?? []));
+    hints.docsUrls.push(...(usage.hints?.docsUrls ?? []));
+    found.set(provider, hints);
+  }
+  const unique = (values: string[]) => [...new Set(values)];
+  return new Map(
+    [...found].map(([provider, hints]) => [
+      provider,
+      {
+        packages: unique(hints.packages),
+        hosts: unique(hints.hosts),
+        docsUrls: unique(hints.docsUrls),
+      },
+    ]),
+  );
+}
+
+// Reads each provider once per org run: every folder watcher right away, alongside the inventories,
+// and a watcher for each other provider as soon as an inventory finds it. A repo is matched against
+// the folder watchers' changes and those of its own other providers.
+// shortcut: a provider found by several repos is read with the first repo's hints; merge them if the hints start to differ.
+export function watchOrg(deps: LoopDeps, opts: RunOptions, state: RunState): WatchRepo {
+  const log = deps.log ?? (() => {});
+  const folders = Object.keys(deps.watchers);
+  const reads = new Map<string, Promise<ProviderChange[]>>();
+  const read = (provider: string, watcher: () => WatchProvider) => {
+    let changes = reads.get(provider);
+    if (!changes) {
+      // One failing watcher must not hide the others' changes.
+      changes = deps.queue
+        .add(`watch:${provider}`, () => watcher()(opts.since))
+        .catch((error: unknown) => {
+          state.errors.push(`watcher ${provider} failed: ${errorText(error)}`);
+          log(`ERROR watcher ${provider} failed: ${errorText(error)}`);
+          return [];
+        });
+      reads.set(provider, changes);
+    }
+    return changes;
+  };
+  const folderReads = () => folders.map((id) => read(id, () => deps.watchers[id]));
+  folderReads();
+
+  return async (usages) => {
+    const others = [...unlistedProviders(usages, folders)];
+    for (const [provider] of others)
+      if (!reads.has(provider)) log(`watching ${provider}: no folder in providers/`);
+    const lists = await Promise.all([
+      ...folderReads(),
+      ...others.map(([provider, hints]) => read(provider, () => deps.watchAny(provider, hints))),
+    ]);
+    return lists.flat();
+  };
+}
+
 export async function runOrg(org: Org, deps: LoopDeps, opts: RunOptions = {}): Promise<RunSummary> {
   const log = deps.log ?? (() => {});
   const state: RunState = { costUsd: 0, errors: [] };
-
-  // Watch once per org run; one failing watcher must not hide the others' changes.
-  const watched = await Promise.allSettled(
-    deps.watchers.map((watch, i) => deps.queue.add(`watch:${i}`, () => watch(opts.since))),
+  const watch = watchOrg(deps, opts, state);
+  log(
+    `${org.name}: ${org.repos.length} repo(s), ${Object.keys(deps.watchers).length} provider folder watcher(s)`,
   );
-  const changes = watched.flatMap((result, i) => {
-    if (result.status === 'fulfilled') return result.value;
-    state.errors.push(`watcher ${i} failed: ${errorText(result.reason)}`);
-    log(`ERROR watcher ${i} failed: ${errorText(result.reason)}`);
-    return [];
-  });
-  log(`${org.name}: ${changes.length} provider changes from ${deps.watchers.length} watcher(s)`);
 
-  const records: LoopRecord[] = [];
-  for (const target of org.repos)
-    records.push(...(await runRepo(target, changes, deps, opts, state)));
+  // Repos run at once; the queue bounds the work in flight and the run budget bounds the spend.
+  const perRepo = await Promise.all(
+    org.repos.map((target) => runRepo(target, watch, deps, opts, state)),
+  );
+  const records = perRepo.flat();
 
   const counts = { verified: 0, 'needs-review': 0, 'not-affected': 0, failed: 0 };
   for (const r of records) counts[r.outcome]++;
@@ -101,7 +164,7 @@ export async function runOrg(org: Org, deps: LoopDeps, opts: RunOptions = {}): P
 // Every change ends as an attempted task or a recorded verdict for this repo; nothing ends silently.
 export async function runRepo(
   { repo, dir }: { repo: string; dir: string },
-  changes: ProviderChange[],
+  watch: WatchRepo,
   deps: LoopDeps,
   opts: RunOptions = {},
   state: RunState = { costUsd: 0, errors: [] },
@@ -121,11 +184,14 @@ export async function runRepo(
   }
 
   let usages: ApiUsage[] = [];
+  let changes: ProviderChange[] = [];
   let stage = 'inventory';
   let tasks: MatchedTask[];
   let notAffected: { changeId: string; reasoning: string }[];
   try {
     usages = await queue.add(`${repo}:inventory`, () => deps.inventory(dir, repo));
+    changes = await watch(usages);
+    log(`${repo}: ${usages.length} API usage(s), ${changes.length} provider change(s) to match`);
     stage = 'match';
     const matched = await queue.add(`${repo}:match`, () =>
       deps.match({ repo, changes, usages, repoDir: dir }),
@@ -138,6 +204,8 @@ export async function runRepo(
     const failure = `${stage} failed after retries: ${errorText(error)}`;
     state.errors.push(`${repo}: ${failure}`);
     log(`ERROR ${repo}: ${failure}`);
+    // With no usage map, the folder watchers' changes are the ones this repo is known to face.
+    if (stage === 'inventory') changes = await watch([]);
     return Promise.all(
       changes.map((change) => {
         const task = verdictTask(repo, change, usages);

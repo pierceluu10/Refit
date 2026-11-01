@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { ApiUsage, MigrationTask, ProviderChange } from '../shared/types.ts';
-import type { Budget } from './budget.ts';
+import { costOf, worstCaseUsd, type Budget } from './budget.ts';
 
 // A task plus the agent's reasoning: which call sites, why, and how urgent.
 export type MatchedTask = MigrationTask & {
@@ -152,15 +152,26 @@ export function messagesApi(opts: {
   return async ({ system, prompt, schema }) => {
     const client = opts.client ?? new Anthropic();
     // shortcut: chars/3.5 token estimate, switch to messages.countTokens if the cap gets tight
-    opts.budget.reserve(model, Math.ceil((system.length + prompt.length) / 3.5), MAX_TOKENS);
-    const response = await client.messages.create({
-      model,
-      max_tokens: MAX_TOKENS,
-      system,
-      messages: [{ role: 'user', content: prompt }],
-      output_config: { effort: 'high', format: { type: 'json_schema', schema } },
-    });
-    const costUsd = opts.budget.charge(model, response.usage);
+    const inputTokens = Math.ceil((system.length + prompt.length) / 3.5);
+    // The call holds its worst case, so matches running at once cannot each spend the same remainder.
+    const hold = await opts.budget.reserve(
+      'a match call',
+      worstCaseUsd(model, inputTokens, MAX_TOKENS),
+    );
+    let response: Anthropic.Message;
+    try {
+      response = await client.messages.create({
+        model,
+        max_tokens: MAX_TOKENS,
+        system,
+        messages: [{ role: 'user', content: prompt }],
+        output_config: { effort: 'high', format: { type: 'json_schema', schema } },
+      });
+    } catch (error) {
+      hold.settle(0);
+      throw error;
+    }
+    const costUsd = hold.settle(costOf(model, response.usage));
 
     if (response.stop_reason === 'refusal') throw new Error('Match agent refused the request.');
     if (response.stop_reason === 'max_tokens') {

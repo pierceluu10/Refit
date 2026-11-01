@@ -2,7 +2,7 @@ import { cpSync, lstatSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve, sep } from 'node:path';
 import { query, type CanUseTool, type SDKResultMessage } from '@anthropic-ai/claude-agent-sdk';
-import { BudgetExceededError, type Budget } from './budget.ts';
+import type { Budget } from './budget.ts';
 import type { AskModel } from './match.ts';
 
 const READ_TOOLS = ['Read', 'Grep', 'Glob'];
@@ -62,14 +62,15 @@ export function readOnlyInRepo(repoDir: string): CanUseTool {
 export function agentSdk(opts: { budget: Budget; model?: string }): AskModel {
   const model = opts.model ?? 'claude-opus-5-5';
   return async ({ system, prompt, schema, repoDir }) => {
-    const remaining = opts.budget.capUsd - opts.budget.spentUsd();
-    if (remaining <= 0)
-      throw new BudgetExceededError(`AI budget of $${opts.budget.capUsd} is spent.`);
-
-    const workDir = mkdtempSync(join(tmpdir(), 'aptitude-match-'));
+    // The agent may spend what is free of the run cap; the SDK checks that only between turns.
+    const hold = await opts.budget.reserve('an Agent SDK match run', Infinity, 0.01);
+    let workDir: string | undefined;
+    let queried = false;
     let result: SDKResultMessage | undefined;
     try {
+      workDir = mkdtempSync(join(tmpdir(), 'aptitude-match-'));
       if (repoDir) copyForReading(repoDir, workDir);
+      queried = true;
       for await (const message of query({
         prompt,
         options: {
@@ -82,7 +83,7 @@ export function agentSdk(opts: { budget: Budget; model?: string }): AskModel {
           canUseTool: repoDir ? readOnlyInRepo(workDir) : undefined,
           maxTurns: repoDir ? 40 : 3,
           // The SDK checks this between turns, so one turn can overshoot by at most that turn's cost.
-          maxBudgetUsd: remaining,
+          maxBudgetUsd: hold.usd,
           settingSources: [],
           persistSession: false,
           cwd: workDir,
@@ -91,10 +92,12 @@ export function agentSdk(opts: { budget: Budget; model?: string }): AskModel {
         if (message.type === 'result') result = message;
       }
     } finally {
-      rmSync(workDir, { recursive: true, force: true });
+      if (workDir) rmSync(workDir, { recursive: true, force: true });
+      // A query that ended without a result spent an unknown amount, so the whole hold counts as spent.
+      hold.settle(result ? result.total_cost_usd : queried ? hold.usd : 0);
     }
     if (!result) throw new Error('Agent SDK returned no result.');
-    const costUsd = opts.budget.chargeUsd(result.total_cost_usd);
+    const costUsd = result.total_cost_usd;
     if (result.subtype !== 'success') {
       throw new Error(`Agent SDK match run ended with ${result.subtype} after $${costUsd}.`);
     }

@@ -12,14 +12,22 @@ const PRICES: Record<
 
 export class BudgetExceededError extends Error {}
 
+// Part of the run's cap set aside for one part (a watcher, an inventory, a task) while it runs.
+export type Hold = {
+  readonly usd: number;
+  // Records what the part spent and returns the rest of the hold to the run. Later calls are ignored.
+  settle(spentUsd: number): number;
+};
+
 export type Budget = {
   readonly capUsd: number;
   spentUsd(): number;
-  // Throws before a call whose worst case would cross the cap.
-  reserve(model: string, inputTokens: number, maxOutputTokens: number): void;
-  // Records what a call actually cost and returns it.
-  charge(model: string, usage: Anthropic.Usage): number;
-  // Records a cost already priced elsewhere (the Agent SDK's total_cost_usd).
+  // Set aside by holds that have not settled yet.
+  heldUsd(): number;
+  // Holds up to maxUsd once minUsd is free. While other holds could still free enough it waits;
+  // when none could, it rejects with BudgetExceededError. Spent plus held never passes the cap.
+  reserve(label: string, maxUsd: number, minUsd?: number): Promise<Hold>;
+  // Records a cost that no hold covered.
   chargeUsd(costUsd: number): number;
 };
 
@@ -32,6 +40,24 @@ function price(model: string) {
   return p;
 }
 
+// What a Messages API call cost.
+export function costOf(model: string, usage: Anthropic.Usage): number {
+  const p = price(model);
+  return (
+    (usage.input_tokens * p.input +
+      usage.output_tokens * p.output +
+      (usage.cache_creation_input_tokens ?? 0) * p.cacheWrite +
+      (usage.cache_read_input_tokens ?? 0) * p.cacheRead) /
+    1e6
+  );
+}
+
+// The most a call can cost: every input token plus a full max_tokens of output.
+export function worstCaseUsd(model: string, inputTokens: number, maxOutputTokens: number): number {
+  const p = price(model);
+  return (inputTokens * p.input + maxOutputTokens * p.output) / 1e6;
+}
+
 // The run-level dollar cap is a hard limit: refuse to build a budget without one.
 export function createBudget(capUsd = Number(process.env.APTITUDE_AI_BUDGET_USD)): Budget {
   if (!Number.isFinite(capUsd) || capUsd <= 0) {
@@ -40,28 +66,65 @@ export function createBudget(capUsd = Number(process.env.APTITUDE_AI_BUDGET_USD)
     );
   }
   let spent = 0;
+  let held = 0;
+  let open = 0;
+  const waiting: {
+    label: string;
+    maxUsd: number;
+    minUsd: number;
+    resolve: (hold: Hold) => void;
+    reject: (error: Error) => void;
+  }[] = [];
+  // Float sums of holds drift by ~1e-16; this keeps a hold of exactly what is left grantable.
+  const free = () => Math.max(capUsd - spent - held, 0) + 1e-9;
+
+  function grant(maxUsd: number): Hold {
+    const usd = Math.max(Math.min(free() - 1e-9, maxUsd), 0);
+    held += usd;
+    open++;
+    let settled = false;
+    return {
+      usd,
+      settle(spentUsd) {
+        if (settled) return 0;
+        settled = true;
+        // A cost that is not a number is unknown, so the whole hold counts as spent.
+        const cost = Number.isFinite(spentUsd) && spentUsd >= 0 ? spentUsd : usd;
+        held = --open === 0 ? 0 : held - usd;
+        spent += cost;
+        wake();
+        return cost;
+      },
+    };
+  }
+
+  // Grants every waiter that fits, oldest first. With no hold left open, nothing can free up, so the
+  // waiters that still do not fit are refused.
+  function wake() {
+    for (const waiter of [...waiting]) {
+      if (free() < waiter.minUsd) continue;
+      waiting.splice(waiting.indexOf(waiter), 1);
+      waiter.resolve(grant(waiter.maxUsd));
+    }
+    if (open > 0) return;
+    for (const waiter of waiting.splice(0)) {
+      waiter.reject(
+        new BudgetExceededError(
+          `AI budget: $${(capUsd - spent).toFixed(2)} of the $${capUsd} cap left; ${waiter.label} needs $${waiter.minUsd.toFixed(2)}.`,
+        ),
+      );
+    }
+  }
+
   return {
     capUsd,
     spentUsd: () => spent,
-    reserve(model, inputTokens, maxOutputTokens) {
-      const p = price(model);
-      const worst = (inputTokens * p.input + maxOutputTokens * p.output) / 1e6;
-      if (spent + worst > capUsd) {
-        throw new BudgetExceededError(
-          `AI budget: $${spent.toFixed(4)} spent of $${capUsd}; the next call could cost up to $${worst.toFixed(4)}.`,
-        );
-      }
-    },
-    charge(model, usage) {
-      const p = price(model);
-      const cost =
-        (usage.input_tokens * p.input +
-          usage.output_tokens * p.output +
-          (usage.cache_creation_input_tokens ?? 0) * p.cacheWrite +
-          (usage.cache_read_input_tokens ?? 0) * p.cacheRead) /
-        1e6;
-      spent += cost;
-      return cost;
+    heldUsd: () => held,
+    reserve(label, maxUsd, minUsd = maxUsd) {
+      return new Promise((resolve, reject) => {
+        waiting.push({ label, maxUsd, minUsd, resolve, reject });
+        wake();
+      });
     },
     chargeUsd(costUsd) {
       spent += costUsd;
