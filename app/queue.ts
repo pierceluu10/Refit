@@ -1,0 +1,86 @@
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
+import type { AppJob, JobQueue, UnderstandJob } from './types.ts';
+
+export type FileQueue = JobQueue & {
+  pending: () => UnderstandJob[];
+  idle: () => Promise<void>;
+};
+
+const sameRepo = (a: AppJob, b: AppJob) =>
+  a.installationId === b.installationId && a.repo === b.repo;
+
+async function load(file: string): Promise<UnderstandJob[]> {
+  try {
+    return JSON.parse(await readFile(file, 'utf8')) as UnderstandJob[];
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw error; // a corrupt queue file must not silently drop jobs
+  }
+}
+
+// Pending jobs live in one JSON file, rewritten atomically on every change, and run one at a time.
+// A job leaves the file only when it ends, so a restart reruns the job it interrupted.
+// shortcut: one process owns the file (as memory/ owns its store); move to a database for several workers.
+export async function createFileQueue(
+  file: string,
+  run: (job: UnderstandJob) => Promise<void>,
+): Promise<FileQueue> {
+  let jobs = await load(file);
+  let running: UnderstandJob | undefined;
+  let working: Promise<void> | undefined;
+  let saving: Promise<void> = Promise.resolve();
+
+  const write = async () => {
+    await mkdir(dirname(file), { recursive: true });
+    const temporary = `${file}.${process.pid}.tmp`;
+    await writeFile(temporary, JSON.stringify(jobs));
+    await rename(temporary, file);
+  };
+  const save = () => {
+    const next = saving.then(write);
+    saving = next.catch(() => undefined);
+    return next;
+  };
+
+  async function work() {
+    while (jobs.length > 0) {
+      const job = jobs[0];
+      running = job;
+      try {
+        await run(job);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`job ${job.kind} ${job.repo} failed: ${message}`);
+      }
+      jobs = jobs.filter((other) => other !== job);
+      running = undefined;
+      await save();
+    }
+  }
+  const start = () => {
+    working ??= work().finally(() => (working = undefined));
+  };
+
+  if (jobs.length > 0) start();
+  return {
+    async enqueue(job) {
+      const waiting = (other: UnderstandJob) => other !== running && sameRepo(other, job);
+      if (job.kind === 'forget') {
+        // memory/ has no forget yet; a removed repo just stops waiting to be read.
+        jobs = jobs.filter((other) => !waiting(other));
+      } else if (jobs.some(waiting)) {
+        return; // a read of this repo is already waiting and will see the newest code
+      } else {
+        jobs.push(job);
+      }
+      await save();
+      console.log(`queued ${job.kind} ${job.repo}`);
+      start();
+    },
+    pending: () => [...jobs],
+    idle: async () => {
+      while (working) await working;
+    },
+  };
+}

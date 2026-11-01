@@ -13,7 +13,7 @@ const MINUTE_MS = 60 * SECOND_MS;
 const JWT_BACKDATE_MS = MINUTE_MS;
 const JWT_LIFETIME_MS = 9 * MINUTE_MS;
 const TOKEN_REFRESH_MARGIN_MS = 5 * MINUTE_MS;
-const REPOS_PER_PAGE = 100;
+const PER_PAGE = 100;
 
 export class GitHubApiError extends Error {
   status: number;
@@ -108,22 +108,87 @@ export function createInstallationTokens(
   };
 }
 
-type RepositoryPage = { total_count: number; repositories: { full_name: string }[] };
+type Page = { total_count: number } & Record<string, unknown>;
+
+async function listAll<T>(
+  token: string,
+  path: string,
+  key: string,
+  fetchImpl: typeof fetch,
+): Promise<T[]> {
+  const items: T[] = [];
+  for (let page = 1; ; page++) {
+    const result = await githubRequest<Page>(
+      token,
+      'GET',
+      `${path}?per_page=${PER_PAGE}&page=${page}`,
+      undefined,
+      fetchImpl,
+    );
+    const batch = result[key] as T[];
+    items.push(...batch);
+    if (batch.length === 0 || items.length >= result.total_count) return items;
+  }
+}
+
+type Repository = { full_name: string };
 
 export async function listInstallationRepos(
   token: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<string[]> {
-  const names: string[] = [];
-  for (let page = 1; ; page++) {
-    const result = await githubRequest<RepositoryPage>(
-      token,
-      'GET',
-      `/installation/repositories?per_page=${REPOS_PER_PAGE}&page=${page}`,
-      undefined,
+  const repos = await listAll<Repository>(
+    token,
+    '/installation/repositories',
+    'repositories',
+    fetchImpl,
+  );
+  return repos.map((repo) => repo.full_name);
+}
+
+// Every repo the signed-in user can reach through this App's installations. Needs a user-to-server
+// token; installations of other apps are dropped in case the token came from somewhere else.
+export async function listViewerRepos(
+  userToken: string,
+  appId: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<string[]> {
+  const installations = await listAll<{ id: number; app_id: number }>(
+    userToken,
+    '/user/installations',
+    'installations',
+    fetchImpl,
+  );
+  const repos: string[] = [];
+  for (const installation of installations.filter((item) => String(item.app_id) === appId)) {
+    const page = await listAll<Repository>(
+      userToken,
+      `/user/installations/${installation.id}/repositories`,
+      'repositories',
       fetchImpl,
     );
-    names.push(...result.repositories.map((repo) => repo.full_name));
-    if (result.repositories.length === 0 || names.length >= result.total_count) return names;
+    repos.push(...page.map((repo) => repo.full_name));
   }
+  return repos;
+}
+
+export type ComparedCommit = { parents: unknown[]; author: { type: string } | null };
+
+// The commits reachable from head but not base. shortcut: GitHub returns at most 250.
+export async function compareCommits(
+  token: string,
+  repo: string,
+  base: string,
+  head: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ComparedCommit[]> {
+  const path = `/repos/${repo}/compare/${encodeURIComponent(base)}...${encodeURIComponent(head)}`;
+  const result = await githubRequest<{ commits: ComparedCommit[] }>(
+    token,
+    'GET',
+    path,
+    undefined,
+    fetchImpl,
+  );
+  return result.commits;
 }

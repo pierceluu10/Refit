@@ -1,0 +1,2 @@
+# The persistent job queue (APTITUDE_QUEUE_FILE) when the app runs from app/.
+.aptitude/

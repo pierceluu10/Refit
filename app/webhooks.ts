@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import type { ComparedCommit } from './github.ts';
 import { BRANCH_PREFIX } from './types.ts';
 import type { AppJob, InstallationTokens, JobQueue, RecordVerdict } from './types.ts';
 
@@ -9,6 +10,12 @@ export type WebhookDeps = {
   recordVerdict: RecordVerdict;
   tokens: InstallationTokens;
   listRepos: (token: string) => Promise<string[]>;
+  compareCommits: (
+    token: string,
+    repo: string,
+    base: string,
+    head: string,
+  ) => Promise<ComparedCommit[]>;
 };
 
 type Repository = { full_name: string };
@@ -35,7 +42,14 @@ type PushEvent = {
 type PullRequestEvent = {
   action: string;
   pull_request: { html_url: string; merged: boolean; head: { ref: string } };
+  before?: string;
+  after?: string;
+  sender: { type: string };
+  installation: { id: number };
+  repository: Repository;
 };
+
+const BOT = 'Bot';
 
 export function verifySignature(
   secret: string,
@@ -96,16 +110,37 @@ async function jobsFor(event: string, payload: unknown, deps: WebhookDeps): Prom
   return [];
 }
 
+// memory/README.md: a person's own commit is a non-merge commit, not authored by a bot, pushed by a
+// non-bot. That leaves out Aptitude's pushes, other bots and the Update branch button.
+async function pushedByPerson(event: PullRequestEvent, deps: WebhookDeps): Promise<boolean> {
+  if (event.sender.type === BOT || !event.before || !event.after) return false;
+  const token = await deps.tokens.token(event.installation.id);
+  const commits = await deps.compareCommits(
+    token,
+    event.repository.full_name,
+    event.before,
+    event.after,
+  );
+  return commits.some((commit) => commit.parents.length < 2 && commit.author?.type !== BOT);
+}
+
+async function verdictFor(event: PullRequestEvent, deps: WebhookDeps): Promise<void> {
+  const pr = event.pull_request;
+  if (!pr.head.ref.startsWith(BRANCH_PREFIX)) return;
+  if (event.action === 'closed')
+    await deps.recordVerdict(pr.html_url, pr.merged ? 'merged' : 'closed');
+  if (event.action === 'synchronize' && (await pushedByPerson(event, deps))) {
+    await deps.recordVerdict(pr.html_url, 'edited');
+  }
+}
+
 export async function handleWebhook(
   event: string,
   payload: unknown,
   deps: WebhookDeps,
 ): Promise<AppJob[]> {
   if (event === 'pull_request') {
-    const { action, pull_request: pr } = payload as PullRequestEvent;
-    if (action === 'closed' && pr.head.ref.startsWith(BRANCH_PREFIX)) {
-      await deps.recordVerdict(pr.html_url, pr.merged ? 'merged' : 'closed');
-    }
+    await verdictFor(payload as PullRequestEvent, deps);
     return [];
   }
   const jobs = await jobsFor(event, payload, deps);

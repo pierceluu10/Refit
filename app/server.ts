@@ -1,5 +1,7 @@
 import { createServer } from 'node:http';
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
+import { runsFor } from './runs.ts';
+import type { RunsDeps } from './runs.ts';
 import { handleWebhook, verifySignature } from './webhooks.ts';
 import type { WebhookDeps } from './webhooks.ts';
 
@@ -7,6 +9,7 @@ import type { WebhookDeps } from './webhooks.ts';
 export const MAX_BODY_BYTES = 25 * 1024 * 1024;
 const WEBHOOK_PATH = '/webhooks';
 const HEALTH_PATH = '/healthz';
+const RUNS_PATH = '/api/runs';
 const OK = 200;
 const ACCEPTED = 202;
 const BAD_REQUEST = 400;
@@ -15,7 +18,11 @@ const NOT_FOUND = 404;
 const PAYLOAD_TOO_LARGE = 413;
 const SERVER_ERROR = 500;
 
-export type WebhookServerDeps = WebhookDeps & { webhookSecret: string; maxBodyBytes?: number };
+export type WebhookServerDeps = WebhookDeps &
+  RunsDeps & {
+    webhookSecret: string;
+    maxBodyBytes?: number;
+  };
 
 // Returns undefined when the body exceeds the cap; it keeps draining so the 413 can still be sent.
 async function readBody(request: IncomingMessage, limit: number): Promise<Buffer | undefined> {
@@ -50,16 +57,32 @@ async function receiveWebhook(
     return response.writeHead(BAD_REQUEST).end();
   }
   const event = header(request, 'x-github-event') ?? '';
+  // GitHub gives a delivery 10 seconds, so answer first; jobs and verdicts can take minutes.
+  response.writeHead(ACCEPTED).end();
   try {
     await handleWebhook(event, payload, deps);
-    response.writeHead(ACCEPTED).end();
   } catch (error) {
-    // GitHub can redeliver, so report the failure rather than swallow it.
+    // Already answered, so log the delivery id: it can be redelivered from the App's Advanced page.
     const delivery = header(request, 'x-github-delivery');
     const message = error instanceof Error ? error.message : String(error);
     console.error(`webhook ${event} ${delivery} failed: ${message}`);
-    response.writeHead(SERVER_ERROR).end();
   }
+}
+
+const sendJson = (response: ServerResponse, status: number, body: unknown) =>
+  response.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(body));
+
+async function serveRuns(
+  request: IncomingMessage,
+  response: ServerResponse,
+  deps: WebhookServerDeps,
+) {
+  const query = new URL(request.url ?? '/', 'http://localhost').searchParams;
+  const result = await runsFor(query, header(request, 'authorization'), deps);
+  if (result.status === UNAUTHORIZED) return response.writeHead(UNAUTHORIZED).end();
+  if (result.status === BAD_REQUEST)
+    return sendJson(response, BAD_REQUEST, { error: result.error });
+  sendJson(response, OK, result.runs);
 }
 
 export function createWebhookServer(deps: WebhookServerDeps): Server {
@@ -74,6 +97,15 @@ export function createWebhookServer(deps: WebhookServerDeps): Server {
       return;
     }
     if (request.method === 'GET' && path === HEALTH_PATH) return response.writeHead(OK).end();
+    // Same-origin only: the dashboard is served beside the app, so no CORS headers.
+    if (request.method === 'GET' && path === RUNS_PATH) {
+      serveRuns(request, response, deps).catch((error: Error) => {
+        console.error(`runs request failed: ${error.message}`);
+        if (!response.headersSent) response.writeHead(SERVER_ERROR);
+        response.end();
+      });
+      return;
+    }
     response.writeHead(NOT_FOUND).end();
   });
 }

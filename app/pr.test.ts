@@ -1,6 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 import { GITHUB_API, GitHubApiError } from './github.ts';
-import { EmptyChangeError, UnsafeBranchError, openPullRequest } from './pr.ts';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { MigrationTask, RunRecord } from '../shared/types.ts';
+import {
+  EmptyChangeError,
+  UnsafeBranchError,
+  branchFor,
+  createOpenPullRequest,
+  openPullRequest,
+} from './pr.ts';
 import type { InstallationTokens, OpenPullRequestInput } from './types.ts';
 
 const INSTALLATION = 42;
@@ -164,5 +175,100 @@ describe('openPullRequest', () => {
     expect(error).toMatchObject({ status: 422, method: 'POST', path: `${REPO}/git/refs` });
     expect((error as Error).message).toContain('Reference already exists');
     expect(github.calls.map((call) => call.path)).not.toContain(`${REPO}/pulls`);
+  });
+});
+
+describe('branchFor', () => {
+  it('slugs the task id under aptitude/', () => {
+    expect(branchFor('acme/shop:Stripe 2026-10 / api_version')).toBe(
+      'aptitude/acme-shop-stripe-2026-10-api-version',
+    );
+    expect(branchFor('x'.repeat(200))).toHaveLength('aptitude/'.length + 80);
+  });
+});
+
+describe('createOpenPullRequest', () => {
+  const OPEN_PULLS = `GET ${REPO}/pulls?state=open&head=${encodeURIComponent('acme:aptitude/task-1')}`;
+  const TASK = {
+    id: 'task-1',
+    repo: 'acme/shop',
+    change: {
+      provider: 'stripe',
+      id: 'illustrative-change',
+      kind: 'api-version',
+      title: 'Upgrade Stripe API version',
+      source: { url: 'https://example.com/changelog', quote: 'Illustrative.' },
+      affects: {},
+    },
+    usages: [],
+    priority: 1,
+  } satisfies MigrationTask;
+
+  function checkout() {
+    const dir = mkdtempSync(join(tmpdir(), 'aptitude-pr-'));
+    const git = (...args: string[]) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
+    git('init', '-q');
+    git('config', 'user.name', 'Test');
+    git('config', 'user.email', 'test@localhost');
+    writeFileSync(join(dir, 'billing.ts'), 'old\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'base');
+    writeFileSync(join(dir, 'billing.ts'), 'new\n');
+    const diff = git('diff');
+    git('checkout', '-q', '.');
+    return { dir, diff };
+  }
+
+  it("opens a draft on aptitude/<slug> with the record's diff and prBody", async () => {
+    const { dir, diff } = checkout();
+    try {
+      const github = fakeGitHub({ [OPEN_PULLS]: { body: [] } });
+      const record: RunRecord & { prBody: string } = {
+        taskId: 'task-1',
+        outcome: 'verified',
+        diff,
+        checks: [],
+        costUsd: 0,
+        transcriptPath: '',
+        prBody: 'Illustrative PR body from the harness.',
+      };
+      const open = createOpenPullRequest(tokens, INSTALLATION, github.fetchImpl);
+      expect(await open(TASK, record, dir)).toBe('https://github.com/acme/shop/pull/9');
+      const body = (method: string, path: string) =>
+        github.calls.find((call) => call.method === method && call.path === `${REPO}${path}`)?.body;
+      expect(body('POST', '/git/trees')).toMatchObject({
+        tree: [{ path: 'billing.ts', content: 'new\n' }],
+      });
+      expect(body('POST', '/git/refs')).toEqual({
+        ref: 'refs/heads/aptitude/task-1',
+        sha: 'new-commit',
+      });
+      expect(body('POST', '/pulls')).toEqual({
+        title: 'Upgrade Stripe API version',
+        body: 'Illustrative PR body from the harness.',
+        head: 'aptitude/task-1',
+        base: 'main',
+        draft: true,
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('returns the open PR for the same task instead of opening another', async () => {
+    const github = fakeGitHub({
+      [OPEN_PULLS]: { body: [{ html_url: 'https://github.com/acme/shop/pull/7' }] },
+    });
+    const record = {
+      taskId: 'task-1',
+      outcome: 'verified',
+      diff: '',
+      checks: [],
+      costUsd: 0,
+      transcriptPath: '',
+    } satisfies RunRecord;
+    const open = createOpenPullRequest(tokens, INSTALLATION, github.fetchImpl);
+    expect(await open(TASK, record, '/nonexistent')).toBe('https://github.com/acme/shop/pull/7');
+    expect(github.calls.map((call) => call.method)).toEqual(['GET']);
   });
 });

@@ -57,6 +57,9 @@ Under **Subscribe to events**, check:
 `default_events`: GitHub's docs say every GitHub App receives both by default and can't subscribe to
 them manually. Our install, uninstall and repos-added/removed handlers rely on that.
 
+`pull_request` already covers `synchronize`, which the `edited` verdict uses. No new permission is
+needed: cloning and `compare` use Contents (read), and `/user/installations` needs none.
+
 - [ ] Optionally fill **Add a note to users** (for example "Aptitude now opens migration PRs").
 - [ ] **Save changes**.
 
@@ -76,19 +79,38 @@ apply there, so Aptitude can't push branches or open PRs on those installations.
       `~/.config/aptitude/aptitude.pem`, and point `GITHUB_APP_PRIVATE_KEY_FILE` at it. `*.pem` is
       gitignored, but don't rely on that. Delete old keys nobody holds.
 
+## 4. User sign-in for the dashboard
+
+`GET /api/runs` scopes runs by a GitHub user-to-server token for this App, so the dashboard needs a
+"Sign in with GitHub" flow (not built yet; the site shows labelled example runs until then). On the
+**General** page:
+
+- [ ] **Callback URL**: the dashboard's OAuth callback once it exists.
+- [ ] **Expire user authorization tokens**: keep checked.
+- [ ] **Request user authorization (OAuth) during installation**: optional; it signs the installer in
+      straight away.
+- [ ] Note the **Client ID** and generate a **Client secret** for the site's sign-in (password
+      manager only).
+
 ## Environment
 
 Put these in `app/.env` (gitignored; `npm run dev` loads it). Never commit or print them.
 
-| Variable                      | Value                                                             |
-| ----------------------------- | ----------------------------------------------------------------- |
-| `GITHUB_APP_ID`               | `5275879`                                                         |
-| `GITHUB_APP_PRIVATE_KEY_FILE` | Path to the `.pem`                                                |
-| `GITHUB_APP_PRIVATE_KEY`      | PEM contents instead of a file, for hosts that only take env vars |
-| `GITHUB_WEBHOOK_SECRET`       | The webhook secret from step 1                                    |
-| `PORT`                        | Default `3000`                                                    |
-| `HOST`                        | Default `127.0.0.1`                                               |
-| `SMEE_URL`                    | Dev tunnel only                                                   |
+| Variable                      | Value                                                                            |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| `GITHUB_APP_ID`               | `5275879`                                                                        |
+| `GITHUB_APP_PRIVATE_KEY_FILE` | Path to the `.pem`                                                               |
+| `GITHUB_APP_PRIVATE_KEY`      | PEM contents instead of a file, for hosts that only take env vars                |
+| `GITHUB_WEBHOOK_SECRET`       | The webhook secret from step 1                                                   |
+| `PORT`                        | Default `3000`                                                                   |
+| `HOST`                        | Default `127.0.0.1`                                                              |
+| `SMEE_URL`                    | Dev tunnel only                                                                  |
+| `APTITUDE_QUEUE_FILE`         | Job queue file; default `.aptitude/queue.json` (a persistent path in production) |
+| `APTITUDE_MEMORY_DIR`         | memory/'s store; absolute path on a persistent volume in production              |
+| `APTITUDE_AI_BUDGET_USD`      | Run cap for the loop; required once `ANTHROPIC_API_KEY` is set                   |
+| `ANTHROPIC_API_KEY`           | Real model runs; without it the loop and memory use offline stubs                |
+
+Jobs run the harness in Docker, so the host needs Docker running.
 
 ## Local development
 
@@ -110,7 +132,10 @@ the repo root with `-w @aptitude/app`, or from inside `app/`.
 
 Install on a test org first, never a real customer org. Check that:
 
-- [ ] installing queues one `understand` job per repo;
+- [ ] each delivery is answered `202` within a second, before the job runs;
+- [ ] installing queues one `understand` job per repo, and each runs (clone, `runRepoJob`, cleanup);
+- [ ] a run that opens a PR opens it as a draft from an `aptitude/` branch, never on the default branch;
+- [ ] pushing your own commit to an Aptitude PR records `edited`; **Update branch** records nothing;
 - [ ] adding and removing repos on the installation queues `understand` and `forget` jobs;
 - [ ] a push to the default branch queues an `understand` job with the new sha;
 - [ ] merging or closing a PR from an `aptitude/` branch records `merged` or `closed`;
@@ -118,6 +143,7 @@ Install on a test org first, never a real customer org. Check that:
 
 ## What's stubbed
 
-`app/stubs.ts` holds an in-memory job queue and a verdict recorder that only logs. They stand in until
-the orchestrator's queue (`orchestrator/`) and the run store (`memory/`) land; jobs and verdicts are
-lost on restart until then.
+`app/stubs.ts` holds `runRepoJob` (runs nothing) until the orchestrator's lands (#472), and
+`listRunViews` (no runs) until memory's lands (#473). Then `main.ts` imports them from
+`../orchestrator/index.ts` and `../memory/index.ts` and the stubs go. Verdicts already go to memory's
+`recordVerdict`.
