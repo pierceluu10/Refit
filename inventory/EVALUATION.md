@@ -134,3 +134,5 @@ Results:
 - Precision was hand-checked on v1, not re-checked on all of v2.
 - Only 3 repositories have full ground truth. The other 7 show precision only.
 - Fan-out is guidance in the prompt, and the agent ignored it on the largest repository.
+- Provider hints (`ApiUsage.hints`, prompt `inventory-v3`) were added after these runs and have not
+  been measured on any real repository. Only the fake-model unit tests cover them.

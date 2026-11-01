@@ -1,7 +1,9 @@
 // Holds what the agent and its area readers record. It checks each location against the file so
 // the agent learns at once when a line number is wrong, and merges duplicate reports mechanically.
 // It never judges whether something is an API: that is the agent's call.
-import type { ApiUsage } from '../shared/types.ts';
+import type { ApiUsage, ProviderHints } from '../shared/types.ts';
+import { checkHints, mergeHints } from './hints.ts';
+import type { RejectedHint } from './hints.ts';
 import { readText } from './repo-files.ts';
 
 export type CallSite = ApiUsage['callSites'][number];
@@ -14,6 +16,7 @@ export type UsageReport = {
   sdk?: ApiUsage['sdk'];
   pinnedVersion?: ApiUsage['pinnedVersion'];
   callSites: CallSite[];
+  hints?: ProviderHints;
 };
 
 export type RecordedUsage = ApiUsage & { purpose?: string };
@@ -23,6 +26,7 @@ export type RecordOutcome = {
   accepted: { file: string; line: number; text: string }[];
   rejected: { file: string; line: number; reason: string }[];
   pinnedVersion?: { accepted: boolean; text?: string; reason?: string };
+  hints?: { accepted: ProviderHints; rejected: RejectedHint[] };
 };
 
 const LINE_PREVIEW_LENGTH = 160;
@@ -74,6 +78,11 @@ export class UsageCollector {
         existing.pinnedVersion = report.pinnedVersion;
         outcome.pinnedVersion = { accepted: true, text: check.text };
       }
+    }
+    if (report.hints) {
+      outcome.hints = checkHints(report.hints);
+      const hints = mergeHints(existing.hints, outcome.hints.accepted);
+      if (hints) existing.hints = hints;
     }
     if (report.sdk) existing.sdk = report.sdk;
     if (report.purpose) existing.purpose = report.purpose;

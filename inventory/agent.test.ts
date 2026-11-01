@@ -29,6 +29,12 @@ beforeAll(async () => {
     'src/client.ts':
       "import Stripe from 'stripe';\nexport const client = new Stripe(process.env.STRIPE_KEY!, { apiVersion: '2023-10-16' });\n",
     'src/billing.ts': BILLING,
+    'node_modules/stripe/package.json': JSON.stringify({
+      name: 'stripe',
+      homepage: 'https://github.com/stripe/stripe-node',
+      repository: { type: 'git', url: 'git+https://github.com/stripe/stripe-node.git' },
+      bugs: { url: 'https://github.com/stripe/stripe-node/issues' },
+    }),
   });
   outside = await mkdtemp(path.join(os.tmpdir(), 'inventory-outside-'));
   await symlink(outside, path.join(repoDir, 'escape'));
@@ -118,6 +124,95 @@ describe('runInventory with a fake model', () => {
     expect(spend.at(-1).cumulativeUsd).toBeCloseTo(0.02);
   });
 
+  it('records hints, rejects malformed ones with a reason, merges them and returns them', async () => {
+    const site = { file: 'src/billing.ts', line: 5, operation: 'paymentIntents.create' };
+    const { runner, outputs } = fakeModel([
+      { tool: 'package_links', input: { package: 'stripe' } },
+      { tool: 'package_links', input: { package: 'left-pad' } },
+      {
+        tool: 'record_usage',
+        input: {
+          provider: 'stripe',
+          via: 'sdk',
+          sdk: { name: 'stripe', version: '^14.2.0' },
+          callSites: [site],
+          hints: {
+            packages: ['stripe', 'stripe', 'has space'],
+            hosts: ['API.Stripe.com', 'https://api.stripe.com/v1', '${shop}.example.com'],
+            docsUrls: [
+              'https://github.com/stripe/stripe-node#readme',
+              'docs.stripe.com/changelog',
+              'https://user:pass@docs.stripe.com',
+            ],
+          },
+        },
+      },
+      {
+        tool: 'record_usage',
+        input: {
+          provider: 'stripe',
+          via: 'sdk',
+          sdk: { name: 'stripe', version: '^14.2.0' },
+          callSites: [],
+          hints: {
+            hosts: ['api.stripe.com', 'files.stripe.com'],
+            docsUrls: ['https://docs.stripe.com/changelog'],
+          },
+        },
+      },
+      {
+        tool: 'record_usage',
+        input: {
+          provider: 'api.weather.example.org',
+          via: 'http',
+          callSites: [{ file: 'src/billing.ts', line: 10, operation: 'GET /v2/forecast' }],
+        },
+      },
+    ]);
+    const report = await runInventory(repoDir, 'acme/shop', {
+      ledger: new BudgetLedger({ capUsd: 1 }),
+      runner,
+    });
+    console.log(outputs.join('\n---\n'));
+
+    expect(JSON.parse(outputs[0])).toEqual([
+      {
+        file: 'node_modules/stripe/package.json',
+        links: {
+          homepage: 'https://github.com/stripe/stripe-node',
+          repository: 'https://github.com/stripe/stripe-node',
+          bugs: 'https://github.com/stripe/stripe-node/issues',
+        },
+      },
+    ]);
+    expect(outputs[1]).toBe('left-pad is not installed in the checkout.');
+
+    const first = JSON.parse(outputs[2]).hints;
+    expect(first.accepted).toEqual({
+      packages: ['stripe'],
+      hosts: ['api.stripe.com'],
+      docsUrls: ['https://github.com/stripe/stripe-node'],
+    });
+    expect(first.rejected.map((hint: { value: string }) => hint.value)).toEqual([
+      'has space',
+      'https://api.stripe.com/v1',
+      '${shop}.example.com',
+      'docs.stripe.com/changelog',
+      'https://user:pass@docs.stripe.com',
+    ]);
+    expect(first.rejected[1].reason).toContain('Did you mean "api.stripe.com"?');
+    expect(first.rejected[4].reason).toContain('credentials');
+
+    const stripe = report.usages.find((usage) => usage.provider === 'stripe');
+    expect(stripe?.hints).toEqual({
+      packages: ['stripe'],
+      hosts: ['api.stripe.com', 'files.stripe.com'],
+      docsUrls: ['https://github.com/stripe/stripe-node', 'https://docs.stripe.com/changelog'],
+    });
+    const weather = report.usages.find((usage) => usage.provider === 'api.weather.example.org');
+    expect(weather).not.toHaveProperty('hints');
+  });
+
   it('gives the agent only read-only repo tools plus subagents, with no settings or shell', async () => {
     const { runner, requests } = fakeModel([]);
     await runInventory(repoDir, 'acme/shop', {
@@ -147,6 +242,7 @@ describe('runInventory with a fake model', () => {
       'list_manifests',
       'list_recorded_usages',
       'locked_versions',
+      'package_links',
       'read_file',
       'record_usage',
       'remove_usage',

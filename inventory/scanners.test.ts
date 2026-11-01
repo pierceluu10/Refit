@@ -11,8 +11,10 @@ import {
   findWebhookSignals,
   listManifests,
   lockedVersions,
+  packageLinks,
   repoMap,
 } from './scanners.ts';
+import { makeRepo, removeRepo } from './test-fixtures.ts';
 
 const PRIVATE_ENV_VALUE = 'sk_test_fixture_never_print';
 
@@ -397,5 +399,37 @@ describe('repo confinement', () => {
   it('rejects paths and symlinks that resolve outside the repository', async () => {
     await expect(resolveInside(repo, '../x')).rejects.toBeInstanceOf(OutsideRepoError);
     await expect(resolveInside(repo, 'linked/leak.ts')).rejects.toBeInstanceOf(OutsideRepoError);
+  });
+});
+
+describe('packageLinks', () => {
+  it('reads Home-page and Project-URL headers from a virtualenv, not the description', async () => {
+    const pythonRepo = await makeRepo({
+      'requirements.txt': 'twilio==9.0.0\n',
+      '.venv/lib/python3.12/site-packages/twilio-9.0.0.dist-info/METADATA': [
+        'Metadata-Version: 2.1',
+        'Name: twilio',
+        'Home-page: https://github.com/twilio/twilio-python/',
+        'Project-URL: Changelog, https://github.com/twilio/twilio-python/blob/main/CHANGES.md',
+        '',
+        'Project-URL: Ignored, https://example.com/description',
+      ].join('\n'),
+    });
+    try {
+      const found = await packageLinks(pythonRepo, 'Twilio');
+      console.log(found);
+      expect(found).toEqual([
+        {
+          file: '.venv/lib/python3.12/site-packages/twilio-9.0.0.dist-info/METADATA',
+          links: {
+            'Home-page': 'https://github.com/twilio/twilio-python/',
+            Changelog: 'https://github.com/twilio/twilio-python/blob/main/CHANGES.md',
+          },
+        },
+      ]);
+      expect(await packageLinks(pythonRepo, 'stripe')).toEqual([]);
+    } finally {
+      await removeRepo(pythonRepo);
+    }
   });
 });

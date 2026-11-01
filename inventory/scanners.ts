@@ -1,8 +1,9 @@
 // Fast scanners the inventory agent may call. They return raw signals with file and 1-based line
 // numbers; they never decide what counts as an external API. Known-SDK names only annotate results.
+import { readdir } from 'node:fs/promises';
 import { builtinModules } from 'node:module';
 import path from 'node:path';
-import { grepLines, listFiles, readText } from './repo-files.ts';
+import { grepLines, listFiles, readText, resolveInside } from './repo-files.ts';
 import type { LineMatch } from './repo-files.ts';
 
 export type Dependency = {
@@ -574,6 +575,108 @@ export async function lockedVersions(
     }
   }
   return results;
+}
+
+// ---- Package links ----
+
+export type PackageLinks = { file: string; links: Record<string, string> };
+
+const PYTHON_ENVIRONMENTS = ['.venv', 'venv'];
+const METADATA_URL_LINE = /^(Home-page|Project-URL):\s*(?:([^,]+),\s*)?(\S+)\s*$/;
+
+function isMissing(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException).code;
+  return code === 'ENOENT' || code === 'ENOTDIR';
+}
+
+async function readIfPresent(repoDir: string, file: string): Promise<string | undefined> {
+  try {
+    return await readText(repoDir, file);
+  } catch (error) {
+    if (isMissing(error)) return undefined;
+    throw error;
+  }
+}
+
+async function listIfPresent(repoDir: string, directory: string): Promise<string[]> {
+  try {
+    return await readdir(await resolveInside(repoDir, directory));
+  } catch (error) {
+    if (isMissing(error)) return [];
+    throw error;
+  }
+}
+
+// "git+https://host/o/r.git", "git@host:o/r.git" and "github:o/r" become https URLs.
+function repositoryUrl(value: unknown): string | undefined {
+  const raw = typeof value === 'string' ? value : (value as { url?: unknown } | undefined)?.url;
+  if (typeof raw !== 'string') return undefined;
+  const shorthand = /^(?:github:)?([\w.-]+\/[\w.-]+)$/.exec(raw);
+  if (shorthand) return `https://github.com/${shorthand[1]}`;
+  return raw
+    .replace(/^git\+/, '')
+    .replace(/^git@([^:]+):/, 'https://$1/')
+    .replace(/^(?:git|ssh):\/\/(?:git@)?/, 'https://')
+    .replace(/\.git$/, '');
+}
+
+async function npmLinks(repoDir: string, packageName: string): Promise<PackageLinks[]> {
+  const roots = (await listFiles(repoDir))
+    .filter((file) => path.posix.basename(file) === 'package.json')
+    .map((file) => path.posix.dirname(file));
+  const results: PackageLinks[] = [];
+  for (const root of roots) {
+    const file = path.posix.join(root, 'node_modules', packageName, 'package.json');
+    const text = await readIfPresent(repoDir, file);
+    if (text === undefined) continue;
+    let metadata: Record<string, unknown>;
+    try {
+      metadata = JSON.parse(text);
+    } catch (error) {
+      if (error instanceof SyntaxError) continue;
+      throw error;
+    }
+    const bugs = metadata.bugs as { url?: unknown } | string | undefined;
+    const links = Object.fromEntries(
+      Object.entries({
+        homepage: metadata.homepage,
+        repository: repositoryUrl(metadata.repository),
+        bugs: typeof bugs === 'string' ? bugs : bugs?.url,
+      }).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+    );
+    results.push({ file, links });
+  }
+  return results;
+}
+
+async function pythonLinks(repoDir: string, packageName: string): Promise<PackageLinks[]> {
+  const wanted = normalizePackageName(packageName);
+  const results: PackageLinks[] = [];
+  for (const environment of PYTHON_ENVIRONMENTS) {
+    for (const version of await listIfPresent(repoDir, `${environment}/lib`)) {
+      const sitePackages = `${environment}/lib/${version}/site-packages`;
+      for (const entry of await listIfPresent(repoDir, sitePackages)) {
+        const match = /^(.+?)-[^-]+\.dist-info$/.exec(entry);
+        if (!match || normalizePackageName(match[1]) !== wanted) continue;
+        const file = `${sitePackages}/${entry}/METADATA`;
+        const lines = (await readIfPresent(repoDir, file))?.split(/\r?\n/) ?? [];
+        const links: Record<string, string> = {};
+        for (const line of lines) {
+          if (line === '') break; // headers end at the first blank line; the description follows
+          const found = METADATA_URL_LINE.exec(line);
+          if (found) links[found[2]?.trim() ?? found[1]] = found[3];
+        }
+        results.push({ file, links });
+      }
+    }
+  }
+  return results;
+}
+
+// Reads the homepage, repository and issue links an installed package declares about itself.
+// Fresh checkouts usually have no node_modules or virtualenv, so an empty result is common.
+export async function packageLinks(repoDir: string, packageName: string): Promise<PackageLinks[]> {
+  return [...(await npmLinks(repoDir, packageName)), ...(await pythonLinks(repoDir, packageName))];
 }
 
 // ---- Imports ----
