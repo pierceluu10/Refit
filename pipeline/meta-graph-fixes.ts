@@ -13,7 +13,6 @@ import {
   proposeVersionMoves,
   type VersionMoveProposal,
 } from './meta-graph-moves.ts';
-import type { AppliedRule } from './meta-graph-rule-edits.ts';
 import { readRepository } from './repository.ts';
 import { isObject, parseObject } from './specifications.ts';
 import { PipelineInputError, type Repository } from './types.ts';
@@ -317,7 +316,6 @@ export async function planMetaGraphFixes(
   options: {
     changes: MetaGraphChanges;
     registry: DeadlineRegistry;
-    rules: AppliedRule[];
     alerts: MetaPlatformAlert[];
     now: Date;
     reconstructions?: GraphReconstruction[];
@@ -329,7 +327,6 @@ export async function planMetaGraphFixes(
     options.changes,
     options.registry,
     options.now,
-    options.rules,
     options.reconstructions,
   );
   const repository = await readRepository(directory, META_SDK);

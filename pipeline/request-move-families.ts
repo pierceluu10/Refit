@@ -1,4 +1,3 @@
-import ts from 'typescript-compiler';
 import { local } from './request-removals.ts';
 import { isObject } from './specifications.ts';
 import { STRIPE_PACK, type RequestMove } from './rule-pack.ts';
@@ -6,14 +5,6 @@ import { STRIPE_PACK, type RequestMove } from './rule-pack.ts';
 // The code behind each request-move family in a rule pack (pipeline/rule-pack.ts): a removed request
 // parameter whose documented replacement sends the same request. Every move is checked against both
 // recorded contracts before any edit.
-export const REQUEST_MOVE_RULES = new Set<string>(
-  STRIPE_PACK.requestMoves.map((move) => move.rule),
-);
-
-export function requestMoveFor(rule: string) {
-  return STRIPE_PACK.requestMoves.find((move) => move.rule === rule);
-}
-
 // A schema without its documentation (`description`, `title`), to compare shapes across versions.
 // Property names inside `properties` are kept, whatever they are called.
 function shape(schema: unknown, document: Record<string, unknown>): unknown {
@@ -115,71 +106,4 @@ export function requestMoveMatches(move: RequestMove, before: Contract, after: C
     Array.isArray(type.enum) &&
     type.enum.includes(move.discriminator),
   );
-}
-
-function staticName(name: ts.PropertyName) {
-  return ts.isIdentifier(name) || ts.isStringLiteral(name) ? name.text : undefined;
-}
-
-// The edit that moves `property` (the removed parameter in a direct object-literal body) to the
-// pack move named by its replacement, or why it stays for review.
-export function requestMoveEdit(
-  property: ts.PropertyAssignment | ts.ShorthandPropertyAssignment,
-  replacement: string,
-): { start: number; end: number; replacement: string; rule: string } | { reason: string } {
-  const body = property.parent;
-  const names: string[] = [];
-  for (const sibling of body.properties) {
-    const name =
-      ts.isPropertyAssignment(sibling) || ts.isShorthandPropertyAssignment(sibling)
-        ? staticName(sibling.name)
-        : undefined;
-    if (name === undefined)
-      return { reason: 'Request spreads, methods and computed properties require review.' };
-    names.push(name);
-  }
-  const parameter = staticName(property.name)!;
-  if (names.filter((name) => name === parameter).length > 1)
-    return { reason: 'Duplicate request properties require review.' };
-  if (ts.isShorthandPropertyAssignment(property) && property.objectAssignmentInitializer)
-    return { reason: 'Request shorthand initializers require review.' };
-  const move = STRIPE_PACK.requestMoves.find(
-    (entry) =>
-      entry.family !== 'request-enum-value' &&
-      entry.replacement === replacement &&
-      entry.parameter === parameter,
-  )!;
-  if (move.family === 'request-rename') {
-    if (names.includes(replacement))
-      return { reason: `The request already sends ${replacement}; merging them needs review.` };
-    // The same value under its new name: the key changes, the value is kept as written.
-    return ts.isShorthandPropertyAssignment(property)
-      ? {
-          start: property.getStart(),
-          end: property.getEnd(),
-          replacement: `${replacement}: ${property.name.getText()}`,
-          rule: move.rule,
-        }
-      : {
-          start: property.name.getStart(),
-          end: property.name.getEnd(),
-          replacement: ts.isStringLiteral(property.name)
-            ? `${property.name.getText()[0]}${replacement}${property.name.getText()[0]}`
-            : replacement,
-          rule: move.rule,
-        };
-  }
-  if (names.includes(replacement))
-    return {
-      reason: `The request already sends ${replacement}; merging the ${parameter} needs review.`,
-    };
-  const value = ts.isShorthandPropertyAssignment(property) ? property.name : property.initializer;
-  // The body's own quote style: its first string quote, else single quotes.
-  const quote = /["']/.exec(body.getText())?.[0] ?? "'";
-  return {
-    start: property.getStart(),
-    end: property.getEnd(),
-    replacement: `${replacement}: { type: ${quote}${move.discriminator}${quote}, ${parameter}: ${value.getText()} }`,
-    rule: move.rule,
-  };
 }

@@ -67,19 +67,6 @@ export function removedParameterProperty(
   );
 }
 
-// Whether the object literal holding `property` also sends `name`, such as a body that already
-// has the replacement of the removed parameter it sends.
-export function sendsSibling(property: ts.ObjectLiteralElementLike, name: string | undefined) {
-  return (
-    name !== undefined &&
-    ts.isObjectLiteralExpression(property.parent) &&
-    property.parent.properties.some(
-      (entry) =>
-        entry !== property && entry.name !== undefined && propertyName(entry.name) === name,
-    )
-  );
-}
-
 // An object only turned into text: an argument of `JSON.stringify` or `console.*`, directly or as
 // what a `.map` callback returns into such an argument. Text sends no request, so the key in it is
 // output, such as `{ payment_method_types: pi.payment_method_types }` logged from a response.

@@ -16,7 +16,6 @@ import {
   type MetaGraphChange,
   type MetaGraphChanges,
 } from './meta-graph-changes.ts';
-import { applyRules, type AppliedRule } from './meta-graph-rule-edits.ts';
 import { renderPatch } from './patches.ts';
 import { readRepository } from './repository.ts';
 import { META_SDK } from './deadline-exposure.ts';
@@ -50,7 +49,6 @@ export interface VersionMove {
   crossed: string[];
   requests: VersionMoveRequest[];
   // Documented rules applied with the move, such as a renamed field in a `fields` list.
-  rules: string[];
 }
 
 export interface VersionMoveStop {
@@ -545,7 +543,6 @@ export async function proposeVersionMoves(
   changes: MetaGraphChanges,
   registry: DeadlineRegistry,
   now: Date,
-  rules: AppliedRule[] = [],
   reconstructions: GraphReconstruction[] = [],
 ): Promise<VersionMoveProposal> {
   if (!VERSION.test(target)) throw new PipelineInputError('--target must look like v24.0.');
@@ -651,18 +648,9 @@ export async function proposeVersionMoves(
       (change) =>
         change.version !== null && crossed.includes(change.version) && !inEffect(change, now),
     );
-    const rulesInRange = rules.filter(
-      (rule) => rule.version !== null && crossed.includes(rule.version),
-    );
-    const ruleEdits: SourceEdit[] = [];
-    const applied = new Set<string>();
     for (const call of calls) {
-      const outcome = applyRules(call, rulesInRange, repository, calls, scan.calls);
-      reasons.push(...outcome.reasons);
-      ruleEdits.push(...outcome.edits);
-      for (const edit of outcome.edits) applied.add(edit.changeId.replace('meta-graph-rule-', ''));
       for (const change of changesUsedBy(call, inRange))
-        if (!outcome.covers.includes(change.id) && reachesCode(call, change, names))
+        if (reachesCode(call, change, names))
           reasons.push(
             `${call.file}:${call.line}: ${change.version} ${change.kind} ${change.id}: ${change.summary}`,
           );
@@ -689,11 +677,7 @@ export async function proposeVersionMoves(
       to: target,
       crossed,
       requests: calls.map(request),
-      rules: [...applied].sort(),
     });
-    for (const edit of ruleEdits)
-      if (!edits.some((item) => item.file === edit.file && item.start === edit.start))
-        edits.push(edit);
     edits.push({
       file,
       start: edit.start,
@@ -739,7 +723,6 @@ export async function proposeVersionMoves(
       to: target,
       crossed: crossedBetween(from),
       requests: calls.map(request),
-      rules: [],
     });
     edits.push({
       file,

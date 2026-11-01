@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -7,7 +8,6 @@ import { promisify } from 'node:util';
 import { afterEach, expect, it } from 'vitest';
 import type { BehaviourTest } from './behaviour-tests.ts';
 import { readRepository } from './repository.ts';
-import { subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
 import { runBehaviourTests } from './validation.ts';
 
 const execute = promisify(execFile);
@@ -178,11 +178,10 @@ const CORRECT = {
   ...ORIGINAL,
   'controller/payment/payment.js': PAYMENT('allowed_payment_method_types'),
   'libs/stripe.ts': CLIENT(VERSIONS.after.version),
-  'libs/stripe-subscription-period.ts': subscriptionPeriodHelperModule('ts', [
-    'getSubscriptionPeriodStart',
-    'getSubscriptionPeriodEnd',
-    'getInvoiceSubscription',
-  ]),
+  'libs/stripe-subscription-period.ts': readFileSync(
+    'pipeline/fixtures/stripe-period-helpers/with-invoice.ts.txt',
+    'utf8',
+  ),
   'libs/supabaseAdmin.ts': PERIODS(
     'getSubscriptionPeriodStart(subscription)',
     'getSubscriptionPeriodEnd(subscription)',

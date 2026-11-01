@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { createServer, type IncomingMessage } from 'node:http';
 import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
@@ -17,7 +18,6 @@ import {
   writeHarness,
 } from './generated-checks.ts';
 import { readRepository } from './repository.ts';
-import { subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
 import { parseWorkflowConfiguration } from './workflow-configuration.ts';
 import type { Finding } from './types.ts';
 import { digest } from './specifications.ts';
@@ -628,10 +628,10 @@ const PERIOD_PATCHED = {
     )
     .replace('subscription.current_period_start', 'getSubscriptionPeriodStart(subscription)')
     .replace('subscription.current_period_end', 'getSubscriptionPeriodEnd(subscription)'),
-  'libs/stripe-subscription-period.ts': subscriptionPeriodHelperModule('ts', [
-    'getSubscriptionPeriodStart',
-    'getSubscriptionPeriodEnd',
-  ]),
+  'libs/stripe-subscription-period.ts': readFileSync(
+    'pipeline/fixtures/stripe-period-helpers/periods.ts.txt',
+    'utf8',
+  ),
 };
 
 it('loads a patch that adds the helper module and counts only a throwing call (simulated stripe-mock)', async () => {

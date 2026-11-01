@@ -4,37 +4,19 @@ import { migrationReviewReasons, unresolvedSites } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
 import type { proposeAiPatch } from './ai-patches.ts';
-import {
-  annotateReach,
-  currencyCodeEdits,
-  enumValueEdits,
-  REQUEST_OPTIONS_RULE,
-  SDK_SIGNATURE_RULES,
-  ACCOUNT_RETRIEVE_CURRENT_RULE,
-  accountRetrieveCurrentEdits,
-  REQUEST_OPTIONS_SINCE,
-  requestOptionEdits,
-} from './operation-reach.ts';
+import { annotateReach } from './operation-reach.ts';
 import { measureCoverage } from './sdk-coverage.ts';
 import { stripeHandOff } from './stripe-agent.ts';
 import {
   applySourceEdits,
   editCovers,
-  isFieldMove,
   proposePatch,
   renderFileReplacements,
   renderPatch,
-  REQUEST_OPTIONS_WARNING,
-  ACCOUNT_RETRIEVE_CURRENT_WARNING,
 } from './patches.ts';
-import {
-  PACKAGE_FILES,
-  STRIPE_SDK_RELEASES,
-  stripePackageUpgrade,
-} from './stripe-package-upgrade.ts';
-import { REQUEST_MOVE_RULES } from './request-move-families.ts';
-import { STRIPE_PACK, STRIPE_RULE_TABLES } from './rule-pack.ts';
-import { propertyExists, withoutRenamedSchemaRemovals } from './stripe-field-moves.ts';
+import { PACKAGE_FILES, stripePackageUpgrade } from './stripe-package-upgrade.ts';
+import { STRIPE_RULE_TABLES } from './rule-pack.ts';
+import { withoutRenamedSchemaRemovals } from './stripe-field-moves.ts';
 import { readRepository } from './repository.ts';
 import {
   MAX_SDK_RESOURCE_LENGTH,
@@ -82,7 +64,6 @@ import {
 } from './stripe-type-evidence.ts';
 import { typedStripeClients } from './type-clients.ts';
 import {
-  HELPER_RULES,
   SUBSCRIPTION_PERIOD_RULE,
   validateStripeSubscriptionPeriodContract,
 } from './stripe-subscription-periods.ts';
@@ -231,7 +212,7 @@ async function runOpenApiPipeline(options: {
     upcoming(before.document) &&
     !upcoming(after.document);
   const {
-    edits: scannedEdits,
+    edits: analyzedEdits,
     apiVersionDeclarations: declaredVersions,
     apiVersionLiterals,
     sourceWarnings,
@@ -258,41 +239,11 @@ async function runOpenApiPipeline(options: {
       },
     ),
   );
-  // Documented enum successors are request moves: they ride the pin and the stripe-node upgrade.
-  const analyzedEdits = [
-    ...scannedEdits,
-    ...(specificationDiff && provider.packageName === STRIPE.packageName
-      ? enumValueEdits(
-          specificationDiff.changes,
-          { repository, calls: analysis.calls, mappings: operationMappings },
-          STRIPE_PACK.requestMoves,
-        )
-      : []),
-    // Only where the target's stripe-node release reads arguments by position.
-    ...(provider.packageName === STRIPE.packageName &&
-    isObject(after.document.info) &&
-    Number(STRIPE_SDK_RELEASES[String(after.document.info.version)]?.split('.')[0]) >=
-      REQUEST_OPTIONS_SINCE
-      ? [
-          ...requestOptionEdits({ repository, calls: analysis.calls, mappings: operationMappings }),
-          ...accountRetrieveCurrentEdits({ repository, calls: analysis.calls }),
-        ]
-      : []),
-  ];
   const stripePackage =
     provider.packageName === STRIPE.packageName
       ? stripePackageDirectory(repository.root, options.stripePackage)
       : undefined;
   if (stripePackage) addTypeEvidence(repository, changes, analysis.findings, stripePackage);
-  // Field moves apply only when the target contract has the documented new location.
-  // The mined read helpers read either API version (owner decision, 2026-10-24, overnight
-  // sign-off; docs/overnight/F4.md). The request moves and createPreview are set below.
-  const movedTo: Record<string, boolean> = Object.fromEntries(
-    STRIPE_PACK.fieldMoves.map((move) => [
-      move.rule,
-      move.targets.every((path) => propertyExists(after.schemas, path)),
-    ]),
-  );
   const targetVersion = isObject(after.document.info) ? after.document.info.version : undefined;
   // Owner decision 1: every traced pin older than the target moves to it, including one that sends
   // another version than the application's; the draft lists each pin with the version it sent.
@@ -370,30 +321,6 @@ async function runOpenApiPipeline(options: {
   const typescript = repository.files.some((file) => /\.(?:[cm]?ts|tsx)$/.test(file.path));
   // A client without the option follows the package's pin, so any such client needs the upgrade.
   const upgradeRequired = typescript || constructors.some((entry) => entry.absent);
-  // The reviewed card-only rename is kept only with the target pin in the same patch and, for
-  // TypeScript or an SDK-pinned version, the stripe-node release whose types have
-  // allowed_payment_method_types. Without a patch request (validation preflight, scans) only the
-  // pin is checked: the registry lookup for the upgrade runs when the patch is generated, and a
-  // failed upgrade stops that run.
-  // The mined request moves follow the same rule.
-  const patchRequested = Boolean(options.proposePatch || options.aiPatch);
-  const cardUpgrade =
-    patchRequested &&
-    analyzedEdits.some(
-      (edit) => REQUEST_MOVE_RULES.has(edit.rule ?? '') || SDK_SIGNATURE_RULES.has(edit.rule ?? ''),
-    ) &&
-    (bumpsVersion || sdkDefault) &&
-    upgradeRequired &&
-    typeof targetVersion === 'string'
-      ? await stripePackageUpgrade(
-          repository.root,
-          targetVersion,
-          options.lockfileResolution,
-          options.lockfile,
-        )
-      : undefined;
-  const upgraded = Boolean(cardUpgrade && 'upgrade' in cardUpgrade);
-  // Every client must reach the target version for request edits that need it.
   // An untraced client's own literal pin moves with versionEdits too (declared-api-versions.ts).
   const movedUntraced = (entry: (typeof apiVersionDeclarations)[number]) =>
     Boolean(entry.untracedPin) &&
@@ -408,10 +335,6 @@ async function runOpenApiPipeline(options: {
       (entry.kind === 'constructor' && entry.absent) ||
       movedUntraced(entry),
   );
-  // A deployment environment variable can override a moved default, so request edits that need
-  // the target version do not ride on it; the version move itself does.
-  const everyPinReaches =
-    everyPinMoves && apiVersionDeclarations.every((entry) => !entry.environment);
   const operationChanges = operationReplacementEvidence(
     replacements,
     analysis.calls,
@@ -425,54 +348,7 @@ async function runOpenApiPipeline(options: {
     analysis.findings.some(
       (finding) => finding.webhook?.migration?.rule === SUBSCRIPTION_PERIOD_RULE,
     );
-  // The mined request moves need the pin and the upgrade in the same patch, so they never ride a
-  // configured migration's patch, which has neither.
-  for (const rule of REQUEST_MOVE_RULES)
-    movedTo[rule] =
-      bumpsVersion &&
-      everyPinReaches &&
-      (!patchRequested || !upgradeRequired || upgraded) &&
-      !configuredMigrationProposal;
-  // Request options move only together with the stripe-node release that needs them last.
-  for (const rule of SDK_SIGNATURE_RULES)
-    movedTo[rule] =
-      bumpsVersion &&
-      everyPinReaches &&
-      (!patchRequested || upgraded) &&
-      !configuredMigrationProposal;
-  // The period helper reads either API version, so it does not depend on the version pin.
-  const kept = [
-    ...analyzedEdits.filter((edit) => !isFieldMove(edit) || movedTo[edit.rule!]),
-    // A lowercase currency code is valid under either API version, so it needs no pin gate.
-    ...(specificationDiff && provider.packageName === STRIPE.packageName
-      ? currencyCodeEdits(specificationDiff.changes, {
-          repository,
-          calls: analysis.calls,
-          mappings: operationMappings,
-        })
-      : []),
-  ];
-  // A read counts as migrated only while its helper edit is kept.
-  for (const finding of analysis.findings)
-    if (
-      (finding.subscriptionPeriod || HELPER_RULES.has(finding.webhook?.migration?.rule ?? '')) &&
-      !editCovers(repository, kept, finding)
-    ) {
-      // Only its helper edit made a type-checked read confirmed.
-      if (finding.typeChecked) {
-        finding.confidence = 'review';
-        finding.reason =
-          'The upgraded stripe-node types reject this subscription period read, but the period helper could not be applied here; inspect manually.';
-        delete finding.typeChecked;
-      }
-      delete finding.subscriptionPeriod;
-      if (HELPER_RULES.has(finding.webhook?.migration?.rule ?? ''))
-        delete finding.webhook!.migration;
-    }
-  // A removed request parameter a kept request move covers no longer needs review.
-  for (const finding of analysis.findings)
-    if (finding.requestParameter && editCovers(repository, kept, finding))
-      delete finding.requestParameter;
+  const kept = analyzedEdits;
   // Owner decision 1 (2026-10-24): a finding that needs review is never edited. The rules' patch
   // goes around it, and the draft lists it with its reason.
   const reviewed = options.leaveReviewedFindings
@@ -484,17 +360,12 @@ async function runOpenApiPipeline(options: {
   const edits = kept.filter(
     (edit) => !reviewed.some((finding) => editCovers(repository, [edit], finding)),
   );
-  // Request options moved last ride the other rule edits or the version bump, never alone.
-  const optionEdits = edits.filter((edit) => SDK_SIGNATURE_RULES.has(edit.rule ?? ''));
-  const ruleEdits = edits.filter(isFieldMove);
-  // The pin and the stripe-node upgrade ride the rules' edits. Under owner decision 1 they also
-  // make the patch when a removed request parameter is left for review, as the #88 waiver does:
-  // the parameter stays in place and the draft names it.
+  // Under owner decision 1 the pin and the stripe-node upgrade make the patch when a removed
+  // request parameter is left for review, as the #88 waiver does: the parameter stays in place.
   const movesVersion =
     !configuredMigrationProposal &&
-    (ruleEdits.length > optionEdits.length ||
-      (Boolean(options.leaveReviewedFindings) &&
-        reviewed.some((finding) => finding.requestParameter)));
+    Boolean(options.leaveReviewedFindings) &&
+    reviewed.some((finding) => finding.requestParameter);
   if (specificationDiff && provider.packageName === STRIPE.packageName) {
     specificationDiff.changes.push(
       ...switchedEnumAdditions(enumChecks, before.schemas, after.schemas),
@@ -631,8 +502,7 @@ async function runOpenApiPipeline(options: {
     provider.packageName === STRIPE.packageName &&
     typeof targetVersion === 'string' &&
     !analysis.findings.length &&
-    analyzedEdits.every((edit) => SDK_SIGNATURE_RULES.has(edit.rule ?? '')) &&
-    kept.every((edit) => SDK_SIGNATURE_RULES.has(edit.rule ?? '')) &&
+    !analyzedEdits.length &&
     everyPinMoves &&
     (versionEdits.length > 0 || sdkDefault)
       ? await stripePackageUpgrade(
@@ -659,23 +529,17 @@ async function runOpenApiPipeline(options: {
           versionBump: true as const,
           summary: `Update the pinned Stripe API version to ${String(targetVersion)} and upgrade stripe from ${versionBump.upgrade.from} to ${versionBump.upgrade.to}.`,
           status: 'proposed' as const,
-          edits: versionEdits.length + optionEdits.length + versionBump.upgrade.files.length,
+          edits: versionEdits.length + versionBump.upgrade.files.length,
           unresolvedFindings: 0,
           unresolvedSites: [] as ReturnType<typeof unresolvedSites>,
           diff:
-            renderPatch(repository, [...versionEdits, ...optionEdits]) +
+            renderPatch(repository, versionEdits) +
             renderFileReplacements(repository, versionBump.upgrade.files, 'stripe-package'),
           validation: 'not-run',
           warnings: [
             versionBump.upgrade.warning ??
               `Upgrades stripe from ${versionBump.upgrade.from} to ${versionBump.upgrade.to} in ${versionBump.upgrade.files.map((file) => file.path).join(' and ')}, using the npm registry's SHA-512 integrity. A major SDK upgrade can change other types and behavior; review the stripe-node changelog.`,
             'Webhook endpoints keep the API version set in the Stripe Dashboard; this patch does not change them.',
-            ...(optionEdits.some((edit) => edit.rule === REQUEST_OPTIONS_RULE)
-              ? [REQUEST_OPTIONS_WARNING]
-              : []),
-            ...(optionEdits.some((edit) => edit.rule === ACCOUNT_RETRIEVE_CURRENT_RULE)
-              ? [ACCOUNT_RETRIEVE_CURRENT_WARNING]
-              : []),
           ],
           sdkUpgrade: {
             from: versionBump.upgrade.from,
@@ -683,7 +547,7 @@ async function runOpenApiPipeline(options: {
             ...(versionBump.upgrade.raised ? { raised: versionBump.upgrade.raised } : {}),
           },
           // AI repairs start again from the original code and must keep these edits.
-          ruleEdits: [...versionEdits, ...optionEdits],
+          ruleEdits: versionEdits,
         }
       : undefined;
   const patch = versionBumpStop
@@ -694,9 +558,7 @@ async function runOpenApiPipeline(options: {
         ? {
             ...proposePatch(
               repository,
-              movesVersion
-                ? [...edits, ...versionEdits]
-                : edits.filter((edit) => !SDK_SIGNATURE_RULES.has(edit.rule ?? '')),
+              movesVersion ? [...edits, ...versionEdits] : edits,
               unresolvedFindings.length,
               provider,
               replacements,
@@ -706,7 +568,7 @@ async function runOpenApiPipeline(options: {
               ? { unresolvedSites: unresolvedSites(unresolvedFindings) }
               : {}),
             // AI repairs start again from the original code and must keep these rule edits.
-            ...(movesVersion ? { ruleEdits: [...ruleEdits, ...versionEdits] } : {}),
+            ...(movesVersion ? { ruleEdits: versionEdits } : {}),
             ...(options.keepApiVersion ? { keptApiVersion: true as const } : {}),
             ...(options.pinBlocked ? { pinBlocked: options.pinBlocked } : {}),
           }
@@ -722,13 +584,12 @@ async function runOpenApiPipeline(options: {
     bumpsVersion && 'diff' in patch && patch.status === 'proposed' && movesVersion;
   const upgrade =
     bumpedVersion && upgradeRequired && typeof targetVersion === 'string'
-      ? (cardUpgrade ??
-        (await stripePackageUpgrade(
+      ? await stripePackageUpgrade(
           repository.root,
           targetVersion,
           options.lockfileResolution,
           options.lockfile,
-        )))
+        )
       : undefined;
   // Founder decision (Otabek, 2026-10-28): TypeScript checks a pin against the installed
   // stripe-node's apiVersion type, so a rules' pin moves only with the upgrade. When the upgrade is

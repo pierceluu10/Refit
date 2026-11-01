@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { DeadlineRegistry } from './deadline-registry.ts';
 import { loadMetaGraphChanges } from './meta-graph-changes.ts';
 import { loadMetaPlatformAlerts, planMetaGraphFixes } from './meta-graph-fixes.ts';
-import { loadMetaGraphRules } from './meta-graph-rule-edits.ts';
 
 const NOW = new Date('2026-10-29T12:00:00Z');
 const roots: string[] = [];
@@ -32,7 +31,6 @@ async function plan(files: Record<string, string>) {
     {
       changes: await loadMetaGraphChanges(undefined, NOW),
       registry,
-      rules: [],
       alerts: await loadMetaPlatformAlerts(),
       now: NOW,
     },
@@ -128,27 +126,6 @@ export const carousel = (id: string) => fetch(\`https://graph.facebook.com/v22.0
 });
 
 describe('Meta Graph rule and alert files', () => {
-  it('joins each committed rule to its change, and rejects a rule whose change is missing', async () => {
-    const changes = await loadMetaGraphChanges(undefined, NOW);
-    const rules = await loadMetaGraphRules(changes);
-    expect(rules.length).toBeGreaterThan(0);
-    for (const rule of rules) {
-      const change = changes.changes.find((entry) => entry.id === rule.change)!;
-      expect(rule.version).toBe(change.version);
-      expect(rule.status).toBe('review');
-    }
-    expect(await loadMetaGraphRules(changes, join(tmpdir(), 'refit-no-such-rules'))).toEqual([]);
-    const root = await directory({
-      'v22.0.json': JSON.stringify({
-        formatVersion: 1,
-        provider: 'meta-graph',
-        version: 'v22.0',
-        rules: [{ rule: 'x-replacement', family: 'field-replacement', change: 'no-such-change' }],
-      }),
-    });
-    await expect(loadMetaGraphRules(changes, root)).rejects.toThrow('a change in the change table');
-  });
-
   it('checks the committed alerts', async () => {
     const alerts = await loadMetaPlatformAlerts();
     expect(alerts.length).toBeGreaterThan(5);

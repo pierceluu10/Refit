@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { createServer, type IncomingMessage } from 'node:http';
 import { mkdir, mkdtemp, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
@@ -20,7 +21,6 @@ import { STRIPE_TEST_MODE } from './stripe-test-mode.ts';
 import { spawn } from 'node:child_process';
 import { typescriptDirectory, writeHarness } from './generated-checks.ts';
 import { readRepository } from './repository.ts';
-import { subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
 import type { CheckResult } from './validation.ts';
 
 const execute = promisify(execFile);
@@ -226,11 +226,10 @@ const CORRECT = {
   )
     .replace('subscription.current_period_start', 'getSubscriptionPeriodStart(subscription)')
     .replace('subscription.current_period_end', 'getSubscriptionPeriodEnd(subscription)'),
-  'libs/stripe-subscription-period.ts': subscriptionPeriodHelperModule('ts', [
-    'getSubscriptionPeriodStart',
-    'getSubscriptionPeriodEnd',
-    'getInvoiceSubscription',
-  ]),
+  'libs/stripe-subscription-period.ts': readFileSync(
+    'pipeline/fixtures/stripe-period-helpers/with-invoice.ts.txt',
+    'utf8',
+  ),
   'app/api/webhook/invoice.ts': INVOICE.replace(
     "import { stripe } from '@/lib/stripe';",
     "import { stripe } from '@/lib/stripe';\nimport { getInvoiceSubscription, getSubscriptionPeriodEnd } from '../../../libs/stripe-subscription-period';",

@@ -14,7 +14,6 @@ import {
   type MetaGraphChanges,
 } from './meta-graph-changes.ts';
 import { changesUsedBy, fieldNames, proposeVersionMoves } from './meta-graph-moves.ts';
-import type { AppliedRule } from './meta-graph-rule-edits.ts';
 
 const execute = promisify(execFile);
 const CLI = fileURLToPath(new URL('../bin/refit.mjs', import.meta.url));
@@ -99,27 +98,8 @@ const registry: DeadlineRegistry = {
   ],
 };
 
-async function propose(
-  files: Record<string, string>,
-  list = changes(),
-  target = 'v25.0',
-  rules: AppliedRule[] = [],
-) {
-  return proposeVersionMoves(await repository(files), target, list, registry, NOW, rules);
-}
-
-function rule(
-  overrides: Partial<AppliedRule> &
-    Pick<AppliedRule, 'rule' | 'change' | 'subject' | 'from' | 'to'>,
-): AppliedRule {
-  return {
-    version: 'v22.0',
-    replacement: true,
-    edge: null,
-    source: source('v22.0'),
-    status: 'auto',
-    ...overrides,
-  };
+async function propose(files: Record<string, string>, list = changes(), target = 'v25.0') {
+  return proposeVersionMoves(await repository(files), target, list, registry, NOW);
 }
 
 const SEND = `export const send = (url) =>
@@ -774,88 +754,5 @@ FB.api('/me', { fields: 'id,name' }, (response) => response);`,
       "+export const ig = () => fetch('https://graph.instagram.com/v25.0/me?fields=user_id');",
     );
     expect(proposal.patch).toContain("+FB.init({ appId: '1', version: 'v25.0' });");
-  });
-
-  it('renames a field a documented rule renames, and stops where the name may be read', async () => {
-    const list = changes([
-      change({ id: 'renamed', version: 'v22.0', kind: 'field-removed', name: 'old_field' }),
-    ]);
-    const rename = rule({
-      rule: 'rename',
-      change: 'renamed',
-      subject: 'field',
-      from: 'old_field',
-      to: 'new_field',
-    });
-    const clean = await propose(
-      {
-        'a.ts': `export const me = () => fetch('https://graph.facebook.com/v19.0/me?fields=id,old_field{name}');`,
-      },
-      list,
-      'v25.0',
-      [rename],
-    );
-    expect(clean.moves).toMatchObject([{ from: 'v19.0', rules: ['rename'] }]);
-    expect(clean.patch).toContain(
-      "fetch('https://graph.facebook.com/v25.0/me?fields=id,new_field{name}')",
-    );
-    const read = await propose(
-      {
-        'a.ts': `export const me = async () => (await (await fetch('https://graph.facebook.com/v19.0/me?fields=id,old_field')).json()).old_field;`,
-      },
-      list,
-      'v25.0',
-      [rename],
-    );
-    expect(read.moves).toEqual([]);
-    // The rename is refused, so the change it answers stops the move too.
-    expect(read.stops[0].reasons).toEqual([
-      expect.stringContaining(
-        '`old_field` also appears at a.ts:1, which may read the renamed response field',
-      ),
-      expect.stringContaining('field-removed renamed'),
-    ]);
-    // Without the rule the change stops the move, as before.
-    const unruled = await propose(
-      {
-        'a.ts': `export const me = () => fetch('https://graph.facebook.com/v19.0/me?fields=id,old_field');`,
-      },
-      list,
-    );
-    expect(unruled.stops[0].reasons).toEqual([expect.stringContaining('field-removed renamed')]);
-  });
-
-  it('stops for rules marked for review and rules that are not field or metric renames', async () => {
-    const parameter = rule({
-      rule: 'message-text',
-      change: 'message',
-      subject: 'parameter',
-      edge: 'feed',
-      from: 'message',
-      to: 'text',
-    });
-    const review = rule({
-      rule: 'look',
-      change: 'id',
-      subject: 'field',
-      from: 'id',
-      to: 'uid',
-      status: 'review',
-    });
-    const proposal = await propose(
-      {
-        'a.ts': `export const post = (id: string) =>
-  fetch(\`https://graph.facebook.com/v19.0/\${id}/feed?fields=id\`, { method: 'POST', body: JSON.stringify({ message: 'hi' }) });`,
-      },
-      changes(),
-      'v25.0',
-      [parameter, review],
-    );
-    expect(proposal.stops[0].reasons).toEqual([
-      expect.stringContaining(
-        'documents `text` in place of `message`; only fields and metrics are edited automatically',
-      ),
-      expect.stringContaining('documents `uid` in place of `id`; the rule is marked for review'),
-    ]);
   });
 });

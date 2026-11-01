@@ -839,10 +839,6 @@ export function createReviewArtifacts(
       !file.before.includes(pinTo),
     );
   const pinFiles = changedFiles(patch.diff).filter(movesPin);
-  // Each rule edit's provider page, with the files it changes; older reports name one page.
-  const rulePages = ('sources' in patch && patch.sources) || [];
-  const pagesFor = (path: string) =>
-    rulePages.filter((page) => page.files.includes(path)).flatMap((page) => link(page.url) ?? []);
   const helperFiles = changedFiles(patch.diff).filter((file) => !file.before);
   // Helpers Refit wrote into the one file that calls them, in place of a generated module.
   const declares = (text: string, name: string) =>
@@ -854,8 +850,6 @@ export function createReviewArtifacts(
   const inlined = changedFiles(patch.diff).filter((file) => inlineHelpers(file).length);
   const keyChanges = changedFiles(patch.diff).map((file) => {
     const fields = migratedFields(file.path);
-    const pages = pagesFor(file.path);
-    const cited = pages.length ? ` ${plainText(provider)} documents it: ${pages.join(', ')}.` : '';
     const helpers = inlineHelpers(file);
     const usage = [
       ...(fields.length
@@ -877,16 +871,12 @@ export function createReviewArtifacts(
           ]
         : []),
     ];
-    // A rule edit no sentence above names, such as a moved request, still gets one, so the
-    // provider page cites that edit and not the pin move after it.
-    if (pages.length && !usage.length)
-      usage.push(`Updates ${plainText(provider)} requests for the new contract.`);
     const what = shopify
-      ? `Moves the pinned Admin API version to ${plainText(after)}.${cited}`
+      ? `Moves the pinned Admin API version to ${plainText(after)}.`
       : !file.before
-        ? `Adds the generated helper that reads the removed fields under either API version.${cited}`
+        ? `Adds the generated helper that reads the removed fields under either API version.`
         : [
-            ...(usage.length ? [`${usage.join(' ')}${cited}`] : []),
+            ...(usage.length ? [`${usage.join(' ')}`] : []),
             ...(movesPin(file)
               ? [`Moves the pinned API version from ${code(pinFrom!)} to ${code(pinTo!)}.`]
               : []),
@@ -1128,7 +1118,6 @@ export function createReviewArtifacts(
     ...new Set(
       [
         ...('source' in patch && typeof patch.source === 'string' ? [patch.source] : []),
-        ...rulePages.map((page) => page.url),
         ...vendorNotes(patch).map((note) => note.url),
         ...(cardRename || listedMethods.length ? [PAYMENT_METHOD_TYPES_CHANGELOG] : []),
       ].filter((url) => link(url)),

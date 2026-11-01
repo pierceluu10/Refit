@@ -1,9 +1,8 @@
-import { posix, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import ts from 'typescript-compiler';
 import { STRIPE, validSdkResourcePath, type ProviderAdapter } from './providers.ts';
 import { unsafeBindings } from './mutations.ts';
 import { declaredApiVersions } from './declared-api-versions.ts';
-import { guardedHistoryEdit } from './history-migration.ts';
 import { createSourceImportResolver } from './source-imports.ts';
 import { sourceBindings } from './source-modules.ts';
 import { COPY_METHODS, ELEMENT_METHODS, sourceLiterals } from './source-literals.ts';
@@ -22,21 +21,8 @@ import {
   requestPropertyEdit,
   untracedRemovedParameters,
 } from './request-migration.ts';
-import { requestMoveEdit } from './request-move-families.ts';
 import type { RequestParameterRemoval } from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
-import {
-  subscriptionPeriodEdit,
-  HELPER_GLOBALS,
-  HELPER_NAMES,
-  subscriptionPeriodHelperModule,
-  SUBSCRIPTION_PERIOD_HELPER_RULE,
-  SUBSCRIPTION_PERIOD_RULE,
-  HELPER_RULES,
-  type PeriodRareCase,
-} from './stripe-subscription-periods.ts';
-import { movedIdEdit, movedValueEdit, periodHelperEdit } from './field-move-families.ts';
-import { STRIPE_PACK } from './rule-pack.ts';
 import { STRIPE_MOVE_REVIEW } from './stripe-field-moves.ts';
 import { removedExpandPaths, removedExpandReason } from './stripe-expand-paths.ts';
 import {
@@ -171,9 +157,6 @@ function comparedWithLiterals(node: ts.Node) {
     return node.arguments[0];
   return undefined;
 }
-
-// Comments TypeScript, JSX and Flow read only above a file's first statement.
-const FILE_PRAGMA = /^\/\/\/\s*<|@ts-(?:no)?check\b|@jsx|@flow\b/;
 
 // Node runs a script whose shebang follows a byte order mark, and tsc strips the mark when it
 // reads a file, but the parser accepts a shebang only at offset 0. A comment of the same length
@@ -1377,23 +1360,6 @@ export function analyzeRepository(
       const property = removedParameterProperty(node, removal);
       if (!property) continue;
       const confirmed = requestClient(call);
-      // A reviewed move to the documented replacement (stripe-request-moves.ts), which also rides
-      // with the version bump and, for TypeScript, the SDK upgrade in run.ts.
-      const moved =
-        confirmed &&
-        removal.move &&
-        (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property))
-          ? requestMoveEdit(property, removal.move)
-          : undefined;
-      if (moved && 'replacement' in moved)
-        edits.push({
-          file: location(property).file,
-          start: moved.start,
-          end: moved.end,
-          replacement: moved.replacement,
-          changeId: removal.id,
-          rule: moved.rule,
-        });
       findings.push({
         ...location(property),
         changeId: removal.id,
@@ -1402,9 +1368,7 @@ export function analyzeRepository(
         requestParameter: { operationId: removal.operationId, parameter: removal.parameter },
         ...helperEvidence(call.client),
         reason:
-          moved && 'reason' in moved
-            ? `The target API version no longer accepts this request parameter. ${moved.reason}`
-            : 'The target API version no longer accepts this request parameter, and no reviewed replacement exists; removing or replacing it changes request behavior.',
+          'The target API version no longer accepts this request parameter; removing or replacing it changes request behavior.',
       });
     }
     // Stripe's removed upcoming invoice call goes to the agent fixer.
@@ -1518,199 +1482,10 @@ export function analyzeRepository(
   function expandsField(property: string) {
     return expandedFields().has('*') || expandedFields().has(property);
   }
-  function addEdit(edit: SourceEdit) {
-    if (
-      edits.some(
-        (other) => other.file === edit.file && other.start < edit.end && edit.start < other.end,
-      )
-    )
-      return false;
-    edits.push(edit);
-    return true;
-  }
-  // Reads sharing a hoisted helper local plan the same declaration; it is added once.
-  function addPlanned(planned: SourceEdit[]) {
-    return planned.every(
-      (edit) =>
-        edits.some(
-          (other) =>
-            other.file === edit.file &&
-            other.start === edit.start &&
-            other.end === edit.end &&
-            other.replacement === edit.replacement,
-        ) || addEdit(edit),
-    );
-  }
-  const periodPlans = new Map<
-    ts.Node,
-    { rareCase: PeriodRareCase; text?: string; selection?: string }
-  >();
-  function within(scope: ts.Node) {
-    return nodes.filter(
-      (candidate) =>
-        candidate.getSourceFile() === scope.getSourceFile() &&
-        candidate.pos >= scope.pos &&
-        candidate.end <= scope.end,
-    );
-  }
-  // A value the plan item's price can be compared with at every call site in the file.
-  function priceValue(expression: ts.Expression) {
-    if (ts.isStringLiteralLike(expression)) return expression.getText();
-    if (
-      ts.isPropertyAccessExpression(expression) &&
-      ts.isPropertyAccessExpression(expression.expression) &&
-      expression.expression.name.text === 'env' &&
-      ts.isIdentifier(expression.expression.expression) &&
-      expression.expression.expression.text === 'process'
-    )
-      return expression.getText();
-    if (!ts.isIdentifier(expression)) return;
-    const declaration = symbol(expression)?.valueDeclaration;
-    return declaration &&
-      ts.isVariableDeclaration(declaration) &&
-      ts.isVariableDeclarationList(declaration.parent) &&
-      declaration.parent.flags & ts.NodeFlags.Const &&
-      ts.isVariableStatement(declaration.parent.parent) &&
-      ts.isSourceFile(declaration.parent.parent.parent)
-      ? expression.getText()
-      : undefined;
-  }
-  // The item an application already treats as its plan: a `price.id` comparison on a subscription
-  // item, else a fixed `items.data[N]` index. Several different selections are ambiguous.
-  function itemSelection(scope: ts.Node) {
-    const prices = new Set<string>();
-    const indexes = new Set<string>();
-    for (const candidate of within(scope)) {
-      if (
-        ts.isBinaryExpression(candidate) &&
-        [ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken].includes(
-          candidate.operatorToken.kind,
-        )
-      )
-        for (const [side, other] of [
-          [candidate.left, candidate.right],
-          [candidate.right, candidate.left],
-        ]) {
-          const item =
-            ts.isPropertyAccessExpression(side) &&
-            side.name.text === 'id' &&
-            ts.isPropertyAccessExpression(side.expression) &&
-            side.expression.name.text === 'price'
-              ? side.expression.expression
-              : undefined;
-          const value = item && priceValue(other);
-          if (value && schemaForExpression(item) === 'subscription_item') prices.add(value);
-        }
-      if (
-        ts.isElementAccessExpression(candidate) &&
-        numericArrayIndex(candidate.argumentExpression) &&
-        ts.isPropertyAccessExpression(candidate.expression) &&
-        candidate.expression.name.text === 'data' &&
-        ts.isPropertyAccessExpression(candidate.expression.expression) &&
-        candidate.expression.expression.name.text === 'items' &&
-        schemaForExpression(candidate.expression.expression.expression) === 'subscription'
-      )
-        indexes.add(candidate.argumentExpression.getText());
-    }
-    if (prices.size === 1) {
-      const [price] = prices;
-      return {
-        text: `(items) => items.find((item) => item.price?.id === ${price})`,
-        selection: `price.id === ${price}`,
-      };
-    }
-    if (!prices.size && indexes.size === 1) {
-      const [index] = indexes;
-      return { text: `(items) => items[${index}]`, selection: `items.data[${index}]` };
-    }
-  }
-  function periodPlan(node: ts.Node): {
-    rareCase: PeriodRareCase;
-    text?: string;
-    selection?: string;
-  } {
-    for (let scope: ts.Node | undefined = node; scope; scope = scope.parent) {
-      if (!ts.isFunctionLike(scope) && !ts.isSourceFile(scope)) continue;
-      const selection = itemSelection(scope);
-      if (selection) return { rareCase: 'item-in-code', ...selection };
-    }
-    const policy = provider.stripeSubscriptionPeriods;
-    return policy
-      ? {
-          rareCase: 'price-policy',
-          text: `(items) => items.find((item) => item.price?.id === ${JSON.stringify(policy.priceId)})`,
-          selection: `price.id === ${JSON.stringify(policy.priceId)}`,
-        }
-      : { rareCase: 'flagged' };
-  }
-  function propose(
-    node: ts.Node,
-    receiver: ts.Expression,
-    change: Removal,
-    typeChecked = false,
-    typeProven = false,
-  ): SourceEdit['rule'] | undefined {
-    const traced = sourceEvidence(receiver)?.kind;
-    // A type-proven value may be a webhook payload passed into a helper, as a declared one may.
-    const provenance =
-      typeProven && traced !== 'sdk' && traced !== 'webhook' ? 'declared-type' : traced;
-    // Removed Stripe reads with a documented new location go through a generated helper that reads
-    // either API version (data/packs/stripe.json). Period reads also take a read the upgraded types
-    // reject on Subscription. A field the code expands is held back where the entry says the expand
-    // path moved too; webhook payloads are never expanded ("Objects sent in events are always in
-    // their minimal form", https://docs.stripe.com/expand, read 2026-10-24), so an expand elsewhere
-    // does not hold back a webhook read. An adapter's own move for the field wins.
-    for (const move of provider.packageName === STRIPE.packageName ? STRIPE_PACK.fieldMoves : []) {
-      if (!move.schemas.includes(change.schema)) continue;
-      const file = location(node).file;
-      if (move.family === 'period-helper') {
-        if (
-          !webhooks?.origin(receiver) &&
-          provenance !== 'declared-type' &&
-          provenance !== 'sdk' &&
-          !typeChecked
-        )
-          continue;
-        const plan = periodPlan(node);
-        const edit = periodHelperEdit(node, move, file, change.id, plan.text);
-        if (edit && addEdit(edit)) {
-          periodPlans.set(node, plan);
-          return edit.rule;
-        }
-        continue;
-      }
-      if (
-        change.property !== move.property ||
-        propertyMoves.some(
-          (candidate) => candidate.schema === change.schema && candidate.removed === move.property,
-        ) ||
-        !(
-          webhooks?.origin(receiver) ||
-          ((move.family !== 'moved-value' ||
-            !move.unlessExpanded ||
-            !expandsField(move.property)) &&
-            (provenance === 'declared-type' || provenance === 'sdk'))
-        )
-      )
-        continue;
-      if (move.family === 'moved-id') {
-        const edit = movedIdEdit(node, move, file, change.id);
-        if (edit && addEdit(edit)) return edit.rule;
-        continue;
-      }
-      const planned = movedValueEdit(node, move, file, change.id);
-      // Reads sharing a hoisted local plan the same declaration; it is added once.
-      if (
-        planned &&
-        (move.typeofGuard || move.narrowTested ? addPlanned(planned) : addEdit(planned[0]))
-      )
-        return planned[0].rule;
-    }
+  // Stripe reads go to the agent fixer; only a configured adapter's own renames edit.
+  function propose(node: ts.Node, receiver: ts.Expression, change: Removal) {
     if (webhooks?.origin(receiver)) return;
-    // A value known only from its Stripe.* type may be a webhook payload passed into a helper;
-    // its shape follows the endpoint's version, so other rules report it but never edit it.
-    if (provenance === 'declared-type' || provenance === 'unmapped-sdk') return;
-    if (provider.id !== STRIPE.id) {
+    {
       const rename = provider.propertyRenames?.find(
         (candidate) => candidate.schema === change.schema && candidate.removed === change.property,
       );
@@ -1753,83 +1528,7 @@ export function analyzeRepository(
             },
           );
       }
-      return;
     }
-    if (
-      change.schema !== 'payment_intent' ||
-      change.property !== 'charges' ||
-      !ts.isIdentifier(receiver)
-    )
-      return;
-    const origin = origins.get(symbol(receiver)!);
-    const guarded =
-      origin &&
-      guardedHistoryEdit({
-        node,
-        receiver,
-        origin,
-        checker,
-        symbol,
-        clients,
-        locations,
-        change,
-        clientExport: modules.clientExport,
-        resolveImport: resolution.resolve,
-        classClient: (node) => classBindings!.reference(node)?.binding,
-        helperClient: (node) => {
-          const binding = clientBinding(node);
-          return binding && helperBindings.flows.has(binding) ? binding : undefined;
-        },
-      });
-    if (guarded) {
-      if (!edits.some((edit) => edit.file === guarded.file)) edits.push(guarded);
-      return;
-    }
-    if (edits.some((edit) => edit.file === location(node).file && edit.start === 0)) return;
-    const data = node.parent;
-    if (
-      !origin ||
-      origin.arguments.length !== 1 ||
-      !ts.isPropertyAccessExpression(origin.expression) ||
-      origin.expression.name.text !== 'retrieve' ||
-      !ts.isPropertyAccessExpression(data) ||
-      data.name.text !== 'data' ||
-      data.expression !== node ||
-      data.questionDotToken ||
-      !ts.isReturnStatement(data.parent) ||
-      data.parent.expression !== data ||
-      !ts.isPropertyAccessExpression(node) ||
-      node.questionDotToken
-    )
-      return;
-    const resource = origin.expression.expression as ts.PropertyAccessExpression;
-    const client = resource.expression as ts.Identifier;
-    const visible = checker
-      .getSymbolsInScope(node, ts.SymbolFlags.Value | ts.SymbolFlags.Alias)
-      .find((candidate) => candidate.name === client.text);
-    if (canonical(visible) !== symbol(client)) return;
-    const block = data.parent.parent;
-    if (!ts.isBlock(block)) return;
-    const owner = block.parent;
-    if (
-      !(
-        ts.isFunctionDeclaration(owner) ||
-        ts.isFunctionExpression(owner) ||
-        ts.isArrowFunction(owner)
-      ) ||
-      !owner.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword)
-    )
-      return;
-    // Only a response declared in this function body; nested closures and aliases need review.
-    const declaration = symbol(receiver)?.valueDeclaration;
-    if (!declaration || declaration.parent.parent.parent !== block) return;
-    edits.push({
-      file: location(node).file,
-      start: data.getStart(),
-      end: data.getEnd(),
-      replacement: `(await ${client.text}.charges.list({ payment_intent: ${receiver.text}.id })).data`,
-      changeId: change.id,
-    });
   }
   function sourceEvidence(
     expression: ts.Expression,
@@ -2068,22 +1767,7 @@ export function analyzeRepository(
         (!webhook || webhook.schema !== undefined) &&
         (provenance?.kind !== 'unmapped-sdk' || declaredType || typeProven),
       );
-      // The type checker resolved the receiver to Subscription, and the helper returns the field the
-      // object holds at runtime, so neither tracing nor mutation evidence is needed for this read.
-      const typeChecked =
-        !confirmed &&
-        checkedRead &&
-        STRIPE_PACK.fieldMoves.some(
-          (move) =>
-            move.family === 'period-helper' &&
-            move.schemas.includes(change.schema) &&
-            Object.hasOwn(move.helpers, change.property),
-        );
-      const migration =
-        confirmed || typeChecked
-          ? propose(node, receiver, change, typeChecked, typeProven)
-          : undefined;
-      const checkedMigration = typeChecked && migration !== undefined;
+      if (confirmed && provider.id !== STRIPE.id) propose(node, receiver, change);
       if (property === undefined && !tracked) continue;
       const file = location(node).file;
       const moveReview =
@@ -2098,24 +1782,13 @@ export function analyzeRepository(
         ...location(node),
         changeId: change.id,
         expression: property === undefined ? '[computed property]' : `.${property}`,
-        confidence: confirmed || checkedMigration ? 'confirmed' : 'review',
+        confidence: confirmed ? 'confirmed' : 'review',
         ...(sourceClient ? helperEvidence(sourceClient, mutated) : {}),
         ...(declaredType ? { declaredType: { schema } } : {}),
-        ...(checkedMigration ? { typeChecked: true as const } : {}),
         ...(typeProven && confirmed ? { typeProven: true as const } : {}),
-        ...(tracked || provenance || checkedMigration || iterationCallback(receiver)
+        ...(tracked || provenance || iterationCallback(receiver)
           ? {}
           : { untraced: true as const }),
-        ...(migration === SUBSCRIPTION_PERIOD_HELPER_RULE && periodPlans.get(node)
-          ? {
-              subscriptionPeriod: {
-                rareCase: periodPlans.get(node)!.rareCase,
-                ...(periodPlans.get(node)!.selection
-                  ? { selection: periodPlans.get(node)!.selection }
-                  : {}),
-              },
-            }
-          : {}),
         ...(classClient &&
         (mutated.has(classClient.binding) ||
           (provenance && 'call' in provenance && sdkCall(provenance.call)?.optional))
@@ -2124,9 +1797,6 @@ export function analyzeRepository(
         ...(webhook
           ? {
               webhook: {
-                ...(migration && HELPER_RULES.has(migration)
-                  ? { migration: { rule: migration } }
-                  : {}),
                 schema: webhook.schema,
                 eventTypes: webhook.eventTypes,
                 origin: webhook.origin,
@@ -2135,21 +1805,19 @@ export function analyzeRepository(
             }
           : {}),
         reason:
-          (checkedMigration
-            ? `Removed subscription.${change.property} read that the upgraded stripe-node types reject on Subscription. Refit's tracer did not reach its receiver, so the version-tolerant period helper reads it.`
-            : typeProven && confirmed
-              ? `Removed ${schema}.${change.property} read on a value TypeScript's checker resolves to its Stripe type, with no type assertion or any on its path.`
-              : declaredType && confirmed
-                ? `Removed ${schema}.${change.property} read on a value declared with a Stripe.* type.`
-                : declaredType
-                  ? 'Declared Stripe type identifies this possible field usage, but the value may be mutated; inspect manually.'
-                  : confirmed && webhook
-                    ? `Removed ${schema}.${change.property} read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.`
-                    : confirmed
-                      ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
-                      : uncertainMutation
-                        ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
-                        : UNPROVEN_RECEIVER_REASON) + (moveReview ? ` ${moveReview}` : ''),
+          (typeProven && confirmed
+            ? `Removed ${schema}.${change.property} read on a value TypeScript's checker resolves to its Stripe type, with no type assertion or any on its path.`
+            : declaredType && confirmed
+              ? `Removed ${schema}.${change.property} read on a value declared with a Stripe.* type.`
+              : declaredType
+                ? 'Declared Stripe type identifies this possible field usage, but the value may be mutated; inspect manually.'
+                : confirmed && webhook
+                  ? `Removed ${schema}.${change.property} read on a Stripe snapshot webhook payload narrowed by event.type. Incoming webhook API version and migration semantics require separate review.`
+                  : confirmed
+                    ? `Removed field read on a statically traced ${provider.id} ${schema} response.`
+                    : uncertainMutation
+                      ? 'Response or SDK client may be mutated or escape through an alias or call, or come from an optional SDK invocation; inspect manually.'
+                      : UNPROVEN_RECEIVER_REASON) + (moveReview ? ` ${moveReview}` : ''),
       });
     }
   }
@@ -2212,241 +1880,6 @@ export function analyzeRepository(
         property: checked.name.text,
         ...(compared && { compare: true as const }),
       });
-  }
-  function dropPeriodHelper(file: string) {
-    for (let index = edits.length - 1; index >= 0; index--)
-      if (edits[index].file === file && HELPER_RULES.has(edits[index].rule!))
-        edits.splice(index, 1);
-    for (const finding of findings)
-      if (finding.file === file) {
-        delete finding.subscriptionPeriod;
-        if (HELPER_RULES.has(finding.webhook?.migration?.rule ?? ''))
-          delete finding.webhook!.migration;
-      }
-  }
-  if (provider.stripeSubscriptionPeriods && webhooks) {
-    for (const source of program.getSourceFiles()) {
-      const file = locations.get(source.fileName);
-      if (!file) continue;
-      const proposal = subscriptionPeriodEdit({
-        source,
-        nodes: nodes.filter((node) => node.getSourceFile() === source),
-        findings,
-        changes,
-        policy: provider.stripeSubscriptionPeriods,
-        webhooks,
-        symbol,
-        unsafe,
-        file,
-      });
-      if (!proposal) continue;
-      // The configured policy's whole-handler migration takes precedence over the helper.
-      dropPeriodHelper(file);
-      if (edits.some((edit) => edit.file === file)) continue;
-      edits.push(proposal.edit);
-      for (const finding of proposal.findings)
-        finding.webhook!.migration = {
-          rule: SUBSCRIPTION_PERIOD_RULE,
-          ...provider.stripeSubscriptionPeriods,
-        };
-    }
-  }
-  // One helper module per repository, beside the files that call it, imported where it is used.
-  const helperSources = program
-    .getSourceFiles()
-    .filter((source) =>
-      edits.some(
-        (edit) => edit.file === locations.get(source.fileName) && HELPER_RULES.has(edit.rule!),
-      ),
-    );
-  const moduleKind = (source: ts.SourceFile) =>
-    /\.[cm]?tsx?$/.test(source.fileName)
-      ? ('ts' as const)
-      : source.fileName.endsWith('.cjs') ||
-          (!source.fileName.endsWith('.mjs') &&
-            !source.statements.some(
-              (statement) => ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement),
-            ))
-        ? ('cjs' as const)
-        : ('esm' as const);
-  const kinds = helperSources.map(moduleKind);
-  const kind = (['ts', 'esm', 'cjs'] as const)
-    .map((candidate) => ({ candidate, count: kinds.filter((entry) => entry === candidate).length }))
-    .sort((a, b) => b.count - a.count)[0]?.candidate;
-  // Node16/NodeNext resolution requires explicit extensions on relative imports.
-  const nodeModuleResolution = (repository.configurations ?? []).some((file) =>
-    /"module(?:Resolution)?"\s*:\s*"node(?:16|next)"/i.test(file.content),
-  );
-  for (const source of helperSources)
-    if (
-      moduleKind(source) !== kind ||
-      nodes.some(
-        (node) =>
-          node.getSourceFile() === source &&
-          ts.isIdentifier(node) &&
-          HELPER_NAMES.includes(node.text) &&
-          !edits.some(
-            (edit) =>
-              edit.file === locations.get(source.fileName) &&
-              edit.start <= node.getStart() &&
-              node.getEnd() <= edit.end,
-          ),
-      )
-    )
-      dropPeriodHelper(locations.get(source.fileName)!);
-  const helperFiles = helperSources
-    .map((source) => locations.get(source.fileName)!)
-    .filter((file) => edits.some((edit) => edit.file === file && HELPER_RULES.has(edit.rule!)));
-  if (kind && helperFiles.length) {
-    // The module and its imports carry the rule of the reads they serve.
-    const moduleRule = STRIPE_PACK.fieldMoves
-      .map((move) => move.rule)
-      .find((rule) => edits.some((edit) => edit.rule === rule))!;
-    const usedIn = (file: string) =>
-      HELPER_NAMES.filter((name) =>
-        edits.some(
-          (edit) =>
-            edit.file === file &&
-            HELPER_RULES.has(edit.rule!) &&
-            edit.replacement.includes(`${name}(`),
-        ),
-      );
-    const sourceOf = (file: string) =>
-      helperSources.find((entry) => locations.get(entry.fileName) === file)!;
-    // Lines go after the file's directives and imports (and requires in CommonJS), in its own
-    // line endings.
-    const insert = (file: string, text: string, separator: string) => {
-      const source = sourceOf(file);
-      const prologue = source.statements.filter((_statement, index) =>
-        source.statements
-          .slice(0, index + 1)
-          .every(
-            (entry) =>
-              (ts.isExpressionStatement(entry) && ts.isStringLiteral(entry.expression)) ||
-              ts.isImportDeclaration(entry) ||
-              (kind === 'cjs' &&
-                ts.isVariableStatement(entry) &&
-                entry.declarationList.declarations.every(
-                  (variable) =>
-                    variable.initializer && /^require\(/.test(variable.initializer.getText()),
-                )),
-          ),
-      );
-      // Without a prologue, after a byte order mark, a shebang (a comment after a mark, see
-      // parseableText) and the leading file pragmas and comments set apart by a blank line. A
-      // comment directly above the first statement, such as @ts-expect-error, stays on it.
-      const head = /^\uFEFF?(?:#!.*|(?<=^\uFEFF)\/\/.*)?/.exec(source.text)![0].length;
-      const header = (ts.getLeadingCommentRanges(source.text, head) ?? []).filter(
-        ({ pos, end }) =>
-          FILE_PRAGMA.test(source.text.slice(pos, end)) ||
-          /^[^\S\r\n]*\r?\n[^\S\r\n]*\r?\n/.test(source.text.slice(end)),
-      );
-      const anchor = prologue.at(-1)?.getEnd() ?? header.at(-1)?.end ?? head;
-      const newline = source.text.includes('\r\n') ? '\r\n' : '\n';
-      const lines = text.replaceAll('\n', newline);
-      const atLineEnd = /[^\uFEFF]$/.test(source.text.slice(0, anchor));
-      edits.push({
-        file,
-        start: anchor,
-        end: anchor,
-        replacement: atLineEnd
-          ? `${separator.replaceAll('\n', newline)}${lines}`
-          : `${lines}${separator.replaceAll('\n', newline)}`,
-        changeId: 'stripe-subscription-period-helper',
-        rule: moduleRule,
-      });
-    };
-    // One calling file gets the helpers it uses written into it, so the patch adds no module and
-    // no import, and a test that loads that file alone with a fixed set of imports still runs. The
-    // helpers' private names, and the globals they read, must be free in that file; otherwise the
-    // module keeps them apart.
-    const [single] = helperFiles;
-    const inline =
-      helperFiles.length === 1
-        ? subscriptionPeriodHelperModule(kind, usedIn(single), true)
-        : undefined;
-    const declared = inline
-      ? ts
-          .createSourceFile('helpers.ts', inline, ts.ScriptTarget.Latest)
-          .statements.flatMap((statement) =>
-            (ts.isFunctionDeclaration(statement) || ts.isTypeAliasDeclaration(statement)) &&
-            statement.name
-              ? [statement.name.text]
-              : [],
-          )
-      : [];
-    const free = (source: ts.SourceFile) =>
-      !nodes.some(
-        (node) =>
-          node.getSourceFile() === source && ts.isIdentifier(node) && declared.includes(node.text),
-      ) &&
-      !checker
-        .getSymbolsInScope(
-          source,
-          ts.SymbolFlags.Value | ts.SymbolFlags.Type | ts.SymbolFlags.Alias,
-        )
-        .some(
-          (entry) =>
-            HELPER_GLOBALS.includes(entry.name) &&
-            entry.declarations?.some((declaration) => declaration.getSourceFile() === source),
-        );
-    if (inline && free(sourceOf(single))) insert(single, inline.replace(/\n$/, ''), '\n\n');
-    else {
-      const directories = helperFiles.map((file) => posix.dirname(file).split('/'));
-      const shared = directories[0].filter((segment, index) =>
-        directories.every((directory) => directory[index] === segment),
-      );
-      const extension =
-        kind === 'ts'
-          ? 'ts'
-          : helperFiles.every((file) => file.endsWith(kind === 'esm' ? '.mjs' : '.cjs'))
-            ? kind === 'esm'
-              ? 'mjs'
-              : 'cjs'
-            : 'js';
-      // No hyphen: Convex rejects one in a module in its functions folder, where this may land.
-      const base = [
-        ...shared.filter((segment) => segment !== '.'),
-        'stripeSubscriptionPeriod',
-      ].join('/');
-      const taken = new Set(repository.files.map((file) => file.path.replace(/\.[^./]+$/, '')));
-      const stem = taken.has(base) ? `${base}Refit` : base;
-      edits.push({
-        file: `${stem}.${extension}`,
-        start: 0,
-        end: 0,
-        replacement: subscriptionPeriodHelperModule(kind, [
-          ...new Set(helperFiles.flatMap(usedIn)),
-        ]),
-        changeId: 'stripe-subscription-period-helper',
-        rule: moduleRule,
-      });
-      for (const file of helperFiles) {
-        const relativeImports = sourceOf(file)
-          .statements.filter(ts.isImportDeclaration)
-          .map((statement) => (statement.moduleSpecifier as ts.StringLiteral).text)
-          .filter((specifier) => specifier.startsWith('.'));
-        const suffix =
-          kind === 'ts'
-            ? relativeImports.some((specifier) => specifier.endsWith('.js')) ||
-              (!relativeImports.length && nodeModuleResolution)
-              ? '.js'
-              : ''
-            : extension === 'js' && kind === 'cjs'
-              ? ''
-              : `.${extension}`;
-        let specifier = posix.relative(posix.dirname(file), stem) + suffix;
-        if (!specifier.startsWith('.')) specifier = `./${specifier}`;
-        const used = usedIn(file).join(', ');
-        insert(
-          file,
-          kind === 'cjs'
-            ? `const { ${used} } = require('${specifier}');`
-            : `import { ${used} } from '${specifier}';`,
-          '\n',
-        );
-      }
-    }
   }
   const apiVersionDeclarations = declaredApiVersions({
     nodes,

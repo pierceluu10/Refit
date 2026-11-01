@@ -8,21 +8,9 @@ import {
   SHOPIFY_PACK,
   STRIPE_PACK,
 } from './rule-pack.ts';
-import { HELPER_NAMES, subscriptionPeriodHelperModule } from './stripe-subscription-periods.ts';
 
 const FILE = 'test.json';
 const valid = () => structuredClone(STRIPE_PACK) as unknown as Record<string, unknown>;
-
-it('names a generated helper body for every Stripe field move', () => {
-  const helpers = STRIPE_PACK.fieldMoves.flatMap((move) =>
-    move.family === 'period-helper' ? Object.values(move.helpers) : [move.helper],
-  );
-  expect(helpers.length).toBeGreaterThan(0);
-  for (const helper of helpers) {
-    expect(HELPER_NAMES, helper).toContain(helper);
-    expect(subscriptionPeriodHelperModule('ts', [helper]), helper).toContain(`function ${helper}`);
-  }
-});
 
 it('gives every Stripe rule one entry and a docs.stripe.com changelog source', () => {
   const rules = [...STRIPE_PACK.fieldMoves, ...STRIPE_PACK.requestMoves].map((move) => move.rule);

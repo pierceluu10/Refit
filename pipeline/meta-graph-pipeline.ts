@@ -20,7 +20,6 @@ import {
   META_GRAPH_VERSION_RULE,
   type VersionMoveStop,
 } from './meta-graph-moves.ts';
-import { loadMetaGraphRules } from './meta-graph-rule-edits.ts';
 import { changeText, contextText, handOffToAgent } from './meta-graph-agent.ts';
 import type { ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
@@ -227,7 +226,6 @@ export async function runMetaGraphPipeline(options: {
   const plan = await planMetaGraphFixes(options.repository, target, {
     changes,
     registry,
-    rules: await loadMetaGraphRules(changes),
     alerts: await loadMetaPlatformAlerts(),
     now,
     reconstructions,
@@ -249,7 +247,7 @@ export async function runMetaGraphPipeline(options: {
         changeId: META_GRAPH_VERSION_RULE,
         expression: `${request.method ?? 'request'} ${request.path ?? ''}`.trim(),
         confidence: 'confirmed',
-        reason: `Moves from ${move.from} (${where(move.file, move.line)}) to ${move.to}; the reviewed changelogs of ${move.crossed.join(', ')} list nothing this request uses${move.rules.length ? `, after the documented rules ${move.rules.join(', ')}` : ''}.`,
+        reason: `Moves from ${move.from} (${where(move.file, move.line)}) to ${move.to}; the reviewed changelogs of ${move.crossed.join(', ')} list nothing this request uses.`,
       });
   for (const stop of proposal.stops) {
     // A pin already past the target needs nothing.
@@ -362,8 +360,7 @@ export async function runMetaGraphPipeline(options: {
               ),
               notes: [...alerts, ...cautions, ...reconstructionNotes],
               headStart: proposal.moves.map(
-                (move) =>
-                  `${where(move.file, move.line)}: ${move.from} moved to ${move.to}${move.rules.length ? ` with the documented rules ${move.rules.join(', ')}` : ''}`,
+                (move) => `${where(move.file, move.line)}: ${move.from} moved to ${move.to}`,
               ),
             }),
           }),
@@ -448,7 +445,7 @@ export async function runMetaGraphPipeline(options: {
           }
         : {
             generator: 'deterministic' as const,
-            summary: `Move ${proposal.moves.length} pinned Graph API ${proposal.moves.length === 1 ? 'version' : 'versions'} to ${target}. The reviewed changelogs crossed list nothing the moved requests use${proposal.moves.some((move) => move.rules.length) ? ', after the documented rules applied with them' : ''}.`,
+            summary: `Move ${proposal.moves.length} pinned Graph API ${proposal.moves.length === 1 ? 'version' : 'versions'} to ${target}. The reviewed changelogs crossed list nothing the moved requests use.`,
             status: 'proposed' as const,
             edits: proposal.edits.length,
             rules,

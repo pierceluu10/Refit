@@ -22,7 +22,6 @@ import { reconstructGraphCalls } from './meta-graph-ai.ts';
 import { scanGraphCalls } from './meta-graph-calls.ts';
 import { DEFAULT_META_GRAPH_CHANGES, loadMetaGraphChanges } from './meta-graph-changes.ts';
 import { proposeVersionMoves } from './meta-graph-moves.ts';
-import { loadMetaGraphRules } from './meta-graph-rule-edits.ts';
 import { writeMetaGraphRun } from './meta-graph-workflow.ts';
 import { readEvidence } from './state-files.ts';
 import { HOSTED_REPAIR_ATTEMPTS, validateRepairAttempts } from './validation-options.ts';
@@ -112,7 +111,6 @@ const changesText = await readFile(DEFAULT_META_GRAPH_CHANGES, 'utf8');
 const changesSha256 = createHash('sha256').update(changesText).digest('hex');
 const changes = await loadMetaGraphChanges(DEFAULT_META_GRAPH_CHANGES, now);
 const registry = await loadDeadlineRegistry(undefined, now);
-const rules = await loadMetaGraphRules(changes);
 const recorded = new Set(changes.versions.map((record) => record.version));
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 const results: Record<string, unknown>[] = [];
@@ -220,7 +218,6 @@ for (const [index, entry] of repos.entries()) {
         changes,
         registry,
         now,
-        rules,
         reconstructions,
       );
       if (ai)

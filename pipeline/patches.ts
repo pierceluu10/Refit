@@ -3,59 +3,10 @@ import { PipelineInputError, type Finding, type Repository, type SourceEdit } fr
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
-import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
-import { REQUEST_MOVE_RULES, requestMoveFor } from './request-move-families.ts';
-import { STRIPE_PACK } from './rule-pack.ts';
-import {
-  CURRENCY_CODE_RULE,
-  CURRENCY_CODE_SOURCE,
-  ACCOUNT_RETRIEVE_CURRENT_RULE,
-  REQUEST_OPTIONS_RULE,
-  REQUEST_OPTIONS_SOURCE,
-} from './operation-reach.ts';
-
-const FIELD_MOVE_SOURCES: Record<string, string> = Object.fromEntries(
-  STRIPE_PACK.fieldMoves.map((move) => [move.rule, move.source]),
-);
-
-export const REQUEST_OPTIONS_WARNING = `Request options (such as stripeAccount or idempotencyKey) passed where stripe-node expects request parameters move to the options argument after an explicit \`undefined\`: from stripe-node 22 a method reads params and options by position (${REQUEST_OPTIONS_SOURCE}), so the old form would send them to Stripe as request parameters. Earlier releases read both forms the same way, so the request is unchanged.`;
-export const ACCOUNT_RETRIEVE_CURRENT_WARNING =
-  "`accounts.retrieve()` with no account id becomes `accounts.retrieveCurrent()`: the upgraded stripe-node declares `retrieve(id: string | null, …)`, so the old call no longer type-checks, and both send `GET /v1/account` for your own account (stripe-node's Accounts resource; no changelog entry states it). The request is unchanged.";
-const CURRENCY_CODE_WARNING = `Uppercase currency codes written in Stripe requests are lowercased: the target contract gives these fields the \`currency\` format, and ${CURRENCY_CODE_SOURCE} asks for lowercase three-letter ISO codes in every payment request. Only literals written in the request change; other uses of the same currency in the code are unchanged.`;
 
 // Source: Stripe changelog, 2026-09-30.endive, read 2026-10-22.
 export const PAYMENT_METHOD_TYPES_CHANGELOG =
   'https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions';
-
-// The Stripe page behind each rule edit, with the files whose edits it documents.
-function ruleSources(edits: SourceEdit[]) {
-  const pages = new Map<string, Set<string>>();
-  for (const edit of edits) {
-    const url =
-      FIELD_MOVE_SOURCES[edit.rule!] ??
-      requestMoveFor(edit.rule!)?.source ??
-      (edit.rule === CURRENCY_CODE_RULE
-        ? CURRENCY_CODE_SOURCE
-        : edit.rule === REQUEST_OPTIONS_RULE
-          ? REQUEST_OPTIONS_SOURCE
-          : undefined);
-    if (url) pages.set(url, (pages.get(url) ?? new Set()).add(edit.file));
-  }
-  return [...pages].map(([url, files]) => ({ url, files: [...files] }));
-}
-
-// Rule edits that ride with the API version bump: field moves, the reviewed request parameter
-// moves and lowercased currency codes.
-export function isFieldMove(edit: SourceEdit) {
-  return Boolean(
-    edit.rule &&
-    (FIELD_MOVE_SOURCES[edit.rule] ||
-      REQUEST_MOVE_RULES.has(edit.rule) ||
-      edit.rule === CURRENCY_CODE_RULE ||
-      edit.rule === REQUEST_OPTIONS_RULE ||
-      edit.rule === ACCOUNT_RETRIEVE_CURRENT_RULE),
-  );
-}
 
 // Whether a finding's source position lies inside one of the edits.
 export function editCovers(repository: Repository, edits: SourceEdit[], finding: Finding) {
@@ -191,136 +142,55 @@ export function proposePatch(
     hasConfiguredRenames &&
     edits.some((edit) => !replacementIds.has(edit.changeId) && !requestIds.has(edit.changeId));
   const usedEndpointReplacement = edits.some((edit) => replacementIds.has(edit.changeId));
-  const usedSubscriptionPolicy = edits.some((edit) => edit.rule === SUBSCRIPTION_PERIOD_RULE);
-  const fieldMoves = edits.filter(isFieldMove);
-  const reads = fieldMoves.filter((edit) => FIELD_MOVE_SOURCES[edit.rule!]);
-  const requestMoves = [
-    ...new Set(
-      fieldMoves.filter((edit) => REQUEST_MOVE_RULES.has(edit.rule!)).map((edit) => edit.rule!),
-    ),
-  ];
-  const enumValues = requestMoves.some(
-    (rule) => requestMoveFor(rule)!.family === 'request-enum-value',
-  );
-  const parameterMoves = requestMoves.some(
-    (rule) => requestMoveFor(rule)!.family !== 'request-enum-value',
-  );
-  const currency = fieldMoves.some((edit) => edit.rule === CURRENCY_CODE_RULE);
-  const requestOptions = fieldMoves.some((edit) => edit.rule === REQUEST_OPTIONS_RULE);
-  const accountCurrent = fieldMoves.some((edit) => edit.rule === ACCOUNT_RETRIEVE_CURRENT_RULE);
-  // Request-side rules, with the reads and renames that share their patch.
-  const requestSummary = [
-    parameterMoves ? 'move removed Stripe request parameters to their documented replacements' : '',
-    enumValues ? 'replace removed Stripe request enum values with their documented successors' : '',
-    reads.length ? 'move removed field reads to their documented new locations' : '',
-    currency ? 'lowercase uppercase currency codes' : '',
-    requestOptions ? 'pass request options after the params argument' : '',
-    accountCurrent ? 'retrieve your own account with accounts.retrieveCurrent' : '',
-  ]
-    .filter(Boolean)
-    .join(', ');
-  if (
-    fieldMoves.length &&
-    !usedSubscriptionPolicy &&
-    !usedRequestRename &&
-    !usedEndpointReplacement
-  )
-    return {
-      generator: 'deterministic' as const,
-      summary:
-        requestMoves.length || currency || requestOptions || accountCurrent
-          ? `${requestSummary[0].toUpperCase()}${requestSummary.slice(1)} and update the pinned Stripe API version.`
-          : 'Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.',
-      status: 'proposed' as const,
-      edits: edits.length,
-      rules: [...new Set(fieldMoves.map((edit) => edit.rule!))].sort(),
-      unresolvedFindings,
-      diff: renderPatch(repository, edits),
-      validation: 'not-run',
-      warnings: [
-        ...STRIPE_PACK.fieldMoves
-          .filter((move) => fieldMoves.some((edit) => edit.rule === move.rule))
-          .map((move) => move.warning),
-        ...requestMoves.map((rule) => requestMoveFor(rule)!.warning),
-        ...(currency ? [CURRENCY_CODE_WARNING] : []),
-        ...(requestOptions ? [REQUEST_OPTIONS_WARNING] : []),
-        ...(accountCurrent ? [ACCOUNT_RETRIEVE_CURRENT_WARNING] : []),
-        'The stripe package is not upgraded. TypeScript projects may need the stripe package version matching the new API version before they typecheck.',
-        'Patch contains source code. Review it for sensitive content before sharing.',
-      ],
-      sources: ruleSources(fieldMoves),
-    };
   return {
     generator: 'deterministic' as const,
-    summary: usedSubscriptionPolicy
-      ? 'Preserve historical subscription periods and select new item periods by the configured price ID, with signed-event version and complete-list checks.'
-      : usedRequestRename
-        ? 'Rename configured SDK request fields while preserving argument values and other call options.'
-        : provider.id === STRIPE.id
-          ? 'Replace supported charge-history reads with Charges API requests filtered by PaymentIntent ID.'
-          : usedEndpointReplacement
-            ? usedConfiguredRename
-              ? 'Replace retired SDK methods and removed API fields using configured mappings.'
-              : 'Replace retired SDK methods using configured endpoint mappings while preserving call arguments.'
-            : usedConfiguredRename
-              ? 'Replace removed API fields using the configured response-property mappings.'
-              : hasConfiguredRenames
-                ? 'No configured property rename matched a supported source read.'
-                : 'No deterministic migration rule is registered for this provider.',
+    summary: usedRequestRename
+      ? 'Rename configured SDK request fields while preserving argument values and other call options.'
+      : usedEndpointReplacement
+        ? usedConfiguredRename
+          ? 'Replace retired SDK methods and removed API fields using configured mappings.'
+          : 'Replace retired SDK methods using configured endpoint mappings while preserving call arguments.'
+        : usedConfiguredRename
+          ? 'Replace removed API fields using the configured response-property mappings.'
+          : hasConfiguredRenames
+            ? 'No configured property rename matched a supported source read.'
+            : 'No deterministic migration rule is registered for this provider.',
     status: edits.length ? 'proposed' : 'unsupported',
     edits: edits.length,
     unresolvedFindings,
     diff: renderPatch(repository, edits),
     validation: 'not-run',
-    warnings: usedSubscriptionPolicy
+    warnings: usedRequestRename
       ? [
-          'The price ID and incoming versions are operator-approved policy. Review the entitlement meaning for subscriptions with several prices.',
-          'The proposal checks each signed event api_version, preserves legacy field validation and uses the existing missing-period error for unsupported versions, missing/duplicate prices, incomplete lists and malformed periods.',
-          'No additional API calls, SDK upgrade or webhook endpoint configuration changes are made. Other incoming versions require a new reviewed migration.',
-          'AI generation and repair are disabled for this configured policy. Passing checks does not establish production behavior.',
+          'Request field mappings are operator-authored. Matching recorded contracts do not prove equivalent business meaning or SDK serialization behavior.',
+          'Only direct object-literal body arguments on immutable, unescaped SDK clients are edited. Spreads, computed keys, duplicate properties, aliases and optional SDK calls require review.',
+          'SDK dependencies and API-version declarations remain unchanged; verify that the installed SDK accepts the replacement field and coordinate the API rollout.',
+          'AI generation and repair are not used for configured request-field migrations. Review all edits and meaningful before/after checks.',
           'Patch contains source code. Review it for sensitive content before sharing.',
         ]
-      : usedRequestRename
+      : usedEndpointReplacement
         ? [
-            'Request field mappings are operator-authored. Matching recorded contracts do not prove equivalent business meaning or SDK serialization behavior.',
-            'Only direct object-literal body arguments on immutable, unescaped SDK clients are edited. Spreads, computed keys, duplicate properties, aliases and optional SDK calls require review.',
-            'SDK dependencies and API-version declarations remain unchanged; verify that the installed SDK accepts the replacement field and coordinate the API rollout.',
-            'AI generation and repair are not used for configured request-field migrations. Review all edits and meaningful before/after checks.',
+            'Endpoint mappings are operator-authored. Equal recorded request/response, server and security contracts do not prove equivalent meaning or SDK argument behavior.',
+            'Only direct calls on immutable, unescaped SDK clients are changed. The replacement SDK method must already be available; dependencies and call arguments are unchanged.',
+            'Coordinate the API-version rollout with this call-site migration; it does not update client version configuration.',
+            'AI patch generation and repair are not used for configured endpoint replacements. Review all mappings and run meaningful old/new application checks.',
             'Patch contains source code. Review it for sensitive content before sharing.',
           ]
-        : provider.id === STRIPE.id
+        : usedConfiguredRename
           ? [
-              'Review required: adds Charges API requests; timing, expansion and error behavior can differ. Direct-return migrations retain default-page behavior; guarded-history migrations iterate all pages.',
-              'Supports direct local charges.data returns and narrow missing-history guards after a local or transparent wrapped retrieve. Guarded migrations remove the missing-field error branch and retain the initial retrieval. Request options, transformed wrappers, aliases and other shapes require review.',
+              'The field mapping is operator-authored. Matching recorded types or shapes do not prove equivalent meaning; verify API-version applicability and migration semantics.',
+              'Only direct property reads are changed. Nested moves use optional chaining with a null fallback where the recorded contract allows a missing parent; expandable moves stop for review when a request expands the old field. Review application checks and behavior such as nullability, formatting, pagination and errors.',
               'Patch contains source code. Review it for sensitive content before sharing.',
             ]
-          : usedEndpointReplacement
+          : hasConfiguredRenames
             ? [
-                'Endpoint mappings are operator-authored. Equal recorded request/response, server and security contracts do not prove equivalent meaning or SDK argument behavior.',
-                'Only direct calls on immutable, unescaped SDK clients are changed. The replacement SDK method must already be available; dependencies and call arguments are unchanged.',
-                'Coordinate the API-version rollout with this call-site migration; it does not update client version configuration.',
-                'AI patch generation and repair are not used for configured endpoint replacements. Review all mappings and run meaningful old/new application checks.',
+                'Configured renames only change direct property reads on statically traced responses. String indexes, destructuring and unsupported source shapes require review.',
                 'Patch contains source code. Review it for sensitive content before sharing.',
               ]
-            : usedConfiguredRename
-              ? [
-                  'The field mapping is operator-authored. Matching recorded types or shapes do not prove equivalent meaning; verify API-version applicability and migration semantics.',
-                  'Only direct property reads are changed. Nested moves use optional chaining with a null fallback where the recorded contract allows a missing parent; expandable moves stop for review when a request expands the old field. Review application checks and behavior such as nullability, formatting, pagination and errors.',
-                  'Patch contains source code. Review it for sensitive content before sharing.',
-                ]
-              : hasConfiguredRenames
-                ? [
-                    'Configured renames only change direct property reads on statically traced responses. String indexes, destructuring and unsupported source shapes require review.',
-                    'Patch contains source code. Review it for sensitive content before sharing.',
-                  ]
-                : [
-                    'No deterministic migration rule is registered. Use a reviewed AI proposal or migrate manually.',
-                    'Patch contains source code. Review it for sensitive content before sharing.',
-                  ],
-    source: usedSubscriptionPolicy
-      ? 'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end'
-      : provider.id === STRIPE.id
-        ? 'https://docs.stripe.com/api/charges/list'
-        : null,
+            : [
+                'No deterministic migration rule is registered. Use a reviewed AI proposal or migrate manually.',
+                'Patch contains source code. Review it for sensitive content before sharing.',
+              ],
+    source: null,
   };
 }
