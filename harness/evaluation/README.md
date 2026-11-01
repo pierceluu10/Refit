@@ -80,6 +80,18 @@ the OpenAI tool pack: `install` ran `npx -y npm@8`, typecheck and build passed b
   Chat Completions or Responses), but a real run's PR should say so under Unproven. Whether it does
   is part of this task's hand-check.
 
+### What the provider validators say about the real code ($0)
+
+- **pdfai:** `stripe_check_params` on its real `checkout.sessions.create` params at 2026-10-28.endive
+  fails on `payment_method_types`, citing the 2026-09-30.endive removal, and passes once it is
+  dropped. A correct run has to remove it, which changes which payment methods Checkout offers: a
+  behaviour change the PR must state.
+- **Infinite-bundler:** `shopify_validate_graphql` on the `app.optionset.jsx` query finds no errors
+  at 2026-10 but three deprecations (`Product.images`, `Image.originalSrc`,
+  `ProductVariant.barcode`); they grade as passing, since deprecated fields still work. The live
+  schema for 2024-10 answered HTTP 400, which fits the task: `ApiVersion.October24` is no longer
+  served.
+
 ### $0 checks of the lockfile change
 
 A scripted fake agent (no model) bumped one dependency and called `install` in the Docker sandbox,
