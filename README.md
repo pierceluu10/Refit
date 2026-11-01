@@ -50,7 +50,7 @@ npm run dev
 APTITUDE_AI_BUDGET_USD=2 ANTHROPIC_API_KEY=... npx aptitude run --repo ../some-repo --dry-run
 ```
 
-Or directly: `node orchestrator/cli.ts run --repo <path> [--dry-run] [--out <file>]`. `--dry-run` stops before opening the PR. `APTITUDE_AI_BUDGET_USD` caps the run's AI spend; a run without it refuses to spend. Without `ANTHROPIC_API_KEY`, the CLI uses an offline stub matcher.
+Or directly: `node orchestrator/cli.ts run --repo <path> [--dry-run] [--out <file>]`. `--dry-run` stops before opening the PR. `APTITUDE_AI_BUDGET_USD` caps the run's AI spend; a run without it refuses to spend. Without `ANTHROPIC_API_KEY`, the CLI runs offline: stubs stand in for every AI part and nothing is migrated. With it, inventory, watchers, the match agent, the harness and memory all draw on that one cap. The CLI's PR step is still a stand-in that prints a `stub://pr/...` link.
 
 Current status: inventory, watch, migrate, PR and memory are stubs in this branch until their branches merge.
 

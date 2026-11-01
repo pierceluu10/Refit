@@ -74,7 +74,9 @@ export async function main(argv: string[]): Promise<number> {
         capUsd: budget?.capUsd,
       },
     );
-    console.log(formatSummary(args.repo, summary, args));
+    // The loop counts match and task costs; the budget also saw inventory, watchers and memory.
+    const costUsd = budget?.spentUsd() ?? summary.costUsd;
+    console.log(formatSummary(args.repo, { ...summary, costUsd }, args));
     return 0;
   } catch (error) {
     console.error(`aptitude: ${error instanceof Error ? error.message : String(error)}`);
