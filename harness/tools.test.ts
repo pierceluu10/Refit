@@ -219,8 +219,8 @@ describe('web, memory, tool pack and finish', () => {
       verifiedRepos: 2,
     };
     const out = await setup({ retrieveRecipes: async () => [recipe] }).call('retrieve_recipes');
-    expect(out).toContain('## stripe / sdk-major (r1), verified on 2 repos');
-    expect(out).toContain('**Steps:**\n1. bump');
+    expect(out).toContain('#### r1 (stripe / sdk-major, verified on 2 repos)');
+    expect(out).toContain('Steps: 1. bump');
   });
 
   it('exposes tool pack tools with safe names and catches their errors', async () => {

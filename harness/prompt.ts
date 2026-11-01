@@ -5,10 +5,51 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-01.8';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-01.9';
 
 // shortcut: `notes` is on MigrationTask in O1's branch only; drop this local type once that merges.
 export type TaskWithNotes = MigrationTask & { notes?: string };
+
+// shortcut: memory's recipes carry more than shared/types.ts Recipe (its MemoryRecipe); read those
+// fields here until the contract grows them.
+type MemoryRecipe = Recipe & {
+  diffSketch?: string;
+  skill?: { status: string; prompt: string };
+  failedRunIds?: string[]; // runs shown this recipe whose PR a human closed
+};
+
+// Proven skills first, then recipes with their diff sketches, each with how it has fared so far.
+export function renderRecipes(recipes: Recipe[]): string {
+  const fared = (recipe: MemoryRecipe) => {
+    const closed = recipe.failedRunIds?.length ?? 0;
+    const against = closed
+      ? `; ${closed} later PR${closed === 1 ? '' : 's'} that used it closed by a human without merging`
+      : '';
+    return `${recipe.provider} / ${recipe.kind}, verified on ${recipe.verifiedRepos} repos${against}`;
+  };
+  const all = recipes as MemoryRecipe[];
+  const isSkill = (recipe: MemoryRecipe) => recipe.skill?.status === 'active';
+  return [
+    ...all
+      .filter(isSkill)
+      .map(
+        (recipe) => `#### Proven skill ${recipe.id} (${fared(recipe)})\n${recipe.skill?.prompt}`,
+      ),
+    ...all
+      .filter((recipe) => !isSkill(recipe))
+      .map((recipe) =>
+        [
+          `#### ${recipe.id} (${fared(recipe)})`,
+          `Preconditions: ${recipe.preconditions}`,
+          `Steps: ${recipe.steps}`,
+          `Pitfalls: ${recipe.pitfalls}`,
+          recipe.diffSketch ? '```diff\n' + recipe.diffSketch + '\n```' : '',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      ),
+  ].join('\n\n');
+}
 
 export type PromptInput = {
   task: TaskWithNotes;
@@ -108,14 +149,7 @@ function workflowSection(task: MigrationTask, toolPack: ToolPack, recipes: Recip
     parts.push(
       '### Recipes from memory (guidance, not rules)',
       'These worked on earlier runs. Use what fits this repo and ignore what does not.',
-      ...recipes.map((recipe) =>
-        [
-          `#### ${recipe.id} (${recipe.provider} / ${recipe.kind}, verified on ${recipe.verifiedRepos} repos)`,
-          `Preconditions: ${recipe.preconditions}`,
-          `Steps: ${recipe.steps}`,
-          `Pitfalls: ${recipe.pitfalls}`,
-        ].join('\n'),
-      ),
+      renderRecipes(recipes),
     );
   }
 

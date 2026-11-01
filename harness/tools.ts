@@ -9,6 +9,7 @@ import {
   packageManagerVersion,
   runChecks,
 } from './checks.ts';
+import { renderRecipes } from './prompt.ts';
 import { redactSecrets } from './secrets.ts';
 import { runPassed } from './validators.ts';
 import type { ExecResult, FinishReport, ToolContext } from './types.ts';
@@ -421,17 +422,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
       [],
       async () => {
         const recipes = await ctx.retrieveRecipes(ctx.task);
-        if (recipes.length === 0) return 'no recipes yet';
-        return recipes
-          .map((recipe) =>
-            [
-              `## ${recipe.provider} / ${recipe.kind} (${recipe.id}), verified on ${recipe.verifiedRepos} repos`,
-              `**Preconditions:** ${recipe.preconditions}`,
-              `**Steps:**\n${recipe.steps}`,
-              `**Pitfalls:** ${recipe.pitfalls}`,
-            ].join('\n'),
-          )
-          .join('\n\n');
+        return recipes.length ? renderRecipes(recipes) : 'no recipes yet';
       },
     ),
   ];
