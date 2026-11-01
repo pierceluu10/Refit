@@ -1,0 +1,53 @@
+[
+  {
+    "provider": "stripe",
+    "id": "stripe-charges-source-removed",
+    "kind": "field-removed",
+    "title": "Charges API no longer accepts the source parameter",
+    "effectiveDate": "2027-03-01",
+    "source": {
+      "url": "https://docs.stripe.com/changelog",
+      "quote": "(illustrative) Starting 2027-03-01, POST /v1/charges rejects the source parameter on every API version. Use PaymentIntents with a payment_method instead."
+    },
+    "affects": { "operations": ["charges.create"], "fields": ["source"], "sdk": "stripe" }
+  },
+  {
+    "provider": "openai",
+    "id": "openai-gpt-4o-retirement",
+    "kind": "model-retirement",
+    "title": "gpt-4o is retired from the API",
+    "effectiveDate": "2027-01-15",
+    "source": {
+      "url": "https://platform.openai.com/docs/deprecations",
+      "quote": "(illustrative) On 2027-01-15, gpt-4o will be shut down. Requests that name it will fail; migrate to a current model."
+    },
+    "affects": {
+      "operations": ["chat.completions.create", "responses.create"],
+      "fields": ["model"]
+    }
+  },
+  {
+    "provider": "shopify",
+    "id": "shopify-rest-products-deprecated",
+    "kind": "rest-to-graphql",
+    "title": "REST Admin API product endpoints are removed in favour of GraphQL",
+    "effectiveDate": "2027-04-01",
+    "source": {
+      "url": "https://shopify.dev/docs/api/release-notes",
+      "quote": "(illustrative) The REST Admin API /products endpoints are removed on 2027-04-01. Use the GraphQL Admin API products query and productSet mutation."
+    },
+    "affects": { "operations": ["GET /admin/api/{version}/products.json"] }
+  },
+  {
+    "provider": "twilio",
+    "id": "twilio-conversations-webhook-payload",
+    "kind": "webhook-payload",
+    "title": "Conversations onMessageAdded webhooks drop the legacy Media field",
+    "effectiveDate": "2027-02-01",
+    "source": {
+      "url": "https://www.twilio.com/en-us/changelog",
+      "quote": "(illustrative) From 2027-02-01, Conversations onMessageAdded webhooks no longer include the legacy Media field. Read media from the Media resource instead."
+    },
+    "affects": { "operations": ["conversations.onMessageAdded"], "fields": ["Media"] }
+  }
+]

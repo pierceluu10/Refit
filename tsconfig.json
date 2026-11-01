@@ -24,6 +24,7 @@
     "memory",
     "providers",
     "evals",
-    "shared"
+    "shared",
+    "orchestrator"
   ]
 }

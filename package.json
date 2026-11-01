@@ -10,8 +10,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run --reporter=verbose",
     "typecheck": "tsc -b",
-    "format": "prettier --write src index.html vite.config.ts tsconfig.json package.json app inventory harness memory providers evals shared",
-    "format:check": "prettier --check src index.html vite.config.ts tsconfig.json package.json app inventory harness memory providers evals shared"
+    "format": "prettier --write src index.html vite.config.ts tsconfig.json package.json app inventory harness memory providers evals shared orchestrator",
+    "format:check": "prettier --check src index.html vite.config.ts tsconfig.json package.json app inventory harness memory providers evals shared orchestrator"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
@@ -44,6 +44,7 @@
     "memory",
     "providers",
     "evals",
-    "shared"
+    "shared",
+    "orchestrator"
   ]
 }
