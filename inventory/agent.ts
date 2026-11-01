@@ -28,6 +28,8 @@ export const DEFAULT_RUN_CAP_USD = 0.6;
 export const CALL_RESERVE_USD = 0.05;
 const MAX_TURNS = 120;
 const SUBAGENT_TOOL = 'Agent';
+// The runtime exposes the subagent tool as 'Task'; allow both names so dontAsk never denies it.
+const SUBAGENT_TOOL_NAMES = [SUBAGENT_TOOL, 'Task'];
 // Variables of an enclosing Claude Code session that must not leak into the nested agent.
 const PARENT_SESSION_ENV = /^(CLAUDECODE|CLAUDE_CODE_|CLAUDE_AGENT_SDK_)/;
 
@@ -66,7 +68,7 @@ export function agentOptions(repoDir: string, tools: InventoryTool[], budgetUsd:
     effort: 'medium',
     systemPrompt: SYSTEM_PROMPT,
     tools: [SUBAGENT_TOOL],
-    allowedTools: [SUBAGENT_TOOL, ...toolNames],
+    allowedTools: [...SUBAGENT_TOOL_NAMES, ...toolNames],
     permissionMode: 'dontAsk',
     settingSources: [],
     persistSession: false,

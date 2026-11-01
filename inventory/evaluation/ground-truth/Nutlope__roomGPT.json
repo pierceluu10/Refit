@@ -1,0 +1,96 @@
+{
+  "repo": "Nutlope/roomGPT",
+  "commit": "611398c",
+  "method": "Read every tracked source file (22 non-asset files); grepped fetch/SDK imports/URLs to cross-check.",
+  "callSites": [
+    {
+      "provider": "upstash",
+      "via": "sdk",
+      "file": "utils/redis.ts",
+      "line": 5,
+      "operation": "client init",
+      "note": "new Redis({url, token}) from @upstash/redis (REST)"
+    },
+    {
+      "provider": "upstash",
+      "via": "sdk",
+      "file": "app/generate/route.ts",
+      "line": 8,
+      "operation": "client init",
+      "note": "new Ratelimit({redis, analytics: true}) from @upstash/ratelimit"
+    },
+    {
+      "provider": "upstash",
+      "via": "sdk",
+      "file": "app/generate/route.ts",
+      "line": 21,
+      "operation": "ratelimit.limit(ip)",
+      "note": "fixed window 5 per 24h"
+    },
+    {
+      "provider": "replicate",
+      "via": "http",
+      "file": "app/generate/route.ts",
+      "line": 40,
+      "operation": "POST /v1/predictions (create prediction)",
+      "note": "https://api.replicate.com/v1/predictions"
+    },
+    {
+      "provider": "replicate",
+      "via": "http",
+      "file": "app/generate/route.ts",
+      "line": 72,
+      "operation": "GET prediction status (poll urls.get)",
+      "note": "loop polls once per second; counted once"
+    },
+    {
+      "provider": "replicate.delivery",
+      "via": "http",
+      "file": "utils/downloadPhoto.ts",
+      "line": 11,
+      "operation": "download generated image as blob",
+      "note": "fetch(url) on the Replicate output URL; called from app/dream/page.tsx download button"
+    },
+    {
+      "provider": "bytescale",
+      "via": "sdk",
+      "file": "app/dream/page.tsx",
+      "line": 20,
+      "operation": "client init",
+      "note": "UploadWidgetConfig with NEXT_PUBLIC_UPLOAD_API_KEY (fallback 'free')"
+    },
+    {
+      "provider": "bytescale",
+      "via": "sdk",
+      "file": "app/dream/page.tsx",
+      "line": 56,
+      "operation": "file upload via UploadDropzone widget",
+      "note": "@bytescale/upload-widget-react uploads to Bytescale; UrlBuilder.url at line 62 only builds a URL"
+    },
+    {
+      "provider": "vercel-analytics",
+      "via": "sdk",
+      "file": "app/layout.tsx",
+      "line": 42,
+      "operation": "page-view analytics (<Analytics />)",
+      "note": "@vercel/analytics/react"
+    }
+  ],
+  "excluded": [
+    {
+      "file": "app/dream/page.tsx",
+      "line": 83,
+      "reason": "fetch('/generate'): own backend route"
+    },
+    {
+      "file": "app/dream/page.tsx",
+      "line": 62,
+      "reason": "UrlBuilder.url builds a Bytescale CDN URL locally, no request"
+    },
+    {
+      "file": "next.config.js",
+      "line": 5,
+      "reason": "images.domains allowlist (upcdn.io, replicate.delivery) for Next image optimizer; the fetch is done by Next.js, not app code"
+    }
+  ]
+}

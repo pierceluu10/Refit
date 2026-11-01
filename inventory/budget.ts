@@ -72,8 +72,10 @@ export class BudgetLedger {
     }
   }
 
+  // With a log, the total is re-read first so runs in parallel processes see each other's spend.
   async record(spend: { repo: string; model: string; costUsd: number }): Promise<SpendEntry> {
-    this.spentUsd += spend.costUsd;
+    const before = this.logPath ? await readCumulative(this.logPath) : this.spentUsd;
+    this.spentUsd = before + spend.costUsd;
     const entry: SpendEntry = {
       ts: new Date().toISOString(),
       ...spend,

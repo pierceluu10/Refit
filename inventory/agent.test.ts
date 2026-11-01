@@ -133,7 +133,7 @@ describe('runInventory with a fake model', () => {
     expect(options.maxBudgetUsd).toBeCloseTo(0.5 - CALL_RESERVE_USD);
     expect(
       options.allowedTools?.every(
-        (name) => name === 'Agent' || name.startsWith('mcp__inventory__'),
+        (name) => name === 'Agent' || name === 'Task' || name.startsWith('mcp__inventory__'),
       ),
     ).toBe(true);
     expect(tools.map((candidate) => candidate.name).sort()).toEqual([

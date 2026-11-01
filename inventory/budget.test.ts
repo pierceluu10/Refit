@@ -50,6 +50,17 @@ describe('BudgetLedger', () => {
     expect(lines[1].cumulativeUsd).toBeCloseTo(0.3);
     expect(typeof lines[0].ts).toBe('string');
 
+    const other = await BudgetLedger.open({ capUsd: 6, logPath });
+    await ledger.record({ repo: 'c/d', model: 'claude-sonnet-5-5', costUsd: 0 });
+    expect(other.spentUsd).toBeCloseTo(0.3);
+    await other.record({ repo: 'c/d', model: 'claude-sonnet-5-5', costUsd: 0.1 });
+    await ledger.record({ repo: 'a/b', model: 'claude-sonnet-5-5', costUsd: 0 });
+    expect(ledger.spentUsd).toBeCloseTo(0.4);
+    await writeFile(
+      logPath,
+      (await readFile(logPath, 'utf8')).split('\n').slice(0, 2).join('\n') + '\n',
+    );
+
     const resumed = await BudgetLedger.open({ capUsd: 0.4, logPath });
     expect(resumed.spentUsd).toBeCloseTo(0.3);
     expect(() => resumed.assertCanSpend(0.11)).toThrow(BudgetExceededError);

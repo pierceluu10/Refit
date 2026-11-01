@@ -1,0 +1,94 @@
+{
+  "repo": "chubin/wttr.in",
+  "commit": "c369bc4",
+  "method": "Listed all tracked files; grepped Go for http.Get/Do/NewRequest/Dial/exec and shell/salt/Dockerfile/templates for curl/wget/URLs; read each hit.",
+  "callSites": [
+    {
+      "provider": "worldweatheronline",
+      "via": "http",
+      "file": "internal/weather/weatherer_wwo.go",
+      "line": 103,
+      "operation": "GET weather forecast (wc.httpClient.Get(url))",
+      "note": "WWO-format upstream from weather.wwo.baseUrl; sample share/config/config.yaml:36 points it at wttr.in ?format=j1, README says set baseUrl for WorldWeatherOnline"
+    },
+    {
+      "provider": "opencagedata",
+      "via": "http",
+      "file": "internal/location/nominatim.go",
+      "line": 59,
+      "operation": "geocode location name (http.Get in makeQuery)",
+      "note": "shared wrapper for geocoders: callers nominatim_opencage.go:27 (configured, api.opencagedata.com) and nominatim_locationiq.go:23 (LocationIQ type 'iq')"
+    },
+    {
+      "provider": "github",
+      "via": "http",
+      "file": "build.sh",
+      "line": 143,
+      "operation": "curl download terminal.css from raw.githubusercontent.com",
+      "note": "cmd_update_css"
+    },
+    {
+      "provider": "maxmind",
+      "via": "http",
+      "file": "share/salt/init.sls",
+      "line": 58,
+      "operation": "download GeoLite2-City.tar.gz (salt archive.extracted)",
+      "note": "line 59 fetches the .md5 hash from the same host"
+    },
+    {
+      "provider": "forecast.io",
+      "via": "http",
+      "file": "share/salt/wegorc",
+      "line": 15,
+      "operation": "wego backend config (backend=forecast.io, api key at line 21)",
+      "note": "config for external wego binary, which makes the request; deployed by salt"
+    }
+  ],
+  "excluded": [
+    {
+      "file": "internal/uplink/uplink.go",
+      "line": 139,
+      "reason": "client.Do(proxyReq): proxies to the service's own uplink backend modules (cfg.Address1-4)"
+    },
+    {
+      "file": "internal/renderer/subprocess/subprocess.go",
+      "line": 119,
+      "reason": "exec.Command runs local renderer programs, not a network call"
+    },
+    {
+      "file": "internal/ip/geoip2.go",
+      "line": 21,
+      "reason": "geoip2.Open reads a local MaxMind .mmdb file"
+    },
+    {
+      "file": "test/query.sh",
+      "line": 50,
+      "reason": "curl against the repo's own server in tests"
+    },
+    {
+      "file": "internal/renderer/v1/testdata/update_golden.sh",
+      "line": 52,
+      "reason": "curl against own local server to regenerate golden test data"
+    },
+    {
+      "file": "share/salt/init.sls",
+      "line": 31,
+      "reason": "git.latest clones the project's own repository"
+    },
+    {
+      "file": "share/salt/init.sls",
+      "line": 70,
+      "reason": "go get/go install wego: package install"
+    },
+    {
+      "file": "share/templates/index_buildkite.html",
+      "line": 110,
+      "reason": "third-party embed script tags (platform.twitter.com widgets.js, buttons.github.io line 111); static includes, not code call sites"
+    },
+    {
+      "file": "share/templates/index.html",
+      "line": 4,
+      "reason": "stylesheet link to adobe-fonts.github.io; static asset"
+    }
+  ]
+}

@@ -1,0 +1,1677 @@
+{
+  "repo": "mckaywrigley/chatbot-ui",
+  "commit": "81328b6",
+  "method": "Grepped all tracked ts/tsx/js/sql for fetch/SDK constructors/URLs; scripted scan for every supabase|supabaseAdmin .from/.auth/.storage/.rpc chain start, spot-read samples and every non-db/ hit; read each LLM route.",
+  "callSites": [
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "lib/supabase/browser-client.ts",
+      "line": 4,
+      "operation": "client init",
+      "note": "@supabase/ssr client"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "lib/supabase/client.ts",
+      "line": 4,
+      "operation": "client init",
+      "note": "@supabase/ssr client"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "lib/supabase/server.ts",
+      "line": 5,
+      "operation": "client init",
+      "note": "@supabase/ssr client"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "lib/supabase/middleware.ts",
+      "line": 12,
+      "operation": "client init",
+      "note": "@supabase/ssr client"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "lib/server/server-chat-helpers.ts",
+      "line": 8,
+      "operation": "client init",
+      "note": "@supabase/ssr client"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/[locale]/layout.tsx",
+      "line": 74,
+      "operation": "client init",
+      "note": "@supabase/ssr client"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/[locale]/login/page.tsx",
+      "line": 23,
+      "operation": "client init",
+      "note": "@supabase/ssr client"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/chat/custom/route.ts",
+      "line": 20,
+      "operation": "client init",
+      "note": "service-role createClient"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/retrieval/retrieve/route.ts",
+      "line": 19,
+      "operation": "client init",
+      "note": "service-role createClient"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/retrieval/process/route.ts",
+      "line": 18,
+      "operation": "client init",
+      "note": "service-role createClient"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/retrieval/process/docx/route.ts",
+      "line": 20,
+      "operation": "client init",
+      "note": "service-role createClient"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/username/available/route.ts",
+      "line": 13,
+      "operation": "client init",
+      "note": "service-role createClient"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/username/get/route.ts",
+      "line": 13,
+      "operation": "client init",
+      "note": "service-role createClient"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/[locale]/[workspaceid]/layout.tsx",
+      "line": 64,
+      "operation": "auth.getSession"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/[locale]/layout.tsx",
+      "line": 85,
+      "operation": "auth.getSession"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/[locale]/login/page.tsx",
+      "line": 34,
+      "operation": "auth.getSession"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/[locale]/login/page.tsx",
+      "line": 37,
+      "operation": "from(\"workspaces\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/[locale]/login/page.tsx",
+      "line": 59,
+      "operation": "auth.signInWithPassword"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/[locale]/login/page.tsx",
+      "line": 68,
+      "operation": "from(\"workspaces\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/[locale]/login/page.tsx",
+      "line": 125,
+      "operation": "auth.signUp"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/[locale]/login/page.tsx",
+      "line": 153,
+      "operation": "auth.resetPasswordForEmail"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/[locale]/login/password/page.tsx",
+      "line": 15,
+      "operation": "auth.getSession"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/[locale]/setup/page.tsx",
+      "line": 66,
+      "operation": "auth.getSession"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/[locale]/setup/page.tsx",
+      "line": 115,
+      "operation": "auth.getSession"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/chat/custom/route.ts",
+      "line": 25,
+      "operation": "from(\"models\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/retrieval/process/docx/route.ts",
+      "line": 101,
+      "operation": "from(\"file_items\").upsert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/retrieval/process/docx/route.ts",
+      "line": 105,
+      "operation": "from(\"files\").update"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/retrieval/process/route.ts",
+      "line": 30,
+      "operation": "from(\"files\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/retrieval/process/route.ts",
+      "line": 50,
+      "operation": "storage.from(\"files\").download"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/retrieval/process/route.ts",
+      "line": 155,
+      "operation": "from(\"file_items\").upsert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/retrieval/process/route.ts",
+      "line": 159,
+      "operation": "from(\"files\").update"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/retrieval/retrieve/route.ts",
+      "line": 60,
+      "operation": "rpc(\"match_file_items_openai\")"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/retrieval/retrieve/route.ts",
+      "line": 75,
+      "operation": "rpc(\"match_file_items_local\")"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/username/available/route.ts",
+      "line": 18,
+      "operation": "from(\"profiles\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/api/username/get/route.ts",
+      "line": 18,
+      "operation": "from(\"profiles\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "app/auth/callback/route.ts",
+      "line": 13,
+      "operation": "auth.exchangeCodeForSession"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "components/sidebar/items/folders/delete-folder.tsx",
+      "line": 86,
+      "operation": "from(contentType).delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "components/utility/change-password.tsx",
+      "line": 28,
+      "operation": "auth.updateUser"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "components/utility/global-state.tsx",
+      "line": 156,
+      "operation": "auth.getSession"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "components/utility/profile-settings.tsx",
+      "line": 122,
+      "operation": "auth.signOut"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistant-collections.ts",
+      "line": 7,
+      "operation": "from(\"assistants\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistant-collections.ts",
+      "line": 29,
+      "operation": "from(\"assistant_collections\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistant-collections.ts",
+      "line": 44,
+      "operation": "from(\"assistant_collections\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistant-collections.ts",
+      "line": 60,
+      "operation": "from(\"assistant_collections\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistant-files.ts",
+      "line": 5,
+      "operation": "from(\"assistants\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistant-files.ts",
+      "line": 27,
+      "operation": "from(\"assistant_files\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistant-files.ts",
+      "line": 42,
+      "operation": "from(\"assistant_files\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistant-files.ts",
+      "line": 58,
+      "operation": "from(\"assistant_files\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistant-tools.ts",
+      "line": 5,
+      "operation": "from(\"assistants\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistant-tools.ts",
+      "line": 27,
+      "operation": "from(\"assistant_tools\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistant-tools.ts",
+      "line": 42,
+      "operation": "from(\"assistant_tools\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistant-tools.ts",
+      "line": 58,
+      "operation": "from(\"assistant_tools\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistants.ts",
+      "line": 5,
+      "operation": "from(\"assistants\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistants.ts",
+      "line": 21,
+      "operation": "from(\"workspaces\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistants.ts",
+      "line": 43,
+      "operation": "from(\"assistants\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistants.ts",
+      "line": 66,
+      "operation": "from(\"assistants\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistants.ts",
+      "line": 89,
+      "operation": "from(\"assistants\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistants.ts",
+      "line": 114,
+      "operation": "from(\"assistant_workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistants.ts",
+      "line": 130,
+      "operation": "from(\"assistant_workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistants.ts",
+      "line": 144,
+      "operation": "from(\"assistants\").update"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistants.ts",
+      "line": 159,
+      "operation": "from(\"assistants\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/assistants.ts",
+      "line": 175,
+      "operation": "from(\"assistant_workspaces\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/chat-files.ts",
+      "line": 5,
+      "operation": "from(\"chats\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/chat-files.ts",
+      "line": 25,
+      "operation": "from(\"chat_files\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/chat-files.ts",
+      "line": 40,
+      "operation": "from(\"chat_files\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/chats.ts",
+      "line": 5,
+      "operation": "from(\"chats\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/chats.ts",
+      "line": 15,
+      "operation": "from(\"chats\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/chats.ts",
+      "line": 29,
+      "operation": "from(\"chats\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/chats.ts",
+      "line": 43,
+      "operation": "from(\"chats\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/chats.ts",
+      "line": 59,
+      "operation": "from(\"chats\").update"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/chats.ts",
+      "line": 74,
+      "operation": "from(\"chats\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/collection-files.ts",
+      "line": 7,
+      "operation": "from(\"collections\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/collection-files.ts",
+      "line": 29,
+      "operation": "from(\"collection_files\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/collection-files.ts",
+      "line": 44,
+      "operation": "from(\"collection_files\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/collection-files.ts",
+      "line": 60,
+      "operation": "from(\"collection_files\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/collections.ts",
+      "line": 5,
+      "operation": "from(\"collections\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/collections.ts",
+      "line": 21,
+      "operation": "from(\"workspaces\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/collections.ts",
+      "line": 43,
+      "operation": "from(\"collections\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/collections.ts",
+      "line": 66,
+      "operation": "from(\"collections\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/collections.ts",
+      "line": 89,
+      "operation": "from(\"collections\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/collections.ts",
+      "line": 114,
+      "operation": "from(\"collection_workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/collections.ts",
+      "line": 130,
+      "operation": "from(\"collection_workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/collections.ts",
+      "line": 144,
+      "operation": "from(\"collections\").update"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/collections.ts",
+      "line": 159,
+      "operation": "from(\"collections\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/collections.ts",
+      "line": 175,
+      "operation": "from(\"collection_workspaces\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/files.ts",
+      "line": 8,
+      "operation": "from(\"files\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/files.ts",
+      "line": 22,
+      "operation": "from(\"workspaces\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/files.ts",
+      "line": 42,
+      "operation": "from(\"files\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/files.ts",
+      "line": 104,
+      "operation": "from(\"files\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/files.ts",
+      "line": 164,
+      "operation": "from(\"files\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/files.ts",
+      "line": 224,
+      "operation": "from(\"files\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/files.ts",
+      "line": 249,
+      "operation": "from(\"file_workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/files.ts",
+      "line": 265,
+      "operation": "from(\"file_workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/files.ts",
+      "line": 279,
+      "operation": "from(\"files\").update"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/files.ts",
+      "line": 294,
+      "operation": "from(\"files\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/files.ts",
+      "line": 307,
+      "operation": "from(\"file_workspaces\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/folders.ts",
+      "line": 5,
+      "operation": "from(\"folders\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/folders.ts",
+      "line": 18,
+      "operation": "from(\"folders\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/folders.ts",
+      "line": 35,
+      "operation": "from(\"folders\").update"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/folders.ts",
+      "line": 50,
+      "operation": "from(\"folders\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/message-file-items.ts",
+      "line": 5,
+      "operation": "from(\"messages\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/message-file-items.ts",
+      "line": 26,
+      "operation": "from(\"message_file_items\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/messages.ts",
+      "line": 5,
+      "operation": "from(\"messages\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/messages.ts",
+      "line": 19,
+      "operation": "from(\"messages\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/messages.ts",
+      "line": 32,
+      "operation": "from(\"messages\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/messages.ts",
+      "line": 46,
+      "operation": "from(\"messages\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/messages.ts",
+      "line": 62,
+      "operation": "from(\"messages\").update"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/messages.ts",
+      "line": 77,
+      "operation": "from(\"messages\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/messages.ts",
+      "line": 91,
+      "operation": "rpc(\"delete_messages_including_and_after\")"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/models.ts",
+      "line": 5,
+      "operation": "from(\"models\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/models.ts",
+      "line": 19,
+      "operation": "from(\"workspaces\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/models.ts",
+      "line": 39,
+      "operation": "from(\"models\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/models.ts",
+      "line": 62,
+      "operation": "from(\"models\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/models.ts",
+      "line": 85,
+      "operation": "from(\"models\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/models.ts",
+      "line": 110,
+      "operation": "from(\"model_workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/models.ts",
+      "line": 126,
+      "operation": "from(\"model_workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/models.ts",
+      "line": 140,
+      "operation": "from(\"models\").update"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/models.ts",
+      "line": 155,
+      "operation": "from(\"models\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/models.ts",
+      "line": 168,
+      "operation": "from(\"model_workspaces\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/presets.ts",
+      "line": 5,
+      "operation": "from(\"presets\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/presets.ts",
+      "line": 19,
+      "operation": "from(\"workspaces\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/presets.ts",
+      "line": 39,
+      "operation": "from(\"presets\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/presets.ts",
+      "line": 62,
+      "operation": "from(\"presets\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/presets.ts",
+      "line": 85,
+      "operation": "from(\"presets\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/presets.ts",
+      "line": 110,
+      "operation": "from(\"preset_workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/presets.ts",
+      "line": 126,
+      "operation": "from(\"preset_workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/presets.ts",
+      "line": 140,
+      "operation": "from(\"presets\").update"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/presets.ts",
+      "line": 155,
+      "operation": "from(\"presets\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/presets.ts",
+      "line": 168,
+      "operation": "from(\"preset_workspaces\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/profile.ts",
+      "line": 5,
+      "operation": "from(\"profiles\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/profile.ts",
+      "line": 19,
+      "operation": "from(\"profiles\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/profile.ts",
+      "line": 32,
+      "operation": "from(\"profiles\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/profile.ts",
+      "line": 49,
+      "operation": "from(\"profiles\").update"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/profile.ts",
+      "line": 64,
+      "operation": "from(\"profiles\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/prompts.ts",
+      "line": 5,
+      "operation": "from(\"prompts\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/prompts.ts",
+      "line": 19,
+      "operation": "from(\"workspaces\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/prompts.ts",
+      "line": 39,
+      "operation": "from(\"prompts\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/prompts.ts",
+      "line": 62,
+      "operation": "from(\"prompts\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/prompts.ts",
+      "line": 85,
+      "operation": "from(\"prompts\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/prompts.ts",
+      "line": 110,
+      "operation": "from(\"prompt_workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/prompts.ts",
+      "line": 126,
+      "operation": "from(\"prompt_workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/prompts.ts",
+      "line": 140,
+      "operation": "from(\"prompts\").update"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/prompts.ts",
+      "line": 155,
+      "operation": "from(\"prompts\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/prompts.ts",
+      "line": 168,
+      "operation": "from(\"prompt_workspaces\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/storage/assistant-images.ts",
+      "line": 20,
+      "operation": "storage.from(bucket).remove"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/storage/assistant-images.ts",
+      "line": 29,
+      "operation": "storage.from(bucket).upload"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/storage/assistant-images.ts",
+      "line": 44,
+      "operation": "storage.from(\"assistant_images\").createSignedUrl"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/storage/files.ts",
+      "line": 24,
+      "operation": "storage.from(\"files\").upload"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/storage/files.ts",
+      "line": 38,
+      "operation": "storage.from(\"files\").remove"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/storage/files.ts",
+      "line": 47,
+      "operation": "storage.from(\"files\").createSignedUrl"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/storage/message-images.ts",
+      "line": 12,
+      "operation": "storage.from(bucket).upload"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/storage/message-images.ts",
+      "line": 24,
+      "operation": "storage.from(\"message_images\").createSignedUrl"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/storage/profile-images.ts",
+      "line": 20,
+      "operation": "storage.from(bucket).remove"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/storage/profile-images.ts",
+      "line": 29,
+      "operation": "storage.from(bucket).upload"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/storage/workspace-images.ts",
+      "line": 20,
+      "operation": "storage.from(bucket).remove"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/storage/workspace-images.ts",
+      "line": 29,
+      "operation": "storage.from(bucket).upload"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/storage/workspace-images.ts",
+      "line": 44,
+      "operation": "storage.from(\"workspace_images\").createSignedUrl"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/tools.ts",
+      "line": 5,
+      "operation": "from(\"tools\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/tools.ts",
+      "line": 19,
+      "operation": "from(\"workspaces\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/tools.ts",
+      "line": 39,
+      "operation": "from(\"tools\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/tools.ts",
+      "line": 62,
+      "operation": "from(\"tools\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/tools.ts",
+      "line": 85,
+      "operation": "from(\"tools\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/tools.ts",
+      "line": 110,
+      "operation": "from(\"tool_workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/tools.ts",
+      "line": 126,
+      "operation": "from(\"tool_workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/tools.ts",
+      "line": 140,
+      "operation": "from(\"tools\").update"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/tools.ts",
+      "line": 155,
+      "operation": "from(\"tools\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/tools.ts",
+      "line": 168,
+      "operation": "from(\"tool_workspaces\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/workspaces.ts",
+      "line": 5,
+      "operation": "from(\"workspaces\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/workspaces.ts",
+      "line": 20,
+      "operation": "from(\"workspaces\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/workspaces.ts",
+      "line": 34,
+      "operation": "from(\"workspaces\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/workspaces.ts",
+      "line": 50,
+      "operation": "from(\"workspaces\").insert"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/workspaces.ts",
+      "line": 67,
+      "operation": "from(\"workspaces\").update"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "db/workspaces.ts",
+      "line": 82,
+      "operation": "from(\"workspaces\").delete"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "lib/server/server-chat-helpers.ts",
+      "line": 20,
+      "operation": "auth.getUser"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "lib/server/server-chat-helpers.ts",
+      "line": 25,
+      "operation": "from(\"profiles\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "middleware.ts",
+      "line": 13,
+      "operation": "auth.getSession"
+    },
+    {
+      "provider": "supabase",
+      "via": "sdk",
+      "file": "middleware.ts",
+      "line": 18,
+      "operation": "from(\"workspaces\").select"
+    },
+    {
+      "provider": "supabase",
+      "via": "http",
+      "file": "app/[locale]/[workspaceid]/layout.tsx",
+      "line": 108,
+      "operation": "fetch assistant image via storage signed URL"
+    },
+    {
+      "provider": "supabase",
+      "via": "http",
+      "file": "components/chat/chat-ui.tsx",
+      "line": 89,
+      "operation": "fetch message image via storage signed URL"
+    },
+    {
+      "provider": "supabase",
+      "via": "http",
+      "file": "components/utility/global-state.tsx",
+      "line": 180,
+      "operation": "fetch workspace image via storage signed URL"
+    },
+    {
+      "provider": "supabase",
+      "via": "http",
+      "file": "components/workspace/workspace-settings.tsx",
+      "line": 89,
+      "operation": "fetch workspace image via storage signed URL"
+    },
+    {
+      "provider": "supabase",
+      "via": "http",
+      "file": "components/sidebar/items/all/sidebar-create-item.tsx",
+      "line": 132,
+      "operation": "fetch assistant image via storage signed URL"
+    },
+    {
+      "provider": "supabase",
+      "via": "http",
+      "file": "components/sidebar/items/all/sidebar-update-item.tsx",
+      "line": 517,
+      "operation": "fetch assistant image via storage signed URL"
+    },
+    {
+      "provider": "supabase",
+      "via": "http",
+      "file": "supabase/migrations/20240108234540_setup.sql",
+      "line": 60,
+      "operation": "DELETE /storage/v1/object via extensions.http in delete_storage_object()",
+      "note": "Postgres http extension; project_url defaults to local kong; called by delete triggers"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/chat/openai/route.ts",
+      "line": 22,
+      "operation": "client init"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/chat/openai/route.ts",
+      "line": 27,
+      "operation": "chat.completions.create (stream)"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/chat/tools/route.ts",
+      "line": 22,
+      "operation": "client init"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/chat/tools/route.ts",
+      "line": 62,
+      "operation": "chat.completions.create with tools (first pass)"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/chat/tools/route.ts",
+      "line": 201,
+      "operation": "chat.completions.create (second pass, stream)"
+    },
+    {
+      "provider": "user-defined-tool-api",
+      "via": "http",
+      "file": "app/api/chat/tools/route.ts",
+      "line": 153,
+      "operation": "POST to user-configured OpenAPI tool endpoint",
+      "note": "URL from tool schema stored in DB"
+    },
+    {
+      "provider": "user-defined-tool-api",
+      "via": "http",
+      "file": "app/api/chat/tools/route.ts",
+      "line": 178,
+      "operation": "GET to user-configured OpenAPI tool endpoint"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/command/route.ts",
+      "line": 18,
+      "operation": "client init"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/command/route.ts",
+      "line": 23,
+      "operation": "chat.completions.create"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/assistants/openai/route.ts",
+      "line": 13,
+      "operation": "client init"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/assistants/openai/route.ts",
+      "line": 18,
+      "operation": "beta.assistants.list"
+    },
+    {
+      "provider": "azure-openai",
+      "via": "sdk",
+      "file": "app/api/chat/azure/route.ts",
+      "line": 47,
+      "operation": "client init",
+      "note": "OpenAI SDK with Azure baseURL"
+    },
+    {
+      "provider": "azure-openai",
+      "via": "sdk",
+      "file": "app/api/chat/azure/route.ts",
+      "line": 54,
+      "operation": "chat.completions.create (stream)"
+    },
+    {
+      "provider": "openrouter",
+      "via": "sdk",
+      "file": "app/api/chat/openrouter/route.ts",
+      "line": 22,
+      "operation": "client init",
+      "note": "OpenAI SDK, baseURL openrouter.ai"
+    },
+    {
+      "provider": "openrouter",
+      "via": "sdk",
+      "file": "app/api/chat/openrouter/route.ts",
+      "line": 27,
+      "operation": "chat.completions.create (stream)"
+    },
+    {
+      "provider": "groq",
+      "via": "sdk",
+      "file": "app/api/chat/groq/route.ts",
+      "line": 21,
+      "operation": "client init",
+      "note": "OpenAI SDK, baseURL api.groq.com"
+    },
+    {
+      "provider": "groq",
+      "via": "sdk",
+      "file": "app/api/chat/groq/route.ts",
+      "line": 26,
+      "operation": "chat.completions.create (stream)"
+    },
+    {
+      "provider": "perplexity",
+      "via": "sdk",
+      "file": "app/api/chat/perplexity/route.ts",
+      "line": 21,
+      "operation": "client init",
+      "note": "OpenAI SDK, baseURL api.perplexity.ai"
+    },
+    {
+      "provider": "perplexity",
+      "via": "sdk",
+      "file": "app/api/chat/perplexity/route.ts",
+      "line": 26,
+      "operation": "chat.completions.create (stream)"
+    },
+    {
+      "provider": "mistral",
+      "via": "sdk",
+      "file": "app/api/chat/mistral/route.ts",
+      "line": 22,
+      "operation": "client init",
+      "note": "OpenAI SDK, baseURL api.mistral.ai"
+    },
+    {
+      "provider": "mistral",
+      "via": "sdk",
+      "file": "app/api/chat/mistral/route.ts",
+      "line": 27,
+      "operation": "chat.completions.create (stream)"
+    },
+    {
+      "provider": "custom-openai-compatible",
+      "via": "sdk",
+      "file": "app/api/chat/custom/route.ts",
+      "line": 35,
+      "operation": "client init",
+      "note": "OpenAI SDK, baseURL from user's custom model row"
+    },
+    {
+      "provider": "custom-openai-compatible",
+      "via": "sdk",
+      "file": "app/api/chat/custom/route.ts",
+      "line": 40,
+      "operation": "chat.completions.create (stream)"
+    },
+    {
+      "provider": "anthropic",
+      "via": "sdk",
+      "file": "app/api/chat/anthropic/route.ts",
+      "line": 58,
+      "operation": "client init"
+    },
+    {
+      "provider": "anthropic",
+      "via": "sdk",
+      "file": "app/api/chat/anthropic/route.ts",
+      "line": 63,
+      "operation": "messages.create (stream)"
+    },
+    {
+      "provider": "google-gemini",
+      "via": "sdk",
+      "file": "app/api/chat/google/route.ts",
+      "line": 19,
+      "operation": "client init",
+      "note": "GoogleGenerativeAI; getGenerativeModel/startChat at 20/24 are local"
+    },
+    {
+      "provider": "google-gemini",
+      "via": "sdk",
+      "file": "app/api/chat/google/route.ts",
+      "line": 31,
+      "operation": "chat.sendMessageStream"
+    },
+    {
+      "provider": "azure-openai",
+      "via": "sdk",
+      "file": "app/api/retrieval/retrieve/route.ts",
+      "line": 38,
+      "operation": "client init",
+      "note": "embeddings client when profile.use_azure_openai"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/retrieval/retrieve/route.ts",
+      "line": 45,
+      "operation": "client init"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/retrieval/retrieve/route.ts",
+      "line": 52,
+      "operation": "embeddings.create text-embedding-3-small",
+      "note": "goes to Azure OpenAI when use_azure_openai"
+    },
+    {
+      "provider": "azure-openai",
+      "via": "sdk",
+      "file": "app/api/retrieval/process/route.ts",
+      "line": 104,
+      "operation": "client init",
+      "note": "embeddings client when profile.use_azure_openai"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/retrieval/process/route.ts",
+      "line": 111,
+      "operation": "client init"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/retrieval/process/route.ts",
+      "line": 118,
+      "operation": "embeddings.create text-embedding-3-small",
+      "note": "goes to Azure OpenAI when use_azure_openai"
+    },
+    {
+      "provider": "azure-openai",
+      "via": "sdk",
+      "file": "app/api/retrieval/process/docx/route.ts",
+      "line": 51,
+      "operation": "client init",
+      "note": "embeddings client when profile.use_azure_openai"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/retrieval/process/docx/route.ts",
+      "line": 58,
+      "operation": "client init"
+    },
+    {
+      "provider": "openai",
+      "via": "sdk",
+      "file": "app/api/retrieval/process/docx/route.ts",
+      "line": 65,
+      "operation": "embeddings.create text-embedding-3-small",
+      "note": "goes to Azure OpenAI when use_azure_openai"
+    },
+    {
+      "provider": "ollama",
+      "via": "http",
+      "file": "components/chat/chat-helpers/index.ts",
+      "line": 257,
+      "operation": "POST chat request in fetchChatResponse wrapper",
+      "note": "external caller line 162 (NEXT_PUBLIC_OLLAMA_URL/api/chat); line 227 passes own /api/chat/* routes"
+    },
+    {
+      "provider": "ollama",
+      "via": "http",
+      "file": "lib/models/fetch-models.ts",
+      "line": 57,
+      "operation": "GET /api/tags (list local models)"
+    },
+    {
+      "provider": "openrouter",
+      "via": "http",
+      "file": "lib/models/fetch-models.ts",
+      "line": 84,
+      "operation": "GET https://openrouter.ai/api/v1/models"
+    },
+    {
+      "provider": "huggingface",
+      "via": "sdk",
+      "file": "lib/generate-local-embedding.ts",
+      "line": 4,
+      "operation": "@xenova/transformers pipeline() downloads Xenova/all-MiniLM-L6-v2 from the HF hub on first use",
+      "note": "network only on cold cache"
+    }
+  ],
+  "excluded": [
+    {
+      "file": "db/storage/profile-images.ts",
+      "line": 39,
+      "reason": "storage.getPublicUrl builds a URL locally, no request"
+    },
+    {
+      "file": "components/chat/chat-helpers/index.ts",
+      "line": 61,
+      "reason": "fetch('/api/retrieval/retrieve'): own backend"
+    },
+    {
+      "file": "components/chat/chat-helpers/index.ts",
+      "line": 227,
+      "reason": "fetchChatResponse to own /api/chat/<provider> routes"
+    },
+    {
+      "file": "components/chat/chat-hooks/use-chat-handler.tsx",
+      "line": 284,
+      "reason": "fetch('/api/chat/tools'): own backend"
+    },
+    {
+      "file": "components/setup/profile-step.tsx",
+      "line": 75,
+      "reason": "fetch('/api/username/available'): own backend"
+    },
+    {
+      "file": "components/utility/profile-settings.tsx",
+      "line": 269,
+      "reason": "fetch('/api/username/available'): own backend"
+    },
+    {
+      "file": "components/utility/command-k.tsx",
+      "line": 23,
+      "reason": "fetch('/api/command'): own backend"
+    },
+    {
+      "file": "lib/models/fetch-models.ts",
+      "line": 16,
+      "reason": "fetch('/api/keys'): own backend"
+    },
+    {
+      "file": "db/files.ts",
+      "line": 134,
+      "reason": "fetch('/api/retrieval/process'): own backend"
+    },
+    {
+      "file": "db/files.ts",
+      "line": 190,
+      "reason": "fetch('/api/retrieval/process/docx'): own backend"
+    },
+    {
+      "file": "components/utility/drawing-canvas.tsx",
+      "line": 73,
+      "reason": "fetch(dataURL) on a local data: URL"
+    },
+    {
+      "file": "middleware.ts",
+      "line": 11,
+      "reason": "calls in-repo createClient wrapper (lib/supabase/middleware.ts:12)"
+    },
+    {
+      "file": "app/auth/callback/route.ts",
+      "line": 12,
+      "reason": "calls in-repo createClient wrapper (lib/supabase/server.ts:5); also login/page.tsx:57,123,151"
+    },
+    {
+      "file": "__tests__/playwright-test/tests/login.spec.ts",
+      "line": 4,
+      "reason": "e2e test against localhost"
+    }
+  ]
+}
