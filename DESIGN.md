@@ -64,7 +64,7 @@ components:
 
 An engineering workbench with the breathing room of a startup landing page. A migration travels from a provider specification through the blue Refit junction to readable evidence and a review boundary. Product-specific artifacts carry the visual identity.
 
-Screenpipe and Nango are UI/UX references only. Their source code, brand marks, and assets are not part of the implementation. Product truth lives in PRODUCT.md; every sample migration remains visibly illustrative.
+Screenpipe and Nango are UI/UX references only. Their source code, brand marks, and assets are not part of the implementation. Every sample migration remains visibly illustrative.
 
 ## Colors
 

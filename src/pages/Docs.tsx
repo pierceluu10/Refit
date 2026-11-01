@@ -1,10 +1,9 @@
-import { ArrowRight, ArrowUpRight, BookOpen, Info } from '@phosphor-icons/react';
+import { ArrowRight, BookOpen, Info } from '@phosphor-icons/react';
 import { Link, useLocation } from 'react-router-dom';
 import { CopyButton } from '../components/CopyButton';
 import { Header, Footer } from '../components/Layout';
 import { configuration } from '../data';
 import './docs.css';
-import specificationUrl from '../../docs/PRD.md?url';
 
 const topics = [
   { id: 'introduction', title: 'Introduction' },
@@ -36,9 +35,6 @@ export function Docs() {
               </a>
             ))}
           </nav>
-          <a className="docs-source" href={specificationUrl} target="_blank" rel="noreferrer">
-            Full product specification <ArrowUpRight size={13} />
-          </a>
         </aside>
         <main id="main-content" className="docs-content">
           <section id="introduction">
