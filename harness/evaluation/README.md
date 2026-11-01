@@ -44,6 +44,24 @@ this repo and run in the Docker sandbox. Each run writes `results/<id>/` with `r
 run happened and $0 was spent. Hand-checks and verdicts go here once the runs exist: does the diff
 handle every call site, and would we merge it?
 
+### $0 baseline in the Docker sandbox
+
+The real harness installed each repo and ran its detected checks, with a scripted agent that
+changed nothing. This is what each run starts from, and so what it can prove:
+
+| Task                               | Install               | Baseline checks                                                                                            |
+| ---------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `commitgpt-openai-v4`              | npm 8 (`npx`), ok     | typecheck pass, build pass                                                                                 |
+| `chatgpt-nodejs-openai-v4`         | yarn 1 (corepack), ok | none detected: no scripts and no tsconfig, so the agent has to register its own                            |
+| `ai-ui-demo-gpt-4o-shutdown`       | npm (image's), ok     | typecheck pass; build fails because `new OpenAI()` runs at module scope without `OPENAI_API_KEY`           |
+| `infinite-bundler-shopify-2026-10` | npm (image's), ok     | typecheck fails on existing errors in `app/routes/products.tsx`; build pass                                |
+| `pdfai-stripe-endive`              | pnpm 9 (corepack), ok | typecheck fails (Prisma client not generated with scripts off); build fails (`OPENAI_API_KEY`); test fails |
+
+pdfai could not install at all before this round's change: the image has no `pnpm`. The failing
+builds are why the kickoff now tells the agent to register a variant of a failing check that
+supplies a placeholder (`OPENAI_API_KEY=placeholder npm run build`), so the check can prove the
+edit.
+
 ### $0 checks of the lockfile change
 
 A scripted fake agent (no model) bumped one dependency and called `install` in the Docker sandbox,
