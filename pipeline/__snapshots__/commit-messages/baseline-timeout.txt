@@ -7,19 +7,14 @@ deterministic Refit rule migrates 2 of 23 confirmed usages in 1 file.
   2024-12-18.acacia to 2026-09-30.endive.
 - server/routes/stripe-webhooks.js: Migrates reads of
   subscription.current_period_start, subscription.current_period_end to
-  the documented new locations. Stripe documents it:
-  [docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end).
+  the documented new locations.
 - server/routes/stripe-subscription-period.js: Adds the generated helper
-  that reads the removed fields under either API version. Stripe
-  documents it:
-  [docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end).
+  that reads the removed fields under either API version.
 
 Checks: Validation did not pass (error). npm test could not finish on
 the original code (Check exceeded 120 seconds; the container was
 stopped). Refit did not run the checks on the migrated code.
 
 Needs review: the pull request lists what to check before merging.
-
-Source: https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end
 
 Refit-Run: 291e49f1a407

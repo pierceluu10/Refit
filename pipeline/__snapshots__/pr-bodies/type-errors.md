@@ -4,7 +4,7 @@
 
 ## Overview
 
-Stripe API 2026-09-30.endive removes fields this code reads and removes request fields this code sends. A deterministic Refit rule migrates 3 confirmed usages in 2 files. Stripe documents the change: [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions), [docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end).
+Stripe API 2026-09-30.endive removes fields this code reads and removes request fields this code sends. A deterministic Refit rule migrates 3 confirmed usages in 2 files. Stripe documents the change: [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).
 
 ## API Impact & Spec Changes
 
@@ -14,10 +14,10 @@ Stripe API 2026-09-30.endive removes fields this code reads and removes request 
 
 ## Key Changes
 
-- `app/api/create-checkout-session/route.ts`: Sends `allowed_payment_method_types` in place of the removed `payment_method_types`. Stripe documents it: [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).
+- `app/api/create-checkout-session/route.ts`: Sends `allowed_payment_method_types` in place of the removed `payment_method_types`.
 - `libs/stripe.ts`: Moves the pinned API version from `2022-11-15` to `2026-09-30.endive`.
-- `libs/supabaseAdmin.ts`: Migrates reads of `subscription.current_period_start`, `subscription.current_period_end` to the documented new locations. Stripe documents it: [docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end).
-- `libs/stripe-subscription-period.ts`: Adds the generated helper that reads the removed fields under either API version. Stripe documents it: [docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end).
+- `libs/supabaseAdmin.ts`: Migrates reads of `subscription.current_period_start`, `subscription.current_period_end` to the documented new locations.
+- `libs/stripe-subscription-period.ts`: Adds the generated helper that reads the removed fields under either API version.
 - `package.json`: Upgrades `stripe` from `12.9.0` to `23.0.0`.
 - `yarn.lock`: Upgrades `stripe` from `12.9.0` to `23.0.0`.
 - Review: `allowed_payment_method_types` filters the payment methods Stripe finds eligible instead of listing them. Before merging, confirm cards stay enabled in the Stripe Dashboard or the payment method configuration this account uses.

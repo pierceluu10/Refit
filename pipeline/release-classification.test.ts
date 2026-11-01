@@ -11,14 +11,7 @@ import {
   parsePrediction,
   type PageClassification,
 } from './release-classification.ts';
-import {
-  assignChanges,
-  catalogFamily,
-  contentWords,
-  readCatalog,
-  scoreRelease,
-  summarize,
-} from './release-classification-score.ts';
+import { assignChanges, contentWords, readCatalog } from './release-classification-score.ts';
 
 const CHANGELOG = resolve('docs/benchmarks/stripe-changelog');
 const BASIL = '2025-03-31.basil';
@@ -200,82 +193,6 @@ describe('parsePrediction', () => {
 });
 
 describe('scoring', () => {
-  it('names a pack family for every catalog rule', () => {
-    const families = releases.flatMap((release) =>
-      readCatalog(join(CHANGELOG, 'catalog', release)).flatMap((entry) =>
-        entry.parts.filter((part) => part.handling === 'rule').map(catalogFamily),
-      ),
-    );
-    expect(families.sort()).toEqual([
-      'moved-id',
-      'moved-id',
-      'moved-id',
-      'moved-value',
-      'moved-value',
-      'period-helper',
-      'request-wrap',
-    ]);
-  });
-
-  it('counts automatic handling where the catalog stops or has no signal as dangerous', () => {
-    const catalog = readCatalog(join(CHANGELOG, 'catalog', BASIL));
-    const prediction = (handlings: string[]) => ({
-      category: 'api' as const,
-      changes: handlings.map((handling) => ({
-        handling: handling as 'rule',
-        family: 'none' as const,
-        identifiers: [],
-        rationale: 'Recorded.',
-      })),
-    });
-    const classified = (slug: string, handlings: string[]): PageClassification => ({
-      slug,
-      prediction: prediction(handlings),
-      error: null,
-      evidence: null,
-      content: null,
-      model: null,
-      responseId: null,
-      costUsd: 0,
-    });
-    // Catalog: rule then none; vault: none; naver: stop.
-    const results = [
-      classified(PERIODS, ['rule', 'ai']),
-      classified('vault-forward-api-returns-402', ['none']),
-      classified('naver-pay-payment-method', ['rule']),
-    ];
-    const { entries, rows, extras } = scoreRelease(BASIL, catalog, results);
-    const summary = summarize(entries, rows, extras);
-    expect(summary).toMatchObject({
-      pages: catalog.length,
-      pagesClassified: 3,
-      changes: rows.length,
-      changesClassified: 4,
-      handlingCorrect: 2,
-      modelStatements: 4,
-      extraStatements: 0,
-      dangerous: 2,
-      ruleNotInCatalog: 1,
-      familyImplied: rows.filter((row) => row.catalog.family !== 'none').length,
-    });
-    expect(summary.handlingConfusion.none.ai).toBe(1);
-    expect(summary.handlingConfusion.stop.rule).toBe(1);
-    expect(summary.handlingConfusion.rule.rule).toBe(1);
-    expect(summary.handlingConfusion.none.unclassified).toBe(
-      rows.filter((row) => row.catalog.handling === 'none').length - 2,
-    );
-    const periods = entries.find((entry) => entry.slug === PERIODS)!;
-    expect(periods).toMatchObject({
-      catalog: { handling: 'none' },
-      predicted: { handling: 'ai' },
-      error: null,
-    });
-    expect(entries.find((entry) => entry.slug === 'restrict-coupon-duration')).toMatchObject({
-      predicted: null,
-      error: 'not classified',
-    });
-  });
-
   it('reads names out of camelCase, snake_case and dotted statements', () => {
     expect([
       ...contentWords('Checkout.Session.shipping_details removed; use retrieveUpcoming'),
@@ -311,48 +228,6 @@ describe('scoring', () => {
         change('Payouts settle faster'),
       ]).map(({ index }) => index),
     ).toEqual([0, 1, null]);
-  });
-
-  it('counts a listed change matching nothing as extra, and as dangerous when it edits code', () => {
-    const catalog = readCatalog(join(CHANGELOG, 'catalog', BASIL));
-    const listed = (statement: string, handling: 'rule' | 'none') => ({
-      statement,
-      handling,
-      family: 'none' as const,
-      identifiers: [],
-      rationale: 'Recorded.',
-    });
-    const { entries, rows, extras } = scoreRelease(BASIL, catalog, [
-      {
-        slug: PERIODS,
-        prediction: {
-          category: 'api',
-          changes: [
-            listed('Subscription current_period_start and current_period_end removed', 'rule'),
-            listed('current_period_end reads move to items', 'none'),
-            listed('Payouts settle faster', 'rule'),
-          ],
-        },
-        error: null,
-        evidence: null,
-        content: null,
-        model: null,
-        responseId: null,
-        costUsd: 0,
-      },
-    ]);
-    const [periods, previous] = rows.filter((row) => row.slug === PERIODS);
-    expect(periods).toMatchObject({ handling: 'mixed', handlingCorrect: false, dangerous: false });
-    expect(periods.predicted).toHaveLength(2);
-    expect(previous).toMatchObject({ predicted: [], handling: null, handlingCorrect: false });
-    expect(extras).toMatchObject([{ statement: 'Payouts settle faster', automatic: true }]);
-    expect(summarize(entries, rows, extras)).toMatchObject({
-      modelStatements: 3,
-      extraStatements: 1,
-      extraAutomatic: 1,
-      dangerous: 1,
-      ruleNotInCatalog: 1,
-    });
   });
 });
 

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { DependencyPreparationError, prepareDependencies } from './dependency-preparation.ts';
+import { prepareDependencies } from './dependency-preparation.ts';
 import { PipelineInputError } from './types.ts';
 import { validateMigration } from './validation.ts';
 
@@ -55,63 +55,6 @@ async function options() {
     prepareDependencies: true,
   };
 }
-
-it('returns the patch untested on a preparation failure only when asked', async () => {
-  const input = await options();
-  const outOfSync = new PipelineInputError(
-    'package.json dependencies differ from the committed package-lock.json: stripe is "11.0.0" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.',
-  );
-  vi.mocked(prepareDependencies).mockRejectedValue(outOfSync);
-  await expect(validateMigration(input)).rejects.toBe(outOfSync);
-
-  const report = await validateMigration({ ...input, recordUntested: true });
-  expect(report.validation).toMatchObject({
-    status: 'untested',
-    baseline: { status: 'not-run' },
-    patched: { status: 'not-run' },
-    dependencyFailure: { reason: 'lockfile-out-of-sync' },
-    repair: { stopReason: 'dependencies-unavailable' },
-  });
-  expect(report.patch.validation).toBe('untested');
-  expect(report.publicationFiles.map((file) => file.path)).toEqual(['billing.ts']);
-
-  // Owner decision 1: a sandbox refusal is published untested too.
-  vi.mocked(prepareDependencies).mockRejectedValue(
-    new DependencyPreparationError('Dependency preparation exceeded 300 seconds.'),
-  );
-  expect((await validateMigration({ ...input, recordUntested: true })).validation).toMatchObject({
-    status: 'untested',
-    dependencyFailure: { reason: 'preparation-failed' },
-  });
-  // Refit's own state lock is not the repository's to fix, so the job fails and is retried.
-  const locked = new PipelineInputError(
-    'State is locked by active process 123: /home/refit/.refit/dependencies/abc/prepare.lock.',
-  );
-  vi.mocked(prepareDependencies).mockRejectedValue(locked);
-  await expect(validateMigration({ ...input, recordUntested: true })).rejects.toBe(locked);
-  // An error that is not a preparation refusal still stops validation.
-  const crash = new TypeError('Cannot read properties of undefined');
-  vi.mocked(prepareDependencies).mockRejectedValue(crash);
-  await expect(validateMigration({ ...input, recordUntested: true })).rejects.toBe(crash);
-});
-
-it('records how long each validation stage took', async () => {
-  vi.mocked(prepareDependencies).mockRejectedValue(
-    new PipelineInputError(
-      'package.json dependencies differ from the committed package-lock.json: stripe is "11.0.0" in package.json but missing in the lockfile. Run npm install and commit the updated package-lock.json.',
-    ),
-  );
-  const report = await validateMigration({ ...(await options()), recordUntested: true });
-  // Stages that never ran (checks, here) are absent rather than zero.
-  expect(Object.keys(report.validation.timings ?? {}).sort()).toEqual([
-    'candidates',
-    'preparation',
-    'proposal',
-    'snapshot',
-  ]);
-  for (const milliseconds of Object.values(report.validation.timings ?? {}))
-    expect(Number.isInteger(milliseconds) && milliseconds >= 0).toBe(true);
-});
 
 it.skipIf(!process.env.REFIT_DOCKER_IMAGE)(
   'records why the changed modules cannot run on stripe alone when preparation is refused, with no model request',

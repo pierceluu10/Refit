@@ -1,7 +1,6 @@
 import { rm } from 'node:fs/promises';
 import { afterEach, expect, it, vi } from 'vitest';
 import { analyzeRepository } from './analyzer.ts';
-import { compareApiVersion } from './api-version.ts';
 import { STRIPE } from './providers.ts';
 import type { Repository } from './types.ts';
 
@@ -60,52 +59,6 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-it.each([
-  `${initialize} if (event.type === 'customer.subscription.updated') {${payloadRead}}`,
-  `${initialize} if ('customer.subscription.updated' === event.type) {${payloadRead}}`,
-  `${initialize} if (event.type !== 'customer.subscription.updated') {return;} ${payloadRead}`,
-  `${initialize} if (event.type !== 'customer.subscription.updated') {} else {${payloadRead}}`,
-  `${initialize} if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.created') {${payloadRead}}`,
-  `${initialize} if (event.type === 'customer.subscription.updated' && enabled) {${payloadRead}}`,
-  `${initialize} switch (event.type) {case 'customer.subscription.created': case 'customer.subscription.updated': {${payloadRead}} default: return;}`,
-  `let event: Stripe.Event; try {event = stripe.webhooks.constructEvent(body, signature, secret);} catch {return;} switch(event.type) {case 'customer.subscription.updated': {${payloadRead}}}`,
-  `const event = await stripe.webhooks.constructEventAsync(body, signature, secret); if (event.type === 'customer.subscription.updated') {${payloadRead}}`,
-])(
-  'traces a snapshot payload through a real constructor and positive type branch: %s',
-  (handler) => {
-    const result = analyze(handler);
-    expect(result.findings).toMatchObject([
-      {
-        confidence: 'confirmed',
-        webhook: {
-          schema: 'subscription',
-          eventTypes: expect.arrayContaining(['customer.subscription.updated']),
-          apiVersion: 'unverified',
-        },
-      },
-    ]);
-    // The read and the helper written into the one file that calls it.
-    expect(result.edits.map((edit) => edit.file)).toEqual(['handler.ts', 'handler.ts']);
-    expect(result.edits.every((edit) => edit.rule === 'stripe-subscription-periods-helper')).toBe(
-      true,
-    );
-    expect(result.findings[0].webhook?.migration).toEqual({
-      rule: 'stripe-subscription-periods-helper',
-    });
-    expect(result.findings[0].subscriptionPeriod).toEqual({ rareCase: 'flagged' });
-    expect(result.apiVersionDeclarations).toHaveLength(1);
-    expect(
-      compareApiVersion(
-        VERSION,
-        { info: { version: VERSION } },
-        { info: { version: '2025-03-31.basil' } },
-        { configured: true, declarations: result.apiVersionDeclarations },
-        'source-verified',
-      ).source.status,
-    ).toBe('verified');
-  },
-);
-
 it('narrows an immutable payload alias captured before the branch at its actual read location', () => {
   const result = analyze(
     `${initialize} const snapshot = event.data.object; const alias = snapshot; if (event.type === 'customer.subscription.updated') return alias.current_period_end;`,
@@ -123,31 +76,6 @@ it('supports immutable event aliases and literal payload indexes', () => {
     { confidence: 'confirmed', webhook: { schema: 'subscription' } },
   ]);
 });
-
-it.each([
-  `const kind = event.type; const data = event.data; const snapshot = data.object; if(kind === 'customer.subscription.updated') return snapshot.current_period_end;`,
-  `const {type: kind, data: {object: snapshot}} = event; if(kind === 'customer.subscription.updated') return snapshot.current_period_end;`,
-  `const {data} = event; const {object: snapshot} = data; switch(event.type) {case 'customer.subscription.updated': return snapshot.current_period_end;}`,
-])(
-  'follows immutable discriminant and payload projections without trusting casts: %s',
-  (handler) => {
-    const result = analyze(`${initialize} ${handler}`);
-    expect(result.findings).toHaveLength(1);
-    expect(result.findings[0]).toMatchObject({
-      confidence: 'confirmed',
-      webhook: { schema: 'subscription', eventTypes: ['customer.subscription.updated'] },
-    });
-    // The read and the helper written into the one file that calls it.
-    expect(result.edits.map((edit) => edit.file)).toEqual(['handler.ts', 'handler.ts']);
-    expect(result.edits.every((edit) => edit.rule === 'stripe-subscription-periods-helper')).toBe(
-      true,
-    );
-    expect(result.findings[0].webhook?.migration).toEqual({
-      rule: 'stripe-subscription-periods-helper',
-    });
-    expect(result.findings[0].subscriptionPeriod).toEqual({ rareCase: 'flagged' });
-  },
-);
 
 it('confirms but does not rewrite a string-index payload read', () => {
   const result = analyze(

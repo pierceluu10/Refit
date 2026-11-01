@@ -4,8 +4,6 @@ import { tmpdir } from 'node:os';
 import { delimiter, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { prepareDependencies } from './dependency-preparation.ts';
-import { digest } from './specifications.ts';
 import type { CheckResult } from './validation.ts';
 import { BASELINE_CHECK_CACHE_SETTING, baselineCheck } from './validation-baseline-cache.ts';
 import { validateMigration } from './validation.ts';
@@ -162,24 +160,6 @@ process.exit(side === 'baseline' ? ${baselineExit} : 0);
   };
 }
 
-it('validates with the recorded baseline instead of running it again, and says so', async () => {
-  const validate = await fixture(0);
-  const first = await validate();
-  expect(first.checks).toEqual(['baseline', 'patched']);
-  expect(first.report.validation).not.toHaveProperty('baselineReused');
-  const progress: string[] = [];
-  const second = await validate({ onProgress: (message) => progress.push(message) });
-  expect(second.checks).toEqual(['patched']);
-  expect(progress.filter((message) => /baseline/i.test(message))).toEqual([
-    expect.stringMatching(/^Reusing the baseline check result recorded \d{4}-/),
-  ]);
-  expect(second.report.validation).toMatchObject({
-    status: 'passed',
-    baseline: first.report.validation.baseline,
-    baselineReused: { recordedAt: expect.any(String) },
-  });
-});
-
 it('keeps a failed baseline failed when it is reused', async () => {
   const validate = await fixture(1);
   expect((await validate()).checks).toEqual(['baseline']);
@@ -190,31 +170,4 @@ it('keeps a failed baseline failed when it is reused', async () => {
     baseline: { status: 'failed', exitCode: 1, stdout: 'baseline checks ran\n' },
     patched: { status: 'not-run' },
   });
-});
-
-// prepareDependencies as validation calls it: it copies the bundle's archive to copyArchiveTo and
-// returns the environment that records the archive's hash.
-function bundle(signature: string, content: string) {
-  return async (options: { copyArchiveTo?: string }) => {
-    if (options.copyArchiveTo) await writeFile(options.copyArchiveTo, content);
-    const environment = {
-      signature,
-      archiveHash: digest(content),
-      archiveBytes: Buffer.byteLength(content),
-    };
-    return { directory: '', archive: '', environment, reused: false };
-  };
-}
-
-it('reuses the baseline for a rebuilt bundle of the same signature, not for another signature', async () => {
-  const validate = await fixture(0);
-  vi.mocked(prepareDependencies).mockImplementation(bundle('a'.repeat(64), 'first install'));
-  expect((await validate({ prepareDependencies: true })).checks).toEqual(['baseline', 'patched']);
-  // A rebuild of the same lockfile, recipe and image: other archive bytes, same signature.
-  vi.mocked(prepareDependencies).mockImplementation(bundle('a'.repeat(64), 'second install'));
-  const rebuilt = await validate({ prepareDependencies: true });
-  expect(rebuilt.checks).toEqual(['patched']);
-  expect(rebuilt.report.validation).toHaveProperty('baselineReused');
-  vi.mocked(prepareDependencies).mockImplementation(bundle('b'.repeat(64), 'second install'));
-  expect((await validate({ prepareDependencies: true })).checks).toEqual(['baseline', 'patched']);
 });

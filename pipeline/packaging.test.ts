@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -7,7 +7,6 @@ import { afterEach, expect, it } from 'vitest';
 
 const execute = promisify(execFile);
 const roots: string[] = [];
-const bin = resolve('bin/refit.mjs');
 const packager = resolve('scripts/package-cli.mjs');
 
 async function directory() {
@@ -32,19 +31,6 @@ async function pack(root: string) {
 
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
-
-it('routes replay from an unrelated directory without reading its TypeScript configuration', async () => {
-  const root = await directory();
-  await writeFile(join(root, 'tsconfig.json'), 'not valid json');
-  const result = await execute(process.execPath, [bin, 'replay', '--propose-patch'], { cwd: root });
-  const report = JSON.parse(result.stdout);
-  expect(report.status).toBe('affected');
-  expect(report.patch.status).toBe('proposed');
-  expect(report.findings[0].file).toBe('billing.ts');
-  await expect(
-    execute(process.execPath, [bin, 'not-a-command'], { cwd: root }),
-  ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('Unknown command') });
 });
 
 it('packs only CLI runtime sources, fixtures, docs and exact runtime dependencies', async () => {

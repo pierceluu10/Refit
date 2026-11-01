@@ -160,20 +160,6 @@ it('moves a removed field to its new nested path with optional chaining and a nu
   );
 });
 
-it('reports but does not move a value known only from its Stripe type', async () => {
-  const source = `import Stripe from 'stripe';
-
-export function invoiceSubscription(invoice: Stripe.Invoice) {
-  return invoice.subscription;
-}
-`;
-  const report = await proposed(inputs(source));
-  expect(report.findings).toMatchObject([
-    { expression: '.subscription', confidence: 'confirmed', declaredType: { schema: 'invoice' } },
-  ]);
-  expect(report.patch).toMatchObject({ edits: 0, unresolvedFindings: 1 });
-});
-
 it('keeps the removed field’s null result when any parent on the new path is missing', async () => {
   const source = RETRIEVE.replace('return invoice.subscription;', 'return invoice?.subscription;');
   const report = await proposed(inputs(source));

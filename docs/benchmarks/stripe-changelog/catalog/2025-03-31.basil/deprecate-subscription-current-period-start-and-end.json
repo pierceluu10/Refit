@@ -15,8 +15,8 @@
       "changed": [
         "Subscription.current_period_start and current_period_end removed (moved to SubscriptionItem)"
       ],
-      "handling": "rule",
-      "how": "subscriptionPeriodHelperEdit (stripe-subscription-periods.ts), proposed from analyzer.ts propose: SDK, webhook and Stripe.*-typed reads call the generated getSubscriptionPeriodStart/getSubscriptionPeriodEnd helpers, which read the old field or the period every item shares; run.ts keeps the edit when the target contract declares subscription_item periods."
+      "handling": "ai",
+      "how": "The traced read stays unresolved and goes to the agent fixer (pipeline/stripe-agent.ts) with AI on; the generated read helper was deleted (docs/GUT-PLAN.md)."
     },
     {
       "changed": [

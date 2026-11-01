@@ -30,54 +30,6 @@ const CLIENT = `import Stripe from 'stripe';
 const stripe = new Stripe('sk', { apiVersion: '2025-02-24.acacia' });
 `;
 
-// Each read's receiver the analyzer alone leaves for review: a mutated response, a helper's
-// return, a parameter, an array the code fills.
-const HONEST = `${CLIENT}export async function mutated(id: string) {
-  const subscription = await stripe.subscriptions.retrieve(id);
-  subscription.metadata = {};
-  return subscription.current_period_end;
-}
-async function load(id: string) {
-  return stripe.subscriptions.retrieve(id);
-}
-export async function helper(id: string) {
-  const subscription = await load(id);
-  return subscription.current_period_end;
-}
-function periodEnd(subscription: Stripe.Subscription) {
-  subscription.metadata = {};
-  return subscription.current_period_end;
-}
-export async function parameter(id: string) {
-  return periodEnd(await stripe.subscriptions.retrieve(id));
-}
-export async function collected() {
-  const subscriptions: Stripe.Subscription[] = [];
-  for await (const subscription of stripe.subscriptions.list()) subscriptions.push(subscription);
-  return subscriptions.map((subscription) => subscription.current_period_end);
-}
-`;
-
-const readLines = (report: Awaited<ReturnType<typeof scan>>, proven: boolean) =>
-  report.findings
-    .filter(
-      (finding) =>
-        finding.expression === '.current_period_end' &&
-        Boolean(finding.typeProven) === proven &&
-        (!proven || finding.confidence === 'confirmed'),
-    )
-    .map((finding) => finding.line);
-
-it('migrates reads the checker proves read a Stripe subscription', async () => {
-  const report = await scan({ 'billing.ts': HONEST });
-  expect(readLines(report, true)).toEqual([6, 13, 17, 25]);
-  expect(readLines(report, false)).toEqual([]);
-  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 0 });
-  const diff = report.patch && 'diff' in report.patch ? report.patch.diff : '';
-  const helperReads = diff.match(/getSubscriptionPeriodEnd\(subscription\)/g);
-  expect(helperReads).toHaveLength(4);
-});
-
 it('keeps a JavaScript type cast and a receiver that may be a local type stopped', async () => {
   const report = await scan({
     'billing.js': `import Stripe from 'stripe';

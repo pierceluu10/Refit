@@ -118,24 +118,6 @@ const WHATSAPP = `export const send = (to) =>
 `;
 
 describe('version moves', () => {
-  it('proposes a move when every request is known and no reviewed changelog touches it', async () => {
-    const proposal = await propose({ 'a.js': SEND });
-    expect(proposal.stops).toEqual([]);
-    expect(proposal.moves).toEqual([
-      {
-        file: 'a.js',
-        line: 2,
-        from: 'v18.0',
-        to: 'v25.0',
-        crossed: ['v19.0', 'v20.0', 'v21.0', 'v22.0', 'v23.0', 'v24.0', 'v25.0'],
-        requests: [{ file: 'a.js', line: 2, method: 'POST', path: '/123/photos' }],
-        rules: [],
-      },
-    ]);
-    expect(proposal.patch).toContain("-  fetch('https://graph.facebook.com/v18.0/123/photos', {");
-    expect(proposal.patch).toContain("+  fetch('https://graph.facebook.com/v25.0/123/photos', {");
-  });
-
   it('stops on every change a request uses between the two versions, and only those', async () => {
     const list = changes([
       change({ id: 'field', version: 'v20.0', kind: 'field-removed', name: 'username' }),

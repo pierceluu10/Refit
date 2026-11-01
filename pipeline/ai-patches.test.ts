@@ -369,14 +369,6 @@ it('rejects more saved notes than a watch configuration can capture', async () =
   ).rejects.toThrow(/at most 8/);
 });
 
-it('accepts the verified Stripe migration that passes a pre-existing field to an SDK call', async () => {
-  const { edit } = await fixture();
-  respond([edit]);
-  const report = await runPipeline({ ...INPUTS, aiPatch: OPTIONS });
-  expect(edit.replacement).toContain('payment_intent: intent.id');
-  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
-});
-
 const CHECKOUT = `import Stripe from 'stripe';
 const stripe = new Stripe('sk_test');
 export async function checkout(metadata: Record<string, string>) {

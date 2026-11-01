@@ -18,8 +18,8 @@
       "changed": [
         "Invoice.subscription removed (moved to parent.subscription_details.subscription)"
       ],
-      "handling": "rule",
-      "how": "invoiceSubscriptionHelperEdit (stripe-subscription-periods.ts) rewrites traced reads to the generated getInvoiceSubscription helper, which reads either version; SDK reads keep the expand check (analyzer.ts propose), webhook reads do not."
+      "handling": "ai",
+      "how": "The traced read stays unresolved and goes to the agent fixer (pipeline/stripe-agent.ts) with AI on; the generated read helper was deleted (docs/GUT-PLAN.md)."
     },
     {
       "changed": [
@@ -31,9 +31,7 @@
       "how": "findRemovedProperties (specifications.ts) reports the removed field and analyzeRepository (analyzer.ts) reports each traced read as a confirmed finding; STRIPE_MOVE_REVIEW (stripe-field-moves.ts) appends the named Stripe reason where it has one. No rule edits the read, so a deterministic patch leaves it unresolved and the AI patch path (run.ts aiFindings, ai-patches.ts proposeAiPatch) receives it."
     },
     {
-      "changed": [
-        "InvoiceLineItem.subscription removed"
-      ],
+      "changed": ["InvoiceLineItem.subscription removed"],
       "handling": "none",
       "reason": "The recorded stripe/openapi contracts (2025-03-31.basil to 2026-09-30.endive) still declare line_item.subscription, so findRemovedProperties reports no removal."
     }

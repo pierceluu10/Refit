@@ -55,30 +55,6 @@ it('reads a manifest and a shebang script that start with a byte order mark', as
   ).toEqual([5]);
 });
 
-it('counts an untraced read of a removed field as unresolved, so the draft needs review', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'refit-skip-'));
-  roots.push(root);
-  await cp(resolve('pipeline/fixtures/repository'), root, { recursive: true });
-  await writeFile(
-    join(root, 'legacy.ts'),
-    "import type Stripe from 'stripe';\nexport type Client = Stripe;\nexport function legacyCharges(intent: any) {\n  return intent.charges.data;\n}\n",
-  );
-  const report = await runPipeline({
-    repository: root,
-    before: resolve('pipeline/fixtures/before.json'),
-    after: resolve('pipeline/fixtures/after.json'),
-    apiVersion: '2022-08-01',
-    proposePatch: true,
-  });
-  expect(
-    report.findings.map(({ file, confidence, untraced }) => ({ file, confidence, untraced })),
-  ).toEqual([
-    { file: 'billing.ts', confidence: 'confirmed', untraced: undefined },
-    { file: 'legacy.ts', confidence: 'review', untraced: true },
-  ]);
-  expect(report.patch).toMatchObject({ status: 'proposed', unresolvedFindings: 1 });
-});
-
 it('gives the same analysis when adapters share one snapshot as when each reads its own', async () => {
   const root = await mkdtemp(join(tmpdir(), 'refit-skip-'));
   roots.push(root);

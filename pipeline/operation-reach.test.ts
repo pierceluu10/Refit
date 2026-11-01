@@ -1050,5 +1050,3 @@ describe('a removed operation', () => {
     ]);
   });
 });
-
-describe('request options passed as params (stripe-node 22)', () => {});

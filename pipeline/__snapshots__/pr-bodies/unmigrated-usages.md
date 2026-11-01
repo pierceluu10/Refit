@@ -4,7 +4,7 @@
 
 ## Overview
 
-Stripe API 2026-09-30.endive removes fields this code reads and removes request fields this code sends. A deterministic Refit rule migrates 3 confirmed usages in 2 files. Stripe documents the change: [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions), [docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects](https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects).
+Stripe API 2026-09-30.endive removes fields this code reads and removes request fields this code sends. A deterministic Refit rule migrates 3 confirmed usages in 2 files. Stripe documents the change: [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).
 
 ## API Impact & Spec Changes
 
@@ -14,10 +14,10 @@ Stripe API 2026-09-30.endive removes fields this code reads and removes request 
 
 ## Key Changes
 
-- `app/api/stripe/checkout/route.ts`: Sends `allowed_payment_method_types` in place of the removed `payment_method_types`. Stripe documents it: [docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions](https://docs.stripe.com/changelog/endive/2026-09-30/remove-payment-method-types-checkout-sessions).
-- `app/api/stripe/webhook/route.ts`: Migrates reads of `invoice.subscription` to the documented new locations. Stripe documents it: [docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects](https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects).
+- `app/api/stripe/checkout/route.ts`: Sends `allowed_payment_method_types` in place of the removed `payment_method_types`.
+- `app/api/stripe/webhook/route.ts`: Migrates reads of `invoice.subscription` to the documented new locations.
 - `lib/stripe.ts`: Moves the pinned API version from `2023-10-16` to `2026-09-30.endive`.
-- `app/api/stripe/webhook/stripe-subscription-period.ts`: Adds the generated helper that reads the removed fields under either API version. Stripe documents it: [docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects](https://docs.stripe.com/changelog/basil/2025-03-31/adds-new-parent-field-to-invoicing-objects).
+- `app/api/stripe/webhook/stripe-subscription-period.ts`: Adds the generated helper that reads the removed fields under either API version.
 - `package.json`: Upgrades `stripe` from `14.25.0` to `23.0.0`.
 - `package-lock.json`: Upgrades `stripe` from `14.25.0` to `23.0.0`.
 - Review: `allowed_payment_method_types` filters the payment methods Stripe finds eligible instead of listing them. Before merging, confirm cards stay enabled in the Stripe Dashboard or the payment method configuration this account uses.

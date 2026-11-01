@@ -971,10 +971,7 @@ const FIXTURES: Record<string, Fixture[]> = {
       code: fn(
         'const subscription = await stripe.subscriptions.retrieve(id);\n  return subscription.current_period_end;',
       ),
-      expect: {
-        rule: 'stripe-subscription-periods-helper',
-        patched: 'return (getSubscriptionPeriodEnd(subscription));',
-      },
+      expect: { unresolved: ['.current_period_end'] },
     },
     nothing(
       fn(
@@ -987,10 +984,7 @@ const FIXTURES: Record<string, Fixture[]> = {
       code: fn(
         'const invoice = await stripe.invoices.retrieve(id);\n  return invoice.subscription;',
       ),
-      expect: {
-        rule: 'stripe-invoice-subscription-helper',
-        patched: 'return (getInvoiceSubscription(invoice));',
-      },
+      expect: { unresolved: ['.subscription'] },
     },
     {
       code: fn(
@@ -1009,10 +1003,7 @@ const FIXTURES: Record<string, Fixture[]> = {
       code: fn(
         'const session = await stripe.checkout.sessions.retrieve(id);\n  return session.shipping_details;',
       ),
-      expect: {
-        rule: 'stripe-checkout-shipping-details-helper',
-        patched: 'return (getCheckoutShippingDetails(session));',
-      },
+      expect: { unresolved: ['.shipping_details'] },
     },
     {
       code: fn(
@@ -1118,10 +1109,7 @@ const FIXTURES: Record<string, Fixture[]> = {
       code: fn(
         'const invoice = await stripe.invoices.retrieve(id);\n  for (const line of invoice.lines.data) return line.price.id;',
       ),
-      expect: {
-        rule: 'stripe-invoice-price-id-helper',
-        patched: 'return (getInvoicePriceId(line));',
-      },
+      expect: { unresolved: ['.price'] },
     },
     {
       code: fn(
@@ -1287,16 +1275,13 @@ const FIXTURES: Record<string, Fixture[]> = {
   '2025-09-30.clover/polymorphic-coupon': [
     {
       code: fn("return stripe.promotionCodes.create({ code: 'SPRING', coupon: 'co_1' });"),
-      expect: {
-        rule: 'stripe-promotion-code-promotion',
-        patched: "promotion: { type: 'coupon', coupon: 'co_1' }",
-      },
+      expect: { parameter: 'coupon' },
     },
     {
       code: fn(
         'const promotion = await stripe.promotionCodes.retrieve(id);\n  return promotion.coupon.id;',
       ),
-      expect: { rule: 'stripe-coupon-id-helper', patched: 'return (getCouponId(promotion));' },
+      expect: { unresolved: ['.coupon'] },
     },
     {
       code: fn(
@@ -1308,7 +1293,7 @@ const FIXTURES: Record<string, Fixture[]> = {
   '2025-09-30.clover/add-discount-source-property': [
     {
       code: 'export function couponOf(discount: Stripe.Discount) {\n  return discount.coupon.id;\n}',
-      expect: { rule: 'stripe-coupon-id-helper', patched: 'return (getCouponId(discount));' },
+      expect: { unresolved: ['.coupon'] },
     },
     {
       code: 'export function percentOf(discount: Stripe.Discount) {\n  return discount.coupon.percent_off;\n}',

@@ -9,8 +9,6 @@ import { digest } from './specifications.ts';
 import { renderWorkflowResult } from './workflow-presentation.ts';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readEvidence } from './state-files.ts';
-import { verifyArtifacts } from './verification.ts';
 
 vi.mock('./validation.ts', () => ({ validateMigration: vi.fn() }));
 vi.mock('./publication.ts', () => ({ publishDraft: vi.fn() }));
@@ -78,44 +76,6 @@ it('retains a pinned custom adapter and stops when no deterministic migration ex
     'catalog-example',
   );
   expect(validateMigration).not.toHaveBeenCalled();
-});
-
-it('forwards saved vendor-note paths into validation and leaves them off the scan', async () => {
-  const input = await options();
-  vi.mocked(validateMigration).mockRejectedValueOnce(new Error('stop before Docker'));
-  const documentationSnapshots = ['/tmp/refit-vendor-note.json'];
-  const result = await runWorkflow({ ...input, documentationSnapshots });
-  expect(result.manifest.status).toBe('error');
-  expect(vi.mocked(validateMigration).mock.calls[0][0].documentationSnapshots).toEqual(
-    documentationSnapshots,
-  );
-  const scan = (await readEvidence(input.output, 'scan.json'))!;
-  expect(scan).not.toContain('refit-vendor-note');
-});
-
-it('retains completed scan evidence when validation setup fails and never publishes', async () => {
-  const input = await options();
-  const progress: string[] = [];
-  vi.mocked(validateMigration).mockRejectedValueOnce(new Error('Docker image is unavailable'));
-  const result = await runWorkflow({ ...input, onProgress: (message) => progress.push(message) });
-  expect(result.manifest).toMatchObject({
-    status: 'error',
-    stage: 'validation',
-    error: { message: 'Docker image is unavailable' },
-  });
-  expect(JSON.parse((await readEvidence(input.output, 'scan.json'))!).status).toBe('affected');
-  expect(result.manifest.files.map((file) => file.path)).toEqual([
-    'before.json',
-    'after.json',
-    'scan.json.gz',
-  ]);
-  expect(await verifyArtifacts(input.output)).toMatchObject({ status: 'integrity-verified' });
-  expect(await renderWorkflowResult(result)).toContain('API change');
-  expect(publishDraft).not.toHaveBeenCalled();
-  expect(progress.some((message) => message.includes('Publishing'))).toBe(false);
-  expect(progress.at(-2)).toContain('Docker image is unavailable');
-  expect(progress.at(-1)).toBe(`Evidence: ${input.output}`);
-  await expect(runWorkflow(input)).rejects.toMatchObject({ code: 'EEXIST' });
 });
 
 it('rejects ambiguous discovery options and raw discovery baselines', async () => {

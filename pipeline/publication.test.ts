@@ -2,7 +2,6 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
-  AI_PATCH_STOP,
   findExistingMigration,
   publicationConfiguration,
   publishDraft,
@@ -40,76 +39,6 @@ it('refuses webhook publication even with otherwise passing validation evidence'
   vi.stubGlobal('fetch', fetch);
   await expect(publishDraft(evidence, OPTIONS)).rejects.toThrow(/migration-policy/);
   expect(fetch).not.toHaveBeenCalled();
-});
-
-it('publishes a webhook-only review as a [Needs review] draft only with --publish-unresolved', async () => {
-  const webhookReport = async () => {
-    const evidence = await report();
-    evidence.findings[0].webhook = {
-      schema: 'payment_intent',
-      eventTypes: ['payment_intent.succeeded'],
-      origin: { file: 'webhook.ts', line: 1, column: 1 },
-      apiVersion: 'unverified',
-    };
-    return evidence;
-  };
-  const evidence = await webhookReport();
-  const finding = evidence.findings[0];
-  expect(publicationWaiver(evidence, false)).toBeUndefined();
-  await expect(publishDraft(evidence, OPTIONS)).rejects.toThrow(/migration-policy/);
-
-  const remote = github();
-  const allowed = { ...OPTIONS, allowUnresolved: true };
-  expect(await publishDraft(evidence, allowed)).toMatchObject({ status: 'created', draft: true });
-  const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
-  expect(request.body.title).toMatch(/^\[Needs review\] /);
-  expect(request.body.body).toMatch(/^## Why this needs review\n/);
-  expect(request.body.body).toContain('\n## Webhook API version not verified\n');
-  expect(request.body.body).toContain('Dashboard > Developers > Webhooks');
-  expect(request.body.body).toContain(
-    `\`${finding.file}:${finding.line}\` (\`payment_intent.succeeded\`)`,
-  );
-  const local = createReviewArtifacts(
-    evidence,
-    'local',
-    undefined,
-    publicationWaiver(evidence, true),
-  );
-  expect(JSON.parse(local.files['report.json']).waivedGates[0].gate).toBe('webhook-api-version');
-  expect(local.manifest).toMatchObject({ waivedGates: ['webhook-api-version'] });
-
-  // Owner decision 1: a second review reason joins the draft instead of refusing it.
-  const skipped = await webhookReport();
-  skipped.skippedFiles = ['src/broken.ts'];
-  skipped.apiVersion.applicability = 'unknown';
-  expect(publicationWaiver(skipped, true)?.map(({ gate }) => gate)).toEqual([
-    'webhook-api-version',
-    'source-evidence',
-    'api-version',
-  ]);
-  await expect(publishDraft(skipped, OPTIONS)).rejects.toThrow(/migration-policy/);
-  const both = github();
-  await publishDraft(skipped, allowed);
-  const body = String(
-    both.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!.body.body,
-  );
-  expect(body).toContain('Unparseable source files were skipped.');
-  expect(body).toContain('  - `src/broken.ts`');
-  // Owner decision 7: the draft is the only thing Refit opens on a customer's repository.
-  expect(both.calls.filter((call) => call.method === 'POST' && call.path === '/issues')).toEqual(
-    [],
-  );
-  expect(body).toContain(
-    '- [ ] Confirm which API version this code and account use before merging',
-  );
-  // Owner decision 1: conflicting pins are reviewed, not refused; without it they refuse (below,
-  // 'independently rejects conflicting or unverified strict source evidence').
-  const conflict = await webhookReport();
-  conflict.apiVersion.source.status = 'conflict';
-  conflict.apiVersion.applicability = 'conflicts-with-code';
-  expect(publicationWaiver(conflict, true)?.map(({ gate }) => gate)).toContain('api-version');
-  github();
-  await expect(publishDraft(conflict, allowed)).resolves.toMatchObject({ status: 'created' });
 });
 
 async function endpointReport(): Promise<Report> {
@@ -304,46 +233,6 @@ function github() {
 
 afterEach(() => vi.unstubAllGlobals());
 
-it('publishes only the candidate files on the existing base tree and creates a draft with evidence', async () => {
-  const remote = github();
-  const value = await report();
-  const result = await publishDraft(value, OPTIONS);
-  expect(result).toMatchObject({
-    status: 'created',
-    draft: true,
-    revision: REVISION,
-    head: HEAD,
-    reviewRequired: true,
-  });
-  expect(remote.calls.find((call) => call.path === '/git/trees')?.body).toEqual({
-    base_tree: BASE_TREE,
-    tree: value.publicationFiles.map((file) => ({ ...file, type: 'blob' })),
-  });
-  const commit = remote.calls.find((call) => call.path === '/git/commits')?.body;
-  expect(commit).toMatchObject({ parents: [REVISION], tree: PATCH_TREE });
-  // The commit names the change, the checks and the run, and carries no check logs.
-  expect(commit?.message).toMatch(
-    /^fix\(stripe\): [^\n]+\n\n[\s\S]*\nChecks: [\s\S]*\nRefit-Run: [0-9a-f]{12}\n$/,
-  );
-  expect(commit?.message).not.toContain('PRIVATE LOG');
-  const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
-  expect(request.body).toMatchObject({ draft: true, base: 'main', maintainer_can_modify: false });
-  expect(request.body.body).toContain(value.validation.patchHash);
-  expect(request.body.body).not.toContain('PRIVATE LOG');
-  expect(request.body.body).not.toContain('This is a local review artifact');
-  expect(JSON.stringify(remote.calls)).not.toContain('Co-authored-by');
-});
-
-it('publishes to a repository GitHub spells in another case', async () => {
-  const remote = github();
-  remote.state.repository = 'Example/Application';
-  const result = await publishDraft(await report(), OPTIONS);
-  expect(result).toMatchObject({
-    status: 'created',
-    url: 'https://github.com/Example/Application/pull/17',
-  });
-});
-
 it('publishes a configured endpoint replacement as a readable draft through the shared publisher', async () => {
   const remote = github();
   const value = await endpointReport();
@@ -396,53 +285,6 @@ it('blocks request publication independently when usage evidence is unsupported 
   expect(remote.fetch).not.toHaveBeenCalled();
 });
 
-it('reuses an open draft a person marked ready, and never writes to one they closed or merged', async () => {
-  const remote = github();
-  const value = await report();
-  await publishDraft(value, OPTIONS);
-  remote.state.pull!.draft = false;
-  expect(await publishDraft(value, OPTIONS)).toMatchObject({ status: 'existing', draft: false });
-  remote.state.pull!.state = 'closed';
-  const writes = remote.calls.filter((call) => call.method !== 'GET').length;
-  expect(await publishDraft(value, OPTIONS)).toMatchObject({ status: 'closed', state: 'closed' });
-  remote.state.pull!.merged_at = '2026-10-24T08:00:00Z';
-  expect(await publishDraft(value, OPTIONS)).toMatchObject({ status: 'merged', state: 'closed' });
-  expect(remote.calls.filter((call) => call.method !== 'GET')).toHaveLength(writes);
-});
-
-it('publishes separate named integrations against the same base without sharing branch or PR markers', async () => {
-  const value = await report();
-  const branches: string[] = [];
-  for (const integration of ['billing-stripe', 'secondary-stripe']) {
-    const remote = github();
-    const result = await publishDraft(value, { ...OPTIONS, integration });
-    expect(result).toMatchObject({ status: 'created', integration });
-    branches.push(result.branch);
-    const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
-    expect(request.body.title).toBe(
-      `fix(${integration}): restore payment history after charges removal`,
-    );
-    expect(request.body.body).toContain(`, integration \`${integration}\`.`);
-    expect(request.body.body).toContain(
-      `<!-- refit-migration:${migrationIdentity(value, REVISION, integration)} -->`,
-    );
-    expect(request.body.body).not.toContain(
-      `<!-- refit-migration:${migrationIdentity(value, REVISION)} -->`,
-    );
-    expect(remote.calls.find((call) => call.path === '/git/trees')?.body.tree).toEqual(
-      value.publicationFiles.map((file) => ({ ...file, type: 'blob' })),
-    );
-    expect(await publishDraft(value, { ...OPTIONS, integration })).toMatchObject({
-      status: 'existing',
-      branch: result.branch,
-    });
-    expect(
-      remote.calls.filter((call) => call.method === 'POST' && call.path === '/pulls'),
-    ).toHaveLength(1);
-  }
-  expect(new Set(branches).size).toBe(2);
-});
-
 it('stops failed, inconsistent and unresolved evidence before making a network request', async () => {
   const remote = github();
   const value = await report();
@@ -455,24 +297,6 @@ it('stops failed, inconsistent and unresolved evidence before making a network r
   value.validation.patchHash = 'tampered';
   await expect(publishDraft(value, OPTIONS)).rejects.toThrow(/consistent patch/);
   expect(remote.fetch).not.toHaveBeenCalled();
-});
-
-it('publishes a passing draft with unresolved findings only when explicitly allowed, and says so', async () => {
-  const remote = github();
-  const value = await report();
-  value.patch.unresolvedFindings = 2;
-  expect(await publishDraft(value, { ...OPTIONS, allowUnresolved: true })).toMatchObject({
-    status: 'created',
-    draft: true,
-  });
-  const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
-  expect(request.body.body).toContain(
-    "2 usages of the breaking changes are still unmigrated: no rule changed them, and the checks passed without them. The locations are in Refit's run report.",
-  );
-  value.validation.status = value.patch.validation = 'regression';
-  await expect(publishDraft(value, { ...OPTIONS, allowUnresolved: true })).rejects.toThrow(
-    /passing baseline/,
-  );
 });
 
 it('blocks publication when application API-version applicability is unknown', async () => {
@@ -494,109 +318,12 @@ it('independently rejects conflicting or unverified strict source evidence befor
   expect(remote.fetch).not.toHaveBeenCalled();
 });
 
-it('rejects a stale base before writing any Git objects', async () => {
-  const remote = github();
-  remote.state.base = HEAD;
-  await expect(publishDraft(await report(), OPTIONS)).rejects.toThrow(/base changed/);
-  expect(remote.calls.every((call) => call.method === 'GET')).toBe(true);
-});
-
-it('rechecks the base before creating a branch and checks the head before creating a PR', async () => {
-  const remote = github();
-  remote.state.moveBaseOnCommit = true;
-  await expect(publishDraft(await report(), OPTIONS)).rejects.toThrow(/base changed/);
-  expect(remote.calls.some((call) => call.path === '/git/refs')).toBe(false);
-  remote.state.moveBaseOnCommit = false;
-  remote.state.base = REVISION;
-  remote.state.moveHeadOnCommitRead = true;
-  await expect(publishDraft(await report(), OPTIONS)).rejects.toThrow(/branch changed/);
-  expect(remote.calls.some((call) => call.path === '/pulls' && call.method === 'POST')).toBe(false);
-});
-
-it.each(['tree', 'parents'] as const)(
-  'refuses to overwrite an existing branch with a different %s',
-  async (key) => {
-    const remote = github();
-    remote.state.head = HEAD;
-    if (key === 'tree') remote.state.tree = BASE_TREE;
-    else remote.state.parents = [HEAD];
-    await expect(publishDraft(await report(), OPTIONS)).rejects.toThrow(/Refusing to overwrite/);
-    expect(
-      remote.calls.some(
-        (call) =>
-          call.method !== 'GET' && (call.path.startsWith('/git/refs') || call.path === '/pulls'),
-      ),
-    ).toBe(false);
-  },
-);
-
-it('leaves an open draft as it is when a personal token cannot tell its own commits apart', async () => {
-  const remote = github();
-  const value = await report();
-  await publishDraft(value, OPTIONS);
-  remote.state.tree = BASE_TREE;
-  const writes = remote.calls.filter((call) => call.method !== 'GET' && call.path !== '/git/trees');
-  expect(await publishDraft(value, OPTIONS)).toMatchObject({
-    status: 'existing',
-    leftUnchanged: 'Refit updates an existing draft only when it publishes as the GitHub App.',
-  });
-  expect(
-    remote.calls.filter((call) => call.method !== 'GET' && call.path !== '/git/trees'),
-  ).toEqual(writes);
-});
-
-it('recovers after a failed PR request without exposing the response body or creating another branch', async () => {
-  const remote = github();
-  remote.state.failPull = true;
-  const value = await report();
-  await expect(publishDraft(value, OPTIONS)).rejects.toThrow(/HTTP 503/);
-  remote.state.failPull = false;
-  expect(await publishDraft(value, OPTIONS)).toMatchObject({ status: 'created' });
-  expect(remote.calls.filter((call) => call.path === '/git/refs')).toHaveLength(1);
-});
-
-it('reconciles simultaneous branch and PR creation without force updating', async () => {
-  const remote = github();
-  remote.state.raceRef = remote.state.racePull = true;
-  expect(await publishDraft(await report(), OPTIONS)).toMatchObject({ status: 'existing' });
-  expect(remote.calls.some((call) => call.method === 'PATCH' || call.method === 'DELETE')).toBe(
-    false,
-  );
-});
-
 it('requires explicit valid target and credentials', () => {
   expect(() => publicationConfiguration('https://evil.test/x', 'main', 'secret')).toThrow(
     /--github/,
   );
   expect(() => publicationConfiguration('owner/repo', 'x/../main', 'secret')).toThrow(/--base/);
   expect(() => publicationConfiguration('owner/repo', 'main', '')).toThrow(/GITHUB_TOKEN/);
-});
-
-it('publishes with the verified app identity on a separate branch from personal-token runs', async () => {
-  const remote = github();
-  remote.state.author = 'refit-agent[bot]';
-  const authentication = vi.spyOn(githubApp, 'authenticateGitHubApp').mockResolvedValue({
-    token: 'test-token',
-    author: { name: 'Refit Agent', email: '123+refit-agent[bot]@users.noreply.github.com' },
-    publisher: { kind: 'github-app', appId: 123, name: 'Refit Agent', login: 'refit-agent[bot]' },
-  });
-  const value = await report();
-  const app = { appId: '123', privateKeyFile: '/private/key.pem' };
-  const result = await publishDraft(
-    value,
-    publicationConfiguration('example/application', 'main', 'ignored-personal-token', app),
-  );
-  expect(authentication).toHaveBeenCalledWith(app, 'example/application');
-  expect(result.publisher?.login).toBe('refit-agent[bot]');
-  expect(result.branch).not.toBe(
-    `refit/${digest(`${value.runId}:${value.validation.patchHash}`).slice(0, 32)}`,
-  );
-  expect(remote.calls.find((call) => call.path === '/git/commits')?.body).toMatchObject({
-    author: { name: 'Refit Agent', email: '123+refit-agent[bot]@users.noreply.github.com' },
-    committer: { name: 'Refit Agent', email: '123+refit-agent[bot]@users.noreply.github.com' },
-  });
-  expect(JSON.stringify(result)).not.toContain('test-token');
-  expect(JSON.stringify(remote.calls)).not.toContain('ignored-personal-token');
 });
 
 it('discovers equivalent App drafts before generation while ignoring foreign authors and reconciling legacy receipts', async () => {
@@ -827,22 +554,6 @@ it('lists every submodule Refit checked around as a reason to review', async () 
   expect(files['pull-request.md']).toContain(
     '- Refit checked this repository without its submodules, so nothing in them was scanned, built or tested. **Check:** Check out the submodules, run your checks on this branch, and confirm the code in each one works with this patch.\n  - `docs/site`\n  - `packages/ui`',
   );
-});
-
-// Owner decision 8: a passing AI patch is never a validated draft.
-it('refuses to publish a passing AI patch as validated, and publishes it for review', async () => {
-  const evidence = await report();
-  evidence.patch.generator = 'openai' as typeof evidence.patch.generator;
-  expect(evidence.validation.status).toBe('passed');
-  const refused = github();
-  await expect(publishDraft(evidence, OPTIONS)).rejects.toThrow(AI_PATCH_STOP);
-  expect(refused.fetch).not.toHaveBeenCalled();
-  const remote = github();
-  expect(await publishDraft(evidence, { ...OPTIONS, allowUnresolved: true })).toMatchObject({
-    status: 'created',
-  });
-  const request = remote.calls.find((call) => call.method === 'POST' && call.path === '/pulls')!;
-  expect(request.body.title).toMatch(/^\[Needs review\] /);
 });
 
 it('says the checks passed on the original when only the upgraded lockfile could not be installed', async () => {

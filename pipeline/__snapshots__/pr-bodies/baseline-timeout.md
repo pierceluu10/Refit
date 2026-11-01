@@ -4,7 +4,7 @@
 
 ## Overview
 
-Stripe API 2026-09-30.endive removes fields this code reads. A deterministic Refit rule migrates 2 of 23 confirmed usages in 1 file. Stripe documents the change: [docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end).
+Stripe API 2026-09-30.endive removes fields this code reads. A deterministic Refit rule migrates 2 of 23 confirmed usages in 1 file.
 
 ## API Impact & Spec Changes
 
@@ -15,8 +15,8 @@ Stripe API 2026-09-30.endive removes fields this code reads. A deterministic Ref
 ## Key Changes
 
 - `server/lib/stripe.js`: Moves the pinned API version from `2024-12-18.acacia` to `2026-09-30.endive`.
-- `server/routes/stripe-webhooks.js`: Migrates reads of `subscription.current_period_start`, `subscription.current_period_end` to the documented new locations. Stripe documents it: [docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end).
-- `server/routes/stripe-subscription-period.js`: Adds the generated helper that reads the removed fields under either API version. Stripe documents it: [docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end).
+- `server/routes/stripe-webhooks.js`: Migrates reads of `subscription.current_period_start`, `subscription.current_period_end` to the documented new locations.
+- `server/routes/stripe-subscription-period.js`: Adds the generated helper that reads the removed fields under either API version.
 - Review: Uses the item the code already selects for items on different billing periods: `items.data[0]`.
 
 ## Code Changes
@@ -131,7 +131,7 @@ Refit could not trace these reads of removed field names to a Stripe object, so 
 
 ## Reviewer Checklist
 
-- [ ] Read each change under Code Changes against the provider page linked in Overview.
+- [ ] Read each change under Code Changes.
 - [ ] Set each webhook endpoint's API version to `2026-09-30.endive` when you deploy. The generated helpers read the old and the new payload, so the handlers work before and after.
 - [ ] Check each read under Left Unchanged.
 - [ ] Migrate the 24 usages Refit left unmigrated (see Left Unchanged).

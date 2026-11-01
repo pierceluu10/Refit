@@ -229,49 +229,6 @@ export async function chargeHistory(paymentIntentId: string) {
   ).toBe('blocked');
 });
 
-it('accepts version-tolerant webhook period reads without a price policy', async () => {
-  const sample = await setup();
-  const webhook = resolve('pipeline/fixtures/stripe-webhooks');
-  for (const file of ['before.json', 'after.json'])
-    await cp(join(webhook, file), join(sample.repository, file));
-  await cp(join(webhook, 'repository/client.js'), join(sample.repository, 'client.js'));
-  await cp(join(webhook, 'repository/entitlements.js'), join(sample.repository, 'entitlements.js'));
-  const { providerConfig: _provider, ...configuration } = sample.configuration;
-  await writeFile(
-    join(sample.repository, '.refit.json'),
-    JSON.stringify({ ...configuration, apiVersion: '2025-02-24.acacia' }),
-  );
-  await commit(sample.repository);
-  const fetch = vi.fn();
-  vi.stubGlobal('fetch', fetch);
-  const result = await inspectRepositoryReadiness({ repository: sample.repository });
-  expect(result.status).toBe('ready-for-validation');
-  expect(result.checks).toContainEqual(
-    expect.objectContaining({
-      id: 'webhook-migration',
-      status: 'passed',
-      detail: expect.stringContaining('both the old and the new payload shape'),
-    }),
-  );
-  expect(result.sdkCoverage).toMatchObject({
-    observedCalls: 1,
-    mappedCalls: 0,
-    localHelperCalls: 1,
-    unmappedMethods: [],
-  });
-  expect(result.checks).toContainEqual(
-    expect.objectContaining({
-      id: 'sdk-coverage',
-      status: 'passed',
-      detail: expect.stringContaining('local webhook signature constructor'),
-    }),
-  );
-  expect(fetch).not.toHaveBeenCalled();
-  await expect(readFile(join(sample.repository, 'application-executed'))).rejects.toMatchObject({
-    code: 'ENOENT',
-  });
-});
-
 // A repository with the webhook fixture's client and contracts, pinned to their before version.
 async function stripeRepository(files: Record<string, string>, settings: object = {}) {
   const sample = await setup();
@@ -305,30 +262,6 @@ const DMFORGE = [
   '}',
   '',
 ].join('\n');
-
-it('says Refit cannot confirm a webhook read on an event assigned twice, not that no rule applies', async () => {
-  const repository = await stripeRepository({ 'webhook.js': DMFORGE });
-  const report = await inspectRepositoryReadiness({ repository });
-  expect(report.checks.find((check) => check.id === 'webhook-migration')).toMatchObject({
-    status: 'blocked',
-    detail:
-      'Webhook code reads a field that API version 2025-03-31.basil removes: .current_period_end at webhook.js:8 (customer.subscription.updated). Refit cannot confirm what this read receives, so its rules do not migrate it.',
-    action:
-      "Refit's rules migrate a webhook read only once Refit confirms the event it reads, such as one stripe.webhooks.constructEvent result that nothing reassigns. A changed read must accept both payload shapes: Stripe renders an event in its webhook endpoint's API version, not in the client's apiVersion (docs/STRIPE-WEBHOOKS.md).",
-  });
-  // The same handler with one signed event no longer stops: the helper migrates the read.
-  const signed = await stripeRepository({
-    'webhook.js': DMFORGE.replace('  let event;\n', '').replace(
-      /  if \(secret\) event = (.*)\n  else event = JSON.parse\(body\);/,
-      '  const event = $1',
-    ),
-  });
-  expect(
-    (await inspectRepositoryReadiness({ repository: signed })).checks.find(
-      (check) => check.id === 'webhook-migration',
-    ),
-  ).toMatchObject({ status: 'passed' });
-});
 
 it('pairs each stopped webhook read with its own events and cause', async () => {
   // The before contract also has subscription.plan, which no Refit rule migrates.

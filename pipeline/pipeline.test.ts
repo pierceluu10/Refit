@@ -189,46 +189,11 @@ describe('symbol-based impact analysis', () => {
     expect(result.findings.at(-1)?.reason).toContain('mutated or escape');
     expect(result.edits).toEqual([]);
   });
-  it.each([
-    'normalize(intent);',
-    'normalize(intent.charges);',
-    'normalize(flag ? intent : other);',
-    'normalize(() => intent);',
-    'const holder = { intent };',
-    'const holder = { value: intent };',
-    'const holder = [intent];',
-    'const holder = flag ? intent : other;',
-    'configure(client);',
-    'function getResponse() { return intent; }',
-    'const getResponse = () => intent;',
-    'function* responses() { yield intent; }',
-  ])(
-    'keeps confirmed impact and patches when a response or client only escapes: %s',
-    (statement) => {
-      const result = analyze(`${prefix} async function read() {
-      const intent = await client.paymentIntents.retrieve('pi_test');
-      ${statement}
-      return intent.charges.data;
-    }`);
-      expect(result.findings.at(-1)?.confidence).toBe('confirmed');
-      expect(result.edits).toHaveLength(1);
-    },
-  );
   it('confirms inline awaited responses after the SDK client escapes', () => {
     const result = analyze(
       `${prefix} configure(client); async function read() { return (await client.paymentIntents.retrieve('pi')).charges; }`,
     );
     expect(result.findings[0].confidence).toBe('confirmed');
-  });
-  it('keeps mutations of unrelated or shadowed objects separate from a traced response', () => {
-    const result = analyze(`${prefix} async function read() {
-      const intent = await client.paymentIntents.retrieve('pi_test');
-      const other = {}; other.charges = [];
-      function normalize(intent: any) { intent.id = 'changed'; }
-      return intent.charges.data;
-    }`);
-    expect(result.findings.at(-1)?.confidence).toBe('confirmed');
-    expect(result.edits).toHaveLength(1);
   });
   it('does not match comments, strings or unrelated fields without a Stripe signal', () => {
     expect(

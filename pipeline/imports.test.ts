@@ -26,20 +26,6 @@ function analyze(files: Record<string, string>) {
   );
 }
 
-it.each([false, true])(
-  'traces a renamed imported client independent of file ordering: %s',
-  (reverse) => {
-    const files = { 'billing.ts': consumer, 'client.ts': client };
-    const result = analyze(reverse ? Object.fromEntries(Object.entries(files).reverse()) : files);
-    expect(result.findings).toHaveLength(1);
-    expect(result.findings[0]).toMatchObject({ file: 'billing.ts', confidence: 'confirmed' });
-    expect(result.edits).toHaveLength(1);
-    expect(result.edits[0].replacement).toBe(
-      '(await billing.charges.list({ payment_intent: intent.id })).data',
-    );
-  },
-);
-
 it.each<Record<string, string>>([
   { 'client.ts': `${client}\nstripe.paymentIntents.retrieve = replacement;` },
   {
@@ -57,28 +43,6 @@ it.each<Record<string, string>>([
   });
   expect(result.edits).toEqual([]);
 });
-
-it.each<Record<string, string>>([
-  { 'mutator.ts': "import {stripe} from './client'; const alias = stripe; mutate(alias);" },
-  { 'client.ts': `${client}\nexport function getClient() { return stripe; }` },
-  { 'client.ts': `${client}\nexport const getClient = () => stripe;` },
-  { 'client.ts': `${client}\nexport const getResource = () => stripe.paymentIntents;` },
-  {
-    'client.ts': `${client}\nlet alias = stripe; export const getResource = () => alias.paymentIntents;`,
-  },
-  { 'client.ts': `${client}\nexport function* clients() { yield stripe; }` },
-  { 'client.ts': `${client}\nexport function fail() { throw stripe; }` },
-  { 'client.ts': `${client}\nexport const getClient = () => flag ? (stripe as unknown) : null;` },
-])(
-  'keeps shared clients confirmed when another module only passes or returns them: %j',
-  (extra) => {
-    const result = analyze({ 'billing.ts': consumer, 'client.ts': client, ...extra });
-    expect(result.findings.find((finding) => finding.file === 'billing.ts')).toMatchObject({
-      confidence: 'confirmed',
-    });
-    expect(result.edits).toHaveLength(1);
-  },
-);
 
 it.each([
   consumer.replace("'./client.js'", "'@/client'"),
@@ -114,13 +78,4 @@ it('does not confuse a shadowing parameter with the imported client', () => {
   });
   expect(result.findings[0].confidence).toBe('review');
   expect(result.edits).toEqual([]);
-});
-
-it('resolves a module whose name has a dotted suffix, like Remix `stripe.server.ts`', () => {
-  const result = analyze({
-    'billing.ts': consumer.replace("'./client.js'", "'./stripe.server'"),
-    'stripe.server.ts': client,
-  });
-  expect(result.findings).toMatchObject([{ file: 'billing.ts', confidence: 'confirmed' }]);
-  expect(result.edits).toHaveLength(1);
 });

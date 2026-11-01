@@ -91,20 +91,6 @@ setTimeout(() => {
   return { report, checks };
 }
 
-it('runs the patched checks alongside the baseline checks when no AI is involved', async () => {
-  const { report, checks } = await fixture(0);
-  const baseline = checks.find((check) => check.side === 'baseline')!;
-  const patched = checks.find((check) => check.side === 'patched')!;
-  expect(patched.started).toBeLessThan(baseline.ended);
-  expect(baseline.started).toBeLessThan(patched.ended);
-  expect(report.validation).toMatchObject({
-    status: 'passed',
-    baseline: { status: 'passed' },
-    patched: { status: 'passed' },
-  });
-  expect(report.validation.attempts).toHaveLength(1);
-});
-
 it('reports a failed baseline exactly as the sequential order did, discarding the patched run', async () => {
   const { report, checks } = await fixture(1);
   // A patched run started alongside the baseline is cancelled or discarded; it may not finish.
@@ -117,29 +103,4 @@ it('reports a failed baseline exactly as the sequential order did, discarding th
     repair: { stopReason: 'baseline-failed' },
   });
   expect(report.publicationFiles).toEqual([]);
-});
-
-it('runs the generated checks against both contract versions at the same time', async () => {
-  const { checks } = await fixture(0, true);
-  const before = checks.find((check) => check.side === 'generated-before')!;
-  const after = checks.find((check) => check.side === 'generated-after')!;
-  expect(before.started).toBeLessThan(after.ended);
-  expect(after.started).toBeLessThan(before.ended);
-});
-
-it('keeps one sandbox at a time on a Docker host without room for two', async () => {
-  // The hosted worker's 4 GB machine (fly.toml) cannot hold two 3 GiB sandboxes.
-  const { report, checks } = await fixture(0, false, 4 * 1024 ** 3);
-  const baseline = checks.find((check) => check.side === 'baseline')!;
-  const patched = checks.find((check) => check.side === 'patched')!;
-  expect(patched.started).toBeGreaterThanOrEqual(baseline.ended);
-  expect(report.validation).toMatchObject({ status: 'passed', patched: { status: 'passed' } });
-});
-
-it('keeps one sandbox at a time unless the operator opts in', async () => {
-  const { report, checks } = await fixture(0, true, 16 * 1024 ** 3, false);
-  const side = (name: string) => checks.find((check) => check.side === name)!;
-  expect(side('patched').started).toBeGreaterThanOrEqual(side('baseline').ended);
-  expect(side('generated-after').started).toBeGreaterThanOrEqual(side('generated-before').ended);
-  expect(report.validation).toMatchObject({ status: 'passed', patched: { status: 'passed' } });
 });

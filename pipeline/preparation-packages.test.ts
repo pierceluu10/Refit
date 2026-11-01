@@ -13,9 +13,7 @@ import {
   SANDBOX_EXPIRY_LABEL,
 } from './docker-sandbox.ts';
 import { packageSnapshot, sdkPackageDirectory } from './preparation-packages.ts';
-import { readEvidence } from './state-files.ts';
 import { packageDiff } from './stripe-package-upgrade.ts';
-import { validateMigration } from './validation.ts';
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -330,112 +328,6 @@ it('finds the dependency part of a patch in the nested package it prepares', () 
   expect(packageDiff(diff, 'dashboard')).toBe(
     'diff --git "a/dashboard/package.json" "b/dashboard/package.json"\n--- a\n+++ b\n',
   );
-});
-
-it('validates Stripe code in a nested package there, under the configured check time limit', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'refit-package-validation-'));
-  roots.push(root);
-  const calls = await fakeDocker(root);
-  vi.stubEnv('REFIT_DEPENDENCY_CACHE_DIRECTORY', join(root, 'cache'));
-  const repository = join(root, 'repository');
-  // Shaped like different-ai/embedbase at fb0afda5e8c2ad0212ea8c0dfa495be9865221d5: no root
-  // package.json, and a dashboard project with its own lockfile.
-  const dashboard = { name: 'nextjs', private: true, dependencies: { stripe: '^10.0.0' } };
-  await commit(repository, {
-    'dashboard/package.json': JSON.stringify(dashboard),
-    'dashboard/package-lock.json': JSON.stringify({
-      lockfileVersion: 3,
-      packages: {
-        '': dashboard,
-        'node_modules/stripe': {
-          version: '10.17.0',
-          resolved: 'https://registry.npmjs.org/stripe/-/stripe-10.17.0.tgz',
-          integrity: `sha512-${Buffer.alloc(64).toString('base64')}`,
-        },
-      },
-    }),
-    'dashboard/billing.ts': await readFile(
-      resolve('pipeline/fixtures/repository/billing.ts'),
-      'utf8',
-    ),
-    'docs/package.json': manifest('docs'),
-    'docs/package-lock.json': lockfile('docs'),
-  });
-  const validate = (checkTimeoutSeconds?: number) =>
-    validateMigration({
-      repository,
-      before: resolve('pipeline/fixtures/before.json'),
-      after: resolve('pipeline/fixtures/after.json'),
-      apiVersion: '2022-08-01',
-      image: 'node:22-alpine',
-      command: ['npm', 'test'],
-      prepareDependencies: true,
-      checkTimeoutSeconds,
-    });
-  const report = await validate();
-  expect(report.validation).toMatchObject({
-    status: 'passed',
-    packageDirectory: 'dashboard',
-    limits: { timeoutMs: 600_000 },
-  });
-  expect(report.publicationFiles.map((file) => file.path)).toEqual(['dashboard/billing.ts']);
-  const [preparation, ...checks] = await calls();
-  expect(preparation).toMatchObject({
-    network: 'bridge',
-    inputFiles: ['package-lock.json', 'package.json'],
-  });
-  expect(checks).toHaveLength(2);
-  for (const check of checks) {
-    expect(check.network).toBe('none');
-    expect(check.script).toContain('cd "./$1" && shift && tar -xf /dependencies.tar');
-    expect(check.tail).toEqual(['refit-check', 'dashboard', 'npm', 'test']);
-    // The sandbox label expires a minute after the check's own deadline.
-    expect(check.remainingMs).toBeGreaterThan(600_000 + 60_000 - 30_000);
-    expect(check.remainingMs).toBeLessThanOrEqual(600_000 + 60_000);
-  }
-  const limited = await validate(45);
-  expect(limited.validation.limits.timeoutMs).toBe(45_000);
-  for (const check of (await calls()).slice(-2))
-    expect(check.remainingMs).toBeLessThanOrEqual(45_000 + 60_000);
-  await expect(validate(29)).rejects.toThrow(
-    'checkTimeoutSeconds must be a whole number from 30 to 1800.',
-  );
-  // refit run reads the limit from its configuration file, whose schema .refit.json shares.
-  const configuration = join(root, 'run.json');
-  await writeFile(
-    configuration,
-    JSON.stringify({
-      formatVersion: 1,
-      repository,
-      before: resolve('pipeline/fixtures/before.json'),
-      after: resolve('pipeline/fixtures/after.json'),
-      apiVersion: '2022-08-01',
-      image: 'node:22-alpine',
-      command: ['npm', 'test'],
-      prepareDependencies: true,
-      checkTimeoutSeconds: 75,
-    }),
-  );
-  const output = join(root, 'run');
-  // A run whose findings stay unresolved exits 2; the report is what this test reads.
-  await execute(process.execPath, [
-    resolve('bin/refit.mjs'),
-    'run',
-    '--config',
-    configuration,
-    '--output',
-    output,
-    '--quiet',
-    '--json',
-  ]).catch((error: unknown) => error);
-  const run = JSON.parse((await readEvidence(output, 'report.json'))!);
-  expect(run.validation).toMatchObject({
-    status: 'passed',
-    packageDirectory: 'dashboard',
-    limits: { timeoutMs: 75_000 },
-  });
-  for (const check of (await calls()).slice(-2))
-    expect(check.remainingMs).toBeLessThanOrEqual(75_000 + 60_000);
 });
 
 it.skipIf(!IMAGE || !process.env.REFIT_NPM_PREPARE)(

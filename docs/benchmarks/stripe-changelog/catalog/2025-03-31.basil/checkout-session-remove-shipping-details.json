@@ -14,8 +14,8 @@
       "changed": [
         "Checkout.Session.shipping_details removed (moved to collected_information.shipping_details)"
       ],
-      "handling": "rule",
-      "how": "checkoutShippingHelperEdit (stripe-subscription-periods.ts) rewrites traced reads to the generated getCheckoutShippingDetails helper; run.ts keeps it when the target contract declares collected_information.shipping_details."
+      "handling": "ai",
+      "how": "The traced read stays unresolved and goes to the agent fixer (pipeline/stripe-agent.ts) with AI on; the generated read helper was deleted (docs/GUT-PLAN.md)."
     },
     {
       "changed": [

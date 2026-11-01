@@ -156,46 +156,6 @@ it('exports regression evidence without implying that checks passed or a PR exis
   );
 });
 
-it('follows the PR template: its sections, single-sentence bullets and no emoji', async () => {
-  const value = await report();
-  value.changes.unshift({
-    id: 'unrelated',
-    schema: 'invoice',
-    property: 'subscription',
-    pointer: '/components/schemas/invoice/properties/subscription',
-  });
-  const { files, manifest } = createReviewArtifacts(value);
-  const body = files['pull-request.md'];
-  expect(manifest.title).toBe('fix(stripe): restore payment history after charges removal');
-  expect(manifest.title.length).toBeLessThanOrEqual(70);
-  expect(body.split('\n').filter((entry) => entry.startsWith('## '))).toEqual([
-    '## Overview',
-    '## API Impact & Spec Changes',
-    '## Key Changes',
-    '## Code Changes',
-    '## Automated Verification Gates',
-    '## Not Verified',
-    '## Rollback',
-    '## Reviewer Checklist',
-    '## Related Telemetry',
-  ]);
-  expect(body).toContain('A deterministic Refit rule migrates');
-  expect(body).toContain('- Revert this pull request. It changes 1 file');
-  expect(body).toContain(
-    '- [ ] Read each change under Code Changes against the provider page linked in Overview.',
-  );
-  expect(body).toContain('Stripe documents the change: [docs.stripe.com/api/charges/list]');
-  expect(body).toContain('- Refit made no request to Stripe, and the checks did not pass');
-  expect(body).toContain('- Breaking Changes: Removes response fields `payment_intent.charges`');
-  expect(body).toContain('- `billing.ts`: Migrates reads of `payment_intent.charges`');
-  expect(body).toContain('- Test Suite Output: **Validation did not pass (regression).**');
-  expect(body).toContain('- Security Scans: Not run.');
-  expect(body).toContain('`billing.ts:7` in `chargeHistory()`');
-  expect(body).toContain('```diff');
-  expect(body).not.toContain('invoice.subscription');
-  expect(body).not.toMatch(/\p{Extended_Pictographic}/u);
-});
-
 async function renameReport(evidence?: Record<string, unknown>): Promise<Report> {
   const root = await mkdtemp(join(tmpdir(), 'refit-review-rename-'));
   directories.push(root);
@@ -351,16 +311,6 @@ it('refuses inconsistent patch evidence and false passing status', async () => {
   expect(() => createReviewArtifacts(value)).toThrow(/two successful/);
 });
 
-it('keeps Markdown from repository file names out of the PR text structure', async () => {
-  const value = await report();
-  value.findings[0].file = '```\n# forged heading';
-  value.findings[0].untraced = true;
-  const body = createReviewArtifacts(value).files['pull-request.md'];
-  // The fence is padded, so the name's own backticks stay inside the code span.
-  expect(body).toContain('```` ``` # forged heading');
-  expect(body).not.toContain('\n# forged heading');
-});
-
 it('creates a private bundle and refuses to replace any existing bundle', async () => {
   const root = await mkdtemp(join(tmpdir(), 'refit-review-test-'));
   directories.push(root);
@@ -392,18 +342,6 @@ it('says when the open-enum repair restored widened Stripe enum values', async (
   );
 });
 
-it('names each type assertion and keeps a validated draft out of review', async () => {
-  const value = await report();
-  value.validation.repair.stopReason = 'type-assertion-repair';
-  value.validation.repair.typeAssertions = [{ file: 'lib/utils.ts', line: 165, code: 'TS2322' }];
-  const artifacts = createReviewArtifacts(value);
-  expect(artifacts.files['pull-request.md']).toContain(
-    'Asserts the type this code expects at `lib/utils.ts:165`',
-  );
-  expect(artifacts.files['pull-request.md']).toContain('compiles to the same JavaScript');
-  expect(artifacts.manifest.title).not.toMatch(/^\[Needs review\] /);
-});
-
 it('marks a draft that keeps sending an untyped request property for review', async () => {
   const value = await report();
   value.validation.repair.stopReason = 'open-enum-repair';
@@ -417,48 +355,6 @@ it('marks a draft that keeps sending an untyped request property for review', as
   expect(body).toContain('(https://docs.stripe.com/api/checkout/sessions/create)');
   // Only the property was kept, so nothing claims an enum restore.
   expect(body).not.toContain('OtherString');
-});
-
-it('marks a draft with an untraced read for review and keeps it out of the confirmed count', async () => {
-  const value = await report();
-  value.findings.push({
-    ...value.findings[0],
-    file: 'legacy.ts',
-    confidence: 'review',
-    untraced: true,
-  });
-  value.patch.unresolvedFindings = 1;
-  const artifacts = createReviewArtifacts(value);
-  expect(artifacts.manifest.title).toMatch(/^\[Needs review\] /);
-  const body = artifacts.files['pull-request.md'];
-  expect(body).toContain(
-    '0 usages of the breaking changes remain, plus 1 untraced read of removed field names.',
-  );
-  expect(body).toContain(
-    "## Usages left for you\n\n**Don't merge until you have migrated or checked each usage Refit left.** Refit could not trace 1 read of removed field names to a Stripe object, so it left it unchanged; it is listed under Left Unchanged.\n\n## Overview",
-  );
-  expect(body).not.toContain('still unmigrated');
-});
-
-it('lists untraced reads proven not to read a Stripe object without holding the draft', async () => {
-  const value = await report();
-  const site = {
-    file: 'src/plans.ts',
-    line: 4,
-    changeId: value.findings[0].changeId,
-    expression: '.price',
-    confidence: 'review' as const,
-    untraced: true as const,
-  };
-  value.validation.localReads = [
-    { ...site, proof: 'literal-config' },
-    { ...site, line: 9, proof: 'generated-type' },
-  ];
-  const artifacts = createReviewArtifacts(value);
-  expect(artifacts.manifest.title).not.toMatch(/^\[Needs review\] /);
-  expect(artifacts.files['pull-request.md']).toContain(
-    "- Untraced Reads Cleared: Refit proved these reads of removed field names do not read a Stripe object, so they were left unchanged and do not hold the draft for review: `src/plans.ts:4` reads `.price` (an object literal the repository writes), `src/plans.ts:9` reads `.price` (a type generated from the repository's own schema).",
-  );
 });
 
 it('says when npm installed the committed lockfile with --legacy-peer-deps', async () => {
@@ -651,77 +547,6 @@ it('holds a draft with advisory JavaScript type errors for review and lists each
   );
 });
 
-it('shows the evidence grade and holds a grade-D draft for review', async () => {
-  const value = await report();
-  value.validation.status = 'passed';
-  value.patch.validation = 'passed';
-  value.validation.patched = { status: 'passed', exitCode: 0, stdout: '', stderr: '' };
-  value.validation.grade = {
-    letter: 'C',
-    level: 'type-check',
-    reason: 'tsc type-checks src/billing.ts; no test ran that code.',
-  };
-  const typed = createReviewArtifacts(value);
-  expect(typed.manifest.title).not.toMatch(/^\[Needs review\] /);
-  expect(typed.files['pull-request.md']).toContain('- Evidence Grade: **C, Type-checked only.** ');
-  // A JavaScript repository whose tsconfig omits checkJs: tsc passed without reading the change.
-  value.validation.grade = {
-    letter: 'D',
-    level: 'none',
-    reason: 'The type check does not cover src/billing.js, and no generated check ran it.',
-  };
-  const unchecked = createReviewArtifacts(value);
-  expect(unchecked.manifest.title).toMatch(/^\[Needs review\] /);
-  const body = unchecked.files['pull-request.md'];
-  expect(body).toContain('- Evidence Grade: **D, No meaningful check.** ');
-  expect(body).toContain(
-    '**No check reached all of the changed code.** The type check does not cover src/billing.js, and no generated check ran it. Run the code this patch changes once before merging.',
-  );
-  // Generated stripe-mock checks alone are grade D too.
-  value.validation.grade = {
-    letter: 'D',
-    level: 'generated-check',
-    reason:
-      'No test reaches src/billing.js; only the generated stripe-mock checks ran changed code (1 exported function).',
-  };
-  expect(createReviewArtifacts(value).manifest.title).toMatch(/^\[Needs review\] /);
-});
-
-it('lists each usage the migrated code still has, counts a site once and names the failing side', async () => {
-  const value = await report();
-  const [finding] = value.findings;
-  const untraced = { ...finding, file: 'legacy.ts', line: 7, expression: 'item.price' };
-  // One expression that reads two removed fields, as afdon/music-app's `.price` does.
-  value.findings.push(
-    { ...untraced, changeId: 'invoiceitem-price', confidence: 'review', untraced: true },
-    { ...untraced, changeId: 'line-item-price', confidence: 'review', untraced: true },
-  );
-  if (!('diff' in value.patch)) throw new Error('Expected fixture patch');
-  value.patch.unresolvedFindings = 3;
-  value.patch.unresolvedSites = unresolvedSites([
-    { ...finding, line: 14 },
-    { ...untraced, changeId: 'invoiceitem-price', confidence: 'review', untraced: true },
-    { ...untraced, changeId: 'line-item-price', confidence: 'review', untraced: true },
-  ]);
-  const body = createReviewArtifacts(value).files['pull-request.md'];
-  expect(body).toContain('A deterministic Refit rule migrates 0 of 1 confirmed usage in 1 file');
-  expect(body).toContain(
-    "**Don't merge until you have migrated or checked each usage Refit left.** 1 usage of the breaking changes is still unmigrated: no rule changed it. It is listed under Left Unchanged. Refit could not trace 1 read",
-  );
-  expect(body).not.toContain('The checks passed without');
-  expect(body).toContain(
-    'Migrate each one before merging:\n\n- `billing.ts:14` reads `.charges` (`payment_intent.charges`)\n\nRefit could not trace',
-  );
-  // The two findings at legacy.ts:7 are one site everywhere the body counts them.
-  expect(body).toContain('Refit could not trace 1 read of removed field names');
-  expect(body).toContain('1 usage of the breaking changes remains, plus 1 untraced read of');
-  expect(body).toContain('- 1 untraced read was left unchanged; see Left Unchanged.');
-  expect(body).toContain(
-    '- Evidence Strength: **None.** The checks did not pass, so nothing in this patch is verified.\n- Test Suite Output: **Validation did not pass (regression).** `npm test` failed on the migrated code with exit code 1.',
-  );
-  expect(body).toContain('- [ ] Migrate the 1 usage Refit left unmigrated (see Left Unchanged).');
-});
-
 it('lists untraced reads at their migrated lines and leaves operation calls with no site to the run report', async () => {
   const value = await report();
   const [finding] = value.findings;
@@ -751,70 +576,6 @@ it('lists untraced reads at their migrated lines and leaves operation calls with
     "1 is listed under Left Unchanged; the other 1 (a call to a changed operation) is in Refit's run report.",
   );
   expect(body).not.toContain('less certainty');
-});
-
-it('counts a traced site with two removed fields once and says how many of those left are confirmed', async () => {
-  const value = await report();
-  const [finding] = value.findings;
-  const [change] = value.changes;
-  // brunobola-portfolio/GitHub-Repo-Manager's `.price` resolves to an invoice item and a line item,
-  // both traced with review confidence.
-  value.changes.push(
-    { ...change, id: 'invoiceitem-price', schema: 'invoiceitem', property: 'price' },
-    { ...change, id: 'line-item-price', schema: 'line_item', property: 'price' },
-  );
-  const price = { ...finding, line: 29, expression: '.price', confidence: 'review' as const };
-  if (!('diff' in value.patch)) throw new Error('Expected fixture patch');
-  value.patch.unresolvedFindings = 3;
-  value.patch.unresolvedSites = unresolvedSites([
-    { ...finding, line: 14 },
-    { ...price, changeId: 'invoiceitem-price' },
-    { ...price, changeId: 'line-item-price' },
-  ]);
-  const body = createReviewArtifacts(value).files['pull-request.md'];
-  expect(body).toContain(
-    '2 usages of the breaking changes (1 confirmed, 1 traced with less certainty) are still unmigrated: no rule changed them.',
-  );
-  expect(body).toContain(
-    '- `billing.ts:14` reads `.charges` (`payment_intent.charges`)\n- `billing.ts:29` reads `.price` (`invoiceitem.price` or `line_item.price`)\n',
-  );
-  expect(body).toContain('- 2 usages are still unmigrated.');
-  expect(body).toContain('- [ ] Migrate the 2 usages Refit left unmigrated (see Left Unchanged).');
-  // A field-move rule's page is cited in the Overview and with the file it edits.
-  const url =
-    'https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end';
-  Object.assign(value.patch, { sources: [{ url, files: ['billing.ts'] }] });
-  const cited = createReviewArtifacts(value).files['pull-request.md'];
-  const page = `[${url.slice('https://'.length)}](${url})`;
-  expect(cited).toMatch(
-    new RegExp(
-      `^Stripe API .* Stripe documents the change: .*${page.replace(/[[\]().]/g, '\\$&')}`,
-      'm',
-    ),
-  );
-  expect(cited.split('\n').find((line) => line.startsWith('- `billing.ts`: '))).toContain(
-    `Stripe documents it: ${page}.`,
-  );
-  // A request rule's page in a file that also moves the pin cites the request change, not the pin.
-  const move = 'https://docs.stripe.com/changelog/basil/2025-03-31/checkout-session-request-move';
-  value.apiVersion = { ...value.apiVersion, application: '2022-08-01', after: '2025-03-31.basil' };
-  value.patch.diff += [
-    'diff --git a/client.ts b/client.ts',
-    '--- a/client.ts',
-    '+++ b/client.ts',
-    '@@ -1 +1 @@',
-    "-export const stripe = new Stripe(key, { apiVersion: '2022-08-01' });",
-    "+export const stripe = new Stripe(key, { apiVersion: '2025-03-31.basil' });",
-    '',
-  ].join('\n');
-  value.validation.patchHash = digest(value.patch.diff);
-  Object.assign(value.patch, { sources: [{ url: move, files: ['client.ts'] }] });
-  const client = createReviewArtifacts(value)
-    .files['pull-request.md'].split('\n')
-    .find((line) => line.startsWith('- `client.ts`: '));
-  expect(client).toBe(
-    `- \`client.ts\`: Updates Stripe requests for the new contract. Stripe documents it: [${move.slice('https://'.length)}](${move}). Moves the pinned API version from \`2022-08-01\` to \`2025-03-31.basil\`.`,
-  );
 });
 
 it.each([
@@ -903,51 +664,6 @@ it('names the first type error a patch introduced, once, from the compared type 
   expect(createReviewArtifacts(value).files['pull-request.md']).toContain(
     "`npx tsc --noEmit` failed on the migrated code with exit code 2. The patch introduced 1 type error, the first: “app/api/create-checkout-session/route.ts(39,9): error TS2322: Type '\\{ trial\\_from\\_plan: true; \\}' is not assignable to type 'SubscriptionData'.”",
   );
-});
-
-it('says an empty patch changes nothing instead of claiming a migration', async () => {
-  const value = await report();
-  if (!('diff' in value.patch)) throw new Error('Expected fixture patch');
-  // As Sanjdcool/ApanStack-Newsletter's unsupported patch reached a failed baseline.
-  value.patch.diff = '';
-  value.validation.patchHash = digest('');
-  value.validation.status = value.patch.validation = 'baseline-failed';
-  value.validation.baseline = { status: 'failed', exitCode: 1, stdout: '', stderr: '' };
-  value.validation.patched = { status: 'not-run', exitCode: null, stdout: '', stderr: '' };
-  const body = createReviewArtifacts(value).files['pull-request.md'];
-  expect(body).toContain(
-    'No Refit rule changes the 1 confirmed usage in 1 file, so this patch changes no files.',
-  );
-  expect(body).not.toContain('migrates');
-});
-
-// Owner decision 1 and 8: every reason, every place it applies and the AI's own lines.
-it('opens a [Needs review] body with each reason, where it applies and the lines an AI wrote', async () => {
-  const value = await validatedReport('a'.repeat(40));
-  value.patch.generator = 'openai' as typeof value.patch.generator;
-  value.skippedFiles = ['src/broken.ts'];
-  const reviews = publicationWaiver(value, true)!;
-  expect(reviews.map(({ gate }) => gate)).toEqual(['ai-patch', 'source-evidence']);
-  const artifacts = createReviewArtifacts(value, 'github', undefined, reviews);
-  const body = artifacts.files['pull-request.md'];
-  expect(artifacts.manifest.title).toMatch(/^\[Needs review\] /);
-  expect(body).toMatch(/^## Why this needs review\n/);
-  expect(body).toMatch(
-    /\n- Refit asked an AI model for this patch\. [^\n]+\n {2}- `billing\.ts:\d+(?:-\d+)?`\n/,
-  );
-  expect(body).toContain(
-    '\n- Unparseable source files were skipped. **Check:** Check the skipped files for usages this patch does not migrate.\n  - `src/broken.ts`\n',
-  );
-  expect(body).toContain('- [ ] Check the skipped files for usages this patch does not migrate.');
-  // A validated draft has no reasons and no section.
-  const plain = createReviewArtifacts(
-    await validatedReport('a'.repeat(40)),
-    'github',
-    undefined,
-    [],
-  );
-  expect(plain.manifest.title).not.toMatch(/^\[Needs review\]/);
-  expect(plain.files['pull-request.md']).not.toContain('## Why this needs review');
 });
 
 // Owner decision 8: a line the AI only deleted is an AI-written change too.

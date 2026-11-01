@@ -1,6 +1,5 @@
 import { expect, it } from 'vitest';
 import { analyzeRepository } from './analyzer.ts';
-import { applySourceEdits } from './patches.ts';
 
 const change = {
   id: 'removed',
@@ -32,46 +31,6 @@ function repository(extra: Record<string, string> = {}) {
     warnings: [],
   };
 }
-
-it.each([false, true])(
-  'traces a transparent imported wrapper and migrates its guarded history, reverse=%s',
-  (reverse) => {
-    const input = repository();
-    if (reverse) input.files.reverse();
-    const result = analyzeRepository(input, [change]);
-    expect(result.findings).toHaveLength(2);
-    expect(result.findings.every((finding) => finding.confidence === 'confirmed')).toBe(true);
-    expect(result.edits).toHaveLength(1);
-    const migrated = {
-      ...input,
-      files: input.files.map((file) => ({
-        ...file,
-        content: applySourceEdits(
-          file.content,
-          result.edits.filter((edit) => edit.file === file.path),
-        ),
-      })),
-    };
-    const content = migrated.files.find((file) => file.path === 'history.ts')!.content;
-    expect(content).toContain('from "./client.ts"');
-    expect(content).toContain('await retrieve(id)');
-    expect(content).toContain(
-      'for await (const refitCharge of refitStripe.charges.list({ payment_intent: payment.id }))',
-    );
-    expect(analyzeRepository(migrated, [change]).findings).toEqual([]);
-  },
-);
-
-it('does not treat passing SDK call results to assertions as client mutation', () => {
-  const result = analyzeRepository(
-    repository({
-      'test.ts': `import {stripe} from './client.ts'; import {retrieve} from './payments.ts'; assert.rejects(stripe.refunds.create({})); assert.rejects(retrieve('missing'));`,
-    }),
-    [change],
-  );
-  expect(result.findings.every((finding) => finding.confidence === 'confirmed')).toBe(true);
-  expect(result.edits).toHaveLength(1);
-});
 
 it.each([
   wrapper.replace('return stripe', 'log(id); return stripe'),

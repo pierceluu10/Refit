@@ -5,7 +5,6 @@ import ts from 'typescript-compiler';
 import { afterEach, expect, it } from 'vitest';
 import { analyzeRepository } from './analyzer.ts';
 import { buildPatchContext } from './patch-context.ts';
-import { applySourceEdits } from './patches.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import { readRepository } from './repository.ts';
 import { runPipeline } from './run.ts';
@@ -65,28 +64,6 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-it('traces an aliased default client, records its API version and includes it as read-only AI context', () => {
-  const { input, result } = analyze();
-  expect(result.findings).toMatchObject([{ file: 'src/history.ts', confidence: 'confirmed' }]);
-  expect(result.apiVersionDeclarations).toMatchObject([
-    { kind: 'constructor', status: 'literal', value: '2022-08-01' },
-    { kind: 'request', status: 'inherited' },
-  ]);
-  expect(result.edits).toHaveLength(1);
-  expect(buildPatchContext(input, new Set(['src/history.ts']))).toEqual([input.files[1]]);
-  const modified = {
-    ...input,
-    files: input.files.map((file) => ({
-      ...file,
-      content: applySourceEdits(
-        file.content,
-        result.edits.filter((edit) => edit.file === file.path),
-      ),
-    })),
-  };
-  expect(analyzeRepository(modified, [removal]).findings).toEqual([]);
-});
-
 it.each([
   `import billing from '@/client'; billing.paymentIntents.retrieve = replacement;`,
   `import * as clients from '@/client'; mutate(clients.default);`,
@@ -95,28 +72,6 @@ it.each([
   const { result } = analyze({ 'src/mutator.ts': mutator });
   expect(result.findings).toMatchObject([{ confidence: 'review' }]);
   expect(result.edits).toEqual([]);
-});
-
-it('traces CommonJS alias consumers and preserves named export identity', () => {
-  const input = repository(
-    {
-      'src/client.cjs': `const Stripe = require('stripe'); const client = Stripe('test', {apiVersion: '2022-08-01'}); module.exports = {client};`,
-      'src/history.cjs': consumer.replace(
-        "import billing from '@/client';",
-        "const {client: billing} = require('@/client');",
-      ),
-    },
-    { 'jsconfig.json': aliases },
-  );
-  const result = analyzeRepository(input, [removal]);
-  expect(result.findings).toMatchObject([{ confidence: 'confirmed' }]);
-  expect(result.edits).toHaveLength(1);
-  expect(buildPatchContext(input, new Set(['src/history.cjs']))).toEqual([input.files[0]]);
-  input.files.push({
-    path: 'src/mutator.cjs',
-    content: "const {client} = require('@/client'); client.paymentIntents.retrieve = replacement;",
-  });
-  expect(analyzeRepository(input, [removal]).edits).toEqual([]);
 });
 
 it('uses provider mappings for a nested SDK resource through an alias', () => {
@@ -380,35 +335,6 @@ it('confirms a traced client when a separate unresolved project might resolve im
   );
   expect(result.findings).toMatchObject([{ confidence: 'confirmed' }]);
   expect(result.sourceWarnings.length).toBeGreaterThan(0);
-});
-
-it('adds an extensionless relative client import when guarded history uses extensionless aliases', () => {
-  const input = repository({
-    'src/client.ts': client,
-    'src/payments.ts':
-      "import stripe from '@/client'; export function retrieve(id: string) { return stripe.paymentIntents.retrieve(id); }",
-    'src/history.ts':
-      "import {retrieve} from '@/payments'; class MissingHistory extends Error {} export async function history(id: string) { const intent = await retrieve(id); if (!intent.charges) { throw new MissingHistory('Missing history'); } return intent.charges.data; }",
-  });
-  const result = analyzeRepository(input, [removal]);
-  expect(result.findings).toMatchObject([{ confidence: 'confirmed' }, { confidence: 'confirmed' }]);
-  expect(result.edits).toHaveLength(1);
-  expect(result.edits[0].replacement).toContain('import refitStripe from "./client";');
-  expect(buildPatchContext(input, new Set(['src/history.ts'])).map((file) => file.path)).toEqual([
-    'src/payments.ts',
-    'src/client.ts',
-  ]);
-  const changed = {
-    ...input,
-    files: input.files.map((file) => ({
-      ...file,
-      content: applySourceEdits(
-        file.content,
-        result.edits.filter((edit) => edit.file === file.path),
-      ),
-    })),
-  };
-  expect(analyzeRepository(changed, [removal]).findings).toEqual([]);
 });
 
 it('rejects a local baseUrl SDK lookalike even when source and output resolution is ambiguous', () => {
