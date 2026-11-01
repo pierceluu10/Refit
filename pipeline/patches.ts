@@ -14,11 +14,6 @@ import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { REQUEST_MOVE_RULES, requestMoveFor } from './request-move-families.ts';
 import { STRIPE_PACK } from './rule-pack.ts';
 import {
-  INVOICE_PREVIEW_RULE,
-  INVOICE_PREVIEW_SOURCE,
-  INVOICE_PREVIEW_WARNING,
-} from './stripe-invoice-preview.ts';
-import {
   CURRENCY_CODE_RULE,
   CURRENCY_CODE_SOURCE,
   ACCOUNT_RETRIEVE_CURRENT_RULE,
@@ -46,15 +41,13 @@ function ruleSources(edits: SourceEdit[]) {
     const url =
       FIELD_MOVE_SOURCES[edit.rule!] ??
       requestMoveFor(edit.rule!)?.source ??
-      (edit.rule === INVOICE_PREVIEW_RULE
-        ? INVOICE_PREVIEW_SOURCE
-        : PAYMENT_METHOD_RENAME_RULES.has(edit.rule!)
-          ? PAYMENT_METHOD_TYPES_CHANGELOG
-          : edit.rule === CURRENCY_CODE_RULE
-            ? CURRENCY_CODE_SOURCE
-            : edit.rule === REQUEST_OPTIONS_RULE
-              ? REQUEST_OPTIONS_SOURCE
-              : undefined);
+      (PAYMENT_METHOD_RENAME_RULES.has(edit.rule!)
+        ? PAYMENT_METHOD_TYPES_CHANGELOG
+        : edit.rule === CURRENCY_CODE_RULE
+          ? CURRENCY_CODE_SOURCE
+          : edit.rule === REQUEST_OPTIONS_RULE
+            ? REQUEST_OPTIONS_SOURCE
+            : undefined);
     if (url) pages.set(url, (pages.get(url) ?? new Set()).add(edit.file));
   }
   return [...pages].map(([url, files]) => ({ url, files: [...files] }));
@@ -117,7 +110,6 @@ export function isFieldMove(edit: SourceEdit) {
     (FIELD_MOVE_SOURCES[edit.rule] ||
       PAYMENT_METHOD_RENAME_RULES.has(edit.rule) ||
       REQUEST_MOVE_RULES.has(edit.rule) ||
-      edit.rule === INVOICE_PREVIEW_RULE ||
       edit.rule === CURRENCY_CODE_RULE ||
       edit.rule === REQUEST_OPTIONS_RULE ||
       edit.rule === ACCOUNT_RETRIEVE_CURRENT_RULE),
@@ -273,13 +265,11 @@ export function proposePatch(
   const parameterMoves = requestMoves.some(
     (rule) => requestMoveFor(rule)!.family !== 'request-enum-value',
   );
-  const preview = fieldMoves.some((edit) => edit.rule === INVOICE_PREVIEW_RULE);
   const currency = fieldMoves.some((edit) => edit.rule === CURRENCY_CODE_RULE);
   const requestOptions = fieldMoves.some((edit) => edit.rule === REQUEST_OPTIONS_RULE);
   const accountCurrent = fieldMoves.some((edit) => edit.rule === ACCOUNT_RETRIEVE_CURRENT_RULE);
   // Request-side rules, with the reads and renames that share their patch.
   const requestSummary = [
-    preview ? 'replace the removed upcoming invoice call with invoices.createPreview' : '',
     parameterMoves ? 'move removed Stripe request parameters to their documented replacements' : '',
     enumValues ? 'replace removed Stripe request enum values with their documented successors' : '',
     reads.length ? 'move removed field reads to their documented new locations' : '',
@@ -328,7 +318,7 @@ export function proposePatch(
     return {
       generator: 'deterministic' as const,
       summary:
-        requestMoves.length || preview || currency || requestOptions || accountCurrent
+        requestMoves.length || currency || requestOptions || accountCurrent
           ? `${requestSummary[0].toUpperCase()}${requestSummary.slice(1)} and update the pinned Stripe API version.`
           : !cardRename
             ? 'Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.'
@@ -352,7 +342,6 @@ export function proposePatch(
         ...listedWarnings,
         ...movedWarnings,
         ...requestMoves.map((rule) => requestMoveFor(rule)!.warning),
-        ...(preview ? [INVOICE_PREVIEW_WARNING] : []),
         ...(currency ? [CURRENCY_CODE_WARNING] : []),
         ...(requestOptions ? [REQUEST_OPTIONS_WARNING] : []),
         ...(accountCurrent ? [ACCOUNT_RETRIEVE_CURRENT_WARNING] : []),

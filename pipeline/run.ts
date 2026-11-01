@@ -1,11 +1,13 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   assessmentReviewReason,
   migrationReviewReasons,
-  reviewBlocksAi,
   unresolvedSites,
 } from './migration-review.ts';
 import type { AiOptions } from './ai-budget.ts';
 import { analyzeRepository } from './analyzer.ts';
+import type { proposeAiPatch } from './ai-patches.ts';
 import {
   annotateReach,
   currencyCodeEdits,
@@ -18,7 +20,7 @@ import {
   requestOptionEdits,
 } from './operation-reach.ts';
 import { measureCoverage } from './sdk-coverage.ts';
-import { proposeAiPatch } from './ai-patches.ts';
+import { stripeHandOff } from './stripe-agent.ts';
 import { assessMigration, buildAssessmentEvidence } from './assessment.ts';
 import {
   applySourceEdits,
@@ -35,9 +37,8 @@ import {
   STRIPE_SDK_RELEASES,
   stripePackageUpgrade,
 } from './stripe-package-upgrade.ts';
-import { INVOICE_PREVIEW_RULE, invoicePreviewMove } from './stripe-invoice-preview.ts';
 import { REQUEST_MOVE_RULES } from './request-move-families.ts';
-import { STRIPE_PACK } from './rule-pack.ts';
+import { STRIPE_PACK, STRIPE_RULE_TABLES } from './rule-pack.ts';
 import { propertyExists, withoutRenamedSchemaRemovals } from './stripe-field-moves.ts';
 import { readRepository } from './repository.ts';
 import {
@@ -81,7 +82,13 @@ import {
   validateApiVersionPolicy,
   type ApiVersionPolicy,
 } from './api-version.ts';
-import { PipelineInputError, type Finding, type Repository, type SourceEdit } from './types.ts';
+import {
+  PipelineInputError,
+  type Finding,
+  type Removal,
+  type Repository,
+  type SourceEdit,
+} from './types.ts';
 import { digest, findRemovedProperties, isObject, readSpecification } from './specifications.ts';
 import { shopifySnapshotPath } from './shopify-schemas.ts';
 import { stripeAdapterFor } from './stripe-operations.ts';
@@ -234,10 +241,12 @@ async function runOpenApiPipeline(options: {
   const parameterRemovals = removedRequestParameters(provider, before.document, after.document, {
     keepListedPaymentMethods: options.keepListedPaymentMethods,
   });
+  const upcoming = (document: Record<string, unknown>) =>
+    isObject(document.paths) && '/v1/invoices/upcoming' in document.paths;
   const invoicePreview =
-    provider.packageName === STRIPE.packageName
-      ? invoicePreviewMove(before.document, after.document)
-      : undefined;
+    provider.packageName === STRIPE.packageName &&
+    upcoming(before.document) &&
+    !upcoming(after.document);
   const {
     edits: scannedEdits,
     apiVersionDeclarations: declaredVersions,
@@ -384,21 +393,18 @@ async function runOpenApiPipeline(options: {
   // allowed_payment_method_types. Without a patch request (validation preflight, scans) only the
   // pin is checked: the registry lookup for the upgrade runs when the patch is generated, and a
   // failed upgrade stops that run.
-  // The mined request moves follow the same rule. stripe-node has invoices.createPreview only from
-  // 15.6.0, so that rewrite needs the upgrade in JavaScript too.
+  // The mined request moves follow the same rule.
   const patchRequested = Boolean(options.proposePatch || options.aiPatch);
-  const preview = analyzedEdits.some((edit) => edit.rule === INVOICE_PREVIEW_RULE);
   const cardUpgrade =
     patchRequested &&
     analyzedEdits.some(
       (edit) =>
         PAYMENT_METHOD_RENAME_RULES.has(edit.rule ?? '') ||
         REQUEST_MOVE_RULES.has(edit.rule ?? '') ||
-        edit.rule === INVOICE_PREVIEW_RULE ||
         SDK_SIGNATURE_RULES.has(edit.rule ?? ''),
     ) &&
     (bumpsVersion || sdkDefault) &&
-    (upgradeRequired || preview) &&
+    upgradeRequired &&
     typeof targetVersion === 'string'
       ? await stripePackageUpgrade(
           repository.root,
@@ -479,13 +485,13 @@ async function runOpenApiPipeline(options: {
   movedTo[LISTED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   movedTo[MOVED_PAYMENT_METHODS_RULE] = movedTo[CARD_PAYMENT_METHOD_RULE];
   for (const rule of REQUEST_MOVE_RULES) movedTo[rule] = movedTo[CARD_PAYMENT_METHOD_RULE];
-  movedTo[INVOICE_PREVIEW_RULE] =
-    bumpsVersion &&
-    everyPinReaches &&
-    (!patchRequested || upgraded) &&
-    !configuredMigrationProposal;
   // Request options move only together with the stripe-node release that needs them last.
-  for (const rule of SDK_SIGNATURE_RULES) movedTo[rule] = movedTo[INVOICE_PREVIEW_RULE];
+  for (const rule of SDK_SIGNATURE_RULES)
+    movedTo[rule] =
+      bumpsVersion &&
+      everyPinReaches &&
+      (!patchRequested || upgraded) &&
+      !configuredMigrationProposal;
   // The period helper reads either API version, so it does not depend on the version pin.
   const kept = [
     ...analyzedEdits.filter(
@@ -528,10 +534,6 @@ async function runOpenApiPipeline(options: {
   for (const finding of analysis.findings)
     if (finding.requestParameter && editCovers(repository, kept, finding))
       delete finding.requestParameter;
-  // So does the removed upcoming invoice call a kept createPreview rewrite covers.
-  for (const finding of analysis.findings)
-    if (finding.changeId === INVOICE_PREVIEW_RULE && editCovers(repository, kept, finding))
-      delete finding.contractReview;
   // Owner decision 1 (2026-10-24): a finding that needs review is never edited. The rules' patch
   // goes around it, and the draft lists it with its reason.
   const reviewed = options.leaveReviewedFindings
@@ -640,11 +642,7 @@ async function runOpenApiPipeline(options: {
     { configured: Boolean(provider.apiVersion), declarations: apiVersionDeclarations },
     policy,
   );
-  if (
-    (options.requireApiVersionMatch && apiVersion.applicability !== 'matches-before') ||
-    (apiVersionSourceBlocked(apiVersion, options.leaveReviewedFindings) &&
-      (options.aiPatch || options.assessment))
-  )
+  if (options.requireApiVersionMatch && apiVersion.applicability !== 'matches-before')
     throw new PipelineInputError(`Automated work is blocked. ${apiVersion.reason}`);
   const reviewableBreakingChanges = unmappedBreakingChanges(
     specificationDiff,
@@ -691,23 +689,8 @@ async function runOpenApiPipeline(options: {
         : provider.id === STRIPE.id
           ? 'no-stripe-signal'
           : 'no-provider-signal';
-  // AI receives every confirmed finding no rule covers, webhook payload reads included.
-  const aiFindings = analysis.findings.filter(
-    (finding) => finding.confidence === 'confirmed' && !editCovers(repository, ruleEdits, finding),
-  );
   const reviewEvidence = { findings: analysis.findings, skippedFiles, adapter: provider };
-  const useAi =
-    Boolean(options.aiPatch) &&
-    !configuredMigrationProposal &&
-    (aiFindings.length > 0 || operationImpacts.length > 0) &&
-    !(
-      options.leaveReviewedFindings &&
-      (reviewBlocksAi({ ...reviewEvidence, operationImpacts }) ||
-        apiVersion.source.status === 'conflict')
-    );
-  const deterministicRequested =
-    options.proposePatch ||
-    (options.aiPatch && !useAi && (configuredMigrationProposal || ruleEdits.length > 0));
+  const deterministicRequested = options.proposePatch || options.aiPatch;
   const patchedRepository = deterministicRequested && {
     ...repository,
     files: repository.files.map((file) => ({
@@ -739,18 +722,12 @@ async function runOpenApiPipeline(options: {
         ),
       ).findings
     : [];
-  const reviews = migrationReviewReasons(reviewEvidence, true, true, useAi).map(
-    (entry) => entry.reason,
-  );
-  // Under decision 1 every reason is recorded and none stops the rules' patch.
-  const reviewReason = options.leaveReviewedFindings ? undefined : reviews[0];
+  const reviews = migrationReviewReasons(reviewEvidence, true, true).map((entry) => entry.reason);
   const advisoryReviewReason = assessmentReviewReason({
     findings: analysis.findings,
     skippedFiles,
   });
-  if (useAi && !operationImpacts.length && !reviewReason)
-    options.onProgress?.('Requesting an AI migration proposal...');
-  else if (deterministicRequested && !reviewReason)
+  if (deterministicRequested)
     options.onProgress?.('Generating a deterministic migration proposal...');
   const versionBump =
     options.versionBump &&
@@ -814,71 +791,42 @@ async function runOpenApiPipeline(options: {
           ruleEdits: [...versionEdits, ...optionEdits],
         }
       : undefined;
-  const patch = reviewReason
-    ? { status: 'not-generated' as const, reason: reviewReason! }
-    : versionBumpStop
-      ? versionBumpStop
-      : versionBumpPatch
-        ? versionBumpPatch
-        : useAi
-          ? operationImpacts.length
-            ? {
-                status: 'not-generated' as const,
-                reason:
-                  'AI generation is blocked because the adapter maps code to unresolved breaking API changes without a verified migration rule.',
-              }
-            : await proposeAiPatch(
-                repository,
-                changes,
-                analysis.findings,
-                options.aiPatch!,
-                provider,
-                before.schemas,
-                undefined,
-                options.documentationSnapshots,
-                after.schemas,
-                [...ruleEdits, ...versionEdits],
-                undefined,
-                parameterRemovals,
-              )
-          : deterministicRequested
-            ? {
-                ...proposePatch(
-                  repository,
-                  movesVersion
-                    ? [...edits, ...versionEdits]
-                    : edits.filter((edit) => !SDK_SIGNATURE_RULES.has(edit.rule ?? '')),
-                  unresolvedFindings.length,
-                  provider,
-                  replacements,
-                  requestRenames,
-                ),
-                ...(unresolvedFindings.length
-                  ? { unresolvedSites: unresolvedSites(unresolvedFindings) }
-                  : {}),
-                // AI repairs start again from the original code and must keep these rule edits.
-                ...(movesVersion ? { ruleEdits: [...ruleEdits, ...versionEdits] } : {}),
-                ...(options.keepApiVersion ? { keptApiVersion: true as const } : {}),
-                ...(options.pinBlocked ? { pinBlocked: options.pinBlocked } : {}),
-              }
-            : {
-                status: 'not-generated' as const,
-                reason:
-                  'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
-              };
+  const patch = versionBumpStop
+    ? versionBumpStop
+    : versionBumpPatch
+      ? versionBumpPatch
+      : deterministicRequested
+        ? {
+            ...proposePatch(
+              repository,
+              movesVersion
+                ? [...edits, ...versionEdits]
+                : edits.filter((edit) => !SDK_SIGNATURE_RULES.has(edit.rule ?? '')),
+              unresolvedFindings.length,
+              provider,
+              replacements,
+              requestRenames,
+            ),
+            ...(unresolvedFindings.length
+              ? { unresolvedSites: unresolvedSites(unresolvedFindings) }
+              : {}),
+            // AI repairs start again from the original code and must keep these rule edits.
+            ...(movesVersion ? { ruleEdits: [...ruleEdits, ...versionEdits] } : {}),
+            ...(options.keepApiVersion ? { keptApiVersion: true as const } : {}),
+            ...(options.pinBlocked ? { pinBlocked: options.pinBlocked } : {}),
+          }
+        : {
+            status: 'not-generated' as const,
+            reason:
+              'This pipeline produces impact evidence. It does not modify repositories or execute their code.',
+          };
   // TypeScript projects need the stripe-node release for the new API version: its apiVersion
   // literal type and the moved fields' types. An SDK-pinned version moves only with the upgrade.
   // The upgrade is added only when the patch bumps the version.
   const bumpedVersion =
-    versionBumped &&
-    'diff' in patch &&
-    patch.status === 'proposed' &&
-    'generator' in patch &&
-    (patch.generator === 'openai' || movesVersion);
+    versionBumped && 'diff' in patch && patch.status === 'proposed' && movesVersion;
   const upgrade =
-    bumpedVersion &&
-    (upgradeRequired || ruleEdits.some((edit) => edit.rule === INVOICE_PREVIEW_RULE)) &&
-    typeof targetVersion === 'string'
+    bumpedVersion && upgradeRequired && typeof targetVersion === 'string'
       ? (cardUpgrade ??
         (await stripePackageUpgrade(
           repository.root,
@@ -898,7 +846,6 @@ async function runOpenApiPipeline(options: {
     movesVersion &&
     versionEdits.length > 0 &&
     'generator' in patch &&
-    patch.generator !== 'openai' &&
     !/ is already (?:locked|declared)\.$/.test(upgrade.reason) &&
     // With several root lockfiles, validation chooses one (chosenLockfile) and upgrades that one
     // alone; until it has, a refusal of them all together does not hold the pin.
@@ -938,19 +885,6 @@ async function runOpenApiPipeline(options: {
             ],
           }
       : patch;
-  // Webhook reads the AI rewrote for both payload versions count as migrated.
-  if ('migratedWebhookFindings' in patch)
-    for (const finding of analysis.findings)
-      if (
-        finding.webhook &&
-        patch.migratedWebhookFindings.some(
-          (location) =>
-            location.file === finding.file &&
-            location.line === finding.line &&
-            location.column === finding.column,
-        )
-      )
-        finding.webhook.migration = { rule: 'ai-version-tolerant' };
   const endpointPatch =
     movedEndpointPins.length &&
     'diff' in upgradedPatch &&
@@ -984,6 +918,94 @@ async function runOpenApiPipeline(options: {
       lockfiles: repository.lockfiles,
     }),
   );
+  // The gut plan (docs/GUT-PLAN.md): no Stripe stop ends the run. With AI on, every stop and
+  // finding the rules leave goes to the agent fixer, starting from the rules' patch.
+  const leftOver = [
+    ...reviews,
+    ...(versionBumpStop ? [versionBumpStop.reason] : []),
+    ...(options.pinBlocked ? [`stripe-node could not be upgraded: ${options.pinBlocked}`] : []),
+    ...(apiVersion.applicability === 'matches-before' ? [] : [apiVersion.reason]),
+    ...[...analysis.findings, ...unresolvedFindings]
+      .filter(
+        (finding) => finding.confidence === 'review' || !editCovers(repository, edits, finding),
+      )
+      .map(
+        (finding) => `${finding.file}:${finding.line}: ${finding.expression}: ${finding.reason}`,
+      ),
+    ...operationImpacts.flatMap((impact) =>
+      impact.usages.map(
+        (usage) => `${usage.file}:${usage.line}: ${JSON.stringify(impact).slice(0, 300)}`,
+      ),
+    ),
+  ];
+  const agent =
+    options.aiPatch &&
+    provider.packageName === STRIPE.packageName &&
+    typeof targetVersion === 'string' &&
+    leftOver.length
+      ? await cachedAgent(
+          `${repositoryHash}:${targetVersion}:${'diff' in completePatch ? digest(completePatch.diff) : ''}`,
+          () =>
+            stripeHandOff({
+              repository: repository.root,
+              patch: 'diff' in completePatch ? completePatch.diff : null,
+              target: targetVersion,
+              change: stripeChangeText(changes, before.document, targetVersion),
+              context: [...new Set(leftOver)].join('\n').slice(0, 40_000),
+              judge: async (directory) => {
+                const findings = await rescanFindings({
+                  ...options,
+                  repository: directory,
+                  proposePatch: false,
+                  aiPatch: undefined,
+                  assessment: undefined,
+                  requireApiVersionMatch: false,
+                  versionBump: false,
+                  typeCheckedPeriodReads: undefined,
+                });
+                const errors = [
+                  ...findings.map(
+                    (finding) => `${finding.file}:${finding.line}: ${finding.reason}`,
+                  ),
+                  ...droppedPaymentMethodTypes(repository, directory),
+                ];
+                return { passed: errors.length === 0, errors };
+              },
+            }),
+        )
+      : undefined;
+  const agentPatch =
+    agent?.patch && (agent.outcome === 'passed' || agent.outcome === 'unproven')
+      ? {
+          // The codebase's label for an AI-written patch; the agent is Claude (agent-fix.ts).
+          generator: 'openai' as const,
+          summary: `Migrate the Stripe integration to ${String(targetVersion)}. ${agent.outcome === 'passed' ? "Refit's Stripe judges pass on the result." : "Refit's Stripe judges still report problems, listed below."}`,
+          status: 'proposed' as const,
+          edits: (agent.patch.match(/^diff --git /gm) ?? []).length,
+          unresolvedFindings: agent.outcome === 'passed' ? 0 : agent.errors.length,
+          diff: agent.patch,
+          validation: 'not-run',
+          ruleEdits: [...edits, ...versionEdits],
+          agent: {
+            outcome: agent.outcome,
+            summary: agent.summary,
+            errors: agent.errors,
+            costUsd: agent.costUsd,
+          },
+          warnings: [
+            `An AI agent wrote this patch on top of Refit's rules. What it says it changed: ${agent.summary || 'no summary.'}`,
+            ...(agent.outcome === 'unproven'
+              ? [`Refit's Stripe judges still report: ${agent.errors.join(' ')}`]
+              : []),
+          ],
+          unresolvedSites: [] as ReturnType<typeof unresolvedSites>,
+        }
+      : undefined;
+  // validation.ts (GUT5) still writes single-shot AI repairs into this report's patch.
+  const finalPatch = (agentPatch ?? completePatch) as
+    | typeof completePatch
+    | NonNullable<typeof agentPatch>
+    | Awaited<ReturnType<typeof proposeAiPatch>>;
   return {
     formatVersion: 1,
     provider: provider.id,
@@ -1086,8 +1108,71 @@ async function runOpenApiPipeline(options: {
       status === 'affected'
         ? 'Review migration semantics, generate a patch, then validate in an isolated environment.'
         : 'Review unsupported patterns and API version applicability before deciding impact.',
-    patch: completePatch,
+    patch: finalPatch,
   };
+}
+
+// The judge's rescan of the agent's tree, typed apart so the pipeline's own type is not circular.
+async function rescanFindings(
+  options: Parameters<typeof runOpenApiPipeline>[0],
+): Promise<Finding[]> {
+  return (await runOpenApiPipeline(options)).findings;
+}
+
+// `refit run` proposes the patch in its scan and again in validation, on a copy of the same commit;
+// both get the one agent run, so it is paid for once.
+const agentRuns = new Map<string, ReturnType<typeof stripeHandOff>>();
+function cachedAgent(key: string, run: () => ReturnType<typeof stripeHandOff>) {
+  if (!agentRuns.has(key))
+    agentRuns.set(
+      key,
+      run().catch((error: unknown) => ({
+        outcome: 'failed' as const,
+        diff: '',
+        errors: [
+          `The agent fixer could not run: ${error instanceof Error ? error.message : String(error)}`,
+        ],
+        summary: '',
+        costUsd: 0,
+        patch: '',
+      })),
+    );
+  return agentRuns.get(key)!;
+}
+
+// The removed fields and the quoted Stripe rules between the two versions, for the agent's `change`.
+function stripeChangeText(changes: Removal[], before: Record<string, unknown>, target: string) {
+  const from = isObject(before.info) ? String(before.info.version) : '';
+  const rules = STRIPE_RULE_TABLES.filter(
+    (table) => table.version > from && table.version <= target,
+  ).flatMap((table) =>
+    table.rules.map((rule) => `- ${table.version} ${rule.rule}: "${rule.quote}" (${rule.source})`),
+  );
+  return [
+    `Move the Stripe integration from API version ${from} to ${target}, upgrading stripe-node with it.`,
+    ...(changes.length
+      ? [
+          'Fields the target removes:',
+          ...changes.map((change) => `- ${change.schema}.${change.property}`),
+        ]
+      : []),
+    ...(rules.length ? ["Stripe's changelog entries Refit has quoted:", ...rules] : []),
+    'Never drop payment_method_types: move it to allowed_payment_method_types or leave it.',
+  ].join('\n');
+}
+
+// The payment-method guard: every payment_method_types the original sends is still sent (moving it
+// to allowed_payment_method_types keeps the name inside it).
+function droppedPaymentMethodTypes(original: Repository, directory: string) {
+  const count = (text: string) => text.match(/payment_method_types/g)?.length ?? 0;
+  return original.files.flatMap((file) => {
+    const before = count(file.content);
+    const path = join(directory, file.path);
+    const after = before && existsSync(path) ? count(readFileSync(path, 'utf8')) : 0;
+    return after < before
+      ? [`${file.path}: the patch drops payment_method_types; Refit never drops it.`]
+      : [];
+  });
 }
 
 export type PipelineReport = Awaited<ReturnType<typeof runOpenApiPipeline>>;

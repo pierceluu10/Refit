@@ -17,7 +17,6 @@ import { removedRequestParameters } from './request-removals.ts';
 import { findRemovedProperties, isObject, parseSpecificationInput } from './specifications.ts';
 import { repositoryAdapter, stripeOperations } from './stripe-benchmark.ts';
 import { withoutRenamedSchemaRemovals } from './stripe-field-moves.ts';
-import { invoicePreviewMove } from './stripe-invoice-preview.ts';
 import type { Repository } from './types.ts';
 
 // The Stripe breaking-change catalog (docs/benchmarks/stripe-changelog/catalog/<version>/<slug>.json):
@@ -896,7 +895,7 @@ function scan(code: string, oasdiff: Record<string, unknown>[] = []) {
     [],
     removals,
     {
-      invoicePreview: invoicePreviewMove(before.document, after.document),
+      invoicePreview: true,
     },
   );
   const diff = {

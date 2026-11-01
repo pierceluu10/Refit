@@ -1,6 +1,5 @@
 import { execFile } from 'node:child_process';
 import { signedEventSummary } from './signed-events.ts';
-import { emptySignatures, readJson, signatureSummary, SIGNATURES } from './learning.ts';
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -988,9 +987,6 @@ await Promise.all(
 );
 assertResults('stripe-results', results);
 await writeFile(join(output, 'results.json'), json(results));
-await writeFile(
-  join(output, 'summary.md'),
-  `${summaryTable(results)}\n${signatureSummary(results, readJson(SIGNATURES, emptySignatures))}`,
-);
+await writeFile(join(output, 'summary.md'), `${summaryTable(results)}\n`);
 console.log(`Results: ${join(output, 'results.json')}`);
 console.log(`Summary: ${join(output, 'summary.md')}`);

@@ -24,11 +24,6 @@ import {
   untracedRemovedParameters,
 } from './request-migration.ts';
 import { requestMoveEdit } from './request-move-families.ts';
-import {
-  INVOICE_PREVIEW_RULE,
-  invoicePreviewEdits,
-  type InvoicePreviewMove,
-} from './stripe-invoice-preview.ts';
 import type { RequestParameterRemoval } from './request-removals.ts';
 import { StripeTypes } from './stripe-types.ts';
 import {
@@ -270,6 +265,8 @@ function buildAnalysisProgram(repository: Repository) {
 export const UNPROVEN_RECEIVER_REASON =
   'Receiver or property cannot be proven by the supported local analysis; inspect manually.';
 
+export const INVOICE_PREVIEW_RULE = 'stripe-invoice-create-preview';
+
 export function analyzeRepository(
   repository: Repository,
   changes: Removal[],
@@ -282,7 +279,7 @@ export function analyzeRepository(
   // For review-only callers: also trace the SDK package where the importing file's tsconfig or
   // jsconfig is unverified, so a caller can report those calls for review instead of missing
   // them. Analyses that can lead to edits keep the default, which treats them as unknown imports.
-  // `invoicePreview`: the contract-checked move of Stripe's removed upcoming invoice call.
+  // `invoicePreview`: the contracts remove Stripe's upcoming invoice call.
   // `typeCheckedPeriodReads`: where validation's patched type check rejected a `current_period_*`
   // read on Subscription (file and offset of the property name); those reads take the period helper.
   // `modelFixClients`: trace only the client shapes the model-fix edits were decided on (AGENTS.md),
@@ -296,7 +293,7 @@ export function analyzeRepository(
     typedClients?: TypedClient[];
     typeProvenReads?: { file: string; line: number; column: number; changeId: string }[];
     traceUnverifiedPackageImports?: boolean;
-    invoicePreview?: InvoicePreviewMove;
+    invoicePreview?: boolean;
     typeCheckedPeriodReads?: { file: string; position: number }[];
     modelFixClients?: boolean;
   } = {},
@@ -1439,8 +1436,7 @@ export function analyzeRepository(
             : 'The target API version no longer accepts this request parameter, and no reviewed replacement exists; removing or replacing it changes request behavior.',
       });
     }
-    // Stripe's removed upcoming invoice call (stripe-invoice-preview.ts). It stops for review
-    // unless run.ts keeps the createPreview edit, which then covers the finding.
+    // Stripe's removed upcoming invoice call goes to the agent fixer.
     if (
       options.invoicePreview &&
       provider.packageName === STRIPE.packageName &&
@@ -1448,25 +1444,13 @@ export function analyzeRepository(
       call.method === 'retrieveUpcoming' &&
       ts.isPropertyAccessExpression(node.expression)
     ) {
-      const confirmed = requestClient(call);
-      const planned = confirmed ? invoicePreviewEdits(node, options.invoicePreview) : undefined;
-      if (Array.isArray(planned))
-        for (const edit of planned)
-          edits.push({
-            file: location(node).file,
-            ...edit,
-            changeId: INVOICE_PREVIEW_RULE,
-            rule: INVOICE_PREVIEW_RULE,
-          });
       const reason =
-        planned && !Array.isArray(planned)
-          ? planned.reason
-          : 'Stripe 2025-03-31.basil removed the upcoming invoice API (invoices.retrieveUpcoming) in favour of invoices.createPreview; this call needs review.';
+        'Stripe 2025-03-31.basil removed the upcoming invoice API (invoices.retrieveUpcoming) in favour of invoices.createPreview; this call needs review.';
       findings.push({
         ...location(node.expression.name),
         changeId: INVOICE_PREVIEW_RULE,
         expression: 'invoices.retrieveUpcoming',
-        confidence: confirmed ? 'confirmed' : 'review',
+        confidence: requestClient(call) ? 'confirmed' : 'review',
         ...helperEvidence(call.client),
         contractReview: reason,
         reason,
