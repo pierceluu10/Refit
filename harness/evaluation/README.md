@@ -62,6 +62,24 @@ builds are why the kickoff now tells the agent to register a variant of a failin
 supplies a placeholder (`OPENAI_API_KEY=placeholder npm run build`), so the check can prove the
 edit.
 
+### $0 rehearsal of the verified path on commitgpt
+
+A scripted agent replayed round 1's commitgpt diff through the real harness, the Docker sandbox and
+the OpenAI tool pack: `install` ran `npx -y npm@8`, typecheck and build passed before and after,
+`openai_sdk_migration` found the v3 call shapes before the edit and none after, and the run graded
+**verified**. It also showed two things:
+
+- **Validator grading had holes.** Reports of problems from `openai_sdk_migration` (old SDK shapes
+  found) and `openai_check_request` (a legacy endpoint) were graded as passing, as were bad inputs
+  to the Stripe, Shopify and OpenAI checkers. Fixed in this PR; the same outputs now fail.
+- **Round 1's diff is right for this task but leaves a second change open.** `openai_check_request`
+  reports that Completions is a legacy endpoint whose models (`gpt-3.5-turbo-instruct`,
+  `babbage-002`, `davinci-002`) were shut down on 2026-09-28, per the pack's deprecations snapshot.
+  commitgpt still calls `completions.create` with a user-configured model, so after the v4 bump it
+  calls an endpoint with no models left. That's a separate change and task (moving `getAnswer` to
+  Chat Completions or Responses), but a real run's PR should say so under Unproven. Whether it does
+  is part of this task's hand-check.
+
 ### $0 checks of the lockfile change
 
 A scripted fake agent (no model) bumped one dependency and called `install` in the Docker sandbox,
