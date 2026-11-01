@@ -28,7 +28,19 @@
       "target": { "type": "string" },
       "latestNeedsSdkUpgrade": { "type": "boolean" },
       "outcome": {
-        "enum": ["no-admin-usage", "current", "current-for-sdk", "stopped", "patched", "error"]
+        "enum": [
+          "no-admin-usage",
+          "current",
+          "current-for-sdk",
+          "stopped",
+          "unpatched",
+          "patched",
+          "error"
+        ]
+      },
+      "result": {
+        "description": "The gut plan's four outcomes (docs/GUT-PLAN.md): validated, needs-review, no-change or infrastructure.",
+        "enum": ["validated", "needs-review", "no-change", "infrastructure"]
       },
       "onNewestReachable": { "type": "boolean" },
       "error": { "type": "string" },

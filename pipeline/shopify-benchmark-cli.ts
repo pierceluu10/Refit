@@ -38,7 +38,6 @@ const VALIDATION_IMAGE = 'node:22-alpine';
 const PLACEHOLDER_TEST = /no test specified/;
 const VALIDATION_TIMEOUT_MS = 20 * 60 * 1000;
 const CODEGEN_CONFIG = /(?:^|\/)\.graphqlrc\.[cm]?[jt]s$/;
-const SDK_LIMIT = /first ships in|LATEST_API_VERSION is/;
 const LOCKFILE_MANAGERS = [
   ['pnpm-lock.yaml', 'pnpm'],
   ['yarn.lock', 'yarn'],
@@ -250,9 +249,9 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
       };
       shopify: {
         deprecated: string[];
-        ai: unknown[];
-        restAi: unknown[];
         reconstructed?: unknown[];
+        handoff: string[];
+        agent: { outcome: string; costUsd?: number; errors?: string[]; summary?: string };
       };
       apiVersion: { applicability: string };
     };
@@ -270,15 +269,9 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
         finding.contractReview?.includes('already fails'),
       ).length,
       deprecated: report.shopify.deprecated.length,
-      ...(ai
-        ? {
-            ai: {
-              rewrites: report.shopify.ai,
-              rest: report.shopify.restAi,
-              reconstructed: report.shopify.reconstructed ?? [],
-            },
-          }
-        : {}),
+      handoff: report.shopify.handoff,
+      agent: report.shopify.agent,
+      ...(ai ? { ai: { reconstructed: report.shopify.reconstructed ?? [] } } : {}),
       findings: report.findings.map((finding) => ({
         file: finding.file,
         line: finding.line,
@@ -289,20 +282,10 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
     };
     if (report.patch.shopifySdkUpgrade) result.sdkUpgrade = report.patch.shopifySdkUpgrade;
     if (report.patch.diff) await writeFile(join(work, 'proposal.patch'), report.patch.diff);
+    // No stops any more (docs/GUT-PLAN.md): a row without a patch either has nothing to change or
+    // is a hand-off the agent fixer could not patch, which stays for review.
     if (report.patch.status !== 'proposed') {
-      // Pinned to the newest schema Refit has: nothing to move, whatever else the scan reports.
-      result.outcome = pins.length === 1 && pins[0] >= versions.at(-1)! ? 'current' : 'stopped';
-      result.onNewestReachable = Boolean(after && pins.length === 1 && pins[0] >= after);
-      // Already on the newest version the locked SDK can name, and nothing else stops it: moving
-      // further is an SDK upgrade, not a version bump.
-      if (
-        result.outcome === 'stopped' &&
-        result.onNewestReachable &&
-        report.findings.every(
-          (finding) => !finding.contractReview || SDK_LIMIT.test(finding.contractReview),
-        )
-      )
-        result.outcome = 'current-for-sdk';
+      result.outcome = report.shopify.handoff.length ? 'unpatched' : 'current';
       log(`${result.outcome}: ${String(report.patch.reason).slice(0, 100)}`);
       return;
     }
@@ -382,6 +365,15 @@ async function benchmark(entry: (typeof repos)[number], index: number) {
   log(`workflow ${String(outcome.status)}`);
 }
 
+// Exactly one of the gut plan's outcomes per row: only a clone or sandbox failure is infrastructure,
+// and a row Refit touched but did not validate is needs-review, with or without a patch.
+function planOutcome(row: Record<string, unknown>) {
+  if (row.outcomeClass === 'infrastructure') return 'infrastructure';
+  if (row.outcome === 'no-admin-usage' || row.outcome === 'current') return 'no-change';
+  const workflow = row.workflow as { status?: string } | undefined;
+  return workflow?.status === 'validated' ? 'validated' : 'needs-review';
+}
+
 const concurrency = Math.max(1, Number(values.concurrency ?? 1));
 let next = 0;
 await Promise.all(
@@ -404,6 +396,7 @@ await Promise.all(
       await benchmark(entry, index);
       results[index].seconds = Math.round((Date.now() - started) / 1000);
       Object.assign(results[index], classifyRow('shopify-results', results[index]));
+      results[index].result = planOutcome(results[index]);
       await writeFile(join(output, 'results.json'), json(results));
     }
   }),

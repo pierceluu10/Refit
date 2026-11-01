@@ -54,9 +54,9 @@ Accepted as they are:
 - **Billing plans 12.0.0 reads the same way**: every plan an object literal with `lineItems` (no top-level `interval`), or a one-time plan (`interval: BillingInterval.OneTime`). a5be0d0 moved only recurring plans into `lineItems`.
 - **The remix and React Router adapters' `billing` context** (`const { billing } = await authenticate.admin(request)`). Their `billing.check`, `require` and `request` already pass `returnObject: true` to `@shopify/shopify-api` (remix 3.8.2 `server/authenticate/admin/billing/*.mjs`), so 12.0.0's change to `billing.check`'s return value leaves them as they are; remix 4 and 5 and React Router 2 list no billing change.
 
-## What stops for review
+## What goes to the agent fixer
 
-Every stop names the file, line and reason. The citations are the shopify-app-js changelogs and the [v12 migration guide](https://github.com/Shopify/shopify-app-js/blob/main/packages/apps/shopify-api/docs/migrating-to-v12.md), read on 2026-10-22.
+These used to stop the repository. Since the gut plan (docs/GUT-PLAN.md) the codemods' upgrade is still applied, and each of these is handed to the [agent fixer](SHOPIFY.md#agent-fixer), with its file, line and reason as context; a refusal of the upgrade itself (release, lockfile, Prisma) is handed off the same way, and the agent runs the package manager in the sandbox. Every hand-off names the file, line and reason. The citations are the shopify-app-js changelogs and the [v12 migration guide](https://github.com/Shopify/shopify-app-js/blob/main/packages/apps/shopify-api/docs/migrating-to-v12.md), read on 2026-10-22.
 
 | Stop                                                                                                                                                                                                                                                                                            | Source                                                          |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |

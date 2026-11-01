@@ -649,7 +649,7 @@ it('leaves the SDK alone by default and proposes the upgrade with LATEST_API_VER
   expect(fetch).not.toHaveBeenCalled();
   expect(off.patch).toEqual({
     status: 'not-generated',
-    reason: `LATEST_API_VERSION is 2025-07 in ${API} 11.14.1, and only an SDK upgrade changes it. ApiVersion.April26 first ships in 12.3.0, a separate, reviewed SDK upgrade.`,
+    reason: `LATEST_API_VERSION is 2025-07 in ${API} 11.14.1, and only an SDK upgrade changes it. ApiVersion.April26 first ships in 12.3.0, so the SDK must be upgraded with the version.`,
   });
 
   const on = await pipeline({ flag: true });
@@ -736,11 +736,15 @@ it('records why the opted-in upgrade stopped, from the lockfile or from the sour
       confidence: 'review',
     }),
   );
+  // The codemods' upgrade is proposed and the documented break is handed to the agent fixer.
   expect(sourceStop.patch).toMatchObject({
-    status: 'not-generated',
-    reason: `The Shopify SDK upgrade stops for review: getJwt became asynchronous in ${API} 12.0.0 (dc41d09); its callers must await it.`,
+    status: 'proposed',
     shopifySdkUpgrade: { to: '12.3.0' },
   });
+  expect(sourceStop.patch.unresolvedFindings).toBeGreaterThan(0);
+  expect(sourceStop.shopify.handoff).toContain(
+    `The Shopify SDK upgrade stops for review: getJwt became asynchronous in ${API} 12.0.0 (dc41d09); its callers must await it.`,
+  );
 });
 
 it('lets npm re-resolve framework packages an SDK major needs, and keeps nothing else it changes', async () => {

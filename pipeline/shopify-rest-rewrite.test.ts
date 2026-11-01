@@ -1,82 +1,8 @@
-import ts from 'typescript-compiler';
 import { describe, expect, it } from 'vitest';
 import { scanShopify } from './shopify-analysis.ts';
-import { pinnedShopifySchema } from './shopify-schemas.ts';
-import {
-  loadShopifyRestContract,
-  loadShopifyRestRules,
-  rewriteRestCalls,
-  ruleProblems,
-  type RestRule,
-} from './shopify-rest-rewrite.ts';
+import { loadShopifyRestRules, rewriteRestCalls } from './shopify-rest-rewrite.ts';
 
-const schemas = ['2026-01', '2026-10'].map((version) => ({
-  version,
-  schema: pinnedShopifySchema('admin', version).schema,
-}));
-
-// Fixture rules written for these tests; the shipped table is data/shopify-rest-graphql.json.
-const RULES: RestRule[] = [
-  {
-    id: 'shop.get',
-    method: 'GET',
-    path: 'shop.json',
-    resource: { class: 'Shop', operation: 'all' },
-    kind: 'single',
-    envelope: 'shop',
-    root: 'shop',
-    fields: {
-      id: { graphql: 'id', convert: 'gid-number' },
-      name: { graphql: 'name' },
-      domain: { graphql: 'primaryDomain.host' },
-      myshopify_domain: { graphql: 'myshopifyDomain' },
-    },
-  },
-  {
-    id: 'products.list',
-    method: 'GET',
-    path: 'products.json',
-    resource: { class: 'Product', operation: 'all' },
-    kind: 'list',
-    envelope: 'products',
-    root: 'products',
-    fields: {
-      id: { graphql: 'id', convert: 'gid-number' },
-      title: { graphql: 'title' },
-      status: { graphql: 'status', convert: 'lowercase' },
-      tags: { graphql: 'tags', convert: 'join-comma' },
-      variants: {
-        graphql: 'variants(first: 250).nodes',
-        fields: { id: { graphql: 'id', convert: 'gid-number' }, price: { graphql: 'price' } },
-      },
-    },
-  },
-  {
-    id: 'products.get',
-    method: 'GET',
-    path: 'products/{product_id}.json',
-    resource: { class: 'Product', operation: 'find' },
-    kind: 'single',
-    envelope: 'product',
-    root: 'product',
-    arguments: { id: { from: 'path:product_id', type: 'ID!', gid: 'Product' } },
-    fields: { id: { graphql: 'id', convert: 'gid-number' }, title: { graphql: 'title' } },
-  },
-  {
-    id: 'products.count',
-    method: 'GET',
-    path: 'products/count.json',
-    resource: { class: 'Product', operation: 'count' },
-    kind: 'count',
-    envelope: 'count',
-    root: 'productsCount',
-    fields: {},
-  },
-];
-
-const outcome = (result: { status: string; reason?: string }) => result.reason ?? result.status;
-
-function rewrite(content: string, file = 'app/shop.ts', apiMajor?: number, rules = RULES) {
+function trace(content: string, file = 'app/shop.ts') {
   const repository = {
     root: '/repo',
     files: [{ path: file, content }],
@@ -84,43 +10,15 @@ function rewrite(content: string, file = 'app/shop.ts', apiMajor?: number, rules
     lockfiles: [],
     warnings: [],
   };
-  const scan = scanShopify(repository);
-  const results = rewriteRestCalls({
-    file,
-    content,
-    entries: scan.rest,
-    rules,
-    schemas,
-    apiMajor,
-  });
-  const edits = results
-    .flatMap((result) => (result.status === 'rewritten' ? result.edits : []))
-    .sort((a, b) => b.start - a.start);
-  let patched = content;
-  for (const edit of edits)
-    patched = patched.slice(0, edit.start) + edit.replacement + patched.slice(edit.end);
-  const parsed = ts.createSourceFile(file, patched, ts.ScriptTarget.Latest, true);
-  expect((parsed as unknown as { parseDiagnostics: unknown[] }).parseDiagnostics).toEqual([]);
-  return { results, patched };
+  return rewriteRestCalls({ file, content, entries: scanShopify(repository).rest });
 }
 
-// Runs the patched function against a stub transport and returns what the code saw.
-async function run(patched: string, name: string, globals: Record<string, unknown>) {
-  const output = ts.transpileModule(patched, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  }).outputText;
-  const module = { exports: {} as Record<string, (...args: unknown[]) => Promise<unknown>> };
-  new Function('module', 'exports', ...Object.keys(globals), output)(
-    module,
-    module.exports,
-    ...Object.values(globals),
-  );
-  return module.exports[name]();
-}
+const reads = (result: ReturnType<typeof trace>[number]) =>
+  result.trace?.reads.map((read) => read.path.join('.'));
 
-describe('Shopify REST → GraphQL rewrites', () => {
-  it('rewrites a fetch of shop.json and rebuilds only the fields the code reads', async () => {
-    const source = `export async function shopName(shop: string, token: string) {
+describe('Shopify REST call tracing for the contract check', () => {
+  it('traces a fetch of shop.json and the fields the code reads', () => {
+    const [result] = trace(`export async function shopName(shop: string, token: string) {
   const response = await fetch(\`https://\${shop}/admin/api/2024-07/shop.json\`, {
     method: 'GET',
     headers: { 'X-Shopify-Access-Token': token },
@@ -129,178 +27,17 @@ describe('Shopify REST → GraphQL rewrites', () => {
   const data = await response.json();
   return \`\${data.shop.name} \${data.shop.id}\`;
 }
-`;
-    const { results, patched } = rewrite(source);
-    expect(results.map(outcome)).toEqual(['rewritten']);
-    expect(patched).toContain('/admin/api/2024-07/graphql.json');
-    expect(patched).toContain('query RefitRestShopGet { shop { name id } }');
-    expect(patched).not.toContain('2024-07/shop.json');
-    const requests: unknown[] = [];
-    const fetch = async (url: string, init: { body: string; headers: Record<string, string> }) => {
-      requests.push({ url, body: JSON.parse(init.body), headers: init.headers });
-      return new Response(
-        JSON.stringify({ data: { shop: { name: 'Demo', id: 'gid://shopify/Shop/42' } } }),
-      );
-    };
-    const wrapped = patched.replace(
-      'export async function shopName(shop: string, token: string)',
-      'module.exports.shopName = async function (shop = "demo.myshopify.com", token = "t")',
-    );
-    await expect(run(wrapped, 'shopName', { fetch })).resolves.toBe('Demo 42');
-    expect(requests).toMatchObject([
-      {
-        url: 'https://demo.myshopify.com/admin/api/2024-07/graphql.json',
-        headers: { 'X-Shopify-Access-Token': 't', 'Content-Type': 'application/json' },
-      },
-    ]);
-  });
-
-  it('stops when the code reads a field the mapping does not produce', () => {
-    const { results } = rewrite(`export async function plan(shop: string, token: string) {
-  const response = await fetch(\`https://\${shop}/admin/api/2024-07/shop.json\`, { headers: { 'X-Shopify-Access-Token': token } });
-  const { shop: info } = await response.json();
-  return info.plan_name;
-}
 `);
-    expect(results).toMatchObject([
-      { status: 'stopped', reason: expect.stringContaining('shop.plan_name') },
-    ]);
-  });
-
-  it('stops when the whole response leaves the function', () => {
-    const { results } = rewrite(`export async function info(shop: string, token: string) {
-  const response = await fetch(\`https://\${shop}/admin/api/2024-07/shop.json\`, { headers: { 'X-Shopify-Access-Token': token } });
-  return response.json();
-}
-`);
-    expect(results[0].status).toBe('stopped');
-  });
-
-  it('stops on a query parameter no GraphQL argument replaces', () => {
-    const { results } = rewrite(`export async function list(shop: string, token: string) {
-  const response = await fetch(\`https://\${shop}/admin/api/2024-07/products.json?vendor=acme\`, { headers: { 'X-Shopify-Access-Token': token } });
-  const { products } = await response.json();
-  return products.map((product: any) => product.title);
-}
-`);
-    expect(results).toMatchObject([
-      { status: 'stopped', reason: expect.stringContaining('`vendor`') },
-    ]);
-  });
-
-  it('maps limit and page_info to first and after, and nested lists through their nodes', async () => {
-    const source = `export async function list(shop: string, token: string, cursor: string) {
-  const response = await fetch(\`https://\${shop}/admin/api/2024-07/products.json?limit=10&page_info=\${cursor}\`, { headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' } });
-  const { products } = await response.json();
-  return products.map((product: any) => [product.title, product.status, product.tags, product.variants.map((variant: any) => variant.price)]);
-}
-`;
-    const { results, patched } = rewrite(source);
-    expect(results.map(outcome)).toEqual(['rewritten']);
-    let sent: { variables: unknown } | undefined;
-    const fetch = async (_: string, init: { body: string }) => {
-      sent = JSON.parse(init.body);
-      return new Response(
-        JSON.stringify({
-          data: {
-            products: {
-              nodes: [
-                {
-                  title: 'Hat',
-                  status: 'ACTIVE',
-                  tags: ['a', 'b'],
-                  variants: { nodes: [{ price: '9.50' }] },
-                },
-              ],
-              pageInfo: { hasNextPage: false, endCursor: null },
-            },
-          },
-        }),
-      );
-    };
-    const wrapped = patched.replace(
-      'export async function list(shop: string, token: string, cursor: string)',
-      'module.exports.list = async function (shop = "s", token = "t", cursor = "abc")',
-    );
-    await expect(run(wrapped, 'list', { fetch })).resolves.toEqual([
-      ['Hat', 'active', 'a, b', ['9.50']],
-    ]);
-    expect(sent!.variables).toEqual({ first: 10, after: 'abc' });
-  });
-
-  it('rewrites Remix admin.rest.get and keeps the Response the code reads', async () => {
-    const source = `export const domain = async (admin: any) => {
-  const { shop } = await admin.rest.get({ path: 'shop' }).then((response: any) => response.json());
-  return shop.myshopify_domain;
-};
-`;
-    const { results, patched } = rewrite(source);
-    expect(results.map(outcome)).toEqual(['rewritten']);
-    const admin = {
-      graphql: async () =>
-        new Response(JSON.stringify({ data: { shop: { myshopifyDomain: 'x.myshopify.com' } } })),
-    };
-    const wrapped = patched.replace(
-      'export const domain = async (admin: any)',
-      'module.exports.domain = async (admin = globalAdmin)',
-    );
-    await expect(run(wrapped, 'domain', { globalAdmin: admin })).resolves.toBe('x.myshopify.com');
-  });
-
-  it('rewrites a resource find with the id as a GraphQL global id', async () => {
-    const source = `export async function title(admin: any, session: any) {
-  const product = await admin.rest.resources.Product.find({ session, id: 7 });
-  return product.title;
-}
-`;
-    const { results, patched } = rewrite(source);
-    expect(results.map(outcome)).toEqual(['rewritten']);
-    let variables: unknown;
-    const admin = {
-      graphql: async (_: string, options: { variables: unknown }) => {
-        variables = options.variables;
-        return new Response(JSON.stringify({ data: { product: { title: 'Hat' } } }));
-      },
-    };
-    const wrapped = patched.replace(
-      'export async function title(admin: any, session: any)',
-      'module.exports.title = async function (admin = globalAdmin, session = {})',
-    );
-    await expect(run(wrapped, 'title', { globalAdmin: admin })).resolves.toBe('Hat');
-    expect(variables).toEqual({ id: 'gid://shopify/Product/7' });
-  });
-
-  it('turns a REST client whose every call is rewritten into a GraphQL client built where it was', () => {
-    const source = `export async function check(session: any) {
-  const client = new shopify.clients.Rest({ session });
-  const { body } = await client.get({ path: 'products/count' });
-  return body.count;
-}
-`;
-    const { results, patched } = rewrite(source, 'app/check.ts', 11);
-    expect(results.map(outcome)).toEqual(['rewritten']);
-    expect(patched).not.toContain('clients.Rest');
-    expect(patched).toContain('const client = new shopify.clients.Graphql({ session });');
-    expect(patched).toContain('const graphql = client;');
-    expect(patched).toContain('graphql.request(');
-  });
-
-  it('keeps a REST client other calls still use, and stops on its construction', () => {
-    const source = `export async function check(session: any) {
-  const client = new shopify.clients.Rest({ session });
-  const { body } = await client.get({ path: 'products/count' });
-  await client.post({ path: 'webhooks', data: {} });
-  return body.count;
-}
-`;
-    const { results } = rewrite(source, 'app/check.ts', 11);
-    expect(results.filter((result) => result.status === 'stopped').length).toBeGreaterThanOrEqual(
-      2,
-    );
+    expect(result).toMatchObject({
+      status: 'stopped',
+      reason: 'Traced for the contract check.',
+      trace: { method: 'GET', path: 'shop.json' },
+    });
+    expect(reads(result)).toEqual(['shop.name', 'shop.id']);
   });
 
   it('follows for-of elements and ignores a same-named variable in a nested function', () => {
-    const { results } = rewrite(`export async function titles(shop: string, token: string) {
+    const [result] = trace(`export async function titles(shop: string, token: string) {
   const response = await fetch(\`https://\${shop}/admin/api/2024-07/products.json\`, { headers: { 'X-Shopify-Access-Token': token } });
   const helper = (response: { plan_name: string }) => response.plan_name;
   const { products } = await response.json();
@@ -309,154 +46,26 @@ describe('Shopify REST → GraphQL rewrites', () => {
   return [out, helper];
 }
 `);
-    expect(results.map(outcome)).toEqual([expect.stringContaining('products.[].vendor_code')]);
+    expect(reads(result)).toEqual(['products.[].vendor_code']);
   });
 
-  describe('reads that must not be missed', () => {
-    const shipped = loadShopifyRestRules();
-    const list = (body: string) =>
-      rewrite(
-        `export async function f(shop: string, token: string) {
-  const response = await fetch(\`https://\${shop}/admin/api/2025-01/products.json\`, { headers: { 'X-Shopify-Access-Token': token } });
-  const { products } = await response.json();
-  ${body}
-}
-`,
-        'app/f.ts',
-        undefined,
-        shipped,
-      );
-    const document = (result: ReturnType<typeof rewrite>) =>
-      result.results.flatMap((entry) => (entry.status === 'rewritten' ? [entry.document] : []))[0];
-
-    it('selects the fields a sort comparator reads', () => {
-      const result = list(
-        'return products.sort((a: any, b: any) => Date.parse(b.created_at) - Date.parse(a.created_at)).map((p: any) => p.title);',
-      );
-      expect(document(result)).toContain('createdAt');
-    });
-
-    it('selects the fields read through a callback array parameter', () => {
-      const result = list(
-        "let out = 0; products.forEach((p: any, i: number, all: any[]) => { if (all[i].vendor === 'x') out++; }); return out;",
-      );
-      expect(document(result)).toContain('vendor');
-    });
-
-    it('stops when a callback reads arguments', () => {
-      const result = list('return products.map(function () { return arguments[0].vendor; });');
-      expect(result.results[0].status).toBe('stopped');
-    });
-
-    it('stops on a response held in a var', () => {
-      const { results } = rewrite(
-        `export async function f(shop: string, token: string, id: number) {
-  if (shop) { var res = await fetch(\`https://\${shop}/admin/api/2025-01/products/\${id}.json\`, { headers: { 'X-Shopify-Access-Token': token } }); }
-  const data = await res!.json();
-  return data.product.title;
-}
-`,
-        'app/f.ts',
-        undefined,
-        shipped,
-      );
-      expect(results.map(outcome)).toEqual([expect.stringContaining('var')]);
-    });
-
-    it('stops on a dynamic key into a nested object', () => {
-      const { results } = rewrite(
-        `export async function f(shop: string, token: string, id: number, k: string) {
-  const res = await fetch(\`https://\${shop}/admin/api/2025-01/orders/\${id}.json\`, { headers: { 'X-Shopify-Access-Token': token } });
-  const { order } = await res.json();
-  return order.customer[k];
-}
-`,
-        'app/f.ts',
-        undefined,
-        shipped,
-      );
-      expect(results[0].status).toBe('stopped');
-    });
-
-    it('stops when the URL const is declared outside the function that sends it', () => {
-      const { results } = rewrite(
-        `declare const shop: string;
-declare const id: string;
-const url = \`https://\${shop}/admin/api/2025-01/products/\${id}.json\`;
-export async function f(id: string, token: string) {
-  const res = await fetch(url, { headers: { 'X-Shopify-Access-Token': token } });
-  const { product } = await res.json();
-  return product.title;
-}
-`,
-        'app/f.ts',
-        undefined,
-        shipped,
-      );
-      expect(results.map(outcome)).toEqual([expect.stringContaining('outside the function')]);
-    });
+  it('traces a write without rewriting it', () => {
+    const [result] = trace(`export async function rename(shop: string, token: string) {
+  await fetch(\`https://\${shop}/admin/api/2024-07/products/1.json\`, {
+    method: 'PUT',
+    headers: { 'X-Shopify-Access-Token': token },
+    body: JSON.stringify({ product: { title: 'New' } }),
   });
-
-  it('gives null, as REST does, where a nested GraphQL object is missing', async () => {
-    const source = `export async function productIds(shop: string, token: string, id: number) {
-  const res = await fetch(\`https://\${shop}/admin/api/2025-01/orders/\${id}.json\`, { headers: { 'X-Shopify-Access-Token': token } });
-  const { order } = await res.json();
-  return order.line_items.map((item: any) => item.product_id);
-}
-`;
-    const { results, patched } = rewrite(source, 'app/f.ts', undefined, loadShopifyRestRules());
-    expect(results.map(outcome)).toEqual(['rewritten']);
-    const fetch = async () =>
-      new Response(
-        JSON.stringify({
-          data: {
-            order: {
-              lineItems: {
-                nodes: [{ product: { id: 'gid://shopify/Product/5' } }, { product: null }],
-              },
-            },
-          },
-        }),
-      );
-    const wrapped = patched.replace(
-      'export async function productIds(shop: string, token: string, id: number)',
-      'module.exports.productIds = async function (shop = "s", token = "t", id = 1)',
-    );
-    await expect(run(wrapped, 'productIds', { fetch })).resolves.toEqual([5, null]);
-  });
-
-  it('builds the GraphQL client where the REST client was built, not from a name at the call', () => {
-    const source = `declare const shopify: any;
-declare const session: any;
-const client = new shopify.clients.Rest({ session });
-export async function f(session: any) {
-  const res = await client.get({ path: 'shop' });
-  return res.body.shop.name;
-}
-`;
-    const { results, patched } = rewrite(source, 'app/f.ts', 11);
-    expect(results.map(outcome)).toEqual(['rewritten']);
-    expect(patched).toContain('const client = new shopify.clients.Graphql({ session });');
-    expect(patched).not.toContain('session: session');
-  });
-
-  it('never rewrites a write', () => {
-    const { results } = rewrite(`export async function create(shop: string, token: string) {
-  const response = await fetch(\`https://\${shop}/admin/api/2024-07/products.json\`, { method: 'POST', headers: { 'X-Shopify-Access-Token': token }, body: '{}' });
-  return response.ok;
 }
 `);
-    expect(results).toMatchObject([
-      { status: 'stopped', reason: expect.stringContaining('only REST reads') },
-    ]);
+    expect(result.trace).toMatchObject({ method: 'PUT', body: [['product', 'title']] });
   });
 });
 
-describe('the shipped REST → GraphQL rules', () => {
-  const rules = loadShopifyRestRules();
-  const contract = loadShopifyRestContract();
-
-  it('quote Shopify for every rule', () => {
+// The mapping table is now the agent fixer's context for REST hand-offs (docs/GUT-PLAN.md).
+describe('the shipped REST → GraphQL mappings', () => {
+  it('quote Shopify for every mapping', () => {
+    const rules = loadShopifyRestRules();
     expect(rules.length).toBeGreaterThan(0);
     for (const rule of rules) {
       expect(rule.rest?.url).toMatch(/^https:\/\/shopify\.dev\/docs\/api\/admin-rest\//);
@@ -465,11 +74,4 @@ describe('the shipped REST → GraphQL rules', () => {
       expect(rule.graphql!.quote.length).toBeGreaterThan(10);
     }
   });
-
-  it.each(schemas)(
-    'select only existing fields whose types match the REST resource on $version',
-    ({ schema }) => {
-      expect(rules.flatMap((rule) => ruleProblems(rule, schema, contract))).toEqual([]);
-    },
-  );
 });
