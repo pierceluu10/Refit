@@ -1,0 +1,228 @@
+{
+  "provider": "meta",
+  "retrieved": "2026-11-01",
+  "source": "https://developers.facebook.com/docs/graph-api",
+  "note": "Short notes in our own words, taken 2026-11-01. Confirm on the linked page.",
+  "pages": [
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/guides/versioning",
+      "title": "Graph API versioning",
+      "passages": [
+        "The version goes in the URL path: graph.facebook.com/vXX.X/{node}. Unversioned calls use the app default set in App Dashboard > Settings > Advanced > Upgrade API Version. Always pin a version.",
+        "Each Graph API version is usable for at least two years; it stops working two years after the next version is released. Calls to an expired version are defaulted to the next oldest usable version, so code silently runs on newer behaviour.",
+        "An app can only call older versions it has already made calls to. JavaScript SDK pins the version in FB.init({version}); iOS/Android SDKs target the API version current at their release and allow overriding."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/changelog",
+      "title": "Graph API changelog (versions table)",
+      "passages": [
+        "Latest Graph API version is v26.0 (2026-07-29). v25.0 until 2028-07-29, v24.0 until 2028-02-18, v23.0 until 2027-10-08, v22.0 until 2027-05-20, v21.0 until 2027-01-21. v20.0 expired 2026-09-24, v19.0 expired 2026-05-21, v18.0 expired 2026-01-26."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+      "title": "Graph API v26.0 changelog",
+      "passages": [
+        "v26.0 deprecates 47 Commerce Order Management API endpoints (checkout on FB/IG Shops sunset), removed from all versions 2026-10-27.",
+        "Protocol changes in v26.0 (all versions from 2026-10-27): pretty and debug params ignored, date_format errors, root GET /?ids= errors (use batch or per-object), If-None-Match/ETag/304 removed.",
+        "Rights Manager fields renamed: reference_owner -> reference_owner_rh_owner, matched_reference_owner -> matched_reference_owner_rh_owner, sending_rights_holder -> sending_rights_holder_owner, receiving_rights_holder -> receiving_rights_holder_owner.",
+        "Marketing API v26.0: delivery_estimate fields daily_outcomes_curve, budget_guardrail, estimate_dau removed; poll ads deprecated; Instagram Explore feed placement removed; advantage_audience must be explicit for some ad sets."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+      "title": "Graph API v25.0 changelog",
+      "passages": [
+        "v25.0 deprecates many Page, Post, Video and Story Insights impression metrics (e.g. page_impressions_unique -> page_total_media_view_unique, post_impressions_unique -> post_total_media_view_unique); once deprecated they error on every version.",
+        "metadata=1 node introspection deprecated (all versions 2026-05-19). Webhooks mTLS client certificate moves to a Meta-owned CA from 2026-03-31; trust meta-outbound-api-ca-2025-12.pem.",
+        "Marketing API v25.0: Advantage+ shopping/app campaigns can no longer be created or updated (all versions 2026-05-19); async insights report runs return error_code/error_message fields."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/version24.0",
+      "title": "Graph API v24.0 changelog",
+      "passages": [
+        "v24.0 removes Certificate Transparency endpoints/webhooks and LiveVideo overlay_url. Marketing: Facebook video feeds placement removed (use Reels), lookalike_spec required, detailed targeting interests consolidated, is_adset_budget_sharing_enabled conditionally required, daily budget flex 75%."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/version23.0",
+      "title": "Graph API v23.0 changelog",
+      "passages": [
+        "v23.0 Marketing API: reach-frequency instagram_actor_id replaced by ig_user_id; Advantage+ audience on by default for new ad sets; smart_promotion_type removed. Marketing API v23.0 available until 2026-06-09."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/version22.0",
+      "title": "Graph API v22.0 changelog",
+      "passages": [
+        "v22.0 Instagram insights: impressions, plays, clips_replays_count, ig_reels_aggregated_all_plays_count deprecated (all versions 2025-04-21); new views metric.",
+        "Marketing API v22.0: instagram_actor_id -> instagram_user_id, instagram_story_id -> source_instagram_media_id, effective_instagram_story_id -> effective_instagram_media_id (all versions 2025-09-09). Legacy Instagram v1.0 ads endpoints deprecated in favour of Instagram Platform IG User/IG Media endpoints. Page ratings/recommendations deprecated."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/version21.0",
+      "title": "Graph API v21.0 changelog",
+      "passages": [
+        "v21.0 removes IG media video_views and IG user metrics email_contacts, get_direction_clicks, profile_views, text_message_clicks, website_clicks, phone_call_clicks (all versions 2025-01-08). Messaging Events API (page_activities) unsupported; non-ODAX objectives blocked for new ad sets/ads."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/version20.0",
+      "title": "Graph API v20.0 changelog",
+      "passages": [
+        "v20.0: permission errors return code 200 instead of 2; Comment.permalink_url hidden with only Page Public Content Access; Offline Conversions API deprecated (move to Conversions API offline events)."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/version19.0",
+      "title": "Graph API v19.0 changelog",
+      "passages": [
+        "v19.0 removes the Groups API and the publish_to_groups and groups_access_member_info permissions (all versions 2024-04-22). Ads Insights drops age_targeting, gender_targeting, labels, location and estimated_ad_recall* bounds."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/out-of-cycle-changes",
+      "title": "Out-of-cycle (non-versioned) changes",
+      "passages": [
+        "Out-of-cycle changes hit all versions at once, regardless of pinning, e.g. 2025 oEmbed: author_name, author_url, thumbnail_* removed from oEmbed responses on 2025-11-03 and oEmbed Read replaced by Meta oEmbed Read."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/marketing-api/overview/versioning",
+      "title": "Marketing API versioning",
+      "passages": [
+        "Marketing API supports the previous version for at least 90 days after a new release. After that, calls may fail or be upgraded to the next version; only unchanged endpoints auto-upgrade. Unversioned Marketing API calls fail."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog",
+      "title": "Marketing API changelog",
+      "passages": [
+        "Marketing API versions: v26.0 (2026-07-29, current), v25.0 until 2027-02-23, v24.0 until 2026-11-10 (Graph changelog table shows 2026-10-06; conflicting)."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/blog/post/2025/10/16/ads-insights-api-metric-availability-updates/",
+      "title": "Ads Insights metric availability updates (Oct 2025)",
+      "passages": [
+        "From 2026-01-12, Ads Insights no longer returns 7d_view and 28d_view attribution windows; unique and hourly breakdowns limited to 13 months, frequency breakdowns to 6 months; totals stay up to 37 months."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/documentation/pages-api/platforminsights/page/deprecated-metrics",
+      "title": "Deprecated Page Insights metrics",
+      "passages": [
+        "2025-11-15: page_fans -> page_follows, page_impressions -> page_media_view, post_impressions -> post_media_view, paid/organic variants via is_from_ads breakdown. 2025-06-15: *_impressions_unique family. 2024-03-14: page_engaged_users, page_consumptions and many logged_in metrics."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/overview/rate-limiting",
+      "title": "Rate limiting",
+      "passages": [
+        "Platform rate limits: app calls per hour = 200 x users; X-App-Usage header reports call_count, total_time, total_cputime as percentages. Errors 4 (app), 17 (user), 32 (Pages user token), 613 (custom).",
+        "Business Use Case limits apply to Marketing API, Instagram Platform and Pages API with Page/system tokens. X-Business-Use-Case-Usage header keyed by business id, with type, call_count, total_cputime, total_time, estimated_time_to_regain_access (minutes). BUC error codes 80000 (ads insights), 80004 (ads management), 80003 (custom audience), 80002 (Instagram), 80001 (Pages), 80005 (leadgen), 80006 (Messenger), 80008 (WhatsApp Business Management), 80014 (catalog batch)."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/results",
+      "title": "Paginated results",
+      "passages": [
+        "Cursor pagination (paging.cursors.before/after) is preferred; time-based uses since/until (keep ranges ~6 months); offset only when nothing else is supported. Stop when paging.next is absent, not when a page has fewer than limit items (pages can even be empty with a next link). Cursors can expire; don't store them."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/webhooks/getting-started",
+      "title": "Webhooks getting started",
+      "passages": [
+        "Verification: GET with hub.mode=subscribe, hub.challenge, hub.verify_token; echo hub.challenge if the token matches. Payloads carry X-Hub-Signature-256: sha256=<HMAC-SHA256 of raw body with app secret>.",
+        "Failed deliveries retry for up to 36 hours then drop; dedupe. Batches up to 1000 updates. mTLS uses a Meta CA (meta-outbound-api-ca-2025-12.pem), CN client.webhooks.fbclientcerts.com."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/messenger-platform/webhook-reference",
+      "title": "Webhook subscriptions and API version",
+      "passages": [
+        "Webhook subscriptions have their own API version, changeable in the App Dashboard or via /{app-id}/subscriptions. Payload shape follows the subscription's version, not the version your outbound calls use."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/facebook-login/guides/access-tokens/get-long-lived",
+      "title": "Access tokens: short-lived and long-lived",
+      "passages": [
+        "Token types: user, Page, app, client, system user. Default user and Page tokens are short-lived (hours). Exchange server-side with GET /vXX.X/oauth/access_token?grant_type=fb_exchange_token&client_id&client_secret&fb_exchange_token for a long-lived user token (~60 days). Page tokens fetched via /{user-id}/accounts with a long-lived user token have no expiry. Expired tokens cannot be exchanged."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/permissions",
+      "title": "Permissions reference",
+      "passages": [
+        "Each permission needs App Review for Advanced Access to data you don't own. Permissions are listed with their dependencies; e.g. pages_read_engagement, pages_manage_posts, instagram_basic, instagram_content_publish, ads_read, ads_management, business_management, whatsapp_business_messaging."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/facebook-login/facebook-login-for-business",
+      "title": "Facebook Login for Business",
+      "passages": [
+        "Facebook Login for Business uses configurations (config_id) instead of a scope list, and can issue system-user or user access tokens. Business apps should prefer it over classic Facebook Login."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login",
+      "title": "Instagram API with Instagram Login",
+      "passages": [
+        "Scopes are instagram_business_basic, instagram_business_content_publish, instagram_business_manage_messages, instagram_business_manage_comments. Old values business_basic etc. deprecated 2025-01-27. Auth code valid 1 hour; long-lived tokens 60 days, refreshable."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/instagram-basic-display-api/overview",
+      "title": "Instagram Basic Display API (shut down)",
+      "passages": [
+        "Deprecation announced 2024-09-04; from 2024-12-04 all Basic Display requests return errors. Migrate to the Instagram API, which supports only business and creator accounts."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/instagram-platform",
+      "title": "Instagram Platform overview",
+      "passages": [
+        "Two setups: Instagram API with Instagram Login (graph.instagram.com, instagram_business_* scopes) and Instagram API with Facebook Login (graph.facebook.com, instagram_basic plus pages_* scopes via a linked Page)."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/whatsapp/cloud-api",
+      "title": "WhatsApp Cloud API",
+      "passages": [
+        "WhatsApp Cloud API is called at graph.facebook.com/vXX.X/{phone-number-id}/messages and follows Graph API versioning. WhatsApp-specific changes live in the WhatsApp changelog, not the Graph changelog."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/whatsapp/on-premises/sunset",
+      "title": "WhatsApp On-Premises API sunset",
+      "passages": [
+        "The On-Premises API ended on 2025-10-23 when its last client version expired. Use Cloud API."
+      ]
+    },
+    {
+      "url": "https://github.com/facebook/facebook-python-business-sdk",
+      "title": "Python Business SDK",
+      "passages": [
+        "facebook_business/apiconfig.py sets API_VERSION (v26.0 in SDK 26.0.2). SDK major version tracks the Graph/Marketing API version; upgrading the SDK upgrades the API version."
+      ]
+    },
+    {
+      "url": "https://github.com/facebook/facebook-nodejs-business-sdk",
+      "title": "Node.js Business SDK",
+      "passages": [
+        "FacebookAdsApi.VERSION in src/api.js returns the API version (v26.0 on GitHub main, SDK 26.0.2). npm latest tag was 24.0.1 on 2026-11-01; check which version is actually installed."
+      ]
+    },
+    {
+      "url": "https://developers.facebook.com/docs/graph-api/batch-requests",
+      "title": "Batch requests",
+      "passages": [
+        "POST to graph.facebook.com with batch=[{method, relative_url}] (up to 50 requests). Replacement for root ?ids= lookups removed in v26.0."
+      ]
+    }
+  ]
+}

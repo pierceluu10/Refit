@@ -1,0 +1,258 @@
+{
+  "provider": "stripe",
+  "retrieved": "2026-11-01",
+  "note": "Short notes written from docs.stripe.com pages (fetched as .md) and Stripe SDK changelogs on 2026-11-01. Confirm details on the linked page.",
+  "pages": [
+    {
+      "url": "https://docs.stripe.com/api/versioning",
+      "title": "API versioning",
+      "passages": [
+        "Since 2024-09-30.acacia Stripe ships a new API version every month with no breaking changes, and twice a year a major release (named: acacia, basil, clover, dahlia, endive) whose first version carries the breaking changes. Monthly upgrades should not need code changes; major upgrades can.",
+        "Current version on 2026-11-01: 2026-10-28.endive. curl and Stripe CLI requests use the account default version (set in Workbench) unless the Stripe-Version header or --stripe-version flag overrides it.",
+        "Webhook events use the API version set when the webhook endpoint was created; without one they use the account default version. Match the endpoint version to the version your SDK pins."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/upgrades",
+      "title": "Upgrade your integration",
+      "passages": [
+        "Specify the API version in code rather than relying on the account default. Test a newer version per request with the Stripe-Version header; Workbench Overview shows which versions your integration sends.",
+        "Server-side SDKs send the API version that was current when that SDK version was released. stripe-node before v12, stripe-python before v6, stripe-ruby before v9 and stripe-php before v11 used the account default instead. Java, Go and .NET are strongly typed and fixed to their pinned version; overriding is not recommended.",
+        "Setting the version: Node new Stripe(key, { apiVersion }) or per request { apiVersion }; Python stripe.api_version or stripe_version= per call; Ruby StripeClient.new(key, stripe_version:); PHP new StripeClient(['stripe_version' => ...]); curl -H 'Stripe-Version: ...'.",
+        "Upgrading webhook endpoints: create a new endpoint with the same URL plus a distinguishing query param, the same enabled_events and the new api_version; keep it disabled, then switch processing over, then disable the old endpoint. During overlap events arrive twice, so handlers must be idempotent.",
+        "Event destinations for snapshot events have a snapshot_api_version that can only be set at creation; thin event payloads are unversioned."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/changelog",
+      "title": "API changelog",
+      "passages": [
+        "The changelog lists every API version grouped by major release (Endive, Dahlia, Clover, Basil, Acacia) and, before acacia, by year back to 2011. Each entry is tagged Breaking or Non-breaking and api or stripejs, and links to a page with details and upgrade steps.",
+        "Each GA version also has a .preview twin (e.g. 2026-10-28.preview) for public-preview features, which can include preview-only breaking changes.",
+        "Endive (2026-09-30.endive) removed payment_method_types from Payment Intents, Setup Intents and Checkout Sessions in favour of dynamic payment methods / allowed_payment_method_types, and unified billing_cycle_anchor formats.",
+        "Basil (2025-03-31.basil) moved subscription current_period_start/end to subscription items, replaced Upcoming Invoice methods with Create Preview Invoice, removed legacy usage-based billing (metered prices without a meter), removed total_count expansion on lists and removed singular coupon/promotion_code params in favour of discounts.",
+        "Clover (2025-09-30.clover) removed subscription schedule iterations, replaced Discount.coupon with Discount.source, made flexible billing mode the default and removed Stripe.js redirectToCheckout."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/changelog/endive",
+      "title": "Endive release",
+      "passages": [
+        "Endive starts with 2026-09-30.endive (breaking) followed by 2026-10-28.endive (monthly). SDK majors pinning 2026-09-30.endive: stripe-node 23, stripe-python 16, stripe-ruby 20, stripe-go 87, stripe-java 34, stripe-php 22, stripe-dotnet 53."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/changelog/basil",
+      "title": "Basil release",
+      "passages": [
+        "Basil starts with 2025-03-31.basil and runs monthly to 2025-08-27.basil. SDK majors pinning 2025-03-31.basil: stripe-node 18, stripe-python 12, stripe-ruby 14 (15 kept the same version), stripe-go 82, stripe-java 29, stripe-php 17, stripe-dotnet 48."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/changelog/acacia",
+      "title": "Acacia release",
+      "passages": [
+        "Acacia (2024-09-30.acacia) was the first release under the monthly/biannual process. Versions 2024-09-30 through 2025-02-24.acacia. Java, Go and .NET shipped 2024-10-28.acacia support as a new major (stripe-java 28, stripe-go 81, stripe-dotnet 47) because of a webhook deserialization bug in the previous major."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/sdks/versioning",
+      "title": "How SDK versioning works",
+      "passages": [
+        "Stripe SDKs follow semver: majors for breaking changes (required params, type changes, renamed classes), minors for new features, patches for fixes. Each SDK version sends the API version current at its release.",
+        "New features and fixes land only on the latest SDK major. Migration guides and the SDK-major to API-version mapping are in each SDK repository's GitHub wiki (stripe-node, stripe-python, stripe-ruby, stripe-php, stripe-java, stripe-go, stripe-dotnet).",
+        "Language runtime support: when a runtime reaches end of life Stripe keeps an extended support window (1 to 2 years) and then drops it in a later SDK major. Python 3.9+ and Ruby 3.0+ are supported as of 2026-11."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/sdks/set-version",
+      "title": "Set a Stripe API version",
+      "passages": [
+        "How to override the API version per SDK, globally or per request. When overriding per request, objects returned are rendered in that version, and methods on them reuse it. Strongly typed SDKs (Java, Go, .NET) should use their pinned version."
+      ]
+    },
+    {
+      "url": "https://github.com/stripe/stripe-node/blob/master/CHANGELOG.md",
+      "title": "stripe-node changelog",
+      "passages": [
+        "stripe-node v12.0.0 (2023-04-06) started pinning the latest API version (2022-11-15) by default instead of the account default. Later majors pin: v13 2023-08-16, v14 2023-10-16, v15 2024-04-10, v16 2024-06-20, v17 2024-09-30.acacia, v18 2025-03-31.basil, v19 2025-09-30.clover, v20 2025-11-17.clover, v21 2026-03-25.dahlia, v22 2026-03-25.dahlia (TypeScript rewrite, same version), v23 2026-09-30.endive.",
+        "stripe-node v22 moved types inline, removed the ambient 'stripe' module and made the default export a real ES6 class: call new Stripe(key) rather than Stripe(key). Migration guide: https://github.com/stripe/stripe-node/wiki/Migration-guide-for-v22"
+      ]
+    },
+    {
+      "url": "https://github.com/stripe/stripe-python/blob/master/CHANGELOG.md",
+      "title": "stripe-python changelog",
+      "passages": [
+        "stripe-python v6 (2023-08-16) pins API versions. Majors: v7 2023-10-16, v8 (2024-01-25, same version), v9 2024-04-10, v10 2024-06-20, v11 2024-09-30.acacia, v12 2025-03-31.basil, v13 2025-09-30.clover, v14 2025-11-17.clover, v15 2026-03-25.dahlia, v16 2026-09-30.endive."
+      ]
+    },
+    {
+      "url": "https://github.com/stripe/stripe-go/blob/master/CHANGELOG.md",
+      "title": "stripe-go changelog",
+      "passages": [
+        "stripe-go majors change the module path (github.com/stripe/stripe-go/v87). Recent majors: v79 2024-06-20, v80 2024-09-30.acacia, v81 2024-10-28.acacia, v82 2025-03-31.basil, v83 2025-09-30.clover, v84 2025-11-17.clover, v85 2026-03-25.dahlia, v86 2026-05-27.dahlia, v87 2026-09-30.endive. Go/Java/.NET webhook endpoints must use the SDK's pinned version to deserialize events."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/webhooks/versioning",
+      "title": "Handle webhook versioning",
+      "passages": [
+        "Each webhook endpoint has an API version that shapes its event payloads. When you upgrade the integration you also upgrade endpoints. Every version before 2024-09-30.acacia has breaking changes; within one major release endpoints can move to any version without code changes.",
+        "With the .NET, Java or Go SDK the endpoint's API version must match the SDK's version so events deserialize. Thin events avoid webhook versioning entirely because their notifications are unversioned."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/webhooks",
+      "title": "Webhooks",
+      "passages": [
+        "Verify webhook signatures with the official libraries using the raw request body, the Stripe-Signature header and the endpoint's whsec_ secret; frameworks that parse or re-serialize the body break verification.",
+        "Return a 2xx quickly and process asynchronously; Stripe retries failed deliveries. Handle duplicate events idempotently and do not rely on event order."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/event-destinations",
+      "title": "Event destinations and thin events",
+      "passages": [
+        "Destinations (webhook endpoints, Amazon EventBridge, Azure Event Grid) receive either snapshot events (full versioned object in data.object, previous_attributes for changes) or thin events (type plus related_object id; fetch the full event or object yourself). The format is chosen at destination creation.",
+        "Stripe recommends thin events for new integrations: unversioned, typed in the SDKs (event notifications), and both v1 and v2 resources emit them. Accounts v2 integrations may listen to both formats."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/webhooks/migrate-snapshot-to-thin-events",
+      "title": "Migrate from snapshot to thin events",
+      "passages": [
+        "Guide to moving existing webhook endpoints from snapshot payloads to thin events: create a thin destination, parse notifications with the SDK, fetch related objects, run both in parallel with idempotent handlers, then retire the snapshot endpoint."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/api/events/types",
+      "title": "Types of events",
+      "passages": [
+        "List of v1 snapshot event types using resource.event naming (e.g. invoice.payment_succeeded, customer.subscription.updated) and the data.object type each carries. Events on sub-resources (customer.subscription.*) do not also fire the parent event (customer.updated)."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/api/pagination",
+      "title": "Pagination",
+      "passages": [
+        "v1 list endpoints use cursor pagination with starting_after / ending_before (object ids), limit (1-100, default 10) and has_more in the response; results are reverse chronological.",
+        "Basil (2025-03-31) removed expanding total_count on list responses; code reading total_count needs to count pages itself."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/api/pagination/auto",
+      "title": "Auto-pagination",
+      "passages": [
+        "SDK auto-pagination helpers: Node for await over a list call (autoPagingEach in older versions), Python auto_paging_iter(), Ruby auto_paging_each, PHP autoPagingIterator(), Java autoPagingIterable(), .NET ListAutoPaging, Go iterators."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/search",
+      "title": "Search API",
+      "passages": [
+        "Search endpoints (e.g. charges, customers, payment_intents, subscriptions) take a query string and paginate with page / next_page instead of starting_after. Data is usually searchable within a minute, so do not use search for read-after-write flows. Search is not available to businesses in India. Search has its own rate limit (20 read requests per second)."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/rate-limits",
+      "title": "Rate limits",
+      "passages": [
+        "Rate-limited requests get HTTP 429 with a Stripe-Rate-Limited-Reason header. Global limit: 100 requests/second in live mode, 25 in sandboxes; most individual endpoints 25/second; Search 20 reads/second; Payment Intents updates are capped at 1000 per PaymentIntent per hour.",
+        "Concurrency limits are separate: by default 50 in-flight live-mode requests; long list calls and heavy expansions are the usual cause. Retry with exponential backoff and jitter."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/keys",
+      "title": "API keys",
+      "passages": [
+        "Key types: publishable pk_ (safe in clients), restricted rk_ (permissions you choose; Stripe recommends RAKs for most server use), secret sk_ (unrestricted; not recommended for new use cases), organization sk_org_. Live keys start with pk_live_, rk_live_, sk_live_; sandbox keys with _test_.",
+        "A restricted key missing a permission returns a permission error for that resource; check the key's permissions when an upgrade or new endpoint starts failing."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/connect/authentication",
+      "title": "Connect: make API calls for connected accounts",
+      "passages": [
+        "Platforms act for connected accounts by sending the Stripe-Account: acct_... header with the platform's own key (SDKs: stripeAccount / stripe_account options). Client-side, pass the connected account id to Stripe.js."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/connect/oauth-reference",
+      "title": "Connect OAuth reference",
+      "passages": [
+        "In the OAuth token response, access_token, stripe_publishable_key and refresh_token are marked deprecated: use the Stripe-Account header with the platform's keys instead of storing per-account tokens."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/payments/payment-intents/migration",
+      "title": "Migrate from Charges to Payment Intents",
+      "passages": [
+        "Charges API integrations can move to Payment Intents incrementally: update API version and SDK, make code that reads Charge properties work for both flows, migrate web and mobile payment flows, then migrate saved cards on Customers to PaymentMethods."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/payments/older-apis",
+      "title": "Older payment APIs",
+      "passages": [
+        "Charges, Tokens and Sources are older APIs without SCA support or new features. Sources is deprecated: local payment methods on Sources are planned to be turned off, card payments on Sources are deprecated without a shutdown date. Charges and ACH (legacy) remain available but unsupported."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/sources",
+      "title": "Sources API (deprecated)",
+      "passages": [
+        "The Sources API is deprecated and new integrations cannot use it. Existing users must migrate to Payment Intents and Payment Methods (https://docs.stripe.com/payments/payment-methods/transitioning)."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/payments/checkout/migration",
+      "title": "Legacy Checkout migration",
+      "passages": [
+        "Legacy Checkout was a modal that returned a token or source to your page. The current Checkout and Payment Links are Stripe-hosted pages that create payments or subscriptions; migration guides cover dynamic catalogs, subscriptions and client-only integrations."
+      ]
+    },
+    {
+      "url": "https://github.com/stripe/stripe-node/wiki/Migration-Guide-for-v9",
+      "title": "stripe-node v9 migration (legacy Orders removal)",
+      "passages": [
+        "The legacy Orders API was deprecated in October 2019 (not SCA compatible). SDK majors released 2022-05-09 (stripe-node v9, stripe-python v3, stripe-ruby v6, stripe-php v8) removed legacy Orders support; integrations still on it had to stay on the previous SDK major."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/api/expanding_objects",
+      "title": "Expanding responses",
+      "passages": [
+        "Many fields hold an object id unless expanded with expand[] (e.g. expand[]=customer, nested with dots like latest_charge.balance_transaction, and data. prefix in lists). Expansion depth is limited to four levels (https://docs.stripe.com/expand). The OpenAPI spec lists expandable fields as x-expandableFields."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/api-v2-overview",
+      "title": "API v2 overview",
+      "passages": [
+        "/v2 endpoints use JSON request bodies (v1 uses form encoding), page tokens for pagination, eventually consistent lists, no expand (some use include), null to remove metadata keys, and require the Stripe-Version header on every request. All server-side SDKs support v2."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/api/idempotent_requests",
+      "title": "Idempotent requests",
+      "passages": [
+        "Send an Idempotency-Key header on POST requests so retries after network errors do not double-create objects; Stripe returns the stored result for a repeated key."
+      ]
+    },
+    {
+      "url": "https://github.com/stripe/openapi",
+      "title": "Stripe OpenAPI specification",
+      "passages": [
+        "Stripe publishes OpenAPI specs: /latest (v1 + v2, GA), /preview (adds public preview), /openapi (legacy v1-only, still updated each release). spec3 is the public spec; spec3.sdk adds annotations and deprecated endpoints for SDK generation.",
+        "Tags are sequential release numbers (v1...v2596), not API versions; openapi/spec3.json info.version names the API version a snapshot describes. Release notes since v2191 list info.version per spec. Vendor extensions: x-expandableFields, x-resourceId, x-stripeBypassValidation."
+      ]
+    },
+    {
+      "url": "https://docs.stripe.com/billing/migration/migrating-prices",
+      "title": "Plans and SKUs to Prices migration",
+      "passages": [
+        "Prices replace Plans and SKUs for Checkout and Billing items, with reusable product/price catalogs and inline price_data. Code passing plan or sku ids to Checkout should move to line_items with price or price_data."
+      ]
+    }
+  ]
+}

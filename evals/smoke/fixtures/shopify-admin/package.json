@@ -1,0 +1,7 @@
+{
+  "name": "example-shopify-admin",
+  "private": true,
+  "dependencies": {
+    "@shopify/shopify-api": "^9.0.0"
+  }
+}

@@ -1,0 +1,435 @@
+{
+  "repo": "mckaywrigley/chatbot-ui",
+  "promptVersion": "inventory-v1",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/assistants/openai/route.ts",
+          "line": 18,
+          "operation": "beta.assistants.list"
+        },
+        {
+          "file": "app/api/chat/openai/route.ts",
+          "line": 27,
+          "operation": "chat.completions.create",
+          "notes": "streamed via ai OpenAIStream"
+        },
+        {
+          "file": "app/api/chat/tools/route.ts",
+          "line": 62,
+          "operation": "chat.completions.create (tools, first call)"
+        },
+        {
+          "file": "app/api/chat/tools/route.ts",
+          "line": 201,
+          "operation": "chat.completions.create (second call after tool results)"
+        },
+        {
+          "file": "app/api/command/route.ts",
+          "line": 23,
+          "operation": "chat.completions.create",
+          "fields": ["model"],
+          "notes": "model gpt-4-1106-preview hardcoded"
+        },
+        {
+          "file": "app/api/retrieval/process/docx/route.ts",
+          "line": 65,
+          "operation": "embeddings.create",
+          "fields": ["model: text-embedding-3-small"]
+        },
+        {
+          "file": "app/api/retrieval/process/route.ts",
+          "line": 118,
+          "operation": "embeddings.create",
+          "fields": ["model: text-embedding-3-small"],
+          "notes": "OpenAI or Azure client chosen by embeddingsProvider"
+        },
+        {
+          "file": "app/api/retrieval/retrieve/route.ts",
+          "line": 52,
+          "operation": "embeddings.create",
+          "fields": ["model: text-embedding-3-small"]
+        }
+      ],
+      "sdk": {
+        "name": "openai",
+        "version": "4.24.7",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "azure-openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/azure/route.ts",
+          "line": 54,
+          "operation": "chat.completions.create",
+          "notes": "baseURL ${endpoint}/openai/deployments/${deployment}"
+        },
+        {
+          "file": "app/api/retrieval/process/docx/route.ts",
+          "line": 65,
+          "operation": "embeddings.create",
+          "notes": "Azure branch at line 51"
+        },
+        {
+          "file": "app/api/retrieval/process/route.ts",
+          "line": 118,
+          "operation": "embeddings.create",
+          "notes": "Azure branch at line 104"
+        },
+        {
+          "file": "app/api/retrieval/retrieve/route.ts",
+          "line": 52,
+          "operation": "embeddings.create",
+          "notes": "Azure branch at line 38"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "2023-12-01-preview",
+        "file": "app/api/chat/azure/route.ts",
+        "line": 50
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "4.24.7",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "anthropic",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/anthropic/route.ts",
+          "line": 63,
+          "operation": "messages.create",
+          "fields": ["model"],
+          "notes": "streamed via AnthropicStream"
+        }
+      ],
+      "sdk": {
+        "name": "@anthropic-ai/sdk",
+        "version": "^0.18.0",
+        "lockfile": "package.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "google-gemini",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/google/route.ts",
+          "line": 31,
+          "operation": "startChat().sendMessageStream",
+          "fields": ["history", "generationConfig.temperature"],
+          "notes": "streams chunk.text()"
+        }
+      ],
+      "sdk": {
+        "name": "@google/generative-ai",
+        "version": "^0.11.4",
+        "lockfile": "package.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "api.groq.com",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/groq/route.ts",
+          "line": 26,
+          "operation": "chat.completions.create"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "https://api.groq.com/openai/v1",
+        "file": "app/api/chat/groq/route.ts",
+        "line": 23
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "api.mistral.ai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/mistral/route.ts",
+          "line": 27,
+          "operation": "chat.completions.create"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "https://api.mistral.ai/v1",
+        "file": "app/api/chat/mistral/route.ts",
+        "line": 24
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "api.perplexity.ai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/perplexity/route.ts",
+          "line": 26,
+          "operation": "chat.completions.create"
+        }
+      ]
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "openrouter",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/openrouter/route.ts",
+          "line": 27,
+          "operation": "chat.completions.create"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "https://openrouter.ai/api/v1",
+        "file": "app/api/chat/openrouter/route.ts",
+        "line": 24
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "openrouter",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "lib/models/fetch-models.ts",
+          "line": 84,
+          "operation": "GET https://openrouter.ai/api/v1/models",
+          "notes": "client-side, unauthenticated"
+        }
+      ]
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "custom-openai-compatible",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/custom/route.ts",
+          "line": 40,
+          "operation": "chat.completions.create",
+          "notes": "baseURL customModel.base_url (line 37)"
+        }
+      ]
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "ollama",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "components/chat/chat-helpers/index.ts",
+          "line": 163,
+          "operation": "POST /api/chat",
+          "notes": "streaming newline-delimited JSON"
+        },
+        {
+          "file": "lib/models/fetch-models.ts",
+          "line": 57,
+          "operation": "GET /api/tags",
+          "notes": "maps models[].name"
+        }
+      ]
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "user-defined-openapi-tools",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/api/chat/tools/route.ts",
+          "line": 153,
+          "operation": "POST {schema server url}{path}",
+          "notes": "custom headers; response JSON fed back to model"
+        },
+        {
+          "file": "app/api/chat/tools/route.ts",
+          "line": 178,
+          "operation": "GET {schema server url}{path}?query"
+        }
+      ]
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "huggingface-xenova-local",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "lib/generate-local-embedding.ts",
+          "line": 4,
+          "operation": "pipeline feature-extraction"
+        }
+      ],
+      "sdk": {
+        "name": "@xenova/transformers",
+        "version": "^2.13.4",
+        "lockfile": "package.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "supabase",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/[locale]/login/page.tsx",
+          "line": 59,
+          "operation": "auth.signInWithPassword"
+        },
+        {
+          "file": "app/[locale]/login/page.tsx",
+          "line": 125,
+          "operation": "auth.signUp"
+        },
+        {
+          "file": "app/[locale]/login/page.tsx",
+          "line": 153,
+          "operation": "auth.resetPasswordForEmail"
+        },
+        {
+          "file": "app/api/retrieval/retrieve/route.ts",
+          "line": 60,
+          "operation": "rpc match_file_items_openai"
+        },
+        {
+          "file": "app/api/retrieval/retrieve/route.ts",
+          "line": 75,
+          "operation": "rpc match_file_items_local"
+        },
+        {
+          "file": "app/api/username/available/route.ts",
+          "line": 13,
+          "operation": "createClient (service role)"
+        },
+        {
+          "file": "app/api/username/get/route.ts",
+          "line": 13,
+          "operation": "createClient (service role)"
+        },
+        {
+          "file": "app/auth/callback/route.ts",
+          "line": 13,
+          "operation": "auth.exchangeCodeForSession"
+        },
+        {
+          "file": "components/utility/change-password.tsx",
+          "line": 28,
+          "operation": "auth.updateUser"
+        },
+        {
+          "file": "components/utility/profile-settings.tsx",
+          "line": 122,
+          "operation": "auth.signOut"
+        },
+        {
+          "file": "db/storage/assistant-images.ts",
+          "line": 29,
+          "operation": "storage.upload"
+        },
+        {
+          "file": "db/storage/files.ts",
+          "line": 24,
+          "operation": "storage.upload (files bucket)"
+        },
+        {
+          "file": "db/storage/message-images.ts",
+          "line": 12,
+          "operation": "storage.upload"
+        },
+        {
+          "file": "db/storage/profile-images.ts",
+          "line": 29,
+          "operation": "storage.upload"
+        },
+        {
+          "file": "db/storage/workspace-images.ts",
+          "line": 29,
+          "operation": "storage.upload"
+        },
+        {
+          "file": "lib/server/server-chat-helpers.ts",
+          "line": 20,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "lib/supabase/browser-client.ts",
+          "line": 4,
+          "operation": "createBrowserClient",
+          "notes": "db/*.ts files use this client for table CRUD (.from) — not individually enumerated"
+        },
+        {
+          "file": "middleware.ts",
+          "line": 13,
+          "operation": "auth.getSession"
+        }
+      ],
+      "sdk": {
+        "name": "@supabase/supabase-js + @supabase/ssr",
+        "version": "^2.38.4 / ^0.0.10",
+        "lockfile": "package.json"
+      }
+    },
+    {
+      "repo": "mckaywrigley/chatbot-ui",
+      "provider": "vercel-edge-config",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/[locale]/login/page.tsx",
+          "line": 86,
+          "operation": "get (guarded by process.env.EDGE_CONFIG)",
+          "notes": "exact get call is in lines after 86"
+        }
+      ],
+      "sdk": {
+        "name": "@vercel/edge-config",
+        "version": "^0.4.1",
+        "lockfile": "package.json"
+      }
+    }
+  ],
+  "purposes": {
+    "openai": "Chat completions, tool calling, assistants list, embeddings",
+    "azure-openai": "Azure OpenAI chat and embeddings via openai SDK with user-configured endpoint",
+    "anthropic": "Claude chat",
+    "google-gemini": "Gemini chat",
+    "api.groq.com": "Groq chat via openai SDK, OpenAI-compatible",
+    "api.mistral.ai": "Mistral chat via openai SDK",
+    "api.perplexity.ai": "Perplexity chat via openai SDK",
+    "openrouter": "List OpenRouter models",
+    "custom-openai-compatible": "User-defined OpenAI-compatible endpoint (base_url from DB)",
+    "ollama": "Local Ollama server from browser, URL from NEXT_PUBLIC_OLLAMA_URL",
+    "user-defined-openapi-tools": "Tool calls to arbitrary user-supplied OpenAPI server URLs and headers",
+    "huggingface-xenova-local": "Local embeddings with Xenova/all-MiniLM-L6-v2 (downloads model from Hugging Face hub at runtime; not a hosted API call per se)",
+    "supabase": "Auth, Postgres via PostgREST, storage, RPC vector search",
+    "vercel-edge-config": "Signup email/domain whitelist when EDGE_CONFIG set"
+  },
+  "summary": "mckaywrigley/chatbot-ui uses supabase for Auth, Postgres via PostgREST, storage, RPC vector search through @supabase/supabase-js + @supabase/ssr ^2.38.4 / ^0.0.10 in 18 places; openai for Chat completions, tool calling, assistants list, embeddings through openai 4.24.7 in 8 places; azure-openai for Azure OpenAI chat and embeddings via openai SDK with user-configured endpoint through openai 4.24.7, pinned to 2023-12-01-preview in 4 places; ollama for Local Ollama server from browser, URL from NEXT_PUBLIC_OLLAMA_URL through raw HTTP in 2 places; user-defined-openapi-tools for Tool calls to arbitrary user-supplied OpenAPI server URLs and headers through raw HTTP in 2 places; anthropic for Claude chat through @anthropic-ai/sdk ^0.18.0 in 1 place; google-gemini for Gemini chat through @google/generative-ai ^0.11.4 in 1 place; api.groq.com for Groq chat via openai SDK, OpenAI-compatible through its SDK, pinned to https://api.groq.com/openai/v1 in 1 place; api.mistral.ai for Mistral chat via openai SDK through its SDK, pinned to https://api.mistral.ai/v1 in 1 place; api.perplexity.ai for Perplexity chat via openai SDK through its SDK in 1 place; openrouter for OpenRouter chat via openai SDK through its SDK, pinned to https://openrouter.ai/api/v1 in 1 place; openrouter for List OpenRouter models through raw HTTP in 1 place; custom-openai-compatible for User-defined OpenAI-compatible endpoint (base_url from DB) through its SDK in 1 place; huggingface-xenova-local for Local embeddings with Xenova/all-MiniLM-L6-v2 (downloads model from Hugging Face hub at runtime; not a hosted API call per se) through @xenova/transformers ^2.13.4 in 1 place; vercel-edge-config for Signup email/domain whitelist when EDGE_CONFIG set through @vercel/edge-config ^0.4.1 in 1 place.",
+  "agentSummary": "I recorded 16 usages covering every external API I found in the repo. I read the API routes and the shared Supabase and Ollama code myself. I did not read every file under `db/`, `components/` or `app/[locale]`.\n\n- **OpenAI (SDK, openai 4.24.7):**\n  - Chat completions are in `app/api/chat/openai/route.ts` and `app/api/command/route.ts`. The command route hardcodes `gpt-4-1106-preview`.\n  - The tool-calling route (`app/api/chat/tools/route.ts`) makes two chat completion calls per request.\n  - `beta.assistants.list` is in `app/api/assistants/openai/route.ts`.\n  - Embeddings use `text-embedding-3-small` in the three retrieval routes.\n- **Azure OpenAI (SDK, same package):** Chat and embeddings use the user's own endpoint and deployment. The API version is pinned to `2023-12-01-preview` in `app/api/chat/azure/route.ts`.\n- **Anthropic (SDK, 0.18.0 range):** `messages.create` in `app/api/chat/anthropic/route.ts`.\n- **Google Gemini (SDK, 0.11.4 range):** `sendMessageStream` in `app/api/chat/google/route.ts`.\n- **Groq, Mistral, Perplexity and OpenRouter (OpenAI SDK with a custom `baseURL`):** Each has its own chat route. Groq, Mistral and OpenRouter have the base URL recorded as the pinned version.\n- **OpenRouter (raw HTTP):** `GET /api/v1/models` in `lib/models/fetch-models.ts`.\n- **Custom OpenAI-compatible endpoint (SDK):** The base URL comes from the user's saved model in the database. The call is in `app/api/chat/custom/route.ts`.\n- **Ollama (raw HTTP):** The browser calls `/api/tags` and `/api/chat` on `NEXT_PUBLIC_OLLAMA_URL`.\n- **User-defined OpenAPI tools (raw HTTP):** `app/api/chat/tools/route.ts` calls whatever server URLs and headers the user supplies, over GET and POST.\n- **Supabase (SDK):**\n  - Auth covers sign-in, sign-up, password reset, the code exchange and sessions.\n  - Storage upload calls are in five `db/storage/*` files.\n  - Retrieval calls two vector-search RPCs.\n  - Service-role clients are used in the username routes.\n  - The table reads and writes in `db/*.ts` go through the browser client. I recorded that client but did not list those calls one by one.\n- **Vercel Edge Config (SDK):** `app/[locale]/login/page.tsx` imports it and only reads it when `EDGE_CONFIG` is set. I recorded line 86, the `EDGE_CONFIG` guard, not the `get` call itself, and I did not read past that line.\n- **Local embeddings with `@xenova/transformers`:** `lib/generate-local-embedding.ts` runs `Xenova/all-MiniLM-L6-v2`. I assume it downloads the model from the Hugging Face hub, but I didn't confirm that in the code.\n\nI recorded `huggingface-xenova-local` and `user-defined-openapi-tools` as provider ids rather than vendors. The tools route could call any host.\n\nUnconfirmed or incomplete:\n- The Anthropic and Google SDK versions are the manifest ranges, because I did not look them up in the lockfile. The OpenAI version is the locked 4.24.7.\n- `app/api/chat/anthropic/route.ts` may pin a model or API version that I did not check.\n- I did not open `.github/` or the `supabase/` config for hosts.",
+  "outcome": "success",
+  "costUsd": 0.2082402,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0001321,
+    "claude-sonnet-5-5": 0.20810809999999996
+  },
+  "turns": 31,
+  "durationMs": 51456
+}

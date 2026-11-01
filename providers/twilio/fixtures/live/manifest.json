@@ -1,0 +1,47 @@
+{
+  "provider": "twilio",
+  "fetchedAt": "2026-11-01T05:12:24.635Z",
+  "note": "Live read of each source, saved as text and cut to 24000 characters. Test input only.",
+  "sources": [
+    {
+      "id": "changelog-feed",
+      "url": "https://www.twilio.com/en-us/changelog.feed.xml",
+      "status": 200,
+      "ok": true,
+      "file": "changelog-feed.txt",
+      "chars": 22771,
+      "truncated": false,
+      "sha256": "46c3da8510286226738c6f298bfc22ba81fa6840ced024ae8823c28091ce05a0"
+    },
+    {
+      "id": "twilio-oai-changes",
+      "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+      "status": 200,
+      "ok": true,
+      "file": "twilio-oai-changes.txt",
+      "chars": 24000,
+      "truncated": true,
+      "sha256": "bcc481d0426169976c56969a5d228f9a1f68ea1c17891ada7daae5739aa4b900"
+    },
+    {
+      "id": "twilio-node-changes",
+      "url": "https://raw.githubusercontent.com/twilio/twilio-node/main/CHANGES.md",
+      "status": 200,
+      "ok": true,
+      "file": "twilio-node-changes.txt",
+      "chars": 24000,
+      "truncated": true,
+      "sha256": "79634660d6992900bd9bfca60d1d02b1cda9edeb992ebafea8bd869f2a2634ec"
+    },
+    {
+      "id": "twilio-node-upgrade",
+      "url": "https://raw.githubusercontent.com/twilio/twilio-node/main/UPGRADE.md",
+      "status": 200,
+      "ok": true,
+      "file": "twilio-node-upgrade.txt",
+      "chars": 4296,
+      "truncated": false,
+      "sha256": "6a66499758f5200b450cd9d2451c68ef69139fd17ca7766bd1b59b44fcf337a0"
+    }
+  ]
+}

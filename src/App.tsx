@@ -29,9 +29,9 @@ function NotFound() {
     <main id="main-content" className="not-found">
       <p>404</p>
       <h1>This page doesn’t fit.</h1>
-      <p>The address may have changed. Head back to Refit to find your way.</p>
+      <p>The address may have changed. Head back to Aptitude to find your way.</p>
       <Link className="button button-primary" to="/">
-        <ArrowLeft /> Back to Refit
+        <ArrowLeft /> Back to Aptitude
       </Link>
     </main>
   );

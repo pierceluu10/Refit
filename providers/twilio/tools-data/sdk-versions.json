@@ -1,0 +1,303 @@
+{
+  "provider": "twilio",
+  "retrieved": "2026-11-01",
+  "source": [
+    "https://www.twilio.com/docs/libraries",
+    "https://github.com/twilio/twilio-node/blob/main/UPGRADE.md",
+    "https://github.com/twilio/twilio-python/blob/main/UPGRADE.md",
+    "https://github.com/twilio/twilio-ruby/blob/main/UPGRADE.md",
+    "https://github.com/twilio/twilio-php/blob/main/UPGRADE.md",
+    "https://github.com/twilio/twilio-java/blob/main/UPGRADE.md",
+    "https://github.com/twilio/twilio-csharp/blob/main/UPGRADE.md",
+    "https://github.com/twilio/twilio-go/blob/main/UPGRADE.md"
+  ],
+  "note": "Twilio publishes no formal support window for server-side helper libraries. Since 2022-2024 every library is generated from twilio-oai, and most recent majors say there are no breaking API changes; the breaking parts are runtime minimums and a few renamed classes. Each library also ships minor releases roughly every two weeks with API additions (see CHANGES.md).",
+  "libraries": [
+    {
+      "id": "twilio-node",
+      "aliases": ["node", "nodejs", "javascript", "typescript", "npm:twilio", "twilio"],
+      "package": "twilio (npm)",
+      "repo": "https://github.com/twilio/twilio-node",
+      "changes": "https://github.com/twilio/twilio-node/blob/main/CHANGES.md",
+      "upgrade": "https://github.com/twilio/twilio-node/blob/main/UPGRADE.md",
+      "latest": "6.2.0",
+      "latestDate": "2026-10-12",
+      "currentMajor": 6,
+      "majors": [
+        {
+          "major": 6,
+          "date": "2026-04-16",
+          "breaking": [
+            "Minimum Node.js raised to 20 (dropped < 20). No API changes per the upgrade guide."
+          ]
+        },
+        {
+          "major": 5,
+          "date": "2024-03-12",
+          "breaking": [
+            "Generated from OpenAPI; upgrade guide says no breaking changes to existing APIs. Adds application/json request bodies."
+          ]
+        },
+        {
+          "major": 4,
+          "date": "2023-01-30",
+          "breaking": [
+            "Rewrite merged from the 4.0.0-rc branch (source moved to TypeScript under src/, typings generated; PR #883 marked breaking).",
+            "Node.js >= 14 required.",
+            "Lazy loading of modules on by default.",
+            "Some response properties typed as Record<string, ...> instead of object (subresourceUris, links).",
+            "AccessToken requires an identity option; IpMessagingGrant removed; ConversationsGrant deprecated in favour of VoiceGrant.",
+            "TwiML: Say.ssmlX() helpers replaced by Say.x() (e.g. ssmlEmphasis -> emphasis, ssmlBreak/break_ -> break); Refer.referSip -> Refer.sip.",
+            "TaskRouter Workers cumulativeStatistics()/realTimeStatistics() moved from workers('WK..') to workers (no WorkerSid)."
+          ]
+        },
+        {
+          "major": 3,
+          "date": "2017",
+          "breaking": [
+            "Old line; Node 3.x-era code often uses require('twilio')(sid, token) which still works, but 3.x itself is long unsupported."
+          ],
+          "confidence": "date approximate"
+        }
+      ],
+      "notes": [
+        "5.x/6.x CHANGES list 'Token pagination support' (PR #1162) and response headers support (PR #1167)."
+      ]
+    },
+    {
+      "id": "twilio-python",
+      "aliases": ["python", "py", "pypi:twilio"],
+      "package": "twilio (PyPI)",
+      "repo": "https://github.com/twilio/twilio-python",
+      "changes": "https://github.com/twilio/twilio-python/blob/main/CHANGES.md",
+      "upgrade": "https://github.com/twilio/twilio-python/blob/main/UPGRADE.md",
+      "latest": "9.12.0",
+      "latestDate": "2026-10-12",
+      "currentMajor": 9,
+      "majors": [
+        {
+          "major": 9,
+          "date": "2024-02-27",
+          "breaking": [
+            "Generated from OpenAPI; upgrade guide says no breaking changes to existing APIs. Adds application/json request bodies."
+          ]
+        },
+        {
+          "major": 8,
+          "date": "2023-04-05",
+          "breaking": [
+            "Python 3.7 minimum (3.6 dropped).",
+            "TwiML: Say.ssml_x() removed in favour of Say.x() (ssml_break -> break_, ssml_emphasis -> emphasis, ...); Refer.refer_sip -> Refer.sip.",
+            "JWT: IpMessagingGrant removed; ConversationsGrant deprecated in favour of VoiceGrant.",
+            "twilio.rest.api.v2010.account.available_phone_number renamed to ...available_phone_number_country.",
+            "TaskRouter workers cumulative_statistics()/real_time_statistics() no longer take a WorkerSid.",
+            "instance._properties dict removed (properties are attributes now); do not rely on it."
+          ]
+        },
+        {
+          "major": 7,
+          "date": "2021-09-22",
+          "breaking": [
+            "Drops Python 2.7/3.4/3.5; removes six/twilio.compat helpers; PyJWT >= 2; AccessToken.to_jwt() no longer accepts algorithm=."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "twilio-ruby",
+      "aliases": ["ruby", "gem:twilio-ruby"],
+      "package": "twilio-ruby (RubyGems)",
+      "repo": "https://github.com/twilio/twilio-ruby",
+      "changes": "https://github.com/twilio/twilio-ruby/blob/main/CHANGES.md",
+      "upgrade": "https://github.com/twilio/twilio-ruby/blob/main/UPGRADE.md",
+      "latest": "7.12.0",
+      "latestDate": "2026-10-12",
+      "currentMajor": 7,
+      "majors": [
+        {
+          "major": 7,
+          "date": "2024-04-01",
+          "breaking": [
+            "Generated from OpenAPI; upgrade guide says no breaking changes to existing APIs. Adds application/json request bodies."
+          ]
+        },
+        {
+          "major": 6,
+          "date": "2023-05-04",
+          "breaking": [
+            "Generated from OpenAPI; upgrade guide says no breaking changes. Check CHANGES.md for removed resources at that release."
+          ]
+        },
+        {
+          "major": 5,
+          "date": "2017-07-13",
+          "breaking": [
+            "Ground-up redesign (first-class paging and streaming, swappable HTTP client, domain/version accessors such as @client.chat.v2). 4.x code needs rewriting.",
+            "5.3: Chat Message create takes from first and body: as keyword (Body no longer required)."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "twilio-php",
+      "aliases": ["php", "composer:twilio/sdk", "twilio/sdk"],
+      "package": "twilio/sdk (Composer)",
+      "repo": "https://github.com/twilio/twilio-php",
+      "changes": "https://github.com/twilio/twilio-php/blob/main/CHANGES.md",
+      "upgrade": "https://github.com/twilio/twilio-php/blob/main/UPGRADE.md",
+      "latest": "8.13.0",
+      "latestDate": "2026-10-12",
+      "currentMajor": 8,
+      "majors": [
+        {
+          "major": 8,
+          "date": "2024-04-04",
+          "breaking": [
+            "Generated from OpenAPI; upgrade guide says no breaking changes to existing APIs. Adds application/json request bodies. README lists PHP 8.2-8.4 as supported."
+          ]
+        },
+        {
+          "major": 7,
+          "date": "2023-03-09",
+          "breaking": ["Generated from OpenAPI; upgrade guide says no breaking changes."]
+        },
+        {
+          "major": 6,
+          "date": "2020-02-19",
+          "breaking": [
+            "Drops PHP 5.5-7.1; adds scalar parameter and return types, so a TypeError may be thrown for incompatible arguments."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "twilio-java",
+      "aliases": ["java", "maven:com.twilio.sdk:twilio", "com.twilio.sdk"],
+      "package": "com.twilio.sdk:twilio (Maven)",
+      "repo": "https://github.com/twilio/twilio-java",
+      "changes": "https://github.com/twilio/twilio-java/blob/main/CHANGES.md",
+      "upgrade": "https://github.com/twilio/twilio-java/blob/main/UPGRADE.md",
+      "latest": "13.1.0",
+      "latestDate": "2026-10-14",
+      "currentMajor": 13,
+      "majors": [
+        {
+          "major": 13,
+          "date": "2026-08-26",
+          "breaking": [
+            "Generated class names for nested models/enums now keep digits from schema names, e.g. Conversation.ConversationsVConversationGroupingType -> ConversationsV2ConversationGroupingType (conversations.v2 Action/Communication/Configuration/Conversation/Operation/Participant, messaging.v2 ChannelsSender).",
+            "Non-breaking: nested response models ignore unknown fields (no more UnrecognizedPropertyException on new API fields)."
+          ]
+        },
+        {
+          "major": 12,
+          "date": "2026-04-21",
+          "breaking": [
+            "io.jsonwebtoken SignatureAlgorithm replaced by SecureDigestAlgorithm (Jwts.SIG.RS256/PS256) in Jwt, ValidationClient, ValidationInterceptor, ValidationToken. Only affects code passing an explicit algorithm or subclassing Jwt.",
+            "JDK 21 build support; compiled JAR stays JDK 8 compatible."
+          ]
+        },
+        {
+          "major": 11,
+          "date": "2025-09-30",
+          "breaking": [
+            "NetworkHttpClient moved from Apache HttpClient 4 to HttpClient 5 (affects custom HTTP clients).",
+            "Organizations API auth init changed; enum suffix fix (StatusEnum -> Status) in Organizations Account.",
+            "anyType fields now typed Object instead of Map<String,Object>."
+          ]
+        },
+        {
+          "major": 10,
+          "date": "2024-02-09",
+          "breaking": [
+            "Generated from OpenAPI; upgrade guide says no breaking changes to existing APIs. Adds application/json request bodies."
+          ]
+        },
+        {
+          "major": 9,
+          "date": "2022-09-21",
+          "breaking": ["Generated from OpenAPI; upgrade guide says no breaking changes."]
+        }
+      ]
+    },
+    {
+      "id": "twilio-csharp",
+      "aliases": ["csharp", "c#", "dotnet", ".net", "nuget:Twilio", "Twilio"],
+      "package": "Twilio (NuGet)",
+      "repo": "https://github.com/twilio/twilio-csharp",
+      "changes": "https://github.com/twilio/twilio-csharp/blob/main/CHANGES.md",
+      "upgrade": "https://github.com/twilio/twilio-csharp/blob/main/UPGRADE.md",
+      "latest": "8.1.0",
+      "latestDate": "2026-10-12",
+      "currentMajor": 8,
+      "majors": [
+        {
+          "major": 8,
+          "date": "2026-08-25",
+          "breaking": ["Minimum .NET raised to .NET 8.0; .NET 6.0 support dropped."]
+        },
+        {
+          "major": 7,
+          "date": "2024-02-27",
+          "breaking": [
+            "Breaking change in .NET target support (see UPGRADE.md); no API breaking changes. Adds JSON request bodies."
+          ]
+        },
+        {
+          "major": 6,
+          "date": "2022-11-16",
+          "breaking": ["Generated from OpenAPI; upgrade guide says no breaking changes."]
+        }
+      ]
+    },
+    {
+      "id": "twilio-go",
+      "aliases": ["go", "golang", "github.com/twilio/twilio-go"],
+      "package": "github.com/twilio/twilio-go",
+      "repo": "https://github.com/twilio/twilio-go",
+      "changes": "https://github.com/twilio/twilio-go/blob/main/CHANGES.md",
+      "upgrade": "https://github.com/twilio/twilio-go/blob/main/UPGRADE.md",
+      "latest": "1.32.0",
+      "latestDate": "2026-10-12",
+      "currentMajor": 1,
+      "majors": [
+        {
+          "major": 1,
+          "date": "2022-10-05",
+          "breaking": [
+            "0.26.x -> 1.x: adds TwiML building (github.com/twilio/twilio-go/twiml).",
+            "0.25 -> 0.26 (pre-1.0): ApiV2010 client renamed to Api; request validator key-sorting fix; Go 1.19 support."
+          ]
+        }
+      ]
+    }
+  ],
+  "clientSdks": [
+    {
+      "id": "twilio-chat",
+      "aliases": ["twilio-chat", "programmablechat", "twiliochatclient"],
+      "note": "Programmable Chat client SDK. Chat is deprecated and receives no support; move to the Conversations client SDK (@twilio/conversations).",
+      "sources": ["https://www.twilio.com/docs/chat"]
+    },
+    {
+      "id": "@twilio/conversations",
+      "aliases": ["@twilio/conversations", "twilio-conversations", "conversations"],
+      "note": "Conversations (classic) client SDKs: JavaScript 2.x is Latest and 1.x is EOL; iOS 4.x Latest; Android 6.x Latest. Previous majors get 12 months of fixes, then 12 months deprecated, then EOL.",
+      "sources": ["https://www.twilio.com/docs/conversations/versioning-and-support-lifecycle"]
+    },
+    {
+      "id": "twilio-video",
+      "aliases": ["twilio-video", "video"],
+      "note": "Programmable Video client SDKs. Video is NOT end-of-life: the 2024 EOL plan was reversed on 2024-10-21. Check the Video changelog for the current SDK major.",
+      "sources": [
+        "https://www.twilio.com/en-us/changelog/-twilio-video-will-remain-a-standalone-product"
+      ]
+    },
+    {
+      "id": "authy",
+      "aliases": ["authy", "authy-client", "authy-python", "authy-devise"],
+      "note": "Authy API client libraries. Authy API is at End of Support and closed to new customers; migrate to Verify v2 via the main twilio helper library (client.verify.v2).",
+      "sources": ["https://www.twilio.com/docs/verify/authy-vs-verify"]
+    }
+  ]
+}

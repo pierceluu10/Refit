@@ -1,0 +1,126 @@
+{
+  "source": [
+    "https://developers.facebook.com/docs/graph-api/changelog",
+    "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog",
+    "https://developers.facebook.com/docs/graph-api/guides/versioning",
+    "https://developers.facebook.com/docs/marketing-api/overview/versioning"
+  ],
+  "retrieved": "2026-11-01",
+  "latest": { "graph": "v26.0", "marketing": "v26.0" },
+  "policy": {
+    "graph": "Each Graph API version is usable for at least two years; a version stops working two years after the next version is released. Calls to an expired version are defaulted to the next oldest usable version. Unversioned calls use the app's default version (App Dashboard > Settings > Advanced > Upgrade API Version). An app can only call older versions it has already called.",
+    "marketing": "Marketing API keeps the previous version for at least 90 days after a new one ships. After the grace period, calls to the old version may fail or be upgraded to the next available version; auto-upgrade only happens for endpoints that did not change, so changed endpoints fail. Unversioned calls to Marketing API endpoints fail.",
+    "policySource": {
+      "graph": "https://developers.facebook.com/docs/graph-api/guides/versioning",
+      "marketing": "https://developers.facebook.com/docs/marketing-api/overview/versioning"
+    }
+  },
+  "graph": [
+    { "version": "v26.0", "released": "2026-07-29", "expires": null },
+    { "version": "v25.0", "released": "2026-02-18", "expires": "2028-07-29" },
+    { "version": "v24.0", "released": "2025-10-08", "expires": "2028-02-18" },
+    { "version": "v23.0", "released": "2025-05-29", "expires": "2027-10-08" },
+    { "version": "v22.0", "released": "2025-01-21", "expires": "2027-05-20" },
+    { "version": "v21.0", "released": "2024-10-02", "expires": "2027-01-21" },
+    { "version": "v20.0", "released": "2024-05-21", "expires": "2026-09-24" },
+    { "version": "v19.0", "released": "2024-01-23", "expires": "2026-05-21" },
+    { "version": "v18.0", "released": "2023-09-12", "expires": "2026-01-26" },
+    { "version": "v17.0", "released": "2023-05-23", "expires": "2025-09-12" },
+    { "version": "v16.0", "released": "2023-02-02", "expires": "2025-05-14" },
+    { "version": "v15.0", "released": "2022-09-15", "expires": "2024-11-20" },
+    { "version": "v14.0", "released": "2022-05-25", "expires": "2024-09-17" },
+    { "version": "v13.0", "released": "2022-02-08", "expires": "2024-05-28" }
+  ],
+  "marketing": [
+    { "version": "v26.0", "released": "2026-07-29", "expires": null },
+    {
+      "version": "v25.0",
+      "released": "2026-02-18",
+      "expires": "2027-02-23",
+      "note": "From the Marketing API changelog; the Graph API changelog table still shows TBD."
+    },
+    {
+      "version": "v24.0",
+      "released": "2025-10-08",
+      "expires": "2026-11-10",
+      "note": "Marketing API changelog says 2026-11-10; the Graph API changelog table says 2026-10-06. Dates conflict.",
+      "confidence": "unverified"
+    },
+    {
+      "version": "v23.0",
+      "released": "2025-05-29",
+      "expires": "2026-06-09",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version23.0"
+    },
+    {
+      "version": "v22.0",
+      "released": "2025-01-21",
+      "expires": "2026-02-19",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version22.0"
+    },
+    {
+      "version": "v21.0",
+      "released": "2024-10-02",
+      "expires": null,
+      "note": "End date not found in snapshot (changelog page said TBD); it has almost certainly passed given v22-v23 expiries.",
+      "confidence": "unverified"
+    },
+    {
+      "version": "v20.0",
+      "released": "2024-05-21",
+      "expires": "2025-05-06",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version20.0"
+    },
+    {
+      "version": "v19.0",
+      "released": "2024-01-23",
+      "expires": "2025-02-04",
+      "source": "https://developers.facebook.com/docs/graph-api/changelog/version19.0"
+    },
+    {
+      "version": "v17.0",
+      "released": "2023-05-23",
+      "expires": "2024-05-14",
+      "source": "https://developers.facebook.com/docs/marketing-api/overview/versioning"
+    },
+    {
+      "version": "v16.0",
+      "released": "2023-02-02",
+      "expires": "2024-02-06",
+      "source": "https://developers.facebook.com/docs/marketing-api/overview/versioning"
+    }
+  ],
+  "sdks": [
+    {
+      "name": "facebook-python-business-sdk (PyPI facebook-business)",
+      "pin": "facebook_business/apiconfig.py: ads_api_config['API_VERSION'] (v26.0 in SDK 26.0.2); major SDK version tracks the API version",
+      "source": "https://github.com/facebook/facebook-python-business-sdk/blob/main/facebook_business/apiconfig.py"
+    },
+    {
+      "name": "facebook-nodejs-business-sdk (npm)",
+      "pin": "FacebookAdsApi.VERSION getter in src/api.js (v26.0 on GitHub main). Note: the npm 'latest' tag was 24.0.1 on 2026-11-01, so npm users may be on API v24.0 even though GitHub is at 26.0.2.",
+      "source": "https://github.com/facebook/facebook-nodejs-business-sdk/blob/main/src/api.js"
+    },
+    {
+      "name": "facebook-php-business-sdk (Composer facebook/php-business-sdk)",
+      "pin": "src/FacebookAds/ApiConfig.php: APIVersion constant (26.0)",
+      "source": "https://github.com/facebook/facebook-php-business-sdk/blob/main/src/FacebookAds/ApiConfig.php"
+    },
+    {
+      "name": "facebook-java-business-sdk / ruby / go",
+      "pin": "Each has an APIConfig/API version constant; same major = API version convention.",
+      "source": "https://developers.facebook.com/docs/business-sdk",
+      "confidence": "unverified"
+    },
+    {
+      "name": "Facebook JavaScript SDK",
+      "pin": "FB.init({ version: 'vXX.X' }); FB.api calls inherit it unless the path includes a version.",
+      "source": "https://developers.facebook.com/docs/graph-api/guides/versioning"
+    },
+    {
+      "name": "Facebook iOS / Android SDKs",
+      "pin": "Each SDK release targets the API version current at release; both provide an override for the Graph API version.",
+      "source": "https://developers.facebook.com/docs/graph-api/guides/versioning"
+    }
+  ]
+}

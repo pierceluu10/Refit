@@ -1,0 +1,808 @@
+{
+  "checkedAt": "Sun Nov  1 05:39:48 UTC 2026",
+  "usages": [
+    {
+      "repo": "Nutlope/twitterbio",
+      "provider": "together",
+      "via": "sdk",
+      "usageCorrect": true,
+      "reason": "app/api/together/route.ts constructs together-ai client and streams chat completions server-side.",
+      "sites": [
+        {
+          "file": "app/api/together/route.ts",
+          "line": 19,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": "together.chat.completions.stream(params); fields match params object lines 11-17."
+        },
+        {
+          "file": "app/page.tsx",
+          "line": 57,
+          "siteCorrect": false,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "Line and op name are right, but ChatCompletionStream.fromReadableStream only parses the response of the app's own /api/together route; no call to Together (the note itself says so)."
+        }
+      ],
+      "sdkVersionCorrect": true,
+      "pinnedVersionCorrect": null,
+      "missedInScope": [],
+      "missedCount": 0
+    },
+    {
+      "repo": "Shopify/shopify-app-template-remix",
+      "provider": "shopify",
+      "via": "graphql",
+      "usageCorrect": true,
+      "reason": "admin.graphql calls to the Shopify Admin GraphQL API.",
+      "sites": [
+        {
+          "file": "app/routes/app._index.tsx",
+          "line": 30,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": "admin.graphql with productCreate mutation; variable product.title."
+        },
+        {
+          "file": "app/routes/app._index.tsx",
+          "line": 65,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": "admin.graphql productVariantsBulkUpdate; variables productId, variants[{id, price}]."
+        }
+      ],
+      "sdkVersionCorrect": true,
+      "pinnedVersionCorrect": true,
+      "missedInScope": [],
+      "missedCount": 0
+    },
+    {
+      "repo": "Shopify/shopify-app-template-remix",
+      "provider": "shopify",
+      "via": "webhook",
+      "usageCorrect": true,
+      "reason": "Two webhook routes verified via authenticate.webhook; subscriptions declared in shopify.app.toml.",
+      "sites": [
+        {
+          "file": "app/routes/webhooks.app.scopes_update.tsx",
+          "line": 6,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "Updates session.scope from payload.current."
+        },
+        {
+          "file": "app/routes/webhooks.app.uninstalled.tsx",
+          "line": 6,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "deleteMany sessions for shop."
+        }
+      ],
+      "sdkVersionCorrect": null,
+      "pinnedVersionCorrect": null,
+      "missedInScope": [],
+      "missedCount": 0
+    },
+    {
+      "repo": "TwilioDevEd/appointment-reminders-flask",
+      "provider": "twilio",
+      "via": "sdk",
+      "usageCorrect": true,
+      "reason": "twilio.rest.Client sends SMS from a Celery task.",
+      "sites": [
+        {
+          "file": "tasks.py",
+          "line": 40,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": "client.messages.create(to, from_=..., body=...); client at line 13."
+        }
+      ],
+      "sdkVersionCorrect": true,
+      "pinnedVersionCorrect": null,
+      "missedInScope": [],
+      "missedCount": 0
+    },
+    {
+      "repo": "charmbracelet/mods",
+      "provider": "anthropic",
+      "via": "sdk",
+      "usageCorrect": true,
+      "reason": "anthropic-sdk-go Messages.NewStreaming in internal/anthropic.",
+      "sites": [
+        {
+          "file": "internal/anthropic/anthropic.go",
+          "line": 49,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": "c.Messages.NewStreaming(ctx, body)."
+        },
+        {
+          "file": "internal/anthropic/anthropic.go",
+          "line": 56,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "factory closure re-issues NewStreaming; invoked from Next() at line 161 after tool calls."
+        },
+        {
+          "file": "internal/anthropic/anthropic.go",
+          "line": 86,
+          "siteCorrect": false,
+          "fieldsCorrect": true,
+          "notesCorrect": null,
+          "comment": "anthropic.NewClient is client construction, not an API call. Options described correctly."
+        }
+      ],
+      "sdkVersionCorrect": true,
+      "pinnedVersionCorrect": null,
+      "missedInScope": [],
+      "missedCount": 0
+    },
+    {
+      "repo": "charmbracelet/mods",
+      "provider": "generativelanguage.googleapis.com",
+      "via": "http",
+      "usageCorrect": true,
+      "reason": "Raw HTTP POST to Gemini streamGenerateContent. Provider is labelled by hostname rather than google/gemini, but identifies it unambiguously.",
+      "sites": [
+        {
+          "file": "internal/google/google.go",
+          "line": 38,
+          "siteCorrect": false,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "Only the URL string in DefaultConfig; no request is made here."
+        },
+        {
+          "file": "internal/google/google.go",
+          "line": 129,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": "newRequest(POST, BaseURL, body); fields match lines 99-127. Same logical call as 292."
+        },
+        {
+          "file": "internal/google/google.go",
+          "line": 292,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "HTTPClient.Do(req)."
+        }
+      ],
+      "sdkVersionCorrect": null,
+      "pinnedVersionCorrect": true,
+      "missedInScope": [],
+      "missedCount": 0
+    },
+    {
+      "repo": "chubin/wttr.in",
+      "provider": "opencagedata",
+      "via": "http",
+      "usageCorrect": true,
+      "reason": "Default config (share/config/config.yaml:31) geocodes via api.opencagedata.com through makeQuery/http.Get.",
+      "sites": [
+        {
+          "file": "internal/location/nominatim_locationiq.go",
+          "line": 23,
+          "siteCorrect": false,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": "Wrong provider: this is the LocationIQ querier (type 'iq'), not OpenCage. The note even says so."
+        },
+        {
+          "file": "internal/location/nominatim_opencage.go",
+          "line": 27,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": "makeQuery(url); 'country' is decoded into the struct but never used."
+        },
+        {
+          "file": "internal/location/nominatim.go",
+          "line": 59,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "http.Get(url) in shared makeQuery; error field checked at 70-72."
+        }
+      ],
+      "sdkVersionCorrect": null,
+      "pinnedVersionCorrect": null,
+      "missedInScope": [],
+      "missedCount": 0
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "synth",
+      "via": "http",
+      "usageCorrect": true,
+      "reason": "Faraday client to api.synthfinance.com plus logo.synthfinance.com image URLs.",
+      "sites": [
+        {
+          "file": "app/models/family/auto_merchant_detector.rb",
+          "line": 69,
+          "siteCorrect": false,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "String constant returned by default_logo_provider_url; no request here."
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 15,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "client.get /user."
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 22,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "client.get /user; reads api_calls_remaining, api_limit, plan."
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 45,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": "GET /rates/historical."
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 60,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": "paginate call starts at 59; URL on 60. Helper lines 220/223 correct."
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 93,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": null,
+          "comment": "GET /tickers/search."
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 118,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": "GET /tickers/{symbol}."
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 155,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": "paginate call at 154, URL on 155."
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 204,
+          "siteCorrect": false,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "Faraday.new client construction, not a call. Note (base URL, headers, retry, registry.rb:36) accurate."
+        },
+        {
+          "file": "app/views/accounts/_logo.html.erb",
+          "line": 11,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "image_tag to logo.synthfinance.com; browser-side fetch."
+        },
+        {
+          "file": "app/views/holdings/_holding.html.erb",
+          "line": 6,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": "image_tag ticker logo."
+        },
+        {
+          "file": "app/views/holdings/show.html.erb",
+          "line": 9,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": "image_tag ticker logo."
+        }
+      ],
+      "sdkVersionCorrect": null,
+      "pinnedVersionCorrect": null,
+      "missedInScope": [
+        {
+          "file": "lib/tasks/securities.rake",
+          "line": 24,
+          "operation": "GET https://api.synthfinance.com/tickers/{ticker} (Faraday.get, country_code, Bearer auth)"
+        }
+      ],
+      "missedCount": 1
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "plaid",
+      "via": "sdk",
+      "usageCorrect": true,
+      "reason": "plaid gem PlaidApi client in Provider::Plaid / PlaidSandbox.",
+      "sites": [
+        {
+          "file": "app/models/provider/plaid_sandbox.rb",
+          "line": 10,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "create_client raises in production."
+        },
+        {
+          "file": "app/models/provider/plaid_sandbox.rb",
+          "line": 22,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": ""
+        },
+        {
+          "file": "app/models/provider/plaid_sandbox.rb",
+          "line": 32,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": ""
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 8,
+          "siteCorrect": false,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "Plaid::PlaidApi.new is client construction, not a call."
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 18,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "webhook_verification_key_get inside JWKS loader."
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 65,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": null,
+          "comment": "Fields correct; omits 'language'."
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 73,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": ""
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 78,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": ""
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 83,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": ""
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 88,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": ""
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 107,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": ""
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 131,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": ""
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 143,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": ""
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 152,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": ""
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 170,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "offset loop 162-177."
+        }
+      ],
+      "sdkVersionCorrect": true,
+      "pinnedVersionCorrect": null,
+      "missedInScope": [
+        {
+          "file": "lib/tasks/data_migration.rake",
+          "line": 16,
+          "operation": "item_webhook_update (EU webhook migration)"
+        }
+      ],
+      "missedCount": 1
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "stripe",
+      "via": "webhook",
+      "usageCorrect": true,
+      "reason": "WebhooksController#stripe receives Stripe events; Provider::Stripe verifies signature via parse_thin_event.",
+      "sites": [
+        {
+          "file": "app/controllers/webhooks_controller.rb",
+          "line": 44,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": "Handler hands body + Stripe-Signature to process_webhook_later."
+        },
+        {
+          "file": "app/models/provider/stripe.rb",
+          "line": 21,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "client.parse_thin_event(...); process_event filters customer.subscription.*."
+        }
+      ],
+      "sdkVersionCorrect": null,
+      "pinnedVersionCorrect": null,
+      "missedInScope": [],
+      "missedCount": 0
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "smtp",
+      "via": "http",
+      "usageCorrect": false,
+      "reason": "SMTP is a protocol to an operator-configured server, not an identified external API, and the channel is not http. The site is ActionMailer config, not a call.",
+      "sites": [
+        {
+          "file": "config/environments/production.rb",
+          "line": 80,
+          "siteCorrect": false,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "smtp_settings hash; no call. Env var names in note are right."
+        }
+      ],
+      "sdkVersionCorrect": null,
+      "pinnedVersionCorrect": null,
+      "missedInScope": [],
+      "missedCount": 0
+    },
+    {
+      "repo": "simonw/llm",
+      "provider": "openai",
+      "via": "sdk",
+      "usageCorrect": true,
+      "reason": "openai Python SDK used for chat, responses, completions, embeddings, models.list.",
+      "sites": [
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 518,
+          "siteCorrect": false,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "Off by one: 518 is openai.OpenAI(api_key=key); embeddings.create is on 519."
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 773,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "get_client(key).models.list()."
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 1379,
+          "siteCorrect": false,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "Client construction in get_client, not a call; 1375/1377 note accurate."
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 1441,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "stream=True branch."
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 1494,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": "stream=False."
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 1559,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": "async stream."
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 1610,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": "async non-stream."
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 2552,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": "responses.create stream=True."
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 2677,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": "stream=False."
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 2799,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": "async stream."
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 2926,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": "async non-stream."
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 2998,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": "legacy completions, stream."
+        },
+        {
+          "file": "llm/default_plugins/openai_models.py",
+          "line": 3017,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": "legacy completions, non-stream."
+        }
+      ],
+      "sdkVersionCorrect": true,
+      "pinnedVersionCorrect": null,
+      "missedInScope": [],
+      "missedCount": 0
+    },
+    {
+      "repo": "simonw/llm",
+      "provider": "user-supplied-urls",
+      "via": "http",
+      "usageCorrect": false,
+      "reason": "Arbitrary user-supplied URLs (fragments, templates, attachments) are generic fetches, not an external API/provider.",
+      "sites": [
+        {
+          "file": "llm/cli.py",
+          "line": 275,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "client.get(fragment)."
+        },
+        {
+          "file": "llm/cli.py",
+          "line": 4368,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "httpx2.get(name) in load_template."
+        },
+        {
+          "file": "llm/models.py",
+          "line": 96,
+          "siteCorrect": false,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "96 is httpx2.Client construction; the call is client.head on 97, and the operation is HEAD, not GET."
+        },
+        {
+          "file": "llm/models.py",
+          "line": 111,
+          "siteCorrect": false,
+          "fieldsCorrect": null,
+          "notesCorrect": null,
+          "comment": "111 is Client construction; client.get is on 112. Operation is GET only, not HEAD/GET."
+        }
+      ],
+      "sdkVersionCorrect": null,
+      "pinnedVersionCorrect": null,
+      "missedInScope": [
+        {
+          "file": "llm/cli.py",
+          "line": 372,
+          "operation": "HEAD <attachment url> (httpx2.head, attachment type sniffing)"
+        }
+      ],
+      "missedCount": 1
+    },
+    {
+      "repo": "vercel/nextjs-subscription-payments",
+      "provider": "stripe",
+      "via": "sdk",
+      "usageCorrect": true,
+      "reason": "stripe-node client used server-side for checkout, portal, customers, subscriptions.",
+      "sites": [
+        {
+          "file": "utils/stripe/config.ts",
+          "line": 3,
+          "siteCorrect": false,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "new Stripe(...) is client construction, not a call. apiVersion: null is correct."
+        },
+        {
+          "file": "utils/stripe/server.ts",
+          "line": 89,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": "Fields are a correct subset (also billing_address_collection, customer_update, allow_promotion_codes, mode 'payment' branch)."
+        },
+        {
+          "file": "utils/stripe/server.ts",
+          "line": 153,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": ""
+        },
+        {
+          "file": "utils/supabase/admin.ts",
+          "line": 108,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": ""
+        },
+        {
+          "file": "utils/supabase/admin.ts",
+          "line": 136,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": ""
+        },
+        {
+          "file": "utils/supabase/admin.ts",
+          "line": 142,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": ""
+        },
+        {
+          "file": "utils/supabase/admin.ts",
+          "line": 200,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": null,
+          "comment": ""
+        },
+        {
+          "file": "utils/supabase/admin.ts",
+          "line": 228,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": true,
+          "comment": ""
+        }
+      ],
+      "sdkVersionCorrect": true,
+      "pinnedVersionCorrect": null,
+      "missedInScope": [],
+      "missedCount": 0
+    },
+    {
+      "repo": "vercel/nextjs-subscription-payments",
+      "provider": "stripe-js",
+      "via": "sdk",
+      "usageCorrect": false,
+      "reason": "Real Stripe.js browser usage, but the provider is Stripe; 'stripe-js' is the SDK name and splits one provider in two in this report.",
+      "sites": [
+        {
+          "file": "components/ui/Pricing/Pricing.tsx",
+          "line": 79,
+          "siteCorrect": true,
+          "fieldsCorrect": true,
+          "notesCorrect": null,
+          "comment": "stripe?.redirectToCheckout({ sessionId })."
+        },
+        {
+          "file": "utils/stripe/client.ts",
+          "line": 7,
+          "siteCorrect": true,
+          "fieldsCorrect": null,
+          "notesCorrect": true,
+          "comment": "loadStripe fetches js.stripe.com with the publishable key from env."
+        }
+      ],
+      "sdkVersionCorrect": true,
+      "pinnedVersionCorrect": null,
+      "missedInScope": [],
+      "missedCount": 0
+    }
+  ],
+  "totals": {
+    "usagesCorrect": 12,
+    "usagesChecked": 15,
+    "sitesCorrect": 60,
+    "sitesChecked": 73
+  }
+}

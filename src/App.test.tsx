@@ -29,22 +29,22 @@ function renderRoute(path: string) {
 describe('workspace navigation', () => {
   it('sets the home tab title after the React app loads', () => {
     renderRoute('/');
-    expect(document.title).toBe('Refit: Keep your integrations current');
+    expect(document.title).toBe('Aptitude: Keep your integrations current');
   });
 
   it('keeps repository filters in the URL and restores them when navigating back', () => {
     renderRoute('/app/repositories');
-    fireEvent.change(screen.getByLabelText('Search repositories'), { target: { value: 'api' } });
-    fireEvent.change(screen.getByLabelText('Filter repositories by status'), {
-      target: { value: 'Affected' },
+    fireEvent.change(screen.getByLabelText('Search repositories'), { target: { value: 'store' } });
+    fireEvent.change(screen.getByLabelText('Filter repositories by API'), {
+      target: { value: 'stripe' },
     });
-    expect(screen.getByLabelText('Current address')).toHaveTextContent('q=api&status=Affected');
-    expect(screen.queryByText('acme / web')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('link', { name: /View acme \/ api/ }));
-    expect(screen.getByRole('heading', { name: 'Impact evidence' })).toBeVisible();
+    expect(screen.getByLabelText('Current address')).toHaveTextContent('q=store&provider=stripe');
+    expect(screen.queryByText('example-org/billing-api')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link', { name: /View example-org\/storefront/ }));
+    expect(screen.getByRole('heading', { name: 'APIs in use' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Browser back' }));
-    expect(screen.getByLabelText('Search repositories')).toHaveValue('api');
-    expect(screen.getByLabelText('Filter repositories by status')).toHaveValue('Affected');
+    expect(screen.getByLabelText('Search repositories')).toHaveValue('store');
+    expect(screen.getByLabelText('Filter repositories by API')).toHaveValue('stripe');
   });
 
   it('recovers from an empty repository search', () => {
@@ -52,15 +52,7 @@ describe('workspace navigation', () => {
     expect(screen.getByRole('heading', { name: 'No repositories match.' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(screen.getByLabelText('Search repositories')).toHaveValue('');
-    expect(screen.getByText('acme / web')).toBeVisible();
-  });
-
-  it('preserves failed-run tabs across deep links and never claims publication', () => {
-    renderRoute('/app/runs/validation-failure?tab=review');
-    expect(screen.getByRole('heading', { name: 'No passing checks. No PR.' })).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Validation' }));
-    expect(screen.getByText('Example failure')).toBeVisible();
-    expect(screen.getByLabelText('Current address')).toHaveTextContent('tab=validation');
+    expect(screen.getByText('example-org/notifications')).toBeVisible();
   });
 
   it('falls back to the default scenario for an unknown demo query', () => {
@@ -81,10 +73,10 @@ describe('workspace navigation', () => {
     expect(
       within(drawer).getByRole('button', { name: 'Close workspace navigation' }),
     ).toHaveFocus();
-    const last = within(drawer).getByRole('link', { name: 'Back to Refit' });
+    const last = within(drawer).getByRole('link', { name: 'Back to Aptitude' });
     last.focus();
     fireEvent.keyDown(document, { key: 'Tab' });
-    expect(within(drawer).getByRole('link', { name: 'Refit home' })).toHaveFocus();
+    expect(within(drawer).getByRole('link', { name: 'Aptitude home' })).toHaveFocus();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
@@ -94,8 +86,6 @@ describe('workspace navigation', () => {
     renderRoute('/app/repositories/not-real');
     expect(screen.getByRole('heading', { name: 'Nothing at this address.' })).toBeVisible();
     fireEvent.click(screen.getByRole('link', { name: 'Back to overview' }));
-    expect(
-      screen.getByRole('heading', { name: 'A little change. The full picture.' }),
-    ).toBeVisible();
+    expect(screen.getByRole('heading', { level: 1, name: 'example-org' })).toBeVisible();
   });
 });

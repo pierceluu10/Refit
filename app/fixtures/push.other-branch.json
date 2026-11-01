@@ -1,0 +1,106 @@
+{
+  "ref": "refs/heads/feature/refunds",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "9a8b7c6d5e4f30211203f4e5d6c7b8a9fedcba98",
+  "repository": {
+    "id": 800000001,
+    "node_id": "R_kgDOExample1",
+    "name": "billing-api",
+    "full_name": "aptitude-example-org/billing-api",
+    "private": true,
+    "owner": {
+      "login": "aptitude-example-org",
+      "id": 900000001,
+      "node_id": "O_kgDOExample1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/900000001?v=4",
+      "url": "https://api.github.com/users/aptitude-example-org",
+      "html_url": "https://github.com/aptitude-example-org",
+      "type": "Organization",
+      "site_admin": false
+    },
+    "html_url": "https://github.com/aptitude-example-org/billing-api",
+    "description": "Illustrative example repository",
+    "fork": false,
+    "url": "https://api.github.com/repos/aptitude-example-org/billing-api",
+    "default_branch": "main",
+    "master_branch": "main",
+    "organization": "aptitude-example-org",
+    "visibility": "private",
+    "language": "TypeScript",
+    "pushed_at": 1793523600,
+    "created_at": 1767225600
+  },
+  "pusher": {
+    "name": "example-dev",
+    "email": "example-dev@users.noreply.github.com"
+  },
+  "organization": {
+    "login": "aptitude-example-org",
+    "id": 900000001,
+    "node_id": "O_kgDOExample1",
+    "url": "https://api.github.com/orgs/aptitude-example-org"
+  },
+  "installation": {
+    "id": 70000001,
+    "node_id": "MDIzOkludGVncmF0aW9uSW5zdGFsbGF0aW9uNzAwMDAwMDE="
+  },
+  "sender": {
+    "login": "example-admin",
+    "id": 900000002,
+    "node_id": "U_kgDOExample2",
+    "avatar_url": "https://avatars.githubusercontent.com/u/900000002?v=4",
+    "url": "https://api.github.com/users/example-admin",
+    "html_url": "https://github.com/example-admin",
+    "type": "User",
+    "site_admin": false
+  },
+  "created": false,
+  "deleted": false,
+  "forced": false,
+  "base_ref": null,
+  "compare": "https://github.com/aptitude-example-org/billing-api/compare/000000000000...9a8b7c6d5e4f",
+  "commits": [
+    {
+      "id": "9a8b7c6d5e4f30211203f4e5d6c7b8a9fedcba98",
+      "tree_id": "1111111111111111111111111111111111111111",
+      "distinct": true,
+      "message": "Add refunds endpoint",
+      "timestamp": "2026-11-01T10:00:00Z",
+      "url": "https://github.com/aptitude-example-org/billing-api/commit/9a8b7c6d5e4f30211203f4e5d6c7b8a9fedcba98",
+      "author": {
+        "name": "example-dev",
+        "email": "example-dev@users.noreply.github.com",
+        "username": "example-dev"
+      },
+      "committer": {
+        "name": "example-dev",
+        "email": "example-dev@users.noreply.github.com",
+        "username": "example-dev"
+      },
+      "added": [],
+      "removed": [],
+      "modified": ["src/payments.ts"]
+    }
+  ],
+  "head_commit": {
+    "id": "9a8b7c6d5e4f30211203f4e5d6c7b8a9fedcba98",
+    "tree_id": "1111111111111111111111111111111111111111",
+    "distinct": true,
+    "message": "Add refunds endpoint",
+    "timestamp": "2026-11-01T10:00:00Z",
+    "url": "https://github.com/aptitude-example-org/billing-api/commit/9a8b7c6d5e4f30211203f4e5d6c7b8a9fedcba98",
+    "author": {
+      "name": "example-dev",
+      "email": "example-dev@users.noreply.github.com",
+      "username": "example-dev"
+    },
+    "committer": {
+      "name": "example-dev",
+      "email": "example-dev@users.noreply.github.com",
+      "username": "example-dev"
+    },
+    "added": [],
+    "removed": [],
+    "modified": ["src/payments.ts"]
+  }
+}

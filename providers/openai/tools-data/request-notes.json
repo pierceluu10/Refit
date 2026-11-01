@@ -1,0 +1,263 @@
+{
+  "source": [
+    "https://developers.openai.com/api/docs/guides/migrate-to-responses",
+    "https://developers.openai.com/api/docs/guides/latest-model",
+    "https://developers.openai.com/api/docs/guides/reasoning",
+    "https://developers.openai.com/api/docs/deprecations",
+    "https://github.com/openai/openai-openapi/blob/main/openapi.json"
+  ],
+  "retrieved": "2026-11-01",
+  "endpointAliases": {
+    "chat.completions": "/chat/completions",
+    "chat": "/chat/completions",
+    "chat_completions": "/chat/completions",
+    "responses": "/responses",
+    "responses.compact": "/responses/compact",
+    "embeddings": "/embeddings",
+    "images": "/images/generations",
+    "images.generate": "/images/generations",
+    "images.generations": "/images/generations",
+    "images.edit": "/images/edits",
+    "images.edits": "/images/edits",
+    "images.variations": "/images/variations",
+    "images.create_variation": "/images/variations",
+    "audio.transcriptions": "/audio/transcriptions",
+    "audio.translations": "/audio/translations",
+    "audio.speech": "/audio/speech",
+    "completions": "/completions",
+    "assistants": "/assistants",
+    "threads": "/threads",
+    "threads.runs": "/threads/{thread_id}/runs",
+    "threads.create_and_run": "/threads/runs",
+    "threads.messages": "/threads/{thread_id}/messages",
+    "moderations": "/moderations",
+    "batches": "/batches",
+    "fine_tuning.jobs": "/fine_tuning/jobs",
+    "conversations": "/conversations",
+    "realtime.client_secrets": "/realtime/client_secrets",
+    "vector_stores": "/vector_stores",
+    "files": "/files",
+    "uploads": "/uploads",
+    "videos": "/videos"
+  },
+  "endpointNotes": {
+    "/assistants": {
+      "status": "shut down",
+      "date": "2026-08-26",
+      "note": "The Assistants API was sunset on 2026-08-26 (deprecation announced 2025-08-26). Replacement: Responses API + Conversations API. Mapping: Assistants -> Prompts (dashboard), Threads -> Conversations, Runs -> Responses, Run steps -> Items. Reusable prompt objects are themselves deprecated (v1/prompts shuts down 2026-11-30), so prefer keeping instructions/tools in code.",
+      "source": "https://developers.openai.com/api/docs/assistants/migration"
+    },
+    "/threads": {
+      "status": "shut down",
+      "date": "2026-08-26",
+      "note": "Threads, runs and messages are part of the Assistants API, sunset 2026-08-26. Use the Conversations API (/conversations) with Responses (/responses). Thread history can no longer be read from the API; use messages your app stored.",
+      "source": "https://developers.openai.com/api/docs/assistants/migration"
+    },
+    "/completions": {
+      "status": "legacy",
+      "note": "Completions is a legacy endpoint (the model pages label it 'Completions (legacy)'). The instruct/base models it served (gpt-3.5-turbo-instruct, babbage-002, davinci-002) were shut down on 2026-09-28. Move prompt/completion calls to Responses (or Chat Completions).",
+      "source": "https://developers.openai.com/api/docs/deprecations#2025-09-26-legacy-gpt-model-snapshots"
+    },
+    "/edits": {
+      "status": "shut down",
+      "date": "2024-01-04",
+      "note": "/v1/edits and the edit models were shut down 2024-01-04; the deprecations page recommends /v1/chat/completions.",
+      "source": "https://developers.openai.com/api/docs/deprecations#2023-07-06-gpt-and-embeddings"
+    },
+    "/engines": {
+      "status": "shut down",
+      "date": "2022-12-03",
+      "note": "/v1/engines was replaced by /v1/models (shut down 2022-12-03). /v1/search, /v1/classifications and /v1/answers were shut down the same day.",
+      "source": "https://developers.openai.com/api/docs/deprecations#2022-06-03-legacy-endpoints"
+    },
+    "/fine-tunes": {
+      "status": "shut down",
+      "date": "2024-01-04",
+      "note": "The original /v1/fine-tunes API was replaced by /v1/fine_tuning/jobs.",
+      "source": "https://developers.openai.com/api/docs/deprecations#2023-08-22-fine-tunes-endpoint"
+    },
+    "/audio/translations": {
+      "status": "deprecated",
+      "date": "2027-02-26",
+      "note": "/v1/audio/translations shuts down 2027-02-26; recommended replacement is v1/realtime/translations. The spec marks createTranslation deprecated.",
+      "source": "https://developers.openai.com/api/docs/deprecations#2026-08-26-transcription-models"
+    },
+    "/audio/speech": {
+      "status": "models deprecated",
+      "date": "2027-01-06",
+      "note": "All text-to-speech models (tts-1, tts-1-hd, gpt-4o-mini-tts snapshots) shut down 2027-01-06; recommended replacement is gpt-realtime-2.1-mini via the Realtime API.",
+      "source": "https://developers.openai.com/api/docs/deprecations#2026-10-01-text-to-speech-models"
+    },
+    "/audio/transcriptions": {
+      "status": "models deprecated",
+      "date": "2027-02-26",
+      "note": "whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe and gpt-4o-transcribe-diarize shut down 2027-02-26; replacements gpt-live-transcribe or gpt-transcribe.",
+      "source": "https://developers.openai.com/api/docs/deprecations#2026-08-26-transcription-models"
+    },
+    "/videos": {
+      "status": "shut down",
+      "date": "2026-09-24",
+      "note": "The Videos API and Sora 2 models were removed on 2026-09-24 with no listed replacement.",
+      "source": "https://developers.openai.com/api/docs/deprecations#2026-03-24-sora-2-video-generation-models-and-videos-api"
+    },
+    "/images/variations": {
+      "status": "deprecated in spec",
+      "note": "The spec marks createImageVariation deprecated. Variations were a DALL-E feature; DALL-E 2/3 were shut down 2026-05-12.",
+      "source": "https://developers.openai.com/api/docs/deprecations#2025-11-14-dalle-model-snapshots"
+    },
+    "/chat/completions": {
+      "status": "supported",
+      "note": "Chat Completions remains supported, but Responses is recommended for new projects. Starting with GPT-5.4, Chat Completions does not support tool calling with reasoning_effort other than none; GPT-6 Astra / 6.1 Sol / 6.1 Terra require Responses for tool calling.",
+      "source": "https://developers.openai.com/api/docs/guides/migrate-to-responses"
+    },
+    "/prompts": {
+      "status": "deprecated",
+      "date": "2026-11-30",
+      "note": "Reusable prompt objects and the v1/prompts API are scheduled to shut down 2026-11-30. Move prompt content into application code. Watch for `prompt: { id: ... }` in Responses requests.",
+      "source": "https://developers.openai.com/api/docs/deprecations#2026-06-03-reusable-prompts"
+    },
+    "/evals": {
+      "status": "deprecated",
+      "date": "2026-11-30",
+      "note": "Evals platform: read-only from 2026-10-31, dashboard and API shut down 2026-11-30.",
+      "source": "https://developers.openai.com/api/docs/deprecations#2026-06-03-evals-platform"
+    }
+  },
+  "paramNotes": {
+    "/chat/completions": {
+      "functions": {
+        "replacement": "tools",
+        "note": "Deprecated in favor of `tools` (each entry becomes {type: 'function', function: {...}}).",
+        "source": "https://github.com/openai/openai-openapi/blob/main/openapi.json"
+      },
+      "function_call": {
+        "replacement": "tool_choice",
+        "note": "Deprecated in favor of `tool_choice`.",
+        "source": "https://github.com/openai/openai-openapi/blob/main/openapi.json"
+      },
+      "max_tokens": {
+        "replacement": "max_completion_tokens",
+        "note": "Deprecated in favor of `max_completion_tokens` and not compatible with o-series / reasoning models.",
+        "source": "https://github.com/openai/openai-openapi/blob/main/openapi.json"
+      },
+      "user": {
+        "replacement": "safety_identifier / prompt_cache_key",
+        "note": "Being replaced by `safety_identifier` (abuse detection; hash user ids) and `prompt_cache_key` (cache bucketing).",
+        "source": "https://developers.openai.com/api/docs/guides/safety-best-practices"
+      },
+      "prompt_cache_retention": {
+        "replacement": "prompt_cache_options.ttl",
+        "note": "Deprecated; use `prompt_cache_options.ttl`. The GPT-6 guide says to replace it with prompt_cache_options.ttl set to \"30m\" when migrating from GPT-5.5 or earlier.",
+        "source": "https://developers.openai.com/api/docs/guides/latest-model"
+      },
+      "seed": {
+        "note": "The spec marks `seed` deprecated (Beta, best-effort determinism).",
+        "source": "https://github.com/openai/openai-openapi/blob/main/openapi.json"
+      }
+    },
+    "/responses": {
+      "user": {
+        "replacement": "safety_identifier / prompt_cache_key",
+        "note": "Being replaced by `safety_identifier` and `prompt_cache_key`.",
+        "source": "https://developers.openai.com/api/docs/guides/safety-best-practices"
+      },
+      "prompt_cache_retention": {
+        "replacement": "prompt_cache_options.ttl",
+        "note": "Deprecated; use `prompt_cache_options.ttl`.",
+        "source": "https://developers.openai.com/api/docs/guides/latest-model"
+      },
+      "truncation": {
+        "note": "The spec marks `truncation` deprecated; check the Responses reference before relying on it.",
+        "source": "https://github.com/openai/openai-openapi/blob/main/openapi.json"
+      },
+      "prompt": {
+        "note": "Reusable prompt objects (v1/prompts) shut down 2026-11-30; inline the prompt content instead.",
+        "source": "https://developers.openai.com/api/docs/deprecations#2026-06-03-reusable-prompts"
+      }
+    },
+    "/images/generations": {
+      "user": {
+        "replacement": "safety_identifier",
+        "note": "Deprecated: use `safety_identifier` (user still accepted as a fallback).",
+        "source": "https://github.com/openai/openai-openapi/blob/main/openapi.json"
+      },
+      "response_format": {
+        "note": "Legacy parameter for retired image models; unsupported for GPT image models, which always return base64.",
+        "source": "https://github.com/openai/openai-openapi/blob/main/openapi.json"
+      },
+      "style": {
+        "note": "Legacy parameter for retired image models; describe the style in the prompt for GPT image models.",
+        "source": "https://github.com/openai/openai-openapi/blob/main/openapi.json"
+      }
+    },
+    "/images/edits": {
+      "user": {
+        "replacement": "safety_identifier",
+        "note": "Deprecated: use `safety_identifier`.",
+        "source": "https://github.com/openai/openai-openapi/blob/main/openapi.json"
+      },
+      "response_format": {
+        "note": "Legacy parameter for retired image models; unsupported for GPT image models.",
+        "source": "https://github.com/openai/openai-openapi/blob/main/openapi.json"
+      }
+    },
+    "/fine_tuning/jobs": {
+      "hyperparameters": {
+        "replacement": "method",
+        "note": "Deprecated in favor of `method` (pass hyperparameters under method).",
+        "source": "https://github.com/openai/openai-openapi/blob/main/openapi.json"
+      }
+    }
+  },
+  "reasoningModels": {
+    "note": "When reasoning effort is not none, remove temperature, top_p and top_logprobs; for Chat Completions also remove logprobs; for Responses remove message.output_text.logprobs from include. GPT-6 Astra and GPT-6.1 Sol do not support effort none (use low). max_tokens is not compatible with o-series models; use max_completion_tokens (Chat) or max_output_tokens (Responses).",
+    "unsupportedWhenReasoning": {
+      "/chat/completions": ["temperature", "top_p", "top_logprobs", "logprobs"],
+      "/responses": ["temperature", "top_p", "top_logprobs"]
+    },
+    "modelPattern": "^(o[1-9]|gpt-5|gpt-6|codex)",
+    "noNoneEffort": ["gpt-6-astra", "gpt-6.1-sol"],
+    "source": "https://developers.openai.com/api/docs/guides/latest-model"
+  },
+  "chatToResponses": {
+    "source": "https://developers.openai.com/api/docs/guides/migrate-to-responses",
+    "endpoint": "POST /v1/chat/completions -> POST /v1/responses (SDK: client.chat.completions.create -> client.responses.create)",
+    "params": {
+      "messages": "input (a string or an array of input Items); system/developer messages can move to top-level `instructions`",
+      "response_format": "text.format",
+      "tools": "tools, but function definitions are internally tagged ({type:'function', name, parameters, strict}) instead of {type:'function', function:{...}}; omitting strict attempts strict mode in Responses",
+      "functions": "tools (internally tagged function tools)",
+      "function_call": "tool_choice",
+      "tool_choice": "tool_choice",
+      "n": "not available in Responses; make separate requests",
+      "reasoning_effort": "reasoning.effort",
+      "max_completion_tokens": "max_output_tokens",
+      "max_tokens": "max_output_tokens",
+      "store": "store (Responses are stored by default; set store:false to opt out)",
+      "stream": "stream, but events are typed SSE (e.g. response.output_text.delta) instead of chunks with choices[].delta",
+      "web_search_options": "use the hosted web search tool in `tools`",
+      "verbosity": "text.verbosity",
+      "logprobs": "include: ['message.output_text.logprobs'] (with top_logprobs)",
+      "audio": "audio output is listed as coming soon for Responses on the migration page; check before migrating audio flows",
+      "modalities": "not a Responses parameter; check the Responses reference"
+    },
+    "confidence": {
+      "reasoning_effort": "verified (reasoning guide names reasoning.effort for Responses vs reasoning_effort for Chat)",
+      "max_completion_tokens": "verified that Responses uses max_output_tokens (reasoning guide); the 1:1 mapping is our reading",
+      "verbosity": "verified that the Responses text param has format and verbosity (openapi ResponseTextParam)",
+      "logprobs": "verified from the GPT-6 guide's include value; the exact mapping is our reading",
+      "web_search_options": "our reading of the migration guide's hosted-tools section"
+    },
+    "output": "choices[0].message.content -> response.output_text (SDK helper) or iterate response.output Items by type; tool calls arrive as function_call Items and results go back as function_call_output Items with the matching call_id",
+    "state": "Multi-turn: previous_response_id (resend instructions each turn; prior tokens still billed), replay output Items manually, or the Conversations API",
+    "pitfalls": [
+      "Reading choices[0].message.content instead of response.output_text / response.output",
+      "Treating every output entry as a message (reasoning and tool calls are separate Item types)",
+      "Dropping reasoning / function_call / function_call_output Items when carrying context manually",
+      "Sending a function result without the matching call_id",
+      "Using response_format instead of text.format",
+      "Reusing Chat Completions streaming chunk handlers",
+      "Assuming previous_response_id removes billing for prior context"
+    ]
+  }
+}

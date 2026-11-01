@@ -1,0 +1,41 @@
+{
+  "id": "shopify",
+  "name": "Shopify API",
+  "sources": [
+    {
+      "id": "changelog",
+      "kind": "changelog",
+      "url": "https://shopify.dev/changelog.md",
+      "format": "markdown",
+      "note": "Developer changelog as markdown: dated post titles with links, API changes mixed with theme and admin news. Follow post links for detail. (feed.xml returns HTTP 500 'Markdown conversion failed' for the shared fetcher's Accept header.)"
+    },
+    {
+      "id": "release-notes",
+      "kind": "release-notes",
+      "url": "https://shopify.dev/changelog/release-notes/latest.md",
+      "format": "markdown",
+      "note": "Release notes for the latest stable YYYY-MM API version, with 'Action required' and 'Breaking change' items. The release candidate's notes are at /changelog/release-notes/<version>.md."
+    },
+    {
+      "id": "api-versioning",
+      "kind": "versioning",
+      "url": "https://shopify.dev/docs/api/usage/versioning.md",
+      "format": "markdown",
+      "note": "Quarterly release schedule, support windows and deprecation practice."
+    },
+    {
+      "id": "rest-admin-legacy",
+      "kind": "deprecations",
+      "url": "https://shopify.dev/docs/api/admin-rest.md",
+      "format": "markdown",
+      "note": "REST Admin API reference intro, which states its legacy status and the GraphQL-only rule for new public apps."
+    },
+    {
+      "id": "shopify-api-changelog",
+      "kind": "sdk-releases",
+      "url": "https://raw.githubusercontent.com/Shopify/shopify-app-js/main/packages/apps/shopify-api/CHANGELOG.md",
+      "format": "markdown",
+      "note": "CHANGELOG of @shopify/shopify-api, the Node SDK in the shopify-app-js monorepo."
+    }
+  ]
+}

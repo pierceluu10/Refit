@@ -1,0 +1,39 @@
+{
+  "id": "openai-node-v4-commitgpt",
+  "repo": "RomanHotsiy/commitgpt",
+  "change": {
+    "provider": "openai",
+    "id": "openai-node-v3-to-v4",
+    "kind": "sdk-major",
+    "title": "Upgrade the openai Node SDK from v3 to v4",
+    "source": {
+      "url": "https://github.com/openai/openai-node/discussions/217",
+      "quote": "v4 is a complete rewrite of the SDK. ... There are changes in the initialization logic, method names, error handling. The API parameter names should be unchanged."
+    },
+    "affects": {
+      "sdk": "openai",
+      "versions": ["3.x"],
+      "operations": ["Configuration", "OpenAIApi", "createCompletion"]
+    }
+  },
+  "usages": [
+    {
+      "repo": "RomanHotsiy/commitgpt",
+      "provider": "openai",
+      "via": "sdk",
+      "sdk": { "name": "openai", "version": "^3.2.1", "lockfile": "package-lock.json" },
+      "callSites": [
+        { "file": "client.ts", "line": 7, "operation": "new Configuration", "fields": ["apiKey"] },
+        { "file": "client.ts", "line": 10, "operation": "new OpenAIApi" },
+        {
+          "file": "client.ts",
+          "line": 17,
+          "operation": "createCompletion",
+          "fields": ["model", "prompt", "max_tokens", "temperature"],
+          "notes": "reads result.data.choices[0].text"
+        }
+      ]
+    }
+  ],
+  "priority": 1
+}

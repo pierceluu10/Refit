@@ -1,0 +1,399 @@
+{
+  "provider": "stripe",
+  "updatedAt": "2026-11-01",
+  "draftedBy": "Drafted 2026-11-01 by a build agent reading the provider docs over web fetch. Not yet re-drafted by the knowledge agent (core/knowledge.ts), because no model API key was available.",
+  "versioning": {
+    "scheme": "Date-based API versions with a release name suffix (e.g. 2026-10-28.endive), pinned per request with the Stripe-Version header or by the server-side SDK release. Since 2024-09-30.acacia: additive monthly versions, plus two major releases a year whose first version carries breaking changes. Separate .preview versions for the public preview channel.",
+    "source": {
+      "url": "https://docs.stripe.com/api/versioning.md",
+      "retrievedAt": "2026-11-01",
+      "quote": "Starting with the 2024-09-30.acacia release, Stripe follows a [new API release process](https://stripe.com/blog/introducing-stripes-new-api-release-process) where we release new API versions monthly with no breaking changes."
+    }
+  },
+  "versions": [
+    {
+      "value": "2026-10-28.endive",
+      "status": "current",
+      "source": {
+        "url": "https://docs.stripe.com/api/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "The current version is 2026-10-28.endive."
+      }
+    },
+    {
+      "value": "2026-10-28.preview",
+      "status": "preview",
+      "source": {
+        "url": "https://docs.stripe.com/sdks/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "The current preview API version is **2026-10-28.preview**."
+      }
+    },
+    {
+      "value": "2026-09-30.endive",
+      "status": "supported",
+      "notes": "First (breaking) version of the Endive major. Status inferred: none of the pages read lists a retirement for this version; Stripe callers can stay pinned to it.",
+      "source": {
+        "url": "https://docs.stripe.com/changelog/endive.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "As the first version in the Endive release, `2026-09-30.endive` introduces both breaking changes and new features."
+      }
+    },
+    {
+      "value": "2026-03-25.dahlia",
+      "status": "supported",
+      "notes": "First (breaking) version of the Dahlia major. Status inferred: none of the pages read lists a retirement for this version; Stripe callers can stay pinned to it.",
+      "source": {
+        "url": "https://docs.stripe.com/changelog/dahlia.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "As the first version in the Dahlia release, `2026-03-25.dahlia` introduces both breaking changes and new features—subsequent Dahlia versions will include only additive changes."
+      }
+    },
+    {
+      "value": "2025-09-30.clover",
+      "status": "supported",
+      "notes": "First (breaking) version of the Clover major. Status inferred: none of the pages read lists a retirement for this version; Stripe callers can stay pinned to it.",
+      "source": {
+        "url": "https://docs.stripe.com/changelog/clover.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "As the first version in the Clover release, `2025-09-30.clover` introduces both breaking changes and new features—subsequent Clover versions will include only additive changes."
+      }
+    },
+    {
+      "value": "2025-03-31.basil",
+      "status": "supported",
+      "notes": "First (breaking) version of the Basil major. Status inferred: none of the pages read lists a retirement for this version; Stripe callers can stay pinned to it.",
+      "source": {
+        "url": "https://docs.stripe.com/changelog/basil.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "As the first version in the Basil release, `2025-03-31.basil` introduces both breaking changes and new features—subsequent Basil versions will include only additive changes."
+      }
+    },
+    {
+      "value": "2024-09-30.acacia",
+      "status": "supported",
+      "notes": "First (breaking) version of the Acacia major. Status inferred: none of the pages read lists a retirement for this version; Stripe callers can stay pinned to it.",
+      "source": {
+        "url": "https://docs.stripe.com/changelog/acacia.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "As the first version in the Acacia release, `2024-09-30.acacia` introduces both breaking changes and new features—the next Acacia versions include only additive changes."
+      }
+    }
+  ],
+  "retirements": [
+    {
+      "subject": "Node.js 18 support in stripe-node",
+      "kind": "sdk-major",
+      "date": "2026-09-30",
+      "replacement": "Node.js 20+",
+      "notes": "Dropped in stripe-node 23.0.0; last compatible release v22.6.2 per the SDK versioning page.",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-node/master/CHANGELOG.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Drop support for Node.js 18. Node.js 20 is now the minimum supported version."
+      }
+    },
+    {
+      "subject": "Node.js 20 support in stripe-node",
+      "kind": "sdk-major",
+      "date": "2027-09",
+      "replacement": "Node 22+",
+      "notes": "Date is when the SDK major release drops the runtime (\"support dropped\" column); older SDK majors keep working on it.",
+      "source": {
+        "url": "https://docs.stripe.com/sdks/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "| 20 | (deprecated) | April 2026 | September 2027 | TBD | |"
+      }
+    },
+    {
+      "subject": "Node.js 22 support in stripe-node",
+      "kind": "sdk-major",
+      "date": "2028-09",
+      "replacement": "Node 24+",
+      "notes": "Date is when the SDK major release drops the runtime (\"support dropped\" column); older SDK majors keep working on it.",
+      "source": {
+        "url": "https://docs.stripe.com/sdks/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Node 22 reaches end of life in April 2027."
+      }
+    },
+    {
+      "subject": "Python 3.9 support in stripe-python",
+      "kind": "sdk-major",
+      "date": "2027-03",
+      "replacement": "Python 3.10+",
+      "notes": "Date is when the SDK major release drops the runtime (\"support dropped\" column); older SDK majors keep working on it.",
+      "source": {
+        "url": "https://docs.stripe.com/sdks/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "| 3.9 | (deprecated) | October 2025 | March 2027 | TBD | |"
+      }
+    },
+    {
+      "subject": "Python 3.10 support in stripe-python",
+      "kind": "sdk-major",
+      "date": "2028-03",
+      "replacement": "Python 3.11+",
+      "notes": "Date is when the SDK major release drops the runtime (\"support dropped\" column); older SDK majors keep working on it. The quote is from the Python section, which opens with: Python 3.10 reaches end of life in October 2026.",
+      "source": {
+        "url": "https://docs.stripe.com/sdks/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "We’ll remove support for it in the March 2028 major release."
+      }
+    },
+    {
+      "subject": "Ruby 3.0 support in stripe-ruby",
+      "kind": "sdk-major",
+      "date": "2027-03",
+      "replacement": "Ruby 3.1+",
+      "notes": "Date is when the SDK major release drops the runtime (\"support dropped\" column); older SDK majors keep working on it.",
+      "source": {
+        "url": "https://docs.stripe.com/sdks/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "| 3.0 | (deprecated) | April 2024 | March 2027 | TBD |"
+      }
+    },
+    {
+      "subject": "Ruby 3.1 support in stripe-ruby",
+      "kind": "sdk-major",
+      "date": "2027-09",
+      "replacement": "Ruby 3.2+",
+      "notes": "Date is when the SDK major release drops the runtime (\"support dropped\" column); older SDK majors keep working on it.",
+      "source": {
+        "url": "https://docs.stripe.com/sdks/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "| 3.1 | (deprecated) | March 2025 | September 2027 | TBD |"
+      }
+    },
+    {
+      "subject": "Go 1.24 support in stripe-go",
+      "kind": "sdk-major",
+      "date": "2027-03",
+      "replacement": "Go 1.25+",
+      "notes": "Date is when the SDK major release drops the runtime (\"support dropped\" column); older SDK majors keep working on it.",
+      "source": {
+        "url": "https://docs.stripe.com/sdks/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "| 1.24 | (deprecated) | February 2026 | March 2027 | TBD | |"
+      }
+    },
+    {
+      "subject": "Go 1.25 support in stripe-go",
+      "kind": "sdk-major",
+      "date": "2027-09",
+      "replacement": "Go 1.26+",
+      "notes": "Date is when the SDK major release drops the runtime (\"support dropped\" column); older SDK majors keep working on it. The quote is from the Go section, which opens with: Go 1.25 reaches end of life in August 2026.",
+      "source": {
+        "url": "https://docs.stripe.com/sdks/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "We’ll drop support for it in the September 2027 major release."
+      }
+    },
+    {
+      "subject": ".NET 9 support in stripe-dotnet",
+      "kind": "sdk-major",
+      "date": "2027-03",
+      "replacement": ".NET 10",
+      "notes": "Date is when the SDK major release drops the runtime (\"support dropped\" column); older SDK majors keep working on it. The page is inconsistent for .NET 9: its prose says support is dropped in the September 2026 major, its table says March 2027.",
+      "source": {
+        "url": "https://docs.stripe.com/sdks/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "| 9 | (supported) | November 2026 | March 2027 | TBD | |"
+      }
+    },
+    {
+      "subject": "payment_method_types parameter on Payment Intents and Setup Intents create/update/confirm",
+      "kind": "field-removed",
+      "replacement": "Dynamic payment methods, excluded_payment_method_types or allowed_payment_method_types",
+      "notes": "Applies to requests pinned to 2026-09-30.endive or later; no calendar date.",
+      "source": {
+        "url": "https://docs.stripe.com/changelog/endive/2026-09-30/removes-the-payment-method-types-parameter-from-payment-intents-and-setup-intents.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Passing `payment_method_types` on this API version returns a 400 error with the code `payment_method_types_no_longer_supported`."
+      }
+    },
+    {
+      "subject": "Stripe.js payment request button element (elements.create('paymentRequestButton'), React PaymentRequestButtonElement)",
+      "kind": "endpoint-removed",
+      "replacement": "Express Checkout Element",
+      "notes": "Removed starting with Endive Stripe.js; versions through Dahlia still support it.",
+      "source": {
+        "url": "https://docs.stripe.com/changelog/endive/2026-09-30/deprecate-payment-request-button.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Starting with Endive, `elements.create('paymentRequestButton')` throws an error."
+      }
+    }
+  ],
+  "docs": [
+    {
+      "label": "API changelog",
+      "url": "https://docs.stripe.com/changelog.md",
+      "source": {
+        "url": "https://docs.stripe.com/changelog.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Upgrade your integration",
+      "url": "https://docs.stripe.com/upgrades.md",
+      "source": {
+        "url": "https://docs.stripe.com/upgrades.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Upgrade your integration to the latest API version."
+      }
+    },
+    {
+      "label": "API versioning",
+      "url": "https://docs.stripe.com/api/versioning.md",
+      "source": {
+        "url": "https://docs.stripe.com/api/versioning.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "How SDK versioning works",
+      "url": "https://docs.stripe.com/sdks/versioning.md",
+      "source": {
+        "url": "https://docs.stripe.com/sdks/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Learn about Stripe's versioning and support policy for SDKs."
+      }
+    },
+    {
+      "label": "Set a Stripe API version",
+      "url": "https://docs.stripe.com/sdks/set-version.md",
+      "source": {
+        "url": "https://docs.stripe.com/sdks/set-version.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Follow these guidelines to target a different API version than your SDKs use."
+      }
+    },
+    {
+      "label": "Handle webhook versioning",
+      "url": "https://docs.stripe.com/webhooks/versioning.md",
+      "source": {
+        "url": "https://docs.stripe.com/webhooks/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Learn how to upgrade the API version of your webhook endpoint."
+      }
+    },
+    {
+      "label": "Endive release changelog",
+      "url": "https://docs.stripe.com/changelog/endive.md",
+      "source": {
+        "url": "https://docs.stripe.com/changelog/endive.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Dahlia release changelog",
+      "url": "https://docs.stripe.com/changelog/dahlia.md",
+      "source": {
+        "url": "https://docs.stripe.com/changelog/dahlia.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Introducing Stripe’s new API release process (blog)",
+      "url": "https://stripe.com/blog/introducing-stripes-new-api-release-process",
+      "source": {
+        "url": "https://stripe.com/blog/introducing-stripes-new-api-release-process",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "stripe-node CHANGELOG",
+      "url": "https://raw.githubusercontent.com/stripe/stripe-node/master/CHANGELOG.md",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-node/master/CHANGELOG.md",
+        "retrievedAt": "2026-11-01"
+      }
+    }
+  ],
+  "sdks": [
+    {
+      "ecosystem": "npm",
+      "package": "stripe",
+      "repo": "https://github.com/stripe/stripe-node",
+      "latest": "23.1.0",
+      "notes": "Install line from the README. Latest 23.1.0 (2026-10-29) pins API version 2026-10-28.endive, per the top entry of https://raw.githubusercontent.com/stripe/stripe-node/master/CHANGELOG.md read 2026-11-01.",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-node/master/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "npm install stripe"
+      }
+    },
+    {
+      "ecosystem": "pypi",
+      "package": "stripe",
+      "repo": "https://github.com/stripe/stripe-python",
+      "latest": "16.1.0",
+      "notes": "Install line from the README. Latest 16.1.0 (2026-10-29) pins API version 2026-10-28.endive, per the top entry of https://raw.githubusercontent.com/stripe/stripe-python/master/CHANGELOG.md read 2026-11-01.",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-python/master/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "pip install --upgrade stripe"
+      }
+    },
+    {
+      "ecosystem": "rubygems",
+      "package": "stripe",
+      "repo": "https://github.com/stripe/stripe-ruby",
+      "latest": "20.1.0",
+      "notes": "Install line from the README. Latest 20.1.0 (2026-10-29) pins API version 2026-10-28.endive, per the top entry of https://raw.githubusercontent.com/stripe/stripe-ruby/master/CHANGELOG.md read 2026-11-01.",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-ruby/master/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "gem install stripe"
+      }
+    },
+    {
+      "ecosystem": "packagist",
+      "package": "stripe/stripe-php",
+      "repo": "https://github.com/stripe/stripe-php",
+      "latest": "22.1.0",
+      "notes": "Install line from the README. Latest 22.1.0 (2026-10-29) pins API version 2026-10-28.endive, per the top entry of https://raw.githubusercontent.com/stripe/stripe-php/master/CHANGELOG.md read 2026-11-01.",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-php/master/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "composer require stripe/stripe-php"
+      }
+    },
+    {
+      "ecosystem": "maven",
+      "package": "com.stripe:stripe-java",
+      "repo": "https://github.com/stripe/stripe-java",
+      "latest": "34.1.0",
+      "notes": "Install line from the README. Latest 34.1.0 (2026-10-29) pins API version 2026-10-28.endive, per the top entry of https://raw.githubusercontent.com/stripe/stripe-java/master/CHANGELOG.md read 2026-11-01.",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-java/master/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "implementation \"com.stripe:stripe-java:34.1.0\""
+      }
+    },
+    {
+      "ecosystem": "go",
+      "package": "github.com/stripe/stripe-go/v87",
+      "repo": "https://github.com/stripe/stripe-go",
+      "latest": "87.1.0",
+      "notes": "Install line from the README. Latest 87.1.0 (2026-10-29) pins API version 2026-10-28.endive, per the top entry of https://raw.githubusercontent.com/stripe/stripe-go/master/CHANGELOG.md read 2026-11-01.",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-go/master/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "go get -u github.com/stripe/stripe-go/v87"
+      }
+    },
+    {
+      "ecosystem": "nuget",
+      "package": "Stripe.net",
+      "repo": "https://github.com/stripe/stripe-dotnet",
+      "latest": "53.1.0",
+      "notes": "Install line from the README. Latest 53.1.0 (2026-10-29) pins API version 2026-10-28.endive, per the top entry of https://raw.githubusercontent.com/stripe/stripe-dotnet/master/CHANGELOG.md read 2026-11-01.",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-dotnet/master/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "dotnet add package Stripe.net"
+      }
+    }
+  ]
+}

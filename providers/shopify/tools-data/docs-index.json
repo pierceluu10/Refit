@@ -1,0 +1,224 @@
+{
+  "provider": "shopify",
+  "retrieved": "2026-11-01",
+  "source": "https://shopify.dev/docs",
+  "note": "Short notes in our own words from each page, taken 2026-11-01. Confirm details on the linked page.",
+  "pages": [
+    {
+      "url": "https://shopify.dev/docs/api/usage/versioning",
+      "title": "API versioning",
+      "passages": [
+        "Shopify releases a new Admin API version every quarter at 5pm UTC on the first day of January, April, July and October. Versions are named by date, e.g. 2026-10. Each stable version is supported for at least 12 months, with at least nine months of overlap between consecutive versions.",
+        "On 2026-11-01: stable 2026-01 (accessible until 2027-01-16), 2026-04 (until 2027-04-16), 2026-07 (until 2027-07-16), latest stable 2026-10 (until 2027-10-16); release candidate 2027-01. 2025-04, 2025-07 and 2025-10 are unsupported.",
+        "Requests to an inaccessible version fall forward: Shopify answers with the oldest accessible stable version. The X-Shopify-API-Version response header shows the version actually used. Webhook payloads are versioned and fall forward the same way.",
+        "Release candidates can still change in backwards-incompatible ways and aren't for production. The unstable version is for testing features in progress."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/release-notes",
+      "title": "API release notes",
+      "passages": [
+        "Per-version release notes. 2026-10: removed checkout fields, order tax recalculation, metafield filter errors. 2026-07: inventory safety updates, metaobject changes. 2026-04: metafield and webhook migrations, safer inventory mutations. 2026-01: bulk operation changes, tax handling, cart discount behaviour. Each version links to detailed notes."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/changelog",
+      "title": "Developer changelog",
+      "passages": [
+        "The developer changelog lists API changes, deprecations and removals with the affected version and action required. Filter by API (Admin GraphQL, Webhooks, Functions) and by 'Action required' to find breaking changes for your pinned version."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/admin-rest",
+      "title": "REST Admin API (legacy)",
+      "passages": [
+        "The REST Admin API is a legacy API as of October 1, 2024. Starting April 1, 2025, all new public apps must be built exclusively with the GraphQL Admin API. Some newer platform features are only in GraphQL.",
+        "Each REST resource page lists, per endpoint, the GraphQL query or mutation that replaces it, and maps REST properties to GraphQL fields."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/admin-graphql",
+      "title": "GraphQL Admin API reference",
+      "passages": [
+        "GraphQL Admin requests are POST https://{store}.myshopify.com/admin/api/{version}/graphql.json with the X-Shopify-Access-Token header. Queries start at QueryRoot; writes are mutations.",
+        "GraphQL can return HTTP 200 for errors REST would report as 4xx/5xx. Check the top-level errors array (codes such as THROTTLED, ACCESS_DENIED, SHOP_INACTIVE, INTERNAL_SERVER_ERROR) and request userErrors on every mutation."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/usage/gids",
+      "title": "Global IDs",
+      "passages": [
+        "GraphQL IDs are global IDs of the form gid://shopify/{object_name}/{id}, e.g. gid://shopify/Product/123. Most REST resources include admin_graphql_api_id with the GID. Some child objects use parameterized IDs such as gid://shopify/InventoryLevel/123?inventory_item_id=456."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/apps/build/product-merchandising/products-and-collections",
+      "title": "Product model (GraphQL)",
+      "passages": [
+        "Products have options (e.g. Color, Size) and variants (purchasable combinations). Use productCreate/productUpdate for targeted edits, options mutations (productOptionsCreate, productOptionUpdate, productOptionsReorder, productOptionsDelete) and variant bulk mutations (productVariantsBulkCreate/Update/Reorder/Delete).",
+        "productSet syncs a product from an external source of truth: it replaces list fields such as options and variants with what you send and updates only the other fields included. It has sync and async modes.",
+        "Up to 2,048 variants per product. productVariantsBulkCreate/Update/Reorder take up to 2,048 variants; bulk delete up to 250. Other connections return at most 250 items per page; use bulk operations for big imports.",
+        "Media is uploaded separately (fileCreate, staged uploads) and can be reused across products and variants; attach via productSet/productCreate/productUpdate/fileUpdate, reorder with productReorderMedia, and link variants with productVariantAppendMedia / productVariantDetachMedia."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/admin-rest/latest/resources/product",
+      "title": "REST Product resource",
+      "passages": [
+        "REST product list/create/update/delete are deprecated as of REST API 2024-04. GraphQL equivalents: productCreate, products, product, productsCount, productUpdate, productDelete. body_html maps to descriptionHtml, images to media, published_scope to publishedOnPublication."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-variant",
+      "title": "REST Product Variant resource",
+      "passages": [
+        "REST variant endpoints are deprecated as of REST API 2024-04 and apps can no longer set inventory with inventory_quantity. GraphQL: productVariantsBulkCreate, productVariants, productVariantsCount, productVariant, productVariantsBulkUpdate, productVariantsBulkDelete. inventory_quantity is read-only; set stock per location through InventoryLevel."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-image",
+      "title": "REST Product Image resource",
+      "passages": [
+        "REST product image endpoints are deprecated as of REST API 2025-01. Images are MediaImage in GraphQL; src maps to Image.url."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/admin-rest/latest/resources/inventorylevel",
+      "title": "REST InventoryLevel resource",
+      "passages": [
+        "inventory_levels/adjust maps to inventoryAdjustQuantities, connect to inventoryActivate, set to inventorySetQuantities, DELETE to inventoryDeactivate. REST available maps to the named quantity 'available' (InventoryQuantity.quantity)."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/usage/pagination-graphql",
+      "title": "Paginating results with GraphQL",
+      "passages": [
+        "Connections use cursor pagination: pass first/after to page forward or last/before to page backward, and read pageInfo { hasNextPage hasPreviousPage startCursor endCursor }. Up to 250 resources per page; use bulk operations for larger sets. The REST Admin API pages with Link headers instead."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/apps/build/apis/graphql-admin/rate-limits",
+      "title": "GraphQL Admin API rate limits",
+      "passages": [
+        "Limits are calculated query cost per app and store: 100 points/second on standard plans, 200 on Advanced, 1,000 on Plus and 2,000 on Shopify for enterprise. A single query can't cost more than 1,000 points. The cost is the maximum of possible fields selected and is refunded after execution to the actual cost.",
+        "Responses include extensions.cost with throttleStatus { maximumAvailable currentlyAvailable restoreRate }. Send Shopify-GraphQL-Cost-Debug=1 for a per-field cost breakdown. Bulk operations don't have the max cost limits or rate limits of single queries."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/usage/limits",
+      "title": "API limits",
+      "passages": [
+        "Most limits are leaky buckets. When throttled, back off (Shopify suggests one second) and retry. Array input arguments accept at most 250 items on every API. Paginated arrays cap at 25,000 objects in total. Stores with 500,000+ variants can create at most 10,000 new variants per day (Plus exempt)."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/usage/bulk-operations/queries",
+      "title": "Bulk operations (queries)",
+      "passages": [
+        "bulkOperationRunQuery runs a query asynchronously and produces a JSONL file at url (partialDataUrl on failure). From 2026-01 an app can run up to five bulk query operations per shop at once and polls with bulkOperation(id:); earlier versions allowed one of each type and used the deprecated currentBulkOperation.",
+        "Subscribe to bulk_operations/finish for completion but keep polling as a fallback. Result URLs expire after a week; operations must finish within 10 days. Queries need at least one connection, at most five connections and two levels of nesting; top-level node/nodes aren't allowed. Cancel with bulkOperationCancel."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/apps/build/webhooks/subscribe/https",
+      "title": "HTTPS webhook delivery",
+      "passages": [
+        "Verify every HTTPS delivery: compute HMAC-SHA256 of the raw request body with the app's client secret and compare (constant-time) to the base64 X-Shopify-Hmac-SHA256 header. Read the raw body before any JSON body parser. After rotating the secret it can take up to an hour for signatures to use the new one.",
+        "Respond 200 within 5 seconds (1 second to connect); anything outside 2xx, including redirects, is a failure. Shopify retries 8 times over 4 hours; after 8 consecutive failures an Admin API-created subscription is deleted. Use X-Shopify-Webhook-Id to drop duplicates and X-Shopify-Event-Id to correlate deliveries of the same event."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/apps/build/cli-for-apps/app-configuration",
+      "title": "App configuration (shopify.app.toml)",
+      "passages": [
+        "[webhooks] api_version sets the version used to serialize webhooks. App-specific subscriptions are [[webhooks.subscriptions]] with topics = [\"app/uninstalled\"] and uri = \"/webhooks\".",
+        "[access_scopes] scopes = \"read_products,...\" declares scopes; optional_scopes can be requested after install. use_legacy_install_flow = true uses the old OAuth scope URL parameter; otherwise Shopify managed installation handles scopes. embedded = true renders the app inside the Shopify admin."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/admin-rest/latest/resources/webhook",
+      "title": "REST Webhook resource",
+      "passages": [
+        "REST webhooks endpoints map to webhookSubscriptionCreate, webhookSubscriptions, webhookSubscription, webhookSubscriptionsCount, webhookSubscriptionUpdate and webhookSubscriptionDelete. api_version is read-only and inherited from the app. Subscriptions belong to the app that created them."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens/token-exchange",
+      "title": "Token exchange",
+      "passages": [
+        "Embedded apps exchange an App Bridge ID token (session token) for an access token without a redirect: POST https://{shop}.myshopify.com/admin/oauth/access_token with grant_type urn:ietf:params:oauth:grant-type:token-exchange, subject_token, subject_token_type urn:ietf:params:oauth:token-type:id_token and requested_token_type (offline-access-token by default, or online-access-token).",
+        "Online tokens follow the staff member's session (24 hours or logout). Offline tokens persist for background work. Expiring offline tokens last 1 hour with 90-day refresh tokens (expiring=1). Public apps must use expiring offline tokens for GraphQL Admin requests by January 1, 2027; custom and merchant-created apps are exempt."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/usage/access-scopes",
+      "title": "Access scopes",
+      "passages": [
+        "Declare scopes in the app configuration; optional scopes are granted after install, so check what you actually have with currentAppInstallation { accessScopes }. read_orders/write_orders cover only the last 60 days unless read_all_orders is also granted. Apps get no protected customer data until they meet the requirements."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/shopify-app-react-router",
+      "title": "Shopify App React Router package",
+      "passages": [
+        "@shopify/shopify-app-react-router is the current app framework package. The Remix package README says to use it only for existing Remix apps and to upgrade to React Router; the upgrade guide is https://github.com/Shopify/shopify-app-template-react-router/wiki/Upgrading-from-Remix."
+      ]
+    },
+    {
+      "url": "https://github.com/Shopify/shopify-app-js/blob/main/packages/apps/shopify-api/CHANGELOG.md",
+      "title": "@shopify/shopify-api changelog",
+      "passages": [
+        "v15 removed eventId/resourceId from events webhooks (use webhookId). v14 requires Node 22+, removed webhook subTopic (use filters) and tightened GraphQL client types. v13 removed customShopDomains (use domainTransformations), dropped old API versions and their REST resources, and moved the Express package to Express 5."
+      ]
+    },
+    {
+      "url": "https://github.com/Shopify/shopify-api-ruby/blob/main/CHANGELOG.md",
+      "title": "shopify_api gem changelog",
+      "passages": [
+        "16.0.0 (2025-12-10) requires Ruby 3.2 and removed Session#serialize/deserialize. 15.0.0 removed ShopifyAPI::Webhooks::Handler (use WebhookHandler) and the LATEST_SUPPORTED_ADMIN_VERSION / RELEASE_CANDIDATE_ADMIN_VERSION constants, so set api_version explicitly. 14.7.0 added an option to disable REST resources; new apps should use GraphQL."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/changelog/posts/shopify-scripts-will-be-deprecated-on-june-30-2026",
+      "title": "Shopify Scripts deprecation",
+      "passages": [
+        "Shopify Scripts could not be edited or published after April 15, 2026 and stopped executing entirely on June 30, 2026. The replacement is Shopify Functions (discount, shipping and payment customizations); a Scripts customizations report shows what can move to Functions or apps."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/storefronts/themes/architecture/layouts/checkout-liquid",
+      "title": "checkout.liquid",
+      "passages": [
+        "checkout.liquid is no longer supported for the Information, Shipping and Payment steps. For Plus stores, checkout.liquid and additional scripts were sunset on the Thank you and Order status pages on August 28, 2025; script tags on those pages are sunset for non-Plus stores on August 26, 2026. Move to checkout UI extensions and web pixels."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/functions",
+      "title": "Shopify Functions",
+      "passages": [
+        "Functions customize Shopify backend logic during checkout. APIs include Discount, Cart Transform, Delivery Customization, Payment Customization, Cart and Checkout Validation, Fulfillment Constraints, Order Routing and pickup option generators. Each function sets api_version in its shopify.extension.toml (an [[extensions]] entry overrides the root value). Functions replace Shopify Scripts."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/admin-rest/latest/resources/order",
+      "title": "REST Order resource",
+      "passages": [
+        "REST order endpoints map to orderCreate, orderCancel, orderClose, orderOpen, orders, order, ordersCount, orderUpdate and orderDelete. browser_ip maps to clientIp, client_details to customerJourneySummary, company to purchasingEntity. Line items and quantities can only be edited through the GraphQL Admin API."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/admin-rest/latest/resources/customer",
+      "title": "REST Customer resource",
+      "passages": [
+        "REST customer endpoints map to customerCreate, customers, customer, customersCount, customerUpdate, customerDelete, customerGenerateAccountActivationUrl and customerSendAccountInviteEmail. The 2026-10 GraphQL schema deprecates Customer.email/phone/emailMarketingConsent in favour of defaultEmailAddress and defaultPhoneNumber."
+      ]
+    },
+    {
+      "url": "https://shopify.dev/docs/api/admin-rest/latest/resources/fulfillment",
+      "title": "REST Fulfillment resource",
+      "passages": [
+        "Fulfillments are created against fulfillment orders. REST POST /fulfillments maps to fulfillmentCreateV2 on the REST page (fulfillmentCreate in the 2026-10 schema), cancel to fulfillmentCancel, update_tracking to fulfillmentTrackingInfoUpdate. Line item fulfillable_quantity and fulfillment_status move to FulfillmentOrder data."
+      ]
+    }
+  ]
+}

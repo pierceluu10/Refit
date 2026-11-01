@@ -1,0 +1,51 @@
+Illustrative fixture: an invented harness transcript, not a real customer run.
+task: example-org/support-bot, openai model-retirement "gpt-4-0613 is retired; move to gpt-4.1 on the Responses API"
+
+[agent] Searching for model ids. One hit in src/reply.ts:
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4-0613',
+    messages: [{ role: 'system', content: SYSTEM }, ...history],
+    max_tokens: 400,
+  });
+  return completion.choices[0].message.content;
+[agent] openai@4.20.0. The notice recommends gpt-4.1 and the Responses API. Baseline:
+[tool:shell] npm test
+  PASS test/reply.test.ts (2 tests)
+[agent] First attempt: only swap the model id and keep Chat Completions.
+[tool:edit] src/reply.ts  model: 'gpt-4.1'
+[tool:shell] npm test
+  PASS
+[agent] That passes, but the task asks for the Responses API, and the notice says new features land there. Moving the call.
+[tool:edit] src/reply.ts
+  openai.responses.create({ model: 'gpt-4.1', messages: [...], max_tokens: 400 })
+[tool:shell] npm run typecheck
+  src/reply.ts:12:5 - error TS2339: Property 'responses' does not exist on type 'OpenAI'.
+[agent] Dead end: openai@4.20.0 predates client.responses. Upgrading the SDK.
+[tool:install] npm install openai@^4.104.0
+[tool:shell] npm run typecheck
+  src/reply.ts:13:5 - error TS2353: 'messages' does not exist in type 'ResponseCreateParams'.
+  src/reply.ts:14:5 - error TS2353: 'max_tokens' does not exist in type 'ResponseCreateParams'.
+[agent] Responses takes `instructions` for the system prompt, `input` for the turns and `max_output_tokens`. The reply text is `output_text`, not choices[0].message.content.
+[tool:edit] src/reply.ts
+[tool:edit] test/reply.test.ts  (mock returns { output_text } instead of choices)
+[tool:shell] npm run typecheck && npm test
+  PASS test/reply.test.ts (2 tests)
+[agent] Done. Noted in the PR that replies may differ in tone with the new model.
+
+diff --git a/src/reply.ts b/src/reply.ts
+-  const completion = await openai.chat.completions.create({
+-    model: 'gpt-4-0613',
+-    messages: [{ role: 'system', content: SYSTEM }, ...history],
+-    max_tokens: 400,
+-  });
+-  return completion.choices[0].message.content;
++  const response = await openai.responses.create({
++    model: 'gpt-4.1',
++    instructions: SYSTEM,
++    input: history,
++    max_output_tokens: 400,
++  });
++  return response.output_text;
+diff --git a/package.json b/package.json
+-    "openai": "^4.20.0",
++    "openai": "^4.104.0",

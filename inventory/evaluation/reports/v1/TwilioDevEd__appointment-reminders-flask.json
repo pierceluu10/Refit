@@ -1,0 +1,39 @@
+{
+  "repo": "TwilioDevEd/appointment-reminders-flask",
+  "promptVersion": "inventory-v1",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "TwilioDevEd/appointment-reminders-flask",
+      "provider": "twilio",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "tasks.py",
+          "line": 40,
+          "operation": "messages.create",
+          "fields": ["to", "from_", "body"],
+          "notes": "Celery task send_sms_reminder; response ignored. Client instantiated at tasks.py:13 with TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN from app config; from number TWILIO_NUMBER."
+        }
+      ],
+      "sdk": {
+        "name": "twilio",
+        "version": "6.51.1",
+        "lockfile": "requirements.txt"
+      }
+    }
+  ],
+  "purposes": {
+    "twilio": "Send SMS appointment reminders"
+  },
+  "summary": "TwilioDevEd/appointment-reminders-flask uses twilio for Send SMS appointment reminders through twilio 6.51.1 in 1 place.",
+  "agentSummary": "The repository has one external API: Twilio, used through the Python SDK (`twilio` 6.51.1, pinned in `requirements.txt`; there is no lockfile).\n\n- **What it does:** a Celery task, `send_sms_reminder`, sends an SMS appointment reminder. The only call site is `client.messages.create(to, from_=twilio_number, body=body)` at `tasks.py:40`. The code ignores the response.\n- **Client setup:** `tasks.py:13` creates the `Client`. The account SID, auth token and sender number come from the app config as `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and `TWILIO_NUMBER`.\n- **No pinned API version:** nothing in the code pins a Twilio API version.\n- **Not external:** the repo also uses Celery and Redis, the database, and Flask extensions. I treated those as out of scope because they are reached through drivers or are local libraries.\n- **Not searched:** I did not run the HTTP, GraphQL or webhook scanners. I recorded Twilio after reading only `tasks.py` and the import scan, so a raw HTTP call or webhook receiver elsewhere (for example in `views/`) would not appear here.",
+  "outcome": "success",
+  "costUsd": 0.033719700000000005,
+  "costByModel": {
+    "claude-haiku-5-5": 0.000134,
+    "claude-sonnet-5-5": 0.033585699999999996
+  },
+  "turns": 6,
+  "durationMs": 11279
+}

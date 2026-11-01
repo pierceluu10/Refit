@@ -1,0 +1,408 @@
+Archive: 2026 - GitHub Changelog
+
+https://github.blog/changelog/
+Updates, ideas, and inspiration from GitHub to help developers build and design software.
+
+Fri, 30 Oct 2026 17:25:43 +0000
+en-US
+
+hourly
+
+1
+https://wordpress.org/?v=7.1.4
+
+https://github.blog/wp-content/uploads/2019/01/cropped-github-favicon-512.png?fit=32%2C32
+Archive: 2026 - GitHub Changelog
+
+https://github.blog/changelog/
+32
+32
+
+153214340
+Webhook IP ranges added to the Meta API
+
+https://github.blog/changelog/2026-10-29-webhook-ip-ranges-added-to-the-meta-api
+
+Allison
+Thu, 29 Oct 2026 17:14:38 +0000
+
+https://github.blog/changelog/2026-10-29-webhook-ip-ranges-added-to-the-meta-api
+
+We’re adding IP ranges for GitHub webhook deliveries on github.com. The Meta API now includes these additional ranges in the hooks field. If you maintain a static network allowlist for…
+
+The post Webhook IP ranges added to the Meta API appeared first on The GitHub Blog.
+
+We’re adding IP ranges for GitHub webhook deliveries on github.com. The Meta API now includes these additional ranges in the hooks field.
+
+If you maintain a static network allowlist for incoming webhook deliveries, add these CIDR prefixes alongside your existing webhook IP ranges to avoid rejecting deliveries:
+
+- 9.234.98.160/28
+
+- 9.234.98.176/28
+
+- 9.234.106.48/28
+
+If you already keep your allowlist up to date using the Meta API, no changes are needed for these additions.
+
+These ranges apply to webhook deliveries on github.com across all plans, including GitHub Enterprise Cloud.
+
+You can retrieve the current webhook IP ranges using the Meta API and follow the webhook delivery best practices.
+
+The post Webhook IP ranges added to the Meta API appeared first on The GitHub Blog.
+
+Improvement
+ecosystem & accessibility
+99913
+
+Route and orchestrate models with GitHub Copilot Fusion
+
+https://github.blog/changelog/2026-10-28-route-and-orchestrate-models-with-github-copilot-fusion
+
+Allison
+Wed, 28 Oct 2026 16:00:00 +0000
+
+https://github.blog/changelog/2026-11-26-route-and-orchestrate-models-with-github-copilot-fusion
+
+GitHub Copilot Fusion is generally available. Instead of picking a model for each task, choose Copilot Fusion and let Copilot intelligently route and orchestrate which models it uses for you.…
+
+The post Route and orchestrate models with GitHub Copilot Fusion appeared first on The GitHub Blog.
+
+GitHub Copilot Fusion is generally available. Instead of picking a model for each task, choose Copilot Fusion and let Copilot intelligently route and orchestrate which models it uses for you.
+
+Copilot Fusion brings together Project HydraFusion’s multi-model orchestration and Copilot auto model selection’s fine-tuned model selection, leveraging the benefits of both to balance performance and cost efficiency.
+
+Since Project HydraFusion launched, we’ve improved its performance. In the Artificial Analysis Coding Agent Index, Copilot Fusion Max scored 60, within two points of Claude Code with Opus 5.5 Max. It delivered that result at about half the average API cost per task, using about half as many tokens and taking about 40% less time per task.
+
+## Smarter choices for developers
+
+When you select Copilot Fusion in the model picker, you aren’t selecting a specific model. You’re choosing a system that routes and orchestrates models for each task. There’s no need to switch models during a task or decide which model suits each step. For each prompt, Copilot Fusion determines which models to use and how they work together, while you choose the right level of effort.
+
+To use it, select Copilot Fusion in the model picker, then choose the effort level.
+
+- Fusion Standard: Prioritizes versatile models for everyday coding.
+
+- Fusion High: Prioritizes capable models for challenging tasks and deeper reasoning.
+
+- Fusion Max: Prioritizes the most capable models for the most demanding tasks and complex reasoning.
+
+Watch as Copilot Fusion analyzes each task and selects a model to complete it, orchestrating multiple models through the following workflows when needed.
+
+- Single: One model solves the task directly.
+
+- Cascade: An efficient model drafts a response. A quality check determines whether to accept it or escalate to a stronger model.
+
+- Critique: One model drafts an initial response, another model reviews it, and the original model revises.
+
+## More control for administrators
+
+Administrators control which models Copilot Fusion can use and whether Copilot Fusion is the default.
+
+- Copilot Fusion only uses the models that are enabled in your enterprise and organization model policies. Enterprise administrators can view what models Copilot Fusion picks from, independently set each model’s effective policy state, and disable models for Copilot Fusion without disabling the model for everyone. See Manage availability of default models.
+
+- Administrators can set Copilot Fusion, at any effort level, as the default model for Copilot users with Enterprise managed settings. To configure settings, see Enterprise managed settings.
+
+“GitHub Copilot Fusion Standard has improved token efficiency across AT&T by automatically selecting the right model for the task, reducing unnecessary spend and preserving capacity for higher-value work. Previously, developers would often choose a more powerful model for a complex task and forget to switch back for everyday activities. Copilot Fusion eliminates that friction, optimizing model selection without requiring developers to manage it themselves. We’ve also seen its decision-making improve over time, giving developers greater confidence to focus on their work while Copilot handles model selection.”
+
+Hari Pokhrel, Principal Software Engineer, AT&T
+
+## Billing
+
+When you use Copilot Fusion you’re billed for each model it uses, at each model’s standard rate. For a limited time, users on paid Copilot plans will receive a 30% discount on model costs when using Copilot Fusion.
+
+## Get started
+
+Copilot Fusion is available on all Copilot plans in Visual Studio Code, the GitHub Copilot app, GitHub Copilot CLI, and JetBrains IDEs. Support for additional clients is coming soon.
+
+Update your client to try it out. Open the model picker, select Copilot Fusion, and choose an effort level.
+
+Note for research preview participants: if you previously enabled auto, HydraFusion, or HydraFusion Max, your selections will automatically transition to the corresponding Copilot Fusion effort levels.
+
+To learn more, see our documentation on GitHub Copilot Fusion and share your feedback in the GitHub Community.
+
+The post Route and orchestrate models with GitHub Copilot Fusion appeared first on The GitHub Blog.
+
+Release
+copilot
+enterprise management tools
+universe26
+99793
+
+GitHub Copilot app, Universe releases
+
+https://github.blog/changelog/2026-10-28-github-copilot-app-universe-releases
+
+Allison
+Wed, 28 Oct 2026 15:55:00 +0000
+
+https://github.blog/changelog/2026-11-26-github-copilot-app-universe-releases
+
+Work doesn’t always fit in a single repository or session. A feature can span several repositories. A launch plan can pull in specs, designs, and assets without touching a repository…
+
+The post GitHub Copilot app, Universe releases appeared first on The GitHub Blog.
+
+Work doesn’t always fit in a single repository or session. A feature can span several repositories. A launch plan can pull in specs, designs, and assets without touching a repository at all. Projects in the GitHub Copilot app give that work one home, with its context, agents, and results together. Copilot coordinates the work in the background and checks in when it needs you.
+
+### Give Copilot a goal
+
+Start a project, describe what you want to get done, and add the context Copilot needs (e.g., repositories, design mocks, Slack threads, or notes from a design meeting). Choose the models and tools for the job. Copilot runs as many agents as the work needs and brings back results (e.g., pull requests) for your review.
+
+Use project automations for repeatable tasks, such as creating a new promo video whenever a feature lands.
+
+For a focused task in a single repository, you can still start a session directly from that repository.
+
+Copilot Projects are now in public preview. You can learn more in the projects documentation.
+
+### Handle the work around your code
+
+Use context from connected tools such as Slack and Figma to research a request, draft a specification, or work through a design alongside your code.
+
+You can also generate and edit images using natural language in chat.
+
+### Let Copilot work with your desktop apps
+
+Ask Copilot to work through tasks in your desktop apps, such as an expense-report workflow. Computer use—in public preview on macOS and Windows—lets Copilot read app content, click controls, enter or edit text, and navigate across apps, including those without an API, command-line interface, or MCP integration.
+
+Copilot asks for your approval before controlling an app, and your organization can disable the feature through managed settings. To get started, open Settings > Computer Use and turn on Enable Computer Use. On macOS, grant the required Accessibility and Screen Recording permissions.
+
+For more information, see the computer use documentation.
+
+### Get started
+
+Download or update the GitHub Copilot app and join the discussion in GitHub Community.
+
+The post GitHub Copilot app, Universe releases appeared first on The GitHub Blog.
+
+Release
+copilot
+universe26
+99830
+
+GitHub Enterprise now includes access to GitHub Copilot
+
+https://github.blog/changelog/2026-10-28-github-enterprise-now-includes-access-to-github-copilot
+
+Allison
+Wed, 28 Oct 2026 15:50:00 +0000
+
+https://github.blog/changelog/2026-11-26-github-enterprise-now-includes-access-to-github-copilot
+
+Enterprises working with a GitHub or Microsoft account team can now get Copilot included with GitHub Enterprise for every licensed user. Previously, you had to manage two things: how many…
+
+The post GitHub Enterprise now includes access to GitHub Copilot appeared first on The GitHub Blog.
+
+Enterprises working with a GitHub or Microsoft account team can now get Copilot included with GitHub Enterprise for every licensed user. Previously, you had to manage two things: how many Copilot seats you were paying for and how much AI usage those users consumed. With Copilot included in the platform, usage against your enterprise budget is the primary thing to manage.
+
+Self-serve availability is coming in stages, and current self-serve subscriptions are unaffected. Copilot Business and Copilot Enterprise remain available.
+
+Users in your enterprise account who do not hold a GitHub Enterprise license get the same Copilot access through Copilot Standalone, at $10 per user per month.
+
+Copilot access through GitHub Enterprise and Copilot Standalone has the same features and models as Copilot Enterprise but does not include monthly AI credits per seat.
+
+## What you manage
+
+AI usage is metered from the first request against your enterprise budget, using the policies, alerts, and attribution you already have. There is no included usage allowance to track or top up. To learn more, review our documentation on Copilot billing for enterprises.
+
+- Code completion and next edit suggestions keep working even with no budget available.
+
+- Copilot Chat, Copilot code review, and Copilot in the cloud require available budget to use.
+
+- An exhausted budget never removes access. The seat and the features that don’t need budget stay.
+
+## Availability
+
+- If you work with a GitHub or Microsoft account team: Available now for GitHub Enterprise Cloud. Talk to your sales team about setting up a new enterprise account on this model or transitioning an existing enterprise account.
+
+- If you manage your own subscription: Currently unavailable. We are opening this to self-serve customers in stages and will share dates in the coming weeks. Your current subscription is unaffected.
+
+- Copilot Business and Copilot Enterprise: Both remain available to purchase for new and existing enterprises.
+
+To learn more, check out our updated documentation on Copilot access.
+
+Join the discussion within GitHub Community.
+
+The post GitHub Enterprise now includes access to GitHub Copilot appeared first on The GitHub Blog.
+
+Release
+copilot
+universe26
+99869
+
+Security extension for the GitHub Copilot app
+
+https://github.blog/changelog/2026-10-28-security-extension-for-the-github-copilot-app
+
+Allison
+Wed, 28 Oct 2026 15:45:00 +0000
+
+https://github.blog/changelog/2026-11-26-security-extension-for-the-github-copilot-app
+
+You can now work through your repository’s GitHub code scanning alerts without leaving the GitHub Copilot app. The new GitHub security extension, now in public preview, lets you find the…
+
+The post Security extension for the GitHub Copilot app appeared first on The GitHub Blog.
+
+You can now work through your repository’s GitHub code scanning alerts without leaving the GitHub Copilot app. The new GitHub security extension, now in public preview, lets you find the alerts that matter most and ask Copilot to explain or help fix them.
+
+Until now, fixing a code scanning alert meant switching between the alert on github.com and the code in your editor. With the security extension, you can move from finding an alert to fixing it in one place.
+
+### Fix the alerts already in your code
+
+If you already run code scanning on your repository, the security extension shows its open code scanning alerts:
+
+- Browse every open code scanning alert, ordered by severity, and use search and filters to narrow the list.
+
+- Open an alert to see its details and the affected code. You can open the full alert page on github.com when you need more context.
+
+- Select one or more alerts and ask Copilot to Explain or Fix them. Copilot only makes fixes in your local working copy and doesn’t commit or push anything. This way you can review and iterate on the changes in the app and push when you’re ready.
+
+- See linked pull requests on an alert so you know whether someone is already working on a fix.
+
+- Dismiss alerts you don’t plan to fix. If your organization uses delegated alert dismissal, the extension sends your dismissal for approval.
+
+### Catch new issues before you open a pull request
+
+- Run /security-review on your current changes and see those findings next to your existing alerts.
+
+- The extension tells you when your code has changed since the last review so you know when to run it again.
+
+You can also ask Copilot about your alerts in chat. Copilot uses the security extension’s tools in the same way as any other tool, following your tool permission settings.
+
+### Get started
+
+To install the security extension:
+
+- In your terminal run copilot plugin install github-security@awesome-copilot.
+
+- In the GitHub Copilot app, click Customize, search for github-security, then click + Install.
+
+The extension is automatically enabled, and you can open the Security canvas from a session for your repository.
+
+The Explain, Fix, and /security-review actions use the model you’ve selected in the app and consume AI credits in the same way as any other prompt. Browsing and dismissing alerts don’t use AI.
+
+The security extension is in public preview on github.com and GitHub Enterprise Cloud with data residency. GitHub Enterprise Server isn’t supported.
+
+- With any Copilot plan: You can install the extension and run /security-review on your local changes. For Copilot Business and Copilot Enterprise, an administrator needs to enable the GitHub Copilot app policy, and can use enterprise managed settings to control which plugins developers can install.
+
+- With code scanning: You can see, fix, and dismiss existing alerts for repositories where code scanning is enabled and you have permission to view the alerts. Private repositories need GitHub Code Security for this.
+
+Learn more in the security extension documentation and join the discussion in GitHub Community.
+
+The post Security extension for the GitHub Copilot app appeared first on The GitHub Blog.
+
+Release
+application security
+copilot
+universe26
+99796
+
+GitHub intelligence puts your code, context, and history to work
+
+https://github.blog/changelog/2026-10-28-github-intelligence-puts-your-code-context-and-history-to-work
+
+Allison
+Wed, 28 Oct 2026 15:40:00 +0000
+
+https://github.blog/changelog/2026-11-26-github-intelligence-puts-your-code-context-and-history-to-work
+
+Agents should understand more than your codebase—they should understand how your team works. Your preferences, repository conventions, skills, and custom instructions guide how changes should be made, while code in…
+
+The post GitHub intelligence puts your code, context, and history to work appeared first on The GitHub Blog.
+
+Agents should understand more than your codebase—they should understand how your team works. Your preferences, repository conventions, skills, and custom instructions guide how changes should be made, while code in related repositories can show how the pieces fit together. Without that context, agents spend time rediscovering knowledge and can miss your team’s conventions.
+
+GitHub intelligence is the context and learning layer sourced from the graph of GitHub data. It makes this data useful to agents, helping them remember how you work, keep that guidance current, and find the code and development history relevant to the next task. The goal is for agents to build on what you and your team already know, rather than treating every session as a fresh start.
+
+That is the advantage of building where your team’s work already lives. A repository memory can capture why an edge case matters and which test covers it. GitHub intelligence allows agents to use that context, with controls over what they can access.
+
+Three capabilities bring this into your workflow:
+
+- Memory carries knowledge between sessions
+
+- Dreaming keeps the context current
+
+- Code search reaches beyond your checkout.
+
+Availability and settings vary by capability.
+
+### Memory: Pick up where you left off
+
+GitHub Copilot Memory is now generally available on paid Copilot plans. Copilot can remember personal preferences and repository conventions across sessions and clients. Memories can be created in the Copilot app, Copilot CLI, VS Code, Copilot cloud agent, Copilot code review, Slack, Teams, and GitHub Mobile.
+
+You can tell Copilot, Remember to start my pull request descriptions with a TL;DR, and it can reuse that preference across Copilot experiences. Repository memories can capture the right test command or how your team expects Copilot to check its work, so you spend less time repeating guidance in each session. Copilot sessions autonomously generate and curate memories, learning from every interaction.
+
+Among the Copilot CLI sessions reviewed during the public preview where the agent used memory, 93% showed better adherence to developer preferences and 42% showed more efficient workflows attributed to the memories included in the session context.
+
+You can interact with memories in the Copilot app, Copilot CLI, and VS Code, or manage personal memories in your Copilot settings, where you can view or delete saved preferences.
+
+### Dreaming: Continuous context improvement
+
+Copilot dreaming, now in public preview, reflects on past work to improve future agentic sessions.
+
+Three dream types are currently available:
+
+- Personal memory curation customizes Copilot to your personal preferences by updating memories based on your agent conversations.
+
+- Repository customization manages repository-scoped memories and proposes updates and improvements to existing skills and custom instruction files.
+
+- Code review customization turns recurring accepted code-review feedback into guidance for Copilot code review.
+
+Dreaming can add, update, and remove personal and repository memories. Changes to checked-in skills and instructions are proposed in pull requests for your team to review.
+
+Dreaming is opt-in.
+
+- Individual subscribers: Enable personal curation in your Copilot settings and repository dreams in each repository’s settings. See personal and repository setup.
+
+- Organizations and enterprises: Administrators enable dreaming through Copilot policies. Enterprise administrators can delegate that choice to organization administrators. Repository dreams cover the repositories allowed by Copilot Memory’s repository access settings. Users must also enable personal dreaming in their own Copilot settings.
+
+Dream runs consume AI credits. See the dreaming documentation for prerequisites, setup, and costs.
+
+### Code Search: Reach beyond your checkout
+
+Software projects rarely live in a single repository. GitHub code search helps Copilot find relevant code, configuration, schemas, and documentation across related projects and dependencies without needing a local clone. Copilot can search for exact text and symbols, match patterns with regular expressions, and narrow results by repository, path, or language. Semantic search can also find code by what it does, such as retrying a failed payment, even when you don’t know the file, function name, or repository it lives in.
+
+For example, you’re fixing failed payments, but retry behavior spans a payments service, a shared library, and background workers. Use /research to ask Copilot, How do these components retry failed charges, and where could retries overlap? Copilot can inspect implementations and callers across those repositories to help you understand how the system fits together before changing it.
+
+That unlocks workflows that would otherwise require you to assemble the context yourself:
+
+- Plan a migration: Use /research to identify implementations and callers across repositories, plan the changes each service needs, and check which projects still use the old API.
+
+- Investigate a bug: Trace related implementations across services and shared libraries, bring specific code references into the investigation, and use that context to propose a coordinated fix.
+
+- Follow organizational standards: Find existing patterns across your organization and use them to guide changes in an unfamiliar codebase.
+
+Whether the task calls for an exact symbol, a regular expression in file contents or paths, or a natural-language description, Copilot can search across repositories in your organization to find relevant context. You spend less time cloning projects, tracking down files, and copying code into the conversation. In addition, Copilot gets the context it needs to make the right changes.
+
+### Try it today
+
+Your team shouldn’t have to teach every agent the same lessons. GitHub intelligence helps agents carry those lessons forward, find the context they need, and put more of each session toward the work you actually want done.
+
+Join the discussion within GitHub Community.
+
+The post GitHub intelligence puts your code, context, and history to work appeared first on The GitHub Blog.
+
+Release
+copilot
+universe26
+99834
+
+Build shared workflows for your team with Copilot Automations
+
+https://github.blog/changelog/2026-10-28-build-shared-workflows-for-your-team-with-copilot-automations
+
+Allison
+Wed, 28 Oct 2026 15:35:00 +0000
+
+https://github.blog/changelog/2026-11-26-build-shared-workflows-for-your-team-with-copilot-automations
+
+Shared Copilot Automations are rolling out, enabling teams to build and maintain AI-powered workflows together. With Copilot Automations, you can combine prompts, triggers, and tools to design workflows around the…
+
+The post Build shared workflows for your team with Copilot Automations appeared first on The GitHub Blog.
+
+Shared Copilot Automations are rolling out, enabling teams to build and maintain AI-powered workflows together.
+
+With Copilot Automations, you can combine prompts, triggers, and tools to design workflows around the way your team works. Copilot runs autonomously in the cloud, using only the tools you’ve allowed. For example, you could create automations to:
+
+- Reproduce bugs as soon as an issue is opened.
+
+- Capture screenshots of the changes when a pull request is marked as ready.
+
+-

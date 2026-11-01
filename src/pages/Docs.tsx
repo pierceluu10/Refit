@@ -1,17 +1,15 @@
 import { ArrowRight, BookOpen, Info } from '@phosphor-icons/react';
 import { Link, useLocation } from 'react-router-dom';
-import { CopyButton } from '../components/CopyButton';
 import { Header, Footer } from '../components/Layout';
-import { configuration } from '../data';
 import './docs.css';
 
 const topics = [
   { id: 'introduction', title: 'Introduction' },
   { id: 'scope', title: 'Supported scope' },
   { id: 'installation', title: 'GitHub installation' },
-  { id: 'configuration', title: 'Repository configuration' },
-  { id: 'review', title: 'Review & validation' },
-  { id: 'replay', title: 'Replay & recovery' },
+  { id: 'understanding', title: 'Understanding your code' },
+  { id: 'review', title: 'Proof & review' },
+  { id: 'outcomes', title: 'Outcomes' },
 ];
 
 export function Docs() {
@@ -38,21 +36,21 @@ export function Docs() {
         </aside>
         <main id="main-content" className="docs-content">
           <section id="introduction">
-            <h1>Meet Refit.</h1>
+            <h1>Meet Aptitude.</h1>
             <p className="docs-lead">
-              An agent for the work between an API changing and your code catching up.
+              A GitHub App that keeps your code current with the APIs it depends on.
             </p>
             <div className="demo-notice">
               <Info size={18} />
               <span>
-                <strong>Frontend preview.</strong> The migration pipeline is specified, but not
-                implemented in this release. The demo and workspace contain labeled sample data.
+                <strong>In development.</strong> Nothing is live and there is no GitHub connection
+                yet. The demo and dashboard contain labeled sample data.
               </span>
             </div>
             <p>
-              Refit is designed to watch authoritative API specifications, find affected usage in
-              your repository, and prepare a validated draft pull request. You keep the final review
-              and merge decision.
+              Aptitude is designed to read each repository, map every external API it uses, watch
+              those APIs for changes, migrate the affected code in a sandbox, prove the result, and
+              open a pull request. You keep the review and the merge.
             </p>
             <p>
               Use the interactive walkthrough to explore the intended experience without signing in
@@ -63,10 +61,10 @@ export function Docs() {
             </Link>
           </section>
           <section id="scope">
-            <h2>Start focused. Prove the loop.</h2>
+            <h2>Any API it finds. Five watchers first.</h2>
             <p>
-              The first migration path targets a deliberately narrow stack. Other providers and
-              languages are future work.
+              The agent records every external API in your code. Watching for changes needs a
+              provider watcher, and the first ones are planned for the providers below.
             </p>
             <table>
               <thead>
@@ -77,124 +75,121 @@ export function Docs() {
               </thead>
               <tbody>
                 <tr>
-                  <td>API provider</td>
-                  <td>Stripe</td>
+                  <td>API discovery</td>
+                  <td>Any provider, through SDKs, raw HTTP, GraphQL or webhooks</td>
+                </tr>
+                <tr>
+                  <td>Provider watchers</td>
+                  <td>Stripe, Shopify, Meta Graph, OpenAI and Twilio</td>
                 </tr>
                 <tr>
                   <td>Source of changes</td>
-                  <td>Versioned Stripe OpenAPI specifications</td>
-                </tr>
-                <tr>
-                  <td>Repository language</td>
-                  <td>TypeScript and JavaScript</td>
+                  <td>Changelogs, SDK releases and deprecation notices; specs when available</td>
                 </tr>
                 <tr>
                   <td>Source control</td>
-                  <td>GitHub</td>
+                  <td>GitHub, through a GitHub App</td>
                 </tr>
                 <tr>
                   <td>Result</td>
-                  <td>A validated draft pull request</td>
+                  <td>
+                    A pull request marked verified or needs-review, or a “not affected” verdict
+                  </td>
                 </tr>
               </tbody>
             </table>
             <p>
               The preview illustrates a PaymentIntent field migration. Its sample code is
-              explanatory, not a universal Stripe upgrade recipe. A production migration must use
-              the repository’s exact API and SDK versions.
+              explanatory, not a universal Stripe upgrade recipe. A real migration must use the
+              repository’s exact API and SDK versions.
             </p>
           </section>
           <section id="installation">
             <h2>Connect only what you choose.</h2>
             <p>
-              GitHub installation is not available in this preview. The planned flow uses a GitHub
-              App so you can select repositories rather than hand over a personal access token.
+              GitHub installation is not available yet. The planned flow uses a GitHub App, so an
+              org admin selects repositories rather than handing over a personal access token.
             </p>
             <ol>
               <li>Review the app’s requested permissions in GitHub.</li>
-              <li>Select the repositories Refit may access.</li>
-              <li>Let the initial scan identify supported provider usage.</li>
-              <li>Confirm monitoring after initialization succeeds.</li>
+              <li>Install it on your organization, for all repositories or selected ones.</li>
+              <li>Aptitude reads each repository and builds its API usage map.</li>
+              <li>It re-reads on every push and watches the APIs it found.</li>
             </ol>
             <p>
-              The planned permissions cover repository metadata, code access, generated migration
-              branches, and pull requests. The final permission list must be reviewed against the
-              implemented GitHub App before launch. Refit must not request customer production API
-              keys.
+              The planned permissions cover repository metadata, code access, migration branches,
+              and pull requests. The final permission list must be reviewed against the implemented
+              GitHub App before launch. Aptitude must not request customer production API keys.
             </p>
             <div className="docs-callout">
               <strong>Nothing is connected in this release.</strong>
               <p>
-                The sample workspace runs in your browser and does not read your GitHub account or
+                The sample dashboard runs in your browser and does not read your GitHub account or
                 repositories.
               </p>
             </div>
           </section>
-          <section id="configuration">
-            <h2>Your checks, in your repository.</h2>
+          <section id="understanding">
+            <h2>It reads your code like a new engineer.</h2>
+            <p>For every external API, the agent records:</p>
+            <ul>
+              <li>
+                <strong>The provider.</strong> Any provider, not a fixed list.
+              </li>
+              <li>
+                <strong>How it is called.</strong> An SDK and its version, raw HTTP, GraphQL, or
+                webhooks.
+              </li>
+              <li>
+                <strong>The pinned version.</strong> Which version is set, and where.
+              </li>
+              <li>
+                <strong>Every call site.</strong> What it sends, and what the code does with the
+                response.
+              </li>
+            </ul>
             <p>
-              The planned <code>refit.yml</code> file defines monitored providers and the validation
-              commands required before publication. The example below uses npm; adapt the commands
-              to your repository.
+              Fast scanners for manifests, imports and hosts point the agent at likely files. The
+              agent’s reading is the source of truth, so it finds APIs no scanner knows.
             </p>
-            <div className="docs-code">
-              <div>
-                <span>refit.yml</span>
-                <CopyButton text={configuration} />
-              </div>
-              <pre>
-                <code>{configuration}</code>
-              </pre>
-            </div>
-            <p>
-              The connected pipeline will validate the configuration before using it. Required
-              commands must succeed. A missing command, skipped check, or incomplete execution must
-              never be reported as a pass.
-            </p>
-            <Link className="text-link" to="/app/settings">
-              Build an example configuration <ArrowRight />
-            </Link>
           </section>
           <section id="review">
-            <h2>A patch has to earn its PR.</h2>
+            <h2>A patch has to earn its label.</h2>
             <p>
-              The planned pipeline separates source evidence, proposed code, and actual validation.
-              The model proposes a migration; deterministic commands decide whether it is ready for
-              review.
+              Each migration runs in a sandboxed copy of your repository. The agent runs the type
+              check, build and tests before and after its edit, and counts only new failures. It can
+              also call provider validators, such as schema checks.
             </p>
             <ul>
               <li>
-                <strong>Inspect the evidence.</strong> Read the provider change, affected files, and
-                symbols.
+                <strong>Inspect the evidence.</strong> Read the provider change, its source, and the
+                affected call sites.
               </li>
               <li>
                 <strong>Check the diff.</strong> Review the smallest useful application-code change.
               </li>
               <li>
-                <strong>Read validation results.</strong> Each command records its status and exit
-                code.
+                <strong>Read the proof.</strong> Each check records its result before and after.
               </li>
               <li>
-                <strong>Make the final decision.</strong> Successful migrations become drafts. Refit
-                never auto-merges.
+                <strong>Read what is unproven.</strong> The PR says what the checks could not show,
+                and any behavior change.
+              </li>
+              <li>
+                <strong>Make the final decision.</strong> Aptitude never merges and never pushes to
+                your default branch.
               </li>
             </ul>
             <p>
-              Work runs in an isolated environment. The intended system provides no production
-              secrets to the agent, limits tool access, and retains enough evidence to explain the
-              result.
+              Untrusted repository code is planned to run only in the sandbox. Each run has a dollar
+              cap, and secrets are never printed or committed.
             </p>
           </section>
-          <section id="replay">
-            <h2>Repeatable runs. Inspectable failures.</h2>
+          <section id="outcomes">
+            <h2>Every task ends in an answer.</h2>
             <p>
-              The real replay pipeline is planned to accept two historical Stripe specification
-              revisions and a fixture repository, then execute the same ingestion, analysis,
-              migration, and validation path as production.
-            </p>
-            <p>
-              The current interactive demo is an illustration of those stages. It does not run that
-              pipeline, execute commands, or create a GitHub PR.
+              No silent stops. Each task ends in a pull request or a “not affected” verdict, with an
+              honest note on what is unproven.
             </p>
             <table>
               <thead>
@@ -205,27 +200,31 @@ export function Docs() {
               </thead>
               <tbody>
                 <tr>
-                  <td>Unaffected usage</td>
-                  <td>No migration and no PR.</td>
+                  <td>Verified</td>
+                  <td>A pull request. Checks pass with no new failures.</td>
+                </tr>
+                <tr>
+                  <td>Needs review</td>
+                  <td>A pull request that says exactly what is unproven, and why.</td>
+                </tr>
+                <tr>
+                  <td>Not affected</td>
+                  <td>A verdict with its reason. No migration and no PR.</td>
                 </tr>
                 <tr>
                   <td>Uncertain impact</td>
-                  <td>Retain evidence and request review.</td>
+                  <td>The agent tries anyway and says so in the PR.</td>
                 </tr>
                 <tr>
-                  <td>Failed validation</td>
-                  <td>Attempt a bounded repair; block publication if checks still fail.</td>
-                </tr>
-                <tr>
-                  <td>Stale repository revision</td>
-                  <td>Re-evaluate before applying the migration.</td>
-                </tr>
-                <tr>
-                  <td>Duplicate change</td>
-                  <td>Reuse the existing workflow instead of creating another PR.</td>
+                  <td>Merged, closed or edited</td>
+                  <td>Recorded, so future runs learn what worked.</td>
                 </tr>
               </tbody>
             </table>
+            <p>
+              The interactive demo illustrates these outcomes. It does not run the pipeline, execute
+              commands, or create a pull request.
+            </p>
             <Link className="text-link" to="/demo?scenario=failed">
               Explore the failed-check scenario <ArrowRight />
             </Link>
