@@ -237,3 +237,58 @@ describe('watching what the inventory finds', () => {
     ]);
   });
 });
+
+describe('matching in batches', () => {
+  const many = Array.from({ length: 120 }, (_, i) => change(`c${i}`));
+  const verified: LoopDeps['runTask'] = async (task) => ok(task, 'verified', 'diff', 0.25);
+
+  it('splits a long change list into calls and fails only the changes of a call that keeps failing', async () => {
+    const { deps } = fakeDeps(many, verified);
+    const match = vi.fn<LoopDeps['match']>(async (input) => {
+      if (input.changes.some((c) => c.id === 'c60')) throw new Error('max_tokens');
+      return stubMatch(input);
+    });
+    deps.match = match;
+    const summary = await runOrg(org, deps);
+
+    // Three calls of 50, 50 and 20 changes, and one retry of the call that fails.
+    expect(match.mock.calls.map(([input]) => input.changes.length)).toEqual([50, 50, 20, 50]);
+    expect(deps.runTask).toHaveBeenCalledTimes(70);
+    expect(summary.counts).toMatchObject({ verified: 70, failed: 50 });
+    const failed = summary.records.filter((r) => r.outcome === 'failed');
+    expect(
+      failed.every((r) =>
+        /not attempted: match failed after retries: max_tokens/.test(r.note ?? ''),
+      ),
+    ).toBe(true);
+    expect(summary.errors).toEqual([
+      expect.stringContaining('match failed after retries: max_tokens'),
+    ]);
+  });
+
+  it('runs the most urgent tasks first across calls', async () => {
+    const { deps } = fakeDeps(many.slice(0, 60), verified);
+    deps.queue = createMemoryQueue({ concurrency: 1, retries: 0 });
+    deps.match = async (input) => {
+      const result = await stubMatch(input);
+      const first = input.changes[0].id === 'c0';
+      return {
+        ...result,
+        tasks: result.tasks
+          .filter((t) => t.change.id === (first ? 'c0' : 'c50'))
+          .map((t) => ({ ...t, urgency: first ? 'low' : 'critical' })),
+        notAffected: input.changes
+          .filter((c) => c.id !== (first ? 'c0' : 'c50'))
+          .map((c) => ({ changeId: c.id, reasoning: 'never called here' })),
+      };
+    };
+    await runOrg(org, deps);
+    const order = vi
+      .mocked(deps.runTask)
+      .mock.calls.map(([task]) => [task.change.id, task.priority]);
+    expect(order).toEqual([
+      ['c50', 1],
+      ['c0', 2],
+    ]);
+  });
+});

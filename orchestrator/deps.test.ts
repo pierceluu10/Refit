@@ -5,7 +5,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { listProviderIds } from '../providers/core/registry.ts';
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
 import { createBudget } from './budget.ts';
-import { anyWatcher, cachedChanges, createDeps, MIN_TASK_USD, TASK_USD } from './deps.ts';
+import {
+  anyWatcher,
+  cachedChanges,
+  createDeps,
+  MEMORY_USD,
+  MIN_TASK_USD,
+  TASK_USD,
+} from './deps.ts';
 import { stubRunTask } from './stubs.ts';
 
 // Each test may replace `run`; by default a harness run spends $0.75 and needs review.
@@ -30,19 +37,30 @@ vi.mock('../harness/index.ts', () => ({
   },
 }));
 
-// No recipes and no model call: these tests are about the budget, not memory.
+// No recipes, no model call and no store on disk: these tests are about the budget, not memory.
+const memory = vi.hoisted(() => ({ caps: [] as number[] }));
 vi.mock('../memory/index.ts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../memory/index.ts')>()),
   createRetriever: () => async () => [],
+  learnFromRun: async (_input: unknown, deps: { budget: { capUsd: number } }) => {
+    memory.caps.push(deps.budget.capUsd);
+    return { run: {}, promoted: [], demoted: [] };
+  },
 }));
 
 afterEach(() => {
   vi.unstubAllEnvs();
   harness.caps = [];
   harness.run = undefined;
+  memory.caps = [];
 });
 
-const task = (id: string) => ({ id: `acme/shop:${id}` }) as MigrationTask;
+const task = (id: string) =>
+  ({
+    id: `acme/shop:${id}`,
+    repo: 'acme/shop',
+    change: { id, provider: 'stripe' },
+  }) as MigrationTask;
 
 describe('createDeps', () => {
   it('runs offline on stubs without ANTHROPIC_API_KEY', () => {
@@ -111,6 +129,33 @@ describe('createDeps', () => {
     };
     await expect(deps.runTask(task('c'), '/unused')).rejects.toThrow('harness crashed');
     expect(budget.spentUsd()).toBe(TASK_USD);
+    expect(budget.heldUsd()).toBe(0);
+  });
+});
+
+describe('recordRun', () => {
+  it('stores a record that was never attempted without holding any of the run', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
+    const budget = createBudget(3);
+    const out = join(await mkdtemp(join(tmpdir(), 'aptitude-deps-')), 'runs.jsonl');
+    const deps = createDeps({ budget, out, log: () => {} });
+    // Every dollar of the run is held by a running task.
+    const running = await budget.reserve('a task', 3);
+
+    await deps.recordRun(task('c'), { ...ran(task('c'), 0), outcome: 'not-affected' });
+    expect(memory.caps).toEqual([0]);
+    running.settle(0);
+  });
+
+  it('holds its share of the run to learn from an attempt', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
+    const budget = createBudget(3);
+    const out = join(await mkdtemp(join(tmpdir(), 'aptitude-deps-')), 'runs.jsonl');
+    const deps = createDeps({ budget, out, log: () => {} });
+    const attempt = { ...ran(task('c'), 1), transcriptPath: '/nonexistent/transcript.jsonl' };
+
+    await deps.recordRun(task('c'), attempt);
+    expect(memory.caps).toEqual([MEMORY_USD]);
     expect(budget.heldUsd()).toBe(0);
   });
 });

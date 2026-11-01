@@ -253,18 +253,21 @@ export function createDeps({
         : undefined;
       const learn = (memoryBudget: MemoryBudget) =>
         learnFromRun({ task, record, transcript, usedRecipeIds: recipeIds }, memory(memoryBudget));
-      // Learning waits for its share of the run. When the run can never free it, the run is still
-      // stored, with nothing to spend on distilling it.
-      const learned = await held(
-        budget,
-        `learning from ${task.id}`,
-        MEMORY_USD,
-        (capUsd) => new MemoryBudget(capUsd),
-        learn,
-      ).catch((error: unknown) => {
-        if (error instanceof BudgetExceededError) return learn(new MemoryBudget(0));
-        throw error;
-      });
+      // A record with no transcript was never attempted, so it is stored with nothing to distill.
+      // Learning from an attempt waits for its share of the run; when the run can never free it,
+      // the run is still stored, with nothing to spend.
+      const learned = !record.transcriptPath
+        ? await learn(new MemoryBudget(0))
+        : await held(
+            budget,
+            `learning from ${task.id}`,
+            MEMORY_USD,
+            (capUsd) => new MemoryBudget(capUsd),
+            learn,
+          ).catch((error: unknown) => {
+            if (error instanceof BudgetExceededError) return learn(new MemoryBudget(0));
+            throw error;
+          });
       if (learned.error) log(`memory: stored ${task.id} but learned no recipe: ${learned.error}`);
     },
     queue,
