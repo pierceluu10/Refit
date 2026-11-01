@@ -41,4 +41,4 @@ What the run still shows:
 - **Errors:** 2 rows ended with `Cannot read properties of null (reading 'replace')` during validation: iamgenesistech-hub/IAGT_AI_VIRAL_ENGINE and sanjeev744/smart-slidecart. No stack trace was recorded, and it is not investigated yet.
 - **For review:** on sanjeev744/smart-slidecart the agent also edited `shopify.app.toml` (the webhook `api_version`). That changes webhook payloads and needs a reviewer.
 
-**Run 41269399890** (`b6e43f4c`, refit-bench `gut/shopify-bench` with the umask fix, same inputs) was dispatched before the founder's spend freeze and is still running. Its counts and the hand-check of each newly validated row go here once it finishes. No further run is started without the founder's approval.
+**Run 41269399890** (`b6e43f4c`, refit-bench `gut/shopify-bench` with the umask fix) was cancelled under the founder's spend freeze and has no results. GUT5 has since fixed the umask on `gut/sandbox` (`b06dd03`) and made checked trees readable in the sandbox (`c60d3ad6`, merged here as `70cd9e5c`). A valid dev-60 measurement still needs a new run on this branch's head, once the founder approves.
