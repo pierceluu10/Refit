@@ -91,8 +91,8 @@ Reruns open no PR and are not recorded as runs. The report is saved under `selfe
 
 - `ANTHROPIC_API_KEY`: extraction, retrieval judgement and skill writing use `claude-opus-5-5`. Without it, runs are still stored and retrieval falls back to embedding order.
 - `VOYAGE_API_KEY`: `voyage-code-3` embeddings. Without it, a free local hashed embedder is used (lexical, not semantic).
-- `APTITUDE_AI_BUDGET_USD` (default 3 in memory/): every model and embedding call in memory/ reserves its worst case against this cap first. The self-eval command spends through the loop's run budget, which refuses to start without it.
+- `APTITUDE_AI_BUDGET_USD`: every model and embedding call in memory/ reserves its worst case against this cap first. Unset, memory/ spends nothing: runs and verdicts are still stored, but nothing is distilled (AGENTS.md: a run without a cap refuses to spend). The orchestrator passes each call its own share of the run's cap. With the default deps, which the app gets when it calls `recordVerdict(pr, verdict)`, every call shares one cap for the life of the process, so give each verdict its own instead: `recordVerdict(pr, verdict, { ...defaultMemory(), ...defaultAi(process.env, new Budget(1)) })`. The self-eval command spends through the loop's run budget, which refuses to start without it.
 
 ## Tests
 
-`npm test` runs the fixture tests, with fake models: no test spends money. `extract.real.test.ts` makes 3 real extraction calls and runs only with `APTITUDE_REAL_AI=1`: through `ANTHROPIC_API_KEY` when set, otherwise through the logged-in Claude Code credentials via the Agent SDK (`AgentSdkModel`, charged at the SDK's `total_cost_usd` estimate).
+`npm test` runs the fixture tests, with fake models: no test spends money. `extract.real.test.ts` makes 3 real extraction calls and runs only with `APTITUDE_REAL_AI=1` and a cap in `APTITUDE_AI_BUDGET_USD`: through `ANTHROPIC_API_KEY` when set, otherwise through the logged-in Claude Code credentials via the Agent SDK (`AgentSdkModel`, charged at the SDK's `total_cost_usd` estimate).

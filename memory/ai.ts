@@ -18,9 +18,10 @@ export class Budget {
     this.capUsd = capUsd;
   }
 
+  // AGENTS.md: a run without APTITUDE_AI_BUDGET_USD refuses to spend, so unset means a $0 cap.
   static fromEnv(env: NodeJS.ProcessEnv = process.env): Budget {
     const raw = env.APTITUDE_AI_BUDGET_USD;
-    return new Budget(raw === undefined || raw === '' ? 3 : Number(raw));
+    return new Budget(raw === undefined || raw === '' ? 0 : Number(raw));
   }
 
   // Refuse a call whose worst case would cross the cap, so the cap holds even if the call succeeds.

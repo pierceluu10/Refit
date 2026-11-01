@@ -89,7 +89,8 @@ describe('Budget', () => {
 
   it('reads the cap from APTITUDE_AI_BUDGET_USD', () => {
     expect(Budget.fromEnv({ APTITUDE_AI_BUDGET_USD: '1.5' }).capUsd).toBe(1.5);
-    expect(Budget.fromEnv({}).capUsd).toBe(3);
+    expect(Budget.fromEnv({}).capUsd).toBe(0);
+    expect(() => Budget.fromEnv({}).reserve(0.01)).toThrow(BudgetExceededError);
     expect(() => Budget.fromEnv({ APTITUDE_AI_BUDGET_USD: 'lots' })).toThrow();
   });
 });
