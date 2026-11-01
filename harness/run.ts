@@ -80,7 +80,7 @@ export async function runTask(
   repoDir: string,
   deps: HarnessDeps = {},
 ): Promise<HarnessRunRecord> {
-  const ledger = new BudgetLedger(deps.budgetUsd ?? budgetFromEnv());
+  const ledger = new BudgetLedger(deps.budgetUsd ?? budgetFromEnv(), deps.chargeRun);
   const outDir =
     deps.outDir ?? (await mkdtemp(join(tmpdir(), `aptitude-run-${task.id.replace(/\W+/g, '-')}-`)));
   await mkdir(outDir, { recursive: true });

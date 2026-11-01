@@ -7,7 +7,7 @@ import type {
   RunRecord,
   ToolPack,
 } from '../shared/types.ts';
-import type { BudgetLedger } from './ledger.ts';
+import type { BudgetLedger, ChargeRun } from './ledger.ts';
 
 export type ExecResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
 
@@ -98,7 +98,8 @@ export type HarnessDeps = {
   outDir?: string; // where the transcript, diff and PR body are written
   maxIterations?: number; // unset: iterate until done or the budget cap
   turnReserveUsd?: number; // defaults to TURN_RESERVE_USD
-
+  // Called for every model call's spend as it happens, so the run budget sees it even if the harness throws.
+  chargeRun?: ChargeRun;
   fetch?: typeof fetch;
 };
 

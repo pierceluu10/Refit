@@ -1,6 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { AgentTool } from '../shared/types.ts';
-import { toSdkTool } from './agent.ts';
+import { claudeAgentSession, toSdkTool } from './agent.ts';
+import { BudgetLedger } from './ledger.ts';
+import type { Sandbox } from './types.ts';
+
+vi.mock('@anthropic-ai/claude-agent-sdk', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@anthropic-ai/claude-agent-sdk')>()),
+  query: vi.fn(),
+}));
 
 describe('toSdkTool', () => {
   it('keeps the JSON Schema properties and returns the tool output as text', async () => {
@@ -18,5 +26,99 @@ describe('toSdkTool', () => {
     expect(Object.keys(converted.inputSchema)).toEqual(['text', 'times']);
     const result = await converted.handler({ text: 'hi' }, undefined);
     expect(result.content).toEqual([{ type: 'text', text: '{"text":"hi"} in /sandbox' }]);
+  });
+});
+
+// Partial SDK messages: only the fields the session reads.
+const event = (body: object) =>
+  ({ type: 'stream_event', event: body, parent_tool_use_id: null }) as unknown as SDKMessage;
+const callStart = event({
+  type: 'message_start',
+  message: {
+    model: 'claude-sonnet-5-5',
+    usage: {
+      input_tokens: 1000,
+      cache_creation_input_tokens: 10_000,
+      cache_read_input_tokens: 0,
+      output_tokens: 1,
+    },
+  },
+});
+const callEnd = event({
+  type: 'message_delta',
+  usage: {
+    input_tokens: null,
+    cache_creation_input_tokens: null,
+    cache_read_input_tokens: null,
+    output_tokens: 500,
+  },
+});
+const result = (totalCostUsd: number) =>
+  ({
+    type: 'result',
+    subtype: 'success',
+    session_id: 'session-1',
+    total_cost_usd: totalCostUsd,
+    num_turns: 1,
+    result: 'done',
+  }) as unknown as SDKMessage;
+
+// At Sonnet 5.5 rates: 1,000 input at $2/M, 10,000 5-minute cache writes at $2.50/M, 500 output at $10/M.
+const CALL_USD = 0.002 + 0.025 + 0.005;
+
+function session(messages: SDKMessage[], failure?: Error) {
+  vi.mocked(query).mockImplementation(async function* () {
+    yield* messages;
+    if (failure) throw failure;
+  } as unknown as typeof query);
+  const charges: [number, string][] = [];
+  const logged: unknown[] = [];
+  const ledger = new BudgetLedger(5, (usd, label) => charges.push([usd, label]));
+  const run = claudeAgentSession({
+    model: 'claude-sonnet-5-5',
+    systemPrompt: 'system',
+    prompt: 'go',
+    tools: [],
+    sandbox: { dir: '/sandbox' } as Sandbox,
+    ledger,
+    budgetUsd: 4,
+    maxTurns: 10,
+    log: (message) => logged.push(message),
+  });
+  return { run, ledger, charges, logged };
+}
+
+describe('claudeAgentSession charging', () => {
+  it('charges each model call while it streams, so a query that dies mid-run has reported its spend', async () => {
+    const { run, ledger, charges, logged } = session(
+      [callStart, callEnd],
+      new Error('connection reset'),
+    );
+    const outcome = await run;
+    expect(outcome).toMatchObject({ stopReason: 'error', error: 'connection reset' });
+    expect(ledger.spentUsd).toBeCloseTo(CALL_USD);
+    expect(charges).toEqual([
+      [expect.closeTo(0.027 + 0.00001), 'harness claude-sonnet-5-5: model call'],
+      [expect.closeTo(0.005 - 0.00001), 'harness claude-sonnet-5-5: model call'],
+    ]);
+    // Stream events feed the meter, not the transcript.
+    expect(logged).toEqual([]);
+  });
+
+  it("charges only what the SDK's total adds beyond the live charges", async () => {
+    const { run, ledger } = session([callStart, callEnd, result(0.05)]);
+    expect(await run).toMatchObject({ stopReason: 'done', sessionId: 'session-1' });
+    expect(ledger.spentUsd).toBeCloseTo(0.05);
+    expect(ledger.entries.at(-1)).toMatchObject({
+      costUsd: expect.closeTo(0.05 - CALL_USD),
+      note: expect.stringContaining('beyond its live charges'),
+    });
+  });
+
+  it('keeps a live charge that came out above the SDK total rather than refunding it', async () => {
+    const { run, ledger } = session([callStart, callEnd, result(0.03)]);
+    await run;
+    expect(ledger.entries).toHaveLength(2);
+    expect(ledger.spentUsd).toBeCloseTo(CALL_USD);
   });
 });

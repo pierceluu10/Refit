@@ -257,6 +257,23 @@ describe('runTask with a fake model', () => {
     expect(record.models).toEqual([MODEL, ESCALATION_MODEL]);
   });
 
+  it('reports spend through chargeRun as it happens, even when the run then throws', async () => {
+    const charges: [number, string][] = [];
+    const run = runTask(task, fixtureRepo(), {
+      ...deps([breakIt]),
+      maxIterations: 1,
+      chargeRun: (usd, label) => charges.push([usd, label]),
+      createSandbox: async (dir: string) => ({
+        ...(await createSandbox(dir, { mode: 'local' })),
+        diff: async () => {
+          throw new Error('git is broken');
+        },
+      }),
+    });
+    await expect(run).rejects.toThrow('git is broken');
+    expect(charges).toEqual([[0.01, `harness ${MODEL}: fake turn 0`]]);
+  });
+
   it('keeps a reserve below the cap: no query starts inside it and each gets the rest', async () => {
     const budgets: number[] = [];
     const record = await runTask(task, fixtureRepo(), {
