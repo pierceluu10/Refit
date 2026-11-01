@@ -1,7 +1,7 @@
 // The PR body: change, why, proof, unproven, behaviour changes. It states only facts passed in.
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
 import { redactSecrets } from './secrets.ts';
-import type { CheckComparison, FinishReport, ValidatorRun } from './types.ts';
+import type { CheckCommand, CheckComparison, FinishReport, ValidatorRun } from './types.ts';
 import { gradeValidators, type ValidatorGrade } from './validators.ts';
 
 export type PrBodyInput = {
@@ -10,6 +10,7 @@ export type PrBodyInput = {
   report?: FinishReport;
   comparisons: CheckComparison[];
   validatorRuns?: ValidatorRun[]; // ToolPack calls the harness recorded
+  agentChecks?: CheckCommand[]; // checks the agent registered; they count toward proof
   diff: string;
   costUsd: number;
   models: string[];
@@ -65,6 +66,7 @@ export function writePrBody(input: PrBodyInput): string {
   const claims = report?.validators ?? [];
   const runs = input.validatorRuns ?? [];
   const grades = gradeValidators(claims, runs);
+  const agentChecks = input.agentChecks ?? [];
   const files = filesFromDiff(input.diff);
   const newFailures = comparisons.reduce((sum, c) => sum + c.newFailures.length, 0);
   const unproven = unprovenItems(input, grades);
@@ -82,6 +84,17 @@ export function writePrBody(input: PrBodyInput): string {
         ].join('\n')
       : 'No checks were run.',
     `New failures: ${newFailures}`,
+    agentChecks.length
+      ? [
+          'Checks added by the agent (they count toward proof; check that each command really tests the change):',
+          list(
+            agentChecks.map((check) => {
+              const c = comparisons.find((comparison) => comparison.name === check.name);
+              return `${check.name}, added by the agent: \`${check.command}\` (${c?.before ?? 'not run'} → ${c?.after ?? 'not run'})`;
+            }),
+          ),
+        ].join('\n')
+      : '',
     runs.length
       ? [
           'Provider tool calls recorded by the harness:',

@@ -103,10 +103,12 @@ export async function runTask(
       models,
       promptVersion: PROMPT_VERSION,
       recipeIds: [],
+      agentChecks: [],
     };
   }
 
   let baselineSandbox: Promise<Sandbox> | undefined;
+  const agentChecks: CheckCommand[] = [];
   try {
     const toolPack = await (deps.loadToolPack ?? emptyToolPack)(task.change.provider).catch(() =>
       emptyToolPack(task.change.provider),
@@ -129,6 +131,7 @@ export async function runTask(
       })();
       const [run] = await runChecks(await baselineSandbox, [check]);
       checks.push(check);
+      agentChecks.push(check);
       before.push(run);
       log({ type: 'harness', phase: 'agent-check', check, before: run });
       return run;
@@ -231,6 +234,7 @@ export async function runTask(
       report: finalReport,
       comparisons,
       validatorRuns,
+      agentChecks,
       diff,
       costUsd: ledger.spentUsd,
       models,
@@ -249,6 +253,15 @@ export async function runTask(
       models,
       promptVersion: PROMPT_VERSION,
       recipeIds: recipes.map((recipe) => recipe.id),
+      agentChecks: agentChecks.map(({ name, command }) => {
+        const comparison = comparisons.find((c) => c.name === name);
+        return {
+          name,
+          command,
+          before: comparison?.before ?? 'not run',
+          after: comparison?.after ?? 'not run',
+        };
+      }),
     };
     log({ type: 'harness', phase: 'done', outcome, ledger: ledger.entries });
     await writeFile(join(outDir, 'diff.patch'), diff);

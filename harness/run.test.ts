@@ -161,6 +161,19 @@ describe('runTask with a fake model', () => {
     expect(record.checks).toEqual([{ name: 'verify', before: 'pass', after: 'pass' }]);
   });
 
+  it('shows a vacuous agent-added check verbatim instead of hiding it', async () => {
+    const addTrue: ScriptedTurn = async (call) => {
+      await call('run_checks', { add: [{ name: 'smoke', command: 'true' }] });
+      await fixIt(call, {} as never);
+    };
+    const record = await runTask(task, fixtureRepo({}), deps([addTrue]));
+    expect(record.outcome).toBe('verified');
+    expect(record.agentChecks).toEqual([
+      { name: 'smoke', command: 'true', before: 'pass', after: 'pass' },
+    ]);
+    expect(record.prBody).toContain('- smoke, added by the agent: `true` (pass → pass)');
+  });
+
   it('ends when the agent finishes with an explanation of what is still failing', async () => {
     const explain: ScriptedTurn = async (call, input) => {
       await breakIt(call, input);
