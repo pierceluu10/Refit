@@ -16,7 +16,7 @@ import type { ExecResult, FinishReport, ToolContext } from './types.ts';
 type Args = Record<string, unknown>;
 
 const MAX_OUTPUT = 20_000;
-const SKIP_DIRS = new Set(['.git', 'node_modules']);
+const SKIP_DIRS = new Set(['.git', 'node_modules', '.pnpm-store']);
 const LIST_CAP = 500;
 const SEARCH_CAP = 200;
 const SEARCH_MAX_FILE_BYTES = 1_000_000;

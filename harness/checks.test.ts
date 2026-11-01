@@ -253,7 +253,7 @@ describe('installCommand', () => {
       'npm ci --ignore-scripts --no-audit --no-fund || npm install --ignore-scripts --no-audit --no-fund',
     );
     expect(installCommand('pnpm')).toBe(
-      'corepack pnpm install --frozen-lockfile --ignore-scripts || corepack pnpm install --ignore-scripts',
+      'corepack pnpm install --frozen-lockfile --ignore-scripts || corepack pnpm install --no-frozen-lockfile --ignore-scripts',
     );
   });
 
@@ -268,7 +268,7 @@ describe('installCommand', () => {
       'corepack yarn@1 install --frozen-lockfile --ignore-scripts || corepack yarn@1 install --ignore-scripts',
     );
     expect(installCommand('yarn', '3.6.1')).toBe(
-      'YARN_ENABLE_SCRIPTS=false corepack yarn@3.6.1 install --immutable || YARN_ENABLE_SCRIPTS=false corepack yarn@3.6.1 install',
+      'YARN_ENABLE_SCRIPTS=false corepack yarn@3.6.1 install --immutable || YARN_ENABLE_SCRIPTS=false YARN_ENABLE_IMMUTABLE_INSTALLS=false corepack yarn@3.6.1 install',
     );
   });
 });

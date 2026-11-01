@@ -27,6 +27,8 @@ const SANDBOX_ENV = {
   // corepack fetches the repo's pnpm or yarn release without asking, and never pins it into package.json.
   COREPACK_ENABLE_DOWNLOAD_PROMPT: '0',
   COREPACK_ENABLE_AUTO_PIN: '0',
+  // pnpm puts its store at the mount's root when home is on another disk: the copy, and so the diff.
+  npm_config_store_dir: '/tmp/aptitude-pnpm-store',
 };
 
 export type SandboxOptions = { mode?: 'docker' | 'local'; image?: string };
@@ -49,7 +51,7 @@ export async function createSandbox(
     });
     const git = (...args: string[]) => runGit(gitDir, dir, args);
     await git('init', '-q');
-    await fs.appendFile(path.join(gitDir, 'info', 'exclude'), '\nnode_modules\n');
+    await fs.appendFile(path.join(gitDir, 'info', 'exclude'), '\nnode_modules\n.pnpm-store\n');
     await git('config', 'user.name', 'Aptitude');
     await git('config', 'user.email', 'aptitude@localhost');
     await git('add', '-A');

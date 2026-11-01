@@ -87,12 +87,14 @@ export function installCommand(pm: PackageManager, version?: string): string {
   switch (pm) {
     case 'npm':
       return `${bin} ci --ignore-scripts --no-audit --no-fund || ${bin} install --ignore-scripts --no-audit --no-fund`;
+    // The sandbox sets CI, which makes pnpm and Yarn 2+ install frozen by default, so each fallback
+    // unfreezes explicitly: after a dependency change only an unfrozen install can update the lockfile.
     case 'pnpm':
-      return `${bin} install --frozen-lockfile --ignore-scripts || ${bin} install --ignore-scripts`;
+      return `${bin} install --frozen-lockfile --ignore-scripts || ${bin} install --no-frozen-lockfile --ignore-scripts`;
     case 'yarn': {
       // Yarn 1 takes --ignore-scripts; Yarn 2+ rejects that flag and reads YARN_ENABLE_SCRIPTS.
       const classic = `${bin} install --frozen-lockfile --ignore-scripts || ${bin} install --ignore-scripts`;
-      const berry = `YARN_ENABLE_SCRIPTS=false ${bin} install --immutable || YARN_ENABLE_SCRIPTS=false ${bin} install`;
+      const berry = `YARN_ENABLE_SCRIPTS=false ${bin} install --immutable || YARN_ENABLE_SCRIPTS=false YARN_ENABLE_IMMUTABLE_INSTALLS=false ${bin} install`;
       if (version) return /^1(\.|$)/.test(version) ? classic : berry;
       return `if yarn --version | grep -q '^1\\.'; then ${classic}; else ${berry}; fi`;
     }
