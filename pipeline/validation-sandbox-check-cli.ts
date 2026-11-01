@@ -50,7 +50,8 @@ async function editedCopy(directory: string, edit: (copy: string, file: string) 
   const { stdout } = await execute('git', ['-C', directory, 'ls-files']);
   const file = stdout
     .split('\n')
-    .filter((path) => /\.tsx?$/.test(path) && !/\.d\.ts$|(?:^|\/)node_modules\//.test(path))
+    .filter((path) => /\.[jt]sx?$/.test(path) && !/\.d\.ts$|(?:^|\/)node_modules\//.test(path))
+    .sort((a, b) => Number(!/\.tsx?$/.test(a)) - Number(!/\.tsx?$/.test(b)))
     .sort((a, b) => Number(!/^app\//.test(a)) - Number(!/^app\//.test(b)))[0];
   if (file) await edit(copy, file);
   return { copy, file };
@@ -75,7 +76,8 @@ for (const { repo } of list.repos) {
         const path = join(copy, file);
         await writeFile(
           path,
-          `${await readFile(path, 'utf8')}\nexport const refitSandboxProbe: number = 'not a number';\n`,
+          // TypeScript gets a type error; JavaScript, which tsc may not check, an unresolvable import.
+          `${await readFile(path, 'utf8')}\n${/\.tsx?$/.test(file) ? "export const refitSandboxProbe: number = 'not a number';" : "import './refit-sandbox-probe-missing.js';"}\n`,
         );
       });
       const probeResult = await sandboxCheck(probe.copy, baseline);
