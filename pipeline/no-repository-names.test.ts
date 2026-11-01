@@ -10,8 +10,6 @@ const SOURCES = ['pipeline', 'src'];
 
 // Exact `file: owner/repo` pairs that name a project, not a benchmark repository, each with why.
 const ALLOWED: Record<string, string> = {
-  'pipeline/shopify-sdk-upgrade.ts: shopify/shopify-app-js':
-    "Shopify's own SDK monorepo, whose packages the upgrade moves together; it is also in a frozen list.",
   'pipeline/shopify-pipeline.ts: shopify/shopify-app-js':
     "The URL of Shopify's v12 migration guide in its SDK monorepo, which is also in a frozen list.",
 };
