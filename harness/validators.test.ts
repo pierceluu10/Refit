@@ -16,6 +16,22 @@ describe('gradeValidators', () => {
     expect(gradeValidators([claim('check_params', false)], runs)[0].passed).toBe(false);
   });
 
+  it('matches a claim by its bare, provider or SDK tool name', () => {
+    const runs = [
+      { tool: 'openai__openai_check_request', output: 'Unknown parameters: none.', passed: true },
+    ];
+    for (const name of [
+      'openai_check_request',
+      'openai__openai_check_request',
+      'mcp__aptitude__openai__openai_check_request',
+    ]) {
+      expect(gradeValidators([claim(name)], runs)[0], name).toMatchObject({
+        ran: true,
+        passed: true,
+      });
+    }
+  });
+
   it('fails a claim with no recorded call', () => {
     expect(gradeValidators([claim('live_call')], [])[0]).toMatchObject({
       ran: false,

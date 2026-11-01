@@ -22,7 +22,11 @@ export const runPassed = (output: string) => !PROBLEMS.some((problem) => problem
 
 export type ValidatorGrade = { name: string; ran: boolean; passed: boolean; detail: string };
 
-const matches = (claim: string, tool: string) => tool === claim || tool.endsWith(`__${claim}`);
+// The model sees the harness tools through the SDK's MCP server, so it may claim one by that full name.
+const matches = (claim: string, tool: string) => {
+  const name = claim.replace(/^mcp__aptitude__/, '');
+  return tool === name || tool.endsWith(`__${name}`);
+};
 
 // One grade per claimed validator, from the latest recorded call of that tool.
 export function gradeValidators(
