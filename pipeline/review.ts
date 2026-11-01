@@ -20,11 +20,7 @@ import type { ReviewReason } from './publication.ts';
 import { OTHER_DEPENDENCY_FAILURE } from './dependency-preparation.ts';
 import { REMOVED_PARAMETER_NOTES } from './request-removals.ts';
 import { OPEN_ENUM_REPAIR, UNTYPED_REQUEST_PROPERTIES } from './stripe-open-enums.ts';
-import {
-  applySourceEdits,
-  movedPaymentMethodExpressions,
-  PAYMENT_METHOD_TYPES_CHANGELOG,
-} from './patches.ts';
+import { applySourceEdits, PAYMENT_METHOD_TYPES_CHANGELOG } from './patches.ts';
 import { typeErrorKeys } from './type-errors.ts';
 import { HELPER_NAMES, HELPER_RULES } from './stripe-subscription-periods.ts';
 
@@ -619,7 +615,6 @@ export function createReviewArtifacts(
         .map((methods) => methods.join(', ')),
     ),
   ];
-  const movedExpressions = movedPaymentMethodExpressions(patch.warnings ?? []);
   const cardOnly = /^\+.*allowed_payment_method_types['"]?\s*:\s*\[\s*['"]card['"]\s*\]/m.test(
     patch.diff,
   );
@@ -939,10 +934,6 @@ export function createReviewArtifacts(
           (methods) =>
             `Moves ${code(`[${methods}]`)} from ${code('payment_method_types')} to ${code('allowed_payment_method_types')} with the same methods, under the owner decision of 2026-10-24 to keep listed payment methods.`,
         ),
-        ...movedExpressions.map(
-          (expression) =>
-            `Moves ${code(expression)} from ${code('payment_method_types')} to ${code('allowed_payment_method_types')} unchanged, under the owner decision of 2026-10-24 for computed lists.`,
-        ),
         ...operationChanges.map(
           (entry) =>
             // A configured replacement keeps the HTTP method; its contract signature must match.
@@ -968,10 +959,7 @@ export function createReviewArtifacts(
       ];
   const overviewCauses = [
     ...(readChanges.length ? ['removes fields this code reads'] : []),
-    ...(cardRename ||
-    listedMethods.length ||
-    movedExpressions.length ||
-    requestChanges.some((entry) => entry.usages.length)
+    ...(cardRename || listedMethods.length || requestChanges.some((entry) => entry.usages.length)
       ? ['removes request fields this code sends']
       : []),
     ...(operationChanges.some((entry) => entry.usages.length)
@@ -1040,10 +1028,6 @@ export function createReviewArtifacts(
           `Raises ${raisedPeers} with it: stripe ${code(upgrade.to)} declares ${summaryList(upgrade.raised.map(({ name, range }) => `${code(name)} ${code(range)}`))} as an optional peer, and Refit takes the lowest version in that range. Newer types can reject code that compiled before; check your own type check and editor.`,
         ]
       : []),
-    ...movedExpressions.map(
-      (expression) =>
-        `Refit cannot read which payment methods ${code(expression)} holds at runtime. Stripe now filters them by each buyer's eligibility (country, currency, amount, device), and offers only payment methods the account has enabled ([dynamic payment methods](${DYNAMIC_PAYMENT_METHODS})). Before merging, confirm it holds only methods this call accepts in ${code('allowed_payment_method_types')}, that each one is enabled in the Stripe Dashboard or the payment method configuration this account uses, and that each one is still offered where you rely on it.`,
-    ),
     ...(subscriptionPolicy
       ? [
           `Selects subscription periods from the single item priced ${code(subscriptionPolicy.priceId)}, keyed on the signed event ${code('api_version')}.`,
@@ -1146,9 +1130,7 @@ export function createReviewArtifacts(
         ...('source' in patch && typeof patch.source === 'string' ? [patch.source] : []),
         ...rulePages.map((page) => page.url),
         ...vendorNotes(patch).map((note) => note.url),
-        ...(cardRename || listedMethods.length || movedExpressions.length
-          ? [PAYMENT_METHOD_TYPES_CHANGELOG]
-          : []),
+        ...(cardRename || listedMethods.length ? [PAYMENT_METHOD_TYPES_CHANGELOG] : []),
       ].filter((url) => link(url)),
     ),
   ];
@@ -1292,9 +1274,6 @@ export function createReviewArtifacts(
     ...(cardOnly ? ['Confirm cards stay enabled in the Stripe Dashboard.'] : []),
     ...listedMethods.map(
       (methods) => `Confirm ${code(`[${methods}]`)} are still offered where you rely on them.`,
-    ),
-    ...movedExpressions.map(
-      (expression) => `Confirm the runtime values of ${code(expression)} (see Key Changes).`,
     ),
     ...(untracedSites.length ? ['Check each read under Left Unchanged.'] : []),
     ...(unresolvedReads

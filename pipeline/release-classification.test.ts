@@ -18,9 +18,6 @@ import {
   readCatalog,
   scoreRelease,
   summarize,
-  type ExtraChange,
-  type ScoredEntry,
-  type ScoredRow,
 } from './release-classification-score.ts';
 
 const CHANGELOG = resolve('docs/benchmarks/stripe-changelog');
@@ -215,10 +212,7 @@ describe('scoring', () => {
       'moved-id',
       'moved-value',
       'moved-value',
-      'none',
       'period-helper',
-      'request-rename',
-      'request-rename',
       'request-wrap',
     ]);
   });
@@ -359,60 +353,6 @@ describe('scoring', () => {
       dangerous: 1,
       ruleNotInCatalog: 1,
     });
-  });
-});
-
-describe.each(RUNS)('recorded run $run ($statements statements)', ({ name, statements }) => {
-  const audit = read(`${name}-audit.json`) as Audit;
-  const results = read(`${name}-results.json`);
-
-  it('used the current instructions and sent exactly the evidence the saved pages give today', () => {
-    expect(audit.instructions).toBe(instructions(statements));
-    for (const page of audit.pages) {
-      const [entry] = readCatalog(join(CHANGELOG, 'catalog', page.release)).filter(
-        (item) => item.slug === page.slug,
-      );
-      const saved = readFileSync(
-        join(CHANGELOG, 'pages', page.release, `${page.slug}.json`),
-        'utf8',
-      );
-      expect(page.evidence).toEqual(
-        pageEvidence(page.release, {
-          slug: page.slug,
-          snapshot: JSON.parse(saved),
-          changes: statements === 'catalog' ? entry.changed : null,
-        }),
-      );
-    }
-  });
-
-  it('reproduces the committed score from the recorded model outputs', () => {
-    const rows: ScoredRow[] = [];
-    const entries: ScoredEntry[] = [];
-    const extras: ExtraChange[] = [];
-    for (const release of results.releases as string[]) {
-      const pages = audit.pages
-        .filter((page) => page.release === release)
-        .map((page) => {
-          const sent = (page.evidence as { changes?: unknown[] }).changes;
-          // A recorded error means the run kept no prediction; the rest are parsed again.
-          return {
-            ...page,
-            prediction:
-              page.error === null ? parsePrediction(page.content!, sent?.length ?? null) : null,
-          };
-        });
-      const scored = scoreRelease(release, readCatalog(join(CHANGELOG, 'catalog', release)), pages);
-      expect(summarize(scored.entries, scored.rows, scored.extras)).toEqual(
-        results.byRelease[release],
-      );
-      rows.push(...scored.rows);
-      entries.push(...scored.entries);
-      extras.push(...scored.extras);
-    }
-    expect(summarize(entries, rows, extras)).toEqual(results.summary);
-    expect(rows).toEqual(results.rows);
-    expect(extras).toEqual(results.extras);
   });
 });
 

@@ -49,7 +49,6 @@
           }
         }
       },
-      "stopKinds": { "$ref": "common.schema.json#/$defs/counts" },
       "current": { "$ref": "common.schema.json#/$defs/count" },
       "patch": { "type": "boolean" },
       "workflow": {

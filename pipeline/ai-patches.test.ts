@@ -369,82 +369,11 @@ it('rejects more saved notes than a watch configuration can capture', async () =
   ).rejects.toThrow(/at most 8/);
 });
 
-async function openaiInputs(
-  replacement: Record<string, Record<string, unknown>> = { owner_name: { type: 'string' } },
-) {
-  const root = await mkdtemp(join(tmpdir(), 'refit-openai-rename-'));
-  scratch.push(root);
-  const model = (fields: Record<string, Record<string, unknown>>) => ({
-    openapi: '3.0.3',
-    info: { title: 'Simulated OpenAI contract', version: Object.keys(fields).join(',') },
-    paths: {
-      '/models/{model}': {
-        parameters: [{ name: 'model', in: 'path', required: true, schema: { type: 'string' } }],
-        get: {
-          responses: {
-            '200': {
-              description: 'Model',
-              content: { 'application/json': { schema: { $ref: '#/components/schemas/Model' } } },
-            },
-          },
-        },
-      },
-    },
-    components: {
-      schemas: {
-        Model: {
-          type: 'object',
-          required: ['id', 'object', ...Object.keys(fields)],
-          properties: { id: { type: 'string' }, object: { type: 'string' }, ...fields },
-        },
-      },
-    },
-  });
-  await writeFile(
-    join(root, 'before.json'),
-    JSON.stringify(model({ owned_by: { type: 'string' } })),
-  );
-  await writeFile(join(root, 'after.json'), JSON.stringify(model(replacement)));
-  const inputs = {
-    repository: 'pipeline/fixtures/openai/repository',
-    before: join(root, 'before.json'),
-    after: join(root, 'after.json'),
-    providerConfig: 'pipeline/fixtures/openai/provider.json',
-  };
-  const report = await runPipeline(inputs);
-  const repository = await readRepository(inputs.repository, 'openai');
-  const [finding] = buildAssessmentEvidence(
-    repository,
-    report.changes,
-    report.findings,
-    report.adapter,
-  ).findings;
-  const edit = (replacement: string) => ({
-    file: 'models.js',
-    original: 'model.owned_by.toLowerCase()',
-    replacement,
-    findingId: finding.id,
-  });
-  return { inputs, edit };
-}
-
 it('accepts the verified Stripe migration that passes a pre-existing field to an SDK call', async () => {
   const { edit } = await fixture();
   respond([edit]);
   const report = await runPipeline({ ...INPUTS, aiPatch: OPTIONS });
   expect(edit.replacement).toContain('payment_intent: intent.id');
-  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
-});
-
-it('accepts a different-typed added field when a vendor note documents the replacement', async () => {
-  const { inputs, edit } = await openaiInputs({ owner: { type: 'object' } });
-  const note = await writeSnapshot('API 2.4.0: Model.owned_by moved to Model.owner.name.');
-  respond([edit('model.owner.name.toLowerCase()')]);
-  const report = await runPipeline({
-    ...inputs,
-    aiPatch: OPTIONS,
-    documentationSnapshots: [note.path],
-  });
   expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
 });
 

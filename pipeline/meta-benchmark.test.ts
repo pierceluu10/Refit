@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import type { GraphCall } from './meta-graph-calls.ts';
-import { metaResult, metaRow, stopKind, summaryTable } from './meta-benchmark.ts';
+import { metaResult, metaRow, summaryTable } from './meta-benchmark.ts';
 
 const call = (overrides: Partial<GraphCall>): GraphCall => ({
   kind: 'url',
@@ -21,20 +21,6 @@ const call = (overrides: Partial<GraphCall>): GraphCall => ({
   unknown: [],
   text: '',
   ...overrides,
-});
-
-it('names the kind of each stop reason meta-graph-moves writes', () => {
-  expect(stopKind('src/a.ts:3: v21.0 field-removed page-x: Removed.')).toBe('listed-change');
-  expect(stopKind('src/a.ts:3: the URL names no version')).toBe('unversioned');
-  expect(stopKind('src/a.ts:3: the version is built at runtime')).toBe('unversioned');
-  expect(stopKind('src/a.ts:3: the requested fields are not known')).toBe('unknown-request');
-  expect(stopKind('src/a.ts:3: the version is in `V`, which is not a const')).toBe(
-    'version-holder',
-  );
-  expect(stopKind('v13.0: this changelog is not reviewed in the Meta Graph API change list')).toBe(
-    'unreviewed-changelog',
-  );
-  expect(stopKind('something new')).toBe('other');
 });
 
 it('makes a row from the scan and proposal', () => {
@@ -82,7 +68,7 @@ it('makes a row from the scan and proposal', () => {
     patch: null,
     edits: [],
   });
-  expect(row).toMatchObject({ outcome: 'needs-review', stopKinds: { unversioned: 1 } });
+  expect(row).toMatchObject({ outcome: 'needs-review' });
   expect(
     metaRow(
       { calls: [], sdk: null, warnings: [] },
@@ -98,7 +84,6 @@ it('makes a row from the scan and proposal', () => {
     '| error | 1 |',
     '| infrastructure | 1 |',
     '| needs-review | 1 |',
-    '| unversioned | 1 |',
     '| validated | 1 |',
     '| C | 1 |',
   ])

@@ -1,15 +1,8 @@
 import { createTwoFilesPatch } from 'diff';
-import ts from 'typescript-compiler';
 import { PipelineInputError, type Finding, type Repository, type SourceEdit } from './types.ts';
 import { STRIPE, type ProviderAdapter } from './providers.ts';
 import type { OperationReplacement } from './provider-operation-replacements.ts';
 import type { RequestPropertyRename } from './provider-request-renames.ts';
-import {
-  CARD_PAYMENT_METHOD_RULE,
-  LISTED_PAYMENT_METHODS_RULE,
-  MOVED_PAYMENT_METHODS_RULE,
-  PAYMENT_METHOD_RENAME_RULES,
-} from './request-removals.ts';
 import { SUBSCRIPTION_PERIOD_RULE } from './stripe-subscription-periods.ts';
 import { REQUEST_MOVE_RULES, requestMoveFor } from './request-move-families.ts';
 import { STRIPE_PACK } from './rule-pack.ts';
@@ -41,74 +34,22 @@ function ruleSources(edits: SourceEdit[]) {
     const url =
       FIELD_MOVE_SOURCES[edit.rule!] ??
       requestMoveFor(edit.rule!)?.source ??
-      (PAYMENT_METHOD_RENAME_RULES.has(edit.rule!)
-        ? PAYMENT_METHOD_TYPES_CHANGELOG
-        : edit.rule === CURRENCY_CODE_RULE
-          ? CURRENCY_CODE_SOURCE
-          : edit.rule === REQUEST_OPTIONS_RULE
-            ? REQUEST_OPTIONS_SOURCE
-            : undefined);
+      (edit.rule === CURRENCY_CODE_RULE
+        ? CURRENCY_CODE_SOURCE
+        : edit.rule === REQUEST_OPTIONS_RULE
+          ? REQUEST_OPTIONS_SOURCE
+          : undefined);
     if (url) pages.set(url, (pages.get(url) ?? new Set()).add(edit.file));
   }
   return [...pages].map(([url, files]) => ({ url, files: [...files] }));
 }
 
-export const CARD_PAYMENT_METHOD_WARNING =
-  "payment_method_types: ['card'] becomes allowed_payment_method_types: ['card'] under the owner-approved policy. In 2026-09-30.endive it filters the payment methods Stripe finds eligible instead of listing them, so keep cards enabled in the Stripe Dashboard or the payment method configuration this account uses.";
-
-// The methods a listed rename keeps: the literal array after the renamed property name.
-export function listedPaymentMethods(content: string, edit: SourceEdit) {
-  const list = /^\s*['"]?\s*:\s*\[([^\]]*)\]/.exec(content.slice(edit.end))?.[1] ?? '';
-  return [...list.matchAll(/['"]([^'"]+)['"]/g)].map((match) => match[1]);
-}
-
-export function listedPaymentMethodWarning(methods: string[]) {
-  const others = methods.filter((method) => method !== 'card');
-  return `payment_method_types: [${methods.map((method) => `'${method}'`).join(', ')}] becomes allowed_payment_method_types with the same methods (owner decision, 2026-10-24: Refit keeps listed payment methods). In 2026-09-30.endive the list filters the payment methods Stripe finds eligible for each buyer instead of listing them, so ${others.join(', ')} may no longer be offered to some customers (by country, currency, amount or device). Check that ${others.length === 1 ? 'it is' : 'they are'} still offered where you rely on ${others.length === 1 ? 'it' : 'them'}, and keep every listed method enabled in the Stripe Dashboard or payment method configuration.`;
-}
-
-// The value expression a moved rename keeps: the initializer of the property whose name the edit
-// renames, or the shorthand name itself.
-export function movedPaymentMethods(file: string, content: string, edit: SourceEdit) {
-  let found: string | undefined;
-  const visit = (node: ts.Node): void => {
-    if (found !== undefined) return;
-    if (
-      (ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) &&
-      node.name.getStart() === edit.start
-    )
-      found = ts.isPropertyAssignment(node) ? node.initializer.getText() : node.name.getText();
-    else ts.forEachChild(node, visit);
-  };
-  visit(ts.createSourceFile(file, content, ts.ScriptTarget.Latest, true));
-  return found ?? 'payment_method_types';
-}
-
-// The expressions named by movedPaymentMethodWarning, for the draft.
-export function movedPaymentMethodExpressions(warnings: string[]) {
-  return [
-    ...new Set(
-      warnings.flatMap(
-        (warning) =>
-          /^payment_method_types: (.+) becomes allowed_payment_method_types: \1, the same expression/s.exec(
-            warning,
-          )?.[1] ?? [],
-      ),
-    ),
-  ];
-}
-
-export function movedPaymentMethodWarning(expression: string) {
-  return `payment_method_types: ${expression} becomes allowed_payment_method_types: ${expression}, the same expression (owner decision, 2026-10-24). Refit cannot read which methods it holds at runtime. In 2026-09-30.endive the list filters the payment methods Stripe finds eligible for each buyer instead of listing them, so confirm it holds only methods this call accepts in allowed_payment_method_types, that each one is still offered where you rely on it, and that every listed method stays enabled in the Stripe Dashboard or payment method configuration.`;
-}
-
-// Rule edits that ride with the API version bump: field moves, the reviewed payment method
-// renames, the reviewed request parameter moves and lowercased currency codes.
+// Rule edits that ride with the API version bump: field moves, the reviewed request parameter
+// moves and lowercased currency codes.
 export function isFieldMove(edit: SourceEdit) {
   return Boolean(
     edit.rule &&
     (FIELD_MOVE_SOURCES[edit.rule] ||
-      PAYMENT_METHOD_RENAME_RULES.has(edit.rule) ||
       REQUEST_MOVE_RULES.has(edit.rule) ||
       edit.rule === CURRENCY_CODE_RULE ||
       edit.rule === REQUEST_OPTIONS_RULE ||
@@ -253,7 +194,6 @@ export function proposePatch(
   const usedSubscriptionPolicy = edits.some((edit) => edit.rule === SUBSCRIPTION_PERIOD_RULE);
   const fieldMoves = edits.filter(isFieldMove);
   const reads = fieldMoves.filter((edit) => FIELD_MOVE_SOURCES[edit.rule!]);
-  const cardRename = fieldMoves.some((edit) => PAYMENT_METHOD_RENAME_RULES.has(edit.rule!));
   const requestMoves = [
     ...new Set(
       fieldMoves.filter((edit) => REQUEST_MOVE_RULES.has(edit.rule!)).map((edit) => edit.rule!),
@@ -273,42 +213,12 @@ export function proposePatch(
     parameterMoves ? 'move removed Stripe request parameters to their documented replacements' : '',
     enumValues ? 'replace removed Stripe request enum values with their documented successors' : '',
     reads.length ? 'move removed field reads to their documented new locations' : '',
-    cardRename ? 'replace payment_method_types with allowed_payment_method_types' : '',
     currency ? 'lowercase uppercase currency codes' : '',
     requestOptions ? 'pass request options after the params argument' : '',
     accountCurrent ? 'retrieve your own account with accounts.retrieveCurrent' : '',
   ]
     .filter(Boolean)
     .join(', ');
-  const listedWarnings = [
-    ...new Set(
-      fieldMoves
-        .filter((edit) => edit.rule === LISTED_PAYMENT_METHODS_RULE)
-        .map((edit) =>
-          listedPaymentMethodWarning(
-            listedPaymentMethods(
-              repository.files.find((file) => file.path === edit.file)!.content,
-              edit,
-            ),
-          ),
-        ),
-    ),
-  ];
-  const movedWarnings = [
-    ...new Set(
-      fieldMoves
-        .filter((edit) => edit.rule === MOVED_PAYMENT_METHODS_RULE)
-        .map((edit) =>
-          movedPaymentMethodWarning(
-            movedPaymentMethods(
-              edit.file,
-              repository.files.find((file) => file.path === edit.file)!.content,
-              edit,
-            ),
-          ),
-        ),
-    ),
-  ];
   if (
     fieldMoves.length &&
     !usedSubscriptionPolicy &&
@@ -320,14 +230,9 @@ export function proposePatch(
       summary:
         requestMoves.length || currency || requestOptions || accountCurrent
           ? `${requestSummary[0].toUpperCase()}${requestSummary.slice(1)} and update the pinned Stripe API version.`
-          : !cardRename
-            ? 'Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.'
-            : reads.length
-              ? `Move removed Stripe field reads to their documented new locations, replace ${listedWarnings.length || movedWarnings.length ? 'payment_method_types' : "payment_method_types: ['card']"} with allowed_payment_method_types, and update the pinned Stripe API version.`
-              : `Replace ${listedWarnings.length || movedWarnings.length ? 'payment_method_types' : "payment_method_types: ['card']"} with allowed_payment_method_types and update the pinned Stripe API version.`,
+          : 'Move removed Stripe field reads to their documented new locations and update the pinned Stripe API version.',
       status: 'proposed' as const,
       edits: edits.length,
-      // Which rules edited, so an outcome can be attributed to a learned rule (learning.ts).
       rules: [...new Set(fieldMoves.map((edit) => edit.rule!))].sort(),
       unresolvedFindings,
       diff: renderPatch(repository, edits),
@@ -336,11 +241,6 @@ export function proposePatch(
         ...STRIPE_PACK.fieldMoves
           .filter((move) => fieldMoves.some((edit) => edit.rule === move.rule))
           .map((move) => move.warning),
-        ...(fieldMoves.some((edit) => edit.rule === CARD_PAYMENT_METHOD_RULE)
-          ? [CARD_PAYMENT_METHOD_WARNING]
-          : []),
-        ...listedWarnings,
-        ...movedWarnings,
         ...requestMoves.map((rule) => requestMoveFor(rule)!.warning),
         ...(currency ? [CURRENCY_CODE_WARNING] : []),
         ...(requestOptions ? [REQUEST_OPTIONS_WARNING] : []),
