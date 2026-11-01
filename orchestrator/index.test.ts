@@ -142,4 +142,29 @@ describe('runRepoJob', () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it('builds one run budget for the process and shares it across jobs', async () => {
+    vi.resetModules();
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
+    vi.stubEnv('APTITUDE_AI_BUDGET_USD', '8');
+    const budgets: unknown[] = [];
+    vi.doMock('./deps.ts', () => ({
+      createDeps: ({ budget }: { budget: unknown }) => {
+        budgets.push(budget);
+        return fakeDeps().deps;
+      },
+    }));
+    try {
+      const { runRepoJob } = await import('./index.ts');
+      await Promise.all(
+        ['acme/shop', 'acme/admin'].map((repo) =>
+          runRepoJob({ repo, dir: `/checkout/${repo}`, openPullRequest: opener(), dryRun: true }),
+        ),
+      );
+      expect(budgets).toHaveLength(1);
+      expect(budgets[0]).toMatchObject({ capUsd: 8 });
+    } finally {
+      vi.doUnmock('./deps.ts');
+    }
+  });
 });
