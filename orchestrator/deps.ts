@@ -1,6 +1,8 @@
+import { execFile } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { promisify } from 'node:util';
 import { runTask, type HarnessRunRecord } from '../harness/index.ts';
 import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
 import { BudgetLedger as InventoryLedger, runInventory } from '../inventory/index.ts';
@@ -142,6 +144,14 @@ export function anyWatcher(
   );
 }
 
+// The commit a checkout is at, so memory's self-eval can rerun a task on what the run read. A read of
+// the checkout's own git metadata on the host; nothing in the repo runs.
+const headCommit = (dir: string) =>
+  promisify(execFile)('git', ['-C', dir, 'rev-parse', 'HEAD'], { timeout: 10_000 }).then(
+    ({ stdout }) => stdout.trim() || undefined,
+    () => undefined,
+  );
+
 const budgetSkipped = (taskId: string, remainingUsd: number): RunRecord & { note: string } => ({
   taskId,
   outcome: 'failed',
@@ -249,14 +259,21 @@ export function createDeps({
     },
     // shortcut: a real PR needs the GitHub App's installation token and the repo's owner/name, which only the app has; the app passes its opener to runRepoJob.
     openPullRequest: stubOpenPullRequest,
-    recordRun: async (task, record) => {
-      await appendRecord(task, record);
+    recordRun: async (task, record, dir) => {
+      await appendRecord(task, record, dir);
       const { recipeIds } = record as Partial<HarnessRunRecord>;
       const transcript = record.transcriptPath
         ? await readFile(record.transcriptPath, 'utf8').catch(() => undefined)
         : undefined;
-      const learn = (memoryBudget: MemoryBudget) =>
-        learnFromRun({ task, record, transcript, usedRecipeIds: recipeIds }, memory(memoryBudget));
+      // `commit` is read by memory from r2/memory (O6) on; a memory without it ignores the field.
+      const run = {
+        task,
+        record,
+        transcript,
+        usedRecipeIds: recipeIds,
+        commit: await headCommit(dir),
+      };
+      const learn = (memoryBudget: MemoryBudget) => learnFromRun(run, memory(memoryBudget));
       // A record with no transcript was never attempted, so it is stored with nothing to distill.
       // Learning from an attempt waits for its share of the run; when the run can never free it,
       // the run is still stored, with nothing to spend.

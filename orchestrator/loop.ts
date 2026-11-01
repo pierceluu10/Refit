@@ -12,8 +12,8 @@ import type {
 import { MATCH_BATCH, type MatchChanges, type MatchedTask } from './match.ts';
 import type { Queue } from './queue.ts';
 
-// The real version lands in memory/ (run records).
-export type RecordRun = (task: MigrationTask, record: RunRecord) => Promise<void>;
+// Stores a run in memory/. repoDir is the checkout the run read.
+export type RecordRun = (task: MigrationTask, record: RunRecord, repoDir: string) => Promise<void>;
 
 // RunRecord has no free-text field, so `note` carries the match agent's reasoning for a not-affected
 // verdict, or the error behind a failure. transcriptPath stays '' when no transcript exists.
@@ -180,7 +180,7 @@ export async function runRepo(
 
   async function finish(task: MigrationTask, result: LoopRecord): Promise<LoopRecord> {
     try {
-      await queue.add(`${task.id}:record`, () => deps.recordRun(task, result));
+      await queue.add(`${task.id}:record`, () => deps.recordRun(task, result, dir));
     } catch (error) {
       state.errors.push(`recording ${task.id} failed: ${errorText(error)}`);
       log(`ERROR recording ${task.id} failed: ${errorText(error)}`);

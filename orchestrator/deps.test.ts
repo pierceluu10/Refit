@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -38,12 +39,13 @@ vi.mock('../harness/index.ts', () => ({
 }));
 
 // No recipes, no model call and no store on disk: these tests are about the budget, not memory.
-const memory = vi.hoisted(() => ({ caps: [] as number[] }));
+const memory = vi.hoisted(() => ({ caps: [] as number[], commits: [] as (string | undefined)[] }));
 vi.mock('../memory/index.ts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../memory/index.ts')>()),
   createRetriever: () => async () => [],
-  learnFromRun: async (_input: unknown, deps: { budget: { capUsd: number } }) => {
+  learnFromRun: async (input: { commit?: string }, deps: { budget: { capUsd: number } }) => {
     memory.caps.push(deps.budget.capUsd);
+    memory.commits.push(input.commit);
     return { run: {}, promoted: [], demoted: [] };
   },
 }));
@@ -53,6 +55,7 @@ afterEach(() => {
   harness.caps = [];
   harness.run = undefined;
   memory.caps = [];
+  memory.commits = [];
 });
 
 const task = (id: string) =>
@@ -142,8 +145,14 @@ describe('recordRun', () => {
     // Every dollar of the run is held by a running task.
     const running = await budget.reserve('a task', 3);
 
-    await deps.recordRun(task('c'), { ...ran(task('c'), 0), outcome: 'not-affected' });
+    await deps.recordRun(
+      task('c'),
+      { ...ran(task('c'), 0), outcome: 'not-affected' },
+      '/nonexistent/checkout',
+    );
     expect(memory.caps).toEqual([0]);
+    // Not a git checkout, so memory gets no commit.
+    expect(memory.commits).toEqual([undefined]);
     running.settle(0);
   });
 
@@ -153,10 +162,30 @@ describe('recordRun', () => {
     const out = join(await mkdtemp(join(tmpdir(), 'aptitude-deps-')), 'runs.jsonl');
     const deps = createDeps({ budget, out, log: () => {} });
     const attempt = { ...ran(task('c'), 1), transcriptPath: '/nonexistent/transcript.jsonl' };
+    const checkout = await mkdtemp(join(tmpdir(), 'aptitude-checkout-'));
+    const git = (...args: string[]) =>
+      execFileSync('git', ['-C', checkout, ...args], { encoding: 'utf8' }).trim();
+    git('init', '-q');
+    git(
+      '-c',
+      'user.name=Test',
+      '-c',
+      'user.email=test@example.com',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '--no-verify',
+      '-q',
+      '--allow-empty',
+      '-m',
+      'x',
+    );
 
-    await deps.recordRun(task('c'), attempt);
+    await deps.recordRun(task('c'), attempt, checkout);
     expect(memory.caps).toEqual([MEMORY_USD]);
     expect(budget.heldUsd()).toBe(0);
+    // The commit the run read, for memory's self-eval.
+    expect(memory.commits).toEqual([git('rev-parse', 'HEAD')]);
   });
 });
 
