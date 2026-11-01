@@ -114,8 +114,8 @@ export async function createSandbox(
 
 export function sandboxEnvNote(sandbox: Sandbox & { image?: string }): string {
   return sandbox.mode === 'docker'
-    ? `Docker container ${sandbox.image ?? DEFAULT_IMAGE}; install scripts disabled; no host env or mounts besides the repo copy`
-    : 'Local temp copy; install scripts disabled; no Docker';
+    ? `Docker container ${sandbox.image ?? DEFAULT_IMAGE}; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls`
+    : 'Local temp copy; install scripts disabled; no Docker; no credentials, so no live API calls';
 }
 
 async function pickMode(): Promise<'docker' | 'local'> {

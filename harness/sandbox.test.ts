@@ -49,7 +49,9 @@ describe('local sandbox', () => {
       'x = 1',
     );
     await expect(fs.access(path.join(repoDir, 'PWNED'))).rejects.toThrow();
-    expect(sandboxEnvNote(sandbox)).toBe('Local temp copy; install scripts disabled; no Docker');
+    expect(sandboxEnvNote(sandbox)).toBe(
+      'Local temp copy; install scripts disabled; no Docker; no credentials, so no live API calls',
+    );
   });
 
   it('runs commands in the copy and reports exit codes', async () => {
@@ -139,7 +141,7 @@ describe('docker sandbox', () => {
       sandbox = await createSandbox(repoDir, { mode: 'docker' });
       expect(sandbox.mode).toBe('docker');
       expect(sandboxEnvNote(sandbox)).toBe(
-        'Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy',
+        'Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls',
       );
       const node = await sandbox.exec('node -v');
       expect(node.code).toBe(0);
