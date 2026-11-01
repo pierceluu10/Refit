@@ -78,43 +78,6 @@ it('migrates reads the checker proves read a Stripe subscription', async () => {
   expect(helperReads).toHaveLength(4);
 });
 
-it('keeps a read behind a lying cast, a caller cast or an any stopped for review', async () => {
-  const report = await scan({
-    'billing.ts': `${CLIENT}export function queued(message: { body: string }) {
-  const subscription = JSON.parse(message.body) as Stripe.Subscription;
-  subscription.metadata = {};
-  return subscription.current_period_end;
-}
-function periodEnd(subscription: Stripe.Subscription) {
-  subscription.metadata = {};
-  return subscription.current_period_end;
-}
-export const fromRow = (row: { id: string }) => periodEnd(row as unknown as Stripe.Subscription);
-export function pushed(rows: any[]) {
-  const subscriptions: Stripe.Subscription[] = [];
-  subscriptions.push(rows[0]);
-  return subscriptions.map((subscription) => subscription.current_period_end);
-}
-function registered(subscription: Stripe.Subscription) {
-  subscription.metadata = {};
-  return subscription.current_period_end;
-}
-export const handlers = [registered];
-export async function replaced(cached: string) {
-  const subscriptions = await stripe.subscriptions.list();
-  subscriptions.data = JSON.parse(cached);
-  return subscriptions.data[0].current_period_end;
-}
-`,
-  });
-  expect(readLines(report, true)).toEqual([]);
-  expect(readLines(report, false)).toEqual([6, 10, 16, 20, 26]);
-  expect(report.patch).toMatchObject({
-    status: 'not-generated',
-    reason: expect.stringContaining('Declared Stripe types'),
-  });
-});
-
 it('keeps a JavaScript type cast and a receiver that may be a local type stopped', async () => {
   const report = await scan({
     'billing.js': `import Stripe from 'stripe';

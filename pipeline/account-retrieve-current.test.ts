@@ -176,18 +176,6 @@ ${source}`,
 
 const account = 'export const me = () => stripe.accounts.retrieve();\n';
 
-it('calls retrieveCurrent alongside a rules patch that upgrades stripe-node', async () => {
-  const patch = await run(
-    `export const pay = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });\n${account}`,
-  );
-  expect(patch).toMatchObject({ status: 'proposed', sdkUpgrade: { to: '23.0.0' } });
-  const diff = 'diff' in patch ? patch.diff : '';
-  expect(diff).toContain('+export const me = () => stripe.accounts.retrieveCurrent();');
-  expect('warnings' in patch ? patch.warnings : []).toContainEqual(
-    expect.stringContaining('GET /v1/account'),
-  );
-});
-
 it('never makes a patch from the rename alone', async () => {
   const patch = await run(account);
   expect('diff' in patch ? patch.diff : '').not.toContain('retrieveCurrent');

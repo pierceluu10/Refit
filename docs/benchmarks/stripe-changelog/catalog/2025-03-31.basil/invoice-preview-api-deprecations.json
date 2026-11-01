@@ -16,8 +16,8 @@
       "changed": [
         "invoices.retrieveUpcoming (GET /v1/invoices/upcoming) removed, for previews of one subscription"
       ],
-      "handling": "rule",
-      "how": "invoicePreviewMove and invoicePreviewEdits (stripe-invoice-preview.ts) turn a direct-literal call that sends customer and subscription into invoices.createPreview, with subscription_* moved under subscription_details where accepts() proves the shape; run.ts keeps it only with the stripe-node upgrade."
+      "handling": "stop",
+      "reason": "analyzer.ts marks each traced invoices.retrieveUpcoming call with contractReview, and run.ts hands it to the agent fixer (pipeline/stripe-agent.ts) with AI on; the hand-written createPreview rewrite was deleted (docs/GUT-PLAN.md)."
     },
     {
       "changed": [
@@ -27,9 +27,7 @@
       "reason": "invoicePreviewEdits returns a reason instead of edits, and analyzer.ts sets contractReview, which migrationReviewReason returns: the preview has no createPreview equivalent."
     },
     {
-      "changed": [
-        "invoices.listUpcomingLines (GET /v1/invoices/upcoming/lines) removed"
-      ],
+      "changed": ["invoices.listUpcomingLines (GET /v1/invoices/upcoming/lines) removed"],
       "handling": "none",
       "reason": "Not mapped: a list endpoint has no object schema reference, so stripe-operations.ts maps no SDK method to it and the call is not traced."
     }

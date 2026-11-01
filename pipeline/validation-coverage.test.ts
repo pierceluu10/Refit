@@ -477,7 +477,6 @@ const COVERAGE = [
 ];
 const gates = (report: { waivedGates?: { gate: string }[] }) =>
   (report.waivedGates ?? []).map((entry) => entry.gate);
-const NEEDS_REVIEW = 'Review artifacts are ready as a [Needs review] draft for';
 
 it.each(COVERAGE)(
   'with AI off, %s shaped like %s keeps the rules-only draft and makes no request',
@@ -495,54 +494,6 @@ it.each(COVERAGE)(
     expect(report.validation).not.toHaveProperty('coverageAi');
     expect(gates(report)).not.toContain('ai-patch');
     expect(body).not.toContain('Resolved by AI');
-  },
-);
-
-it.each(COVERAGE)(
-  'with AI on, %s shaped like %s gets an AI patch on the rules, published [Needs review] with its lines',
-  async (_kind, _name, shape) => {
-    const fix = shape.fix!;
-    const { requests } = network((request) => [edit(fix, request)]);
-    const { inputs, manifest, report, body, publication } = await run(shape, true);
-    const rules = await rulesPatch(inputs);
-    console.log(shape.name, 'AI kept:', JSON.stringify(report.validation.coverageAi, null, 2));
-    expect(requests).toHaveLength(1);
-    // The model gets the rules' patch, frozen, and only what the rules left.
-    const sent = requests[0].evidence.files.find((file) => file.path === fix.file)!;
-    expect(sent.content).toContain(`apiVersion: '${AFTER}'`);
-    expect(sent.content).toContain("allowed_payment_method_types: ['card']");
-    expect(requests[0].instructions).toContain('resolve only these');
-    expect(requests[0].evidence.findings.length).toBeGreaterThan(0);
-    for (const finding of requests[0].evidence.findings)
-      expect(finding.changeId).not.toMatch(/^request-parameter:/);
-    expect(manifest).toMatchObject({ status: 'needs-review', stage: 'validation' });
-    expect(manifest.reason).toContain(NEEDS_REVIEW);
-    expect(report.validation).toMatchObject({
-      status: 'passed',
-      aiCostUsd: REQUEST_COST,
-      coverageAi: { outcome: 'kept', costUsd: REQUEST_COST },
-    });
-    expect(report.patch.generator).toBe('openai');
-    // The rules' lines stay; the model's edit is added.
-    const migrated = publication[fix.file];
-    expect(migrated).toContain(fix.replacement);
-    expect(migrated).toContain(`apiVersion: '${AFTER}'`);
-    expect(migrated).toContain("allowed_payment_method_types: ['card']");
-    expect(rules.diff).not.toContain(fix.replacement);
-    expect(gates(report)).toContain('ai-patch');
-    // The AI item lists the AI-written line, and no line the rules wrote.
-    const line = migrated.split('\n').findIndex((text) => text.includes(fix.replacement)) + 1;
-    const item = body.split('\n- ').find((entry) => entry.startsWith('Refit asked an AI model'))!;
-    expect(item.match(/`[^`\s]+:\d+(?:-\d+)?`/g)).toEqual([`\`${fix.file}:${line}\``]);
-    if (!shape.fullDiff) {
-      expect(body).toContain(`Resolved by AI: \`${fix.file}\``);
-      expect(report.validation.coverageAi.resolved.length).toBeGreaterThan(0);
-    }
-    if (shape.files[fix.file].includes('card_present')) {
-      // The removed parameter stays as written and listed for review.
-      expect(migrated).toContain("payment_method_types: ['card_present']");
-      expect(gates(report)).toContain('removed-request-parameter');
-    }
   },
 );
 
@@ -853,30 +804,6 @@ it.each(SAFETY.map((shape) => [shape.name, shape] as const))(
     expect(manifest.status).toBe('needs-review');
   },
 );
-
-it('drafts an application pin the code contradicts for review, without any AI request (Small-Web-Co/tinypivot)', async () => {
-  const { openai } = network();
-  const { root, inputs } = await workspace({
-    name: 'Small-Web-Co/tinypivot',
-    files: {
-      'lib/stripe.js': `${client()}${CARD_CHECKOUT}`,
-      'api/webhook.js': `import Stripe from 'stripe';\nexport const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-02-24.acacia' });\n`,
-    },
-  });
-  const { manifest } = await runWorkflow({
-    ...inputs,
-    output: join(root, 'run'),
-    image: 'node:22-alpine',
-    command: ['npm', 'test'],
-    allowUnresolved: true,
-    aiPatch: { apiKey: 'test-key', model: MODEL },
-    repairAttempts: 1,
-  });
-  // Owner decision 1 (#319): conflicting pins all move in a [Needs review] draft, which AI never
-  // writes beside.
-  expect(manifest).toMatchObject({ status: 'needs-review', waivedGates: ['api-version'] });
-  expect(openai()).toHaveLength(0);
-});
 
 const webhookRead = (): Finding => ({
   file: 'app/api/webhook/route.ts',

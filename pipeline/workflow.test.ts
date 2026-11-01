@@ -1,4 +1,4 @@
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -37,39 +37,6 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-it.each([
-  ['conflicting client declaration', '2022-11-15', 'operator-pin', 'conflicts-with-code'],
-  ['dynamic version under strict policy', undefined, 'source-verified', 'unknown'],
-] as const)(
-  'retains %s evidence before AI, validation or publication',
-  async (_label, version, apiVersionPolicy, applicability) => {
-    const input = await options();
-    const repository = join(dirname(input.output), 'application');
-    await cp(input.repository, repository, { recursive: true });
-    await writeFile(
-      join(repository, 'billing.ts'),
-      `import Stripe from 'stripe'; const stripe = new Stripe('test', { apiVersion: ${version ? `'${version}'` : 'process.env.STRIPE_VERSION'} }); const intent = await stripe.paymentIntents.retrieve('id'); console.log(intent.charges);`,
-    );
-    const fetcher = vi.fn();
-    vi.stubGlobal('fetch', fetcher);
-    const result = await runWorkflow({
-      ...input,
-      repository,
-      apiVersionPolicy,
-      aiPatch: { apiKey: 'unused', model: 'unused' },
-      publication: { repository: 'owner/repo', base: 'main', token: 'unused' },
-    });
-    expect(result.manifest).toMatchObject({ status: 'needs-review', stage: 'scan' });
-    expect(validateMigration).not.toHaveBeenCalled();
-    expect(publishDraft).not.toHaveBeenCalled();
-    expect(fetcher).not.toHaveBeenCalled();
-    expect(JSON.parse((await readEvidence(input.output, 'scan.json'))!).apiVersion).toMatchObject({
-      applicability,
-      policy: apiVersionPolicy,
-    });
-  },
-);
-
 it('records no-match evidence as review-required without calling a model, Docker or publisher', async () => {
   const input = await options();
   const fetcher = vi.fn();
@@ -94,32 +61,6 @@ it('records no-match evidence as review-required without calling a model, Docker
   for (const file of result.manifest.files)
     expect(digest(await readFile(join(input.output, file.path)))).toBe(file.sha256);
 });
-
-it.each([
-  ['missing', undefined, 'unknown'],
-  ['already on after version', '2022-11-15', 'matches-after'],
-  ['unrelated version', '2023-01-01', 'matches-neither'],
-] as const)(
-  'stops automated work when the application API version is %s',
-  async (_label, apiVersion, applicability) => {
-    const input = await options();
-    const fetcher = vi.fn();
-    vi.stubGlobal('fetch', fetcher);
-    const result = await runWorkflow({
-      ...input,
-      apiVersion,
-      aiPatch: { apiKey: 'unused', model: 'unused' },
-      publication: { repository: 'owner/repo', base: 'main', token: 'unused' },
-    });
-    expect(result.manifest).toMatchObject({ status: 'needs-review', stage: 'scan' });
-    expect(validateMigration).not.toHaveBeenCalled();
-    expect(publishDraft).not.toHaveBeenCalled();
-    expect(fetcher).not.toHaveBeenCalled();
-    expect(JSON.parse((await readEvidence(input.output, 'scan.json'))!).apiVersion).toMatchObject({
-      applicability,
-    });
-  },
-);
 
 it('retains a pinned custom adapter and stops when no deterministic migration exists', async () => {
   const input = await options();

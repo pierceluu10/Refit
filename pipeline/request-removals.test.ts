@@ -177,45 +177,6 @@ it('offers the reviewed card-only replacement only for Stripe and when the targe
   ).toBeUndefined();
 });
 
-const cardValues = `const stripe = new Stripe('test');
-    const methods = ['card'];
-    export async function checkout() {
-      await stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });
-      await stripe.checkout.sessions.create({ mode: 'payment', 'payment_method_types': ["card"] });
-      await stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card', 'paypal'] });
-      await stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card_present'] });
-      await stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: methods });
-      await stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] as const });
-      await stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: [] });
-    }`;
-
-it('renames exactly the literal card list and leaves every other value to review with keep-listed off', () => {
-  const result = analyzeCard(cardValues, false);
-  expect(
-    result.findings.map((finding) => [finding.line, Boolean(finding.requestParameter)]),
-  ).toEqual([5, 6, 7, 8, 9, 10, 11].map((line) => [line, true]));
-  expect(result.edits.map(({ replacement, rule }) => [replacement, rule])).toEqual([
-    ['allowed_payment_method_types', 'stripe-card-allowed-payment-method-types'],
-    ["'allowed_payment_method_types'", 'stripe-card-allowed-payment-method-types'],
-  ]);
-});
-
-it('also renames listed and computed values by default, never an in-person or empty list', () => {
-  const result = analyzeCard(cardValues);
-  expect(
-    result.findings.map((finding) => [finding.line, Boolean(finding.requestParameter)]),
-  ).toEqual([5, 6, 7, 8, 9, 10, 11].map((line) => [line, true]));
-  expect(
-    result.edits.map(({ start, rule }) => [cardValues.slice(0, start).split('\n').length, rule]),
-  ).toEqual([
-    [4, 'stripe-card-allowed-payment-method-types'],
-    [5, 'stripe-card-allowed-payment-method-types'],
-    [6, 'stripe-listed-allowed-payment-method-types'],
-    [8, 'stripe-moved-allowed-payment-method-types'],
-    [9, 'stripe-moved-allowed-payment-method-types'],
-  ]);
-});
-
 it('does not rename the card list on a client that escapes or may be replaced', () => {
   const result = analyzeCard(`const stripe = new Stripe('test');
     stripe.checkout.sessions.create = replacement;

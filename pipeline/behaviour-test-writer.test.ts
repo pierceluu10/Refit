@@ -458,48 +458,6 @@ it('sends the original modules, their imports and the contract change, never the
   });
 });
 
-it('names a removed request parameter and its contract replacement, from the original code only (nicuk/docsflow at 3e6fd71)', async () => {
-  const sample = await scenario('docsflow');
-  // The kept rename covers the finding, so run.ts dropped its requestParameter; the writer still
-  // names the removed parameter from the removal the finding cites.
-  expect(sample.report.findings).toEqual([
-    expect.objectContaining({
-      changeId: 'request-parameter:PostCheckoutSessions.payment_method_types',
-    }),
-  ]);
-  expect(sample.report.findings[0].requestParameter).toBeUndefined();
-  const request = behaviourTestRequest(sample.inputs);
-  expect(request.evidence.files).toEqual([
-    { path: 'lib/stripe-client.ts', content: DOCSFLOW_CLIENT },
-  ]);
-  expect(request.evidence.findings).toEqual([
-    expect.objectContaining({
-      id: 'f1',
-      line: 31,
-      change: {
-        kind: 'removed-request-parameter',
-        operationId: 'PostCheckoutSessions',
-        parameter: 'payment_method_types',
-      },
-    }),
-  ]);
-  expect(request.evidence.contract.removedRequestParameters).toEqual([
-    {
-      operationId: 'PostCheckoutSessions',
-      parameter: 'payment_method_types',
-      before: {
-        type: 'array',
-        description: 'A list of the types of payment methods (payment_method_types).',
-      },
-      after: 'removed',
-      addedParameters: ['allowed_payment_method_types'],
-    },
-  ]);
-  const patch = sample.report.patch as { diff?: string };
-  if (patch.diff) expect(JSON.stringify(request)).not.toContain(patch.diff);
-  expect(JSON.stringify(request.evidence)).not.toContain("'2026-09-30.endive'");
-});
-
 it('trims imported context to its cap and refuses modules over the input limit without a request', async () => {
   // A generated database types file larger than the context cap, as spotify-clone's types_db.ts grows.
   const types = `export type Json = string | number | boolean | null;\n${'export interface Row { id: string; created_at: string }\n'.repeat(3000)}`;

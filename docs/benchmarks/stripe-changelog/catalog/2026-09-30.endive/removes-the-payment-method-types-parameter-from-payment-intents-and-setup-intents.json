@@ -10,14 +10,14 @@
     "paymentIntents.update and confirm, setupIntents.update payment_method_types removed"
   ],
   "handling": "stop",
-  "reason": "removedRequestParameters (request-removals.ts) finds the removed top-level body parameter on the mapped operation; analyzeRepository marks each traced call that still sends it with requestParameter, and migrationReviewReason (migration-review.ts) stops automatic migration, AI and publication with REMOVED_REQUEST_PARAMETER_REVIEW_REASON. The card rename covers creation calls only (CARD_OPERATIONS).",
+  "reason": "The same hand-off as Checkout Sessions: the agent fixer migrates it, and its judge refuses any patch that drops payment_method_types.",
   "parts": [
     {
       "changed": [
         "paymentIntents.create and setupIntents.create payment_method_types: an exact literal ['card'] (or an opted-in literal list with card)"
       ],
-      "handling": "rule",
-      "how": "The same card rename as Checkout Sessions (request-removals.ts CARD_OPERATIONS: PostPaymentIntents, PostSetupIntents), kept only with the endive pin and the stripe-node upgrade."
+      "handling": "stop",
+      "reason": "The same hand-off as Checkout Sessions: the agent fixer migrates it, and its judge refuses any patch that drops payment_method_types."
     },
     {
       "changed": [

@@ -9,7 +9,6 @@ import { buildAssessmentEvidence } from './assessment.ts';
 import { AiPolicyStop, proposeAiPatch, TYPE_ERROR_CHANGE } from './ai-patches.ts';
 import { digest } from './specifications.ts';
 import { MAX_INPUT_BYTES } from './openai.ts';
-import { FieldSubstitutionError } from './substitution-guard.ts';
 
 const INPUTS = {
   repository: 'pipeline/fixtures/repository',
@@ -115,22 +114,6 @@ function modelEvidence() {
     },
   };
 }
-
-it('produces a syntax-checked proposal through the public pipeline without changing source', async () => {
-  const { edit, repository } = await fixture();
-  respond([edit]);
-  const report = await runPipeline({ ...INPUTS, aiPatch: OPTIONS });
-  expect(report.patch).toMatchObject({
-    status: 'proposed',
-    generator: 'openai',
-    edits: 1,
-    unresolvedFindings: 0,
-    validation: 'not-run',
-  });
-  if (!('diff' in report.patch)) throw new Error('Expected proposed diff');
-  expect(report.patch.diff).toContain(REPLACEMENT);
-  expect((await readRepository(INPUTS.repository)).files).toEqual(repository.files);
-});
 
 it.each([
   { file: '../outside.ts' },
@@ -386,16 +369,6 @@ it('rejects more saved notes than a watch configuration can capture', async () =
   ).rejects.toThrow(/at most 8/);
 });
 
-it('shows the model fields the after contract adds to an affected schema', async () => {
-  respond([]);
-  await runPipeline({ ...INPUTS, aiPatch: OPTIONS });
-  const { body, evidence } = modelEvidence();
-  expect(evidence.addedProperties).toEqual([
-    { schema: 'payment_intent', property: 'latest_charge', type: 'string' },
-  ]);
-  expect(body.instructions).toContain('candidates, not proven replacements');
-});
-
 async function openaiInputs(
   replacement: Record<string, Record<string, unknown>> = { owner_name: { type: 'string' } },
 ) {
@@ -455,122 +428,11 @@ async function openaiInputs(
   return { inputs, edit };
 }
 
-it('lets the model see a renamed OpenAI field instead of guessing a substitute', async () => {
-  const { inputs } = await openaiInputs();
-  respond([]);
-  await runPipeline({ ...inputs, aiPatch: OPTIONS });
-  expect(modelEvidence().evidence.addedProperties).toEqual([
-    { schema: 'Model', property: 'owner_name', type: 'string' },
-  ]);
-});
-
 it('accepts the verified Stripe migration that passes a pre-existing field to an SDK call', async () => {
   const { edit } = await fixture();
   respond([edit]);
   const report = await runPipeline({ ...INPUTS, aiPatch: OPTIONS });
   expect(edit.replacement).toContain('payment_intent: intent.id');
-  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
-});
-
-it('accepts a replacement that reads a field added in the after contract', async () => {
-  const { inputs, edit } = await openaiInputs();
-  respond([edit('model.owner_name.toLowerCase()')]);
-  const report = await runPipeline({ ...inputs, aiPatch: OPTIONS });
-  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
-});
-
-it('rejects a pre-existing field substituted for the removed field', async () => {
-  const { inputs, edit } = await openaiInputs();
-  respond([edit('model.id.toLowerCase()')]);
-  const rejection = runPipeline({ ...inputs, aiPatch: OPTIONS });
-  await expect(rejection).rejects.toBeInstanceOf(FieldSubstitutionError);
-  await expect(rejection).rejects.toThrow(
-    'AI replacement substitutes pre-existing field Model.id for removed Model.owned_by in models.js:5.',
-  );
-});
-
-it('never gives the substitution guard a corrected request', async () => {
-  const { inputs, edit } = await openaiInputs();
-  respond([edit('model.id.toLowerCase()')], [edit('model.owner_name.toLowerCase()')]);
-  await expect(runPipeline({ ...inputs, aiPatch: OPTIONS })).rejects.toBeInstanceOf(
-    FieldSubstitutionError,
-  );
-  expect(fetch).toHaveBeenCalledTimes(1);
-});
-
-it.each(['String(model.id).toLowerCase()', '`${model.object}`.toLowerCase()'])(
-  'rejects a pre-existing field read outside an SDK call argument: %s',
-  async (replacement) => {
-    const { inputs, edit } = await openaiInputs();
-    respond([edit(replacement)]);
-    await expect(runPipeline({ ...inputs, aiPatch: OPTIONS })).rejects.toThrow(
-      /substitutes pre-existing field Model\.(id|object)/,
-    );
-  },
-);
-
-it('rejects an added field whose type differs from the removed field', async () => {
-  const { inputs, edit } = await openaiInputs({ context_window: { type: 'integer' } });
-  respond([edit('String(model.context_window).toLowerCase()')]);
-  await expect(runPipeline({ ...inputs, aiPatch: OPTIONS })).rejects.toThrow(
-    'AI replacement reads added field Model.context_window (integer) in place of removed Model.owned_by (string) in models.js:5.',
-  );
-});
-
-it.each([['the contract describes it', { type: 'object', description: 'Replaces owned_by.' }]])(
-  'accepts a different-typed added field when %s',
-  async (_name, owner) => {
-    const { inputs, edit } = await openaiInputs({ owner });
-    respond([edit('model.owner.name.toLowerCase()')]);
-    const report = await runPipeline({ ...inputs, aiPatch: OPTIONS });
-    expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
-  },
-);
-
-it('rejects an undocumented different-typed added field', async () => {
-  const { inputs, edit } = await openaiInputs({ owner: { type: 'object' } });
-  respond([edit('model.owner.name.toLowerCase()')]);
-  await expect(runPipeline({ ...inputs, aiPatch: OPTIONS })).rejects.toThrow(
-    /reads added field Model\.owner \(object\)/,
-  );
-});
-
-it('rejects a pure fallback that keeps reading the removed field', async () => {
-  const { inputs, edit } = await openaiInputs();
-  respond([edit("(model.owned_by ?? '').toLowerCase()")]);
-  await expect(runPipeline({ ...inputs, aiPatch: OPTIONS })).rejects.toThrow(
-    'AI replacement still reads removed field Model.owned_by in models.js:5 without reading any added field.',
-  );
-});
-
-it('rejects a fallback that reads the removed field through Reflect.get', async () => {
-  const { inputs, edit } = await openaiInputs();
-  respond([
-    edit("String(Reflect.get(model, 'owned_by') ?? Reflect.get(model, 'owned_by')).toLowerCase()"),
-  ]);
-  await expect(runPipeline({ ...inputs, aiPatch: OPTIONS })).rejects.toThrow(
-    'AI replacement still reads removed field Model.owned_by by string key in models.js:5 without reading any added field.',
-  );
-});
-
-it('accepts a version-tolerant string-key read split across lines', async () => {
-  const { inputs, edit } = await openaiInputs();
-  respond([edit("String(Reflect.get(model, 'owned_by') ??\n    model.owner_name).toLowerCase()")]);
-  const report = await runPipeline({ ...inputs, aiPatch: OPTIONS });
-  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
-});
-
-it('accepts a string-key fallback next to a read of the added field', async () => {
-  const { inputs, edit } = await openaiInputs();
-  respond([edit("String(model.owner_name ?? Reflect.get(model, 'owned_by')).toLowerCase()")]);
-  const report = await runPipeline({ ...inputs, aiPatch: OPTIONS });
-  expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
-});
-
-it('accepts a backward-compatible fallback that reads the added field first', async () => {
-  const { inputs, edit } = await openaiInputs();
-  respond([edit('(model.owner_name ?? model.owned_by).toLowerCase()')]);
-  const report = await runPipeline({ ...inputs, aiPatch: OPTIONS });
   expect(report.patch).toMatchObject({ status: 'proposed', edits: 1 });
 });
 

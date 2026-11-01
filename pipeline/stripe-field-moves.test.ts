@@ -926,64 +926,6 @@ it('does not move a field the target contract does not define', async () => {
   expect(report.patch).toMatchObject({ status: 'unsupported', edits: 0 });
 });
 
-it('sends only rule-free findings to AI and returns one patch with rule, AI and version edits', async () => {
-  let evidence: { findings: { id: string; expression: string }[] } | undefined;
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async (_url: string, init: { body: string }) => {
-      evidence = JSON.parse(JSON.parse(init.body).input[0].content);
-      const finding = evidence!.findings.find((entry) => entry.expression === '.payment_intent')!;
-      return new Response(
-        JSON.stringify({
-          id: 'resp_patch',
-          model: 'test-model',
-          status: 'completed',
-          output: [
-            {
-              type: 'message',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: JSON.stringify({
-                    summary: 'Read the confirmation secret.',
-                    uncertainties: [],
-                    edits: [
-                      {
-                        file: 'billing.ts',
-                        findingId: finding.id,
-                        original: 'invoice.payment_intent',
-                        replacement: 'invoice.confirmation_secret',
-                      },
-                    ],
-                  }),
-                },
-              ],
-            },
-          ],
-        }),
-      );
-    }),
-  );
-  const report = await run(
-    `${periodRead}
-export async function secret(id: string) {
-  const invoice = await stripe.invoices.retrieve(id);
-  return invoice.payment_intent;
-}`,
-    true,
-    { apiKey: 'test-key', model: 'test-model' },
-    undefined,
-    BASIL_RELEASE,
-  );
-  expect(evidence!.findings.map((finding) => finding.expression)).toEqual(['.payment_intent']);
-  expect(report.patch).toMatchObject({ status: 'proposed', edits: 4, unresolvedFindings: 0 });
-  const diff = 'diff' in report.patch ? report.patch.diff : '';
-  expect(diff).toContain('invoice.confirmation_secret');
-  expect(diff).toContain('getSubscriptionPeriodEnd(subscription)');
-  expect(diff).toContain("apiVersion: '2025-03-31.basil'");
-});
-
 it('lists mixed-period reads without a selection in the pull request text', async () => {
   const scan = await run(periodRead);
   if (!('diff' in scan.patch)) throw new Error('Expected a patch');

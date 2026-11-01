@@ -63,19 +63,6 @@ function analyze(files: Record<string, string>, typed = true) {
 const CHECKOUT = `export const pay = () =>
   stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card'] });\n`;
 
-it('renames a request on an escaping client the checker types as stripe-node in a sealed program', () => {
-  const files = {
-    'stripe.ts': `${IMPORT}export const stripe = new Stripe('sk', { apiVersion: '2026-08-26.dahlia' });
-export function forOrg(org?: string) { return org ? new Stripe(org) : stripe; }
-${CHECKOUT}`,
-  };
-  const typed = analyze(files);
-  expect(typed.findings.map((finding) => finding.confidence)).toEqual(['confirmed']);
-  expect(typed.edits.map((edit) => edit.replacement)).toEqual(['allowed_payment_method_types']);
-  // Without type evidence the escaping client keeps its request for review.
-  expect(analyze(files, false).findings.map((finding) => finding.confidence)).toEqual(['review']);
-});
-
 it('keeps the request for review when code writes to a stripe-node client or resource', () => {
   const findings = analyze({
     'stripe.ts': `${IMPORT}export const stripe = new Stripe('sk', { apiVersion: '2026-08-26.dahlia' });

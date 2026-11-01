@@ -1068,14 +1068,11 @@ const FIXTURES: Record<string, Fixture[]> = {
   '2025-03-31.basil/invoice-preview-api-deprecations': [
     {
       code: fn("return stripe.invoices.retrieveUpcoming({ customer: 'cus_1', subscription: id });"),
-      expect: {
-        rule: 'stripe-invoice-create-preview',
-        patched: "stripe.invoices.createPreview({ customer: 'cus_1', subscription: id })",
-      },
+      expect: { contractReview: 'retrieveUpcoming' },
     },
     {
       code: fn("return stripe.invoices.retrieveUpcoming({ customer: 'cus_1' });"),
-      expect: { contractReview: 'customer' },
+      expect: { contractReview: 'retrieveUpcoming' },
     },
     nothing(
       fn("return stripe.invoices.listUpcomingLines({ customer: 'cus_1', subscription: id });"),
@@ -1612,10 +1609,7 @@ const FIXTURES: Record<string, Fixture[]> = {
       code: fn(
         "return stripe.checkout.sessions.create({ mode: 'payment', success_url: 'https://example.com', payment_method_types: ['card'] });",
       ),
-      expect: {
-        rule: 'stripe-card-allowed-payment-method-types',
-        patched: "allowed_payment_method_types: ['card']",
-      },
+      expect: { parameter: 'payment_method_types' },
     },
     {
       code: fn(
@@ -1665,10 +1659,7 @@ const FIXTURES: Record<string, Fixture[]> = {
         code: fn(
           "return stripe.paymentIntents.create({ amount: 1000, currency: 'usd', payment_method_types: ['card'] });",
         ),
-        expect: {
-          rule: 'stripe-card-allowed-payment-method-types',
-          patched: "allowed_payment_method_types: ['card']",
-        },
+        expect: { parameter: 'payment_method_types' },
       },
       {
         code: fn("return stripe.paymentIntents.update(id, { payment_method_types: ['card'] });"),

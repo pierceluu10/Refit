@@ -469,6 +469,10 @@ async function runOpenApiPipeline(options: {
       if (HELPER_RULES.has(finding.webhook?.migration?.rule ?? ''))
         delete finding.webhook!.migration;
     }
+  // A removed request parameter a kept request move covers no longer needs review.
+  for (const finding of analysis.findings)
+    if (finding.requestParameter && editCovers(repository, kept, finding))
+      delete finding.requestParameter;
   // Owner decision 1 (2026-10-24): a finding that needs review is never edited. The rules' patch
   // goes around it, and the draft lists it with its reason.
   const reviewed = options.leaveReviewedFindings

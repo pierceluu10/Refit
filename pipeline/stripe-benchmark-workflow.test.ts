@@ -4,8 +4,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { REMOVED_REQUEST_PARAMETER_REVIEW_REASON } from './migration-review.ts';
-import { runPipeline } from './run.ts';
 import { workflowExitReason, workflowScanStop } from './stripe-benchmark.ts';
 import { validateMigration } from './validation.ts';
 import { runWorkflow } from './workflow.ts';
@@ -110,124 +108,6 @@ ${second ? `export const linked = () => stripe.checkout.sessions.create({ mode: 
   );
   return { root, repository, before, after, providerConfig, apiVersion: '2026-08-26.dahlia' };
 }
-
-it.each([
-  [
-    'a removed parameter with card and link',
-    "payment_method_types: ['card', 'link']",
-    {},
-    'validation',
-  ],
-  ['an in-person removed parameter', "payment_method_types: ['card_present']", {}, 'scan'],
-  ['the reviewed card-only rename', "payment_method_types: ['card']", {}, 'validation'],
-  [
-    'a listed opt-in for card and link',
-    "payment_method_types: ['card', 'link']",
-    { keepListed: true },
-    'validation',
-  ],
-  // Owner decision 1: the pin moves beside a parameter left for review, and pins that differ from
-  // the configured version all move to the target, so these runs reach validation.
-  [
-    '--publish-unresolved on a removed parameter',
-    "payment_method_types: ['card_present']",
-    { leave: true },
-    'validation',
-  ],
-  [
-    '--publish-unresolved on a card-only rename beside a removed parameter',
-    "payment_method_types: ['card']",
-    { leave: true, second: "payment_method_types: ['card_present']" },
-    'validation',
-  ],
-  [
-    '--publish-unresolved with AI on a removed parameter',
-    "payment_method_types: ['card_present']",
-    { leave: true, ai: true },
-    'validation',
-  ],
-  [
-    '--publish-unresolved on an application pin the code contradicts',
-    "payment_method_types: ['card']",
-    { leave: true, apiVersion: '2026-07-30.basil' },
-    'validation',
-  ],
-  ['AI on a removed parameter', "payment_method_types: ['card_present']", { ai: true }, 'scan'],
-  ['an application pin the code contradicts', '', { apiVersion: '2026-07-30.basil' }, 'scan'],
-  ['an unchanged contract', "payment_method_types: ['card']", { sameContract: true }, 'scan'],
-] as const)(
-  'decides %s exactly as the workflow does, before it starts refit run',
-  async (label, parameters, variant: Record<string, unknown>, stage) => {
-    const fetcher = vi.fn(() => Promise.reject(new Error('No network in this test.')));
-    vi.stubGlobal('fetch', fetcher);
-    const { root, ...inputs } = await benchmarkInputs(
-      parameters,
-      Boolean(variant.sameContract),
-      undefined,
-      variant.second as string | undefined,
-    );
-    const ai = Boolean(variant.ai);
-    const leave = Boolean(variant.leave);
-    const scanInputs = {
-      ...inputs,
-      apiVersion: (variant.apiVersion as string | undefined) ?? inputs.apiVersion,
-      ...(variant.keepListed ? { keepListedPaymentMethods: true } : {}),
-    };
-    const stop = await workflowScanStop(scanInputs, ai, leave);
-    const { manifest } = await runWorkflow({
-      ...scanInputs,
-      output: join(root, 'run'),
-      image: 'node:22-alpine',
-      command: ['npm', 'test'],
-      ...(variant.leave ? { allowUnresolved: true } : {}),
-      ...(ai ? { aiPatch: { apiKey: 'unused', model: 'unused' } } : {}),
-    });
-    console.log(`${label}: harness stop ${JSON.stringify(stop)}; workflow`, {
-      status: manifest.status,
-      stage: manifest.stage,
-      reason: manifest.reason,
-    });
-    expect(manifest.stage).toBe(stage);
-    if (stage === 'scan') {
-      expect(manifest).toMatchObject({ status: 'needs-review', reason: stop });
-      expect(validateMigration).not.toHaveBeenCalled();
-    } else {
-      expect(stop).toBeUndefined();
-      expect(validateMigration).toHaveBeenCalledOnce();
-    }
-    expect(fetcher).not.toHaveBeenCalled();
-  },
-);
-
-it("writes the rules' patch around a call it leaves for review, without editing it (owner decision 1)", async () => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(() => Promise.reject(new Error('No network in this test.'))),
-  );
-  const inputs = await benchmarkInputs(
-    "payment_method_types: ['card']",
-    false,
-    undefined,
-    "payment_method_types: ['card_present']",
-  );
-  expect((await runPipeline({ ...inputs, proposePatch: true })).patch).toMatchObject({
-    status: 'not-generated',
-    reason: REMOVED_REQUEST_PARAMETER_REVIEW_REASON,
-  });
-  const scan = await runPipeline({ ...inputs, proposePatch: true, leaveReviewedFindings: true });
-  if (!('diff' in scan.patch)) throw new Error(`Expected a patch: ${JSON.stringify(scan.patch)}`);
-  expect(scan.patch).toMatchObject({
-    status: 'proposed',
-    unresolvedFindings: 1,
-    unresolvedSites: [{ file: 'checkout.js', line: 4 }],
-  });
-  expect(scan.patch.diff).toContain("allowed_payment_method_types: ['card'] }");
-  // The patch renders whole files; the reviewed call's line comes out as it went in.
-  expect(scan.patch.diff).toContain(
-    "\n+export const linked = () => stripe.checkout.sessions.create({ mode: 'payment', payment_method_types: ['card_present'] });\n",
-  );
-  expect(scan.warnings).toContain(REMOVED_REQUEST_PARAMETER_REVIEW_REASON);
-});
 
 it('leaves code already on the target to refit run, which reports it up to date', async () => {
   const { root, ...inputs } = await benchmarkInputs('', false, '2026-09-30.endive');

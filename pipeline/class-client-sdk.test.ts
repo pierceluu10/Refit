@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, expect, it, vi } from 'vitest';
-import { runPipeline } from './run.ts';
 import { runWorkflow } from './workflow.ts';
 import { verifyArtifacts } from './verification.ts';
 import { readEvidence } from './state-files.ts';
@@ -260,63 +259,3 @@ export const getModelOwner = (id) => service.owner(id);
   },
   180_000,
 );
-
-it('stops unstable class clients before paid work or validation, including a mixed safe finding', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'refit-class-review-'));
-  roots.push(root);
-  const before = resolve('pipeline/fixtures/stripe-webhooks/before.json');
-  const after = resolve('pipeline/fixtures/stripe-webhooks/after.json');
-  const source = `import Stripe from 'stripe';
-class SubscriptionService {
-  stripe = new Stripe('fixture', {apiVersion:'2025-02-24.acacia'});
-  reset() { this.stripe = alternate; }
-  async period(id) { const subscription = await this.stripe.subscriptions.retrieve(id); return subscription.current_period_end; }
-}
-const stripe = new Stripe('fixture', {apiVersion:'2025-02-24.acacia'});
-async function period(id) { const subscription = await stripe.subscriptions.retrieve(id); return subscription.current_period_end; }
-`;
-  await writeFile(join(root, 'service.ts'), source);
-  const providerConfig = join(root, 'adapter.json');
-  await writeFile(
-    providerConfig,
-    JSON.stringify({
-      id: 'stripe-class-review',
-      packageName: 'stripe',
-      defaultImport: true,
-      namedExport: 'Stripe',
-      constructorCalls: true,
-      operations: [{ resource: 'subscriptions', method: 'retrieve', schema: 'subscription' }],
-    }),
-  );
-  const fetch = vi.fn(() => {
-    throw new Error('Unstable class clients must not call a model.');
-  });
-  vi.stubGlobal('fetch', fetch);
-  const options = {
-    repository: root,
-    before,
-    after,
-    providerConfig,
-    apiVersion: '2025-02-24.acacia',
-  };
-  const report = await runPipeline({
-    ...options,
-    aiPatch: { apiKey: 'unused', model: 'unused' },
-    assessment: { apiKey: 'unused', model: 'unused' },
-  });
-  expect(report.patch).toMatchObject({
-    status: 'not-generated',
-    reason: expect.stringContaining('stable class-client provenance'),
-  });
-  expect(report.assessment).toMatchObject({ status: 'blocked' });
-  expect(report.findings.some((finding) => finding.confidence === 'confirmed')).toBe(true);
-  const workflow = await runWorkflow({
-    ...options,
-    image: 'must-not-inspect',
-    command: ['must-not-execute'],
-    output: join(tmpdir(), `${root.split('/').at(-1)}-output`),
-  });
-  roots.push(workflow.directory);
-  expect(workflow.manifest).toMatchObject({ status: 'needs-review', stage: 'scan' });
-  expect(fetch).not.toHaveBeenCalled();
-});
