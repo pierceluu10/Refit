@@ -149,7 +149,7 @@ export function createRetriever(deps: {
   };
 }
 
-// How a recipe has fared, for the judge and the harness to weigh. A count to read, never a filter.
+// How a recipe has fared, for a model to weigh. A count to read, never a filter.
 function track(recipe: MemoryRecipe): string {
   const failed = recipe.failedRunIds?.length ?? 0;
   const against = failed
