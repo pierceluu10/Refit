@@ -1,0 +1,73 @@
+{
+  "id": "mattogodoy__nametag:stripe:node-23-0-0-webhook-tolerance-478bef78",
+  "recordedAt": "2026-11-01T17:29:04.865Z",
+  "task": {
+    "id": "mattogodoy__nametag:stripe:node-23-0-0-webhook-tolerance",
+    "repo": "mattogodoy__nametag",
+    "change": {
+      "provider": "stripe",
+      "id": "stripe:node-23-0-0-webhook-tolerance",
+      "kind": "webhook-payload",
+      "title": "stripe-node v23: webhooks.signature.verifyHeader/verifyHeaderAsync now apply default timestamp tolerance; constructEvent tolerance 0 skips verification",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-node/master/CHANGELOG.md",
+        "quote": "Passing 0 to stripe.webhooks.constructEvent now properly skips timestamp tolerance verification."
+      },
+      "affects": {
+        "operations": [
+          "stripe.webhooks.constructEvent",
+          "stripe.webhooks.signature.verifyHeader",
+          "stripe.webhooks.signature.verifyHeaderAsync"
+        ],
+        "versions": [
+          "23.0.0"
+        ],
+        "sdk": "stripe-node"
+      },
+      "effectiveDate": "2026-09-30"
+    },
+    "usages": [
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "stripe",
+        "via": "webhook",
+        "callSites": [
+          {
+            "file": "app/api/webhooks/stripe/route.ts",
+            "line": 55,
+            "operation": "webhooks.constructEvent (signature verification)",
+            "notes": "via lib/billing/stripe.ts:252"
+          },
+          {
+            "file": "app/api/webhooks/stripe/route.ts",
+            "line": 76,
+            "operation": "event handlers: checkout.session.completed, customer.subscription.created/updated/deleted, invoice.paid, invoice.payment_failed"
+          }
+        ]
+      }
+    ],
+    "deadline": "2026-09-30",
+    "priority": 4,
+    "notes": "This only applies after upgrading stripe-node to v23. The repo is on 20.0.0. If the constructEvent call passes an explicit tolerance of 0, a v23 upgrade would silently disable timestamp verification. The migration agent should inspect lib/billing/stripe.ts:252 for a tolerance argument. If none is passed, there is no impact.",
+    "reasoning": "This only applies after upgrading stripe-node to v23. The repo is on 20.0.0. If the constructEvent call passes an explicit tolerance of 0, a v23 upgrade would silently disable timestamp verification. The migration agent should inspect lib/billing/stripe.ts:252 for a tolerance argument. If none is passed, there is no impact.",
+    "urgency": "low",
+    "callSites": [
+      {
+        "file": "app/api/webhooks/stripe/route.ts",
+        "line": 55,
+        "why": "Signature verification goes through webhooks.constructEvent (lib/billing/stripe.ts:252). In v23, a tolerance argument of 0 skips timestamp checks, and verifyHeader applies a default tolerance."
+      }
+    ]
+  },
+  "record": {
+    "taskId": "mattogodoy__nametag:stripe:node-23-0-0-webhook-tolerance",
+    "outcome": "failed",
+    "diff": "",
+    "checks": [],
+    "costUsd": 0,
+    "transcriptPath": "",
+    "note": "not attempted: $1.86 of the run cap left, below the $2 a task needs"
+  },
+  "transcript": "",
+  "usedRecipeIds": []
+}

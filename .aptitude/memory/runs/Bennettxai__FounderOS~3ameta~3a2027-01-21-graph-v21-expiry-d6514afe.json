@@ -1,0 +1,81 @@
+{
+  "id": "Bennettxai__FounderOS:meta:2027-01-21-graph-v21-expiry-d6514afe",
+  "recordedAt": "2026-11-01T17:36:32.860Z",
+  "task": {
+    "id": "Bennettxai__FounderOS:meta:2027-01-21-graph-v21-expiry",
+    "repo": "Bennettxai__FounderOS",
+    "change": {
+      "provider": "meta",
+      "id": "meta:2027-01-21-graph-v21-expiry",
+      "kind": "api-version",
+      "title": "Graph API v21.0 will be removed",
+      "source": {
+        "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+        "quote": "**January 21, 2027:** Graph API v21.0 is deprecated and removed."
+      },
+      "affects": {
+        "versions": [
+          "v21.0"
+        ]
+      },
+      "effectiveDate": "2027-01-21"
+    },
+    "usages": [
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "meta-whatsapp-cloud-api",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/comms/reply/route.ts",
+            "line": 41,
+            "operation": "POST https://graph.facebook.com/v21.0/{phoneNumberId}/messages (sendWhatsAppMessage)",
+            "fields": [
+              "jid",
+              "text"
+            ],
+            "notes": "Wrapper lib/connectors/whatsapp-send.ts:71 posts to GRAPH (line 22, v21.0) at line 78. Only the outbound send is over HTTP; WhatsApp history reads come from a local chat DB, not an API."
+          },
+          {
+            "file": "lib/connectors/whatsapp-send.ts",
+            "line": 78,
+            "operation": "POST https://graph.facebook.com/v21.0/{phoneNumberId}/messages",
+            "fields": [
+              "Authorization: Bearer token",
+              "messaging_product/to/text body"
+            ],
+            "notes": "sendWhatsAppMessage wrapper (called from app/api/comms/reply/route.ts:41). Uses GRAPH constant at line 22."
+          }
+        ]
+      }
+    ],
+    "deadline": "2027-01-21",
+    "priority": 1,
+    "notes": "The WhatsApp Cloud API sender is pinned to Graph API v21.0, which Meta removes on January 21, 2027. After removal, calls are served by the oldest available version. Any behaviour differences in the messages endpoint would then hit silently, and continued use of a removed version is unsupported. The fix is to bump the GRAPH constant to a current version (v25.0 or v26.0) and confirm that the messages request body (messaging_product, to, type/text) and the response handling are unchanged. This is the only outbound path for WhatsApp replies in comms, so a failure is user-visible.",
+    "reasoning": "The WhatsApp Cloud API sender is pinned to Graph API v21.0, which Meta removes on January 21, 2027. After removal, calls are served by the oldest available version. Any behaviour differences in the messages endpoint would then hit silently, and continued use of a removed version is unsupported. The fix is to bump the GRAPH constant to a current version (v25.0 or v26.0) and confirm that the messages request body (messaging_product, to, type/text) and the response handling are unchanged. This is the only outbound path for WhatsApp replies in comms, so a failure is user-visible.",
+    "urgency": "high",
+    "callSites": [
+      {
+        "file": "lib/connectors/whatsapp-send.ts",
+        "line": 78,
+        "why": "The GRAPH constant at line 22 hard-codes https://graph.facebook.com/v21.0, and outbound WhatsApp messages are POSTed to v21.0/{phoneNumberId}/messages. v21.0 is removed on 2027-01-21."
+      },
+      {
+        "file": "app/api/comms/reply/route.ts",
+        "line": 41,
+        "why": "The operator WhatsApp reply path calls sendWhatsAppMessage, which targets the v21.0 Graph endpoint."
+      }
+    ]
+  },
+  "record": {
+    "taskId": "Bennettxai__FounderOS:meta:2027-01-21-graph-v21-expiry",
+    "outcome": "failed",
+    "diff": "",
+    "checks": [],
+    "costUsd": 0,
+    "transcriptPath": "",
+    "note": "not attempted: $0.17 of the run cap left, below the $2 a task needs"
+  },
+  "transcript": "",
+  "usedRecipeIds": []
+}

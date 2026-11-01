@@ -1,0 +1,102 @@
+{
+  "id": "Bennettxai__FounderOS:stripe:node-23-0-0-3596f0e6",
+  "recordedAt": "2026-11-01T17:36:32.860Z",
+  "task": {
+    "id": "Bennettxai__FounderOS:stripe:node-23-0-0",
+    "repo": "Bennettxai__FounderOS",
+    "change": {
+      "provider": "stripe",
+      "id": "stripe:node-23-0-0",
+      "kind": "sdk-major",
+      "title": "stripe-node v23.0.0 (pins 2026-09-30.endive) drops Node 18, removes Stripe.constructEventWithoutVerification and ErrorType export, removes V1-only fields from Stripe.V2List, and changes many types",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-node/master/CHANGELOG.md",
+        "quote": "Drop support for Node.js 18. Node.js 20 is now the minimum supported version."
+      },
+      "affects": {
+        "operations": [
+          "Stripe.constructEventWithoutVerification",
+          "Stripe.V2List"
+        ],
+        "versions": [
+          "23.0.0",
+          "2026-09-30.endive"
+        ],
+        "sdk": "stripe-node"
+      },
+      "effectiveDate": "2026-09-30"
+    },
+    "usages": [
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "stripe",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "lib/connectors/payments.ts",
+            "line": 170,
+            "operation": "charges.list",
+            "fields": [
+              "created.gte",
+              "limit=100"
+            ],
+            "notes": "stripeMonthLive: auto-paginates charges since month start, capped at 2000; keeps amount, currency, paid, status for sumChargeIncome. Used by monthToDateIncome (lib/warm.ts imports it). Cached via swr under TTL.money."
+          },
+          {
+            "file": "lib/connectors/payments.ts",
+            "line": 187,
+            "operation": "balance.retrieve",
+            "notes": "stripeSnapshotLive: available and pending balances (amount, currency). Called in Promise.all with line 188."
+          },
+          {
+            "file": "lib/connectors/payments.ts",
+            "line": 188,
+            "operation": "charges.list",
+            "fields": [
+              "limit=5"
+            ],
+            "notes": "stripeSnapshotLive: last five charges (amount, currency, description or id, created) for stripeSnapshot (Finances, Analytics)."
+          }
+        ],
+        "sdk": {
+          "name": "stripe",
+          "version": "22.2.0",
+          "lockfile": "package-lock.json"
+        }
+      }
+    ],
+    "deadline": "2026-09-30",
+    "priority": 4,
+    "notes": "The repo is on stripe 22.2.0, so nothing breaks until the SDK is upgraded. stripe-node v23 pins 2026-09-30.endive, drops Node 18, removes constructEventWithoutVerification and the ErrorType export, and changes many types. The repo does not appear to use the removed helpers, and charges/balance are not in the Endive breaking list. When bumping, the agent should check the Node runtime is 20 or newer, make sure no code imports Stripe.errors ErrorType, and confirm the charge and balance typings still compile. Uncertain: whether any untracked code elsewhere uses webhook helpers.",
+    "reasoning": "The repo is on stripe 22.2.0, so nothing breaks until the SDK is upgraded. stripe-node v23 pins 2026-09-30.endive, drops Node 18, removes constructEventWithoutVerification and the ErrorType export, and changes many types. The repo does not appear to use the removed helpers, and charges/balance are not in the Endive breaking list. When bumping, the agent should check the Node runtime is 20 or newer, make sure no code imports Stripe.errors ErrorType, and confirm the charge and balance typings still compile. Uncertain: whether any untracked code elsewhere uses webhook helpers.",
+    "urgency": "low",
+    "callSites": [
+      {
+        "file": "lib/connectors/payments.ts",
+        "line": 170,
+        "why": "charges.list auto-pagination with created.gte would run under API version 2026-09-30.endive once the SDK is bumped to v23. Charge fields read are amount, currency, paid and status."
+      },
+      {
+        "file": "lib/connectors/payments.ts",
+        "line": 187,
+        "why": "balance.retrieve would run under the new pinned API version and changed types after the upgrade."
+      },
+      {
+        "file": "lib/connectors/payments.ts",
+        "line": 188,
+        "why": "charges.list limit=5 would run under the new pinned API version and changed types after the upgrade."
+      }
+    ]
+  },
+  "record": {
+    "taskId": "Bennettxai__FounderOS:stripe:node-23-0-0",
+    "outcome": "failed",
+    "diff": "",
+    "checks": [],
+    "costUsd": 0,
+    "transcriptPath": "",
+    "note": "not attempted: $0.17 of the run cap left, below the $2 a task needs"
+  },
+  "transcript": "",
+  "usedRecipeIds": []
+}

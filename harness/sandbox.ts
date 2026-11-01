@@ -18,9 +18,10 @@ const ENV_TEMPLATE = /^\.env\.(?:example|sample|template|dist)$/;
 export const isRealEnvFile = (name: string) =>
   (name === '.env' || name === '.envrc' || name.startsWith('.env.')) && !ENV_TEMPLATE.test(name);
 
-// The only env repo code gets beyond the scrubbed host env (local) or nothing (Docker). Install scripts stay off.
-const SANDBOX_ENV = {
-  CI: '1',
+// The only env repo code gets beyond the scrubbed host env (local) or nothing (Docker).
+const SANDBOX_ENV = { CI: '1' };
+// A local sandbox shares the host, so install scripts stay off there; Docker allows them.
+const LOCAL_SCRIPT_GUARDS = {
   npm_config_ignore_scripts: 'true',
   YARN_ENABLE_SCRIPTS: 'false',
   PIP_ONLY_BINARY: ':all:', // no sdist builds, so no setup.py runs
@@ -59,7 +60,7 @@ export async function createSandbox(
     const remove = () => fs.rm(root, { recursive: true, force: true });
 
     if (mode === 'local') {
-      const env = { ...scrubbedEnv(), ...SANDBOX_ENV };
+      const env = { ...scrubbedEnv(), ...SANDBOX_ENV, ...LOCAL_SCRIPT_GUARDS };
       return {
         dir,
         mode,
@@ -109,7 +110,7 @@ export async function createSandbox(
 
 export function sandboxEnvNote(sandbox: Sandbox & { image?: string }): string {
   return sandbox.mode === 'docker'
-    ? `Docker container ${sandbox.image ?? DEFAULT_IMAGE}; install scripts disabled; no host env or mounts besides the repo copy`
+    ? `Docker container ${sandbox.image ?? DEFAULT_IMAGE}; install scripts enabled; no host env or mounts besides the repo copy`
     : 'Local temp copy; install scripts disabled; no Docker';
 }
 

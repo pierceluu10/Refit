@@ -1,0 +1,485 @@
+{
+  "id": "mattogodoy__nametag:github:2026-03-10-workflow-dispatch-200-1f8b11dc",
+  "recordedAt": "2026-11-01T17:20:32.554Z",
+  "task": {
+    "id": "mattogodoy__nametag:github:2026-03-10-workflow-dispatch-200",
+    "repo": "mattogodoy__nametag",
+    "change": {
+      "provider": "github",
+      "id": "github:2026-03-10-workflow-dispatch-200",
+      "kind": "other",
+      "title": "2026-03-10: workflow dispatch returns 200 with run details; return_run_details parameter removed",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "quote": "Removes the return_run_details parameter. The endpoint now always returns 200 with the workflow run details in the response body."
+      },
+      "affects": {
+        "operations": [
+          "POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches"
+        ],
+        "fields": [
+          "return_run_details"
+        ],
+        "versions": [
+          "2026-03-10"
+        ]
+      }
+    },
+    "usages": [
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "stripe",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 52,
+            "operation": "customers.create",
+            "fields": [
+              "email",
+              "name",
+              "metadata"
+            ],
+            "notes": "Client lazily built in getStripe() from STRIPE_SECRET_KEY; stores customer.id"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 138,
+            "operation": "checkout.sessions.create",
+            "fields": [
+              "customer",
+              "mode",
+              "line_items",
+              "success_url",
+              "cancel_url",
+              "metadata",
+              "discounts"
+            ],
+            "notes": "Returned to /api/billing/checkout"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 157,
+            "operation": "billingPortal.sessions.create",
+            "fields": [
+              "customer",
+              "return_url"
+            ],
+            "notes": "Used by /api/billing/portal"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 171,
+            "operation": "subscriptions.cancel",
+            "notes": "immediate cancel; /api/billing/cancel"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 174,
+            "operation": "subscriptions.update",
+            "fields": [
+              "cancel_at_period_end"
+            ]
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 185,
+            "operation": "subscriptions.update",
+            "fields": [
+              "cancel_at_period_end"
+            ],
+            "notes": "resume"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 201,
+            "operation": "subscriptions.retrieve"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 204,
+            "operation": "subscriptions.update",
+            "fields": [
+              "items",
+              "proration_behavior",
+              "metadata"
+            ],
+            "notes": "plan change"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 241,
+            "operation": "coupons.create",
+            "fields": [
+              "percent_off",
+              "duration",
+              "duration_in_months",
+              "metadata"
+            ]
+          }
+        ],
+        "pinnedVersion": {
+          "value": "2025-11-17.clover",
+          "file": "lib/billing/stripe.ts",
+          "line": 15
+        },
+        "sdk": {
+          "name": "stripe",
+          "version": "20.0.0",
+          "lockfile": "package-lock.json"
+        }
+      },
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "stripe",
+        "via": "webhook",
+        "callSites": [
+          {
+            "file": "app/api/webhooks/stripe/route.ts",
+            "line": 55,
+            "operation": "webhooks.constructEvent (signature verification)",
+            "notes": "via lib/billing/stripe.ts:252"
+          },
+          {
+            "file": "app/api/webhooks/stripe/route.ts",
+            "line": 76,
+            "operation": "event handlers: checkout.session.completed, customer.subscription.created/updated/deleted, invoice.paid, invoice.payment_failed"
+          }
+        ]
+      },
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "resend",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "lib/email.ts",
+            "line": 240,
+            "operation": "emails.send",
+            "fields": [
+              "from",
+              "to",
+              "subject",
+              "html",
+              "text",
+              "attachments"
+            ],
+            "notes": "Retry loop; client built at line 216 from RESEND_API_KEY; reads data/error"
+          }
+        ],
+        "sdk": {
+          "name": "resend",
+          "version": "6.5.2",
+          "lockfile": "package-lock.json"
+        }
+      },
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "web-push",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "lib/notifications/channels/web-push.ts",
+            "line": 95,
+            "operation": "webpush.sendNotification",
+            "fields": [
+              "subscription",
+              "payload(title,body,url,tag)"
+            ],
+            "notes": "VAPID set at line 148; dead subscriptions pruned"
+          }
+        ],
+        "sdk": {
+          "name": "web-push",
+          "version": "3.6.7",
+          "lockfile": "package-lock.json"
+        }
+      },
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "carddav-server",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "app/api/carddav/backup/route.ts",
+            "line": 66,
+            "operation": "fetchAddressBooks",
+            "notes": "client created line 56"
+          },
+          {
+            "file": "app/api/carddav/backup/route.ts",
+            "line": 71,
+            "operation": "fetchVCards"
+          },
+          {
+            "file": "app/api/carddav/connection/test/route.ts",
+            "line": 54,
+            "operation": "fetchAddressBooks",
+            "notes": "client created line 43"
+          },
+          {
+            "file": "app/api/carddav/connection/test/route.ts",
+            "line": 68,
+            "operation": "propfind"
+          },
+          {
+            "file": "app/api/carddav/export-bulk/route.ts",
+            "line": 141,
+            "operation": "createVCard"
+          },
+          {
+            "file": "lib/carddav/address-book.ts",
+            "line": 18,
+            "operation": "fetchAddressBooks"
+          },
+          {
+            "file": "lib/carddav/auto-export.ts",
+            "line": 139,
+            "operation": "createVCard"
+          },
+          {
+            "file": "lib/carddav/auto-export.ts",
+            "line": 149,
+            "operation": "deleteVCard"
+          },
+          {
+            "file": "lib/carddav/auto-export.ts",
+            "line": 165,
+            "operation": "fetchVCards"
+          },
+          {
+            "file": "lib/carddav/auto-export.ts",
+            "line": 350,
+            "operation": "updateVCard"
+          },
+          {
+            "file": "lib/carddav/auto-export.ts",
+            "line": 380,
+            "operation": "updateVCard"
+          },
+          {
+            "file": "lib/carddav/client.ts",
+            "line": 101,
+            "operation": "fetchAddressBooks",
+            "notes": "client created line 89"
+          },
+          {
+            "file": "lib/carddav/client.ts",
+            "line": 117,
+            "operation": "fetchVCards"
+          },
+          {
+            "file": "lib/carddav/client.ts",
+            "line": 131,
+            "operation": "fetchVCards"
+          },
+          {
+            "file": "lib/carddav/client.ts",
+            "line": 155,
+            "operation": "createVCard"
+          },
+          {
+            "file": "lib/carddav/client.ts",
+            "line": 208,
+            "operation": "updateVCard"
+          },
+          {
+            "file": "lib/carddav/client.ts",
+            "line": 252,
+            "operation": "deleteVCard"
+          },
+          {
+            "file": "lib/carddav/client.ts",
+            "line": 306,
+            "operation": "DELETE <contact url>",
+            "notes": "raw fetch with Basic auth and If-Match"
+          },
+          {
+            "file": "lib/carddav/client.ts",
+            "line": 348,
+            "operation": "fetchAddressBooks",
+            "notes": "connection test; client created 337"
+          },
+          {
+            "file": "lib/carddav/delete-contact.ts",
+            "line": 44,
+            "operation": "deleteVCard"
+          },
+          {
+            "file": "lib/carddav/discover.ts",
+            "line": 47,
+            "operation": "fetchVCards"
+          },
+          {
+            "file": "lib/carddav/sync.ts",
+            "line": 44,
+            "operation": "fetchVCard"
+          },
+          {
+            "file": "lib/carddav/sync.ts",
+            "line": 49,
+            "operation": "updateVCard"
+          },
+          {
+            "file": "lib/carddav/sync.ts",
+            "line": 156,
+            "operation": "fetchVCards"
+          },
+          {
+            "file": "lib/carddav/sync.ts",
+            "line": 738,
+            "operation": "updateVCard"
+          },
+          {
+            "file": "lib/carddav/sync.ts",
+            "line": 747,
+            "operation": "fetchVCard"
+          },
+          {
+            "file": "lib/carddav/sync.ts",
+            "line": 753,
+            "operation": "updateVCard"
+          },
+          {
+            "file": "lib/carddav/sync.ts",
+            "line": 787,
+            "operation": "updateVCard"
+          },
+          {
+            "file": "lib/carddav/sync.ts",
+            "line": 818,
+            "operation": "createVCard"
+          },
+          {
+            "file": "lib/carddav/sync.ts",
+            "line": 943,
+            "operation": "createVCard"
+          },
+          {
+            "file": "lib/carddav/update-recovery.ts",
+            "line": 32,
+            "operation": "fetchVCard"
+          }
+        ],
+        "sdk": {
+          "name": "tsdav",
+          "version": "2.1.6",
+          "lockfile": "package-lock.json"
+        }
+      },
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "nominatim.openstreetmap.org",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "lib/geocoding/provider.ts",
+            "line": 40,
+            "operation": "GET {GEOCODER_URL}/search",
+            "fields": [
+              "format=jsonv2",
+              "limit=1",
+              "address params"
+            ],
+            "notes": "Rate-limit queued; parses lat/lon with zod; default host from lib/env.ts:99"
+          }
+        ]
+      },
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "google-oauth",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "lib/auth.ts",
+            "line": 235,
+            "operation": "Google provider (OAuth)",
+            "notes": "GOOGLE_CLIENT_ID/SECRET; client-side signIn in components/GoogleSignInButton.tsx"
+          }
+        ],
+        "sdk": {
+          "name": "next-auth",
+          "version": "5.0.0-beta.30",
+          "lockfile": "package-lock.json"
+        }
+      },
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "oidc-provider",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "lib/auth.ts",
+            "line": 241,
+            "operation": "OIDC provider config (issuer from OIDC_ISSUER_URL, userinfo)",
+            "notes": "scope openid email profile, pkce"
+          }
+        ],
+        "sdk": {
+          "name": "next-auth",
+          "version": "5.0.0-beta.30",
+          "lockfile": "package-lock.json"
+        }
+      },
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "openfreemap",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "components/map/MapView.tsx",
+            "line": 11,
+            "operation": "style URL https://tiles.openfreemap.org/styles/dark (and positron at line 12)",
+            "notes": "Passed to maplibre Map; tile requests made by library"
+          }
+        ],
+        "sdk": {
+          "name": "maplibre-gl",
+          "version": "manifest"
+        }
+      },
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "user-configured-notification-endpoints",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "lib/notifications/outbound.ts",
+            "line": 227,
+            "operation": "POST <endpoint url> (postJson)",
+            "notes": "Used by channels/ntfy.ts:146 and channels/webhook.ts:140"
+          },
+          {
+            "file": "lib/notifications/outbound.ts",
+            "line": 417,
+            "operation": "GET <ntfy base> (probeNtfyHealth)"
+          }
+        ]
+      },
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "swagger-ui (unpkg.com)",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/docs/route.ts",
+            "line": 21,
+            "operation": "GET https://unpkg.com/swagger-ui-dist@5.31.0/swagger-ui-bundle.js (browser script; css at line 13)"
+          }
+        ]
+      }
+    ],
+    "priority": 0
+  },
+  "record": {
+    "taskId": "mattogodoy__nametag:github:2026-03-10-workflow-dispatch-200",
+    "outcome": "not-affected",
+    "diff": "",
+    "checks": [],
+    "costUsd": 0,
+    "transcriptPath": "",
+    "note": "The repo does not dispatch GitHub Actions workflows."
+  },
+  "transcript": "",
+  "usedRecipeIds": []
+}

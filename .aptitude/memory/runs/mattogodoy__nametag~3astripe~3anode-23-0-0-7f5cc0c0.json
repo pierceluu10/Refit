@@ -1,0 +1,179 @@
+{
+  "id": "mattogodoy__nametag:stripe:node-23-0-0-7f5cc0c0",
+  "recordedAt": "2026-11-01T18:22:16.225Z",
+  "task": {
+    "id": "mattogodoy__nametag:stripe:node-23-0-0",
+    "repo": "mattogodoy__nametag",
+    "change": {
+      "provider": "stripe",
+      "id": "stripe:node-23-0-0",
+      "kind": "sdk-major",
+      "title": "stripe-node v23.0.0 (pins 2026-09-30.endive) drops Node 18, removes Stripe.constructEventWithoutVerification and ErrorType export, removes V1-only fields from Stripe.V2List, and changes many types",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-node/master/CHANGELOG.md",
+        "quote": "Drop support for Node.js 18. Node.js 20 is now the minimum supported version."
+      },
+      "affects": {
+        "operations": [
+          "Stripe.constructEventWithoutVerification",
+          "Stripe.V2List"
+        ],
+        "versions": [
+          "23.0.0",
+          "2026-09-30.endive"
+        ],
+        "sdk": "stripe-node"
+      },
+      "effectiveDate": "2026-09-30"
+    },
+    "usages": [
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "stripe",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 52,
+            "operation": "customers.create",
+            "fields": [
+              "email",
+              "name",
+              "metadata"
+            ],
+            "notes": "Client lazily built in getStripe (line 15); stripe export is a getter proxy. Saves customer.id."
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 138,
+            "operation": "checkout.sessions.create",
+            "fields": [
+              "customer",
+              "mode",
+              "line_items",
+              "success_url",
+              "cancel_url",
+              "metadata",
+              "discounts"
+            ],
+            "notes": "Returns session"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 157,
+            "operation": "billingPortal.sessions.create",
+            "fields": [
+              "customer",
+              "return_url"
+            ]
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 171,
+            "operation": "subscriptions.cancel"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 174,
+            "operation": "subscriptions.update",
+            "fields": [
+              "cancel_at_period_end"
+            ]
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 185,
+            "operation": "subscriptions.update",
+            "fields": [
+              "cancel_at_period_end"
+            ]
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 201,
+            "operation": "subscriptions.retrieve",
+            "notes": "reads items.data[0].id"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 204,
+            "operation": "subscriptions.update",
+            "fields": [
+              "items",
+              "proration_behavior",
+              "metadata"
+            ]
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 241,
+            "operation": "coupons.create",
+            "fields": [
+              "percent_off",
+              "duration",
+              "duration_in_months",
+              "metadata"
+            ]
+          }
+        ],
+        "pinnedVersion": {
+          "value": "2025-11-17.clover",
+          "file": "lib/billing/stripe.ts",
+          "line": 16
+        },
+        "sdk": {
+          "name": "stripe",
+          "version": "20.0.0",
+          "lockfile": "package-lock.json"
+        }
+      },
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "stripe",
+        "via": "webhook",
+        "callSites": [
+          {
+            "file": "app/api/webhooks/stripe/route.ts",
+            "line": 38,
+            "operation": "POST /api/webhooks/stripe",
+            "notes": "Verifies stripe-signature via constructWebhookEvent (lib/billing/stripe.ts:252); idempotency via stripeEvent table. Handles checkout.session.completed, customer.subscription.created/updated/deleted, invoice.paid, invoice.payment_failed."
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 252,
+            "operation": "webhooks.constructEvent",
+            "notes": "signature verification"
+          }
+        ]
+      }
+    ],
+    "deadline": "2026-09-30",
+    "priority": 3,
+    "notes": "The repo uses the stripe npm SDK at 20.0.0. v23.0.0 is a breaking major: it drops Node 18, removes some exports, changes types, and pins the Endive API version. The repo is not on v23, so nothing breaks today. Upgrading, for example through a dependency bump, would require handling the type changes and the apiVersion pin change. The migration agent should check whether error handling imports ErrorType or Stripe.errors types, and confirm the Node runtime is 20 or later.",
+    "reasoning": "The repo uses the stripe npm SDK at 20.0.0. v23.0.0 is a breaking major: it drops Node 18, removes some exports, changes types, and pins the Endive API version. The repo is not on v23, so nothing breaks today. Upgrading, for example through a dependency bump, would require handling the type changes and the apiVersion pin change. The migration agent should check whether error handling imports ErrorType or Stripe.errors types, and confirm the Node runtime is 20 or later.",
+    "urgency": "low",
+    "callSites": [
+      {
+        "file": "lib/billing/stripe.ts",
+        "line": 15,
+        "why": "The Stripe client is constructed in getStripe with an apiVersion pin. SDK v23 pins 2026-09-30.endive, and its types may reject the older clover string."
+      },
+      {
+        "file": "lib/billing/stripe.ts",
+        "line": 252,
+        "why": "webhooks.constructEvent is used. v23 removes constructEventWithoutVerification and the ErrorType export, and changes many types; verify the wrapper still compiles."
+      }
+    ]
+  },
+  "record": {
+    "taskId": "mattogodoy__nametag:stripe:node-23-0-0",
+    "outcome": "failed",
+    "diff": "",
+    "checks": [],
+    "costUsd": 0,
+    "transcriptPath": "",
+    "note": "not attempted: $1.51 of the run cap left, below the $2 a task needs"
+  },
+  "transcript": "",
+  "usedRecipeIds": []
+}

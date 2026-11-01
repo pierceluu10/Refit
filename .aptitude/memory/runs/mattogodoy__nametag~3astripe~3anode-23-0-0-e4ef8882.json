@@ -1,0 +1,181 @@
+{
+  "id": "mattogodoy__nametag:stripe:node-23-0-0-e4ef8882",
+  "recordedAt": "2026-11-01T17:29:04.864Z",
+  "task": {
+    "id": "mattogodoy__nametag:stripe:node-23-0-0",
+    "repo": "mattogodoy__nametag",
+    "change": {
+      "provider": "stripe",
+      "id": "stripe:node-23-0-0",
+      "kind": "sdk-major",
+      "title": "stripe-node v23.0.0 (pins 2026-09-30.endive) drops Node 18, removes Stripe.constructEventWithoutVerification and ErrorType export, removes V1-only fields from Stripe.V2List, and changes many types",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-node/master/CHANGELOG.md",
+        "quote": "Drop support for Node.js 18. Node.js 20 is now the minimum supported version."
+      },
+      "affects": {
+        "operations": [
+          "Stripe.constructEventWithoutVerification",
+          "Stripe.V2List"
+        ],
+        "versions": [
+          "23.0.0",
+          "2026-09-30.endive"
+        ],
+        "sdk": "stripe-node"
+      },
+      "effectiveDate": "2026-09-30"
+    },
+    "usages": [
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "stripe",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 52,
+            "operation": "customers.create",
+            "fields": [
+              "email",
+              "name",
+              "metadata"
+            ],
+            "notes": "Client lazily built in getStripe() from STRIPE_SECRET_KEY; stores customer.id"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 138,
+            "operation": "checkout.sessions.create",
+            "fields": [
+              "customer",
+              "mode",
+              "line_items",
+              "success_url",
+              "cancel_url",
+              "metadata",
+              "discounts"
+            ],
+            "notes": "Returned to /api/billing/checkout"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 157,
+            "operation": "billingPortal.sessions.create",
+            "fields": [
+              "customer",
+              "return_url"
+            ],
+            "notes": "Used by /api/billing/portal"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 171,
+            "operation": "subscriptions.cancel",
+            "notes": "immediate cancel; /api/billing/cancel"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 174,
+            "operation": "subscriptions.update",
+            "fields": [
+              "cancel_at_period_end"
+            ]
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 185,
+            "operation": "subscriptions.update",
+            "fields": [
+              "cancel_at_period_end"
+            ],
+            "notes": "resume"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 201,
+            "operation": "subscriptions.retrieve"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 204,
+            "operation": "subscriptions.update",
+            "fields": [
+              "items",
+              "proration_behavior",
+              "metadata"
+            ],
+            "notes": "plan change"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 241,
+            "operation": "coupons.create",
+            "fields": [
+              "percent_off",
+              "duration",
+              "duration_in_months",
+              "metadata"
+            ]
+          }
+        ],
+        "pinnedVersion": {
+          "value": "2025-11-17.clover",
+          "file": "lib/billing/stripe.ts",
+          "line": 15
+        },
+        "sdk": {
+          "name": "stripe",
+          "version": "20.0.0",
+          "lockfile": "package-lock.json"
+        }
+      },
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "stripe",
+        "via": "webhook",
+        "callSites": [
+          {
+            "file": "app/api/webhooks/stripe/route.ts",
+            "line": 55,
+            "operation": "webhooks.constructEvent (signature verification)",
+            "notes": "via lib/billing/stripe.ts:252"
+          },
+          {
+            "file": "app/api/webhooks/stripe/route.ts",
+            "line": 76,
+            "operation": "event handlers: checkout.session.completed, customer.subscription.created/updated/deleted, invoice.paid, invoice.payment_failed"
+          }
+        ]
+      }
+    ],
+    "deadline": "2026-09-30",
+    "priority": 3,
+    "notes": "The repo is on stripe-node 20.0.0, so nothing breaks until the dependency is bumped. v23 is three majors ahead. It drops Node 18, removes exports, and changes types. The migration agent should check the deployment Node version (needs 20+), any imports of ErrorType, and TypeScript compilation of all lib/billing/stripe.ts call sites after the bump.",
+    "reasoning": "The repo is on stripe-node 20.0.0, so nothing breaks until the dependency is bumped. v23 is three majors ahead. It drops Node 18, removes exports, and changes types. The migration agent should check the deployment Node version (needs 20+), any imports of ErrorType, and TypeScript compilation of all lib/billing/stripe.ts call sites after the bump.",
+    "urgency": "low",
+    "callSites": [
+      {
+        "file": "lib/billing/stripe.ts",
+        "line": 15,
+        "why": "Stripe client is built from stripe 20.0.0 with an explicit clover pin. v23 pins endive and changes many types, so the explicit apiVersion string and its typing must be updated together."
+      },
+      {
+        "file": "lib/billing/stripe.ts",
+        "line": 252,
+        "why": "Webhook signature verification helper uses stripe.webhooks.constructEvent. v23 removes constructEventWithoutVerification and the ErrorType export. Check that neither is used and that error type checks still compile."
+      }
+    ]
+  },
+  "record": {
+    "taskId": "mattogodoy__nametag:stripe:node-23-0-0",
+    "outcome": "failed",
+    "diff": "",
+    "checks": [],
+    "costUsd": 0,
+    "transcriptPath": "",
+    "note": "not attempted: $1.86 of the run cap left, below the $2 a task needs"
+  },
+  "transcript": "",
+  "usedRecipeIds": []
+}

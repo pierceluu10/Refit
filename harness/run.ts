@@ -123,7 +123,8 @@ export async function runTask(
     const recipes = await retrieveRecipes(task).catch(() => []);
 
     const pm = await detectPackageManager(sandbox.dir);
-    const install = pm === 'none' ? undefined : await sandbox.exec(installCommand(pm));
+    const scripts = { scripts: sandbox.mode === 'docker' };
+    const install = pm === 'none' ? undefined : await sandbox.exec(installCommand(pm, scripts));
     const checks = await detectChecks(sandbox.dir, pm);
     const before = await runChecks(sandbox, checks);
     log({ type: 'harness', phase: 'baseline', pm, install, checks, before });
@@ -132,7 +133,7 @@ export async function runTask(
     const addCheck = async (check: CheckCommand): Promise<CheckRun> => {
       baselineSandbox ??= (async () => {
         const box = await (deps.createSandbox ?? createSandbox)(repoDir);
-        if (pm !== 'none') await box.exec(installCommand(pm));
+        if (pm !== 'none') await box.exec(installCommand(pm, scripts));
         return box;
       })();
       const [run] = await runChecks(await baselineSandbox, [check]);

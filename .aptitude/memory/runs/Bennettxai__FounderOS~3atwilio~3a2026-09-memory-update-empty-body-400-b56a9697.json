@@ -1,0 +1,2271 @@
+{
+  "id": "Bennettxai__FounderOS:twilio:2026-09-memory-update-empty-body-400-b56a9697",
+  "recordedAt": "2026-11-01T17:36:32.855Z",
+  "task": {
+    "id": "Bennettxai__FounderOS:twilio:2026-09-memory-update-empty-body-400",
+    "repo": "Bennettxai__FounderOS",
+    "change": {
+      "provider": "twilio",
+      "id": "twilio:2026-09-memory-update-empty-body-400",
+      "kind": "other",
+      "title": "Memory Update* operations now require a non-empty body (empty {} returns 400)",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+        "quote": "`UpdateStore`, `UpdateTraitGroup`, and `UpdateDataMapping` now require a body with at least one property. An empty `{}` gets a 400."
+      },
+      "affects": {
+        "operations": [
+          "UpdateStore",
+          "UpdateTraitGroup",
+          "UpdateDataMapping",
+          "UpdateTraitExtractionStrategy"
+        ]
+      },
+      "effectiveDate": "2026-09-30"
+    },
+    "usages": [
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "paperclip",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "founderos/lib/connectors/paperclip.ts",
+            "line": 222,
+            "operation": "fetch (generic board request via boardFetch)",
+            "notes": "Single network sink for all board calls in this file; callers listed below. Circuit breaker: a network failure opens a 30s breaker. Callers: paperclipAgents/paperclipOrg/paperclipIssues/paperclipRuns/paperclipFailoverRuns/findCockpitIssueByScan use boardGet; the rest call boardFetch directly."
+          },
+          {
+            "file": "founderos/lib/connectors/paperclip.ts",
+            "line": 237,
+            "operation": "GET /api/companies/{companyId}/agents|org|issues|heartbeat-runs",
+            "notes": "boardGet wrapper. Paths used: /agents (line 248, fetchAgents), /org (267), /issues?limit (278), /heartbeat-runs (290, 542), /issues?limit&offset (342, cockpit issue scan). Response parsed with zod-like mappers; errors become empty arrays or status error. Response bodies are read and mapped, not stored."
+          },
+          {
+            "file": "founderos/lib/connectors/paperclip.ts",
+            "line": 303,
+            "operation": "POST /api/companies/{companyId}/issues",
+            "fields": [
+              "title",
+              "description"
+            ],
+            "notes": "createPaperclipIssue. Reads body.issue ?? body and maps the returned issue."
+          },
+          {
+            "file": "founderos/lib/connectors/paperclip.ts",
+            "line": 319,
+            "operation": "POST /api/agents/{agentId}/heartbeat/invoke",
+            "fields": [
+              "{}"
+            ],
+            "notes": "invokePaperclipHeartbeat, the OS Run button. Returns res.ok only."
+          },
+          {
+            "file": "founderos/lib/connectors/paperclip.ts",
+            "line": 374,
+            "operation": "PATCH /api/issues/{issueId}",
+            "fields": [
+              "patch object (status, assignee fields)"
+            ],
+            "notes": "patchIssue, used by repairCockpitIssue from the failover tick. Returns res.ok."
+          },
+          {
+            "file": "founderos/lib/connectors/paperclip.ts",
+            "line": 388,
+            "operation": "GET /api/issues/{issueId}",
+            "notes": "findOpenCockpitIssue; reads body.issue ?? body for status and assignee."
+          },
+          {
+            "file": "founderos/lib/connectors/paperclip.ts",
+            "line": 422,
+            "operation": "POST /api/companies/{companyId}/issues (cockpit issue)",
+            "fields": [
+              "cockpitIssueCreateBody({conductorId})"
+            ],
+            "notes": "ensureCockpitIssue creates the standing Conductor chat issue when none is found. Reads returned issue id."
+          },
+          {
+            "file": "founderos/lib/connectors/paperclip.ts",
+            "line": 465,
+            "operation": "GET /api/issues/{issueId}/comments?limit",
+            "notes": "paperclipCockpitThread; reads body array or body.comments and maps oldest to newest."
+          },
+          {
+            "file": "founderos/lib/connectors/paperclip.ts",
+            "line": 484,
+            "operation": "POST /api/issues/{issueId}/comments",
+            "fields": [
+              "body"
+            ],
+            "notes": "postCockpitMessage, the operator message into the Conductor thread; also used for failover alerts (postFailoverAlert). Reads body.comment ?? body."
+          },
+          {
+            "file": "founderos/lib/connectors/paperclip.ts",
+            "line": 578,
+            "operation": "PATCH /api/agents/{agentId}",
+            "fields": [
+              "adapterConfig.model"
+            ],
+            "notes": "setPaperclipAgentModel, repoints a seat at another model. Returns res.ok."
+          },
+          {
+            "file": "founderos/lib/connectors/paperclip.ts",
+            "line": 606,
+            "operation": "POST /api/agents/{agentId}/clear-error",
+            "fields": [
+              "{}"
+            ],
+            "notes": "clearPaperclipAgentError. Returns res.ok."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "zernio",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/social/[platform]/route.ts",
+            "line": 10,
+            "operation": "GET {zernio}/history (syncFromZernioConfig)",
+            "fields": [],
+            "notes": "Same config-driven sync; called from platformDetail handler."
+          },
+          {
+            "file": "app/api/social/history/route.ts",
+            "line": 11,
+            "operation": "GET {zernio}/history (zernioRecentPosts)",
+            "fields": [
+              "limit"
+            ],
+            "notes": "lib/connectors/zernio.ts:186 reads published post history (getlate.dev/api default, line 191) and returns recent posts to the page."
+          },
+          {
+            "file": "app/api/social/route.ts",
+            "line": 20,
+            "operation": "GET {zernio}/accounts and /history (syncFromZernioConfig)",
+            "fields": [],
+            "notes": "Config-driven sync from lib/social.ts runs on each social overview load; hits the Zernio endpoints in lib/connectors/zernio.ts (lines 181, 191)."
+          },
+          {
+            "file": "app/api/social/series/route.ts",
+            "line": 24,
+            "operation": "GET {zernio}/history (syncFromZernioConfig)",
+            "fields": [],
+            "notes": "Same config-driven sync as social/route.ts:20."
+          },
+          {
+            "file": "app/api/social/sync/route.ts",
+            "line": 12,
+            "operation": "GET {zernio}/v1/accounts (zernioLiveAccounts)",
+            "fields": [],
+            "notes": "Wrapper lib/connectors/zernio.ts:98 reads connected accounts and follower counts (zernio.com/api/v1 default, line 103)."
+          },
+          {
+            "file": "app/api/social/sync/route.ts",
+            "line": 13,
+            "operation": "syncFromZernioLive (accounts pulled via zernioLiveAccounts)",
+            "fields": [],
+            "notes": "Writes follower counts from the live accounts payload into the DB via lib/social-live.ts."
+          },
+          {
+            "file": "app/api/social/upload/route.ts",
+            "line": 19,
+            "operation": "zernioUploadTarget (Late presigned upload slot request)",
+            "fields": [
+              "fileName",
+              "contentType"
+            ],
+            "notes": "Wrapper in founderos/lib/zernio-upload.ts returns uploadUrl and accessUrl. Route returns accessUrl to the browser; API key stays server-side."
+          },
+          {
+            "file": "app/api/social/upload/route.ts",
+            "line": 20,
+            "operation": "PUT <presigned uploadUrl> (Late presigned media slot)",
+            "fields": [
+              "file bytes",
+              "Content-Type"
+            ],
+            "notes": "Raw fetch PUT of the uploaded file to the presigned uploadUrl returned by zernioUploadTarget. Host is whatever the upload slot returns (not hard-coded). 120s timeout. Non-2xx throws and returns 502."
+          },
+          {
+            "file": "founderos/lib/zernio-upload.ts",
+            "line": 9,
+            "operation": "GET /api/media/uploadUrl?fileName&contentType",
+            "fields": [
+              "fileName",
+              "contentType",
+              "Authorization: Bearer ZERNIO_API_KEY"
+            ],
+            "notes": "Base URL defaults to https://getlate.dev/api and can be overridden by ZERNIO_BASE_URL. Reads uploadUrl and accessUrl from the JSON response. Caller is app/api/social/upload/route.ts:19 (api area, outside this read). The returned uploadUrl is then PUT by that route (fetch at app/api/social/upload/route.ts:20), which is the file host call."
+          },
+          {
+            "file": "lib/connectors/zernio.ts",
+            "line": 91,
+            "operation": "GET {zernio url} (zernioGet sink, Bearer key)",
+            "fields": [
+              "Authorization: Bearer key"
+            ],
+            "notes": "Single fetch used by the three zernioGet callers: accounts (line 103, v1Url default https://zernio.com/api/v1), history?limit=200 (line 181) and history (line 191, baseUrl default https://getlate.dev/api). 6 s timeout."
+          },
+          {
+            "file": "lib/connectors/zernio.ts",
+            "line": 211,
+            "operation": "GET {zernio v1Url}/accounts (zernioStatus probe)",
+            "fields": [
+              "Authorization: Bearer key"
+            ],
+            "notes": "zernioStatus connection probe; reads the account list for status detail. Default https://zernio.com/api/v1."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "miosa",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "lib/compute/miosa.ts",
+            "line": 102,
+            "operation": "credits.balance",
+            "notes": "Called in computeSnapshotLive alongside the raw GET /computers; the balance_credits / balance, credit_expiry_at / expires_at and tenant_id fields are read. Errors are swallowed to null. Cached via swr (lib/swr.ts)."
+          },
+          {
+            "file": "lib/compute/miosa.ts",
+            "line": 124,
+            "operation": "computers.get",
+            "notes": "desktopEmbed: fetches one computer by id (validated as hex/dash id). Called from the Compute desktop route via desktopEmbed."
+          },
+          {
+            "file": "lib/compute/miosa.ts",
+            "line": 125,
+            "operation": "computer.embed",
+            "notes": "Returns embed_url / desktop_url / raw_desktop_url, expires_at and ttl_seconds; the URL must match https://*.miosa.ai/ before it is returned to the page. Not cached."
+          }
+        ],
+        "pinnedVersion": {
+          "value": "/api/v1",
+          "file": "lib/compute/miosa.ts",
+          "line": 16
+        },
+        "sdk": {
+          "name": "@miosa/sdk",
+          "version": "3.2.5",
+          "lockfile": "package-lock.json"
+        }
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "miosa",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/compute/embed/route.ts",
+            "line": 10,
+            "operation": "GET https://api.miosa.ai/api/v1/... (desktopEmbed)",
+            "fields": [
+              "id (query)"
+            ],
+            "notes": "desktopEmbed(id) in lib/compute/miosa.ts uses the same MIOSA_BASE fetch helper (line 59). Query param id comes from the request."
+          },
+          {
+            "file": "app/api/compute/route.ts",
+            "line": 8,
+            "operation": "GET https://api.miosa.ai/api/v1/... (computeSnapshot, fresh)",
+            "fields": [
+              "Authorization: Bearer <key>"
+            ],
+            "notes": "lib/compute/miosa.ts: MIOSA_BASE (line 16, env MIOSA_BASE_URL overrides) and fetch at line 59 with no-store cache. Result returned as JSON to the caller."
+          },
+          {
+            "file": "lib/compute/miosa.ts",
+            "line": 59,
+            "operation": "GET /api/v1/computers",
+            "notes": "Generic api<T>(key, path) helper; the only path requested is '/computers' (called at line 101 inside Promise.all with the credits call). Bearer MIOSA_API_KEY, cache no-store. Reads computers (or data) array and maps rows; fields id, name, status, size, template_type, resolution, region, workspace_id, desktop_url, created_at/inserted_at, infrastructure.region. Non-2xx throws. Wrapped by computeSnapshot (warm.ts also calls it)."
+          }
+        ],
+        "pinnedVersion": {
+          "value": "/api/v1",
+          "file": "lib/compute/miosa.ts",
+          "line": 16
+        }
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "notion",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "lib/connectors/notion.ts",
+            "line": 23,
+            "operation": "users.me",
+            "notes": "notionStatus: reads me.name for the connected detail string; errors become state 'error'. Called from connectors/index status list."
+          },
+          {
+            "file": "lib/connectors/notion.ts",
+            "line": 48,
+            "operation": "search",
+            "notes": "recentPages: page_size=limit, sorted by last_edited_time descending; maps results to id, title (first title property), url, last_edited_time. Used by lib/agents/real.ts (recentPages import)."
+          }
+        ],
+        "sdk": {
+          "name": "@notionhq/client",
+          "version": "5.22.0",
+          "lockfile": "package-lock.json"
+        }
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "slack",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "lib/connectors/slack.ts",
+            "line": 27,
+            "operation": "auth.test",
+            "notes": "slackStatus: reads team and user for the connected detail and meta. Errors become state 'error'."
+          },
+          {
+            "file": "lib/connectors/slack.ts",
+            "line": 58,
+            "operation": "conversations.list",
+            "notes": "sendSlackMessage: looks up a channel id by name (public and private, limit 200)."
+          },
+          {
+            "file": "lib/connectors/slack.ts",
+            "line": 61,
+            "operation": "chat.postMessage",
+            "fields": [
+              "channel",
+              "text"
+            ],
+            "notes": "sendSlackMessage: posts operator-supplied text to the resolved channel id. Only write call in lib/. Returns ok/detail."
+          },
+          {
+            "file": "lib/connectors/slack.ts",
+            "line": 82,
+            "operation": "conversations.list",
+            "notes": "recentMessages: first 10 non-archived public channels, then filtered by membership."
+          },
+          {
+            "file": "lib/connectors/slack.ts",
+            "line": 84,
+            "operation": "conversations.history",
+            "fields": [
+              "channel",
+              "limit"
+            ],
+            "notes": "recentMessages: last 5 messages per member channel, read into SlackMessage objects. Consumers: lib/comms-feed.ts and lib/comms-extras-server.ts."
+          }
+        ],
+        "sdk": {
+          "name": "@slack/web-api",
+          "version": "7.16.0",
+          "lockfile": "package-lock.json"
+        }
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "manychat",
+        "via": "webhook",
+        "callSites": [
+          {
+            "file": "app/api/webhooks/manychat/route.ts",
+            "line": 20,
+            "operation": "POST /api/webhooks/manychat",
+            "fields": [
+              "subscriber_id",
+              "name",
+              "handle",
+              "text",
+              "ts"
+            ],
+            "notes": "Handler. Shared-secret check via x-manychat-secret header at line 28 against MANYCHAT_WEBHOOK_SECRET; fails closed with 503 when unset, 401 on mismatch. Parsed by lib/connectors/manychat-webhook.ts parseManyChatWebhook, then stored with getDb().social.upsertDmMessage (line 38). Response is {ok,id,subscriberId}. GET at line 43 is a local health check, not a webhook."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "stripe",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "lib/connectors/payments.ts",
+            "line": 170,
+            "operation": "charges.list",
+            "fields": [
+              "created.gte",
+              "limit=100"
+            ],
+            "notes": "stripeMonthLive: auto-paginates charges since month start, capped at 2000; keeps amount, currency, paid, status for sumChargeIncome. Used by monthToDateIncome (lib/warm.ts imports it). Cached via swr under TTL.money."
+          },
+          {
+            "file": "lib/connectors/payments.ts",
+            "line": 187,
+            "operation": "balance.retrieve",
+            "notes": "stripeSnapshotLive: available and pending balances (amount, currency). Called in Promise.all with line 188."
+          },
+          {
+            "file": "lib/connectors/payments.ts",
+            "line": 188,
+            "operation": "charges.list",
+            "fields": [
+              "limit=5"
+            ],
+            "notes": "stripeSnapshotLive: last five charges (amount, currency, description or id, created) for stripeSnapshot (Finances, Analytics)."
+          }
+        ],
+        "sdk": {
+          "name": "stripe",
+          "version": "22.2.0",
+          "lockfile": "package-lock.json"
+        }
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "plaud",
+        "via": "webhook",
+        "callSites": [
+          {
+            "file": "app/api/plaud/ingest/route.ts",
+            "line": 16,
+            "operation": "POST /api/plaud/ingest",
+            "fields": [
+              "recordings[].externalId",
+              "title",
+              "startedAt",
+              "durationS",
+              "participants",
+              "summary",
+              "transcriptUrl"
+            ],
+            "notes": "Handler. Bearer auth via authorizePush(req, 'PLAUD_INGEST_TOKEN') at line 17 (or operator session). Validated with PlaudIngestSchema, upserted to callRecordings with source 'plaud'. transcriptUrl is stored as data, not fetched here."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "manychat",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/social/dm/reply/route.ts",
+            "line": 27,
+            "operation": "POST https://api.manychat.com (sendContent, via lib/connectors/manychat.ts sendManyChatText)",
+            "fields": [
+              "subscriberId",
+              "text"
+            ],
+            "notes": "Wrapper call. lib/connectors/manychat.ts:33 builds the request to MANYCHAT_API (https://api.manychat.com, line 13) with data.version 'v2' and content.type 'instagram' (line 47). Stores the outbound message only when result.ok. Returns 502 with detail on failure."
+          },
+          {
+            "file": "lib/connectors/manychat.ts",
+            "line": 42,
+            "operation": "POST https://api.manychat.com/fb/sending/sendContent",
+            "fields": [
+              "subscriber_id",
+              "data.version=v2",
+              "data.content.type=instagram",
+              "messages[].text",
+              "message_tag=ACCOUNT_UPDATE"
+            ],
+            "notes": "sendManyChatText (line 33); ok only on 2xx; result ignored beyond ok/detail. Caller: app/api/social/dm/reply/route.ts:27."
+          },
+          {
+            "file": "lib/connectors/manychat.ts",
+            "line": 80,
+            "operation": "GET https://api.manychat.com/fb/page/getInfo",
+            "notes": "manychatStatus probe; reads page name and username (parseManyChatPageInfo) for the connection detail; cached 60s per key."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "vercel-ai-gateway",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "lib/connectors/llm.ts",
+            "line": 95,
+            "operation": "generateText (gateway model, up to 6 steps)",
+            "fields": [
+              "model",
+              "system",
+              "messages",
+              "tools",
+              "stopWhen=stepCountIs(6)"
+            ],
+            "notes": "Model is gateway(req.model ?? LLM_MODEL default). Requires AI_GATEWAY_API_KEY (resolved from creds and set on process.env at line 83). Returns text and tool calls for the agent chat path. Gateway is Vercel AI Gateway (inferred from the gateway export and AI_GATEWAY_API_KEY name). Uncertain whether the gateway host is fixed here; it is set inside the ai package."
+          }
+        ],
+        "pinnedVersion": {
+          "value": "anthropic/claude-sonnet-5",
+          "file": "lib/connectors/llm.ts",
+          "line": 41
+        },
+        "sdk": {
+          "name": "ai",
+          "version": "6.0.208",
+          "lockfile": "package-lock.json"
+        }
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "apify",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/lab/runs/route.ts",
+            "line": 38,
+            "operation": "GET https://api.apify.com/v2/actor-runs/... (pollRunProgress via liveProgressSource)",
+            "fields": [
+              "Authorization: Bearer <token>"
+            ],
+            "notes": "Polls run progress for a batch; token from resolveApifyToken (lib/connectors/apify.ts:18) at line 29. Base URL https://api.apify.com/v2 (lib/lab/setup/progress.ts:277; lib/lab/apify-client.ts:23). Errors swallowed (.catch)."
+          },
+          {
+            "file": "app/api/lab/setup/health/route.ts",
+            "line": 21,
+            "operation": "GET https://api.apify.com/v2/users/me (network check apify.auth)",
+            "fields": [
+              "Authorization: Bearer <token>"
+            ],
+            "notes": "runNetworkCheck -> lib/lab/setup/health.ts:74 (same probe as keys route)."
+          },
+          {
+            "file": "app/api/lab/setup/keys/route.ts",
+            "line": 37,
+            "operation": "GET https://api.apify.com/v2/users/me (network check apify.auth)",
+            "fields": [
+              "Authorization: Bearer <token>"
+            ],
+            "notes": "runNetworkChecks -> lib/lab/setup/health.ts:74 token check on save of the Apify key."
+          },
+          {
+            "file": "lib/connectors/openai-stt.ts",
+            "line": 54,
+            "operation": "GET {media URL from actor output} (fetchMedia)",
+            "notes": "Follows the media URL that an Apify actor returned (https only, 25 MB cap). Host is not fixed; it is the scraped platform media host. Feeds transcribe() at openai-stt.ts:69."
+          },
+          {
+            "file": "lib/lab/apify-client.ts",
+            "line": 147,
+            "operation": "GET|POST {base}{path} (shared request helper for all Apify REST calls)",
+            "notes": "Central fetch for createApifyClient; injected fetch is labFetch in live paths (apify-live.ts, feeds.ts, radar/run.ts). Errors on non-ok; response json wrapped in {data}."
+          },
+          {
+            "file": "lib/lab/apify-client.ts",
+            "line": 171,
+            "operation": "POST /v2/acts/{actor}/runs",
+            "fields": [
+              "actor input body (per actor buildInput)",
+              "maxItems",
+              "maxTotalChargeUsd",
+              "timeout",
+              "memory"
+            ],
+            "notes": "startRun; returns run id and status used by callers."
+          },
+          {
+            "file": "lib/lab/apify-client.ts",
+            "line": 174,
+            "operation": "GET /v2/actor-runs/{runId}",
+            "notes": "getRun; status, defaultDatasetId, usageTotalUsd, chargedEventCounts."
+          },
+          {
+            "file": "lib/lab/apify-client.ts",
+            "line": 178,
+            "operation": "GET /v2/datasets/{datasetId}",
+            "notes": "datasetInfo; reads itemCount only."
+          },
+          {
+            "file": "lib/lab/apify-client.ts",
+            "line": 183,
+            "operation": "POST /v2/actor-runs/{runId}/abort",
+            "notes": "abortRun."
+          },
+          {
+            "file": "lib/lab/apify-client.ts",
+            "line": 190,
+            "operation": "GET /v2/datasets/{datasetId}/items",
+            "fields": [
+              "clean=true",
+              "format=json",
+              "offset",
+              "limit"
+            ],
+            "notes": "datasetItems; result must be an array."
+          },
+          {
+            "file": "lib/lab/apify-client.ts",
+            "line": 196,
+            "operation": "GET /v2/users/me",
+            "notes": "me(); no caller found in lib/lab besides the health check, which calls the URL directly."
+          },
+          {
+            "file": "lib/lab/discover.ts",
+            "line": 120,
+            "operation": "POST /v2/acts/{actor}/runs (startRun)",
+            "fields": [
+              "g.actorInput",
+              "maxItems"
+            ],
+            "notes": "Search discovery run; result stored as run id."
+          },
+          {
+            "file": "lib/lab/feeds.ts",
+            "line": 265,
+            "operation": "POST /v2/acts/{google trends actor}/runs (startRun)",
+            "fields": [
+              "Google Trends input",
+              "maxItems: 5"
+            ],
+            "notes": "Google Trends run started through Apify."
+          },
+          {
+            "file": "lib/lab/feeds.ts",
+            "line": 290,
+            "operation": "GET /v2/datasets/{id}/items (datasetItems)",
+            "fields": [
+              "limit: 200"
+            ],
+            "notes": "ingestGoogleTrendsRun reads trend items, parsed by parseGoogleTrends."
+          },
+          {
+            "file": "lib/lab/gen/comments.ts",
+            "line": 372,
+            "operation": "POST /v2/acts/{actor}/runs (startRun)",
+            "fields": [
+              "actor.buildInput(urls)",
+              "maxTotalChargeUsd"
+            ],
+            "notes": "Comment fetch run for post URLs, charge capped by COMMENTS_RUN_MAX_USD."
+          },
+          {
+            "file": "lib/lab/gen/comments.ts",
+            "line": 394,
+            "operation": "GET /v2/datasets/{id}/items (datasetItems)",
+            "fields": [
+              "limit: 5000"
+            ],
+            "notes": "Comment items read and normalised into comment rows."
+          },
+          {
+            "file": "lib/lab/measure/actors.ts",
+            "line": 198,
+            "operation": "POST /v2/acts/{actor}/runs (startRun)",
+            "fields": [
+              "t.input",
+              "maxItems",
+              "maxTotalChargeUsd (ceiling)"
+            ],
+            "notes": "Actor verification run (verify-actors) with a charge ceiling; the verdict is stored in lab_priors."
+          },
+          {
+            "file": "lib/lab/measure/scheduler.ts",
+            "line": 202,
+            "operation": "POST /v2/acts/{actor}/runs (startRun)",
+            "fields": [
+              "j.actorInput",
+              "maxItems",
+              "maxTotalChargeUsd"
+            ],
+            "notes": "Fixed-age snapshot read run for due posts."
+          },
+          {
+            "file": "lib/lab/radar/run.ts",
+            "line": 280,
+            "operation": "POST /v2/acts/{actor}/runs (startRun)",
+            "fields": [
+              "radar input",
+              "maxItems",
+              "maxTotalChargeUsd"
+            ],
+            "notes": "Radar X and TikTok source runs through Apify."
+          },
+          {
+            "file": "lib/lab/setup/health.ts",
+            "line": 74,
+            "operation": "GET /v2/users/me",
+            "fields": [
+              "Authorization: Bearer token"
+            ],
+            "notes": "apify.auth health check; reads plan id and tier and records them in apify:plan."
+          },
+          {
+            "file": "lib/lab/setup/pricing.ts",
+            "line": 56,
+            "operation": "GET /v2/acts/{actorId} (refreshPriceBooks)",
+            "notes": "Public actor metadata read for price books, no token sent; the 24 h cache is in priors. Parsed by parseActorBook."
+          },
+          {
+            "file": "lib/lab/setup/progress.ts",
+            "line": 223,
+            "operation": "POST /v2/actor-runs/{runId}/abort (abortRun)",
+            "notes": "Stop button on a running Apify run; the client is the apify-live client."
+          },
+          {
+            "file": "lib/lab/setup/progress.ts",
+            "line": 280,
+            "operation": "GET /v2/actor-runs/{id} and GET /v2/datasets/{id} (liveProgressSource get helper)",
+            "notes": "Raw GET through labFetch (dry guard). Used by getRun at progress.ts:328 and datasetItemCount. 429 raises RateLimitedError. Reads status, chargedEventCounts, usageTotalUsd, statusMessage, defaultDatasetId, itemCount."
+          },
+          {
+            "file": "lib/lab/setup/progress.ts",
+            "line": 328,
+            "operation": "GET /v2/actor-runs/{runId} (src.getRun, via progress.ts:280)",
+            "notes": "Run progress poll that advances the run state; result is cached (POLL_THROTTLE_MS)."
+          },
+          {
+            "file": "lib/lab/sync.ts",
+            "line": 298,
+            "operation": "POST /v2/acts/{actor}/runs (startRun)",
+            "fields": [
+              "g.actorInput",
+              "maxItems",
+              "maxTotalChargeUsd (ceiling)"
+            ],
+            "notes": "Daily sync run per platform group."
+          },
+          {
+            "file": "lib/lab/sync.ts",
+            "line": 321,
+            "operation": "GET /v2/datasets/{id}/items (datasetItems)",
+            "fields": [
+              "offset",
+              "limit"
+            ],
+            "notes": "Paged read of sync results; items normalised by lib/lab/normalize.ts."
+          },
+          {
+            "file": "lib/lab/sync.ts",
+            "line": 378,
+            "operation": "GET /v2/actor-runs/{runId} (getRun)",
+            "notes": "Advance-on-read of a stored run."
+          },
+          {
+            "file": "lib/lab/sync.ts",
+            "line": 384,
+            "operation": "GET /v2/datasets/{id} (datasetInfo)",
+            "notes": "Items-so-far fallback when chargedEventCounts is missing; errors swallowed to null."
+          }
+        ],
+        "pinnedVersion": {
+          "value": "v2",
+          "file": "lib/lab/apify-client.ts",
+          "line": 23
+        }
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "attio",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/funnel/route.ts",
+            "line": 25,
+            "operation": "POST https://api.attio.com/v2/objects/{object}/records/query (attioFunnelJourneys)",
+            "fields": [
+              "filter/limit query body"
+            ],
+            "notes": "lib/funnel-live.ts:209 and :281 query objects, including deals, with fetch. Results are mapped to funnel journeys (lib/funnel.ts) and returned by the route. Runs alongside ghlFunnelJourneys via Promise.all."
+          },
+          {
+            "file": "lib/connectors/attio.ts",
+            "line": 19,
+            "operation": "POST https://api.attio.com/v2/objects/deals/records/query",
+            "fields": [
+              "Authorization: Bearer key"
+            ],
+            "notes": "attioStatus probe (lib/connectors/attio.ts); reads the record count or error only. Behind swr via TTL.crm."
+          },
+          {
+            "file": "lib/connectors/attio.ts",
+            "line": 104,
+            "operation": "POST https://api.attio.com/v2/objects/deals/records/query",
+            "fields": [
+              "Authorization: Bearer key"
+            ],
+            "notes": "Roster/deals read for the pipeline in this file; mapped to RosterClient objects. Not read in full."
+          },
+          {
+            "file": "lib/funnel-live.ts",
+            "line": 209,
+            "operation": "POST /v2/objects/{people|companies}/records/query",
+            "fields": [
+              "filter.record_id.$in (<=100 ids)",
+              "limit=500"
+            ],
+            "notes": "queryByIds: chunked by 100, called from fetchAttioContacts (line 231-234) for people and companies. Partial results on non-2xx; never throws. Reads data[].id.record_id and values name, email_addresses, phone_numbers, job_title, linkedin. Called from attioFunnelJourneys via the deals pull."
+          },
+          {
+            "file": "lib/funnel-live.ts",
+            "line": 281,
+            "operation": "POST /v2/objects/deals/records/query",
+            "fields": [
+              "limit=500",
+              "offset"
+            ],
+            "notes": "pullAttioPipeline: pages deals up to offset 2000, throws on non-2xx, then calls fetchAttioContacts. Cached via swr with TTL.crm under attio:funnel:<key tag>. Consumers: lib/warm.ts and lib/screen-context.ts via attioFunnelJourneys."
+          }
+        ],
+        "pinnedVersion": {
+          "value": "v2",
+          "file": "lib/funnel-live.ts",
+          "line": 209
+        }
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "gohighlevel",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/funnel/route.ts",
+            "line": 25,
+            "operation": "GET https://services.leadconnectorhq.com/opportunities/pipelines + opportunities search (ghlFunnelJourneys)",
+            "fields": [
+              "locationId"
+            ],
+            "notes": "lib/funnel-ghl.ts:43 GHL_BASE; pipeline list at line 178 and opportunity fetch at line 187. Results merged into funnel journeys. Runs alongside attioFunnelJourneys."
+          },
+          {
+            "file": "lib/funnel-ghl.ts",
+            "line": 178,
+            "operation": "GET /opportunities/pipelines?locationId",
+            "notes": "pullGhlPipeline: Bearer GHL_API_KEY, Version header 2021-07-28 (header set at line 177). Reads pipelines[]. Non-2xx throws. Called through swr from ghlFunnelJourneys (line 167) under ghl:funnel:<key tag>, TTL.crm. Consumers: lib/warm.ts, lib/screen-context.ts."
+          },
+          {
+            "file": "lib/funnel-ghl.ts",
+            "line": 187,
+            "operation": "GET /opportunities/search?location_id&limit=100&page",
+            "notes": "pullGhlPipeline: pages up to 10 pages of 100, stops when a page returns fewer than 100. Reads opportunities[]. Non-2xx throws."
+          }
+        ],
+        "pinnedVersion": {
+          "value": "2021-07-28",
+          "file": "lib/funnel-ghl.ts",
+          "line": 44
+        }
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "openai",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/lab/embeddings/route.ts",
+            "line": 28,
+            "operation": "POST https://api.openai.com/v1/embeddings (backfill)",
+            "fields": [
+              "model",
+              "input"
+            ],
+            "notes": "backfill(ctx.store) from lib/lab/gen/embed.ts; OPENAI_EMBED_URL is defined at lib/lab/gen/embed.ts:22. The call is inside the lib function; the URL constant was not checked against the request code line by line, so confirm in embed.ts."
+          },
+          {
+            "file": "app/api/lab/setup/health/route.ts",
+            "line": 21,
+            "operation": "GET https://api.openai.com/v1/models/whisper-1 (openai.auth check)",
+            "fields": [
+              "Authorization: Bearer <key>"
+            ],
+            "notes": "runNetworkCheck -> lib/lab/setup/health.ts:91 verifies the OpenAI key by fetching the whisper-1 model."
+          },
+          {
+            "file": "app/api/lab/setup/keys/route.ts",
+            "line": 37,
+            "operation": "GET https://api.openai.com/v1/models/whisper-1 (openai.auth check)",
+            "fields": [
+              "Authorization: Bearer <key>"
+            ],
+            "notes": "runNetworkChecks -> lib/lab/setup/health.ts:91 on save of the OpenAI key."
+          },
+          {
+            "file": "lib/connectors/openai-stt.ts",
+            "line": 69,
+            "operation": "POST https://api.openai.com/v1/audio/transcriptions",
+            "fields": [
+              "file (multipart, up to 25 MB)",
+              "model=whisper-1",
+              "response_format=verbose_json",
+              "Authorization: Bearer key"
+            ],
+            "notes": "transcribe(); OPENAI_STT_URL at line 24 unless opts.url. Reads text, duration and language from the verbose_json body. Non-ok becomes SttError. Key via resolveSttKey (lib/connectors/apify.ts). Caller: scripts/lab-sync.ts analyse() via sttClientFromCreds (line 103) and the lab pipeline."
+          },
+          {
+            "file": "lib/lab/gen/embed.ts",
+            "line": 61,
+            "operation": "POST /v1/embeddings",
+            "fields": [
+              "model: text-embedding-3-small",
+              "input: string[] (batches of 100)"
+            ],
+            "notes": "openaiEmbedder. Reads data[].embedding by index and usage.total_tokens. Non-ok throws. Reached via activeEmbedder only when LAB_EMBED_PROVIDER=openai, a key, the embed line is on and not dry; the spend gate (gatedCall, lines 180 and 220) wraps it."
+          },
+          {
+            "file": "lib/lab/setup/health.ts",
+            "line": 91,
+            "operation": "GET /v1/models/whisper-1",
+            "fields": [
+              "Authorization: Bearer key"
+            ],
+            "notes": "openai.auth health check; only checks status (200 ok, 401 refused, 404 no whisper-1 access). Body not read."
+          }
+        ],
+        "pinnedVersion": {
+          "value": "text-embedding-3-small (path /v1/embeddings)",
+          "file": "lib/lab/gen/embed.ts",
+          "line": 19
+        }
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "wise",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/connections/route.ts",
+            "line": 8,
+            "operation": "GET https://api.wise.com/v1/transfers?limit=10 (paymentsStatus, via allConnectorStatuses)",
+            "fields": [
+              "Authorization (token)"
+            ],
+            "notes": "lib/connectors/payments.ts:74. Status probe only."
+          },
+          {
+            "file": "lib/connectors/payments.ts",
+            "line": 74,
+            "operation": "GET /v1/transfers?limit=10",
+            "notes": "wiseOutgoing; Bearer token from env; response read for outgoing totals. Not verified beyond the fetch line; see connectors area for the full read."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "fanbasis",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/connections/route.ts",
+            "line": 8,
+            "operation": "GET https://www.fanbasis.com/public-api/customers?page=&per_page=100 (paymentsStatus, via allConnectorStatuses)",
+            "fields": [
+              "page",
+              "per_page",
+              "API key header"
+            ],
+            "notes": "lib/connectors/payments.ts:94 (FANBASIS_API) and fetch at line 128. Paged read; reached through the connections status check."
+          },
+          {
+            "file": "lib/connectors/payments.ts",
+            "line": 128,
+            "operation": "GET /public-api/customers?page&per_page=100",
+            "notes": "fanbasisMonthToDateIncome path; paged request. Not verified beyond the fetch line; see connectors area for the full read."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "instagram",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/lab/oauth/[provider]/callback/route.ts",
+            "line": 22,
+            "operation": "GET /api/lab/oauth/instagram/callback -> finishOAuth (POST https://api.instagram.com/oauth/access_token)",
+            "fields": [
+              "code",
+              "state"
+            ],
+            "notes": "Inbound OAuth redirect handler. finishOAuth in lib/lab/setup/oauth-flow.ts uses IG_CODE_URL (lib/lab/setup/oauth-instagram.ts:23) to exchange the code. Authorize URL is built by start route (lab/oauth/[provider]/start/route.ts:17) with IG_AUTHORIZE_URL (oauth-instagram.ts:22); no network call there."
+          },
+          {
+            "file": "app/api/lab/setup/keys/route.ts",
+            "line": 53,
+            "operation": "adoptPastedInstagramToken -> GET https://graph.instagram.com/me (token check)",
+            "fields": [
+              "access_token (pasted token)"
+            ],
+            "notes": "Runs when a pasted LAB_IG_ACCESS_TOKEN is saved. lib/lab/setup/oauth-instagram.ts:79 adopts the token and calls Instagram Graph to read the user id and expiry. Not read in detail; the Graph call is inside the lib function."
+          },
+          {
+            "file": "lib/lab/ledger/retention/instagram.ts",
+            "line": 19,
+            "operation": "GET graph.instagram.com/v25.0/me/media and GET /v25.0/{media-id}/insights (via getJson)",
+            "fields": [
+              "Authorization: Bearer LAB_IG_ACCESS_TOKEN",
+              "fields=id,media_product_type,media_type,permalink,shortcode,timestamp&limit=50",
+              "metric=reach,views,likes,comments,saved,shares,total_interactions,ig_reels_avg_watch_time,ig_reels_video_view_total_time,reels_skip_rate"
+            ],
+            "notes": "Request made in this getJson helper. Callers: listOwnMedia (instagram.ts:39) follows paging.next up to 4 pages (same host only, token stripped from the link); insights read at instagram.ts:69 and parsed into reach/views/likes/etc. Error message from body.error.message."
+          },
+          {
+            "file": "lib/lab/setup/health.ts",
+            "line": 114,
+            "operation": "GET graph.instagram.com/me",
+            "fields": [
+              "fields=user_id,username",
+              "access_token (query string)"
+            ],
+            "notes": "instagram.token health check. Only status and body.error are read; OAuthException, code 190 or 400/401 mean refused; expiry warning when LAB_IG_TOKEN_EXPIRES_AT is under 7 days."
+          },
+          {
+            "file": "lib/lab/setup/oauth-instagram.ts",
+            "line": 52,
+            "operation": "POST api.instagram.com/oauth/access_token, GET graph.instagram.com/access_token (ig_exchange_token), GET graph.instagram.com/me, GET graph.instagram.com/refresh_access_token (via getJson wrapper)",
+            "fields": [
+              "client_id",
+              "client_secret",
+              "grant_type=authorization_code|ig_exchange_token|ig_refresh_token",
+              "redirect_uri",
+              "code",
+              "access_token"
+            ],
+            "notes": "Single network line in the getJson wrapper. Callers: instagramMe (oauth-instagram.ts:59, reads user_id/id/username); exchangeInstagramCode (:67 short-lived token, :70 long-lived token); refreshInstagramToken (:119, writes the new token and expiry to env.local). Token values are stored, never logged."
+          }
+        ],
+        "pinnedVersion": {
+          "value": "v25.0",
+          "file": "lib/lab/ledger/retention/instagram.ts",
+          "line": 9
+        }
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "arcads",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/creative-engine/arcads/assets/route.ts",
+            "line": 38,
+            "operation": "asset library query (client.assetsLibrary)",
+            "fields": [
+              "productId",
+              "q",
+              "kind",
+              "pageSize"
+            ],
+            "notes": "Lists Arcads library assets for the picker; result returned to the UI."
+          },
+          {
+            "file": "app/api/creative-engine/arcads/health/route.ts",
+            "line": 35,
+            "operation": "probeFree (Arcads health and credits read)",
+            "fields": [],
+            "notes": "GET health route calls lib/creative-engine/health.ts probeFree, which reads Arcads health and credits; result stored via readHealth/buildHealthSnapshot."
+          },
+          {
+            "file": "app/api/creative-engine/arcads/image/route.ts",
+            "line": 19,
+            "operation": "submitImage (image generation via lib/creative-engine/generate.ts)",
+            "fields": [
+              "model",
+              "prompt",
+              "aspectRatio",
+              "productId"
+            ],
+            "notes": "Wrapper in lib/creative-engine/generate.ts triggers the Arcads image request; generation and run returned to the client. Exact Arcads endpoint is in the wrapper, not read here."
+          },
+          {
+            "file": "app/api/creative-engine/arcads/motion/route.ts",
+            "line": 25,
+            "operation": "submitMotion (video generation via lib/creative-engine/generate.ts)",
+            "fields": [
+              "controls",
+              "productId",
+              "scriptId"
+            ],
+            "notes": "Wrapper submits the video generation (Arcads video API, per lib/arcads/client.ts header: /v2/videos/generate). Not read in detail."
+          },
+          {
+            "file": "app/api/creative-engine/arcads/presets/route.ts",
+            "line": 21,
+            "operation": "GET preset templates (client.presetTemplates)",
+            "fields": [
+              "type"
+            ],
+            "notes": "Template list for gestures/other preset types, cached via writeCache. Errors are explained and returned as state 'error'."
+          },
+          {
+            "file": "app/api/creative-engine/arcads/setup/route.ts",
+            "line": 37,
+            "operation": "GET /v1/products (client.products)",
+            "fields": [],
+            "notes": "Hand-written typed client lib/arcads/client.ts (createArcadsClient, line 410; base ARCADS_BASE line 23 = https://external-api.arcads.ai, HTTP Basic auth). Product list is returned to the setup UI."
+          },
+          {
+            "file": "app/api/creative-engine/arcads/setup/route.ts",
+            "line": 59,
+            "operation": "probeFree (GET health and credits)",
+            "fields": [],
+            "notes": "lib/creative-engine/health.ts probeFree is called from the verify action; result (health, credits) returned to the UI and snapshot stored. Exact endpoints live in lib/creative-engine/health.ts (not read)."
+          },
+          {
+            "file": "app/api/creative-engine/arcads/setup/route.ts",
+            "line": 70,
+            "operation": "POST /v1/products (client.createProduct)",
+            "fields": [
+              "name",
+              "description"
+            ],
+            "notes": "Creates an Arcads product, then stores its id and name as arcadsProductId/arcadsProductName. Refused in Filming mode (line 66)."
+          },
+          {
+            "file": "app/api/creative-engine/arcads/ugc/route.ts",
+            "line": 19,
+            "operation": "submitUgc (UGC talking-actor generation via lib/creative-engine/generate.ts)",
+            "fields": [
+              "scriptId",
+              "situationId",
+              "voiceId",
+              "productId"
+            ],
+            "notes": "Wrapper submits a UGC job (Arcads /v2/talking-actors/generate per lib/arcads/client.ts header). Not read in detail."
+          },
+          {
+            "file": "app/api/creative-engine/runs/route.ts",
+            "line": 16,
+            "operation": "advanceArcadsRuns (polls Arcads run status)",
+            "fields": [],
+            "notes": "Called on GET of the runs list; polls in-flight Arcads runs via lib/creative-engine/generate.ts. Not read in detail."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 125,
+            "operation": "ArcadsClient.request -> {ARCADS_BASE}{path}",
+            "notes": "Single sink for every JSON call below. ARCADS_BASE from ARCADS_BASE_URL env, default https://external-api.arcads.ai (line 23). Auth from client constructor (Basic). timeouts per call."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 155,
+            "operation": "GET /v1/credits",
+            "notes": "credits balance."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 158,
+            "operation": "GET /v1/products?pageSize=100",
+            "notes": "product list."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 161,
+            "operation": "POST /v1/products",
+            "fields": [
+              "name",
+              "description"
+            ],
+            "notes": "createProduct."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 164,
+            "operation": "POST /v1/folders",
+            "fields": [
+              "productId",
+              "name"
+            ],
+            "notes": "folder create for scripts."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 169,
+            "operation": "GET /v1/situations",
+            "notes": "situation list."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 172,
+            "operation": "GET /v1/voices",
+            "notes": "voice list."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 177,
+            "operation": "POST /v2/talking-actors/generate",
+            "fields": [
+              "model",
+              "productId",
+              "script",
+              "actors",
+              "autoAddScriptEmotion"
+            ],
+            "notes": "UGC talking-actor job; raw text response normalised."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 185,
+            "operation": "GET /v2/talking-actors/{id}",
+            "notes": "poll talking-actor job."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 190,
+            "operation": "GET /v2/talking-actors/{id}/watch (redirect manual)",
+            "notes": "raw fetch with redirect: 'manual' for the watch link; signal timeout 20s."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 203,
+            "operation": "POST /v1/scripts",
+            "fields": [
+              "folderId",
+              "name",
+              "text",
+              "videos"
+            ],
+            "notes": "script create."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 206,
+            "operation": "POST /v1/scripts/{id}/generate",
+            "notes": "start generation for a script."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 209,
+            "operation": "GET /v1/scripts/{id}/videos",
+            "notes": "videos of a script."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 212,
+            "operation": "GET /v1/videos/{id}/watch",
+            "notes": "video watch link."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 220,
+            "operation": "POST /v1/file-upload/get-presigned-url",
+            "fields": [
+              "fileType"
+            ],
+            "notes": "returns presigned upload target."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 225,
+            "operation": "PUT <presigned upload URL>",
+            "fields": [
+              "file bytes",
+              "Content-Type"
+            ],
+            "notes": "raw fetch PUT to the URL Arcads returned (host not fixed), 60s timeout."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 230,
+            "operation": "POST /v2/videos/generate",
+            "fields": [
+              "CreateVideoDto body (validated by lib/arcads/validate.ts)"
+            ],
+            "notes": "video generation; raw text response normalised."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 234,
+            "operation": "POST /v2/images/generate",
+            "notes": "image generation."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 239,
+            "operation": "POST /v1/veo31/generate/video",
+            "notes": "Veo 3.1 video generation."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 243,
+            "operation": "POST /v1/omni-flash/generate/video",
+            "notes": "omni flash video."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 246,
+            "operation": "POST /v1/b-roll",
+            "notes": "b-roll generation."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 249,
+            "operation": "POST /v1/scene",
+            "notes": "scene generation."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 252,
+            "operation": "POST /v1/music/generate",
+            "notes": "music generation."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 255,
+            "operation": "POST /v1/audio-driven",
+            "notes": "audio-driven generation."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 258,
+            "operation": "POST /v1/omnihuman",
+            "notes": "omnihuman generation."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 261,
+            "operation": "GET /v1/presets",
+            "notes": "preset list."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 264,
+            "operation": "GET /v1/presets/{type}/templates?pageSize=100",
+            "notes": "preset templates."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 267,
+            "operation": "POST /v1/presets/{type}/generate",
+            "notes": "preset generation."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 275,
+            "operation": "GET /v1/assets?{params}",
+            "notes": "asset library query."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 279,
+            "operation": "GET /v1/assets/{id}",
+            "notes": "asset poll."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 282,
+            "operation": "GET /v1/videos/{id}",
+            "notes": "video poll."
+          },
+          {
+            "file": "lib/arcads/client.ts",
+            "line": 286,
+            "operation": "POST /v1/assets/{id}/download",
+            "notes": "returns a signed download link; the file is then fetched from that host (see creative-engine assets.ts rehost)."
+          },
+          {
+            "file": "lib/connectors/arcads.ts",
+            "line": 16,
+            "operation": "GET https://external-api.arcads.ai/v1/products",
+            "fields": [
+              "Authorization: Basic key"
+            ],
+            "notes": "arcadsStatus connection probe; reads product list count for detail. Basic auth built from the stored key (line 17)."
+          },
+          {
+            "file": "lib/creative-engine/assets.ts",
+            "line": 24,
+            "operation": "GET <signed asset/thumbnail URL returned by Arcads> (rehost)",
+            "notes": "rehost() fetches input.sourceUrl (from Arcads results; called from generate.ts:288 for the output and generate.ts:352 for the thumbnail) with a 120s timeout; saves the bytes locally. Host is whatever the API returned, not fixed. Fetch is the file-host leg of the Arcads flow."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "fathom",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/calls/archive/route.ts",
+            "line": 36,
+            "operation": "GET https://api.fathom.ai/external/v1/meetings (pullFathomMeetings)",
+            "fields": [
+              "X-Api-Key header (fathomKey)"
+            ],
+            "notes": "Wrapper lib/connectors/fathom.ts:85; FATHOM_API constant at line 19. Each returned meeting is upserted into callRecordings with source 'fathom'. Fetches only when the route is called."
+          },
+          {
+            "file": "lib/connectors/fathom.ts",
+            "line": 69,
+            "operation": "GET https://api.fathom.ai/external/v1/meetings",
+            "fields": [
+              "X-Api-Key header"
+            ],
+            "notes": "fetchFn call in the Fathom list helper (FATHOM_API at line 19); used by the status probe and pullFathomMeetings. 6 s timeout. Archive route call site is app/api/calls/archive/route.ts:36."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "google",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/lab/oauth/[provider]/callback/route.ts",
+            "line": 22,
+            "operation": "GET /api/lab/oauth/youtube/callback -> finishOAuth (POST https://oauth2.googleapis.com/token, GET youtube/v3/channels)",
+            "fields": [
+              "code",
+              "state",
+              "client credentials from cookie/settings"
+            ],
+            "notes": "Inbound OAuth redirect handler (GET, with ?code&state or ?error). Calls lib/lab/setup/oauth-flow.ts finishOAuth, which exchanges the code at GOOGLE_TOKEN_URL (lib/lab/setup/oauth-google.ts:15, call at line 71) and reads YT_CHANNELS_URL (line 17) to confirm the channel. Redirects to /lab with an outcome; tokens are stored by lib, not returned. Only the youtube provider applies here (isOAuthProvider in oauth-flow.ts:18)."
+          },
+          {
+            "file": "lib/connectors/gcal.ts",
+            "line": 203,
+            "operation": "REPORT https://www.google.com/calendar/dav/{user}/events/ (CalDAV calendar-query)",
+            "fields": [
+              "Authorization: Basic user:app password",
+              "Depth: 1",
+              "calendar-query time-range start/end"
+            ],
+            "notes": "fetchAccountIcal (line 195) builds the URL at line 201. Response is iCal text blobs parsed by node-ical. Called from the calendar read at gcal.ts:253 with an 8 s timeout. Not Google OAuth; a per-account CalDAV login."
+          },
+          {
+            "file": "lib/lab/setup/oauth-google.ts",
+            "line": 71,
+            "operation": "POST oauth2.googleapis.com/token (tokenCall)",
+            "fields": [
+              "grant_type=authorization_code|refresh_token",
+              "code",
+              "code_verifier",
+              "redirect_uri",
+              "client_id",
+              "client_secret",
+              "refresh_token"
+            ],
+            "notes": "Called from exchangeYoutubeCode (line 82) and googleAccessToken (line 112). invalid_grant raises InvalidGrantError. access_token, refresh_token and expires_in are used; the access token is cached in process memory only."
+          },
+          {
+            "file": "lib/lab/setup/oauth-google.ts",
+            "line": 89,
+            "operation": "GET youtube/v3/channels?part=id&mine=true (youtubeChannelId)",
+            "fields": [
+              "Authorization: Bearer access token"
+            ],
+            "notes": "Reads items[0].id as the connected channel id. Called from exchangeYoutubeCode and the youtube.token health check (health.ts:102)."
+          },
+          {
+            "file": "lib/lab/setup/oauth-google.ts",
+            "line": 121,
+            "operation": "POST oauth2.googleapis.com/revoke",
+            "fields": [
+              "token=refresh token"
+            ],
+            "notes": "revokeGoogle on disconnect. Errors are swallowed; local fields are removed regardless."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "slack",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/comms/reply/route.ts",
+            "line": 36,
+            "operation": "sendSlackMessage (Slack chat post via lib/connectors/slack.ts:50)",
+            "fields": [
+              "channel",
+              "text"
+            ],
+            "notes": "Wrapper call; the Slack HTTP request is made inside lib/connectors/slack.ts (not read here). Result returned to the caller."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "meta-whatsapp-cloud-api",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/comms/reply/route.ts",
+            "line": 41,
+            "operation": "POST https://graph.facebook.com/v21.0/{phoneNumberId}/messages (sendWhatsAppMessage)",
+            "fields": [
+              "jid",
+              "text"
+            ],
+            "notes": "Wrapper lib/connectors/whatsapp-send.ts:71 posts to GRAPH (line 22, v21.0) at line 78. Only the outbound send is over HTTP; WhatsApp history reads come from a local chat DB, not an API."
+          },
+          {
+            "file": "lib/connectors/whatsapp-send.ts",
+            "line": 78,
+            "operation": "POST https://graph.facebook.com/v21.0/{phoneNumberId}/messages",
+            "fields": [
+              "Authorization: Bearer token",
+              "messaging_product/to/text body"
+            ],
+            "notes": "sendWhatsAppMessage wrapper (called from app/api/comms/reply/route.ts:41). Uses GRAPH constant at line 22."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "youtube",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "lib/lab/ledger/retention/youtube.ts",
+            "line": 15,
+            "operation": "GET googleapis.com/youtube/v3/channels, /playlistItems and youtubeanalytics.googleapis.com/v2/reports (via getJson)",
+            "fields": [
+              "Authorization: Bearer google access token",
+              "part=contentDetails, id, playlistId, maxResults=50, pageToken",
+              "ids=channel==MINE, startDate, endDate, metrics, dimensions, filters=video==id"
+            ],
+            "notes": "Single request in the getJson helper. Callers: listOwnVideos (youtube.ts:46 channel, :52 playlistItems, up to 4 pages), fetchRetentionCurve (:62, audienceWatchRatio and relativeRetentionPerformance rows), fetchVideoSummary (:69, views, averageViewDuration, averageViewPercentage). Error message from body.error.message. Access token from googleAccessToken in oauth-google.ts."
+          }
+        ],
+        "pinnedVersion": {
+          "value": "youtube/v3 (Data API) and youtubeanalytics v2 reports",
+          "file": "lib/lab/ledger/retention/youtube.ts",
+          "line": 8
+        }
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "producthunt",
+        "via": "graphql",
+        "callSites": [
+          {
+            "file": "lib/lab/feeds.ts",
+            "line": 180,
+            "operation": "query (inline) posts(order: VOTES, topic: artificial-intelligence, first: 20, postedAfter)",
+            "fields": [
+              "Authorization: Bearer PRODUCTHUNT_TOKEN",
+              "query posts edges node id name tagline url votesCount commentsCount createdAt"
+            ],
+            "notes": "fetchProductHunt. Response parsed by parseProductHunt; errors thrown on non-ok."
+          },
+          {
+            "file": "lib/lab/setup/health.ts",
+            "line": 128,
+            "operation": "query (inline) viewer { user { id } }",
+            "fields": [
+              "Authorization: Bearer token"
+            ],
+            "notes": "producthunt.auth health check; reads only errors and status."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "hn.algolia.com",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "lib/lab/feeds.ts",
+            "line": 153,
+            "operation": "GET hn.algolia.com/api/v1/search (query, tags=story, numericFilters, hitsPerPage=30)",
+            "notes": "fetchHn via getJson (feeds.ts:141-145). Parsed by parseHn."
+          },
+          {
+            "file": "lib/lab/radar/fetch/hn.ts",
+            "line": 47,
+            "operation": "GET hn.algolia.com/api/v1/search_by_date (first page)",
+            "notes": "Radar HN source via getJson; parseHnRadar reads nbPages and hits."
+          },
+          {
+            "file": "lib/lab/radar/fetch/hn.ts",
+            "line": 49,
+            "operation": "GET hn.algolia.com/api/v1/search_by_date (paged, up to HN_MAX_PAGES)",
+            "notes": "Pages 2 onward of the Radar HN source."
+          },
+          {
+            "file": "lib/lab/radar/run.ts",
+            "line": 242,
+            "operation": "GET hn.algolia.com/api/v1/search (hnAttentionUrl for an event name)",
+            "notes": "Attention check for a Radar event, parsed by parseHnAttention."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "reddit",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "lib/lab/feeds.ts",
+            "line": 164,
+            "operation": "GET reddit.com/r/{sub}/top.json?t=week&limit=25",
+            "fields": [
+              "User-Agent: UA"
+            ],
+            "notes": "fetchReddit via getJson. parseRedditJson reads posts (permalink, title, score, comments). On error it falls back to the RSS call at line 166."
+          },
+          {
+            "file": "lib/lab/feeds.ts",
+            "line": 166,
+            "operation": "GET reddit.com/r/{sub}/top/.rss?t=week (fallback)",
+            "fields": [
+              "User-Agent: UA"
+            ],
+            "notes": "Fallback when the JSON read throws. Atom text parsed by parseRedditAtom."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "github",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/lab/setup/health/route.ts",
+            "line": 21,
+            "operation": "GET https://api.github.com/rate_limit (github.auth check)",
+            "fields": [
+              "Authorization: Bearer <token>"
+            ],
+            "notes": "runNetworkCheck -> lib/lab/setup/health.ts:136 verifies the GitHub token."
+          },
+          {
+            "file": "app/api/lab/setup/keys/route.ts",
+            "line": 37,
+            "operation": "GET https://api.github.com/rate_limit (github.auth check)",
+            "fields": [
+              "Authorization: Bearer <token>"
+            ],
+            "notes": "runNetworkChecks -> lib/lab/setup/health.ts:136 on save of the GitHub key."
+          },
+          {
+            "file": "lib/lab/radar/fetch/github.ts",
+            "line": 50,
+            "operation": "GET api.github.com/search/repositories?q=created:>{since}+topic:{topic}&sort=stars&order=desc&per_page=30",
+            "fields": [
+              "Accept: application/vnd.github+json",
+              "Authorization: Bearer token (optional)"
+            ],
+            "notes": "Radar repo discovery via getJson; parseGithubSearch reads html_url, full_name and stars."
+          },
+          {
+            "file": "lib/lab/radar/fetch/github.ts",
+            "line": 100,
+            "operation": "GET api.github.com/repos/{full}/stargazers?per_page=100&page=N",
+            "fields": [
+              "Accept: application/vnd.github.star+json",
+              "Authorization (optional)"
+            ],
+            "notes": "Stargazer pages (starred_at and login) for the fake-star check (fakeStarCheck, run.ts:197)."
+          },
+          {
+            "file": "lib/lab/radar/fetch/github.ts",
+            "line": 106,
+            "operation": "GET api.github.com/users/{login}",
+            "fields": [
+              "Authorization (optional)"
+            ],
+            "notes": "Account age and profile for each stargazer (parseUser)."
+          },
+          {
+            "file": "lib/lab/radar/fetch/github.ts",
+            "line": 118,
+            "operation": "GET api.github.com/users/{login}",
+            "notes": "Single profile read, unauthenticated default fetch."
+          },
+          {
+            "file": "lib/lab/setup/health.ts",
+            "line": 136,
+            "operation": "GET api.github.com/rate_limit",
+            "fields": [
+              "Authorization: Bearer GITHUB_TOKEN",
+              "User-Agent: content-lab"
+            ],
+            "notes": "github.auth health check; reads resources.search.limit to warn when under 30 per minute."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "huggingface",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/lab/rules/route.ts",
+            "line": 32,
+            "operation": "GET https://huggingface.co/datasets/LookingtoLearn/Concreteness-Ratings/resolve/<commit>/ratings.csv (fetchLexicon)",
+            "fields": [],
+            "notes": "POST action fetch_lexicon. fetchLexicon in lib/lab/gen/lexicon.ts:110 downloads LEXICON_URL (line 19, pinned to a commit) and verifies a sha256 before writing; a hash mismatch writes nothing and returns 502."
+          },
+          {
+            "file": "lib/lab/gen/lexicon.ts",
+            "line": 115,
+            "operation": "GET huggingface.co/datasets/LookingtoLearn/Concreteness-Ratings/resolve/{pinned commit}/ratings.csv",
+            "notes": "fetchLexicon downloads the CSV, checks sha256 against the pin (LEXICON_SHA256), then writes it atomically. Pinned to a commit hash in LEXICON_URL (lexicon.ts:19). Triggered by the lexicon setup job, not per request."
+          },
+          {
+            "file": "lib/lab/radar/fetch/hf.ts",
+            "line": 48,
+            "operation": "GET huggingface.co/api/models?sort=trendingScore&direction=-1&limit=50",
+            "notes": "Radar hf_models source via getJson; parseHfModels."
+          },
+          {
+            "file": "lib/lab/radar/fetch/hf.ts",
+            "line": 51,
+            "operation": "GET huggingface.co/api/spaces?sort=trendingScore&direction=-1&limit=30",
+            "notes": "Radar hf_spaces source via getJson; parseHfSpaces."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "wikipedia",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "lib/lab/radar/fetch/wikipedia.ts",
+            "line": 32,
+            "operation": "GET en.wikipedia.org/w/api.php?action=opensearch&search=...&limit=3&format=json",
+            "notes": "resolveArticle; pickArticle reads the opensearch result and the canonical key. Called from radar/run.ts:231."
+          },
+          {
+            "file": "lib/lab/radar/fetch/wikipedia.ts",
+            "line": 50,
+            "operation": "GET wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user/{article}/daily/{from}/{to}",
+            "notes": "fetchPageviews; parsePageviews reads daily views. Called from radar/run.ts:239."
+          }
+        ],
+        "pinnedVersion": {
+          "value": "rest_v1 metrics/pageviews per-article; w/api.php action=opensearch",
+          "file": "lib/lab/radar/fetch/wikipedia.ts",
+          "line": 16
+        }
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "producthunt",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/lab/setup/health/route.ts",
+            "line": 21,
+            "operation": "POST https://api.producthunt.com/v2/api/graphql (producthunt.auth check, viewer query)",
+            "fields": [
+              "query: { viewer ... }"
+            ],
+            "notes": "runNetworkCheck -> lib/lab/setup/health.ts:128 checks the Product Hunt token."
+          },
+          {
+            "file": "app/api/lab/setup/keys/route.ts",
+            "line": 37,
+            "operation": "POST https://api.producthunt.com/v2/api/graphql (producthunt.auth check)",
+            "fields": [
+              "query: { viewer ... }"
+            ],
+            "notes": "runNetworkChecks -> lib/lab/setup/health.ts:128 on save of the Product Hunt key."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "trakyo",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/funnel/route.ts",
+            "line": 29,
+            "operation": "GET https://api.trakyo.io/v1/leads (trakyoTouches)",
+            "fields": [],
+            "notes": "lib/connectors/trakyo.ts (TRAKYO_API line 24) reads /v1/leads for first/last attributed touches; merged via mergeTrakyoTouches. Called only when the live mode path runs."
+          },
+          {
+            "file": "app/api/trakyo/links/route.ts",
+            "line": 43,
+            "operation": "trakyoLinkWorkspace (Trakyo API, link workspace read)",
+            "fields": [],
+            "notes": "Wrapper call in lib/connectors/trakyo.ts; base https://api.trakyo.io/v1. Route is gated on trakyoKey() at line 58 (returns 503 when unset). The exact endpoint is inside the wrapper, not read here."
+          },
+          {
+            "file": "lib/connectors/trakyo.ts",
+            "line": 62,
+            "operation": "GET|POST https://api.trakyo.io/v1/{path} (request() sink)",
+            "fields": [
+              "Authorization: Bearer tky_live key",
+              "X-Trakyo-Account (reads)",
+              "JSON body (writes)"
+            ],
+            "notes": "Single fetch for all Trakyo calls; base TRAKYO_API line 24. Callers: metrics (line 115), keys/self (177), domains and links?limit=100 (187), content write (260), links write (277), leads?query (346). Errors become TrakyoError."
+          },
+          {
+            "file": "lib/connectors/trakyo.ts",
+            "line": 115,
+            "operation": "GET /v1/metrics",
+            "notes": "trakyo metrics read, scope metrics:read."
+          },
+          {
+            "file": "lib/connectors/trakyo.ts",
+            "line": 177,
+            "operation": "GET /v1/keys/self",
+            "notes": "key introspection for status."
+          },
+          {
+            "file": "lib/connectors/trakyo.ts",
+            "line": 187,
+            "operation": "GET /v1/domains and GET /v1/links?limit=100",
+            "notes": "Promise.allSettled pair, scope links:read."
+          },
+          {
+            "file": "lib/connectors/trakyo.ts",
+            "line": 260,
+            "operation": "POST /v1/content",
+            "notes": "write call; body not read in this pass."
+          },
+          {
+            "file": "lib/connectors/trakyo.ts",
+            "line": 277,
+            "operation": "POST /v1/links",
+            "notes": "write call; body not read in this pass."
+          },
+          {
+            "file": "lib/connectors/trakyo.ts",
+            "line": 346,
+            "operation": "GET /v1/leads",
+            "fields": [
+              "query string"
+            ],
+            "notes": "leads page read, scope leads:read."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "vendor-rss-feeds",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "lib/lab/radar/fetch/vendor.ts",
+            "line": 117,
+            "operation": "GET {feed.url} (RSS/Atom or HTML index)",
+            "notes": "getText via getJson-style helper (radar/util.ts:68); text parsed as RSS or scanned with slugRe. Feed list in lib/lab/radar/config.ts:46-56. Called from radar/run.ts:314 (fetchVendor)."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "instagram-cdn",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "lib/lab/gen/frames.ts",
+            "line": 171,
+            "operation": "GET {post.mediaUrl} (Instagram CDN video URL stored from the Apify result)",
+            "notes": "Follow-the-response: the URL comes from the scraped post record, so the host is whatever Apify returned. Runs inside gatedCall provider downloads (frames.ts:178). Bytes are capped at FRAMES_MAX_BYTES and written to a temp file. Wraps labFetch, which blocks non-local hosts in dry mode."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "anthropic",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "lib/lab/dissect.ts",
+            "line": 211,
+            "operation": "claudeJson (dissect runner, default)",
+            "fields": [
+              "prompt",
+              "DissectReplySchema",
+              "timeoutMs 180000",
+              "model"
+            ],
+            "notes": "One call per post; the wrapper is lib/creative-engine/claude (outside this area) and spawns the claude CLI."
+          },
+          {
+            "file": "lib/lab/gen/claude-image.ts",
+            "line": 79,
+            "operation": "spawn claude -p --input-format stream-json --output-format stream-json (with contact-sheet image)",
+            "fields": [
+              "prompt",
+              "contact sheet image (base64, stream-json)",
+              "--max-turns 1",
+              "--model (optional)"
+            ],
+            "notes": "Primary path for the dissect call with an image. Spawned via run(); no HTTP here."
+          },
+          {
+            "file": "lib/lab/gen/claude-image.ts",
+            "line": 97,
+            "operation": "spawn claude -p (fallback, --output-format json, --allowedTools Read)",
+            "notes": "Fallback when stream-json input is refused; the image path is passed in the prompt."
+          },
+          {
+            "file": "lib/lab/gen/comments.ts",
+            "line": 421,
+            "operation": "claudeJson (seed-idea ask, default)",
+            "fields": [
+              "prompt",
+              "VsCandidateSchema",
+              "timeoutMs 120000"
+            ],
+            "notes": "The default ask; the actual invocation is at comments.ts:440."
+          },
+          {
+            "file": "lib/lab/gen/diversity.ts",
+            "line": 296,
+            "operation": "claudeJson (idea rounds ask, default)",
+            "fields": [
+              "prompt",
+              "VsReplySchema"
+            ],
+            "notes": "Default ask; invoked at diversity.ts:310."
+          },
+          {
+            "file": "lib/lab/gen/event-idea.ts",
+            "line": 135,
+            "operation": "claudeJson (event idea ask, default)",
+            "fields": [
+              "prompt",
+              "VsCandidateSchema"
+            ],
+            "notes": "Default ask; invoked at event-idea.ts:157."
+          },
+          {
+            "file": "lib/lab/gen/judge.ts",
+            "line": 65,
+            "operation": "claudeJson (pairwise hook judge, default)",
+            "fields": [
+              "prompt",
+              "JudgeReplySchema",
+              "model"
+            ],
+            "notes": "Default ask; invoked at judge.ts:70 (and 77-78 for both orderings)."
+          },
+          {
+            "file": "lib/lab/ideas.ts",
+            "line": 300,
+            "operation": "claudeJson (idea generation ask, default)",
+            "fields": [
+              "prompt",
+              "IdeaReplySchema",
+              "timeoutMs 150000"
+            ],
+            "notes": "Default ask; invoked at ideas.ts:304."
+          },
+          {
+            "file": "lib/lab/radar/run.ts",
+            "line": 342,
+            "operation": "claudeJson (Radar name reply)",
+            "fields": [
+              "prompt",
+              "NameReply",
+              "timeoutMs 120000"
+            ],
+            "notes": "Also the novelty (run.ts:343) and angle (run.ts:344) asks; gated through gatedCall at run.ts:332."
+          },
+          {
+            "file": "lib/lab/scripts.ts",
+            "line": 399,
+            "operation": "claudeJson (script model check, default)",
+            "fields": [
+              "prompt",
+              "CheckReplySchema"
+            ],
+            "notes": "Invoked at scripts.ts:404."
+          },
+          {
+            "file": "lib/lab/scripts.ts",
+            "line": 430,
+            "operation": "claudeJson (script generation, default)",
+            "fields": [
+              "prompt",
+              "ScriptReplySchema",
+              "timeoutMs 180000"
+            ],
+            "notes": "Invoked at scripts.ts:434."
+          },
+          {
+            "file": "lib/lab/scripts.ts",
+            "line": 504,
+            "operation": "claudeJson (script section regenerate, default)",
+            "fields": [
+              "prompt",
+              "SectionReplySchema"
+            ],
+            "notes": "Invoked at scripts.ts:512."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "beehiiv",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/connections/route.ts",
+            "line": 8,
+            "operation": "GET https://api.beehiiv.com/v2 (beehiivStatus, via allConnectorStatuses)",
+            "fields": [
+              "Authorization (API key)"
+            ],
+            "notes": "Status check runs on every connections page load (fresh:true). Wrapper in lib/connectors/beehiiv.ts (BEEHIIV_API line 9; fetch at lines 45, 69, 174). Also reached from connections/summary/route.ts:13 (cached). Only the status result is returned here; subscriber reads are used by the social email list elsewhere."
+          },
+          {
+            "file": "lib/connectors/beehiiv.ts",
+            "line": 45,
+            "operation": "GET https://api.beehiiv.com/v2/publications/{pub}/... (endpoint())",
+            "fields": [
+              "Authorization: Bearer BEEHIIV_API_KEY",
+              "publication id in path"
+            ],
+            "notes": "Status/publication read (beehiivStatus path); endpoint() at line 21 builds the URL. Response read for connection detail. Behind swr via beehiivRead."
+          },
+          {
+            "file": "lib/connectors/beehiiv.ts",
+            "line": 69,
+            "operation": "GET https://api.beehiiv.com/v2/publications/{pub}/... (endpoint())",
+            "fields": [
+              "Authorization: Bearer BEEHIIV_API_KEY"
+            ],
+            "notes": "Second read through endpoint(); see the file for the exact resource (subscriber/stats read). Not read in full."
+          },
+          {
+            "file": "lib/connectors/beehiiv.ts",
+            "line": 174,
+            "operation": "GET /v2/publications/{pub}/posts?expand[]=stats&limit=50&order_by=publish_date&direction=desc",
+            "fields": [
+              "expand[]=stats",
+              "limit=50",
+              "order_by=publish_date",
+              "direction=desc"
+            ],
+            "notes": "beehiivPosts: lists recent posts with stats, returns Newsletter[] or null when unconfigured. Wrapped by beehiivRead (swr)."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "miro",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/connections/route.ts",
+            "line": 8,
+            "operation": "GET https://api.miro.com/v2/boards?limit=10 (miroStatus, via allConnectorStatuses)",
+            "fields": [
+              "Authorization (token)"
+            ],
+            "notes": "lib/connectors/miro.ts:16. Only used to check connectivity; response used for status only."
+          },
+          {
+            "file": "lib/connectors/miro.ts",
+            "line": 16,
+            "operation": "GET https://api.miro.com/v2/boards?limit=10",
+            "fields": [
+              "Authorization: Bearer token"
+            ],
+            "notes": "miroStatus connection probe; reads count of boards only (not stored). Token from resolveCred."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "webinarjam",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/connections/route.ts",
+            "line": 8,
+            "operation": "POST https://api.webinarjam.com/webinarjam/... (webinarjamStatus, via allConnectorStatuses)",
+            "fields": [
+              "api key"
+            ],
+            "notes": "BASE in lib/connectors/webinarjam.ts:16. Exact endpoint is in the status function; not read in detail."
+          },
+          {
+            "file": "lib/connectors/webinarjam.ts",
+            "line": 39,
+            "operation": "POST https://api.webinarjam.com/webinarjam/webinars",
+            "fields": [
+              "api_key (form)"
+            ],
+            "notes": "webinarjamStatus connection probe (line 30 onward). Reads status and webinars length only. BASE at line 16. Errors become state 'error'. Caller: lib/connectors/index.ts status list."
+          },
+          {
+            "file": "lib/connectors/webinarjam.ts",
+            "line": 72,
+            "operation": "POST https://api.webinarjam.com/webinarjam/registrants",
+            "fields": [
+              "api_key (form)",
+              "webinar_id",
+              "schedule_id"
+            ],
+            "notes": "listRegistrants: returns body.registrants (unknown[]); non-2xx throws. Returns [] when unconfigured. Caller not checked in this read."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "foreplay",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/connections/route.ts",
+            "line": 8,
+            "operation": "GET https://public.api.foreplay.co/... (foreplayStatus, via allConnectorStatuses)",
+            "fields": [
+              "Authorization (token)"
+            ],
+            "notes": "BASE_URL in lib/foreplay/client.ts:17, used by the connector status check via lib/connectors/foreplay.ts. Endpoint not read in detail."
+          },
+          {
+            "file": "lib/foreplay/client.ts",
+            "line": 153,
+            "operation": "GET https://public.api.foreplay.co{path} (ForeplayClient.request)",
+            "fields": [
+              "Authorization: key (raw key, no Bearer)",
+              "query params per method"
+            ],
+            "notes": "Single network sink, used by all methods below. Injected fetchImpl. Responses parsed with zod schemas. Connector status in lib/connectors/foreplay.ts imports FOREPLAY_KEY from this client."
+          },
+          {
+            "file": "lib/foreplay/client.ts",
+            "line": 168,
+            "operation": "GET /api/usage",
+            "notes": "usage(); parsed by ForeplayUsageSchema."
+          },
+          {
+            "file": "lib/foreplay/client.ts",
+            "line": 175,
+            "operation": "GET /api/spyder/brands",
+            "fields": [
+              "limit=10",
+              "offset"
+            ],
+            "notes": "brands page, parsed as array of SpyderBrandSchema."
+          },
+          {
+            "file": "lib/foreplay/client.ts",
+            "line": 183,
+            "operation": "GET /api/spyder/brand/ads",
+            "fields": [
+              "brand_id",
+              "filters"
+            ],
+            "notes": "brand ads listing."
+          },
+          {
+            "file": "lib/foreplay/client.ts",
+            "line": 189,
+            "operation": "GET /api/brand/analytics",
+            "fields": [
+              "id",
+              "start_date",
+              "end_date"
+            ],
+            "notes": "brand analytics."
+          },
+          {
+            "file": "lib/foreplay/client.ts",
+            "line": 195,
+            "operation": "GET /api/brand/getBrandsByDomain",
+            "fields": [
+              "domain",
+              "limit"
+            ],
+            "notes": "brand lookup by domain."
+          },
+          {
+            "file": "lib/foreplay/client.ts",
+            "line": 200,
+            "operation": "GET /api/brand/getAdsByBrandId",
+            "fields": [
+              "brand_ids",
+              "filters"
+            ],
+            "notes": "ads by brand ids."
+          },
+          {
+            "file": "lib/foreplay/client.ts",
+            "line": 206,
+            "operation": "GET /api/discovery/ads",
+            "fields": [
+              "query",
+              "filters"
+            ],
+            "notes": "ad discovery search."
+          },
+          {
+            "file": "lib/foreplay/client.ts",
+            "line": 211,
+            "operation": "GET /api/ad",
+            "fields": [
+              "ad_id"
+            ],
+            "notes": "single ad, parsed by ForeplayAdSchema."
+          },
+          {
+            "file": "lib/foreplay/client.ts",
+            "line": 216,
+            "operation": "GET /api/ad/duplicates/{adId}",
+            "notes": "duplicate ads for an ad id."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "coingecko",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/connections/route.ts",
+            "line": 8,
+            "operation": "GET https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd (phantomConnectorStatus, via allConnectorStatuses)",
+            "fields": [
+              "ids",
+              "vs_currencies"
+            ],
+            "notes": "PRICE_URL in lib/connectors/phantom.ts:16. Also Solana mainnet RPC at phantom.ts:15 (DEFAULT_SOLANA_RPC, https://api.mainnet-beta.solana.com), used by the same status probe; that RPC is a public JSON-RPC host and was not separately recorded."
+          },
+          {
+            "file": "lib/connectors/phantom.ts",
+            "line": 70,
+            "operation": "GET https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd (via json())",
+            "notes": "PRICE_URL at line 16, requested through the json() sink. Failure nulls usdValue only. Exact call line inside the price function not read; line 70 is the sink."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "google-calendar",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/connections/route.ts",
+            "line": 8,
+            "operation": "REPORT/GET https://www.google.com/calendar/dav/{email}/events/ (calendarStatus, via allConnectorStatuses)",
+            "fields": [
+              "Basic auth"
+            ],
+            "notes": "lib/connectors/gcal.ts:201 builds the CalDAV URL for the account; the status probe reads events over Basic auth. Method was not read in detail."
+          }
+        ]
+      },
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "solana",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "lib/connectors/phantom.ts",
+            "line": 70,
+            "operation": "POST JSON-RPC getBalance (via json() sink, default https://api.mainnet-beta.solana.com)",
+            "notes": "json() is the only fetch in this file, used for the RPC and the price call. RPC URL from SOLANA_RPC_URL (line 50) else DEFAULT_SOLANA_RPC (line 15). Body built in lines 84-164 (not read). Result lamports converted to SOL. SWR cached 60s. Address from PHANTOM_WALLET_ADDRESS (public key only)."
+          }
+        ]
+      }
+    ],
+    "priority": 0
+  },
+  "record": {
+    "taskId": "Bennettxai__FounderOS:twilio:2026-09-memory-update-empty-body-400",
+    "outcome": "not-affected",
+    "diff": "",
+    "checks": [],
+    "costUsd": 0,
+    "transcriptPath": "",
+    "note": "The repo has no Twilio integration."
+  },
+  "transcript": "",
+  "usedRecipeIds": []
+}

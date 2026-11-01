@@ -27,15 +27,23 @@ export async function detectPackageManager(dir: string): Promise<PackageManager>
   return 'none';
 }
 
-// Install scripts are always off, in Docker too: untrusted repo code runs only in a sandbox with
-// install scripts off (Otabek's rule, stricter than the plan; allowing them in Docker is for the founders).
-export function installCommand(pm: PackageManager): string {
+// Install scripts run only inside Docker (founder decision, Pierce, 2026-11-01): the container is
+// the sandbox, and setup such as `prisma generate` runs from postinstall. A local sandbox shares
+// the host, so it keeps them off.
+export function installCommand(pm: PackageManager, { scripts = false } = {}): string {
   switch (pm) {
     case 'npm':
-      return 'npm ci --ignore-scripts --no-audit --no-fund || npm install --ignore-scripts --no-audit --no-fund';
+      return scripts
+        ? 'npm ci --no-audit --no-fund || npm install --no-audit --no-fund'
+        : 'npm ci --ignore-scripts --no-audit --no-fund || npm install --ignore-scripts --no-audit --no-fund';
     case 'pnpm':
-      return 'pnpm install --frozen-lockfile --ignore-scripts || pnpm install --ignore-scripts';
+      return scripts
+        ? 'pnpm install --frozen-lockfile || pnpm install'
+        : 'pnpm install --frozen-lockfile --ignore-scripts || pnpm install --ignore-scripts';
     case 'yarn': {
+      if (scripts) {
+        return "if yarn --version | grep -q '^1\\.'; then yarn install --frozen-lockfile || yarn install; else yarn install --immutable || yarn install; fi";
+      }
       // Yarn 1 takes --ignore-scripts; Yarn 2+ rejects that flag and reads YARN_ENABLE_SCRIPTS.
       const classic =
         'yarn install --frozen-lockfile --ignore-scripts || yarn install --ignore-scripts';
@@ -44,13 +52,18 @@ export function installCommand(pm: PackageManager): string {
       return `if yarn --version | grep -q '^1\\.'; then ${classic}; else ${berry}; fi`;
     }
     case 'bun':
-      return 'bun install --frozen-lockfile --ignore-scripts || bun install --ignore-scripts';
+      return scripts
+        ? 'bun install --frozen-lockfile || bun install'
+        : 'bun install --frozen-lockfile --ignore-scripts || bun install --ignore-scripts';
     case 'pip':
+      if (scripts)
+        return 'if [ -f requirements.txt ]; then python3 -m pip install -r requirements.txt; else python3 -m pip install -e .; fi';
       return (
         'if [ -f requirements.txt ]; then python3 -m pip install --only-binary=:all: -r requirements.txt; ' +
         'else echo "installs only prebuilt wheels from requirements.txt; install other dependencies with pip --only-binary=:all:"; fi'
       );
     case 'poetry':
+      if (scripts) return 'poetry install --no-root';
       // shortcut: Poetry before 1.8 ignores installer.only-binary and may build sdists; pin Poetry 1.8+ in the image.
       return 'POETRY_INSTALLER_ONLY_BINARY=:all: PIP_ONLY_BINARY=:all: poetry install --no-root';
     case 'none':

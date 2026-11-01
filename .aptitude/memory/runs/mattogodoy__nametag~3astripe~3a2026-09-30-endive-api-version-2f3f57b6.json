@@ -1,0 +1,180 @@
+{
+  "id": "mattogodoy__nametag:stripe:2026-09-30-endive-api-version-2f3f57b6",
+  "recordedAt": "2026-11-01T17:29:04.864Z",
+  "task": {
+    "id": "mattogodoy__nametag:stripe:2026-09-30-endive-api-version",
+    "repo": "mattogodoy__nametag",
+    "change": {
+      "provider": "stripe",
+      "id": "stripe:2026-09-30-endive-api-version",
+      "kind": "api-version",
+      "title": "New breaking API major 2026-09-30.endive; callers must review breaking items before pinning or upgrading (SDK/webhook endpoints too)",
+      "source": {
+        "url": "https://docs.stripe.com/changelog/endive.md",
+        "quote": "As the first version in the Endive release, `2026-09-30.endive` introduces both breaking changes and new features."
+      },
+      "affects": {
+        "versions": [
+          "2026-09-30.endive"
+        ]
+      },
+      "effectiveDate": "2026-09-30"
+    },
+    "usages": [
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "stripe",
+        "via": "sdk",
+        "callSites": [
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 52,
+            "operation": "customers.create",
+            "fields": [
+              "email",
+              "name",
+              "metadata"
+            ],
+            "notes": "Client lazily built in getStripe() from STRIPE_SECRET_KEY; stores customer.id"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 138,
+            "operation": "checkout.sessions.create",
+            "fields": [
+              "customer",
+              "mode",
+              "line_items",
+              "success_url",
+              "cancel_url",
+              "metadata",
+              "discounts"
+            ],
+            "notes": "Returned to /api/billing/checkout"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 157,
+            "operation": "billingPortal.sessions.create",
+            "fields": [
+              "customer",
+              "return_url"
+            ],
+            "notes": "Used by /api/billing/portal"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 171,
+            "operation": "subscriptions.cancel",
+            "notes": "immediate cancel; /api/billing/cancel"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 174,
+            "operation": "subscriptions.update",
+            "fields": [
+              "cancel_at_period_end"
+            ]
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 185,
+            "operation": "subscriptions.update",
+            "fields": [
+              "cancel_at_period_end"
+            ],
+            "notes": "resume"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 201,
+            "operation": "subscriptions.retrieve"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 204,
+            "operation": "subscriptions.update",
+            "fields": [
+              "items",
+              "proration_behavior",
+              "metadata"
+            ],
+            "notes": "plan change"
+          },
+          {
+            "file": "lib/billing/stripe.ts",
+            "line": 241,
+            "operation": "coupons.create",
+            "fields": [
+              "percent_off",
+              "duration",
+              "duration_in_months",
+              "metadata"
+            ]
+          }
+        ],
+        "pinnedVersion": {
+          "value": "2025-11-17.clover",
+          "file": "lib/billing/stripe.ts",
+          "line": 15
+        },
+        "sdk": {
+          "name": "stripe",
+          "version": "20.0.0",
+          "lockfile": "package-lock.json"
+        }
+      },
+      {
+        "repo": "mattogodoy__nametag",
+        "provider": "stripe",
+        "via": "webhook",
+        "callSites": [
+          {
+            "file": "app/api/webhooks/stripe/route.ts",
+            "line": 55,
+            "operation": "webhooks.constructEvent (signature verification)",
+            "notes": "via lib/billing/stripe.ts:252"
+          },
+          {
+            "file": "app/api/webhooks/stripe/route.ts",
+            "line": 76,
+            "operation": "event handlers: checkout.session.completed, customer.subscription.created/updated/deleted, invoice.paid, invoice.payment_failed"
+          }
+        ]
+      }
+    ],
+    "deadline": "2026-09-30",
+    "priority": 2,
+    "notes": "The repo pins clover, so endive does not change behaviour automatically. It does matter for any SDK or pin upgrade, and stripe-node v23 pins endive. None of the current call sites use the specific endive-removed parameters: no payment_method_types, no billing_cycle_anchor, no intents, no Connect. The migration agent should confirm this when bumping, especially checkout.sessions.create and subscriptions.update. This is low urgency and only needed when upgrading.",
+    "reasoning": "The repo pins clover, so endive does not change behaviour automatically. It does matter for any SDK or pin upgrade, and stripe-node v23 pins endive. None of the current call sites use the specific endive-removed parameters: no payment_method_types, no billing_cycle_anchor, no intents, no Connect. The migration agent should confirm this when bumping, especially checkout.sessions.create and subscriptions.update. This is low urgency and only needed when upgrading.",
+    "urgency": "low",
+    "callSites": [
+      {
+        "file": "lib/billing/stripe.ts",
+        "line": 15,
+        "why": "Pinned apiVersion '2025-11-17.clover' would be two breaking majors behind endive. Upgrading means reviewing the endive breaking list."
+      },
+      {
+        "file": "lib/billing/stripe.ts",
+        "line": 138,
+        "why": "checkout.sessions.create is the main surface touched by endive Checkout changes. The current fields (customer, mode, line_items, discounts, urls, metadata) do not include payment_method_types, but this should be re-verified."
+      },
+      {
+        "file": "app/api/webhooks/stripe/route.ts",
+        "line": 76,
+        "why": "Event payloads follow the webhook endpoint's API version. If the endpoint is upgraded to endive, the handlers must be re-checked."
+      }
+    ]
+  },
+  "record": {
+    "taskId": "mattogodoy__nametag:stripe:2026-09-30-endive-api-version",
+    "outcome": "failed",
+    "diff": "",
+    "checks": [],
+    "costUsd": 0,
+    "transcriptPath": "",
+    "note": "not attempted: $1.86 of the run cap left, below the $2 a task needs"
+  },
+  "transcript": "",
+  "usedRecipeIds": []
+}

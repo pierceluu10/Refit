@@ -1,0 +1,140 @@
+{
+  "id": "Bennettxai__FounderOS:github:2022-11-28-end-of-support-5d2eb318",
+  "recordedAt": "2026-11-01T17:36:32.860Z",
+  "task": {
+    "id": "Bennettxai__FounderOS:github:2022-11-28-end-of-support",
+    "repo": "Bennettxai__FounderOS",
+    "change": {
+      "provider": "github",
+      "id": "github:2022-11-28-end-of-support",
+      "kind": "api-version",
+      "title": "API version 2022-11-28 (default when no header is sent) ends support March 10, 2028; unversioned requests then fall to next supported version",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/api-versions",
+        "quote": "Requests that do not specify an API version default to the next oldest supported version, not the closing down version."
+      },
+      "affects": {
+        "versions": [
+          "2022-11-28",
+          "2026-03-10"
+        ]
+      },
+      "effectiveDate": "2028-03-10"
+    },
+    "usages": [
+      {
+        "repo": "Bennettxai__FounderOS",
+        "provider": "github",
+        "via": "http",
+        "callSites": [
+          {
+            "file": "app/api/lab/setup/health/route.ts",
+            "line": 21,
+            "operation": "GET https://api.github.com/rate_limit (github.auth check)",
+            "fields": [
+              "Authorization: Bearer <token>"
+            ],
+            "notes": "runNetworkCheck -> lib/lab/setup/health.ts:136 verifies the GitHub token."
+          },
+          {
+            "file": "app/api/lab/setup/keys/route.ts",
+            "line": 37,
+            "operation": "GET https://api.github.com/rate_limit (github.auth check)",
+            "fields": [
+              "Authorization: Bearer <token>"
+            ],
+            "notes": "runNetworkChecks -> lib/lab/setup/health.ts:136 on save of the GitHub key."
+          },
+          {
+            "file": "lib/lab/radar/fetch/github.ts",
+            "line": 50,
+            "operation": "GET api.github.com/search/repositories?q=created:>{since}+topic:{topic}&sort=stars&order=desc&per_page=30",
+            "fields": [
+              "Accept: application/vnd.github+json",
+              "Authorization: Bearer token (optional)"
+            ],
+            "notes": "Radar repo discovery via getJson; parseGithubSearch reads html_url, full_name and stars."
+          },
+          {
+            "file": "lib/lab/radar/fetch/github.ts",
+            "line": 100,
+            "operation": "GET api.github.com/repos/{full}/stargazers?per_page=100&page=N",
+            "fields": [
+              "Accept: application/vnd.github.star+json",
+              "Authorization (optional)"
+            ],
+            "notes": "Stargazer pages (starred_at and login) for the fake-star check (fakeStarCheck, run.ts:197)."
+          },
+          {
+            "file": "lib/lab/radar/fetch/github.ts",
+            "line": 106,
+            "operation": "GET api.github.com/users/{login}",
+            "fields": [
+              "Authorization (optional)"
+            ],
+            "notes": "Account age and profile for each stargazer (parseUser)."
+          },
+          {
+            "file": "lib/lab/radar/fetch/github.ts",
+            "line": 118,
+            "operation": "GET api.github.com/users/{login}",
+            "notes": "Single profile read, unauthenticated default fetch."
+          },
+          {
+            "file": "lib/lab/setup/health.ts",
+            "line": 136,
+            "operation": "GET api.github.com/rate_limit",
+            "fields": [
+              "Authorization: Bearer GITHUB_TOKEN",
+              "User-Agent: content-lab"
+            ],
+            "notes": "github.auth health check; reads resources.search.limit to warn when under 30 per minute."
+          }
+        ]
+      }
+    ],
+    "deadline": "2028-03-10",
+    "priority": 3,
+    "notes": "None of the GitHub REST calls send X-GitHub-Api-Version, so they use the 2022-11-28 default. When that version loses support on March 10, 2028, the calls will be served as 2026-03-10. From reading the 2026-03-10 breaking list against the fields used (resources.search.limit, html_url, full_name, stargazers_count, starred_at, login, user profile fields), nothing used appears to break. The migration agent should add an explicit X-GitHub-Api-Version header, verify the responses on 2026-03-10 (especially the search item stars field and the user profile fields), and pin it. Impact is low and the deadline is far off.",
+    "reasoning": "None of the GitHub REST calls send X-GitHub-Api-Version, so they use the 2022-11-28 default. When that version loses support on March 10, 2028, the calls will be served as 2026-03-10. From reading the 2026-03-10 breaking list against the fields used (resources.search.limit, html_url, full_name, stargazers_count, starred_at, login, user profile fields), nothing used appears to break. The migration agent should add an explicit X-GitHub-Api-Version header, verify the responses on 2026-03-10 (especially the search item stars field and the user profile fields), and pin it. Impact is low and the deadline is far off.",
+    "urgency": "low",
+    "callSites": [
+      {
+        "file": "lib/lab/setup/health.ts",
+        "line": 136,
+        "why": "GET /rate_limit is sent with no X-GitHub-Api-Version header, so it rides on the default 2022-11-28. After 2028-03-10 it falls to 2026-03-10. It reads resources.search.limit, which survives the move (only the top-level 'rate' is removed)."
+      },
+      {
+        "file": "lib/lab/radar/fetch/github.ts",
+        "line": 50,
+        "why": "Search repositories is sent unversioned and reads html_url, full_name and stars, so it will move to the next supported version."
+      },
+      {
+        "file": "lib/lab/radar/fetch/github.ts",
+        "line": 100,
+        "why": "Stargazers with the star+json media type is unversioned, so it will move to the next supported version."
+      },
+      {
+        "file": "lib/lab/radar/fetch/github.ts",
+        "line": 106,
+        "why": "GET /users/{login} is unversioned, so it will move to the next supported version."
+      },
+      {
+        "file": "lib/lab/radar/fetch/github.ts",
+        "line": 118,
+        "why": "The unauthenticated GET /users/{login} is unversioned, so it will move to the next supported version."
+      }
+    ]
+  },
+  "record": {
+    "taskId": "Bennettxai__FounderOS:github:2022-11-28-end-of-support",
+    "outcome": "failed",
+    "diff": "",
+    "checks": [],
+    "costUsd": 0,
+    "transcriptPath": "",
+    "note": "not attempted: $0.17 of the run cap left, below the $2 a task needs"
+  },
+  "transcript": "",
+  "usedRecipeIds": []
+}

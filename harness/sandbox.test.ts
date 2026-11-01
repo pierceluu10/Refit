@@ -139,7 +139,7 @@ describe('docker sandbox', () => {
       sandbox = await createSandbox(repoDir, { mode: 'docker' });
       expect(sandbox.mode).toBe('docker');
       expect(sandboxEnvNote(sandbox)).toBe(
-        'Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy',
+        'Docker container node:22-bookworm; install scripts enabled; no host env or mounts besides the repo copy',
       );
       const node = await sandbox.exec('node -v');
       expect(node.code).toBe(0);
@@ -158,7 +158,7 @@ describe('docker sandbox', () => {
   );
 
   it.skipIf(!dockerAvailable())(
-    'gives the container no host env, credentials or home mount, and keeps install scripts off',
+    'gives the container no host env, credentials or home mount, and lets install scripts run inside it',
     async () => {
       process.env.FOO_TOKEN = 'host-secret-value-123';
       try {
@@ -174,17 +174,18 @@ describe('docker sandbox', () => {
         const env = await sandbox.exec('env');
         expect(env.stdout).not.toContain('host-secret-value-123');
         expect(env.stdout).not.toContain(os.homedir());
-        expect(env.stdout).toContain('npm_config_ignore_scripts=true');
+        expect(env.stdout).not.toContain('npm_config_ignore_scripts');
         expect(env.stdout).toContain('HOME=/tmp');
         // The only bind mount is the repo copy at /work.
         const mounts = await sandbox.exec(`awk '{print $5}' /proc/self/mountinfo`);
         expect(mounts.stdout).toContain('/work');
         expect(mounts.stdout).not.toContain(os.homedir());
         expect((await sandbox.exec(`test -e ${os.homedir()}`)).code).not.toBe(0);
-        // Even a plain install the agent runs itself skips lifecycle scripts.
+        // Lifecycle scripts run inside the container, and their output lands only in the copy.
         const install = await sandbox.exec('npm install --no-audit --no-fund');
         expect(install.code).toBe(0);
-        await expect(fs.access(path.join(sandbox.dir, 'RAN'))).rejects.toThrow();
+        await expect(fs.access(path.join(sandbox.dir, 'RAN'))).resolves.toBeUndefined();
+        await expect(fs.access(path.join(repoDir, 'RAN'))).rejects.toThrow();
       } finally {
         delete process.env.FOO_TOKEN;
       }

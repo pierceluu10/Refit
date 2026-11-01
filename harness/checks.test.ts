@@ -182,7 +182,7 @@ describe('detectPackageManager and detectChecks', () => {
 describe('installCommand', () => {
   const managers: PackageManager[] = ['npm', 'pnpm', 'yarn', 'bun', 'pip', 'poetry'];
 
-  it('always disables install scripts, in Docker too', () => {
+  it('disables install scripts unless the sandbox is Docker', () => {
     for (const pm of managers) {
       const command = installCommand(pm);
       const safe = /ignore-scripts|only-binary|ONLY_BINARY/;
@@ -194,6 +194,17 @@ describe('installCommand', () => {
         }
       }
     }
+  });
+
+  it('lets install scripts run inside Docker', () => {
+    for (const pm of managers) {
+      expect(installCommand(pm, { scripts: true }), pm).not.toMatch(
+        /ignore-scripts|only-binary|ONLY_BINARY|ENABLE_SCRIPTS=false/,
+      );
+    }
+    expect(installCommand('npm', { scripts: true })).toBe(
+      'npm ci --no-audit --no-fund || npm install --no-audit --no-fund',
+    );
   });
 
   it('prefers a frozen install and falls back to a plain one', () => {
