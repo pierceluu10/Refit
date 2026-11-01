@@ -114,7 +114,8 @@ const deps = (turns: ScriptedTurn[], budgetUsd = 1) => ({
   createSandbox: (dir: string) => createSandbox(dir, { mode: 'local' }),
   loadToolPack: async () => toolPack,
   budgetUsd,
-  outDir: mkdtempSync(join(tmpdir(), 'aptitude-run-test-')),
+  // A path that doesn't exist yet: runTask creates it.
+  outDir: join(mkdtempSync(join(tmpdir(), 'aptitude-run-test-')), 'nested', 'out'),
 });
 
 describe('runTask with a fake model', () => {

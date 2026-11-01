@@ -1,6 +1,6 @@
 // runTask: sandbox → baseline checks → agent → re-check → iterate (escalating when stuck) → record.
 import { appendFileSync } from 'node:fs';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { MigrationTask, RetrieveRecipes, RunTask, ToolPack } from '../shared/types.ts';
@@ -78,6 +78,7 @@ export async function runTask(
   const ledger = new BudgetLedger(deps.budgetUsd ?? budgetFromEnv());
   const outDir =
     deps.outDir ?? (await mkdtemp(join(tmpdir(), `aptitude-run-${task.id.replace(/\W+/g, '-')}-`)));
+  await mkdir(outDir, { recursive: true });
   const transcriptPath = join(outDir, 'transcript.jsonl');
   const log = (event: unknown) =>
     appendFileSync(
