@@ -157,10 +157,12 @@ export function createDeps({
   out = defaultOut,
   budget,
   log = (line: string) => console.error(line),
+  watchCache = defaultWatchCache,
 }: {
   out?: string;
   budget?: Budget;
   log?: (line: string) => void;
+  watchCache?: string;
 }): LoopDeps {
   const queue = createMemoryQueue({ concurrency: CONCURRENCY, retries: 2, backoffMs: 1000, log });
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -201,8 +203,10 @@ export function createDeps({
         (capUsd) => new InventoryLedger({ capUsd }),
         async (ledger) => (await runInventory(dir, repo, { ledger })).usages,
       ),
-    watchers: Object.fromEntries(providerIds.map((id) => [id, providerWatcher(id, budget)])),
-    watchAny: (provider, hints) => anyWatcher(provider, hints, budget),
+    watchers: Object.fromEntries(
+      providerIds.map((id) => [id, providerWatcher(id, budget, watchCache)]),
+    ),
+    watchAny: (provider, hints) => anyWatcher(provider, hints, budget, watchCache),
     match: createMatchAgent({ budget }),
     runTask: async (task, dir) => {
       let hold: Hold;
