@@ -8,7 +8,7 @@ import { META_SDK } from './deadline-exposure.ts';
 import { movedReconstructions, type GraphReconstruction } from './meta-graph-ai.ts';
 import { scanGraphCalls, type GraphCall } from './meta-graph-calls.ts';
 import { compareVersions, type MetaGraphChanges } from './meta-graph-changes.ts';
-import { checkJsProof } from './meta-graph-code-proof.ts';
+import { checkJsProof, requestStringProof } from './meta-graph-code-proof.ts';
 import { changesUsedBy, inEffect, type VersionMoveStop } from './meta-graph-moves.ts';
 import { proveMetaGraphPatch } from './meta-graph-proof.ts';
 import { renderPatch } from './patches.ts';
@@ -171,13 +171,20 @@ export function metaGraphJudge(options: {
     const errors = [
       ...new Set([...proof.reasons, ...requestsBelowTarget(scan.calls, options.target)]),
     ];
-    // Untyped names and TypeScript files prove nothing either way; a new checkJs error is a bug.
-    if (diff)
-      errors.push(
-        ...checkJsProof(options.original, patched, diff).reasons.filter((reason) =>
-          reason.startsWith('checkJs reports a new error'),
-        ),
-      );
+    // The code proof validation grades with where no check covers the change (metaGraphGrade):
+    // a clean checkJs check, or edits only to the strings that build the changed requests.
+    if (diff) {
+      const checkJs = checkJsProof(options.original, patched, diff);
+      const strings = requestStringProof(options.original, patched, diff, proof.calls);
+      if (!checkJs.proven && !strings.proven)
+        errors.push(
+          ...checkJs.reasons.filter((reason) => reason.startsWith('checkJs reports a new error')),
+          ...strings.reasons.map(
+            (reason) =>
+              `${reason}. Without the repository's own checks, Refit proves only edits to the strings that build Graph API requests, so keep other code, docs and tests unchanged where you can.`,
+          ),
+        );
+    }
     return { passed: errors.length === 0, errors };
   };
 }
