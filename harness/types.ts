@@ -96,6 +96,7 @@ export type HarnessRunRecord = RunRecord & {
   prBody: string;
   models: string[];
   promptVersion: string;
+  recipeIds: string[]; // the recipes injected into the prompt, for memory's learnFromRun
 };
 
 export type { Recipe };

@@ -98,6 +98,7 @@ export async function runTask(
       prBody: `The harness could not create a sandbox: ${message}`,
       models,
       promptVersion: PROMPT_VERSION,
+      recipeIds: [],
     };
   }
 
@@ -214,6 +215,7 @@ export async function runTask(
       prBody,
       models,
       promptVersion: PROMPT_VERSION,
+      recipeIds: recipes.map((recipe) => recipe.id),
     };
     log({ type: 'harness', phase: 'done', outcome, ledger: ledger.entries });
     await writeFile(join(outDir, 'diff.patch'), diff);
