@@ -35,30 +35,36 @@ for (const entry of entries) {
     console.log(`${entry.id}: not run, $${(capUsd - spentUsd).toFixed(2)} of $${capUsd} left`);
     continue;
   }
-  const work = mkdtempSync(join(tmpdir(), `aptitude-eval-${entry.id}-`));
-  const repoDir = join(work, 'repo');
-  const url = `https://github.com/${entry.repo}.git`;
-  execFileSync('git', ['clone', '-q', '--filter=blob:none', url, repoDir]);
-  execFileSync('git', ['-C', repoDir, 'checkout', '-q', entry.commit]);
-  const task = JSON.parse(readFileSync(join(evaluation, entry.task), 'utf8')) as MigrationTask;
-  const record = await runTask(task, repoDir, {
-    budgetUsd,
-    outDir: join(work, 'out'),
-    createSandbox: (dir) => createSandbox(dir, { mode: 'docker' }),
-    // The provider's validators and playbooks, loaded the way orchestrator/deps.ts loads them.
-    loadToolPack: async (provider) =>
-      ((await import(`../../providers/${provider}/tools.ts`)) as { toolPack: ToolPack }).toolPack,
-    chargeRun: (usd) => (spentUsd += usd),
-  });
-  const results = join(evaluation, 'results', entry.id);
-  mkdirSync(results, { recursive: true });
-  writeFileSync(join(results, 'diff.patch'), record.diff);
-  writeFileSync(join(results, 'pr-body.md'), record.prBody);
-  writeFileSync(join(results, 'summary.md'), record.summary);
-  const { diff, prBody, summary, transcriptPath, ...rest } = record;
-  const saved = { repo: entry.repo, commit: entry.commit, ...rest };
-  writeFileSync(join(results, 'record.json'), JSON.stringify(saved, null, 2) + '\n');
-  console.log(
-    `${entry.id}: ${record.outcome}, $${record.costUsd.toFixed(4)} (batch $${spentUsd.toFixed(4)} of $${capUsd}); transcript ${transcriptPath}`,
-  );
+  try {
+    const work = mkdtempSync(join(tmpdir(), `aptitude-eval-${entry.id}-`));
+    const repoDir = join(work, 'repo');
+    const url = `https://github.com/${entry.repo}.git`;
+    execFileSync('git', ['clone', '-q', '--filter=blob:none', url, repoDir]);
+    execFileSync('git', ['-C', repoDir, 'checkout', '-q', entry.commit]);
+    const task = JSON.parse(readFileSync(join(evaluation, entry.task), 'utf8')) as MigrationTask;
+    const record = await runTask(task, repoDir, {
+      budgetUsd,
+      outDir: join(work, 'out'),
+      createSandbox: (dir) => createSandbox(dir, { mode: 'docker' }),
+      // The provider's validators and playbooks, loaded the way orchestrator/deps.ts loads them.
+      loadToolPack: async (provider) =>
+        ((await import(`../../providers/${provider}/tools.ts`)) as { toolPack: ToolPack }).toolPack,
+      chargeRun: (usd) => (spentUsd += usd),
+    });
+    const results = join(evaluation, 'results', entry.id);
+    mkdirSync(results, { recursive: true });
+    writeFileSync(join(results, 'diff.patch'), record.diff);
+    writeFileSync(join(results, 'pr-body.md'), record.prBody);
+    writeFileSync(join(results, 'summary.md'), record.summary);
+    const { diff, prBody, summary, transcriptPath, ...rest } = record;
+    const saved = { repo: entry.repo, commit: entry.commit, ...rest };
+    writeFileSync(join(results, 'record.json'), JSON.stringify(saved, null, 2) + '\n');
+    console.log(
+      `${entry.id}: ${record.outcome}, $${record.costUsd.toFixed(4)} (batch $${spentUsd.toFixed(4)} of $${capUsd}); transcript ${transcriptPath}`,
+    );
+  } catch (error) {
+    // chargeRun has already counted what the task spent, so the batch cap still holds.
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(`${entry.id}: error, ${message} (batch $${spentUsd.toFixed(4)} of $${capUsd})`);
+  }
 }
