@@ -4,7 +4,7 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-01.2';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-01.3';
 
 export type PromptInput = {
   task: MigrationTask;
@@ -127,6 +127,7 @@ export function buildSystemPrompt(input: PromptInput): string {
       '## Tools',
       tools.map((tool) => `- \`${tool.name}\`: ${tool.description}`).join('\n'),
       `Sandbox: ${sandboxNote}`,
+      'Real env files (`.env`, `.env.local` and the like) are deliberately absent from the sandbox. Read the templates (`.env.example`, `.env.sample`, `.env.template`, `.env.dist`) to learn which keys and services the app uses.',
       'Tools only return information. You decide which ones to use, and none of them block you.',
     ].join('\n\n'),
     [

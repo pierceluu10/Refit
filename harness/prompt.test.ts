@@ -79,7 +79,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-01.2');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-01.3');
   });
 
   it('puts the sections in the plan order', () => {
@@ -112,6 +112,11 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('Docker container, network off');
     expect(prompt).toContain('$5.00');
     expect(prompt).toContain("'not-affected'");
+  });
+
+  it('says real env files are absent and points at the templates', () => {
+    expect(prompt).toContain('Real env files');
+    expect(prompt).toContain('.env.example');
   });
 
   it('states the four hard limits and nothing else', () => {

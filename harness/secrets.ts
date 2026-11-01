@@ -20,11 +20,17 @@ export function secretValues(env: NodeJS.ProcessEnv = process.env): string[] {
     .map(([, value]) => value as string);
 }
 
+// NAME=value, NAME: value and "NAME": "value" where NAME mentions a key, token, secret or password.
+// shortcut: only values with a digit and 8+ token characters count, so code like `apiKey: getApiKey()`
+// or `process.env.API_KEY` stays readable; a digit-free secret slips through.
+const NAMED_SECRET =
+  /(\b[\w.-]*(?:KEY|TOKEN|SECRET|PASSWORD)[\w.-]*["']?\s*[:=]\s*["']?)(?=[\w+/=.~-]*\d)([\w+/=.~-]{8,})/gi;
+
 export function redactSecrets(text: string, env: NodeJS.ProcessEnv = process.env): string {
   let out = text;
   for (const value of secretValues(env)) out = out.split(value).join('[redacted]');
   for (const pattern of SECRET_PATTERNS) out = out.replace(pattern, '[redacted]');
-  return out;
+  return out.replace(NAMED_SECRET, '$1[redacted]');
 }
 
 // Environment for untrusted code: the host's env minus anything that looks like a credential.

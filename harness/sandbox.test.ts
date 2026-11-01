@@ -111,6 +111,20 @@ describe('local sandbox', () => {
   });
 });
 
+describe('env files', () => {
+  it('copies env templates but never real env files', async () => {
+    const names = ['.env', '.env.local', '.env.production', '.env.example', '.env.sample'];
+    for (const name of [...names, '.env.template', '.env.dist']) {
+      await fs.writeFile(path.join(repoDir, name), 'API_KEY=x\n');
+    }
+    await fs.writeFile(path.join(repoDir, 'src', '.env'), 'API_KEY=x\n');
+    sandbox = await createSandbox(repoDir, { mode: 'local' });
+    const copied = (await fs.readdir(sandbox.dir)).filter((name) => name.startsWith('.env'));
+    expect(copied.sort()).toEqual(['.env.dist', '.env.example', '.env.sample', '.env.template']);
+    await expect(fs.access(path.join(sandbox.dir, 'src', '.env'))).rejects.toThrow();
+  });
+});
+
 describe('docker sandbox', () => {
   it.skipIf(!dockerAvailable())(
     'runs commands in a container over the bind-mounted copy',
