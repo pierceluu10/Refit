@@ -1,0 +1,63 @@
+{
+  "repo": "chubin/wttr.in",
+  "promptVersion": "inventory-v2",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "chubin/wttr.in",
+      "provider": "opencage",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "internal/location/nominatim.go",
+          "line": 59,
+          "operation": "GET {geo.nominatim.url}?q=&language=native&limit=1&key=",
+          "fields": ["q", "language", "limit", "key"],
+          "notes": "Shared makeQuery; URL built in nominatim_opencage.go:27 from config share/config/config.yaml:31 (https://api.opencagedata.com/geocode/v1/json, token). Reads results[0].geometry.lat/lng and formatted. Same function also serves LocationIQ type 'iq' (nominatim_locationiq.go:23, format=json, reads lat/lon/display_name) if configured; not in default config."
+        }
+      ]
+    },
+    {
+      "repo": "chubin/wttr.in",
+      "provider": "wttr.in",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "internal/weather/weatherer_wwo.go",
+          "line": 103,
+          "operation": "GET {weather.wwo.baseUrl}",
+          "fields": ["lat", "lon", "lang", "key"],
+          "notes": "Base URL from config.yaml:36 http://wttr.in/{lat},{lon}?format=j1&lang={lang}; {key} placeholder replaced with token (suggesting World Weather Online, cdn.worldweatheronline.com appears in test data). Strips optional 'data' wrapper and returns bytes. 10s timeout."
+        }
+      ]
+    },
+    {
+      "repo": "chubin/wttr.in",
+      "provider": "github-raw",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "build.sh",
+          "line": 143,
+          "operation": "GET raw.githubusercontent.com/buildkite/terminal-to-html/.../terminal.css",
+          "notes": "curl in cmd_update_css, developer-run only."
+        }
+      ]
+    }
+  ],
+  "purposes": {
+    "opencage": "Geocoding location names",
+    "wttr.in": "Weather data (WWO-format/j1) upstream",
+    "github-raw": "Dev build script downloads terminal.css"
+  },
+  "summary": "chubin/wttr.in uses opencage for Geocoding location names through raw HTTP in 1 place; wttr.in for Weather data (WWO-format/j1) upstream through raw HTTP in 1 place; github-raw for Dev build script downloads terminal.css through raw HTTP in 1 place.",
+  "agentSummary": "I've recorded three usages for chubin/wttr.in and am nearly done. I'm wrapping up with the summary now.\n\n**Recorded**\n- **OpenCage** (HTTP): geocoding through `makeQuery` in `internal/location/nominatim.go:59`. The URL and token come from `share/config/config.yaml`. The same code path can also call LocationIQ if `type: iq` is configured. The default config doesn't use it, so I didn't record it separately.\n- **Weather upstream** (HTTP): `internal/weather/weatherer_wwo.go:103`. The default config points it at `wttr.in/{lat},{lon}?format=j1`. The `{key}` placeholder and the World Weather Online CDN URLs in the test data suggest it can also be pointed at World Weather Online. I couldn't confirm which one runs in production.\n- **raw.githubusercontent.com** (HTTP): a `curl` in `build.sh:143` that downloads `terminal.css`. It only runs when a developer runs the update-CSS command.\n\n**Not recorded**\n- `internal/uplink/uplink.go` forwards requests to the project's own backend servers, so it isn't external.\n- The `share/defs/ds/*/info.json` files are only descriptions of candidate weather providers. They make no calls.\n- The `curl` calls in the test scripts go to localhost.\n- The GeoLite2 database (`geoip2-golang`) is read from a local file, with no network call.\n- The x.com and twitter.com links appear only inside the translation message strings.\n\nI didn't read `build.sh` beyond the one `curl`. I also didn't check `.github/workflows` or `share/salt` for network calls.",
+  "outcome": "success",
+  "costUsd": 0.1043731,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0001305,
+    "claude-sonnet-5-5": 0.10424259999999999
+  },
+  "turns": 16,
+  "durationMs": 19847
+}

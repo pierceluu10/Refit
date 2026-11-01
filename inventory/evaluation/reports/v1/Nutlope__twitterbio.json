@@ -1,0 +1,65 @@
+{
+  "repo": "Nutlope/twitterbio",
+  "promptVersion": "inventory-v1",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "Nutlope/twitterbio",
+      "provider": "together",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/together/route.ts",
+          "line": 19,
+          "operation": "chat.completions.stream",
+          "fields": ["model", "messages", "temperature", "max_tokens", "chat_template_kwargs"],
+          "notes": "Client at line 2 uses TOGETHER_API_KEY env. Model comes from client request (e.g. Qwen/Qwen3.5-9B). Response streamed back via toReadableStream."
+        },
+        {
+          "file": "app/page.tsx",
+          "line": 57,
+          "operation": "ChatCompletionStream.fromReadableStream",
+          "notes": "Client parses the stream from own /api/together route (fetch at line 40); no direct network call to Together."
+        }
+      ],
+      "sdk": {
+        "name": "together-ai",
+        "version": "0.6.0",
+        "lockfile": "pnpm-lock.yaml"
+      }
+    },
+    {
+      "repo": "Nutlope/twitterbio",
+      "provider": "plausible",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/layout.tsx",
+          "line": 53,
+          "operation": "PlausibleProvider domain=twitterbio.io",
+          "fields": ["domain"],
+          "notes": "Injects Plausible script in browser."
+        }
+      ],
+      "sdk": {
+        "name": "next-plausible",
+        "version": "3.12.5",
+        "lockfile": "pnpm-lock.yaml"
+      }
+    }
+  ],
+  "purposes": {
+    "together": "LLM chat completion streaming to generate bios",
+    "plausible": "Analytics"
+  },
+  "summary": "Nutlope/twitterbio uses together for LLM chat completion streaming to generate bios through together-ai 0.6.0 in 2 places; plausible for Analytics through next-plausible 3.12.5 in 1 place.",
+  "agentSummary": "I found two external APIs in the repo and recorded both. I read `app/api/together/route.ts` and the matching lines in `app/page.tsx` and `app/layout.tsx`. I didn't open the rest of the app, but the import and HTTP scans turned up nothing else. The other hosts in the repo (GitHub, Vercel, Twitter, togetherai.link) are only links.\n\n- **Together AI (SDK, `together-ai` 0.6.0 in `pnpm-lock.yaml`):** This generates the bios through streaming chat completions.\n  - **Server call:** `app/api/together/route.ts:19` calls `chat.completions.stream`. It reads `TOGETHER_API_KEY` from the environment and takes `model` and `prompt` from the request body.\n  - **Request fields:** It sends `model`, `messages`, `temperature`, `max_tokens` and, for Qwen only, `chat_template_kwargs`. It returns the response as a readable stream.\n  - **Client side:** `app/page.tsx:57` parses that stream. It reaches Together through the repo's own `/api/together` route (the fetch is at line 40), so it makes no direct Together call.\n  - **Model pin:** No model is pinned in code. The code special-cases `Qwen/Qwen3.5-9B` and otherwise uses whatever model the client sends.\n- **Plausible (SDK, `next-plausible` 3.12.5 in `pnpm-lock.yaml`):** This is analytics. `app/layout.tsx:53` renders `PlausibleProvider` with `domain=\"twitterbio.io\"`. It only injects the browser script, so there is no server-side call.",
+  "outcome": "success",
+  "costUsd": 0.034901600000000005,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0001332,
+    "claude-sonnet-5-5": 0.034768400000000005
+  },
+  "turns": 10,
+  "durationMs": 12996
+}

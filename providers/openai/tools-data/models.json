@@ -1,0 +1,902 @@
+{
+  "source": "https://developers.openai.com/api/docs/models/all",
+  "sourceNote": "Model catalog and per-model pages (https://developers.openai.com/api/docs/models/<id>). \"snapshots\" maps each listed id to the badge shown on the page (Deprecated / Shut down / listed = no badge). \"aliases\" maps an alias to the snapshot it pointed to. \"endpoints\" are the endpoints the page marked as supported.",
+  "retrieved": "2026-11-01",
+  "models": {
+    "babbage-002": {
+      "page": "https://developers.openai.com/api/docs/models/babbage-002",
+      "endpoints": ["v1/completions"],
+      "snapshots": {
+        "babbage-002": "Shut down"
+      }
+    },
+    "chat-latest": {
+      "page": "https://developers.openai.com/api/docs/models/chat-latest",
+      "endpoints": ["v1/chat/completions", "v1/responses"]
+    },
+    "chatgpt-4o-latest": {
+      "page": "https://developers.openai.com/api/docs/models/chatgpt-4o-latest",
+      "endpoints": ["v1/chat/completions", "v1/responses"],
+      "snapshots": {
+        "chatgpt-4o-latest": "Shut down"
+      }
+    },
+    "chatgpt-image-latest": {
+      "page": "https://developers.openai.com/api/docs/models/chatgpt-image-latest",
+      "endpoints": ["v1/batch", "v1/images/generations", "v1/images/edits"],
+      "snapshots": {
+        "chatgpt-image-latest": "Deprecated"
+      }
+    },
+    "codex-mini-latest": {
+      "page": "https://developers.openai.com/api/docs/models/codex-mini-latest",
+      "endpoints": ["v1/responses"],
+      "snapshots": {
+        "codex-mini-latest": "Shut down"
+      }
+    },
+    "computer-use-preview": {
+      "page": "https://developers.openai.com/api/docs/models/computer-use-preview",
+      "endpoints": ["v1/responses", "v1/batch"],
+      "aliases": {
+        "computer-use-preview": "computer-use-preview-2025-03-11"
+      },
+      "snapshots": {
+        "computer-use-preview-2025-03-11": "Shut down",
+        "computer-use-preview": "Shut down"
+      }
+    },
+    "davinci-002": {
+      "page": "https://developers.openai.com/api/docs/models/davinci-002",
+      "endpoints": ["v1/completions"],
+      "snapshots": {
+        "davinci-002": "Shut down"
+      }
+    },
+    "gpt-3.5-turbo": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-3.5-turbo",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch", "v1/fine-tuning"],
+      "aliases": {
+        "gpt-3.5-turbo": "gpt-3.5-turbo-0125"
+      },
+      "snapshots": {
+        "gpt-3.5-turbo-0125": "Shut down",
+        "gpt-3.5-turbo-1106": "Shut down",
+        "gpt-3.5-turbo-instruct": "Shut down",
+        "gpt-3.5-turbo": "Shut down"
+      }
+    },
+    "gpt-4": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4",
+      "endpoints": [
+        "v1/chat/completions",
+        "v1/responses",
+        "v1/assistants",
+        "v1/batch",
+        "v1/fine-tuning"
+      ],
+      "aliases": {
+        "gpt-4": "gpt-4-0613"
+      },
+      "snapshots": {
+        "gpt-4-0613": "Shut down",
+        "gpt-4-0314": "Shut down",
+        "gpt-4": "Shut down"
+      }
+    },
+    "gpt-4-turbo": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4-turbo",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/assistants", "v1/batch"],
+      "aliases": {
+        "gpt-4-turbo": "gpt-4-turbo-2024-04-09",
+        "gpt-4-turbo-preview": "gpt-4-0125-preview"
+      },
+      "snapshots": {
+        "gpt-4-turbo-2024-04-09": "Shut down",
+        "gpt-4-0125-preview": "Shut down",
+        "gpt-4-1106-vision-preview": "Shut down",
+        "gpt-4-turbo": "Shut down",
+        "gpt-4-turbo-preview": "Shut down"
+      }
+    },
+    "gpt-4-turbo-preview": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4-turbo-preview",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/assistants"],
+      "aliases": {
+        "gpt-4-turbo-preview": "gpt-4-0125-preview"
+      },
+      "snapshots": {
+        "gpt-4-0125-preview": "Shut down",
+        "gpt-4-1106-vision-preview": "Shut down",
+        "gpt-4-turbo-preview": "Shut down"
+      }
+    },
+    "gpt-4.1": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4.1",
+      "endpoints": [
+        "v1/chat/completions",
+        "v1/responses",
+        "v1/assistants",
+        "v1/batch",
+        "v1/fine-tuning"
+      ],
+      "aliases": {
+        "gpt-4.1": "gpt-4.1-2025-04-14"
+      },
+      "snapshots": {
+        "gpt-4.1-2025-04-14": "Deprecated",
+        "gpt-4.1": "Deprecated"
+      }
+    },
+    "gpt-4.1-mini": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4.1-mini",
+      "endpoints": [
+        "v1/chat/completions",
+        "v1/responses",
+        "v1/assistants",
+        "v1/batch",
+        "v1/fine-tuning"
+      ],
+      "aliases": {
+        "gpt-4.1-mini": "gpt-4.1-mini-2025-04-14"
+      },
+      "snapshots": {
+        "gpt-4.1-mini-2025-04-14": "Deprecated",
+        "gpt-4.1-mini": "Deprecated"
+      }
+    },
+    "gpt-4.1-nano": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4.1-nano",
+      "endpoints": [
+        "v1/chat/completions",
+        "v1/responses",
+        "v1/assistants",
+        "v1/batch",
+        "v1/fine-tuning"
+      ],
+      "aliases": {
+        "gpt-4.1-nano": "gpt-4.1-nano-2025-04-14"
+      },
+      "snapshots": {
+        "gpt-4.1-nano-2025-04-14": "Shut down",
+        "gpt-4.1-nano": "Shut down"
+      }
+    },
+    "gpt-4.5-preview": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4.5-preview",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/assistants", "v1/batch"],
+      "aliases": {
+        "gpt-4.5-preview": "gpt-4.5-preview-2025-02-27"
+      },
+      "snapshots": {
+        "gpt-4.5-preview-2025-02-27": "Shut down",
+        "gpt-4.5-preview": "Shut down"
+      }
+    },
+    "gpt-4o": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4o",
+      "endpoints": [
+        "v1/chat/completions",
+        "v1/responses",
+        "v1/assistants",
+        "v1/batch",
+        "v1/fine-tuning"
+      ],
+      "aliases": {
+        "gpt-4o": "gpt-4o-2024-08-06"
+      },
+      "snapshots": {
+        "gpt-4o-2024-11-20": "Deprecated",
+        "gpt-4o-2024-08-06": "Deprecated",
+        "gpt-4o-2024-05-13": "Shut down",
+        "gpt-4o": "Deprecated"
+      }
+    },
+    "gpt-4o-audio-preview": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4o-audio-preview",
+      "endpoints": ["v1/chat/completions"],
+      "aliases": {
+        "gpt-4o-audio-preview": "gpt-4o-audio-preview-2025-06-03"
+      },
+      "snapshots": {
+        "gpt-4o-audio-preview-2025-06-03": "Shut down",
+        "gpt-4o-audio-preview-2024-12-17": "Shut down",
+        "gpt-4o-audio-preview-2024-10-01": "Shut down",
+        "gpt-4o-audio-preview": "Shut down"
+      }
+    },
+    "gpt-4o-mini": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4o-mini",
+      "endpoints": [
+        "v1/chat/completions",
+        "v1/responses",
+        "v1/assistants",
+        "v1/batch",
+        "v1/fine-tuning"
+      ],
+      "aliases": {
+        "gpt-4o-mini": "gpt-4o-mini-2024-07-18"
+      },
+      "snapshots": {
+        "gpt-4o-mini-2024-07-18": "Deprecated",
+        "gpt-4o-mini": "Deprecated"
+      }
+    },
+    "gpt-4o-mini-audio-preview": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4o-mini-audio-preview",
+      "endpoints": ["v1/chat/completions"],
+      "aliases": {
+        "gpt-4o-mini-audio-preview": "gpt-4o-mini-audio-preview-2024-12-17"
+      },
+      "snapshots": {
+        "gpt-4o-mini-audio-preview-2024-12-17": "Shut down",
+        "gpt-4o-mini-audio-preview": "Shut down"
+      }
+    },
+    "gpt-4o-mini-realtime-preview": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4o-mini-realtime-preview",
+      "endpoints": ["v1/realtime"],
+      "aliases": {
+        "gpt-4o-mini-realtime-preview": "gpt-4o-mini-realtime-preview-2024-12-17"
+      },
+      "snapshots": {
+        "gpt-4o-mini-realtime-preview-2024-12-17": "Shut down",
+        "gpt-4o-mini-realtime-preview": "Shut down"
+      }
+    },
+    "gpt-4o-mini-search-preview": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4o-mini-search-preview",
+      "endpoints": ["v1/chat/completions"],
+      "aliases": {
+        "gpt-4o-mini-search-preview": "gpt-4o-mini-search-preview-2025-03-11"
+      },
+      "snapshots": {
+        "gpt-4o-mini-search-preview-2025-03-11": "Shut down",
+        "gpt-4o-mini-search-preview": "Shut down"
+      }
+    },
+    "gpt-4o-mini-transcribe": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4o-mini-transcribe",
+      "endpoints": ["v1/realtime", "v1/audio/transcriptions"],
+      "aliases": {
+        "gpt-4o-mini-transcribe": "gpt-4o-mini-transcribe-2025-12-15"
+      },
+      "snapshots": {
+        "gpt-4o-mini-transcribe-2025-03-20": "Deprecated",
+        "gpt-4o-mini-transcribe-2025-12-15": "Deprecated",
+        "gpt-4o-mini-transcribe": "Deprecated"
+      }
+    },
+    "gpt-4o-mini-tts": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4o-mini-tts",
+      "endpoints": ["v1/audio/speech"],
+      "aliases": {
+        "gpt-4o-mini-tts": "gpt-4o-mini-tts-2025-12-15"
+      },
+      "snapshots": {
+        "gpt-4o-mini-tts-2025-03-20": "Deprecated",
+        "gpt-4o-mini-tts-2025-12-15": "Deprecated",
+        "gpt-4o-mini-tts": "Deprecated"
+      }
+    },
+    "gpt-4o-realtime-preview": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4o-realtime-preview",
+      "endpoints": ["v1/realtime"],
+      "aliases": {
+        "gpt-4o-realtime-preview": "gpt-4o-realtime-preview-2025-06-03"
+      },
+      "snapshots": {
+        "gpt-4o-realtime-preview-2025-06-03": "Shut down",
+        "gpt-4o-realtime-preview-2024-12-17": "Shut down",
+        "gpt-4o-realtime-preview-2024-10-01": "Shut down",
+        "gpt-4o-realtime-preview": "Shut down"
+      }
+    },
+    "gpt-4o-search-preview": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4o-search-preview",
+      "endpoints": ["v1/chat/completions"],
+      "aliases": {
+        "gpt-4o-search-preview": "gpt-4o-search-preview-2025-03-11"
+      },
+      "snapshots": {
+        "gpt-4o-search-preview-2025-03-11": "Shut down",
+        "gpt-4o-search-preview": "Shut down"
+      }
+    },
+    "gpt-4o-transcribe": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4o-transcribe",
+      "endpoints": ["v1/realtime", "v1/audio/transcriptions"],
+      "snapshots": {
+        "gpt-4o-transcribe": "Deprecated"
+      }
+    },
+    "gpt-4o-transcribe-diarize": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-4o-transcribe-diarize",
+      "endpoints": ["v1/audio/transcriptions"],
+      "snapshots": {
+        "gpt-4o-transcribe-diarize": "Deprecated"
+      }
+    },
+    "gpt-5": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"],
+      "aliases": {
+        "gpt-5": "gpt-5-2025-08-07"
+      },
+      "snapshots": {
+        "gpt-5-2025-08-07": "Deprecated",
+        "gpt-5": "Deprecated"
+      }
+    },
+    "gpt-5-chat-latest": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5-chat-latest",
+      "endpoints": ["v1/chat/completions", "v1/responses"],
+      "snapshots": {
+        "gpt-5-chat-latest": "Shut down"
+      }
+    },
+    "gpt-5-codex": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5-codex",
+      "endpoints": ["v1/responses"],
+      "snapshots": {
+        "gpt-5-codex": "Shut down"
+      }
+    },
+    "gpt-5-mini": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5-mini",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"],
+      "aliases": {
+        "gpt-5-mini": "gpt-5-mini-2025-08-07"
+      },
+      "snapshots": {
+        "gpt-5-mini-2025-08-07": "Deprecated",
+        "gpt-5-mini": "Deprecated"
+      }
+    },
+    "gpt-5-nano": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5-nano",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"],
+      "aliases": {
+        "gpt-5-nano": "gpt-5-nano-2025-08-07"
+      },
+      "snapshots": {
+        "gpt-5-nano-2025-08-07": "Deprecated",
+        "gpt-5-nano": "Deprecated"
+      }
+    },
+    "gpt-5-pro": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5-pro",
+      "endpoints": ["v1/responses", "v1/batch"],
+      "aliases": {
+        "gpt-5-pro": "gpt-5-pro-2025-10-06"
+      },
+      "snapshots": {
+        "gpt-5-pro-2025-10-06": "Deprecated",
+        "gpt-5-pro": "Deprecated"
+      }
+    },
+    "gpt-5.1": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.1",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"],
+      "aliases": {
+        "gpt-5.1": "gpt-5.1-2025-11-13"
+      },
+      "snapshots": {
+        "gpt-5.1-2025-11-13": "Deprecated",
+        "gpt-5.1": "Deprecated"
+      }
+    },
+    "gpt-5.1-chat-latest": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.1-chat-latest",
+      "endpoints": ["v1/chat/completions", "v1/responses"],
+      "snapshots": {
+        "gpt-5.1-chat-latest": "Shut down"
+      }
+    },
+    "gpt-5.1-codex": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.1-codex",
+      "endpoints": ["v1/responses"],
+      "snapshots": {
+        "gpt-5.1-codex": "Shut down"
+      }
+    },
+    "gpt-5.1-codex-max": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.1-codex-max",
+      "endpoints": ["v1/responses"],
+      "snapshots": {
+        "gpt-5.1-codex-max": "Shut down"
+      }
+    },
+    "gpt-5.1-codex-mini": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.1-codex-mini",
+      "endpoints": ["v1/responses"],
+      "snapshots": {
+        "gpt-5.1-codex-mini": "Shut down"
+      }
+    },
+    "gpt-5.2": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.2",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"],
+      "aliases": {
+        "gpt-5.2": "gpt-5.2-2025-12-11"
+      },
+      "snapshots": {
+        "gpt-5.2-2025-12-11": "listed"
+      }
+    },
+    "gpt-5.2-chat-latest": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.2-chat-latest",
+      "endpoints": ["v1/chat/completions", "v1/responses"],
+      "snapshots": {
+        "gpt-5.2-chat-latest": "Shut down"
+      }
+    },
+    "gpt-5.2-codex": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.2-codex",
+      "endpoints": ["v1/responses"],
+      "snapshots": {
+        "gpt-5.2-codex": "Shut down"
+      }
+    },
+    "gpt-5.2-pro": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.2-pro",
+      "endpoints": ["v1/responses"],
+      "aliases": {
+        "gpt-5.2-pro": "gpt-5.2-pro-2025-12-11"
+      },
+      "snapshots": {
+        "gpt-5.2-pro-2025-12-11": "listed"
+      }
+    },
+    "gpt-5.3-chat-latest": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.3-chat-latest",
+      "endpoints": ["v1/chat/completions", "v1/responses"],
+      "snapshots": {
+        "gpt-5.3-chat-latest": "Shut down"
+      }
+    },
+    "gpt-5.3-codex": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.3-codex",
+      "endpoints": ["v1/responses"],
+      "snapshots": {
+        "gpt-5.3-codex": "Deprecated"
+      }
+    },
+    "gpt-5.4": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.4",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"],
+      "aliases": {
+        "gpt-5.4": "gpt-5.4-2026-03-05"
+      },
+      "snapshots": {
+        "gpt-5.4-2026-03-05": "listed"
+      }
+    },
+    "gpt-5.4-mini": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.4-mini",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"],
+      "aliases": {
+        "gpt-5.4-mini": "gpt-5.4-mini-2026-03-17"
+      },
+      "snapshots": {
+        "gpt-5.4-mini-2026-03-17": "listed"
+      }
+    },
+    "gpt-5.4-nano": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.4-nano",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"],
+      "aliases": {
+        "gpt-5.4-nano": "gpt-5.4-nano-2026-03-17"
+      },
+      "snapshots": {
+        "gpt-5.4-nano-2026-03-17": "Deprecated",
+        "gpt-5.4-nano": "Deprecated"
+      }
+    },
+    "gpt-5.4-pro": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.4-pro",
+      "endpoints": ["v1/responses"],
+      "aliases": {
+        "gpt-5.4-pro": "gpt-5.4-pro-2026-03-05"
+      },
+      "snapshots": {
+        "gpt-5.4-pro-2026-03-05": "listed"
+      }
+    },
+    "gpt-5.5": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.5",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"],
+      "aliases": {
+        "gpt-5.5": "gpt-5.5-2026-04-23"
+      },
+      "snapshots": {
+        "gpt-5.5-2026-04-23": "listed"
+      }
+    },
+    "gpt-5.5-pro": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.5-pro",
+      "endpoints": ["v1/responses", "v1/batch"],
+      "aliases": {
+        "gpt-5.5-pro": "gpt-5.5-pro-2026-04-23"
+      },
+      "snapshots": {
+        "gpt-5.5-pro-2026-04-23": "listed"
+      }
+    },
+    "gpt-5.6-cyber": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.6-cyber",
+      "endpoints": ["v1/responses"]
+    },
+    "gpt-5.6-luna": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"]
+    },
+    "gpt-5.6-sol": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"]
+    },
+    "gpt-5.6-terra": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"]
+    },
+    "gpt-6-astra": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"]
+    },
+    "gpt-6-luna": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"]
+    },
+    "gpt-6-sol": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-6-sol",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"]
+    },
+    "gpt-6.1-sol": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"]
+    },
+    "gpt-6.1-terra": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"]
+    },
+    "gpt-audio": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-audio",
+      "endpoints": ["v1/chat/completions"],
+      "aliases": {
+        "gpt-audio": "gpt-audio-2025-08-28"
+      },
+      "snapshots": {
+        "gpt-audio-2025-08-28": "Deprecated",
+        "gpt-audio": "Deprecated"
+      }
+    },
+    "gpt-audio-1.5": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-audio-1.5",
+      "endpoints": ["v1/chat/completions"]
+    },
+    "gpt-audio-mini": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-audio-mini",
+      "endpoints": ["v1/chat/completions"],
+      "aliases": {
+        "gpt-audio-mini": "gpt-audio-mini-2025-12-15"
+      },
+      "snapshots": {
+        "gpt-audio-mini-2025-10-06": "Shut down",
+        "gpt-audio-mini-2025-12-15": "Deprecated",
+        "gpt-audio-mini": "Deprecated"
+      }
+    },
+    "gpt-daybreak-blue-latest": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-daybreak-blue-latest",
+      "endpoints": ["v1/responses"],
+      "aliases": {
+        "gpt-daybreak-blue-latest": "gpt-5.6-sol"
+      },
+      "snapshots": {
+        "gpt-5.6-sol": "listed",
+        "gpt-daybreak-blue-latest": "Deprecated"
+      }
+    },
+    "gpt-daybreak-red-latest": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-daybreak-red-latest",
+      "endpoints": ["v1/responses"],
+      "aliases": {
+        "gpt-daybreak-red-latest": "gpt-5.6-cyber"
+      },
+      "snapshots": {
+        "gpt-5.6-cyber": "listed",
+        "gpt-daybreak-red-latest": "Deprecated"
+      }
+    },
+    "gpt-image-1": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-image-1",
+      "endpoints": ["v1/responses", "v1/batch", "v1/images/generations", "v1/images/edits"],
+      "snapshots": {
+        "gpt-image-1": "Shut down"
+      }
+    },
+    "gpt-image-1-mini": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-image-1-mini",
+      "endpoints": ["v1/batch", "v1/images/generations", "v1/images/edits"],
+      "snapshots": {
+        "gpt-image-1-mini": "Deprecated"
+      }
+    },
+    "gpt-image-1.5": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-image-1.5",
+      "endpoints": ["v1/batch", "v1/images/generations", "v1/images/edits"],
+      "aliases": {
+        "gpt-image-1.5": "gpt-image-1.5-2025-12-16"
+      },
+      "snapshots": {
+        "gpt-image-1.5-2025-12-16": "Deprecated",
+        "gpt-image-1.5": "Deprecated"
+      }
+    },
+    "gpt-image-2": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-image-2",
+      "endpoints": ["v1/batch", "v1/images/generations", "v1/images/edits"],
+      "aliases": {
+        "gpt-image-2": "gpt-image-2-2026-04-21"
+      },
+      "snapshots": {
+        "gpt-image-2-2026-04-21": "listed"
+      }
+    },
+    "gpt-image-2.5-flare": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-image-2.5-flare",
+      "endpoints": ["v1/batch", "v1/images/generations", "v1/images/edits"]
+    },
+    "gpt-image-2.5-sunburst": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst",
+      "endpoints": ["v1/batch", "v1/images/generations", "v1/images/edits"]
+    },
+    "gpt-live-1": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-live-1",
+      "endpoints": ["v1/live/sessions"]
+    },
+    "gpt-live-transcribe": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-live-transcribe",
+      "endpoints": ["v1/realtime/transcription_sessions"]
+    },
+    "gpt-oss-120b": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-oss-120b",
+      "endpoints": ["v1/responses", "v1/batch"]
+    },
+    "gpt-oss-20b": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-oss-20b",
+      "endpoints": ["v1/responses", "v1/batch"]
+    },
+    "gpt-realtime": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-realtime",
+      "endpoints": ["v1/realtime"],
+      "aliases": {
+        "gpt-realtime": "gpt-realtime-2025-08-28"
+      },
+      "snapshots": {
+        "gpt-realtime-2025-08-28": "Deprecated",
+        "gpt-realtime": "Deprecated"
+      }
+    },
+    "gpt-realtime-1.5": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-realtime-1.5",
+      "endpoints": ["v1/realtime"]
+    },
+    "gpt-realtime-2": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-realtime-2",
+      "endpoints": ["v1/realtime"]
+    },
+    "gpt-realtime-2.1": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-realtime-2.1",
+      "endpoints": ["v1/realtime"]
+    },
+    "gpt-realtime-2.1-mini": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-realtime-2.1-mini",
+      "endpoints": ["v1/realtime"]
+    },
+    "gpt-realtime-mini": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-realtime-mini",
+      "endpoints": ["v1/realtime"],
+      "aliases": {
+        "gpt-realtime-mini": "gpt-realtime-mini-2025-12-15"
+      },
+      "snapshots": {
+        "gpt-realtime-mini-2025-10-06": "Shut down",
+        "gpt-realtime-mini-2025-12-15": "Deprecated",
+        "gpt-realtime-mini": "Deprecated"
+      }
+    },
+    "gpt-realtime-translate": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-realtime-translate",
+      "endpoints": ["v1/realtime/translations"]
+    },
+    "gpt-realtime-whisper": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-realtime-whisper",
+      "endpoints": ["v1/realtime/transcription_sessions"]
+    },
+    "gpt-transcribe": {
+      "page": "https://developers.openai.com/api/docs/models/gpt-transcribe",
+      "endpoints": ["v1/realtime/transcription_sessions", "v1/audio/transcriptions"]
+    },
+    "o1": {
+      "page": "https://developers.openai.com/api/docs/models/o1",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/assistants", "v1/batch"],
+      "aliases": {
+        "o1": "o1-2024-12-17",
+        "o1-preview": "o1-preview-2024-09-12"
+      },
+      "snapshots": {
+        "o1-2024-12-17": "Shut down",
+        "o1-preview-2024-09-12": "Shut down",
+        "o1": "Shut down",
+        "o1-preview": "Shut down"
+      }
+    },
+    "o1-mini": {
+      "page": "https://developers.openai.com/api/docs/models/o1-mini",
+      "endpoints": ["v1/chat/completions", "v1/assistants"],
+      "aliases": {
+        "o1-mini": "o1-mini-2024-09-12"
+      },
+      "snapshots": {
+        "o1-mini-2024-09-12": "Shut down",
+        "o1-mini": "Shut down"
+      }
+    },
+    "o1-preview": {
+      "page": "https://developers.openai.com/api/docs/models/o1-preview",
+      "endpoints": ["v1/chat/completions", "v1/assistants"],
+      "aliases": {
+        "o1-preview": "o1-preview-2024-09-12"
+      },
+      "snapshots": {
+        "o1-preview-2024-09-12": "Shut down",
+        "o1-preview": "Shut down"
+      }
+    },
+    "o1-pro": {
+      "page": "https://developers.openai.com/api/docs/models/o1-pro",
+      "endpoints": ["v1/responses", "v1/batch"],
+      "aliases": {
+        "o1-pro": "o1-pro-2025-03-19"
+      },
+      "snapshots": {
+        "o1-pro-2025-03-19": "Shut down",
+        "o1-pro": "Shut down"
+      }
+    },
+    "o3": {
+      "page": "https://developers.openai.com/api/docs/models/o3",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch"],
+      "aliases": {
+        "o3": "o3-2025-04-16"
+      },
+      "snapshots": {
+        "o3-2025-04-16": "Deprecated",
+        "o3": "Deprecated"
+      }
+    },
+    "o3-deep-research": {
+      "page": "https://developers.openai.com/api/docs/models/o3-deep-research",
+      "endpoints": ["v1/responses", "v1/batch"],
+      "aliases": {
+        "o3-deep-research": "o3-deep-research-2025-06-26"
+      },
+      "snapshots": {
+        "o3-deep-research-2025-06-26": "Shut down",
+        "o3-deep-research": "Shut down"
+      }
+    },
+    "o3-mini": {
+      "page": "https://developers.openai.com/api/docs/models/o3-mini",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/assistants", "v1/batch"],
+      "aliases": {
+        "o3-mini": "o3-mini-2025-01-31"
+      },
+      "snapshots": {
+        "o3-mini-2025-01-31": "Shut down",
+        "o3-mini": "Shut down"
+      }
+    },
+    "o3-pro": {
+      "page": "https://developers.openai.com/api/docs/models/o3-pro",
+      "endpoints": ["v1/responses", "v1/batch"],
+      "aliases": {
+        "o3-pro": "o3-pro-2025-06-10"
+      },
+      "snapshots": {
+        "o3-pro-2025-06-10": "Deprecated",
+        "o3-pro": "Deprecated"
+      }
+    },
+    "o4-mini": {
+      "page": "https://developers.openai.com/api/docs/models/o4-mini",
+      "endpoints": ["v1/chat/completions", "v1/responses", "v1/batch", "v1/fine-tuning"],
+      "aliases": {
+        "o4-mini": "o4-mini-2025-04-16"
+      },
+      "snapshots": {
+        "o4-mini-2025-04-16": "Shut down",
+        "o4-mini": "Shut down"
+      }
+    },
+    "o4-mini-deep-research": {
+      "page": "https://developers.openai.com/api/docs/models/o4-mini-deep-research",
+      "endpoints": ["v1/responses", "v1/batch"],
+      "aliases": {
+        "o4-mini-deep-research": "o4-mini-deep-research-2025-06-26"
+      },
+      "snapshots": {
+        "o4-mini-deep-research-2025-06-26": "Shut down",
+        "o4-mini-deep-research": "Shut down"
+      }
+    },
+    "omni-moderation-latest": {
+      "page": "https://developers.openai.com/api/docs/models/omni-moderation-latest",
+      "endpoints": ["v1/batch", "v1/moderations"],
+      "aliases": {
+        "omni-moderation-latest": "omni-moderation-2024-09-26"
+      },
+      "snapshots": {
+        "omni-moderation-2024-09-26": "listed"
+      }
+    },
+    "text-embedding-3-large": {
+      "page": "https://developers.openai.com/api/docs/models/text-embedding-3-large",
+      "endpoints": ["v1/batch", "v1/embeddings"]
+    },
+    "text-embedding-3-small": {
+      "page": "https://developers.openai.com/api/docs/models/text-embedding-3-small",
+      "endpoints": ["v1/batch", "v1/embeddings"]
+    },
+    "text-embedding-ada-002": {
+      "page": "https://developers.openai.com/api/docs/models/text-embedding-ada-002",
+      "endpoints": ["v1/batch", "v1/embeddings"]
+    },
+    "text-moderation-latest": {
+      "page": "https://developers.openai.com/api/docs/models/text-moderation-latest",
+      "endpoints": ["v1/moderations"],
+      "aliases": {
+        "text-moderation-latest": "text-moderation-007",
+        "text-moderation-stable": "text-moderation-007"
+      },
+      "snapshots": {
+        "text-moderation-007": "Shut down",
+        "text-moderation-latest": "Shut down",
+        "text-moderation-stable": "Shut down"
+      }
+    },
+    "text-moderation-stable": {
+      "page": "https://developers.openai.com/api/docs/models/text-moderation-stable",
+      "endpoints": ["v1/moderations"],
+      "aliases": {
+        "text-moderation-stable": "text-moderation-007"
+      },
+      "snapshots": {
+        "text-moderation-007": "Shut down",
+        "text-moderation-stable": "Shut down"
+      }
+    },
+    "tts-1": {
+      "page": "https://developers.openai.com/api/docs/models/tts-1",
+      "endpoints": ["v1/audio/speech"],
+      "snapshots": {
+        "tts-1": "Deprecated"
+      }
+    },
+    "tts-1-hd": {
+      "page": "https://developers.openai.com/api/docs/models/tts-1-hd",
+      "endpoints": ["v1/audio/speech"],
+      "snapshots": {
+        "tts-1-hd": "Deprecated"
+      }
+    },
+    "whisper-1": {
+      "page": "https://developers.openai.com/api/docs/models/whisper-1",
+      "endpoints": ["v1/audio/transcriptions", "v1/audio/translations"],
+      "snapshots": {
+        "whisper-1": "Deprecated"
+      }
+    }
+  }
+}

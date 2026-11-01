@@ -1,0 +1,1042 @@
+{
+  "source": [
+    "https://shopify.dev/docs/api/admin-rest",
+    "https://shopify.dev/docs/api/usage/gids",
+    "https://shopify.dev/docs/apps/build/product-merchandising/products-and-collections"
+  ],
+  "retrieved": "2026-11-01",
+  "note": "GraphQL equivalents are the ones each REST reference page lists per endpoint. Paths are written as on shopify.dev with {placeholders}; the tool normalizes versions, ids and .json.",
+  "general": [
+    {
+      "text": "The REST Admin API is legacy as of October 1, 2024; from April 1, 2025 new public apps must be built only with the GraphQL Admin API. Some newer features exist only in GraphQL.",
+      "source": "https://shopify.dev/docs/api/admin-rest"
+    },
+    {
+      "text": "IDs are global IDs: gid://shopify/{object_name}/{id}, e.g. gid://shopify/Product/123. Most REST responses include admin_graphql_api_id with the GID. Some child objects use parameterized IDs, e.g. gid://shopify/InventoryLevel/123?inventory_item_id=456.",
+      "source": "https://shopify.dev/docs/api/usage/gids"
+    },
+    {
+      "text": "All GraphQL calls are POST /admin/api/{version}/graphql.json with the X-Shopify-Access-Token header. Errors can come back with HTTP 200: read the top-level errors array, and request userErrors on every mutation.",
+      "source": "https://shopify.dev/docs/api/admin-graphql"
+    },
+    {
+      "text": "Lists are connections with cursor pagination (first/after, last/before, pageInfo { hasNextPage endCursor }), up to 250 nodes per page, instead of REST Link headers. Use bulk operations for large exports.",
+      "source": "https://shopify.dev/docs/api/usage/pagination-graphql"
+    },
+    {
+      "text": "Rate limits are calculated query cost (points per second by plan; a single query may cost at most 1,000 points) instead of the REST request bucket. Check extensions.cost.throttleStatus.",
+      "source": "https://shopify.dev/docs/apps/build/apis/graphql-admin/rate-limits"
+    },
+    {
+      "text": "Field names are camelCase (body_html -> descriptionHtml, created_at -> createdAt). Money is usually a MoneyBag (*Set fields with shopMoney and presentmentMoney) rather than a bare string; the bare-money fields are deprecated.",
+      "source": "https://shopify.dev/docs/api/admin-graphql"
+    }
+  ],
+  "resources": [
+    {
+      "resource": "product",
+      "aliases": ["products"],
+      "graphqlType": "Product",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/product",
+      "deprecation": "Listing, creating, updating and deleting products through REST is deprecated as of REST API 2024-04 (new product model). REST can't read or write products with more than 100 variants; GraphQL supports up to 2,048.",
+      "endpoints": [
+        { "method": "POST", "path": "/products.json", "graphql": ["productCreate", "productSet"] },
+        { "method": "GET", "path": "/products.json", "graphql": ["products"] },
+        { "method": "GET", "path": "/products/{product_id}.json", "graphql": ["product"] },
+        { "method": "GET", "path": "/products/count.json", "graphql": ["productsCount"] },
+        {
+          "method": "PUT",
+          "path": "/products/{product_id}.json",
+          "graphql": ["productUpdate", "productSet"]
+        },
+        { "method": "DELETE", "path": "/products/{product_id}.json", "graphql": ["productDelete"] }
+      ],
+      "fields": [
+        { "rest": "body_html", "graphql": "descriptionHtml" },
+        {
+          "rest": "images",
+          "graphql": "media",
+          "note": "Images are Media (MediaImage). Product.images is deprecated in GraphQL; upload with fileCreate or staged uploads and attach via productCreate/productUpdate/productSet media."
+        },
+        {
+          "rest": "image",
+          "graphql": "featuredMedia",
+          "note": "Product.featuredImage is deprecated; use featuredMedia."
+        },
+        {
+          "rest": "variants",
+          "graphql": "variants (connection)",
+          "note": "Variants are written with productVariantsBulkCreate / productVariantsBulkUpdate / productVariantsBulkDelete, or productSet. productCreate/productUpdate no longer take a variants list."
+        },
+        {
+          "rest": "options",
+          "graphql": "options",
+          "note": "Options are ProductOption with optionValues; edit with productOptionsCreate, productOptionUpdate, productOptionsReorder, productOptionsDelete."
+        },
+        {
+          "rest": "published_scope",
+          "graphql": "publishedOnPublication",
+          "note": "Publishing is per publication (publishablePublish / publishableUnpublish)."
+        },
+        { "rest": "product_type", "graphql": "productType" },
+        { "rest": "published_at", "graphql": "publishedAt" },
+        { "rest": "template_suffix", "graphql": "templateSuffix" },
+        {
+          "rest": "tags",
+          "graphql": "tags",
+          "note": "A list of strings rather than a comma-separated string."
+        },
+        { "rest": "status", "graphql": "status", "note": "Enum ACTIVE / ARCHIVED / DRAFT." }
+      ],
+      "notes": [
+        "productSet replaces list fields such as options and variants with what you send, and leaves other fields alone; it's meant for syncing from an external source of truth and supports async mode.",
+        "Product webhooks send full variant data only for the first 100 variants."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product"
+    },
+    {
+      "resource": "product_variant",
+      "aliases": ["variant", "variants", "product variant"],
+      "graphqlType": "ProductVariant",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-variant",
+      "deprecation": "Listing, creating, updating and deleting product variants through REST is deprecated as of REST API 2024-04. Apps can no longer set inventory with inventory_quantity.",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/products/{product_id}/variants.json",
+          "graphql": ["productVariantsBulkCreate", "productCreate"]
+        },
+        {
+          "method": "GET",
+          "path": "/products/{product_id}/variants.json",
+          "graphql": ["productVariants", "product { variants }"]
+        },
+        {
+          "method": "GET",
+          "path": "/products/{product_id}/variants/count.json",
+          "graphql": ["productVariantsCount"]
+        },
+        { "method": "GET", "path": "/variants/{variant_id}.json", "graphql": ["productVariant"] },
+        {
+          "method": "PUT",
+          "path": "/variants/{variant_id}.json",
+          "graphql": ["productVariantsBulkUpdate"]
+        },
+        {
+          "method": "DELETE",
+          "path": "/products/{product_id}/variants/{variant_id}.json",
+          "graphql": ["productVariantsBulkDelete"]
+        }
+      ],
+      "fields": [
+        {
+          "rest": "inventory_quantity",
+          "graphql": "inventoryQuantity (read-only)",
+          "note": "Read-only total across locations. Set stock per location with inventorySetQuantities / inventoryAdjustQuantities on InventoryLevel."
+        },
+        { "rest": "inventory_item_id", "graphql": "inventoryItem { id }" },
+        {
+          "rest": "inventory_management",
+          "graphql": "inventoryItem.tracked",
+          "note": "The REST page maps this to the InventoryItem; in GraphQL tracking is InventoryItem.tracked (ProductVariant.inventoryManagement no longer exists in 2026-10)."
+        },
+        { "rest": "sku", "graphql": "sku (also InventoryItem.sku)" },
+        {
+          "rest": "weight / weight_unit / grams",
+          "graphql": "inventoryItem.measurement.weight",
+          "note": "ProductVariant has no weight field in 2026-10; weight lives on InventoryItem.measurement. grams is deprecated in REST."
+        },
+        {
+          "rest": "fulfillment_service",
+          "graphql": "Location.fulfillmentService",
+          "note": "Variants are stocked at fulfillment service locations instead."
+        },
+        {
+          "rest": "image_id",
+          "graphql": "media",
+          "note": "ProductVariant.image is deprecated; attach media with productVariantAppendMedia / productVariantDetachMedia."
+        },
+        {
+          "rest": "option1 / option2 / option3",
+          "graphql": "selectedOptions { name value }",
+          "note": "In bulk mutations pass optionValues [{ optionName, name }]."
+        }
+      ],
+      "notes": [
+        "productVariantsBulkCreate/Update handle up to 2,048 variants per call; productVariantsBulkDelete up to 250."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-variant"
+    },
+    {
+      "resource": "product_image",
+      "aliases": ["image", "images", "product image"],
+      "graphqlType": "MediaImage",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-image",
+      "deprecation": "Listing, creating, updating and deleting product images through REST is deprecated as of REST API 2025-01.",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/products/{product_id}/images.json",
+          "graphql": ["productCreateMedia", "productUpdate (media)", "fileCreate"]
+        },
+        {
+          "method": "GET",
+          "path": "/products/{product_id}/images.json",
+          "graphql": ["product { media }"]
+        },
+        {
+          "method": "GET",
+          "path": "/products/{product_id}/images/{image_id}.json",
+          "graphql": ["node"]
+        },
+        {
+          "method": "GET",
+          "path": "/products/{product_id}/images/count.json",
+          "graphql": ["product { mediaCount }"]
+        },
+        {
+          "method": "PUT",
+          "path": "/products/{product_id}/images/{image_id}.json",
+          "graphql": ["productUpdateMedia", "fileUpdate"]
+        },
+        {
+          "method": "DELETE",
+          "path": "/products/{product_id}/images/{image_id}.json",
+          "graphql": ["productDeleteMedia", "fileUpdate", "fileDelete"]
+        }
+      ],
+      "fields": [
+        { "rest": "id", "graphql": "MediaImage.id" },
+        { "rest": "src", "graphql": "MediaImage.image.url" },
+        { "rest": "width / height", "graphql": "MediaImage.image.width / height" },
+        { "rest": "position", "graphql": "order of product.media; productReorderMedia" },
+        { "rest": "variant_ids", "graphql": "productVariantAppendMedia / ProductVariant.media" }
+      ],
+      "notes": [
+        "In the 2026-10 schema productCreateMedia, productUpdateMedia and productDeleteMedia are deprecated in favour of productUpdate / productSet (media) and fileUpdate. Validate with shopify_validate_graphql."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-image"
+    },
+    {
+      "resource": "custom_collection",
+      "aliases": ["custom collections", "collection", "collections"],
+      "graphqlType": "Collection",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/customcollection",
+      "endpoints": [
+        { "method": "POST", "path": "/custom_collections.json", "graphql": ["collectionCreate"] },
+        { "method": "GET", "path": "/custom_collections.json", "graphql": ["collections"] },
+        {
+          "method": "GET",
+          "path": "/custom_collections/{custom_collection_id}.json",
+          "graphql": ["collection"]
+        },
+        {
+          "method": "GET",
+          "path": "/custom_collections/count.json",
+          "graphql": ["collectionsCount"]
+        },
+        {
+          "method": "PUT",
+          "path": "/custom_collections/{custom_collection_id}.json",
+          "graphql": ["collectionUpdate"]
+        },
+        {
+          "method": "DELETE",
+          "path": "/custom_collections/{custom_collection_id}.json",
+          "graphql": ["collectionDelete"]
+        }
+      ],
+      "notes": [
+        "Custom and smart collections are both Collection in GraphQL; a smart collection has a ruleSet."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/customcollection"
+    },
+    {
+      "resource": "smart_collection",
+      "aliases": ["smart collections"],
+      "graphqlType": "Collection",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/smartcollection",
+      "endpoints": [
+        { "method": "POST", "path": "/smart_collections.json", "graphql": ["collectionCreate"] },
+        { "method": "GET", "path": "/smart_collections.json", "graphql": ["collections"] },
+        {
+          "method": "GET",
+          "path": "/smart_collections/{smart_collection_id}.json",
+          "graphql": ["collection"]
+        },
+        {
+          "method": "GET",
+          "path": "/smart_collections/count.json",
+          "graphql": ["collectionsCount"]
+        },
+        {
+          "method": "PUT",
+          "path": "/smart_collections/{smart_collection_id}.json",
+          "graphql": ["collectionUpdate"]
+        },
+        {
+          "method": "PUT",
+          "path": "/smart_collections/{smart_collection_id}/order.json",
+          "graphql": ["collectionUpdate", "collectionReorderProducts"]
+        },
+        {
+          "method": "DELETE",
+          "path": "/smart_collections/{smart_collection_id}.json",
+          "graphql": ["collectionDelete"]
+        }
+      ],
+      "fields": [
+        {
+          "rest": "rules / disjunctive",
+          "graphql": "ruleSet { appliedDisjunctively rules { column relation condition } }"
+        }
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/smartcollection"
+    },
+    {
+      "resource": "collect",
+      "aliases": ["collects"],
+      "graphqlType": "Collection / Product",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/collect",
+      "deprecation": "GET /collects/{collect_id}.json and the Collect properties are marked deprecated.",
+      "endpoints": [
+        { "method": "POST", "path": "/collects.json", "graphql": ["collectionAddProducts"] },
+        {
+          "method": "GET",
+          "path": "/collects.json",
+          "graphql": ["collection { products }", "product { collections }"]
+        },
+        { "method": "GET", "path": "/collects/{collect_id}.json", "graphql": [] },
+        {
+          "method": "GET",
+          "path": "/collects/count.json",
+          "graphql": ["collection { productsCount }"]
+        },
+        {
+          "method": "DELETE",
+          "path": "/collects/{collect_id}.json",
+          "graphql": ["collectionRemoveProducts"]
+        }
+      ],
+      "notes": [
+        "There is no Collect object in GraphQL; membership is the Collection.products / Product.collections connections."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/collect"
+    },
+    {
+      "resource": "order",
+      "aliases": ["orders"],
+      "graphqlType": "Order",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/order",
+      "endpoints": [
+        { "method": "POST", "path": "/orders.json", "graphql": ["orderCreate"] },
+        { "method": "POST", "path": "/orders/{order_id}/cancel.json", "graphql": ["orderCancel"] },
+        { "method": "POST", "path": "/orders/{order_id}/close.json", "graphql": ["orderClose"] },
+        { "method": "POST", "path": "/orders/{order_id}/open.json", "graphql": ["orderOpen"] },
+        { "method": "GET", "path": "/orders.json", "graphql": ["orders"] },
+        { "method": "GET", "path": "/orders/{order_id}.json", "graphql": ["order"] },
+        { "method": "GET", "path": "/orders/count.json", "graphql": ["ordersCount"] },
+        { "method": "PUT", "path": "/orders/{order_id}.json", "graphql": ["orderUpdate"] },
+        { "method": "DELETE", "path": "/orders/{order_id}.json", "graphql": ["orderDelete"] }
+      ],
+      "fields": [
+        { "rest": "line_items", "graphql": "lineItems (connection)" },
+        { "rest": "browser_ip", "graphql": "clientIp" },
+        { "rest": "buyer_accepts_marketing", "graphql": "customerAcceptsMarketing" },
+        { "rest": "client_details", "graphql": "customerJourneySummary" },
+        { "rest": "company", "graphql": "purchasingEntity" },
+        { "rest": "app_id", "graphql": "app" },
+        {
+          "rest": "cancel_reason / cancelled_at / closed_at",
+          "graphql": "cancelReason / cancelledAt / closedAt"
+        },
+        {
+          "rest": "total_price, subtotal_price, ...",
+          "graphql": "totalPriceSet, subtotalPriceSet, ... (MoneyBag)",
+          "note": "The bare money fields (e.g. Order.subtotalPrice) are deprecated in GraphQL."
+        },
+        { "rest": "origin_location", "graphql": "fulfillmentOrders { assignedLocation }" }
+      ],
+      "notes": [
+        "read_orders covers only the last 60 days of orders unless the app also has read_all_orders.",
+        "Line items and quantities can only be edited through GraphQL order editing (orderEditBegin ... orderEditCommit)."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/order"
+    },
+    {
+      "resource": "draft_order",
+      "aliases": ["draft orders"],
+      "graphqlType": "DraftOrder",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/draftorder",
+      "endpoints": [
+        { "method": "POST", "path": "/draft_orders.json", "graphql": ["draftOrderCreate"] },
+        {
+          "method": "POST",
+          "path": "/draft_orders/{draft_order_id}/send_invoice.json",
+          "graphql": ["draftOrderInvoiceSend"]
+        },
+        { "method": "GET", "path": "/draft_orders.json", "graphql": ["draftOrders"] },
+        {
+          "method": "GET",
+          "path": "/draft_orders/{draft_order_id}.json",
+          "graphql": ["draftOrder"]
+        },
+        { "method": "GET", "path": "/draft_orders/count.json", "graphql": ["draftOrdersCount"] },
+        {
+          "method": "PUT",
+          "path": "/draft_orders/{draft_order_id}.json",
+          "graphql": ["draftOrderUpdate"]
+        },
+        {
+          "method": "PUT",
+          "path": "/draft_orders/{draft_order_id}/complete.json",
+          "graphql": ["draftOrderComplete"]
+        },
+        {
+          "method": "DELETE",
+          "path": "/draft_orders/{draft_order_id}.json",
+          "graphql": ["draftOrderDelete"]
+        }
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/draftorder"
+    },
+    {
+      "resource": "transaction",
+      "aliases": ["transactions", "order transaction"],
+      "graphqlType": "OrderTransaction",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/transaction",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/orders/{order_id}/transactions.json",
+          "graphql": ["orderCapture"]
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{order_id}/transactions.json",
+          "graphql": ["order { transactions }"]
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{order_id}/transactions/{transaction_id}.json",
+          "graphql": ["node"]
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{order_id}/transactions/count.json",
+          "graphql": ["order"]
+        }
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/transaction"
+    },
+    {
+      "resource": "refund",
+      "aliases": ["refunds"],
+      "graphqlType": "Refund",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/refund",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/orders/{order_id}/refunds.json",
+          "graphql": ["refundCreate"]
+        },
+        {
+          "method": "POST",
+          "path": "/orders/{order_id}/refunds/calculate.json",
+          "graphql": ["order (suggestedRefund)"]
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{order_id}/refunds.json",
+          "graphql": ["order { refunds }"]
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{order_id}/refunds/{refund_id}.json",
+          "graphql": ["refund"]
+        }
+      ],
+      "notes": [
+        "REST refund restock is deprecated; use restock_type on refund line items. Refunded shipping is no longer an order adjustment as of 2024-10."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/refund"
+    },
+    {
+      "resource": "customer",
+      "aliases": ["customers"],
+      "graphqlType": "Customer",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/customer",
+      "endpoints": [
+        { "method": "POST", "path": "/customers.json", "graphql": ["customerCreate"] },
+        {
+          "method": "POST",
+          "path": "/customers/{customer_id}/account_activation_url.json",
+          "graphql": ["customerGenerateAccountActivationUrl"]
+        },
+        {
+          "method": "POST",
+          "path": "/customers/{customer_id}/send_invite.json",
+          "graphql": ["customerSendAccountInviteEmail"]
+        },
+        { "method": "GET", "path": "/customers.json", "graphql": ["customers"] },
+        { "method": "GET", "path": "/customers/{customer_id}.json", "graphql": ["customer"] },
+        {
+          "method": "GET",
+          "path": "/customers/{customer_id}/orders.json",
+          "graphql": ["customer { orders }"]
+        },
+        { "method": "GET", "path": "/customers/count.json", "graphql": ["customersCount"] },
+        { "method": "GET", "path": "/customers/search.json", "graphql": ["customers(query:)"] },
+        { "method": "PUT", "path": "/customers/{customer_id}.json", "graphql": ["customerUpdate"] },
+        {
+          "method": "DELETE",
+          "path": "/customers/{customer_id}.json",
+          "graphql": ["customerDelete"]
+        }
+      ],
+      "fields": [
+        {
+          "rest": "email",
+          "graphql": "defaultEmailAddress { emailAddress }",
+          "note": "Customer.email is deprecated in the 2026-10 schema."
+        },
+        {
+          "rest": "phone",
+          "graphql": "defaultPhoneNumber { phoneNumber }",
+          "note": "Customer.phone is deprecated in the 2026-10 schema."
+        },
+        {
+          "rest": "email_marketing_consent",
+          "graphql": "defaultEmailAddress { marketingState }",
+          "note": "Customer.emailMarketingConsent is deprecated in 2026-10; update with customerEmailMarketingConsentUpdate."
+        },
+        {
+          "rest": "addresses",
+          "graphql": "addressesV2 (connection)",
+          "note": "Customer.addresses is deprecated (limited to 250)."
+        },
+        { "rest": "default_address", "graphql": "defaultAddress" },
+        { "rest": "first_name / last_name", "graphql": "firstName / lastName" },
+        { "rest": "last_order_id", "graphql": "lastOrder" }
+      ],
+      "notes": [
+        "Customer data is protected customer data: by default apps have no access, and the API won't return it from non-development stores until the app meets the protected customer data requirements."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/customer"
+    },
+    {
+      "resource": "customer_address",
+      "aliases": ["addresses", "customer address"],
+      "graphqlType": "MailingAddress",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/customer-address",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/customers/{customer_id}/addresses.json",
+          "graphql": ["customerUpdate"]
+        },
+        {
+          "method": "GET",
+          "path": "/customers/{customer_id}/addresses.json",
+          "graphql": ["customer { addressesV2 }"]
+        },
+        {
+          "method": "GET",
+          "path": "/customers/{customer_id}/addresses/{address_id}.json",
+          "graphql": ["customer"]
+        },
+        {
+          "method": "PUT",
+          "path": "/customers/{customer_id}/addresses/{address_id}.json",
+          "graphql": ["customerUpdate"]
+        },
+        {
+          "method": "PUT",
+          "path": "/customers/{customer_id}/addresses/{address_id}/default.json",
+          "graphql": ["customerUpdateDefaultAddress"]
+        },
+        {
+          "method": "PUT",
+          "path": "/customers/{customer_id}/addresses/set.json",
+          "graphql": ["customerUpdate"]
+        },
+        {
+          "method": "DELETE",
+          "path": "/customers/{customer_id}/addresses/{address_id}.json",
+          "graphql": []
+        }
+      ],
+      "notes": [
+        "The REST page lists no GraphQL equivalent for DELETE; the 2026-10 schema has customerAddressDelete (and customerAddressCreate/Update) - confirm with shopify_validate_graphql."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/customer-address"
+    },
+    {
+      "resource": "metafield",
+      "aliases": ["metafields"],
+      "graphqlType": "Metafield",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/metafield",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/{owner}/{owner_id}/metafields.json",
+          "graphql": ["metafieldsSet"]
+        },
+        {
+          "method": "GET",
+          "path": "/{owner}/{owner_id}/metafields.json",
+          "graphql": ["<owner> { metafields }"]
+        },
+        {
+          "method": "GET",
+          "path": "/{owner}/{owner_id}/metafields/{metafield_id}.json",
+          "graphql": ["<owner> { metafield(namespace:, key:) }"]
+        },
+        {
+          "method": "GET",
+          "path": "/{owner}/{owner_id}/metafields/count.json",
+          "graphql": ["metafieldDefinition"]
+        },
+        {
+          "method": "PUT",
+          "path": "/{owner}/{owner_id}/metafields/{metafield_id}.json",
+          "graphql": ["metafieldsSet"]
+        },
+        {
+          "method": "DELETE",
+          "path": "/{owner}/{owner_id}/metafields/{metafield_id}.json",
+          "graphql": ["metafieldsDelete"]
+        },
+        { "method": "GET", "path": "/metafields.json", "graphql": ["shop { metafields }"] },
+        { "method": "POST", "path": "/metafields.json", "graphql": ["metafieldsSet"] }
+      ],
+      "fields": [
+        {
+          "rest": "owner_id / owner_resource",
+          "graphql": "owner / ownerType",
+          "note": "metafieldsSet takes ownerId as a GID."
+        },
+        {
+          "rest": "type",
+          "graphql": "type",
+          "note": "e.g. single_line_text_field; value is always a string."
+        },
+        { "rest": "namespace + key", "graphql": "namespace + key" }
+      ],
+      "notes": [
+        "Owner segments include products, variants, collections, customers, orders, draft_orders, pages, blogs, articles and product_images; shop metafields have no owner segment."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/metafield"
+    },
+    {
+      "resource": "inventory_level",
+      "aliases": ["inventory levels", "inventory"],
+      "graphqlType": "InventoryLevel",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/inventorylevel",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/inventory_levels/adjust.json",
+          "graphql": ["inventoryAdjustQuantities"]
+        },
+        {
+          "method": "POST",
+          "path": "/inventory_levels/connect.json",
+          "graphql": ["inventoryActivate"]
+        },
+        {
+          "method": "POST",
+          "path": "/inventory_levels/set.json",
+          "graphql": ["inventorySetQuantities"]
+        },
+        {
+          "method": "GET",
+          "path": "/inventory_levels.json",
+          "graphql": [
+            "inventoryItems",
+            "inventoryItem { inventoryLevels }",
+            "location { inventoryLevels }"
+          ]
+        },
+        { "method": "DELETE", "path": "/inventory_levels.json", "graphql": ["inventoryDeactivate"] }
+      ],
+      "fields": [
+        {
+          "rest": "available",
+          "graphql": "quantities(names: [\"available\"]) { name quantity }",
+          "note": "GraphQL has named quantities (available, on_hand, committed, incoming, ...)."
+        },
+        { "rest": "inventory_item_id", "graphql": "item { id }" },
+        { "rest": "location_id", "graphql": "location { id }" },
+        {
+          "rest": "available_adjustment",
+          "graphql": "changes[].delta in inventoryAdjustQuantities"
+        }
+      ],
+      "notes": [
+        "InventoryLevel GIDs are parameterized: gid://shopify/InventoryLevel/{location_id}?inventory_item_id={inventory_item_id}.",
+        "Since 2026-04, inventorySetQuantities uses changeFromQuantity for compare-and-set (compareQuantity / ignoreCompareQuantity were removed). Validate inputs with shopify_validate_graphql."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/inventorylevel"
+    },
+    {
+      "resource": "inventory_item",
+      "aliases": ["inventory items"],
+      "graphqlType": "InventoryItem",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/inventoryitem",
+      "endpoints": [
+        { "method": "GET", "path": "/inventory_items.json", "graphql": ["inventoryItems"] },
+        {
+          "method": "GET",
+          "path": "/inventory_items/{inventory_item_id}.json",
+          "graphql": ["inventoryItem"]
+        },
+        {
+          "method": "PUT",
+          "path": "/inventory_items/{inventory_item_id}.json",
+          "graphql": ["inventoryItemUpdate"]
+        }
+      ],
+      "fields": [
+        { "rest": "cost", "graphql": "unitCost" },
+        { "rest": "country_code_of_origin", "graphql": "countryCodeOfOrigin" },
+        { "rest": "harmonized_system_code", "graphql": "harmonizedSystemCode" },
+        { "rest": "requires_shipping", "graphql": "requiresShipping" },
+        { "rest": "tracked", "graphql": "tracked" }
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/inventoryitem"
+    },
+    {
+      "resource": "location",
+      "aliases": ["locations"],
+      "graphqlType": "Location",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/location",
+      "endpoints": [
+        { "method": "GET", "path": "/locations.json", "graphql": ["locations"] },
+        { "method": "GET", "path": "/locations/{location_id}.json", "graphql": ["location"] },
+        {
+          "method": "GET",
+          "path": "/locations/{location_id}/inventory_levels.json",
+          "graphql": ["location { inventoryLevels }"]
+        },
+        { "method": "GET", "path": "/locations/count.json", "graphql": ["locationsCount"] }
+      ],
+      "fields": [
+        { "rest": "active", "graphql": "isActive" },
+        { "rest": "legacy", "graphql": "isFulfillmentService" },
+        {
+          "rest": "address1, city, ...",
+          "graphql": "address { address1 city ... } (LocationAddress)"
+        },
+        { "rest": "country_code", "graphql": "address { countryCode }" }
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/location"
+    },
+    {
+      "resource": "fulfillment",
+      "aliases": ["fulfillments"],
+      "graphqlType": "Fulfillment",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/fulfillment",
+      "endpoints": [
+        { "method": "POST", "path": "/fulfillments.json", "graphql": ["fulfillmentCreate"] },
+        {
+          "method": "POST",
+          "path": "/fulfillments/{fulfillment_id}/cancel.json",
+          "graphql": ["fulfillmentCancel"]
+        },
+        {
+          "method": "POST",
+          "path": "/fulfillments/{fulfillment_id}/update_tracking.json",
+          "graphql": ["fulfillmentTrackingInfoUpdate"]
+        },
+        {
+          "method": "GET",
+          "path": "/fulfillment_orders/{fulfillment_order_id}/fulfillments.json",
+          "graphql": ["fulfillmentOrder { fulfillments }"]
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{order_id}/fulfillments.json",
+          "graphql": ["order { fulfillments }"]
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{order_id}/fulfillments/{fulfillment_id}.json",
+          "graphql": ["fulfillment"]
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{order_id}/fulfillments/count.json",
+          "graphql": ["order"]
+        }
+      ],
+      "fields": [
+        {
+          "rest": "line_items[].fulfillable_quantity",
+          "graphql": "FulfillmentOrderLineItem.remainingQuantity"
+        },
+        { "rest": "line_items[].fulfillment_status", "graphql": "FulfillmentOrder.status" },
+        { "rest": "fulfillment_service", "graphql": "FulfillmentOrder.assignedLocation" }
+      ],
+      "notes": [
+        "Fulfillments are created against fulfillment orders (lineItemsByFulfillmentOrder), not order line items. The REST page names fulfillmentCreateV2, which is deprecated in the 2026-10 schema in favour of fulfillmentCreate."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/fulfillment"
+    },
+    {
+      "resource": "fulfillment_order",
+      "aliases": ["fulfillment orders"],
+      "graphqlType": "FulfillmentOrder",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/fulfillmentorder",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/fulfillment_orders/{fulfillment_order_id}/cancel.json",
+          "graphql": ["fulfillmentOrderCancel"]
+        },
+        {
+          "method": "POST",
+          "path": "/fulfillment_orders/{fulfillment_order_id}/close.json",
+          "graphql": ["fulfillmentOrderClose"]
+        },
+        {
+          "method": "POST",
+          "path": "/fulfillment_orders/{fulfillment_order_id}/hold.json",
+          "graphql": ["fulfillmentOrderHold"]
+        },
+        {
+          "method": "POST",
+          "path": "/fulfillment_orders/{fulfillment_order_id}/move.json",
+          "graphql": ["fulfillmentOrderMove"]
+        },
+        {
+          "method": "POST",
+          "path": "/fulfillment_orders/{fulfillment_order_id}/open.json",
+          "graphql": ["fulfillmentOrderOpen"]
+        },
+        {
+          "method": "POST",
+          "path": "/fulfillment_orders/{fulfillment_order_id}/release_hold.json",
+          "graphql": ["fulfillmentOrderReleaseHold"]
+        },
+        {
+          "method": "POST",
+          "path": "/fulfillment_orders/{fulfillment_order_id}/reschedule.json",
+          "graphql": ["fulfillmentOrderReschedule"]
+        },
+        {
+          "method": "POST",
+          "path": "/fulfillment_orders/set_fulfillment_orders_deadline.json",
+          "graphql": ["fulfillmentOrdersSetFulfillmentDeadline"]
+        },
+        {
+          "method": "GET",
+          "path": "/fulfillment_orders/{fulfillment_order_id}.json",
+          "graphql": ["fulfillmentOrder"]
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{order_id}/fulfillment_orders.json",
+          "graphql": ["order { fulfillmentOrders }"]
+        }
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/fulfillmentorder"
+    },
+    {
+      "resource": "webhook",
+      "aliases": ["webhooks", "webhook subscription"],
+      "graphqlType": "WebhookSubscription",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/webhook",
+      "endpoints": [
+        { "method": "POST", "path": "/webhooks.json", "graphql": ["webhookSubscriptionCreate"] },
+        { "method": "GET", "path": "/webhooks.json", "graphql": ["webhookSubscriptions"] },
+        {
+          "method": "GET",
+          "path": "/webhooks/{webhook_id}.json",
+          "graphql": ["webhookSubscription"]
+        },
+        {
+          "method": "GET",
+          "path": "/webhooks/count.json",
+          "graphql": ["webhookSubscriptionsCount"]
+        },
+        {
+          "method": "PUT",
+          "path": "/webhooks/{webhook_id}.json",
+          "graphql": ["webhookSubscriptionUpdate"]
+        },
+        {
+          "method": "DELETE",
+          "path": "/webhooks/{webhook_id}.json",
+          "graphql": ["webhookSubscriptionDelete"]
+        }
+      ],
+      "fields": [
+        { "rest": "topic", "graphql": "topic (enum, e.g. PRODUCTS_UPDATE for products/update)" },
+        { "rest": "address", "graphql": "uri" },
+        { "rest": "api_version", "graphql": "apiVersion (read-only; inherited from the app)" }
+      ],
+      "notes": [
+        "Apps managed with Shopify CLI can declare app-specific subscriptions in shopify.app.toml ([[webhooks.subscriptions]] topics / uri) instead of calling the API."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/webhook"
+    },
+    {
+      "resource": "shop",
+      "aliases": ["store"],
+      "graphqlType": "Shop",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/shop",
+      "endpoints": [{ "method": "GET", "path": "/shop.json", "graphql": ["shop"] }],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/shop"
+    },
+    {
+      "resource": "script_tag",
+      "aliases": ["script tags", "scripttag"],
+      "graphqlType": "ScriptTag",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/scripttag",
+      "deprecation": "Script tags no longer run on the Thank you and Order status pages (Plus: Aug 28, 2025; non-Plus: Aug 26, 2026). The count endpoint is deprecated.",
+      "endpoints": [
+        { "method": "POST", "path": "/script_tags.json", "graphql": ["scriptTagCreate"] },
+        { "method": "GET", "path": "/script_tags.json", "graphql": ["scriptTags"] },
+        { "method": "GET", "path": "/script_tags/{script_tag_id}.json", "graphql": ["scriptTag"] },
+        { "method": "GET", "path": "/script_tags/count.json", "graphql": [] },
+        {
+          "method": "PUT",
+          "path": "/script_tags/{script_tag_id}.json",
+          "graphql": ["scriptTagUpdate"]
+        },
+        {
+          "method": "DELETE",
+          "path": "/script_tags/{script_tag_id}.json",
+          "graphql": ["scriptTagDelete"]
+        }
+      ],
+      "notes": [
+        "For storefront code consider theme app extensions; for checkout pages use checkout UI extensions and web pixels."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/scripttag"
+    },
+    {
+      "resource": "asset",
+      "aliases": ["assets", "theme asset", "theme"],
+      "graphqlType": "OnlineStoreTheme",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/asset",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/themes/{theme_id}/assets.json",
+          "graphql": ["theme { files }"]
+        },
+        {
+          "method": "PUT",
+          "path": "/themes/{theme_id}/assets.json",
+          "graphql": ["themeFilesUpsert", "themeFilesCopy"]
+        },
+        {
+          "method": "DELETE",
+          "path": "/themes/{theme_id}/assets.json",
+          "graphql": ["themeFilesDelete"]
+        }
+      ],
+      "notes": [
+        "App Store apps need a protected access scope to write theme files (since 2023-04)."
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/asset"
+    },
+    {
+      "resource": "page",
+      "aliases": ["pages"],
+      "graphqlType": "Page",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/page",
+      "endpoints": [
+        { "method": "POST", "path": "/pages.json", "graphql": ["pageCreate"] },
+        { "method": "GET", "path": "/pages.json", "graphql": ["pages"] },
+        { "method": "GET", "path": "/pages/{page_id}.json", "graphql": ["page"] },
+        { "method": "GET", "path": "/pages/count.json", "graphql": ["pagesCount"] },
+        { "method": "PUT", "path": "/pages/{page_id}.json", "graphql": ["pageUpdate"] },
+        { "method": "DELETE", "path": "/pages/{page_id}.json", "graphql": ["pageDelete"] }
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/page"
+    },
+    {
+      "resource": "price_rule",
+      "aliases": ["price rules", "discount", "discount_code", "discounts"],
+      "graphqlType": "DiscountNode",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/pricerule",
+      "deprecation": "PriceRule/DiscountCode REST resources are superseded by GraphQL discount types; most PriceRule fields are marked deprecated.",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/price_rules.json",
+          "graphql": [
+            "discountCodeBasicCreate",
+            "discountAutomaticBasicCreate",
+            "discountCodeBxgyCreate",
+            "discountAutomaticBxgyCreate",
+            "discountCodeFreeShippingCreate",
+            "discountAutomaticFreeShippingCreate"
+          ]
+        },
+        { "method": "GET", "path": "/price_rules.json", "graphql": ["discountNodes"] },
+        {
+          "method": "GET",
+          "path": "/price_rules/{price_rule_id}.json",
+          "graphql": ["discountNode"]
+        },
+        { "method": "GET", "path": "/price_rules/count.json", "graphql": ["discountNodesCount"] },
+        {
+          "method": "PUT",
+          "path": "/price_rules/{price_rule_id}.json",
+          "graphql": [
+            "discountCodeBasicUpdate",
+            "discountAutomaticBasicUpdate",
+            "discountCodeBxgyUpdate",
+            "discountAutomaticBxgyUpdate",
+            "discountCodeFreeShippingUpdate",
+            "discountAutomaticFreeShippingUpdate"
+          ]
+        },
+        {
+          "method": "DELETE",
+          "path": "/price_rules/{price_rule_id}.json",
+          "graphql": ["discountCodeDelete", "discountAutomaticDelete"]
+        }
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/pricerule"
+    },
+    {
+      "resource": "recurring_application_charge",
+      "aliases": ["billing", "recurring charge", "app subscription"],
+      "graphqlType": "AppSubscription",
+      "docs": "https://shopify.dev/docs/api/admin-rest/latest/resources/recurringapplicationcharge",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/recurring_application_charges.json",
+          "graphql": ["appSubscriptionCreate"]
+        },
+        {
+          "method": "GET",
+          "path": "/recurring_application_charges.json",
+          "graphql": ["currentAppInstallation { activeSubscriptions }"]
+        },
+        {
+          "method": "GET",
+          "path": "/recurring_application_charges/{recurring_application_charge_id}.json",
+          "graphql": []
+        },
+        {
+          "method": "PUT",
+          "path": "/recurring_application_charges/{recurring_application_charge_id}/customize.json",
+          "graphql": ["appSubscriptionLineItemUpdate"]
+        },
+        {
+          "method": "DELETE",
+          "path": "/recurring_application_charges/{recurring_application_charge_id}.json",
+          "graphql": ["appSubscriptionCancel"]
+        }
+      ],
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/recurringapplicationcharge"
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "source": [
+    "https://shopify.dev/docs/api/usage/versioning",
+    "https://shopify.dev/docs/api/release-notes"
+  ],
+  "retrieved": "2026-11-01",
+  "cadence": {
+    "summary": "A new Admin API version ships every quarter, at 5pm UTC on the first day of January, April, July and October. Version names are dates such as 2026-04.",
+    "support": "Each stable version is supported for at least 12 months, and consecutive versions overlap by at least nine months. In the current table each version stays accessible until about the 16th of the month, 12 months after release (15:00 UTC).",
+    "types": {
+      "stable": "Recommended for production.",
+      "release candidate": "The next version, available before release. It can still receive backwards-incompatible changes, so don't use it in production.",
+      "unstable": "Early access to features in progress. Changes without notice; for testing only."
+    },
+    "source": "https://shopify.dev/docs/api/usage/versioning"
+  },
+  "fallForward": {
+    "summary": "If a request names a version that is no longer accessible, Shopify falls forward and responds using the oldest accessible stable version. The X-Shopify-API-Version response header shows the version actually used; if it differs from the one requested, the app is pinned to an inaccessible version.",
+    "webhooks": "Webhook payloads are versioned the same way and also fall forward; deliveries carry an X-Shopify-API-Version header. For apps configured with Shopify CLI the webhook version is [webhooks] api_version in shopify.app.toml.",
+    "source": "https://shopify.dev/docs/api/usage/versioning"
+  },
+  "versions": [
+    {
+      "version": "2025-04",
+      "released": "2025-04-01",
+      "accessibleUntil": "2026-04-16T15:00:00Z",
+      "status": "unsupported",
+      "source": "https://shopify.dev/docs/api/usage/versioning"
+    },
+    {
+      "version": "2025-07",
+      "released": "2025-07-01",
+      "accessibleUntil": "2026-07-16T15:00:00Z",
+      "status": "unsupported",
+      "source": "https://shopify.dev/docs/api/usage/versioning"
+    },
+    {
+      "version": "2025-10",
+      "released": "2025-10-01",
+      "accessibleUntil": "2026-10-16T15:00:00Z",
+      "status": "unsupported",
+      "source": "https://shopify.dev/docs/api/usage/versioning"
+    },
+    {
+      "version": "2026-01",
+      "released": "2026-01-01",
+      "accessibleUntil": "2027-01-16T15:00:00Z",
+      "status": "stable",
+      "source": "https://shopify.dev/docs/api/usage/versioning",
+      "highlights": "Release notes summary: bulk operation changes (up to five concurrent bulk queries; bulkOperation(id:) replaces currentBulkOperation), tax handling, cart discount behavior.",
+      "notesUrl": "https://shopify.dev/changelog/release-notes/2026-01"
+    },
+    {
+      "version": "2026-04",
+      "released": "2026-04-01",
+      "accessibleUntil": "2027-04-16T15:00:00Z",
+      "status": "stable",
+      "source": "https://shopify.dev/docs/api/usage/versioning",
+      "highlights": "Release notes summary: metafield and webhook migrations, safer inventory mutations. The 2026-01 schema's deprecation notes say InventoryQuantityInput.compareQuantity and InventorySetQuantitiesInput.ignoreCompareQuantity are removed in 2026-04 in favour of changeFromQuantity; both are absent from the 2026-10 schema.",
+      "notesUrl": "https://shopify.dev/changelog/release-notes/2026-04"
+    },
+    {
+      "version": "2026-07",
+      "released": "2026-07-01",
+      "accessibleUntil": "2027-07-16T15:00:00Z",
+      "status": "stable",
+      "source": "https://shopify.dev/docs/api/usage/versioning",
+      "highlights": "Release notes summary: inventory safety updates and metaobject changes. The 2026-01 schema says inventory scheduled changes are phased out in 2026-07 (inventorySetScheduledChanges is absent from 2026-10).",
+      "notesUrl": "https://shopify.dev/changelog/release-notes/2026-07"
+    },
+    {
+      "version": "2026-10",
+      "released": "2026-10-01",
+      "accessibleUntil": "2027-10-16T15:00:00Z",
+      "status": "latest stable",
+      "source": "https://shopify.dev/docs/api/usage/versioning",
+      "highlights": "Release notes summary: removed checkout fields, order tax recalculation, metafield filter errors.",
+      "notesUrl": "https://shopify.dev/changelog/release-notes/2026-10"
+    },
+    {
+      "version": "2027-01",
+      "released": "2027-01-01",
+      "accessibleUntil": "2028-01-16T15:00:00Z",
+      "status": "release candidate",
+      "source": "https://shopify.dev/docs/api/usage/versioning"
+    }
+  ],
+  "deadlines": [
+    {
+      "date": "2024-04-01",
+      "title": "REST product and variant endpoints deprecated in REST API 2024-04 (new GraphQL product model; up to 2,048 variants per product). REST does not handle products with more than 100 variants.",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product"
+    },
+    {
+      "date": "2024-10-01",
+      "title": "The REST Admin API is legacy as of October 1, 2024.",
+      "source": "https://shopify.dev/docs/api/admin-rest"
+    },
+    {
+      "date": "2025-01-01",
+      "title": "REST product image endpoints deprecated as of REST API 2025-01 (use media mutations).",
+      "source": "https://shopify.dev/docs/api/admin-rest/latest/resources/product-image"
+    },
+    {
+      "date": "2025-02-01",
+      "title": "Public apps had to move to the new GraphQL product APIs by February 1, 2025 (custom apps on the old GraphQL product APIs by April 1, 2025). Taken from Shopify's product model migration doc as indexed by search; the current page no longer shows the dates.",
+      "source": "https://shopify.dev/docs/api/admin/migrate/new-product-model",
+      "confidence": "unverified"
+    },
+    {
+      "date": "2025-04-01",
+      "title": "New public apps must be built exclusively with the GraphQL Admin API.",
+      "source": "https://shopify.dev/docs/api/admin-rest"
+    },
+    {
+      "date": "2025-08-28",
+      "title": "checkout.liquid, additional scripts and script tags sunset on the Thank you and Order status pages for Shopify Plus stores.",
+      "source": "https://shopify.dev/docs/storefronts/themes/architecture/layouts/checkout-liquid"
+    },
+    {
+      "date": "2026-04-15",
+      "title": "Shopify Scripts can no longer be edited or published.",
+      "source": "https://shopify.dev/changelog/posts/shopify-scripts-will-be-deprecated-on-june-30-2026"
+    },
+    {
+      "date": "2026-06-30",
+      "title": "All Shopify Scripts stop executing; use Shopify Functions.",
+      "source": "https://shopify.dev/changelog/posts/shopify-scripts-will-be-deprecated-on-june-30-2026"
+    },
+    {
+      "date": "2026-08-26",
+      "title": "Script tags sunset on the Thank you and Order status pages for non-Plus stores.",
+      "source": "https://shopify.dev/docs/storefronts/themes/architecture/layouts/checkout-liquid"
+    },
+    {
+      "date": "2027-01-01",
+      "title": "Public apps must use expiring offline access tokens (1 hour, with 90-day refresh tokens) for GraphQL Admin API requests; non-expiring offline tokens stop working for public apps. Custom and merchant-created apps are not affected.",
+      "source": "https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens/token-exchange"
+    }
+  ]
+}

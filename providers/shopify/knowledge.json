@@ -1,0 +1,294 @@
+{
+  "provider": "shopify",
+  "updatedAt": "2026-11-01",
+  "draftedBy": "Drafted 2026-11-01 by a build agent reading the provider docs over web fetch. Not yet re-drafted by the knowledge agent (core/knowledge.ts), because no model API key was available.",
+  "versioning": {
+    "scheme": "Quarterly date-based versions named YYYY-MM, released at 5pm UTC on the first day of each quarter, each stable version supported for at least 12 months with at least nine months of overlap. The version goes in the request URL (e.g. /admin/api/2026-10/graphql.json); requests to an inaccessible version fall forward to the oldest supported stable version. A release candidate and an unstable version are also available. Deprecated fields are removed in a later version.",
+    "source": {
+      "url": "https://shopify.dev/docs/api/usage/versioning.md",
+      "retrievedAt": "2026-11-01",
+      "quote": "Each stable version is supported for a minimum of 12 months, with at least nine months of overlap between consecutive versions."
+    }
+  },
+  "versions": [
+    {
+      "value": "2025-04",
+      "status": "retired",
+      "releasedAt": "2025-04-01",
+      "retiresAt": "2026-04-16",
+      "notes": "Listed as Unsupported (accessible until 2026-04-16 15:00 UTC); requests fall forward to the oldest supported version.",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "value": "2025-07",
+      "status": "retired",
+      "releasedAt": "2025-07-01",
+      "retiresAt": "2026-07-16",
+      "notes": "Listed as Unsupported; requests fall forward to the oldest supported version.",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "value": "2025-10",
+      "status": "retired",
+      "releasedAt": "2025-10-01",
+      "retiresAt": "2026-10-16",
+      "notes": "Listed as Unsupported; requests fall forward to the oldest supported version.",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "| 2025-10 | October 1, 2025 | October 16, 2026 15:00 UTC | Unsupported |"
+      }
+    },
+    {
+      "value": "2026-01",
+      "status": "supported",
+      "releasedAt": "2026-01-01",
+      "retiresAt": "2027-01-16",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "value": "2026-04",
+      "status": "supported",
+      "releasedAt": "2026-04-01",
+      "retiresAt": "2027-04-16",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "value": "2026-07",
+      "status": "supported",
+      "releasedAt": "2026-07-01",
+      "retiresAt": "2027-07-16",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "value": "2026-10",
+      "status": "current",
+      "releasedAt": "2026-10-01",
+      "retiresAt": "2027-10-16",
+      "notes": "Latest stable.",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "| 2026-10 | October 1, 2026 | October 16, 2027 15:00 UTC | Latest stable |"
+      }
+    },
+    {
+      "value": "2027-01",
+      "status": "preview",
+      "releasedAt": "2027-01-01",
+      "retiresAt": "2028-01-16",
+      "notes": "Release candidate: may include backwards-incompatible changes, not for production. Release date is the planned stable date.",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "| 2027-01 | January 1, 2027 | January 16, 2028 15:00 UTC | Release candidate |"
+      }
+    },
+    {
+      "value": "unstable",
+      "status": "preview",
+      "notes": "Updated continuously; for early testing only.",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Updated continuously with in-progress changes. Features can be added or removed at any time with no guarantee of release."
+      }
+    }
+  ],
+  "retirements": [
+    {
+      "subject": "REST Admin API (legacy; new public apps must use the GraphQL Admin API)",
+      "kind": "rest-to-graphql",
+      "date": "2025-04-01",
+      "replacement": "GraphQL Admin API",
+      "notes": "Legacy since 2024-10-01; from 2025-04-01 new public apps must be built exclusively with GraphQL.",
+      "source": {
+        "url": "https://shopify.dev/docs/api/admin-rest.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "The REST Admin API is a legacy API as of October 1, 2024."
+      }
+    },
+    {
+      "subject": "Non-expiring offline access tokens for public apps",
+      "kind": "auth-change",
+      "date": "2027-01-01",
+      "replacement": "Expiring offline access tokens",
+      "notes": "2027-01-01 delisting and install block; 2027-04-01 affected Admin API requests return HTTP 403. Custom and merchant-created apps excluded.",
+      "source": {
+        "url": "https://shopify.dev/changelog/posts/migrate-to-expiring-offline-access-tokens-before-january-2027.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Affected Admin API requests using non-expiring offline access tokens return HTTP 403."
+      }
+    },
+    {
+      "subject": "Global Catalog REST API (discover.shopifyapps.com/global/v2/*)",
+      "kind": "product-shutdown",
+      "date": "2026-11-02",
+      "replacement": "Global Catalog MCP (Universal Commerce Protocol)",
+      "source": {
+        "url": "https://shopify.dev/changelog/posts/global-catalog-rest-api-stops-serving-traffic-on-november-2-2026.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "The Global Catalog REST API, which was deprecated in April 2026, stops serving traffic on November 2, 2026."
+      }
+    },
+    {
+      "subject": "DraftOrderDiscountNotAppliedWarning.priceRule and the PriceRule object (GraphQL Admin API)",
+      "kind": "field-removed",
+      "date": "2026-10",
+      "replacement": "discountTitle and discountCode",
+      "source": {
+        "url": "https://shopify.dev/changelog/release-notes/latest.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "The deprecated `priceRule` field is removed from `DraftOrderDiscountNotAppliedWarning`."
+      }
+    },
+    {
+      "subject": "ProductVariant.barcode (GraphQL Admin API)",
+      "kind": "field-renamed",
+      "replacement": "ProductVariant.barcodes",
+      "notes": "Deprecated, not yet removed; barcode returns only the first entry.",
+      "source": {
+        "url": "https://shopify.dev/changelog/release-notes/latest.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "`ProductVariant` now has a `barcodes` connection for up to 20 typed barcodes, and `ProductVariant.barcode` is deprecated."
+      }
+    },
+    {
+      "subject": "Customer.lastIncompleteCheckout and Checkout type (Customer Account API)",
+      "kind": "field-removed",
+      "date": "2026-10",
+      "notes": "No replacement.",
+      "source": {
+        "url": "https://shopify.dev/changelog/release-notes/latest.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "The deprecated `Customer.lastIncompleteCheckout` field is removed, along with the unreachable `Checkout` type subtree."
+      }
+    },
+    {
+      "subject": "ITEM_NOT_STOCKED_AT_LOCATION inventory mutation error code",
+      "kind": "field-removed",
+      "date": "2026-10",
+      "source": {
+        "url": "https://shopify.dev/changelog/release-notes/latest.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "The obsolete `ITEM_NOT_STOCKED_AT_LOCATION` error is removed from `InventoryAdjustQuantities`, `InventoryMoveQuantities`, and `InventorySetOnHandQuantities`, and from the `InventorySetQuantitiesUserErrorCode` enum."
+      }
+    }
+  ],
+  "docs": [
+    {
+      "label": "API versioning and release schedule",
+      "url": "https://shopify.dev/docs/api/usage/versioning",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Latest API release notes",
+      "url": "https://shopify.dev/changelog/release-notes/latest",
+      "source": {
+        "url": "https://shopify.dev/changelog/release-notes/latest.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Developer changelog",
+      "url": "https://shopify.dev/changelog",
+      "source": {
+        "url": "https://shopify.dev/changelog.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "GraphQL Admin API reference",
+      "url": "https://shopify.dev/docs/api/admin-graphql",
+      "source": {
+        "url": "https://shopify.dev/docs/api/admin-graphql/latest.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "REST Admin API reference (legacy)",
+      "url": "https://shopify.dev/docs/api/admin-rest",
+      "source": {
+        "url": "https://shopify.dev/docs/api/admin-rest.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Migrate to expiring offline access tokens",
+      "url": "https://shopify.dev/docs/apps/build/authentication-authorization/migrate-to-expiring-offline-access-tokens",
+      "source": {
+        "url": "https://shopify.dev/changelog/posts/migrate-to-expiring-offline-access-tokens-before-january-2027.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Webhook filters (replacement for subTopic)",
+      "url": "https://shopify.dev/docs/apps/build/webhooks/customize/filters",
+      "source": {
+        "url": "https://raw.githubusercontent.com/Shopify/shopify-app-js/main/packages/apps/shopify-api/CHANGELOG.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Community-supported API libraries",
+      "url": "https://shopify.dev/docs/api/libraries-and-templates#third-party-api-libraries",
+      "source": {
+        "url": "https://shopify.dev/docs/api/admin-graphql/latest.md",
+        "retrievedAt": "2026-11-01"
+      }
+    }
+  ],
+  "sdks": [
+    {
+      "ecosystem": "npm",
+      "package": "@shopify/shopify-api",
+      "latest": "15.0.1",
+      "repo": "https://github.com/Shopify/shopify-app-js/tree/main/packages/apps/shopify-api",
+      "notes": "14.0.0 requires Node.js 22; 15.0.0 removes eventId/resourceId from events webhooks.",
+      "source": {
+        "url": "https://raw.githubusercontent.com/Shopify/shopify-app-js/main/packages/apps/shopify-api/CHANGELOG.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "## 15.0.1"
+      }
+    },
+    {
+      "ecosystem": "npm",
+      "package": "@shopify/shopify-app-react-router",
+      "repo": "https://github.com/Shopify/shopify-app-js/tree/main/packages/apps/shopify-app-react-router",
+      "notes": "Official package for React Router apps.",
+      "source": {
+        "url": "https://shopify.dev/docs/api/admin-graphql/latest.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "The official package for React Router applications."
+      }
+    },
+    {
+      "ecosystem": "rubygems",
+      "package": "shopify_api",
+      "repo": "https://github.com/Shopify/shopify-api-ruby",
+      "source": {
+        "url": "https://shopify.dev/docs/api/admin-graphql/latest.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "The official client library for Ruby apps."
+      }
+    }
+  ]
+}

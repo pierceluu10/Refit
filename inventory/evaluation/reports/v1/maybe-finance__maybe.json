@@ -1,0 +1,445 @@
+{
+  "repo": "maybe-finance/maybe",
+  "promptVersion": "inventory-v1",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "synth",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/models/family/auto_merchant_detector.rb",
+          "line": 69,
+          "operation": "logo URL base https://logo.synthfinance.com/{domain}",
+          "notes": "stored as merchant logo_url"
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 15,
+          "operation": "GET /user",
+          "notes": "health check; reads id"
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 22,
+          "operation": "GET /user",
+          "notes": "usage; reads api_calls_remaining, api_limit, plan"
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 45,
+          "operation": "GET /rates/historical",
+          "fields": ["date", "from", "to"],
+          "notes": "reads data.rates"
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 60,
+          "operation": "GET /rates/historical-range (paginated)",
+          "fields": ["from", "to", "date_start", "date_end", "page"],
+          "notes": "paginate helper at line 223 via fetch_page line 220"
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 93,
+          "operation": "GET /tickers/search",
+          "fields": ["name", "dataset", "country_code", "mic_code", "limit"]
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 118,
+          "operation": "GET /tickers/{symbol}",
+          "fields": ["operating_mic"],
+          "notes": "reads name, links, logo_url, description, kind"
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 155,
+          "operation": "GET /tickers/{symbol}/open-close (paginated)",
+          "fields": ["start_date", "end_date", "operating_mic_code", "page"],
+          "notes": "reads prices, currency, exchange"
+        },
+        {
+          "file": "app/models/provider/synth.rb",
+          "line": 204,
+          "operation": "Faraday client construction",
+          "notes": "base URL from SYNTH_URL env or https://api.synthfinance.com; headers Authorization Bearer, X-Source, X-Source-Type; retry max 2. API key from SYNTH_API_KEY or Setting.synth_api_key (registry.rb:36)"
+        },
+        {
+          "file": "app/views/accounts/_logo.html.erb",
+          "line": 11,
+          "operation": "GET https://logo.synthfinance.com/{institution_domain}",
+          "notes": "browser image_tag"
+        },
+        {
+          "file": "app/views/holdings/_holding.html.erb",
+          "line": 6,
+          "operation": "GET https://logo.synthfinance.com/ticker/{ticker}"
+        },
+        {
+          "file": "app/views/holdings/show.html.erb",
+          "line": 9,
+          "operation": "GET https://logo.synthfinance.com/ticker/{ticker}"
+        }
+      ]
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "plaid",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/models/provider/plaid_sandbox.rb",
+          "line": 10,
+          "operation": "sandbox_public_token_create",
+          "notes": "dev/test only"
+        },
+        {
+          "file": "app/models/provider/plaid_sandbox.rb",
+          "line": 22,
+          "operation": "sandbox_item_fire_webhook"
+        },
+        {
+          "file": "app/models/provider/plaid_sandbox.rb",
+          "line": 32,
+          "operation": "sandbox_item_reset_login"
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 8,
+          "operation": "Plaid::PlaidApi.new",
+          "notes": "config from config/initializers/plaid.rb (PLAID_ENV, client id/secret, EU variants)"
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 18,
+          "operation": "webhook_verification_key_get",
+          "notes": "JWT webhook verification"
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 65,
+          "operation": "link_token_create",
+          "fields": [
+            "user",
+            "client_name",
+            "country_codes",
+            "webhook",
+            "redirect_uri",
+            "transactions.days_requested",
+            "products",
+            "additional_consented_products",
+            "access_token"
+          ]
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 73,
+          "operation": "item_public_token_exchange"
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 78,
+          "operation": "item_get"
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 83,
+          "operation": "item_remove"
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 88,
+          "operation": "accounts_get"
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 107,
+          "operation": "transactions_sync",
+          "fields": ["access_token", "cursor", "options.include_original_description"],
+          "notes": "loops on has_more"
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 131,
+          "operation": "liabilities_get"
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 143,
+          "operation": "institutions_get_by_id"
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 152,
+          "operation": "investments_holdings_get"
+        },
+        {
+          "file": "app/models/provider/plaid.rb",
+          "line": 170,
+          "operation": "investments_transactions_get",
+          "notes": "offset paginated"
+        }
+      ],
+      "sdk": {
+        "name": "plaid",
+        "version": "41.0.0",
+        "lockfile": "Gemfile.lock"
+      }
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "plaid",
+      "via": "webhook",
+      "callSites": [
+        {
+          "file": "app/controllers/webhooks_controller.rb",
+          "line": 11,
+          "operation": "POST /webhooks/plaid",
+          "notes": "verifies Plaid-Verification JWT (ES256, body sha256, 5 min), then PlaidItem::WebhookProcessor"
+        },
+        {
+          "file": "app/controllers/webhooks_controller.rb",
+          "line": 27,
+          "operation": "POST /webhooks/plaid_eu",
+          "notes": "same, EU client"
+        }
+      ]
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "stripe",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/models/provider/stripe.rb",
+          "line": 5,
+          "operation": "Stripe::StripeClient.new",
+          "notes": "no apiVersion pinned"
+        },
+        {
+          "file": "app/models/provider/stripe.rb",
+          "line": 26,
+          "operation": "v1.customers.create",
+          "fields": ["email", "metadata.family_id"]
+        },
+        {
+          "file": "app/models/provider/stripe.rb",
+          "line": 33,
+          "operation": "v1.checkout.sessions.create",
+          "fields": ["customer", "line_items", "mode", "success_url", "cancel_url"],
+          "notes": "price IDs from STRIPE_MONTHLY_PRICE_ID / STRIPE_ANNUAL_PRICE_ID"
+        },
+        {
+          "file": "app/models/provider/stripe.rb",
+          "line": 46,
+          "operation": "v1.checkout.sessions.retrieve"
+        },
+        {
+          "file": "app/models/provider/stripe.rb",
+          "line": 60,
+          "operation": "v1.billing_portal.sessions.create"
+        },
+        {
+          "file": "app/models/provider/stripe.rb",
+          "line": 67,
+          "operation": "v1.customers.update"
+        },
+        {
+          "file": "app/models/provider/stripe.rb",
+          "line": 86,
+          "operation": "v1.events.retrieve"
+        }
+      ],
+      "sdk": {
+        "name": "stripe",
+        "version": "15.3.0",
+        "lockfile": "Gemfile.lock"
+      }
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "stripe",
+      "via": "webhook",
+      "callSites": [
+        {
+          "file": "app/controllers/webhooks_controller.rb",
+          "line": 44,
+          "operation": "POST /webhooks/stripe"
+        },
+        {
+          "file": "app/models/provider/stripe.rb",
+          "line": 21,
+          "operation": "parse_thin_event (signature verify) -> StripeEventHandlerJob",
+          "notes": "then retrieves full event; handles customer.subscription.* only"
+        }
+      ]
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/models/provider/openai.rb",
+          "line": 64,
+          "operation": "responses.create (POST /v1/responses)",
+          "fields": ["model", "input", "instructions", "tools", "previous_response_id", "stream"],
+          "notes": "supports streaming"
+        },
+        {
+          "file": "app/models/provider/openai/auto_categorizer.rb",
+          "line": 9,
+          "operation": "responses.create"
+        },
+        {
+          "file": "app/models/provider/openai/auto_merchant_detector.rb",
+          "line": 9,
+          "operation": "responses.create"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "gpt-4.1",
+        "file": "app/models/provider/openai.rb",
+        "line": 7
+      },
+      "sdk": {
+        "name": "ruby-openai",
+        "version": "8.1.0",
+        "lockfile": "Gemfile.lock"
+      }
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "github",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/models/provider/github.rb",
+          "line": 13,
+          "operation": "Octokit.releases (GET /repos/maybe-finance/maybe/releases)"
+        },
+        {
+          "file": "app/models/provider/github.rb",
+          "line": 21,
+          "operation": "Octokit.markdown (POST /markdown)",
+          "notes": "cached 2h"
+        }
+      ],
+      "sdk": {
+        "name": "octokit",
+        "version": "see Gemfile.lock",
+        "lockfile": "Gemfile.lock"
+      }
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "sentry",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/controllers/concerns/authentication.rb",
+          "line": 59,
+          "operation": "Sentry.set_user"
+        },
+        {
+          "file": "config/initializers/sentry.rb",
+          "line": 2,
+          "operation": "Sentry.init",
+          "notes": "SENTRY_DSN; production only; used throughout via Sentry.capture_exception"
+        }
+      ],
+      "sdk": {
+        "name": "sentry-ruby",
+        "version": "see Gemfile.lock",
+        "lockfile": "Gemfile.lock"
+      }
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "intercom",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "config/initializers/intercom.rb",
+          "line": 2,
+          "operation": "IntercomRails.config",
+          "notes": "INTERCOM_APP_ID, identity verification key; injects JS snippet"
+        }
+      ]
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "logtail",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "config/environments/production.rb",
+          "line": 53,
+          "operation": "Logtail::Logger.create_default_logger",
+          "notes": "LOGTAIL_API_KEY, LOGTAIL_INGESTING_HOST"
+        }
+      ]
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "aws-s3",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "config/storage.yml",
+          "line": 10,
+          "operation": "ActiveStorage S3 service (amazon)",
+          "notes": "S3_* env; selected by ACTIVE_STORAGE_SERVICE"
+        },
+        {
+          "file": "config/storage.yml",
+          "line": 17,
+          "operation": "ActiveStorage S3 service (cloudflare R2 endpoint)",
+          "notes": "CLOUDFLARE_* env"
+        }
+      ],
+      "sdk": {
+        "name": "aws-sdk-s3",
+        "version": "~> 1.177.0",
+        "lockfile": "Gemfile"
+      }
+    },
+    {
+      "repo": "maybe-finance/maybe",
+      "provider": "smtp",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "config/environments/production.rb",
+          "line": 80,
+          "operation": "action_mailer smtp_settings",
+          "notes": "SMTP_ADDRESS/PORT/USERNAME/PASSWORD/TLS_ENABLED"
+        }
+      ]
+    }
+  ],
+  "purposes": {
+    "synth": "Logo images from logo.synthfinance.com (same vendor, hotlinked)",
+    "plaid": "Plaid webhook receivers (US and EU)",
+    "stripe": "Subscriptions billing",
+    "openai": "AI chat, auto-categorize, merchant detection",
+    "github": "Latest release notes",
+    "sentry": "Error tracking",
+    "intercom": "In-app messenger via intercom-rails",
+    "logtail": "Production log shipping (Better Stack)",
+    "aws-s3": "Active Storage backends: S3 and Cloudflare R2 (S3-compatible)",
+    "smtp": "Outbound email via configurable SMTP server (vendor unknown)"
+  },
+  "summary": "maybe-finance/maybe uses plaid for Bank account linking, transactions, investments, liabilities sync (US and EU configs) through plaid 41.0.0 in 15 places; synth for Logo images from logo.synthfinance.com (same vendor, hotlinked) through raw HTTP in 12 places; stripe for Subscriptions billing through stripe 15.3.0 in 7 places; openai for AI chat, auto-categorize, merchant detection through ruby-openai 8.1.0, pinned to gpt-4.1 in 3 places; plaid for Plaid webhook receivers (US and EU) through webhooks in 2 places; stripe through webhooks in 2 places; github for Latest release notes through octokit see Gemfile.lock in 2 places; sentry for Error tracking through sentry-ruby see Gemfile.lock in 2 places; aws-s3 for Active Storage backends: S3 and Cloudflare R2 (S3-compatible) through aws-sdk-s3 ~> 1.177.0 in 2 places; intercom for In-app messenger via intercom-rails through its SDK in 1 place; logtail for Production log shipping (Better Stack) through its SDK in 1 place; smtp for Outbound email via configurable SMTP server (vendor unknown) through raw HTTP in 1 place.",
+  "agentSummary": "I found 12 external APIs in maybe-finance/maybe and recorded each one with its call sites. I read the provider files myself and did not dispatch subagents. The upstream APIs behind Plaid and Stripe are not pinned in code, so only the gem versions are recorded for those two.\n\n- **Synth** (api.synthfinance.com), raw HTTP through Faraday with Bearer auth. It supplies exchange rates, ticker search, ticker info and prices, and health and usage checks. The base URL comes from `SYNTH_URL` and the key from `SYNTH_API_KEY`. All calls are in `app/models/provider/synth.rb`.\n- **Synth logos** (logo.synthfinance.com). Logo images hotlinked from views and stored as merchant `logo_url`. I recorded these under the same `synth|http` key as the API, so they aren't a separate entry.\n- **Plaid**, through the `plaid` gem, version 41.0.0.\n  - It covers link tokens, public-token exchange, transactions sync, accounts, investments, liabilities and institutions, with separate US and EU configs.\n  - A sandbox helper is used in development and test only.\n  - There are two webhook receivers, `/webhooks/plaid` and `/webhooks/plaid_eu`, which verify the JWT before processing.\n- **Stripe**, through the `stripe` gem, version 15.3.0. It creates customers, checkout sessions and billing-portal sessions, and it retrieves events. A webhook receiver at `/webhooks/stripe` verifies the signature with `parse_thin_event`. No API version is pinned.\n- **OpenAI**, through `ruby-openai` 8.1.0, using the Responses API. It powers chat (with streaming), auto-categorize and merchant detection. The model `gpt-4.1` is the pinned value.\n- **GitHub**, through Octokit. It fetches the latest release notes and renders them as markdown, cached for 2 hours. I recorded the Octokit version as \"see Gemfile.lock\" rather than resolving it.\n- **Sentry**, through `sentry-ruby`. Initialised only when `SENTRY_DSN` is set, and `Sentry.capture_exception` is used throughout the code. I did not resolve the gem version.\n- **Intercom**, through `intercom-rails`, configured in an initializer.\n- **Logtail** (Better Stack), for production log shipping.\n- **AWS S3 and Cloudflare R2**, as Active Storage backends in `config/storage.yml`. The recorded `aws-sdk-s3` version is the Gemfile range `~> 1.177.0`, not a lockfile resolution.\n- **SMTP**, for outbound mail. The vendor is unknown and is set entirely by environment variables.\n\nI did not read the Stripe event processors, the Plaid webhook processor, or the `Provider::Registry` wiring in detail. They sit behind the call sites I recorded.\n\nI also did not check the Rails Active Storage or Doorkeeper initializers for any outbound calls. The repo's own `/api/v1` and Doorkeeper OAuth server count as internal.",
+  "outcome": "success",
+  "costUsd": 0.24836439999999999,
+  "costByModel": {
+    "claude-haiku-5-5": 0.00013110000000000002,
+    "claude-sonnet-5-5": 0.2482333
+  },
+  "turns": 36,
+  "durationMs": 47831
+}

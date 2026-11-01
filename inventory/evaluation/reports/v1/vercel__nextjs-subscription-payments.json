@@ -1,0 +1,241 @@
+{
+  "repo": "vercel/nextjs-subscription-payments",
+  "promptVersion": "inventory-v1",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "vercel/nextjs-subscription-payments",
+      "provider": "stripe",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "utils/stripe/config.ts",
+          "line": 3,
+          "operation": "new Stripe",
+          "notes": "apiVersion null (account default, unpinned); shared client"
+        },
+        {
+          "file": "utils/stripe/server.ts",
+          "line": 89,
+          "operation": "checkout.sessions.create",
+          "fields": [
+            "customer",
+            "line_items",
+            "mode",
+            "success_url",
+            "cancel_url",
+            "subscription_data.trial_end"
+          ],
+          "notes": "returns session.id"
+        },
+        {
+          "file": "utils/stripe/server.ts",
+          "line": 153,
+          "operation": "billingPortal.sessions.create",
+          "fields": ["customer", "return_url"],
+          "notes": "returns url"
+        },
+        {
+          "file": "utils/supabase/admin.ts",
+          "line": 108,
+          "operation": "customers.create",
+          "fields": ["metadata.supabaseUUID", "email"],
+          "notes": "returns id"
+        },
+        {
+          "file": "utils/supabase/admin.ts",
+          "line": 136,
+          "operation": "customers.retrieve",
+          "notes": "reads id"
+        },
+        {
+          "file": "utils/supabase/admin.ts",
+          "line": 142,
+          "operation": "customers.list",
+          "fields": ["email"],
+          "notes": "reads data[0].id"
+        },
+        {
+          "file": "utils/supabase/admin.ts",
+          "line": 200,
+          "operation": "customers.update",
+          "fields": ["name", "phone", "address"]
+        },
+        {
+          "file": "utils/supabase/admin.ts",
+          "line": 228,
+          "operation": "subscriptions.retrieve",
+          "fields": ["expand: default_payment_method"],
+          "notes": "upserted into Supabase subscriptions"
+        }
+      ],
+      "sdk": {
+        "name": "stripe",
+        "version": "14.25.0",
+        "lockfile": "pnpm-lock.yaml"
+      }
+    },
+    {
+      "repo": "vercel/nextjs-subscription-payments",
+      "provider": "stripe",
+      "via": "webhook",
+      "callSites": [
+        {
+          "file": "app/api/webhooks/route.ts",
+          "line": 33,
+          "operation": "POST /api/webhooks (stripe.webhooks.constructEvent)",
+          "notes": "Verifies stripe-signature with STRIPE_WEBHOOK_SECRET; handles product.*, price.*, customer.subscription.*, checkout.session.completed"
+        }
+      ]
+    },
+    {
+      "repo": "vercel/nextjs-subscription-payments",
+      "provider": "stripe-js",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "components/ui/Pricing/Pricing.tsx",
+          "line": 79,
+          "operation": "stripe.redirectToCheckout",
+          "fields": ["sessionId"]
+        },
+        {
+          "file": "utils/stripe/client.ts",
+          "line": 7,
+          "operation": "loadStripe",
+          "notes": "publishable key from env"
+        }
+      ],
+      "sdk": {
+        "name": "@stripe/stripe-js",
+        "version": "2.4.0",
+        "lockfile": "pnpm-lock.yaml"
+      }
+    },
+    {
+      "repo": "vercel/nextjs-subscription-payments",
+      "provider": "supabase",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/auth/callback/route.ts",
+          "line": 15,
+          "operation": "auth.exchangeCodeForSession"
+        },
+        {
+          "file": "app/auth/reset_password/route.ts",
+          "line": 15,
+          "operation": "auth.exchangeCodeForSession"
+        },
+        {
+          "file": "app/signin/[id]/page.tsx",
+          "line": 49,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "components/ui/Navbar/Navbar.tsx",
+          "line": 10,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "utils/auth-helpers/client.ts",
+          "line": 38,
+          "operation": "auth.signInWithOAuth",
+          "fields": ["provider"]
+        },
+        {
+          "file": "utils/auth-helpers/server.ts",
+          "line": 22,
+          "operation": "auth.signOut"
+        },
+        {
+          "file": "utils/auth-helpers/server.ts",
+          "line": 59,
+          "operation": "auth.signInWithOtp"
+        },
+        {
+          "file": "utils/auth-helpers/server.ts",
+          "line": 106,
+          "operation": "auth.resetPasswordForEmail"
+        },
+        {
+          "file": "utils/auth-helpers/server.ts",
+          "line": 141,
+          "operation": "auth.signInWithPassword"
+        },
+        {
+          "file": "utils/auth-helpers/server.ts",
+          "line": 182,
+          "operation": "auth.signUp"
+        },
+        {
+          "file": "utils/auth-helpers/server.ts",
+          "line": 240,
+          "operation": "auth.updateUser (email)"
+        },
+        {
+          "file": "utils/auth-helpers/server.ts",
+          "line": 286,
+          "operation": "auth.updateUser (password)"
+        },
+        {
+          "file": "utils/auth-helpers/server.ts",
+          "line": 313,
+          "operation": "auth.updateUser (name)"
+        },
+        {
+          "file": "utils/supabase/admin.ts",
+          "line": 15,
+          "operation": "createClient (service role)",
+          "notes": "tables products, prices, customers, users, subscriptions upserts/selects/deletes (lines 30-267)"
+        },
+        {
+          "file": "utils/supabase/client.ts",
+          "line": 6,
+          "operation": "createBrowserClient (@supabase/ssr 0.1.0)"
+        },
+        {
+          "file": "utils/supabase/middleware.ts",
+          "line": 12,
+          "operation": "createServerClient"
+        },
+        {
+          "file": "utils/supabase/middleware.ts",
+          "line": 71,
+          "operation": "auth.getUser",
+          "notes": "session refresh"
+        },
+        {
+          "file": "utils/supabase/queries.ts",
+          "line": 7,
+          "operation": "auth.getUser; from subscriptions/products/users selects (lines 13-35)"
+        },
+        {
+          "file": "utils/supabase/server.ts",
+          "line": 10,
+          "operation": "createServerClient (@supabase/ssr)"
+        }
+      ],
+      "sdk": {
+        "name": "@supabase/supabase-js",
+        "version": "2.43.4",
+        "lockfile": "pnpm-lock.yaml"
+      }
+    }
+  ],
+  "purposes": {
+    "stripe": "Sync products, prices, subscriptions into Supabase",
+    "stripe-js": "Browser redirect to Stripe Checkout",
+    "supabase": "Auth and Postgres data via PostgREST"
+  },
+  "summary": "vercel/nextjs-subscription-payments uses supabase for Auth and Postgres data via PostgREST through @supabase/supabase-js 2.43.4 in 19 places; stripe for Checkout, billing portal, customer and subscription management through stripe 14.25.0 in 8 places; stripe-js for Browser redirect to Stripe Checkout through @stripe/stripe-js 2.4.0 in 2 places; stripe for Sync products, prices, subscriptions into Supabase through webhooks in 1 place.",
+  "agentSummary": "I recorded the main APIs and have one thing left to check: whether the Supabase database calls in `queries.ts` and the Supabase client in `app/account` are used anywhere I missed.\n\nInventory is recorded. Summary:\n\n- **Stripe, SDK** (`stripe` 14.25.0): the shared client is in `utils/stripe/config.ts`. It is created with `apiVersion: null`, so no API version is pinned. It is used for:\n  - Checkout session creation.\n  - Billing portal sessions.\n  - Customer create, retrieve, list and update.\n  - Subscription retrieve.\n- **Stripe, webhook:** `POST /api/webhooks` verifies the signature with `STRIPE_WEBHOOK_SECRET`. It handles `product.*`, `price.*`, `customer.subscription.*` and `checkout.session.completed`, and syncs the results into Supabase.\n- **Stripe.js, SDK** (`@stripe/stripe-js` 2.4.0): `loadStripe` and `redirectToCheckout` in the browser.\n- **Supabase, SDK** (`@supabase/supabase-js` 2.43.4, `@supabase/ssr` 0.1.0):\n  - Auth calls: sign in with password, OTP or OAuth, sign up, sign out, password reset, `updateUser`, `getUser` and `exchangeCodeForSession`.\n  - Data access: a service-role admin client for the `products`, `prices`, `customers`, `users` and `subscriptions` tables, plus read queries in `queries.ts`.\n\n**Gaps:**\n- I read `queries.ts` only through grep, not line by line. Its `.from()` calls are noted in one call-site entry rather than recorded individually.\n- I did not read every OAuth provider or UI component. The OAuth provider list is passed through to `signInWithOAuth` at runtime.\n- No other external hosts turned up in the sources I checked. I did not open the `scripts/` or config files individually, and the repo has no `scripts/` directory.",
+  "outcome": "success",
+  "costUsd": 0.1035991,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0001341,
+    "claude-sonnet-5-5": 0.103465
+  },
+  "turns": 20,
+  "durationMs": 27074
+}

@@ -1,0 +1,57 @@
+{
+  "provider": "stripe",
+  "fetchedAt": "2026-11-01T05:12:06.555Z",
+  "note": "Live read of each source, saved as text and cut to 24000 characters. Test input only.",
+  "sources": [
+    {
+      "id": "changelog",
+      "url": "https://docs.stripe.com/changelog.md",
+      "status": 200,
+      "ok": true,
+      "file": "changelog.txt",
+      "chars": 24000,
+      "truncated": true,
+      "sha256": "fb11e6ea527bba84043e9a12109e11d409984abc4a61606e123e2e1a0620f959"
+    },
+    {
+      "id": "upgrades",
+      "url": "https://docs.stripe.com/upgrades.md",
+      "status": 200,
+      "ok": true,
+      "file": "upgrades.txt",
+      "chars": 14480,
+      "truncated": false,
+      "sha256": "1b969b3cd3844c6bd58d758faafae6eee7e39e4d2ff75d45975241709f42af38"
+    },
+    {
+      "id": "api-versioning",
+      "url": "https://docs.stripe.com/api/versioning.md",
+      "status": 200,
+      "ok": true,
+      "file": "api-versioning.txt",
+      "chars": 8610,
+      "truncated": false,
+      "sha256": "de9782655c01e91988ab7b88ed9cf0cdcd5be2fcfc3ac9a5da340f99611b240e"
+    },
+    {
+      "id": "sdk-versioning",
+      "url": "https://docs.stripe.com/sdks/versioning.md",
+      "status": 200,
+      "ok": true,
+      "file": "sdk-versioning.txt",
+      "chars": 18527,
+      "truncated": false,
+      "sha256": "bb0f370c9c69373a172bfd35cf3e3db1b17b0d872d92e02c46b014ef21e48684"
+    },
+    {
+      "id": "stripe-node-changelog",
+      "url": "https://raw.githubusercontent.com/stripe/stripe-node/master/CHANGELOG.md",
+      "status": 200,
+      "ok": true,
+      "file": "stripe-node-changelog.txt",
+      "chars": 24000,
+      "truncated": true,
+      "sha256": "b450469f2d0c6fda55583265fcc56ef636d6bfe5920626ca603b95ec9d922c8f"
+    }
+  ]
+}

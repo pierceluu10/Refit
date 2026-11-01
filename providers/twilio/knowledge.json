@@ -1,0 +1,296 @@
+{
+  "provider": "twilio",
+  "updatedAt": "2026-11-01",
+  "draftedBy": "Drafted 2026-11-01 by a build agent reading the provider docs over web fetch. Not yet re-drafted by the knowledge agent (core/knowledge.ts), because no model API key was available.",
+  "versioning": {
+    "scheme": "Per-product path versions. The core REST API (Messages, Calls, Accounts) uses the dated path /2010-04-01/ on api.twilio.com; newer products use v1/v2 path segments on their own subdomain (e.g. verify.twilio.com/v2). Helper libraries use a modified semver where only the current MAJOR is supported.",
+    "source": {
+      "url": "https://www.twilio.com/docs/sms/api/message-resource",
+      "retrievedAt": "2026-11-01",
+      "quote": "POST https://api.twilio.com/2010-04-01/Accounts/{AccountSid}/Messages.json"
+    }
+  },
+  "versions": [
+    {
+      "value": "2010-04-01",
+      "status": "current",
+      "notes": "Core REST API path version (Messages, Calls, Accounts).",
+      "source": {
+        "url": "https://www.twilio.com/docs/sms/api/message-resource",
+        "retrievedAt": "2026-11-01",
+        "quote": "POST https://api.twilio.com/2010-04-01/Accounts/{AccountSid}/Messages.json"
+      }
+    },
+    {
+      "value": "2008",
+      "status": "retired",
+      "retiresAt": "2023-12-15",
+      "notes": "Deprecated May 2, 2022; requests return 404 after EOL. Migrate to the 2010 version.",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/reminder--end-of-life-for-twilio-2008-api",
+        "retrievedAt": "2026-11-01",
+        "quote": "After December 15, 2023, any requests sent to Twilio’s 2008 API will fail with 404 responses."
+      }
+    },
+    {
+      "value": "Verify v2",
+      "status": "current",
+      "notes": "Example of a per-product v1/v2 path version on a product subdomain.",
+      "source": {
+        "url": "https://www.twilio.com/docs/verify/api/service",
+        "retrievedAt": "2026-11-01",
+        "quote": "POST https://verify.twilio.com/v2/Services"
+      }
+    },
+    {
+      "value": "twilio-node 6.x",
+      "status": "current",
+      "releasedAt": "2026-04-20",
+      "notes": "Requires Node.js >= 20. Only the current MAJOR is supported.",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-node/main/UPGRADE.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Upgrade to Node.js >= 20 before updating to `twilio` 6.x.x"
+      }
+    },
+    {
+      "value": "twilio-node 5.x",
+      "status": "deprecated",
+      "releasedAt": "2024-03-07",
+      "notes": "No longer the current MAJOR; per VERSIONS.md only the current MAJOR gets features, fixes and security updates.",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-node/main/VERSIONS.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Only the current `MAJOR` version of `twilio-node` is supported."
+      }
+    }
+  ],
+  "retirements": [
+    {
+      "subject": "Twilio 2008 API version",
+      "kind": "api-version",
+      "date": "2023-12-15",
+      "replacement": "2010-04-01 API",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/reminder--end-of-life-for-twilio-2008-api",
+        "retrievedAt": "2026-11-01",
+        "quote": "As a reminder, effective December 15, 2023, Twilio will End of Life (EOL) the 2008 version of Twilio API."
+      }
+    },
+    {
+      "subject": "Notify",
+      "kind": "product-shutdown",
+      "date": "2025-12-31",
+      "notes": "Extended from April 25, 2024. Does not affect push use cases in Verify, Voice, Conversations or Engage.",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/notify-api-end-of-life-further-extension-notice",
+        "retrievedAt": "2026-11-01",
+        "quote": "Notify will now EOL on December 31, 2025, in order for Twilio to provide an alternative solution for the current Notify product."
+      }
+    },
+    {
+      "subject": "Outdated Sync and Chat SDK versions (e.g. Chat JavaScript below 3.0.0, Sync JavaScript below 0.8.1)",
+      "kind": "sdk-major",
+      "date": "2025-03-31",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/end-of-life--eol--for-outdated-sync-and-chat-sdk-versions",
+        "retrievedAt": "2026-11-01",
+        "quote": "Starting on March 31, 2025, the following SDK versions will no longer be supported, and critical features such as live updates and chat functionality will stop working:"
+      }
+    },
+    {
+      "subject": "Verify Events: Verification Attempt DLR event type",
+      "kind": "webhook-payload",
+      "date": "2026-09-22",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog.feed.xml",
+        "retrievedAt": "2026-11-01",
+        "quote": "The Attempt DLR event type will be discontinued after September 22, 2026 at 10:00PM UTC."
+      }
+    },
+    {
+      "subject": "Event Streams Replays API (/v1/Replays)",
+      "kind": "endpoint-removed",
+      "notes": "Beta, never GA; removed in twilio-oai 2.10.0 (2026-10-12).",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Remove the Replays API (`/v1/Replays`, beta feature `api.eventstreams.replay`); the feature was never GA and is being sunset **(breaking change)**"
+      }
+    },
+    {
+      "subject": "WhatsApp Senders v1 (/v1/Channels/WhatsApp/Senders)",
+      "kind": "endpoint-removed",
+      "replacement": "Senders v2 API (/v2/Channels/Senders)",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Use the Senders v2 API (`/v2/Channels/Senders`) instead."
+      }
+    },
+    {
+      "subject": "twiml_session resource",
+      "kind": "endpoint-removed",
+      "replacement": "twiml_process",
+      "notes": "Deprecated, removal date not announced.",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "`twiml_session` is deprecated and will be removed in a future release"
+      }
+    }
+  ],
+  "docs": [
+    {
+      "label": "Twilio changelog",
+      "url": "https://www.twilio.com/en-us/changelog",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Twilio changelog RSS feed",
+      "url": "https://www.twilio.com/en-us/changelog.feed.xml",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog.feed.xml",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Twilio SDKs (helper libraries)",
+      "url": "https://www.twilio.com/docs/libraries",
+      "source": {
+        "url": "https://www.twilio.com/docs/libraries",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Message resource (2010-04-01 API reference)",
+      "url": "https://www.twilio.com/docs/sms/api/message-resource",
+      "source": {
+        "url": "https://www.twilio.com/docs/sms/api/message-resource",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "Making requests to Twilio APIs",
+      "url": "https://www.twilio.com/docs/usage/requests-to-twilio",
+      "source": {
+        "url": "https://www.twilio.com/docs/usage/requests-to-twilio",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "twilio-oai changelog (OpenAPI spec changes)",
+      "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-oai/main/CHANGES.md",
+        "retrievedAt": "2026-11-01"
+      }
+    },
+    {
+      "label": "twilio-node versioning strategy",
+      "url": "https://raw.githubusercontent.com/twilio/twilio-node/main/VERSIONS.md",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-node/main/VERSIONS.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "Only the current `MAJOR` version of `twilio-node` is supported."
+      }
+    },
+    {
+      "label": "twilio-node upgrade guide",
+      "url": "https://raw.githubusercontent.com/twilio/twilio-node/main/UPGRADE.md",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-node/main/UPGRADE.md",
+        "retrievedAt": "2026-11-01"
+      }
+    }
+  ],
+  "sdks": [
+    {
+      "ecosystem": "npm",
+      "package": "twilio",
+      "repo": "https://github.com/twilio/twilio-node",
+      "latest": "6.2.0",
+      "notes": "Latest from https://raw.githubusercontent.com/twilio/twilio-node/main/CHANGES.md ('[2026-10-12] Version 6.2.0').",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-node/main/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "`npm install twilio` or `yarn add twilio`"
+      }
+    },
+    {
+      "ecosystem": "pypi",
+      "package": "twilio",
+      "repo": "https://github.com/twilio/twilio-python",
+      "latest": "9.12.0",
+      "notes": "Latest from https://raw.githubusercontent.com/twilio/twilio-python/main/CHANGES.md ('[2026-10-12] Version 9.12.0').",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-python/main/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "pip3 install twilio"
+      }
+    },
+    {
+      "ecosystem": "rubygems",
+      "package": "twilio-ruby",
+      "repo": "https://github.com/twilio/twilio-ruby",
+      "latest": "7.12.0",
+      "notes": "Latest from https://raw.githubusercontent.com/twilio/twilio-ruby/main/CHANGES.md ('[2026-10-12] Version 7.12.0').",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-ruby/main/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "gem install twilio-ruby -v 7.12.0"
+      }
+    },
+    {
+      "ecosystem": "maven",
+      "package": "com.twilio.sdk:twilio",
+      "repo": "https://github.com/twilio/twilio-java",
+      "latest": "13.1.0",
+      "notes": "Latest from https://raw.githubusercontent.com/twilio/twilio-java/main/CHANGES.md ('[2026-10-12] Version 13.1.0').",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-java/main/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "<groupId>com.twilio.sdk</groupId>"
+      }
+    },
+    {
+      "ecosystem": "nuget",
+      "package": "Twilio",
+      "repo": "https://github.com/twilio/twilio-csharp",
+      "latest": "8.1.0",
+      "notes": "Latest from https://raw.githubusercontent.com/twilio/twilio-csharp/main/CHANGES.md ('[2026-10-12] Version 8.1.0').",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-csharp/main/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "dotnet add package Twilio"
+      }
+    },
+    {
+      "ecosystem": "packagist",
+      "package": "twilio/sdk",
+      "repo": "https://github.com/twilio/twilio-php",
+      "latest": "8.13.0",
+      "notes": "Latest from https://raw.githubusercontent.com/twilio/twilio-php/main/CHANGES.md ('[2026-10-12] Version 8.13.0').",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-php/main/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "composer require twilio/sdk"
+      }
+    },
+    {
+      "ecosystem": "go",
+      "package": "github.com/twilio/twilio-go",
+      "repo": "https://github.com/twilio/twilio-go",
+      "latest": "1.32.0",
+      "notes": "Latest from https://raw.githubusercontent.com/twilio/twilio-go/main/CHANGES.md ('[2026-10-12] Version 1.32.0').",
+      "source": {
+        "url": "https://raw.githubusercontent.com/twilio/twilio-go/main/README.md",
+        "retrievedAt": "2026-11-01",
+        "quote": "go get github.com/twilio/twilio-go"
+      }
+    }
+  ]
+}

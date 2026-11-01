@@ -1,0 +1,114 @@
+{
+  "note": "Hand-drafted by the build agent from the saved live snapshot to exercise the watcher pipeline with a replay model. Not output of a live model run (no API key was available on 2026-11-01).",
+  "changes": [
+    {
+      "id": "current-version-2026-10-28-endive",
+      "kind": "api-version",
+      "title": "Stripe's current API version is 2026-10-28.endive; integrations pinned to an earlier major (Dahlia or older) need code changes to move to Endive.",
+      "source": {
+        "url": "https://docs.stripe.com/api/versioning.md",
+        "quote": "The current version is 2026-10-28.endive."
+      },
+      "affects": { "versions": ["2026-10-28.endive", "2026-09-30.endive"] }
+    },
+    {
+      "id": "endive-checkout-sessions-remove-payment-method-types",
+      "kind": "field-removed",
+      "title": "2026-09-30.endive removes the payment_method_types parameter when creating Checkout Sessions.",
+      "source": {
+        "url": "https://docs.stripe.com/changelog.md",
+        "quote": "Removes the payment method types parameter from Checkout Sessions"
+      },
+      "affects": {
+        "operations": ["POST /v1/checkout/sessions"],
+        "fields": ["payment_method_types"],
+        "versions": ["2026-09-30.endive"]
+      }
+    },
+    {
+      "id": "endive-intents-remove-payment-method-types",
+      "kind": "field-removed",
+      "title": "2026-09-30.endive removes the writable payment_method_types parameter from Payment Intents and Setup Intents.",
+      "source": {
+        "url": "https://docs.stripe.com/changelog.md",
+        "quote": "Removes the payment method types parameter from Payment Intents and Setup Intents"
+      },
+      "affects": {
+        "operations": ["POST /v1/payment_intents", "POST /v1/setup_intents"],
+        "fields": ["payment_method_types"],
+        "versions": ["2026-09-30.endive"]
+      }
+    },
+    {
+      "id": "endive-financial-connections-countries-to-country",
+      "kind": "field-renamed",
+      "title": "2026-09-30.endive renames filters.countries to filters.country when creating Financial Connections Sessions.",
+      "source": {
+        "url": "https://docs.stripe.com/changelog.md",
+        "quote": "Renames the countries filter to country on Financial Connections Sessions"
+      },
+      "affects": {
+        "operations": ["POST /v1/financial_connections/sessions"],
+        "fields": ["filters.countries", "filters.country"],
+        "versions": ["2026-09-30.endive"]
+      }
+    },
+    {
+      "id": "endive-v2-account-links-remove-configurations",
+      "kind": "field-removed",
+      "title": "2026-09-30.endive removes the configurations parameter from the Account Links v2 API.",
+      "source": {
+        "url": "https://docs.stripe.com/changelog.md",
+        "quote": "Removes the configurations parameter from the Account Links v2 API"
+      },
+      "affects": {
+        "operations": ["POST /v2/core/account_links"],
+        "fields": ["configurations"],
+        "versions": ["2026-09-30.endive"]
+      }
+    },
+    {
+      "id": "endive-deprecate-payment-request-button",
+      "kind": "endpoint-removed",
+      "title": "Endive deprecates the Stripe.js payment request button element (front-end Elements code, not the server SDK).",
+      "source": {
+        "url": "https://docs.stripe.com/changelog.md",
+        "quote": "Deprecates the payment request button"
+      },
+      "affects": {
+        "operations": ["elements.create('paymentRequestButton')"],
+        "versions": ["2026-09-30.endive"]
+      }
+    },
+    {
+      "id": "stripe-node-23-drop-node-18",
+      "kind": "sdk-major",
+      "title": "stripe-node 23.0.0 pins 2026-09-30.endive and drops Node.js 18; Node.js 20 is the minimum.",
+      "effectiveDate": "2026-09-30",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-node/master/CHANGELOG.md",
+        "quote": "Drop support for Node.js 18. Node.js 20 is now the minimum supported version."
+      },
+      "affects": { "versions": ["23.0.0", "2026-09-30.endive"], "sdk": "stripe" }
+    },
+    {
+      "id": "stripe-node-23-verify-header-default-tolerance",
+      "kind": "webhook-payload",
+      "title": "stripe-node 23.0.0 now enforces the default timestamp tolerance in webhook signature checks when tolerance is omitted, and tolerance 0 now skips the check.",
+      "effectiveDate": "2026-09-30",
+      "source": {
+        "url": "https://raw.githubusercontent.com/stripe/stripe-node/master/CHANGELOG.md",
+        "quote": "`stripe.webhooks.signature.verifyHeader()` and `verifyHeaderAsync()` previously skipped timestamp tolerance verification when the `tolerance` argument was omitted. They now default to `Webhook.DEFAULT_TOLERANCE`"
+      },
+      "affects": {
+        "operations": [
+          "stripe.webhooks.signature.verifyHeader",
+          "stripe.webhooks.signature.verifyHeaderAsync",
+          "stripe.webhooks.constructEvent"
+        ],
+        "versions": ["23.0.0"],
+        "sdk": "stripe"
+      }
+    }
+  ]
+}

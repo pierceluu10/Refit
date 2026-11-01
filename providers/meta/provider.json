@@ -1,0 +1,48 @@
+{
+  "id": "meta",
+  "name": "Meta Graph API",
+  "sources": [
+    {
+      "id": "graph-api-changelog",
+      "kind": "changelog",
+      "url": "https://developers.facebook.com/docs/graph-api/changelog",
+      "format": "html",
+      "note": "Changelog index: latest version and the table of available Graph API and Marketing API versions."
+    },
+    {
+      "id": "graph-api-v26",
+      "kind": "changelog",
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/version26.0",
+      "format": "html",
+      "note": "Per-version changelog for the newest version (Graph API and Marketing API sections). When a newer version ships, follow its versionNN.0 page."
+    },
+    {
+      "id": "graph-api-v25",
+      "kind": "changelog",
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/version25.0",
+      "format": "html",
+      "note": "Previous version's changelog; many of its changes reach all versions months after release."
+    },
+    {
+      "id": "graph-api-versions",
+      "kind": "versioning",
+      "url": "https://developers.facebook.com/docs/graph-api/changelog/versions",
+      "format": "html",
+      "note": "Every Graph API and Marketing API version with release and expiration dates."
+    },
+    {
+      "id": "marketing-api-changelog",
+      "kind": "changelog",
+      "url": "https://developers.facebook.com/docs/marketing-api/marketing-api-changelog",
+      "format": "html",
+      "note": "Marketing API changelog: dated out-of-cycle items and its own version availability table."
+    },
+    {
+      "id": "nodejs-business-sdk-releases",
+      "kind": "sdk-releases",
+      "url": "https://github.com/meta/facebook-nodejs-business-sdk/releases.atom",
+      "format": "rss",
+      "note": "Atom feed of facebook-nodejs-business-sdk releases (the Business SDKs for Python, PHP, Java and Ruby release in lockstep under meta/). Used instead of the GitHub releases API, which is rate-limited without a token."
+    }
+  ]
+}
