@@ -16,6 +16,9 @@ const PROBLEMS = [
   /^endpoint note \((?!supported\b)/im, // openai_check_request: legacy, deprecated or shut down
   /^old sdk shapes found:/im, // openai_sdk_migration
   /^status\b[^:\n]*:\s*(?:deprecated|shut down)/im, // openai_model_lookup on a retiring model
+  /^(?:product|version \S+) status:\s*(?:deprecated|end-of-life|retired|sunset)/im, // twilio_endpoint_lookup
+  /`:\s*(?:removed|renamed|deprecated)\b/, // meta_lookup_field: "field `x`: removed -> y"
+  /\bnot in (?:the )?snapshot\b/i, // an unknown model, version or endpoint in any pack
 ];
 
 export const runPassed = (output: string) => !PROBLEMS.some((problem) => problem.test(output));
@@ -23,7 +26,7 @@ export const runPassed = (output: string) => !PROBLEMS.some((problem) => problem
 export type ValidatorGrade = { name: string; ran: boolean; passed: boolean; detail: string };
 
 // The model sees the harness tools through the SDK's MCP server, so it may claim one by that full name.
-const matches = (claim: string, tool: string) => {
+export const claimMatches = (claim: string, tool: string) => {
   const name = claim.replace(/^mcp__aptitude__/, '');
   return tool === name || tool.endsWith(`__${name}`);
 };
@@ -34,7 +37,7 @@ export function gradeValidators(
   runs: ValidatorRun[],
 ): ValidatorGrade[] {
   return claims.map((claim) => {
-    const run = runs.filter((candidate) => matches(claim.name, candidate.tool)).at(-1);
+    const run = runs.filter((candidate) => claimMatches(claim.name, candidate.tool)).at(-1);
     if (!run) {
       return {
         name: claim.name,
@@ -46,4 +49,13 @@ export function gradeValidators(
     const detail = run.output.trim().split('\n')[0].slice(0, 200);
     return { name: claim.name, ran: true, passed: claim.passed && run.passed, detail };
   });
+}
+
+// Provider checkers (a check or validate tool) whose latest call reported problems. They block
+// verified even when the agent leaves them out of finish; lookups and docs searches only inform.
+export function failingCheckers(runs: ValidatorRun[]): string[] {
+  const latest = new Map(runs.map((run) => [run.tool, run]));
+  return [...latest.values()]
+    .filter((run) => /check|validat/i.test(run.tool) && !run.passed)
+    .map((run) => run.tool);
 }

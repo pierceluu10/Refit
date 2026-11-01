@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gradeValidators, runPassed } from './validators.ts';
+import { failingCheckers, gradeValidators, runPassed } from './validators.ts';
 
 describe('gradeValidators', () => {
   const claim = (name: string, passed = true) => ({ name, passed, detail: '' });
@@ -55,6 +55,7 @@ describe('gradeValidators', () => {
       '## gpt-6-luna\nStatus: active as far as the snapshot shows (listed on the models page).',
       'Endpoint note (supported): Chat Completions remains supported, but Responses is recommended for new projects.',
       'No known old-SDK call shapes matched. That is not proof the code is current: the patterns are a hint list.',
+      'Product status: current.\nNote: The older 2008 version reached End of Life on 2023-12-15.',
     ];
     for (const output of clean) expect(runPassed(output), output).toBe(true);
     const problems = [
@@ -69,7 +70,24 @@ describe('gradeValidators', () => {
       '## gpt-4o-2024-08-06\nStatus (as of 2026-11-01): deprecated, shutdown scheduled 2027-01-14',
       "Endpoint note (legacy): Completions is a legacy endpoint (the model pages label it 'Completions (legacy)').",
       'Old SDK shapes found:\n- [node] Configuration -> new OpenAI({ apiKey })',
+      'Version used: v2 (path prefix /v2).\nProduct status: end-of-life (EOL date 2022-07-25).',
+      'Version v1 status: deprecated.',
+      '- v23.0 (2025-05-29) [marketing] field `instagram_actor_id`: removed -> ig_user_id',
+      'Model gpt-9-ultra-made-up: not in snapshot (see openai_model_lookup for closest matches).',
+      '2099-01-01.madeup is not in the snapshot (retrieved 2026-11-01). It may be newer than the snapshot or mistyped.',
     ];
     for (const output of problems) expect(runPassed(output), output).toBe(false);
+  });
+});
+
+describe('failingCheckers', () => {
+  it('lists check and validate tools whose latest call failed, claimed or not', () => {
+    const runs = [
+      { tool: 'stripe__stripe_check_params', output: 'Unknown params', passed: false },
+      { tool: 'stripe__stripe_check_params', output: 'No problems found', passed: true },
+      { tool: 'shopify__shopify_validate_graphql', output: 'Result: 1 error(s)', passed: false },
+      { tool: 'openai__openai_model_lookup', output: 'Status: deprecated', passed: false },
+    ];
+    expect(failingCheckers(runs)).toEqual(['shopify__shopify_validate_graphql']);
   });
 });

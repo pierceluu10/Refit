@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { MigrationTask, ToolPack } from '../shared/types.ts';
 import { scriptedSession, type ScriptedTurn } from './fake-session.ts';
-import { ESCALATION_MODEL, MODEL, runTask } from './run.ts';
+import { ESCALATION_MODEL, MODEL, decideOutcome, runTask } from './run.ts';
 import { createSandbox } from './sandbox.ts';
 
 // Illustrative fixture task, not a real customer.
@@ -325,5 +325,49 @@ describe('runTask with a fake model', () => {
     expect(budgets).toEqual([0.5, expect.closeTo(0.2)]);
     expect(record.costUsd).toBeCloseTo(0.6);
     expect(record.outcome).toBe('failed');
+  });
+});
+
+describe('decideOutcome', () => {
+  const report = {
+    verdict: 'migrated' as const,
+    summary: 'Moved to v2.',
+    why: 'v1 is gone.',
+    validators: [],
+    unproven: [],
+    behaviourChanges: [],
+  };
+  const check = (ok: boolean) => ({
+    name: 'build',
+    command: 'npm run build',
+    ok,
+    output: '',
+    failures: ok ? [] : ['Error: OPENAI_API_KEY is missing'],
+  });
+  const comparisons = [{ name: 'build', before: 'fail (1)', after: 'fail (1)', newFailures: [] }];
+  const input = { diff: 'diff --git a/a.ts b/a.ts', report, comparisons, validatorRuns: [] };
+
+  it('needs a check that passes: checks failing alike before and after prove nothing', () => {
+    expect(decideOutcome({ ...input, after: [check(false)] })).toBe('needs-review');
+    expect(decideOutcome({ ...input, after: [check(true), check(false)] })).toBe('verified');
+  });
+
+  it("is not verified while a provider check's latest call failed, even one the agent left out", () => {
+    const failing = {
+      tool: 'stripe__stripe_check_params',
+      output: 'Unknown params',
+      passed: false,
+    };
+    expect(decideOutcome({ ...input, after: [check(true)], validatorRuns: [failing] })).toBe(
+      'needs-review',
+    );
+    const lookup = {
+      tool: 'openai__openai_model_lookup',
+      output: 'Status: deprecated',
+      passed: false,
+    };
+    expect(decideOutcome({ ...input, after: [check(true)], validatorRuns: [lookup] })).toBe(
+      'verified',
+    );
   });
 });

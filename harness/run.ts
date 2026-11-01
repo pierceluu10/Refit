@@ -37,7 +37,7 @@ import type {
   SessionResult,
   ValidatorRun,
 } from './types.ts';
-import { gradeValidators } from './validators.ts';
+import { failingCheckers, gradeValidators } from './validators.ts';
 
 export const MODEL = 'claude-sonnet-5-5';
 export const ESCALATION_MODEL = 'claude-opus-5-5';
@@ -71,9 +71,11 @@ export function decideOutcome(input: {
   const proven =
     changed &&
     report !== undefined &&
-    after.length > 0 &&
+    // Checks that fail alike before and after add no new failures, but they prove nothing either.
+    after.some((run) => run.ok) &&
     newFailureCount(comparisons) === 0 &&
     gradeValidators(report.validators, validatorRuns).every((grade) => grade.passed) &&
+    failingCheckers(validatorRuns).length === 0 &&
     report.unproven.length === 0;
   return proven ? 'verified' : 'needs-review';
 }

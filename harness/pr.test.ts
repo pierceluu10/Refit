@@ -121,6 +121,20 @@ describe('writePrBody', () => {
     expect(unproven).not.toContain('Nothing known.');
   });
 
+  it('lists a provider check that failed on its last call even when the agent left it out', () => {
+    const unclaimed = writePrBody({
+      ...base,
+      validatorRuns: [
+        ...(base.validatorRuns ?? []),
+        { tool: 'stripe__stripe_check_params', output: 'Unknown params', passed: false },
+      ],
+    });
+    expect(unclaimed).toContain(
+      'Provider check stripe__stripe_check_params reported problems on its last call; the agent did not list it.',
+    );
+    expect(body).not.toContain('Provider check');
+  });
+
   it('flags a missing report and missing checks', () => {
     const bare = writePrBody({ ...base, outcome: 'failed', report: undefined, comparisons: [] });
     expect(bare).toContain('[Failed]');
