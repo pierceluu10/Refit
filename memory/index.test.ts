@@ -70,4 +70,23 @@ describe('learnFromRun end to end', () => {
     expect(result.recipe).toBeUndefined();
     expect(await store.listRuns()).toHaveLength(1);
   });
+
+  it('distils a needs-review run into a recipe once a human merges its PR', async () => {
+    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-memory-')));
+    const deps = { store, embedder: new LocalEmbedder(), model: fakeModel(store) };
+    const pr = 'https://github.com/example-org/shop/pull/9';
+
+    const first = await learnFromRun(
+      { task: makeTask(), record: makeRecord({ outcome: 'needs-review', pr }), transcript: '' },
+      deps,
+    );
+    expect(first.recipe).toBeUndefined();
+
+    const merged = await recordVerdict(pr, 'merged', deps);
+    expect(merged?.recipe?.sourceRuns).toEqual([first.run.id]);
+
+    const again = await recordVerdict(pr, 'edited', deps);
+    expect(again?.recipe).toBeUndefined();
+    expect(await store.listRecipes()).toHaveLength(1);
+  });
 });

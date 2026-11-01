@@ -67,8 +67,9 @@ export function createRetriever(deps: {
   model?: Model;
   limit?: number;
   candidates?: number;
+  judgeAllUpTo?: number;
 }): (task: MigrationTask) => Promise<MemoryRecipe[]> {
-  const { store, embedder, model, limit = 3, candidates = 10 } = deps;
+  const { store, embedder, model, limit = 3, candidates = 10, judgeAllUpTo = 50 } = deps;
 
   async function rank(task: MigrationTask): Promise<MemoryRecipe[]> {
     const recipes = await store.listRecipes();
@@ -86,11 +87,14 @@ export function createRetriever(deps: {
       }),
     );
 
-    return recipes
-      .map((recipe) => ({ recipe, score: cosine(taskVector, recipe.embedding!.vector) }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, candidates)
-      .map(({ recipe }) => recipe);
+    return (
+      recipes
+        .map((recipe) => ({ recipe, score: cosine(taskVector, recipe.embedding!.vector) }))
+        .sort((a, b) => b.score - a.score)
+        // A small store goes to the model whole; embeddings only shortlist once it is too big to read.
+        .slice(0, recipes.length <= judgeAllUpTo ? recipes.length : candidates)
+        .map(({ recipe }) => recipe)
+    );
   }
 
   async function judge(task: MigrationTask, shortlist: MemoryRecipe[], model: Model) {

@@ -104,6 +104,27 @@ describe('createRetriever', () => {
     expect(requests[0].schema).toMatchObject({ additionalProperties: false });
   });
 
+  it('shows the model every recipe while the store is small, and a shortlist once it is not', async () => {
+    const many = Array.from({ length: 12 }, (_, i) =>
+      makeRecipe({ id: `recipe-unrelated-${i}`, provider: 'twilio', steps: `step ${i}` }),
+    );
+    const store = await storeWith(...many);
+    const small = fakeModel([]);
+    await createRetriever({ store, embedder: new LocalEmbedder(), model: small.model })(makeTask());
+    for (const recipe of many) expect(small.requests[0].prompt).toContain(recipe.id);
+
+    const big = fakeModel([]);
+    await createRetriever({
+      store,
+      embedder: new LocalEmbedder(),
+      model: big.model,
+      judgeAllUpTo: 10,
+      candidates: 4,
+    })(makeTask());
+    const shown = many.filter((recipe) => big.requests[0].prompt.includes(`### ${recipe.id}\n`));
+    expect(shown).toHaveLength(4);
+  });
+
   it('falls back to embedding order when the model throws', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const model: Model = { json: () => Promise.reject(new Error('model down')) };

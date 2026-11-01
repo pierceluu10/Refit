@@ -27,12 +27,20 @@ function fakeModel(sameAsRecipeId: string | null = null) {
 }
 
 async function setup(
-  overrides: { transcript?: string; repo?: string; outcome?: 'needs-review' } = {},
+  overrides: {
+    transcript?: string;
+    repo?: string;
+    outcome?: 'needs-review' | 'failed' | 'verified';
+    humanVerdict?: 'merged' | 'closed' | 'edited';
+  } = {},
 ) {
   const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-extract-')));
   const run = await store.recordRun({
     task: makeTask({ repo: overrides.repo ?? 'example-org/shop' }),
-    record: makeRecord({ outcome: overrides.outcome ?? 'verified' }),
+    record: makeRecord({
+      outcome: overrides.outcome ?? 'verified',
+      humanVerdict: overrides.humanVerdict,
+    }),
     transcript: overrides.transcript ?? '[agent] tried source on paymentIntents; typecheck failed.',
   });
   return { store, run };
@@ -154,6 +162,7 @@ describe('extractRecipe', () => {
     expect(await store.listRecipes()).toEqual([recipe]);
     expect((await store.getRun(run.id))?.extraction).toEqual({
       status: 'done',
+      mode: 'recipe',
       recipeId: recipe!.id,
       at: NOW.toISOString(),
     });
@@ -186,5 +195,53 @@ describe('extractRecipe', () => {
 
     expect(json).toHaveBeenCalledTimes(1);
     expect((await store.getRun(run.id))?.extraction?.status).toBe('failed');
+  });
+
+  it('distils a needs-review run a human merged into a full recipe', async () => {
+    const { store, run } = await setup({ outcome: 'needs-review', humanVerdict: 'merged' });
+    const { model, requests } = fakeModel();
+
+    const recipe = await extractRecipe(run, { store, model });
+
+    expect(recipe?.verifiedRepos).toBe(1);
+    expect(requests[0].schema).toMatchObject({ required: expect.arrayContaining(['steps']) });
+    expect(requests[0].prompt).toContain('Human verdict on the PR: merged');
+    expect((await store.getRun(run.id))?.extraction).toMatchObject({ mode: 'recipe' });
+  });
+
+  it('lets a failed run add pitfalls only to the recipe the model names', async () => {
+    const { store, run } = await setup({ outcome: 'failed' });
+    await store.saveRecipe(makeRecipe({ embedding: { model: 'local', vector: [1] } }));
+    const json = vi.fn().mockResolvedValue({
+      sameAsRecipeId: 'recipe-stripe-charges',
+      pitfalls: 'From a failed run: confirm: true needs a payment_method.',
+      steps: 'ignored: a lesson may not rewrite steps',
+    });
+
+    const recipe = await extractRecipe(run, { store, model: { json } });
+
+    expect(json.mock.calls[0][0].schema.required).toEqual(['sameAsRecipeId', 'pitfalls']);
+    expect(recipe).toMatchObject({
+      pitfalls: 'From a failed run: confirm: true needs a payment_method.',
+      steps: makeRecipe().steps,
+      repos: ['example-org/shop'],
+      verifiedRepos: 1,
+      sourceRuns: ['run-1', run.id],
+    });
+    expect(recipe).not.toHaveProperty('embedding');
+    expect(await store.listRecipes()).toHaveLength(1);
+  });
+
+  it('never creates a recipe from an unsuccessful run', async () => {
+    const { store, run } = await setup({ outcome: 'verified', humanVerdict: 'closed' });
+    await store.saveRecipe(makeRecipe());
+    const json = vi.fn().mockResolvedValue({ sameAsRecipeId: null, pitfalls: '' });
+
+    expect(await extractRecipe(run, { store, model: { json } })).toBeUndefined();
+    expect(await store.listRecipes()).toEqual([makeRecipe()]);
+    expect((await store.getRun(run.id))?.extraction).toMatchObject({
+      status: 'done',
+      mode: 'pitfalls',
+    });
   });
 });

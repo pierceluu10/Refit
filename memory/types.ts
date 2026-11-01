@@ -12,7 +12,7 @@ export type StoredRun = {
   usedRecipeIds: string[];
   // Set once extraction has been tried; a failed one can be re-extracted later.
   extraction?:
-    | { status: 'done'; recipeId: string; at: string }
+    | { status: 'done'; mode: 'recipe' | 'pitfalls'; recipeId?: string; at: string }
     | { status: 'failed'; reason: string; at: string };
 };
 
