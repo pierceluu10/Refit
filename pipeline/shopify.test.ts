@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { buildSchema, introspectionFromSchema } from 'graphql';
@@ -28,8 +28,46 @@ vi.mock('./openai.ts', async (actual) => ({
   }),
 }));
 
+// The agent fixer (pipeline/agent-fix.ts) never runs Claude here: a test sets `agent.edit` to the
+// change it makes, and the stub reports what Refit's judge says about the edited tree.
+const agent = vi.hoisted(() => ({
+  edit: undefined as undefined | ((repoDir: string) => Promise<void>),
+  inputs: [] as { target: string; change: string; context: string }[],
+}));
+vi.mock('./agent-fix.ts', () => ({
+  fixWithAgent: async (input: {
+    repoDir: string;
+    target: string;
+    change: string;
+    context: string;
+    check: (repoDir: string) => Promise<{ passed: boolean; errors: string[] }>;
+  }) => {
+    agent.inputs.push(input);
+    if (!agent.edit)
+      return { outcome: 'failed', diff: '', errors: ['no agent'], summary: '', costUsd: 0 };
+    await agent.edit(input.repoDir);
+    const judged = await input.check(input.repoDir);
+    return {
+      outcome: judged.passed ? 'passed' : 'unproven',
+      diff: '',
+      errors: judged.errors,
+      summary: 'Removed legacyCode from the product query.',
+      costUsd: 0.5,
+    };
+  },
+}));
+
+// GUT5's sandbox judge without Docker: the original tree has no checks, and every edit passes.
+vi.mock('./validation-sandbox-check.ts', () => ({
+  sandboxBaseline: async () => ({ install: { status: 'installed' }, parts: [] }),
+  sandboxCheck: async () => ({ passed: true, errors: [], unproven: [], parts: [] }),
+  disposeSandboxBaseline: async () => undefined,
+}));
+
 const roots: string[] = [];
 afterEach(async () => {
+  agent.edit = undefined;
+  agent.inputs.length = 0;
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -257,7 +295,7 @@ it('bumps a sunset pin the SDK can name when every document validates on the tar
   );
 });
 
-it('stops for review on removed fields, type changes, already-failing documents and SDKs without the member', async () => {
+it('hands removed fields, type changes and already-failing documents to the agent fixer, and falls back for SDKs without the member', async () => {
   const base = {
     'package.json': MANIFEST,
     'package-lock.json': LOCK('12.3.0'),
@@ -275,8 +313,15 @@ it('stops for review on removed fields, type changes, already-failing documents 
       proposePatch: true,
     })) as any;
   };
+  // Without AI the agent does not run: the codemods' pin move is proposed and the hand-off stays for
+  // review.
   const removed = await run('id legacyCode');
-  expect(removed.patch.status).toBe('not-generated');
+  expect(removed.patch).toMatchObject({ status: 'proposed', generator: 'deterministic' });
+  expect(removed.patch.unresolvedFindings).toBeGreaterThan(0);
+  expect(removed.shopify.agent.outcome).toBe('not-run');
+  expect(removed.shopify.handoff).toEqual([
+    'A Shopify GraphQL document breaks on Admin API 2026-10 and the contract names no proven replacement.',
+  ]);
   expect(
     removed.findings.find((finding: any) => finding.changeId.startsWith('shopify-graphql:')),
   ).toMatchObject({
@@ -293,7 +338,9 @@ it('stops for review on removed fields, type changes, already-failing documents 
     expression: 'Product.publishedAt: Date → DateTime',
     line: 3,
   });
-  expect(changed.patch.status).toBe('not-generated');
+  expect(changed.shopify.handoff).toEqual([
+    'A selected Shopify field changes type on Admin API 2026-10; code reading it needs review.',
+  ]);
   const failing = await run('id missingEverywhere');
   expect(
     failing.findings.find((finding: any) => finding.changeId.startsWith('shopify-graphql:')).reason,
@@ -310,6 +357,66 @@ it('stops for review on removed fields, type changes, already-failing documents 
   );
   expect(oldSdk.patch.warnings[0]).toContain('Shopify serves it until 2027-04-16');
   expect((await run('id title')).patch.status).toBe('proposed');
+});
+
+it('hands every stop to the agent fixer at once and keeps its patch only as the judge rates it', async () => {
+  const root = await directory({
+    'package.json': MANIFEST,
+    'package-lock.json': LOCK('14.0.1'),
+    'app/shopify.server.ts': SERVER('January26'),
+    'app/routes/product.ts': `export const loader = (admin) =>\n  admin.graphql(\`\n    query { product(id: "1") { id legacyCode } }\`);\n`,
+  });
+  const run = async () =>
+    (await runPipeline({
+      repository: root,
+      ...(await snapshots(root)),
+      proposePatch: true,
+      aiPatch: { apiKey: 'k', model: 'claude-sonnet-5-5' },
+    })) as any;
+  const route = join(root, 'app/routes/product.ts');
+  // The agent drops the removed field: Refit's judge passes the tree with the codemods' pin move.
+  agent.edit = async (repoDir) => {
+    const path = join(repoDir, 'app/routes/product.ts');
+    await writeFile(path, (await readFile(path, 'utf8')).replace(' legacyCode', ''));
+    // An install it ran is not part of the patch.
+    await mkdir(join(repoDir, 'node_modules/x'), { recursive: true });
+    await writeFile(join(repoDir, 'node_modules/x/index.js'), '');
+  };
+  const passed = await run();
+  expect(agent.inputs).toHaveLength(1);
+  expect(agent.inputs[0].target).toBe('2026-10');
+  expect(agent.inputs[0].context).toContain('app/routes/product.ts:3');
+  expect(agent.inputs[0].change).toContain('Product.legacyCode');
+  expect(passed.patch).toMatchObject({
+    status: 'proposed',
+    generator: 'openai',
+    unresolvedFindings: 0,
+  });
+  expect(passed.patch.diff).toContain(
+    '+export const shopify = shopifyApp({ apiVersion: ApiVersion.October26',
+  );
+  expect(passed.patch.diff).toContain('+    query { product(id: "1") { id } }');
+  expect(passed.findings.some((finding: any) => finding.contractReview)).toBe(false);
+  expect(passed.patch.diff).not.toContain('node_modules');
+  expect(passed.shopify.agent).toMatchObject({
+    outcome: 'passed',
+    costUsd: 0.5,
+    sandbox: { status: 'ran', unproven: ['The repository has no type check, build or tests.'] },
+  });
+  expect(passed.patch.warnings).toContain('The repository has no type check, build or tests.');
+  expect(await readFile(route, 'utf8')).toContain('legacyCode');
+  // An edit the judge still rejects ships for review, with its errors in the draft.
+  agent.edit = async (repoDir) => {
+    const path = join(repoDir, 'app/routes/product.ts');
+    await writeFile(path, (await readFile(path, 'utf8')).replace('legacyCode', 'oldCode'));
+  };
+  const unproven = await run();
+  expect(unproven.patch).toMatchObject({ status: 'proposed', generator: 'openai' });
+  expect(unproven.patch.unresolvedFindings).toBeGreaterThan(0);
+  expect(unproven.patch.warnings.join('\n')).toContain(
+    'Cannot query field "oldCode" on type "Product".',
+  );
+  expect(unproven.shopify.handoff).toHaveLength(1);
 });
 
 it('produces every report field the OpenAPI pipeline does', async () => {
@@ -626,8 +733,7 @@ export const loader = (admin) => brand((query) => admin.graphql(query));
     proposePatch: true,
   })) as any;
   expect(report.shopify.otherApiDocuments).toEqual([]);
-  expect(report.patch.status).toBe('not-generated');
-  expect(report.patch.reason).toContain('already fails on Admin API 2026-01');
+  expect(report.shopify.handoff[0]).toContain('already fails on Admin API 2026-01');
   expect(
     report.findings.find((finding: any) => finding.changeId.startsWith('shopify-graphql:')),
   ).toMatchObject({ file: 'app/lib/brand.server.ts', line: 2, confidence: 'confirmed' });
@@ -720,8 +826,8 @@ export async function sync(admin, session, shop, id, verb, url) {
     ...(await snapshots(root)),
     proposePatch: true,
   })) as any;
-  expect(report.patch.status).toBe('not-generated');
-  expect(report.patch.reason).toContain('cannot read an Admin API call');
+  expect(report.patch.unresolvedFindings).toBeGreaterThan(0);
+  expect(report.shopify.handoff.join('\n')).toContain('cannot read an Admin API call');
   expect(
     report.findings.some((finding: any) =>
       finding.contractReview?.includes('cannot prove this REST Admin call'),
@@ -789,9 +895,11 @@ export const loader = (admin, picked) =>
   );
   expect(read.shopify.reconstructed).toMatchObject([{ status: 'kept', line: 3 }]);
   expect(read.patch.warnings.join('\n')).toContain('AI read it from the code');
-  // A reconstruction that selects the removed field keeps the stop.
+  // A reconstruction that selects the removed field goes to the agent fixer, which fails here, so
+  // the codemods' patch stays for review.
   const removed = await run('query Product { product(id: "1") { id legacyCode } }');
-  expect(removed.patch.status).toBe('not-generated');
+  expect(removed.patch.unresolvedFindings).toBeGreaterThan(0);
+  expect(removed.shopify.agent.outcome).toBe('failed');
   expect(
     removed.findings.find((finding: any) => finding.changeId === 'shopify-graphql:unreadable')
       .reason,

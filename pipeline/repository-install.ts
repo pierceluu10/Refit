@@ -207,6 +207,35 @@ export function installPlan(files: ReadonlyMap<string, string>): InstallPlan | u
   };
 }
 
+// Gut plan SC-S2 (founder decision, 2026-10-31): where the frozen install fails or none is
+// committed (no lockfile, a stale one, two lockfiles), the sandbox still installs, unfrozen and
+// with lifecycle scripts, from package.json. The manager is the packageManager pin's, else the
+// lockfile's, else npm; npm retries with --legacy-peer-deps for peer conflicts.
+export function unlockedPlans(files: ReadonlyMap<string, string>): InstallPlan[] {
+  if (!files.has('package.json')) return [];
+  let pinned: string | undefined;
+  try {
+    pinned = /^(npm|pnpm|yarn)@/.exec(JSON.parse(files.get('package.json')!).packageManager)?.[1];
+  } catch {
+    pinned = undefined;
+  }
+  const manager = (pinned as InstallManager | undefined) ?? lockfileManager(files) ?? 'npm';
+  const plan = (command: string[]): InstallPlan => ({
+    source: 'lockfile',
+    file: 'package.json',
+    manager,
+    command,
+    ...(manager === 'npm' ? {} : { tool: tool(manager, files) }),
+    skipped: [],
+  });
+  if (manager === 'pnpm') return [plan(['pnpm', 'install', '--no-frozen-lockfile'])];
+  if (manager === 'yarn') return [plan(['yarn', 'install'])];
+  return [
+    plan(['npm', 'install', '--no-audit', '--no-fund']),
+    plan(['npm', 'install', '--no-audit', '--no-fund', '--legacy-peer-deps']),
+  ];
+}
+
 // Public registries, always reachable from the build sandbox.
 export const PUBLIC_REGISTRIES = ['registry.npmjs.org', 'registry.yarnpkg.com', 'repo.yarnpkg.com'];
 const MAX_HOSTS = 64;

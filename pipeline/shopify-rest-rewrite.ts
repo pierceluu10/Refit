@@ -1,26 +1,12 @@
 import { existsSync, readFileSync } from 'node:fs';
-import {
-  getNamedType,
-  getNullableType,
-  isEnumType,
-  isInterfaceType,
-  isListType,
-  isObjectType,
-  parse,
-  validate,
-  type GraphQLSchema,
-  type GraphQLType,
-} from 'graphql';
+import type { GraphQLSchema } from 'graphql';
 import ts from 'typescript-compiler';
 import type { ShopifyScan } from './shopify-analysis.ts';
-import type { SourceEdit } from './types.ts';
 
-// REST Admin → GraphQL Admin rewrites (docs/SHOPIFY-REST.md). A REST call is rewritten only when its
-// request matches a rule (data/shopify-rest-graphql.json, quoted from Shopify's REST and GraphQL
-// references, or a rule the model proposed and Refit checked), Refit traces every response field
-// the code reads, and the rule produces each of them. The call becomes an async function evaluated
-// in place that sends the GraphQL document through the same client and returns the REST response
-// shape, so the code reading it is unchanged. Every rewrite ships [Needs review].
+// REST Admin call tracing for the versioned REST contract prover (pipeline/shopify-rest-contract.ts):
+// the request each call sends and the response fields the code reads. The REST → GraphQL mapping
+// table (data/shopify-rest-graphql.json) is loaded only as context for the agent fixer, which
+// rewrites REST calls itself (docs/GUT-PLAN.md).
 
 export type RestConvert = 'gid-number' | 'lowercase' | 'join-comma';
 
@@ -126,23 +112,11 @@ interface Trace {
   unrebuilt?: string;
 }
 
-export interface RestRewrite {
-  status: 'rewritten';
-  entry: ShopifyScan['rest'][number];
-  rule: RestRule;
-  edits: SourceEdit[];
-  document: string;
-  reads: string[];
-  // The REST client construction this rewrite turned into a GraphQL client.
-  removedClient?: { line: number };
-}
-
 export interface RestStop {
   status: 'stopped';
   entry: ShopifyScan['rest'][number];
   reason: string;
-  // Present when the call and its reads are understood but no rule produces them: the AI may
-  // propose one.
+  // Present when Refit understands the call's request.
   request?: { method: string; path: string; query: string[]; reads: string[]; transport: string };
   trace?: RestTrace;
   // A `new <shopify>.clients.Rest(...)` construction: where each use of the client is called, or
@@ -223,13 +197,6 @@ function splitParts(parts: Part[], separator: string): [Part[], Part[]] | undefi
   }
   return undefined;
 }
-
-const partsSource = (parts: Part[]) =>
-  parts.length === 1 && 'expression' in parts[0]
-    ? parts[0].expression
-    : parts.every((part) => 'text' in part)
-      ? JSON.stringify(parts.map((part) => (part as { text: string }).text).join(''))
-      : `\`${parts.map((part) => ('text' in part ? part.text.replace(/[`\\$]/g, '\\$&') : `\${${part.expression}}`)).join('')}\``;
 
 function queryParts(parts: Part[]) {
   const query = new Map<string, Part[]>();
@@ -774,287 +741,19 @@ export function followBody(node: ts.Expression, path: string[]) {
   return trace;
 }
 
-// The rule a request matches, with the source text of each path parameter.
-function matchRule(request: RestRequest, rules: RestRule[]) {
-  const normalized = [...request.path];
-  const last = normalized.at(-1);
-  if (last && 'text' in last && !last.text.endsWith('.json'))
-    normalized[normalized.length - 1] = { text: `${last.text}.json` };
-  else if (last && 'expression' in last) normalized.push({ text: '.json' });
-  for (const rule of rules) {
-    if (rule.method !== request.method) continue;
-    const pieces = rule.path.split(/(\{\w+\})/).filter(Boolean);
-    const params = new Map<string, string>();
-    let index = 0;
-    let offset = 0;
-    let matched = true;
-    for (const piece of pieces) {
-      const part = normalized[index];
-      if (!part) {
-        matched = false;
-        break;
-      }
-      if (piece.startsWith('{')) {
-        if (!('expression' in part) || offset) {
-          matched = false;
-          break;
-        }
-        params.set(piece.slice(1, -1), part.expression);
-        index++;
-      } else {
-        if (!('text' in part) || !part.text.startsWith(piece, offset)) {
-          matched = false;
-          break;
-        }
-        offset += piece.length;
-        if (offset === part.text.length) {
-          index++;
-          offset = 0;
-        }
-      }
-    }
-    if (matched && index === normalized.length && !offset) return { rule, params };
-  }
-  return undefined;
-}
-
-// The field a REST path names, walking nested rule fields; undefined when unmapped.
-function mapped(rule: RestRule, path: string[]) {
-  // Body paths start with the envelope (and '[]' for lists); count bodies are `{ count }`.
-  let rest = [...path];
-  if (rule.kind === 'count')
-    return rest.length <= 1 && (!rest.length || rest[0] === 'count') ? { leaf: true } : undefined;
-  if (!rest.length) return { leaf: false };
-  if (rest[0] !== rule.envelope) return undefined;
-  rest = rest.slice(1);
-  if (rule.kind === 'list') {
-    if (!rest.length) return { leaf: false };
-    if (rest[0] !== '[]') return undefined;
-    rest = rest.slice(1);
-  }
-  let fields: Record<string, RestField> | undefined = rule.fields;
-  let leaf = false;
-  while (rest.length) {
-    if (leaf) return { leaf: true };
-    const field: RestField | undefined =
-      fields && Object.hasOwn(fields, rest[0]) ? fields[rest[0]] : undefined;
-    if (!field) return undefined;
-    rest = rest.slice(1);
-    if (field.fields) {
-      fields = field.fields;
-      // Only a connection's nodes are indexed; an object's dynamic key is not a mapped field.
-      if (rest[0] === '[]') {
-        if (!isList(field)) return undefined;
-        rest = rest.slice(1);
-      } else if (isList(field) && rest.length) return undefined;
-    } else leaf = true;
-  }
-  return { leaf: leaf || false };
-}
-
-// The rule fields the code reads, keeping only read branches.
-function usedFields(rule: RestRule, reads: Read[]) {
-  const used: Record<string, RestField> = {};
-  for (const read of reads) {
-    const path = read.path.slice(rule.kind === 'list' ? 2 : 1).filter((step) => step !== '[]');
-    let fields = rule.fields;
-    let target = used;
-    for (const step of path) {
-      const field = fields[step];
-      if (!field) break;
-      if (!field.fields) {
-        target[step] = field;
-        break;
-      }
-      const existing = (target[step] ??= { ...field, fields: {} });
-      target = existing.fields!;
-      fields = field.fields;
-    }
-  }
-  return used;
-}
-
-interface Selection {
-  [segment: string]: Selection;
-}
-
-function selectionOf(fields: Record<string, RestField>): Selection {
-  const tree: Selection = {};
-  for (const field of Object.values(fields)) {
-    let node = tree;
-    for (const segment of field.graphql.split('.')) node = node[segment] ??= {};
-    if (field.fields) {
-      const nested = selectionOf(field.fields);
-      Object.assign(node, nested);
-      if (!Object.keys(node).length) node.id = {};
-    }
-  }
-  return tree;
-}
-
-const printSelection = (tree: Selection): string =>
-  Object.entries(tree)
-    .map(([segment, children]) =>
-      Object.keys(children).length ? `${segment} { ${printSelection(children)} }` : segment,
-    )
-    .join(' ');
-
-const isList = (field: RestField) => field.graphql.split('.').at(-1) === 'nodes';
-
-const responseKey = (segment: string) => segment.replace(/\(.*$/, '');
-
-const CONVERTERS: Record<RestConvert, string> = {
-  'gid-number': "(value) => (value == null ? value : Number(String(value).split('/').pop()))",
-  lowercase: '(value) => (value == null ? value : String(value).toLowerCase())',
-  'join-comma': "(value) => (value == null ? value : value.join(', '))",
-};
-
-// A JavaScript object literal that builds the REST fields from the GraphQL node `source`.
-function mapper(
-  fields: Record<string, RestField>,
-  source: string,
-  typed: boolean,
-  used: Set<RestConvert>,
-  depth = 0,
-): string {
-  const any = typed ? ': any' : '';
-  return `{ ${Object.entries(fields)
-    .map(([name, field]) => {
-      const access = field.graphql
-        .split('.')
-        .map(
-          (segment) =>
-            `?.${/^\w+$/.test(responseKey(segment)) ? responseKey(segment) : JSON.stringify(responseKey(segment))}`,
-        )
-        .join('')
-        .replace(/^\?/, '');
-      let value = `${source}${access}`;
-      if (field.fields) {
-        const item = `item${depth}`;
-        const nested = mapper(field.fields, item, typed, used, depth + 1);
-        // A connection's `nodes` is a list; any other nested field is one object or null.
-        value = isList(field)
-          ? `${value}?.map((${item}${any}) => (${nested}))`
-          : `((${item}${any}) => (${item} == null ? ${item} : ${nested}))(${value})`;
-      }
-      // REST sends null where a nested GraphQL object is missing; optional chaining gives undefined.
-      if (field.fields || field.graphql.includes('.')) value = `(${value} ?? null)`;
-      if (field.convert) {
-        used.add(field.convert);
-        value = `refit${field.convert.replace(/(^|-)(\w)/g, (_, __, letter: string) => letter.toUpperCase())}(${value})`;
-      }
-      return `${/^[A-Za-z_$][\w$]*$/.test(name) ? name : JSON.stringify(name)}: ${value}`;
-    })
-    .join(', ')} }`;
-}
-
-function variablesOf(rule: RestRule, request: RestRequest, params: Map<string, string>) {
-  const definitions: string[] = [];
-  const argumentsText: string[] = [];
-  const values: string[] = [];
-  const used = new Set<string>();
-  for (const [name, argument] of Object.entries(rule.arguments ?? {})) {
-    if (argument.value !== undefined) {
-      argumentsText.push(`${name}: ${argument.value}`);
-      continue;
-    }
-    const [source, key] = (argument.from ?? '').split(':');
-    let expression: string | undefined;
-    if (source === 'path') expression = params.get(key);
-    else if (source === 'query') {
-      const value = request.query.get(key);
-      if (value) {
-        used.add(key);
-        expression = partsSource(value);
-      }
-    }
-    if (expression === undefined) {
-      if (argument.type?.endsWith('!'))
-        return `The request does not send ${argument.from}, which the GraphQL argument ${name} needs.`;
-      continue;
-    }
-    if (argument.gid) expression = `\`gid://shopify/${argument.gid}/\${${expression}}\``;
-    definitions.push(`$${name}: ${argument.type}`);
-    argumentsText.push(`${name}: $${name}`);
-    values.push(`${name}: ${expression}`);
-  }
-  if (rule.kind === 'list') {
-    const limit = request.query.get('limit');
-    used.add('limit');
-    definitions.push('$first: Int!');
-    argumentsText.push('first: $first');
-    values.push(
-      `first: ${!limit ? '50' : limit.length === 1 && 'text' in limit[0] && /^\d+$/.test(limit[0].text) ? limit[0].text : `Number(${partsSource(limit)})`}`,
-    );
-    const pageInfo = request.query.get('page_info');
-    if (pageInfo) {
-      used.add('page_info');
-      definitions.push('$after: String');
-      argumentsText.push('after: $after');
-      values.push(`after: ${partsSource(pageInfo)}`);
-    }
-  }
-  // `fields` only narrows what REST returns; the rewrite returns only the fields the code reads.
-  used.add('fields');
-  const unknown = [...request.query.keys()].filter((key) => !used.has(key));
-  if (unknown.length)
-    return `The request sends ${unknown.map((key) => `\`${key}\``).join(', ')}, which no documented GraphQL argument of ${rule.root} replaces.`;
-  return { definitions, argumentsText, values };
-}
-
-// The GraphQL document for a rule and the fields read.
-function documentOf(
-  rule: RestRule,
-  used: Record<string, RestField>,
-  variables: { definitions: string[]; argumentsText: string[] },
-) {
-  const name = `RefitRest${rule.id.replace(/(^|[^A-Za-z0-9])(\w)/g, (_, __, letter: string) => letter.toUpperCase()).replace(/\W/g, '')}`;
-  const args = variables.argumentsText.length ? `(${variables.argumentsText.join(', ')})` : '';
-  const definitions = variables.definitions.length ? `(${variables.definitions.join(', ')})` : '';
-  const selection =
-    rule.kind === 'count'
-      ? 'count'
-      : rule.kind === 'list'
-        ? `nodes { ${printSelection(selectionOf(used)) || 'id'} } pageInfo { hasNextPage endCursor }`
-        : printSelection(selectionOf(used)) || 'id';
-  return `query ${name}${definitions} { ${rule.root}${args} { ${selection} } }`;
-}
-
-// Why a generated document is not valid on a schema, or undefined.
-export function documentProblem(
-  text: string,
-  schemas: { version: string; schema: GraphQLSchema }[],
-) {
-  for (const { version, schema } of schemas) {
-    let ast;
-    try {
-      ast = parse(text);
-    } catch (error) {
-      return `The GraphQL rewrite does not parse: ${(error as Error).message}`;
-    }
-    const errors = validate(schema, ast);
-    if (errors.length)
-      return `The GraphQL rewrite does not validate on Admin API ${version}: ${errors[0].message}`;
-  }
-  return undefined;
-}
-
 export interface RestRewriteOptions {
   file: string;
   content: string;
   entries: ShopifyScan['rest'];
-  rules: RestRule[];
-  refusals?: RestRefusal[];
-  schemas: { version: string; schema: GraphQLSchema }[];
-  // The locked @shopify/shopify-api major: 9 and later send GraphQL with `request`.
-  apiMajor?: number;
-  // Only trace the calls for the contract check: no rule applies, so nothing is rewritten, and
-  // stops that only concern writing GraphQL (the SDK major) do not apply.
+  // Ignored since the rewrite went (docs/GUT-PLAN.md); wave 3 drops them with the prover's call.
+  rules?: RestRule[];
+  schemas?: { version: string; schema: GraphQLSchema }[];
   traceOnly?: boolean;
 }
 
-// Rewrites the REST calls of one file. Entries that are not rewritten come back as stops.
-export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | RestStop)[] {
+// Traces the REST calls of one file for the contract check; every entry comes back as a stop that
+// carries its trace where Refit could follow the call.
+export function rewriteRestCalls(options: RestRewriteOptions): RestStop[] {
   const kind = /\.tsx?$|\.mts$|\.cts$/.test(options.file)
     ? options.file.endsWith('x')
       ? ts.ScriptKind.TSX
@@ -1062,7 +761,6 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
     : options.file.endsWith('x')
       ? ts.ScriptKind.JSX
       : ts.ScriptKind.JS;
-  const typed = kind === ts.ScriptKind.TS || kind === ts.ScriptKind.TSX;
   const source = ts.createSourceFile(
     options.file,
     options.content,
@@ -1072,12 +770,7 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
   );
   const offset = (entry: ShopifyScan['rest'][number]) =>
     source.getPositionOfLineAndCharacter(entry.line - 1, entry.column - 1);
-  const results: (RestRewrite | RestStop)[] = [];
-  const clientCalls = new Map<
-    ts.VariableDeclaration,
-    { calls: ts.Identifier[]; rewritten: number }
-  >();
-  const pending: { result: RestRewrite; client?: ts.VariableDeclaration; trace: RestTrace }[] = [];
+  const results: RestStop[] = [];
   for (const entry of options.entries) {
     let trace: RestTrace | undefined;
     const stop = (reason: string, request?: RestStop['request']): RestStop => ({
@@ -1094,13 +787,7 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
       continue;
     }
     if (ts.isNewExpression(node)) continue; // A REST client or resource construction: handled with its calls below.
-    const recognized = recognize(
-      node,
-      entry,
-      source,
-      options.traceOnly ? (options.apiMajor ?? 0) : options.apiMajor,
-      options.traceOnly,
-    );
+    const recognized = recognize(node, entry, source);
     if (typeof recognized === 'string') {
       results.push(stop(recognized));
       continue;
@@ -1148,220 +835,23 @@ export function rewriteRestCalls(options: RestRewriteOptions): (RestRewrite | Re
       results.push(stop('The GET request sends a body.', description));
       continue;
     }
-    if (options.traceOnly) {
-      results.push(stop('Traced for the contract check.', description));
-      continue;
-    }
-    if (followed.unrebuilt) {
-      results.push(stop(followed.unrebuilt));
-      continue;
-    }
-    if (request.method !== 'GET') {
-      results.push(
-        stop(
-          `Refit rewrites only REST reads; ${request.method} changes data and needs a reviewed mutation.`,
-          description,
-        ),
-      );
-      continue;
-    }
-    const refusal = matchRule(
-      request,
-      (options.refusals ?? []).map((entry) => ({
-        ...entry,
-        id: entry.path,
-        kind: 'single' as const,
-        envelope: '',
-        root: '',
-        fields: {},
-      })),
-    );
-    if (refusal) {
-      results.push(
-        stop(
-          `${(refusal.rule as unknown as RestRefusal).reason} (${(refusal.rule as unknown as RestRefusal).source})`,
-        ),
-      );
-      continue;
-    }
-    const resource = entry.resource && /^(\w+)\.(\w+)$/.exec(entry.resource);
-    const match = resource
-      ? resourceMatch(options.rules, resource[1], resource[2], node)
-      : matchRule(request, options.rules);
-    if (!match) {
-      results.push(
-        stop(
-          `No documented GraphQL equivalent covers ${request.method} ${description.path}.`,
-          description,
-        ),
-      );
-      continue;
-    }
-    const { rule, params } = match;
-    if (resource)
-      for (const read of followed.reads) read.path = resourcePath(rule, resource[2], read.path);
-    if (followed.pagination && rule.kind !== 'list') {
-      results.push(stop('The code reads pagination of a request that is not a list.'));
-      continue;
-    }
-    const unmapped = followed.reads.find((read) => {
-      const field = mapped(rule, read.path);
-      return !field || (read.whole && !field.leaf);
-    });
-    if (unmapped) {
-      const field = mapped(rule, unmapped.path);
-      results.push(
-        stop(
-          field
-            ? `The code uses ${unmapped.path.join('.') || 'the response'} whole, so Refit cannot tell which fields it needs.`
-            : `The code reads ${unmapped.path.join('.')}, which the ${rule.origin === 'ai' ? 'proposed' : 'documented'} GraphQL mapping does not produce.`,
-          description,
-        ),
-      );
-      continue;
-    }
-    const variables = variablesOf(
-      rule,
-      resource ? resourceRequest(node, request) : request,
-      params,
-    );
-    if (typeof variables === 'string') {
-      results.push(stop(variables, description));
-      continue;
-    }
-    const used = usedFields(rule, followed.reads);
-    const document = documentOf(rule, used, variables);
-    const problem = documentProblem(document, options.schemas);
-    if (problem) {
-      results.push(stop(problem, description));
-      continue;
-    }
-    const replacement = generate({
-      rule,
-      used,
-      document,
-      variables: variables.values,
-      transport,
-      typed,
-      indent: indentOf(source, call.getStart()),
-      pagination: followed.pagination,
-      apiMajor: options.apiMajor,
-    });
-    if (typeof replacement === 'string') {
-      results.push(stop(replacement, description));
-      continue;
-    }
-    const edits: SourceEdit[] = [
-      {
-        file: entry.file,
-        start: call.getStart(),
-        end: call.getEnd(),
-        replacement: replacement.text,
-        changeId: 'shopify-rest-graphql',
-        rule: rule.id,
-      },
-    ];
-    for (const statement of ('removable' in recognized && recognized.removable) || [])
-      edits.push({
-        file: entry.file,
-        start: statement.getFullStart(),
-        end: statement.getEnd(),
-        replacement: '',
-        changeId: 'shopify-rest-graphql',
-        rule: rule.id,
-      });
-    const result: RestRewrite = {
-      status: 'rewritten',
-      entry,
-      rule,
-      edits,
-      document,
-      reads: readText,
-    };
-    let client: ts.VariableDeclaration | undefined;
-    if (transport.kind === 'client') {
-      client = transport.declaration.declarationList.declarations[0];
-      const calls =
-        references(
-          client.name as ts.Identifier,
-          declarationScope(transport.declaration.declarationList),
-        ) ?? [];
-      const record = clientCalls.get(client) ?? { calls, rewritten: 0 };
-      record.rewritten++;
-      clientCalls.set(client, record);
-    }
-    pending.push({ result, client, trace });
+    results.push(stop('Traced for the contract check.', description));
   }
-  // A REST client becomes a GraphQL client, built where and when it was, only when every use of it
-  // is a rewritten call; otherwise its calls stay REST.
-  for (const { result, client, trace } of pending) {
-    if (!client) {
-      results.push(result);
-      continue;
-    }
-    const record = clientCalls.get(client)!;
-    if (record.rewritten !== record.calls.length) {
-      results.push({
-        status: 'stopped',
-        entry: result.entry,
-        reason:
-          'The REST client is also used by calls Refit did not rewrite, so its calls stay REST.',
-        trace,
-      });
-      continue;
-    }
-    const construction = unwrap(client.initializer!) as ts.NewExpression;
-    const factory = construction.expression as ts.PropertyAccessExpression;
-    if (pending.find((entry) => entry.client === client)!.result === result) {
-      result.edits.push({
-        file: result.entry.file,
-        start: factory.name.getStart(),
-        end: factory.name.getEnd(),
-        replacement: 'Graphql',
-        changeId: 'shopify-rest-client',
-      });
-      result.removedClient = {
-        line: source.getLineAndCharacterOfPosition(construction.getStart()).line + 1,
-      };
-    }
-    results.push(result);
-  }
-  // Constructions: resolved when their declaration was removed.
+  // Constructions: a REST client or resource record built in this file.
   for (const entry of options.entries) {
     const node = findNode(source, offset(entry), entry.expression);
     if (!node || !ts.isNewExpression(node)) continue;
-    const removed = results.some(
-      (result) =>
-        result.status === 'rewritten' &&
-        result.removedClient &&
-        result.removedClient.line === entry.line,
-    );
-    if (!removed)
-      results.push({
-        status: 'stopped',
-        entry,
-        reason: /\.clients\.Rest$/.test(entry.expression)
-          ? 'The REST client is used by calls Refit did not rewrite.'
-          : 'A REST resource record is built and saved; Refit rewrites only REST reads.',
-        ...(/\.clients\.Rest$/.test(entry.expression)
-          ? { clientCalls: clientCallSites(node, source) }
-          : {}),
-      });
+    results.push({
+      status: 'stopped',
+      entry,
+      reason: /\.clients\.Rest$/.test(entry.expression)
+        ? 'The REST client is used by calls Refit did not rewrite.'
+        : 'A REST resource record is built and saved; Refit rewrites only REST reads.',
+      ...(/\.clients\.Rest$/.test(entry.expression)
+        ? { clientCalls: clientCallSites(node, source) }
+        : {}),
+    });
   }
-  // Two edits must not overlap (a client removal inside a rewritten call cannot happen, but check).
-  const all = results.flatMap((result) => (result.status === 'rewritten' ? result.edits : []));
-  all.sort((a, b) => a.start - b.start);
-  for (let index = 1; index < all.length; index++)
-    if (all[index].start < all[index - 1].end)
-      return results.map((result) =>
-        result.status === 'rewritten'
-          ? {
-              status: 'stopped',
-              entry: result.entry,
-              reason: 'Two REST rewrites in this file overlap.',
-            }
-          : result,
-      );
   return results.sort(
     (a, b) => options.entries.indexOf(a.entry) - options.entries.indexOf(b.entry),
   );
@@ -1487,12 +977,6 @@ function findNode(source: ts.SourceFile, position: number, expression?: string) 
   return found;
 }
 
-function indentOf(source: ts.SourceFile, position: number) {
-  const line = source.getLineAndCharacterOfPosition(position).line;
-  const text = source.text.slice(source.getPositionOfLineAndCharacter(line, 0));
-  return /^[ \t]*/.exec(text)![0];
-}
-
 const SIMPLE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
 
 // Why a URL const's substitutions cannot be evaluated where its single use is instead: the const
@@ -1527,13 +1011,7 @@ function movableUrl(literal: ts.Expression, use: ts.Identifier) {
   return conflict;
 }
 
-function recognize(
-  node: ts.Node,
-  entry: ShopifyScan['rest'][number],
-  source: ts.SourceFile,
-  apiMajor?: number,
-  traceOnly?: boolean,
-) {
+function recognize(node: ts.Node, entry: ShopifyScan['rest'][number], source: ts.SourceFile) {
   // A REST URL literal passed to fetch() or axios, directly or through a const used once.
   if (!ts.isCallExpression(node)) {
     let literal = unwrapParent(node) as ts.Expression;
@@ -1636,9 +1114,6 @@ function recognize(
         initial,
       };
     const session = property(options, 'session');
-    // The contract check needs no session: it rewrites nothing.
-    if (!traceOnly && (!session || !SIMPLE.test(session.getText())))
-      return 'The resource call has no session Refit can pass to a GraphQL client.';
     return {
       call: node,
       transport: {
@@ -1685,8 +1160,6 @@ function recognize(
           .replace(/\s/g, '')
           .match(/^\{session(?::[\w$.]+)?,?\}$/)
       ) {
-        if (apiMajor === undefined)
-          return 'Refit cannot tell which @shopify/shopify-api release the repository locks, so it cannot pick the GraphQL client call.';
         const statement = declaration.parent.parent;
         const receiver = node.expression.expression;
         if (
@@ -1731,504 +1204,4 @@ function declarationOf(name: ts.Identifier, source: ts.SourceFile) {
   };
   visit(source);
   return found.length === 1 ? found[0] : undefined;
-}
-
-// A resource call's reads as REST body paths: `all` returns records under `data`, `find` one record.
-function resourcePath(rule: RestRule, operation: string, path: string[]) {
-  if (operation === 'count') return path;
-  if (operation === 'all') {
-    if (rule.kind === 'list') return [rule.envelope, ...path];
-    return [rule.envelope, ...(path[0] === '[]' ? path.slice(1) : path)];
-  }
-  return [rule.envelope, ...path.slice(1)];
-}
-
-function resourceMatch(rules: RestRule[], className: string, operation: string, node: ts.Node) {
-  const rule = rules.find(
-    (entry) => entry.resource?.class === className && entry.resource.operation === operation,
-  );
-  if (!rule) return undefined;
-  const params = new Map<string, string>();
-  const options = unwrap((node as ts.CallExpression).arguments[0]) as ts.ObjectLiteralExpression;
-  const placeholders = [...rule.path.matchAll(/\{(\w+)\}/g)].map((match) => match[1]);
-  if (placeholders.length > 1) return undefined;
-  if (placeholders.length) {
-    const id = property(options, 'id');
-    if (!id) return undefined;
-    params.set(placeholders[0], id.getText());
-  }
-  return { rule, params };
-}
-
-// A resource call's options other than `session` and `id` as query parameters.
-function resourceRequest(node: ts.Node, request: RestRequest): RestRequest {
-  const options = unwrap((node as ts.CallExpression).arguments[0]) as ts.ObjectLiteralExpression;
-  const query = new Map<string, Part[]>();
-  for (const entry of options.properties) {
-    const name = propertyName(entry)!;
-    if (name === 'session' || name === 'id') continue;
-    query.set(name, [
-      {
-        expression: ts.isShorthandPropertyAssignment(entry)
-          ? entry.name.text
-          : (entry as ts.PropertyAssignment).initializer.getText(),
-      },
-    ]);
-  }
-  return { ...request, query };
-}
-
-function generate(input: {
-  rule: RestRule;
-  used: Record<string, RestField>;
-  document: string;
-  variables: string[];
-  transport: Transport;
-  typed: boolean;
-  indent: string;
-  pagination: boolean;
-  apiMajor?: number;
-}): { text: string; extra: SourceEdit[] } | string {
-  const { rule, transport, typed, indent } = input;
-  const any = typed ? ': any' : '';
-  const converters = new Set<RestConvert>();
-  const node = 'node';
-  const record = rule.kind === 'count' ? '' : mapper(input.used, node, typed, converters);
-  const pad = `${indent}  `;
-  const lines: string[] = [];
-  const queryText = `\`#graphql\n${pad}  ${input.document}\``;
-  const variables = `{ ${input.variables.join(', ')} }`;
-  // `result` is the GraphQL `data`; `body` the REST JSON body the code reads.
-  const bodyLines = (missing: string) => {
-    const out: string[] = [];
-    if (rule.kind === 'count')
-      out.push(`const body = { count: result.${rule.root.replace(/\(.*$/, '')}?.count };`);
-    else if (rule.kind === 'list')
-      out.push(
-        `if (!result.${responseKey(rule.root)}) ${missing}`,
-        `const body = { ${rule.envelope}: result.${responseKey(rule.root)}.nodes.map((${node}${any}) => (${record})) };`,
-      );
-    else {
-      out.push(`const ${node}${any} = result.${responseKey(rule.root)};`);
-      out.push(`if (!${node}) ${missing}`);
-      out.push(`const body = { ${rule.envelope}: ${record} };`);
-    }
-    return out;
-  };
-  const pageInfo = () =>
-    `{ ...(result.${responseKey(rule.root)}.pageInfo.hasNextPage ? { nextPage: { query: { limit: ${variablesFirst(input.variables)}, page_info: result.${responseKey(rule.root)}.pageInfo.endCursor } } } : {}) }`;
-  for (const name of converters)
-    lines.push(
-      `const refit${name.replace(/(^|-)(\w)/g, (_, __, letter: string) => letter.toUpperCase())} = ${typed ? CONVERTERS[name].replace('(value)', '(value: any)') : CONVERTERS[name]};`,
-    );
-  switch (transport.kind) {
-    case 'fetch': {
-      if (input.pagination)
-        return 'The code reads REST Link-header pagination, which Refit does not rebuild.';
-      const options = transport.options;
-      const kept: string[] = [];
-      let headers: string | undefined;
-      for (const entry of options?.properties ?? []) {
-        const name = propertyName(entry);
-        if (!name) return 'The fetch options spread or compute a key.';
-        if (name === 'method' || name === 'body') continue;
-        if (name === 'headers') {
-          headers = headerText(entry);
-          if (headers === undefined)
-            return 'The fetch headers are not an object literal Refit can extend with a JSON content type.';
-          continue;
-        }
-        kept.push(entry.getText());
-      }
-      if (!headers)
-        return 'The request sends no headers, so it carries no access token Refit can reuse.';
-      lines.push(
-        `const response = await fetch(${partsSource([...transport.prefix, { text: 'graphql.json' }])}, { ${[...kept, 'method: "POST"', `headers: ${headers}`, `body: JSON.stringify({ query: ${queryText}, variables: ${variables} })`].join(', ')} });`,
-        `const json${any} = response.ok ? await response.json() : undefined;`,
-        `if (!json?.data || json.errors) return new Response(JSON.stringify({ errors: json?.errors ?? response.statusText }), { status: response.ok ? 400 : response.status, statusText: response.statusText });`,
-        'const result = json.data;',
-        ...bodyLines(
-          `return new Response(JSON.stringify({ errors: "Not Found" }), { status: 404 });`,
-        ),
-        'return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });',
-      );
-      break;
-    }
-    case 'axios': {
-      if (input.pagination)
-        return 'The code reads REST pagination headers, which Refit does not rebuild.';
-      const config = transport.config;
-      let headers: string | undefined;
-      const kept: string[] = [];
-      for (const entry of config?.properties ?? []) {
-        const name = propertyName(entry);
-        if (!name) return 'The axios config spreads or computes a key.';
-        if (name === 'headers') {
-          headers = headerText(entry);
-          if (headers === undefined)
-            return 'The axios headers are not an object literal Refit can extend with a JSON content type.';
-        } else if (name === 'params' || name === 'method' || name === 'url' || name === 'data')
-          return `The axios config sets ${name}.`;
-        else kept.push(entry.getText());
-      }
-      if (!headers)
-        return 'The request sends no headers, so it carries no access token Refit can reuse.';
-      lines.push(
-        `const response${any} = await ${transport.receiver}.post(${partsSource([...transport.prefix, { text: 'graphql.json' }])}, { query: ${queryText}, variables: ${variables} }, { ${[...kept, `headers: ${headers}`].join(', ')} });`,
-        'if (!response.data?.data || response.data.errors) throw new Error(`Shopify GraphQL request failed: ${JSON.stringify(response.data?.errors)}`);',
-        'const result = response.data.data;',
-        ...bodyLines('throw new Error("Not Found");'),
-        'return { ...response, data: body };',
-      );
-      break;
-    }
-    case 'remix':
-    case 'resource-remix': {
-      lines.push(
-        `const response = await ${transport.admin}.graphql(${queryText}, { variables: ${variables} });`,
-        `const { data: result }${any} = await response.json();`,
-        ...bodyLines('throw new Error("Not Found");'),
-      );
-      if (transport.kind === 'remix') {
-        if (input.pagination)
-          return 'The code reads REST pagination from a Response, which Refit does not rebuild.';
-        lines.push(
-          'return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });',
-        );
-      } else lines.push(...resourceReturn(rule, transport.operation, pageInfo));
-      break;
-    }
-    case 'client':
-    case 'resource': {
-      const major = input.apiMajor;
-      if (major === undefined)
-        return 'Refit cannot tell which @shopify/shopify-api release the repository locks.';
-      // A client call uses the REST client's own declaration, turned into a GraphQL client; a
-      // resource call builds one from the session its own options pass.
-      lines.push(
-        transport.kind === 'client'
-          ? `const graphql = ${transport.variable};`
-          : `const graphql = new ${transport.factory}.clients.Graphql({ session: ${transport.session} });`,
-      );
-      if (major >= 9)
-        lines.push(
-          `const { data: result }${any} = await graphql.request(${queryText}, { variables: ${variables} });`,
-        );
-      else
-        lines.push(
-          `const { body: { data: result } }${any} = await graphql.query({ data: { query: ${queryText}, variables: ${variables} } });`,
-        );
-      lines.push(...bodyLines('throw new Error("Not Found");'));
-      if (transport.kind === 'client')
-        lines.push(
-          rule.kind === 'list' && input.pagination
-            ? `return { body, headers: {}, pageInfo: ${pageInfo()} };`
-            : 'return { body, headers: {} };',
-        );
-      else lines.push(...resourceReturn(rule, transport.operation, pageInfo));
-      break;
-    }
-  }
-  const comment = `// Refit: REST ${rule.method} ${rule.path} → GraphQL Admin \`${rule.root}\`${rule.graphql ? ` (${rule.graphql.url})` : ''}; rebuilds the REST fields this code reads.`;
-  return {
-    text: `(async () => {\n${pad}${comment}\n${lines.map((line) => `${pad}${line}`).join('\n')}\n${indent}})()`,
-    extra: [],
-  };
-}
-
-function variablesFirst(values: string[]) {
-  return values.find((value) => value.startsWith('first: '))!.slice('first: '.length);
-}
-
-function resourceReturn(rule: RestRule, operation: string, pageInfo: () => string) {
-  if (operation === 'all' && rule.kind === 'list')
-    return [`return { data: body.${rule.envelope}, headers: {}, pageInfo: ${pageInfo()} };`];
-  if (operation === 'all') return [`return { data: [body.${rule.envelope}], headers: {} };`];
-  if (operation === 'count') return ['return body;'];
-  return [`return body.${rule.envelope};`];
-}
-
-// The headers object with a JSON content type, or undefined when Refit cannot be sure of it.
-function headerText(entry: ts.ObjectLiteralElementLike) {
-  if (!ts.isPropertyAssignment(entry)) return undefined;
-  const object = unwrap(entry.initializer);
-  if (!ts.isObjectLiteralExpression(object)) return undefined;
-  let contentType: ts.Expression | undefined;
-  for (const header of object.properties) {
-    const name = propertyName(header);
-    if (!name || !ts.isPropertyAssignment(header)) return undefined;
-    if (name.toLowerCase() === 'content-type') contentType = header.initializer;
-  }
-  if (contentType)
-    return ts.isStringLiteralLike(contentType) && contentType.text === 'application/json'
-      ? object.getText()
-      : undefined;
-  return `{ ...${object.getText()}, "Content-Type": "application/json" }`;
-}
-
-type Category = 'string' | 'number' | 'boolean' | 'array' | 'object' | 'unknown';
-
-const STRING_SCALARS = new Set([
-  'String',
-  'ID',
-  'URL',
-  'HTML',
-  'DateTime',
-  'Date',
-  'Decimal',
-  'Money',
-  'FormattedString',
-  'UnsignedInt64',
-  'ARN',
-  'Color',
-  'UtcOffset',
-  'StorefrontID',
-]);
-
-// The category a GraphQL field path yields after its conversion, or why the path does not exist.
-function graphqlCategory(
-  schema: GraphQLSchema,
-  typeName: string,
-  field: RestField,
-): Category | string {
-  let type: GraphQLType | undefined = schema.getType(typeName) as GraphQLType | undefined;
-  for (const segment of field.graphql.split('.')) {
-    const named = type && getNamedType(type);
-    if (!named || (!isObjectType(named) && !isInterfaceType(named)))
-      return `${segment} is not a field of an object`;
-    const next = named.getFields()[responseKey(segment)];
-    if (!next) return `${named.name}.${responseKey(segment)} does not exist`;
-    type = next.type;
-  }
-  if (!type) return 'empty path';
-  const named = getNamedType(type);
-  const list = isListType(getNullableType(type));
-  if (field.fields) return isList(field) || list ? 'array' : 'object';
-  switch (field.convert) {
-    case 'gid-number':
-      return named.name === 'ID' && !list ? 'number' : `gid-number on ${String(type)}`;
-    case 'lowercase':
-      return isEnumType(named) && !list ? 'string' : `lowercase on ${String(type)}`;
-    case 'join-comma':
-      return list && named.name === 'String' ? 'string' : `join-comma on ${String(type)}`;
-  }
-  if (list) return 'array';
-  if (isEnumType(named)) return 'string';
-  if (named.name === 'Int' || named.name === 'Float') return 'number';
-  if (named.name === 'Boolean') return 'boolean';
-  if (STRING_SCALARS.has(named.name)) return 'string';
-  return 'unknown';
-}
-
-// What the SDK's REST resource declares. Shopify's REST JSON sends ids as numbers while
-// @shopify/shopify-api declares them `string`, so ids accept either.
-function restCategories(name: string, declared: string): Set<Category> {
-  const found = new Set<Category>();
-  if (/\bstring\b/.test(declared)) found.add('string');
-  if (/\bnumber\b/.test(declared)) found.add('number');
-  if (/\bboolean\b/.test(declared)) found.add('boolean');
-  if (/\[\]/.test(declared)) found.add('array');
-  if (/\{|unknown|any|Record/.test(declared)) found.add('object');
-  if (name === 'id' || name.endsWith('_id')) found.add('number').add('string');
-  return found;
-}
-
-export interface RestContract {
-  resources: Record<string, { singular: string; plural: string; fields: Record<string, string> }>;
-}
-
-const CONTRACT_FILE = new URL('../data/shopify-rest-resources.json', import.meta.url);
-
-export function loadShopifyRestContract(): RestContract {
-  return JSON.parse(readFileSync(CONTRACT_FILE, 'utf8')) as RestContract;
-}
-
-// Why a rule cannot be trusted on a schema: a GraphQL path that does not exist, a conversion that
-// does not fit, or a value whose type differs from what the REST resource declares.
-export function ruleProblems(rule: RestRule, schema: GraphQLSchema, contract: RestContract) {
-  const problems: string[] = [];
-  const ai = rule.origin === 'ai';
-  // Every path placeholder feeds exactly one argument, so no request detail is dropped.
-  const placeholders = [...rule.path.matchAll(/\{(\w+)\}/g)].map((match) => `path:${match[1]}`);
-  const sources = Object.values(rule.arguments ?? {}).flatMap((argument) =>
-    argument.from ? [argument.from] : [],
-  );
-  for (const placeholder of placeholders)
-    if (sources.filter((from) => from === placeholder).length !== 1)
-      problems.push(`${rule.id}: ${placeholder} must feed exactly one argument`);
-  if (ai) {
-    if (!/^\w+$/.test(rule.root)) problems.push(`${rule.id}: the root field carries arguments`);
-    for (const [name, argument] of Object.entries(rule.arguments ?? {}))
-      if (argument.from && !argument.from.startsWith('path:'))
-        problems.push(`${rule.id}: argument ${name} comes from ${argument.from}, not a path`);
-  }
-  if (problems.length) return problems;
-  const query = schema.getQueryType()!;
-  const root = query.getFields()[responseKey(rule.root)];
-  if (!root) return [`QueryRoot.${rule.root} does not exist`];
-  let node = getNamedType(root.type);
-  if (rule.kind === 'list') {
-    const nodes = isObjectType(node) ? node.getFields().nodes : undefined;
-    if (!nodes) return [`${rule.root} is not a connection`];
-    node = getNamedType(nodes.type);
-  }
-  if (rule.kind === 'count') {
-    const count = isObjectType(node) ? node.getFields().count : undefined;
-    return count ? [] : [`${rule.root} has no count`];
-  }
-  const className = rule.resource?.class ?? rule.restResource;
-  const resource = className ? contract.resources[className] : undefined;
-  if (ai && !resource) return [`${rule.id}: no REST resource types to check against`];
-  const check = (
-    fields: Record<string, RestField>,
-    typeName: string,
-    declared?: Record<string, string>,
-  ) => {
-    for (const [name, field] of Object.entries(fields)) {
-      const category = graphqlCategory(schema, typeName, field);
-      if (!['string', 'number', 'boolean', 'array', 'object', 'unknown'].includes(category)) {
-        problems.push(`${rule.id} ${name}: ${category}`);
-        continue;
-      }
-      const leaf = leafType(schema, typeName, field)!;
-      if (
-        ai &&
-        field.graphql.split('.').some((segment) => !/^\w+(?:\(first: 250\))?$/.test(segment))
-      )
-        problems.push(`${rule.id} ${name}: a field path carries arguments other than first: 250`);
-      if (field.fields) {
-        if (ai) problems.push(`${rule.id} ${name}: Refit has no REST types for nested fields`);
-        else check(field.fields, leaf.name);
-        continue;
-      }
-      // A numeric REST id read from a GraphQL ID must convert the gid.
-      if (
-        /^(?:id|\w+_id)$/.test(name) &&
-        name !== 'admin_graphql_api_id' &&
-        leaf.name === 'ID' &&
-        field.convert !== 'gid-number'
-      )
-        problems.push(`${rule.id} ${name}: a GraphQL ID needs gid-number for the numeric REST id`);
-      // Enum case differs between REST values; only documented rules map enums.
-      if (ai && isEnumType(leaf))
-        problems.push(`${rule.id} ${name}: model mappings may not map enum values`);
-      const rest = declared?.[name];
-      if (declared && rest === undefined)
-        problems.push(`${rule.id} ${name}: the REST resource declares no such field`);
-      else if (rest && !restCategories(name, rest).has(category as Category))
-        problems.push(
-          `${rule.id} ${name}: GraphQL gives ${category}, the REST resource declares ${rest}`,
-        );
-    }
-  };
-  check(rule.fields, node.name, resource?.fields);
-  return problems;
-}
-
-// The named type at the end of a field's GraphQL path.
-function leafType(schema: GraphQLSchema, typeName: string, field: RestField) {
-  let type: GraphQLType | undefined = schema.getType(typeName) as GraphQLType | undefined;
-  for (const segment of field.graphql.split('.')) {
-    const named = type && getNamedType(type);
-    if (!named || (!isObjectType(named) && !isInterfaceType(named))) return undefined;
-    type = named.getFields()[responseKey(segment)]?.type;
-  }
-  return type && getNamedType(type);
-}
-
-// A mapping the model proposed for a stop, already checked against the schemas and REST types.
-export interface RestProposal {
-  status: 'kept' | 'refused' | 'error';
-  model: string;
-  costUsd: number | null;
-  reason: string;
-  rule?: RestRule;
-}
-
-// Stops the model may help with: Refit understands the call and its reads, but no documented rule
-// produces them.
-const proposable = (
-  result: RestRewrite | RestStop,
-): result is RestStop & { request: NonNullable<RestStop['request']> } =>
-  result.status === 'stopped' &&
-  Boolean(result.request) &&
-  result.request!.method === 'GET' &&
-  /^No documented GraphQL equivalent|which the documented GraphQL mapping does not produce/.test(
-    result.reason,
-  );
-
-// Every REST call the scan found, rewritten where a rule and the traced reads allow. With `propose`,
-// stops no rule covers get a model-proposed mapping, kept only when the file re-run with it rewrites
-// that call under every gate.
-export async function shopifyRestRewrites(
-  repository: { files: { path: string; content: string }[] },
-  scan: Pick<ShopifyScan, 'rest'>,
-  schemas: { version: string; schema: GraphQLSchema }[],
-  sdkRelease: string | undefined,
-  options: {
-    rules?: RestRule[];
-    refusals?: RestRefusal[];
-    propose?: (
-      stop: RestStop & { request: NonNullable<RestStop['request']> },
-    ) => Promise<RestProposal>;
-  } = {},
-) {
-  const rules = options.rules ?? loadShopifyRestRules();
-  const refusals = options.refusals ?? loadShopifyRestRefusals();
-  const major = sdkRelease ? Number.parseInt(sdkRelease, 10) : Number.NaN;
-  const byFile = new Map<string, ShopifyScan['rest']>();
-  for (const entry of scan.rest) byFile.set(entry.file, [...(byFile.get(entry.file) ?? []), entry]);
-  const results: (RestRewrite | RestStop)[] = [];
-  const proposals: (RestProposal & { file: string; line: number })[] = [];
-  for (const [file, entries] of byFile) {
-    const content = repository.files.find((entry) => entry.path === file)?.content;
-    if (content === undefined) {
-      results.push(
-        ...entries.map((entry): RestStop => ({
-          status: 'stopped',
-          entry,
-          reason: 'Refit could not read the file again.',
-        })),
-      );
-      continue;
-    }
-    const run = (extra: RestRule[]) =>
-      rewriteRestCalls({
-        file,
-        content,
-        entries,
-        rules: [...rules, ...extra],
-        refusals,
-        schemas,
-        ...(Number.isFinite(major) ? { apiMajor: major } : {}),
-      });
-    let fileResults = run([]);
-    if (options.propose) {
-      const kept: RestRule[] = [];
-      for (const stop of fileResults.filter(proposable)) {
-        const proposal = await options.propose(stop);
-        proposals.push({ ...proposal, file, line: stop.entry.line });
-        if (proposal.status === 'kept') kept.push(proposal.rule!);
-      }
-      // Every call the kept mappings cover passes the same per-call gates as a documented rule.
-      if (kept.length) {
-        fileResults = run(kept);
-        for (const proposal of proposals.filter((entry) => entry.file === file && entry.rule)) {
-          const result = fileResults.find((entry) => entry.entry.line === proposal.line);
-          if (result?.status === 'stopped')
-            proposal.reason += ` Refit did not keep it: ${result.reason}`;
-        }
-      }
-    }
-    results.push(...fileResults);
-  }
-  return { results, proposals };
-}
-
-// The draft's "what changed" lines for each rewrite.
-export function restRewriteNotes(rewrites: RestRewrite[]) {
-  return rewrites.map(
-    (result) =>
-      `REST rewrite at ${result.entry.file}:${result.entry.line}: ${result.rule.method} ${result.rule.path} now sends the GraphQL Admin query \`${result.rule.root}\` and rebuilds ${result.reads.filter(Boolean).join(', ') || 'no fields (the code reads none)'} in the REST shape. Errors and missing records still fail, but as GraphQL errors (a thrown Error or a 400/404 Response) rather than REST status codes; logged response bodies now hold only the rebuilt fields.${(result.rule.notes ?? []).length ? ` ${result.rule.notes!.join(' ')}` : ''}`,
-  );
 }

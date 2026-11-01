@@ -389,7 +389,7 @@ export const shopify = shopifyApi({ apiVersion: '2026-01' });
     ...(await snapshots(variables)),
     proposePatch: true,
   })) as any;
-  expect(stopped.patch.status).toBe('not-generated');
+  expect(stopped.shopify.handoff[0]).toContain('Refit cannot see the values the code sends');
   expect(
     stopped.findings.find((entry: any) => entry.changeId.startsWith('shopify-graphql-input:')),
   ).toMatchObject({

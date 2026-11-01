@@ -591,13 +591,13 @@ it('checks committed npm inputs through the same preparation gate without instal
   );
   await commit(sample.repository);
   vi.stubEnv('REFIT_REPOSITORY_INSTALL', '1');
-  // A lockfile out of sync stays a stop: the repository's own install would install versions it
-  // never committed.
+  // A lockfile out of sync goes to the sandbox install too (gut plan SC-S2, 2026-10-31).
   const rejected = await inspectRepositoryReadiness({ repository: sample.repository });
-  expect(rejected.status).toBe('needs-attention');
   expect(rejected.checks.find((check) => check.id === 'dependencies')).toMatchObject({
-    status: 'blocked',
-    detail: expect.stringContaining('differ from the committed package-lock.json'),
+    status: 'review',
+    detail: expect.stringMatching(
+      /differ from the committed package-lock\.json[\s\S]*Refit runs the repository's own install instead/,
+    ),
   });
   // A package from a private registry: Refit runs the repository's own install instead, so
   // nothing blocks and nothing is asked of the customer (founder decision, 2026-10-28).

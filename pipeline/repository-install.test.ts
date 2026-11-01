@@ -5,6 +5,7 @@ import {
   namedHosts,
   needsCustomerEnvironment,
   PUBLIC_REGISTRIES,
+  unlockedPlans,
 } from './repository-install.ts';
 
 const manifest = (extra: object = {}) =>
@@ -150,4 +151,37 @@ it('names installs that need something only the customer has', () => {
     true,
   );
   expect(needsCustomerEnvironment('npm error code ERESOLVE')).toBe(false);
+});
+
+it('installs unlocked, with scripts, where no lockfile or a stale one is committed (SC-S2)', () => {
+  expect(unlockedPlans(new Map())).toEqual([]);
+  expect(
+    unlockedPlans(new Map([['package.json', manifest()]])).map((plan) => plan.command),
+  ).toEqual([
+    ['npm', 'install', '--no-audit', '--no-fund'],
+    ['npm', 'install', '--no-audit', '--no-fund', '--legacy-peer-deps'],
+  ]);
+  const pnpm = unlockedPlans(
+    new Map([
+      ['package.json', manifest({ packageManager: 'pnpm@9.15.9' })],
+      ['package-lock.json', '{}'],
+    ]),
+  );
+  expect(pnpm).toEqual([
+    expect.objectContaining({
+      manager: 'pnpm',
+      command: ['pnpm', 'install', '--no-frozen-lockfile'],
+      tool: 'pnpm@9.15.9',
+    }),
+  ]);
+  expect(
+    unlockedPlans(
+      new Map([
+        ['package.json', manifest()],
+        ['yarn.lock', ''],
+      ]),
+    )[0].command,
+  ).toEqual(['yarn', 'install']);
+  for (const plan of unlockedPlans(new Map([['package.json', manifest()]])))
+    expect(plan.command).not.toContain('--ignore-scripts');
 });

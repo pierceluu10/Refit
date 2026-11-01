@@ -1,5 +1,7 @@
 # Shopify round 3: REST and GraphQL blockers
 
+> Historical record (2026-10-31): the stops this round targets no longer end a repository; they are handed to the agent fixer ([Shopify](SHOPIFY.md#agent-fixer), docs/GUT-PLAN.md).
+
 Written 2026-10-29. The base is `bench/iter1-shopify-meta`, with #424 (proof gate), #425 (AI) and #427 (REST contract) merged.
 
 ## Diagnosis
