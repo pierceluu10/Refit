@@ -1,0 +1,1130 @@
+[
+  {
+    "path": "docs/benchmarks/2026-10-14-sdk-repos.json",
+    "class": "legacy",
+    "commits": ["f3cdb7013c639b97c2873c31fa363dc03565b85c"],
+    "blobs": ["4c94f38e520afae54ab31b824a3833e0c86e1ee0"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-14-stripe-repos.json",
+    "class": "legacy",
+    "commits": ["5f74571d3750a98fb9e11b7237df6d70014d18de"],
+    "blobs": ["36d963ccc37ede87c5b6589ddfdadd35ba6b37e0"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-15-deadline-pilot-repos.json",
+    "class": "legacy",
+    "commits": ["8651b516a300b58c4745c15264d71975145dc553"],
+    "blobs": ["aa51acf298ef05c11a18b36492584d4733b5d0fb"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-15-stripe-heldout-repos.json",
+    "class": "blind",
+    "commits": ["5aa089a21e4198242417fc4971f5c6aad7c379fb"],
+    "blobs": ["9f8a9c3bcd6865f7c7513d79fbff550b4aad8f67"],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-16-deadline-repos.json",
+    "class": "legacy",
+    "commits": ["1139bc9e1e6915eec2f145cc991d771846283b72"],
+    "blobs": ["7f8436e06eb88452488f4a9dd9fc84ad8bbcf57a"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+    "class": "legacy",
+    "commits": ["d368c2a0af66d56554f14d463bd98515f399951a"],
+    "blobs": ["a783c4d2075d1e78afa9d1894cc89dcdde87af3c"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-16-shopify-repos.json",
+    "class": "legacy",
+    "commits": ["681e0db6d33c2bc2e3a690464acca883a448cf9a"],
+    "blobs": ["84740739a5af3372ed2ddf6609b71d20452e3a78"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-16-stripe-active-repos.json",
+    "class": "legacy",
+    "commits": ["7fb95602bb8d5efcf73cdb655fab2295c7d11c4b"],
+    "blobs": ["03d608ca909bda063ccbe4e0f9e45c0264e496db"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-16-stripe-fresh-repos.json",
+    "class": "legacy",
+    "commits": ["61670abe39554161224adac0bf10271ca394dd19"],
+    "blobs": ["c12896f885f1f53817aeb526bcdb66f099bf88ba"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-20-anthropic-repos.json",
+    "class": "legacy",
+    "commits": ["b6c25a2b69f389ac4b82971052cd1929763c818d"],
+    "blobs": ["0d5d1dd650605feaceba5f6e33b59c15b4798cef"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-20-openai-repos.json",
+    "class": "legacy",
+    "commits": ["e8269b42b1df4d324a7e8a88a65b6fe7bc671fa4"],
+    "blobs": ["ffb78fedcd41d9449edd8f7db9192d09795660f7"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-21-anthropic-app-repos.json",
+    "class": "legacy",
+    "commits": [
+      "bc310aff2eca602adf3cc56d208d0b29fc36b4e9",
+      "655b722cf4f1b1f5c5fa0e21edb5a415c592d934",
+      "d2ad752da6d251b25a0d5512da90b1c94ee629bf"
+    ],
+    "blobs": [
+      "a30c7b3d9f93d912e225829cf58ba0f0bdb540fa",
+      "6a5f49ede9c3984130f230f0be23f07782647c0e",
+      "6a5f49ede9c3984130f230f0be23f07782647c0e"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-21-gemini-repos.json",
+    "class": "legacy",
+    "commits": ["45e415489ad0bcafc89a7d75b6b0981cd1742b50"],
+    "blobs": ["5c9d70a7914ec26e119a67ab157d155f67776e9b"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-21-openai-app-repos.json",
+    "class": "legacy",
+    "commits": [
+      "655b722cf4f1b1f5c5fa0e21edb5a415c592d934",
+      "d2ad752da6d251b25a0d5512da90b1c94ee629bf"
+    ],
+    "blobs": [
+      "d8baa370c9014484977ec1dfde932fc4c8734b7d",
+      "d8baa370c9014484977ec1dfde932fc4c8734b7d"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-21-paypal-repos.json",
+    "class": "legacy",
+    "commits": [
+      "1569c35d0948a1305ac3a753e390e1ad2c6a2aae",
+      "076f6d32c3e466ebb03e0377162b337d724d2847"
+    ],
+    "blobs": [
+      "58120de491608822c5536d8b0d7b4b3dc74ff245",
+      "7be1d4bbac6e70cb8e70bfe23d1b5bec64eb2af0"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-api-hosts-repos.json",
+    "class": "legacy",
+    "commits": ["dd08573a01e118a0e3d77e85172653e2db8a2d2b"],
+    "blobs": ["4ccd32b2f935af3c9103c00def9c733ffe18253a"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-auth-backend-repos.json",
+    "class": "legacy",
+    "commits": [
+      "094634d9dd7a63f31ff4adcceb66991f4133b6c5",
+      "9d3ad0c25d1dfc4af2165536530e3aa939992f4f"
+    ],
+    "blobs": [
+      "7337315c2bbbeb435b36a499bdf08d23e75cbe88",
+      "5d3e2eea271872baa47e8ff630fcbc442fa29e59"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-cloud-sdk-repos.json",
+    "class": "legacy",
+    "commits": ["ebe4762de36fa59f70d9d274dd7b12df9cabb418"],
+    "blobs": ["040d34276582c52956d837ec21815263eae79c55"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-cloudflare-repos.json",
+    "class": "legacy",
+    "commits": ["28e6626a137c464353605e0ad6c9c09fef748f26"],
+    "blobs": ["bea01d4d80946c1b77a6b09bef0c304cfb46bae0"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-commerce-repos.json",
+    "class": "legacy",
+    "commits": ["653f595db4f08d1174c199b4b7206740e21f7749"],
+    "blobs": ["1bb8c24b0cb9e3b66f92c381ee6e276908264de1"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-data-apis-repos.json",
+    "class": "legacy",
+    "commits": ["2f9f7c5c524d4953f90c6023b05278c29d720043"],
+    "blobs": ["716ef2b172398fa3b2dd59c8bcfc724c364f1871"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-deadline-fresh-repos.json",
+    "class": "measurement",
+    "commits": ["6829aa6b5d178630f3e30f0a1faca94d7fa9db46"],
+    "blobs": ["cce99ac287d8070b3eb32153e5b533bbae3cefd3"],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-github-repos.json",
+    "class": "legacy",
+    "commits": ["1f2edcbb0e9bd2e4c0c18a70c6b97a50ed04d966"],
+    "blobs": ["e5427c50335ed4258101bcae669b6a7b3cf882d9"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-go-repos.json",
+    "class": "legacy",
+    "commits": ["f7f3b0e5d3cda8486a5938e7a1c8b924782dcffc"],
+    "blobs": ["7f34118662a3512569e8190788c0f7b97ef332da"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-inventory-repos.json",
+    "class": "legacy",
+    "commits": ["9a0d7bff167a50c764139a70b84bf8099552ab8a"],
+    "blobs": ["7c7dfac9569139e32763962ad15a17afe6b7534f"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-messaging-repos.json",
+    "class": "legacy",
+    "commits": ["4e2239689111aaacf56f71784a68cc111b3b4f3f"],
+    "blobs": ["d7ccdf9e9740b7ac6471cc12157199f754e59f85"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-messaging-targeted-repos.json",
+    "class": "legacy",
+    "commits": ["f6ca5a6e360671e7993cf91753360f52f8b8ae75"],
+    "blobs": ["66bc1905ef6b77e29704127785b2edcdc9930eb5"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-meta-platform-repos.json",
+    "class": "legacy",
+    "commits": ["229f8205c6af14fde656cfc7a8bad9b1f7d708a9"],
+    "blobs": ["6ec09aa7b53bff83ec46f1c3fa90219b878b4e36"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-model-hosts-repos.json",
+    "class": "legacy",
+    "commits": ["7e8e1d12606cd12ab1fa8f0d5b69905e8d591815"],
+    "blobs": ["445ea68cde4a7d7cf98397a4955adcf905d34ec1"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-model-wrapper-app-repos.json",
+    "class": "legacy",
+    "commits": ["4ae93a03de47b5b233d39c8af09f6f0232667bd1"],
+    "blobs": ["140ef539a0083d60a0a535bf4567949702f5091e"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-package-inventory-repos.json",
+    "class": "legacy",
+    "commits": ["e6877cc6ec986a5f52fdde266ccc72f1b602231a"],
+    "blobs": ["49130f568026e11dc96ecc21864535c8e83b51ac"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-python-langchain-repos.json",
+    "class": "legacy",
+    "commits": ["1a14a93205bcc05d45552454af4bb5aa5c3777de"],
+    "blobs": ["e3e11bd0c341196cc8cd03dc6a8750c8c5bf1816"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-python-model-repos.json",
+    "class": "legacy",
+    "commits": ["bfd90c81dd56b8e5d17e40182e57aa3d09f6312f"],
+    "blobs": ["fb50e9df45198115c6f20931cf6b7880729221d1"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-replay-shopify-repos.json",
+    "class": "legacy",
+    "commits": ["984668b3c8e9d2224dff21acbaaa1670d6b8f6c9"],
+    "blobs": ["a45930aad6b8a0c9ad3fcfe38775a82e4e3eb5ea"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-replay-stripe-basil-repos.json",
+    "class": "legacy",
+    "commits": ["984668b3c8e9d2224dff21acbaaa1670d6b8f6c9"],
+    "blobs": ["a7458ebeec21ef8828277a3a6cf8e0ce0ef20392"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-replay-stripe-endive-repos.json",
+    "class": "legacy",
+    "commits": ["984668b3c8e9d2224dff21acbaaa1670d6b8f6c9"],
+    "blobs": ["1248e0500e55d46b88490e620a39917a84e59f75"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-shopify-sdk-upgrade-repos.json",
+    "class": "legacy",
+    "commits": ["cedb1aa8e39fec666eea13000b58029dde9d427c"],
+    "blobs": ["21fb6e8965a9da9c8af0f92aa4aac7b57c080566"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-22-slack-repos.json",
+    "class": "legacy",
+    "commits": ["a50a9ae09c7fb07ea23cd58d6fe7996aec0a4557"],
+    "blobs": ["7c5f663d3dd46d6d12a4dddf6218bd1eb0e6b86f"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-24-stripe-night-repos.json",
+    "class": "legacy",
+    "commits": ["b949933889b8edcbb7dc6eb4919a3aa2f81ca303"],
+    "blobs": ["f38f780bade84e64c1fbce08ada6ab5bd90cca2b"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-27-vendor-detection-repos.json",
+    "class": "legacy",
+    "commits": ["c24514d8fb176771f1a55fe8c315f22377a62fb1"],
+    "blobs": ["298d6554166fc30755e92254e950a6b565f4cc65"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/2026-10-28-stripe-new-repos.json",
+    "class": "measurement",
+    "commits": ["61223392bddfece9d0099a033f407539cbe76648"],
+    "blobs": ["e761d2d86795aead8c21f9de6de340e27d08d53b"],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/holdout-selection/candidates.json",
+    "class": "blind",
+    "commits": [
+      "31822f053b0a0f5a93e954a197c0686634cbe962",
+      "318d8fe466dd32b6a9a9513fa797325c2f619fe7"
+    ],
+    "blobs": [
+      "7b3c2e18531dbdcdced7020ec30931f3c788694a",
+      "7b3c2e18531dbdcdced7020ec30931f3c788694a"
+    ],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/holdout-selection/checks.json",
+    "class": "blind",
+    "commits": [
+      "31822f053b0a0f5a93e954a197c0686634cbe962",
+      "318d8fe466dd32b6a9a9513fa797325c2f619fe7"
+    ],
+    "blobs": [
+      "5ae34325699f3cea12d2f42c162395e9fc24f345",
+      "5ae34325699f3cea12d2f42c162395e9fc24f345"
+    ],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/holdout-selection/search.json",
+    "class": "blind",
+    "commits": [
+      "31822f053b0a0f5a93e954a197c0686634cbe962",
+      "318d8fe466dd32b6a9a9513fa797325c2f619fe7"
+    ],
+    "blobs": [
+      "22182b06a93106eba6c80a0b9b1642b3cc778e84",
+      "22182b06a93106eba6c80a0b9b1642b3cc778e84"
+    ],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/subsets/anthropic-100.json",
+    "class": "measurement",
+    "commits": ["0b4805bf04846c7e6465507e465dca20909fce64"],
+    "blobs": ["1ff19de933cbeb06e15b3eb2039badefa8120eb7"],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/subsets/anthropic-dev-30.json",
+    "class": "dev",
+    "commits": ["0b4805bf04846c7e6465507e465dca20909fce64"],
+    "blobs": ["e690078ce74ae2842a27a26158fb6b9a9258acb0"],
+    "devSet": "anthropic-dev-30"
+  },
+  {
+    "path": "docs/benchmarks/subsets/behaviour-tests-20.json",
+    "class": "legacy",
+    "commits": [
+      "c748a8dd1d35d6dfc2338e629e1b93b3916fead3",
+      "e098b3ff665241044bb61d9fbebe3a703ef8bb30"
+    ],
+    "blobs": [
+      "58af6789805914addd224416fc69528d61351e4d",
+      "58af6789805914addd224416fc69528d61351e4d"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/dev-30.json",
+    "class": "dev",
+    "commits": ["83e01bfe64c0b5ec0812ae4e87c1590ba2cafa93"],
+    "blobs": ["bd45a886834a4087dadf936a2a5f61057936b41c"],
+    "devSet": "stripe-dev-30"
+  },
+  {
+    "path": "docs/benchmarks/subsets/f1-proxy-clients.json",
+    "class": "legacy",
+    "commits": [
+      "c085ddb94dbcc25b3b20293ea1d776d8b995897e",
+      "c5924bacc018711de49b96848198df9a93f4e391"
+    ],
+    "blobs": [
+      "fb9826e4e65e7d969070f5b48fb1e4addc435ead",
+      "fb9826e4e65e7d969070f5b48fb1e4addc435ead"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/f1-review-reads.json",
+    "class": "legacy",
+    "commits": [
+      "19c539a849222604af73ff4992014335ec4619ac",
+      "38b4ad919f8ad49b215bc2c876d187963ae7bd13"
+    ],
+    "blobs": [
+      "f21ec76b96ac23ad123c791322528efca979ff68",
+      "f21ec76b96ac23ad123c791322528efca979ff68"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/f1-tuned-sets.json",
+    "class": "legacy",
+    "commits": ["ef2344094635e80e87d93764fb0fe7113cbe2fed"],
+    "blobs": ["9c64d30ee628fd7a5514232c5755953ecc3a5f96"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/f2-untraced-sites.json",
+    "class": "legacy",
+    "commits": [
+      "92f113744f77e55607e0f22bbfd3f1fc3a1c43f9",
+      "22fb650149f7c88b6922e44619a373de0fe4a878"
+    ],
+    "blobs": [
+      "e55782c40dd1f3a2775a66a9152222906f74aa84",
+      "e55782c40dd1f3a2775a66a9152222906f74aa84"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/f3-upgrade-regressions.json",
+    "class": "legacy",
+    "commits": ["b2bea8f482dbd73c29d0c53c6c8194eefba5a0fe"],
+    "blobs": ["57290732b7800aae914bf6ea6ff3f5c94b6c65d3"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/f4-expand-paths.json",
+    "class": "legacy",
+    "commits": [
+      "06e50e9747584e381ad098f9eb3344f700a04748",
+      "bab3077460afa821f763328e50f7f32aa49ff5d1"
+    ],
+    "blobs": [
+      "4b19430559f0d936cc88c09ae06f27d451bc61d4",
+      "4b19430559f0d936cc88c09ae06f27d451bc61d4"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/f4-mined-rules.json",
+    "class": "legacy",
+    "commits": [
+      "f9ab14cc3fb4d9bb4859bbd87500a5454bed27a9",
+      "83e8e0dc8f9080491e9fa5984a2f55c6f24dffba"
+    ],
+    "blobs": [
+      "5e96d329bac540f43678175d4d2cbcd58df83563",
+      "5e96d329bac540f43678175d4d2cbcd58df83563"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/f4-schema-renames.json",
+    "class": "legacy",
+    "commits": [
+      "a2cc6a9b090a89acf4ef43e575ea9a6591b0131c",
+      "276078bfd6805ea61b940a1f9351829a16db7708"
+    ],
+    "blobs": [
+      "0560f13b58eef304dfde15eae3abd39e4988e2a2",
+      "0560f13b58eef304dfde15eae3abd39e4988e2a2"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/f5-tuned-sets.json",
+    "class": "legacy",
+    "commits": [
+      "b31089d0d79296b86aa2f765c8d6a566c16294fd",
+      "d37db50c031b81e3899d9a0955d0adb659bc60b3"
+    ],
+    "blobs": [
+      "2384215ca6c8f82abf4302ba45de60d849f2326b",
+      "2384215ca6c8f82abf4302ba45de60d849f2326b"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/gemini-30.json",
+    "class": "measurement",
+    "commits": ["8e2ecc759950615169babf2455dae7768adbec05"],
+    "blobs": ["a479fadcd9e0c66fd74420d4b5b7c2355589d859"],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/subsets/gemini-dev-15.json",
+    "class": "dev",
+    "commits": ["8e2ecc759950615169babf2455dae7768adbec05"],
+    "blobs": ["571d7221b3c4904a4c7dcb568959f4485d655235"],
+    "devSet": "gemini-dev-15"
+  },
+  {
+    "path": "docs/benchmarks/subsets/heldout-30.json",
+    "class": "blind",
+    "commits": ["83e01bfe64c0b5ec0812ae4e87c1590ba2cafa93"],
+    "blobs": ["873f202ba5eb9d34bcf39fc2415fa017a34ee015"],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/subsets/holdout-100.json",
+    "class": "blind",
+    "commits": [
+      "31822f053b0a0f5a93e954a197c0686634cbe962",
+      "318d8fe466dd32b6a9a9513fa797325c2f619fe7"
+    ],
+    "blobs": [
+      "cb320301fb21c98dbcc2c89d7916e415a6c77dc4",
+      "cb320301fb21c98dbcc2c89d7916e415a6c77dc4"
+    ],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/subsets/holdout-30b.json",
+    "class": "blind",
+    "commits": [
+      "31822f053b0a0f5a93e954a197c0686634cbe962",
+      "318d8fe466dd32b6a9a9513fa797325c2f619fe7"
+    ],
+    "blobs": [
+      "2fbb3aa3c6a7868ed71e35c095ad194f15f8e3f3",
+      "2fbb3aa3c6a7868ed71e35c095ad194f15f8e3f3"
+    ],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l1-sandbox-4g.json",
+    "class": "legacy",
+    "commits": ["72669d030468d75d32161e6fbb2a65b77f932295"],
+    "blobs": ["ddbdb708de11da5ae7f5be1af2774546977033ca"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-bench-untested.json",
+    "class": "legacy",
+    "commits": [
+      "c23e6907dee61c12c660ae2b57da8b1cf5b81806",
+      "39afc84f764f50c3090b60caf14f16ad44802121"
+    ],
+    "blobs": [
+      "2599c9ce39d16ea309e190683ddae4fd1a13777b",
+      "2599c9ce39d16ea309e190683ddae4fd1a13777b"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-checks-2.json",
+    "class": "legacy",
+    "commits": [
+      "beb9162d38605ff1edc5ce491e9c1307d93b90d7",
+      "4c3d991853a04f813f542f179fd659d91f2d04b4"
+    ],
+    "blobs": [
+      "6d0cf9d389e20028d709c628ce7845fe8137c4a9",
+      "6d0cf9d389e20028d709c628ce7845fe8137c4a9"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-checks-confirm.json",
+    "class": "legacy",
+    "commits": ["39a64c20feabdeabf8014d9b28e3b4215737f937"],
+    "blobs": ["25f9968520af56e331938363d7407b304198efae"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-checks-repro.json",
+    "class": "legacy",
+    "commits": [
+      "ba231b3a4bf0860c0b8e64b5586bc4fabe33706f",
+      "c6694ece672b357c64fb2593c3ce6a4f1339e16a",
+      "2ab6a7a283fce0d6202dc9c2b00aa81ea7b6cdaf",
+      "0b673171e415a2893f6bd80dad5bb5f6ac0f8c08",
+      "aecd1f2545aa08fd569c25166a002c069a1ddcb4",
+      "d5a4253813ba8f196f0f00666b655065158566cc",
+      "9f4fd41526f60d152c24657ffc1775aad407c48e"
+    ],
+    "blobs": [
+      "364fa6a924d0f3bad72f473c1bf191c8f3cc06ac",
+      "364fa6a924d0f3bad72f473c1bf191c8f3cc06ac",
+      "364fa6a924d0f3bad72f473c1bf191c8f3cc06ac",
+      "364fa6a924d0f3bad72f473c1bf191c8f3cc06ac",
+      "e0d5454d43c3084c7324a6cace8259bbd7ff14bf",
+      "f90ae9ae9530e0cb07d137739d4d653968c525cd",
+      "71748f2115dcca24ddff9b633bef7dd48671d7b5"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-generated-entry-points.json",
+    "class": "legacy",
+    "commits": ["b24bf071116e4323bf0d88f1d5b236d55ead7dbe"],
+    "blobs": ["d63a34b375523703e34ab02f0ace41529f69d9ee"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-large-control.json",
+    "class": "legacy",
+    "commits": ["c14154def42dd84978185d6d7ca256c254ead75f"],
+    "blobs": ["6be4bffbab3ff38ae9604abe434adc60fca08e94"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-packages.json",
+    "class": "legacy",
+    "commits": ["c14154def42dd84978185d6d7ca256c254ead75f"],
+    "blobs": ["618dd32b307e31e35f7529890a7477d52e47462a"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-prep-3.json",
+    "class": "legacy",
+    "commits": [
+      "a271668a3bbab986da2aa1dd42b84e7c5bbcdc14",
+      "3f42dd56be0b1e032981c29c281ccc9badc58ee0"
+    ],
+    "blobs": [
+      "0dd522b2e696cfa0130f326224cf0bb381ad4e04",
+      "0dd522b2e696cfa0130f326224cf0bb381ad4e04"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-prep-controls.json",
+    "class": "legacy",
+    "commits": ["c8d5e771d6d832a87dd474273e47c5c0788f844a"],
+    "blobs": ["1cfdc008b9431921407335cb928b9c44d6c2ae44"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-prep-remaining.json",
+    "class": "legacy",
+    "commits": ["1f3d22e7c69d3478f135ad40bbb838534b459834"],
+    "blobs": ["63d6bcc328f62f5adefe83246060716b734cbc72"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-prep-source.json",
+    "class": "legacy",
+    "commits": ["93176af029de6ba0a332b3c658f76e532823e196"],
+    "blobs": ["28f4fe34e3a42e9ba0c80efdb085e9956afd0a5a"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-prep-submodule.json",
+    "class": "legacy",
+    "commits": ["93176af029de6ba0a332b3c658f76e532823e196"],
+    "blobs": ["cca47a74d19263cd64c6686935e6507adeba535d"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-push-249.json",
+    "class": "legacy",
+    "commits": [
+      "e638528ab866f73fc0e81ecd677dcecb1f80abbf",
+      "04b8f92cad4dffc909e6f9a6c634dcdc605e373a",
+      "c8a224fe0e9cf42f2a97070643778d90403a45ed"
+    ],
+    "blobs": [
+      "6f0929bc5b44a4d71aae72de07995baecb247667",
+      "6f0929bc5b44a4d71aae72de07995baecb247667",
+      "6f0929bc5b44a4d71aae72de07995baecb247667"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-speed-smoke.json",
+    "class": "legacy",
+    "commits": ["cd3ca117a7e568a19e9fd8385a0c8da1efb37744"],
+    "blobs": ["121d0a799a403273ec4fc7c0536025cd53f35dc1"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l2-workflow-limit.json",
+    "class": "legacy",
+    "commits": ["07fcfc47d827e32087ed727d2c5cc3d43f8df840"],
+    "blobs": ["9c0533cb50a45cb08a500a3fc3f09fc2d034955b"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-249.json",
+    "class": "legacy",
+    "commits": ["cd23295932e5d567f4c1f6593688615e5e9ddfbe"],
+    "blobs": ["8c7e10bea80656b35d8c2f8d7df6aaf5a7b44204"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-ai-dev-a.json",
+    "class": "legacy",
+    "commits": ["c7d5c1d62c5ff1107b8d81eb3327e2c1c9ecc29a"],
+    "blobs": ["91c9e0f599a919c1c0295e9320b9f73fbeb0020b"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-ai-dev-b.json",
+    "class": "legacy",
+    "commits": ["c7d5c1d62c5ff1107b8d81eb3327e2c1c9ecc29a"],
+    "blobs": ["bc3d18266da0cd57f3ae054960d90d339bb3dd1e"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-ai-dev-c.json",
+    "class": "legacy",
+    "commits": ["c7d5c1d62c5ff1107b8d81eb3327e2c1c9ecc29a"],
+    "blobs": ["80749995707e2f569cd33571b52e15d29cbf154f"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-conflicting-lockfiles.json",
+    "class": "legacy",
+    "commits": ["17b831d8a70f1dbca9a7b430a830c9e9dfac5916"],
+    "blobs": ["2cc1356f319c904a78e1c3190be1d39b20231a63"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-esm-1.json",
+    "class": "legacy",
+    "commits": [
+      "bdf0ec4508db727f0290c18c6f5e2c8dda92e8b9",
+      "b1fce63ebce391b84394001c758a4cb2ead2991e"
+    ],
+    "blobs": [
+      "a4829e7e283ad5d8ea2a68369b88d90b5360e41a",
+      "a4829e7e283ad5d8ea2a68369b88d90b5360e41a"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-f3-a.json",
+    "class": "legacy",
+    "commits": [
+      "937ee328ce349df0b781e229aa8d14458c7b29ff",
+      "051968b66277014af5e2d30cb928e14bf4834f3b"
+    ],
+    "blobs": [
+      "e052391eb0017680fc77debd4dd215a35b6ecf26",
+      "e052391eb0017680fc77debd4dd215a35b6ecf26"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-f3-b.json",
+    "class": "legacy",
+    "commits": [
+      "937ee328ce349df0b781e229aa8d14458c7b29ff",
+      "051968b66277014af5e2d30cb928e14bf4834f3b"
+    ],
+    "blobs": [
+      "5580a506f3502b6b01167901103eb651dc2e203c",
+      "5580a506f3502b6b01167901103eb651dc2e203c"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-period-type-errors.json",
+    "class": "legacy",
+    "commits": [
+      "2e69eee29722eede48c4c88a58418e707d53f377",
+      "c8c82b04af52f99bc58314d6c7b645da5d737b67"
+    ],
+    "blobs": [
+      "d7039569a71f0afa3e61140cdfab4c0e5700f0e7",
+      "d7039569a71f0afa3e61140cdfab4c0e5700f0e7"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-proxy-a.json",
+    "class": "legacy",
+    "commits": [
+      "100cd65ee2c819d1fa453cea02a6ddd48897979e",
+      "808e1d63c9c42a0ea8903f5e2a8eeb5d4d391c93"
+    ],
+    "blobs": [
+      "657761c720a9ccd950309331be0f3ea01cd1b1c3",
+      "657761c720a9ccd950309331be0f3ea01cd1b1c3"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-proxy-b.json",
+    "class": "legacy",
+    "commits": [
+      "100cd65ee2c819d1fa453cea02a6ddd48897979e",
+      "808e1d63c9c42a0ea8903f5e2a8eeb5d4d391c93"
+    ],
+    "blobs": [
+      "fbeb71e2d8c5f9bc50a12570f39adc9408532442",
+      "fbeb71e2d8c5f9bc50a12570f39adc9408532442"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-reads2-a.json",
+    "class": "legacy",
+    "commits": [
+      "d871da64f4446101caf035d215436aff27a67661",
+      "a5ff35cbfc0d70e3974969c0004ca293d6ed1075"
+    ],
+    "blobs": [
+      "24c4d9576167efba0196e53b9667fc21e76df0e8",
+      "24c4d9576167efba0196e53b9667fc21e76df0e8"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-reads2-b.json",
+    "class": "legacy",
+    "commits": [
+      "d871da64f4446101caf035d215436aff27a67661",
+      "a5ff35cbfc0d70e3974969c0004ca293d6ed1075"
+    ],
+    "blobs": [
+      "27be0d4ec929639cfa402f7b265b2808dbe14ca4",
+      "27be0d4ec929639cfa402f7b265b2808dbe14ca4"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-ship.json",
+    "class": "legacy",
+    "commits": [
+      "11624fd1e8089574b3ff0556e4b7dd304450f700",
+      "13f4dca8126ea6f49f6da11d049397118e570fe5"
+    ],
+    "blobs": [
+      "ffac136282cf41d9063c6c8ac0f7371ee6aa3a0b",
+      "ffac136282cf41d9063c6c8ac0f7371ee6aa3a0b"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-upgrade-no-lockfile.json",
+    "class": "legacy",
+    "commits": [
+      "46c1f58420624ecd327efd1d2bbc53634690df00",
+      "f0cac9389270882a4d746704749717b2e1221b6f"
+    ],
+    "blobs": [
+      "91fb642f6d239c262130b1e114a65a9ae4630d33",
+      "91fb642f6d239c262130b1e114a65a9ae4630d33"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-upgrade-two-lockfiles.json",
+    "class": "legacy",
+    "commits": [
+      "f0cac9389270882a4d746704749717b2e1221b6f",
+      "022d8713b6582fa87997467171deee24c9606d2b"
+    ],
+    "blobs": [
+      "cbcc655983347c220c42785fd03fe119ce05cb78",
+      "cbcc655983347c220c42785fd03fe119ce05cb78"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l3-webhooks.json",
+    "class": "legacy",
+    "commits": [
+      "605c0ca06802dde48b1d61ea08cecfaa8c3b4bd0",
+      "2d2c97eab51a249ba5475af9743f18b8c7687ed8"
+    ],
+    "blobs": [
+      "92a296d23ce4b782e7ffe5bf9d12148689f31352",
+      "92a296d23ce4b782e7ffe5bf9d12148689f31352"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/l4-lockfile-resolution.json",
+    "class": "legacy",
+    "commits": [
+      "cdff5f057b525d28b7d87371a9ca852ea0cb9f63",
+      "622951a063c8ad6266c72f512a1eb39c515bbaff"
+    ],
+    "blobs": [
+      "848f1fbdd0361319c68aed188f0186c12a5896c7",
+      "848f1fbdd0361319c68aed188f0186c12a5896c7"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/meta-blind-100.json",
+    "class": "blind",
+    "commits": ["5350f2db73c7699e984e577544a04fb01e282624"],
+    "blobs": ["744f8b3e9d678babcc7834c4dbd57ad2b56d1c2a"],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/subsets/meta-dev-60.json",
+    "class": "dev",
+    "commits": ["5350f2db73c7699e984e577544a04fb01e282624"],
+    "blobs": ["87ce4250d348b873898098f4728dae129c996094"],
+    "devSet": "meta-dev-60"
+  },
+  {
+    "path": "docs/benchmarks/subsets/o2-checkable.json",
+    "class": "legacy",
+    "commits": ["d8c96f8e315978c8a522825b8fd46beab43d3c1b"],
+    "blobs": ["eb6ba24cb95dee83e7954f9f12e2bf073008bdec"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/o2-dependency-size.json",
+    "class": "legacy",
+    "commits": ["d86e19649482782348d226d8ca41a30b31183369"],
+    "blobs": ["b7ad168224e6d19d3b973dc09be8f5cff9ed419d"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/o2-preparation.json",
+    "class": "legacy",
+    "commits": [
+      "d06620ba2e3fd3520fb88b061b9d3497188100a4",
+      "b5852a7ec47e214746aa66bb25f1df2eff52dac8"
+    ],
+    "blobs": [
+      "aa97b48516b86c198c73e8f58bc77c713c718ce6",
+      "aa97b48516b86c198c73e8f58bc77c713c718ce6"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/openai-100.json",
+    "class": "measurement",
+    "commits": ["7746f96879defaa8d5c498e443c21877e2ef25fb"],
+    "blobs": ["aae05df2eb34dcdffea80009f2b2de0a76db377f"],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/subsets/openai-dev-30.json",
+    "class": "dev",
+    "commits": ["7746f96879defaa8d5c498e443c21877e2ef25fb"],
+    "blobs": ["5a6617d611776b3db25097c83162c56211686c65"],
+    "devSet": "openai-dev-30"
+  },
+  {
+    "path": "docs/benchmarks/subsets/p-repair-loop.json",
+    "class": "legacy",
+    "commits": [
+      "57b63cfcefcfc93566d266f73c11c66637e6f7d5",
+      "fb5b00b4f3f26399ef1524051b0835f6e21fb692"
+    ],
+    "blobs": [
+      "6ab41d38b4ad132134acb640c9ff4c6796f6b544",
+      "6ab41d38b4ad132134acb640c9ff4c6796f6b544"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/p1-forks.json",
+    "class": "legacy",
+    "commits": ["fa3debd2b91c4498105bd6aff4bfb7547c6f4cdc"],
+    "blobs": ["adbdbd6e6675c7aff3383e42ea067b3e6a2dbe1c"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/p2-agent-replay.json",
+    "class": "legacy",
+    "commits": [
+      "ee40b4034ef93b9e85d9be0b0f309269bfb6afb6",
+      "c1e9a957a66ea8548a85f473ef494d9ad5efe7cd"
+    ],
+    "blobs": [
+      "1bc8048391d806e28ef4ee2ff53f61372230a91d",
+      "0f8e23549d34643d3d2413f7ba9f1a911045bc1e"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/p2-ai-candidates.json",
+    "class": "legacy",
+    "commits": ["7171007797a1e656b7c30a1427ccef1330dcd616"],
+    "blobs": ["b0c19f56c1e50d2527d81ea6fe1ec321b503547f"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/p2-tuned-rest.json",
+    "class": "legacy",
+    "commits": ["56e212e9325b9ff42a559d6f5153c518562915d0"],
+    "blobs": ["f3ad0b42408d056ead1ebd1a8cf9de5b30709e2c"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/p2-tuned-sets.json",
+    "class": "legacy",
+    "commits": [
+      "bab7f4d663fd500e11834a3fc56a12ac4a886209",
+      "a3fcfca9ee10f5ef13f4eb14465729dec14116d2"
+    ],
+    "blobs": [
+      "2384215ca6c8f82abf4302ba45de60d849f2326b",
+      "2384215ca6c8f82abf4302ba45de60d849f2326b"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/p3-enrollment-heldout.json",
+    "class": "blind",
+    "commits": ["144cf3ae797892b479d7f221849e13eef9ed7455"],
+    "blobs": ["5f0f08cb87ed5615d01e8ad788b020a9ca234643"],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/subsets/p3-enrollment.json",
+    "class": "legacy",
+    "commits": [
+      "ccf476c814a9e151bcf777ff6eaab5e1e4ad2f6c",
+      "491742da5f3a45b3f68359c81e9d2cf6890351d0"
+    ],
+    "blobs": [
+      "63014e5c933eda72c3d3d5230a7a3f68d8aaa2b5",
+      "63014e5c933eda72c3d3d5230a7a3f68d8aaa2b5"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/p4-bodies.json",
+    "class": "legacy",
+    "commits": ["d6c47bcd468a505e74a8696a25520840bfcf1d97"],
+    "blobs": ["108006c1758d9f5a5f170e386a7ca2b8cede1107"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/pmt-version-path.json",
+    "class": "legacy",
+    "commits": [
+      "9850ead0378cca8faaae2198387e6a169cc3f1d4",
+      "4f3f9cecc11f4bb8f6991d22b263d62acdc35ad1"
+    ],
+    "blobs": [
+      "8fe2274aae505e6e4fca6a7a467c74acd1bccf9f",
+      "8fe2274aae505e6e4fca6a7a467c74acd1bccf9f"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/progress-30.json",
+    "class": "dev",
+    "commits": [
+      "d3538f32c1c4f486f902091120e6c9dbe41b9e16",
+      "892a9446081e10cbbe12c7f8e6da1cdd138bece0",
+      "bf81624da6c2eeff89234aac75f74fd57131bbc7",
+      "4405f4f346685f2c5ff401c2b3e0056e7cdaab7d",
+      "f0636fed02368dcdd0450c0012f110d30dcd4654",
+      "784ebac3805fe745cf85059ff2203003213d348e",
+      "04ff5670bf5a360e933c6661db42d1c52cddeb5d"
+    ],
+    "blobs": [
+      "a17277c9a8753db0652a80a81af3f8e3308f100c",
+      "a17277c9a8753db0652a80a81af3f8e3308f100c",
+      "a17277c9a8753db0652a80a81af3f8e3308f100c",
+      "a17277c9a8753db0652a80a81af3f8e3308f100c",
+      "a17277c9a8753db0652a80a81af3f8e3308f100c",
+      "4ca9ea8551a5df099f4898723556ee9c8e4a56bf",
+      "4ca9ea8551a5df099f4898723556ee9c8e4a56bf"
+    ],
+    "devSet": "stripe-progress-30"
+  },
+  {
+    "path": "docs/benchmarks/subsets/push-279-affected.json",
+    "class": "legacy",
+    "commits": [
+      "32ab89fe896c433467b0e5a188d36bd7cfd2a2e8",
+      "65e53accdfd676880e22f37ca2167bed6076206f"
+    ],
+    "blobs": [
+      "5ae8775cf3cc6b5e2f7b64477186812da6e50619",
+      "5ae8775cf3cc6b5e2f7b64477186812da6e50619"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/repair-policy.json",
+    "class": "legacy",
+    "commits": [
+      "96102693f98cdf51bc0f362d2f7e1ce084d905f9",
+      "ac2a33d23c44a1218190a855da549bbae76b8e08"
+    ],
+    "blobs": [
+      "9e5826a1b79a43bfb480eebfa8cb38c4bd7a65e9",
+      "9e5826a1b79a43bfb480eebfa8cb38c4bd7a65e9"
+    ],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/shopify-blind-100.json",
+    "class": "blind",
+    "commits": ["a62bce04a3e1eb2862f5d6dfe24bcf76a2ce28cf"],
+    "blobs": ["6e26346b0f9dd5918a0223be14622b48bf804fb2"],
+    "note": "Sealed: never opened. Only path, commits and blob SHAs are recorded."
+  },
+  {
+    "path": "docs/benchmarks/subsets/shopify-dev-60.json",
+    "class": "dev",
+    "commits": ["a62bce04a3e1eb2862f5d6dfe24bcf76a2ce28cf"],
+    "blobs": ["a3718b620d5141a9d602ea19c760cc2fb792663f"],
+    "devSet": "shopify-dev-60"
+  },
+  {
+    "path": "docs/benchmarks/subsets/source-limit-50.json",
+    "class": "legacy",
+    "commits": ["fffa3ad528060ccda2ebe57299fe616c95001efd"],
+    "blobs": ["e046273964a16ecd7742c0ce18b2a38f6ebd85da"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  },
+  {
+    "path": "docs/benchmarks/subsets/version-bump.json",
+    "class": "legacy",
+    "commits": ["f08dc82ce9ffe2c255bdda878a0c4241818aeec1"],
+    "blobs": ["8731655da3f80173d7aaa8c9149bf8541a66249a"],
+    "note": "Catalogued, not recovered: may overlap a blind set."
+  }
+]
