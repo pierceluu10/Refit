@@ -31,16 +31,6 @@
   background: var(--blue-tint);
   color: var(--blue);
 }
-.docs-source {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  border-top: 1px solid var(--border);
-  margin-top: 25px;
-  padding-top: 20px;
-  color: var(--muted);
-  font-size: 10px;
-}
 .docs-content {
   max-width: 720px;
   min-width: 0;
@@ -176,9 +166,6 @@
     white-space: nowrap;
     background: #f0f2f6;
     font-size: 11px;
-  }
-  .docs-source {
-    display: none;
   }
   .docs-content h1 {
     font-size: 44px;
