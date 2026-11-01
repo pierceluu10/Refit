@@ -2,8 +2,10 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { writePrBody } from '../harness/pr.ts';
 import { storedRuns } from './fixtures/runs.ts';
-import { listRunViews } from './index.ts';
+import { makeRecord, makeTask } from './fixtures/tasks.ts';
+import { listRunViews, toRunView } from './index.ts';
 import { JsonMemoryStore } from './store.ts';
 
 async function fixtureStore() {
@@ -81,5 +83,42 @@ describe('listRunViews', () => {
       'no-report',
     ]);
     expect(await listRunViews({ repo: 'example-org/none' }, store)).toEqual([]);
+  });
+});
+
+describe('toRunView', () => {
+  // Built with the harness's own PR writer, so a change to its format fails here, not on the dashboard.
+  it("reads the agent's summary out of a real harness PR body", () => {
+    const task = makeTask();
+    const prBody = writePrBody({
+      task,
+      outcome: 'needs-review',
+      report: {
+        verdict: 'migrated',
+        summary: 'Moved checkout to paymentIntents.create.\nRefunds still need a look.',
+        why: 'The Charges API is going away.',
+        validators: [],
+        unproven: ['Refunds were not tested.'],
+        behaviourChanges: [],
+      },
+      comparisons: [],
+      diff: 'diff --git a/src/checkout.ts b/src/checkout.ts\n',
+      costUsd: 0.5,
+      models: ['claude-sonnet-5-5'],
+      promptVersion: 'test',
+      sandboxNote: 'local',
+    });
+    const record = { ...makeRecord({ outcome: 'needs-review' }), prBody };
+
+    const view = toRunView({
+      id: 'run-1',
+      recordedAt: '2026-11-01T12:00:00.000Z',
+      task,
+      record,
+      transcript: '',
+      usedRecipeIds: [],
+    });
+
+    expect(view.summary).toBe('Moved checkout to paymentIntents.create.');
   });
 });

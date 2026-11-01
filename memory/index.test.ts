@@ -174,6 +174,30 @@ describe('recordVerdict', () => {
     );
   });
 
+  it('demotes a skill once two PRs that used it are closed', async () => {
+    const { store, deps } = await setup();
+    for (const repo of ['example-org/a', 'example-org/b', 'example-org/c']) {
+      await learnFromRun(
+        { task: makeTask({ repo }), record: makeRecord(), transcript: 'ok' },
+        deps,
+      );
+    }
+    const [skill] = await store.listRecipes();
+    expect(skill.skill?.status).toBe('active');
+
+    const demoted = [];
+    for (const repo of ['example-org/d', 'example-org/e']) {
+      const pr = prFor(repo);
+      const record = makeRecord({ outcome: 'needs-review', pr });
+      const task = makeTask({ repo });
+      await learnFromRun({ task, record, transcript: '', usedRecipeIds: [skill.id] }, deps);
+      demoted.push(...((await recordVerdict(pr, 'closed', deps))?.demoted ?? []));
+    }
+
+    expect(demoted.map((recipe) => recipe.id)).toEqual([skill.id]);
+    expect((await store.getRecipe(skill.id))?.skill?.status).toBe('demoted');
+  });
+
   it('keeps a close when a late push event says edited', async () => {
     const { store, deps } = await setup();
     const pr = prFor('example-org/shop');
