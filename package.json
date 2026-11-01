@@ -1,5 +1,5 @@
 {
-  "name": "refit",
+  "name": "aptitude",
   "version": "0.39.0",
   "private": true,
   "license": "MIT",
@@ -10,8 +10,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run --reporter=verbose",
     "typecheck": "tsc -b",
-    "format": "prettier --write src index.html vite.config.ts tsconfig.json package.json",
-    "format:check": "prettier --check src index.html vite.config.ts tsconfig.json package.json"
+    "format": "prettier --write src index.html vite.config.ts tsconfig.json package.json app inventory harness memory providers evals shared",
+    "format:check": "prettier --check src index.html vite.config.ts tsconfig.json package.json app inventory harness memory providers evals shared"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
@@ -36,5 +36,14 @@
   },
   "engines": {
     "node": "^22.12.0 || >=24.0.0"
-  }
+  },
+  "workspaces": [
+    "app",
+    "inventory",
+    "harness",
+    "memory",
+    "providers",
+    "evals",
+    "shared"
+  ]
 }
