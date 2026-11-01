@@ -533,14 +533,7 @@ export function proveShopifyRest(
         });
       continue;
     }
-    const traced = rewriteRestCalls({
-      file,
-      content,
-      entries,
-      rules: [],
-      schemas: [],
-      traceOnly: true,
-    });
+    const traced = rewriteRestCalls({ file, content, entries });
     const records = traceFileRecords(
       file,
       content,
