@@ -1,13 +1,13 @@
 import { TESTS_FAILED } from './check-selection.ts';
 
 // The tests a run failed and how many passed, read from the default output of the test runners
-// Refit's checks start (Vitest, Jest, Mocha and Node's test runner). A failing baseline is then
+// Refit's checks start (Vitest, Jest, Mocha, Node's test runner, and pytest with -rfE). A failing baseline is then
 // compared test by test: every test that passed on the original code must pass on the patch, and
 // the tests that already failed are reported, never counted as passing. Output Refit cannot read
 // answers undefined, and the baseline failure stands.
 
 export interface TestOutcomes {
-  runner: 'vitest' | 'jest' | 'mocha' | 'node';
+  runner: 'vitest' | 'jest' | 'mocha' | 'node' | 'pytest';
   // A test's full title, or a whole file that failed to load (`file <path>`).
   failed: Set<string>;
   passed: number;
@@ -86,6 +86,23 @@ function node(text: string): TestOutcomes | undefined {
   return { runner: 'node', failed, passed: Number(pass[1]) };
 }
 
+// pytest's -rfE summary names each failed test (`FAILED path::test - ...`) and each error
+// (`ERROR path::test` in a fixture, `ERROR path` when a file failed to collect).
+function pytest(text: string): TestOutcomes | undefined {
+  const summary =
+    /^=*\s*((?:\d+ (?:failed|passed|skipped|deselected|xfailed|xpassed|errors?|warnings?|subtests? passed|rerun)(?:, )?)+) in [\d.]+s\b.*$/m.exec(
+      text,
+    );
+  if (!summary) return undefined;
+  const count = (word: string) =>
+    Number(new RegExp(`(\\d+) ${word}\\b`).exec(summary[1])?.[1] ?? 0);
+  const failed = new Set<string>();
+  for (const match of text.matchAll(/^(FAILED|ERROR) (\S+)(?: - .*)?$/gm))
+    failed.add(match[1] === 'ERROR' && !match[2].includes('::') ? `file ${match[2]}` : match[2]);
+  if (failed.size < count('failed') + count('errors?')) return undefined;
+  return { runner: 'pytest', failed, passed: count('passed') };
+}
+
 // The test part of a run: in a check chain, the output before its failed-tests marker.
 export function testOutcomes(run: { stdout: string; stderr: string }) {
   const end = run.stdout.indexOf(TESTS_FAILED);
@@ -93,7 +110,7 @@ export function testOutcomes(run: { stdout: string; stderr: string }) {
     ANSI,
     '',
   );
-  const read = [vitest, jest, mocha, node].map((parse) => parse(text)).filter(Boolean);
+  const read = [vitest, jest, mocha, node, pytest].map((parse) => parse(text)).filter(Boolean);
   // Two runners' summaries in one output cannot be told apart.
   return read.length === 1 ? read[0] : undefined;
 }

@@ -970,36 +970,51 @@ describe('runAiFallback', () => {
     expect(result.gates.at(-1)!.detail).toContain('HTTP 400');
   });
 
-  it('never validates Python, which has no check runner yet', async () => {
+  it('validates a Python patch through the offline Python checks, and fails it on a regression', async () => {
     const python = `import anthropic\nclient = anthropic.Anthropic()\nreply = client.completions.create(model="claude-2.1", prompt=p)\n`;
-    const result = await runAiFallback({
-      input: {
-        ...input,
-        language: 'py',
-        items: [{ ...input.items[0], file: 'app.py', line: 3, text: '' }],
-        files: [{ path: 'app.py', content: python }],
-      },
-      ai: { apiKey: 'k', model: 'gpt-6.1-sol' },
-      repositoryModels: new Set(['claude-2.1']),
-      exists: async () => false,
-      environment: {},
-      dependencies: {
-        ...dependencies(),
-        request: reply([
-          {
-            path: 'app.py',
-            content: python
-              .replace('completions.create', 'messages.create')
-              .replace('claude-2.1', 'claude-sonnet-5-5')
-              .replace('prompt=p', 'max_tokens=300, messages=m'),
+    const fixed = python
+      .replace('completions.create', 'messages.create')
+      .replace('claude-2.1', 'claude-sonnet-5-5')
+      .replace('prompt=p', 'max_tokens=300, messages=m');
+    const attempt = (validation: { status: string; reason: string }) => {
+      const validated: string[] = [];
+      return runAiFallback({
+        input: {
+          ...input,
+          language: 'py',
+          items: [{ ...input.items[0], file: 'app.py', line: 3, text: '' }],
+          files: [{ path: 'app.py', content: python }],
+        },
+        ai: { apiKey: 'k', model: 'gpt-6.1-sol' },
+        repositoryModels: new Set(['claude-2.1']),
+        exists: async () => false,
+        environment: {},
+        dependencies: {
+          ...dependencies(),
+          validate: async (patch) => {
+            validated.push(patch);
+            return { ...validation, command: ['python -m pytest -q -rfE'] };
           },
-        ]),
-      },
+          request: reply([{ path: 'app.py', content: fixed }]),
+        },
+      }).then((result) => ({ result, validated }));
+    };
+    const passed = await attempt({ status: 'passed', reason: 'tests: passed' });
+    expect(passed.validated).toEqual(['diff for app.py\n']);
+    expect(passed.result.gates.find((gate) => gate.gate === 'checks')).toMatchObject({
+      status: 'passed',
+      detail: expect.stringContaining('python -m pytest'),
     });
-    expect(result.status).toBe('needs-review');
-    expect(result.gates.find((gate) => gate.gate === 'checks')!.detail).toContain(
-      'no offline Python',
-    );
+    const regressed = await attempt({
+      status: 'regression',
+      reason:
+        'The patch fails 1 test that passed on the original code, first tests/test_app.py::test_ask.',
+    });
+    expect(regressed.result.status).toBe('needs-review');
+    expect(regressed.result.gates.find((gate) => gate.gate === 'checks')).toMatchObject({
+      status: 'failed',
+      detail: expect.stringContaining('test_ask'),
+    });
   });
 
   it('records a failed request as no attempt instead of throwing', async () => {

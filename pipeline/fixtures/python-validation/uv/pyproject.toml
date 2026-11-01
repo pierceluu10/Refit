@@ -1,0 +1,11 @@
+[project]
+name = "tally"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["six==1.17.0"]
+
+[dependency-groups]
+dev = ["pytest==9.1.1"]
+
+[tool.mypy]
+strict = false
