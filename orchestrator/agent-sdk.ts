@@ -1,6 +1,6 @@
-import { mkdtempSync, realpathSync } from 'node:fs';
+import { cpSync, lstatSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve, sep } from 'node:path';
+import { basename, join, resolve, sep } from 'node:path';
 import { query, type CanUseTool, type SDKResultMessage } from '@anthropic-ai/claude-agent-sdk';
 import { BudgetExceededError, type Budget } from './budget.ts';
 import type { AskModel } from './match.ts';
@@ -18,6 +18,28 @@ const real = (path: string) => {
     return path;
   }
 };
+
+// Env templates are fine to read; real env files never are. Same rule as harness/sandbox.ts.
+// shortcut: duplicated from the harness tonight, dedupe into shared/ when both branches merge.
+const ENV_TEMPLATES = new Set(['.env.example', '.env.sample', '.env.template', '.env.dist']);
+
+export function keepForReading(path: string): boolean {
+  const name = basename(path);
+  if (name === '.git' || name === 'node_modules' || name === '.envrc' || name === '.env')
+    return false;
+  if (name.startsWith('.env.') && !ENV_TEMPLATES.has(name)) return false;
+  // A symlink could point at a secret outside the repo.
+  return !lstatSync(path).isSymbolicLink();
+}
+
+// The matcher reads a filtered copy, never the checkout itself: in-cwd reads can be auto-allowed
+// without reaching canUseTool, so the copy is what keeps real env files out of its reach.
+export function copyForReading(repoDir: string, dest: string): void {
+  cpSync(repoDir, dest, {
+    recursive: true,
+    filter: (src) => src === repoDir || keepForReading(src),
+  });
+}
 
 // Read-only tools on paths inside the repo only; every other tool or path is denied.
 export function readOnlyInRepo(repoDir: string): CanUseTool {
@@ -44,26 +66,32 @@ export function agentSdk(opts: { budget: Budget; model?: string }): AskModel {
     if (remaining <= 0)
       throw new BudgetExceededError(`AI budget of $${opts.budget.capUsd} is spent.`);
 
+    const workDir = mkdtempSync(join(tmpdir(), 'aptitude-match-'));
     let result: SDKResultMessage | undefined;
-    for await (const message of query({
-      prompt,
-      options: {
-        model,
-        systemPrompt: repoDir ? system + CODE_ACCESS : system,
-        outputFormat: { type: 'json_schema', schema },
-        effort: 'high',
-        // With a checkout the agent may read it (no shell, nothing executed); without one it judges from the usage map.
-        tools: repoDir ? READ_TOOLS : [],
-        canUseTool: repoDir ? readOnlyInRepo(repoDir) : undefined,
-        maxTurns: repoDir ? 40 : 3,
-        // The SDK checks this between turns, so one turn can overshoot by at most that turn's cost.
-        maxBudgetUsd: remaining,
-        settingSources: [],
-        persistSession: false,
-        cwd: repoDir ?? mkdtempSync(join(tmpdir(), 'aptitude-match-')),
-      },
-    })) {
-      if (message.type === 'result') result = message;
+    try {
+      if (repoDir) copyForReading(repoDir, workDir);
+      for await (const message of query({
+        prompt,
+        options: {
+          model,
+          systemPrompt: repoDir ? system + CODE_ACCESS : system,
+          outputFormat: { type: 'json_schema', schema },
+          effort: 'high',
+          // With a checkout the agent may read its filtered copy (no shell, nothing executed); without one it judges from the usage map.
+          tools: repoDir ? READ_TOOLS : [],
+          canUseTool: repoDir ? readOnlyInRepo(workDir) : undefined,
+          maxTurns: repoDir ? 40 : 3,
+          // The SDK checks this between turns, so one turn can overshoot by at most that turn's cost.
+          maxBudgetUsd: remaining,
+          settingSources: [],
+          persistSession: false,
+          cwd: workDir,
+        },
+      })) {
+        if (message.type === 'result') result = message;
+      }
+    } finally {
+      rmSync(workDir, { recursive: true, force: true });
     }
     if (!result) throw new Error('Agent SDK returned no result.');
     const costUsd = opts.budget.chargeUsd(result.total_cost_usd);
