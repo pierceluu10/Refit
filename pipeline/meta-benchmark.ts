@@ -1,10 +1,19 @@
 import type { GraphCallScan } from './meta-graph-calls.ts';
 import type { VersionMoveProposal } from './meta-graph-moves.ts';
 
-// One Meta Graph benchmark row's outcome, from `refit meta-graph`'s scan and version-move
-// proposal. Nothing is applied or validated: `version-move` means Refit proposes a patch with no
-// stop, `needs-review` that at least one pin stops.
+// One Meta Graph benchmark row's scan outcome, from `refit meta-graph`'s scan and version-move
+// proposal: `version-move` means the deterministic moves cover every pin, `needs-review` that at
+// least one pin is left for the agent fixer.
 export type MetaOutcome = 'no-graph-usage' | 'current' | 'version-move' | 'needs-review';
+// The gut plan's four outcomes for a row (docs/GUT-PLAN.md): there are no stops.
+export type MetaResult = 'validated' | 'needs-review' | 'no-change' | 'infrastructure';
+
+export function metaResult(row: Record<string, unknown>): MetaResult {
+  if (row.outcomeClass === 'infrastructure') return 'infrastructure';
+  if ((row.workflow as { status?: string } | undefined)?.status === 'validated') return 'validated';
+  if (row.outcome === 'no-graph-usage' || row.outcome === 'current') return 'no-change';
+  return 'needs-review';
+}
 
 // Why a pin stops, in the order a reason is matched. The texts are pipeline/meta-graph-moves.ts's.
 const STOP_KINDS: [string, RegExp][] = [
@@ -73,6 +82,7 @@ export function summaryTable(rows: Record<string, unknown>[]) {
     for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
     return [...counts].sort(([a], [b]) => a.localeCompare(b));
   };
+  const results = count(rows.map((row) => String(row.result ?? metaResult(row))));
   const outcomes = count(
     rows.map((row) =>
       row.outcomeClass === 'infrastructure'
@@ -82,14 +92,24 @@ export function summaryTable(rows: Record<string, unknown>[]) {
           : String(row.outcome),
     ),
   );
+  // Kinds of the deterministic engine's stops, each handed to the agent fixer as context.
   const kinds = count(rows.flatMap((row) => Object.keys((row.stopKinds as object) ?? {})));
   // `refit run` outcomes and grades, for rows run with --validate.
   const workflows = rows.flatMap((row) =>
-    row.workflow ? [row.workflow as { status: string; grade?: string }] : [],
+    row.workflow
+      ? [row.workflow as { status: string; grade?: string; agent?: { outcome: string } }]
+      : [],
   );
   const statuses = count(workflows.map((workflow) => workflow.status));
   const grades = count(workflows.map((workflow) => workflow.grade ?? 'none'));
+  const agents = count(
+    workflows.flatMap((workflow) => (workflow.agent ? [workflow.agent.outcome] : [])),
+  );
   return [
+    '| Result | Repositories |',
+    '|---|---|',
+    ...results.map(([result, total]) => `| ${result} | ${total} |`),
+    '',
     '| Meta outcome | Repositories |',
     '|---|---|',
     ...outcomes.map(([outcome, total]) => `| ${outcome} | ${total} |`),
@@ -108,6 +128,14 @@ export function summaryTable(rows: Record<string, unknown>[]) {
           '|---|---|',
           ...grades.map(([grade, total]) => `| ${grade} | ${total} |`),
           '',
+          ...(agents.length
+            ? [
+                '| Agent fixer | Repositories |',
+                '|---|---|',
+                ...agents.map(([outcome, total]) => `| ${outcome} | ${total} |`),
+                '',
+              ]
+            : []),
         ]
       : []),
   ].join('\n');

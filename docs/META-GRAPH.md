@@ -164,7 +164,7 @@ refit meta-graph --propose-version-moves --target v25.0 --output graph.patch
 
 Refit can propose moving a pinned Graph API version to `--target`, as a patch for review, following the pattern of [model replacement proposals](DEADLINES.md#propose-model-replacements). Nothing is applied, installed, validated or published, and nothing is sent to Meta. This is not part of `refit run`, validation or draft pull requests.
 
-> **Owner decision.** Whether a hand-maintained change list is enough evidence for Refit to edit a version automatically is an open owner decision. Until it is made, a version move exists only as this review-only patch.
+> **Gut plan (2026-10-31).** The founder's gut plan ([GUT-PLAN.md](GUT-PLAN.md)) settles the open decision on automatic version edits: `refit run` applies these moves as a head start, and a stop no longer ends a repository. Every stop below becomes context for the [agent fixer](#the-agent-fixer). This command still only proposes.
 
 A version is often written once and used by many requests: a base constant feeds every URL built from it. So moves are decided per **pin**, the place the version is written, and a pin moves only when every one of these holds:
 
@@ -256,7 +256,24 @@ A Meta snapshot is the contract of a Meta Graph run: a Graph API version and the
   - the repository's tests, only the files that reach those requests where the runner takes file arguments;
   - and a type check, scoped to those files when `tsconfig.json` leaves them out;
   - with neither, the no-op check and grade D.
+- **The agent fixer:** with AI on, see [below](#the-agent-fixer).
 - **Not changed:** the `meta-graph` catalog entry keeps `adapter: null`, so enrollment and the hosted worker do not yet generate Meta configurations.
+
+### The agent fixer
+
+With AI on (`refit run --ai-patch`, `benchmark:meta --ai`), no stop ends a repository ([GUT-PLAN.md](GUT-PLAN.md), `pipeline/meta-graph-agent.ts`). Where the moves leave a request behind or a finding open, Refit:
+
+1. copies the repository and applies the moves' patch as the starting tree;
+2. calls `fixWithAgent` (`pipeline/agent-fix.ts`) with `provider: 'meta-graph'`, the target version, the change table's quoted entries the requests use as `change`, and every stop reason, finding, alert and AI-read request as `context`;
+3. grades each round with Meta's judges: every traced live request must send the target, the change table must prove every changed request at it (`proveMetaGraphPatch`), and checkJs must report no new error on changed JavaScript.
+
+The result:
+
+- **Passed:** an AI patch (`generator: openai`, `patch.agent`) validated like any other. The change-table proof, checks and live probes grade it in validation.
+- **Unproven:** an AI patch published as `[Needs review]`. Its unresolved sites and warnings list every judge error left and the agent's own summary.
+- **Failed, or no change:** the moves' patch as before, or no patch, with the agent's outcome recorded.
+
+The AI request reconstruction below is a finder and judge input, not a fixer. The repository's own before/after checks join the judge once the sandbox (GUT5) exposes them. Without AI, stops still leave requests on their version as before.
 
 ### Measured on the deadline benchmark, 2026-10-29
 
@@ -332,7 +349,7 @@ A live call that refuses a changed request, or a target version the Graph API re
 
 **AI reconstruction of unread requests** (`pipeline/meta-graph-ai.ts`). With AI enabled (`refit run --ai-patch`, `benchmark:meta --ai`), every live request the scan left partly unread (no request call, a helper's options, a runtime path, fields or parameters, or a runtime version) is sent to the model with its file and the files it imports, which returns each request the site sends and where its version is written. A reconstruction is kept only when every path segment, field, metric and parameter name is written in that code, it agrees with every part the scan did read, `fields` and `metric` appear exactly when fields and metrics are named, and a version the scan could not read is written on the line the model names (an unversioned URL never gains one). Kept requests then go through the same change table, version-move stops, `pinEdit` checks and proof as traced ones; the AI's word never moves a pin by itself. The draft names each reconstructed request and asks the reviewer to confirm it. `refit run` asks once: the workflow's scan reconstructs, and every validation scan reuses those reconstructions, so the validated patch is the one the scan proposed. The benchmark's scan and its child `refit run` each reconstruct, so a row's AI spend is recorded per stage (`ai.scan.costUsd`, `ai.run.costUsd`) and in total (`ai.costUsd`) from the run's ledger. Parameter changes, like field changes, match only requests on their own edge or path.
 
-**Second-opinion AI review.** With AI enabled (`--assess` or `--ai-patch`), every Meta patch gets one advisory review: verdict, summary and concerns, recorded with its model, response id and cost in `validation.metaGraph.review`. It never changes the grade or the publication decision, and a failed review is recorded, not raised.
+**Second-opinion AI review (removed 2026-10-31).** The advisory review was replaced by the [agent fixer](#the-agent-fixer)'s own summary.
 
 What this does not do yet: AI-written behaviour tests that run the repository's own code against the test app (the #386 harness needs a Graph adapter for its proxy, which reads the token from the query string and has no version header), and recorded responses replayed offline.
 
@@ -398,7 +415,7 @@ Stops after this change, by blocker (repositories with it, and with it as their 
 
 The catalog entry for `meta-graph` keeps `adapter: null`. Request detection is one of the pieces a reviewed agent needs; these are still missing:
 
-2. **An owner decision on the version-move rule.** The [review-only rule](#propose-version-moves-review-only) exists. Wiring it into `refit run`, validation and drafts waits on the decision about whether a hand-maintained change list is enough evidence for an automatic edit.
+2. **The version-move rule in `refit run`.** Decided by the gut plan (2026-10-31): the moves run first and the [agent fixer](#the-agent-fixer) takes what they leave.
 3. **More coverage.** URLs whose host comes from configuration at runtime, and responses: the fields code reads from a response are not traced, so a request with no `fields` relies on the node's defaults, and a field rename stops wherever the old name appears.
 4. **Enrollment.** `refit run` validates Meta plans, but enrollment and the hosted worker do not generate Meta configurations, and no AI repair rule targets undocumented response reads yet.
 

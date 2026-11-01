@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import type { GraphCall } from './meta-graph-calls.ts';
-import { metaRow, stopKind, summaryTable } from './meta-benchmark.ts';
+import { metaResult, metaRow, stopKind, summaryTable } from './meta-benchmark.ts';
 
 const call = (overrides: Partial<GraphCall>): GraphCall => ({
   kind: 'url',
@@ -103,4 +103,17 @@ it('makes a row from the scan and proposal', () => {
     '| C | 1 |',
   ])
     expect(table).toContain(line);
+});
+
+it('ends every row in one of the four outcomes', () => {
+  expect(metaResult({ outcomeClass: 'infrastructure' })).toBe('infrastructure');
+  expect(metaResult({ outcome: 'needs-review', workflow: { status: 'validated' } })).toBe(
+    'validated',
+  );
+  expect(metaResult({ outcome: 'current' })).toBe('no-change');
+  expect(metaResult({ outcome: 'no-graph-usage' })).toBe('no-change');
+  expect(metaResult({ outcome: 'needs-review', workflow: { status: 'needs-review' } })).toBe(
+    'needs-review',
+  );
+  expect(metaResult({ outcome: 'needs-review' })).toBe('needs-review');
 });

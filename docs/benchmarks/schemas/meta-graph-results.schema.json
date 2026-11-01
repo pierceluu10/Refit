@@ -13,6 +13,10 @@
       "commit": { "$ref": "common.schema.json#/$defs/commit" },
       "error": { "type": "string" },
       "outcome": { "enum": ["no-graph-usage", "current", "version-move", "needs-review"] },
+      "result": {
+        "enum": ["validated", "needs-review", "no-change", "infrastructure"],
+        "x-added": "2026-10-31"
+      },
       "liveRequests": { "$ref": "common.schema.json#/$defs/count" },
       "testRequests": { "$ref": "common.schema.json#/$defs/count" },
       "versions": { "type": "array", "items": { "type": "string" } },
@@ -61,6 +65,17 @@
           "grade": { "enum": ["A", "B", "C", "D"] },
           "proven": { "type": "boolean" },
           "unresolved": { "$ref": "common.schema.json#/$defs/count" },
+          "generator": { "type": "string" },
+          "agent": {
+            "type": "object",
+            "required": ["outcome", "costUsd", "errors"],
+            "properties": {
+              "outcome": { "enum": ["passed", "unproven", "no-change", "failed"] },
+              "costUsd": { "type": "number", "minimum": 0 },
+              "errors": { "$ref": "common.schema.json#/$defs/count" }
+            },
+            "x-added": "2026-10-31"
+          },
           "pullRequest": { "type": "boolean" }
         },
         "x-added": "2026-10-29"

@@ -5,13 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { META_SDK } from './deadline-exposure.ts';
 import type { EvidenceGrade } from './check-selection.ts';
 import type { MetaGraphChange, MetaGraphChanges } from './meta-graph-changes.ts';
-import {
-  metaGraphEvidence,
-  metaGraphGrade,
-  probeGraphRequests,
-  proveMetaGraphPatch,
-  reviewMetaGraphPatch,
-} from './meta-graph-proof.ts';
+import { metaGraphGrade, probeGraphRequests, proveMetaGraphPatch } from './meta-graph-proof.ts';
 import { scanGraphCalls } from './meta-graph-calls.ts';
 import { readRepository } from './repository.ts';
 
@@ -321,53 +315,5 @@ describe('live proof', () => {
   it('refuses a token that is not shaped like a Graph token, without calling', async () => {
     const live = await probeGraphRequests([], 'v21.0', { META_TEST_TOKEN: 'sk_test_123' });
     expect(live).toMatchObject({ proven: false, versionAccepted: null, probes: [] });
-  });
-});
-
-describe('AI second-opinion review', () => {
-  const MODEL = 'gpt-5.4-mini';
-  const answer = (text: string) =>
-    Response.json({
-      id: 'resp_review',
-      model: MODEL,
-      status: 'completed',
-      usage: { input_tokens: 1000, output_tokens: 100 },
-      output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text }] }],
-    });
-
-  it('records the verdict and its cost, advisory only', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () =>
-        answer(JSON.stringify({ verdict: 'concerns', summary: 'One read.', concerns: ['a:1'] })),
-      ),
-    );
-    const review = await reviewMetaGraphPatch(
-      { diff: '', proof: { target: 'v21.0', proven: true, requests: [], reasons: [] } },
-      { apiKey: 'key', model: MODEL },
-    );
-    expect(review).toMatchObject({ advisoryOnly: true, verdict: 'concerns', concerns: ['a:1'] });
-    expect(review.costUsd).toBeGreaterThan(0);
-  });
-
-  it('never changes the grade, and records a failed review instead of throwing', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => new Response('', { status: 500 })),
-    );
-    const original = await repository({ 'src/profile.js': profile('v18.0') });
-    const patched = await repository({ 'src/profile.js': profile('v21.0') });
-    const evidence = await metaGraphEvidence({
-      original,
-      patched,
-      grade: typeChecked,
-      checksUsable: true,
-      diff: '',
-      ai: { apiKey: 'key', model: MODEL },
-      environment: {},
-    });
-    expect(evidence.grade?.letter).toBe(evidence.record.proof.proven ? 'C' : 'D');
-    expect(evidence.record.review).toMatchObject({ advisoryOnly: true, costUsd: null });
-    expect(evidence.record.review?.error).toBeDefined();
   });
 });
