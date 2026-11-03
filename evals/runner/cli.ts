@@ -5,6 +5,10 @@
 //   node evals/runner/cli.ts matrix --set <dev set> --budget-usd <total cap>
 //   node evals/runner/cli.ts score --in <dir> [--reviews evals/reviews.json] [--report <file>]
 //   node evals/runner/cli.ts review --in <dir> --budget-usd <cap> [--only <task id part>] [--out <file>]
+//   node evals/runner/cli.ts screen --sets <a,b,...> --budget-usd <cap> --concurrency <n> [--out <dir>] [--exclusions <file>]
+//   node evals/runner/cli.ts score3 --in <results dir> --screen <dir> [--report <file>]
+//
+// `run --screen <dir>` runs only the repos that screen found green (evals only, never the product).
 //
 // `run` refuses to start without an explicit dollar cap and concurrency. It uses the real
 // modules and fails before spending anything if one hasn't merged yet. For a $0 check of the
@@ -34,6 +38,10 @@ import { BudgetLedger } from './budget.ts';
 import { ConfigError, parseFlags, parseRunConfig } from './config.ts';
 import { loadRealPipeline, type AnyProviderWatcher } from './real.ts';
 import { runSet } from './run.ts';
+import { exclusionsOf, readScreen, screenFile, screenSet } from './screen.ts';
+import { formatRound3, scoreRound3 } from '../scoring/round3.ts';
+import { existsSync, readFileSync } from 'node:fs';
+import type { BaselineRecord } from './screen.ts';
 
 // Watches providers with no folder in providers/ (the Anthropic, Gemini and long-tail sets).
 const watchAny: AnyProviderWatcher = anyProviderWatcher;
@@ -82,7 +90,16 @@ export async function main(argv: string[]): Promise<number> {
   const flags = parseFlags(rest);
   if (command === 'run') {
     const config = parseRunConfig(flags);
-    const set = loadDevSet(config.set);
+    const full = loadDevSet(config.set);
+    // The screen's green repos only: a red baseline can't prove a fix, so it is never run.
+    const screenDir = typeof flags.screen === 'string' ? flags.screen : undefined;
+    const green = (entry: (typeof full.repos)[number]) => {
+      const file = screenDir && screenFile(screenDir, full.name, entry);
+      if (!file || !existsSync(file)) return !screenDir;
+      return !(JSON.parse(readFileSync(file, 'utf8')) as BaselineRecord).exclusion;
+    };
+    const set = { ...full, repos: full.repos.filter(green) };
+    console.log(`${set.name}: running ${set.repos.length} of ${full.repos.length} repos`);
     const startedAt = new Date().toISOString();
     const real = await loadRealPipeline(config.budgetUsd, {
       watchAny,
@@ -169,6 +186,55 @@ export async function main(argv: string[]): Promise<number> {
     console.log(`Spent $${budget.spentUsd().toFixed(4)} of a $${budgetUsd} cap`);
     return 0;
   }
+  if (command === 'screen') {
+    if (typeof flags.sets !== 'string') throw new ConfigError('--sets <a,b,...> is required');
+    const budgetUsd = typeof flags['budget-usd'] === 'string' ? Number(flags['budget-usd']) : NaN;
+    const concurrency = typeof flags.concurrency === 'string' ? Number(flags.concurrency) : NaN;
+    if (!Number.isFinite(budgetUsd) || budgetUsd <= 0) {
+      throw new ConfigError('--budget-usd is required and must be above zero');
+    }
+    if (!Number.isInteger(concurrency) || concurrency < 1) {
+      throw new ConfigError('--concurrency must be a positive integer');
+    }
+    if (!process.env.ANTHROPIC_API_KEY) throw new Error('Set ANTHROPIC_API_KEY to screen.');
+    const outDir = resolve(
+      typeof flags.out === 'string' ? flags.out : 'evals/reports/round-3/screen',
+    );
+    const budget = createBudget(budgetUsd);
+    const deps = {
+      checkout: gitCheckout(),
+      budget,
+      classify: anthropicModelClient({ budget, model: 'claude-sonnet-5-5' }),
+    };
+    for (const name of flags.sets.split(',')) {
+      const records = await screenSet(loadDevSet(name), outDir, concurrency, deps);
+      const green = records.filter((record) => !record.exclusion).length;
+      console.log(`${name}: ${green} of ${records.length} green`);
+    }
+    const exclusions = exclusionsOf(readScreen(outDir));
+    const exclusionsFile = resolve(
+      typeof flags.exclusions === 'string'
+        ? flags.exclusions
+        : 'evals/reports/round-3/exclusions.json',
+    );
+    writeFileSync(exclusionsFile, `${JSON.stringify(exclusions, null, 2)}\n`);
+    console.log(
+      `Spent $${budget.spentUsd().toFixed(4)}; ${exclusions.length} exclusions in ${exclusionsFile}`,
+    );
+    return 0;
+  }
+  if (command === 'score3') {
+    if (typeof flags.in !== 'string') throw new ConfigError('--in <results dir> is required');
+    if (typeof flags.screen !== 'string') throw new ConfigError('--screen <dir> is required');
+    const score = scoreRound3(readResults(resolve(flags.in)), readScreen(resolve(flags.screen)));
+    const report = formatRound3(score, `Round 3: ${flags.in}`);
+    console.log(report);
+    if (typeof flags.report === 'string') writeFileSync(resolve(flags.report), report);
+    if (typeof flags.json === 'string') {
+      writeFileSync(resolve(flags.json), `${JSON.stringify(score, null, 2)}\n`);
+    }
+    return 0;
+  }
   if (command === 'matrix') {
     if (typeof flags.set !== 'string') throw new ConfigError('--set is required');
     const budget = typeof flags['budget-usd'] === 'string' ? Number(flags['budget-usd']) : NaN;
@@ -192,7 +258,7 @@ Hand-check log: ${added.length} new entries, ${hand.pending} pending, ${hand.agr
     return score.attemptedRate === 1 ? 0 : 1;
   }
   console.error(
-    'usage: cli.ts run|watch|matrix|score|review (see the header of evals/runner/cli.ts)',
+    'usage: cli.ts run|watch|matrix|score|review|screen|score3 (see the header of evals/runner/cli.ts)',
   );
   return 2;
 }
