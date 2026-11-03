@@ -5,7 +5,7 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-03.r3-2';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-03.r3-3';
 
 // shortcut: `notes` is on MigrationTask in O1's branch only; drop this local type once that merges.
 export type TaskWithNotes = MigrationTask & { notes?: string };
@@ -191,6 +191,7 @@ export function buildSystemPrompt(input: PromptInput): string {
       [
         '- Make the smallest correct change.',
         '- Keep behaviour the same unless the API change forces otherwise, and say so.',
+        "- A provider's recommendation is not a requirement. Don't remove or change a parameter, option or default the change doesn't force, even when the new version suggests it (dropping `payment_method_types` for dynamic payment methods is a product decision, not a migration). Mention such a suggestion in the PR summary instead.",
         "- Don't reformat unrelated code. Don't upgrade unrelated dependencies.",
         "- When a dependency must change, change it with the repo's own package manager and release (the kickoff message names them) and let it rewrite the lockfile. Never edit a lockfile by hand or switch package managers.",
         '- Before you call `finish`, look at your change with `diff`: the lockfile should change only for the dependencies you moved, and no file should change by accident.',
