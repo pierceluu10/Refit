@@ -68,7 +68,6 @@ back. It never touches the default branch and never merges.
 | `git.ts`        | `cloneRepo`, and `filesFromDiff` (a diff to file changes, via a scratch index)     |
 | `main.ts`       | Entry point; wires memory's `recordVerdict` with a $1 budget per verdict           |
 | `config.ts`     | Reads the env vars listed in SETUP.md                                              |
-| `stubs.ts`      | `runRepoJob` and `listRunViews` until #472 and #473 merge                          |
 | `fixtures/`     | Illustrative webhook payloads for the tests                                        |
 | `manifest.json` | The App's permissions and events; source of truth for its GitHub settings          |
 

@@ -141,9 +141,7 @@ Install on a test org first, never a real customer org. Check that:
 - [ ] merging or closing a PR from an `aptitude/` branch records `merged` or `closed`;
 - [ ] uninstalling queues `forget` for every repo.
 
-## What's stubbed
+## What runs
 
-`app/stubs.ts` holds `runRepoJob` (runs nothing) until the orchestrator's lands (#472), and
-`listRunViews` (no runs) until memory's lands (#473). Then `main.ts` imports them from
-`../orchestrator/index.ts` and `../memory/index.ts` and the stubs go. Verdicts already go to memory's
-`recordVerdict`.
+`main.ts` runs the orchestrator's `runRepoJob` for each job and serves memory's `listRunViews`.
+Verdicts go to memory's `recordVerdict`.
