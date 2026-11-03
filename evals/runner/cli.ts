@@ -4,6 +4,7 @@
 //   node evals/runner/cli.ts watch --set <dev set> --budget-usd <cap> --watch-cache <dir>
 //   node evals/runner/cli.ts matrix --set <dev set> --budget-usd <total cap>
 //   node evals/runner/cli.ts score --in <dir> [--reviews evals/reviews.json] [--report <file>]
+//   node evals/runner/cli.ts review --in <dir> --budget-usd <cap> [--only <task id part>] [--out <file>]
 //
 // `run` refuses to start without an explicit dollar cap and concurrency. It uses the real
 // modules and fails before spending anything if one hasn't merged yet. For a $0 check of the
@@ -20,7 +21,12 @@ import {
   syncReviews,
   writeReviews,
 } from '../scoring/reviews.ts';
+import { createBudget } from '../../orchestrator/budget.ts';
 import { MIN_TASK_USD, WATCH_USD } from '../../orchestrator/deps.ts';
+import { anthropicModelClient } from '../reviewer/model.ts';
+import { createReviewer } from '../reviewer/reviewer.ts';
+import { formatRereviews, rereview } from '../reviewer/rereview.ts';
+import { gitCheckout } from './checkout.ts';
 import type { DevSet } from '../sets/index.ts';
 import { BudgetLedger } from './budget.ts';
 import { ConfigError, parseFlags, parseRunConfig } from './config.ts';
@@ -140,6 +146,29 @@ export async function main(argv: string[]): Promise<number> {
     );
     return failed === 0 ? 0 : 1;
   }
+  if (command === 'review') {
+    // The advisory reviewer again, on PRs a past run produced. Real money, under its own cap.
+    if (typeof flags.in !== 'string') throw new ConfigError('--in <results dir> is required');
+    const budgetUsd = typeof flags['budget-usd'] === 'string' ? Number(flags['budget-usd']) : NaN;
+    if (!Number.isFinite(budgetUsd) || budgetUsd <= 0) {
+      throw new ConfigError('--budget-usd is required and must be above zero');
+    }
+    if (!process.env.ANTHROPIC_API_KEY) throw new Error('Set ANTHROPIC_API_KEY to review again.');
+    const budget = createBudget(budgetUsd);
+    const ledger = new BudgetLedger(budgetUsd);
+    const rows = await rereview(readResults(resolve(flags.in)), {
+      review: createReviewer(anthropicModelClient({ budget })),
+      checkout: gitCheckout(),
+      meter: (repo) => ledger.meter(repo),
+      ...(typeof flags.only === 'string' ? { only: flags.only } : {}),
+    });
+    console.log(formatRereviews(rows));
+    if (typeof flags.out === 'string') {
+      writeFileSync(resolve(flags.out), `${JSON.stringify(rows, null, 2)}\n`);
+    }
+    console.log(`Spent $${budget.spentUsd().toFixed(4)} of a $${budgetUsd} cap`);
+    return 0;
+  }
   if (command === 'matrix') {
     if (typeof flags.set !== 'string') throw new ConfigError('--set is required');
     const budget = typeof flags['budget-usd'] === 'string' ? Number(flags['budget-usd']) : NaN;
@@ -162,7 +191,9 @@ Hand-check log: ${added.length} new entries, ${hand.pending} pending, ${hand.agr
     if (missingHandChecks(reviews, results).length > 0) return 1;
     return score.attemptedRate === 1 ? 0 : 1;
   }
-  console.error('usage: cli.ts run|watch|matrix|score (see the header of evals/runner/cli.ts)');
+  console.error(
+    'usage: cli.ts run|watch|matrix|score|review (see the header of evals/runner/cli.ts)',
+  );
   return 2;
 }
 

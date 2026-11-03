@@ -71,6 +71,7 @@ node evals/runner/cli.ts run --set stripe-dev-30 --budget-usd 5 --concurrency 2 
 node evals/runner/cli.ts watch --set stripe-dev-30 --budget-usd 1.5 --watch-cache dir
 node evals/runner/cli.ts matrix --set stripe-dev-30 --budget-usd 120
 node evals/runner/cli.ts score --in evals/results --report report.md
+node evals/runner/cli.ts review --in evals/results --budget-usd 0.5 [--only <task id part>] [--out rereview.json]
 ```
 
 - `--budget-usd` and `--concurrency` are required and have no defaults; the runner refuses to
@@ -136,6 +137,12 @@ against, settles to what the API reports, and is refused before any request when
 cover it; the review's cost is charged to the repo's meter. While a task runs, the runner sets the
 review's worst case aside when the task can spare it, so the PR still gets its second opinion; an
 empty diff gets no review. A refusal from the model is kept as an unsure review.
+
+`cli.ts review` runs the reviewer again on the PRs in saved results, under its own cap, and
+prints the first and second opinions side by side. Result files keep each task's change, the
+match agent's reasoning and its call sites for this. Files from before they did (the 2026-11-03
+runs) are listed as skipped. It is how a change to the reviewer's prompt gets measured on real
+diffs, for cents, without rerunning the harness.
 
 ## Reports (`reports/`)
 
