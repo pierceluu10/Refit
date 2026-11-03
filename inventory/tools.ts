@@ -14,6 +14,7 @@ import {
   findWebhookSignals,
   listManifests,
   lockedVersions,
+  packageLinks,
   repoMap,
 } from './scanners.ts';
 
@@ -64,6 +65,23 @@ const usageShape = {
     .optional()
     .describe('The API version the code pins (apiVersion option, /v1/ path, version header)'),
   callSites: z.array(callSiteSchema),
+  hints: z
+    .object({
+      packages: z
+        .array(z.string())
+        .optional()
+        .describe('Package names from the manifests, e.g. "stripe", "@stripe/stripe-js"'),
+      hosts: z
+        .array(z.string())
+        .optional()
+        .describe('Bare API hostnames seen in code or config, e.g. "api.stripe.com"'),
+      docsUrls: z
+        .array(z.string())
+        .optional()
+        .describe('Official docs, changelog or source repository URLs, e.g. from package_links'),
+    })
+    .optional()
+    .describe("Where a watcher should look for this provider's changes. Merged across calls."),
 };
 
 function json(value: unknown): string {
@@ -160,6 +178,18 @@ export function readTools(repoDir: string): InventoryTool[] {
       description: 'Look up the resolved version of a package in every lockfile, with the line.',
       shape: { package: z.string() },
       run: async (input) => json(await lockedVersions(repoDir, input.package as string)),
+    },
+    {
+      name: 'package_links',
+      description:
+        'Read the homepage, repository and issue links an installed package declares (node_modules package.json, virtualenv METADATA). Often empty in a fresh checkout.',
+      shape: { package: z.string() },
+      run: async (input) => {
+        const found = await packageLinks(repoDir, input.package as string);
+        return found.length > 0
+          ? json(found)
+          : `${input.package as string} is not installed in the checkout.`;
+      },
     },
     {
       name: 'find_imports',
