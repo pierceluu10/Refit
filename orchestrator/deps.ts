@@ -17,6 +17,7 @@ import { anyProviderWatcher, type AnyWatchReport } from '../providers/core/any-w
 import { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
 import { folderWatcher, listProviderIds } from '../providers/core/registry.ts';
 import {
+  defaultWatchDir,
   noteRepoProviders,
   readOutcome,
   readThroughCache,
@@ -47,9 +48,8 @@ import {
 export const defaultOut = join(tmpdir(), 'aptitude-runs.jsonl');
 
 // Provider changelogs change at most daily, so one read per provider per UTC day serves every run,
-// in every process pointed at the same folder (see providers/core/watch-cache.ts).
-export const defaultWatchCache =
-  process.env.APTITUDE_WATCH_CACHE || join(tmpdir(), 'aptitude-watch');
+// in every process pointed at the same folder: APTITUDE_WATCH_CACHE (providers/core/watch-cache.ts).
+export const defaultWatchCache = defaultWatchDir();
 
 // The most one task holds of a small run, so several tasks run at once. In a big run a task may hold
 // a fair share of what is free instead: a CONCURRENCY-th of it. What it leaves goes back to the run.

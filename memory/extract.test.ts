@@ -155,6 +155,27 @@ describe('extractRecipe', () => {
     expect(requests[0].system).toMatch(/codegen.*checks.*the test it wrote/s);
   });
 
+  it("hands the model the run's files, codegen, added checks, PR body and bundled changes", async () => {
+    const { store, run } = await setup();
+    const bundled = { ...run.task.change, id: 'stripe-sources-removed', title: 'Sources removed' };
+    const record = {
+      ...run.record,
+      diff: 'diff --git a/src/webhook.ts b/src/webhook.ts\n--- a/src/webhook.ts\n+++ b/src/webhook.ts\n',
+      preparation: { steps: [{ command: 'npx prisma generate', why: 'postinstall', code: 0 }] },
+      agentChecks: [{ name: 'proof', command: 'npx vitest run test/webhook.test.ts' }],
+      prBody: '## Proof\nproof passes',
+    };
+    const task = { ...run.task, alsoResolves: [{ change: bundled, why: 'x' }] };
+    const { model, requests } = fakeModel();
+    await extractRecipe({ ...run, record, task }, { store, model, now: () => NOW });
+    const { prompt } = requests[0];
+    expect(prompt).toContain('Files changed: src/webhook.ts');
+    expect(prompt).toContain('- `npx prisma generate` (exit 0): postinstall');
+    expect(prompt).toContain('- proof: `npx vitest run test/webhook.test.ts`');
+    expect(prompt).toContain('## Proof\nproof passes');
+    expect(prompt).toContain('"title": "Sources removed"');
+  });
+
   it('creates a new recipe when the model names an unknown recipe id', async () => {
     const { store, run } = await setup();
     await store.saveRecipe(makeRecipe());

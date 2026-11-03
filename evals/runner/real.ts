@@ -242,6 +242,14 @@ export async function loadRealPipeline(
       }
       const note = unaffordableNote(record);
       if (note) throw new BudgetExceededError(note, { runOver: false });
+      // Memory learns from the attempt, as the loop's recordRun does, so recipes carry across
+      // iterations. A failure to learn never touches the task.
+      await spending(meter, 'memory', () => deps.recordRun(task, record, repoDir)).catch(
+        (error: unknown) =>
+          console.error(
+            `memory: ${task.id} not recorded: ${error instanceof Error ? error.message : error}`,
+          ),
+      );
       return record;
     },
     // Charges the meter itself.

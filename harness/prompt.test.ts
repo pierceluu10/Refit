@@ -81,7 +81,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-03.r3-1');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-03.r3-2');
   });
 
   it('puts the sections in the plan order', () => {
@@ -170,7 +170,7 @@ describe('buildSystemPrompt', () => {
     ).toBe(true);
     expect(rendered).toContain('Rename source everywhere, webhooks included.');
     expect(rendered).toContain(
-      '#### recipe-7 (stripe / field-renamed, verified on 3 repos; 1 later PR that used it closed by a human without merging)',
+      '#### recipe-7 (stripe / field-renamed, verified on 3 repos; 1 later run that used it did not verify or had its PR closed without merging)',
     );
     expect(rendered).toContain('```diff\n- source\n+ payment_source\n```');
   });

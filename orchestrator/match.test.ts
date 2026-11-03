@@ -130,6 +130,31 @@ describe('createMatchAgent', () => {
     await expect(match({ repo, changes, usages })).rejects.toThrow(/max_tokens/);
   });
 
+  it('judges each half of a batch whose answer was cut off, rather than none of it', async () => {
+    const create = vi.fn(async (params: Anthropic.MessageCreateParamsNonStreaming) => {
+      const prompt = params.messages[0].content as string;
+      const ids = changes.map((c) => c.id).filter((id) => prompt.includes(`"id": "${id}"`));
+      const output = {
+        tasks: [],
+        notAffected: ids.map((changeId) => ({ changeId, reasoning: '-' })),
+      };
+      return {
+        stop_reason: ids.length === changes.length ? 'max_tokens' : 'end_turn',
+        content: [{ type: 'text', text: JSON.stringify(output) }],
+        usage,
+      };
+    });
+    const client = { messages: { create } } as unknown as Pick<Anthropic, 'messages'>;
+    const budget = createBudget(2);
+    const result = await createMatchAgent({ client, budget })({ repo, changes, usages });
+
+    expect(create).toHaveBeenCalledTimes(3);
+    expect(result.notAffected.map((n) => n.changeId)).toEqual(changes.map((c) => c.id));
+    // The cut-off call was billed too.
+    expect(result.costUsd).toBeCloseTo(0.24, 10);
+    expect(budget.spentUsd()).toBeCloseTo(0.24, 10);
+  });
+
   it('sends every change with hints and does not filter on overlap', async () => {
     const { client, create } = fakeClient(agentOutput);
     await createMatchAgent({ client, budget: createBudget(2) })({ repo, changes, usages });

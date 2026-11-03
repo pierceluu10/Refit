@@ -88,6 +88,15 @@ export function planMatrix(setName: string, totalBudgetUsd: number) {
 export async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
   const flags = parseFlags(rest);
+  if (command === 'run' && typeof flags.set === 'string' && flags.set.includes(',')) {
+    // Several sets in one process, at once, so the memory store they share has one writer.
+    const codes = await Promise.all(
+      flags.set
+        .split(',')
+        .map((set) => main(['run', ...rest.map((arg) => (arg === flags.set ? set : arg))])),
+    );
+    return Math.max(...codes);
+  }
   if (command === 'run') {
     const config = parseRunConfig(flags);
     const full = loadDevSet(config.set);

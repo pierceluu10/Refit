@@ -5,7 +5,7 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-03.r3-1';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-03.r3-2';
 
 // shortcut: `notes` is on MigrationTask in O1's branch only; drop this local type once that merges.
 export type TaskWithNotes = MigrationTask & { notes?: string };
@@ -23,7 +23,7 @@ export function renderRecipes(recipes: Recipe[]): string {
   const fared = (recipe: MemoryRecipe) => {
     const closed = recipe.failedRunIds?.length ?? 0;
     const against = closed
-      ? `; ${closed} later PR${closed === 1 ? '' : 's'} that used it closed by a human without merging`
+      ? `; ${closed} later run${closed === 1 ? '' : 's'} that used it did not verify or had its PR closed without merging`
       : '';
     return `${recipe.provider} / ${recipe.kind}, verified on ${recipe.verifiedRepos} repos${against}`;
   };

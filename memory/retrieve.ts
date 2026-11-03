@@ -1,10 +1,18 @@
-import type { MigrationTask } from '../shared/types.ts';
+import type { MigrationTask, ProviderChange } from '../shared/types.ts';
 import { cosine, type Embedder, type Model } from './ai.ts';
 import type { MemoryStore } from './store.ts';
 import type { MemoryRecipe } from './types.ts';
 
+// The task's change and any the match agent bundled into it (one task per upgrade).
+export function taskChanges(task: MigrationTask): ProviderChange[] {
+  const { alsoResolves = [] } = task as MigrationTask & {
+    alsoResolves?: { change: ProviderChange }[];
+  };
+  return [task.change, ...alsoResolves.map((bundled) => bundled.change)];
+}
+
 export function describeTask(task: MigrationTask): string {
-  const { change } = task;
+  const [change, ...bundled] = taskChanges(task);
   const lines = [
     `Provider: ${change.provider}`,
     `Kind: ${change.kind}`,
@@ -14,6 +22,7 @@ export function describeTask(task: MigrationTask): string {
     `Affects fields: ${change.affects.fields?.join(', ') ?? ''}`,
     `Affects versions: ${change.affects.versions?.join(', ') ?? ''}`,
     `Affects SDK: ${change.affects.sdk ?? ''}`,
+    ...bundled.map((other) => `Also resolves: ${other.kind}: ${other.title}`),
   ];
   for (const usage of task.usages) {
     const sdk = usage.sdk ? ` ${usage.sdk.name}@${usage.sdk.version}` : '';
@@ -157,7 +166,7 @@ export function createRetriever(deps: {
 }
 
 const sameChange = (recipe: MemoryRecipe, task: MigrationTask) =>
-  recipe.changeIds?.includes(task.change.id) ?? false;
+  taskChanges(task).some((change) => recipe.changeIds?.includes(change.id));
 const losing = (recipe: MemoryRecipe) => (recipe.failedRunIds?.length ?? 0) > recipe.verifiedRepos;
 
 // How a recipe has fared, for a model to weigh. A count to read, never a filter.

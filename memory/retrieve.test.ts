@@ -140,6 +140,19 @@ describe('createRetriever', () => {
     expect(requests[0].prompt).toMatch(/### recipe-similar[^#]*Made from this same change: no/);
   });
 
+  it('counts a recipe from a change bundled into the task as the same change', async () => {
+    const task = makeTask();
+    const bundled = { ...task.change, id: 'stripe-api-version', title: 'New API version' };
+    const upgrade = { ...task, alsoResolves: [{ change: bundled, why: 'the bump' }] };
+    const recipe = makeRecipe({ changeIds: ['stripe-api-version'] });
+    const { model, requests } = fakeModel([]);
+    await createRetriever({ store: await storeWith(recipe), embedder: new LocalEmbedder(), model })(
+      upgrade,
+    );
+    expect(requests[0].prompt).toContain('Also resolves: endpoint-removed: New API version');
+    expect(requests[0].prompt).toContain('Made from this same change: yes');
+  });
+
   it('shows the model every recipe while the store is small, and a shortlist once it is not', async () => {
     const many = Array.from({ length: 12 }, (_, i) =>
       makeRecipe({ id: `recipe-unrelated-${i}`, provider: 'twilio', steps: `step ${i}` }),

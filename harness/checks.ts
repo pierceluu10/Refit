@@ -72,8 +72,12 @@ export async function packageManagerVersion(
 
 // The command that runs that release: npx for npm, corepack for pnpm and yarn. The Docker image
 // has no pnpm binary, so pnpm always goes through corepack.
+const BUN = '/tmp/bun/bin/bun';
+
 export function packageManagerBinary(pm: PackageManager, version?: string): string {
   if (pm === 'npm') return version ? `npx -y npm@${version}` : 'npm';
+  // The Node image has no bun; installCommand fetches bun's own release into the container's /tmp.
+  if (pm === 'bun') return BUN;
   if (pm === 'pnpm' || (pm === 'yarn' && version)) {
     return `corepack ${pm}${version ? `@${version}` : ''}`;
   }
@@ -86,7 +90,9 @@ export function installCommand(pm: PackageManager, version?: string): string {
   const bin = packageManagerBinary(pm, version);
   switch (pm) {
     case 'npm':
-      return `${bin} ci --ignore-scripts --no-audit --no-fund || ${bin} install --ignore-scripts --no-audit --no-fund`;
+      // A peer conflict the repo's own lockfile settled (or its pinned npm tolerated) stops a fresh
+      // resolve, so the last fallback accepts it, as the repo's own install did.
+      return `${bin} ci --ignore-scripts --no-audit --no-fund || ${bin} install --ignore-scripts --no-audit --no-fund || ${bin} install --ignore-scripts --no-audit --no-fund --legacy-peer-deps`;
     // The sandbox sets CI, which makes pnpm and Yarn 2+ install frozen by default, so each fallback
     // unfreezes explicitly: after a dependency change only an unfrozen install can update the lockfile.
     case 'pnpm':
@@ -99,7 +105,7 @@ export function installCommand(pm: PackageManager, version?: string): string {
       return `if yarn --version | grep -q '^1\\.'; then ${classic}; else ${berry}; fi`;
     }
     case 'bun':
-      return 'bun install --frozen-lockfile --ignore-scripts || bun install --ignore-scripts';
+      return `(test -x ${BUN} || curl -fsSL https://bun.sh/install | BUN_INSTALL=/tmp/bun bash >/dev/null 2>&1); ${bin} install --frozen-lockfile --ignore-scripts || ${bin} install --ignore-scripts`;
     case 'pip':
       // One requirement without a wheel (PyAudio, say) fails the whole file, so the fallback installs
       // the rest one at a time and names what it could not.

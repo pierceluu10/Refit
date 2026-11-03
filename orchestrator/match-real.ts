@@ -4,6 +4,7 @@
 // The round 3 task-shape check (one task per upgrade) on jiro, financehb, branded and lobe-chat:
 //   APTITUDE_AI_BUDGET_USD=5 ANTHROPIC_API_KEY=... node orchestrator/match-real.ts --round-3
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import type { ApiUsage, ProviderChange } from '../shared/types.ts';
 import { agentSdk } from './agent-sdk.ts';
 import { createBudget } from './budget.ts';
@@ -44,35 +45,40 @@ export function shapeProblems(result: MatchResult, expect: Round3['repos'][numbe
   return problems;
 }
 
-const viaAgentSdk = process.argv.includes('--agent-sdk');
-if (!viaAgentSdk && !process.env.ANTHROPIC_API_KEY) {
-  console.log('ANTHROPIC_API_KEY is not set; the real match run was not done.');
-  process.exit(0);
-}
-const budget = createBudget();
-const ask = viaAgentSdk ? agentSdk({ budget }) : undefined;
-const match = createMatchAgent({ ask, budget });
-
-if (process.argv.includes('--round-3')) {
-  const round3: Round3 = load('round-3.json');
-  for (const { repo, provider, usages, expect } of round3.repos) {
-    const result = await match({ repo, changes: round3.changes[provider], usages });
-    const problems = shapeProblems(result, expect);
-    console.log(`\n## ${repo}: ${result.tasks.length} task(s), $${result.costUsd.toFixed(4)}`);
-    for (const task of result.tasks) {
-      console.log(`- ${task.change.id} (${task.urgency})`);
-      for (const b of task.alsoResolves ?? []) console.log(`    + ${b.change.id}: ${b.why}`);
-    }
-    console.log(problems.length ? `SHAPE FAIL: ${problems.join('; ')}` : 'SHAPE OK');
+async function main() {
+  const viaAgentSdk = process.argv.includes('--agent-sdk');
+  if (!viaAgentSdk && !process.env.ANTHROPIC_API_KEY) {
+    console.log('ANTHROPIC_API_KEY is not set; the real match run was not done.');
+    return;
   }
-} else {
-  const changes: ProviderChange[] = load('changes.json');
-  const usages: ApiUsage[] = load('usages.json');
-  const result = await match({ repo: 'example/shop', changes, usages });
-  console.log(JSON.stringify(result, null, 2));
-  console.log(`costUsd: ${result.costUsd}`);
+  const budget = createBudget();
+  const ask = viaAgentSdk ? agentSdk({ budget }) : undefined;
+  const match = createMatchAgent({ ask, budget });
+
+  if (process.argv.includes('--round-3')) {
+    const round3: Round3 = load('round-3.json');
+    for (const { repo, provider, usages, expect } of round3.repos) {
+      const result = await match({ repo, changes: round3.changes[provider], usages });
+      const problems = shapeProblems(result, expect);
+      console.log(`\n## ${repo}: ${result.tasks.length} task(s), $${result.costUsd.toFixed(4)}`);
+      for (const task of result.tasks) {
+        console.log(`- ${task.change.id} (${task.urgency})`);
+        for (const b of task.alsoResolves ?? []) console.log(`    + ${b.change.id}: ${b.why}`);
+      }
+      console.log(problems.length ? `SHAPE FAIL: ${problems.join('; ')}` : 'SHAPE OK');
+    }
+  } else {
+    const changes: ProviderChange[] = load('changes.json');
+    const usages: ApiUsage[] = load('usages.json');
+    const result = await match({ repo: 'example/shop', changes, usages });
+    console.log(JSON.stringify(result, null, 2));
+    console.log(`costUsd: ${result.costUsd}`);
+  }
+  console.log(
+    `transport: ${viaAgentSdk ? 'Claude Agent SDK (cost is its estimate, not a bill)' : 'Messages API'}`,
+  );
+  console.log(`budget.spentUsd(): ${budget.spentUsd()} of $${budget.capUsd}`);
 }
-console.log(
-  `transport: ${viaAgentSdk ? 'Claude Agent SDK (cost is its estimate, not a bill)' : 'Messages API'}`,
-);
-console.log(`budget.spentUsd(): ${budget.spentUsd()} of $${budget.capUsd}`);
+
+// Only as a script, so the test can import shapeProblems without a model run.
+if (process.argv[1] === fileURLToPath(import.meta.url)) await main();

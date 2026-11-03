@@ -99,12 +99,35 @@ export async function prepareBaseline(
   const pmVersion = await packageManagerVersion(sandbox.dir, pm);
   const install = pm === 'none' ? undefined : await sandbox.exec(installCommand(pm, pmVersion));
   const checks = await detectChecks(sandbox.dir, pm, pmVersion);
+  const commands = checks.map((check) => check.command);
   // The repo's own codegen, which install scripts off never ran, and the placeholder env its
-  // checks need. What it writes is snapshotted, so only the agent's edit is in the PR.
+  // checks need. What it writes is snapshotted, so only the agent's edit is in the PR, and the PR
+  // names any repo file it changed.
+  const changed = new Set<string>();
+  const settle = async () => {
+    checks.forEach((check, i) => (check.command = withEnv(commands[i] as string, preparation.env)));
+    for (const file of filesFromDiff(await sandbox.diff().catch(() => ''))) changed.add(file);
+    await sandbox.snapshot?.();
+    return runChecks(sandbox, checks);
+  };
   const preparation = await prepareRepo(sandbox, checks, ledger, planPreparation);
-  for (const check of checks) check.command = withEnv(check.command, preparation.env);
-  await sandbox.snapshot?.();
-  const before = await runChecks(sandbox, checks);
+  let before = await settle();
+  // One more look with the failures in hand: a missing env var or generated client often shows
+  // only when a check runs.
+  const failing = before.filter((run) => !run.ok);
+  if (failing.length > 0 && !preparation.error) {
+    const failures = failing
+      .map((run) => `Check ${run.name} (\`${run.command}\`):\n${run.output.slice(-2500)}`)
+      .join('\n\n');
+    const retry = await prepareRepo(sandbox, checks, ledger, planPreparation, failures);
+    if (retry.steps.length > 0 || Object.keys(retry.env).length > 0) {
+      preparation.steps.push(...retry.steps);
+      Object.assign(preparation.env, retry.env);
+      preparation.reasoning = `${preparation.reasoning}\n${retry.reasoning}`.trim();
+      before = await settle();
+    }
+  }
+  if (changed.size > 0) preparation.changedFiles = [...changed];
   return { pm, pmVersion, install, checks, preparation, before };
 }
 

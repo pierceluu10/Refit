@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { DegradedOutputError, type JsonRequest, type Model } from './ai.ts';
+import { taskChanges } from './retrieve.ts';
 import type { MemoryStore } from './store.ts';
 import type { MemoryRecipe, StoredRun } from './types.ts';
 import type { RunRecord } from '../shared/types.ts';
@@ -140,12 +141,31 @@ export async function extractRecipe(
   return recipe;
 }
 
-// The task's change and any the match agent bundled into it (one task per upgrade).
-function changeIds(run: StoredRun): string[] {
-  const { change, alsoResolves } = run.task as StoredRun['task'] & {
-    alsoResolves?: { change: { id: string } }[];
-  };
-  return [change.id, ...(alsoResolves ?? []).map((bundled) => bundled.change.id)];
+const changeIds = (run: StoredRun) => taskChanges(run.task).map((change) => change.id);
+
+// What the harness's record carries beyond shared RunRecord, read here so a recipe can name the
+// codegen, checks and proof test that got the fix verified. Each is absent on older records.
+type HarnessFields = {
+  preparation?: { steps?: { command: string; why: string; code: number }[] };
+  agentChecks?: { name: string; command: string }[];
+  prBody?: string;
+};
+
+function whatTheRunDid(run: StoredRun): string {
+  const { diff } = run.record;
+  const { preparation, agentChecks = [], prBody } = run.record as RunRecord & HarnessFields;
+  const files = [...diff.matchAll(/^diff --git a\/(\S+) b\//gm)].map((match) => match[1]);
+  const steps = preparation?.steps ?? [];
+  return [
+    `Files changed: ${files.join(', ') || 'none'}`,
+    `Codegen and setup run before the baseline: ${steps.length ? '' : 'none recorded'}`,
+    ...steps.map((step) => `- \`${step.command}\` (exit ${step.code}): ${step.why}`),
+    `Checks the agent added, its proof test among them: ${agentChecks.length ? '' : 'none recorded'}`,
+    ...agentChecks.map((check) => `- ${check.name}: \`${check.command}\``),
+    prBody ? `The PR body it wrote:\n${prBody}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 // One retry when the answer comes back degraded; any other error goes straight up.
@@ -174,6 +194,9 @@ function buildPrompt(run: StoredRun, existing: MemoryRecipe[]): string {
     title: change.title,
     source: change.source,
     affects: change.affects,
+    alsoResolves: taskChanges(run.task)
+      .slice(1)
+      .map(({ id, title }) => ({ id, title })),
     usages,
   };
   const { outcome: harnessOutcome, humanVerdict } = run.record;
@@ -191,6 +214,7 @@ function buildPrompt(run: StoredRun, existing: MemoryRecipe[]): string {
     // shortcut: a human's final diff isn't recorded yet; pass it here once the GitHub App sends it.
     `## Agent's diff\n${run.record.diff}`,
     `## Checks (before -> after)\n${JSON.stringify(run.record.checks, null, 2)}`,
+    `## What the run did\n${whatTheRunDid(run)}`,
     `## Transcript\n${transcriptForPrompt(run.transcript)}`,
     `## Existing recipes for ${change.provider}\n${recipes.length ? JSON.stringify(recipes, null, 2) : 'None yet.'}`,
   ].join('\n\n');

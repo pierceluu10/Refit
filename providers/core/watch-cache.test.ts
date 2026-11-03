@@ -6,6 +6,7 @@ import type { ProviderChange, ProviderHints } from '../../shared/types.ts';
 import type { WatchReport } from './types.ts';
 import {
   cacheFile,
+  defaultWatchDir,
   dropCachedReads,
   hintsCover,
   noteRepoProviders,
@@ -239,6 +240,13 @@ describe('readThroughCache', () => {
     expect(
       (await readdir(join(dir, '2026-11-03'))).filter((name) => name.endsWith('.json')).sort(),
     ).toEqual(['stripe--since-2026-01-01.json', 'stripe.json']);
+  });
+});
+
+describe('defaultWatchDir', () => {
+  it('is APTITUDE_WATCH_CACHE when set, so every process of a run shares one folder', () => {
+    expect(defaultWatchDir({ APTITUDE_WATCH_CACHE: '/shared/watch' })).toBe('/shared/watch');
+    expect(defaultWatchDir({})).toBe(join(tmpdir(), 'aptitude-watch'));
   });
 });
 

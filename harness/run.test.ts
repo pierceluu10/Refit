@@ -6,6 +6,7 @@ import type { MigrationTask, ToolPack } from '../shared/types.ts';
 import { scriptedSession, type ScriptedTurn } from './fake-session.ts';
 import { ESCALATION_MODEL, MODEL, decideOutcome, runTask } from './run.ts';
 import { createSandbox } from './sandbox.ts';
+import type { Plan } from './prepare.ts';
 
 // Illustrative fixture task, not a real customer.
 const task: MigrationTask = {
@@ -293,6 +294,26 @@ describe('runTask with a fake model', () => {
     expect(record.outcome).toBe('failed');
     expect(record.diff).toBe('');
     expect(record.models).toEqual([MODEL, ESCALATION_MODEL]);
+  });
+
+  it('plans again with the failing baseline in hand, and checks run with the placeholder env', async () => {
+    const seen: string[] = [];
+    const record = await runTask(
+      task,
+      fixtureRepo({ test: 'node -e "process.exit(process.env.WEBHOOK_SECRET ? 0 : 1)"' }),
+      {
+        ...deps([fixIt]),
+        planPreparation: async (evidence): Promise<Plan> => {
+          seen.push(evidence);
+          return evidence.includes('failed before any edit')
+            ? { steps: [], env: { WEBHOOK_SECRET: 'placeholder' }, reasoning: 'read at test time' }
+            : { steps: [], env: {}, reasoning: '' };
+        },
+      },
+    );
+    expect(seen).toHaveLength(2);
+    expect(record.checks[0]).toMatchObject({ name: 'test', before: 'pass', after: 'pass' });
+    expect(record.prBody).toContain('Checks ran with placeholder env: WEBHOOK_SECRET.');
   });
 
   it('reports spend through chargeRun as it happens, even when the run then throws', async () => {

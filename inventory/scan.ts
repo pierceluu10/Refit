@@ -18,7 +18,7 @@ import {
 import { listFiles, readText } from './repo-files.ts';
 import { listManifests, lockedVersions, type Manifest } from './scanners.ts';
 
-export const SCAN_VERSION = 'scan-v1';
+export const SCAN_VERSION = 'scan-v4';
 
 type CallSite = ApiUsage['callSites'][number];
 
@@ -390,13 +390,49 @@ function scanClients(source: Source, bindings: Binding[]): FileScan {
   return scan;
 }
 
-type FoundCall = { binding: Binding; line: number; operation: string; column: number };
+type FoundCall = {
+  binding: Binding;
+  line: number;
+  operation: string;
+  column: number;
+  /** A component an SDK renders (<Analytics />, <InlineWidget />): it calls the vendor from the browser. */
+  jsx?: string[];
+};
 
-const MEMBER_CHAIN = String.raw`([A-Za-z_$][\w$]*(?:\s*(?:\?\.|\.)\s*[A-Za-z_$][\w$]*)*)\s*\(`;
+// TypeScript type arguments between a name and its call: client.fetch<Post[]>(query).
+const TYPE_ARGS = String.raw`(?:\s*<[^<>()]*(?:<[^<>()]*>[^<>()]*)*>)?`;
+const MEMBER_CHAIN = String.raw`([A-Za-z_$][\w$]*(?:\s*(?:\?\.|\.)\s*[A-Za-z_$][\w$]*)*)${TYPE_ARGS}\s*\(`;
+const JSX_FILES = new Set(['.jsx', '.tsx', '.vue', '.svelte', '.astro']);
 
-function findCalls(source: Source, scan: FileScan, skipLines: Set<number>): FoundCall[] {
+function findCalls(
+  source: Source,
+  scan: FileScan,
+  skipLines: Set<number>,
+  components: Binding[] = [],
+): FoundCall[] {
   const python = source.ext === '.py';
   const calls: FoundCall[] = [];
+  const tags =
+    JSX_FILES.has(source.ext) && components.length
+      ? new RegExp(
+          String.raw`<(${components.map((binding) => escape(binding.local)).join('|')})(?=[\s/>.]|$)`,
+        )
+      : undefined;
+  source.lines.forEach((line, index) => {
+    const tag = tags?.exec(line);
+    if (!tag || isComment(line, false)) return;
+    const binding = components.find((candidate) => candidate.local === tag[1]) as Binding;
+    const attributes = [...line.slice(tag.index).matchAll(/\s([A-Za-z_$][\w$-]*)=/g)].map(
+      (match) => match[1],
+    );
+    calls.push({
+      binding,
+      line: index + 1,
+      operation: `<${binding.imported ?? binding.local} />`,
+      column: tag.index,
+      jsx: attributes,
+    });
+  });
   const clientNames = [...scan.clients.keys()].map(escape).join('|');
   const functionNames = [...scan.functions.keys()].map(escape).join('|');
   const member = clientNames
@@ -408,7 +444,7 @@ function findCalls(source: Source, scan: FileScan, skipLines: Set<number>): Foun
     : undefined;
   const continued = new RegExp(String.raw`^\s*(?:\?\.|\.)\s*${MEMBER_CHAIN}`);
   const direct = functionNames
-    ? new RegExp(String.raw`(?<![\w$.])(${functionNames})\s*\(`, 'g')
+    ? new RegExp(String.raw`(?<![\w$.])(${functionNames})${TYPE_ARGS}\s*\(`, 'g')
     : undefined;
   source.lines.forEach((line, index) => {
     if (skipLines.has(index + 1) || isComment(line, python)) return;
@@ -681,15 +717,19 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
   };
   const sdkLines = new Map<string, Set<number>>();
   const callsByPackage = new Map<string, number>();
+  const componentSites = new Map<string, { binding: Binding; sites: CallSite[] }>();
   for (const [file, scan] of scans) {
     const source = sourceByFile.get(file) as Source;
     const python = source.ext === '.py';
     const constructionLines = new Set(scan.constructions.map((construction) => construction.line));
-    for (const call of findCalls(source, scan, constructionLines)) {
+    const components = (bindingsByFile.get(file) ?? []).filter((binding) =>
+      CONSTRUCTOR.test(binding.local),
+    );
+    for (const call of findCalls(source, scan, constructionLines, components)) {
       const { binding } = call;
       const entry = catalogEntry(binding.provider);
-      const region = callRegion(source.lines, call.line - 1, call.column);
-      const fields = topLevelFields(region, python);
+      const region = call.jsx ? '' : callRegion(source.lines, call.line - 1, call.column);
+      const fields = call.jsx ?? topLevelFields(region, python);
       const model = entry?.models
         ? (MODEL.exec(region)?.[1] ??
           (scan.functions.has(binding.local) ? FIRST_STRING_ARG.exec(region)?.[1] : undefined))
@@ -699,8 +739,20 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
         line: call.line,
         operation: call.operation,
         ...(fields.length ? { fields } : {}),
-        notes: model ? `${NOTE} Model "${model}".` : NOTE,
+        notes: call.jsx
+          ? 'Rendered SDK component (code scan); it calls the vendor from the browser.'
+          : model
+            ? `${NOTE} Model "${model}".`
+            : NOTE,
       };
+      if (call.jsx) {
+        // Kept for packages with no other call (analytics, widgets, captcha), below.
+        const list = componentSites.get(sdkKey(binding)) ?? { binding, sites: [] };
+        list.sites.push(site);
+        componentSites.set(sdkKey(binding), list);
+        callsByPackage.set(`${binding.pkg}|${file}`, 1);
+        continue;
+      }
       const draft = draftFor(sdkKey(binding), () => ({
         repo,
         provider: binding.provider,
@@ -734,6 +786,18 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
       }
     }
   }
+  // A UI-only SDK (<Analytics />, <InlineWidget />) is used through its components. A package that
+  // also has calls keeps only those: its components (<PortableText />) are rendering, not requests.
+  for (const [key, { binding, sites }] of componentSites) {
+    if ((drafts.get(key)?.usage.callSites.length ?? 0) > 0) continue;
+    const draft = draftFor(key, () => ({
+      repo,
+      provider: binding.provider,
+      via: 'sdk',
+      callSites: [],
+    }));
+    draft.usage.callSites.push(...sites);
+  }
   // A pinned API version in a client's construction (Stripe's apiVersion) wins over a model a call
   // names; failing both, the model a client is made for (getGenerativeModel({ model })).
   for (const [file, scan] of scans) {
@@ -765,18 +829,39 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
 
   // Raw HTTP: calls to known API hosts are usages; calls the scan cannot place are leads.
   const hostLines = new Map<string, { file: string; line: number; text: string }[]>();
+  const codeHosts = new Set<string>();
+  const baseUrls: string[] = [];
   const rawHttp: string[] = [];
   const internal: string[] = [];
   let internalCount = 0;
+  const namedRawHttp: string[] = [];
   for (const source of sources) {
     const python = source.ext === '.py';
     const code = JS_LIKE.has(source.ext) || python || OTHER_CODE.has(source.ext);
+    // Hosts this file names in code: a fetch with a runtime URL here likely goes to one of them.
+    const fileHosts = code
+      ? [
+          ...new Set(
+            source.lines
+              .filter((line) => !isComment(line, python))
+              .flatMap((line) =>
+                [...line.matchAll(URL_HOST)].map((match) => match[1].toLowerCase()),
+              )
+              .filter((host) => !LOW_SIGNAL_HOST.test(host)),
+          ),
+        ]
+      : [];
     source.lines.forEach((line, index) => {
       for (const match of line.matchAll(URL_HOST)) {
         const host = match[1].toLowerCase().replace(/[.-]+$/, '');
         const list = hostLines.get(host) ?? [];
         if (list.length < 20) list.push({ file: source.file, line: index + 1, text: clip(line) });
         hostLines.set(host, list);
+        if (code && !isComment(line, python)) codeHosts.add(host);
+      }
+      // A client pointed at a service: often an SDK aimed at another vendor (OpenAI-compatible APIs).
+      if (code && !isComment(line, python) && BASE_URL.test(line)) {
+        baseUrls.push(`${source.file}:${index + 1}: ${clip(line)}`);
       }
       if (!code || isComment(line, python) || sdkLines.get(source.file)?.has(index + 1)) return;
       const call = HTTP_CALL.exec(line);
@@ -788,10 +873,23 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
         if (internal.length < 3) internal.push(`${source.file}:${index + 1}: ${clip(line)}`);
         return;
       }
-      const host = url?.[1].toLowerCase();
-      const entry = host ? hostProvider(host) : undefined;
+      let host = url?.[1].toLowerCase();
+      let entry = host ? hostProvider(host) : undefined;
+      // A URL built at runtime in a file whose only named host is a known API's: that API.
+      const only = !host && fileHosts.length === 1 ? hostProvider(fileHosts[0]) : undefined;
+      if (only) {
+        host = fileHosts[0];
+        entry = only;
+      }
       if (!host || !entry) {
-        rawHttp.push(`${source.file}:${index + 1}: ${clip(line)}`);
+        const named = host ? [] : fileHosts.slice(0, 3);
+        if (named.length) {
+          namedRawHttp.push(
+            `${source.file}:${index + 1}: ${clip(line)} [this file names ${named.join(', ')}]`,
+          );
+        } else {
+          rawHttp.push(`${source.file}:${index + 1}: ${clip(line)}`);
+        }
         return;
       }
       const region = callRegion(source.lines, index, call.index + call[0].length - 1);
@@ -799,7 +897,9 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
         /\bmethod\s*[:=]\s*['"`](\w+)['"`]/i.exec(region)?.[1]?.toUpperCase() ??
         /\.(get|post|put|patch|delete)\s*\(/i.exec(call[0])?.[1]?.toUpperCase() ??
         'GET';
-      const urlPath = new RegExp(`${escape(url![0])}([^'"\`\\s?$]*)`).exec(line)?.[1] ?? '';
+      const urlPath = url
+        ? (new RegExp(`${escape(url[0])}([^'"\`\\s?$]*)`).exec(line)?.[1] ?? '')
+        : '';
       const draft = draftFor(`${entry.provider}|http|`, () => ({
         repo,
         provider: entry.provider,
@@ -809,8 +909,10 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
       draft.usage.callSites.push({
         file: source.file,
         line: index + 1,
-        operation: `${method} ${urlPath || '/'}`,
-        notes: `Raw HTTP to ${host} (code scan); response handling not read.`,
+        operation: url ? `${method} ${urlPath || '/'}` : `${method} (URL built at runtime)`,
+        notes: url
+          ? `Raw HTTP to ${host} (code scan); response handling not read.`
+          : `Raw HTTP with a URL built at runtime; this file names only ${host} (code scan).`,
       });
       draft.usage.hints = mergeHintLists(draft.usage.hints, { hosts: [host] });
     });
@@ -846,13 +948,13 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
   // ---- Leads: everything the scan could not settle, for the agent ----
   const recordedProviders = new Set(usages.map((usage) => usage.provider));
   const leads: LeadGroup[] = [];
-  const group = (kind: string, title: string, items: string[]) => {
+  const group = (kind: string, title: string, items: string[], max = MAX_ITEMS) => {
     if (items.length === 0) return;
     leads.push({
       kind,
       title,
-      items: items.slice(0, MAX_ITEMS),
-      more: Math.max(0, items.length - MAX_ITEMS),
+      items: items.slice(0, max),
+      more: Math.max(0, items.length - max),
     });
   };
 
@@ -904,23 +1006,37 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
     'Known SDKs declared but not imported anywhere the scan reads',
     notImported,
   );
+  // Runtime-URL fetches in files that name a host come first: they are the likeliest external calls.
   group(
     'raw-http',
-    'HTTP calls with no SDK, to a host the scan does not know or a URL built at runtime (follow the URL to its host)',
-    rawHttp,
+    'HTTP calls with no SDK, to a host the scan does not know or a URL built at runtime (follow the URL to its host; a provider used through its SDK and raw HTTP is two usages)',
+    [...namedRawHttp, ...rawHttp],
+    MAX_RAW_HTTP,
+  );
+  group(
+    'base-urls',
+    "Base URLs and endpoints set in code. An SDK pointed at another host is that vendor's API (an OpenAI-compatible provider, a proxy, a self-hosted server): record each one with the SDK that calls it",
+    baseUrls,
+    MAX_BASE_URLS,
   );
   const settledHosts = new Set(usages.flatMap((usage) => usage.hints?.hosts ?? []));
+  // Hosts named in code come first: a link in a locale file or a README-like config is rarely an API.
   const unknownHosts = [...hostLines]
     .filter(([host]) => !LOW_SIGNAL_HOST.test(host) && !settledHosts.has(host))
     .filter(([host]) => {
       const entry = hostProvider(host);
       return !entry || !recordedProviders.has(entry.provider);
     })
-    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))
-    .map(
-      ([host, list]) =>
-        `${host} (${list.length}${list.length === 20 ? '+' : ''}): ${list[0].file}:${list[0].line}: ${list[0].text}`,
-    );
+    .sort(
+      (a, b) =>
+        Number(codeHosts.has(b[0])) - Number(codeHosts.has(a[0])) ||
+        b[1].length - a[1].length ||
+        a[0].localeCompare(b[0]),
+    )
+    .map(([host, list]) => {
+      const first = list.find((entry) => codeHosts.has(host) && isCodeFile(entry.file)) ?? list[0];
+      return `${host} (${list.length}${list.length === 20 ? '+' : ''}): ${first.file}:${first.line}: ${first.text}`;
+    });
   group(
     'unknown-hosts',
     'Hosts in code and config the scan could not tie to a recorded usage (many are links, not APIs)',
@@ -999,6 +1115,16 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
 
 const URL_HOST = /\bhttps?:\/\/(\[[0-9a-f:]+\]|[a-z0-9.-]+\.[a-z]{2,}|localhost)/gi;
 const URL_ONE = new RegExp(URL_HOST.source, 'i');
+// `baseURL: 'https://api.deepseek.com/v1'`, `base_url="http://localhost:11434"`, `endpoint = "https://..."`.
+const BASE_URL =
+  /\b(?:base_?ur[li]|api_?(?:base|url|host|endpoint)|endpoint|host_?url|server_?url)\b['"]?\s*[:=]\s*['"`]https?:\/\//i;
+// Every one is listed: lobe-chat names 47 OpenAI-compatible providers this way.
+const MAX_BASE_URLS = 120;
+const MAX_RAW_HTTP = 80;
+const isCodeFile = (file: string) => {
+  const ext = path.posix.extname(file);
+  return JS_LIKE.has(ext) || ext === '.py' || OTHER_CODE.has(ext);
+};
 const HTTP_CALL =
   /\bfetch\s*\(|\$fetch\s*\(|\bofetch\s*\(|\b(?:axios|got|ky|superagent|needle)(?:\s*\.\s*(?:get|post|put|patch|delete|head|request))?\s*\(|\brequests\s*\.\s*(?:get|post|put|patch|delete|head|request)\s*\(|\bhttpx\s*\.\s*(?:get|post|put|patch|delete|request)\s*\(|\bsession\s*\.\s*(?:get|post|put|patch|delete)\s*\(|\burlopen\s*\(|\bhttp\s*\.\s*(?:Get|Post|NewRequest|NewRequestWithContext)\s*\(|\bNet::HTTP\b|\bHTTParty\s*\.\s*\w+|\bFaraday\s*\.\s*\w+|\bRestClient\s*\.\s*\w+|\bcurl\s+-|\bwget\s+/;
 const WEBHOOK =
