@@ -25,7 +25,9 @@ export type Score = {
   unrunTasks: number;
   costUsd: number;
   costPerRepoUsd: number;
-  costByRepo: { repo: string; costUsd: number }[];
+  costByRepo: { repo: string; costUsd: number; byPart: Record<string, number> }[];
+  /** Total cost by part (inventory, watch, match, harness, review), from the meters' labels. */
+  costByPart: Record<string, number>;
   /** Advisory reviewer opinions, for reading next to the grades. Never part of a rate. */
   reviewerOpinions: Record<string, number>;
   verifiedPrs: { repo: string; taskId: string; pr?: string }[];
@@ -109,6 +111,12 @@ export function scoreResults(results: RepoResult[]): Score {
   }
   const ran = results.filter((repo) => repo.verdict !== 'unrun');
   const costUsd = results.reduce((sum, repo) => sum + repo.costUsd, 0);
+  const costByPart: Record<string, number> = {};
+  for (const repo of results) {
+    for (const [part, spent] of Object.entries(repo.costByPart ?? {})) {
+      costByPart[part] = (costByPart[part] ?? 0) + spent;
+    }
+  }
   return {
     repos: results.length,
     unrunRepos: repoCounts.unrun,
@@ -121,7 +129,12 @@ export function scoreResults(results: RepoResult[]): Score {
     unrunTasks,
     costUsd,
     costPerRepoUsd: ran.length === 0 ? 0 : costUsd / ran.length,
-    costByRepo: results.map((repo) => ({ repo: repo.repo, costUsd: repo.costUsd })),
+    costByRepo: results.map((repo) => ({
+      repo: repo.repo,
+      costUsd: repo.costUsd,
+      byPart: repo.costByPart ?? {},
+    })),
+    costByPart,
     reviewerOpinions,
     verifiedPrs,
   };
@@ -145,6 +158,27 @@ export function readResults(dir: string): RepoResult[] {
 }
 
 const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
+const usd = (value: number) => `$${value.toFixed(4)}`;
+const PART_ORDER = ['inventory', 'watch', 'match', 'harness', 'review', 'other'];
+
+/** Cost by part, total and per repo that spent anything. Empty when no meter recorded parts. */
+export function formatCostByPart(score: Score): string[] {
+  const parts = PART_ORDER.filter((part) => (score.costByPart[part] ?? 0) > 0);
+  if (parts.length === 0) return [];
+  const spent = score.costByRepo.filter((repo) => repo.costUsd > 0);
+  return [
+    '',
+    'Cost by part (from the meter labels):',
+    '',
+    `| Repo | ${parts.join(' | ')} | Total |`,
+    `| --- | ${parts.map(() => '---').join(' | ')} | --- |`,
+    ...spent.map(
+      (repo) =>
+        `| ${repo.repo} | ${parts.map((part) => usd(repo.byPart[part] ?? 0)).join(' | ')} | ${usd(repo.costUsd)} |`,
+    ),
+    `| All repos | ${parts.map((part) => usd(score.costByPart[part] ?? 0)).join(' | ')} | ${usd(score.costUsd)} |`,
+  ];
+}
 
 export function formatReport(score: Score, title = 'Aptitude eval'): string {
   const lines = [
@@ -166,13 +200,14 @@ export function formatReport(score: Score, title = 'Aptitude eval'): string {
     score.unrunTasks > 0 ? `Tasks stopped by the dollar cap: ${score.unrunTasks}` : '',
     '',
     `Cost: $${score.costUsd.toFixed(4)} total, $${score.costPerRepoUsd.toFixed(4)} per repo`,
+    ...formatCostByPart(score),
     '',
     `AI reviewer (advisory, not counted): ${
       Object.entries(score.reviewerOpinions)
         .map(([opinion, count]) => `${opinion} ${count}`)
         .join(', ') || 'no reviews'
     }`,
-    `Verified PRs (each gets a hand-check in evals/reviews.json): ${score.verifiedPrs.length}`,
+    `PRs to hand-check in evals/reviews.json (verified and needs-review): ${score.counts.verified + score.counts['needs-review']}`,
   ];
   return `${lines.filter((line, index, all) => line !== '' || all[index - 1] !== '').join('\n')}\n`;
 }

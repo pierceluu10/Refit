@@ -4,7 +4,8 @@
 //
 // Each repo is stood in for by a local fixture (no clone, no install, no network). The run goes
 // through the real runner, scoring, hand-check log and advisory reviewer, then checks the
-// invariants: every task attempted, every verified PR logged, grades untouched by the reviewer.
+// invariants: every task attempted, every verified and needs-review PR logged, grades untouched
+// by the reviewer.
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -72,7 +73,7 @@ export async function runSmoke(outDir = mkdtempSync(join(tmpdir(), 'aptitude-smo
   if (score.attemptedRate !== 1) problems.push(`attempted rate ${score.attemptedRate}, want 1`);
   for (const bug of score.attemptBugs) problems.push(`no attempt: ${bug.repo} ${bug.reason}`);
   const missing = missingHandChecks(readReviews(reviewsPath), results);
-  if (missing.length > 0) problems.push(`verified PRs without a hand-check: ${missing.join(', ')}`);
+  if (missing.length > 0) problems.push(`PRs without a hand-check: ${missing.join(', ')}`);
   for (const outcome of ['verified', 'needs-review', 'not-affected'] as const) {
     if (score.counts[outcome] === 0) problems.push(`expected at least one ${outcome} unit`);
   }

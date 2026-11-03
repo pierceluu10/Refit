@@ -1,6 +1,6 @@
 {
   "name": "meta-dev-60",
-  "provider": "meta-graph",
+  "provider": "meta",
   "kind": "dev",
   "source": {
     "path": "docs/benchmarks/subsets/meta-dev-60.json",

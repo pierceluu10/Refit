@@ -7,8 +7,8 @@
 // `run` refuses to start without an explicit dollar cap and concurrency. It uses the real
 // modules and fails before spending anything if one hasn't merged yet. For a $0 check of the
 // whole path, use `npm run smoke -w evals`.
-import { writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { loadDevSet } from '../sets/index.ts';
 import { formatReport, readResults, scoreResults } from '../scoring/score.ts';
 import {
@@ -20,8 +20,13 @@ import {
   writeReviews,
 } from '../scoring/reviews.ts';
 import { ConfigError, parseFlags, parseRunConfig } from './config.ts';
-import { loadRealPipeline } from './real.ts';
+import { loadRealPipeline, type AnyProviderWatcher } from './real.ts';
 import { runSet } from './run.ts';
+
+// Watches providers with no folder in providers/ (the Anthropic, Gemini and long-tail sets). Unset
+// until F4's anyProviderWatcher merges; then this line becomes
+//   import { anyProviderWatcher as watchAny } from '../../providers/core/any-watcher.ts';
+const watchAny: AnyProviderWatcher | undefined = undefined;
 
 /** GitHub Actions matrix: one shard per repo, each with an equal share of the total cap. */
 export function planMatrix(setName: string, totalBudgetUsd: number) {
@@ -44,16 +49,34 @@ export async function main(argv: string[]): Promise<number> {
   if (command === 'run') {
     const config = parseRunConfig(flags);
     const set = loadDevSet(config.set);
-    const factory = await loadRealPipeline(config.budgetUsd);
-    const { results, ledger } = await runSet(config, set, factory);
+    const startedAt = new Date().toISOString();
+    const real = await loadRealPipeline(config.budgetUsd, { watchAny });
+    const { results, ledger } = await runSet(config, set, real.factory);
     const score = scoreResults(results);
-    console.log(
-      formatReport(
-        score,
-        `${set.name}${config.shard === undefined ? '' : ` shard ${config.shard}`}`,
-      ),
+    const title = `${set.name}${config.shard === undefined ? '' : ` shard ${config.shard}`}`;
+    console.log(formatReport(score, title));
+    // The meter (what the runner charged each repo) and the run budget (what every real part held
+    // and settled) should agree; both are printed so a gap shows.
+    const summary = {
+      set: set.name,
+      shard: config.shard,
+      capUsd: config.budgetUsd,
+      meterSpentUsd: ledger.spentUsd,
+      budgetSpentUsd: real.spentUsd(),
+      stopReason: ledger.stopReason,
+      costByPart: score.costByPart,
+      startedAt,
+      finishedAt: new Date().toISOString(),
+    };
+    const summaryDir = join(config.outDir, set.name);
+    mkdirSync(summaryDir, { recursive: true });
+    writeFileSync(
+      join(summaryDir, `run-summary${config.shard === undefined ? '' : `-${config.shard}`}.json`),
+      `${JSON.stringify(summary, null, 2)}\n`,
     );
-    console.log(`Spent $${ledger.spentUsd.toFixed(4)} of $${config.budgetUsd} cap`);
+    console.log(
+      `Spent $${ledger.spentUsd.toFixed(4)} by the meter, $${real.spentUsd().toFixed(4)} by the run budget, of a $${config.budgetUsd} cap`,
+    );
     return score.attemptedRate === 1 ? 0 : 1;
   }
   if (command === 'matrix') {

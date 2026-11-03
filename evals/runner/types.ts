@@ -28,22 +28,34 @@ export type CheckoutRepo = (entry: RepoEntry) => Promise<{
 /** Charges AI spend against the run's dollar cap. Throws BudgetExceededError past the cap. */
 export type Meter = { charge: (usd: number, label: string) => void };
 
-/** Second-opinion reviewer. Advisory only: its answer never changes a grade. */
+/**
+ * Second-opinion reviewer. Advisory only: its answer never changes a grade. repoDir is the
+ * untouched checkout, which it may read (never run) for context.
+ */
 export type ReviewPr = (input: {
   task: MigrationTask;
   record: RunRecord;
   meter: Meter;
+  repoDir?: string;
 }) => Promise<AdvisoryReview>;
+
+/**
+ * Reads the changes to match one repo against. It gets the repo's usage map, so a watcher for a
+ * provider with no folder in providers/ can start from what the inventory found (its hints).
+ */
+export type WatchRepo = (usages: ApiUsage[]) => ReturnType<WatchProvider>;
 
 /**
  * Everything one repo's run needs. A factory builds it per repo with that repo's meter, so
  * modules that spend money (inventory, match, reviewer) charge the right repo.
  * runTask reports its own spend in RunRecord.costUsd; the runner charges that to the meter.
+ * A part the run can't afford throws BudgetExceededError (runner/budget.ts): what it stopped is
+ * reported as unrun, never as an attempt.
  */
 export type Pipeline = {
   checkout: CheckoutRepo;
   inventory: InventoryRepo;
-  watch: WatchProvider;
+  watch: WatchRepo;
   match: MatchChanges;
   runTask: RunTask;
   review?: ReviewPr;
@@ -69,6 +81,8 @@ export type TaskResult = {
   taskId: string;
   changeId: string;
   kind: string;
+  /** The change the task migrates, with its quoted source, for hand-checks and re-reviews. */
+  change?: ProviderChange;
   /** True when the agent made an attempt: a diff, or an explicit not-affected verdict. */
   attempted: boolean;
   /** Why a task counts as not attempted. Every one of these is a bug to fix. */
@@ -77,6 +91,8 @@ export type TaskResult = {
   review?: AdvisoryReview;
   /** Set when the dollar cap was reached before this task could start. */
   unrun?: 'budget';
+  /** What the cap left and what the task needed, for an unrun task. */
+  unrunReason?: string;
 };
 
 export type RepoResult = {
@@ -93,5 +109,7 @@ export type RepoResult = {
   error?: string;
   tasks: TaskResult[];
   costUsd: number;
+  /** costUsd split by part (inventory, watch, match, harness, review), from the meter's labels. */
+  costByPart?: Record<string, number>;
   durationMs: number;
 };

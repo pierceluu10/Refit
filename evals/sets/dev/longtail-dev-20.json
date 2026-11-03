@@ -1,0 +1,901 @@
+{
+  "name": "longtail-dev-20",
+  "provider": "mixed",
+  "kind": "dev",
+  "source": {
+    "path": "evals/sets/dev/longtail-dev-20.json",
+    "commit": "",
+    "blob": "",
+    "curated": "2026-11-03"
+  },
+  "frozenAt": "2026-11-03",
+  "purpose": "Development set for providers with no folder in providers/: 20 public repos that call smaller APIs (15 providers) through raw HTTP, an SDK, GraphQL or a webhook handler, each pinned to a commit where an officially announced deprecation, retirement or breaking change is still pending. It needs a watcher for providers with no folder (F4's anyProviderWatcher) to run; until one is passed to the runner, each repo stops before any spend.",
+  "criteria": "Curated by hand on 2026-11-02 and 2026-11-03, not recovered from Refit's history. Candidates came from GitHub code search for the deprecated endpoint, field, SDK or header of each change. Kept: public, not archived, not a fork, under about 50 MB, a root package.json (npm, yarn or pnpm) or requirements.txt/pyproject.toml; the deprecated usage reachable at the default-branch HEAD commit recorded here; no secret on a call-site line; and a short exact quote from the provider's own deprecation, retirement or changelog page. Every callSites line was read at the pinned commit (re-check with `node evals/sets/check-callsites.ts longtail-dev-20`). Not compared with the sealed sets, which stay unopened; none of the 15 providers is one the sealed sets were built for. Repos are ordered by SHA-256 of \"longtail-dev-20:<owner/name>\" (lower-cased), so a run with a small cap reaches them in an order nobody picked.",
+  "repos": [
+    {
+      "repo": "funsocietyirc/MrNodeBot",
+      "commit": "ec7bc720d8aa05fd7cb682ea131335f0861fe66e",
+      "provider": "firebase-dynamic-links",
+      "via": "http",
+      "stars": 28,
+      "language": "JavaScript",
+      "packageManager": "npm",
+      "hasTests": true,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "title": "Firebase Dynamic Links (shortLinks REST API) shut down",
+        "kind": "product-shutdown",
+        "effectiveDate": "2025-08-25",
+        "source": {
+          "url": "https://firebase.google.com/support/dynamic-links-faq",
+          "quote": "On August 25th, 2025, Firebase Dynamic Links will shut down."
+        }
+      },
+      "callSites": [
+        {
+          "file": "scripts/generators/_getFirebaseUrl.js",
+          "line": 16,
+          "text": "        const results = await rp({"
+        },
+        {
+          "file": "scripts/generators/_getFirebaseUrl.js",
+          "line": 17,
+          "text": "            uri: 'https://firebasedynamiclinks.googleapis.com/v1/shortLinks',"
+        },
+        {
+          "file": "scripts/generators/_getFirebaseUrl.js",
+          "line": 25,
+          "text": "                    dynamicLinkDomain: pageLink,"
+        },
+        {
+          "file": "scripts/lib/_getShortService.js",
+          "line": 9,
+          "text": "const firebase = require('../generators/_getFirebaseUrl');"
+        },
+        {
+          "file": "scripts/lib/_getShortService.js",
+          "line": 15,
+          "text": "    const defaultShort = (!_.isEmpty(config.apiKeys.firebase.apiKey) && !_.isEmpty(config.apiKeys.firebase.pageLinkDomain))"
+        }
+      ],
+      "migration": "Firebase short links are dead; remove the Firebase generator and make bitly or is.gd the default in scripts/lib/_getShortService.js.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "mantou132/Spotify-Lyrics",
+      "commit": "1380002c0830fc672f2a00ed497013056851f31b",
+      "provider": "google-analytics",
+      "via": "http",
+      "stars": 1061,
+      "language": "TypeScript",
+      "packageManager": "yarn",
+      "hasTests": true,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "title": "Universal Analytics sunset (Measurement Protocol v1 /collect)",
+        "kind": "product-shutdown",
+        "effectiveDate": "2024-07-01",
+        "source": {
+          "url": "https://developers.google.com/analytics/legacy/universal-analytics",
+          "quote": "Universal Analytics has sunset and is no longer available as of July 1, 2024."
+        }
+      },
+      "callSites": [
+        {
+          "file": "src/common/ga.ts",
+          "line": 10,
+          "text": "  const uri = 'https://www.google-analytics.com/collect';"
+        },
+        {
+          "file": "src/common/ga.ts",
+          "line": 22,
+          "text": "    fetch(uri, options);"
+        },
+        {
+          "file": "src/common/ga.ts",
+          "line": 27,
+          "text": "  v: '1', // protocol version"
+        },
+        {
+          "file": "src/common/ga.ts",
+          "line": 28,
+          "text": "  tid: isProd ? 'UA-163443161-1' : 'UA-88601817-2', // measurement id"
+        }
+      ],
+      "migration": "Rewrite postReq and gaRequiredPayload for GA4 Measurement Protocol (/mp/collect, measurement_id + api_secret, events JSON) in place of the UA hit.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "provinzio/CoinTaxman",
+      "commit": "9c72666b989094a24c89220446825d90706da655",
+      "provider": "coinbase-pro",
+      "via": "http",
+      "stars": 168,
+      "language": "Python",
+      "packageManager": "pip",
+      "hasTests": false,
+      "defaultBranch": "main",
+      "pendingChange": {
+        "title": "Coinbase Pro API (api.pro.coinbase.com) disabled; migrate to Advanced Trade",
+        "kind": "product-shutdown",
+        "effectiveDate": "2023-12-01",
+        "source": {
+          "url": "https://docs.cdp.coinbase.com/coinbase-app/advanced-trade-apis/faq",
+          "quote": "Coinbase Pro has been disabled for use"
+        }
+      },
+      "callSites": [
+        {
+          "file": "src/price_data.py",
+          "line": 220,
+          "text": "        root_url = \"https://api.pro.coinbase.com\""
+        },
+        {
+          "file": "src/price_data.py",
+          "line": 234,
+          "text": "            url = f\"{root_url}/products/{pair}/candles?{params}\""
+        },
+        {
+          "file": "src/price_data.py",
+          "line": 242,
+          "text": "            response = requests.get(url)"
+        }
+      ],
+      "migration": "Repoint _get_price_coinbase_pro from api.pro.coinbase.com (503 when checked 2026-11-02) to a live public candles endpoint such as api.exchange.coinbase.com/products/{pair}/candles or Advanced Trade public market data.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "levelopers/Ecommerce-Nodejs",
+      "commit": "0c3ba844b4d4ff5a4a64109050dd906b6334a532",
+      "provider": "paypal",
+      "via": "sdk",
+      "sdk": {
+        "name": "paypal-rest-sdk",
+        "version": "1.8.1"
+      },
+      "stars": 208,
+      "language": "JavaScript",
+      "packageManager": "npm",
+      "hasTests": false,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "title": "PayPal Payments v1 (/v1/payments, wrapped by paypal-rest-sdk payment.create/execute) deprecated in favour of v2",
+        "kind": "api-version",
+        "source": {
+          "url": "https://developer.paypal.com/docs/api/payments/v1/",
+          "quote": "The /v1/payments endpoint is deprecated."
+        }
+      },
+      "callSites": [
+        {
+          "file": "routes/index.js",
+          "line": 12,
+          "text": "const paypal = require('paypal-rest-sdk')"
+        },
+        {
+          "file": "routes/index.js",
+          "line": 206,
+          "text": "    paypal.configure(paypal_config);"
+        },
+        {
+          "file": "routes/index.js",
+          "line": 207,
+          "text": "    paypal.payment.create(create_payment_json, function (error, payment) {"
+        },
+        {
+          "file": "routes/index.js",
+          "line": 227,
+          "text": "  paypal.payment.execute(paymentId, payerId, function (error, payment) {"
+        }
+      ],
+      "migration": "Replace payment.create (intent sale, approval_url link) in GET /checkout/:cartId and payment.execute (paymentId + PayerID) in GET /payment/success with Orders v2 create-order (intent CAPTURE, purchase_units) and capture-by-order-id, through PayPal's current server SDK or plain REST.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "yokingma/one-search-mcp",
+      "commit": "16eb424608888949165f6a668d476cbdf79afc20",
+      "provider": "bing-search",
+      "via": "http",
+      "stars": 147,
+      "language": "TypeScript",
+      "packageManager": "npm",
+      "hasTests": true,
+      "defaultBranch": "main",
+      "pendingChange": {
+        "title": "Bing Search APIs (v7.0) retired",
+        "kind": "product-shutdown",
+        "effectiveDate": "2025-08-11",
+        "source": {
+          "url": "https://learn.microsoft.com/en-us/lifecycle/announcements/bing-search-api-retirement",
+          "quote": "Bing Search APIs will be retired on August 11, 2025."
+        }
+      },
+      "callSites": [
+        {
+          "file": "src/search/bing.ts",
+          "line": 216,
+          "text": "  const { query, limit = 10, safeSearch = 0, page = 1, apiUrl = 'https://api.bing.microsoft.com/v7.0/search', apiKey, language } = options;"
+        },
+        {
+          "file": "src/search/bing.ts",
+          "line": 250,
+          "text": "    const res = await fetch(`${apiUrl}?${queryParams}`, {"
+        },
+        {
+          "file": "src/search/bing.ts",
+          "line": 254,
+          "text": "        'Ocp-Apim-Subscription-Key': apiKey,"
+        }
+      ],
+      "migration": "Bing Web Search v7 has no drop-in REST successor (Microsoft points to Grounding with Bing Search in Azure AI Agents), so retire or re-back the 'bing' provider and its default apiUrl.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "yellowme/slack-poll",
+      "commit": "d123b06a88ea7f0611522318b48364af7cefca4d",
+      "provider": "slack",
+      "via": "webhook",
+      "stars": 22,
+      "language": "JavaScript",
+      "packageManager": "yarn",
+      "hasTests": true,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "title": "Slack verification tokens deprecated in favour of signed requests (signing secret, X-Slack-Signature)",
+        "kind": "auth-change",
+        "source": {
+          "url": "https://docs.slack.dev/authentication/verifying-requests-from-slack",
+          "quote": "Signing secrets replace the old verification tokens."
+        }
+      },
+      "callSites": [
+        {
+          "file": "routes/polls.js",
+          "line": 14,
+          "text": "  const { text, token, channel_id: channelId, user_id: userId } = req.body;"
+        },
+        {
+          "file": "routes/polls.js",
+          "line": 17,
+          "text": "  if (req.config.SLACK_VERIFICATION_TOKEN !== token)"
+        },
+        {
+          "file": "routes/hook.js",
+          "line": 69,
+          "text": "  const { token, actions } = JSON.parse(req.body.payload);"
+        },
+        {
+          "file": "routes/hook.js",
+          "line": 73,
+          "text": "  if (req.config.SLACK_VERIFICATION_TOKEN !== token)"
+        }
+      ],
+      "migration": "Replace the body-token checks in the /polls slash-command and /hook interactivity handlers with X-Slack-Signature verification: an HMAC-SHA256 over v0:{X-Slack-Request-Timestamp}:{raw body} keyed with a signing secret. That needs the raw urlencoded body kept before express.urlencoded parses it; jest tests are in __tests__/.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "bcrant/Tableau2Slack",
+      "commit": "b6f3a37e1ef4f6908e01cad64ce324286d6c29e4",
+      "provider": "slack",
+      "via": "sdk",
+      "sdk": {
+        "name": "slackclient",
+        "version": "2.5.0"
+      },
+      "stars": 14,
+      "language": "Python",
+      "packageManager": "pip",
+      "hasTests": false,
+      "defaultBranch": "main",
+      "pendingChange": {
+        "title": "Slack files.upload retired in favour of files.getUploadURLExternal + files.completeUploadExternal (files_upload_v2)",
+        "kind": "endpoint-removed",
+        "effectiveDate": "2025-11-12",
+        "source": {
+          "url": "https://docs.slack.dev/reference/methods/files.upload",
+          "quote": "The files.upload API method has been deprecated."
+        }
+      },
+      "callSites": [
+        {
+          "file": "Tableau2Slack.py",
+          "line": 10,
+          "text": "from slack import WebClient"
+        },
+        {
+          "file": "Tableau2Slack.py",
+          "line": 96,
+          "text": "            sc = WebClient(slackBotToken)"
+        },
+        {
+          "file": "Tableau2Slack.py",
+          "line": 99,
+          "text": "            img = sc.files_upload("
+        },
+        {
+          "file": "Tableau2Slack.py",
+          "line": 107,
+          "text": "            url_private = img[\"file\"][\"url_private\"]"
+        }
+      ],
+      "migration": "Move from slackclient 2.5.0 (module slack) to slack_sdk and swap files_upload(channels=\"#tableau-test\", ...) for files_upload_v2, which needs a channel ID rather than a #name; then re-check how url_private is read from the v2 response. The script calls Tableau2Slack() at module level.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "LeviathanLevi/Coinbase-Pro-Crypto-Trading-Bot-CrypFinder",
+      "commit": "37c52520126a1ad98e54915c7410aa28c4d0094d",
+      "provider": "coinbase-pro",
+      "via": "sdk",
+      "sdk": {
+        "name": "coinbase-pro",
+        "version": "0.9.0"
+      },
+      "stars": 167,
+      "language": "JavaScript",
+      "packageManager": "npm",
+      "hasTests": false,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "title": "Coinbase Pro API (api.pro.coinbase.com) disabled; migrate to Advanced Trade",
+        "kind": "product-shutdown",
+        "effectiveDate": "2023-12-01",
+        "source": {
+          "url": "https://docs.cdp.coinbase.com/coinbase-app/advanced-trade-apis/faq",
+          "quote": "Coinbase Pro has been disabled for use"
+        }
+      },
+      "callSites": [
+        {
+          "file": "strategies/momentumTrading/momentumTrading.js",
+          "line": 1,
+          "text": "const CoinbasePro = require(\"coinbase-pro\");"
+        },
+        {
+          "file": "strategies/momentumTrading/momentumTrading.js",
+          "line": 16,
+          "text": "const apiURI = process.env.TRADING_ENV === \"real\" ? \"https://api.pro.coinbase.com\" : \"https://api-public.sandbox.pro.coinbase.com\";"
+        },
+        {
+          "file": "strategies/momentumTrading/momentumTrading.js",
+          "line": 46,
+          "text": "let authedClient = new CoinbasePro.AuthenticatedClient("
+        },
+        {
+          "file": "strategies/momentumTrading/momentumTrading.js",
+          "line": 81,
+          "text": "    const websocket = new CoinbasePro.WebsocketClient("
+        },
+        {
+          "file": "coinbaseProLibrary.js",
+          "line": 106,
+          "text": "                const result = await axios.get(fullpath, { headers });"
+        }
+      ],
+      "migration": "Replace coinbase-pro AuthenticatedClient/WebsocketClient and the hand-signed CB-ACCESS-* axios client with the Advanced Trade API (api.coinbase.com/api/v3/brokerage, CDP keys/JWT); the other two strategy files repeat the pattern.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "michaeljolley/number-one",
+      "commit": "a5d25f47c965263101d8ad86e7b48eec2f9b7a46",
+      "provider": "twitch",
+      "via": "webhook",
+      "stars": 33,
+      "language": "TypeScript",
+      "packageManager": "npm",
+      "hasTests": true,
+      "defaultBranch": "main",
+      "pendingChange": {
+        "title": "Twitch legacy WebSub webhooks (helix/webhooks/hub, users/follows topic) decommissioned in favour of EventSub",
+        "kind": "webhook-payload",
+        "effectiveDate": "2021-09-16",
+        "source": {
+          "url": "https://dev.twitch.tv/docs/change-log/",
+          "quote": "Decommissioned WebSub-based webhooks, which resulted in the following documentation changes:"
+        }
+      },
+      "callSites": [
+        {
+          "file": "src/integrations/twitch-api/api.ts",
+          "line": 43,
+          "text": "        \"hub.topic\": `https://api.twitch.tv/helix/users/follows?first=1&to_id=${this.config.twitchChannelId}`,"
+        },
+        {
+          "file": "src/integrations/twitch-api/api.ts",
+          "line": 131,
+          "text": "    const givenSignature = request.headers['x-hub-signature'];"
+        },
+        {
+          "file": "src/webhooks/index.ts",
+          "line": 52,
+          "text": "  response.status(200).send(encodeURI(request.query['hub.challenge'] as string));"
+        },
+        {
+          "file": "src/webhooks/index.ts",
+          "line": 55,
+          "text": "webhookRouter.post('/follow', Twitch.validateWebhook, async (request: Request, response: Response) => {"
+        },
+        {
+          "file": "src/webhooks/index.ts",
+          "line": 59,
+          "text": "    const name = payload.data[0].from_name.toLocaleLowerCase();"
+        }
+      ],
+      "migration": "Subscribe through POST /helix/eventsub/subscriptions (channel.follow v2 with moderator_user_id; stream.online/offline in place of the streams topic) and verify Twitch-Eventsub-Message-Signature instead of x-hub-signature. Answer webhook_callback_verification with the JSON challenge instead of hub.challenge, and read event.user_name instead of data[0].from_name. The same pattern is on /webhooks/stream; mocha tests.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "bricefrisco/NamesLoL",
+      "commit": "c997bdd9419f801d3461869c42bd1039e8f163b6",
+      "provider": "riot",
+      "via": "http",
+      "stars": 15,
+      "language": "TypeScript",
+      "packageManager": "npm",
+      "hasTests": false,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "title": "Riot summoner-v4 /lol/summoner/v4/summoners/by-name deprecated (Riot ID migration) in favour of account-v1 by-riot-id + summoner-v4 by-puuid",
+        "kind": "endpoint-removed",
+        "source": {
+          "url": "https://www.riotgames.com/en/DevRel/summoner-names-to-riot-id",
+          "quote": "We recommend no longer using these endpoints (deprecated):"
+        }
+      },
+      "callSites": [
+        {
+          "file": "src/libs/riotApi.ts",
+          "line": 11,
+          "text": "    `https://${regions[region]}.api.riotgames.com/lol/summoner/v4/summoners/by-name/${name}`,"
+        },
+        {
+          "file": "src/functions/summoner-api/handler.ts",
+          "line": 37,
+          "text": "    const response: RiotResponse = await fetchSummoner(name, region, process.env.RIOT_API_TOKEN);"
+        },
+        {
+          "file": "src/functions/sqs-update-consumer/handler.ts",
+          "line": 18,
+          "text": "    response = await fetchSummoner(name, region, token);"
+        }
+      ],
+      "migration": "Resolve players through account-v1 /riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine} on the regional host, then summoner-v4 /summoners/by-puuid/{puuid}, so fetchSummoner takes a Riot ID instead of a summoner name. The quoted list (page dated 2023-10-16) names /lol/summoner/v4/summoners/by-name/{summonerName}. Serverless TypeScript app with a lint script only.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "fafrd/ens-reverse-lookup",
+      "commit": "e0565b08c619e63d8fdae07c4a02d02fd7be6b06",
+      "provider": "thegraph",
+      "via": "graphql",
+      "stars": 15,
+      "language": "TypeScript",
+      "packageManager": "npm",
+      "hasTests": true,
+      "defaultBranch": "mainline",
+      "pendingChange": {
+        "title": "The Graph hosted service (api.thegraph.com/subgraphs/name/...) shut down",
+        "kind": "product-shutdown",
+        "effectiveDate": "2024-06-12",
+        "source": {
+          "url": "https://thegraph.com/blog/sunsetting-hosted-service/",
+          "quote": "As of June 12th, 2024, the hosted service is no longer active."
+        }
+      },
+      "callSites": [
+        {
+          "file": "src/config.ts",
+          "line": 2,
+          "text": "export const SUBGRAPH_ADDRESS: string = \"https://api.thegraph.com/subgraphs/name/ensdomains/ens\""
+        },
+        {
+          "file": "src/handler.ts",
+          "line": 105,
+          "text": "  const resp = await fetch(SUBGRAPH_ADDRESS, {"
+        },
+        {
+          "file": "src/handler.ts",
+          "line": 119,
+          "text": "    domains(where:{owner:\"${address.toLowerCase()}\"}) {"
+        },
+        {
+          "file": "src/handler.ts",
+          "line": 128,
+          "text": "  return res.data.domains.map((d: any) => d.name);"
+        }
+      ],
+      "migration": "Send the ENS domains GraphQL query to The Graph Network gateway (gateway.thegraph.com/api/<API_KEY>/subgraphs/id/<ENS subgraph id>), with the key coming from a Worker secret/env instead of the hard-coded hosted-service URL; Cloudflare Worker with a jest test.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "MyMICDS/MyMICDS-v2",
+      "commit": "5c246fe5f93313b7444961fa84e8010f6151e777",
+      "provider": "openweathermap",
+      "via": "http",
+      "stars": 9,
+      "language": "TypeScript",
+      "packageManager": "npm",
+      "hasTests": true,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "title": "OpenWeatherMap One Call API 2.5 deprecated (move to One Call 3.0)",
+        "kind": "api-version",
+        "source": {
+          "url": "https://openweathermap.org/api/one-call-api",
+          "quote": "The One Call API, endpoint version 2.5, has been deprecated as of June 2024."
+        }
+      },
+      "callSites": [
+        {
+          "file": "src/libs/weather.ts",
+          "line": 16,
+          "text": "const openWeatherEndpoint = `https://api.openweathermap.org/data/2.5/onecall?lat=${latitude}&lon=${longitude}&appid=${openWeatherKey}&units=imperial&exclude=minutely`;"
+        },
+        {
+          "file": "src/libs/weather.ts",
+          "line": 43,
+          "text": "\t\tconst response = await axios.get(openWeatherEndpoint);"
+        }
+      ],
+      "migration": "Change openWeatherEndpoint to https://api.openweathermap.org/data/3.0/onecall with the same lat/lon/units/exclude params and recheck the OpenWeather response types.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "MitchellHarrison/python-twitch-chatbot",
+      "commit": "66beae079f7df1a92532821cf27031d5da3aaeac",
+      "provider": "twitch",
+      "via": "http",
+      "stars": 36,
+      "language": "Python",
+      "packageManager": "pip",
+      "hasTests": false,
+      "defaultBranch": "main",
+      "pendingChange": {
+        "title": "Twitch Helix GET /helix/users/follows removed in favour of GET /helix/channels/followers and /helix/channels/followed",
+        "kind": "endpoint-removed",
+        "effectiveDate": "2023-09-06",
+        "source": {
+          "url": "https://dev.twitch.tv/docs/change-log/",
+          "quote": "The Get Users Follows API endpoint has been removed."
+        }
+      },
+      "callSites": [
+        {
+          "file": "src/follower_tracker.py",
+          "line": 10,
+          "text": "FOLLOW_URL = \"https://api.twitch.tv/helix/users/follows\""
+        },
+        {
+          "file": "src/follower_tracker.py",
+          "line": 18,
+          "text": "    response = requests.get("
+        },
+        {
+          "file": "src/follower_tracker.py",
+          "line": 42,
+          "text": "    response = requests.get("
+        },
+        {
+          "file": "src/follower_tracker.py",
+          "line": 63,
+          "text": "                \"user_id\": follower[\"from_id\"],"
+        },
+        {
+          "file": "src/follower_tracker.py",
+          "line": 65,
+          "text": "                \"username\": follower[\"from_name\"]"
+        }
+      ],
+      "migration": "Call GET /helix/channels/followers?broadcaster_id= (to_id becomes broadcaster_id). It needs a user token with moderator:read:followers instead of the app access token in FOLLOW_HEADERS. Map user_id/user_name instead of from_id/from_name, including the paged request at line 96.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "cokia/dimi-online-notification-backend",
+      "commit": "2a608524638b814bcfd46ad1789137dffb0d162c",
+      "provider": "firebase-cloud-messaging",
+      "via": "http",
+      "stars": 8,
+      "language": "TypeScript",
+      "packageManager": "yarn",
+      "hasTests": false,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "title": "FCM InstanceId server APIs (iid.googleapis.com topic subscription) deprecated",
+        "kind": "endpoint-removed",
+        "effectiveDate": "2027-09-29",
+        "source": {
+          "url": "https://firebase.google.com/docs/cloud-messaging/troubleshooting#fcm-depr-features",
+          "quote": "Requests to these API will start failing after September 29, 2027."
+        }
+      },
+      "callSites": [
+        {
+          "file": "src/util/fcm.ts",
+          "line": 34,
+          "text": "  requestHeaders.set('Authorization', `key=${process.env.serverkey}`);"
+        },
+        {
+          "file": "src/util/fcm.ts",
+          "line": 36,
+          "text": "  fetch(`https://iid.googleapis.com/iid/v1/${token}/rel/topics/${topic}`, {"
+        },
+        {
+          "file": "src/util/fcm.ts",
+          "line": 52,
+          "text": "  admin.messaging().unsubscribeFromTopic(token, topic)"
+        }
+      ],
+      "migration": "Move the raw iid.googleapis.com rel/topics subscribe (legacy key= auth) and the firebase-admin 8.11.0 unsubscribeFromTopic (uses InstanceId) to the new FCM topic subscription API, e.g. firebase-admin >=14.5.0 for both.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "Arcath/gatsby-source-square-catalog",
+      "commit": "fbaff74e207e28f464388987fc7c3f97c388374b",
+      "provider": "square",
+      "via": "sdk",
+      "sdk": {
+        "name": "square-connect",
+        "version": "2.20190213.0"
+      },
+      "stars": 6,
+      "language": "TypeScript",
+      "packageManager": "npm",
+      "hasTests": true,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "title": "Square Connect Node.js SDK (square-connect) deprecated and retired, replaced by the square package",
+        "kind": "sdk-major",
+        "effectiveDate": "2020-12-16",
+        "source": {
+          "url": "https://developer.squareup.com/docs/changelog/connect-logs/2020-12-16",
+          "quote": "Square Node.js SDK is now GA and replaces the deprecated Connect Node.js SDK"
+        }
+      },
+      "callSites": [
+        {
+          "file": "src/index.ts",
+          "line": 1,
+          "text": "import * as SquareConnect from 'square-connect'"
+        },
+        {
+          "file": "src/index.ts",
+          "line": 9,
+          "text": "const defaultClient = SquareConnect.ApiClient.instance"
+        },
+        {
+          "file": "src/index.ts",
+          "line": 112,
+          "text": "  let oauth2 = defaultClient.authentications['oauth2']"
+        },
+        {
+          "file": "src/index.ts",
+          "line": 115,
+          "text": "  const apiInstance = new SquareConnect.CatalogApi()"
+        },
+        {
+          "file": "src/index.ts",
+          "line": 117,
+          "text": "  let entries = await apiInstance.listCatalog({})"
+        }
+      ],
+      "migration": "Move to the square SDK: a Client with accessToken instead of ApiClient.instance + oauth2, catalogApi.listCatalog() reading result.objects, and camelCase models/fields (itemData.categoryId, modifierListInfo) instead of the snake_case item_data/category_id the plugin reads; tsc + jest test script; the quote is the tail of a 15-word sentence on that page.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "jasperapp/jasper",
+      "commit": "a7cbefefaa79dd764099217a3946b8210423b0ed",
+      "provider": "google-analytics",
+      "via": "http",
+      "stars": 1331,
+      "language": "TypeScript",
+      "packageManager": "npm",
+      "hasTests": false,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "title": "Universal Analytics sunset (Measurement Protocol v1 /collect)",
+        "kind": "product-shutdown",
+        "effectiveDate": "2024-07-01",
+        "source": {
+          "url": "https://developers.google.com/analytics/legacy/universal-analytics",
+          "quote": "Universal Analytics has sunset and is no longer available as of July 1, 2024."
+        }
+      },
+      "callSites": [
+        {
+          "file": "src/Renderer/Repository/GARepo.ts",
+          "line": 9,
+          "text": "const TID = 'UA-77734098-2';"
+        },
+        {
+          "file": "src/Renderer/Repository/GARepo.ts",
+          "line": 205,
+          "text": "      v: 1,"
+        },
+        {
+          "file": "src/Renderer/Repository/GARepo.ts",
+          "line": 206,
+          "text": "      tid: TID,"
+        },
+        {
+          "file": "src/Renderer/Repository/GARepo.ts",
+          "line": 251,
+          "text": "      const res = await fetch('https://www.google-analytics.com/collect', options);"
+        }
+      ],
+      "migration": "Replace the v=1&tid=UA-... form POST to /collect with a GA4 Measurement Protocol JSON POST to /mp/collect?measurement_id=G-...&api_secret=... (needs a GA4 property).",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "natbat/pillarpointstewards",
+      "commit": "7b461ddf22e0361452114af515d62e0323887e32",
+      "provider": "openweathermap",
+      "via": "http",
+      "stars": 7,
+      "language": "Python",
+      "packageManager": "pip",
+      "hasTests": true,
+      "defaultBranch": "main",
+      "pendingChange": {
+        "title": "OpenWeatherMap One Call API 2.5 deprecated (move to One Call 3.0)",
+        "kind": "api-version",
+        "source": {
+          "url": "https://openweathermap.org/api/one-call-api",
+          "quote": "The One Call API, endpoint version 2.5, has been deprecated as of June 2024."
+        }
+      },
+      "callSites": [
+        {
+          "file": "pillarpointstewards/weather/views.py",
+          "line": 40,
+          "text": "    url = \"https://api.openweathermap.org/data/2.5/onecall?\" + urllib.parse.urlencode("
+        },
+        {
+          "file": "pillarpointstewards/weather/views.py",
+          "line": 47,
+          "text": "    response = httpx.get(url)"
+        },
+        {
+          "file": "pillarpointstewards/weather/tests.py",
+          "line": 119,
+          "text": "        == \"https://api.openweathermap.org/data/2.5/onecall?lat=37.49542392&lon=-122.49865193&appid=xxx\""
+        }
+      ],
+      "migration": "Point fetch_weather at /data/3.0/onecall (needs a One Call 3.0 subscription; the 2.5 page now points to endpoint 4.0) and update the URL asserted in weather/tests.py.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "b1f6c1c4/c",
+      "commit": "6f925cdd277d55e5f5b6c2b44f434c75a42563f4",
+      "provider": "monday",
+      "via": "graphql",
+      "stars": 11,
+      "language": "JavaScript",
+      "packageManager": "npm",
+      "hasTests": false,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "title": "monday.com API 2023-10 removed items_by_column_values and boards { items }",
+        "kind": "field-removed",
+        "source": {
+          "url": "https://developer.monday.com/api-reference/changelog/deprecating-items_by_column_values-and-items_by_multiple_column_values",
+          "quote": "Breaking change: Removed the deprecated `items_by_column_values` and `items_by_multiple_column_values` objects, replaced with `items_page_by_column_values`"
+        }
+      },
+      "callSites": [
+        {
+          "file": "src/api/monday.js",
+          "line": 58,
+          "text": "      items_by_column_values(board_id: $bId, column_id: $cId, column_value: $value${limit ? ', limit: ' + limit : ''}) {"
+        },
+        {
+          "file": "src/api/monday.js",
+          "line": 64,
+          "text": "    return postProcess(data.items_by_column_values);"
+        },
+        {
+          "file": "src/api/monday.js",
+          "line": 68,
+          "text": "      boards(ids: $bId) {"
+        },
+        {
+          "file": "src/api/monday.js",
+          "line": 69,
+          "text": "        items${limit ? '(limit: ' + limit + ')' : ''} {"
+        },
+        {
+          "file": "src/api/monday.js",
+          "line": 76,
+          "text": "    return postProcess(data.boards[0].items);"
+        }
+      ],
+      "migration": "Rewrite find() to items_page_by_column_values and findAll() to boards { items_page { cursor items } } with cursor paging (also check the Int-typed $bId variables against the 2023-10 schema); used by src/index.js routes and src/synth.js; no API-Version header is sent; changelog entry dated 2023-07-10 (the sibling entry removes boards.items).",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "outlook/ALTAR",
+      "commit": "dcf907b88e8f676e8207efa6bc24321429c1608d",
+      "provider": "azure-ad-graph",
+      "via": "http",
+      "stars": 12,
+      "language": "Python",
+      "packageManager": "pip",
+      "hasTests": false,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "title": "Azure AD Graph (graph.windows.net) retired in favour of Microsoft Graph",
+        "kind": "endpoint-removed",
+        "effectiveDate": "2025-08-31",
+        "source": {
+          "url": "https://learn.microsoft.com/en-us/graph/migrate-azure-ad-graph-overview",
+          "quote": "Azure AD Graph will be fully retired."
+        }
+      },
+      "callSites": [
+        {
+          "file": "azure_ad.py",
+          "line": 29,
+          "text": "    group_url = \"https://graph.windows.net/me/memberOf?api-version=1.6\""
+        },
+        {
+          "file": "azure_ad.py",
+          "line": 34,
+          "text": "            resp = requests.get(group_url, headers=headers)"
+        },
+        {
+          "file": "azure_ad.py",
+          "line": 58,
+          "text": "            group_url = \"https://graph.windows.net/{tenant}/{link}&api-version=1.6\".format("
+        },
+        {
+          "file": "azure_ad.py",
+          "line": 70,
+          "text": "        'https://graph.windows.net/me?api-version=1.6',"
+        },
+        {
+          "file": "azure_ad.py",
+          "line": 86,
+          "text": "        'https://graph.windows.net'"
+        }
+      ],
+      "migration": "Move /me/memberOf and /me calls to https://graph.microsoft.com/v1.0 (@odata.nextLink paging, token resource https://graph.microsoft.com); the ADAL token call has to move with it.",
+      "checkedAt": "2026-11-03"
+    },
+    {
+      "repo": "kognise/stalker",
+      "commit": "152fa25afa8c21c179d2e0e22bf57dbad796da7a",
+      "provider": "zoom",
+      "via": "webhook",
+      "stars": 77,
+      "language": "TypeScript",
+      "packageManager": "yarn",
+      "hasTests": false,
+      "defaultBranch": "main",
+      "pendingChange": {
+        "title": "Zoom webhook Verification Token replaced by secret-token signature (x-zm-signature) plus mandatory URL validation",
+        "kind": "auth-change",
+        "effectiveDate": "2024-02-03",
+        "source": {
+          "url": "https://developers.zoom.us/changelog/platform/webhook-verification-and-validation-change-faq/",
+          "quote": "We are changing the way webhooks are verified and validated by Zoom."
+        }
+      },
+      "callSites": [
+        {
+          "file": "src/index.ts",
+          "line": 313,
+          "text": "\t\t'/zoom',"
+        },
+        {
+          "file": "src/index.ts",
+          "line": 335,
+          "text": "\t\t\tif (req.headers.authorization !== env.zoomVerificationToken) {"
+        },
+        {
+          "file": "src/env.ts",
+          "line": 25,
+          "text": "\tzoomVerificationToken: getVarOrPanic('ZOOM_VERIFICATION_TOKEN')"
+        }
+      ],
+      "migration": "In the Fastify POST /zoom handler, replace the Authorization == verification token check with an HMAC-SHA256 over v0:{x-zm-request-timestamp}:{body}, keyed with the webhook secret token and compared to x-zm-signature. Also answer endpoint.url_validation with plainToken/encryptedToken; the route's body schema requires payload.account_id/object and would reject that event. Has a prisma+tsc build script.",
+      "checkedAt": "2026-11-03"
+    }
+  ]
+}

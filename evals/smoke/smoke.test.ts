@@ -29,8 +29,9 @@ describe('smoke test', () => {
       .find((task) => task.record?.outcome === 'verified');
     expect(verified?.review?.opinion).toBe('has-concerns');
 
-    const reviews = JSON.parse(readFileSync(outcome.reviewsPath, 'utf8')) as unknown[];
-    expect(reviews).toHaveLength(1);
+    // One hand-check entry for each PR: the verified one and the needs-review one.
+    const reviews = JSON.parse(readFileSync(outcome.reviewsPath, 'utf8')) as { grade: string }[];
+    expect(reviews.map((entry) => entry.grade).sort()).toEqual(['needs-review', 'verified']);
     const written = readdirSync(join(outcome.outDir, 'smoke-3'));
     expect(written).toHaveLength(3);
   });

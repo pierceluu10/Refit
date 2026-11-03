@@ -22,13 +22,15 @@ export function judgeAttempt(record: RunRecord): { attempted: boolean; reason?: 
   return { attempted: true };
 }
 
-function unrunTask(task: MigrationTask): TaskResult {
+function unrunTask(task: MigrationTask, reason?: string): TaskResult {
   return {
     taskId: task.id,
     changeId: task.change.id,
     kind: task.change.kind,
+    change: task.change,
     attempted: false,
     unrun: 'budget',
+    ...(reason ? { unrunReason: reason } : {}),
   };
 }
 
@@ -58,12 +60,15 @@ export async function runRepo(
   };
   const finish = () => {
     result.costUsd = meter.totalUsd();
+    result.costByPart = meter.byPart();
     result.durationMs = Date.now() - started;
     return result;
   };
   if (ledger.exhausted()) {
     result.verdict = 'unrun';
-    result.error = 'dollar cap reached before this repo started';
+    result.error = ledger.stopReason
+      ? `dollar cap reached before this repo started: ${ledger.stopReason}`
+      : 'dollar cap reached before this repo started';
     return finish();
   }
 
@@ -73,8 +78,8 @@ export async function runRepo(
   try {
     checkout = await pipeline.checkout(entry);
     const usages = await pipeline.inventory(checkout.repoDir, entry.repo);
-    const changes = await pipeline.watch();
     result.usages = usages.length;
+    const changes = await pipeline.watch(usages);
     result.changes = changes.length;
     const matched = await pipeline.match(changes, usages);
     result.matchReasoning = matched.reasoning;
@@ -82,16 +87,18 @@ export async function runRepo(
       result.verdict = 'not-affected';
       return finish();
     }
-    tasks = [...matched.tasks].sort((a, b) => b.priority - a.priority);
+    // Priority 1 is the most urgent task, so it reaches the dollar cap first.
+    tasks = [...matched.tasks].sort((a, b) => a.priority - b.priority);
     for (const [position, task] of tasks.entries()) {
       if (ledger.exhausted()) {
-        result.tasks.push(...tasks.slice(position).map(unrunTask));
+        result.tasks.push(...tasks.slice(position).map((rest) => unrunTask(rest)));
         break;
       }
       const taskResult: TaskResult = {
         taskId: task.id,
         changeId: task.change.id,
         kind: task.change.kind,
+        change: task.change,
         attempted: false,
       };
       result.tasks.push(taskResult);
@@ -108,10 +115,16 @@ export async function runRepo(
         continue;
       }
       const record = taskResult.record;
-      if (pipeline.review && record && record.outcome !== 'not-affected') {
+      // A second opinion needs a diff to read; an empty one would only spend.
+      if (pipeline.review && record && record.diff.trim() !== '') {
         // Advisory only. A reviewer failure is logged and never touches the grade.
         try {
-          taskResult.review = await pipeline.review({ task, record, meter });
+          taskResult.review = await pipeline.review({
+            task,
+            record,
+            meter,
+            repoDir: checkout.repoDir,
+          });
         } catch (error) {
           if (error instanceof BudgetExceededError) throw error;
           taskResult.review = {
@@ -126,10 +139,19 @@ export async function runRepo(
     }
   } catch (error) {
     if (error instanceof BudgetExceededError) {
-      // The cap is a hard limit: tasks it stopped are reported as unrun, not as attempts.
-      result.tasks.push(...tasks.slice(result.tasks.length).map(unrunTask));
+      // The cap is a hard limit: tasks it stopped are reported as unrun, not as attempts. That
+      // includes the task it interrupted, unless that task already has a record to grade.
+      for (const task of result.tasks) {
+        if (task.record || task.unrun || task.noAttemptReason) continue;
+        task.unrun = 'budget';
+        task.unrunReason = error.message;
+      }
+      result.tasks.push(
+        ...tasks.slice(result.tasks.length).map((rest) => unrunTask(rest, error.message)),
+      );
       if (result.tasks.length === 0) result.verdict = 'unrun';
       result.error = error.message;
+      if (error.runOver) ledger.stop(error.message);
     } else {
       if (result.tasks.length === 0) result.verdict = 'error';
       result.error = `pipeline threw: ${message(error)}`;

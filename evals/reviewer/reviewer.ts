@@ -1,5 +1,7 @@
 // An AI second opinion on each PR. Advisory only: it is stored next to the grade and never
 // changes it. Scoring reads RunRecord.outcome and nothing here.
+import { readFile, realpath, stat } from 'node:fs/promises';
+import { basename, join, sep } from 'node:path';
 import type { MigrationTask, RunRecord } from '../../shared/types.ts';
 import type { Meter } from '../runner/types.ts';
 import type { ModelClient } from './model.ts';
@@ -31,8 +33,89 @@ Reply with one JSON object and nothing else:
 {"opinion": "looks-right" | "has-concerns" | "unsure", "summary": string, "concerns": [{"file": string, "issue": string, "severity": "high" | "medium" | "low"}], "checkFirst": [string]}`;
 
 const MAX_DIFF_CHARS = 60_000;
+// The repo files the reviewer reads next to the diff: each one capped, and all of them together.
+const MAX_FILE_CHARS = 15_000;
+export const MAX_CONTEXT_CHARS = 40_000;
+// Room for adaptive thinking plus the JSON reply; a review that runs out keeps its words as unsure.
+export const REVIEW_MAX_TOKENS = 6000;
 
-export function buildReviewPrompt(task: MigrationTask, record: RunRecord): string {
+/** The reply's shape, so a real model returns parseable JSON (structured outputs). */
+export const REVIEW_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['opinion', 'summary', 'concerns', 'checkFirst'],
+  properties: {
+    opinion: { type: 'string', enum: ['looks-right', 'has-concerns', 'unsure'] },
+    summary: { type: 'string' },
+    concerns: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['file', 'issue', 'severity'],
+        properties: {
+          file: { type: 'string' },
+          issue: { type: 'string' },
+          severity: { type: 'string', enum: ['high', 'medium', 'low'] },
+        },
+      },
+    },
+    checkFirst: { type: 'array', items: { type: 'string' } },
+  },
+};
+
+/** A repo file as it was before the change, for the reviewer to read next to the diff. */
+export type ContextFile = { path: string; content: string };
+
+// Real env files are never read (hard limit 4); templates are fine. Lockfiles are noise.
+const SKIPPED =
+  /^(?:\.env(?!\.(?:example|sample|template|dist)$).*|\.envrc|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|Pipfile\.lock|bun\.lockb?)$/;
+
+/** Files the diff touches, then the call-site files the match agent named, without repeats. */
+export function contextPaths(task: MigrationTask, record: RunRecord): string[] {
+  const touched = [...record.diff.matchAll(/^\+\+\+ b\/(.+)$/gm)].map((match) => match[1]?.trim());
+  const sites = task.usages.flatMap((usage) => usage.callSites.map((site) => site.file));
+  return [...new Set([...touched, ...sites])].filter(
+    (path): path is string =>
+      typeof path === 'string' && path !== '' && !SKIPPED.test(basename(path)),
+  );
+}
+
+/**
+ * Reads the context files from the untouched checkout, on the host and read-only: nothing in the
+ * repo runs. A path that leaves the checkout (through .. or a symlink) is skipped, as is a file
+ * that is missing, too big, or not text.
+ */
+export async function readContextFiles(repoDir: string, paths: string[]): Promise<ContextFile[]> {
+  const root = await realpath(repoDir);
+  const files: ContextFile[] = [];
+  let total = 0;
+  for (const path of paths) {
+    if (total >= MAX_CONTEXT_CHARS) break;
+    if (SKIPPED.test(basename(path))) continue;
+    try {
+      const full = await realpath(join(root, path));
+      if (!full.startsWith(root + sep)) continue;
+      if ((await stat(full)).size > 4 * MAX_FILE_CHARS) continue;
+      const text = await readFile(full, 'utf8');
+      if (text.includes('\u0000')) continue;
+      const room = Math.min(MAX_FILE_CHARS, MAX_CONTEXT_CHARS - total);
+      const content =
+        text.length > room ? `${text.slice(0, room)}\n... (truncated at ${room} characters)` : text;
+      files.push({ path, content });
+      total += content.length;
+    } catch {
+      continue;
+    }
+  }
+  return files;
+}
+
+export function buildReviewPrompt(
+  task: MigrationTask,
+  record: RunRecord,
+  files: ContextFile[] = [],
+): string {
   const diff =
     record.diff.length > MAX_DIFF_CHARS
       ? `${record.diff.slice(0, MAX_DIFF_CHARS)}\n... (diff truncated at ${MAX_DIFF_CHARS} characters)`
@@ -64,6 +147,13 @@ export function buildReviewPrompt(task: MigrationTask, record: RunRecord): strin
     '',
     'Diff:',
     diff,
+    ...(files.length > 0
+      ? [
+          '',
+          'Repository files before the change (the files the diff touches and the named call sites; read them before you raise a concern about code the diff does not show):',
+          ...files.flatMap((file) => ['', `--- ${file.path}`, file.content]),
+        ]
+      : []),
   ]
     .filter((line, index, lines) => line !== '' || lines[index - 1] !== '')
     .join('\n');
@@ -111,21 +201,29 @@ export function parseReview(text: string): Omit<AdvisoryReview, 'costUsd' | 'mod
   }
 }
 
-/** Builds the advisory reviewer the runner calls for each PR. */
+/**
+ * Builds the advisory reviewer the runner calls for each PR. Given the untouched checkout, it also
+ * shows the model the files the diff touches and the named call sites, so its concerns rest on the
+ * code rather than guesses about it.
+ */
 export function createReviewer(client: ModelClient) {
   return async ({
     task,
     record,
     meter,
+    repoDir,
   }: {
     task: MigrationTask;
     record: RunRecord;
     meter: Meter;
+    repoDir?: string;
   }): Promise<AdvisoryReview> => {
+    const files = repoDir ? await readContextFiles(repoDir, contextPaths(task, record)) : [];
     const response = await client.complete({
       system: REVIEWER_SYSTEM,
-      prompt: buildReviewPrompt(task, record),
-      maxTokens: 2000,
+      prompt: buildReviewPrompt(task, record, files),
+      maxTokens: REVIEW_MAX_TOKENS,
+      jsonSchema: REVIEW_SCHEMA,
     });
     meter.charge(response.costUsd, `review ${task.id}`);
     return { ...parseReview(response.text), costUsd: response.costUsd, model: response.model };

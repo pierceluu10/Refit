@@ -12,9 +12,14 @@ export type RepoEntry = {
 
 export type DevSet = {
   name: string;
+  /** The provider every repo uses, or 'mixed' when each entry names its own. */
   provider: string;
   kind: 'dev';
-  source: { path: string; commit: string; blob: string };
+  /**
+   * Where the list came from: a path, commit and blob in Refit's history for a recovered set, or
+   * the set's own file and the day it was built for one curated by hand in evals/.
+   */
+  source: { path: string; commit: string; blob: string; curated?: string };
   frozenAt?: string;
   purpose?: string;
   criteria?: string;
