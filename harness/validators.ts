@@ -23,6 +23,11 @@ const PROBLEMS = [
 
 export const runPassed = (output: string) => !PROBLEMS.some((problem) => problem.test(output));
 
+// A pack tool that couldn't run ("failed to run: ... Nothing was checked") found no problem either:
+// it is no proof, and it doesn't hold back the grade.
+export const couldNotRun = (output: string) =>
+  /\bfailed to run:[\s\S]*Nothing was checked/.test(output);
+
 export type ValidatorGrade = { name: string; ran: boolean; passed: boolean; detail: string };
 
 // The model sees the harness tools through the SDK's MCP server, so it may claim one by that full name.
@@ -46,6 +51,14 @@ export function gradeValidators(
         detail: 'claimed by the agent, but the harness recorded no call of it',
       };
     }
+    if (couldNotRun(run.output)) {
+      return {
+        name: claim.name,
+        ran: false,
+        passed: true,
+        detail: 'claimed, but it could not run, so nothing was checked',
+      };
+    }
     const detail = run.output.trim().split('\n')[0].slice(0, 200);
     return { name: claim.name, ran: true, passed: claim.passed && run.passed, detail };
   });
@@ -56,6 +69,6 @@ export function gradeValidators(
 export function failingCheckers(runs: ValidatorRun[]): string[] {
   const latest = new Map(runs.map((run) => [run.tool, run]));
   return [...latest.values()]
-    .filter((run) => /check|validat/i.test(run.tool) && !run.passed)
+    .filter((run) => /check|validat/i.test(run.tool) && !run.passed && !couldNotRun(run.output))
     .map((run) => run.tool);
 }

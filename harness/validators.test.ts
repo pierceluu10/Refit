@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { failingCheckers, gradeValidators, runPassed } from './validators.ts';
 
+const unrunnable = {
+  tool: 'openweathermap__openapi_check',
+  output:
+    'openapi_check failed to run: https://openweathermap.org/api/one-call-4: could not parse it as JSON or YAML. Nothing was checked.',
+  passed: false,
+};
+
 describe('gradeValidators', () => {
   const claim = (name: string, passed = true) => ({ name, passed, detail: '' });
 
@@ -77,6 +84,17 @@ describe('gradeValidators', () => {
       '2099-01-01.madeup is not in the snapshot (retrieved 2026-11-01). It may be newer than the snapshot or mistyped.',
     ];
     for (const output of problems) expect(runPassed(output), output).toBe(false);
+  });
+});
+
+describe('a validator that could not run', () => {
+  it('is no proof and does not hold back the grade', () => {
+    const [grade] = gradeValidators(
+      [{ name: 'openweathermap__openapi_check', passed: false, detail: 'could not run' }],
+      [unrunnable],
+    );
+    expect(grade).toMatchObject({ ran: false, passed: true });
+    expect(failingCheckers([unrunnable])).toEqual([]);
   });
 });
 

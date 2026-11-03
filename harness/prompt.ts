@@ -179,6 +179,7 @@ export function buildSystemPrompt(input: PromptInput): string {
       [
         '- **verified**: the checks pass before and after your change, your test of the change passes (named in `finish` as `proofTest`), and the provider validators pass. Only NEW failures count. Failures that existed before your change are noted, not fixed, unless your change touches them.',
         "- Only when no test of the change can be written at all, say why in `noProofTestReason`. A test that is hard to write is not one that can't be.",
+        "- Put your test where it can run here. Don't add it to a test file or suite that already fails before your change (a database or service the sandbox lacks): it fails for the same reason, and every new failure counts against your change.",
         '- **needs-review**: state exactly what is unproven, and any behaviour change.',
         "- List as unproven what this run could have checked and didn't, or checked and couldn't prove. Leave out the standing limit that no run here makes live API calls: the sandbox has no credentials, and the PR says so on every run.",
         "- What your change may do differently that only a live call would show, such as a new model's output or a response's shape at a new API version, goes under behaviour changes, so the reviewer checks it.",
