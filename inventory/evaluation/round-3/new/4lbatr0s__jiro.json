@@ -274,22 +274,25 @@
         {
           "file": "src/app/api/message/route.ts",
           "line": 56,
-          "operation": "OpenAIEmbeddings (via PineconeStore.similaritySearch) embeddings",
-          "notes": "Query embedded via langchain OpenAIEmbeddings (line 44), then Pinecone similarity search, top 4."
+          "operation": "vectorStore.similaritySearch (OpenAIEmbeddings embeds query)",
+          "notes": "OpenAIEmbeddings built at line 44 with OPENAI_API_KEY; default embedding model"
         },
         {
           "file": "src/app/api/uploadthing/core.ts",
           "line": 105,
-          "operation": "PineconeStore.fromDocuments with OpenAIEmbeddings",
-          "notes": "Embeds PDF pages via OpenAI embeddings (constructed line 95) and upserts to Pinecone namespace=file id."
+          "operation": "PineconeStore.fromDocuments (OpenAIEmbeddings embeds pages)",
+          "fields": ["pageLevelDocs", "namespace"],
+          "notes": "Embeddings built at line 95; also upserts to Pinecone"
         }
       ],
       "hints": {
-        "packages": ["@langchain/openai", "@langchain/community", "langchain", "ai"]
+        "packages": ["@langchain/openai", "langchain", "@langchain/community"],
+        "hosts": ["api.openai.com"]
       },
       "sdk": {
         "name": "@langchain/openai",
-        "version": "manifest"
+        "version": "manifest range",
+        "lockfile": "package-lock.json"
       }
     },
     {
@@ -300,21 +303,25 @@
         {
           "file": "src/app/api/message/route.ts",
           "line": 50,
-          "operation": "PineconeStore.fromExistingIndex (langchain)"
+          "operation": "PineconeStore.fromExistingIndex",
+          "fields": ["pineconeIndex", "namespace"],
+          "notes": "Client from getPineconeClient (src/app/lib/pinecode.ts:7, new Pinecone())"
         },
         {
           "file": "src/app/api/uploadthing/core.ts",
           "line": 105,
-          "operation": "PineconeStore.fromDocuments (langchain)",
+          "operation": "PineconeStore.fromDocuments",
           "fields": ["pineconeIndex", "maxConcurrency", "namespace"]
         }
       ],
       "hints": {
-        "packages": ["@langchain/community", "@pinecone-database/pinecone"]
+        "packages": ["@pinecone-database/pinecone", "@langchain/community"],
+        "docsUrls": ["https://app.pinecone.io/"]
       },
       "sdk": {
         "name": "@langchain/community",
-        "version": "manifest"
+        "version": "manifest range",
+        "lockfile": "package-lock.json"
       }
     },
     {
@@ -325,8 +332,8 @@
         {
           "file": "src/app/api/uploadthing/core.ts",
           "line": 65,
-          "operation": "GET /{file.key}",
-          "notes": "Downloads uploaded PDF from UploadThing's S3 bucket, then blob -> PDFLoader."
+          "operation": "GET https://uploadthing-prod.s3.us-west-2.amazonaws.com/{file.key}",
+          "notes": "Reads response.blob() and feeds PDFLoader. Same URL stored in db at line 58. File host of uploadthing."
         }
       ],
       "hints": {
@@ -334,19 +341,23 @@
       }
     }
   ],
-  "purposes": {},
-  "summary": "4lbatr0s/jiro uses kinde through @kinde-oss/kinde-auth-nextjs 2.1.3 in 11 places; stripe through stripe 14.13.0 in 6 places; pinecone through @pinecone-database/pinecone 1.1.3 in 2 places; openai through @langchain/openai manifest in 2 places; pinecone through @langchain/community manifest in 2 places; openai through openai 4.24.7, pinned to gpt-3.5-turbo in 1 place; uploadthing through uploadthing 6.2.0 in 1 place; uploadthing through @uploadthing/react 6.2.0 in 1 place; stripe through webhooks in 1 place; uploadthing-prod.s3.us-west-2.amazonaws.com through raw HTTP in 1 place.",
-  "agentSummary": "I found seven external providers in jiro. The code scan had already recorded five of them. I added the LangChain paths for OpenAI and Pinecone and the S3 fetch. I did not read the Stripe, Kinde, `src/lib/*` or UploadThing route files myself. Those scan-recorded entries still have the scan's generic notes, so I haven't confirmed what the code does with their responses.\n\n**Providers**\n- **Kinde (auth, SDK):** `@kinde-oss/kinde-auth-nextjs`, used across the app.\n- **Stripe (billing, SDK and webhook):** `stripe` handles subscriptions, checkout and the billing portal. It also verifies webhook signatures with `constructEvent`.\n- **UploadThing (file uploads, SDK):** `uploadthing` and `@uploadthing/react`. Its `onUploadComplete` callback in `core.ts` is UploadThing's own callback, which I treated as part of the SDK rather than a separate webhook.\n- **OpenAI (SDK):**\n  - **Chat:** `gpt-3.5-turbo` through the `openai` SDK.\n  - **Embeddings:** LangChain's `OpenAIEmbeddings` (`@langchain/openai`) embeds PDF pages at upload and the user's question at query time.\n  - **Not recorded:** The `ai` package's `OpenAIStream` only reformats the chat response, so I did not record it as a call.\n- **Pinecone (vector store, SDK):** the `@pinecone-database/pinecone` index is used through LangChain's `PineconeStore` (`@langchain/community`). `fromDocuments` indexes the PDF and `fromExistingIndex` plus `similaritySearch` retrieves chunks, one namespace per file.\n- **UploadThing's S3 bucket (HTTP):** `core.ts:65` fetches the uploaded PDF from `uploadthing-prod.s3.us-west-2.amazonaws.com`. I recorded it as its own HTTP usage under that host.\n\n**Leads that are not external APIs**\n- The imports `@langchain/google-genai`, `@google/generative-ai` and `HuggingFaceTransformersEmbeddings` in `core.ts` are never used. The Hugging Face embeddings code is commented out.\n- `@xenova/transformers` runs locally.\n- `@prisma/client` is a database driver, so it is out of scope.\n- tRPC, React Query and `/api/message` are the repo's own backend.\n- `jiro-omega.vercel.app`, `ui.shadcn.com` and `app.pinecone.io` are only links or schema references.\n- The remaining unknown dependencies are UI or utility libraries.\n\n**Uncertain**\n- I didn't open `src/app/lib/openai.ts` or `src/app/lib/pinecode.ts`. They create the OpenAI and Pinecone clients that the recorded calls use.\n- The LangChain-based entries record the manifest range, not a locked version.",
+  "purposes": {
+    "openai": "Embeddings through LangChain",
+    "pinecone": "Vector store via LangChain PineconeStore",
+    "uploadthing-prod.s3.us-west-2.amazonaws.com": "Download uploaded PDF from UploadThing's S3 bucket"
+  },
+  "summary": "4lbatr0s/jiro uses kinde through @kinde-oss/kinde-auth-nextjs 2.1.3 in 11 places; stripe through stripe 14.13.0 in 6 places; pinecone through @pinecone-database/pinecone 1.1.3 in 2 places; openai for Embeddings through LangChain through @langchain/openai manifest range in 2 places; pinecone for Vector store via LangChain PineconeStore through @langchain/community manifest range in 2 places; openai through openai 4.24.7, pinned to gpt-3.5-turbo in 1 place; uploadthing through uploadthing 6.2.0 in 1 place; uploadthing through @uploadthing/react 6.2.0 in 1 place; stripe through webhooks in 1 place; uploadthing-prod.s3.us-west-2.amazonaws.com for Download uploaded PDF from UploadThing's S3 bucket through raw HTTP in 1 place.",
+  "agentSummary": "I found seven external providers or channels. The scan's seven recorded usages stand. I added three, and I didn't re-read the files the scan had already covered.\n\n**Recorded by the scan:**\n- **Kinde** (SDK) handles auth.\n- **Stripe** (SDK and webhook) handles billing, checkout and subscription lookups. It also has a webhook receiver with signature verification.\n- **OpenAI** (SDK) handles chat completions with `gpt-3.5-turbo`.\n- **Pinecone** (SDK) is the vector index client.\n- **UploadThing** (SDK, plus `@uploadthing/react`) handles file uploads.\n\n**Added by me:**\n- **OpenAI via `@langchain/openai`:** `OpenAIEmbeddings` is used for the question embedding in `src/app/api/message/route.ts` (line 56) and for the PDF page embeddings in `src/app/api/uploadthing/core.ts` (line 105).\n- **Pinecone via `@langchain/community`:** `PineconeStore.fromExistingIndex` (`route.ts:50`) and `PineconeStore.fromDocuments` (`core.ts:105`). Both use the client from `src/app/lib/pinecode.ts`.\n- **UploadThing's S3 bucket (HTTP):** `core.ts:65` fetches the uploaded PDF from `uploadthing-prod.s3.us-west-2.amazonaws.com` and passes it to `PDFLoader`.\n\n**Leads that are not external APIs:**\n- `@google/generative-ai` and `@langchain/google-genai` are imported in `core.ts` but never used.\n- `@xenova/transformers` and `HuggingFaceTransformersEmbeddings` are only in a commented-out block and a dead import. Both run locally.\n- `src/components/chat/ChatContext.tsx:45` calls the repo's own `/api/message` route.\n- Prisma and the database run through a driver.\n- The tRPC, React and UI packages make no external calls.\n- `jiro-omega.vercel.app` and `VERCEL_URL` are site metadata, not API calls.\n- `ui.shadcn.com` is a schema link.\n- `pdf-parse` and `react-pdf` have no network calls that I saw.\n- The `ai` package (Vercel AI SDK) wraps the OpenAI stream. It makes no calls of its own.\n\n**Unsure or not checked:**\n- The `@langchain/*` package versions are manifest ranges, not lockfile-resolved versions.\n- `core.ts:104` logs `OPENAI_API_KEY` and `PINECONE_API_KEY` to the console, which is a leak risk.\n- The remaining Pinecone env vars (`PINECONE_INDEX`, `PINECONE_ENVIRONMENT`) are used in the code but not listed in the scan.",
   "outcome": "success",
-  "costUsd": 0.05924900000000001,
+  "costUsd": 0.08661590000000001,
   "costByModel": {
     "claude-haiku-5-5": 0.0003589,
-    "claude-sonnet-5-5": 0.0588901
+    "claude-sonnet-5-5": 0.086257
   },
-  "turns": 7,
-  "durationMs": 15244,
+  "turns": 8,
+  "durationMs": 18441,
   "scan": {
-    "version": "scan-v5",
+    "version": "scan-v7",
     "usages": 7,
     "callSites": 23,
     "leads": 31

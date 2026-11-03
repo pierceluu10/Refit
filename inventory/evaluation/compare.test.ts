@@ -70,20 +70,25 @@ describe('compareRuns', () => {
       'mohammadpurl__next-livekit-streaming.json',
       'ravi-aman__pureFeedback.json',
     ];
-    let found = 0;
-    let total = 0;
-    let oldUsd = 0;
-    let newUsd = 0;
-    for (const name of names) {
-      const [old, fresh] = await Promise.all([read('old', name), read('new', name)]);
-      found += compareRuns(old, fresh).found;
-      total += old.usages.length;
-      oldUsd += old.costUsd;
-      newUsd += fresh.costUsd;
-    }
-    expect({ found, total }).toEqual({ found: 126, total: 131 });
-    expect(oldUsd).toBeCloseTo(1.4062, 3);
-    expect(newUsd).toBeCloseTo(0.696, 3);
+    const measure = async (folder: string) => {
+      const totals = { found: 0, total: 0, oldUsd: 0, newUsd: 0 };
+      for (const name of names) {
+        const [old, fresh] = await Promise.all([read('old', name), read(folder, name)]);
+        totals.found += compareRuns(old, fresh).found;
+        totals.total += old.usages.length;
+        totals.oldUsd += old.costUsd;
+        totals.newUsd += fresh.costUsd;
+      }
+      return totals;
+    };
+    // The final code (inventory-v8 + scan-v7), then the earlier run of the same prompt on scan-v5.
+    const final = await measure('new');
+    expect({ found: final.found, total: final.total }).toEqual({ found: 125, total: 131 });
+    expect(final.oldUsd).toBeCloseTo(1.4062, 3);
+    expect(final.newUsd).toBeCloseTo(0.7393, 3);
+    const earlier = await measure('new-scan-v5');
+    expect(earlier.found).toBe(126);
+    expect(earlier.newUsd).toBeCloseTo(0.696, 3);
     // The old inventory against itself on lobe-chat, for scale.
     const [first, second] = await Promise.all([
       read('old', 'crlny__lobe-chat.json'),

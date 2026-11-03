@@ -496,55 +496,66 @@
           "line": 141,
           "operation": "PUT /api/v2/company/",
           "fields": ["name", "rating", "state", "role", "addresses", "tags"],
-          "notes": "Basic auth RAYNET_EMAIL:RAYNET_API_KEY, X-Instance-Name financehb; response ignored"
+          "notes": "newsletter signup; response ignored. Basic auth RAYNET_EMAIL:RAYNET_API_KEY, X-Instance-Name financehb"
         },
         {
           "file": "actions/mail.ts",
           "line": 308,
           "operation": "PUT /api/v2/company/",
-          "fields": ["name", "firstName", "lastName", "addresses", "tags"]
+          "fields": ["name", "firstName", "lastName", "rating", "addresses", "tags"],
+          "notes": "ebook download creates contact; response ignored"
         },
         {
           "file": "actions/mail.ts",
           "line": 365,
           "operation": "PUT /api/v2/company/",
-          "fields": ["name", "addresses"],
-          "notes": "saveRaynet"
+          "fields": ["name", "rating", "state", "role", "addresses"],
+          "notes": "saveRaynet; response ignored"
         },
         {
           "file": "actions/users.tsx",
           "line": 220,
-          "operation": "GET /api/v2/company/?tags[LIKE]=...",
-          "notes": "fetches emails by tag"
+          "operation": "GET /api/v2/company/?tags[LIKE]=",
+          "notes": "reads data[].primaryAddress.contactInfo.email for newsletter recipients"
         },
         {
           "file": "actions/users.tsx",
           "line": 281,
-          "operation": "GET /api/v2/company/?primaryAddress-contactInfo.email="
+          "operation": "GET /api/v2/company/?primaryAddress-contactInfo.email=",
+          "notes": "reads data[].id"
         },
         {
           "file": "actions/users.tsx",
           "line": 295,
           "operation": "POST /api/v2/company/{id}",
-          "notes": "updates company (sign-out tags)"
+          "fields": ["rating"],
+          "notes": "sets rating D (unsubscribe)"
         },
         {
           "file": "actions/users.tsx",
           "line": 430,
-          "operation": "GET /api/v2/company/?primaryAddress-contactInfo.email="
+          "operation": "GET /api/v2/company/?primaryAddress-contactInfo.email=",
+          "notes": "reads data[0].id stored as raynet_id"
         },
         {
           "file": "actions/users.tsx",
           "line": 656,
-          "operation": "POST /api/v2/company/{id}"
+          "operation": "POST /api/v2/company/{id}",
+          "fields": ["rating"],
+          "notes": "sets rating C; checks status 200"
         },
         {
           "file": "app/api/webhook/stripe/route.ts",
           "line": 105,
           "operation": "PUT /api/v2/company/",
-          "notes": "after Stripe event"
+          "notes": "create company after Stripe event if user has no raynet_id"
         }
       ],
+      "pinnedVersion": {
+        "value": "/api/v2/",
+        "file": "actions/mail.ts",
+        "line": 64
+      },
       "hints": {
         "hosts": ["app.raynet.cz"]
       }
@@ -559,22 +570,33 @@
           "line": 38,
           "operation": "POST /server/connect/token (identity.idoklad.cz)",
           "fields": ["grant_type", "client_id", "client_secret", "scope"],
-          "notes": "returns access_token"
+          "notes": "reads access_token"
         },
         {
           "file": "actions/users.tsx",
           "line": 74,
-          "operation": "POST /v3/Contacts"
+          "operation": "POST /v3/Contacts",
+          "fields": ["CompanyName", "CountryId", "DeliveryAddresses"],
+          "notes": "reads Data.Id"
         },
         {
           "file": "actions/users.tsx",
           "line": 76,
-          "operation": "GET /v3/IssuedInvoices"
+          "operation": "GET /v3/IssuedInvoices",
+          "notes": "counts Data.Items for serial number"
         },
         {
           "file": "actions/users.tsx",
           "line": 105,
-          "operation": "POST /v3/IssuedInvoices"
+          "operation": "POST /v3/IssuedInvoices",
+          "fields": [
+            "CurrencyId",
+            "Items",
+            "PartnerId",
+            "DocumentSerialNumber",
+            "NumericSequenceId"
+          ],
+          "notes": "returns response data"
         }
       ],
       "pinnedVersion": {
@@ -583,6 +605,7 @@
         "line": 50
       },
       "hints": {
+        "packages": ["axios"],
         "hosts": ["api.idoklad.cz", "identity.idoklad.cz"]
       }
     },
@@ -595,17 +618,18 @@
           "file": "actions/mail.ts",
           "line": 12,
           "operation": "GET /api/v3/contacts/{email}",
-          "notes": "Basic auth; checks json.status"
+          "notes": "Basic auth; checks json.status==='error'"
         },
         {
           "file": "actions/mail.ts",
           "line": 21,
           "operation": "POST /api/v3/import",
-          "fields": ["settings", "data.emailaddress", "contactlists"]
+          "fields": ["settings", "data[].emailaddress", "name", "surname", "contactlists"],
+          "notes": "logs json.status"
         }
       ],
       "pinnedVersion": {
-        "value": "v3",
+        "value": "/api/v3/",
         "file": "actions/mail.ts",
         "line": 12
       },
@@ -623,77 +647,32 @@
           "line": 12,
           "operation": "POST /recaptcha/api/siteverify",
           "fields": ["secret", "response"],
-          "notes": "reads success and score"
+          "notes": "returns JSON; caller checks success and score<0.8"
         }
       ],
       "hints": {
         "hosts": ["www.google.com"]
       }
-    },
-    {
-      "repo": "adamhitzger/financehb",
-      "provider": "gmail-smtp",
-      "via": "sdk",
-      "callSites": [
-        {
-          "file": "actions/mail.ts",
-          "line": 140,
-          "operation": "sendMail"
-        },
-        {
-          "file": "actions/mail.ts",
-          "line": 305,
-          "operation": "sendMail"
-        },
-        {
-          "file": "actions/users.tsx",
-          "line": 246,
-          "operation": "sendMail"
-        },
-        {
-          "file": "actions/users.tsx",
-          "line": 495,
-          "operation": "sendMail"
-        },
-        {
-          "file": "actions/users.tsx",
-          "line": 727,
-          "operation": "sendMail"
-        },
-        {
-          "file": "app/api/webhook/stripe/route.ts",
-          "line": 176,
-          "operation": "sendMail"
-        }
-      ],
-      "hints": {
-        "packages": ["nodemailer"]
-      },
-      "sdk": {
-        "name": "nodemailer",
-        "version": "unknown"
-      }
     }
   ],
   "purposes": {
-    "raynet": "CRM: upsert/lookup companies and tags",
-    "idoklad": "Invoicing",
-    "smartemailing": "Email marketing contacts",
-    "google-recaptcha": "Server-side token verification",
-    "gmail-smtp": "Transactional email via nodemailer service gmail (SMTP, not HTTP)"
+    "raynet": "CRM: lookup/create/update companies (contacts, ratings, tags)",
+    "idoklad": "Invoicing: OAuth token, contacts, issued invoices (via axios)",
+    "smartemailing": "Email marketing contact lists",
+    "google-recaptcha": "Server-side recaptcha token verification"
   },
-  "summary": "adamhitzger/financehb uses turso through @libsql/client ^0.15.4 in 26 places; raynet for CRM: upsert/lookup companies and tags through raw HTTP in 9 places; stripe through stripe ^16.12.0, pinned to 2024-06-20 in 8 places; gmail-smtp for Transactional email via nodemailer service gmail (SMTP, not HTTP) through nodemailer unknown in 6 places; upstash through @upstash/redis ^1.34.8 in 5 places; sanity through next-sanity ^9.4.3 in 4 places; idoklad for Invoicing through raw HTTP, pinned to v3 in 4 places; google-recaptcha through react-google-recaptcha-v3 ^1.11.0 in 3 places; smartemailing for Email marketing contacts through raw HTTP, pinned to v3 in 2 places; stripe through webhooks in 1 place; google-analytics through @next/third-parties ^16.0.5 in 1 place; calendly through react-calendly ^4.3.1 in 1 place; sanity through raw HTTP in 1 place; google-recaptcha for Server-side token verification through raw HTTP in 1 place.",
-  "agentSummary": "I found these external APIs in the repo and recorded them. I read the call sites in `actions/mail.ts`, `actions/captcha.ts` and the matching lines in `actions/users.tsx`. I didn't read the Stripe webhook handler or the other pre-recorded call sites myself. I also didn't check `package.json` or the lockfile, so the SDK versions are the scan's.\n\n**Recorded by the scan:**\n- **Turso:** database access through `@libsql/client`.\n- **Stripe:** the `stripe` SDK, pinned to 2024-06-20, plus the webhook receiver.\n- **Sanity:** the `next-sanity` SDK and one raw HTTP call.\n- **Google reCAPTCHA:** the `react-google-recaptcha-v3` client SDK.\n- **Upstash:** the Redis SDK, used for sessions.\n- **Google Analytics:** `@next/third-parties`.\n- **Calendly:** `react-calendly`.\n\n**Recorded by me:**\n- **Raynet CRM (raw HTTP):** 9 call sites in `actions/mail.ts`, `actions/users.tsx` and the Stripe webhook route. They create and update companies and tags, and look companies up by email or tag.\n- **iDoklad invoicing (raw HTTP):** 4 axios calls in `actions/users.tsx`. One fetches a token from `identity.idoklad.cz`. The others hit `/v3/Contacts` and `/v3/IssuedInvoices`, and the API is pinned to v3.\n- **SmartEmailing (raw HTTP):** 2 calls in `actions/mail.ts`, to `/api/v3/contacts/{email}` and `/api/v3/import`. The API is pinned to v3.\n- **Google reCAPTCHA server verification (raw HTTP):** `POST /recaptcha/api/siteverify` in `actions/captcha.ts`.\n- **Gmail through nodemailer:** 6 `sendMail` calls. This goes over SMTP, not an HTTP API, so I recorded it with a note. I recorded its version as \"unknown\" because I didn't look it up.\n\n**Leads that aren't external APIs:**\n- **UI and social links:** YouTube embeds, social links, the footer links, the Sanity CLI and shadcn config, and the docs comments. They are links or configuration, not API calls.\n- **Packages with no network calls:** the UI and utility packages (Radix, Tailwind, `gsap`, `framer-motion` and similar). The other unknown dependencies were judged from their names only.\n- **Declared packages I didn't check:** `@stripe/stripe-js`, `@supabase/ssr`, `mapbox-gl`, `react-map-gl`, `openai`, `ai`, `twilio` and `sanity-plugin-mux-input` appear to be declared but unused. I did not grep the code for any of them, so any of them could still be used.\n- **Wrapper files:** `database/client.ts`, `database/redis.ts` and `lib/utils.ts` look like client construction only, which isn't a call site.\n\n**Not confirmed:**\n- **`app/api/downloadPdf/route.ts:7:** it fetches a `fileUrl` from Sanity. It was already recorded as Sanity HTTP, and I didn't check whether `fileUrl` comes from user input.",
+  "summary": "adamhitzger/financehb uses turso through @libsql/client ^0.15.4 in 26 places; raynet for CRM: lookup/create/update companies (contacts, ratings, tags) through raw HTTP, pinned to /api/v2/ in 9 places; stripe through stripe ^16.12.0, pinned to 2024-06-20 in 8 places; upstash through @upstash/redis ^1.34.8 in 5 places; sanity through next-sanity ^9.4.3 in 4 places; idoklad for Invoicing: OAuth token, contacts, issued invoices (via axios) through raw HTTP, pinned to v3 in 4 places; google-recaptcha through react-google-recaptcha-v3 ^1.11.0 in 3 places; smartemailing for Email marketing contact lists through raw HTTP, pinned to /api/v3/ in 2 places; stripe through webhooks in 1 place; google-analytics through @next/third-parties ^16.0.5 in 1 place; calendly through react-calendly ^4.3.1 in 1 place; sanity through raw HTTP in 1 place; google-recaptcha for Server-side recaptcha token verification through raw HTTP in 1 place.",
+  "agentSummary": "Inventory is complete. The scan had already recorded some providers. I added four more, all raw HTTP. I did not re-read the files the scan had already covered.\n\n**Added by me (via http):**\n- **Raynet CRM** (`app.raynet.cz/api/v2`): looks up, creates and updates companies, and sets ratings and tags.\n  - It has 9 call sites in `actions/mail.ts`, `actions/users.tsx` and the Stripe webhook route.\n  - Auth is basic auth built from `RAYNET_EMAIL` and `RAYNET_API_KEY`.\n- **iDoklad** (`identity.idoklad.cz` and `api.idoklad.cz/v3`): gets an OAuth token, then creates a contact and an invoice. It has 4 call sites in `actions/users.tsx`, all through axios.\n- **SmartEmailing** (`app.smartemailing.cz/api/v3`): checks whether a contact exists and imports it into a list. It has 2 call sites in `actions/mail.ts`.\n- **Google reCAPTCHA server-side verify** (`www.google.com/recaptcha/api/siteverify`): 1 call site in `actions/captcha.ts`. It sits alongside the existing browser-side usage.\n\n**Already recorded by the scan:** Turso, Stripe (SDK and webhook), Sanity (SDK and HTTP), Upstash Redis, Google Analytics, Calendly, and reCAPTCHA in the browser.\n\n**Leads that are not external APIs:**\n- **Email sending:** nodemailer sends through Gmail SMTP, using `FROM_EMAIL` and `FROM_EMAIL_PASSWORD` in `actions/users.tsx`, `actions/mail.ts` and the Stripe webhook route. That is SMTP to an operator-configured server, not an HTTP API, so I didn't record it.\n- **Unused dependencies:** `@stripe/stripe-js`, `@supabase/ssr`, `@supabase/supabase-js` (the scan flagged it as imported only in `types/index.d.ts`), `mapbox-gl`, `react-map-gl`, `openai`, `ai`, `twilio` and `sanity-plugin-mux-input` showed no import or call in the code. A grep for openai, twilio, supabase, mapbox and mux returned no matches. I did not open `types/index.d.ts` or `package.json` to confirm.\n- **Plain links and embeds:** social profile URLs, a YouTube iframe, `financehb.cz` links and the other hosts in the scan's host list.\n- **Own backend:** `app/api/downloadPdf/route.ts` fetches a file URL; the scan already recorded it under Sanity.\n\n**Not checked:**\n- I did not read lines 701–861 of `actions/users.tsx`. The grep showed only one more call there, a nodemailer `sendMail` at line 727.\n- I did not read lines 120–304 of the Stripe webhook route.\n- I did not open the shared-client files the scan flagged with no call found: `lib/utils.ts`, `database/client.ts`, `database/redis.ts`, `sanity/lib/queries.ts` and `sanity/lib/actions.tsx`.\n- I did not look in scripts or CI for network calls.",
   "outcome": "success",
-  "costUsd": 0.0957083,
+  "costUsd": 0.1471483,
   "costByModel": {
     "claude-haiku-5-5": 0.0006117000000000001,
-    "claude-sonnet-5-5": 0.0950966
+    "claude-sonnet-5-5": 0.14653660000000002
   },
   "turns": 11,
-  "durationMs": 23980,
+  "durationMs": 29748,
   "scan": {
-    "version": "scan-v5",
+    "version": "scan-v7",
     "usages": 9,
     "callSites": 50,
     "leads": 75

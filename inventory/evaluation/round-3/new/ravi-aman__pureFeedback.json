@@ -59,17 +59,17 @@
   ],
   "purposes": {},
   "summary": "ravi-aman/pureFeedback uses openai through openai 4.78.1, pinned to gpt-3.5-turbo-instruct in 1 place; resend through resend 3.5.0 in 1 place.",
-  "agentSummary": "Everything found is either already recorded or calls the repo's own routes. `useCompletion` posts to the repo's own route, which then calls OpenAI.\n\nSummary:\n- **openai** (SDK `openai`, already recorded): used in `src/app/api/suggestMessages/route.ts` for message suggestions. The `ai` package streams the response.\n- **resend** (SDK, already recorded): sends verification emails from `src/helpers/sendVerificationEmail.ts`. `src/lib/resend.ts` only creates the client, so it has no call site.\n- **Not external APIs:**\n  - `axios` calls to `/api/...` are the repo's own routes.\n  - `useCompletion` from `ai/react` posts to the repo's own suggestMessages route.\n  - next-auth uses the Credentials provider only, so it has no external OAuth calls.\n  - MongoDB is reached through mongoose, which is out of scope.\n  - `fonts.gstatic.com` is a font URL in an email template, and `ui.shadcn.com` is only a `$schema` link in `components.json`.\n  - The remaining UI libraries make no network calls.\n- **Unsure or unread:** nothing. I only grepped `src`, which found nothing new. I did not search outside it, such as the `emails` folder or config files.",
+  "agentSummary": "I found two external APIs in this repository, and the scan had already recorded both. I recorded nothing new, and I did not re-read the call sites the scan had already recorded.\n\n- **OpenAI** is used through the `openai` SDK for message suggestions in `src/app/api/suggestMessages/route.ts`, pinned to `gpt-3.5-turbo-instruct`. The `ai` package is imported in that same file for `OpenAIStream` and `StreamingTextResponse`. It only wraps the OpenAI response, so I did not record it separately.\n- **Resend** is used through the `resend` SDK to send verification emails from `src/helpers/sendVerificationEmail.ts`. `src/lib/resend.ts` only creates the client from `RESEND_API_KEY`, and has no call of its own.\n\nThese leads are not external APIs:\n- **Fonts and schema links:** `fonts.gstatic.com` is a font URL in an email template, and `ui.shadcn.com` is a `$schema` link in `components.json`.\n- **Repo's own routes:** the two `axios` calls, `/api/checkUniqueUser` and `/api/verifyCode`, go to this repo's own backend.\n- **Database:** `mongoose` with `MONGODB_URI` reaches MongoDB through a driver, so it is out of scope.\n- **Auth:** `next-auth` with `NEXTAUTH_SECRET` is configured for credentials sign-in, and I did not open that file. I did not look for OAuth providers.\n- **UI and utility packages:** I judged the remaining unknown dependencies to be UI or utility libraries with no network calls, from their names only. I did not check them in the code. They include `bcrypt`, `bcryptjs`, `zod`, `gsap`, `framer-motion` and the Radix and React Email packages.",
   "outcome": "success",
-  "costUsd": 0.0153576,
+  "costUsd": 0.016577599999999998,
   "costByModel": {
     "claude-haiku-5-5": 0.00023040000000000002,
-    "claude-sonnet-5-5": 0.0151272
+    "claude-sonnet-5-5": 0.0163472
   },
-  "turns": 2,
-  "durationMs": 7795,
+  "turns": 3,
+  "durationMs": 9341,
   "scan": {
-    "version": "scan-v5",
+    "version": "scan-v7",
     "usages": 2,
     "callSites": 2,
     "leads": 8

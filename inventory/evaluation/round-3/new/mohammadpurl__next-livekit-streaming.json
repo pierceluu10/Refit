@@ -263,7 +263,7 @@
     },
     {
       "repo": "mohammadpurl/next-livekit-streaming",
-      "provider": "custom-backend (NEXT_PUBLIC_API_URL)",
+      "provider": "NEXT_PUBLIC_API_URL backend",
       "via": "http",
       "callSites": [
         {
@@ -271,24 +271,24 @@
           "line": 4,
           "operation": "POST /api/v1/ask",
           "fields": ["question"],
-          "notes": "Host from env NEXT_PUBLIC_API_URL; likely the author's own Q&A backend, unclear if external. Returns parsed JSON."
+          "notes": "Host from env NEXT_PUBLIC_API_URL, unknown separate backend (possibly the author's own). Returns JSON data."
         }
       ]
     }
   ],
   "purposes": {},
-  "summary": "mohammadpurl/next-livekit-streaming uses heygen through @heygen/streaming-avatar 2.0.16 in 15 places; openai through openai 5.0.1, pinned to gpt-4-turbo-preview in 10 places; livekit through livekit-server-sdk 2.13.0 in 2 places; heygen through raw HTTP in 1 place; openai through raw HTTP in 1 place; custom-backend (NEXT_PUBLIC_API_URL) through raw HTTP in 1 place.",
-  "agentSummary": "I found seven external API usages. Five were already recorded by the scan, and I added one. The seventh, the LiveKit client library, is declared but has no call sites. I only read `app/services/api.ts` and grepped for LiveKit usage. I did not re-check the files behind the five scan-recorded usages, and I did not read the four HeyGen UI files the scan flagged.\n\n- **OpenAI (SDK):** chat and assistants, pinned to `gpt-4-turbo-preview`. Recorded by the scan.\n- **OpenAI (HTTP):** the transcribe route. Recorded by the scan.\n- **LiveKit (SDK `livekit-server-sdk`):** token generation. Recorded by the scan.\n- **HeyGen (SDK `@heygen/streaming-avatar`):** the avatar session. Recorded by the scan.\n- **HeyGen (HTTP):** the token route. Recorded by the scan.\n- **Custom backend at `NEXT_PUBLIC_API_URL` (HTTP):** `POST /api/v1/ask` with a `question` query parameter, in `app/services/api.ts:4`. I recorded this one. The host comes from an environment variable, so I couldn't tell the vendor. It is probably the author's own backend, so I'm unsure it counts as external.\n\n**Not external APIs or not recorded:**\n- **`livekit-client`:** it is in `package.json` but is never imported. The only trace of the LiveKit URL in code is `NEXT_PUBLIC_LIVEKIT_URL` in `app/config/livekit.ts`, which falls back to `ws://localhost:7880`. I did not record a client-side LiveKit usage, so nothing records where that URL is consumed.\n- **`cdn.jsdelivr.net`:** a Pico CSS stylesheet link in `app/layout.tsx`, not an API call.\n- **`@radix-ui/*`, `ahooks`, `next`, `react`, `react-dom`:** UI and framework libraries with no network calls.\n- **`/api/transcribe` and `/api/heygen-token`:** the repo's own routes, called with relative URLs.\n\nI found no user-supplied-URL fetching.",
+  "summary": "mohammadpurl/next-livekit-streaming uses heygen through @heygen/streaming-avatar 2.0.16 in 15 places; openai through openai 5.0.1, pinned to gpt-4-turbo-preview in 10 places; livekit through livekit-server-sdk 2.13.0 in 2 places; heygen through raw HTTP in 1 place; openai through raw HTTP in 1 place; NEXT_PUBLIC_API_URL backend through raw HTTP in 1 place.",
+  "agentSummary": "I found seven external API usages. Five were already recorded by the scan, and I added one more, a backend whose host comes from an env var. I did not re-read the scan's files, and I did not open the four HeyGen files that were flagged as having no call found.\n\n- **OpenAI** (SDK `openai`, pinned model `gpt-4-turbo-preview`): chat and assistant calls in `app/api/chat/route.ts` and `app/openai-assistant.ts`. The scan also recorded raw HTTP for transcription in `app/api/transcribe/route.ts`.\n- **LiveKit** (SDK `livekit-server-sdk`): token generation in `app/api/livekit/token/route.ts`. `NEXT_PUBLIC_LIVEKIT_URL` in `app/config/livekit.ts` is only a URL constant that defaults to `ws://localhost:7880`.\n- **HeyGen** (SDK `@heygen/streaming-avatar`): the streaming avatar session in `app/components/logic/useStreamingAvatarSession.ts`. The scan also recorded raw HTTP for token creation in `app/api/heygen-token/route.ts`.\n- **Unnamed backend at `NEXT_PUBLIC_API_URL`** (raw HTTP, new): `POST /api/v1/ask?question=…` in `app/services/api.ts:4`. It returns JSON. I recorded it under a placeholder provider name because the host is only an env var, so I can't tell whether it is the author's own server or a third party's.\n\nLeads that turned out not to be external APIs:\n- **`livekit-client`:** it is declared in `package.json` but nothing imports it. Only `livekit-server-sdk` is used.\n- **UI and runtime packages:** `@radix-ui/react-select`, `@radix-ui/react-toggle-group`, `ahooks`, `next`, `react` and `react-dom` make no network calls.\n- **`cdn.jsdelivr.net`:** this is a Pico CSS stylesheet link in `app/layout.tsx`, not an API.\n- **Own routes:** `fetch('/api/transcribe')` and `fetch('/api/heygen-token')` call the repo's own routes. The upstream calls are in the route files recorded above.\n\nI took the four HeyGen files (`AvatarConfig/index.tsx`, `AvatarVideo.tsx`, `ExtendedTypes.ts`, `useTextChat.ts`) to be UI or type-only code. I did not confirm that by reading them, so a call there could have been missed.",
   "outcome": "success",
-  "costUsd": 0.023316699999999996,
+  "costUsd": 0.024388899999999998,
   "costByModel": {
-    "claude-haiku-5-5": 0.0002472,
-    "claude-sonnet-5-5": 0.0230695
+    "claude-sonnet-5-5": 0.0241417,
+    "claude-haiku-5-5": 0.0002472
   },
   "turns": 4,
-  "durationMs": 9465,
+  "durationMs": 10348,
   "scan": {
-    "version": "scan-v5",
+    "version": "scan-v7",
     "usages": 5,
     "callSites": 29,
     "leads": 11

@@ -1,0 +1,77 @@
+{
+  "commit": "5121b3eca9cc48cbcbed94e52130e08e8a62d22c",
+  "repo": "ravi-aman/pureFeedback",
+  "promptVersion": "inventory-v8",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "ravi-aman/pureFeedback",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/suggestMessages/route.ts",
+          "line": 17,
+          "operation": "completions.create",
+          "fields": ["model", "max_tokens", "stream", "true", "prompt"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read. Model \"gpt-3.5-turbo-instruct\"."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "gpt-3.5-turbo-instruct",
+        "file": "src/app/api/suggestMessages/route.ts",
+        "line": 18
+      },
+      "hints": {
+        "packages": ["openai"],
+        "hosts": ["api.openai.com"],
+        "docsUrls": ["https://platform.openai.com/docs/deprecations"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "4.78.1",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "ravi-aman/pureFeedback",
+      "provider": "resend",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/helpers/sendVerificationEmail.ts",
+          "line": 11,
+          "operation": "emails.send",
+          "fields": ["from", "to", "email", "subject", "react"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["resend"],
+        "hosts": ["api.resend.com"]
+      },
+      "sdk": {
+        "name": "resend",
+        "version": "3.5.0",
+        "lockfile": "package-lock.json"
+      }
+    }
+  ],
+  "purposes": {},
+  "summary": "ravi-aman/pureFeedback uses openai through openai 4.78.1, pinned to gpt-3.5-turbo-instruct in 1 place; resend through resend 3.5.0 in 1 place.",
+  "agentSummary": "Everything found is either already recorded or calls the repo's own routes. `useCompletion` posts to the repo's own route, which then calls OpenAI.\n\nSummary:\n- **openai** (SDK `openai`, already recorded): used in `src/app/api/suggestMessages/route.ts` for message suggestions. The `ai` package streams the response.\n- **resend** (SDK, already recorded): sends verification emails from `src/helpers/sendVerificationEmail.ts`. `src/lib/resend.ts` only creates the client, so it has no call site.\n- **Not external APIs:**\n  - `axios` calls to `/api/...` are the repo's own routes.\n  - `useCompletion` from `ai/react` posts to the repo's own suggestMessages route.\n  - next-auth uses the Credentials provider only, so it has no external OAuth calls.\n  - MongoDB is reached through mongoose, which is out of scope.\n  - `fonts.gstatic.com` is a font URL in an email template, and `ui.shadcn.com` is only a `$schema` link in `components.json`.\n  - The remaining UI libraries make no network calls.\n- **Unsure or unread:** nothing. I only grepped `src`, which found nothing new. I did not search outside it, such as the `emails` folder or config files.",
+  "outcome": "success",
+  "costUsd": 0.0153576,
+  "costByModel": {
+    "claude-haiku-5-5": 0.00023040000000000002,
+    "claude-sonnet-5-5": 0.0151272
+  },
+  "turns": 2,
+  "durationMs": 7795,
+  "scan": {
+    "version": "scan-v5",
+    "usages": 2,
+    "callSites": 2,
+    "leads": 8
+  }
+}

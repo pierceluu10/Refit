@@ -364,50 +364,42 @@
     },
     {
       "repo": "borodinka/hire-wise",
-      "provider": "cdnjs",
+      "provider": "cdnjs.cloudflare.com",
       "via": "http",
       "callSites": [
         {
           "file": "src/features/job/details/components/applicants/utils.ts",
           "line": 77,
-          "operation": "GET pdf.worker.min.mjs (pdf.js 4.9.155)",
-          "notes": "pdfjs-dist loads worker script from CDN in the browser"
+          "operation": "GET pdf.worker.min.mjs (pdf.js worker script)",
+          "notes": "pdfjs-dist worker loaded from the cdnjs CDN at runtime; version 4.9.155 pinned in URL."
         }
       ],
+      "pinnedVersion": {
+        "value": "pdf.js 4.9.155",
+        "file": "src/features/job/details/components/applicants/utils.ts",
+        "line": 77
+      },
       "hints": {
         "packages": ["pdfjs-dist"],
         "hosts": ["cdnjs.cloudflare.com"]
       }
-    },
-    {
-      "repo": "borodinka/hire-wise",
-      "provider": "firebase",
-      "via": "sdk",
-      "callSites": [
-        {
-          "file": "src/features/job/details/components/applicants/utils.ts",
-          "line": 97,
-          "operation": "httpsCallable extractStructuredData",
-          "notes": "Calls cloud function with resume text"
-        }
-      ]
     }
   ],
   "purposes": {
-    "cdnjs": "pdf.js worker script"
+    "cdnjs.cloudflare.com": "pdf.js worker script CDN"
   },
-  "summary": "borodinka/hire-wise uses firebase through firebase 11.0.2 in 46 places; openai through openai 4.77.3, pinned to gpt-4o-2024-08-06 in 2 places; firebase through firebase-functions 6.2.0 in 1 place; cdnjs for pdf.js worker script through raw HTTP in 1 place; firebase through its SDK in 1 place.",
-  "agentSummary": "The repository talks to three external services:\n\n- **Firebase** (SDK `firebase` 11.0.2 in the frontend, `firebase-functions` 6.2.0 in the backend). The frontend uses it for auth, Firestore data access, Storage and callable Cloud Functions. The scan had already recorded these usages. I added one call site, `httpsCallable` for `extractStructuredData` in `src/features/job/details/components/applicants/utils.ts:97`. The client is built in `src/app/services/firebase/firebase.ts`, which only constructs it and makes no calls itself.\n- **OpenAI** (SDK `openai` 4.77.3, pinned to `gpt-4o-2024-08-06`). It is called from `functions/src/index.ts`, and the scan had already recorded it.\n- **cdnjs** (raw HTTP, `cdnjs.cloudflare.com`). The browser loads the pdf.js worker script from this CDN, set in `src/features/job/details/components/applicants/utils.ts:77`. I recorded it as a new usage.\n\nLeads that are not external APIs or need no record:\n- **Libraries with no network calls:** MUI, FullCalendar, Redux, react-hook-form, zod, dayjs, uuid and the other UI and utility dependencies.\n- **`cors`:** a server middleware in the functions package. I did not open its usage.\n- **`firebase-admin`:** declared in `functions/package.json` but not imported anywhere the scan reads. I did not search `functions/` for it.\n- **`github.com` and `vitejs.dev`:** comment links only.\n\nI did not look for other call sites by grepping the whole repo, such as scripts, CI workflows or the rest of `functions/`. The grep I ran covered `src/` for `getStorage`, `getFunctions`, `httpsCallable`, `fetch(` and `axios`.",
+  "summary": "borodinka/hire-wise uses firebase through firebase 11.0.2 in 46 places; openai through openai 4.77.3, pinned to gpt-4o-2024-08-06 in 2 places; firebase through firebase-functions 6.2.0 in 1 place; cdnjs.cloudflare.com for pdf.js worker script CDN through raw HTTP, pinned to pdf.js 4.9.155 in 1 place.",
+  "agentSummary": "The repo uses three external services: Firebase, OpenAI, and the cdnjs CDN. I didn't open the call-site files, because the code scan had already read them and I only spot-checked one. I recorded the cdnjs usage myself. The Firebase and OpenAI usages are the scan's own records, and their notes say response handling wasn't read.\n\n- **Firebase, browser SDK (`firebase` 11.0.2):** Firestore is used for applicants, events and jobs in `src/app/services/api/`. Auth uses email/password sign-in, sign-up and `updateProfile`. Storage handles resume upload, download URL and delete. `httpsCallable` calls the cloud function in `applicants/utils.ts:97`. The client is built in `src/app/services/firebase/firebase.ts` from the `VITE_FIREBASE_*` env values.\n- **Firebase Functions (`firebase-functions` 6.2.0):** `functions/src/index.ts:23` defines an `https.onCall` function. I did not verify that `firebase-admin` is unused. The scan found no import of it.\n- **OpenAI SDK (`openai` 4.77.3):** `functions/src/index.ts:50` calls `beta.chat.completions.parse` with `zodResponseFormat`. The model is pinned to `gpt-4o-2024-08-06`, and the key comes from `OPENAI_API_KEY`.\n- **cdnjs (`cdnjs.cloudflare.com`):** `applicants/utils.ts:77` loads the pdf.js worker script from this CDN at runtime, pinned to version 4.9.155 in the URL.\n\nThe scan's other leads were not external APIs:\n- **Frontend dependencies:** the UI, state and form libraries (MUI, FullCalendar, Redux, react-hook-form, dayjs, uuid and similar) make no network calls.\n- **`functions/package.json`:** `zod` is used only for response schemas. `cors` has no network call of its own.\n- **Links in comments:** `github.com` and `vitejs.dev` appear only in comments.",
   "outcome": "success",
-  "costUsd": 0.0278486,
+  "costUsd": 0.041026,
   "costByModel": {
     "claude-haiku-5-5": 0.0002552000000000001,
-    "claude-sonnet-5-5": 0.0275934
+    "claude-sonnet-5-5": 0.040770799999999996
   },
   "turns": 5,
-  "durationMs": 10868,
+  "durationMs": 12237,
   "scan": {
-    "version": "scan-v5",
+    "version": "scan-v7",
     "usages": 3,
     "callSites": 49,
     "leads": 14
