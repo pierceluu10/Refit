@@ -264,7 +264,7 @@ describe('installCommand', () => {
 
   it('prefers a frozen install and falls back to a plain one', () => {
     expect(installCommand('npm')).toBe(
-      'npm ci --ignore-scripts --no-audit --no-fund || npm install --ignore-scripts --no-audit --no-fund || npm install --ignore-scripts --no-audit --no-fund --legacy-peer-deps || npm install --ignore-scripts --no-audit --no-fund --force',
+      'npm ci --ignore-scripts --no-audit --no-fund || { rm -rf node_modules; npm install --ignore-scripts --no-audit --no-fund || npm install --ignore-scripts --no-audit --no-fund --legacy-peer-deps || npm install --ignore-scripts --no-audit --no-fund --force; }',
     );
     expect(installCommand('pnpm')).toBe(
       'corepack pnpm install --frozen-lockfile --ignore-scripts || corepack pnpm install --no-frozen-lockfile --ignore-scripts',
@@ -273,7 +273,7 @@ describe('installCommand', () => {
 
   it("runs the repo's own release, so the lockfile keeps its format", () => {
     expect(installCommand('npm', '8')).toBe(
-      'npx -y npm@8 ci --ignore-scripts --no-audit --no-fund || npx -y npm@8 install --ignore-scripts --no-audit --no-fund || npx -y npm@8 install --ignore-scripts --no-audit --no-fund --legacy-peer-deps || npx -y npm@8 install --ignore-scripts --no-audit --no-fund --force',
+      'npx -y npm@8 ci --ignore-scripts --no-audit --no-fund || { rm -rf node_modules; npx -y npm@8 install --ignore-scripts --no-audit --no-fund || npx -y npm@8 install --ignore-scripts --no-audit --no-fund --legacy-peer-deps || npx -y npm@8 install --ignore-scripts --no-audit --no-fund --force; }',
     );
     expect(installCommand('pnpm', '8.15.9')).toMatch(
       /^corepack pnpm@8\.15\.9 install --frozen-lockfile/,

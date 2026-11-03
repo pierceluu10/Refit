@@ -32,6 +32,9 @@ const SANDBOX_ENV = {
   COREPACK_ENABLE_AUTO_PIN: '0',
   // CI makes Yarn 2+ refuse any lockfile change, which would block the agent's `yarn add`.
   YARN_ENABLE_IMMUTABLE_INSTALLS: 'false',
+  // The sandbox has one Node release; a repo pinned to an old one still gets its checks run.
+  YARN_IGNORE_ENGINES: 'true',
+  npm_config_engine_strict: 'false',
   // pnpm puts its store at the mount's root when home is on another disk: the copy, and so the diff.
   npm_config_store_dir: '/tmp/aptitude-pnpm-store',
 };
