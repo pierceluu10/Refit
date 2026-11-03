@@ -196,7 +196,9 @@ export async function runTask(
     });
 
     // Agent-named checks get their baseline from a second, untouched copy of the repo.
-    const addCheck = async (check: CheckCommand): Promise<CheckRun> => {
+    const addCheck = async (named: CheckCommand): Promise<CheckRun> => {
+      // The agent's checks get the same placeholder env as the detected ones.
+      const check = { ...named, command: withEnv(named.command, preparation.env) };
       baselineSandbox ??= (async () => {
         const box = await (deps.createSandbox ?? createSandbox)(repoDir);
         if (pm !== 'none') await box.exec(installCommand(pm, pmVersion));
