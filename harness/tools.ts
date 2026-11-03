@@ -11,8 +11,8 @@ import {
 } from './checks.ts';
 import { renderRecipes } from './prompt.ts';
 import { redactSecrets } from './secrets.ts';
-import { runPassed } from './validators.ts';
-import type { ExecResult, FinishReport, ToolContext } from './types.ts';
+import { failingCheckers, gradeValidators, runPassed } from './validators.ts';
+import type { CheckCommand, ExecResult, FinishReport, ToolContext, ValidatorRun } from './types.ts';
 
 type Args = Record<string, unknown>;
 
@@ -130,8 +130,48 @@ function matchesGlob(relative: string, glob: string): boolean {
   return path.matchesGlob(glob.includes('/') ? relative : path.basename(relative), glob);
 }
 
+// What would quietly hold back verified, told to the agent while it can still act on it. The grade's
+// rules don't change; finish just refuses a report that would fail them for a fixable reason.
+export function finishProblems(
+  report: FinishReport,
+  checks: CheckCommand[],
+  runs: ValidatorRun[],
+): string[] {
+  const problems: string[] = [];
+  if (report.proofTest && !checks.some((check) => check.name === report.proofTest)) {
+    problems.push(
+      `proofTest "${report.proofTest}" is not a registered check (registered: ${checks.map((check) => check.name).join(', ')}). Register your test with run_checks add, or give the name you registered.`,
+    );
+  }
+  if (!report.proofTest && !report.noProofTestReason) {
+    problems.push(
+      'Name your test of the change as proofTest (register it with run_checks add first), or say in noProofTestReason why none can be written.',
+    );
+  }
+  for (const grade of gradeValidators(report.validators, runs)) {
+    if (!grade.ran && !grade.passed) {
+      problems.push(
+        `You list ${grade.name} as a validator, but no call of it was recorded. Call it, or leave it out.`,
+      );
+    } else if (grade.ran && !grade.passed) {
+      problems.push(
+        `You list ${grade.name} as a validator, but its latest call didn't pass ("${grade.detail}"). List only validators of your final code: run it on that, or leave out a lookup you made while exploring.`,
+      );
+    }
+  }
+  for (const tool of failingCheckers(runs)) {
+    const output = runs.filter((run) => run.tool === tool).at(-1)?.output ?? '';
+    problems.push(
+      `Your latest ${tool} call reported problems ("${output.trim().split('\n')[0]?.slice(0, 200)}"). Run it again on your final code; if the problem is real, fix it.`,
+    );
+  }
+  return problems;
+}
+
 export function buildTools(ctx: ToolContext): AgentTool[] {
   const { sandbox } = ctx;
+  const runs: ValidatorRun[] = [];
+  let refusals = 0;
   const inside = (file?: string) => resolveInSandbox(sandbox.dir, file);
   const display = (full: string) => path.relative(sandbox.dir, full) || '.';
 
@@ -307,7 +347,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
     ),
     tool(
       'run_checks',
-      'Run the type check, build and tests. Shows failures for each. Use `add` to register checks the detection missed (e.g. `make test`): the harness runs them on the original code and after your edit, and they count toward proof like the detected ones.',
+      'Run the type check, build and tests. Shows failures for each. Use `add` to register checks the detection missed (e.g. `make test`): the harness runs them on the original code and after your edit, and they count toward proof like the detected ones. Use `remove` to drop a check you added and gave up on; every check left counts, and a new failure in any of them holds back verified.',
       {
         names: { type: 'array', items: { type: 'string' }, description: 'Only these checks' },
         add: {
@@ -319,10 +359,22 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
             required: ['name', 'command'],
           },
         },
+        remove: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Names of checks you added and no longer want counted',
+        },
       },
       [],
       async (args) => {
         const notes: string[] = [];
+        for (const name of Array.isArray(args.remove) ? args.remove.map(String) : []) {
+          notes.push(
+            ctx.removeCheck?.(name)
+              ? `removed ${name}`
+              : `${name} was not removed: only a check you added can be`,
+          );
+        }
         for (const item of Array.isArray(args.add) ? args.add : []) {
           const { name, command } = (item ?? {}) as { name?: unknown; command?: unknown };
           if (typeof name !== 'string' || typeof command !== 'string' || !name || !command) {
@@ -443,7 +495,9 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
           out = `error: ${error instanceof Error ? error.message : String(error)}`;
         }
         const output = truncate(redactSecrets(out));
-        ctx.onToolPackCall?.({ tool: name, output, passed: runPassed(out) });
+        const run = { tool: name, output, passed: runPassed(out) };
+        runs.push(run);
+        ctx.onToolPackCall?.(run);
         return output;
       },
     });
@@ -503,6 +557,15 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
             ? { noProofTestReason: text(args.noProofTestReason) }
             : {}),
         };
+        // Two refusals at most, so an agent that can't satisfy them still ends with a report.
+        const problems =
+          report.verdict === 'migrated' && refusals < 2
+            ? finishProblems(report, ctx.checks, runs)
+            : [];
+        if (problems.length > 0) {
+          refusals += 1;
+          return `Not recorded yet: this report would end as needs-review. Fix these, then call finish again:\n- ${problems.join('\n- ')}`;
+        }
         ctx.onFinish(report);
         return `Recorded the "${report.verdict}" report. The harness will now re-run the checks and compare them with the baseline.`;
       },

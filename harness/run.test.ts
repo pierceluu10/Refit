@@ -187,6 +187,25 @@ describe('runTask with a fake model', () => {
     expect(record.checks).toEqual([{ name: 'test', before: 'pass', after: 'pass' }]);
   });
 
+  it('drops a check the agent added and gave up on, but never a detected one', async () => {
+    const giveUp: ScriptedTurn = async (call) => {
+      // Passes on the original code and fails after the edit: a new failure, until it is removed.
+      await call('run_checks', {
+        add: [
+          { name: 'test', command: 'true' },
+          { name: 'attempt', command: 'grep -q charges.create src/pay.js' },
+        ],
+      });
+      const out = await call('run_checks', { remove: ['attempt', 'nope'] });
+      expect(out).toContain('removed attempt');
+      expect(out).toContain('nope was not removed');
+      await fixIt(call, {} as never);
+    };
+    const record = await runTask(task, fixtureRepo({}), deps([giveUp]));
+    expect(record.outcome).toBe('verified');
+    expect(record.agentChecks.map((check) => check.name)).toEqual(['test']);
+  });
+
   it('shows a vacuous agent-added check verbatim instead of hiding it', async () => {
     const addTrue: ScriptedTurn = async (call) => {
       await call('run_checks', { add: [{ name: 'test', command: 'true' }] });
@@ -210,6 +229,7 @@ describe('runTask with a fake model', () => {
         validators: [],
         unproven: ['The test fails because the fixture needs a live key.'],
         behaviourChanges: [],
+        noProofTestReason: 'The only test needs a live key.',
       });
     };
     const record = await runTask(task, fixtureRepo(), deps([explain]));

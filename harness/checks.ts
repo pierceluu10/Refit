@@ -192,6 +192,29 @@ export async function runChecks(sandbox: Sandbox, checks: CheckCommand[]): Promi
   return runs;
 }
 
+// A check that newly fails runs once more, and a failure counts only if it repeats: a flaky test or
+// a build that timed out on a busy machine isn't the change's fault, and a real break fails again.
+export async function runChecksAfter(
+  sandbox: Sandbox,
+  checks: CheckCommand[],
+  before: CheckRun[],
+): Promise<CheckRun[]> {
+  const after = await runChecks(sandbox, checks);
+  const failing = compareChecks(before, after)
+    .filter((comparison) => comparison.newFailures.length > 0)
+    .map((comparison) => comparison.name);
+  if (failing.length === 0) return after;
+  const again = await runChecks(
+    sandbox,
+    checks.filter((check) => failing.includes(check.name)),
+  );
+  return after.map((run) => {
+    const rerun = again.find((candidate) => candidate.name === run.name);
+    const cleared = rerun && compareChecks(before, [rerun])[0]?.newFailures.length === 0;
+    return cleared ? rerun : run;
+  });
+}
+
 const ANSI = /\x1b\[[0-9;?]*[A-Za-z]/g;
 const TEMP_DIR = /(?:\/private)?\/(?:var\/folders\/[^\s/]+\/[^\s/]+\/T|tmp)\/[^\s/]+\//g;
 const DURATION = /\s*\(?\d+(?:\.\d+)?\s?(?:ms|s|m)\)?\s*$/;
@@ -243,17 +266,31 @@ function summary(run: CheckRun | undefined): string {
   return run.ok ? 'pass' : `fail (${run.failures.length})`;
 }
 
+// tsc prints types in its messages, and a dependency bump can reorder their properties, so a type
+// error is matched by file and code (counting repeats) rather than by its text.
+function failureKey(failure: string): string {
+  const match = failure.match(/^(.+?): error (TS\d+):/);
+  return match ? `${match[1]} ${match[2]}` : failure;
+}
+
 export function compareChecks(before: CheckRun[], after: CheckRun[]): CheckComparison[] {
   const names = [...new Set([...before, ...after].map((run) => run.name))];
   return names.map((name) => {
     const old = before.find((run) => run.name === name);
     const now = after.find((run) => run.name === name);
-    const known = new Set(old?.failures ?? []);
+    const known = new Map<string, number>();
+    for (const failure of old?.failures ?? []) {
+      known.set(failureKey(failure), (known.get(failureKey(failure)) ?? 0) + 1);
+    }
     return {
       name,
       before: summary(old),
       after: summary(now),
-      newFailures: (now?.failures ?? []).filter((failure) => !known.has(failure)),
+      newFailures: (now?.failures ?? []).filter((failure) => {
+        const left = known.get(failureKey(failure)) ?? 0;
+        known.set(failureKey(failure), left - 1);
+        return left <= 0;
+      }),
     };
   });
 }

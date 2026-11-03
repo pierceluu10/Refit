@@ -50,7 +50,12 @@ const LESSON_SYSTEM = `You read an API migration run that did not succeed: it fa
 
 If the run hit a dead end, a wrong assumption or a missed check that an engineer following one of those recipes should know about, set sameAsRecipeId to that recipe's id. Return that recipe's pitfalls with this run's lesson added, keeping what was already there, and say the lesson comes from a run that did not succeed. Otherwise set sameAsRecipeId to null and pitfalls to an empty string.`;
 
-const MAX_TRANSCRIPT_CHARS = 600_000;
+// Head and tail of a long transcript; past this the middle is mostly tool output the recipe doesn't need.
+const MAX_TRANSCRIPT_CHARS = 150_000;
+const MAX_DIFF_CHARS = 60_000;
+// A lockfile's hunks are the package manager's output, not the change; a recipe learns nothing from them.
+const LOCKFILE =
+  /(?:^|\/)(?:package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?|npm-shrinkwrap\.json|poetry\.lock|Pipfile\.lock|uv\.lock|Cargo\.lock|go\.sum|composer\.lock|Gemfile\.lock)$/;
 
 // A human merging or editing the PR is the strongest success signal; closing it outweighs passing checks.
 export function succeeded({ outcome, humanVerdict }: RunRecord): boolean {
@@ -212,12 +217,27 @@ function buildPrompt(run: StoredRun, existing: MemoryRecipe[]): string {
     `## Task\n${JSON.stringify(task, null, 2)}`,
     `## Outcome\n${outcome}`,
     // shortcut: a human's final diff isn't recorded yet; pass it here once the GitHub App sends it.
-    `## Agent's diff\n${run.record.diff}`,
+    `## Agent's diff\n${diffForPrompt(run.record.diff)}`,
     `## Checks (before -> after)\n${JSON.stringify(run.record.checks, null, 2)}`,
     `## What the run did\n${whatTheRunDid(run)}`,
     `## Transcript\n${transcriptForPrompt(run.transcript)}`,
     `## Existing recipes for ${change.provider}\n${recipes.length ? JSON.stringify(recipes, null, 2) : 'None yet.'}`,
   ].join('\n\n');
+}
+
+export function diffForPrompt(diff: string): string {
+  const files = diff.split(/(?=^diff --git )/m);
+  const kept = files.filter((file) => {
+    const path = file.match(/^diff --git a\/(\S+)/)?.[1];
+    return !path || !LOCKFILE.test(path);
+  });
+  const dropped = files.length - kept.length;
+  const text = kept.join('');
+  const capped =
+    text.length <= MAX_DIFF_CHARS
+      ? text
+      : `${text.slice(0, MAX_DIFF_CHARS)}\n[... ${text.length - MAX_DIFF_CHARS} more characters of diff not shown ...]`;
+  return dropped ? `${capped}\n[${dropped} lockfile diff(s) left out]` : capped;
 }
 
 // shortcut: keeps the head and tail of a huge transcript and drops the middle; summarise the middle with a cheap model pass if dead ends there get lost.

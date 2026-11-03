@@ -12,6 +12,7 @@ import {
   installCommand,
   packageManagerVersion,
   runChecks,
+  runChecksAfter,
 } from './checks.ts';
 import { BudgetLedger, budgetFromEnv } from './ledger.ts';
 import { filesFromDiff, writePrBody } from './pr.ts';
@@ -213,6 +214,20 @@ export async function runTask(
       return run;
     };
 
+    // Only a check the agent added can go: an attempt it gave up on shouldn't count against it.
+    const removeCheck = (name: string): boolean => {
+      const at = agentChecks.findIndex((check) => check.name === name);
+      if (at < 0) return false;
+      agentChecks.splice(at, 1);
+      checks.splice(
+        checks.findIndex((check) => check.name === name),
+        1,
+      );
+      const run = before.findIndex((candidate) => candidate.name === name);
+      if (run >= 0) before.splice(run, 1);
+      return true;
+    };
+
     let report: FinishReport | undefined;
     let finishedThisIteration = false;
     const validatorRuns: ValidatorRun[] = [];
@@ -230,6 +245,7 @@ export async function runTask(
         finishedThisIteration = true;
       },
       addCheck,
+      removeCheck,
       onToolPackCall: (run) => validatorRuns.push(run),
       fetch: deps.fetch,
     }).map((tool) => ({
@@ -291,7 +307,7 @@ export async function runTask(
         result = { finalText: '', stopReason: 'error', error: String(error) };
       }
       sessionId = result.sessionId ?? sessionId;
-      after = await runChecks(sandbox, checks);
+      after = await runChecksAfter(sandbox, checks, before);
       comparisons = compareChecks(before, after);
       const newFailures = newFailureCount(comparisons);
       log({ type: 'harness', phase: 'iteration', iteration, model, result, after, comparisons });

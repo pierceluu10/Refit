@@ -15,6 +15,7 @@ import {
   WATCH_USD,
 } from '../../orchestrator/deps.ts';
 import { unlistedProviders } from '../../orchestrator/loop.ts';
+import { bundleTasks } from '../../orchestrator/bundle.ts';
 import { MATCH_BATCH, type MatchedTask } from '../../orchestrator/match.ts';
 import { BudgetLedger as WatchLedger } from '../../providers/core/model.ts';
 import { listProviderIds } from '../../providers/core/registry.ts';
@@ -218,7 +219,8 @@ export async function loadRealPipeline(
         if (changes.length > MATCH_BATCH) tasks.sort((a, b) => urgencyRank(a) - urgencyRank(b));
         tasks.forEach((task, index) => (task.priority = index + 1));
         return {
-          tasks,
+          // One harness run and one PR per repo and provider, as the loop does.
+          tasks: bundleTasks(tasks),
           reasoning: [...tasks.map((task) => `${task.id}: ${task.reasoning}`), ...reasons].join(
             '\n',
           ),

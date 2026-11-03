@@ -9,9 +9,10 @@ import {
   failureSignatures,
   installCommand,
   packageManagerVersion,
+  runChecksAfter,
   type PackageManager,
 } from './checks.ts';
-import type { CheckRun } from './types.ts';
+import type { CheckRun, Sandbox } from './types.ts';
 
 const dirs: string[] = [];
 async function fixture(files: Record<string, string>): Promise<string> {
@@ -132,6 +133,58 @@ describe('compareChecks', () => {
       { name: 'typecheck', before: 'not run', after: 'fail (1)', newFailures: ['x: error TS1: y'] },
     ]);
     expect(compareChecks([run('test', [])], [])[0]).toMatchObject({ after: 'not run' });
+  });
+});
+
+describe('compareChecks on type errors', () => {
+  const run = (failures: string[]): CheckRun => ({
+    name: 'typecheck',
+    command: 'tsc',
+    ok: false,
+    output: '',
+    failures,
+  });
+
+  it('matches a type error by file and code when tsc reorders the types it prints', () => {
+    const before = run([
+      "a.ts: error TS2322: Type '{ id: number; name: string; }' is not assignable.",
+    ]);
+    const after = run([
+      "a.ts: error TS2322: Type '{ name: string; id: number; }' is not assignable.",
+    ]);
+    expect(compareChecks([before], [after])[0]?.newFailures).toEqual([]);
+  });
+
+  it('still counts one more error of the same code in the same file', () => {
+    const before = run(['a.ts: error TS2322: one']);
+    const after = run(['a.ts: error TS2322: one', 'a.ts: error TS2322: two']);
+    expect(compareChecks([before], [after])[0]?.newFailures).toEqual(['a.ts: error TS2322: two']);
+  });
+});
+
+describe('runChecksAfter', () => {
+  const pass: CheckRun = { name: 'test', command: 'npm test', ok: true, output: '', failures: [] };
+  // A sandbox whose exec answers from a script, one exit code per call.
+  const scripted = (codes: number[]): Sandbox => ({
+    dir: '/work',
+    mode: 'local',
+    exec: async () => {
+      const code = codes.shift() ?? 0;
+      return { code, stdout: code ? 'FAIL src/pay.test.ts' : 'ok', stderr: '', timedOut: false };
+    },
+    diff: async () => '',
+    dispose: async () => {},
+  });
+  const checks = [{ name: 'test', command: 'npm test' }];
+
+  it('takes the rerun when a new failure does not repeat', async () => {
+    const [run] = await runChecksAfter(scripted([1, 0]), checks, [pass]);
+    expect(run?.ok).toBe(true);
+  });
+
+  it('keeps a failure that repeats', async () => {
+    const [run] = await runChecksAfter(scripted([1, 1]), checks, [pass]);
+    expect(run?.failures).toEqual(['FAIL src/pay.test.ts']);
   });
 });
 

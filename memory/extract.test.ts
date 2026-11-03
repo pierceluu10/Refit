@@ -3,7 +3,7 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DegradedOutputError, type JsonRequest, type Model } from './ai.ts';
-import { extractRecipe } from './extract.ts';
+import { diffForPrompt, extractRecipe } from './extract.ts';
 import { makeRecipe, makeRecord, makeTask } from './fixtures/tasks.ts';
 import { JsonMemoryStore } from './store.ts';
 
@@ -189,6 +189,17 @@ describe('extractRecipe', () => {
     expect(await store.listRecipes()).toHaveLength(2);
   });
 
+  it('leaves lockfile hunks out of the diff it shows the model', () => {
+    const diff = [
+      'diff --git a/src/pay.ts b/src/pay.ts\n+paymentIntents.create\n',
+      'diff --git a/package-lock.json b/package-lock.json\n+"stripe": "23.0.0"\n',
+    ].join('');
+    const shown = diffForPrompt(diff);
+    expect(shown).toContain('paymentIntents.create');
+    expect(shown).not.toContain('"stripe": "23.0.0"');
+    expect(shown).toContain('[1 lockfile diff(s) left out]');
+  });
+
   it('keeps the head and tail of a huge transcript and tells the model what was elided', async () => {
     const transcript = `HEAD-MARKER${'x'.repeat(700_000)}TAIL-MARKER`;
     const { store, run } = await setup({ transcript });
@@ -199,8 +210,8 @@ describe('extractRecipe', () => {
     const { prompt } = requests[0];
     expect(prompt).toContain('HEAD-MARKER');
     expect(prompt).toContain('TAIL-MARKER');
-    expect(prompt).toContain(`${transcript.length - 600_000} characters elided`);
-    expect(prompt.length).toBeLessThan(610_000);
+    expect(prompt).toContain(`${transcript.length - 150_000} characters elided`);
+    expect(prompt.length).toBeLessThan(160_000);
   });
 
   it('retries once when the answer is degraded and marks the run done', async () => {

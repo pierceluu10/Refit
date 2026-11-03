@@ -5,7 +5,7 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-03.r3-2';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-03.r3-4';
 
 // shortcut: `notes` is on MigrationTask in O1's branch only; drop this local type once that merges.
 export type TaskWithNotes = MigrationTask & { notes?: string };
@@ -169,7 +169,8 @@ export function buildSystemPrompt(input: PromptInput): string {
     workflowSection(task, toolPack, recipes),
     [
       '## Tools',
-      tools.map((tool) => `- \`${tool.name}\`: ${tool.description}`).join('\n'),
+      // Names only: each tool's description already reaches the model with its definition.
+      `Your tools: ${tools.map((tool) => `\`${tool.name}\``).join(', ')}. Each one's description says what it does and when to use it.`,
       `Sandbox: ${sandboxNote}`,
       'Real env files (`.env`, `.env.local` and the like) are deliberately absent from the sandbox. Read the templates (`.env.example`, `.env.sample`, `.env.template`, `.env.dist`) to learn which keys and services the app uses.',
       'Tools only return information. You decide which ones to use, and none of them block you.',
@@ -179,6 +180,7 @@ export function buildSystemPrompt(input: PromptInput): string {
       [
         '- **verified**: the checks pass before and after your change, your test of the change passes (named in `finish` as `proofTest`), and the provider validators pass. Only NEW failures count. Failures that existed before your change are noted, not fixed, unless your change touches them.',
         "- Only when no test of the change can be written at all, say why in `noProofTestReason`. A test that is hard to write is not one that can't be.",
+        "- Put your test where it can run here. Don't add it to a test file or suite that already fails before your change (a database or service the sandbox lacks): it fails for the same reason, and every new failure counts against your change.",
         '- **needs-review**: state exactly what is unproven, and any behaviour change.',
         "- List as unproven what this run could have checked and didn't, or checked and couldn't prove. Leave out the standing limit that no run here makes live API calls: the sandbox has no credentials, and the PR says so on every run.",
         "- What your change may do differently that only a live call would show, such as a new model's output or a response's shape at a new API version, goes under behaviour changes, so the reviewer checks it.",
@@ -191,6 +193,7 @@ export function buildSystemPrompt(input: PromptInput): string {
       [
         '- Make the smallest correct change.',
         '- Keep behaviour the same unless the API change forces otherwise, and say so.',
+        "- A provider's recommendation is not a requirement. Don't remove or change a parameter, option or default the change doesn't force, even when the new version suggests it (dropping `payment_method_types` for dynamic payment methods is a product decision, not a migration). Mention such a suggestion in the PR summary instead.",
         "- Don't reformat unrelated code. Don't upgrade unrelated dependencies.",
         "- When a dependency must change, change it with the repo's own package manager and release (the kickoff message names them) and let it rewrite the lockfile. Never edit a lockfile by hand or switch package managers.",
         '- Before you call `finish`, look at your change with `diff`: the lockfile should change only for the dependencies you moved, and no file should change by accident.',

@@ -81,7 +81,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-03.r3-2');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-03.r3-4');
   });
 
   it('puts the sections in the plan order', () => {
@@ -110,7 +110,8 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('guidance, not rules');
     expect(prompt).toContain('Webhook handlers read the old name too');
     expect(prompt).toContain('verified on 3 repos');
-    expect(prompt).toContain('`fetch_url`: Fetch a docs page');
+    expect(prompt).toContain('`fetch_url`, `finish`');
+    expect(prompt).not.toContain('Fetch a docs page');
     expect(prompt).toContain('Docker container, network off');
     expect(prompt).toContain('$5.00');
     expect(prompt).toContain("'not-affected'");
