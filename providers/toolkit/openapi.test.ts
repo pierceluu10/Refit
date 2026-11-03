@@ -115,6 +115,22 @@ describe('openapi_check', () => {
     expect(runPassed(out)).toBe(true);
   });
 
+  it('leaves credentials and transport headers to the client instead of calling them unknown', async () => {
+    const out = await checkReport(
+      {
+        spec_url: V3,
+        operation: 'GET /pet/42',
+        params: { petId: 42, api_key: 'placeholder', Authorization: 'placeholder' },
+      },
+      { fetch: recordedFetch() },
+    );
+    expect(out).toContain('Result: 0 error(s), 0 warning(s).');
+    expect(out).toContain(
+      'Not checked: api_key (auth or transport header); Authorization (auth or transport header)',
+    );
+    expect(runPassed(out)).toBe(true);
+  });
+
   it('checks query params by type and enum, with suggestions', async () => {
     const out = await checkReport(
       { spec_url: V3, operation: 'GET /pet/findByStatus', params: { status: 'availble' } },

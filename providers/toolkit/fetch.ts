@@ -43,6 +43,17 @@ const USER_AGENT = 'aptitude-toolpack/0.1';
 const MAX_REDIRECTS = 5;
 
 const cache = new Map<string, PageResult>();
+const CACHE_ENTRIES = 200;
+
+/**
+ * Set a key in a process-wide memo, dropping the oldest entries past `max`. The app runs many
+ * jobs in one process, and specs and registry documents run to megabytes each.
+ */
+export function remember<K, V>(memo: Map<K, V>, key: K, value: V, max = CACHE_ENTRIES): void {
+  memo.delete(key);
+  memo.set(key, value);
+  while (memo.size > max) memo.delete(memo.keys().next().value as K);
+}
 
 export function resolveFetch(options?: NetworkOptions): FetchLike | null {
   if (options && options.fetch !== undefined) return options.fetch;
@@ -167,7 +178,7 @@ export async function fetchPage(url: string, options: PageRequest = {}): Promise
             text,
             error: `HTTP ${response.status}`,
           };
-      if (result.ok) cache.set(key, result);
+      if (result.ok) remember(cache, key, result);
       return result;
     }
     return { ok: false, url: target, status: 0, error: 'too many redirects' };

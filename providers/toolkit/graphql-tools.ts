@@ -3,7 +3,7 @@
 // against it. They report; the agent decides. The check is a validator: its result counts as proof.
 
 import type { AgentTool } from '../../shared/types.ts';
-import { fetchPage, type NetworkOptions } from './fetch.ts';
+import { fetchPage, remember, type NetworkOptions } from './fetch.ts';
 import {
   formatIssues,
   namedType,
@@ -98,7 +98,7 @@ export async function loadSchema(
   }
   try {
     const loaded = { schema: schemaFromText(text), label };
-    schemaMemory.set(key, loaded);
+    remember(schemaMemory, key, loaded, 20);
     return { loaded };
   } catch (error) {
     return {

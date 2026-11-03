@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AgentTool } from '../../shared/types.ts';
-import { fetchPage, resolveFetch, type NetworkOptions } from './fetch.ts';
+import { fetchPage, remember, resolveFetch, type NetworkOptions } from './fetch.ts';
 import { pageTitle, pageToText, type PageStore } from './pages.ts';
 import { rank, splitPassages } from './text.ts';
 import { defineTool, num, str, bool } from './tool.ts';
@@ -98,7 +98,7 @@ export function loadSavedPassages(dir: string): DocPassage[] {
       });
     }
   }
-  savedMemory.set(dir, passages);
+  remember(savedMemory, dir, passages, 50);
   return passages;
 }
 

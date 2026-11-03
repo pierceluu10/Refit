@@ -106,6 +106,38 @@ describe('loadToolPack', () => {
     expect(none).toContain('https://docs.anthropic.com/en/api/versioning');
   });
 
+  it('puts the generic playbook into the harness prompt for a provider with no folder', async () => {
+    const { buildSystemPrompt } = await import('../../harness/prompt.ts');
+    const pack = await loadToolPack('Anthropic', { fetch: null });
+    const prompt = buildSystemPrompt({
+      task: {
+        id: 'o/r:anthropic-sdk-1',
+        repo: 'o/r',
+        change: {
+          provider: 'anthropic',
+          id: 'anthropic-sdk-1',
+          kind: 'sdk-major',
+          title: 'Illustrative change: the TypeScript SDK moves to 1.0',
+          source: { url: 'https://example.com/changelog', quote: 'Illustrative quote.' },
+          affects: { sdk: '@anthropic-ai/sdk' },
+        },
+        usages: [],
+        priority: 1,
+      },
+      toolPack: pack,
+      recipes: [],
+      tools: pack.tools.map((t) => ({
+        name: `${pack.provider}__${t.name}`,
+        description: t.description,
+      })),
+      budgetUsd: 5,
+      sandboxNote: 'test',
+    });
+    expect(prompt).toContain('### Provider playbook: anthropic / sdk-major');
+    expect(prompt).toContain('# SDK major version upgrade (any provider)');
+    expect(prompt).toContain('`anthropic__package_lookup`');
+  });
+
   it('lets the docs search find pages the other tools read in the same run', async () => {
     const pack = await loadToolPack('anthropic', { fetch: recordedFetch() });
     await tool(pack, 'fetch_changelog').run(

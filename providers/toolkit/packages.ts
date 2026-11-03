@@ -396,15 +396,12 @@ function formatNotes(
 ): string[] {
   let chosen = [...notes].sort((a, b) => compareVersions(b.version, a.version));
   const fromMajor = majorOf(input.from);
+  // Under semver a major release may break things, and so may any 0.x minor release.
   const isMajor = (note: ReleaseNote) => {
     const v = parseVersion(note.version);
-    return (
-      !!v &&
-      v.minor === 0 &&
-      v.patch === 0 &&
-      !v.pre &&
-      (fromMajor === undefined || v.major > fromMajor)
-    );
+    if (!v || v.patch !== 0 || v.pre) return false;
+    if (v.major === 0) return v.minor > 0;
+    return v.minor === 0 && (fromMajor === undefined || v.major > fromMajor);
   };
   if (input.query) {
     const ranked = rank(input.query, chosen, (n) => `${n.title} ${n.text}`).map((r) => r.item);
@@ -421,7 +418,12 @@ function formatNotes(
       note.text.length > 1500
         ? `${note.text.slice(0, 1500)}\n[cut; read the rest at the link]`
         : note.text;
-    return `## ${note.version}${note.date ? ` (${note.date})` : ''}${isMajor(note) ? ' [major]' : ''}${note.url ? ` ${note.url}` : ''}\n${body || '(no notes text)'}`;
+    const label = !isMajor(note)
+      ? ''
+      : parseVersion(note.version)?.major === 0
+        ? ' [0.x minor: may break]'
+        : ' [major]';
+    return `## ${note.version}${note.date ? ` (${note.date})` : ''}${label}${note.url ? ` ${note.url}` : ''}\n${body || '(no notes text)'}`;
   });
 }
 
@@ -483,12 +485,7 @@ export async function packageReport(
       ? 'Deprecated or yanked:'
       : 'Deprecated or yanked: none recorded by the registry.',
   );
-  out.push(
-    ...deprecations.filter(
-      (line) =>
-        line.startsWith('- ') || line.startsWith('The pinned') || line.startsWith('Package'),
-    ),
-  );
+  out.push(...deprecations);
 
   if (input.notes !== false) {
     const from = input.version ? parseVersion(input.version) : undefined;

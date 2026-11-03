@@ -3,7 +3,7 @@
 // says; the agent decides what to change. The check is a validator: its result counts toward proof.
 
 import type { AgentTool } from '../../shared/types.ts';
-import { fetchPage, type NetworkOptions } from './fetch.ts';
+import { fetchPage, remember, type NetworkOptions } from './fetch.ts';
 import { closest, rank } from './text.ts';
 import { defineTool, num, obj, str, bool } from './tool.ts';
 import { parseYaml } from './yaml.ts';
@@ -96,7 +96,7 @@ export async function loadSpec(
   if (!page.ok) return { error: `could not load ${url} (${page.error})` };
   const spec = parseSpec(page.text, page.url);
   if (typeof spec === 'string') return { error: `${url}: ${spec}` };
-  specMemory.set(url, spec);
+  remember(specMemory, url, spec, 20);
   return { spec };
 }
 
@@ -487,6 +487,25 @@ export type RequestInput = {
   body?: unknown;
 };
 
+const TRANSPORT_HEADERS = ['authorization', 'content-type', 'accept', 'user-agent', 'cookie'];
+
+/** Header and query names the spec's apiKey security schemes use, plus common transport headers. */
+function authNames(spec: Spec): Set<string> {
+  const components = isObject(spec.doc.components) ? spec.doc.components : {};
+  const schemes = {
+    ...(isObject(spec.doc.securityDefinitions) ? spec.doc.securityDefinitions : {}),
+    ...(isObject(components.securitySchemes) ? components.securitySchemes : {}),
+  };
+  const names = new Set(TRANSPORT_HEADERS);
+  for (const scheme of Object.values(schemes)) {
+    const resolved = deref(spec, scheme);
+    if (resolved?.type === 'apiKey' && typeof resolved.name === 'string') {
+      names.add(resolved.name.toLowerCase());
+    }
+  }
+  return names;
+}
+
 export function checkRequest(spec: Spec, operation: Operation, input: RequestInput): CheckFindings {
   const f: CheckFindings = {
     unknown: [],
@@ -500,6 +519,7 @@ export function checkRequest(spec: Spec, operation: Operation, input: RequestInp
   const declared = operation.parameters.filter((p) => p.in !== 'body' && p.in !== 'formData');
   const byName = new Map(declared.map((p) => [String(p.name), p]));
   const body = requestBody(spec, operation);
+  const auth = authNames(spec);
   const leftover: Json = {};
   for (const [name, value] of Object.entries(input.params ?? {})) {
     const param =
@@ -508,7 +528,9 @@ export function checkRequest(spec: Spec, operation: Operation, input: RequestInp
         (p) => String(p.name).toLowerCase() === name.toLowerCase() && p.in === 'header',
       );
     if (!param) {
-      leftover[name] = value;
+      // Credentials and transport headers are set by the client, not described as params.
+      if (auth.has(name.toLowerCase())) f.unchecked.push(`${name} (auth or transport header)`);
+      else leftover[name] = value;
       continue;
     }
     if (param.deprecated === true) f.deprecated.push(`${param.in} param ${name}`);
