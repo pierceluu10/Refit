@@ -17,6 +17,7 @@ const parts = vi.hoisted(() => ({
   refuseInventory: false,
   runTask: undefined as undefined | ((budget: Budget) => Promise<RunRecord>),
   matchCalls: [] as number[],
+  recorded: 0,
 }));
 
 // Each fake part spends a fixed amount from the run budget, as the real ones do.
@@ -25,6 +26,9 @@ vi.mock('../../orchestrator/deps.ts', () => ({
   defaultWatchCache: '/unused',
   cachedChanges: (_dir: string, _key: string, call: () => Promise<unknown>) => call(),
   createDeps: ({ budget }: { budget: Budget }) => ({
+    recordRun: async () => {
+      parts.recorded += 1;
+    },
     inventory: async () => {
       if (parts.refuseInventory) throw new RunBudgetRefusal('AI budget: $0.40 of the $5 cap left');
       budget.chargeUsd(parts.inventoryUsd);
@@ -194,6 +198,8 @@ describe('loadRealPipeline', () => {
 
     await pipeline.runTask(task, '/unused');
     expect(started).toBe(true);
+    // Memory learns from every attempt, so recipes carry across iterations.
+    expect(parts.recorded).toBeGreaterThan(0);
   });
 
   it('reads the orchestrator’s not-attempted record as unaffordable too', async () => {

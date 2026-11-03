@@ -14,13 +14,13 @@ out=evals/reports/round-3/iter-$iteration
 : "${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY for this command}"
 # Caps high enough that they never decide anything; the cap mechanism itself stays.
 export APTITUDE_SANDBOX=docker APTITUDE_AI_BUDGET_USD=2000
+# One memory store across iterations, written by this one process, so recipes carry over.
+export APTITUDE_MEMORY_DIR=${APTITUDE_MEMORY_DIR:-$HOME/.aptitude-r3-memory}
 mkdir -p "$out"
 date -u +"started %Y-%m-%dT%H:%M:%SZ at $(git rev-parse --short HEAD)" | tee "$out/started.txt"
 node evals/runner/cli.ts screen --sets "$sets" --budget-usd 300 --concurrency 6
-for set in $(echo "$sets" | tr ',' ' '); do
-  node evals/runner/cli.ts run --set "$set" --screen "$screen" --budget-usd 2000 \
-    --concurrency "$concurrency" --out "$out" > "$out/$set.log" 2>&1 &
-done
-wait
+# Every set in one process (each with its own cap), so the memory store has one writer.
+node evals/runner/cli.ts run --set "$sets" --screen "$screen" --budget-usd 2000 \
+  --concurrency "$concurrency" --out "$out" > "$out/run.log" 2>&1 || true
 node evals/runner/cli.ts score3 --in "$out" --screen "$screen" --report "$out/score.md" --json "$out/score.json"
 date -u +"finished %Y-%m-%dT%H:%M:%SZ" | tee -a "$out/started.txt"
