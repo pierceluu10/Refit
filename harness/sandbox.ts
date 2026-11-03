@@ -99,6 +99,19 @@ export async function createSandbox(
       '-v', `${dir}:/work`, '-w', '/work', image, 'sleep', 'infinity',
     ]);
     if (started.code !== 0) throw new Error(`docker run ${image} failed: ${started.stderr.trim()}`);
+    // Repo scripts call pnpm and yarn by name, and the image has only corepack. Its shims go on a
+    // PATH every command sets, since sh -l resets PATH. Best effort: the Python image has no corepack.
+    await run(
+      'docker',
+      [
+        'exec',
+        name,
+        'sh',
+        '-c',
+        'mkdir -p /tmp/bin && corepack enable --install-directory /tmp/bin',
+      ],
+      { timeoutMs: 60_000 },
+    );
     return {
       dir,
       mode,
@@ -109,7 +122,13 @@ export async function createSandbox(
         // timeout too, a little after the host gives up.
         const seconds = String(Math.ceil(timeoutMs / 1000) + 2);
         const args = ['exec', '-w', '/work', name, 'timeout', '-s', 'KILL', seconds];
-        return run('docker', [...args, 'sh', '-lc', command], { timeoutMs });
+        return run(
+          'docker',
+          [...args, 'sh', '-lc', `export PATH=/tmp/bin:/tmp/bun/bin:$PATH; ${command}`],
+          {
+            timeoutMs,
+          },
+        );
       },
       diff,
       snapshot,
