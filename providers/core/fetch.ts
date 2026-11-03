@@ -389,8 +389,9 @@ async function safeGet(
     ) {
       sent.authorization = `Bearer ${options.githubToken}`;
     }
-    // An early check above, and the real one in the connection's own lookup (pinnedGet).
-    const response = await get(target, {
+    // An early check above, and the real one in the connection's own lookup (pinnedGet). The URL
+    // goes out as the parser wrote it, so spaces and other characters a model may paste are escaped.
+    const response = await get(parsed.href, {
       headers: sent,
       signal: AbortSignal.timeout(options.timeoutMs ?? 30_000),
     });

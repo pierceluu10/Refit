@@ -114,6 +114,17 @@ describe('the SSRF guard', () => {
     expect(calls).toEqual([]);
   });
 
+  it('sends a pasted URL escaped, as the URL parser writes it', async () => {
+    const calls = stubFetch({
+      'https://docs.example.com/release%20notes': () => new Response('notes'),
+    });
+    const page = await httpFetcher({ lookup: publicLookup, get: viaFetch }).fetch(
+      'https://docs.example.com/release notes',
+    );
+    expect(page.ok).toBe(true);
+    expect(calls.map((call) => call.url)).toEqual(['https://docs.example.com/release%20notes']);
+  });
+
   it('sends the GitHub token to release lists only, not other GitHub API paths', async () => {
     const calls = stubFetch({
       'https://api.github.com/repos/a/b/contents/secret.txt': () => new Response('{}'),
