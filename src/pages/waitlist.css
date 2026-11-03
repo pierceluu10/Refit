@@ -669,22 +669,12 @@
   padding-bottom: 96px;
   perspective: 1400px;
 }
-.launch-horizon-plane {
-  position: absolute;
-  inset: -120px 0 0;
-  z-index: -1;
-  width: 100%;
-  height: calc(100% + 120px);
-  mask-image: linear-gradient(#000 75%, transparent);
-  /* The stage's perspective makes it a stacking context, so the plane paints over the form. */
-  pointer-events: none;
-}
 .launch-horizon-tilt {
   width: min(960px, 100% - 48px);
   margin: 0 auto;
   transform-origin: 50% 100%;
 }
-/* The demo lies back on the plane and stands up as it scrolls into view. */
+/* The demo lies back and stands up as it scrolls into view. */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) and (min-width: 901px) {
     .launch-horizon-tilt {

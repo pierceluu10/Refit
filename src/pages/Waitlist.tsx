@@ -1,6 +1,5 @@
 import { AgentDemo } from '../components/AgentDemo';
 import { AsciiWordmark } from '../components/AsciiWordmark';
-import { DotHorizon } from '../components/DotHorizon';
 import { Header } from '../components/Layout';
 import { ParticleField } from '../components/ParticleField';
 import { StackSection } from '../components/Stack';
@@ -28,8 +27,8 @@ export function Waitlist() {
   );
 }
 
-// The demo lies tilted on the plane and stands up as the page scrolls, so the first screen
-// shows its top edge rising over the horizon.
+// The demo lies tilted back and stands up as the page scrolls, so the first screen shows its
+// top edge rising into view.
 function LaunchHero() {
   return (
     <section className="launch-horizon" id="waitlist">
@@ -40,7 +39,6 @@ function LaunchHero() {
         <WaitlistForm />
       </div>
       <div className="launch-horizon-stage" data-field-avoid>
-        <DotHorizon className="launch-horizon-plane" />
         <div className="launch-horizon-tilt">
           <div className="launch-frame">
             <AgentDemo />
