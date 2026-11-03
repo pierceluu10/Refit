@@ -1,0 +1,309 @@
+/* Direction 6, Session: white Martian Mono on the brand's royal blue. Wide, heavy type for the
+   headline; the transcript is the one moving part. */
+
+.session {
+  --field: #0048d8;
+  --deep: #003cb5;
+  --haze: #c4d4fa;
+  --line: rgb(255 255 255 / 0.32);
+  --term: 'Martian Mono Variable', 'Geist Mono Variable', monospace;
+  /* Read by the shared form and the global focus ring. */
+  --blue: #fff;
+  --muted: var(--haze);
+  color: #fff;
+  background: var(--field);
+  font-family: var(--term);
+  font-size: 14px;
+  font-stretch: 100%;
+}
+.session ::selection {
+  color: var(--field);
+  background: #fff;
+}
+
+.session-header,
+.session-main,
+.session-footer {
+  width: min(1200px, 100% - 64px);
+  margin: 0 auto;
+}
+.session-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 0;
+  font-size: 13px;
+}
+.session-header .dir-wordmark {
+  font-size: 18px;
+  font-weight: 600;
+}
+.session-header > a:last-child {
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  text-decoration-thickness: 1px;
+}
+
+.session-command {
+  margin-bottom: 26px;
+  color: var(--haze);
+  font-size: 13px;
+}
+.session-hero {
+  padding: 72px 0 64px;
+}
+.session h1 {
+  max-width: 20ch;
+  margin-bottom: 30px;
+  font-size: clamp(34px, 5.6vw, 80px);
+  font-weight: 700;
+  font-stretch: 112.5%;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+.session-lede {
+  max-width: 60ch;
+  margin-bottom: 36px;
+  color: var(--haze);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.session-window {
+  position: relative;
+  margin: 0 0 24px;
+  padding: 36px 32px 30px;
+  border: 1px solid var(--line);
+  background: var(--deep);
+}
+.session-window figcaption {
+  position: absolute;
+  top: -0.85em;
+  left: 22px;
+  padding: 0 10px;
+  color: var(--haze);
+  background: var(--field);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.session-window figcaption span {
+  margin: 0 1.5ch;
+  color: #fff;
+}
+.session-log {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+.session-log li {
+  display: grid;
+  grid-template-columns: 10ch 10ch minmax(0, 1fr);
+}
+.session-log .is-comment {
+  display: block;
+  padding: 10px 0;
+  color: var(--haze);
+}
+.session-time {
+  color: var(--haze);
+}
+.session-verb {
+  font-weight: 600;
+}
+.session-log .is-change .session-verb,
+.session-log .is-change .session-detail {
+  justify-self: start;
+  padding: 0 0.6ch;
+  color: var(--field);
+  background: #fff;
+}
+.session-log .is-change .session-verb {
+  margin-left: -0.6ch;
+}
+.session-log .is-ship .session-detail {
+  font-weight: 600;
+}
+.session-log .is-note .session-detail {
+  color: var(--haze);
+}
+.session-cursor::before {
+  content: '';
+  width: 1ch;
+  height: 1.3em;
+  background: #fff;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .session-log li {
+    opacity: 0;
+  }
+  .session-log.is-playing li {
+    animation: session-line 160ms ease-out both;
+    animation-delay: calc(var(--n) * 260ms);
+  }
+  .session-log.is-playing .session-cursor::before {
+    /* Blinks five times after it appears, then holds still. */
+    animation: session-blink 1s steps(1) calc(var(--n) * 260ms) 5;
+  }
+}
+@keyframes session-line {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes session-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.session-block {
+  padding: 88px 0 24px;
+}
+.session h2 {
+  margin-bottom: 14px;
+  font-size: clamp(24px, 2.8vw, 36px);
+  font-weight: 700;
+  font-stretch: 112.5%;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.session-limits {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.session-limits li {
+  display: grid;
+  grid-template-columns: 7ch minmax(0, 1fr);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.session h2 span,
+.session-rule {
+  color: var(--haze);
+}
+.session-rule {
+  font-weight: 600;
+}
+
+.session .waitlist-field {
+  gap: 0;
+  max-width: 580px;
+  padding: 0;
+  border: 1px solid #fff;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.session .waitlist-field::before {
+  content: '>' / '';
+  align-self: center;
+  padding-left: 16px;
+  color: var(--haze);
+}
+.session .waitlist-field:focus-within {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 0.28);
+}
+.session .waitlist-field input {
+  padding: 0 12px;
+  color: #fff;
+  font-family: var(--term);
+  font-size: 14px;
+}
+.session .waitlist-field input::placeholder {
+  color: var(--haze);
+}
+.session .waitlist-field .button {
+  min-height: 50px;
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 0;
+  color: var(--field);
+  background: #fff;
+  box-shadow: none;
+  font-family: var(--term);
+  font-size: 13px;
+  font-weight: 700;
+}
+.session .waitlist-error {
+  color: #ffe0e0;
+}
+.session .waitlist-done {
+  justify-content: flex-start;
+  max-width: 580px;
+  margin-top: 0;
+  border-color: #fff;
+  border-radius: 0;
+  color: #fff;
+  background: transparent;
+  font-size: 13px;
+}
+.session .waitlist-done .sheet-check {
+  color: var(--field);
+  background: #fff;
+}
+
+.session-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 72px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  color: var(--haze);
+  font-size: 12px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .session .waitlist-field .button:hover {
+    background: var(--haze);
+  }
+  .session-header > a:last-child:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+@media (max-width: 900px) {
+  .session-log li {
+    grid-template-columns: 9ch minmax(0, 1fr);
+  }
+  .session-log .session-time {
+    display: none;
+  }
+}
+@media (max-width: 640px) {
+  .session-header,
+  .session-main,
+  .session-footer {
+    width: calc(100% - 40px);
+  }
+  .session-hero {
+    padding: 40px 0 48px;
+  }
+  .session-window {
+    padding: 30px 18px 22px;
+  }
+  .session-window figcaption {
+    left: 10px;
+    font-size: 11px;
+  }
+  .session-window figcaption span {
+    margin: 0 1ch;
+  }
+  .session .waitlist-field::before {
+    display: none;
+  }
+  .session-footer {
+    flex-direction: column;
+  }
+}

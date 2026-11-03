@@ -1,0 +1,199 @@
+/* Controls around the demo film. Colours come from the film theme through --film-* variables, so
+   each direction's player matches its page. */
+
+.film {
+  display: grid;
+  gap: 14px;
+}
+.film-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--film-ink);
+  font-family: var(--film-sans);
+}
+.film-toggle,
+.clip-toggle {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--film-line);
+  border-radius: 50%;
+  color: var(--film-ink);
+  background: var(--film-panel);
+  transition: border-color 160ms ease;
+}
+.film-toggle svg,
+.clip-toggle svg {
+  width: 15px;
+  height: 15px;
+}
+.film-chapters {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.film-chapters button {
+  position: relative;
+  width: 100%;
+  padding: 12px 0 2px;
+  border: 0;
+  color: var(--film-muted);
+  background: none;
+  font: 500 13px/1.2 var(--film-sans);
+  text-align: left;
+  transition: color 160ms ease;
+}
+.film-chapters button::before,
+.film-chapters button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 3px;
+  border-radius: 2px;
+}
+.film-chapters button::before {
+  right: 0;
+  background: var(--film-line);
+}
+.film-chapters button::after {
+  width: calc(var(--progress, 0) * 100%);
+  background: var(--film-accent);
+}
+.film-chapters button[aria-current='step'] {
+  color: var(--film-ink);
+}
+
+/* The editor direction swaps the chapters for tracks under a playhead. */
+.film-timecode {
+  flex: none;
+  min-width: 15ch;
+  color: var(--film-ink);
+  font: 500 13px var(--film-mono);
+  font-variant-numeric: tabular-nums;
+}
+.film-timecode span {
+  color: var(--film-muted);
+}
+.film-timeline {
+  --names: 76px;
+  position: relative;
+  display: grid;
+  flex: 1;
+  gap: 6px;
+}
+.film-ruler {
+  position: relative;
+  height: 18px;
+  margin-left: var(--names);
+  border-bottom: 1px solid var(--film-line);
+  cursor: ew-resize;
+}
+.film-ruler span {
+  position: absolute;
+  bottom: 3px;
+  color: var(--film-muted);
+  font: 11px var(--film-mono);
+  transform: translateX(-50%);
+}
+.film-ruler span:first-child {
+  transform: none;
+}
+.film-track {
+  display: grid;
+  grid-template-columns: var(--names) minmax(0, 1fr);
+  align-items: center;
+}
+.film-track-name {
+  color: var(--film-muted);
+  font: 500 12px var(--film-sans);
+}
+.film-track-lane {
+  position: relative;
+  height: 26px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--film-line) 45%, transparent);
+}
+.film-track-clip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  padding: 0 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 5px;
+  color: #fff;
+  background: var(--clip, var(--film-accent));
+  font: 600 11px var(--film-sans);
+  text-align: left;
+  white-space: nowrap;
+  opacity: 0.55;
+  transition: opacity 160ms ease;
+}
+.film-track-clip[aria-current='step'] {
+  opacity: 1;
+}
+.film-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--names) + (100% - var(--names)) * var(--playhead));
+  width: 2px;
+  background: var(--film-ink);
+  pointer-events: none;
+}
+
+.clip {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--film-radius);
+}
+.clip-toggle {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 32px;
+  height: 32px;
+  opacity: 0.8;
+}
+@media (pointer: coarse) {
+  .clip-toggle {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .film-toggle:hover,
+  .clip-toggle:hover {
+    border-color: var(--film-muted);
+  }
+  .film-chapters button:hover,
+  .film-track-clip:hover {
+    color: var(--film-ink);
+    opacity: 1;
+  }
+}
+@media (max-width: 640px) {
+  .film-bar {
+    flex-wrap: wrap;
+  }
+  .film-chapters {
+    gap: 5px;
+  }
+  .film-chapters button {
+    font-size: 11px;
+  }
+  .film-timeline {
+    --names: 52px;
+    flex-basis: 100%;
+  }
+}

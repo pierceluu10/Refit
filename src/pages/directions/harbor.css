@@ -1,0 +1,268 @@
+/* Direction 1, Harbor: near-black, heavy Archivo with grey second lines, and the moving ASCII
+   Refit mark filling the hero. After maritime.sh. */
+
+.harbor {
+  --bg: #0c0d0f;
+  --raised: #131418;
+  --ink: #f2f3f5;
+  --soft: #a7adb7;
+  --line: #25282e;
+  --accent: #4d8dff;
+  --blue: var(--accent);
+  --muted: var(--soft);
+  --border: var(--line);
+  color: var(--ink);
+  background: var(--bg);
+  font-family: 'Archivo Variable', sans-serif;
+}
+.harbor ::selection {
+  color: #000;
+  background: var(--ink);
+}
+
+.harbor-header,
+.harbor main,
+.harbor-footer {
+  width: min(1200px, 100% - 32px);
+  margin: 0 auto;
+}
+.harbor-header {
+  position: sticky;
+  z-index: 20;
+  top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding: 10px 12px 10px 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--raised);
+}
+.harbor-header .dir-wordmark {
+  font-size: 19px;
+  font-weight: 800;
+  font-stretch: 112%;
+  letter-spacing: -0.02em;
+}
+.harbor-header > a:last-child {
+  padding: 8px 14px;
+  border-radius: 9px;
+  color: #000;
+  background: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.harbor-hero {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: min(88vh, 780px);
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #000;
+  text-align: center;
+}
+/* The mark sits behind the copy at full height; its brackets frame the headline's corners. */
+.harbor-ascii {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(90%, 820px);
+  color: #434954;
+  transform: translate(-50%, -50%);
+}
+.harbor-ascii .ascii-wordmark-lens {
+  color: #e8eaee;
+}
+.harbor-hero-copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  padding: 80px 32px;
+}
+/* A soft shade right behind the copy keeps it readable; the mark stays bright around it. */
+.harbor-hero-copy::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 4% -2%;
+  background: radial-gradient(
+    closest-side,
+    rgb(0 0 0 / 0.92) 45%,
+    rgb(0 0 0 / 0.6) 75%,
+    transparent
+  );
+}
+.harbor h1,
+.harbor h2 {
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.harbor h1 {
+  font-size: clamp(44px, 6.2vw, 90px);
+  line-height: 0.92;
+}
+.harbor h1 span,
+.harbor h2 span {
+  display: block;
+  color: var(--soft);
+}
+.harbor-hero-copy p {
+  max-width: 30em;
+  margin: 26px 0 34px;
+  color: #c3c7ce;
+  font-size: 19px;
+  line-height: 1.5;
+}
+.harbor-hero .waitlist-form,
+.harbor-close .waitlist-form {
+  width: min(460px, 100%);
+}
+.harbor-hero .waitlist-field {
+  margin-inline: auto;
+}
+.harbor-film {
+  margin-top: 24px;
+}
+
+.harbor h2 {
+  margin-bottom: 28px;
+  font-size: clamp(32px, 4.4vw, 60px);
+  line-height: 0.98;
+}
+.harbor-brief {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 48px;
+  align-items: center;
+  padding-top: 136px;
+}
+.harbor-brief-copy p {
+  max-width: 26em;
+  color: var(--soft);
+  font-size: 19px;
+  line-height: 1.5;
+}
+.harbor-brief .clip,
+.harbor-tiles .clip {
+  border: 1px solid var(--line);
+}
+
+.harbor-steps {
+  padding-top: 136px;
+}
+.harbor-steps h2 {
+  margin-bottom: 44px;
+}
+.harbor-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px 24px;
+}
+.harbor-tiles figure {
+  margin: 0;
+}
+.harbor-tiles figcaption {
+  max-width: 36em;
+  margin-top: 16px;
+  color: var(--soft);
+  font-size: 17px;
+  line-height: 1.5;
+}
+.harbor-tiles strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.harbor-close {
+  display: grid;
+  justify-items: center;
+  padding: 160px 0 40px;
+  text-align: center;
+}
+.harbor-close h2 {
+  margin-bottom: 36px;
+}
+
+.harbor .waitlist-field {
+  max-width: 460px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--raised);
+  box-shadow: none;
+}
+.harbor .waitlist-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgb(77 141 255 / 0.18);
+}
+.harbor .waitlist-field input {
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 15px;
+}
+.harbor .waitlist-field .button {
+  border: 0;
+  border-radius: 999px;
+  color: #000;
+  background: var(--ink);
+  box-shadow: none;
+  font-family: inherit;
+  font-weight: 700;
+}
+.harbor .waitlist-done {
+  justify-content: flex-start;
+  margin-top: 0;
+  border-color: var(--line);
+  color: var(--ink);
+  background: var(--raised);
+}
+.harbor .waitlist-error {
+  color: #ff9b9b;
+}
+
+.harbor-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 80px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  color: var(--soft);
+  font-size: 13px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .harbor-header > a:last-child:hover,
+  .harbor .waitlist-field .button:hover {
+    background: #d6d9de;
+  }
+}
+@media (max-width: 860px) {
+  .harbor-brief {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}
+@media (max-width: 760px) {
+  .harbor-hero {
+    min-height: 620px;
+  }
+  .harbor-ascii {
+    width: 100%;
+  }
+  .harbor-hero-copy {
+    padding: 56px 20px;
+  }
+  .harbor-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .harbor-footer {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,429 @@
+/* Direction 10, Transit: white map paper, Overpass for signage, provider colours for the lines and
+   the brand blue for Refit's own route. The service change on the map is the one moving part. */
+
+.transit {
+  --ink: #000;
+  --soft: #4d535e;
+  --rule: #dfe2e8;
+  --panel: #f3f4f6;
+  --alert: #ffb81c;
+  --alert-tint: #fff3d6;
+  --route: #0048d8;
+  --tint: #e6eeff;
+  --sign: 'Overpass Variable', sans-serif;
+  --blue: var(--route);
+  --muted: var(--soft);
+  --border: var(--rule);
+  color: var(--ink);
+  background: #fff;
+  font-family: var(--sign);
+}
+
+.transit-header,
+.transit main,
+.transit-footer {
+  width: min(1200px, 100% - 64px);
+  margin: 0 auto;
+}
+.transit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 0;
+}
+.transit-header .dir-wordmark {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.transit-header > a:last-child {
+  padding: 10px 16px 8px;
+  border-radius: 5px;
+  color: #fff;
+  background: var(--route);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.transit-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 56px;
+  align-items: start;
+  padding: 56px 0 40px;
+}
+.transit h1 {
+  max-width: 13ch;
+  margin-bottom: 26px;
+  font-size: clamp(42px, 5.8vw, 82px);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+.transit-copy > p {
+  max-width: 34em;
+  margin-bottom: 32px;
+  color: var(--soft);
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.transit-status {
+  padding: 18px 22px 14px;
+  border-radius: 12px;
+  background: var(--panel);
+}
+.transit-status-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 800;
+}
+.transit-status-title span {
+  color: var(--soft);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.transit-status ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.transit-status li {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  margin-inline: -22px;
+  padding: 12px 22px;
+  border-top: 1px solid var(--rule);
+  transition: background-color 220ms ease;
+}
+.transit-status li.is-change {
+  background: var(--alert-tint);
+}
+.transit-status li.is-rerouted {
+  background: var(--tint);
+}
+.transit-chip {
+  padding: 4px 0 2px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+.transit-status strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 800;
+}
+.transit-status strong svg {
+  width: 18px;
+  height: 18px;
+}
+.transit-status .is-good strong svg {
+  color: #1f8a3b;
+}
+.transit-status .is-change strong svg {
+  color: #a35f00;
+}
+.transit-status .is-rerouted strong svg {
+  color: var(--route);
+}
+.transit-status li div > span {
+  display: block;
+  margin-top: 2px;
+  color: var(--soft);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.transit-status button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 0;
+  border: 0;
+  color: var(--route);
+  background: none;
+  font-size: 13px;
+  font-weight: 700;
+}
+.transit-status button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.transit-stage {
+  overflow-x: auto;
+  padding: 24px 0;
+  border-block: 2px solid var(--ink);
+}
+.transit-map {
+  display: block;
+  width: 100%;
+  min-width: 860px;
+  height: auto;
+  font-family: var(--sign);
+}
+.transit-line {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: opacity 300ms ease;
+}
+.transit-map.is-alert .transit-line:not(.is-changed) {
+  opacity: 0.3;
+}
+.transit-pulse {
+  fill: none;
+  stroke: var(--alert);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: 90 1000;
+  stroke-dashoffset: 90;
+  opacity: 0;
+}
+.transit-map.is-alert .transit-pulse {
+  opacity: 1;
+  animation: transit-pulse 2600ms cubic-bezier(0.45, 0, 0.55, 1) both;
+}
+.transit-tag rect {
+  rx: 4px;
+}
+.transit-tag text {
+  fill: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+.transit-dot {
+  fill: #fff;
+  stroke-width: 4;
+  transition:
+    fill 220ms ease,
+    stroke 220ms ease;
+}
+.transit-stop text {
+  fill: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+.transit-halo {
+  opacity: 0;
+  fill: var(--alert);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.transit-map.is-alert .transit-halo {
+  opacity: 1;
+  /* Starts as the pulse reaches payments.ts, about a fifth of the way along the line. */
+  animation: transit-blink 650ms ease-in-out 600ms 4 alternate both;
+}
+.transit-map.is-rerouted .transit-halo {
+  opacity: 1;
+  fill: var(--tint);
+  stroke: var(--route);
+  stroke-width: 2.5;
+}
+.transit-map.is-rerouted .is-affected .transit-dot {
+  stroke: var(--route);
+}
+.transit-map.is-rerouted .is-affected text {
+  fill: var(--route);
+  font-weight: 800;
+}
+@keyframes transit-pulse {
+  to {
+    stroke-dashoffset: -1000;
+  }
+}
+@keyframes transit-blink {
+  from {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+.transit-section {
+  padding-top: 96px;
+}
+.transit h2 {
+  margin-bottom: 36px;
+  font-size: clamp(28px, 3.4vw, 46px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+.transit-legend {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 32px;
+  margin: 0;
+}
+.transit-legend dt {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 18px;
+  font-weight: 800;
+}
+.transit-legend svg {
+  width: 64px;
+  height: 24px;
+}
+.transit-legend dd {
+  margin: 0;
+  color: var(--soft);
+  font-size: 15.5px;
+  line-height: 1.5;
+}
+
+.transit-rules {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.transit-rules li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 10px;
+  color: #fff;
+  background: var(--route);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.transit-rules svg {
+  width: 34px;
+  height: 34px;
+  padding: 5px;
+  border-radius: 6px;
+  color: var(--route);
+  background: #fff;
+}
+
+.transit-join {
+  display: grid;
+  justify-items: start;
+  margin-top: 112px;
+  padding: 64px 56px;
+  border-radius: 16px;
+  color: #fff;
+  background: var(--ink);
+}
+.transit-join h2 {
+  margin-bottom: 14px;
+}
+.transit-join .waitlist-form {
+  width: min(520px, 100%);
+}
+.transit-join .waitlist-error {
+  color: #ffb4b4;
+}
+
+.transit .waitlist-field {
+  max-width: 520px;
+  padding: 4px;
+  border: 2px solid var(--ink);
+  border-radius: 7px;
+  background: #fff;
+  box-shadow: none;
+}
+.transit .waitlist-field:focus-within {
+  border-color: var(--route);
+  box-shadow: 0 0 0 4px var(--tint);
+}
+.transit .waitlist-field input {
+  padding: 0 12px;
+  color: var(--ink);
+  font-family: var(--sign);
+  font-size: 16px;
+}
+.transit .waitlist-field .button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 4px;
+  color: #fff;
+  background: var(--route);
+  box-shadow: none;
+  font-family: var(--sign);
+  font-size: 15px;
+  font-weight: 700;
+}
+.transit .waitlist-done {
+  justify-content: flex-start;
+  margin-top: 0;
+  border-radius: 7px;
+  color: var(--ink);
+}
+
+.transit-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 28px;
+  color: var(--soft);
+  font-size: 13px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .transit-header > a:last-child:hover,
+  .transit .waitlist-field .button:hover {
+    background: #003cb5;
+  }
+  .transit-status button:hover {
+    text-decoration: underline;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .transit-map .transit-pulse,
+  .transit-map .transit-halo {
+    animation: none;
+  }
+}
+@media (max-width: 1000px) {
+  .transit-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .transit-legend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .transit-header,
+  .transit main,
+  .transit-footer {
+    width: calc(100% - 40px);
+  }
+  .transit-hero {
+    padding-top: 32px;
+  }
+  .transit-legend,
+  .transit-rules {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .transit-join {
+    padding: 40px 24px;
+  }
+  .transit-footer {
+    flex-direction: column;
+  }
+}

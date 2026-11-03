@@ -1,0 +1,542 @@
+/* Direction 2, Premiere: black, heavy Archivo, and a front page of ASCII footage under a rotating
+   headline that slides sideways into Refit's steps, one window at a time. The signup closes under
+   a white ASCII logo, like an end credit. */
+
+.premiere {
+  --ink: #f5f5f6;
+  --soft: #a3a8b1;
+  --line: #26282d;
+  --raised: #0f1012;
+  --page: min(1200px, 100% - 48px);
+  --blue: #5b93ff;
+  --muted: var(--soft);
+  --border: var(--line);
+  color: var(--ink);
+  background: #000;
+  font-family: 'Archivo Variable', sans-serif;
+  /* The browser's own parts, like form controls, draw dark too. */
+  color-scheme: dark;
+}
+.premiere ::selection {
+  color: #000;
+  background: var(--ink);
+}
+/* No scrollbar: the walkthrough moves the page itself, and a bar flashing at the right edge on
+   every step pulls the eye off the clips. Wheel, touch and keys still scroll. */
+html:has(.premiere) {
+  scrollbar-width: none;
+}
+html:has(.premiere)::-webkit-scrollbar {
+  display: none;
+}
+.premiere :is(a, button):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+
+.premiere-header,
+.premiere-close,
+.premiere-footer {
+  width: var(--page);
+  margin: 0 auto;
+}
+.premiere-header {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 0;
+}
+.premiere-header .dir-wordmark {
+  font-size: 20px;
+  font-weight: 800;
+  font-stretch: 112%;
+  letter-spacing: -0.02em;
+}
+
+.premiere h1,
+.premiere h2 {
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.premiere h2 span {
+  display: block;
+  color: var(--soft);
+}
+
+/* Stacked by default: the front page, then the steps one under another. */
+.premiere-front {
+  position: relative;
+  display: grid;
+  /* One column no wider than the screen, so the signup's input shrinks rather than overflows. */
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  min-height: 100vh;
+  min-height: 100svh;
+  /* The deeper bottom padding lifts the headline above the middle. */
+  padding: 96px 16px 18vh;
+  overflow: hidden;
+  text-align: center;
+}
+.premiere-herd {
+  position: absolute;
+  inset: 0;
+}
+/* A light shade and a shadow close round the letters keep the headline readable over the
+   brightest footage while leaving the picture around it clear. */
+.premiere-front::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 44% 30% at 50% 42%, rgb(0 0 0 / 0.6), transparent);
+}
+.premiere-hero {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 40px;
+  width: 100%;
+}
+.premiere-hero .waitlist-form {
+  width: min(480px, 100%);
+}
+.premiere-hero .waitlist-field {
+  margin-inline: auto;
+}
+.premiere h1 {
+  font-size: clamp(34px, 6.8vw, 96px);
+  line-height: 0.95;
+  text-shadow:
+    0 0 24px rgb(0 0 0 / 0.9),
+    0 0 4px rgb(0 0 0 / 0.8);
+}
+/* One turn per provider, --turn long (set by the page): its line swipes in from the right, holds,
+   and swipes out to the left. */
+.premiere-change {
+  display: block;
+  animation: premiere-swipe var(--turn) both;
+}
+.premiere-change span {
+  display: inline-block;
+  animation: premiere-unfold 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.premiere-fixed {
+  display: block;
+  color: var(--soft);
+}
+@keyframes premiere-swipe {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateX(30vw);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  16% {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+  88% {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+    animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
+  }
+  to {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateX(-30vw);
+  }
+}
+@keyframes premiere-unfold {
+  from {
+    font-stretch: 62%;
+  }
+}
+.premiere-snap,
+.premiere-rail {
+  display: none;
+}
+.premiere-steps {
+  display: grid;
+  gap: 48px;
+  width: var(--page);
+  margin: 64px auto 0;
+  padding: 0;
+  list-style: none;
+}
+.premiere-step .clip {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.premiere-step p {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  margin-top: 16px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.premiere-step p span {
+  color: var(--soft);
+  font-family: 'Geist Mono Variable', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* Wide screens with motion: the stage pins for seven screens of scroll. The first shows the front
+   page; each of the next six centres one step's window, and scroll snapping stops on each, so one
+   gesture moves one step. JS sets --x, --position and each window's --focus, and moves the page
+   on by itself once a step's clip has played. */
+@media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
+  html:has(.premiere-stage) {
+    scroll-snap-type: y mandatory;
+  }
+  .premiere-header {
+    scroll-snap-align: start;
+  }
+  .premiere-stage {
+    /* A step's window: as large as the screen allows, leaving the right edge to the rail. */
+    --window: min(70vw, 100vw - 320px, (100vh - 220px) * 16 / 9);
+    position: relative;
+    height: calc(100vh * 7);
+  }
+  .premiere-snap {
+    position: absolute;
+    top: calc(var(--stop) * 100vh);
+    left: 0;
+    display: block;
+    width: 1px;
+    height: 1px;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  .premiere-pin {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+  /* The screen's edges fade to black once the steps start, so the neighbouring windows fade out
+     at the sides and the rail sits on black. */
+  .premiere-pin::before,
+  .premiere-pin::after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    bottom: 0;
+    width: calc((100vw - var(--window)) / 2);
+    pointer-events: none;
+    opacity: clamp(0, var(--position, 0), 1);
+  }
+  .premiere-pin::before {
+    left: 0;
+    background: linear-gradient(to right, #000 45%, transparent);
+  }
+  .premiere-pin::after {
+    right: 0;
+    background: linear-gradient(to left, #000 45%, transparent);
+  }
+  .premiere-track {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: max-content;
+    height: 100%;
+    transform: translateX(var(--x, 0px));
+  }
+  .premiere-front {
+    flex: none;
+    width: 100vw;
+    height: 100%;
+    min-height: 0;
+    padding: 0 24px 12vh;
+    opacity: clamp(0, 1 - var(--position, 0) * 1.4, 1);
+  }
+  .premiere-steps {
+    display: flex;
+    gap: 7vw;
+    width: auto;
+    margin: 0;
+  }
+  .premiere-step {
+    flex: none;
+    width: var(--window);
+    opacity: calc(0.18 + 0.82 * var(--focus, 0));
+  }
+  .premiere-step .clip {
+    border-color: color-mix(in srgb, #ffffff calc(var(--focus, 0) * 22%), var(--line));
+    border-radius: 20px;
+  }
+  .premiere-step p {
+    margin-top: 20px;
+    font-size: clamp(20px, 1.8vw, 26px);
+    opacity: var(--focus, 0);
+    transform: translateY(calc((1 - var(--focus, 0)) * 10px));
+  }
+
+  /* The steps down the right edge, one bar each, shown once the walkthrough starts. */
+  .premiere-rail {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    right: 28px;
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(-50%);
+    transition:
+      opacity 300ms ease,
+      visibility 300ms;
+  }
+  .premiere-rail.is-on {
+    visibility: visible;
+    opacity: 1;
+  }
+  .premiere-rail button {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 20px 0 12px;
+    border: 0;
+    border-radius: 6px;
+    color: #868b94;
+    background: none;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: right;
+    transition: color 220ms ease;
+  }
+  /* The bar's track, and its fill: full for steps already played, filling for the current one. */
+  .premiere-rail button::before,
+  .premiere-rail button::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: 0;
+    bottom: 3px;
+    width: 3px;
+    border-radius: 2px;
+  }
+  .premiere-rail button::before {
+    background: #26282d;
+  }
+  .premiere-rail button::after {
+    background: #6b7079;
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+  .premiere-rail .is-done button::after {
+    transform: none;
+  }
+  .premiere-rail .is-current button {
+    color: var(--ink);
+  }
+  .premiere-rail .is-current button::after {
+    background: var(--ink);
+    animation: premiere-fill var(--duration) linear both;
+  }
+  /* The fill waits while the step's clip is paused. */
+  .premiere-pin:has(.premiere-step[aria-current] .clip[data-playing='false'])
+    .premiere-rail
+    .is-current
+    button::after {
+    animation-play-state: paused;
+  }
+  .premiere-rail button:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  .premiere-close {
+    scroll-snap-align: start;
+  }
+  .premiere-footer {
+    scroll-snap-align: end;
+  }
+}
+@keyframes premiere-fill {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.premiere-close {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  padding: 168px 0 72px;
+  text-align: center;
+}
+.premiere h2 {
+  margin-bottom: 40px;
+  font-size: clamp(38px, 5.4vw, 76px);
+  line-height: 0.94;
+}
+.premiere-close .waitlist-form {
+  width: min(480px, 100%);
+}
+.premiere-close .waitlist-field {
+  margin-inline: auto;
+}
+.premiere-logo {
+  width: var(--page);
+  margin: 24px auto 0;
+  color: #c9ccd2;
+}
+.premiere-logo .ascii-wordmark-lens {
+  color: #fff;
+}
+
+/* The signup reads like a prompt: a mono field after a ">", on dark glass that blurs whatever is
+   behind it, and a white button. */
+.premiere .waitlist-field {
+  align-items: center;
+  max-width: 480px;
+  padding: 6px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 999px;
+  background: rgb(10 11 13 / 0.6);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    0 24px 60px -28px rgb(0 0 0 / 0.9);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+.premiere .waitlist-field::before {
+  content: '>';
+  padding-left: 16px;
+  color: #7d828b;
+  font:
+    500 16px 'Geist Mono Variable',
+    monospace;
+}
+.premiere .waitlist-field:focus-within {
+  border-color: rgb(255 255 255 / 0.34);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    0 0 0 4px rgb(255 255 255 / 0.08),
+    0 24px 60px -28px rgb(0 0 0 / 0.9);
+}
+/* 16px, so phones don't zoom in on focus. */
+.premiere .waitlist-field input {
+  min-height: 48px;
+  padding: 0 12px 0 4px;
+  color: var(--ink);
+  caret-color: var(--ink);
+  font:
+    400 16px 'Geist Mono Variable',
+    monospace;
+}
+.premiere .waitlist-field input::placeholder {
+  color: #7d828b;
+}
+/* Autofill keeps the dark field instead of painting it the browser's light blue. */
+.premiere .waitlist-field input:-webkit-autofill {
+  -webkit-text-fill-color: var(--ink);
+  caret-color: var(--ink);
+  transition: background-color 600000s 0s;
+}
+.premiere .waitlist-field .button {
+  min-height: 48px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  color: #000;
+  background: var(--ink);
+  box-shadow: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+}
+.premiere .waitlist-field .button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+.premiere .waitlist-done {
+  max-width: 480px;
+  margin-top: 0;
+  padding: 18px 22px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  color: var(--ink);
+  background: rgb(10 11 13 / 0.6);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  font-size: 15px;
+}
+.premiere .waitlist-done .sheet-check {
+  color: #000;
+  background: var(--ink);
+}
+.premiere .waitlist-error {
+  color: #ff9b9b;
+  font-size: 13px;
+}
+
+.premiere-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 56px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  color: var(--soft);
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premiere-change,
+  .premiere-change span {
+    animation: none;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .premiere .waitlist-field .button:hover {
+    background: #d6d9de;
+  }
+  .premiere-rail button:hover {
+    color: var(--ink);
+  }
+}
+@media (max-width: 640px) {
+  .premiere {
+    --page: calc(100% - 32px);
+  }
+  .premiere-close {
+    padding-top: 112px;
+  }
+  /* One row on phones too: the prompt makes way for the address. */
+  .premiere .waitlist-field {
+    flex-direction: row;
+    border-radius: 999px;
+  }
+  .premiere .waitlist-field::before {
+    display: none;
+  }
+  .premiere .waitlist-field input {
+    padding-left: 14px;
+  }
+  .premiere .waitlist-field .button {
+    padding: 0 18px;
+  }
+  .premiere-footer {
+    flex-direction: column;
+  }
+}

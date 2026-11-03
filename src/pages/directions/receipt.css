@@ -1,0 +1,347 @@
+/* Direction 9, Receipt: steel counter, expanded Archivo for the voice, IBM Plex Mono for the
+   printout and the brand blue only as stamp ink. The receipt prints once on load. */
+
+.receipt {
+  --counter: #e2e6ed;
+  --ink: #000;
+  --soft: #474e5d;
+  --paper: #fff;
+  --print: #2a2c31;
+  --faded: #686e7c;
+  --stamp: #0048d8;
+  --rule: #b7beca;
+  --plex: 'IBM Plex Mono', monospace;
+  --wide: 'Archivo Variable', sans-serif;
+  --blue: var(--stamp);
+  --muted: var(--soft);
+  --border: var(--rule);
+  color: var(--ink);
+  background: var(--counter);
+  font-family: var(--wide);
+}
+
+.receipt-header,
+.receipt main,
+.receipt-footer {
+  width: min(1200px, 100% - 64px);
+  margin: 0 auto;
+}
+.receipt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 0;
+}
+.receipt-header .dir-wordmark {
+  font-size: 20px;
+  font-weight: 800;
+  font-stretch: 112%;
+  letter-spacing: -0.02em;
+}
+.receipt-header > a:last-child {
+  padding: 9px 18px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+.receipt-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 56px;
+  align-items: start;
+  padding: 56px 0 72px;
+}
+.receipt-copy {
+  position: sticky;
+  top: 64px;
+  padding-top: 36px;
+}
+.receipt h1 {
+  margin-bottom: 32px;
+  font-size: clamp(42px, 5.6vw, 86px);
+  font-weight: 800;
+  font-stretch: 125%;
+  line-height: 0.94;
+  letter-spacing: -0.04em;
+}
+.receipt-copy > p {
+  max-width: 33em;
+  margin-bottom: 34px;
+  color: var(--soft);
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.receipt-printer {
+  justify-self: center;
+  width: min(380px, 100%);
+}
+.receipt-slot {
+  position: relative;
+  z-index: 2;
+  height: 20px;
+  border-radius: 10px;
+  background: #1b2130;
+  box-shadow:
+    inset 0 4px 6px rgb(0 0 0 / 0.6),
+    0 1px 0 rgb(255 255 255 / 0.7);
+}
+.receipt-feed {
+  margin: -10px 14px 0;
+  overflow: hidden;
+  filter: drop-shadow(0 16px 20px rgb(16 24 40 / 0.16));
+}
+.receipt-paper {
+  --tooth: 7px;
+  padding: 32px 24px calc(26px + var(--tooth));
+  color: var(--print);
+  background: var(--paper);
+  font-family: var(--plex);
+  font-size: 13px;
+  line-height: 1.6;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% /
+    calc(2 * var(--tooth)) 100%;
+}
+.receipt-paper p {
+  line-height: 1.6;
+}
+.receipt-paper-head {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  margin-bottom: 18px;
+  text-align: center;
+}
+.receipt-paper-head svg {
+  width: 22px;
+  height: auto;
+  margin-bottom: 6px;
+}
+.receipt-paper-head strong {
+  color: var(--ink);
+  font-family: var(--wide);
+  font-size: 21px;
+  font-weight: 800;
+  font-stretch: 125%;
+  letter-spacing: -0.02em;
+}
+.receipt-paper-head span {
+  color: var(--faded);
+  font-size: 12px;
+}
+.receipt-paper section {
+  padding: 11px 0;
+  border-top: 1px dashed #9aa1ad;
+}
+.receipt-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.receipt-checks {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 7ch 7ch;
+  text-align: right;
+}
+.receipt-checks span:first-child {
+  text-align: left;
+}
+.receipt-checks.receipt-label span + span {
+  font-weight: 400;
+  text-transform: none;
+}
+.receipt-quiet {
+  color: var(--faded);
+  font-size: 12px;
+}
+.receipt-center {
+  text-align: center;
+}
+.receipt-paper .receipt-total {
+  border-top: 3px double var(--print);
+}
+.receipt-total .receipt-row {
+  font-weight: 600;
+}
+.receipt-stamp {
+  display: inline-block;
+  margin: 14px 0 6px 52px;
+  padding: 6px 16px 5px;
+  border: 4px double var(--stamp);
+  border-radius: 5px;
+  color: var(--stamp);
+  font-family: var(--wide);
+  font-size: 22px;
+  font-weight: 800;
+  font-stretch: 125%;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transform: rotate(-8deg);
+}
+.receipt-barcode {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  height: 46px;
+  margin: 18px 0 8px;
+}
+.receipt-barcode span {
+  width: calc(var(--bar) * 1.5px);
+  background: var(--print);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .receipt-paper {
+    animation: receipt-print 2600ms steps(28, end) 300ms both;
+  }
+  .receipt-stamp {
+    animation: receipt-stamp 280ms cubic-bezier(0.2, 0.9, 0.3, 1.3) 3100ms both;
+  }
+}
+/* Reveals the paper from the top down in steps, so the header prints first. */
+@keyframes receipt-print {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+@keyframes receipt-stamp {
+  from {
+    opacity: 0;
+    transform: rotate(-8deg) scale(1.8);
+  }
+}
+
+.receipt-section {
+  padding-top: 96px;
+}
+.receipt h2 {
+  margin-bottom: 40px;
+  font-size: clamp(30px, 3.8vw, 54px);
+  font-weight: 800;
+  font-stretch: 125%;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+.receipt-never ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 40px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.receipt-never li {
+  padding: 20px 0;
+  border-top: 1px solid var(--rule);
+}
+.receipt-never s {
+  font-size: clamp(22px, 2.6vw, 34px);
+  font-weight: 700;
+  font-stretch: 112%;
+  letter-spacing: -0.02em;
+  text-decoration-color: var(--stamp);
+  text-decoration-thickness: 3px;
+}
+
+.receipt-join {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 32px 56px;
+  align-items: center;
+  margin-top: 112px;
+  padding: 64px 56px;
+  border-radius: 20px;
+  background: var(--paper);
+}
+.receipt-join h2 {
+  margin-bottom: 0;
+}
+
+.receipt .waitlist-field {
+  max-width: 520px;
+  padding: 5px;
+  border: 2px solid var(--ink);
+  background: #fff;
+  box-shadow: none;
+}
+.receipt .waitlist-field:focus-within {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 4px rgb(0 72 216 / 0.2);
+}
+.receipt .waitlist-field input {
+  color: var(--ink);
+  font-size: 15px;
+}
+.receipt .waitlist-field .button {
+  border-color: var(--ink);
+  border-radius: 999px;
+  color: #fff;
+  background: var(--ink);
+  box-shadow: none;
+  font-weight: 700;
+}
+.receipt .waitlist-done {
+  justify-content: flex-start;
+  margin-top: 0;
+}
+
+.receipt-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 28px;
+  color: var(--soft);
+  font-size: 13px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .receipt-header > a:last-child:hover {
+    color: #fff;
+    background: var(--ink);
+  }
+  .receipt .waitlist-field .button:hover {
+    background: var(--stamp);
+    border-color: var(--stamp);
+  }
+}
+@media (max-width: 960px) {
+  .receipt-hero,
+  .receipt-join {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .receipt-copy {
+    position: static;
+    padding-top: 0;
+  }
+}
+@media (max-width: 640px) {
+  .receipt-header,
+  .receipt main,
+  .receipt-footer {
+    width: calc(100% - 40px);
+  }
+  .receipt-hero {
+    padding-top: 32px;
+  }
+  .receipt-never ul {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .receipt-join {
+    padding: 40px 24px;
+  }
+  .receipt-footer {
+    flex-direction: column;
+  }
+}

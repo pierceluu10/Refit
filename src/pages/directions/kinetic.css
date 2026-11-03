@@ -1,0 +1,159 @@
+/* Direction 5, Kinetic: white, heavy Archivo set huge, the brand blue for the answer. The
+   provider's name unfolds on the width axis. */
+
+.kinetic {
+  --ink: #000;
+  --soft: #555b66;
+  --line: #d9dce2;
+  --accent: #0048d8;
+  --blue: var(--accent);
+  --muted: var(--soft);
+  --border: var(--line);
+  color: var(--ink);
+  background: #fff;
+  font-family: 'Archivo Variable', sans-serif;
+}
+
+.kinetic-header,
+.kinetic main,
+.kinetic-footer {
+  width: min(1240px, 100% - 40px);
+  margin: 0 auto;
+}
+.kinetic-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 0;
+  font-size: 14px;
+}
+.kinetic-header .dir-wordmark {
+  font-size: 20px;
+  font-weight: 800;
+  font-stretch: 112%;
+  letter-spacing: -0.02em;
+}
+.kinetic-header > a:last-child {
+  padding: 9px 16px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--ink);
+  font-weight: 700;
+}
+
+.kinetic h1 {
+  display: grid;
+  margin: 72px 0 48px;
+  font-size: clamp(46px, 8.8vw, 132px);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+}
+.kinetic-word {
+  display: inline-block;
+  animation: kinetic-unfold 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.kinetic-fixed {
+  color: var(--accent);
+}
+@keyframes kinetic-unfold {
+  from {
+    font-stretch: 62%;
+    opacity: 0;
+    transform: translateY(0.12em);
+  }
+}
+.kinetic-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px 40px;
+  padding-bottom: 56px;
+}
+.kinetic-cta p {
+  color: var(--soft);
+  font-size: 20px;
+  line-height: 1.4;
+}
+.kinetic-cta .waitlist-form {
+  width: min(460px, 100%);
+}
+
+.kinetic-join {
+  display: grid;
+  justify-items: center;
+  padding: 140px 0 40px;
+  text-align: center;
+}
+.kinetic h2 {
+  margin-bottom: 32px;
+  font-size: clamp(32px, 4.4vw, 60px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+.kinetic-join .waitlist-form {
+  width: min(460px, 100%);
+}
+
+.kinetic .waitlist-field {
+  padding: 5px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: none;
+}
+.kinetic .waitlist-field:focus-within {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 4px rgb(0 72 216 / 0.2);
+}
+.kinetic .waitlist-field input {
+  color: var(--ink);
+  font-size: 15px;
+}
+.kinetic .waitlist-field .button {
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--accent);
+  box-shadow: none;
+  font-weight: 700;
+}
+.kinetic .waitlist-done {
+  justify-content: flex-start;
+  margin-top: 0;
+}
+
+.kinetic-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 72px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  color: var(--soft);
+  font-size: 13px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .kinetic-header > a:last-child:hover {
+    background: var(--accent);
+  }
+  .kinetic .waitlist-field .button:hover {
+    background: #003cb5;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kinetic-word {
+    animation: none;
+  }
+}
+@media (max-width: 640px) {
+  .kinetic h1 {
+    margin-top: 40px;
+  }
+  .kinetic-footer {
+    flex-direction: column;
+  }
+}

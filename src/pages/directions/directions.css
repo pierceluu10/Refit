@@ -1,0 +1,45 @@
+/* What the directions share: the wordmark and the diff. Each direction scopes the rest of its
+   styles under its own class. */
+
+.dir {
+  position: relative;
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+.dir-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+}
+.dir-wordmark svg {
+  width: 0.95em;
+  height: auto;
+}
+.dir .waitlist-form {
+  max-width: none;
+  margin: 0;
+}
+.dir .waitlist-field,
+.dir .waitlist-error,
+.dir .waitlist-done {
+  margin-inline: 0;
+}
+.dir .waitlist-form .button svg {
+  display: none;
+}
+/* Keeps the button's focus ring inside the field, where it contrasts on every page. */
+.dir .waitlist-field .button {
+  outline-offset: 2px;
+}
+.dir-diff {
+  overflow-x: auto;
+  white-space: pre;
+}
+.dir-diff > span {
+  display: block;
+}
+.dir-diff-sign {
+  display: inline-block;
+  width: 2ch;
+  user-select: none;
+}

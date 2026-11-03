@@ -1,0 +1,354 @@
+/* Direction 7, Manual: blue ink on cool paper, Geist Pixel for titles and figure labels, Source
+   Serif for reading. The exploded drawing is the one thing that moves. */
+
+.manual {
+  --paper: #f4f6fb;
+  --sheet: #fbfcff;
+  --ink: #1d43db;
+  --ink-deep: #1538b8;
+  --wash: #dce4ff;
+  --text: #111a3b;
+  --soft: #4a5378;
+  --rule: #b8c3e8;
+  --pixel: 'Geist Pixel', 'Geist Mono Variable', monospace;
+  --serif: 'Source Serif 4 Variable', Georgia, serif;
+  --pixel-rule: repeating-linear-gradient(90deg, var(--rule) 0 8px, transparent 8px 12px);
+  /* Read by the shared waitlist form. */
+  --blue: var(--ink);
+  --muted: var(--soft);
+  --border: var(--rule);
+  color: var(--text);
+  background: var(--paper);
+  font-family: var(--serif);
+}
+.manual ::selection {
+  color: #fff;
+  background: var(--ink);
+}
+.manual :focus-visible {
+  outline-color: var(--ink);
+}
+
+.manual-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: min(1176px, 100% - 64px);
+  margin: 0 auto;
+  padding: 22px 0;
+  color: var(--ink);
+  font-family: var(--pixel);
+  font-size: 14px;
+}
+.manual-header .dir-wordmark {
+  font-size: 22px;
+}
+.manual-header p {
+  margin-left: auto;
+  color: var(--soft);
+}
+.manual-header > a:last-child {
+  padding: 9px 14px;
+  border: 1.5px solid var(--ink);
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+.manual main {
+  width: min(1176px, 100% - 64px);
+  margin: 0 auto;
+}
+
+.manual h1 {
+  max-width: 17ch;
+  margin: 56px 0 44px;
+  color: var(--ink);
+  font-family: var(--pixel);
+  font-size: clamp(40px, 6.2vw, 86px);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: 0;
+}
+.manual-rule {
+  height: 4px;
+  background: var(--pixel-rule);
+}
+.manual-spread {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+  gap: 48px;
+  align-items: start;
+  padding: 48px 0 88px;
+}
+.manual-side {
+  display: grid;
+  gap: 32px;
+}
+.manual-inset,
+.manual-figure {
+  margin: 0;
+  border: 1px solid var(--rule);
+  background: var(--sheet);
+}
+.manual-inset {
+  padding: 18px 18px 14px;
+}
+.manual-figure {
+  padding: 28px 24px 18px;
+}
+.manual figcaption {
+  color: var(--soft);
+  font-family: var(--pixel);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.manual figcaption span {
+  margin-right: 10px;
+  color: var(--ink);
+}
+.manual-inset .film {
+  margin-bottom: 14px;
+}
+
+.manual-exploded {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: 14px;
+  overflow: visible;
+}
+.manual-paper {
+  fill: var(--sheet);
+  stroke: var(--ink);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+.manual-edge {
+  fill: var(--wash);
+  stroke: var(--ink);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+.manual-stroke,
+.manual-dashed {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.manual-dashed {
+  stroke-dasharray: 4 3;
+}
+.manual-wash {
+  fill: var(--wash);
+}
+.manual-solid {
+  fill: var(--ink);
+}
+.manual-guide {
+  stroke: var(--rule);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+.manual-leader {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+.manual-label-title {
+  fill: var(--ink);
+  font-family: var(--pixel);
+  font-size: 16px;
+}
+.manual-label-text {
+  fill: var(--soft);
+  font-family: var(--serif);
+  font-size: 13.5px;
+}
+/* The sheets start stacked tight and spread apart once, on load. */
+@media (prefers-reduced-motion: no-preference) {
+  .manual-sheet {
+    animation: manual-explode 1400ms cubic-bezier(0.16, 1, 0.3, 1) 450ms both;
+  }
+}
+@keyframes manual-explode {
+  from {
+    transform: translateY(var(--lift));
+  }
+}
+
+.manual-chapter {
+  padding: 72px 0;
+  background: var(--pixel-rule) top / 100% 4px no-repeat;
+}
+.manual h2 {
+  margin-bottom: 40px;
+  color: var(--ink);
+  font-family: var(--pixel);
+  font-size: clamp(30px, 3.4vw, 44px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+.manual-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 64px;
+  align-items: start;
+}
+.manual-pair h2 {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+  font-size: 28px;
+}
+.manual-caution {
+  padding: 28px 30px 30px;
+  border: 1.5px solid var(--ink);
+  outline: 1px solid var(--ink);
+  outline-offset: 5px;
+  background: var(--sheet);
+}
+.manual-caution h2 svg {
+  width: 36px;
+  height: 36px;
+  padding: 7px;
+  color: var(--sheet);
+  background: var(--ink);
+}
+.manual-caution ul {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 22px;
+  font-size: 17.5px;
+  line-height: 1.5;
+}
+.manual-caution li::marker {
+  color: var(--ink);
+}
+.manual-specs {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  margin: 0;
+}
+.manual-specs dt,
+.manual-specs dd {
+  padding: 13px 0;
+  border-top: 1px dashed var(--rule);
+}
+.manual-specs dt {
+  padding-right: 32px;
+  color: var(--ink);
+  font-family: var(--pixel);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.manual-specs dd {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.manual-join h2 {
+  margin-bottom: 28px;
+}
+
+.manual .waitlist-field {
+  gap: 0;
+  max-width: 470px;
+  padding: 0;
+  border: 1.5px solid var(--ink);
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+.manual .waitlist-field:focus-within {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 4px var(--wash);
+}
+.manual .waitlist-field input {
+  padding: 0 14px;
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 16px;
+}
+.manual .waitlist-field .button {
+  min-height: 46px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 0;
+  color: #fff;
+  background: var(--ink);
+  box-shadow: none;
+  font-family: var(--pixel);
+  font-size: 14px;
+  font-weight: 400;
+}
+.manual .waitlist-error {
+  color: #b42318;
+  font-family: var(--pixel);
+}
+.manual .waitlist-done {
+  justify-content: flex-start;
+  max-width: 470px;
+  margin-top: 0;
+  border-color: var(--ink);
+  border-radius: 0;
+  font-family: var(--serif);
+  font-size: 16px;
+}
+
+.manual-colophon {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  width: min(1176px, 100% - 64px);
+  margin: 0 auto;
+  padding-top: 24px;
+  border-top: 1px dashed var(--rule);
+  color: var(--soft);
+  font-family: var(--pixel);
+  font-size: 12px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .manual-header > a:last-child:hover {
+    color: var(--sheet);
+    background: var(--ink);
+  }
+  .manual .waitlist-field .button:hover {
+    background: var(--ink-deep);
+  }
+}
+@media (max-width: 1000px) {
+  .manual-spread,
+  .manual-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .manual-header,
+  .manual main,
+  .manual-colophon {
+    width: calc(100% - 40px);
+  }
+  .manual-header p {
+    display: none;
+  }
+  .manual-header > a:last-child {
+    margin-left: auto;
+  }
+  .manual h1 {
+    margin: 32px 0 32px;
+  }
+  .manual-figure {
+    padding: 18px 10px 12px;
+  }
+  .manual-colophon {
+    flex-direction: column;
+  }
+}
