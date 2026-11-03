@@ -1,0 +1,132 @@
+{
+  "note": "Real responses recorded for the toolkit unit tests, trimmed as each entry says. Test input only.",
+  "recordedAt": "2026-11-03T05:05:56Z",
+  "entries": [
+    {
+      "file": "npm-anthropic-ai-sdk.json",
+      "url": "https://registry.npmjs.org/@anthropic-ai%2Fsdk",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-03T05:05:56Z",
+      "trimmed": "kept 128 of 223 versions (version, deprecated and engines fields only); people fields removed"
+    },
+    {
+      "file": "npm-request.json",
+      "url": "https://registry.npmjs.org/request",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-03T05:05:56Z",
+      "trimmed": "kept 93 of 126 versions (version, deprecated and engines fields only); people fields removed"
+    },
+    {
+      "file": "pypi-google-generativeai.json",
+      "url": "https://pypi.org/pypi/google-generativeai/json",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-03T05:05:56Z",
+      "trimmed": "kept 28 of 28 releases (first file each, dates and yanked fields only); people fields removed"
+    },
+    {
+      "file": "github-releases-anthropic-sdk-typescript.json",
+      "url": "https://api.github.com/repos/anthropics/anthropic-sdk-typescript/releases?per_page=100",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "recordedAt": "2026-11-03T05:05:56Z",
+      "trimmed": "kept the newest 8 of 100 releases; bodies cut to 1200 characters; other fields removed"
+    },
+    {
+      "file": "releases-anthropic-sdk-typescript.atom.txt",
+      "url": "https://github.com/anthropics/anthropic-sdk-typescript/releases.atom",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/atom+xml; charset=utf-8",
+      "recordedAt": "2026-11-03T05:05:56Z",
+      "trimmed": "kept the newest 5 entries; content cut to 1500 characters"
+    },
+    {
+      "file": "changelog-anthropic-sdk.md.txt",
+      "url": "https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@latest/CHANGELOG.md",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/markdown; charset=utf-8",
+      "recordedAt": "2026-11-03T05:05:56Z",
+      "trimmed": "kept the first 12 of 219 version sections"
+    },
+    {
+      "file": "petstore-openapi.yaml.txt",
+      "url": "https://raw.githubusercontent.com/swagger-api/swagger-petstore/master/src/main/resources/openapi.yaml",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/plain; charset=utf-8",
+      "recordedAt": "2026-11-03T05:05:56Z",
+      "trimmed": "not trimmed"
+    },
+    {
+      "file": "petstore-swagger.json",
+      "url": "https://petstore.swagger.io/v2/swagger.json",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-03T05:05:56Z",
+      "trimmed": "not trimmed (re-indented)"
+    },
+    {
+      "file": "resend-sitemap.xml",
+      "url": "https://resend.com/docs/sitemap.xml",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/xml",
+      "recordedAt": "2026-11-03T05:05:56Z",
+      "trimmed": "kept the first 80 of 421 URLs"
+    },
+    {
+      "file": "countries-introspection-413.json",
+      "url": "https://countries.trevorblades.com/graphql",
+      "method": "POST",
+      "status": 413,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-03T05:05:56Z",
+      "trimmed": "not trimmed"
+    },
+    {
+      "file": "github-schema-excerpt.graphql.txt",
+      "url": "https://docs.github.com/public/fpt/schema.docs.graphql",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/octet-stream",
+      "recordedAt": "2026-11-03T05:05:56Z",
+      "trimmed": "kept 12 definitions: Query, Node, CheckAnnotation, CheckAnnotationPosition, CheckAnnotationSpan, CheckAnnotationLevel, CheckAnnotationConnection, CheckAnnotationEdge, PageInfo, URI, DateTime, CheckRun"
+    },
+    {
+      "file": "pypi-httpx.json",
+      "url": "https://pypi.org/pypi/httpx/json",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-03T05:31:12Z",
+      "trimmed": "kept all 77 releases (first file each, dates and yanked fields only); people fields removed"
+    },
+    {
+      "file": "changelog-httpx.md.txt",
+      "url": "https://raw.githubusercontent.com/encode/httpx/master/CHANGELOG.md",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/plain; charset=utf-8",
+      "recordedAt": "2026-11-03T05:31:12Z",
+      "trimmed": "kept the first 8 of 78 version sections"
+    },
+    {
+      "file": "github-changelog-feed.rss.txt",
+      "url": "https://github.blog/changelog/feed/",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/rss+xml; charset=UTF-8",
+      "recordedAt": "2026-11-03T05:31:12Z",
+      "trimmed": "kept the newest 6 of 10 items; content cut to 1200 characters; author bylines removed"
+    }
+  ]
+}

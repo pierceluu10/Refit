@@ -1,0 +1,74 @@
+[
+  {
+    "tag_name": "vertex-sdk-v1.1.1",
+    "name": "vertex-sdk-v1.1.1",
+    "published_at": "2026-11-02T19:17:16Z",
+    "html_url": "https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/vertex-sdk-v1.1.1",
+    "prerelease": false,
+    "draft": false,
+    "body": "### Chores\n\n* **internal:** type-check the published declarations of every subpackage"
+  },
+  {
+    "tag_name": "sdk-v1.4.0",
+    "name": "sdk-v1.4.0",
+    "published_at": "2026-11-02T19:17:13Z",
+    "html_url": "https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/sdk-v1.4.0",
+    "prerelease": false,
+    "draft": false,
+    "body": "### Features\n\n* **api:** add GA methods for analytics, spend limits and RBAC\n* **api:** add named beta types for unified metrics and RBAC delete responses\n* **api:** add shared analytics order and increase request actor types\n* **api:** add tool_use_limit_reached_error and compaction_limit_reached_error session error types\n* **api:** add types for analytics group_by and spend limit period filters\n* **api:** add user_profile_id to External Keys and Workspaces\n\n\n### Bug Fixes\n\n* **api:** make spend_limit nullable in the spend limit increase request approve response\n* **api:** require always-sent analytics fields and drop the unused project product field\n\n\n### Chores\n\n* **ci:** install only the headless Chromium shell in the browser ecosystem tests\n* **ci:** remove unused build upload steps\n* **docs:** clarify the Slack channel id description\n* **docs:** clarify what disabling the Compliance API stops\n* **docs:** clarify what the capability_access_all role action grants\n* **docs:** link Dreams model fields to the supported models section\n* **docs:** update example user ID in Admin API examples\n* **internal:** add a section for each repository's own review rules\n* **internal:** plainer"
+  },
+  {
+    "tag_name": "google-cloud-sdk-v1.1.2",
+    "name": "google-cloud-sdk-v1.1.2",
+    "published_at": "2026-11-02T19:17:27Z",
+    "html_url": "https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/google-cloud-sdk-v1.1.2",
+    "prerelease": false,
+    "draft": false,
+    "body": "### Chores\n\n* **internal:** type-check the published declarations of every subpackage\n\n\n### Documentation\n\n* **examples:** use current model IDs"
+  },
+  {
+    "tag_name": "foundry-sdk-v1.1.1",
+    "name": "foundry-sdk-v1.1.1",
+    "published_at": "2026-11-02T19:17:21Z",
+    "html_url": "https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/foundry-sdk-v1.1.1",
+    "prerelease": false,
+    "draft": false,
+    "body": "### Bug Fixes\n\n* **foundry:** make client.d.ts type-check with skipLibCheck off\n\n\n### Chores\n\n* **internal:** type-check the published declarations of every subpackage"
+  },
+  {
+    "tag_name": "bedrock-sdk-v1.1.1",
+    "name": "bedrock-sdk-v1.1.1",
+    "published_at": "2026-11-02T19:17:18Z",
+    "html_url": "https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/bedrock-sdk-v1.1.1",
+    "prerelease": false,
+    "draft": false,
+    "body": "### Chores\n\n* **internal:** type-check the published declarations of every subpackage"
+  },
+  {
+    "tag_name": "aws-sdk-v1.1.2",
+    "name": "aws-sdk-v1.1.2",
+    "published_at": "2026-11-02T19:17:24Z",
+    "html_url": "https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/aws-sdk-v1.1.2",
+    "prerelease": false,
+    "draft": false,
+    "body": "### Chores\n\n* **internal:** type-check the published declarations of every subpackage"
+  },
+  {
+    "tag_name": "vertex-sdk-v1.1.0",
+    "name": "vertex-sdk-v1.1.0",
+    "published_at": "2026-10-23T13:09:16Z",
+    "html_url": "https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/vertex-sdk-v1.1.0",
+    "prerelease": false,
+    "draft": false,
+    "body": "### Features\n\n* **api:** add support for message threads"
+  },
+  {
+    "tag_name": "sdk-v1.3.0",
+    "name": "sdk-v1.3.0",
+    "published_at": "2026-10-23T23:23:43Z",
+    "html_url": "https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/sdk-v1.3.0",
+    "prerelease": false,
+    "draft": false,
+    "body": "### Features\n\n* **api:** add Claude Tag endpoints for Claude Enterprise organizations\n\n\n### Bug Fixes\n\n* **client:** link the long-request error messages to the SDK documentation\n\n\n### Chores\n\n* **client:** stop sending query params hardcoded in endpoint paths\n* **docs:** improve the descriptions of the code execution tool and its encrypted results\n* **docs:** reword work queue, skill and external key descriptions\n* **docs:** update descriptions of the per-user usage and cost reports\n* **internal:** carry endpoint path query params to the request layer\n* **internal:** check the repository by owner and public name in workflows\n* **internal:** read the beta route qualifier instead of the beta=true query\n* **internal:** remove preview build upload from CI\n* **internal:** stop expecting the beta query param in tests\n\n\n### Documentation\n\n* update the README and the example request"
+  }
+]

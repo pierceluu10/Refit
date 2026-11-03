@@ -3,17 +3,26 @@ import type { NetworkOptions } from './fetch.ts';
 import { loadPlaybooks } from './playbooks.ts';
 import { createSearchDocsTool, type SearchDocsOptions } from './searchDocs.ts';
 
+export * from './changelog.ts';
 export * from './fetch.ts';
+export * from './graphql-tools.ts';
+export * from './openapi.ts';
+export * from './pack.ts';
+export * from './packages.ts';
+export * from './pages.ts';
 export * from './playbooks.ts';
 export * from './searchDocs.ts';
 export * from './text.ts';
 export * from './tool.ts';
+export * from './versions.ts';
+export * from './yaml.ts';
 
 export type ToolPackOptions = NetworkOptions & { searchDocs?: SearchDocsOptions };
 
 /**
  * Assemble a provider ToolPack: the provider's own tools, its searchDocs tool and its playbooks.
  * `playbooksDir` is usually `new URL('./playbooks/', import.meta.url)` from the provider's tools.ts.
+ * loadToolPack (pack.ts) adds the generic tools and playbooks on top.
  */
 export function assembleToolPack(spec: {
   provider: string;

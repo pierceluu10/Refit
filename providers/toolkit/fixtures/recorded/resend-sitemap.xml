@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+    
+  <url>
+    <loc>https://resend.com/docs/add-a-domain</loc>
+    <lastmod>2026-08-31T10:41:15.886Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/agent-email-inbox-skill</loc>
+    <lastmod>2026-10-20T23:29:01.031Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/ai-onboarding</loc>
+    <lastmod>2026-09-22T23:48:29.303Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/anything-integration</loc>
+    <lastmod>2026-07-07T17:23:35.971Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/api-keys/create-api-key</loc>
+    <lastmod>2026-10-17T18:09:47.605Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/api-keys/delete-api-key</loc>
+    <lastmod>2026-09-24T17:36:59.462Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/api-keys/list-api-keys</loc>
+    <lastmod>2026-09-24T17:36:59.464Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/api-keys/update-api-key</loc>
+    <lastmod>2026-09-24T17:36:59.449Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/automations/create-automation</loc>
+    <lastmod>2026-09-24T17:36:59.447Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/automations/delete-automation</loc>
+    <lastmod>2026-09-24T17:36:59.463Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/automations/duplicate-automation</loc>
+    <lastmod>2026-09-24T17:36:59.450Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/automations/get-automation</loc>
+    <lastmod>2026-09-24T17:36:59.457Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/automations/get-automation-run</loc>
+    <lastmod>2026-09-24T17:36:59.451Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/automations/list-automation-runs</loc>
+    <lastmod>2026-09-24T17:36:59.455Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/automations/list-automations</loc>
+    <lastmod>2026-09-24T17:36:59.454Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/automations/stop-automation</loc>
+    <lastmod>2026-09-24T17:36:59.448Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/automations/update-automation</loc>
+    <lastmod>2026-09-24T17:36:59.458Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/broadcasts/cancel-broadcast</loc>
+    <lastmod>2026-09-24T17:36:59.453Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/broadcasts/create-broadcast</loc>
+    <lastmod>2026-09-29T15:51:31.174Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/broadcasts/delete-broadcast</loc>
+    <lastmod>2026-09-24T17:36:59.456Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/broadcasts/duplicate-broadcast</loc>
+    <lastmod>2026-09-24T17:36:59.446Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/broadcasts/get-broadcast</loc>
+    <lastmod>2026-09-24T17:36:59.457Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/broadcasts/list-broadcast-clicked-links</loc>
+    <lastmod>2026-09-24T17:36:59.446Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/broadcasts/list-broadcast-recipients</loc>
+    <lastmod>2026-09-24T17:36:59.461Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/broadcasts/list-broadcasts</loc>
+    <lastmod>2026-09-24T17:36:59.449Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/broadcasts/send-broadcast</loc>
+    <lastmod>2026-09-24T17:36:59.455Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/broadcasts/update-broadcast</loc>
+    <lastmod>2026-09-24T17:36:59.444Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contact-properties/create-contact-property</loc>
+    <lastmod>2026-09-24T17:36:59.447Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contact-properties/delete-contact-property</loc>
+    <lastmod>2026-09-24T17:36:59.459Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contact-properties/get-contact-property</loc>
+    <lastmod>2026-09-24T17:36:59.458Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contact-properties/list-contact-properties</loc>
+    <lastmod>2026-09-24T17:36:59.443Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contact-properties/update-contact-property</loc>
+    <lastmod>2026-09-24T17:36:59.445Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contacts/add-contact-to-segment</loc>
+    <lastmod>2026-09-24T17:36:59.454Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contacts/create-contact</loc>
+    <lastmod>2026-09-24T17:36:59.456Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contacts/create-contact-import</loc>
+    <lastmod>2026-09-24T13:57:44.317Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contacts/delete-contact</loc>
+    <lastmod>2026-09-24T17:37:29.932Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contacts/delete-contact-segment</loc>
+    <lastmod>2026-09-24T17:36:59.445Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contacts/get-contact</loc>
+    <lastmod>2026-09-24T17:37:29.932Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contacts/get-contact-import</loc>
+    <lastmod>2026-09-24T13:57:44.316Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contacts/get-contact-topics</loc>
+    <lastmod>2026-09-24T17:36:59.453Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contacts/list-contact-imports</loc>
+    <lastmod>2026-09-24T13:57:43.049Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contacts/list-contact-segments</loc>
+    <lastmod>2026-09-24T17:36:52.510Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contacts/list-contacts</loc>
+    <lastmod>2026-10-09T20:52:06.390Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contacts/update-contact</loc>
+    <lastmod>2026-09-24T23:33:29.829Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/contacts/update-contact-topics</loc>
+    <lastmod>2026-09-24T17:36:52.516Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/domains/claim-domain</loc>
+    <lastmod>2026-09-24T17:36:52.507Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/domains/create-domain</loc>
+    <lastmod>2026-09-24T17:36:52.529Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/domains/delete-domain</loc>
+    <lastmod>2026-09-24T17:36:52.530Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/domains/get-domain</loc>
+    <lastmod>2026-09-24T17:36:52.531Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/domains/get-domain-claim</loc>
+    <lastmod>2026-09-24T17:36:52.512Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/domains/list-domains</loc>
+    <lastmod>2026-09-24T17:36:52.521Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/domains/update-domain</loc>
+    <lastmod>2026-09-24T17:36:52.521Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/domains/verify-domain</loc>
+    <lastmod>2026-10-28T13:50:28.872Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/domains/verify-domain-claim</loc>
+    <lastmod>2026-09-24T17:36:52.506Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/emails/cancel-email</loc>
+    <lastmod>2026-09-24T17:36:52.528Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/emails/get-metrics</loc>
+    <lastmod>2026-09-24T17:36:52.519Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/emails/list-email-attachments</loc>
+    <lastmod>2026-09-24T17:36:52.512Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/emails/list-emails</loc>
+    <lastmod>2026-09-24T17:36:52.506Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/emails/list-received-email-attachments</loc>
+    <lastmod>2026-09-24T17:36:52.504Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/emails/list-received-emails</loc>
+    <lastmod>2026-09-24T17:36:52.508Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/emails/retrieve-email</loc>
+    <lastmod>2026-09-24T17:36:52.511Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/emails/retrieve-email-attachment</loc>
+    <lastmod>2026-09-24T17:36:52.520Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/emails/retrieve-received-email</loc>
+    <lastmod>2026-09-24T17:43:17.755Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/emails/retrieve-received-email-attachment</loc>
+    <lastmod>2026-09-24T17:36:52.523Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/emails/send-batch-emails</loc>
+    <lastmod>2026-09-25T17:17:31.779Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/emails/send-email</loc>
+    <lastmod>2026-09-25T17:17:31.765Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/emails/share-email</loc>
+    <lastmod>2026-09-24T17:36:52.504Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/emails/update-email</loc>
+    <lastmod>2026-09-24T17:36:52.524Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/errors</loc>
+    <lastmod>2026-10-15T13:19:11.108Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/events/create-event</loc>
+    <lastmod>2026-09-24T17:36:52.517Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/events/delete-event</loc>
+    <lastmod>2026-09-24T17:36:52.469Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/events/get-event</loc>
+    <lastmod>2026-09-24T17:36:52.516Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/events/list-events</loc>
+    <lastmod>2026-09-24T17:36:52.515Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/events/send-event</loc>
+    <lastmod>2026-09-24T17:43:17.755Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/events/update-event</loc>
+    <lastmod>2026-09-24T17:36:52.509Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/inboxes/add-thread-labels</loc>
+    <lastmod>2026-10-27T23:16:33.001Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/inboxes/create-draft</loc>
+    <lastmod>2026-10-27T23:16:33.000Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/inboxes/create-inbox</loc>
+    <lastmod>2026-10-27T23:16:33.000Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/inboxes/create-label</loc>
+    <lastmod>2026-10-27T23:16:32.999Z</lastmod>
+  </url>
+<url>
+    <loc>https://resend.com/docs/api-reference/inboxes/delete-draft</loc>
+    <lastmod>2026-10-27T23:16:32.999Z</lastmod>
+  </url>
+</urlset>

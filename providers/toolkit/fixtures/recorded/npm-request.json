@@ -1,0 +1,664 @@
+{
+  "name": "request",
+  "description": "Simplified HTTP request client.",
+  "dist-tags": {
+    "latest": "2.88.2"
+  },
+  "repository": {
+    "url": "git+https://github.com/request/request.git",
+    "type": "git"
+  },
+  "homepage": "https://github.com/request/request#readme",
+  "versions": {
+    "1.0.0": {
+      "version": "1.0.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >=0.1.90"]
+    },
+    "1.1.0": {
+      "version": "1.1.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node < 0.3.6"]
+    },
+    "1.1.1": {
+      "version": "1.1.1",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node < 0.3.6"]
+    },
+    "1.2.0": {
+      "version": "1.2.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node < 0.3.6"]
+    },
+    "1.9.0": {
+      "version": "1.9.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "1.9.1": {
+      "version": "1.9.1",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "1.9.2": {
+      "version": "1.9.2",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "1.9.3": {
+      "version": "1.9.3",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "1.9.5": {
+      "version": "1.9.5",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "1.9.7": {
+      "version": "1.9.7",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "1.9.8": {
+      "version": "1.9.8",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "1.9.9": {
+      "version": "1.9.9",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "2.0.0": {
+      "version": "2.0.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "2.1.0": {
+      "version": "2.1.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "2.2.0": {
+      "version": "2.2.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "2.9.0": {
+      "version": "2.9.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "2.10.0": {
+      "version": "2.10.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "2.11.0": {
+      "version": "2.11.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "2.12.0": {
+      "version": "2.12.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "2.14.0": {
+      "version": "2.14.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "2.16.0": {
+      "version": "2.16.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.3.6"]
+    },
+    "2.18.0": {
+      "version": "2.18.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.19.0": {
+      "version": "2.19.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.20.0": {
+      "version": "2.20.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.21.0": {
+      "version": "2.21.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.22.0": {
+      "version": "2.22.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.23.0": {
+      "version": "2.23.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.24.0": {
+      "version": "2.24.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.25.0": {
+      "version": "2.25.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.26.0": {
+      "version": "2.26.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.27.0": {
+      "version": "2.27.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.28.0": {
+      "version": "2.28.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.29.0": {
+      "version": "2.29.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.30.0": {
+      "version": "2.30.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.31.0": {
+      "version": "2.31.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.32.0": {
+      "version": "2.32.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.33.0": {
+      "version": "2.33.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.34.0": {
+      "version": "2.34.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.35.0": {
+      "version": "2.35.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.36.0": {
+      "version": "2.36.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.37.0": {
+      "version": "2.37.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.38.0": {
+      "version": "2.38.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.39.0": {
+      "version": "2.39.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.40.0": {
+      "version": "2.40.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.41.0": {
+      "version": "2.41.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.42.0": {
+      "version": "2.42.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.43.0": {
+      "version": "2.43.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.44.0": {
+      "version": "2.44.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": ["node >= 0.8.0"]
+    },
+    "2.45.0": {
+      "version": "2.45.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.46.0": {
+      "version": "2.46.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.47.0": {
+      "version": "2.47.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.48.0": {
+      "version": "2.48.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.49.0": {
+      "version": "2.49.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.50.0": {
+      "version": "2.50.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.51.0": {
+      "version": "2.51.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.52.0": {
+      "version": "2.52.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.53.0": {
+      "version": "2.53.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.54.0": {
+      "version": "2.54.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.55.0": {
+      "version": "2.55.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.56.0": {
+      "version": "2.56.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.57.0": {
+      "version": "2.57.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.58.0": {
+      "version": "2.58.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.59.0": {
+      "version": "2.59.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.60.0": {
+      "version": "2.60.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.61.0": {
+      "version": "2.61.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.62.0": {
+      "version": "2.62.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.63.0": {
+      "version": "2.63.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.64.0": {
+      "version": "2.64.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.65.0": {
+      "version": "2.65.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.66.0": {
+      "version": "2.66.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.67.0": {
+      "version": "2.67.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.68.0": {
+      "version": "2.68.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.69.0": {
+      "version": "2.69.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.70.0": {
+      "version": "2.70.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.71.0": {
+      "version": "2.71.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.72.0": {
+      "version": "2.72.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.73.0": {
+      "version": "2.73.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.74.0": {
+      "version": "2.74.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.75.0": {
+      "version": "2.75.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.76.0": {
+      "version": "2.76.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">=0.8.0"
+      }
+    },
+    "2.77.0": {
+      "version": "2.77.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">= 4"
+      }
+    },
+    "2.78.0": {
+      "version": "2.78.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">= 4"
+      }
+    },
+    "2.79.0": {
+      "version": "2.79.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">= 4"
+      }
+    },
+    "2.80.0": {
+      "version": "2.80.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">= 4"
+      }
+    },
+    "2.81.0": {
+      "version": "2.81.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">= 4"
+      }
+    },
+    "2.82.0": {
+      "version": "2.82.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">= 4"
+      }
+    },
+    "2.83.0": {
+      "version": "2.83.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">= 4"
+      }
+    },
+    "2.84.0": {
+      "version": "2.84.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">= 4"
+      }
+    },
+    "2.85.0": {
+      "version": "2.85.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">= 4"
+      }
+    },
+    "2.86.0": {
+      "version": "2.86.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">= 4"
+      }
+    },
+    "2.87.0": {
+      "version": "2.87.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">= 4"
+      }
+    },
+    "2.88.0": {
+      "version": "2.88.0",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">= 4"
+      }
+    },
+    "2.88.2": {
+      "version": "2.88.2",
+      "deprecated": "request has been deprecated, see https://github.com/request/request/issues/3142",
+      "engines": {
+        "node": ">= 6"
+      }
+    }
+  },
+  "time": {
+    "1.0.0": "2011-01-22T00:36:12.640Z",
+    "1.1.0": "2011-01-23T01:14:46.626Z",
+    "1.1.1": "2011-01-23T01:38:57.823Z",
+    "1.2.0": "2011-01-30T22:05:41.553Z",
+    "1.9.0": "2011-02-11T00:10:06.903Z",
+    "1.9.1": "2011-03-22T18:07:16.344Z",
+    "1.9.2": "2011-03-22T18:29:21.464Z",
+    "1.9.3": "2011-03-22T18:32:57.223Z",
+    "1.9.5": "2011-03-27T22:30:25.139Z",
+    "1.9.7": "2011-06-23T17:36:13.839Z",
+    "1.9.8": "2011-06-23T21:15:20.971Z",
+    "1.9.9": "2011-07-21T02:03:21.081Z",
+    "2.0.0": "2011-07-21T21:10:38.897Z",
+    "2.1.0": "2011-08-15T04:03:17.126Z",
+    "2.2.0": "2011-11-06T01:40:00.212Z",
+    "2.9.0": "2011-12-28T00:47:33.584Z",
+    "2.10.0": "2012-08-01T20:56:37.322Z",
+    "2.11.0": "2012-08-29T19:18:28.340Z",
+    "2.12.0": "2012-11-09T21:49:57.215Z",
+    "2.14.0": "2013-02-19T23:53:42.323Z",
+    "2.16.0": "2013-03-13T17:48:37.937Z",
+    "2.18.0": "2013-04-22T15:53:37.983Z",
+    "2.19.0": "2013-04-22T16:48:30.477Z",
+    "2.20.0": "2013-04-22T21:49:15.616Z",
+    "2.21.0": "2013-04-30T21:28:44.759Z",
+    "2.22.0": "2013-07-05T17:12:48.170Z",
+    "2.23.0": "2013-07-23T02:45:03.153Z",
+    "2.24.0": "2013-07-23T20:51:33.068Z",
+    "2.25.0": "2013-07-23T21:51:30.696Z",
+    "2.26.0": "2013-08-07T16:31:07.773Z",
+    "2.27.0": "2013-08-15T21:30:34.410Z",
+    "2.28.0": "2013-12-04T19:42:46.371Z",
+    "2.29.0": "2013-12-06T20:05:35.433Z",
+    "2.30.0": "2013-12-13T19:17:56.851Z",
+    "2.31.0": "2014-01-08T02:57:12.510Z",
+    "2.32.0": "2014-01-16T19:33:18.069Z",
+    "2.33.0": "2014-01-16T19:48:02.613Z",
+    "2.34.0": "2014-02-18T19:35:27.908Z",
+    "2.35.0": "2014-05-17T20:56:43.641Z",
+    "2.36.0": "2014-05-19T20:58:14.683Z",
+    "2.37.0": "2014-07-07T17:24:45.290Z",
+    "2.38.0": "2014-07-22T13:44:48.332Z",
+    "2.39.0": "2014-07-24T02:20:50.881Z",
+    "2.40.0": "2014-08-06T18:29:34.302Z",
+    "2.41.0": "2014-09-04T20:36:17.279Z",
+    "2.42.0": "2014-09-04T22:24:16.945Z",
+    "2.43.0": "2014-09-18T10:51:34.944Z",
+    "2.44.0": "2014-09-18T10:53:09.149Z",
+    "2.45.0": "2014-10-06T00:06:02.756Z",
+    "2.46.0": "2014-10-23T16:34:08.339Z",
+    "2.47.0": "2014-10-26T23:52:13.024Z",
+    "2.48.0": "2014-11-12T17:08:56.247Z",
+    "2.49.0": "2014-11-28T18:12:39.597Z",
+    "2.50.0": "2014-12-09T15:36:36.588Z",
+    "2.51.0": "2014-12-10T15:08:10.339Z",
+    "2.52.0": "2015-02-02T00:58:58.406Z",
+    "2.53.0": "2015-02-02T16:09:19.191Z",
+    "2.54.0": "2015-03-24T22:01:04.401Z",
+    "2.55.0": "2015-04-05T04:24:35.395Z",
+    "2.56.0": "2015-05-28T18:03:06.887Z",
+    "2.57.0": "2015-05-31T19:04:35.520Z",
+    "2.58.0": "2015-06-16T11:28:02.894Z",
+    "2.59.0": "2015-07-20T08:49:43.418Z",
+    "2.60.0": "2015-07-21T12:29:31.604Z",
+    "2.61.0": "2015-08-19T15:39:45.178Z",
+    "2.62.0": "2015-09-15T08:23:47.863Z",
+    "2.63.0": "2015-09-21T14:00:39.341Z",
+    "2.64.0": "2015-09-25T12:21:27.306Z",
+    "2.65.0": "2015-10-11T18:04:53.725Z",
+    "2.66.0": "2015-11-18T10:07:33.695Z",
+    "2.67.0": "2015-11-19T07:45:48.220Z",
+    "2.68.0": "2016-01-27T16:20:27.766Z",
+    "2.69.0": "2016-01-27T19:00:03.126Z",
+    "2.70.0": "2016-04-05T10:07:28.642Z",
+    "2.71.0": "2016-04-12T13:09:36.572Z",
+    "2.72.0": "2016-04-17T13:53:37.912Z",
+    "2.73.0": "2016-07-09T07:43:25.258Z",
+    "2.74.0": "2016-07-22T23:44:44.438Z",
+    "2.75.0": "2016-09-17T22:33:28.885Z",
+    "2.76.0": "2016-10-25T08:57:56.992Z",
+    "2.77.0": "2016-11-03T11:17:58.147Z",
+    "2.78.0": "2016-11-03T13:38:05.614Z",
+    "2.79.0": "2016-11-18T17:21:08.710Z",
+    "2.80.0": "2017-03-04T04:42:42.782Z",
+    "2.81.0": "2017-03-09T15:56:47.595Z",
+    "2.82.0": "2017-09-19T19:39:30.271Z",
+    "2.83.0": "2017-09-27T03:00:36.500Z",
+    "2.84.0": "2018-03-12T08:40:34.279Z",
+    "2.85.0": "2018-03-12T10:37:49.925Z",
+    "2.86.0": "2018-05-15T12:06:18.253Z",
+    "2.87.0": "2018-05-21T07:35:02.834Z",
+    "2.88.0": "2018-08-10T16:26:50.936Z",
+    "2.88.2": "2020-02-11T16:35:36.122Z"
+  }
+}

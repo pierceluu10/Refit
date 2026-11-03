@@ -10,6 +10,7 @@ import {
   bool,
   closest,
   defineTool,
+  fetchPackage,
   fetchText,
   resolveFetch,
   str,
@@ -604,7 +605,22 @@ export async function sdkVersions(
     `Latest in snapshot: ${lib.latest} (${lib.latestDate}); current major ${lib.currentMajor}.`,
   );
 
-  if (options.live !== false && resolveFetch(options)) {
+  // npm and PyPI libraries are read from their registry with the toolkit's package lookup (no
+  // rate limit, and it sees deprecations and runtime needs); the others from their GitHub releases.
+  const registry = /^(\S+) \((npm|pypi)\)$/i.exec(lib.package);
+  if (options.live !== false && resolveFetch(options) && registry) {
+    const ecosystem = registry[2].toLowerCase() === 'npm' ? 'npm' : 'pypi';
+    const { info } = await fetchPackage(ecosystem, registry[1], options);
+    if (info?.latest) {
+      const date = info.versions.find((v) => v.version === info.latest)?.date;
+      const notes = [info.runtime ? `the ${info.runtime}` : '', info.packageNote ?? ''].filter(
+        Boolean,
+      );
+      out.push(
+        `Live: latest on ${ecosystem === 'npm' ? 'npm' : 'PyPI'} is ${info.latest}${date ? ` (${date})` : ''}${notes.length ? `; ${notes.join('; ')}` : ''}.`,
+      );
+    }
+  } else if (options.live !== false && resolveFetch(options)) {
     const result = await fetchText(
       `https://api.github.com/repos/twilio/${lib.id}/releases/latest`,
       options,
@@ -658,7 +674,7 @@ export async function sdkVersions(
   out.push(`\nUpgrade guide: ${lib.upgrade}\nChangelog: ${lib.changes}`);
   out.push(`${snapshot.note}`);
   out.push(
-    'Next: grep the repo for the renamed classes/methods above, check the runtime version in CI and engines/python_requires, then run the tests. Use twilio_endpoint_lookup for any product/version the code calls.',
+    'Next: grep the repo for the renamed classes/methods above, check the runtime version in CI and engines/python_requires, then run the tests. Use twilio_endpoint_lookup for any product/version the code calls, and package_lookup for the release notes between two versions.',
   );
   return out.join('\n');
 }

@@ -1,0 +1,255 @@
+{
+  "info": {
+    "name": "google-generativeai",
+    "version": "0.8.6",
+    "summary": "Google Generative AI High level API client library and tools.",
+    "home_page": "https://github.com/google/generative-ai-python",
+    "project_urls": {
+      "Homepage": "https://github.com/google/generative-ai-python"
+    },
+    "requires_python": ">=3.9",
+    "classifiers": [
+      "Development Status :: 7 - Inactive",
+      "Intended Audience :: Developers",
+      "License :: OSI Approved :: Apache Software License",
+      "Operating System :: OS Independent",
+      "Programming Language :: Python",
+      "Programming Language :: Python :: 3",
+      "Programming Language :: Python :: 3.10",
+      "Programming Language :: Python :: 3.11",
+      "Programming Language :: Python :: 3.12",
+      "Programming Language :: Python :: 3.13",
+      "Programming Language :: Python :: 3.9",
+      "Topic :: Scientific/Engineering :: Artificial Intelligence",
+      "Typing :: Typed"
+    ],
+    "yanked": false,
+    "yanked_reason": null
+  },
+  "releases": {
+    "0.1.0": [
+      {
+        "upload_time_iso_8601": "2023-05-26T20:57:22.192861Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.1.0rc1": [
+      {
+        "upload_time_iso_8601": "2023-05-03T23:00:52.602677Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.1.0rc2": [
+      {
+        "upload_time_iso_8601": "2023-05-08T23:43:16.023518Z",
+        "yanked": true,
+        "yanked_reason": "Release is marked as supporting Py3.8, but in practice it requires 3.9",
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.1.0rc3": [
+      {
+        "upload_time_iso_8601": "2023-05-19T08:47:16.578351Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.2.0": [
+      {
+        "upload_time_iso_8601": "2023-09-21T19:19:06.252784Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.2.1": [
+      {
+        "upload_time_iso_8601": "2023-10-03T14:37:35.077680Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.2.2": [
+      {
+        "upload_time_iso_8601": "2023-10-23T17:47:28.734580Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.3.0": [
+      {
+        "upload_time_iso_8601": "2023-12-12T22:52:18.876787Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.3.1": [
+      {
+        "upload_time_iso_8601": "2023-12-13T14:55:15.717147Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.3.2": [
+      {
+        "upload_time_iso_8601": "2023-12-20T06:03:42.203730Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.4.0": [
+      {
+        "upload_time_iso_8601": "2024-02-29T21:54:20.231860Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.4.1": [
+      {
+        "upload_time_iso_8601": "2024-03-13T16:12:53.788706Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.5.0": [
+      {
+        "upload_time_iso_8601": "2024-04-08T21:12:50.539584Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.5.1": [
+      {
+        "upload_time_iso_8601": "2024-04-16T18:40:11.985997Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.5.2": [
+      {
+        "upload_time_iso_8601": "2024-04-18T21:11:40.722596Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.5.3": [
+      {
+        "upload_time_iso_8601": "2024-05-13T20:59:47.605587Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.5.4": [
+      {
+        "upload_time_iso_8601": "2024-05-17T01:25:53.892386Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.6.0": [
+      {
+        "upload_time_iso_8601": "2024-06-03T16:57:18.512173Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.7.0": [
+      {
+        "upload_time_iso_8601": "2024-06-17T23:15:23.966230Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.7.1": [
+      {
+        "upload_time_iso_8601": "2024-06-27T00:53:08.307981Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.7.2": [
+      {
+        "upload_time_iso_8601": "2024-07-08T21:01:55.661292Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.8.0": [
+      {
+        "upload_time_iso_8601": "2024-09-10T17:00:08.626420Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.8.1": [
+      {
+        "upload_time_iso_8601": "2024-09-12T16:58:01.143757Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.8.2": [
+      {
+        "upload_time_iso_8601": "2024-09-24T15:37:40.524964Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.8.3": [
+      {
+        "upload_time_iso_8601": "2024-10-07T15:46:08.699989Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.8.4": [
+      {
+        "upload_time_iso_8601": "2025-01-21T00:51:50.361434Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.8.5": [
+      {
+        "upload_time_iso_8601": "2025-04-17T00:40:00.670717Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ],
+    "0.8.6": [
+      {
+        "upload_time_iso_8601": "2025-12-16T17:53:58.610776Z",
+        "yanked": false,
+        "yanked_reason": null,
+        "packagetype": "bdist_wheel"
+      }
+    ]
+  }
+}
