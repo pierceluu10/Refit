@@ -178,6 +178,39 @@ describe('recordRecipeOutcome', () => {
     expect((await store.getRecipe('other'))?.failedRunIds).toEqual(['closed']);
   });
 
+  it('counts a run that could not verify on a green baseline, but not one on a red baseline', async () => {
+    const store = await tempStore();
+    await store.saveRecipe(makeRecipe());
+    const green = makeRun('green', { outcome: 'needs-review' });
+    const red = makeRun('red', {
+      outcome: 'needs-review',
+      checks: [{ name: 'tsc', before: 'fail (6)', after: 'fail (6)' }],
+    });
+    // The agent's proof test fails on the untouched baseline because it is new; the repo is green.
+    const tested = makeRun('tested', {
+      outcome: 'needs-review',
+      checks: [
+        { name: 'tsc', before: 'pass', after: 'pass' },
+        { name: 'proof', before: 'fail (1)', after: 'fail (1)' },
+      ],
+    });
+    tested.record = { ...tested.record, agentChecks: [{ name: 'proof' }] } as RunRecord;
+    await recordRecipeOutcome(green, { store, now });
+    await recordRecipeOutcome(red, { store, now });
+    await recordRecipeOutcome(tested, { store, now });
+    expect((await store.getRecipe('recipe-stripe-charges'))?.failedRunIds).toEqual([
+      'green',
+      'tested',
+    ]);
+
+    // A human merging that PR after all takes the failure back.
+    await recordRecipeOutcome(
+      { ...green, record: { ...green.record, humanVerdict: 'merged' } },
+      { store, now },
+    );
+    expect((await store.getRecipe('recipe-stripe-charges'))?.failedRunIds).toEqual(['tested']);
+  });
+
   it('takes a failure back when a later verdict reverses it', async () => {
     const store = await storeWithSkill();
     const closed = makeRun('reopened', { outcome: 'needs-review', humanVerdict: 'closed' });
