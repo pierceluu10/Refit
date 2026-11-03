@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fallbackFetcher, httpFetcher, truncatingFetcher, type Fetcher } from './fetch.ts';
+import {
+  extractLinks,
+  fallbackFetcher,
+  httpFetcher,
+  httpJsonFetcher,
+  truncatingFetcher,
+  type Fetcher,
+} from './fetch.ts';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -106,5 +113,68 @@ describe('fetcher helpers', () => {
     const both = fallbackFetcher(fixed, live);
     expect((await both.fetch('https://a.example/1')).text).toBe('x'.repeat(50));
     expect((await both.fetch('https://a.example/2')).text).toBe('live');
+  });
+});
+
+describe('extractLinks', () => {
+  it('collects absolute links from anchors, sitemaps and Markdown', () => {
+    const html =
+      '<a href="/docs/changelog">Change<b>log</b></a> <a href="https://other.example/x#top">X</a> <a href="mailto:a@b.c">mail</a> <loc>https://docs.example.com/deprecations</loc> [Upgrade guide](https://docs.example.com/upgrade) [rel](/v2)';
+    expect(extractLinks(html, 'https://docs.example.com/start')).toEqual([
+      { url: 'https://docs.example.com/docs/changelog', text: 'Change log' },
+      { url: 'https://other.example/x', text: 'X' },
+      { url: 'https://docs.example.com/deprecations', text: '' },
+      { url: 'https://docs.example.com/upgrade', text: 'Upgrade guide' },
+      { url: 'https://docs.example.com/v2', text: 'rel' },
+    ]);
+  });
+
+  it('keeps the links of a live HTML page for list_links', async () => {
+    stubFetch({
+      'https://docs.example.com/': () =>
+        new Response('<main><a href="/changelog">Changelog</a></main>', {
+          headers: { 'content-type': 'text/html' },
+        }),
+    });
+    const page = await httpFetcher().fetch('https://docs.example.com/');
+    expect(page.links).toEqual([{ url: 'https://docs.example.com/changelog', text: 'Changelog' }]);
+  });
+});
+
+describe('httpJsonFetcher', () => {
+  it('parses JSON, reports a 404, and refuses redirects to private hosts', async () => {
+    stubFetch({
+      'https://registry.example.com/pkg': () =>
+        new Response('{"name":"pkg"}', { headers: { 'content-type': 'application/json' } }),
+      'https://registry.example.com/moved': () =>
+        new Response(null, { status: 302, headers: { location: 'https://10.0.0.1/pkg' } }),
+    });
+    const json = httpJsonFetcher();
+    expect(await json.json('https://registry.example.com/pkg')).toEqual({
+      ok: true,
+      status: 200,
+      url: 'https://registry.example.com/pkg',
+      data: { name: 'pkg' },
+    });
+    expect(await json.json('https://registry.example.com/none')).toMatchObject({
+      ok: false,
+      status: 404,
+    });
+    expect(await json.json('https://registry.example.com/moved')).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/only public https/),
+    });
+  });
+
+  it('refuses a document over its size cap', async () => {
+    stubFetch({
+      'https://registry.example.com/big': () =>
+        new Response(JSON.stringify({ data: 'x'.repeat(200) }), {
+          headers: { 'content-type': 'application/json' },
+        }),
+    });
+    expect(
+      await httpJsonFetcher({ maxBytes: 100 }).json('https://registry.example.com/big'),
+    ).toMatchObject({ ok: false, error: 'over 100 bytes' });
   });
 });

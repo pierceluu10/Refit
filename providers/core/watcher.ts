@@ -11,6 +11,7 @@ import {
   metered,
   type BudgetLedger,
   type ModelClient,
+  type ServerTool,
 } from './model.ts';
 import { PageReader, pageTools } from './page-tools.ts';
 import { MIGRATION_KINDS, watchSystemPrompt, watchUserPrompt } from './prompt.ts';
@@ -116,9 +117,18 @@ export function normaliseChanges(
     const quote = typeof source.quote === 'string' ? source.quote.trim() : '';
     if (!url) issues.push({ changeId: id, message: 'missing source.url' });
     if (!quote) issues.push({ changeId: id, message: 'missing source.quote' });
-    if (quote && reader && reader.findQuote(quote).length === 0) {
-      unverifiedQuotes.push(id);
-      issues.push({ changeId: id, message: 'quote not found word for word in any page read' });
+    if (quote && reader) {
+      const hits = reader.findQuote(quote);
+      const cited = url ? reader.pageFor(url) : undefined;
+      if (hits.length === 0) {
+        unverifiedQuotes.push(id);
+        issues.push({ changeId: id, message: 'quote not found word for word in any page read' });
+      } else if (cited && !hits.includes(cited)) {
+        issues.push({
+          changeId: id,
+          message: `quote is on ${hits[0]}, not on ${url}: set source.url to the page it is on`,
+        });
+      }
     }
 
     let effectiveDate =
@@ -156,14 +166,49 @@ export async function runWatch(
   since?: string,
   deps: WatchDeps = {},
 ): Promise<WatchReport> {
+  const today = deps.today ?? new Date().toISOString().slice(0, 10);
+  return runWatchAgent(
+    {
+      provider: provider.id,
+      label: `watch:${provider.id}`,
+      reader: new PageReader(deps.fetcher ?? httpFetcher(), provider.sources),
+      system: watchSystemPrompt(provider),
+      prompt: watchUserPrompt(provider, since, today),
+    },
+    deps,
+  );
+}
+
+/** One watcher agent run: what it is told, what it may read, and which tools it has besides the page tools. */
+export type WatchAgentRun = {
+  /** ProviderChange.provider for every change, and the prefix of their ids. */
+  provider: string;
+  /** Ledger label for its model calls. */
+  label: string;
+  reader: PageReader;
+  system: string;
+  prompt: string;
+  tools?: LoopTool[];
+  /** Tools Anthropic runs, such as web search. Optional: a run they break is retried without them. */
+  serverTools?: ServerTool[];
+};
+
+/**
+ * The shared watcher loop. The model reads and submits; code checks the
+ * submission's shape and quotes and hands every problem back. It never drops a change.
+ */
+export async function runWatchAgent(
+  run: WatchAgentRun,
+  deps: WatchDeps = {},
+): Promise<WatchReport> {
   const budget = deps.budget ?? budgetFromEnv();
   const base = deps.model ?? anthropicModel();
-  const model = metered(base, budget, `watch:${provider.id}`);
+  const model = metered(base, budget, run.label);
   const spentBefore = budget.spentUsd;
-  const reader = new PageReader(deps.fetcher ?? httpFetcher(), provider.sources);
-  const today = deps.today ?? new Date().toISOString().slice(0, 10);
+  const { reader } = run;
 
   let latest: ReturnType<typeof normaliseChanges> | undefined;
+  let notes = '';
   let clean = false;
   const submit: LoopTool = {
     name: 'submit_changes',
@@ -171,11 +216,19 @@ export async function runWatch(
       'Submit every change you found. Each call replaces the previous submission. Returns problems to fix, or "accepted".',
     input_schema: {
       type: 'object',
-      properties: { changes: { type: 'array', items: CHANGE_SCHEMA } },
+      properties: {
+        changes: { type: 'array', items: CHANGE_SCHEMA },
+        notes: {
+          type: 'string',
+          description:
+            'Optional: what you could not find or read, what you left out on purpose and why.',
+        },
+      },
       required: ['changes'],
     },
     async run(input) {
-      latest = normaliseChanges(provider.id, input.changes, reader);
+      latest = normaliseChanges(run.provider, input.changes, reader);
+      if (typeof input.notes === 'string') notes = input.notes.trim();
       clean = latest.issues.length === 0;
       if (clean) return { content: `accepted ${latest.changes.length} changes` };
       return {
@@ -186,20 +239,32 @@ export async function runWatch(
     },
   };
 
-  const loop = await runToolLoop({
-    model,
-    system: watchSystemPrompt(provider),
-    prompt: watchUserPrompt(provider, since, today),
-    tools: [...pageTools(reader), submit],
-    maxTurns: deps.maxTurns ?? 16,
-    maxTokens: deps.maxTokens,
-    isDone: () => clean,
-    nudge:
-      'You have not called submit_changes yet. Call it now with every change you found (an empty list if none).',
-    wrapUp: 'Call submit_changes in your next reply with every change you have found so far.',
-  });
+  const loopWith = (serverTools?: ServerTool[]) =>
+    runToolLoop({
+      model,
+      system: run.system,
+      prompt: run.prompt,
+      tools: [...pageTools(reader), ...(run.tools ?? []), submit],
+      serverTools,
+      maxTurns: deps.maxTurns ?? 16,
+      maxTokens: deps.maxTokens,
+      isDone: () => clean,
+      nudge:
+        'You have not called submit_changes yet. Call it now with every change you found (an empty list if none).',
+      wrapUp: 'Call submit_changes in your next reply with every change you have found so far.',
+      budget,
+    });
+  let loop = await loopWith(run.serverTools);
+  const issues: WatchIssue[] = [];
+  // A server tool the account cannot use fails the very first call; the read goes on without it.
+  if (loop.ended === 'model-error' && loop.turns === 0 && run.serverTools?.length) {
+    issues.push({
+      message: `server tools (${run.serverTools.map((tool) => tool.name).join(', ')}) failed, so the run went on without them: ${loop.error}`,
+    });
+    loop = await loopWith(undefined);
+  }
 
-  const issues: WatchIssue[] = [...(latest?.issues ?? [])];
+  issues.push(...(latest?.issues ?? []));
   if (!latest) issues.push({ message: NO_SUBMISSION });
   if (loop.ended !== 'done')
     issues.push({
@@ -207,7 +272,7 @@ export async function runWatch(
     });
 
   return {
-    provider: provider.id,
+    provider: run.provider,
     changes: latest?.changes ?? [],
     issues,
     unverifiedQuotes: latest?.unverifiedQuotes ?? [],
@@ -215,7 +280,8 @@ export async function runWatch(
     model: base.model,
     costUsd: budget.spentUsd - spentBefore,
     turns: loop.turns,
-    summary: loop.finalText,
+    // The loop ends at the first clean submission, so its notes, when given, are the last word.
+    summary: notes || loop.finalText,
     log: loop.log,
   };
 }

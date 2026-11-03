@@ -24,17 +24,36 @@ export type ToolSpec = {
   input_schema: Record<string, unknown>;
 };
 
+/**
+ * A tool Anthropic runs on its side, such as web search
+ * ({ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }). It is sent as is.
+ */
+export type ServerTool = { type: string; name: string; [key: string]: unknown };
+
 export type ModelRequest = {
   system: string;
   messages: Message[];
   tools: ToolSpec[];
   maxTokens: number;
+  serverTools?: ServerTool[];
+};
+
+export type Usage = {
+  /** Input tokens billed at the full price (for the Messages API, the uncached part). */
+  inputTokens: number;
+  outputTokens: number;
+  /** Input tokens written to the prompt cache (billed at 1.25x input). */
+  cacheWriteTokens?: number;
+  /** Input tokens read from the prompt cache (billed at a fraction of input). */
+  cacheReadTokens?: number;
+  /** Server-side web searches, billed per search. */
+  webSearches?: number;
 };
 
 export type ModelResponse = {
   content: ContentBlock[];
   stopReason: string;
-  usage: { inputTokens: number; outputTokens: number };
+  usage: Usage;
 };
 
 export interface ModelClient {
@@ -51,18 +70,48 @@ export function isText(block: ContentBlock): block is TextBlock {
   return block.type === 'text' && typeof (block as TextBlock).text === 'string';
 }
 
-// Dollars per million tokens (first-party API list prices, 2026-10).
-const PRICES: Record<string, { input: number; output: number }> = {
-  'claude-opus-5-5': { input: 4, output: 20 },
-  'claude-sonnet-5-5': { input: 2, output: 10 },
-  'claude-haiku-5-5': { input: 0.1, output: 0.5 },
+type Price = {
+  /** Dollars per million input and output tokens. */
+  input: number;
+  output: number;
+  /** A cache read as a fraction of the input price. */
+  cacheRead: number;
+  /** Above this many prompt tokens, the long-context price applies. */
+  longAbove?: number;
+  long?: { input: number; output: number };
 };
-// Unknown models are priced high so the cap errs on the side of stopping spend.
-const UNKNOWN_PRICE = { input: 10, output: 50 };
 
-export function costOf(model: string, usage: ModelResponse['usage']): number {
+// First-party API list prices, 2026-10. Cache writes (5-minute TTL) cost 1.25x input.
+const PRICES: Record<string, Price> = {
+  'claude-opus-5-5': { input: 4, output: 20, cacheRead: 0.05 },
+  'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.1 },
+  'claude-haiku-5-5': {
+    input: 0.1,
+    output: 0.5,
+    cacheRead: 0.1,
+    longAbove: 100_000,
+    long: { input: 0.5, output: 2.5 },
+  },
+};
+// Unknown models are priced high, cache reads at the full input price, so the cap errs on the side
+// of stopping spend.
+const UNKNOWN_PRICE: Price = { input: 10, output: 50, cacheRead: 1 };
+const CACHE_WRITE = 1.25;
+/** Server-side web search: $10 per 1,000 searches. */
+export const WEB_SEARCH_USD = 0.01;
+
+export function costOf(model: string, usage: Usage): number {
   const price = PRICES[model] ?? UNKNOWN_PRICE;
-  return (usage.inputTokens * price.input + usage.outputTokens * price.output) / 1_000_000;
+  const cacheWrite = usage.cacheWriteTokens ?? 0;
+  const cacheRead = usage.cacheReadTokens ?? 0;
+  const prompt = usage.inputTokens + cacheWrite + cacheRead;
+  const rate = price.long && price.longAbove && prompt > price.longAbove ? price.long : price;
+  const tokens =
+    usage.inputTokens * rate.input +
+    cacheWrite * rate.input * CACHE_WRITE +
+    cacheRead * rate.input * price.cacheRead +
+    usage.outputTokens * rate.output;
+  return tokens / 1_000_000 + (usage.webSearches ?? 0) * WEB_SEARCH_USD;
 }
 
 export class BudgetExceededError extends Error {
@@ -81,6 +130,9 @@ export type LedgerEntry = {
   model: string;
   inputTokens: number;
   outputTokens: number;
+  cacheWriteTokens?: number;
+  cacheReadTokens?: number;
+  webSearches?: number;
   costUsd: number;
   label?: string;
 };
@@ -99,7 +151,7 @@ export class BudgetLedger {
   assertRoom(): void {
     if (this.spentUsd >= this.capUsd) throw new BudgetExceededError(this.capUsd, this.spentUsd);
   }
-  charge(model: string, usage: ModelResponse['usage'], label?: string): LedgerEntry {
+  charge(model: string, usage: Usage, label?: string): LedgerEntry {
     const entry: LedgerEntry = {
       at: new Date().toISOString(),
       model,
@@ -108,6 +160,9 @@ export class BudgetLedger {
       costUsd: costOf(model, usage),
       label,
     };
+    if (usage.cacheWriteTokens) entry.cacheWriteTokens = usage.cacheWriteTokens;
+    if (usage.cacheReadTokens) entry.cacheReadTokens = usage.cacheReadTokens;
+    if (usage.webSearches) entry.webSearches = usage.webSearches;
     this.entries.push(entry);
     return entry;
   }
@@ -136,8 +191,10 @@ export type MessagesApiBody = {
   max_tokens: number;
   system: string;
   messages: Message[];
-  tools: ToolSpec[];
+  tools: (ToolSpec | ServerTool)[];
   output_config?: { effort: Effort };
+  /** Automatic prompt caching: the API caches up to the last cacheable block. */
+  cache_control?: { type: 'ephemeral' };
 };
 
 /** The parts of a Messages API response the watcher reads. */
@@ -149,17 +206,21 @@ export type MessagesApiResponse = {
     output_tokens?: number;
     cache_creation_input_tokens?: number | null;
     cache_read_input_tokens?: number | null;
+    server_tool_use?: { web_search_requests?: number | null } | null;
   };
 };
 
 /**
  * A ModelClient over any function that sends a Messages API body and returns
  * the response JSON: the SDK, a spend guard, or a recorded transport.
+ * `cache` turns on automatic prompt caching, so each turn of a tool loop reads
+ * the conversation so far from the cache instead of paying for it again.
  */
 export function messagesApiModel(options: {
   send: (body: MessagesApiBody) => Promise<MessagesApiResponse>;
   model?: string;
   effort?: Effort;
+  cache?: boolean;
 }): ModelClient {
   const model = options.model ?? DEFAULT_WATCH_MODEL;
   return {
@@ -170,20 +231,21 @@ export function messagesApiModel(options: {
         max_tokens: request.maxTokens,
         system: request.system,
         messages: request.messages,
-        tools: request.tools,
+        tools: [...request.tools, ...(request.serverTools ?? [])],
       };
       if (options.effort) body.output_config = { effort: options.effort };
+      if (options.cache) body.cache_control = { type: 'ephemeral' };
       const response = await options.send(body);
       const usage = response.usage ?? {};
       return {
         content: (response.content ?? []) as ContentBlock[],
         stopReason: response.stop_reason ?? 'end_turn',
         usage: {
-          inputTokens:
-            (usage.input_tokens ?? 0) +
-            (usage.cache_creation_input_tokens ?? 0) +
-            (usage.cache_read_input_tokens ?? 0),
+          inputTokens: usage.input_tokens ?? 0,
           outputTokens: usage.output_tokens ?? 0,
+          cacheWriteTokens: usage.cache_creation_input_tokens ?? 0,
+          cacheReadTokens: usage.cache_read_input_tokens ?? 0,
+          webSearches: usage.server_tool_use?.web_search_requests ?? 0,
         },
       };
     },
@@ -191,16 +253,17 @@ export function messagesApiModel(options: {
 }
 
 /**
- * Claude through the official SDK. The SDK resolves credentials itself;
- * nothing here reads or prints them.
+ * Claude through the official SDK, with automatic prompt caching on. The SDK
+ * resolves credentials itself; nothing here reads or prints them.
  */
 export function anthropicModel(
-  options: { model?: string; client?: Anthropic; effort?: Effort } = {},
+  options: { model?: string; client?: Anthropic; effort?: Effort; cache?: boolean } = {},
 ): ModelClient {
   let client = options.client;
   return messagesApiModel({
     model: options.model ?? process.env.APTITUDE_WATCH_MODEL ?? DEFAULT_WATCH_MODEL,
     effort: options.effort ?? 'medium',
+    cache: options.cache ?? true,
     async send(body) {
       // No silent SDK retries: a retry must be a fresh call that goes through the budget check.
       client ??= new Anthropic({ maxRetries: 0 });

@@ -6,6 +6,8 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ProviderSource } from './types.ts';
 
+export type PageLink = { url: string; text: string };
+
 export type FetchedPage = {
   url: string;
   status: number;
@@ -15,6 +17,8 @@ export type FetchedPage = {
   /** Readable text. Truncated at the fetcher's limit, if it has one. */
   text: string;
   error?: string;
+  /** Links found in the raw page, absolute, for the list_links tool. Live fetches only. */
+  links?: PageLink[];
 };
 
 export interface Fetcher {
@@ -173,7 +177,73 @@ function acceptFor(format?: ProviderSource['format']): string {
   // Feed-first, so servers that negotiate content (e.g. shopify.dev) return the feed itself.
   if (format === 'rss')
     return 'application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8';
+  if (format === 'json') return 'application/json';
   return 'text/html,application/xhtml+xml,application/xml,application/json,text/plain;q=0.9,*/*;q=0.8';
+}
+
+const MAX_LINKS = 1500;
+
+/** Absolute http(s) links in a raw page: HTML anchors, feed and sitemap links, Markdown links. */
+export function extractLinks(raw: string, baseUrl: string): PageLink[] {
+  const found = new Map<string, string>();
+  const add = (href: string, text: string) => {
+    if (found.size >= MAX_LINKS) return;
+    let url: string;
+    try {
+      const parsed = new URL(decodeEntities(href.trim()), baseUrl);
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return;
+      parsed.hash = '';
+      url = parsed.toString();
+    } catch {
+      return;
+    }
+    const label = tidy(text).replace(/\s+/g, ' ').slice(0, 120);
+    if (!found.has(url) || (!found.get(url) && label)) found.set(url, label);
+  };
+  for (const m of raw.matchAll(
+    /<a\b[^>]*?\bhref\s*=\s*["']([^"'#][^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi,
+  ))
+    add(m[1], decodeEntities(m[2].replace(/<[^>]+>/g, ' ')));
+  for (const m of raw.matchAll(/<(?:loc|link)>\s*(https?:\/\/[^<\s]+)\s*<\/(?:loc|link)>/gi))
+    add(m[1], '');
+  for (const m of raw.matchAll(/<link\b[^>]*?\bhref\s*=\s*["'](https?:\/\/[^"']+)["'][^>]*>/gi))
+    add(m[1], '');
+  for (const m of raw.matchAll(/\[([^\]\n]{0,200})\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\)/g))
+    add(m[2], m[1]);
+  return [...found].map(([url, text]) => ({ url, text }));
+}
+
+type SafeResponse = { response: Response; finalUrl: string } | { error: string };
+
+/**
+ * One GET that follows redirects by hand, so every hop is checked as public
+ * https before it is requested. githubToken goes to api.github.com only.
+ */
+async function safeGet(
+  url: string,
+  headers: Record<string, string>,
+  options: { timeoutMs?: number; githubToken?: string },
+): Promise<SafeResponse> {
+  let target = url;
+  for (let hop = 0; hop <= 5; hop++) {
+    if (!isFetchableUrl(target)) return { error: `only public https URLs (${target})` };
+    const sent = { ...headers };
+    if (options.githubToken && new URL(target).hostname === 'api.github.com') {
+      sent.authorization = `Bearer ${options.githubToken}`;
+    }
+    const response = await fetch(target, {
+      headers: sent,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(options.timeoutMs ?? 30_000),
+    });
+    const location = response.headers.get('location');
+    if (response.status >= 300 && response.status < 400 && location) {
+      target = new URL(location, target).toString();
+      continue;
+    }
+    return { response, finalUrl: target };
+  }
+  return { error: 'too many redirects' };
 }
 
 /**
@@ -199,41 +269,83 @@ export function httpFetcher(
         error,
       });
       try {
-        let target = url;
-        for (let hop = 0; hop <= 5; hop++) {
-          if (!isFetchableUrl(target)) return failed(`only public https URLs (${target})`);
-          const headers: Record<string, string> = {
-            'user-agent': USER_AGENT,
-            accept: acceptFor(format),
-          };
-          if (options.githubToken && new URL(target).hostname === 'api.github.com') {
-            headers.authorization = `Bearer ${options.githubToken}`;
-          }
-          const response = await fetch(target, {
-            headers,
-            redirect: 'manual',
-            signal: AbortSignal.timeout(options.timeoutMs ?? 30_000),
-          });
-          const location = response.headers.get('location');
-          if (response.status >= 300 && response.status < 400 && location) {
-            target = new URL(location, target).toString();
-            continue;
-          }
-          const contentType = response.headers.get('content-type') ?? '';
-          const raw = await response.text();
-          return {
-            url,
-            status: response.status,
-            ok: response.ok,
-            fetchedAt,
-            contentType,
-            text: toText(raw, contentType, format).slice(0, maxChars),
-            error: response.ok ? undefined : `HTTP ${response.status}`,
-          };
+        const got = await safeGet(
+          url,
+          { 'user-agent': USER_AGENT, accept: acceptFor(format) },
+          options,
+        );
+        if ('error' in got) return failed(got.error);
+        const { response, finalUrl } = got;
+        const contentType = response.headers.get('content-type') ?? '';
+        const raw = await response.text();
+        const page: FetchedPage = {
+          url,
+          status: response.status,
+          ok: response.ok,
+          fetchedAt,
+          contentType,
+          text: toText(raw, contentType, format).slice(0, maxChars),
+          error: response.ok ? undefined : `HTTP ${response.status}`,
+        };
+        if (format !== 'github-releases' && format !== 'json' && !contentType.includes('json')) {
+          const links = extractLinks(raw, finalUrl);
+          if (links.length) page.links = links;
         }
-        return failed('too many redirects');
+        return page;
       } catch (error) {
         return failed(error instanceof Error ? error.message : String(error));
+      }
+    },
+  };
+}
+
+export type JsonResult =
+  | { ok: true; status: number; url: string; data: unknown }
+  | { ok: false; status: number; url: string; error: string };
+
+/** Reads JSON documents, such as package registry metadata. Tests pass recorded ones. */
+export interface JsonFetcher {
+  json(url: string): Promise<JsonResult>;
+}
+
+/**
+ * Live JSON over the same checked GET as httpFetcher. maxBytes bounds one
+ * document (a big package's full npm metadata is a few megabytes).
+ */
+export function httpJsonFetcher(
+  options: { timeoutMs?: number; maxBytes?: number; githubToken?: string } = {},
+): JsonFetcher {
+  const maxBytes = options.maxBytes ?? 40_000_000;
+  return {
+    async json(url) {
+      try {
+        const got = await safeGet(
+          url,
+          { 'user-agent': USER_AGENT, accept: 'application/json' },
+          { timeoutMs: options.timeoutMs ?? 60_000, githubToken: options.githubToken },
+        );
+        if ('error' in got) return { ok: false, status: 0, url, error: got.error };
+        const { response } = got;
+        if (!response.ok) {
+          await response.body?.cancel();
+          return { ok: false, status: response.status, url, error: `HTTP ${response.status}` };
+        }
+        const length = Number(response.headers.get('content-length') ?? 0);
+        if (length > maxBytes) {
+          await response.body?.cancel();
+          return { ok: false, status: response.status, url, error: `over ${maxBytes} bytes` };
+        }
+        const body = await response.text();
+        if (body.length > maxBytes)
+          return { ok: false, status: response.status, url, error: `over ${maxBytes} bytes` };
+        return { ok: true, status: response.status, url, data: JSON.parse(body) as unknown };
+      } catch (error) {
+        return {
+          ok: false,
+          status: 0,
+          url,
+          error: error instanceof Error ? error.message : String(error),
+        };
       }
     },
   };
