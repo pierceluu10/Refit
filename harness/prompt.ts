@@ -5,7 +5,7 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-01.10';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-03.r3-1';
 
 // shortcut: `notes` is on MigrationTask in O1's branch only; drop this local type once that merges.
 export type TaskWithNotes = MigrationTask & { notes?: string };
@@ -131,9 +131,10 @@ function workflowSection(task: MigrationTask, toolPack: ToolPack, recipes: Recip
       '3. Check memory for recipes from earlier runs.',
       '4. Plan the change.',
       '5. Edit the code.',
-      '6. Run the checks and the provider validators.',
-      '7. Iterate until they pass, or until you can explain why they cannot.',
-      '8. Write the PR summary by calling `finish`.',
+      "6. Write a small test that proves the change, in the repo's own test framework (or a plain node or python script when it has none): for example, that the webhook now reads `items.data[0].current_period_end`, or that the request names the new model. Register it with `run_checks` `add` so the harness runs it on the original code and after your edit. Mock the provider; the sandbox has no credentials.",
+      '7. Run the checks and the provider validators.',
+      '8. Iterate until they pass, or until you can explain why they cannot.',
+      '9. Write the PR summary by calling `finish`, naming your test in `proofTest`.',
     ].join('\n'),
   ];
 
@@ -176,7 +177,8 @@ export function buildSystemPrompt(input: PromptInput): string {
     [
       '## Definition of done',
       [
-        '- **verified**: the checks pass before and after your change, and the provider validators pass. Only NEW failures count. Failures that existed before your change are noted, not fixed, unless your change touches them.',
+        '- **verified**: the checks pass before and after your change, your test of the change passes (named in `finish` as `proofTest`), and the provider validators pass. Only NEW failures count. Failures that existed before your change are noted, not fixed, unless your change touches them.',
+        "- Only when no test of the change can be written at all, say why in `noProofTestReason`. A test that is hard to write is not one that can't be.",
         '- **needs-review**: state exactly what is unproven, and any behaviour change.',
         "- List as unproven what this run could have checked and didn't, or checked and couldn't prove. Leave out the standing limit that no run here makes live API calls: the sandbox has no credentials, and the PR says so on every run.",
         "- What your change may do differently that only a live call would show, such as a new model's output or a response's shape at a new API version, goes under behaviour changes, so the reviewer checks it.",
@@ -231,9 +233,17 @@ export function buildKickoffMessage(
   before: CheckRun[],
   installOutput?: string,
   packageManager?: string,
+  prepared: string[] = [],
 ): string {
   const parts = ['Start the migration described in the system prompt.'];
   if (packageManager) parts.push(packageManager);
+  if (prepared.length) {
+    parts.push(
+      ['The harness prepared the repo before the baseline:', ...prepared.map((l) => `- ${l}`)].join(
+        '\n',
+      ),
+    );
+  }
   if (installOutput) {
     parts.push(
       'Dependency install output (tail):',

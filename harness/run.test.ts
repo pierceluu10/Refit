@@ -84,6 +84,7 @@ const finishMigrated = (call: Parameters<ScriptedTurn>[0]) =>
     validators: [{ name: 'check_params', passed: true, detail: 'params accepted' }],
     unproven: [],
     behaviourChanges: [],
+    proofTest: 'test',
   });
 
 const fixIt: ScriptedTurn = async (call) => {
@@ -113,6 +114,7 @@ const deps = (turns: ScriptedTurn[], budgetUsd = 1) => ({
   session: scriptedSession(turns),
   createSandbox: (dir: string) => createSandbox(dir, { mode: 'local' }),
   loadToolPack: async () => toolPack,
+  planPreparation: async () => ({ steps: [], env: {}, reasoning: '' }),
   budgetUsd,
   // The fake session's costs are exact, so no overshoot reserve is needed.
   turnReserveUsd: 0,
@@ -174,27 +176,27 @@ describe('runTask with a fake model', () => {
   it('counts a check the agent registers toward proof', async () => {
     const addVerify: ScriptedTurn = async (call) => {
       const output = await call('run_checks', {
-        add: [{ name: 'verify', command: 'npm run verify' }],
+        add: [{ name: 'test', command: 'npm run verify' }],
       });
-      expect(output).toContain('registered verify; on the original code it passes');
+      expect(output).toContain('registered test; on the original code it passes');
       await fixIt(call, {} as never);
     };
     const record = await runTask(task, fixtureRepo({ verify: 'node check.js' }), deps([addVerify]));
     expect(record.outcome).toBe('verified');
-    expect(record.checks).toEqual([{ name: 'verify', before: 'pass', after: 'pass' }]);
+    expect(record.checks).toEqual([{ name: 'test', before: 'pass', after: 'pass' }]);
   });
 
   it('shows a vacuous agent-added check verbatim instead of hiding it', async () => {
     const addTrue: ScriptedTurn = async (call) => {
-      await call('run_checks', { add: [{ name: 'smoke', command: 'true' }] });
+      await call('run_checks', { add: [{ name: 'test', command: 'true' }] });
       await fixIt(call, {} as never);
     };
     const record = await runTask(task, fixtureRepo({}), deps([addTrue]));
     expect(record.outcome).toBe('verified');
     expect(record.agentChecks).toEqual([
-      { name: 'smoke', command: 'true', before: 'pass', after: 'pass' },
+      { name: 'test', command: 'true', before: 'pass', after: 'pass' },
     ]);
-    expect(record.prBody).toContain('- smoke, added by the agent: `true` (pass → pass)');
+    expect(record.prBody).toContain('- test, added by the agent: `true` (pass → pass)');
   });
 
   it('ends when the agent finishes with an explanation of what is still failing', async () => {
@@ -336,6 +338,7 @@ describe('decideOutcome', () => {
     validators: [],
     unproven: [],
     behaviourChanges: [],
+    proofTest: 'build',
   };
   const check = (ok: boolean) => ({
     name: 'build',
@@ -350,6 +353,28 @@ describe('decideOutcome', () => {
   it('needs a check that passes: checks failing alike before and after prove nothing', () => {
     expect(decideOutcome({ ...input, after: [check(false)] })).toBe('needs-review');
     expect(decideOutcome({ ...input, after: [check(true), check(false)] })).toBe('verified');
+  });
+
+  it('needs the agent’s test of the change to pass, or a reason none can be written', () => {
+    const untested = { ...report, proofTest: undefined };
+    expect(decideOutcome({ ...input, report: untested, after: [check(true)] })).toBe(
+      'needs-review',
+    );
+    expect(
+      decideOutcome({
+        ...input,
+        report: { ...untested, noProofTestReason: 'only a CSS change' },
+        after: [check(true)],
+      }),
+    ).toBe('verified');
+    const failingTest = { ...check(false), name: 'change-test' };
+    expect(
+      decideOutcome({
+        ...input,
+        report: { ...report, proofTest: 'change-test' },
+        after: [check(true), failingTest],
+      }),
+    ).toBe('needs-review');
   });
 
   it("is not verified while a provider check's latest call failed, even one the agent left out", () => {

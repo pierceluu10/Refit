@@ -473,6 +473,15 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
         },
         unproven: { type: 'array', items: { type: 'string' } },
         behaviourChanges: { type: 'array', items: { type: 'string' } },
+        proofTest: {
+          type: 'string',
+          description:
+            'Name of the check you registered with run_checks `add` that tests this change (the test you wrote). Required for verified.',
+        },
+        noProofTestReason: {
+          type: 'string',
+          description: 'Only when no test of this change can be written: why not.',
+        },
       },
       ['verdict', 'summary', 'why', 'validators', 'unproven', 'behaviourChanges'],
       async (args) => {
@@ -487,6 +496,12 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
           }),
           unproven: strings(args.unproven),
           behaviourChanges: strings(args.behaviourChanges),
+          ...(typeof args.proofTest === 'string' && args.proofTest.trim()
+            ? { proofTest: args.proofTest.trim() }
+            : {}),
+          ...(typeof args.noProofTestReason === 'string' && args.noProofTestReason.trim()
+            ? { noProofTestReason: text(args.noProofTestReason) }
+            : {}),
         };
         ctx.onFinish(report);
         return `Recorded the "${report.verdict}" report. The harness will now re-run the checks and compare them with the baseline.`;

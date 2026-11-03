@@ -8,6 +8,7 @@ import type {
   ToolPack,
 } from '../shared/types.ts';
 import type { BudgetLedger, ChargeRun } from './ledger.ts';
+import type { PlanPreparation, Preparation } from './prepare.ts';
 
 export type ExecResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
 
@@ -17,8 +18,10 @@ export type Sandbox = {
   mode: 'docker' | 'local';
   // Runs a shell command inside the sandbox with the working copy as cwd. Never throws.
   exec(command: string, options?: { timeoutMs?: number }): Promise<ExecResult>;
-  // Unified diff of the working copy against the snapshot taken at creation.
+  // Unified diff of the working copy against the snapshot taken at creation (or the last snapshot()).
   diff(): Promise<string>;
+  // Takes a new snapshot, so what the harness's own preparation wrote stays out of the PR.
+  snapshot?(): Promise<void>;
   dispose(): Promise<void>;
 };
 
@@ -47,6 +50,9 @@ export type FinishReport = {
   validators: { name: string; passed: boolean; detail: string }[];
   unproven: string[];
   behaviourChanges: string[];
+  // The registered check that tests this change, or why no test of it can be written.
+  proofTest?: string;
+  noProofTestReason?: string;
 };
 
 // A ToolPack call as the harness saw it. This, not the agent's report, is validator proof.
@@ -101,6 +107,8 @@ export type HarnessDeps = {
   // Called for every model call's spend as it happens, so the run budget sees it even if the harness throws.
   chargeRun?: ChargeRun;
   fetch?: typeof fetch;
+  // Names the repo's codegen before the baseline; defaults to one Sonnet call (prepare.ts).
+  planPreparation?: PlanPreparation;
 };
 
 export type HarnessRunRecord = RunRecord & {
@@ -113,6 +121,8 @@ export type HarnessRunRecord = RunRecord & {
   // Every tool call in order with what it returned, and the checks after each iteration: a short
   // stand-in for the transcript, for memory's recipe extraction.
   summary: string;
+  // The codegen and placeholder env the harness used before the baseline.
+  preparation?: Preparation;
 };
 
 export type { Recipe };

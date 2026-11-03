@@ -61,7 +61,12 @@ export async function createSandbox(
     await git('config', 'user.email', 'aptitude@localhost');
     await git('add', '-A');
     await git('commit', '-q', '--allow-empty', '--no-verify', '-m', 'baseline');
-    const baseline = (await git('rev-parse', 'HEAD')).trim();
+    let baseline = (await git('rev-parse', 'HEAD')).trim();
+    const snapshot = async () => {
+      await git('add', '-A');
+      await git('commit', '-q', '--allow-empty', '--no-verify', '-m', 'prepared');
+      baseline = (await git('rev-parse', 'HEAD')).trim();
+    };
     const diff = async () => {
       await git('add', '-A', '-N');
       return git('diff', '--no-color', '--no-ext-diff', baseline);
@@ -75,6 +80,7 @@ export async function createSandbox(
         mode,
         exec: (command, opts) => run('sh', ['-c', command], { cwd: dir, env, ...opts }),
         diff,
+        snapshot,
         dispose: remove,
       };
     }
@@ -106,6 +112,7 @@ export async function createSandbox(
         return run('docker', [...args, 'sh', '-lc', command], { timeoutMs });
       },
       diff,
+      snapshot,
       dispose: async () => {
         await run('docker', ['rm', '-f', name], { timeoutMs: 60_000 });
         await remove();

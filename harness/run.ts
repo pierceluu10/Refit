@@ -23,9 +23,11 @@ import {
   packageManagerNote,
 } from './prompt.ts';
 import { createSandbox, sandboxEnvNote } from './sandbox.ts';
+import { preparationNotes, prepareRepo, runSteps, withEnv } from './prepare.ts';
 import { redactSecrets } from './secrets.ts';
 import { summarizeRun, type IterationSummary, type Step } from './summary.ts';
 import { buildTools } from './tools.ts';
+import type { PlanPreparation } from './prepare.ts';
 import type {
   CheckCommand,
   CheckComparison,
@@ -65,6 +67,11 @@ export function decideOutcome(input: {
 }): HarnessRunRecord['outcome'] {
   const { diff, report, comparisons, after, validatorRuns } = input;
   const changed = diff.trim() !== '';
+  // The agent's own test of the change must pass, unless it said why no test can be written.
+  const proofTest = report?.proofTest?.trim();
+  const tested = proofTest
+    ? after.some((run) => run.name === proofTest && run.ok)
+    : (report?.noProofTestReason ?? '').trim() !== '';
   if (!changed && report?.verdict === 'not-affected') return 'not-affected';
   // No edit and no word from the agent means no attempt happened (budget or model down).
   if (!changed && !report) return 'failed';
@@ -74,10 +81,31 @@ export function decideOutcome(input: {
     // Checks that fail alike before and after add no new failures, but they prove nothing either.
     after.some((run) => run.ok) &&
     newFailureCount(comparisons) === 0 &&
+    tested &&
     gradeValidators(report.validators, validatorRuns).every((grade) => grade.passed) &&
     failingCheckers(validatorRuns).length === 0 &&
     report.unproven.length === 0;
   return proven ? 'verified' : 'needs-review';
+}
+
+// Install, the repo's own codegen and the baseline checks: what runTask does before the agent, and
+// what the eval screen runs to tell a green baseline from a red one.
+export async function prepareBaseline(
+  sandbox: Sandbox,
+  ledger: BudgetLedger,
+  planPreparation?: PlanPreparation,
+) {
+  const pm = await detectPackageManager(sandbox.dir);
+  const pmVersion = await packageManagerVersion(sandbox.dir, pm);
+  const install = pm === 'none' ? undefined : await sandbox.exec(installCommand(pm, pmVersion));
+  const checks = await detectChecks(sandbox.dir, pm, pmVersion);
+  // The repo's own codegen, which install scripts off never ran, and the placeholder env its
+  // checks need. What it writes is snapshotted, so only the agent's edit is in the PR.
+  const preparation = await prepareRepo(sandbox, checks, ledger, planPreparation);
+  for (const check of checks) check.command = withEnv(check.command, preparation.env);
+  await sandbox.snapshot?.();
+  const before = await runChecks(sandbox, checks);
+  return { pm, pmVersion, install, checks, preparation, before };
 }
 
 export async function runTask(
@@ -128,18 +156,28 @@ export async function runTask(
     const retrieveRecipes = deps.retrieveRecipes ?? noRecipes;
     const recipes = await retrieveRecipes(task).catch(() => []);
 
-    const pm = await detectPackageManager(sandbox.dir);
-    const pmVersion = await packageManagerVersion(sandbox.dir, pm);
-    const install = pm === 'none' ? undefined : await sandbox.exec(installCommand(pm, pmVersion));
-    const checks = await detectChecks(sandbox.dir, pm, pmVersion);
-    const before = await runChecks(sandbox, checks);
-    log({ type: 'harness', phase: 'baseline', pm, pmVersion, install, checks, before });
+    const { pm, pmVersion, install, checks, preparation, before } = await prepareBaseline(
+      sandbox,
+      ledger,
+      deps.planPreparation,
+    );
+    log({
+      type: 'harness',
+      phase: 'baseline',
+      pm,
+      pmVersion,
+      install,
+      preparation,
+      checks,
+      before,
+    });
 
     // Agent-named checks get their baseline from a second, untouched copy of the repo.
     const addCheck = async (check: CheckCommand): Promise<CheckRun> => {
       baselineSandbox ??= (async () => {
         const box = await (deps.createSandbox ?? createSandbox)(repoDir);
         if (pm !== 'none') await box.exec(installCommand(pm, pmVersion));
+        await runSteps(box, preparation);
         return box;
       })();
       const [run] = await runChecks(await baselineSandbox, [check]);
@@ -190,7 +228,12 @@ export async function runTask(
 
     const session = deps.session ?? claudeAgentSession;
     let model = MODEL;
-    let prompt = buildKickoffMessage(before, installOutput, packageManagerNote(pm, pmVersion));
+    let prompt = buildKickoffMessage(
+      before,
+      installOutput,
+      packageManagerNote(pm, pmVersion),
+      preparationNotes(preparation),
+    );
     let sessionId: string | undefined;
     let after = before;
     let comparisons = compareChecks(before, after);
@@ -273,6 +316,11 @@ export async function runTask(
       promptVersion: PROMPT_VERSION,
       sandboxNote,
       notes,
+      prepared: preparationNotes(preparation),
+      proofTest:
+        finalReport?.proofTest && after.some((run) => run.name === finalReport.proofTest)
+          ? finalReport.proofTest
+          : undefined,
     });
     const summary = summarizeRun({
       task,
@@ -304,6 +352,7 @@ export async function runTask(
         };
       }),
       summary,
+      preparation,
     };
     log({ type: 'harness', phase: 'done', outcome, ledger: ledger.entries });
     await writeFile(join(outDir, 'diff.patch'), diff);

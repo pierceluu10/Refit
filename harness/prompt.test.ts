@@ -81,7 +81,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-01.10');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-03.r3-1');
   });
 
   it('puts the sections in the plan order', () => {
