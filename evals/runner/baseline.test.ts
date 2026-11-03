@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  baselinePrompt,
-  formatComparison,
-  passesChecks,
-  type BaselineComparison,
-} from './baseline.ts';
+import { FakeModelClient } from '../reviewer/model.ts';
+import { baselinePrompt, judge, passesChecks, refitIsA } from './baseline.ts';
 
 describe('passesChecks', () => {
   const own = new Set(['typecheck', 'build']);
@@ -23,67 +19,50 @@ describe('passesChecks', () => {
     expect(passesChecks(diff, [{ name: 'build', before: 'pass', after: 'fail (1)' }], own)).toBe(
       false,
     );
-    expect(
-      passesChecks(
-        diff,
-        [
-          { name: 'build', before: 'pass', after: 'pass' },
-          { name: 'agent-test', before: 'fail (1)', after: 'fail (2)' },
-        ],
-        own,
-      ),
-    ).toBe(true);
-  });
-
-  it('allows a fallback check that fails no worse than before', () => {
-    const checks = [
-      { name: 'typecheck', before: 'fail (3)', after: 'fail (3)' },
+    const withAgentCheck = [
       { name: 'build', before: 'pass', after: 'pass' },
+      { name: 'agent-test', before: 'fail (1)', after: 'fail (2)' },
     ];
-    expect(passesChecks(diff, checks, own)).toBe(true);
-    expect(passesChecks(diff, [{ ...checks[0]!, after: 'fail (4)' }, checks[1]!], own)).toBe(false);
+    expect(passesChecks(diff, withAgentCheck, own)).toBe(true);
   });
 });
 
 describe('baselinePrompt', () => {
-  it('gives the change and its source, and nothing of Refit', () => {
-    const prompt = baselinePrompt({
-      provider: 'stripe',
-      id: 'node-23',
-      kind: 'sdk-major',
-      title: 'stripe-node 23.0.0',
-      source: { url: 'https://example.com/changelog', quote: 'Removes X.' },
-      affects: {},
-    });
-    expect(prompt).toContain('stripe-node 23.0.0');
-    expect(prompt).toContain('> Removes X.');
-    expect(prompt).toContain('Update the repository for this change.');
+  it('names no provider, change or repo detail: plain Claude finds them itself', () => {
+    const prompt = baselinePrompt('2026-11-03');
+    expect(prompt).toContain('Today is 2026-11-03.');
+    expect(prompt).toContain('Find the external APIs and SDKs this repository uses.');
+    expect(prompt).not.toMatch(/stripe|openai|anthropic|gemini/i);
   });
 });
 
-describe('formatComparison', () => {
-  const row = (repo: string, claudePasses: boolean): BaselineComparison => ({
-    set: 'anthropic-dev-30',
-    repo,
-    taskId: `${repo}:t`,
-    title: 'change',
-    refit: { outcome: 'verified', passesChecks: true, costUsd: 0.1, diffLines: 10 },
-    claude: {
-      passesChecks: claudePasses,
-      costUsd: 0.05,
-      prepCostUsd: 0,
-      diffLines: 10,
-      transcriptPath: '',
-    },
+describe('judge', () => {
+  const side = (change: string) => ({
+    handled: [{ change, correct: true, note: '' }],
+    breaks: [],
   });
 
-  it('leaves repos with no checks of their own out of the pass rates', () => {
-    const report = formatComparison(
-      [row('a/checked', true), row('b/unchecked', false)],
-      new Set(['anthropic-dev-30/b/unchecked']),
-    );
-    expect(report).toContain('| 1 | 1 (100%) | 1 (100%) |');
-    expect(report).toContain('1 more tasks are on repos with no checks of their own');
-    expect(report).toContain('| no repo checks |');
+  it('maps A and B back to Refit and Claude whichever order the repo got', async () => {
+    for (const repo of ['acme/one', 'acme/two', 'acme/three', 'acme/four']) {
+      const client = new FakeModelClient(
+        JSON.stringify({
+          a: side('change A'),
+          b: side('change B'),
+          better: 'A',
+          why: 'A is better',
+        }),
+      );
+      const result = await judge(
+        client,
+        repo,
+        { text: 'first side', diff: 'first diff' },
+        { text: 'second side', diff: 'second diff' },
+      );
+      const aIsRefit = refitIsA(repo);
+      expect(result.better).toBe(aIsRefit ? 'refit' : 'claude');
+      expect(result.refit.handled[0]?.change).toBe(aIsRefit ? 'change A' : 'change B');
+      // The prompt never says which attempt is Refit.
+      expect(client.requests[0]?.prompt).not.toMatch(/refit|claude/i);
+    }
   });
 });
