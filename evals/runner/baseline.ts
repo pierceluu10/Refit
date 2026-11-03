@@ -18,6 +18,7 @@ import { buildTools } from '../../harness/tools.ts';
 import { createBudget } from '../../orchestrator/budget.ts';
 import type { RunRecord } from '../../shared/types.ts';
 import { anthropicModelClient, type ModelClient } from '../reviewer/model.ts';
+import { loadDevSet } from '../sets/index.ts';
 import { gitCheckout } from './checkout.ts';
 import type { RepoResult } from './types.ts';
 
@@ -235,56 +236,51 @@ export function ownChecks(screenDir: string, set: string, repo: string): Set<str
   return new Set(record.checks.filter((check) => !check.fallback).map((check) => check.name));
 }
 
-async function compareRepo(
-  result: RepoResult,
+/** Plain Claude's attempt at one repo, kept with its diff so it can be judged later, on its own. */
+export type ClaudeRun = BaselineRow['claude'] & { set: string; repo: string; diff: string };
+
+type RepoAt = { set: string; repo: string; commit: string; provider: string };
+
+/** Runs plain Claude on one repo. Needs nothing of Refit's, so it can run before or beside it. */
+async function runClaude(
+  entry: RepoAt,
   screenDir: string,
   date: string,
-  judgeClient: ModelClient,
   budget: ReturnType<typeof createBudget>,
-): Promise<BaselineRow> {
-  const own = ownChecks(screenDir, result.set, result.repo);
-  const refit = refitSide(result, own);
-  const attempted = attemptedTasks(result);
-  const row: BaselineRow = {
-    set: result.set,
-    repo: result.repo,
-    refit: {
-      checks: refit.grade,
-      costUsd: refitFixCost(result),
-      tasks: attempted.length,
-      verified: attempted.filter((task) => task.record?.outcome === 'verified').length,
-    },
-    claude: {
-      checks: 'no-change',
-      costUsd: 0,
-      prepCostUsd: 0,
-      diffLines: 0,
-      finalText: '',
-      transcriptPath: '',
-    },
+): Promise<ClaudeRun> {
+  const own = ownChecks(screenDir, entry.set, entry.repo);
+  const run: ClaudeRun = {
+    set: entry.set,
+    repo: entry.repo,
+    diff: '',
+    checks: 'no-change',
+    costUsd: 0,
+    prepCostUsd: 0,
+    diffLines: 0,
+    finalText: '',
+    transcriptPath: '',
   };
-  const hold = await budget.reserve(`baseline ${result.repo}`, REPO_USD + 1);
+  const hold = await budget.reserve(`baseline ${entry.repo}`, REPO_USD + 1);
   const ledger = new BudgetLedger(hold.usd);
-  let claudeDiff = '';
   try {
-    const copy = await gitCheckout()({ repo: result.repo, commit: result.commit });
+    const copy = await gitCheckout()({ repo: entry.repo, commit: entry.commit });
     try {
       const sandbox = await createSandbox(copy.repoDir);
       try {
         const prepared = await prepareBaseline(sandbox, ledger);
-        row.claude.prepCostUsd = ledger.spentUsd;
-        const outDir = join(copy.repoDir, '..', `baseline-${result.repo.replace(/\W+/g, '-')}`);
+        run.prepCostUsd = ledger.spentUsd;
+        const outDir = join(copy.repoDir, '..', `baseline-${entry.repo.replace(/\W+/g, '-')}`);
         mkdirSync(outDir, { recursive: true });
         const transcriptPath = join(outDir, 'transcript.jsonl');
-        row.claude.transcriptPath = transcriptPath;
+        run.transcriptPath = transcriptPath;
         const tools = buildTools({
           sandbox,
           // The tools need a task to exist; plain Claude is told nothing of it.
           task: {
-            id: `baseline:${result.repo}`,
-            repo: result.repo,
+            id: `baseline:${entry.repo}`,
+            repo: entry.repo,
             change: {
-              provider: result.provider,
+              provider: entry.provider,
               id: 'baseline',
               kind: 'other',
               title: '',
@@ -294,7 +290,7 @@ async function compareRepo(
             usages: [],
             priority: 0,
           },
-          toolPack: { provider: result.provider, tools: [], playbooks: {} },
+          toolPack: { provider: entry.provider, tools: [], playbooks: {} },
           retrieveRecipes: async () => [],
           checks: prepared.checks,
           onFinish: () => {},
@@ -311,26 +307,22 @@ async function compareRepo(
           log: (event) =>
             writeFileSync(transcriptPath, `${JSON.stringify(event)}\n`, { flag: 'a' }),
         });
-        row.claude.stopReason = session.stopReason;
-        row.claude.finalText = session.finalText.slice(0, 6000);
+        run.stopReason = session.stopReason;
+        run.finalText = session.finalText.slice(0, 6000);
         const after = await runChecks(sandbox, prepared.checks);
         const checks = compareChecks(prepared.before, after).map(
-          ({ name, before, after: now }) => ({
-            name,
-            before,
-            after: now,
-          }),
+          ({ name, before, after: now }) => ({ name, before, after: now }),
         );
-        claudeDiff = await sandbox.diff();
-        row.claude.diffLines = claudeDiff.trim() ? claudeDiff.split('\n').length : 0;
-        row.claude.checks = !claudeDiff.trim()
+        run.diff = await sandbox.diff();
+        run.diffLines = run.diff.trim() ? run.diff.split('\n').length : 0;
+        run.checks = !run.diff.trim()
           ? 'no-change'
           : own.size === 0
             ? 'no-repo-checks'
-            : passesChecks(claudeDiff, checks, own)
+            : passesChecks(run.diff, checks, own)
               ? 'passes'
               : 'fails';
-        row.claude.costUsd = ledger.spentUsd;
+        run.costUsd = ledger.spentUsd;
       } finally {
         await sandbox.dispose();
       }
@@ -338,10 +330,35 @@ async function compareRepo(
       await copy.cleanup().catch(() => undefined);
     }
   } catch (error) {
-    row.claude.error = error instanceof Error ? error.message : String(error);
+    run.error = error instanceof Error ? error.message : String(error);
   } finally {
     hold.settle(ledger.spentUsd);
   }
+  return run;
+}
+
+/** Pairs Refit's result with plain Claude's run of the same repo and has the judge read both. */
+async function compareRepo(
+  result: RepoResult,
+  claude: ClaudeRun,
+  screenDir: string,
+  judgeClient: ModelClient,
+): Promise<BaselineRow> {
+  const own = ownChecks(screenDir, result.set, result.repo);
+  const refit = refitSide(result, own);
+  const attempted = attemptedTasks(result);
+  const { set: _set, repo: _repo, diff: claudeDiff, ...claudeSide } = claude;
+  const row: BaselineRow = {
+    set: result.set,
+    repo: result.repo,
+    refit: {
+      checks: refit.grade,
+      costUsd: refitFixCost(result),
+      tasks: attempted.length,
+      verified: attempted.filter((task) => task.record?.outcome === 'verified').length,
+    },
+    claude: claudeSide,
+  };
   if (row.claude.error) return row;
   // Nothing to compare when neither side changed anything.
   row.judge =
@@ -446,6 +463,49 @@ async function main(argv: string[]) {
   const date = flag('date') ?? new Date().toISOString().slice(0, 10);
   const budget = createBudget(budgetUsd);
   const judgeClient = anthropicModelClient({ budget, model: JUDGE_MODEL });
+  // Plain Claude's runs are kept apart from the comparisons, so they can run beside Refit's.
+  const claudeDir = join(outDir, 'claude');
+  mkdirSync(claudeDir, { recursive: true });
+  const claudeFile = (set: string, repo: string) =>
+    join(claudeDir, `${set}__${repo.replace('/', '__')}.json`);
+  const claudeFor = async (entry: RepoAt): Promise<ClaudeRun> => {
+    const file = claudeFile(entry.set, entry.repo);
+    if (existsSync(file)) return JSON.parse(readFileSync(file, 'utf8')) as ClaudeRun;
+    const run = await runClaude(entry, screenDir, date, budget);
+    if (!run.error) writeFileSync(file, `${JSON.stringify(run, null, 2)}\n`);
+    return run;
+  };
+  if (argv.includes('--claude-only')) {
+    // Plain Claude alone, on chosen repos of the sets: nothing of Refit's is read.
+    const repos = new Set((flag('repos') ?? '').split(',').filter(Boolean));
+    const entries = (flag('sets') ?? '')
+      .split(',')
+      .filter(Boolean)
+      .flatMap((name) => {
+        const set = loadDevSet(name);
+        return set.repos
+          .filter((entry) => repos.has(entry.repo))
+          .map((entry) => ({
+            set: set.name,
+            repo: entry.repo,
+            commit: entry.commit,
+            provider: typeof entry.provider === 'string' ? entry.provider : set.provider,
+          }));
+      });
+    let at = 0;
+    const runner = async () => {
+      while (at < entries.length) {
+        const entry = entries[at++] as RepoAt;
+        const run = await claudeFor(entry);
+        console.log(
+          `${entry.repo}: Claude ${run.error ? `error ${run.error.slice(0, 80)}` : `checks ${run.checks} ($${run.costUsd.toFixed(2)})`}`,
+        );
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(concurrency, entries.length) }, runner));
+    console.log(`Spent $${budget.spentUsd().toFixed(2)} of $${budgetUsd}`);
+    return;
+  }
   const todo = repoResults(inDir).filter((result) => result.verdict !== 'error');
   const rows: BaselineRow[] = [];
   let next = 0;
@@ -457,7 +517,8 @@ async function main(argv: string[]) {
         rows.push(JSON.parse(readFileSync(file, 'utf8')) as BaselineRow);
         continue;
       }
-      const row = await compareRepo(result, screenDir, date, judgeClient, budget);
+      const claude = await claudeFor(result);
+      const row = await compareRepo(result, claude, screenDir, judgeClient);
       writeFileSync(file, `${JSON.stringify(row, null, 2)}\n`);
       rows.push(row);
       console.log(
