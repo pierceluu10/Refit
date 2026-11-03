@@ -122,7 +122,11 @@ export async function recordRecipeOutcome(
 // the budget ran out) or the PR couldn't be opened.
 export function failedWith(record: RunRecord): boolean {
   if (record.humanVerdict) return record.humanVerdict === 'closed';
-  const ran = record.checks.filter((check) => check.before !== 'not run');
+  // The repo's own checks only: one the agent added, like its proof test, runs a test that does
+  // not exist before the edit, so its baseline fails whatever the environment.
+  const { agentChecks = [] } = record as RunRecord & { agentChecks?: { name: string }[] };
+  const added = new Set(agentChecks.map((check) => check.name));
+  const ran = record.checks.filter((check) => check.before !== 'not run' && !added.has(check.name));
   const green = ran.length > 0 && ran.every((check) => check.before === 'pass');
   return record.outcome === 'needs-review' && green;
 }
