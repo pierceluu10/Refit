@@ -41,7 +41,7 @@ const MAX_SIDE_CHARS = 30_000;
 export function baselinePrompt(date: string): string {
   return [
     `Today is ${date}.`,
-    'Find the external APIs and SDKs this repository uses. Check whether any of them has changed in a way that affects this code: deprecations, retirements, removed or renamed parameters, models or endpoints, new required versions. Then update the repository for every change that affects it.',
+    'Find the external APIs and SDKs this repository uses. Check whether any of them has changed in a way that affects this code: deprecations, retirements, removed or renamed parameters, models or endpoints, new required versions. Then update the repository for every change that breaks it now or within 90 days; list later deprecations without editing for them.',
     'If nothing affects it, change nothing and say so. When you are done, say what you changed and why.',
   ].join('\n\n');
 }
@@ -142,7 +142,7 @@ export function refitSide(
   return { grade, diff, text };
 }
 
-const JUDGE_SYSTEM = `You compare two attempts, A and B, at the same job on the same repository: find the external APIs and SDKs it uses, check whether any changed in a way that affects the code (deprecations, retirements, removed parameters, models or endpoints, new required versions), and update the code for every change that affects it.
+const JUDGE_SYSTEM = `You compare two attempts, A and B, at the same job on the same repository: find the external APIs and SDKs it uses, check whether any changed in a way that affects the code (deprecations, retirements, removed parameters, models or endpoints, new required versions), and update the code for every change that breaks it now or within 90 days of the run. A deprecation that takes effect later only needs to be named, not edited for; editing for it is not a fault, but not needed either.
 
 Each attempt gives its own explanation and its diff. An attempt may change nothing. Read both. For each attempt, list every API change it handles (one entry per change) and whether its handling is correct and complete, and anything it breaks or changes that no API change required. Then say which attempt does the job better, or tie.
 
