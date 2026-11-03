@@ -7,7 +7,14 @@ import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
 import { listProviderIds } from '../providers/core/registry.ts';
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
 import { BudgetExceededError, createBudget } from './budget.ts';
-import { anyWatcher, cachedChanges, createDeps, MEMORY_USD, TASK_USD } from './deps.ts';
+import {
+  anyWatcher,
+  cachedChanges,
+  createDeps,
+  MAX_TASK_USD,
+  MEMORY_USD,
+  TASK_USD,
+} from './deps.ts';
 import { stubRunTask } from './stubs.ts';
 import { TURN_RESERVE_USD } from '../harness/index.ts';
 
@@ -163,6 +170,13 @@ describe('createDeps', () => {
     // Every task ran or was recorded as not attempted; none was dropped.
     expect(records).toHaveLength(6);
     expect(records.some((r) => r.outcome === 'failed')).toBe(true);
+  });
+
+  it('never gives one task more than MAX_TASK_USD, however big the run', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
+    const deps = createDeps({ budget: createBudget(2000), log: () => {} });
+    await deps.runTask(task('big'), '/unused');
+    expect(harness.caps).toEqual([MAX_TASK_USD]);
   });
 
   it('records a harness that throws as failed, counting its whole share once', async () => {
