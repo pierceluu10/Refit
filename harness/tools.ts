@@ -168,6 +168,32 @@ export function finishProblems(
   return problems;
 }
 
+// A .gitignore line that kept secrets out of git and no longer does: appending to a file with no
+// trailing newline once turned `.env` into `.envdist` (round 3, AyeletHillel/fine-tune).
+const SECRET_IGNORE = /env|secret|credential|\.pem|\.key|token/i;
+export function gitignoreProblems(diff: string): string[] {
+  const problems: string[] = [];
+  for (const file of diff.split(/(?=^diff --git )/m)) {
+    const path = file.match(/^diff --git a\/(\S+)/)?.[1];
+    if (!path || !/(^|\/)\.gitignore$/.test(path)) continue;
+    const lines = file.split('\n');
+    const removed = lines
+      .filter((l) => l.startsWith('-') && !l.startsWith('---'))
+      .map((l) => l.slice(1).trim());
+    const added = new Set(
+      lines.filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1).trim()),
+    );
+    for (const line of removed) {
+      if (line && !line.startsWith('#') && SECRET_IGNORE.test(line) && !added.has(line)) {
+        problems.push(
+          `Your change to ${path} drops \`${line}\`, so that file is no longer kept out of git and secrets could be committed. Restore it (a file with no trailing newline joins the next line you append).`,
+        );
+      }
+    }
+  }
+  return problems;
+}
+
 export function buildTools(ctx: ToolContext): AgentTool[] {
   const { sandbox } = ctx;
   const runs: ValidatorRun[] = [];
@@ -560,7 +586,10 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
         // Two refusals at most, so an agent that can't satisfy them still ends with a report.
         const problems =
           report.verdict === 'migrated' && refusals < 2
-            ? finishProblems(report, ctx.checks, runs)
+            ? [
+                ...finishProblems(report, ctx.checks, runs),
+                ...gitignoreProblems(await sandbox.diff().catch(() => '')),
+              ]
             : [];
         if (problems.length > 0) {
           refusals += 1;

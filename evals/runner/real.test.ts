@@ -164,7 +164,8 @@ describe('loadRealPipeline', () => {
         cap: 1,
       },
     ]);
-    expect(charges.map(([, label]) => label)).toEqual(['inventory', 'watch']);
+    // The repo also uses Stripe, so Stripe's changelog is read too: every provider the inventory found.
+    expect(charges.map(([, label]) => label)).toEqual(['inventory', 'watch', 'watch']);
   });
 
   it('turns a run-budget refusal into the cap being reached, not a pipeline error', async () => {

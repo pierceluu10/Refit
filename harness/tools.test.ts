@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { AgentTool, MigrationTask, Recipe } from '../shared/types.ts';
-import { buildTools, finishProblems } from './tools.ts';
+import { buildTools, finishProblems, gitignoreProblems } from './tools.ts';
 import type { ExecResult, FinishReport, Sandbox, ToolContext } from './types.ts';
 
 const task = { id: 't1', repo: 'acme/app' } as MigrationTask;
@@ -332,6 +332,22 @@ describe('web, memory, tool pack and finish', () => {
     expect(finishProblems(report, [{ name: 'change-test', command: 'true' }], [lookup])).toEqual([
       expect.stringContaining("its latest call didn't pass"),
     ]);
+  });
+
+  it('gitignoreProblems catches a secret ignore line the change drops', () => {
+    const joined = [
+      'diff --git a/.gitignore b/.gitignore',
+      '--- a/.gitignore',
+      '+++ b/.gitignore',
+      '@@ -1,2 +1,2 @@',
+      ' node_modules',
+      '-.env',
+      '\\ No newline at end of file',
+      '+.envdist',
+    ].join('\n');
+    expect(gitignoreProblems(joined)).toEqual([expect.stringContaining('drops `.env`')]);
+    const kept = joined.replace('+.envdist', '+.env\n+dist');
+    expect(gitignoreProblems(kept)).toEqual([]);
   });
 
   it('every tool has an object input schema and never throws', async () => {

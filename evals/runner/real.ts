@@ -189,15 +189,24 @@ export async function loadRealPipeline(
       if (read) await read;
       return spending(meter, 'inventory', () => deps.inventory(repoDir, repo));
     },
-    watch: (usages) => {
-      // One watcher read per provider per run, so every repo is matched against the same changes.
-      // A refused read is not the end of the run: repos of providers already read can still go.
-      let changes = changesByProvider.get(provider);
-      if (!changes) {
-        changes = spending(meter, 'watch', () => watcherFor(provider, usages)(), false);
-        changesByProvider.set(provider, changes);
-      }
-      return changes;
+    watch: async (usages) => {
+      // Every provider the inventory found, as the loop watches them, not only the set's: a repo on
+      // OpenAI and Gemini must see Gemini's changes too. One watcher read per provider per run, so
+      // every repo is matched against the same changes. A refused read is not the end of the run:
+      // repos of providers already read can still go.
+      const providers = [
+        ...new Set([provider, ...usages.map((usage) => usage.provider.toLowerCase())]),
+      ];
+      const reads = providers.map((name) => {
+        let changes = changesByProvider.get(name);
+        if (!changes) {
+          changes = spending(meter, 'watch', () => watcherFor(name, usages)(), false);
+          changesByProvider.set(name, changes);
+        }
+        // Only the set's provider can fail the repo; another's failed read adds no changes.
+        return name === provider ? changes : changes.catch(() => []);
+      });
+      return (await Promise.all(reads)).flat();
     },
     // The loop's batching: each call judges at most MATCH_BATCH changes, and across calls the most
     // urgent tasks go first.

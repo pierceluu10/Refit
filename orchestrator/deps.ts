@@ -285,8 +285,9 @@ export function createDeps({
       providerIds.map((id) => [id, providerWatcher(id, budget, watchCache)]),
     ),
     watchAny: (provider, hints) => anyWatcher(provider, hints, budget, watchCache),
-    // Sonnet: on Opus, matching was $0.13 of the $0.45 a repo cost to fix in round 3's first iteration.
-    match: createMatchAgent({ budget, model: 'claude-sonnet-5-5' }),
+    // Opus: on Sonnet, round 3's second iteration missed dota2-helper's stripe-node 23 upgrade and
+    // over-matched the Coinbase bot (10 changes, where Opus found 4), to save about $0.07 a repo.
+    match: createMatchAgent({ budget }),
     runTask: async (task, dir) => {
       const freeUsd = budget.capUsd - budget.spentUsd() - budget.heldUsd();
       let hold: Hold;
