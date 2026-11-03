@@ -468,6 +468,22 @@ describe('the hard cap', () => {
     expect(ledger.spentUsd).toBeLessThanOrEqual(ledger.capUsd);
   });
 
+  it('prices the shrunk output at the long-prompt rate when a long prompt raises it', async () => {
+    // Haiku 5.5 bills output at $2.50 per million, not $0.50, once a prompt passes 100k tokens.
+    const model = scriptedModel([[{ type: 'text', text: 'hi' }]], 'claude-haiku-5-5');
+    const long = {
+      system: 'x'.repeat(330_000),
+      messages: [],
+      tools: [],
+      maxTokens: 16_000,
+    };
+    const ledger = new BudgetLedger(0.1);
+    await metered(model, ledger).complete(long);
+    const sent = model.requests[0];
+    expect(sent.maxTokens).toBeLessThan(16_000);
+    expect(worstCaseUsd('claude-haiku-5-5', sent)).toBeLessThanOrEqual(0.1);
+  });
+
   it("counts a call's web searches and their results in its worst case", () => {
     const base = { system: 's', messages: [], tools: [], maxTokens: 1_000 };
     const search = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }];

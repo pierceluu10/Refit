@@ -175,8 +175,8 @@ export const SEARCH_RESULT_TOKENS = 15_000;
 /** The least output a call is sent with once the budget is nearly spent; below it, no call. */
 export const MIN_OUTPUT_TOKENS = 1_024;
 
-/** The part of a call's worst case that max_tokens does not change: the prompt and the searches. */
-function fixedWorstUsd(model: string, request: ModelRequest): number {
+/** A call's worst-case usage with `outputTokens` of output: nothing cached, every search used. */
+function worstUsage(request: ModelRequest): (outputTokens: number) => Usage {
   const chars =
     request.system.length +
     JSON.stringify(request.messages).length +
@@ -188,21 +188,19 @@ function fixedWorstUsd(model: string, request: ModelRequest): number {
       (typeof tool.max_uses === 'number' ? tool.max_uses : tool.name === 'web_search' ? 10 : 0),
     0,
   );
-  return costOf(model, {
+  // Every prompt token, and every search result, written to the cache: the dearest way to read them.
+  const cacheWriteTokens = Math.ceil(chars / CHARS_PER_TOKEN) + searches * SEARCH_RESULT_TOKENS;
+  return (outputTokens) => ({
     inputTokens: 0,
-    outputTokens: 0,
-    // As if nothing were cached: every prompt token, and every search result, written to the cache.
-    cacheWriteTokens: Math.ceil(chars / CHARS_PER_TOKEN) + searches * SEARCH_RESULT_TOKENS,
+    outputTokens,
+    cacheWriteTokens,
     webSearches: searches,
   });
 }
 
 /** The most one call can cost: no cache hits, every search used, every max_tokens token written. */
 export function worstCaseUsd(model: string, request: ModelRequest): number {
-  return (
-    fixedWorstUsd(model, request) +
-    costOf(model, { inputTokens: 0, outputTokens: request.maxTokens })
-  );
+  return costOf(model, worstUsage(request)(request.maxTokens));
 }
 
 /**
@@ -218,9 +216,12 @@ export function metered(client: ModelClient, ledger: BudgetLedger, label?: strin
       ledger.assertRoom();
       let sent = request;
       const room = ledger.capUsd - ledger.spentUsd;
-      if (worstCaseUsd(client.model, request) > room) {
-        const perToken = costOf(client.model, { inputTokens: 0, outputTokens: 1 });
-        const fits = Math.floor((room - fixedWorstUsd(client.model, request)) / perToken);
+      const usage = worstUsage(request);
+      if (costOf(client.model, usage(request.maxTokens)) > room) {
+        // Output's price at this prompt size (long prompts can raise it), then as many tokens as fit.
+        const fixed = costOf(client.model, usage(0));
+        const perToken = (costOf(client.model, usage(1_000)) - fixed) / 1_000;
+        const fits = Math.floor((room - fixed) / perToken);
         if (fits < MIN_OUTPUT_TOKENS) throw new BudgetExceededError(ledger.capUsd, ledger.spentUsd);
         sent = { ...request, maxTokens: Math.min(request.maxTokens, fits) };
       }
