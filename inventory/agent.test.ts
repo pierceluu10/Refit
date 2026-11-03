@@ -1,4 +1,5 @@
-import { mkdtemp, readFile, rm, symlink } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -440,5 +441,36 @@ describe('runInventory: the code scan first, then the agent', () => {
 
   it('finds no commit to cache by outside a clean git checkout', async () => {
     expect(await cleanCommit(repoDir)).toBeUndefined();
+  });
+
+  it('caches by the commit of a clean checkout only', async () => {
+    const checkout = await makeRepo({ 'src/app.ts': 'export const x = 1;\n' });
+    const git = (...args: string[]) =>
+      execFileSync('git', ['-C', checkout, ...args], { encoding: 'utf8' }).trim();
+    git('init', '-q');
+    git('add', '.');
+    git(
+      '-c',
+      'user.name=Test',
+      '-c',
+      'user.email=test@example.com',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '--no-verify',
+      '-q',
+      '-m',
+      'x',
+    );
+    expect(await cleanCommit(checkout)).toBe(git('rev-parse', 'HEAD'));
+    // A folder inside the checkout is not a checkout of its own.
+    expect(await cleanCommit(path.join(checkout, 'src'))).toBeUndefined();
+    // Uncommitted edits, tracked or not, are not what the commit describes.
+    await writeFile(path.join(checkout, 'src/new.ts'), 'export const y = 2;\n');
+    expect(await cleanCommit(checkout)).toBeUndefined();
+    await rm(path.join(checkout, 'src/new.ts'));
+    await writeFile(path.join(checkout, 'src/app.ts'), 'export const x = 3;\n');
+    expect(await cleanCommit(checkout)).toBeUndefined();
+    await removeRepo(checkout);
   });
 });
