@@ -53,6 +53,7 @@ const READING_TOOLS = new Set([
   'search_page',
   'list_links',
   'diff_pages',
+  'lookup_package',
 ]);
 
 /**

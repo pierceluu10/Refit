@@ -66,25 +66,8 @@ describe.each(ids)('%s', (id) => {
     });
 
   it('turns the saved pages into quoted ProviderChange[] for a provider with no folder', async () => {
-    // Read every page the hand-checked changes cite, then submit them.
-    const cited = [...new Set(expected.changes.map((change) => change.source.url))];
-    const model = scriptedModel([
-      cited.map((url, i) => ({
-        type: 'tool_use' as const,
-        id: `read-${i}`,
-        name: 'read_page',
-        input: { url },
-      })),
-      [
-        {
-          type: 'tool_use',
-          id: 'submit',
-          name: 'submit_changes',
-          input: { changes: expected.changes },
-        },
-      ],
-      [{ type: 'text', text: 'Submitted.' }],
-    ]);
+    // Make the recorded run's reads again, then submit the hand-checked changes.
+    const model = replayRunModel(record.report.log, expected.changes);
     const report = await replay(model);
     expect(report.folder).toBeUndefined();
     expect(report.issues).toEqual([]);
@@ -101,10 +84,11 @@ describe.each(ids)('%s', (id) => {
       expect(change.affects.versions?.length).toBeGreaterThan(0);
     }
     expect(report.changes.some((change) => change.kind === 'sdk-major')).toBe(true);
-    // The prompt showed the registries' major lines and release notes.
-    const prompt = JSON.stringify(model.requests[0].messages[0]);
+    // The agent saw the registries' major lines and release notes: in the task for hinted
+    // packages, or from lookup_package for ones it found itself.
+    const seen = JSON.stringify(model.requests.at(-1)!.messages);
     for (const info of packages.filter((p) => p.majors.length > 1))
-      expect(prompt).toContain(`${info.ecosystem === 'npm' ? 'npm' : 'PyPI'} package ${info.name}`);
+      expect(seen).toContain(`${info.ecosystem === 'npm' ? 'npm' : 'PyPI'} package ${info.name}`);
   });
 
   it('keeps its recorded live run checkable offline', () => {
@@ -124,11 +108,16 @@ describe.each(ids)('%s', (id) => {
     expect(again.changes).toEqual(report.changes);
 
     // Every quote is on the page it cites, in what the agent was shown, unless the run flagged it.
+    // A citation of a page that was not read (a release's own page) must be named by the saved
+    // page that holds the quote, as the submission check requires.
     for (const change of report.changes) {
       if (report.unverifiedQuotes.includes(change.id)) continue;
-      const text = pages.get(change.source.url);
-      expect(text, `${change.id}: ${change.source.url} is not in pages/`).toBeDefined();
-      expect(containsQuote(text!, change.source.quote), change.id).toBe(true);
+      const { url, quote } = change.source;
+      const text =
+        pages.get(url) ??
+        [...pages.values()].find((page) => page.includes(url) && containsQuote(page, quote));
+      expect(text, `${change.id}: ${url} is not in pages/ or named by one`).toBeDefined();
+      expect(containsQuote(text!, quote), change.id).toBe(true);
     }
   });
 

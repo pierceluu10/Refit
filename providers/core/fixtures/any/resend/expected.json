@@ -1,0 +1,89 @@
+{
+  "note": "Hand-checked by the F4 session on 2026-11-03: 6 of the 11 changes from live-run.json, each read against its saved page for the quote and the claim. This run had only an API host as its hint; the agent found the SDKs itself with lookup_package. The SDK changes cite each release's own page, which the saved GitHub release list names and quotes. No corrections were needed.",
+  "changes": [
+    {
+      "id": "2026-01-22-webhook-per-recipient-events",
+      "kind": "webhook-payload",
+      "title": "Email webhook events are now per-recipient; `to` holds a single recipient (backwards-compatible shape)",
+      "source": {
+        "url": "https://resend.com/changelog/webhook-event-visibility",
+        "quote": "For backwards compatibility, the to field is still returned in the event payload as an array, but it will only include a single recipient for each email event."
+      },
+      "affects": {
+        "operations": ["webhooks email.*"],
+        "fields": ["to"]
+      },
+      "effectiveDate": "2026-01-22"
+    },
+    {
+      "id": "2026-07-16-github-secret-scanner-revokes-keys",
+      "kind": "auth-change",
+      "title": "Resend API keys exposed on GitHub are now automatically revoked (calls with leaked keys will fail)",
+      "source": {
+        "url": "https://resend.com/changelog/github-secret-scanner",
+        "quote": "Once we're notified, we disable the exposed key immediately."
+      },
+      "affects": {},
+      "effectiveDate": "2026-07-16"
+    },
+    {
+      "id": "2025-08-07-resend-node-6-0-0",
+      "kind": "sdk-major",
+      "title": "npm resend 6.0.0: attachment inlineContentId renamed to contentId",
+      "source": {
+        "url": "https://github.com/resend/resend-node/releases/tag/v6.0.0",
+        "quote": "make sure to update references to `inlineContentId` in your code to use just `contentId` instead."
+      },
+      "affects": {
+        "fields": ["inlineContentId", "contentId"],
+        "versions": ["<6.0.0", "6.0.0"],
+        "sdk": "resend"
+      },
+      "effectiveDate": "2025-08-07"
+    },
+    {
+      "id": "2024-08-16-resend-node-4-0-0",
+      "kind": "sdk-major",
+      "title": "npm resend 4.0.0: camelCase types (reply_to -> replyTo, content_type -> contentType)",
+      "source": {
+        "url": "https://github.com/resend/resend-node/releases/tag/v4.0.0",
+        "quote": "Create email: `reply_to` -> `replyTo`"
+      },
+      "affects": {
+        "fields": ["reply_to", "attachments[].content_type"],
+        "versions": ["<4.0.0", "4.0.0"],
+        "sdk": "resend"
+      },
+      "effectiveDate": "2024-08-16"
+    },
+    {
+      "id": "2023-11-01-resend-node-2-0-0",
+      "kind": "sdk-major",
+      "title": "npm resend 2.0.0: send returns { data, error } instead of data",
+      "source": {
+        "url": "https://github.com/resend/resend-node/releases/tag/v2.0.0",
+        "quote": "const { data, error } = resend.emails.send({ ... })"
+      },
+      "affects": {
+        "operations": ["emails.send"],
+        "versions": ["<2.0.0", "2.0.0"],
+        "sdk": "resend"
+      },
+      "effectiveDate": "2023-11-01"
+    },
+    {
+      "id": "2024-05-09-resend-python-1-0-0",
+      "kind": "sdk-major",
+      "title": "PyPI resend 1.0.0: major release with type hinting support (possibly breaking)",
+      "source": {
+        "url": "https://github.com/resend/resend-python/releases/tag/v1.0.0",
+        "quote": "major release with type hinting support"
+      },
+      "affects": {
+        "versions": ["<1.0.0", "1.0.0"],
+        "sdk": "resend"
+      },
+      "effectiveDate": "2024-05-09"
+    }
+  ]
+}

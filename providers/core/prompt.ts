@@ -5,7 +5,7 @@ import type { MigrationKind } from '../../shared/types.ts';
 import type { LoadedProvider } from './types.ts';
 
 export const WATCH_PROMPT_VERSION = 'watch-v1';
-export const ANY_WATCH_PROMPT_VERSION = 'any-watch-v2';
+export const ANY_WATCH_PROMPT_VERSION = 'any-watch-v3';
 export const KNOWLEDGE_PROMPT_VERSION = 'knowledge-v1';
 
 export const MIGRATION_KINDS: MigrationKind[] = [
@@ -141,6 +141,7 @@ What to report:
 - Every change needs an exact quote from the page it came from: one to three sentences, copied word for word from text a tool gave you (read_page, search_page, or a release-notes excerpt in the task). Never paraphrase inside the quote. submit_changes checks every quote and lists any it cannot find; check_quote is there to test one first.
 
 SDK releases:
+- When the task names no packages for the provider, find its official SDKs yourself: try lookup_package with the provider's name and with package names its docs or README give. A repository may pin an old major of one.
 - Each package summary lists the package's major versions and, where they were found, the release notes of each major's first release. Write one sdk-major change for each major release that breaks callers: removed or renamed methods, new required arguments, dropped runtime versions, changed defaults, a new API version pinned by default. Set affects.sdk to the package name exactly as the registry spells it, and affects.versions to the versions it breaks followed by the first release of the new major, for example ["<2.0.0", "2.0.0"]. Name the ecosystem (npm, PyPI) in the title. Quote the release notes, the changelog or the migration guide.
 - Report majors of every age: a repository may still pin an old one. Leave out a major whose notes show nothing breaking, and say so in the notes.
 - In 0.x versions any minor release may break callers. Search the changelog for "BREAKING" and report the breaking ones as sdk-major too, with affects.versions such as ["<0.30.0", "0.30.0"].

@@ -1,0 +1,845 @@
+Open main menu
+
+- Features
+
+- Company
+
+- Enterprise
+
+- Help
+
+- Docs
+
+- AI
+
+- Pricing
+
+Log inGet started
+
+# Changelog
+Search…⌘K Subscribe
+
+- Oct 26, 2026
+
+## Support for AI Catalog and MCP Server Card
+MCP clients can now find and configure the Resend MCP server from a single URL.
+Diel Duarte
+
+- Oct 19, 2026
+
+## Compress and Convert Images in the Editor
+Automatically compress large images and convert WebP, HEIC, SVG, and more.
+Danilo Woznica
+
+- Oct 15, 2026
+
+## Laravel Cloud Integration
+Connect Resend to your Laravel Cloud applications in a few clicks.
+Chris Pennington
+
+- Oct 1, 2026
+
+## Account Usage API
+Retrieve your account usage and plan limits directly from the API.
+
+-
+
+-
+
+- Sep 22, 2026
+
+## Stripe Projects Integration
+Provision Resend directly from the Stripe Projects CLI and start sending email.
+Felipe Freitag
+
+- Sep 21, 2026
+
+## Duplicate Broadcast API
+Duplicate an existing broadcast directly from the API.
+Gabriel Miranda
+
+- Sep 16, 2026
+
+## Headless Webhook API
+Build custom headless webhook experiences from the API, SDKs, CLI, and MCP server.
+Gabriel Miranda
+
+- Sep 15, 2026
+
+## List Clicked Links API
+Retrieve the links clicked in a broadcast
+Diel Duarte
+
+- Sep 14, 2026
+
+## Update Segment API
+Rename a segment from the API, CLI, or any official SDK.
+
+-
+
+-
+
+- Sep 10, 2026
+
+## New Table Component
+Add beautiful tables to your Broadcasts and Templates.
+Danilo Woznica
+
+- Sep 8, 2026
+
+## Vercel v0 Integration
+Add Resend email to your v0 projects without leaving v0.
+Felipe Freitag
+
+- Sep 3, 2026
+
+## Link Checker
+Catch broken, missing, and placeholder links before you send a Broadcast or publish a Template.
+Zeno Rocha
+
+- Sep 1, 2026
+
+## Single Sign-On
+Let your team sign in to Resend with your identity provider.
+
+-
+
+-
+
+- Aug 31, 2026
+
+## Update API Key Name
+Rename an existing API key from the API without regenerating its token.
+Diel Duarte
+
+- Aug 28, 2026
+
+## Share Email API
+Create a shareable link to view a sent or received email directly from the API.
+Diel Duarte
+
+- Aug 27, 2026
+
+## Email Metrics API
+Get deliverability and engagement metrics through the new Email Metrics API.
+Diel Duarte
+
+- Aug 26, 2026
+
+## Official Resend plugin for Cursor
+Install the MCP server and every Resend skill directly from the Cursor Marketplace.
+Chris Pennington
+
+- Aug 26, 2026
+
+## Duplicate Automation API
+Duplicate an existing automation directly from the API.
+Gabriel Miranda
+
+- Aug 25, 2026
+
+## More Domains on the Free Tier
+The free tier now includes 3 verified domains, so you can build and send from more projects without upgrading.
+Jonni Lundy
+
+- Aug 21, 2026
+
+## OAuth Client ID Metadata Document Support
+OAuth clients can now identify themselves with a hosted metadata document instead of registering with Resend at runtime.
+Felipe Freitag
+
+- Aug 18, 2026
+
+## Cancel Broadcast API
+Cancel scheduled or queued Broadcasts directly from the API.
+Diel Duarte
+
+- Aug 13, 2026
+
+## Agent Plugin Support
+Resend now supports the Agent Plugins Standard.
+
+-
+
+-
+
+-
+
+- Aug 12, 2026
+
+## Email Compatibility Checker
+The code editor now warns when pasted HTML looks incompatible with email clients.
+Danilo Woznica
+
+- Aug 6, 2026
+
+## Remote MCP Supports the 2026-07-28 Spec
+Resend's remote MCP server now supports the stateless protocol.
+
+-
+
+-
+
+-
+
+- Aug 3, 2026
+
+## Template Folders
+Organize your email templates into folders on the Templates page.
+
+-
+
+-
+
+- Jul 28, 2026
+
+## Email Suppressions
+Manage your team's suppressed addresses from the dashboard and the API.
+
+-
+
+-
+
+-
+
+- + 1
+
+- Jul 22, 2026
+
+## Resend Plugin for Codex
+Install the MCP server and every Resend skill directly from the official Codex plugin marketplace.
+
+-
+
+-
+
+-
+
+- + 1
+
+- Jul 16, 2026
+
+## GitHub Secret Scanner
+Exposed API keys are detected, revoked, and reported to your team automatically.
+
+-
+
+-
+
+-
+
+- Jul 13, 2026
+
+## OAuth Support
+Build your own authenticated Resend experiences with OAuth 2.1 and PKCE.
+
+-
+
+-
+
+-
+
+- + 1
+
+- Jul 11, 2026
+
+## Resend Connector for Claude
+Connect Resend to Claude in one click from the connector directory.
+
+-
+
+-
+
+-
+
+- + 1
+
+- Jul 8, 2026
+
+## Email Threading with Message-ID
+All email webhooks and GET email endpoints now include the Message-ID.
+Vitor Capretz
+
+- Jul 7, 2026
+
+## Remote MCP Server
+Resend offers a hosted, MCP server with OAuth authentication built in.
+
+-
+
+-
+
+-
+
+- + 1
+
+- Jul 2, 2026
+
+## Open Graph Image Previews
+Paste a link in the editor and turn it into a rich Open Graph preview.
+Diel Duarte
+
+- Jun 30, 2026
+
+## Vercel Marketplace Integration
+Sign up for Resend without leaving Vercel or the Vercel CLI.
+Felipe Freitag
+
+- Jun 24, 2026
+
+## Import Contacts from CSV
+Import millions of contacts from a CSV in a single upload, with an API, AI column mapping, and full SDK coverage.
+
+-
+
+-
+
+-
+
+- Jun 9, 2026
+
+## Editor Emoji Picker
+The Broadcast and Template editors now include an emoji picker.
+Zeno Rocha
+
+- Jun 4, 2026
+
+## Domain Claim
+Verify ownership of a domain in use by another Resend team and transfer it to yours.
+
+-
+
+-
+
+- May 26, 2026
+
+## Official Resend plugin for Claude Code
+Install the MCP server and every Resend skill directly from the official Claude Code plugins.
+Felipe Freitag
+
+- May 7, 2026
+
+## Auth0 Integration
+Send Auth0 transactional emails through Resend using the official integration.
+Christina Martinez
+
+- May 5, 2026
+
+## Mentions in AI chats
+Reference existing content in the AI prompt across broadcasts, templates, and automations.
+
+-
+
+-
+
+- Apr 30, 2026
+
+## New Chart Component
+Embed bar, line, and area charts directly in your emails.
+
+-
+
+-
+
+-
+
+- Apr 9, 2026
+
+## Logs API
+Access your API request logs from anywhere.
+Felipe Freitag
+
+- Apr 7, 2026
+
+## Official Resend MCP Server
+Our official MCP server with Resend platform coverage, and an official HTTP transport.
+
+-
+
+-
+
+- Apr 2, 2026
+
+## Async Support for the Python SDK
+Send emails asynchronously in Python using the new async methods powered by httpx.
+Derich Pacheco
+
+- Mar 13, 2026
+
+## Official CLI for Resend
+Built for humans and AI agents. Manage your emails from the terminal.
+
+-
+
+-
+
+-
+
+- Mar 12, 2026
+
+## Introducing the New Email Editor
+A completely rebuilt editor for broadcasts and templates, now available to everyone.
+
+-
+
+-
+
+-
+
+- + 2
+
+- Mar 6, 2026
+
+## Resend adapter for Vercel Chat SDK
+The official Resend adapter for Vercel Chat SDK turns email into a first-class channel for AI agents.
+João Melo
+
+- Mar 5, 2026
+
+## Domain Verification Events
+Domain verification events are now more visible and actionable.
+
+-
+
+-
+
+-
+
+- + 1
+
+- Feb 20, 2026
+
+## Official n8n Node for Resend
+You can now send emails, manage contacts, and trigger workflows from n8n.
+Silke Pilon
+
+- Feb 12, 2026
+
+## Create and Send Broadcasts via API
+Use the Broadcast API to create and send a broadcast with a single request.
+Alexandre Cisneiros
+
+- Feb 2, 2026
+
+## Improved Logs Visibility
+Find issues faster with log search, status filters, and actionable 403 error guidance.
+Brian Kerr
+
+- Jan 26, 2026
+
+## Webhooks Ingester
+A self-hosted solution to store all your Resend webhook events in your own database.
+
+-
+
+-
+
+- Jan 22, 2026
+
+## Webhook Event Visibility
+A backwards-compatible change in the way we share webhook events.
+
+-
+
+-
+
+-
+
+- + 1
+
+- Jan 15, 2026
+
+## Bulk Actions
+Perform actions on multiple items at once in the Dashboard.
+Danilo Woznica
+
+- Jan 8, 2026
+
+## Introducing Email Suppression Visibility
+Learn how the new suppressed status gives you visibility into your email performance.
+
+-
+
+-
+
+-
+
+- Dec 5, 2025
+
+## Pay-as-you-go Pricing
+Learn how you can enable pay-as-you-go pricing for your transactional email plans.
+Vitor Capretz
+
+- Nov 13, 2025
+
+## Exports General Availability
+Exports is now generally available for all Resend users.
+
+-
+
+-
+
+- Oct 31, 2025
+
+## Managing Webhooks via API
+Create, retrieve, list, and delete webhooks programmatically.
+
+-
+
+-
+
+- Oct 24, 2025
+
+## List Sent Emails Endpoint
+List sent emails from your account.
+
+-
+
+-
+
+- Oct 16, 2025
+
+## Pagination for List Endpoints
+We've added optional pagination for list endpoints to optimize retrieving data.
+
+-
+
+-
+
+- Oct 2, 2025
+
+## Download Attachments
+You can now view and download attachments for emails in the dashboard.
+Vitor Capretz
+
+- Sep 24, 2025
+
+## Tags for Batch and Scheduled Emails
+Add tags to batch and scheduled emails.
+Vitor Capretz
+
+- Aug 21, 2025
+
+## Automatic Plain Text Emails
+Resend now automatically generates plain text for your emails.
+Isabella Aquino
+
+- Aug 14, 2025
+
+## Embed Images using CID
+Learn how to inline image attachments in your emails.
+Alexandre Cisneiros
+
+- Aug 1, 2025
+
+## Exports as CSV
+Learn how you can export your data as CSV. Currently in Beta.
+
+-
+
+-
+
+- Jul 3, 2025
+
+## Custom Unsubscribe
+Maintain your brand identity throughout the unsubscribe experience.
+Cassio Zen
+
+- Jun 26, 2025
+
+## Enhanced Metrics Dashboard
+Enhanced metrics dashboard for your email sending performance and usage.
+
+-
+
+-
+
+-
+
+- Jun 19, 2025
+
+## Keyboard Shortcut Visibility
+Exposing keyboard shortcuts in a new way.
+Danilo Woznica
+
+- Jun 12, 2025
+
+## Improved Bounced and Delivery Details
+Access detailed delivery logs and understand bounce causes with actionable insights.
+
+-
+
+-
+
+- Jun 5, 2025
+
+## Batch Idempotency Keys
+Use idempotency keys to ensure that your batch emails are sent only once.
+Alexandre Cisneiros
+
+- May 22, 2025
+
+## Improved DNS Detection and Troubleshooting
+Streamlining Domain Verification with Resend.
+Brian Kerr
+
+- May 15, 2025
+
+## Custom Return Path
+Set a custom return path for your domain.
+Isabella Aquino
+
+- May 8, 2025
+
+## Get Contact by Email
+Get a contact by their email address.
+Carolina Josephik
+
+- May 1, 2025
+
+## Idempotency Keys
+Use idempotency keys to ensure that emails are sent only once.
+
+-
+
+-
+
+- Apr 22, 2025
+
+## Deliverability Insights GA
+Deliverability Insights is now generally available for free for all Resend users.
+Chris Pennington
+
+- Apr 17, 2025
+
+## Extended Email Scheduling
+Schedule emails up to 30 days in advance using Broadcasts or the API.
+Felipe Volpone
+
+- Apr 10, 2025
+
+## Domains Search and Filters
+Quickly find or filter through your domains with ease.
+Danilo Woznica
+
+- Mar 13, 2025
+
+## Data Privacy Framework Certification
+Resend is now certified under the EU-US Data Privacy Framework (DPF)
+Jonni Lundy
+
+- Mar 6, 2025
+
+## Multi-Region for everyone
+Resend now allows free users to send emails from any region.
+Zeno Rocha
+
+- Feb 20, 2025
+
+## Announcing the .NET SDK
+Integrate email into your .NET apps using the new Resend SDK.
+Filipe Toscano
+
+- Feb 6, 2025
+
+## New Domains Workflow
+We've launched a new workflow for adding and verifying domains.
+Danilo Woznica
+
+- Jan 30, 2025
+
+## New Social Links Component
+We reengineered the way you add social links to your emails.
+Zeh Fernandes
+
+- Jan 22, 2025
+
+## Updated Contact Endpoint
+Update any contact by their email address.
+Vitor Capretz
+
+- Dec 3, 2024
+
+## New X/Twitter Component
+Embed X/Twitter posts in your Broadcasts.
+Danilo Woznica
+
+- Nov 22, 2024
+
+## New Domain Webhooks
+Receive real-time notifications when domains are created, updated, or deleted.
+Vitor Capretz
+
+- Oct 31, 2024
+
+## New YouTube Component
+Embed YouTube videos in your Broadcasts.
+Chris Pennington
+
+- Oct 3, 2024
+
+## Schedule API with Natural Language
+Use natural language to schedule emails programmatically.
+Bu Kinoshita
+
+- Jul 17, 2024
+
+## New Contact Webhooks
+Receive real-time notifications when contacts are created, updated, or deleted.
+Felipe Volpone
+
+- Jul 11, 2024
+
+## In-App Billing
+Manage your subscription directly in the dashboard.
+Vitor Capretz
+
+- Jul 4, 2024
+
+## New Code Block Component
+Improve how you display code in your emails.
+Zeh Fernandes
+
+- Jun 14, 2024
+
+## Announcing the Rust SDK
+You can now send emails with the official Resend SDK in your Rust projects.
+Tony Barotsis
+
+- Jun 12, 2024
+
+## Advanced TLS Configuration
+Understand how TLS works and the different TLS policies available.
+Bu Kinoshita
+
+- Jun 7, 2024
+
+## Python SDK 2.0
+See what changed in the new major version of the Resend Python SDK.
+Derich Pacheco
+
+- May 15, 2024
+
+## New Section Component
+Expand the layout and design capabilities of your emails.
+Zeh Fernandes
+
+- May 8, 2024
+
+## Zapier Integration
+Automate workflows without using code.
+Jonni Lundy
+
+- Apr 23, 2024
+
+## New Editor Styles
+Enhance the appearance of your email broadcasts with more options.
+Zeh Fernandes
+
+- Mar 6, 2024
+
+## Update Click/Open Tracking via API
+Manage the entire lifecycle of your domains programmatically.
+Bu Kinoshita
+
+- Feb 14, 2024
+
+## Multi-Factor Authentication
+Secure your Resend account even further with multi-factor authentication.
+Bu Kinoshita
+
+- Dec 15, 2023
+
+## Email Bounce Details
+Understand the underlying reason why an email bounced.
+Zeh Fernandes
+
+- Nov 3, 2023
+
+## Adding support for Next.js 14
+Learn how you can integrate with the new Server Actions and App Router.
+Zeno Rocha
+
+- Oct 18, 2023
+
+## Introducing Resend's OpenAPI Spec
+Interact with the Resend API using Postman, Insomnia, or any API client of your choice.
+Kewyn Akshlley
+
+- Sep 25, 2023
+
+## Announcing the Java SDK
+Now you can send emails using the official Resend SDK for Java apps.
+Kewyn Akshlley
+
+- Aug 28, 2023
+
+## In-App Docs
+Easily access all API methods from within the Resend dashboard.
+Zeh Fernandes
+
+- Aug 17, 2023
+
+## API Key Insights
+Have more control and visibility over your API usage.
+Zeno Rocha
+
+- Aug 10, 2023
+
+## Supabase Integration
+Send and monitor emails from Supabase Auth using a custom SMTP server.
+Zeno Rocha
+
+- Aug 8, 2023
+
+## SMTP Service
+Start integrating with third-party services and sending emails via SMTP.
+Jonni Lundy
+
+- Jul 27, 2023
+
+## Email Events Timeline
+See the status of every email that you send.
+Zeh Fernandes
+
+- Jul 12, 2023
+
+## Custom Email Headers
+Customize how emails are sent with your own headers.
+Bu Kinoshita
+
+- Jul 10, 2023
+
+## Improved Overview Metrics
+See all of your email statistics in a more granular way.
+Zeh Fernandes
+
+- May 24, 2023
+
+## API Rate Limit
+New headers to help you control your API requests.
+Jonni Lundy
+
+- May 3, 2023
+
+## Announcing the Python SDK
+Integrate email into your Python apps using the new Resend SDK.
+Derich Pacheco
+
+- Apr 26, 2023
+
+## Sending test emails
+Simulate different events by sending test emails.
+Zeno Rocha
+
+- Apr 12, 2023
+
+## New API Key Permissions
+Easily secure your account access with different permissions.
+Bu Kinoshita
+
+- Apr 6, 2023
+
+## Announcing the PHP SDK
+Now you can send emails using the official Resend SDK for PHP apps.
+Jayan Ratna

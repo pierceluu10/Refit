@@ -1,0 +1,89 @@
+Open main menu
+
+- Features
+
+- Company
+
+- Enterprise
+
+- Help
+
+- Docs
+
+- AI
+
+- Pricing
+
+Log inGet started
+
+All updates January 22nd, 2026
+
+# Webhook Event Visibility
+A backwards-compatible change in the way we share webhook events.
+
+-
+
+-
+
+-
+
+- + 1
+
+Webhooks are increasingly important for Resend users.
+
+- Inbound email: process received email events
+
+- Data retention: store your data in your own systems beyond the defaults for each plan
+
+- Contact management: remove bounced/complained contacts from your contact list
+
+Today, we're excited to announce several improvements to webhook event visibility.
+
+Prefer watching a video?
+
+## Single email event visibility
+
+Previously, we exposed a single event for a given email. For example, if an email included multiple recipients and one bounced, you would receive a single bounced event for the entire email. This pattern made it difficult to track the status of an email and respond to events appropriately.
+
+We now return distinct events for each delivery outcome. That means each email event is connected to a single to recipient, and each event payload includes the delivery outcome for that recipient.
+
+{
+"type": "email.bounced",
+"created_at": "2024-11-22T23:41:12.126Z",
+"data": {
+"broadcast_id": "8b146471-e88e-4322-86af-016cd36fd216",
+"created_at": "2024-11-22T23:41:11.894719+00:00",
+"email_id": "56761188-7520-42d8-8898-ff6fc54ce618",
+"from": "Acme ",
+
+"to": ["delivered@resend.dev"],
+"subject": "Sending this example",
+"template_id": "43f68331-0622-4e15-8202-246a0388854b",
+"bounce": {
+"message": "The recipient's email address is on the suppression list because it has a recent history of producing hard bounces.",
+"subType": "Suppressed",
+"type": "Permanent"
+},
+"tags": {
+"category": "confirm_email"
+}
+}
+}
+
+For backwards compatibility, the to field is still returned in the event payload as an array, but it will only include a single recipient for each email event.
+
+## Fully typed event documentation
+
+To facilitate development and debugging, we have added full typing and documentation for each event payload. All webhook event documentation now lives in its own section, with detailed information for each event type.
+
+Each event includes an example payload and a fully typed data parameter definition.
+
+## Webhook verification typing
+
+Webhook verification is essential for security and reliability. To make webhook verification easier, we have also added full typing and documentation for the webhook verification payload in our Node.js SDK.
+
+## Conclusion
+
+As Resend increasingly supports more complex use cases, webhooks will continue to play a crucial role in automation, customer support, and more. We hope these changes make it easier to integrate with Resend and build robust applications.
+
+Subscribe Copy link

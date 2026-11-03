@@ -1,0 +1,126 @@
+[... 53229 characters not shown ...]
+## v6.0.0 (v6.0.0, published 2025-08-07T10:25:24Z)
+https://github.com/resend/resend-node/releases/tag/v6.0.0
+## What's Changed
+This release updates the `contentId` parameter on the email attachment schema. While this is a feature still in preview and is yet to be fully released, if you have started to use it already, make sure to update references to `inlineContentId` in your code to use just `contentId` instead.
+
+No other breaking changes are introduced. If you were not using the feature mentioned above, no changes are needed.
+
+* chore: format by @gabrielmfern in https://github.com/resend/resend-node/pull/558
+* fix: rename content_id for attachments by @Cisneiros in https://github.com/resend/resend-node/pull/559
+* chore: bump version to 6.0.0 by @Cisneiros in https://github.com/resend/resend-node/pull/560
+
+**Full Changelog**: https://github.com/resend/resend-node/compare/v5.0.0...v6.0.0
+[... 2 characters not shown ...]
+## v5.0.0 (v5.0.0, published 2025-08-06T18:54:38Z)
+https://github.com/resend/resend-node/releases/tag/v5.0.0
+## What's Changed
+
+* feat: make `@react-email/render` an optional _peerDependency_ by @vcapretz in https://github.com/resend/resend-node/pull/532
+
+### How to migrate
+
+The breaking change should only affect users that use the `react` option to send emails, but don't have `@react-email/render` installed. To properly have it working, you should install it in that case.
+
+> [!WARNING]
+> If you want to upgrade to remove `@react-email/render` from your project, you should uninstall the SDK `npm uninstall resend` and install it again `npm install resend@latest`. This will ensure that `@react-email/render` doesn't remain in your lockfile in a safe way.
+
+**Full Changelog**: https://github.com/resend/resend-node/compare/v4.8.0...v5.0.0
+[... 10068 characters not shown ...]
+## v4.0.0 (v4.0.0, published 2024-08-16T20:40:13Z)
+https://github.com/resend/resend-node/releases/tag/v4.0.0
+## Major
+- Camel case types https://github.com/resend/resend-node/pull/418
+- Create email: `reply_to` -> `replyTo`
+- Create email: `attachments[].content_type` -> `attachments[].contentType`
+
+## Minor
+- Add schedule email support https://github.com/resend/resend-node/pull/408 https://github.com/resend/resend-node/pull/412 https://github.com/resend/resend-node/pull/413 https://github.com/resend/resend-node/pull/414 https://github.com/resend/resend-node/pull/419
+
+## Patch
+- Upgrade typescript to v5.5.4 https://github.com/resend/resend-node/pull/388
+- Upgrade @types/node to v18.19.44 https://github.com/resend/resend-node/pull/383
+- Upgrade dependency @biomejs/biome to v1.8.3 https://github.com/resend/resend-node/pull/386
+- Upgrade dependency ts-jest to v29.2.4 https://github.com/resend/resend-node/pull/382
+- Upgrade pnpm to v9.7.1 https://github.com/resend/resend-node/pull/403
+- Upgrade dependency @react-email/render to v0.0.17 https://github.com/resend/resend-node/pull/404
+[... 1204 characters not shown ...]
+## v3.0.0 (v3.0.0, published 2024-01-18T15:13:29Z)
+https://github.com/resend/resend-node/releases/tag/v3.0.0
+## Major
+- fix: Types and changed **contacts** payload #296
+- `first_name` -> `firstName`
+- `last_name` -> `lastName`
+- `audienceId` -> `audienceId`
+
+## Minor
+- Add delete contact by email #291
+
+## Patch
+- Update dependency `ts-node` to `v10.9.7` #293
+- Update `typescript-eslint monorepo` to `v6.19.0` #295
+- Update dependency `@react-email/render` to `v0.0.11` #297
+- Fix contact payload #298
+- Fix response types #299
+- Update dependency `prettier` to `v3.2.4` #300
+[... 282 characters not shown ...]
+## v2.0.0 (v2.0.0, published 2023-11-01T15:57:04Z)
+https://github.com/resend/resend-node/releases/tag/v2.0.0
+### Major
+
+- Fix Request types https://github.com/resendlabs/resend-node/pull/250
+
+#### Before
+
+```ts
+const data = resend.emails.send({ ... })
+
+return data.id
+```
+
+#### After
+
+```ts
+const { data, error } = resend.emails.send({ ... })
+
+if (error || !data) {
+throw new Error(error.message)
+}
+
+return data.id
+```
+
+### Minor
+
+- Add batch methods https://github.com/resendlabs/resend-node/pull/199
+
+### Patch
+
+- Upgrade `render` https://github.com/resendlabs/resend-node/pull/252
+[... 168 characters not shown ...]
+## v1.0.0 (v1.0.0, published 2023-08-15T23:22:23Z)
+https://github.com/resend/resend-node/releases/tag/v1.0.0
+## Major
+
+- Replace `axios` with `node-fetch` #149
+
+## Minor
+
+- Add `JSdoc` for create email types #132
+- Add missing fields to the `GetEmailResponse` type #146
+
+## Patch
+
+- Use eslint #159
+- Add GitHub actions #158
+- Add node engine #157
+- Dependabot ecosystem #166
+- Remove `tslint` file #170
+- Update `prettier` to v3.0.1 #148
+- Update `jest` to v29.6.2 #145
+- Update `@types/node` to v18.17.5 #120
+- Update `@types/react` to v18.2.20 #113
+- Update `prettier` to v3.0.2 #160
+- Update `node-fetch` to v2.6.12 #161
+- Update `node.js` to v18.17.1 #114
+[... 662 characters not shown ...]
