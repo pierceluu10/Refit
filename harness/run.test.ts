@@ -431,4 +431,9 @@ describe('decideOutcome', () => {
       'verified',
     );
   });
+
+  it('verifies a proven change the agent still lists caveats for: those go to the PR', () => {
+    const caveats = { ...report, unproven: ['The Dashboard webhook version is not checked.'] };
+    expect(decideOutcome({ ...input, report: caveats, after: [check(true)] })).toBe('verified');
+  });
 });

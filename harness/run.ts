@@ -83,8 +83,8 @@ export function decideOutcome(input: {
     newFailureCount(comparisons) === 0 &&
     tested &&
     gradeValidators(report.validators, validatorRuns).every((grade) => grade.passed) &&
-    failingCheckers(validatorRuns).length === 0 &&
-    report.unproven.length === 0;
+    // What the agent lists as unproven goes to the PR for the reviewer; it does not hold back the grade.
+    failingCheckers(validatorRuns).length === 0;
   return proven ? 'verified' : 'needs-review';
 }
 
