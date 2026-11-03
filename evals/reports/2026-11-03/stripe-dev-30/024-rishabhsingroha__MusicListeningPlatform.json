@@ -1,0 +1,15 @@
+{
+  "set": "stripe-dev-30",
+  "index": 24,
+  "repo": "rishabhsingroha/MusicListeningPlatform",
+  "commit": "0726851cc55569983b1e14db7b64468395012191",
+  "provider": "stripe",
+  "usages": 0,
+  "changes": 0,
+  "verdict": "unrun",
+  "tasks": [],
+  "costUsd": 0,
+  "durationMs": 0,
+  "error": "dollar cap reached before this repo started: AI budget: $0.45 of the $4 cap left; the Anassarwar14/Chat-Nest-AI inventory needs $0.60.",
+  "costByPart": {}
+}

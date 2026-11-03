@@ -1,0 +1,15 @@
+{
+  "set": "stripe-dev-30",
+  "index": 7,
+  "repo": "createdbymax/Loopletter-Open-source-email-marketing-platform",
+  "commit": "3c91a83e792d84178c86be02a486cfb7f14b6d00",
+  "provider": "stripe",
+  "usages": 0,
+  "changes": 0,
+  "verdict": "unrun",
+  "tasks": [],
+  "costUsd": 0,
+  "durationMs": 0,
+  "error": "dollar cap reached before this repo started: AI budget: $0.45 of the $4 cap left; the Anassarwar14/Chat-Nest-AI inventory needs $0.60.",
+  "costByPart": {}
+}

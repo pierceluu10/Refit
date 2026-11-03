@@ -1,0 +1,15 @@
+{
+  "set": "openai-dev-30",
+  "index": 25,
+  "repo": "janiluuk/gpt-buddy",
+  "commit": "7274a87fa1875f69804ba209807565f03fe05424",
+  "provider": "openai",
+  "usages": 0,
+  "changes": 0,
+  "verdict": "unrun",
+  "tasks": [],
+  "costUsd": 0,
+  "durationMs": 0,
+  "error": "dollar cap reached before this repo started: AI budget: $0.43 of the $4 cap left; the gvprime/pubragi inventory needs $0.60.",
+  "costByPart": {}
+}

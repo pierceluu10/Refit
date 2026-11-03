@@ -1,0 +1,15 @@
+{
+  "set": "openai-dev-30",
+  "index": 18,
+  "repo": "Lealdos/Shopify-ecommerce",
+  "commit": "9c9ef956ca4aec1d990dca0fa620d2c777ec362b",
+  "provider": "openai",
+  "usages": 0,
+  "changes": 0,
+  "verdict": "unrun",
+  "tasks": [],
+  "costUsd": 0,
+  "durationMs": 0,
+  "error": "dollar cap reached before this repo started: AI budget: $0.43 of the $4 cap left; the gvprime/pubragi inventory needs $0.60.",
+  "costByPart": {}
+}

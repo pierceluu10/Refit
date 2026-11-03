@@ -113,6 +113,7 @@ node evals/runner/cli.ts score --in evals/results --report report.md
   needs-review PR (with the files its diff touches) and never edits existing ones. A person reads
   the diff and sets `handCheck.status` to `agree` or `disagree` with the grade, `wouldMerge`
   (`yes`, `with-edits` or `no`), `reviewer`, `checkedAt` and `notes`. Read no rate without it.
+  `score` writes plain JSON, so run `npm run format` before committing the log.
 
 ## AI reviewer (`reviewer/`)
 
