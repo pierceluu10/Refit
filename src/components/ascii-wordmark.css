@@ -1,0 +1,72 @@
+/* The ASCII logo's own styles, wherever it's used. Pages tint it and the lens through their own
+   classes. */
+
+.ascii-wordmark {
+  position: relative;
+  container-type: inline-size;
+  color: var(--ink);
+  user-select: none;
+}
+.ascii-wordmark pre {
+  margin: 0;
+  /* Geist Mono advances 0.6em per character, so this fills the box exactly. */
+  font-size: calc(100cqi / (var(--columns) * 0.6));
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: pre;
+}
+.ascii-wordmark-lens {
+  position: absolute;
+  inset: 0;
+  color: var(--blue);
+  opacity: 0;
+  pointer-events: none;
+  mask-image: radial-gradient(
+    circle 120px at var(--x, -200px) var(--y, -200px),
+    #000 0%,
+    #0008 45%,
+    transparent 100%
+  );
+  transition: opacity var(--standard) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .ascii-wordmark:hover .ascii-wordmark-lens {
+    opacity: 1;
+  }
+}
+
+/* A band of the accent color sweeps across the logo on a loop, through the same layer the
+   pointer lens uses. Mask layers add, so both show at once. */
+.ascii-wordmark-glint .ascii-wordmark-lens {
+  opacity: 1;
+  mask-image:
+    radial-gradient(
+      circle 120px at var(--x, -200px) var(--y, -200px),
+      #000 0%,
+      #0008 45%,
+      transparent 100%
+    ),
+    linear-gradient(105deg, transparent 44%, #000 50%, transparent 56%);
+  mask-size:
+    100% 100%,
+    300% 100%;
+  mask-repeat: no-repeat;
+  animation: wordmark-glint 7s linear infinite;
+}
+@keyframes wordmark-glint {
+  from {
+    mask-position:
+      0 0,
+      100% 0;
+  }
+  to {
+    mask-position:
+      0 0,
+      0% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ascii-wordmark-glint .ascii-wordmark-lens {
+    animation: none;
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { CSSProperties, PointerEvent } from 'react';
 import { MARK_BOX, MARK_PATH } from './Brand';
+import './ascii-wordmark.css';
 
 const RAMP = ' .:-=+*#%@';
 // A cell is one monospace character: 0.6em wide, 1em tall at line-height 1.
