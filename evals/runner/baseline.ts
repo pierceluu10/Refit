@@ -76,6 +76,7 @@ export type BaselineComparison = {
     prepCostUsd: number;
     transcriptPath: string;
     error?: string;
+    checks?: Checks;
   };
 };
 
@@ -167,6 +168,7 @@ async function compareOne(
         after: now,
       }));
       const diff = await sandbox.diff();
+      comparison.claude.checks = checks;
       comparison.claude.passesChecks = passesChecks(diff, checks, own);
       comparison.claude.diffLines = diff.split('\n').length;
       comparison.claude.costUsd = ledger.spentUsd - comparison.claude.prepCostUsd;
@@ -203,7 +205,29 @@ async function compareOne(
   return comparison;
 }
 
-export function formatComparison(rows: BaselineComparison[]): string {
+/** Repos whose screen found no checks of their own (only the harness's fallback, or none). */
+export function reposWithoutChecks(screenDir: string): Set<string> {
+  const out = new Set<string>();
+  if (!existsSync(screenDir)) return out;
+  for (const set of readdirSync(screenDir)) {
+    for (const file of readdirSync(join(screenDir, set)).filter((name) => name.endsWith('.json'))) {
+      const record = JSON.parse(readFileSync(join(screenDir, set, file), 'utf8')) as {
+        repo: string;
+        checks: { fallback?: boolean }[];
+      };
+      if (record.checks.every((check) => check.fallback)) out.add(`${set}/${record.repo}`);
+    }
+  }
+  return out;
+}
+
+export function formatComparison(
+  all: BaselineComparison[],
+  noChecks: Set<string> = new Set(),
+): string {
+  // A repo with no checks of its own can't pass them on either side, so it is listed, not scored.
+  const unscored = all.filter((row) => noChecks.has(`${row.set}/${row.repo}`));
+  const rows = all.filter((row) => !noChecks.has(`${row.set}/${row.repo}`));
   const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : '-');
   const tally = (subset: BaselineComparison[]) => {
     const n = subset.length;
@@ -235,11 +259,13 @@ export function formatComparison(rows: BaselineComparison[]): string {
     '',
     `Refit verified ${verified.length} of ${rows.length}; plain Claude has no proof-test rule, so "verified" applies to Refit only.`,
     '',
+    `${unscored.length} more tasks are on repos with no checks of their own, so neither side can pass them; they are listed below, judged only by the reviewer.`,
+    '',
     '| Set | Repo | Change | Refit | Claude | Reviewer (Refit / Claude) |',
     '| --- | --- | --- | --- | --- | --- |',
-    ...rows.map(
+    ...all.map(
       (row) =>
-        `| ${row.set} | ${row.repo} | ${row.title.replace(/\|/g, '/').slice(0, 80)} | ${row.refit.outcome}${row.refit.passesChecks ? '' : ' (checks fail)'} | ${row.claude.error ? `error: ${row.claude.error.slice(0, 60)}` : row.claude.passesChecks ? 'passes checks' : 'checks fail'} | ${row.refit.review?.opinion ?? '-'} / ${row.claude.review?.opinion ?? '-'} |`,
+        `| ${row.set} | ${row.repo} | ${row.title.replace(/\|/g, '/').slice(0, 80)} | ${row.refit.outcome}${noChecks.has(`${row.set}/${row.repo}`) ? ' (no repo checks)' : row.refit.passesChecks ? '' : ' (checks fail)'} | ${row.claude.error ? `error: ${row.claude.error.slice(0, 60)}` : noChecks.has(`${row.set}/${row.repo}`) ? 'no repo checks' : row.claude.passesChecks ? 'passes checks' : 'checks fail'} | ${row.refit.review?.opinion ?? '-'} / ${row.claude.review?.opinion ?? '-'} |`,
     ),
     '',
   ].join('\n');
@@ -254,6 +280,19 @@ async function main(argv: string[]) {
   const outDir = resolve(flag('out') ?? 'evals/reports/round-3/baseline-iter-1');
   const budgetUsd = Number(flag('budget-usd'));
   const concurrency = Number(flag('concurrency') ?? 2);
+  const noChecks = reposWithoutChecks(resolve(flag('screen') ?? join(inDir, '..', 'screen')));
+  if (argv.includes('--report-only')) {
+    const cached = readdirSync(outDir)
+      .filter((name) => name.endsWith('.json'))
+      .map((name) => JSON.parse(readFileSync(join(outDir, name), 'utf8')) as BaselineComparison);
+    const report = formatComparison(
+      cached.sort((a, b) => a.taskId.localeCompare(b.taskId)),
+      noChecks,
+    );
+    writeFileSync(join(outDir, 'COMPARISON.md'), report);
+    console.log(report);
+    return;
+  }
   if (!(budgetUsd > 0)) throw new Error('--budget-usd is required and must be above zero');
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('Set ANTHROPIC_API_KEY for the baseline.');
   mkdirSync(outDir, { recursive: true });
@@ -300,7 +339,10 @@ async function main(argv: string[]) {
     }
   };
   await Promise.all(Array.from({ length: Math.min(concurrency, todo.length) }, worker));
-  const report = formatComparison(rows.sort((a, b) => a.taskId.localeCompare(b.taskId)));
+  const report = formatComparison(
+    rows.sort((a, b) => a.taskId.localeCompare(b.taskId)),
+    noChecks,
+  );
   writeFileSync(join(outDir, 'COMPARISON.md'), report);
   console.log(report);
   console.log(`Spent $${budget.spentUsd().toFixed(2)} of $${budgetUsd}`);

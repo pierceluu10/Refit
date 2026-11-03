@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { baselinePrompt, passesChecks } from './baseline.ts';
+import {
+  baselinePrompt,
+  formatComparison,
+  passesChecks,
+  type BaselineComparison,
+} from './baseline.ts';
 
 describe('passesChecks', () => {
   const own = new Set(['typecheck', 'build']);
@@ -53,5 +58,32 @@ describe('baselinePrompt', () => {
     expect(prompt).toContain('stripe-node 23.0.0');
     expect(prompt).toContain('> Removes X.');
     expect(prompt).toContain('Update the repository for this change.');
+  });
+});
+
+describe('formatComparison', () => {
+  const row = (repo: string, claudePasses: boolean): BaselineComparison => ({
+    set: 'anthropic-dev-30',
+    repo,
+    taskId: `${repo}:t`,
+    title: 'change',
+    refit: { outcome: 'verified', passesChecks: true, costUsd: 0.1, diffLines: 10 },
+    claude: {
+      passesChecks: claudePasses,
+      costUsd: 0.05,
+      prepCostUsd: 0,
+      diffLines: 10,
+      transcriptPath: '',
+    },
+  });
+
+  it('leaves repos with no checks of their own out of the pass rates', () => {
+    const report = formatComparison(
+      [row('a/checked', true), row('b/unchecked', false)],
+      new Set(['anthropic-dev-30/b/unchecked']),
+    );
+    expect(report).toContain('| 1 | 1 (100%) | 1 (100%) |');
+    expect(report).toContain('1 more tasks are on repos with no checks of their own');
+    expect(report).toContain('| no repo checks |');
   });
 });
