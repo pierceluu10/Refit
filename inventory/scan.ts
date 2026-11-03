@@ -18,7 +18,7 @@ import {
 import { listFiles, readText } from './repo-files.ts';
 import { listManifests, lockedVersions, type Manifest } from './scanners.ts';
 
-export const SCAN_VERSION = 'scan-v6';
+export const SCAN_VERSION = 'scan-v7';
 
 type CallSite = ApiUsage['callSites'][number];
 
@@ -1117,10 +1117,12 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
       }
     });
   }
+  // Checks and verifications first: a line that only says "webhook" is the weakest signal.
+  const strength = (item: string) => Number(STRONG_WEBHOOK.test(item.replace(/^[^:]+:\d+: /, '')));
   group(
     'webhooks',
     'Webhook signals not tied to a scanned SDK call (receivers, signature checks, event handlers)',
-    webhookLines,
+    [...webhookLines].sort((a, b) => strength(b) - strength(a)),
   );
   const otherCode = sources.filter((source) => OTHER_CODE.has(source.ext)).length;
   if (otherCode > 0) {
@@ -1197,8 +1199,12 @@ const isCodeFile = (file: string) => {
 };
 const HTTP_CALL =
   /\bfetch\s*\(|\$fetch\s*\(|\bofetch\s*\(|\b(?:axios|got|ky|superagent|needle)(?:\s*\.\s*(?:get|post|put|patch|delete|head|request))?\s*\(|\brequests\s*\.\s*(?:get|post|put|patch|delete|head|request)\s*\(|\bhttpx\s*\.\s*(?:get|post|put|patch|delete|request)\s*\(|\bsession\s*\.\s*(?:get|post|put|patch|delete)\s*\(|\burlopen\s*\(|\bhttp\s*\.\s*(?:Get|Post|NewRequest|NewRequestWithContext)\s*\(|\bNet::HTTP\b|\bHTTParty\s*\.\s*\w+|\bFaraday\s*\.\s*\w+|\bRestClient\s*\.\s*\w+|\bcurl\s+-|\bwget\s+/;
+// Receivers and their checks: signatures, WebSub verification (hub.challenge, used by Meta, Twitch
+// and YouTube) and shared-token checks (Slack slash commands and the like).
 const WEBHOOK =
-  /webhook|stripe-signature|x-hub-signature|x-shopify-hmac|x-twilio-signature|x-slack-signature|svix|createHmac|hmac\.new|compare_digest|timingSafeEqual|constructEvent/i;
+  /webhook|stripe-signature|x-hub-signature|x-shopify-hmac|x-twilio-signature|x-slack-signature|svix|createHmac|hmac\.new|compare_digest|timingSafeEqual|constructEvent|hub\.(?:challenge|verify_token|mode)|signing_?secret|verification_?token/i;
+const STRONG_WEBHOOK =
+  /signature|svix|createHmac|hmac\.new|compare_digest|timingSafeEqual|constructEvent|hub\.(?:challenge|verify_token|mode)|signing_?secret|verification_?token|validate_?webhook|verify_?webhook/i;
 const ENV_READ =
   /process\.env\.([A-Za-z_]\w*)|process\.env\[\s*['"]([^'"]+)['"]\s*\]|import\.meta\.env\.([A-Za-z_]\w*)|os\.environ\[\s*['"]([^'"]+)['"]\s*\]|os\.environ\.get\(\s*['"]([^'"]+)['"]|getenv\(\s*['"]([^'"]+)['"]|\bENV\[\s*['"]([^'"]+)['"]\s*\]|^\s*([A-Z][A-Z0-9_]+)\s*=/g;
 const SERVICE_ENV = /URL|URI|HOST|ENDPOINT|BASE|API|KEY|TOKEN|SECRET|WEBHOOK|DSN|_ID$/;

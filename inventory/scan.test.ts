@@ -294,6 +294,36 @@ export const deepseek = new OpenAI({
     await removeRepo(dir);
   });
 
+  it('puts webhook checks before mere mentions, and knows legacy official SDKs', async () => {
+    const mentions = Array.from(
+      { length: 45 },
+      (_, index) => `// note ${index}\nexport const webhookName${index} = 'webhook-${index}';\n`,
+    ).join('');
+    const dir = await makeRepo({
+      'package.json': '{\n  "dependencies": {\n    "square-connect": "^4.0.0"\n  }\n}\n',
+      'src/names.ts': mentions,
+      'src/hooks/follow.ts': `export const verify = (query: Record<string, string>) => query['hub.challenge'];\n`,
+      'src/square.ts': `import * as SquareConnect from 'square-connect';
+const catalog = new SquareConnect.CatalogApi();
+export const items = () => catalog.listCatalog();
+`,
+    });
+    const result = await scanRepo(dir, 'acme/hooks');
+    const webhooks = result.leads.find((lead) => lead.kind === 'webhooks');
+    expect(webhooks?.items[0]).toContain('src/hooks/follow.ts:1');
+    expect(webhooks?.more).toBeGreaterThan(0);
+    expect(result.usages).toEqual([
+      expect.objectContaining({
+        provider: 'square',
+        sdk: { name: 'square-connect', version: '^4.0.0' },
+        callSites: [
+          expect.objectContaining({ file: 'src/square.ts', line: 3, operation: 'listCatalog' }),
+        ],
+      }),
+    ]);
+    await removeRepo(dir);
+  });
+
   it('keeps two SDKs apart when two classes give the same holder a client', async () => {
     const dir = await makeRepo({
       'package.json':
