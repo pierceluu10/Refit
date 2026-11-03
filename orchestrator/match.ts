@@ -212,13 +212,18 @@ export function messagesApi(opts: {
     }
 
     if (response.stop_reason === 'refusal') throw new Error('Match agent refused the request.');
-    if (response.stop_reason === 'max_tokens') {
-      throw new Error(`Match agent hit max_tokens (${MAX_TOKENS}); its JSON is incomplete.`);
-    }
+    if (response.stop_reason === 'max_tokens') throw new MatchTruncatedError(costUsd);
     const text = response.content.find((b) => b.type === 'text');
     if (!text || text.type !== 'text') throw new Error('Match agent returned no text block.');
     return { output: JSON.parse(text.text), costUsd };
   };
+}
+
+// The answer ran out of tokens before every verdict was written; it carries what the call cost.
+export class MatchTruncatedError extends Error {
+  constructor(readonly costUsd: number) {
+    super(`Match agent hit max_tokens (${MAX_TOKENS}); its JSON is incomplete.`);
+  }
 }
 
 export function createMatchAgent(opts: {
@@ -228,10 +233,27 @@ export function createMatchAgent(opts: {
   model?: string;
 }): MatchChanges {
   const ask = opts.ask ?? messagesApi(opts);
-  return async ({ repo, changes, usages, repoDir }) => {
+  const match: MatchChanges = async ({ repo, changes, usages, repoDir }) => {
     if (changes.length === 0) return { tasks: [], notAffected: [], costUsd: 0 };
     const prompt = buildPrompt(repo, changes, usages);
-    const answer = await ask({ system: SYSTEM_PROMPT, prompt, schema: SCHEMA, repoDir });
+    let answer: Awaited<ReturnType<AskModel>>;
+    try {
+      answer = await ask({ system: SYSTEM_PROMPT, prompt, schema: SCHEMA, repoDir });
+    } catch (error) {
+      // Too many verdicts for one answer: judge each half rather than none. An upgrade whose
+      // changes land in both halves can then become two tasks, which still beats no task.
+      if (!(error instanceof MatchTruncatedError) || changes.length < 2) throw error;
+      const half = Math.ceil(changes.length / 2);
+      const first = await match({ repo, changes: changes.slice(0, half), usages, repoDir });
+      const second = await match({ repo, changes: changes.slice(half), usages, repoDir });
+      const tasks = [...first.tasks, ...second.tasks];
+      tasks.forEach((task, i) => (task.priority = i + 1));
+      return {
+        tasks,
+        notAffected: [...first.notAffected, ...second.notAffected],
+        costUsd: error.costUsd + first.costUsd + second.costUsd,
+      };
+    }
     const output = answer.output as AgentOutput;
     const costUsd = answer.costUsd;
 
@@ -317,4 +339,5 @@ export function createMatchAgent(opts: {
     }
     return { tasks, notAffected, costUsd };
   };
+  return match;
 }
