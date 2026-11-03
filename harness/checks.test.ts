@@ -176,7 +176,7 @@ describe('detectPackageManager and detectChecks', () => {
       'tsconfig.json': '{}',
     });
     expect(await detectChecks(dir, 'npm')).toEqual([
-      { name: 'typecheck', command: 'npx --no-install tsc --noEmit' },
+      { name: 'typecheck', command: 'npx --no-install tsc --noEmit', fallback: true },
     ]);
   });
 

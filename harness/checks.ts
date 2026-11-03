@@ -142,7 +142,7 @@ export async function detectChecks(
     const typecheck = ['typecheck', 'type-check', 'tsc'].find((name) => scripts[name]);
     if (typecheck) checks.push({ name: 'typecheck', command: `${runner} run ${typecheck}` });
     else if (await exists(path.join(dir, 'tsconfig.json'))) {
-      checks.push({ name: 'typecheck', command: 'npx --no-install tsc --noEmit' });
+      checks.push({ name: 'typecheck', command: 'npx --no-install tsc --noEmit', fallback: true });
     }
     if (scripts.build) checks.push({ name: 'build', command: `${runner} run build` });
     if (scripts.test && !scripts.test.includes('no test specified')) {

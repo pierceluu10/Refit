@@ -20,7 +20,14 @@ export type BaselineRecord = {
   /** Every detected check passed before any edit (true when none was detected). */
   green: boolean;
   noChecks: boolean;
-  checks: { name: string; command: string; ok: boolean; failures: string[]; tail: string }[];
+  checks: {
+    name: string;
+    command: string;
+    ok: boolean;
+    failures: string[];
+    tail: string;
+    fallback?: true;
+  }[];
   install?: { code: number; tail: string };
   preparation?: { steps: { command: string; why: string; code: number }[]; env: string[] };
   exclusion?: { class: ExclusionClass; reason: string };
@@ -122,7 +129,8 @@ export async function screenRepo(
         steps: baseline.preparation.steps.map(({ command, why, code }) => ({ command, why, code })),
         env: Object.keys(baseline.preparation.env),
       };
-      record.checks = baseline.before.map((run) => ({
+      record.checks = baseline.before.map((run, i) => ({
+        ...(baseline.checks[i]?.fallback ? { fallback: true as const } : {}),
         name: run.name,
         command: run.command,
         ok: run.ok,
@@ -130,7 +138,8 @@ export async function screenRepo(
         tail: run.ok ? '' : tail(run.output),
       }));
       record.noChecks = record.checks.length === 0;
-      record.green = record.checks.every((check) => check.ok);
+      // The repo's own checks decide it; the harness's fallback tsc still proves edits, not eligibility.
+      record.green = record.checks.every((check) => check.ok || check.fallback);
     } finally {
       await sandbox.dispose();
     }
