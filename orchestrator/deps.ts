@@ -15,13 +15,8 @@ import {
 } from '../memory/index.ts';
 import { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
 import { folderWatcher, listProviderIds } from '../providers/core/registry.ts';
-import type {
-  ProviderChange,
-  ProviderHints,
-  RunRecord,
-  ToolPack,
-  WatchProvider,
-} from '../shared/types.ts';
+import { hintsFor, loadToolPack } from '../providers/toolkit/pack.ts';
+import type { ProviderChange, ProviderHints, RunRecord, WatchProvider } from '../shared/types.ts';
 import { BudgetExceededError, type Budget, type Hold } from './budget.ts';
 import type { LoopDeps } from './loop.ts';
 import { createMatchAgent } from './match.ts';
@@ -275,14 +270,9 @@ export function createDeps({
         spentUsd = hold.usd;
         const record = await runTask(task, dir, {
           budgetUsd: hold.usd - recipesUsd,
-          // Only provider folders, so a provider name never becomes an arbitrary import path.
-          loadToolPack: async (provider) => {
-            if (!providerIds.includes(provider)) throw new Error(`no tool pack for ${provider}`);
-            const pack = (await import(`../providers/${provider}/tools.ts`)) as {
-              toolPack: ToolPack;
-            };
-            return pack.toolPack;
-          },
+          // Any provider: its own pack when its folder has one, plus the generic tools and
+          // playbooks, led by the inventory's hints. Only folder ids are ever imported.
+          loadToolPack: (provider) => loadToolPack(provider, { hints: hintsFor(task.usages) }),
           retrieveRecipes: async () => recipes,
         });
         spentUsd = recipesUsd + record.costUsd;
