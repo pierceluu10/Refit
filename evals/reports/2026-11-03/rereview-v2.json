@@ -1,0 +1,94 @@
+[
+  {
+    "taskId": "4lbatr0s/jiro:stripe:node-v23-0-0",
+    "first": {
+      "opinion": "has-concerns",
+      "summary": "The PR jumps stripe-node from 14.13 to 23.0.0, nine majors and several API-version pins, but edits only two spots. The current_period_end move to the subscription item matches the Basil (2025-03-31) change. The checkout rename from payment_method_types to allowed_payment_method_types is not in the quoted changelog, and I don't recognise it as a Stripe param. Typecheck fails with 6 errors before and after, and build fails both times, so the checks prove nothing. src/lib/stripe.ts, a named call site, is untouched. needs-review is the right grade, but this should not merge as-is.",
+      "concerns": [
+        {
+          "file": "src/trpc/controller/index.ts",
+          "issue": "Line ~105 renames payment_method_types to allowed_payment_method_types. The quoted changelog does not mention this, and I don't know it as a Checkout Session create param. If it doesn't exist, the API rejects the call (unknown parameter) and checkout breaks for every user. This changes behaviour beyond what the upgrade forces. Confirm it against the v23 types and API reference, or revert it.",
+          "severity": "high"
+        },
+        {
+          "file": "src/lib/stripe.ts",
+          "issue": "Line 50 calls subscriptions.retrieve and was named as affected, yet it is unchanged. If it reads subscription.current_period_end (typical for a getUserSubscriptionPlan helper), it will be undefined under the new API version, giving a NaN date or a wrong isSubscribed/isCanceled result.",
+          "severity": "high"
+        },
+        {
+          "file": "src/lib/stripe.ts",
+          "issue": "The Stripe client probably pins an old apiVersion literal, such as '2023-10-16'. That would fail typecheck against v23. If it stays pinned at runtime, responses keep the old shape, so subscription items would lack current_period_end and the new webhook code would produce invalid dates. Check what the client is constructed with and align it with 2026-09-30.endive.",
+          "severity": "high"
+        },
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "issue": "Lines 47 and 66 use subscription.items.data[0].current_period_end with no optional chaining, while the line just above uses items.data[0]?. An empty items array would throw inside the webhook and Stripe would retry. A multi-item subscription silently takes the first item's period.",
+          "severity": "medium"
+        },
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "issue": "Line 13 calls constructEvent, and the changelog mentions a change to the verifyHeader default tolerance. Nothing tests signature verification or a live webhook delivery. Event payloads also follow the webhook endpoint's API version, not the SDK's, so any fields read directly from event.data.object need checking.",
+          "severity": "medium"
+        },
+        {
+          "file": "package.json",
+          "issue": "stripe@23 requires Node >=20 and has @types/node >=20 as a peer dependency. Confirm the deploy runtime (Vercel or another host) and the repo's @types/node version meet this.",
+          "severity": "low"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "qs was removed and several transitive deps were flipped to dev: true because stripe no longer depends on them. This is probably fine, but confirm nothing in production code imports qs directly.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Diff the 6 typecheck errors before and after; the counts match, but the errors may differ, and some may be new stripe errors hiding behind old ones.",
+        "Check the apiVersion string in src/lib/stripe.ts and whether its code around line 50 reads current_period_end.",
+        "Verify allowed_payment_method_types exists on Stripe.Checkout.SessionCreateParams in v23; if not, revert to payment_method_types.",
+        "Run a test-mode checkout and a `stripe trigger` for checkout.session.completed and invoice.payment_succeeded, then confirm stripeCurrentPeriodEnd is a valid date.",
+        "Confirm the deployment runtime is Node >=20."
+      ],
+      "costUsd": 0.059608,
+      "model": "claude-opus-5-5"
+    },
+    "second": {
+      "opinion": "has-concerns",
+      "summary": "The PR jumps stripe-node from v14 to v23. That also moves the pinned API version across many releases, not just the endive changes in the changelog. Typecheck (6 errors) and build (1) fail identically before and after, so the checks prove nothing about whether the new code compiles against v23's types. The `current_period_end` move to subscription items matches a known Stripe change. The `payment_method_types` → `allowed_payment_method_types` rename on Checkout Session creation is one I could not confirm; check it against stripe-node v23's `Checkout.SessionCreateParams` types before merging. Webhook payload shape (which follows the endpoint's configured API version) and live API behaviour are untested. needs-review is the right grade.",
+      "concerns": [
+        {
+          "file": "src/trpc/controller/index.ts",
+          "issue": "Line ~105 renames `payment_method_types` to `allowed_payment_method_types` in `stripe.checkout.sessions.create`. Nothing in the quoted changelog mentions this rename, and I could not confirm it from memory. If the param does not exist, Stripe returns an unknown-parameter error at runtime and checkout breaks entirely. Because typecheck already fails, the check results don't rule this out. Verify it in node_modules/stripe/types/Checkout/SessionsResource.d.ts for v23.",
+          "severity": "high"
+        },
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "issue": "Lines ~47 and ~66 use `subscription.items.data[0].current_period_end` without optional chaining. The line just above uses `items.data[0]?.price.id`. If items is ever empty this throws a TypeError inside the webhook and Stripe sees a 500, where before you got a NaN date. Use `?.` and handle a missing value.",
+          "severity": "medium"
+        },
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "issue": "The `invoice.payment_succeeded` branch casts `event.data.object` (an Invoice) to Checkout.Session and reads `.subscription` and `.metadata.userId`. In newer API versions Invoice.subscription moved under `parent.subscription_details`. Event payloads follow the webhook endpoint's API version in the Stripe dashboard, not the SDK pin. The diff doesn't touch this path, and nothing checks that renewals still update `stripeCurrentPeriodEnd`. This was largely pre-existing, but the upgrade makes the type mismatch worse.",
+          "severity": "medium"
+        },
+        {
+          "file": "src/lib/stripe.ts",
+          "issue": "The Stripe client has no explicit `apiVersion`, so every call now goes out at 2026-09-30.endive instead of the v14 pin. That spans several majors of behaviour changes beyond the V2List/ErrorType items listed: incomplete bodies now throw StripeConnectionError, and response fields have moved. `subscriptions.retrieve(...).cancel_at_period_end` is likely still fine, but nothing tested it.",
+          "severity": "medium"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "stripe 23 requires Node >=20 and drops the `qs` dependency. The lockfile now marks call-bind, get-intrinsic, side-channel and others as dev-only. That is consistent with npm's resolution, but the deploy runtime must be Node 20+.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Confirm `allowed_payment_method_types` exists on `Stripe.Checkout.SessionCreateParams` in stripe v23 types; otherwise revert to `payment_method_types`.",
+        "Diff the 6 typecheck errors before and after to see whether any now come from the Stripe changes.",
+        "Check the webhook endpoint's API version in the Stripe dashboard and exercise checkout.session.completed and invoice.payment_succeeded with `stripe trigger` against this branch.",
+        "Confirm the deployment runtime is Node >=20."
+      ],
+      "costUsd": 0.077836,
+      "model": "claude-opus-5-5"
+    }
+  }
+]
