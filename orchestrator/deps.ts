@@ -53,8 +53,9 @@ export const MAX_TASK_USD = 25;
 export const WATCH_USD = 1.5;
 // A watcher's ledger checks its cap only before a call, so its hold keeps one call's worst case spare.
 const WATCH_CALL_USD = 0.5;
-// One recipe retrieval or extraction; memory refuses an Opus call whose worst case (about $0.40) passes its cap.
-export const MEMORY_USD = 1;
+// One recipe retrieval or extraction; memory refuses an Opus call whose worst case passes its cap. A
+// 150KB transcript's worst case was $1.06 in round 3's first iteration, so $1 lost that recipe.
+export const MEMORY_USD = 2;
 // Parts in flight at once. The run budget's holds, not this, keep the spend under the cap.
 const CONCURRENCY = 4;
 

@@ -47,7 +47,7 @@ once none could free enough.
 | One inventory            | inventory's `DEFAULT_RUN_CAP_USD` ($0.60)                                                      |                                             |
 | One match call           | Its worst case                                                                                 | Up to `MATCH_BATCH` (50) changes per call   |
 | One task                 | Up to `TASK_USD` ($5), or a quarter of what is free in a big run, at most `MAX_TASK_USD` ($25) | Starts once `TURN_RESERVE_USD` ($1) is free |
-| Learning from an attempt | `MEMORY_USD` ($1)                                                                              | Records with no attempt hold nothing        |
+| Learning from an attempt | `MEMORY_USD` ($2)                                                                              | Records with no attempt hold nothing        |
 
 A task's recipes come out of its own hold, from what it has above the harness's `TURN_RESERVE_USD`. A part whose spend
 is unknown counts its whole hold as spent: a harness run or an inventory that throws, or a match
