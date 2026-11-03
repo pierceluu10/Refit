@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest';
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { runAnyWatch } from './any-watcher.ts';
 import { knowledgeProblems } from './knowledge.ts';
+import { savedRegistry } from './packages.ts';
 import { BudgetLedger } from './model.ts';
 import { containsQuote, snapshotFetcher } from './fetch.ts';
 import { folderHints, listProviderIds, loadProvider } from './registry.ts';
@@ -110,6 +112,29 @@ describe.each(ids)('%s', (id) => {
         expect(change.source.quote.length).toBeGreaterThan(10);
         expect(change.title).toBeTruthy();
       }
+    },
+  );
+
+  it.runIf(listsPages)(
+    'turns the saved snapshot into the same changes through the discovery path the loop uses',
+    async () => {
+      const expected = loadExpected(provider)!;
+      const model = replayModel(provider, expected);
+      // folderWatcher's path: runAnyWatch with the folder as its head start, offline.
+      const report = await runAnyWatch(id, {}, undefined, {
+        model,
+        fetcher: snapshotFetcher(fixtureDir(provider)),
+        registry: savedRegistry([]),
+        webSearch: false,
+        budget: new BudgetLedger(100),
+        today: '2026-11-01',
+      });
+      expect(report.folder).toBe(id);
+      expect(model.requests[0].system).toContain(provider.prompt.trim().slice(0, 60));
+      expect(report.issues).toEqual([]);
+      expect(report.unverifiedQuotes).toEqual([]);
+      expect(report.changes.length).toBe(expected.changes.length);
+      expect(report.hints.packages?.length).toBeGreaterThan(0);
     },
   );
 
