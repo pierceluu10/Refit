@@ -129,27 +129,37 @@ export async function discoverPages(
     return { urls: [], note: `"${site}" is not a site or URL` };
   }
   // Docs often live under a path with their own sitemap (example.com/docs/sitemap.xml), so that
-  // comes first, then the site's, then whatever robots.txt points to.
+  // comes first, then the site's, then whatever robots.txt points to. A docs app may answer any
+  // path with a page, so a "sitemap" without <loc> entries counts as a miss.
   const path = base.pathname.replace(/\/+$/, '');
-  const tried = [
-    ...(path ? [`${base.origin}${path}/sitemap.xml`] : []),
-    `${base.origin}/sitemap.xml`,
-  ];
-  let first = await fetchPage(tried[0], network);
-  for (const candidate of tried.slice(1)) {
-    if (first.ok) break;
-    first = await fetchPage(candidate, network);
-  }
-  if (!first.ok) {
+  const tried: string[] = [];
+  const hosts = new Set([base.hostname]);
+  const read = async (url: string) => {
+    tried.push(url);
+    const page = await fetchPage(url, network);
+    if (!page.ok) return undefined;
+    const found = sitemapUrls(page.text);
+    if (!found.pages.length && !found.sitemaps.length) return undefined;
+    // The docs may have moved hosts (a redirect); the sitemap's own host counts as the site.
+    hosts.add(new URL(page.url).hostname);
+    return found;
+  };
+  let found =
+    (path ? await read(`${base.origin}${path}/sitemap.xml`) : undefined) ??
+    (await read(`${base.origin}/sitemap.xml`));
+  if (!found) {
     const robots = await fetchPage(`${base.origin}/robots.txt`, network);
-    const listed = robots.ok ? /^sitemap:\s*(\S+)/im.exec(robots.text)?.[1] : undefined;
-    if (listed) {
-      tried.push(listed);
-      first = await fetchPage(listed, network);
+    const listed = robots.ok
+      ? [...robots.text.matchAll(/^sitemap:\s*(\S+)/gim)].map((m) => m[1])
+      : [];
+    for (const url of listed.slice(0, 3)) {
+      found = await read(url);
+      if (found) break;
     }
   }
-  if (!first.ok) return { urls: [], note: `no sitemap found (tried ${tried.join(', ')})` };
-  let { pages, sitemaps } = sitemapUrls(first.text);
+  if (!found) return { urls: [], note: `no sitemap found (tried ${tried.join(', ')})` };
+  let { pages } = found;
+  const { sitemaps } = found;
   if (sitemaps.length) {
     const children = rank(`${query} docs api reference`, sitemaps, urlWords)
       .map((r) => r.item)
@@ -163,7 +173,7 @@ export async function discoverPages(
   }
   const sameHost = pages.filter((url) => {
     try {
-      return new URL(url).hostname === base.hostname;
+      return hosts.has(new URL(url).hostname);
     } catch {
       return false;
     }
@@ -172,7 +182,10 @@ export async function discoverPages(
   const scoped = prefix
     ? sameHost.filter((url) => new URL(url).pathname.startsWith(prefix))
     : sameHost;
-  const pool = scoped.length ? scoped : sameHost;
+  const all = scoped.length ? scoped : sameHost;
+  // Translated copies (?hl=fr) of the same page would crowd the original out of the top few.
+  const originals = all.filter((url) => !/[?&](hl|lang|locale)=/.test(url));
+  const pool = originals.length ? originals : all;
   const best = rank(query, pool, urlWords)
     .slice(0, count)
     .map((r) => r.item);

@@ -459,7 +459,12 @@ export async function packageReport(
   const info = found[0];
   const latestDate = info.versions.find((v) => v.version === info.latest)?.date;
   out.push(`${info.ecosystem} package ${info.name}: ${info.page}`);
-  if (info.summary) out.push(info.summary.trim());
+  // Some descriptions are README badge lines; keep only their words.
+  const summary = info.summary
+    ?.replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .trim();
+  if (summary) out.push(summary);
   out.push(
     `Latest: ${info.latest ?? 'unknown'}${latestDate ? ` (${latestDate})` : ''}. ${info.versions.length} versions published.${info.runtime ? ` The ${info.runtime}.` : ''}`,
   );

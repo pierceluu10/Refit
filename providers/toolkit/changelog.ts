@@ -105,6 +105,13 @@ export async function changelogReport(
   const header = [`Read ${page.url} (HTTP ${page.status}, ${text.length} characters).`];
   if (note) header.push(note);
 
+  if (text.trim().length < 200) {
+    return [
+      ...header,
+      `The page has almost no readable text${text.trim() ? `: "${text.trim()}"` : ''}. It is probably drawn in the browser by script, so the server sends none.`,
+      'Try its RSS or Atom feed, a CHANGELOG.md or GitHub releases (owner/repo), a docs page that links the same entries, or search_docs with the docs "site".',
+    ].join('\n');
+  }
   const entries = splitEntries(text).filter((entry) => entry.heading || entry.text.length > 40);
   const offset = Math.max(0, Math.floor(input.offset ?? 0));
   if (entries.length <= 1) {

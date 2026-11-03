@@ -120,6 +120,25 @@ describe('fetch_changelog on recorded pages', () => {
     );
   });
 
+  it('says when a page is drawn by script and has no text to read', async () => {
+    const url = 'https://app.example.com/changelog';
+    const out = await changelogReport(
+      { url },
+      {
+        fetch: recordedFetch({
+          [url]: {
+            status: 200,
+            body: '<html><body><div id="root"></div><script>x()</script></body></html>',
+            contentType: 'text/html',
+          },
+        }),
+        provider: 'acme',
+      },
+    );
+    expect(out).toContain('The page has almost no readable text.');
+    expect(out).toContain('Try its RSS or Atom feed');
+  });
+
   it('pages through text that has no headings', async () => {
     const body = 'word '.repeat(5000);
     const out = await changelogReport(

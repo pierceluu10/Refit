@@ -299,6 +299,31 @@ describe('generic playbooks', () => {
 });
 
 describe('searchDocs upgrades', () => {
+  it('passes over a docs app that answers sitemap.xml with a page, and follows robots.txt to a moved host (hand-written responses)', async () => {
+    const fetch = recordedFetch({
+      'https://docs.example.com/en/api/sitemap.xml': {
+        status: 200,
+        body: '<html><body>Not found</body></html>',
+        contentType: 'text/html',
+      },
+      'https://docs.example.com/robots.txt': {
+        status: 200,
+        body: 'User-agent: *\nSitemap: https://platform.example.com/sitemap.xml\n',
+      },
+      'https://platform.example.com/sitemap.xml': {
+        status: 200,
+        body: '<urlset><url><loc>https://platform.example.com/docs/en/api/versioning</loc></url><url><loc>https://platform.example.com/docs/en/api/errors</loc></url><url><loc>https://elsewhere.example.org/versioning</loc></url></urlset>',
+        contentType: 'application/xml',
+      },
+    });
+    const found = await discoverPages('https://docs.example.com/en/api', 'api versioning', {
+      fetch,
+    });
+    expect(found.urls[0]).toBe('https://platform.example.com/docs/en/api/versioning');
+    expect(found.urls).not.toContain('https://elsewhere.example.org/versioning');
+    expect(fetch.calls).toContain('GET https://docs.example.com/sitemap.xml');
+  });
+
   it('finds pages for a query through a recorded sitemap', async () => {
     const page = 'https://resend.com/docs/api-reference/api-keys/create-api-key';
     const fetch = recordedFetch({
