@@ -1,0 +1,61 @@
+{
+  "id": "pdfai-stripe-endive",
+  "repo": "JensenMPillay/pdfai",
+  "change": {
+    "provider": "stripe",
+    "id": "current-version-2026-10-28-endive",
+    "kind": "api-version",
+    "title": "Stripe's current API version is 2026-10-28.endive; integrations pinned to an earlier major (Dahlia or older) need code changes to move to Endive.",
+    "source": {
+      "url": "https://docs.stripe.com/api/versioning.md",
+      "quote": "The current version is 2026-10-28.endive."
+    },
+    "affects": {
+      "versions": ["2026-10-28.endive", "2026-09-30.endive"]
+    }
+  },
+  "usages": [
+    {
+      "repo": "JensenMPillay/pdfai",
+      "provider": "stripe",
+      "via": "sdk",
+      "sdk": {
+        "name": "stripe",
+        "version": "^14.25.0",
+        "lockfile": "pnpm-lock.yaml"
+      },
+      "pinnedVersion": {
+        "value": "2023-10-16",
+        "file": "src/lib/stripe.ts",
+        "line": 8
+      },
+      "callSites": [
+        {
+          "file": "src/lib/stripe.ts",
+          "line": 52,
+          "operation": "subscriptions.retrieve"
+        },
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 31,
+          "operation": "subscriptions.retrieve",
+          "fields": ["current_period_end"],
+          "notes": "reads subscription.current_period_end at lines 56 and 70"
+        },
+        {
+          "file": "src/trpc/procedures.ts",
+          "line": 70,
+          "operation": "billingPortal.sessions.create"
+        },
+        {
+          "file": "src/trpc/procedures.ts",
+          "line": 78,
+          "operation": "checkout.sessions.create",
+          "fields": ["payment_method_types"],
+          "notes": "payment_method_types: [\"card\", \"paypal\"] at line 81"
+        }
+      ]
+    }
+  ],
+  "priority": 1
+}

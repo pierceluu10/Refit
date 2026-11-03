@@ -1,0 +1,63 @@
+{
+  "id": "chatgpt-nodejs-openai-v4",
+  "repo": "MRwangqi/chatGPT-nodejs",
+  "change": {
+    "provider": "openai",
+    "id": "openai-node-v3-to-v4",
+    "kind": "sdk-major",
+    "title": "Upgrade the openai Node SDK from v3 to v4",
+    "source": {
+      "url": "https://github.com/openai/openai-node/discussions/217",
+      "quote": "v4 is a complete rewrite of the SDK. ... There are changes in the initialization logic, method names, error handling. The API parameter names should be unchanged."
+    },
+    "affects": {
+      "sdk": "openai",
+      "versions": ["3.x"],
+      "operations": ["Configuration", "OpenAIApi", "createCompletion"]
+    }
+  },
+  "usages": [
+    {
+      "repo": "MRwangqi/chatGPT-nodejs",
+      "provider": "openai",
+      "via": "sdk",
+      "sdk": {
+        "name": "openai",
+        "version": "^3.1.0",
+        "lockfile": "yarn.lock"
+      },
+      "callSites": [
+        {
+          "file": "index.js",
+          "line": 7,
+          "operation": "new Configuration",
+          "fields": ["apiKey"]
+        },
+        {
+          "file": "index.js",
+          "line": 11,
+          "operation": "new OpenAIApi"
+        },
+        {
+          "file": "index.js",
+          "line": 12,
+          "operation": "listEngines"
+        },
+        {
+          "file": "index.js",
+          "line": 22,
+          "operation": "createCompletion",
+          "fields": ["model", "prompt"],
+          "notes": "model text-davinci-003; returns res.data.choices"
+        },
+        {
+          "file": "index.js",
+          "line": 36,
+          "operation": "createImage",
+          "notes": "model image-alpha-001"
+        }
+      ]
+    }
+  ],
+  "priority": 1
+}

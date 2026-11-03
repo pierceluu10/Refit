@@ -2,7 +2,12 @@
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
 import { redactSecrets } from './secrets.ts';
 import type { CheckCommand, CheckComparison, FinishReport, ValidatorRun } from './types.ts';
-import { gradeValidators, type ValidatorGrade } from './validators.ts';
+import {
+  claimMatches,
+  failingCheckers,
+  gradeValidators,
+  type ValidatorGrade,
+} from './validators.ts';
 
 export type PrBodyInput = {
   task: MigrationTask;
@@ -57,6 +62,14 @@ function unprovenItems(input: PrBodyInput, grades: ValidatorGrade[]): string[] {
   }
   for (const grade of grades.filter((g) => g.ran && !g.passed)) {
     items.push(`Validator ${grade.name} failed: ${grade.detail}`);
+  }
+  const claims = input.report?.validators ?? [];
+  for (const tool of failingCheckers(input.validatorRuns ?? [])) {
+    if (!claims.some((claim) => claimMatches(claim.name, tool))) {
+      items.push(
+        `Provider check ${tool} reported problems on its last call; the agent did not list it.`,
+      );
+    }
   }
   return items;
 }

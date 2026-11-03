@@ -27,27 +27,86 @@ export async function detectPackageManager(dir: string): Promise<PackageManager>
   return 'none';
 }
 
+// The repo's own release of its package manager, so a lockfile it rewrites keeps its format and the
+// PR's lockfile diff holds only real dependency changes: package.json's packageManager field first,
+// else the release the lockfile's format implies. Undefined means whatever the sandbox has.
+export async function packageManagerVersion(
+  dir: string,
+  pm: PackageManager,
+): Promise<string | undefined> {
+  const read = (name: string) => readFile(path.join(dir, name), 'utf8').catch(() => '');
+  const declared = /"packageManager"\s*:\s*"(\w+)@(\d[\w.-]*)/.exec(await read('package.json'));
+  if (declared?.[1] === pm) return declared[2];
+  if (pm === 'npm') {
+    // npm 7+ rewrites a whole v1 lockfile as v3. Later releases keep v2 and v3, but 10.8+ adds a
+    // license line to each entry it writes, so a v2 lockfile without them gets npm 8. A v3 one keeps
+    // the sandbox's npm: that license line per new entry is all it adds.
+    try {
+      const lock = JSON.parse(await read('package-lock.json'));
+      if (lock.lockfileVersion === 1) return '6';
+      const licensed = Object.entries(lock.packages ?? {}).some(
+        ([key, entry]) => key !== '' && 'license' in (entry as object),
+      );
+      return lock.lockfileVersion === 2 && !licensed ? '8' : undefined;
+    } catch {
+      // A missing or malformed lockfile only means the release is unknown.
+      return undefined;
+    }
+  }
+  if (pm === 'pnpm') {
+    // Lockfile formats: 5.3 pnpm 6, 5.4 pnpm 7, 6.x pnpm 8, 9.0 pnpm 9 and 10.
+    const format = /^lockfileVersion:\s*'?(\d+)\.(\d+)/m.exec(await read('pnpm-lock.yaml'));
+    if (!format) return undefined;
+    const [major, minor] = [Number(format[1]), Number(format[2])];
+    return major >= 9 ? '9' : major >= 6 ? '8' : minor >= 4 ? '7' : '6';
+  }
+  if (pm === 'yarn') {
+    // Lockfile formats: v1 yarn 1; berry's __metadata version 4 yarn 2, 5-6 yarn 3, 7+ yarn 4.
+    const lock = await read('yarn.lock');
+    if (lock.includes('# yarn lockfile v1')) return '1';
+    const format = Number(/__metadata:\s+version:\s*(\d+)/.exec(lock)?.[1]);
+    return format >= 7 ? '4' : format >= 5 ? '3' : format === 4 ? '2' : undefined;
+  }
+  return undefined;
+}
+
+// The command that runs that release: npx for npm, corepack for pnpm and yarn. The Docker image
+// has no pnpm binary, so pnpm always goes through corepack.
+export function packageManagerBinary(pm: PackageManager, version?: string): string {
+  if (pm === 'npm') return version ? `npx -y npm@${version}` : 'npm';
+  if (pm === 'pnpm' || (pm === 'yarn' && version)) {
+    return `corepack ${pm}${version ? `@${version}` : ''}`;
+  }
+  return pm;
+}
+
 // Install scripts are always off, in Docker too: untrusted repo code runs only in a sandbox with
 // install scripts off (Otabek's rule, stricter than the plan; allowing them in Docker is for the founders).
-export function installCommand(pm: PackageManager): string {
+export function installCommand(pm: PackageManager, version?: string): string {
+  const bin = packageManagerBinary(pm, version);
   switch (pm) {
     case 'npm':
-      return 'npm ci --ignore-scripts --no-audit --no-fund || npm install --ignore-scripts --no-audit --no-fund';
+      return `${bin} ci --ignore-scripts --no-audit --no-fund || ${bin} install --ignore-scripts --no-audit --no-fund`;
+    // The sandbox sets CI, which makes pnpm and Yarn 2+ install frozen by default, so each fallback
+    // unfreezes explicitly: after a dependency change only an unfrozen install can update the lockfile.
     case 'pnpm':
-      return 'pnpm install --frozen-lockfile --ignore-scripts || pnpm install --ignore-scripts';
+      return `${bin} install --frozen-lockfile --ignore-scripts || ${bin} install --no-frozen-lockfile --ignore-scripts`;
     case 'yarn': {
       // Yarn 1 takes --ignore-scripts; Yarn 2+ rejects that flag and reads YARN_ENABLE_SCRIPTS.
-      const classic =
-        'yarn install --frozen-lockfile --ignore-scripts || yarn install --ignore-scripts';
-      const berry =
-        'YARN_ENABLE_SCRIPTS=false yarn install --immutable || YARN_ENABLE_SCRIPTS=false yarn install';
+      const classic = `${bin} install --frozen-lockfile --ignore-scripts || ${bin} install --ignore-scripts`;
+      const berry = `YARN_ENABLE_SCRIPTS=false ${bin} install --immutable || YARN_ENABLE_SCRIPTS=false YARN_ENABLE_IMMUTABLE_INSTALLS=false ${bin} install`;
+      if (version) return /^1(\.|$)/.test(version) ? classic : berry;
       return `if yarn --version | grep -q '^1\\.'; then ${classic}; else ${berry}; fi`;
     }
     case 'bun':
       return 'bun install --frozen-lockfile --ignore-scripts || bun install --ignore-scripts';
     case 'pip':
+      // One requirement without a wheel (PyAudio, say) fails the whole file, so the fallback installs
+      // the rest one at a time and names what it could not.
       return (
-        'if [ -f requirements.txt ]; then python3 -m pip install --only-binary=:all: -r requirements.txt; ' +
+        'if [ -f requirements.txt ]; then python3 -m pip install --only-binary=:all: -r requirements.txt || ' +
+        "grep -vE '^[[:space:]]*(#|-|$)' requirements.txt | while read -r req; do " +
+        'python3 -m pip install -q --only-binary=:all: "$req" || echo "not installed, no wheel for this platform: $req"; done; ' +
         'else echo "installs only prebuilt wheels from requirements.txt; install other dependencies with pip --only-binary=:all:"; fi'
       );
     case 'poetry':
@@ -58,7 +117,11 @@ export function installCommand(pm: PackageManager): string {
   }
 }
 
-export async function detectChecks(dir: string, pm: PackageManager): Promise<CheckCommand[]> {
+export async function detectChecks(
+  dir: string,
+  pm: PackageManager,
+  version?: string,
+): Promise<CheckCommand[]> {
   const checks: CheckCommand[] = [];
   const manifest = await readFile(path.join(dir, 'package.json'), 'utf8').catch(() => undefined);
   if (manifest !== undefined) {
@@ -68,7 +131,8 @@ export async function detectChecks(dir: string, pm: PackageManager): Promise<Che
     } catch {
       // An unparseable package.json just means no script-based checks.
     }
-    const runner = ['npm', 'pnpm', 'yarn', 'bun'].includes(pm) ? pm : 'npm';
+    // Scripts never write the lockfile, so npm runs them with the sandbox's own release.
+    const runner = ['pnpm', 'yarn', 'bun'].includes(pm) ? packageManagerBinary(pm, version) : 'npm';
     const typecheck = ['typecheck', 'type-check', 'tsc'].find((name) => scripts[name]);
     if (typecheck) checks.push({ name: 'typecheck', command: `${runner} run ${typecheck}` });
     else if (await exists(path.join(dir, 'tsconfig.json'))) {
@@ -93,7 +157,10 @@ export async function detectChecks(dir: string, pm: PackageManager): Promise<Che
     pyproject !== '' ||
     setupCfg !== '' ||
     (await exists(path.join(dir, 'requirements.txt')));
-  if (pytest && python) checks.push({ name: 'pytest', command: 'python3 -m pytest -q' });
+  // Requirements files rarely list pytest, so the check installs it (as a wheel) when it is missing.
+  const command =
+    '(python3 -m pytest --version >/dev/null 2>&1 || python3 -m pip install -q --only-binary=:all: pytest) && python3 -m pytest -q';
+  if (pytest && python) checks.push({ name: 'pytest', command });
   return checks;
 }
 

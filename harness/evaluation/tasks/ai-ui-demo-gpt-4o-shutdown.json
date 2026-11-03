@@ -1,0 +1,47 @@
+{
+  "id": "ai-ui-demo-gpt-4o-shutdown",
+  "repo": "kenzic/ai-ui-demo",
+  "change": {
+    "provider": "openai",
+    "id": "gpt-4-series-shutdown-2027-01-14",
+    "kind": "model-retirement",
+    "title": "GPT-4o, GPT-4o mini, GPT-4.1 and GPT-4.1 mini snapshots shut down on 2027-01-14; replace with gpt-6-luna",
+    "effectiveDate": "2027-01-14",
+    "source": {
+      "url": "https://developers.openai.com/api/docs/deprecations.md",
+      "quote": "On October 14, 2026, we notified developers using certain GPT-4 series models of their deprecation and removal from the API on January 14, 2027."
+    },
+    "affects": {
+      "fields": [
+        "model:gpt-4o-2024-08-06",
+        "model:gpt-4o-2024-11-20",
+        "model:gpt-4o-mini-2024-07-18",
+        "model:gpt-4.1-2025-04-14",
+        "model:gpt-4.1-mini-2025-04-14"
+      ]
+    }
+  },
+  "deadline": "2027-01-14",
+  "usages": [
+    {
+      "repo": "kenzic/ai-ui-demo",
+      "provider": "openai",
+      "via": "sdk",
+      "sdk": {
+        "name": "openai",
+        "version": "^4.56.0",
+        "lockfile": "package-lock.json"
+      },
+      "callSites": [
+        {
+          "file": "app/api/ui/route.ts",
+          "line": 76,
+          "operation": "beta.chat.completions.parse",
+          "fields": ["model", "response_format"],
+          "notes": "model gpt-4o-2024-08-06 with a zodResponseFormat; reads message.parsed"
+        }
+      ]
+    }
+  ],
+  "priority": 1
+}

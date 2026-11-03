@@ -1,0 +1,37 @@
+[
+  {
+    "id": "commitgpt-openai-v4",
+    "repo": "RomanHotsiy/commitgpt",
+    "commit": "dfbe1eb215b4c7a7ff2b10451a56ca10b5266748",
+    "set": "public repo (round 1 real run)",
+    "task": "tasks/commitgpt-openai-v4.json"
+  },
+  {
+    "id": "chatgpt-nodejs-openai-v4",
+    "repo": "MRwangqi/chatGPT-nodejs",
+    "commit": "820401fae534fc6c734b7b90068bedb79d966194",
+    "set": "evals/sets/dev/openai-dev-30.json",
+    "task": "tasks/chatgpt-nodejs-openai-v4.json"
+  },
+  {
+    "id": "ai-ui-demo-gpt-4o-shutdown",
+    "repo": "kenzic/ai-ui-demo",
+    "commit": "092aaaaec604ab06b6839531229ee70976c8d41a",
+    "set": "evals/sets/dev/openai-dev-30.json",
+    "task": "tasks/ai-ui-demo-gpt-4o-shutdown.json"
+  },
+  {
+    "id": "infinite-bundler-shopify-2026-10",
+    "repo": "sachin21kumar/Infinite-bundler",
+    "commit": "97af7f111cc8ab4c54c77b3bc0e66831fc97dd2c",
+    "set": "evals/sets/dev/shopify-dev-60.json",
+    "task": "tasks/infinite-bundler-shopify-2026-10.json"
+  },
+  {
+    "id": "pdfai-stripe-endive",
+    "repo": "JensenMPillay/pdfai",
+    "commit": "76eee198ded23bf4fafba0e2d431cf01d2f60290",
+    "set": "evals/sets/dev/stripe-dev-30.json",
+    "task": "tasks/pdfai-stripe-endive.json"
+  }
+]

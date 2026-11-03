@@ -5,6 +5,8 @@ import {
   buildKickoffMessage,
   buildRetryMessage,
   buildSystemPrompt,
+  packageManagerNote,
+  renderRecipes,
 } from './prompt.ts';
 import type { CheckRun } from './types.ts';
 
@@ -79,7 +81,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-01.5');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-01.10');
   });
 
   it('puts the sections in the plan order', () => {
@@ -147,6 +149,32 @@ describe('buildSystemPrompt', () => {
     expect(prompt).not.toMatch(/declin|refus|skip if|do not attempt|give up|if unsure, stop/i);
   });
 
+  it("shows memory's skills first, with recipes' diff sketches and closed PRs", () => {
+    // Memory's recipes carry more fields than the shared Recipe type.
+    const sketched = {
+      ...recipes[0],
+      diffSketch: '- source\n+ payment_source',
+      failedRunIds: ['run-9'],
+    };
+    const skilled = {
+      ...recipes[0],
+      id: 'recipe-8',
+      verifiedRepos: 4,
+      skill: { status: 'active', prompt: 'Rename source everywhere, webhooks included.' },
+    };
+    const rendered = renderRecipes([sketched, skilled]);
+    expect(
+      rendered.startsWith(
+        '#### Proven skill recipe-8 (stripe / field-renamed, verified on 4 repos)\n',
+      ),
+    ).toBe(true);
+    expect(rendered).toContain('Rename source everywhere, webhooks included.');
+    expect(rendered).toContain(
+      '#### recipe-7 (stripe / field-renamed, verified on 3 repos; 1 later PR that used it closed by a human without merging)',
+    );
+    expect(rendered).toContain('```diff\n- source\n+ payment_source\n```');
+  });
+
   it('omits the playbook and recipes when there are none', () => {
     const bare = buildSystemPrompt({
       task,
@@ -180,6 +208,17 @@ describe('buildKickoffMessage', () => {
     expect(message).toContain('test (`npm run test`): fail');
     expect(message).toContain('a.test.ts > adds');
     expect(message).toContain('added 12 packages');
+    expect(message).toContain('A check that already fails cannot prove your change.');
+    expect(buildKickoffMessage([run('build', true)])).not.toContain('already fails');
+  });
+
+  it("names the repo's package manager release and the command for dependency changes", () => {
+    const note = packageManagerNote('npm', '8');
+    expect(note).toContain("Package manager: npm 8, the repo's own release");
+    expect(note).toContain('`npx -y npm@8 install <package>@<version>`');
+    expect(buildKickoffMessage([], undefined, note)).toContain(note);
+    expect(packageManagerNote('pnpm', '8.15.9')).toContain('`corepack pnpm@8.15.9 add');
+    expect(packageManagerNote('pip')).toBe(undefined);
   });
 });
 

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { MigrationTask, ToolPack } from '../shared/types.ts';
 import { scriptedSession, type ScriptedTurn } from './fake-session.ts';
-import { ESCALATION_MODEL, MODEL, runTask } from './run.ts';
+import { ESCALATION_MODEL, MODEL, decideOutcome, runTask } from './run.ts';
 import { createSandbox } from './sandbox.ts';
 
 // Illustrative fixture task, not a real customer.
@@ -135,6 +135,26 @@ describe('runTask with a fake model', () => {
     expect(readFileSync(record.transcriptPath, 'utf8')).toContain('"phase":"iteration"');
   });
 
+  it('summarises every tool call and the checks after each iteration, for memory', async () => {
+    const { outDir, ...rest } = deps([breakIt, fixIt]);
+    const record = await runTask(task, fixtureRepo(), { ...rest, outDir });
+    const lines = record.summary.split('\n');
+    expect(lines[0]).toBe('# fixture-stripe-charges: verified, $0.0200');
+    expect(lines).toContain('Baseline checks: test pass');
+    expect(record.summary).toMatch(
+      /## Iteration 1 \(claude-sonnet-5-5, done\)\n1\. edit_file path=src\/pay\.js .*→ edited src\/pay\.js \(1 replacement\)\nChecks after: test pass → fail \(1\) \(new: /,
+    );
+    expect(record.summary).toContain(
+      '2. stripe__check_params operation=paymentIntents.create → params valid for paymentIntents.create',
+    );
+    expect(record.summary).toMatch(/1\. write_file path=src\/pay\.js content=<\d+ chars>/);
+    expect(lines).toContain('Files changed: src/pay.js');
+    expect(lines).toContain(
+      'Verdict: migrated. Replaced charges.create with paymentIntents.create.',
+    );
+    expect(readFileSync(join(outDir, 'summary.md'), 'utf8')).toBe(record.summary);
+  });
+
   it('grades a validator the agent claims but never ran as needs-review', async () => {
     const claimOnly: ScriptedTurn = async (call) => {
       await call('write_file', {
@@ -220,6 +240,22 @@ describe('runTask with a fake model', () => {
     expect(record.outcome).toBe('verified');
   });
 
+  it('stays on the first model when the checks pass and only the report is missing', async () => {
+    const fixWithoutReport: ScriptedTurn = async (call) => {
+      await call('write_file', {
+        path: 'src/pay.js',
+        content: ORIGINAL.replace('charges.create', 'paymentIntents.create'),
+      });
+    };
+    const record = await runTask(
+      task,
+      fixtureRepo(),
+      deps([fixWithoutReport, async () => {}, fixIt]),
+    );
+    expect(record.models).toEqual([MODEL]);
+    expect(record.outcome).toBe('verified');
+  });
+
   it('stops spending at the budget cap and still returns a needs-review record', async () => {
     const record = await runTask(task, fixtureRepo(), deps([breakIt], 0.005));
     expect(record.outcome).toBe('needs-review');
@@ -257,6 +293,23 @@ describe('runTask with a fake model', () => {
     expect(record.models).toEqual([MODEL, ESCALATION_MODEL]);
   });
 
+  it('reports spend through chargeRun as it happens, even when the run then throws', async () => {
+    const charges: [number, string][] = [];
+    const run = runTask(task, fixtureRepo(), {
+      ...deps([breakIt]),
+      maxIterations: 1,
+      chargeRun: (usd, label) => charges.push([usd, label]),
+      createSandbox: async (dir: string) => ({
+        ...(await createSandbox(dir, { mode: 'local' })),
+        diff: async () => {
+          throw new Error('git is broken');
+        },
+      }),
+    });
+    await expect(run).rejects.toThrow('git is broken');
+    expect(charges).toEqual([[0.01, `harness ${MODEL}: fake turn 0`]]);
+  });
+
   it('keeps a reserve below the cap: no query starts inside it and each gets the rest', async () => {
     const budgets: number[] = [];
     const record = await runTask(task, fixtureRepo(), {
@@ -272,5 +325,49 @@ describe('runTask with a fake model', () => {
     expect(budgets).toEqual([0.5, expect.closeTo(0.2)]);
     expect(record.costUsd).toBeCloseTo(0.6);
     expect(record.outcome).toBe('failed');
+  });
+});
+
+describe('decideOutcome', () => {
+  const report = {
+    verdict: 'migrated' as const,
+    summary: 'Moved to v2.',
+    why: 'v1 is gone.',
+    validators: [],
+    unproven: [],
+    behaviourChanges: [],
+  };
+  const check = (ok: boolean) => ({
+    name: 'build',
+    command: 'npm run build',
+    ok,
+    output: '',
+    failures: ok ? [] : ['Error: OPENAI_API_KEY is missing'],
+  });
+  const comparisons = [{ name: 'build', before: 'fail (1)', after: 'fail (1)', newFailures: [] }];
+  const input = { diff: 'diff --git a/a.ts b/a.ts', report, comparisons, validatorRuns: [] };
+
+  it('needs a check that passes: checks failing alike before and after prove nothing', () => {
+    expect(decideOutcome({ ...input, after: [check(false)] })).toBe('needs-review');
+    expect(decideOutcome({ ...input, after: [check(true), check(false)] })).toBe('verified');
+  });
+
+  it("is not verified while a provider check's latest call failed, even one the agent left out", () => {
+    const failing = {
+      tool: 'stripe__stripe_check_params',
+      output: 'Unknown params',
+      passed: false,
+    };
+    expect(decideOutcome({ ...input, after: [check(true)], validatorRuns: [failing] })).toBe(
+      'needs-review',
+    );
+    const lookup = {
+      tool: 'openai__openai_model_lookup',
+      output: 'Status: deprecated',
+      passed: false,
+    };
+    expect(decideOutcome({ ...input, after: [check(true)], validatorRuns: [lookup] })).toBe(
+      'verified',
+    );
   });
 });

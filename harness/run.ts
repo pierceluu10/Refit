@@ -10,18 +10,21 @@ import {
   detectChecks,
   detectPackageManager,
   installCommand,
+  packageManagerVersion,
   runChecks,
 } from './checks.ts';
 import { BudgetLedger, budgetFromEnv } from './ledger.ts';
-import { writePrBody } from './pr.ts';
+import { filesFromDiff, writePrBody } from './pr.ts';
 import {
   PROMPT_VERSION,
   buildKickoffMessage,
   buildRetryMessage,
   buildSystemPrompt,
+  packageManagerNote,
 } from './prompt.ts';
 import { createSandbox, sandboxEnvNote } from './sandbox.ts';
 import { redactSecrets } from './secrets.ts';
+import { summarizeRun, type IterationSummary, type Step } from './summary.ts';
 import { buildTools } from './tools.ts';
 import type {
   CheckCommand,
@@ -34,7 +37,7 @@ import type {
   SessionResult,
   ValidatorRun,
 } from './types.ts';
-import { gradeValidators } from './validators.ts';
+import { failingCheckers, gradeValidators } from './validators.ts';
 
 export const MODEL = 'claude-sonnet-5-5';
 export const ESCALATION_MODEL = 'claude-opus-5-5';
@@ -68,9 +71,11 @@ export function decideOutcome(input: {
   const proven =
     changed &&
     report !== undefined &&
-    after.length > 0 &&
+    // Checks that fail alike before and after add no new failures, but they prove nothing either.
+    after.some((run) => run.ok) &&
     newFailureCount(comparisons) === 0 &&
     gradeValidators(report.validators, validatorRuns).every((grade) => grade.passed) &&
+    failingCheckers(validatorRuns).length === 0 &&
     report.unproven.length === 0;
   return proven ? 'verified' : 'needs-review';
 }
@@ -80,7 +85,7 @@ export async function runTask(
   repoDir: string,
   deps: HarnessDeps = {},
 ): Promise<HarnessRunRecord> {
-  const ledger = new BudgetLedger(deps.budgetUsd ?? budgetFromEnv());
+  const ledger = new BudgetLedger(deps.budgetUsd ?? budgetFromEnv(), deps.chargeRun);
   const outDir =
     deps.outDir ?? (await mkdtemp(join(tmpdir(), `aptitude-run-${task.id.replace(/\W+/g, '-')}-`)));
   await mkdir(outDir, { recursive: true });
@@ -110,6 +115,7 @@ export async function runTask(
       promptVersion: PROMPT_VERSION,
       recipeIds: [],
       agentChecks: [],
+      summary: `# ${task.id}: failed\nThe harness could not create a sandbox: ${message}\n`,
     };
   }
 
@@ -123,16 +129,17 @@ export async function runTask(
     const recipes = await retrieveRecipes(task).catch(() => []);
 
     const pm = await detectPackageManager(sandbox.dir);
-    const install = pm === 'none' ? undefined : await sandbox.exec(installCommand(pm));
-    const checks = await detectChecks(sandbox.dir, pm);
+    const pmVersion = await packageManagerVersion(sandbox.dir, pm);
+    const install = pm === 'none' ? undefined : await sandbox.exec(installCommand(pm, pmVersion));
+    const checks = await detectChecks(sandbox.dir, pm, pmVersion);
     const before = await runChecks(sandbox, checks);
-    log({ type: 'harness', phase: 'baseline', pm, install, checks, before });
+    log({ type: 'harness', phase: 'baseline', pm, pmVersion, install, checks, before });
 
     // Agent-named checks get their baseline from a second, untouched copy of the repo.
     const addCheck = async (check: CheckCommand): Promise<CheckRun> => {
       baselineSandbox ??= (async () => {
         const box = await (deps.createSandbox ?? createSandbox)(repoDir);
-        if (pm !== 'none') await box.exec(installCommand(pm));
+        if (pm !== 'none') await box.exec(installCommand(pm, pmVersion));
         return box;
       })();
       const [run] = await runChecks(await baselineSandbox, [check]);
@@ -146,6 +153,9 @@ export async function runTask(
     let report: FinishReport | undefined;
     let finishedThisIteration = false;
     const validatorRuns: ValidatorRun[] = [];
+    // Every tool call of the current iteration, for the run summary.
+    let steps: Step[] = [];
+    const iterations: IterationSummary[] = [];
     const tools = buildTools({
       sandbox,
       task,
@@ -159,7 +169,14 @@ export async function runTask(
       addCheck,
       onToolPackCall: (run) => validatorRuns.push(run),
       fetch: deps.fetch,
-    });
+    }).map((tool) => ({
+      ...tool,
+      run: async (input: unknown, context: { repoDir: string }) => {
+        const output = await tool.run(input, context);
+        steps.push({ tool: tool.name, input, output });
+        return output;
+      },
+    }));
     const sandboxNote = sandboxEnvNote(sandbox);
     const systemPrompt = buildSystemPrompt({
       task,
@@ -173,7 +190,7 @@ export async function runTask(
 
     const session = deps.session ?? claudeAgentSession;
     let model = MODEL;
-    let prompt = buildKickoffMessage(before, installOutput);
+    let prompt = buildKickoffMessage(before, installOutput, packageManagerNote(pm, pmVersion));
     let sessionId: string | undefined;
     let after = before;
     let comparisons = compareChecks(before, after);
@@ -186,6 +203,7 @@ export async function runTask(
       if (ledger.remainingUsd <= reserveUsd) break;
       if (!models.includes(model)) models.push(model);
       finishedThisIteration = false;
+      steps = [];
       const spentBefore = ledger.spentUsd;
       let result: SessionResult;
       try {
@@ -209,6 +227,7 @@ export async function runTask(
       comparisons = compareChecks(before, after);
       const newFailures = newFailureCount(comparisons);
       log({ type: 'harness', phase: 'iteration', iteration, model, result, after, comparisons });
+      iterations.push({ model, stopReason: result.stopReason, steps, comparisons });
       if (newFailures === 0 && report) break;
       const finished = report as FinishReport | undefined;
       if (finishedThisIteration && finished && finished.unproven.length > 0) break;
@@ -217,8 +236,12 @@ export async function runTask(
         result.stopReason === 'error' && ledger.spentUsd === spentBefore ? silentErrors + 1 : 0;
       if (silentErrors >= 3) break;
 
-      // Stuck: the session ended abnormally or the new failures did not go down.
-      const stuck = result.stopReason !== 'done' || newFailures >= previousNewFailures;
+      // Stuck: the session failed, or new failures remain and did not go down. Green checks with only
+      // the report missing are not: caches are per model, so Opus would re-read the whole session
+      // uncached (about $0.75 at 150k tokens) just to call finish.
+      const stuck =
+        result.stopReason === 'error' ||
+        (newFailures > 0 && (result.stopReason !== 'done' || newFailures >= previousNewFailures));
       const escalated = stuck && model === MODEL;
       if (escalated) model = ESCALATION_MODEL;
       previousNewFailures = newFailures;
@@ -251,6 +274,15 @@ export async function runTask(
       sandboxNote,
       notes,
     });
+    const summary = summarizeRun({
+      task,
+      outcome,
+      costUsd: ledger.spentUsd,
+      before,
+      iterations,
+      report: finalReport,
+      files: filesFromDiff(diff),
+    });
     const record: HarnessRunRecord = {
       taskId: task.id,
       outcome,
@@ -266,15 +298,17 @@ export async function runTask(
         const comparison = comparisons.find((c) => c.name === name);
         return {
           name,
-          command,
+          command: redactSecrets(command),
           before: comparison?.before ?? 'not run',
           after: comparison?.after ?? 'not run',
         };
       }),
+      summary,
     };
     log({ type: 'harness', phase: 'done', outcome, ledger: ledger.entries });
     await writeFile(join(outDir, 'diff.patch'), diff);
     await writeFile(join(outDir, 'pr-body.md'), prBody);
+    await writeFile(join(outDir, 'summary.md'), summary);
     await writeFile(join(outDir, 'record.json'), JSON.stringify(record, null, 2));
     return record;
   } finally {

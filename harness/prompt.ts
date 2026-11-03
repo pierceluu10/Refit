@@ -1,13 +1,55 @@
 // The harness system prompt, in the order set by "The harness system prompt" in APTITUDE-PLAN.md.
 import type { MigrationTask, Recipe, ToolPack } from '../shared/types.ts';
+import { packageManagerBinary, type PackageManager } from './checks.ts';
 import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-01.5';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-01.10';
 
 // shortcut: `notes` is on MigrationTask in O1's branch only; drop this local type once that merges.
 export type TaskWithNotes = MigrationTask & { notes?: string };
+
+// shortcut: memory's recipes carry more than shared/types.ts Recipe (its MemoryRecipe); read those
+// fields here until the contract grows them.
+type MemoryRecipe = Recipe & {
+  diffSketch?: string;
+  skill?: { status: string; prompt: string };
+  failedRunIds?: string[]; // runs shown this recipe whose PR a human closed
+};
+
+// Proven skills first, then recipes with their diff sketches, each with how it has fared so far.
+export function renderRecipes(recipes: Recipe[]): string {
+  const fared = (recipe: MemoryRecipe) => {
+    const closed = recipe.failedRunIds?.length ?? 0;
+    const against = closed
+      ? `; ${closed} later PR${closed === 1 ? '' : 's'} that used it closed by a human without merging`
+      : '';
+    return `${recipe.provider} / ${recipe.kind}, verified on ${recipe.verifiedRepos} repos${against}`;
+  };
+  const all = recipes as MemoryRecipe[];
+  const isSkill = (recipe: MemoryRecipe) => recipe.skill?.status === 'active';
+  return [
+    ...all
+      .filter(isSkill)
+      .map(
+        (recipe) => `#### Proven skill ${recipe.id} (${fared(recipe)})\n${recipe.skill?.prompt}`,
+      ),
+    ...all
+      .filter((recipe) => !isSkill(recipe))
+      .map((recipe) =>
+        [
+          `#### ${recipe.id} (${fared(recipe)})`,
+          `Preconditions: ${recipe.preconditions}`,
+          `Steps: ${recipe.steps}`,
+          `Pitfalls: ${recipe.pitfalls}`,
+          recipe.diffSketch ? '```diff\n' + recipe.diffSketch + '\n```' : '',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      ),
+  ].join('\n\n');
+}
 
 export type PromptInput = {
   task: TaskWithNotes;
@@ -107,14 +149,7 @@ function workflowSection(task: MigrationTask, toolPack: ToolPack, recipes: Recip
     parts.push(
       '### Recipes from memory (guidance, not rules)',
       'These worked on earlier runs. Use what fits this repo and ignore what does not.',
-      ...recipes.map((recipe) =>
-        [
-          `#### ${recipe.id} (${recipe.provider} / ${recipe.kind}, verified on ${recipe.verifiedRepos} repos)`,
-          `Preconditions: ${recipe.preconditions}`,
-          `Steps: ${recipe.steps}`,
-          `Pitfalls: ${recipe.pitfalls}`,
-        ].join('\n'),
-      ),
+      renderRecipes(recipes),
     );
   }
 
@@ -143,6 +178,8 @@ export function buildSystemPrompt(input: PromptInput): string {
       [
         '- **verified**: the checks pass before and after your change, and the provider validators pass. Only NEW failures count. Failures that existed before your change are noted, not fixed, unless your change touches them.',
         '- **needs-review**: state exactly what is unproven, and any behaviour change.',
+        "- List as unproven what this run could have checked and didn't, or checked and couldn't prove. Leave out the standing limit that no run here makes live API calls: the sandbox has no credentials, and the PR says so on every run.",
+        "- What your change may do differently that only a live call would show, such as a new model's output or a response's shape at a new API version, goes under behaviour changes, so the reviewer checks it.",
         '- A provider validator counts only if you called it: in `finish`, list the provider tools you ran by tool name. The harness grades them from its own record of those calls, not from your report.',
       ].join('\n'),
       "Always end by calling `finish`. If the code genuinely does not use the changed API, call `finish` with verdict 'not-affected' and explain why.",
@@ -153,6 +190,8 @@ export function buildSystemPrompt(input: PromptInput): string {
         '- Make the smallest correct change.',
         '- Keep behaviour the same unless the API change forces otherwise, and say so.',
         "- Don't reformat unrelated code. Don't upgrade unrelated dependencies.",
+        "- When a dependency must change, change it with the repo's own package manager and release (the kickoff message names them) and let it rewrite the lockfile. Never edit a lockfile by hand or switch package managers.",
+        '- Before you call `finish`, look at your change with `diff`: the lockfile should change only for the dependencies you moved, and no file should change by accident.',
       ].join('\n'),
     ].join('\n\n'),
     [
@@ -177,8 +216,24 @@ function checkLine(run: CheckRun): string {
   return [`- ${run.name} (\`${run.command}\`): fail`, ...shown, ...more].join('\n');
 }
 
-export function buildKickoffMessage(before: CheckRun[], installOutput?: string): string {
+// Names the release that wrote the lockfile, so a dependency change keeps its format and the diff stays small.
+export function packageManagerNote(pm: PackageManager, version?: string): string | undefined {
+  if (!['npm', 'pnpm', 'yarn', 'bun'].includes(pm)) return undefined;
+  const bin = packageManagerBinary(pm, version);
+  const add = `${bin} ${pm === 'npm' ? 'install' : 'add'} <package>@<version>`;
+  return [
+    `Package manager: ${pm}${version ? ` ${version}, the repo's own release (from its packageManager field or its lockfile format)` : ''}.`,
+    `\`install\` runs it as \`${bin}\`. Make any dependency change with that same command, for example \`${add}\`, so the lockfile keeps its format and its diff holds only what you changed.`,
+  ].join(' ');
+}
+
+export function buildKickoffMessage(
+  before: CheckRun[],
+  installOutput?: string,
+  packageManager?: string,
+): string {
   const parts = ['Start the migration described in the system prompt.'];
+  if (packageManager) parts.push(packageManager);
   if (installOutput) {
     parts.push(
       'Dependency install output (tail):',
@@ -193,6 +248,11 @@ export function buildKickoffMessage(before: CheckRun[], installOutput?: string):
         ].join('\n')
       : "No checks were detected. Find the repo's tests, build or type check and register them with `run_checks` `add`, so they run on the original code and after your edit and count toward proof.",
   );
+  if (before.some((run) => !run.ok)) {
+    parts.push(
+      "A check that already fails cannot prove your change. If one fails only because the sandbox lacks something the code reads at build or test time, such as an env var like `OPENAI_API_KEY` or a generated client like Prisma's, register a variant with `run_checks` `add` that supplies it with a placeholder, never a real secret (for example `OPENAI_API_KEY=placeholder npm run build`), so it passes on the original code and can prove your edit.",
+    );
+  }
   return parts.join('\n\n');
 }
 

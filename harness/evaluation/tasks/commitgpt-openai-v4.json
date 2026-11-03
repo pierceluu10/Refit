@@ -1,5 +1,5 @@
 {
-  "id": "openai-node-v4-commitgpt",
+  "id": "commitgpt-openai-v4",
   "repo": "RomanHotsiy/commitgpt",
   "change": {
     "provider": "openai",
@@ -21,10 +21,23 @@
       "repo": "RomanHotsiy/commitgpt",
       "provider": "openai",
       "via": "sdk",
-      "sdk": { "name": "openai", "version": "^3.2.1", "lockfile": "package-lock.json" },
+      "sdk": {
+        "name": "openai",
+        "version": "^3.2.1",
+        "lockfile": "package-lock.json"
+      },
       "callSites": [
-        { "file": "client.ts", "line": 7, "operation": "new Configuration", "fields": ["apiKey"] },
-        { "file": "client.ts", "line": 10, "operation": "new OpenAIApi" },
+        {
+          "file": "client.ts",
+          "line": 7,
+          "operation": "new Configuration",
+          "fields": ["apiKey"]
+        },
+        {
+          "file": "client.ts",
+          "line": 10,
+          "operation": "new OpenAIApi"
+        },
         {
           "file": "client.ts",
           "line": 17,

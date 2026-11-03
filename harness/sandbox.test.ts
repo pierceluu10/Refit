@@ -49,7 +49,9 @@ describe('local sandbox', () => {
       'x = 1',
     );
     await expect(fs.access(path.join(repoDir, 'PWNED'))).rejects.toThrow();
-    expect(sandboxEnvNote(sandbox)).toBe('Local temp copy; install scripts disabled; no Docker');
+    expect(sandboxEnvNote(sandbox)).toBe(
+      'Local temp copy; install scripts disabled; no Docker; no credentials, so no live API calls',
+    );
   });
 
   it('runs commands in the copy and reports exit codes', async () => {
@@ -139,7 +141,7 @@ describe('docker sandbox', () => {
       sandbox = await createSandbox(repoDir, { mode: 'docker' });
       expect(sandbox.mode).toBe('docker');
       expect(sandboxEnvNote(sandbox)).toBe(
-        'Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy',
+        'Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls',
       );
       const node = await sandbox.exec('node -v');
       expect(node.code).toBe(0);
@@ -153,6 +155,18 @@ describe('docker sandbox', () => {
       const root = path.dirname(sandbox.dir);
       await sandbox.dispose();
       await expect(fs.access(root)).rejects.toThrow();
+    },
+    10 * 60 * 1000,
+  );
+
+  it.skipIf(!dockerAvailable())(
+    'gives a Python repo without package.json the Python image, which has pip',
+    async () => {
+      await fs.writeFile(path.join(repoDir, 'requirements.txt'), '');
+      sandbox = await createSandbox(repoDir, { mode: 'docker' });
+      expect(sandboxEnvNote(sandbox)).toMatch(/^Docker container python:3\.12-bookworm;/);
+      const pip = await sandbox.exec('python3 -m pip --version');
+      expect(pip.code).toBe(0);
     },
     10 * 60 * 1000,
   );

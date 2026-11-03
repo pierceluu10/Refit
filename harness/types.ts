@@ -7,7 +7,7 @@ import type {
   RunRecord,
   ToolPack,
 } from '../shared/types.ts';
-import type { BudgetLedger } from './ledger.ts';
+import type { BudgetLedger, ChargeRun } from './ledger.ts';
 
 export type ExecResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
 
@@ -98,7 +98,8 @@ export type HarnessDeps = {
   outDir?: string; // where the transcript, diff and PR body are written
   maxIterations?: number; // unset: iterate until done or the budget cap
   turnReserveUsd?: number; // defaults to TURN_RESERVE_USD
-
+  // Called for every model call's spend as it happens, so the run budget sees it even if the harness throws.
+  chargeRun?: ChargeRun;
   fetch?: typeof fetch;
 };
 
@@ -109,6 +110,9 @@ export type HarnessRunRecord = RunRecord & {
   recipeIds: string[]; // the recipes injected into the prompt, for memory's learnFromRun
   // Checks the agent registered itself; they count toward proof, so reviewers see their exact commands.
   agentChecks: { name: string; command: string; before: string; after: string }[];
+  // Every tool call in order with what it returned, and the checks after each iteration: a short
+  // stand-in for the transcript, for memory's recipe extraction.
+  summary: string;
 };
 
 export type { Recipe };

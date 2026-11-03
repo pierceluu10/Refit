@@ -3,7 +3,13 @@
 import { lstat, mkdir, readFile, readdir, realpath, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { AgentTool } from '../shared/types.ts';
-import { detectPackageManager, installCommand, runChecks } from './checks.ts';
+import {
+  detectPackageManager,
+  installCommand,
+  packageManagerVersion,
+  runChecks,
+} from './checks.ts';
+import { renderRecipes } from './prompt.ts';
 import { redactSecrets } from './secrets.ts';
 import { runPassed } from './validators.ts';
 import type { ExecResult, FinishReport, ToolContext } from './types.ts';
@@ -11,7 +17,7 @@ import type { ExecResult, FinishReport, ToolContext } from './types.ts';
 type Args = Record<string, unknown>;
 
 const MAX_OUTPUT = 20_000;
-const SKIP_DIRS = new Set(['.git', 'node_modules']);
+const SKIP_DIRS = new Set(['.git', 'node_modules', '.pnpm-store']);
 const LIST_CAP = 500;
 const SEARCH_CAP = 200;
 const SEARCH_MAX_FILE_BYTES = 1_000_000;
@@ -286,7 +292,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
     ),
     tool(
       'install',
-      "Install dependencies with the repo's package manager (install scripts are off in local mode).",
+      "Install dependencies with the repo's own package manager and release, so the lockfile keeps its format (install scripts are off).",
       {},
       [],
       async () => {
@@ -294,7 +300,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
         if (pm === 'none') {
           return 'no lockfile or manifest found. Install what the repo needs with the shell tool.';
         }
-        const command = installCommand(pm);
+        const command = installCommand(pm, await packageManagerVersion(sandbox.dir, pm));
         const result = await sandbox.exec(command, { timeoutMs: 15 * 60_000 });
         return `package manager: ${pm}\ncommand: ${command}\n${formatExec(result)}`;
       },
@@ -358,6 +364,36 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
       },
     ),
     tool(
+      'diff',
+      'Show your change as the PR will carry it: lines added and removed per file, or the full diff of one file. Use it to spot lockfile churn and stray edits before you finish.',
+      {
+        path: {
+          type: 'string',
+          description: 'One file to show in full. Default: every file, summarised',
+        },
+      },
+      [],
+      async (args) => {
+        const sections = (await sandbox.diff()).split(/^(?=diff --git )/m).filter(Boolean);
+        const file = optStr(args, 'path');
+        if (file) {
+          return (
+            sections.find((section) => section.startsWith(`diff --git a/${file} `)) ??
+            `no change to ${file}`
+          );
+        }
+        if (sections.length === 0) return 'no changes yet';
+        return sections
+          .map((section) => {
+            const name = /^diff --git a\/.+? b\/(.+)$/m.exec(section)?.[1];
+            const added = section.match(/^\+(?!\+\+ )/gm)?.length ?? 0;
+            const removed = section.match(/^-(?!-- )/gm)?.length ?? 0;
+            return `${name}: +${added} -${removed}`;
+          })
+          .join('\n');
+      },
+    ),
+    tool(
       'fetch_url',
       'Fetch a web page or docs URL (http or https) and return it as plain text.',
       {
@@ -386,17 +422,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
       [],
       async () => {
         const recipes = await ctx.retrieveRecipes(ctx.task);
-        if (recipes.length === 0) return 'no recipes yet';
-        return recipes
-          .map((recipe) =>
-            [
-              `## ${recipe.provider} / ${recipe.kind} (${recipe.id}), verified on ${recipe.verifiedRepos} repos`,
-              `**Preconditions:** ${recipe.preconditions}`,
-              `**Steps:**\n${recipe.steps}`,
-              `**Pitfalls:** ${recipe.pitfalls}`,
-            ].join('\n'),
-          )
-          .join('\n\n');
+        return recipes.length ? renderRecipes(recipes) : 'no recipes yet';
       },
     ),
   ];

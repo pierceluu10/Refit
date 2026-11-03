@@ -12,6 +12,9 @@ import type { ExecResult, Sandbox } from './types.ts';
 const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
 const OUTPUT_CAP = 2 * 1024 * 1024;
 const DEFAULT_IMAGE = 'node:22-bookworm';
+// The Node image has python3 but no pip, so a Python repo with no package.json gets the Python image.
+const PYTHON_IMAGE = 'python:3.12-bookworm';
+const PYTHON_MANIFESTS = ['requirements.txt', 'pyproject.toml', 'setup.py', 'setup.cfg', 'Pipfile'];
 const EXCLUDED = new Set(['.git', 'node_modules']);
 // Hard limit 4: real env files (and direnv's .envrc) never enter the sandbox; templates (.env.example etc.) do.
 const ENV_TEMPLATE = /^\.env\.(?:example|sample|template|dist)$/;
@@ -24,6 +27,13 @@ const SANDBOX_ENV = {
   npm_config_ignore_scripts: 'true',
   YARN_ENABLE_SCRIPTS: 'false',
   PIP_ONLY_BINARY: ':all:', // no sdist builds, so no setup.py runs
+  // corepack fetches the repo's pnpm or yarn release without asking, and never pins it into package.json.
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0',
+  COREPACK_ENABLE_AUTO_PIN: '0',
+  // CI makes Yarn 2+ refuse any lockfile change, which would block the agent's `yarn add`.
+  YARN_ENABLE_IMMUTABLE_INSTALLS: 'false',
+  // pnpm puts its store at the mount's root when home is on another disk: the copy, and so the diff.
+  npm_config_store_dir: '/tmp/aptitude-pnpm-store',
 };
 
 export type SandboxOptions = { mode?: 'docker' | 'local'; image?: string };
@@ -46,7 +56,7 @@ export async function createSandbox(
     });
     const git = (...args: string[]) => runGit(gitDir, dir, args);
     await git('init', '-q');
-    await fs.appendFile(path.join(gitDir, 'info', 'exclude'), '\nnode_modules\n');
+    await fs.appendFile(path.join(gitDir, 'info', 'exclude'), '\nnode_modules\n.pnpm-store\n');
     await git('config', 'user.name', 'Aptitude');
     await git('config', 'user.email', 'aptitude@localhost');
     await git('add', '-A');
@@ -69,7 +79,7 @@ export async function createSandbox(
       };
     }
 
-    const image = options.image ?? process.env.APTITUDE_SANDBOX_IMAGE ?? DEFAULT_IMAGE;
+    const image = options.image ?? process.env.APTITUDE_SANDBOX_IMAGE ?? (await pickImage(repoDir));
     const name = `aptitude-${randomBytes(6).toString('hex')}`;
     // Run as the host user so files the container writes stay editable and removable on the host.
     const user =
@@ -109,8 +119,19 @@ export async function createSandbox(
 
 export function sandboxEnvNote(sandbox: Sandbox & { image?: string }): string {
   return sandbox.mode === 'docker'
-    ? `Docker container ${sandbox.image ?? DEFAULT_IMAGE}; install scripts disabled; no host env or mounts besides the repo copy`
-    : 'Local temp copy; install scripts disabled; no Docker';
+    ? `Docker container ${sandbox.image ?? DEFAULT_IMAGE}; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls`
+    : 'Local temp copy; install scripts disabled; no Docker; no credentials, so no live API calls';
+}
+
+async function pickImage(repoDir: string): Promise<string> {
+  const has = (name: string) =>
+    fs.access(path.join(repoDir, name)).then(
+      () => true,
+      () => false,
+    );
+  if (await has('package.json')) return DEFAULT_IMAGE;
+  for (const name of PYTHON_MANIFESTS) if (await has(name)) return PYTHON_IMAGE;
+  return DEFAULT_IMAGE;
 }
 
 async function pickMode(): Promise<'docker' | 'local'> {

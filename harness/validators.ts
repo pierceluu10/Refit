@@ -2,14 +2,34 @@
 // What the agent says in finish is a claim; it is shown in the PR but never grades the run.
 import type { FinishReport, ValidatorRun } from './types.ts';
 
-// shortcut: ToolPack tools return free text, so pass/fail is read from it; use a structured result once F2 returns one.
-const FAILED = /^error:|\binvalid\b|\bfail(?:s|ed|ure|ures)?\b|"valid"\s*:\s*false/i;
+// shortcut: ToolPack tools return free text, so pass/fail is read from the problem lines the provider
+// packs print; use a structured result once the packs return one. Matching too much only costs a
+// verified grade; matching too little would grade a validator that found problems as proof.
+const PROBLEMS = [
+  /^error:|\binvalid\b|\bfail(?:s|ed|ure|ures)?\b|"valid"\s*:\s*false/i,
+  /\b[1-9]\d* error\(s\)/, // shopify_validate_graphql: "Result: 1 error(s), 0 warning(s)"
+  /^unknown param(?:eter)?s\b(?!: none)/im, // openai_check_request, stripe_check_params
+  /^(?:deprecated or legacy parameters|deprecated in the spec):/im,
+  /^(?:required by the spec but missing|required params missing):/im,
+  /^enum mismatch:/im,
+  /\bis not (?:supported|compatible)\b/i, // openai_check_request on reasoning models
+  /^endpoint note \((?!supported\b)/im, // openai_check_request: legacy, deprecated or shut down
+  /^old sdk shapes found:/im, // openai_sdk_migration
+  /^status\b[^:\n]*:\s*(?:deprecated|shut down)/im, // openai_model_lookup on a retiring model
+  /^(?:product|version \S+) status:\s*(?:deprecated|end-of-life|retired|sunset)/im, // twilio_endpoint_lookup
+  /`:\s*(?:removed|renamed|deprecated)\b/, // meta_lookup_field: "field `x`: removed -> y"
+  /\bnot in (?:the )?snapshot\b/i, // an unknown model, version or endpoint in any pack
+];
 
-export const runPassed = (output: string) => !FAILED.test(output);
+export const runPassed = (output: string) => !PROBLEMS.some((problem) => problem.test(output));
 
 export type ValidatorGrade = { name: string; ran: boolean; passed: boolean; detail: string };
 
-const matches = (claim: string, tool: string) => tool === claim || tool.endsWith(`__${claim}`);
+// The model sees the harness tools through the SDK's MCP server, so it may claim one by that full name.
+export const claimMatches = (claim: string, tool: string) => {
+  const name = claim.replace(/^mcp__aptitude__/, '');
+  return tool === name || tool.endsWith(`__${name}`);
+};
 
 // One grade per claimed validator, from the latest recorded call of that tool.
 export function gradeValidators(
@@ -17,7 +37,7 @@ export function gradeValidators(
   runs: ValidatorRun[],
 ): ValidatorGrade[] {
   return claims.map((claim) => {
-    const run = runs.filter((candidate) => matches(claim.name, candidate.tool)).at(-1);
+    const run = runs.filter((candidate) => claimMatches(claim.name, candidate.tool)).at(-1);
     if (!run) {
       return {
         name: claim.name,
@@ -29,4 +49,13 @@ export function gradeValidators(
     const detail = run.output.trim().split('\n')[0].slice(0, 200);
     return { name: claim.name, ran: true, passed: claim.passed && run.passed, detail };
   });
+}
+
+// Provider checkers (a check or validate tool) whose latest call reported problems. They block
+// verified even when the agent leaves them out of finish; lookups and docs searches only inform.
+export function failingCheckers(runs: ValidatorRun[]): string[] {
+  const latest = new Map(runs.map((run) => [run.tool, run]));
+  return [...latest.values()]
+    .filter((run) => /check|validat/i.test(run.tool) && !run.passed)
+    .map((run) => run.tool);
 }
