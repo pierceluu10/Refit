@@ -294,6 +294,28 @@ export const deepseek = new OpenAI({
     await removeRepo(dir);
   });
 
+  it('suggests areas for area readers only when there are many leads to read', async () => {
+    // An LLM gateway's layout, like lobe-chat's src/libs/agent-runtime/<provider>/index.ts.
+    const providers = Array.from({ length: 70 }, (_, index) => [
+      `src/libs/agent-runtime/p${index}/index.ts`,
+      `export const p${index} = { baseURL: 'https://api.vendor${index}.example-ai.io/v1' };\n`,
+    ]);
+    const many = await makeRepo({
+      'package.json': '{\n  "dependencies": {}\n}\n',
+      'src/app/hook.ts': "export const verify = (body: string) => createHmac('sha256', body);\n",
+      ...Object.fromEntries(providers),
+    });
+    const result = await scanRepo(many, 'acme/gateway');
+    expect(result.areas).toEqual([
+      { area: 'src/libs/agent-runtime', leads: 70 },
+      { area: 'src/app', leads: 1 },
+    ]);
+    expect(scanEvidence(result)).toContain('## Suggested areas for area readers');
+    await removeRepo(many);
+    expect(scan.areas).toEqual([]);
+    expect(scanEvidence(scan)).not.toContain('Suggested areas');
+  });
+
   it('ties a fetch with a runtime URL to the one known API host its file names, and leaves the rest as leads', async () => {
     const dir = await makeRepo({
       'package.json': '{\n  "dependencies": {}\n}\n',

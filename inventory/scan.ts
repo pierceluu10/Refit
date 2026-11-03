@@ -18,7 +18,7 @@ import {
 import { listFiles, readText } from './repo-files.ts';
 import { listManifests, lockedVersions, type Manifest } from './scanners.ts';
 
-export const SCAN_VERSION = 'scan-v4';
+export const SCAN_VERSION = 'scan-v5';
 
 type CallSite = ApiUsage['callSites'][number];
 
@@ -29,6 +29,8 @@ export type ScannedUsage = ApiUsage & { ecosystem?: 'python' };
 
 export type ScanResult = {
   usages: ScannedUsage[];
+  /** Folders holding many leads to read, for area readers; empty when there are few. */
+  areas?: { area: string; leads: number }[];
   leads: LeadGroup[];
   /** HTTP calls to the repo's own routes (relative URLs): not external, counted so nothing is hidden. */
   internalCalls: { count: number; examples: string[] };
@@ -1101,6 +1103,7 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
   return {
     usages,
     leads,
+    areas: suggestAreas(leads),
     internalCalls: { count: internalCount, examples: internal },
     stats: {
       files: files.length,
@@ -1111,6 +1114,39 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
       manifests: manifests.length,
     },
   };
+}
+
+// Leads that point at a file:line the agent has to read, as opposed to names (deps, env, hosts).
+const READ_LEADS = new Set(['base-urls', 'raw-http', 'webhooks', 'graphql', 'sdk-without-calls']);
+// Above this many, reading them one by one on the main model costs more than area readers do.
+export const FAN_OUT_LEADS = 60;
+const MAX_AREAS = 6;
+
+/**
+ * Where the leads to read are, by folder, when there are enough of them to fan out: a suggestion
+ * the agent may take (one area reader each) or ignore. Empty below FAN_OUT_LEADS.
+ */
+function suggestAreas(leads: LeadGroup[]): { area: string; leads: number }[] {
+  const counts = new Map<string, number>();
+  let total = 0;
+  for (const lead of leads.filter((found) => READ_LEADS.has(found.kind))) {
+    total += lead.items.length + lead.more;
+    for (const item of lead.items) {
+      const file =
+        lead.kind === 'sdk-without-calls'
+          ? /no call found in ([^,\s]+)/.exec(item)?.[1]
+          : /^([^:\s]+)/.exec(item)?.[1];
+      if (!file) continue;
+      const segments = file.split('/');
+      const area = segments.slice(0, Math.min(3, Math.max(segments.length - 1, 1))).join('/');
+      counts.set(area, (counts.get(area) ?? 0) + 1);
+    }
+  }
+  if (total < FAN_OUT_LEADS) return [];
+  const sorted = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const top = sorted.slice(0, MAX_AREAS - 1).map(([area, count]) => ({ area, leads: count }));
+  const rest = sorted.slice(MAX_AREAS - 1).reduce((sum, [, count]) => sum + count, 0);
+  return rest ? [...top, { area: 'everything else', leads: rest }] : top;
 }
 
 const URL_HOST = /\bhttps?:\/\/(\[[0-9a-f:]+\]|[a-z0-9.-]+\.[a-z]{2,}|localhost)/gi;
@@ -1217,12 +1253,15 @@ export function scanEvidence(scan: ScanResult): string {
   const internal = scan.internalCalls.count
     ? `\n\nNot recorded, as calls to the repo's own routes (relative URLs): ${scan.internalCalls.count}, for example:\n${scan.internalCalls.examples.map((example) => `- ${example}`).join('\n')}`
     : '';
+  const areas = scan.areas?.length
+    ? `\n\n## Suggested areas for area readers\n\nThere are more leads to read than one reader should take on. Fan out: one area reader per area, each given its area's leads (file:line) from the lists below.\n${scan.areas.map((area) => `- ${area.area}: ${area.leads} leads`).join('\n')}`
+    : '';
   return `## What the code scan found (no AI)
 
 ${scan.stats.files} files, ${scan.stats.sourceFiles} of them code; ${scan.stats.manifests} manifests with ${scan.stats.dependencies} dependencies.
 
 Recorded already (list_recorded_usages shows them in full; do not record them again):
-${recorded}
+${recorded}${areas}
 
 ## Leads the scan could not settle
 
