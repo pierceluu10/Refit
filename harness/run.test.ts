@@ -210,6 +210,7 @@ describe('runTask with a fake model', () => {
         validators: [],
         unproven: ['The test fails because the fixture needs a live key.'],
         behaviourChanges: [],
+        noProofTestReason: 'The only test needs a live key.',
       });
     };
     const record = await runTask(task, fixtureRepo(), deps([explain]));
