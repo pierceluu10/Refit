@@ -16,7 +16,13 @@ import {
 import { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
 import { folderWatcher, listProviderIds } from '../providers/core/registry.ts';
 import { hintsFor, loadToolPack } from '../providers/toolkit/pack.ts';
-import type { ProviderChange, ProviderHints, RunRecord, WatchProvider } from '../shared/types.ts';
+import type {
+  ProviderChange,
+  ProviderHints,
+  RunRecord,
+  ToolPack,
+  WatchProvider,
+} from '../shared/types.ts';
 import { BudgetExceededError, type Budget, type Hold } from './budget.ts';
 import type { LoopDeps } from './loop.ts';
 import { createMatchAgent } from './match.ts';
@@ -272,7 +278,8 @@ export function createDeps({
           budgetUsd: hold.usd - recipesUsd,
           // Any provider: its own pack when its folder has one, plus the generic tools and
           // playbooks, led by the inventory's hints. Only folder ids are ever imported.
-          loadToolPack: (provider) => loadToolPack(provider, { hints: hintsFor(task.usages) }),
+          loadToolPack: (provider): Promise<ToolPack> =>
+            loadToolPack(provider, { hints: hintsFor(task.usages) }),
           retrieveRecipes: async () => recipes,
         });
         spentUsd = recipesUsd + record.costUsd;
