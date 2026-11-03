@@ -136,3 +136,110 @@ Results:
 - Fan-out is guidance in the prompt, and the agent ignored it on the largest repository.
 - Provider hints (`ApiUsage.hints`, prompt `inventory-v3`) were added after these runs and have not
   been measured on any real repository. Only the fake-model unit tests cover them.
+
+# Round 3: scan first, then the agent (2026-11-03)
+
+The round 2 benchmark's 8 inventoried repos, at the commits it froze. Each repo was downloaded as a
+GitHub tarball and only read.
+
+- **Old:** `main` at `d0b93178` (prompt `inventory-v3`). The agent reads everything.
+- **New:** prompt `inventory-v8` with scan `scan-v5`. The code scan runs first, then the agent on
+  what the scan left.
+- **Both:** `claude-sonnet-5-5` with `claude-haiku-5-5` area readers, at the default $0.60 run
+  cap.
+
+The reports are in `evaluation/round-3/old`, `new` and `old-rerun`. This command reproduces the
+matches at $0:
+
+```sh
+node inventory/evaluation/compare.ts inventory/evaluation/round-3/old inventory/evaluation/round-3/new
+```
+
+## Cost and what was found
+
+| Repo                                | Round 2 old | Old today            | New today (scan)         | Old usages found | Cached rerun |
+| ----------------------------------- | ----------- | -------------------- | ------------------------ | ---------------: | -----------: |
+| 4lbatr0s/jiro                       | $0.1391, 6  | $0.1381, 6, 18 turns | $0.0592, 10 (7), 7 turns |              6/6 |           $0 |
+| adamhitzger/financehb               | $0.2734, 11 | $0.2691, 13, 35      | $0.0957, 14 (9), 11      |            13/13 |           $0 |
+| alanagoyal/branded                  | $0.2656, 10 | $0.2512, 10, 24      | $0.1145, 11 (7), 17      |            10/10 |           $0 |
+| borodinka/hire-wise                 | $0.0948, 3  | $0.1064, 6, 22       | $0.0278, 5 (3), 5        |              6/6 |           $0 |
+| crlny/lobe-chat                     | $0.2992, 50 | $0.2563, 79, 1       | $0.2199, 79 (17), 1      |            74/79 |           $0 |
+| guixincui/LobeChat                  | $0.2689, 12 | $0.2236, 9, 27       | $0.1401, 11 (3), 29      |              9/9 |           $0 |
+| mohammadpurl/next-livekit-streaming | $0.1148, 6  | $0.1116, 6, 23       | $0.0233, 6 (5), 4        |              6/6 |           $0 |
+| ravi-aman/pureFeedback              | $0.0472, 2  | $0.0498, 2, 14       | $0.0154, 2 (2), 2        |              2/2 |           $0 |
+| **All 8**                           | **$1.5030** | **$1.4062**, 131     | **$0.6960**, 138 (53)    |      **126/131** |       **$0** |
+
+Each cell gives the cost, then the usages, then the turns. "Round 2 old" is the inventory part of
+each result file in `evals/reports/2026-11-03/`. Those files keep only a usage count.
+
+- **Cost: $0.6960 against $1.4062, 50% less, on a cold cache.** A rerun of an unchanged commit
+  costs $0. All 8 came from the commit cache, in a new process, with no model call.
+- **The scan built 53 of the 138 usages with no AI call.** The agent's turns fell from 14 to 35 per
+  repo to 2 to 29. The exceptions are the two lobe-chat forks, whose leads are mostly AI-provider
+  base URLs.
+- **The new run found 126 of the old run's 131 usages.** It found all of them on 7 repos and 74 of
+  79 on lobe-chat. For scale, a second run of the old inventory on lobe-chat found 72 of the first
+  run's 79 (`old-rerun`). Round 2's old run had found 50 there.
+- **What it missed, all on lobe-chat:**
+  - Hugging Face through its SDK (it recorded the raw-HTTP use);
+  - Higress, an OpenAI-compatible endpoint with no fixed host;
+  - WeChat and Microsoft Entra sign-in through next-auth;
+  - Umami's script.
+- **What it found that the old run did not** (6 usages):
+  - Google reCAPTCHA in financehb;
+  - the uploadthing file host in jiro;
+  - Microsoft speech in LobeChat;
+  - LobeHub's plugin gateway, and the Casdoor and Logto sign-in endpoints, in lobe-chat.
+- The usage totals (138 against 131) don't subtract to these counts. One usage in one run can
+  match several in the other, such as an SDK usage the other run split by package.
+- **The matcher only undercounts.** A usage counts as found only with the same channel and a
+  matching provider id, SDK or host. A usage named differently in the two runs counts as missed.
+  For example, one earlier run named the livekit backend `custom-backend` and the other
+  `NEXT_PUBLIC_API_URL backend`.
+
+## How it got there
+
+Each version was measured on all 8 repos.
+
+| Version          | What changed                                                          | Cost    | Found   |
+| ---------------- | --------------------------------------------------------------------- | ------- | ------- |
+| `v4` + `scan-v1` | Scan, leads, agent on the leads                                       | $0.7227 | 78/131  |
+| `v5` + `scan-v2` | UI-only SDK components, a catalog of browser services, base-URL leads | $0.7692 | 112/131 |
+| `v6` + `scan-v3` | Runtime-URL fetches tagged with the hosts their file names            | $0.8346 | 115/131 |
+| `v7` + `scan-v4` | Several records per reply; a runtime-URL fetch tied to a lone host    | $0.7501 | 110/131 |
+| `v8` + `scan-v5` | The scan suggests areas, so lead-heavy repos fan out                  | $0.6960 | 126/131 |
+
+Almost all the movement is lobe-chat.
+
+- **Without fan-out:** 58 one-record replies on Sonnet, $0.31, 61 of 79.
+- **With the scan's suggested areas:** one turn that fans out to Haiku area readers, $0.22, 74 of 79.
+
+## Precision of the scan
+
+I read the line behind every 10th of the scan's 272 call sites (25 of them), spread over the 8
+repos.
+
+- All 25 point at a real use of the SDK or host on that line.
+- 23 of the 25 are requests. The two that are not are HeyGen's `avatarRef.current.on(...)`, an
+  event listener, and Firestore's `doc(...)`, a reference builder.
+
+## Limits
+
+- One run per version. Model runs vary: the old inventory found 72 of its own earlier 79 usages on
+  lobe-chat.
+- There is no ground truth for these 8 repos. The score is against the old inventory's findings,
+  not against every API the repos use.
+- The scan reads call sites in JS/TS and Python only. Go, Ruby, PHP and JVM code goes to the agent
+  as a lead.
+
+## Real-AI spend: $5.56
+
+| Run                                                         | Cost    |
+| ----------------------------------------------------------- | ------- |
+| Old inventory on all 8 repos                                | $1.4062 |
+| Second old run on lobe-chat                                 | $0.2492 |
+| New inventory, `v4` to `v7`, 8 repos each                   | $3.0766 |
+| New inventory `v8`, 8 repos                                 | $0.6960 |
+| Changelog-read proofs (see `providers/core/watch-cache.ts`) | $0.1325 |
+
+The cached reruns cost $0.
