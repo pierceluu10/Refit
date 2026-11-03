@@ -244,7 +244,8 @@ export function createDeps({
       providerIds.map((id) => [id, providerWatcher(id, budget, watchCache)]),
     ),
     watchAny: (provider, hints) => anyWatcher(provider, hints, budget, watchCache),
-    match: createMatchAgent({ budget }),
+    // Sonnet: on Opus, matching was $0.13 of the $0.45 a repo cost to fix in round 3's first iteration.
+    match: createMatchAgent({ budget, model: 'claude-sonnet-5-5' }),
     runTask: async (task, dir) => {
       const freeUsd = budget.capUsd - budget.spentUsd() - budget.heldUsd();
       let hold: Hold;
