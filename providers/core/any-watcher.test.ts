@@ -5,7 +5,15 @@ import { describe, expect, it } from 'vitest';
 import { runToolLoop } from './agent.ts';
 import { anyProviderWatcher, displayName, runAnyWatch } from './any-watcher.ts';
 import type { Fetcher, JsonFetcher } from './fetch.ts';
-import { BudgetLedger, type ModelClient, type ModelRequest, type ModelResponse } from './model.ts';
+import {
+  BudgetExceededError,
+  BudgetLedger,
+  metered,
+  worstCaseUsd,
+  type ModelClient,
+  type ModelRequest,
+  type ModelResponse,
+} from './model.ts';
 import { registryClient } from './packages.ts';
 import { PageReader } from './page-tools.ts';
 import { ANY_WATCH_PROMPT_VERSION } from './prompt.ts';
@@ -130,7 +138,7 @@ describe('runAnyWatch', () => {
       model,
       fetcher,
       registry: registry(),
-      budget: new BudgetLedger(1),
+      budget: new BudgetLedger(100),
       today: '2026-11-03',
       root: mkdtempSync(join(tmpdir(), 'apt-any-empty-')),
     });
@@ -139,7 +147,7 @@ describe('runAnyWatch', () => {
     expect(first.system).toContain(ANY_WATCH_PROMPT_VERSION);
     expect(first.system).toContain('find where Acme publishes its changes');
     expect(first.serverTools).toEqual([
-      { type: 'web_search_20250305', name: 'web_search', max_uses: 5 },
+      { type: 'web_search_20250305', name: 'web_search', max_uses: 3 },
     ]);
     expect(first.tools.map((tool) => tool.name)).toEqual(
       expect.arrayContaining(['read_page', 'search_page', 'list_links', 'lookup_package']),
@@ -152,7 +160,7 @@ describe('runAnyWatch', () => {
     expect(prompt).toContain('Prereleases newer than the latest: 4.0.0-beta.1');
     expect(prompt).toContain('Release notes of 3.0.0');
     expect(prompt).toContain('* rename `charges.create` to `payments.create`');
-    expect(prompt).toContain('about $1.00 of AI to spend');
+    expect(prompt).toContain('about $100.00 of AI to spend');
 
     // The model only read the docs pages; the SDK changelog was read before it started, for the excerpts.
     expect(fetcher.urls).toEqual(expect.arrayContaining([SDK_CHANGELOG, LLMS, CHANGELOG]));
@@ -204,7 +212,7 @@ describe('runAnyWatch', () => {
         model,
         fetcher: fakeFetcher(),
         registry: registry(),
-        budget: new BudgetLedger(1),
+        budget: new BudgetLedger(100),
         root,
       });
       expect(model.requests[0].system).toContain('Acme pins versions with an Acme-Version header.');
@@ -228,7 +236,7 @@ describe('runAnyWatch', () => {
         model,
         fetcher: fakeFetcher({}),
         registry: registry(),
-        budget: new BudgetLedger(1),
+        budget: new BudgetLedger(100),
         onReport: (report) => reports.push(report),
       },
     );
@@ -254,7 +262,7 @@ describe('runAnyWatch', () => {
         model,
         fetcher: fakeFetcher(),
         registry: registry(),
-        budget: new BudgetLedger(1),
+        budget: new BudgetLedger(100),
         webSearch: false,
       },
     );
@@ -263,14 +271,13 @@ describe('runAnyWatch', () => {
     expect(model.requests[0].serverTools).toBeUndefined();
   });
 
-  it('runs on without server tools when the account cannot use them', async () => {
-    const seen: (string | undefined)[] = [];
+  const failingWith = (message: string) => {
+    const seen: ModelRequest[] = [];
     const model: ModelClient = {
       model: 'fake-model',
       async complete(request): Promise<ModelResponse> {
-        seen.push(request.serverTools?.[0]?.name);
-        if (request.serverTools)
-          throw new Error('400 web search is not enabled for this organization');
+        seen.push(request);
+        if (request.serverTools) throw new Error(message);
         return {
           content: [{ type: 'tool_use', id: 's', name: 'submit_changes', input: { changes: [] } }],
           stopReason: 'tool_use',
@@ -278,13 +285,24 @@ describe('runAnyWatch', () => {
         };
       },
     };
+    return { model, seen };
+  };
+
+  it('runs on without server tools when the account cannot use them', async () => {
+    const { model, seen } = failingWith('400 web search is not enabled for this organization');
     const report = await runAnyWatch('acme', {}, undefined, {
       model,
       fetcher: fakeFetcher(),
       registry: registry(),
-      budget: new BudgetLedger(1),
+      budget: new BudgetLedger(100),
     });
-    expect(seen).toEqual(['web_search', undefined]);
+    expect(seen.map((request) => request.serverTools?.[0]?.name)).toEqual([
+      'web_search',
+      undefined,
+    ]);
+    // The retry's prompt no longer offers the search it cannot use.
+    expect(seen[0].system).toContain('web_search finds pages anywhere');
+    expect(seen[1].system).not.toContain('web_search');
     expect(report.issues).toEqual([
       {
         message: expect.stringMatching(
@@ -293,6 +311,22 @@ describe('runAnyWatch', () => {
       },
     ]);
     expect(report.changes).toEqual([]);
+  });
+
+  it('does not blame the server tools for a rate limit on the first call', async () => {
+    const { model, seen } = failingWith('429 rate_limit_error: too many requests');
+    const watch = anyProviderWatcher(
+      'acme',
+      {},
+      {
+        model,
+        fetcher: fakeFetcher(),
+        registry: registry(),
+        budget: new BudgetLedger(100),
+      },
+    );
+    await expect(watch()).rejects.toThrow(/run ended early: model-error \(429 rate_limit_error/);
+    expect(seen).toHaveLength(1);
   });
 
   it('looks up a package the agent finds and adds its pages to the sources', async () => {
@@ -305,7 +339,7 @@ describe('runAnyWatch', () => {
       model,
       fetcher: fakeFetcher(),
       registry: registry(),
-      budget: new BudgetLedger(1),
+      budget: new BudgetLedger(100),
     });
     const results = JSON.stringify(model.requests[1].messages.at(-1));
     expect(results).toContain('npm package acme-node');
@@ -366,25 +400,82 @@ describe('the tool loop for any-provider reads', () => {
     ]);
   });
 
-  it('tells the model to submit when the budget is nearly spent', async () => {
-    // Each fake turn costs $0.004 on Sonnet pricing; after one, $0.006 of $0.01 is left.
-    const model = scriptedModel(
-      [
-        [{ type: 'tool_use', id: 'r', name: 'list_sources', input: {} }],
-        [{ type: 'text', text: 'ok' }],
-      ],
+  const noop = {
+    name: 'noop',
+    description: 'd',
+    input_schema: { type: 'object' },
+    async run() {
+      return { content: 'ok' };
+    },
+  };
+  const looping = () =>
+    scriptedModel(
+      [[{ type: 'tool_use', id: 'n', name: 'noop', input: {} }], [{ type: 'text', text: 'ok' }]],
       'claude-sonnet-5-5',
     );
-    const report = await runAnyWatch('acme', {}, undefined, {
-      model,
-      fetcher: fakeFetcher(),
-      registry: registry(),
-      budget: new BudgetLedger(0.01),
+
+  it('tells the model to submit when what is left covers only a turn or two', async () => {
+    // A fake turn costs $0.004 on Sonnet prices (1000 in, 200 out); after one, $0.006 of $0.01 is left.
+    const model = looping();
+    const ledger = new BudgetLedger(0.01);
+    await runToolLoop({
+      model: metered(model, ledger),
+      system: 's',
+      prompt: 'p',
+      tools: [noop],
+      maxTokens: 200,
+      isDone: () => false,
+      wrapUp: 'Submit now.',
+      budget: ledger,
     });
     expect(JSON.stringify(model.requests[1].messages.at(-1))).toContain(
-      "of this run's AI budget is left, enough for one or two more turns",
+      "of this run's AI budget is left, enough for one or two more turns. Submit now.",
     );
-    expect(report.costUsd).toBeGreaterThan(0);
+  });
+
+  it('warns before the next turn could no longer fit the cap', async () => {
+    const model = looping();
+    await runToolLoop({
+      model,
+      system: 's',
+      prompt: 'p',
+      tools: [noop],
+      isDone: () => false,
+      wrapUp: 'Submit now.',
+      // 16000 output tokens on Sonnet could cost $0.16; $0.05 is left.
+      budget: { capUsd: 1, spentUsd: 0.95 },
+    });
+    expect(JSON.stringify(model.requests[1].messages.at(-1))).toContain(
+      'may not cover another full turn: your next reply may be cut short. Submit now.',
+    );
+  });
+});
+
+describe('the hard cap', () => {
+  it('shrinks max_tokens to fit what is left, then refuses a call that could pass the cap', async () => {
+    const model = scriptedModel([[{ type: 'text', text: 'hi' }]], 'claude-sonnet-5-5');
+    const request = { system: 's', messages: [], tools: [], maxTokens: 16_000 };
+    // $0.02 left fits about 2000 output tokens at $10 per million, not 16000.
+    const ledger = new BudgetLedger(0.02);
+    const capped = metered(model, ledger);
+    await capped.complete(request);
+    expect(model.requests[0].maxTokens).toBeLessThan(2_000);
+    expect(model.requests[0].maxTokens).toBeGreaterThanOrEqual(1_024);
+    // The fake call cost $0.004; what is left fits fewer than 1024 output tokens, so no call is sent.
+    ledger.charge('claude-sonnet-5-5', { inputTokens: 0, outputTokens: 600 });
+    await expect(capped.complete(request)).rejects.toBeInstanceOf(BudgetExceededError);
+    expect(model.requests).toHaveLength(1);
+    expect(ledger.spentUsd).toBeLessThanOrEqual(ledger.capUsd);
+  });
+
+  it("counts a call's web searches and their results in its worst case", () => {
+    const base = { system: 's', messages: [], tools: [], maxTokens: 1_000 };
+    const search = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }];
+    const extra =
+      worstCaseUsd('claude-sonnet-5-5', { ...base, serverTools: search }) -
+      worstCaseUsd('claude-sonnet-5-5', base);
+    // Three searches at $0.01, and up to 15000 result tokens each written to the cache at $2.50 per million.
+    expect(extra).toBeGreaterThan(0.03 + 3 * 15_000 * 2.5e-6 - 0.001);
   });
 });
 
@@ -405,6 +496,40 @@ describe('quote checks', () => {
         message: `quote is on ${CHANGELOG}, not on ${DOCS}: set source.url to the page it is on`,
       },
     ]);
+  });
+
+  it('flags a cited page that was never read, unless the page with the quote links to it', async () => {
+    const releases = 'https://api.acme.test/releases';
+    const tag = 'https://code.acme.test/acme-node/releases/tag/v3.0.0';
+    const reader = new PageReader(
+      fakeFetcher({
+        ...PAGES,
+        [releases]: `## v3.0.0 (v3.0.0, published 2026-06-01T00:00:00Z)\n${tag}\n* rename \`charges.create\` to \`payments.create\``,
+      }),
+      [],
+    );
+    await reader.read(CHANGELOG);
+    await reader.read(releases);
+    const unread = normaliseChanges(
+      'acme',
+      [
+        {
+          ...endpointChange,
+          source: { ...endpointChange.source, url: 'https://blog.acme.test/x' },
+        },
+      ],
+      reader,
+    );
+    expect(unread.issues.map((issue) => issue.message)).toEqual([
+      `source.url https://blog.acme.test/x was not read; the quote is on ${CHANGELOG}: cite that page, or read https://blog.acme.test/x and check the quote there`,
+    ]);
+    // A release's own page, named in the release list that holds the quote, is a fine citation.
+    const linked = normaliseChanges(
+      'acme',
+      [{ ...sdkChange, source: { ...sdkChange.source, url: tag } }],
+      reader,
+    );
+    expect(linked.issues).toEqual([]);
   });
 
   it('accepts a cited page that differs only by a fragment or trailing slash', async () => {

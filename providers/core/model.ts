@@ -168,13 +168,63 @@ export class BudgetLedger {
   }
 }
 
-/** Wraps a client so every call is checked against and charged to the ledger. */
+/** Characters per token for the worst-case estimate: low on purpose, so the estimate errs high. */
+const CHARS_PER_TOKEN = 3;
+/** Input one server-side search can add inside a call (its results), at most. */
+export const SEARCH_RESULT_TOKENS = 15_000;
+/** The least output a call is sent with once the budget is nearly spent; below it, no call. */
+export const MIN_OUTPUT_TOKENS = 1_024;
+
+/** The part of a call's worst case that max_tokens does not change: the prompt and the searches. */
+function fixedWorstUsd(model: string, request: ModelRequest): number {
+  const chars =
+    request.system.length +
+    JSON.stringify(request.messages).length +
+    JSON.stringify(request.tools).length +
+    JSON.stringify(request.serverTools ?? []).length;
+  const searches = (request.serverTools ?? []).reduce(
+    (sum, tool) =>
+      sum +
+      (typeof tool.max_uses === 'number' ? tool.max_uses : tool.name === 'web_search' ? 10 : 0),
+    0,
+  );
+  return costOf(model, {
+    inputTokens: 0,
+    outputTokens: 0,
+    // As if nothing were cached: every prompt token, and every search result, written to the cache.
+    cacheWriteTokens: Math.ceil(chars / CHARS_PER_TOKEN) + searches * SEARCH_RESULT_TOKENS,
+    webSearches: searches,
+  });
+}
+
+/** The most one call can cost: no cache hits, every search used, every max_tokens token written. */
+export function worstCaseUsd(model: string, request: ModelRequest): number {
+  return (
+    fixedWorstUsd(model, request) +
+    costOf(model, { inputTokens: 0, outputTokens: request.maxTokens })
+  );
+}
+
+/**
+ * Wraps a client so every call is checked against and charged to the ledger.
+ * A call is sent only if its worst case fits what is left of the cap; near the
+ * end, max_tokens shrinks to fit, and when not even MIN_OUTPUT_TOKENS fit the
+ * call is refused. So spend never passes the cap, whatever one call costs.
+ */
 export function metered(client: ModelClient, ledger: BudgetLedger, label?: string): ModelClient {
   return {
     model: client.model,
     async complete(request) {
       ledger.assertRoom();
-      const response = await client.complete(request);
+      let sent = request;
+      const room = ledger.capUsd - ledger.spentUsd;
+      if (worstCaseUsd(client.model, request) > room) {
+        const perToken = costOf(client.model, { inputTokens: 0, outputTokens: 1 });
+        const fits = Math.floor((room - fixedWorstUsd(client.model, request)) / perToken);
+        if (fits < MIN_OUTPUT_TOKENS) throw new BudgetExceededError(ledger.capUsd, ledger.spentUsd);
+        sent = { ...request, maxTokens: Math.min(request.maxTokens, fits) };
+      }
+      const response = await client.complete(sent);
       ledger.charge(client.model, response.usage, label);
       return response;
     },
@@ -275,7 +325,12 @@ export function anthropicModel(
   });
 }
 
-export function budgetFromEnv(fallbackUsd = 1): BudgetLedger {
+/**
+ * The run's ledger from APTITUDE_AI_BUDGET_USD. With it unset, the cap is
+ * fallbackUsd, which is $0 unless a caller (such as the CLI) chooses one: a
+ * run without a cap refuses to spend.
+ */
+export function budgetFromEnv(fallbackUsd = 0): BudgetLedger {
   const raw = process.env.APTITUDE_AI_BUDGET_USD;
   const cap = raw === undefined || raw === '' ? fallbackUsd : Number(raw);
   return new BudgetLedger(cap);

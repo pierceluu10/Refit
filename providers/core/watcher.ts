@@ -128,6 +128,11 @@ export function normaliseChanges(
           changeId: id,
           message: `quote is on ${hits[0]}, not on ${url}: set source.url to the page it is on`,
         });
+      } else if (url && !cited && !hits.some((hit) => reader.linksTo(hit, url))) {
+        issues.push({
+          changeId: id,
+          message: `source.url ${url} was not read; the quote is on ${hits[0]}: cite that page, or read ${url} and check the quote there`,
+        });
       }
     }
 
@@ -186,7 +191,8 @@ export type WatchAgentRun = {
   /** Ledger label for its model calls. */
   label: string;
   reader: PageReader;
-  system: string;
+  /** The system prompt, or one built for whether the server tools are on (a retry runs without them). */
+  system: string | ((serverTools: boolean) => string);
   prompt: string;
   tools?: LoopTool[];
   /** Tools Anthropic runs, such as web search. Optional: a run they break is retried without them. */
@@ -242,7 +248,8 @@ export async function runWatchAgent(
   const loopWith = (serverTools?: ServerTool[]) =>
     runToolLoop({
       model,
-      system: run.system,
+      system:
+        typeof run.system === 'string' ? run.system : run.system(Boolean(serverTools?.length)),
       prompt: run.prompt,
       tools: [...pageTools(reader), ...(run.tools ?? []), submit],
       serverTools,
@@ -256,8 +263,14 @@ export async function runWatchAgent(
     });
   let loop = await loopWith(run.serverTools);
   const issues: WatchIssue[] = [];
-  // A server tool the account cannot use fails the very first call; the read goes on without it.
-  if (loop.ended === 'model-error' && loop.turns === 0 && run.serverTools?.length) {
+  // A server tool the account cannot use fails the very first call with a 400 about it; the read goes
+  // on without it. Other first-call failures (rate limits, overload, network) are reported as they are.
+  if (
+    loop.ended === 'model-error' &&
+    loop.turns === 0 &&
+    run.serverTools?.length &&
+    SERVER_TOOL_REFUSED.test(loop.error ?? '')
+  ) {
     issues.push({
       message: `server tools (${run.serverTools.map((tool) => tool.name).join(', ')}) failed, so the run went on without them: ${loop.error}`,
     });
@@ -285,6 +298,10 @@ export async function runWatchAgent(
     log: loop.log,
   };
 }
+
+/** A first-call error that says the request's server tools are not allowed or not understood. */
+const SERVER_TOOL_REFUSED =
+  /\b400\b|invalid_request|web[_ ]search|server[_ ]tool|tool type|not (enabled|supported|available|allowed)/i;
 
 /** The entry point other folders use: a WatchProvider bound to one provider. */
 export const NO_SUBMISSION = 'the agent ended without submitting changes';

@@ -304,13 +304,16 @@ describe('runWatch', () => {
       [[{ type: 'tool_use', id: 'r', name: 'list_sources', input: {} }]],
       'claude-opus-5-5',
     );
+    // Each fake call costs $0.008 on Opus prices; the ledger refuses the call that could pass $0.05.
     const report = await runWatch(provider, undefined, {
       model,
       fetcher: fakeFetcher({}),
-      budget: new BudgetLedger(0.005),
+      budget: new BudgetLedger(0.05),
+      maxTokens: 2_000,
     });
     expect(report.issues.map((issue) => issue.message).join(' ')).toMatch(/budget/);
     expect(report.costUsd).toBeGreaterThan(0);
+    expect(report.costUsd).toBeLessThanOrEqual(0.05);
   });
 });
 

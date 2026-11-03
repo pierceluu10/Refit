@@ -2,6 +2,7 @@
 // page into readable text and let tests replay saved snapshots.
 
 import { createHash } from 'node:crypto';
+import { lookup } from 'node:dns/promises';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ProviderSource } from './types.ts';
@@ -154,23 +155,52 @@ export function toText(
   }
 }
 
+const PRIVATE_V4 =
+  /^(0|10|127)\.|^169\.254\.|^172\.(1[6-9]|2\d|3[01])\.|^192\.168\.|^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|^(22[4-9]|23\d|24\d|25[0-5])\./;
+
+/** True for loopback, private, link-local, shared (CGNAT), multicast and reserved addresses. */
+export function isPrivateAddress(address: string): boolean {
+  const ip = address.toLowerCase().replace(/^\[|\]$/g, '');
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(ip)) return PRIVATE_V4.test(ip);
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(ip);
+  if (mapped) return PRIVATE_V4.test(mapped[1]);
+  return (
+    ip === '::' ||
+    ip === '::1' ||
+    /^f[cd]/.test(ip) || // unique local
+    /^fe[89ab]/.test(ip) || // link-local
+    /^ff/.test(ip) || // multicast
+    ip.startsWith('::ffff:') // mapped, in hex form
+  );
+}
+
 export function isFetchableUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== 'https:') return false;
-    const host = parsed.hostname;
+    // "localhost." and "localhost" are the same host; so are their subdomains.
+    const host = parsed.hostname.toLowerCase().replace(/\.+$/, '');
     // No local or private network targets: the agent picks URLs, so guard against SSRF.
     return !(
+      host === '' ||
       host === 'localhost' ||
       host.endsWith('.localhost') ||
       host.endsWith('.internal') ||
-      /^(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|0\.)/.test(host) ||
-      host.startsWith('[')
+      host.endsWith('.local') ||
+      host.endsWith('.home.arpa') ||
+      host.startsWith('[') ||
+      (/^\d+\.\d+\.\d+\.\d+$/.test(host) && isPrivateAddress(host))
     );
   } catch {
     return false;
   }
 }
+
+/** Resolves a host name to its addresses, as dns.lookup does. Tests pass a fixed one. */
+export type HostLookup = (host: string) => Promise<string[]>;
+
+export const systemLookup: HostLookup = async (host) =>
+  (await lookup(host, { all: true, verbatim: true })).map((entry) => entry.address);
 
 function acceptFor(format?: ProviderSource['format']): string {
   if (format === 'github-releases') return 'application/vnd.github+json';
@@ -215,20 +245,40 @@ export function extractLinks(raw: string, baseUrl: string): PageLink[] {
 
 type SafeResponse = { response: Response; finalUrl: string } | { error: string };
 
+/** GitHub endpoints the optional token is sent to: release lists, for their rate limit. */
+const GITHUB_TOKEN_PATH = /^\/repos\/[^/]+\/[^/]+\/releases(\/|$)/;
+
 /**
- * One GET that follows redirects by hand, so every hop is checked as public
- * https before it is requested. githubToken goes to api.github.com only.
+ * One GET that follows redirects by hand, so every hop is checked before it is
+ * requested: public https, and a host whose addresses are all public. githubToken
+ * goes to api.github.com release lists only.
  */
 async function safeGet(
   url: string,
   headers: Record<string, string>,
-  options: { timeoutMs?: number; githubToken?: string },
+  options: { timeoutMs?: number; githubToken?: string; lookup?: HostLookup },
 ): Promise<SafeResponse> {
+  const resolve = options.lookup ?? systemLookup;
   let target = url;
   for (let hop = 0; hop <= 5; hop++) {
     if (!isFetchableUrl(target)) return { error: `only public https URLs (${target})` };
+    const parsed = new URL(target);
+    let addresses: string[];
+    try {
+      addresses = await resolve(parsed.hostname.replace(/\.+$/, ''));
+    } catch (error) {
+      return {
+        error: `could not resolve ${parsed.hostname}: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+    if (addresses.length === 0 || addresses.some(isPrivateAddress))
+      return { error: `only public https URLs (${parsed.hostname} resolves to a private address)` };
     const sent = { ...headers };
-    if (options.githubToken && new URL(target).hostname === 'api.github.com') {
+    if (
+      options.githubToken &&
+      parsed.hostname === 'api.github.com' &&
+      GITHUB_TOKEN_PATH.test(parsed.pathname)
+    ) {
       sent.authorization = `Bearer ${options.githubToken}`;
     }
     const response = await fetch(target, {
@@ -238,6 +288,7 @@ async function safeGet(
     });
     const location = response.headers.get('location');
     if (response.status >= 300 && response.status < 400 && location) {
+      await response.body?.cancel();
       target = new URL(location, target).toString();
       continue;
     }
@@ -249,11 +300,17 @@ async function safeGet(
 /**
  * Live HTTP. maxChars bounds what one page can add to the agent's context.
  * Redirects are followed by hand so every hop is checked as public https.
- * githubToken, when given, is sent to api.github.com only (it lifts the
- * 60-requests-an-hour limit on release feeds) and never to any other host.
+ * githubToken, when given, is sent to api.github.com release lists only (it
+ * lifts the 60-requests-an-hour limit on release feeds), never to any other
+ * path or host. Use a token that can read public repositories only.
  */
 export function httpFetcher(
-  options: { maxChars?: number; timeoutMs?: number; githubToken?: string } = {},
+  options: {
+    maxChars?: number;
+    timeoutMs?: number;
+    githubToken?: string;
+    lookup?: HostLookup;
+  } = {},
 ): Fetcher {
   const maxChars = options.maxChars ?? 200_000;
   return {
@@ -313,7 +370,12 @@ export interface JsonFetcher {
  * document (a big package's full npm metadata is a few megabytes).
  */
 export function httpJsonFetcher(
-  options: { timeoutMs?: number; maxBytes?: number; githubToken?: string } = {},
+  options: {
+    timeoutMs?: number;
+    maxBytes?: number;
+    githubToken?: string;
+    lookup?: HostLookup;
+  } = {},
 ): JsonFetcher {
   const maxBytes = options.maxBytes ?? 40_000_000;
   return {
@@ -322,7 +384,11 @@ export function httpJsonFetcher(
         const got = await safeGet(
           url,
           { 'user-agent': USER_AGENT, accept: 'application/json' },
-          { timeoutMs: options.timeoutMs ?? 60_000, githubToken: options.githubToken },
+          {
+            timeoutMs: options.timeoutMs ?? 60_000,
+            githubToken: options.githubToken,
+            lookup: options.lookup,
+          },
         );
         if ('error' in got) return { ok: false, status: 0, url, error: got.error };
         const { response } = got;

@@ -6,6 +6,7 @@ import {
   BudgetExceededError,
   isText,
   isToolUse,
+  worstCaseUsd,
   type ContentBlock,
   type Message,
   type ModelClient,
@@ -183,10 +184,25 @@ export async function runToolLoop(options: {
     if (options.wrapUp && options.isDone?.() === false) {
       const turnUsd = (options.budget?.spentUsd ?? 0) - spentBefore;
       const leftUsd = options.budget ? options.budget.capUsd - options.budget.spentUsd : Infinity;
+      // The ledger sends a call only if its worst case fits, so warn before that wall, too.
+      const nextWorstUsd = options.budget
+        ? worstCaseUsd(options.model.model, {
+            system: options.system,
+            messages: [...messages, { role: 'user', content: results }],
+            tools: specs,
+            maxTokens: options.maxTokens ?? 16_000,
+            serverTools: options.serverTools,
+          })
+        : 0;
       if (left <= 2) {
         results.push({
           type: 'text',
           text: `${left} model turn${left === 1 ? '' : 's'} left. ${options.wrapUp}`,
+        });
+      } else if (leftUsd < nextWorstUsd) {
+        results.push({
+          type: 'text',
+          text: `About $${Math.max(leftUsd, 0).toFixed(2)} of this run's AI budget is left, which may not cover another full turn: your next reply may be cut short. ${options.wrapUp}`,
         });
       } else if (turnUsd > 0 && leftUsd < turnUsd * 2.5) {
         results.push({

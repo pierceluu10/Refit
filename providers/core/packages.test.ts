@@ -299,4 +299,82 @@ describe('release notes', () => {
       'Release notes of 3.0.0, from https://raw.githubusercontent.com/acme/acme-node/HEAD/CHANGELOG.md (offset 12):',
     );
   });
+
+  it('says which pages failed to load, so a gap never reads as "no notes"', async () => {
+    const info: PackageInfo = {
+      ecosystem: 'npm',
+      name: 'acme-node',
+      registryUrl: 'https://registry.npmjs.org/acme-node',
+      pageUrl: 'https://www.npmjs.com/package/acme-node',
+      readAt: '2026-11-03',
+      repository: 'https://github.com/acme/acme-node',
+      majors: [
+        { major: 2, first: '2.0.0', latest: '2.0.0', releases: 1 },
+        { major: 1, first: '1.0.0', latest: '1.0.0', releases: 1 },
+      ],
+      versions: 2,
+    };
+    const read = async (url: string): Promise<FetchedPage> => {
+      const rateLimited = url.startsWith('https://api.github.com/');
+      return {
+        url,
+        status: rateLimited ? 403 : 404,
+        ok: false,
+        fetchedAt: '2026-11-03T00:00:00.000Z',
+        contentType: 'text/plain',
+        text: '',
+        error: rateLimited ? 'HTTP 403' : 'HTTP 404',
+      };
+    };
+    const result = await releaseNotesFor(info, read);
+    // The missing CHANGELOG.md (404) is normal; the rate-limited release list is not.
+    expect(result.errors).toEqual([
+      'https://api.github.com/repos/acme/acme-node/releases?per_page=100: HTTP 403',
+    ]);
+    expect(result.missing).toEqual(['2.0.0']);
+    const text = renderPackage(info, result);
+    expect(text).toContain('Could not read: https://api.github.com/repos/acme/acme-node/releases');
+    expect(text).toContain('Release notes not found for: 2.0.0 (some pages could not be read');
+  });
+});
+
+describe('registry details', () => {
+  it('treats a fourth number and post releases as stable', () => {
+    expect(parseVersion('1.0.0.1')?.pre).toBe(false);
+    expect(parseVersion('1.0-post1')?.pre).toBe(false);
+    expect(parseVersion('1.0.post2')?.pre).toBe(false);
+  });
+
+  it('lists the newest prereleases first when their numbers tie', () => {
+    const { upcoming } = majorLines([
+      { version: '1.0.0', publishedAt: '2026-01-01T00:00:00Z' },
+      ...[1, 2, 3, 4].map((n) => ({
+        version: `2.0.0-beta.${n}`,
+        publishedAt: `2026-0${n + 1}-01T00:00:00Z`,
+      })),
+    ]);
+    expect(upcoming).toEqual(['2.0.0-beta.4', '2.0.0-beta.3', '2.0.0-beta.2']);
+  });
+
+  it("takes PyPI's source link for the repository, not a funding link to GitHub", () => {
+    const info = pypiInfo(
+      'acme',
+      {
+        info: {
+          name: 'acme',
+          version: '1.0.0',
+          project_urls: {
+            Funding: 'https://github.com/sponsors/acme',
+            Source: 'https://github.com/acme/acme-python',
+          },
+        },
+        releases: { '1.0.0': [{ upload_time_iso_8601: '2025-01-01T00:00:00Z' }] },
+      },
+      'https://pypi.org/pypi/acme/json',
+      '2026-11-03',
+    );
+    expect(info.repository).toBe('https://github.com/acme/acme-python');
+    expect(githubRepo('https://github.com/sponsors/acme')).toBeUndefined();
+    expect(githubRepo('https://github.com/orgs/acme/projects/1')).toBeUndefined();
+  });
 });

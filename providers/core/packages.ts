@@ -62,7 +62,8 @@ export function parseVersion(version: string): Parsed | undefined {
   if (!match) return undefined;
   const rest = match[4] ?? '';
   if (rest && !/^([-+.]|a|b|c|rc|alpha|beta|pre|preview|dev|post)/i.test(rest)) return undefined;
-  const pre = rest !== '' && !/^(\+|\.?post\d*$)/i.test(rest);
+  // A fourth number (1.0.0.1), a post release (1.0.post1, 1.0-post1) or build metadata is not a prerelease.
+  const pre = rest !== '' && !/^(\+|[.-]?post\d*$|(\.\d+)+$)/i.test(rest);
   return {
     major: Number(match[1]),
     minor: Number(match[2] ?? 0),
@@ -112,13 +113,35 @@ export function majorLines(releases: Release[]): { majors: MajorLine[]; upcoming
   const top = stable.at(-1)?.v;
   const upcoming = parsed
     .filter((entry) => entry.v.pre && (!top || compare(entry.v, top) > 0))
-    .sort((a, b) => compare(b.v, a.v))
+    // Prerelease tags (beta.2, rc.1) tie on numbers, so the newest by date comes first.
+    .sort(
+      (a, b) =>
+        compare(b.v, a.v) ||
+        (b.release.publishedAt ?? '').localeCompare(a.release.publishedAt ?? ''),
+    )
     .slice(0, 3)
     .map((entry) => entry.release.version);
   return { majors, upcoming };
 }
 
 export type GitHubRepo = { owner: string; repo: string; url: string; dir?: string };
+
+/** github.com paths that look like owner/repo but are GitHub's own pages. */
+const RESERVED_OWNERS = new Set([
+  'sponsors',
+  'orgs',
+  'users',
+  'apps',
+  'marketplace',
+  'topics',
+  'features',
+  'settings',
+  'about',
+  'pricing',
+  'enterprise',
+  'collections',
+  'login',
+]);
 
 /** The GitHub repository a registry's repository or homepage field points to, if any. */
 export function githubRepo(url?: string, dir?: string): GitHubRepo | undefined {
@@ -129,6 +152,7 @@ export function githubRepo(url?: string, dir?: string): GitHubRepo | undefined {
     ) ?? /^github:([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)$/i.exec(url);
   if (!match) return undefined;
   const [owner, repo] = [match[1], match[2]];
+  if (RESERVED_OWNERS.has(owner.toLowerCase())) return undefined;
   const path = (dir ?? match[3] ?? '').replace(/^\/+|\/+$/g, '');
   return {
     owner,
@@ -198,6 +222,8 @@ export function npmInfo(
   return info;
 }
 
+const SOURCE_LABEL = /source|repo|code|github/i;
+
 /** Reads PyPI's JSON metadata document for one project. */
 export function pypiInfo(
   name: string,
@@ -230,9 +256,14 @@ export function pypiInfo(
     }));
   const { majors, upcoming } = majorLines(releases);
   const projectUrls = meta.project_urls ?? undefined;
+  // Source-like links first; a Funding or Sponsor link to GitHub is not the repository.
+  const ranked = Object.entries(projectUrls ?? {}).sort(
+    ([a], [b]) => Number(!SOURCE_LABEL.test(a)) - Number(!SOURCE_LABEL.test(b)),
+  );
   const repo =
-    Object.values(projectUrls ?? {})
-      .map((url) => githubRepo(url))
+    ranked
+      .filter(([label]) => !/fund|sponsor|donat/i.test(label))
+      .map(([, url]) => githubRepo(url))
       .find(Boolean) ?? githubRepo(meta.home_page);
   const info: PackageInfo = {
     ecosystem: 'pypi',
@@ -371,6 +402,8 @@ export type NotesResult = {
   sources: ProviderSource[];
   /** Versions whose notes were not found in the pages tried. */
   missing: string[];
+  /** Pages that failed to load (a 404 for a missing CHANGELOG.md is not listed), so a gap is not read as "nothing there". */
+  errors?: string[];
 };
 
 const RAW = 'https://raw.githubusercontent.com';
@@ -418,9 +451,12 @@ export async function releaseNotesFor(
         ]
       : []),
   ];
+  const errors: string[] = [];
+  const failed = (page: FetchedPage) => `${page.url}: ${page.error ?? `HTTP ${page.status}`}`;
   let changelog: FetchedPage | undefined;
   for (const url of [...new Set(changelogs)]) {
     const page = await read(url, url.endsWith('.md') ? 'markdown' : undefined);
+    if (!page.ok && page.status !== 404) errors.push(failed(page));
     if (page.ok && page.text) {
       changelog = page;
       sources.push({
@@ -460,7 +496,10 @@ export async function releaseNotesFor(
     let found = changelog && sectionFor(changelog.text, line.first, options.maxChars);
     let url = changelog?.url;
     if (!found && releasesUrl) {
-      releases ??= await read(releasesUrl, 'github-releases');
+      if (!releases) {
+        releases = await read(releasesUrl, 'github-releases');
+        if (!releases.ok) errors.push(failed(releases));
+      }
       found = releases.ok
         ? sectionFor(releases.text, line.first, options.maxChars, RELEASE_HEADING)
         : undefined;
@@ -470,7 +509,7 @@ export async function releaseNotesFor(
       notes.push({ version: line.first, url, offset: found.offset, excerpt: found.text });
     else missing.push(line.first);
   }
-  return { notes, sources, missing };
+  return { notes, sources, missing, ...(errors.length ? { errors } : {}) };
 }
 
 /** A package as text for the agent's prompt. Strings from the registry are quoted as given. */
@@ -511,9 +550,10 @@ export function renderPackage(info: PackageInfo, notes?: NotesResult): string {
         `Release notes of ${note.version}, from ${note.url} (offset ${note.offset}):\n"""\n${note.excerpt}\n"""`,
       );
     }
+    if (notes.errors?.length) lines.push(`Could not read: ${notes.errors.join('; ')}.`);
     if (notes.missing.length)
       lines.push(
-        `Release notes not found for: ${notes.missing.join(', ')} (tried the changelog and GitHub releases; look further if the version matters).`,
+        `Release notes not found for: ${notes.missing.join(', ')} (${notes.errors?.length ? 'some pages could not be read, see above' : 'not in the changelog or GitHub releases read'}; look further if the version matters).`,
       );
   }
   return lines.join('\n');

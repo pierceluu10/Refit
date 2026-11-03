@@ -103,6 +103,17 @@ export class PageReader {
     return undefined;
   }
 
+  /** True when a page read so far names `url` in its text or links (a release list names each release's page). */
+  linksTo(pageUrl: string, url: string): boolean {
+    const page = this.pages.get(pageUrl);
+    if (!page) return false;
+    const bare = url.replace(/#.*$/, '').replace(/\/+$/, '');
+    return (
+      page.text.includes(bare) ||
+      (page.links ?? []).some((link) => link.url.replace(/#.*$/, '').replace(/\/+$/, '') === bare)
+    );
+  }
+
   /** Where a quote appears among the pages read so far. */
   findQuote(quote: string, url?: string): string[] {
     const hits: string[] = [];

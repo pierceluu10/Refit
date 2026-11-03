@@ -4,12 +4,77 @@ import {
   fallbackFetcher,
   httpFetcher,
   httpJsonFetcher,
+  isFetchableUrl,
+  isPrivateAddress,
   truncatingFetcher,
   type Fetcher,
+  type HostLookup,
 } from './fetch.ts';
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+// Every host resolves to a documentation address (TEST-NET-3), so no test needs DNS.
+const publicLookup: HostLookup = async () => ['203.0.113.7'];
+
+describe('the SSRF guard', () => {
+  it('refuses local and private hosts however they are written', () => {
+    for (const url of [
+      'https://localhost./x',
+      'https://LOCALHOST/x',
+      'https://api.localhost/x',
+      'https://metadata.google.internal./computeMetadata',
+      'https://printer.local/',
+      'https://router.home.arpa/',
+      'https://100.64.0.1/',
+      'https://2130706433/',
+      'https://[::1]/',
+    ])
+      expect(isFetchableUrl(url), url).toBe(false);
+    expect(isFetchableUrl('https://8.8.8.8/')).toBe(true);
+    expect(isFetchableUrl('https://docs.example.com/')).toBe(true);
+  });
+
+  it('knows private addresses in both families', () => {
+    for (const ip of [
+      '127.0.0.1',
+      '10.1.2.3',
+      '172.20.0.1',
+      '192.168.1.1',
+      '169.254.169.254',
+      '100.127.0.1',
+      '0.0.0.0',
+      '::1',
+      'fd00::1',
+      'fe80::1',
+      '::ffff:10.0.0.1',
+      '224.0.0.1',
+    ])
+      expect(isPrivateAddress(ip), ip).toBe(true);
+    for (const ip of ['8.8.8.8', '100.128.0.1', '2606:4700::1111', '203.0.113.7'])
+      expect(isPrivateAddress(ip), ip).toBe(false);
+  });
+
+  it('refuses a public name that resolves to a private address, before any request', async () => {
+    const calls = stubFetch({ 'https://rebind.example/': () => new Response('secret') });
+    const page = await httpFetcher({ lookup: async () => ['10.0.0.5'] }).fetch(
+      'https://rebind.example/',
+    );
+    expect(page.ok).toBe(false);
+    expect(page.error).toMatch(/resolves to a private address/);
+    expect(calls).toEqual([]);
+  });
+
+  it('sends the GitHub token to release lists only, not other GitHub API paths', async () => {
+    const calls = stubFetch({
+      'https://api.github.com/repos/a/b/contents/secret.txt': () => new Response('{}'),
+    });
+    await httpJsonFetcher({ githubToken: 'test-token-not-real', lookup: publicLookup }).json(
+      'https://api.github.com/repos/a/b/contents/secret.txt',
+    );
+    expect(calls[0].headers.authorization).toBeUndefined();
+  });
 });
 
 type Call = { url: string; headers: Record<string, string> };
@@ -35,7 +100,10 @@ describe('httpFetcher', () => {
           headers: { 'content-type': 'application/rss+xml' },
         }),
     });
-    const page = await httpFetcher().fetch('https://example.com/feed.xml', 'rss');
+    const page = await httpFetcher({ lookup: publicLookup }).fetch(
+      'https://example.com/feed.xml',
+      'rss',
+    );
     expect(page.ok).toBe(true);
     expect(page.text).toContain('Hi');
     expect(calls[0].headers.accept).toMatch(/^application\/rss\+xml/);
@@ -48,7 +116,7 @@ describe('httpFetcher', () => {
       'https://elsewhere.example/x': () =>
         new Response('[]', { headers: { 'content-type': 'application/json' } }),
     });
-    const fetcher = httpFetcher({ githubToken: 'test-token-not-real' });
+    const fetcher = httpFetcher({ githubToken: 'test-token-not-real', lookup: publicLookup });
     const page = await fetcher.fetch(
       'https://api.github.com/repos/a/b/releases',
       'github-releases',
@@ -70,7 +138,7 @@ describe('httpFetcher', () => {
           headers: { location: 'https://169.254.169.254/latest' },
         }),
     });
-    const page = await httpFetcher().fetch('https://example.com/a');
+    const page = await httpFetcher({ lookup: publicLookup }).fetch('https://example.com/a');
     expect(page.ok).toBe(false);
     expect(page.error).toMatch(/only public https/);
   });
@@ -136,7 +204,7 @@ describe('extractLinks', () => {
           headers: { 'content-type': 'text/html' },
         }),
     });
-    const page = await httpFetcher().fetch('https://docs.example.com/');
+    const page = await httpFetcher({ lookup: publicLookup }).fetch('https://docs.example.com/');
     expect(page.links).toEqual([{ url: 'https://docs.example.com/changelog', text: 'Changelog' }]);
   });
 });
@@ -149,7 +217,7 @@ describe('httpJsonFetcher', () => {
       'https://registry.example.com/moved': () =>
         new Response(null, { status: 302, headers: { location: 'https://10.0.0.1/pkg' } }),
     });
-    const json = httpJsonFetcher();
+    const json = httpJsonFetcher({ lookup: publicLookup });
     expect(await json.json('https://registry.example.com/pkg')).toEqual({
       ok: true,
       status: 200,
@@ -174,7 +242,9 @@ describe('httpJsonFetcher', () => {
         }),
     });
     expect(
-      await httpJsonFetcher({ maxBytes: 100 }).json('https://registry.example.com/big'),
+      await httpJsonFetcher({ maxBytes: 100, lookup: publicLookup }).json(
+        'https://registry.example.com/big',
+      ),
     ).toMatchObject({ ok: false, error: 'over 100 bytes' });
   });
 });

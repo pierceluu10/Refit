@@ -50,9 +50,10 @@ export type AnyWatchReport = WatchReport & {
   startingPages: string[];
 };
 
+// Three searches a call: enough to find a provider's pages, and a small part of a call's worst case.
 export const DEFAULT_WEB_SEARCH: Required<WebSearchOption> = {
   type: 'web_search_20250305',
-  maxUses: 5,
+  maxUses: 3,
 };
 
 const SKIP_LLMS_HOSTS =
@@ -132,7 +133,14 @@ async function readPackages(
         lookup.found.map(async (info) => {
           const notes: NotesResult = await releaseNotesFor(info, (url, format) =>
             reader.read(url, format),
-          ).catch(() => ({ notes: [], sources: [], missing: [] }));
+          ).catch((error: unknown) => ({
+            notes: [],
+            sources: [],
+            missing: info.majors.slice(0, -1).map((line) => line.first),
+            errors: [
+              `release notes lookup failed: ${error instanceof Error ? error.message : String(error)}`,
+            ],
+          }));
           return { info, notes };
         }),
       );
@@ -266,11 +274,8 @@ export async function runAnyWatch(
       provider: id,
       label: `watch-any:${id}`,
       reader,
-      system: anyWatchSystemPrompt({
-        name,
-        prompt: folder?.prompt ?? '',
-        webSearch: Boolean(serverTools),
-      }),
+      system: (withServerTools) =>
+        anyWatchSystemPrompt({ name, prompt: folder?.prompt ?? '', webSearch: withServerTools }),
       prompt: anyWatchUserPrompt({
         name,
         since,

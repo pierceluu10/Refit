@@ -61,7 +61,7 @@ describe.each(ids)('%s', (id) => {
       model,
       fetcher: snapshotFetcher(pagesDir),
       registry: savedRegistry(packages),
-      budget: new BudgetLedger(1),
+      budget: new BudgetLedger(100),
       today: record.runAt.slice(0, 10),
     });
 
