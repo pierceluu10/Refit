@@ -91,6 +91,13 @@ describe('local sandbox', () => {
     expect(diff).not.toContain('node_modules');
   });
 
+  it('leaves a proof test under .refit-proof out of the diff', async () => {
+    await sandbox.exec(
+      'mkdir -p .refit-proof && echo "assert(true)" > .refit-proof/model.test.mjs',
+    );
+    expect(await sandbox.diff()).toBe('');
+  });
+
   it('leaves a rebuilt tsbuildinfo out of the diff', async () => {
     await sandbox.exec(
       'echo \'{"v":2}\' > tsconfig.tsbuildinfo && mkdir -p app && echo x > app/b.tsbuildinfo',
