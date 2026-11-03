@@ -82,6 +82,8 @@ export async function createSandbox(
         '--',
         '.',
         ':(exclude,glob)**/*.tsbuildinfo',
+        // A proof test for a repo with no test setup: run by the harness, kept out of the PR.
+        ':(exclude).refit-proof',
       );
     };
     const remove = () => fs.rm(root, { recursive: true, force: true });

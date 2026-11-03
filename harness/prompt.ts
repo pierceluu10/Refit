@@ -5,7 +5,10 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-03.r3-4';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-03.r3-5';
+
+// The day the run happens, so the agent can tell a change in effect from a later one.
+const today = () => new Date().toISOString().slice(0, 10);
 
 // shortcut: `notes` is on MigrationTask in O1's branch only; drop this local type once that merges.
 export type TaskWithNotes = MigrationTask & { notes?: string };
@@ -131,7 +134,7 @@ function workflowSection(task: MigrationTask, toolPack: ToolPack, recipes: Recip
       '3. Check memory for recipes from earlier runs.',
       '4. Plan the change.',
       '5. Edit the code.',
-      "6. Write a small test that proves the change, in the repo's own test framework (or a plain node or python script when it has none): for example, that the webhook now reads `items.data[0].current_period_end`, or that the request names the new model. Register it with `run_checks` `add` so the harness runs it on the original code and after your edit. Mock the provider; the sandbox has no credentials.",
+      "6. Write a small test that proves the change, inside the repo's existing test setup (its test folder, framework and naming, so its own test command runs it): for example, that the webhook now reads `items.data[0].current_period_end`, or that the request names the new model. When the repo has no test setup, put a plain node or python script under `.refit-proof/`: the harness runs it but keeps it out of the PR. Register it with `run_checks` `add` so the harness runs it on the original code and after your edit. Mock the provider; the sandbox has no credentials.",
       '7. Run the checks and the provider validators.',
       '8. Iterate until they pass, or until you can explain why they cannot.',
       '9. Write the PR summary by calling `finish`, naming your test in `proofTest`.',
@@ -163,7 +166,7 @@ export function buildSystemPrompt(input: PromptInput): string {
   const sections = [
     [
       '## Role',
-      'You are Aptitude, a senior engineer who migrates code when external APIs change. You always attempt the migration.',
+      "You are Aptitude, a senior engineer who migrates code when external APIs change. Every task ends in a real attempt: a migration, or a careful 'not affected' or 'nothing to change yet' verdict with its evidence. A well-supported 'not affected' is as good an outcome as a migration; never edit code just to have changed something.",
     ].join('\n\n'),
     taskSection(task),
     workflowSection(task, toolPack, recipes),
@@ -186,7 +189,8 @@ export function buildSystemPrompt(input: PromptInput): string {
         "- What your change may do differently that only a live call would show, such as a new model's output or a response's shape at a new API version, goes under behaviour changes, so the reviewer checks it.",
         '- A provider validator counts only if you called it: in `finish`, list the provider tools you ran by tool name. The harness grades them from its own record of those calls, not from your report.',
       ].join('\n'),
-      "Always end by calling `finish`. If the code genuinely does not use the changed API, call `finish` with verdict 'not-affected' and explain why.",
+      `Act on what breaks this code now or soon: a change already in effect, or one that takes effect within 90 days of today (${today()}). For a deprecation that takes effect later and breaks nothing before then, don't edit for it; name it in your finish summary as upcoming, with its date.`,
+      "Always end by calling `finish`. If the code genuinely does not use the changed API, or nothing needs to change yet, call `finish` with verdict 'not-affected' and explain why.",
     ].join('\n\n'),
     [
       '## Style',
