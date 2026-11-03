@@ -266,17 +266,31 @@ function summary(run: CheckRun | undefined): string {
   return run.ok ? 'pass' : `fail (${run.failures.length})`;
 }
 
+// tsc prints types in its messages, and a dependency bump can reorder their properties, so a type
+// error is matched by file and code (counting repeats) rather than by its text.
+function failureKey(failure: string): string {
+  const match = failure.match(/^(.+?): error (TS\d+):/);
+  return match ? `${match[1]} ${match[2]}` : failure;
+}
+
 export function compareChecks(before: CheckRun[], after: CheckRun[]): CheckComparison[] {
   const names = [...new Set([...before, ...after].map((run) => run.name))];
   return names.map((name) => {
     const old = before.find((run) => run.name === name);
     const now = after.find((run) => run.name === name);
-    const known = new Set(old?.failures ?? []);
+    const known = new Map<string, number>();
+    for (const failure of old?.failures ?? []) {
+      known.set(failureKey(failure), (known.get(failureKey(failure)) ?? 0) + 1);
+    }
     return {
       name,
       before: summary(old),
       after: summary(now),
-      newFailures: (now?.failures ?? []).filter((failure) => !known.has(failure)),
+      newFailures: (now?.failures ?? []).filter((failure) => {
+        const left = known.get(failureKey(failure)) ?? 0;
+        known.set(failureKey(failure), left - 1);
+        return left <= 0;
+      }),
     };
   });
 }
