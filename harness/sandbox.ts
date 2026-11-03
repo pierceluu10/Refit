@@ -70,9 +70,19 @@ export async function createSandbox(
       await git('commit', '-q', '--allow-empty', '--no-verify', '-m', 'prepared');
       baseline = (await git('rev-parse', 'HEAD')).trim();
     };
+    // tsc rewrites a committed *.tsbuildinfo whenever the checks build, so it is no change of the
+    // agent's: left in, a task that changed nothing read as a diff (round 3, liamstamper/lamp-bot).
     const diff = async () => {
       await git('add', '-A', '-N');
-      return git('diff', '--no-color', '--no-ext-diff', baseline);
+      return git(
+        'diff',
+        '--no-color',
+        '--no-ext-diff',
+        baseline,
+        '--',
+        '.',
+        ':(exclude,glob)**/*.tsbuildinfo',
+      );
     };
     const remove = () => fs.rm(root, { recursive: true, force: true });
 
