@@ -18,18 +18,33 @@ import {
 import { stubRunTask } from './stubs.ts';
 
 // The any-provider watcher, offline: it spends $0.30 of the ledger it is given and finds one change.
-const watched = vi.hoisted(() => ({ calls: [] as { provider: string; hints: unknown }[] }));
+// Its report says the read finished, unless a test sets `endedEarly`.
+const watched = vi.hoisted(() => ({
+  calls: [] as { provider: string; hints: unknown }[],
+  endedEarly: false,
+}));
 vi.mock('../providers/core/any-watcher.ts', () => ({
   anyProviderWatcher:
     (
       provider: string,
       hints: unknown,
-      { budget }: { budget: { charge: (model: string, usage: object) => void } },
+      {
+        budget,
+        onReport,
+      }: {
+        budget: { charge: (model: string, usage: object) => void };
+        onReport?: (report: object) => void;
+      },
     ) =>
     async () => {
       watched.calls.push({ provider, hints });
       // 100k input and 10k output tokens on Sonnet: $0.30.
       budget.charge('claude-sonnet-5-5', { inputTokens: 100_000, outputTokens: 10_000 });
+      onReport?.({
+        model: 'claude-sonnet-5-5',
+        turns: 3,
+        issues: watched.endedEarly ? [{ message: 'run ended early: budget' }] : [],
+      });
       return [
         {
           provider,
@@ -300,6 +315,24 @@ describe('anyWatcher', () => {
     await watch();
     expect(watched.calls).toHaveLength(1);
     expect(budget.spentUsd()).toBeCloseTo(0.3);
+    // Another run, in another process, with the same cache folder: still one read.
+    await anyWatcher('resend', { packages: ['resend'] }, createBudget(3), cache)();
+    expect(watched.calls).toHaveLength(1);
+  });
+
+  it('never caches a read that ended early, so the next caller reads again', async () => {
+    watched.calls = [];
+    watched.endedEarly = true;
+    const budget = createBudget(3);
+    const cache = await mkdtemp(join(tmpdir(), 'aptitude-watch-test-'));
+    const watch = anyWatcher('notion', {}, budget, cache);
+    // The early read's changes still go to its caller.
+    expect(await watch()).toHaveLength(1);
+    watched.endedEarly = false;
+    await watch();
+    await watch();
+    expect(watched.calls).toHaveLength(2);
+    expect(budget.spentUsd()).toBeCloseTo(0.6);
   });
 });
 

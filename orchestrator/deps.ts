@@ -13,9 +13,16 @@ import {
   defaultMemory,
   learnFromRun,
 } from '../memory/index.ts';
-import { anyProviderWatcher } from '../providers/core/any-watcher.ts';
+import { anyProviderWatcher, type AnyWatchReport } from '../providers/core/any-watcher.ts';
 import { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
 import { folderWatcher, listProviderIds } from '../providers/core/registry.ts';
+import {
+  defaultWatchDir,
+  noteRepoProviders,
+  readOutcome,
+  readThroughCache,
+  refreshTime,
+} from '../providers/core/watch-cache.ts';
 import { hintsFor, loadToolPack } from '../providers/toolkit/pack.ts';
 import type {
   ProviderChange,
@@ -40,8 +47,9 @@ import {
 // Run records go outside the target repo; Aptitude never writes into a repo except through a PR.
 export const defaultOut = join(tmpdir(), 'aptitude-runs.jsonl');
 
-// Provider changelogs change at most daily, so one read per provider per UTC day serves every run.
-export const defaultWatchCache = join(tmpdir(), 'aptitude-watch');
+// Provider changelogs change at most daily, so one read per provider per UTC day serves every run,
+// in every process pointed at the same folder: APTITUDE_WATCH_CACHE (providers/core/watch-cache.ts).
+export const defaultWatchCache = defaultWatchDir();
 
 // Below this, a harness run cannot get past its overshoot reserve (TURN_RESERVE_USD) to edit.
 export const MIN_TASK_USD = 2;
@@ -101,26 +109,46 @@ async function held<L extends { readonly spentUsd: number }, T>(
   }
 }
 
-// A provider read, cached for the UTC day, holding WATCH_USD of the run while it reads.
+type ReportedWatcher = (
+  ledger: WatchLedger,
+  hints: ProviderHints,
+  onReport: (report: AnyWatchReport) => void,
+) => WatchProvider;
+
+// A provider read, cached for the UTC day in cacheDir, holding WATCH_USD of the run while it reads.
+// Only a finished read is cached (its report says the agent submitted and was not cut short).
 function readOncePerDay(
-  key: string,
+  provider: string,
+  hints: ProviderHints,
   label: string,
   budget: Budget,
   cacheDir: string,
-  watcher: (ledger: WatchLedger) => WatchProvider,
+  watcher: ReportedWatcher,
 ): WatchProvider {
-  return (since) => {
-    const day = new Date().toISOString().slice(0, 10);
-    return cachedChanges(cacheDir, `${key}-${since ?? 'latest'}-${day}`, () =>
-      held(
-        budget,
-        label,
-        WATCH_USD,
-        (capUsd) => new WatchLedger(capUsd - WATCH_CALL_USD),
-        (ledger) => watcher(ledger)(since),
-      ),
-    );
-  };
+  return (since) =>
+    readThroughCache({
+      dir: cacheDir,
+      provider,
+      hints,
+      since,
+      refreshBefore: refreshTime(provider),
+      read: (readHints) =>
+        held(
+          budget,
+          label,
+          WATCH_USD,
+          (capUsd) => new WatchLedger(capUsd - WATCH_CALL_USD),
+          async (ledger) => {
+            let report: AnyWatchReport | undefined;
+            try {
+              const changes = await watcher(ledger, readHints, (r) => (report = r))(since);
+              return { changes, ...readOutcome(report), costUsd: ledger.spentUsd };
+            } catch (error) {
+              return { changes: [], finished: false, costUsd: ledger.spentUsd, error };
+            }
+          },
+        ),
+    });
 }
 
 // One provider folder's changelog watcher.
@@ -129,20 +157,27 @@ export function providerWatcher(
   budget: Budget,
   cacheDir = defaultWatchCache,
 ): WatchProvider {
-  return readOncePerDay(id, `the ${id} watcher`, budget, cacheDir, (ledger) =>
-    folderWatcher(id, { budget: ledger }),
+  return readOncePerDay(id, {}, `the ${id} watcher`, budget, cacheDir, (ledger, _hints, onReport) =>
+    folderWatcher(id, { budget: ledger, onReport }),
   );
 }
 
-// A watcher for a provider the inventory found that has no folder in providers/, led by its hints.
+// A watcher for a provider the inventory found that has no folder in providers/, led by its hints
+// (and by the hints of every other caller today, so one read serves them all).
 export function anyWatcher(
   provider: string,
   hints: ProviderHints,
   budget: Budget,
   cacheDir = defaultWatchCache,
 ): WatchProvider {
-  return readOncePerDay(`any-${provider}`, `the ${provider} watcher`, budget, cacheDir, (ledger) =>
-    anyProviderWatcher(provider, hints, { budget: ledger }),
+  return readOncePerDay(
+    provider,
+    hints,
+    `the ${provider} watcher`,
+    budget,
+    cacheDir,
+    (ledger, readHints, onReport) =>
+      anyProviderWatcher(provider, readHints, { budget: ledger, onReport }),
   );
 }
 
@@ -233,6 +268,12 @@ export function createDeps({
         ledger = new InventoryLedger({ capUsd: hold.usd });
         const { usages } = await runInventory(dir, repo, { ledger });
         spentUsd = ledger.spentUsd;
+        // The watch cache splits each day's read over the repos whose inventory named the provider.
+        await noteRepoProviders(
+          watchCache,
+          repo,
+          usages.map((usage) => usage.provider),
+        ).catch(() => {});
         return usages;
       } finally {
         hold.settle(Math.max(spentUsd, ledger?.spentUsd ?? 0));

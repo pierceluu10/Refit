@@ -1,0 +1,407 @@
+{
+  "commit": "b5ba583fa9dd9ba695a6a27b171bf4991945bfb6",
+  "repo": "borodinka/hire-wise",
+  "promptVersion": "inventory-v8",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "borodinka/hire-wise",
+      "provider": "firebase",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "functions/src/index.ts",
+          "line": 23,
+          "operation": "https.onCall",
+          "fields": ["secrets", "request"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["firebase-admin", "firebase-functions", "firebase"],
+        "hosts": ["firebaseio.com", "fcm.googleapis.com", "firestore.googleapis.com"]
+      },
+      "sdk": {
+        "name": "firebase-functions",
+        "version": "6.2.0",
+        "lockfile": "functions/yarn.lock"
+      }
+    },
+    {
+      "repo": "borodinka/hire-wise",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "functions/src/index.ts",
+          "line": 50,
+          "operation": "beta.chat.completions.parse",
+          "fields": ["model", "messages", "response_format"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read. Model \"gpt-4o-2024-08-06\"."
+        },
+        {
+          "file": "functions/src/index.ts",
+          "line": 60,
+          "operation": "zodResponseFormat",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "gpt-4o-2024-08-06",
+        "file": "functions/src/index.ts",
+        "line": 51
+      },
+      "hints": {
+        "packages": ["openai"],
+        "hosts": ["api.openai.com"],
+        "docsUrls": ["https://platform.openai.com/docs/deprecations"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "4.77.3",
+        "lockfile": "functions/yarn.lock"
+      }
+    },
+    {
+      "repo": "borodinka/hire-wise",
+      "provider": "firebase",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 20,
+          "operation": "setDoc",
+          "fields": ["firestore", "applicant", "userUid", "uid"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 29,
+          "operation": "query",
+          "fields": ["firestore"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 30,
+          "operation": "collection",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 31,
+          "operation": "where",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 34,
+          "operation": "getDocs",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 46,
+          "operation": "query",
+          "fields": ["firestore"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 47,
+          "operation": "collection",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 48,
+          "operation": "where",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 49,
+          "operation": "where",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 52,
+          "operation": "getDocs",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 64,
+          "operation": "doc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 65,
+          "operation": "getDoc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 80,
+          "operation": "doc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 81,
+          "operation": "updateDoc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 89,
+          "operation": "doc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 90,
+          "operation": "deleteDoc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/auth.ts",
+          "line": 12,
+          "operation": "signInWithEmailAndPassword",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/auth.ts",
+          "line": 18,
+          "operation": "createUserWithEmailAndPassword",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/auth.ts",
+          "line": 20,
+          "operation": "updateProfile",
+          "fields": ["displayName"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/event.ts",
+          "line": 19,
+          "operation": "setDoc",
+          "fields": ["firestore", "event", "userUid", "uid"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/event.ts",
+          "line": 28,
+          "operation": "query",
+          "fields": ["firestore"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/event.ts",
+          "line": 29,
+          "operation": "collection",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/event.ts",
+          "line": 30,
+          "operation": "where",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/event.ts",
+          "line": 33,
+          "operation": "getDocs",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/event.ts",
+          "line": 41,
+          "operation": "doc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/event.ts",
+          "line": 42,
+          "operation": "updateDoc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/event.ts",
+          "line": 50,
+          "operation": "doc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/event.ts",
+          "line": 51,
+          "operation": "deleteDoc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 20,
+          "operation": "setDoc",
+          "fields": ["firestore", "job", "userUid", "uid"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 29,
+          "operation": "query",
+          "fields": ["firestore"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 30,
+          "operation": "collection",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 31,
+          "operation": "where",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 34,
+          "operation": "getDocs",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 46,
+          "operation": "doc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 47,
+          "operation": "getDoc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 59,
+          "operation": "doc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 60,
+          "operation": "updateDoc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 68,
+          "operation": "doc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 69,
+          "operation": "deleteDoc",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/firebase/helpers/getDownloadURL.ts",
+          "line": 13,
+          "operation": "ref",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/firebase/helpers/getDownloadURL.ts",
+          "line": 14,
+          "operation": "getDownloadURL",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/firebase/helpers/removeFileFromStorage.ts",
+          "line": 10,
+          "operation": "ref",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/services/firebase/helpers/removeFileFromStorage.ts",
+          "line": 12,
+          "operation": "deleteObject",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/features/job/details/components/applicants/utils.ts",
+          "line": 38,
+          "operation": "ref",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/features/job/details/components/applicants/utils.ts",
+          "line": 42,
+          "operation": "uploadBytesResumable",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/features/job/details/components/applicants/utils.ts",
+          "line": 97,
+          "operation": "httpsCallable",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["firebase-admin", "firebase-functions", "firebase"],
+        "hosts": ["firebaseio.com", "fcm.googleapis.com", "firestore.googleapis.com"]
+      },
+      "sdk": {
+        "name": "firebase",
+        "version": "11.0.2",
+        "lockfile": "yarn.lock"
+      }
+    },
+    {
+      "repo": "borodinka/hire-wise",
+      "provider": "cdnjs.cloudflare.com",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/features/job/details/components/applicants/utils.ts",
+          "line": 77,
+          "operation": "GET pdf.worker.min.mjs (pdf.js worker script)",
+          "notes": "pdfjs-dist worker loaded from the cdnjs CDN at runtime; version 4.9.155 pinned in URL."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "pdf.js 4.9.155",
+        "file": "src/features/job/details/components/applicants/utils.ts",
+        "line": 77
+      },
+      "hints": {
+        "packages": ["pdfjs-dist"],
+        "hosts": ["cdnjs.cloudflare.com"]
+      }
+    }
+  ],
+  "purposes": {
+    "cdnjs.cloudflare.com": "pdf.js worker script CDN"
+  },
+  "summary": "borodinka/hire-wise uses firebase through firebase 11.0.2 in 46 places; openai through openai 4.77.3, pinned to gpt-4o-2024-08-06 in 2 places; firebase through firebase-functions 6.2.0 in 1 place; cdnjs.cloudflare.com for pdf.js worker script CDN through raw HTTP, pinned to pdf.js 4.9.155 in 1 place.",
+  "agentSummary": "The repo uses three external services: Firebase, OpenAI, and the cdnjs CDN. I didn't open the call-site files, because the code scan had already read them and I only spot-checked one. I recorded the cdnjs usage myself. The Firebase and OpenAI usages are the scan's own records, and their notes say response handling wasn't read.\n\n- **Firebase, browser SDK (`firebase` 11.0.2):** Firestore is used for applicants, events and jobs in `src/app/services/api/`. Auth uses email/password sign-in, sign-up and `updateProfile`. Storage handles resume upload, download URL and delete. `httpsCallable` calls the cloud function in `applicants/utils.ts:97`. The client is built in `src/app/services/firebase/firebase.ts` from the `VITE_FIREBASE_*` env values.\n- **Firebase Functions (`firebase-functions` 6.2.0):** `functions/src/index.ts:23` defines an `https.onCall` function. I did not verify that `firebase-admin` is unused. The scan found no import of it.\n- **OpenAI SDK (`openai` 4.77.3):** `functions/src/index.ts:50` calls `beta.chat.completions.parse` with `zodResponseFormat`. The model is pinned to `gpt-4o-2024-08-06`, and the key comes from `OPENAI_API_KEY`.\n- **cdnjs (`cdnjs.cloudflare.com`):** `applicants/utils.ts:77` loads the pdf.js worker script from this CDN at runtime, pinned to version 4.9.155 in the URL.\n\nThe scan's other leads were not external APIs:\n- **Frontend dependencies:** the UI, state and form libraries (MUI, FullCalendar, Redux, react-hook-form, dayjs, uuid and similar) make no network calls.\n- **`functions/package.json`:** `zod` is used only for response schemas. `cors` has no network call of its own.\n- **Links in comments:** `github.com` and `vitejs.dev` appear only in comments.",
+  "outcome": "success",
+  "costUsd": 0.041026,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0002552000000000001,
+    "claude-sonnet-5-5": 0.040770799999999996
+  },
+  "turns": 5,
+  "durationMs": 12237,
+  "scan": {
+    "version": "scan-v7",
+    "usages": 3,
+    "callSites": 49,
+    "leads": 14
+  }
+}

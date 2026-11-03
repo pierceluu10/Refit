@@ -1,0 +1,354 @@
+{
+  "commit": "313dbd324b09519252ab0791c8a5a2654be31ada",
+  "repo": "4lbatr0s/jiro",
+  "promptVersion": "inventory-v8",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "kinde",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/auth/[kindeAuth]/route.ts",
+          "line": 10,
+          "operation": "handleAuth",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/api/message/route.ts",
+          "line": 14,
+          "operation": "getKindeServerSession",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/api/uploadthing/core.ts",
+          "line": 23,
+          "operation": "getKindeServerSession",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/dashboard/[fileId]/page.tsx",
+          "line": 19,
+          "operation": "getKindeServerSession",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/dashboard/page.tsx",
+          "line": 10,
+          "operation": "getKindeServerSession",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/pricing/page.tsx",
+          "line": 70,
+          "operation": "getKindeServerSession",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/components/Navbar.tsx",
+          "line": 10,
+          "operation": "getKindeServerSession",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/lib/stripe.ts",
+          "line": 11,
+          "operation": "getKindeServerSession",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/middleware.ts",
+          "line": 6,
+          "operation": "withAuth",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/trpc/service/index.ts",
+          "line": 9,
+          "operation": "getKindeServerSession",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/trpc/trpc.ts",
+          "line": 13,
+          "operation": "getKindeServerSession",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["@kinde-oss/kinde-auth-nextjs"]
+      },
+      "sdk": {
+        "name": "@kinde-oss/kinde-auth-nextjs",
+        "version": "2.1.3",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "pinecone",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/message/route.ts",
+          "line": 48,
+          "operation": "Index",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/api/uploadthing/core.ts",
+          "line": 94,
+          "operation": "Index",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["@pinecone-database/pinecone"]
+      },
+      "sdk": {
+        "name": "@pinecone-database/pinecone",
+        "version": "1.1.3",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/message/route.ts",
+          "line": 74,
+          "operation": "chat.completions.create",
+          "fields": ["model", "temperature", "stream", "true", "messages"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read. Model \"gpt-3.5-turbo\"."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "gpt-3.5-turbo",
+        "file": "src/app/api/message/route.ts",
+        "line": 75
+      },
+      "hints": {
+        "packages": ["openai"],
+        "hosts": ["api.openai.com"],
+        "docsUrls": ["https://platform.openai.com/docs/deprecations"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "4.24.7",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "uploadthing",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/uploadthing/route.ts",
+          "line": 6,
+          "operation": "createNextRouteHandler",
+          "fields": ["router", "ourFileRouter"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["@uploadthing/react", "uploadthing"]
+      },
+      "sdk": {
+        "name": "uploadthing",
+        "version": "6.2.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "stripe",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 13,
+          "operation": "webhooks.constructEvent",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 34,
+          "operation": "subscriptions.retrieve",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 55,
+          "operation": "subscriptions.retrieve",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/lib/stripe.ts",
+          "line": 50,
+          "operation": "subscriptions.retrieve",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/trpc/controller/index.ts",
+          "line": 93,
+          "operation": "billingPortal.sessions.create",
+          "fields": ["customer", "stripeCustomerId", "return_url", "billingUrl"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "src/trpc/controller/index.ts",
+          "line": 102,
+          "operation": "checkout.sessions.create",
+          "fields": [
+            "success_url",
+            "billingUrl",
+            "cancel_url",
+            "payment_method_types",
+            "mode",
+            "billing_address_collection",
+            "line_items",
+            "metadata"
+          ],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["stripe"],
+        "hosts": ["api.stripe.com", "js.stripe.com", "checkout.stripe.com", "billing.stripe.com"],
+        "docsUrls": ["https://docs.stripe.com/changelog"]
+      },
+      "sdk": {
+        "name": "stripe",
+        "version": "14.13.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "uploadthing",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/lib/uploadthing.ts",
+          "line": 6,
+          "operation": "generateReactHelpers",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["@uploadthing/react", "uploadthing"]
+      },
+      "sdk": {
+        "name": "@uploadthing/react",
+        "version": "6.2.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "stripe",
+      "via": "webhook",
+      "callSites": [
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 13,
+          "operation": "webhooks.constructEvent",
+          "notes": "Webhook signature check (code scan)."
+        }
+      ],
+      "hints": {
+        "packages": ["stripe"],
+        "hosts": ["api.stripe.com", "js.stripe.com", "checkout.stripe.com", "billing.stripe.com"],
+        "docsUrls": ["https://docs.stripe.com/changelog"]
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/message/route.ts",
+          "line": 56,
+          "operation": "OpenAIEmbeddings (via PineconeStore.similaritySearch) embeddings",
+          "notes": "Query embedded via langchain OpenAIEmbeddings (line 44), then Pinecone similarity search, top 4."
+        },
+        {
+          "file": "src/app/api/uploadthing/core.ts",
+          "line": 105,
+          "operation": "PineconeStore.fromDocuments with OpenAIEmbeddings",
+          "notes": "Embeds PDF pages via OpenAI embeddings (constructed line 95) and upserts to Pinecone namespace=file id."
+        }
+      ],
+      "hints": {
+        "packages": ["@langchain/openai", "@langchain/community", "langchain", "ai"]
+      },
+      "sdk": {
+        "name": "@langchain/openai",
+        "version": "manifest"
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "pinecone",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/message/route.ts",
+          "line": 50,
+          "operation": "PineconeStore.fromExistingIndex (langchain)"
+        },
+        {
+          "file": "src/app/api/uploadthing/core.ts",
+          "line": 105,
+          "operation": "PineconeStore.fromDocuments (langchain)",
+          "fields": ["pineconeIndex", "maxConcurrency", "namespace"]
+        }
+      ],
+      "hints": {
+        "packages": ["@langchain/community", "@pinecone-database/pinecone"]
+      },
+      "sdk": {
+        "name": "@langchain/community",
+        "version": "manifest"
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "uploadthing-prod.s3.us-west-2.amazonaws.com",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/app/api/uploadthing/core.ts",
+          "line": 65,
+          "operation": "GET /{file.key}",
+          "notes": "Downloads uploaded PDF from UploadThing's S3 bucket, then blob -> PDFLoader."
+        }
+      ],
+      "hints": {
+        "hosts": ["uploadthing-prod.s3.us-west-2.amazonaws.com"]
+      }
+    }
+  ],
+  "purposes": {},
+  "summary": "4lbatr0s/jiro uses kinde through @kinde-oss/kinde-auth-nextjs 2.1.3 in 11 places; stripe through stripe 14.13.0 in 6 places; pinecone through @pinecone-database/pinecone 1.1.3 in 2 places; openai through @langchain/openai manifest in 2 places; pinecone through @langchain/community manifest in 2 places; openai through openai 4.24.7, pinned to gpt-3.5-turbo in 1 place; uploadthing through uploadthing 6.2.0 in 1 place; uploadthing through @uploadthing/react 6.2.0 in 1 place; stripe through webhooks in 1 place; uploadthing-prod.s3.us-west-2.amazonaws.com through raw HTTP in 1 place.",
+  "agentSummary": "I found seven external providers in jiro. The code scan had already recorded five of them. I added the LangChain paths for OpenAI and Pinecone and the S3 fetch. I did not read the Stripe, Kinde, `src/lib/*` or UploadThing route files myself. Those scan-recorded entries still have the scan's generic notes, so I haven't confirmed what the code does with their responses.\n\n**Providers**\n- **Kinde (auth, SDK):** `@kinde-oss/kinde-auth-nextjs`, used across the app.\n- **Stripe (billing, SDK and webhook):** `stripe` handles subscriptions, checkout and the billing portal. It also verifies webhook signatures with `constructEvent`.\n- **UploadThing (file uploads, SDK):** `uploadthing` and `@uploadthing/react`. Its `onUploadComplete` callback in `core.ts` is UploadThing's own callback, which I treated as part of the SDK rather than a separate webhook.\n- **OpenAI (SDK):**\n  - **Chat:** `gpt-3.5-turbo` through the `openai` SDK.\n  - **Embeddings:** LangChain's `OpenAIEmbeddings` (`@langchain/openai`) embeds PDF pages at upload and the user's question at query time.\n  - **Not recorded:** The `ai` package's `OpenAIStream` only reformats the chat response, so I did not record it as a call.\n- **Pinecone (vector store, SDK):** the `@pinecone-database/pinecone` index is used through LangChain's `PineconeStore` (`@langchain/community`). `fromDocuments` indexes the PDF and `fromExistingIndex` plus `similaritySearch` retrieves chunks, one namespace per file.\n- **UploadThing's S3 bucket (HTTP):** `core.ts:65` fetches the uploaded PDF from `uploadthing-prod.s3.us-west-2.amazonaws.com`. I recorded it as its own HTTP usage under that host.\n\n**Leads that are not external APIs**\n- The imports `@langchain/google-genai`, `@google/generative-ai` and `HuggingFaceTransformersEmbeddings` in `core.ts` are never used. The Hugging Face embeddings code is commented out.\n- `@xenova/transformers` runs locally.\n- `@prisma/client` is a database driver, so it is out of scope.\n- tRPC, React Query and `/api/message` are the repo's own backend.\n- `jiro-omega.vercel.app`, `ui.shadcn.com` and `app.pinecone.io` are only links or schema references.\n- The remaining unknown dependencies are UI or utility libraries.\n\n**Uncertain**\n- I didn't open `src/app/lib/openai.ts` or `src/app/lib/pinecode.ts`. They create the OpenAI and Pinecone clients that the recorded calls use.\n- The LangChain-based entries record the manifest range, not a locked version.",
+  "outcome": "success",
+  "costUsd": 0.05924900000000001,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0003589,
+    "claude-sonnet-5-5": 0.0588901
+  },
+  "turns": 7,
+  "durationMs": 15244,
+  "scan": {
+    "version": "scan-v5",
+    "usages": 7,
+    "callSites": 23,
+    "leads": 31
+  }
+}
