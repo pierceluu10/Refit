@@ -98,6 +98,24 @@ describe('createMatchAgent', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
+  it('settles the hold whatever the call does', async () => {
+    const budget = createBudget(2);
+    const create = vi
+      .fn()
+      // An error the API answered with is not billed.
+      .mockRejectedValueOnce(Object.assign(new Error('overloaded'), { status: 529 }))
+      // A response without usage may have been billed, so it counts the whole hold.
+      .mockResolvedValueOnce({ stop_reason: 'end_turn', content: [] });
+    const client = { messages: { create } } as unknown as Pick<Anthropic, 'messages'>;
+    const match = createMatchAgent({ client, budget });
+
+    await expect(match({ repo, changes, usages })).rejects.toThrow('overloaded');
+    expect(budget.spentUsd()).toBe(0);
+    await expect(match({ repo, changes, usages })).rejects.toThrow();
+    expect(budget.spentUsd()).toBeGreaterThan(0.3);
+    expect(budget.heldUsd()).toBe(0);
+  });
+
   it('throws on a refusal instead of parsing it', async () => {
     const { client } = fakeClient(agentOutput, 'refusal');
     const match = createMatchAgent({ client, budget: createBudget(2) });

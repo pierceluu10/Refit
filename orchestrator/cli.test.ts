@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { main } from './cli.ts';
+import { formatSummary, main } from './cli.ts';
+import type { LoopRecord } from './loop.ts';
 
 describe('aptitude CLI', () => {
   let dir: string;
@@ -58,5 +59,41 @@ describe('aptitude CLI', () => {
     expect(await main(['run'])).toBe(2);
     expect(await main(['run', '--repo', join(dir, 'missing')])).toBe(2);
     expect(await main(['deploy', '--repo', dir])).toBe(2);
+  });
+});
+
+describe('formatSummary', () => {
+  const run = (taskId: string, outcome: LoopRecord['outcome'], note?: string): LoopRecord => ({
+    taskId,
+    outcome,
+    diff: '',
+    checks: [],
+    costUsd: 0,
+    transcriptPath: '',
+    note,
+  });
+
+  it('lists attempted work first and each not-affected verdict with its reasoning last', () => {
+    const records = [
+      run('acme/shop:meta:v19', 'not-affected', 'The repo never calls the Graph API.'),
+      run('acme/shop:stripe:source', 'verified'),
+      run('acme/shop:openai:gpt-4o', 'failed', 'not attempted: match failed after retries'),
+    ];
+    const text = formatSummary(
+      'acme/shop',
+      {
+        counts: { verified: 1, 'needs-review': 0, 'not-affected': 1, failed: 1 },
+        prs: [],
+        costUsd: 0,
+        records,
+        errors: [],
+      },
+      { dryRun: true, out: '/tmp/runs.jsonl' },
+    );
+    const lines = text.split('\n');
+    const at = (id: string) => lines.findIndex((l) => l.includes(id));
+    expect(at('stripe:source')).toBeLessThan(at('openai:gpt-4o'));
+    expect(at('openai:gpt-4o')).toBeLessThan(at('meta:v19'));
+    expect(lines[at('meta:v19') + 1].trim()).toBe('The repo never calls the Graph API.');
   });
 });

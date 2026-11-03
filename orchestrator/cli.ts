@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { createBudget } from './budget.ts';
 import { createDeps, defaultOut } from './deps.ts';
+import type { RunRecord } from '../shared/types.ts';
 import { runOrg, type RunSummary } from './loop.ts';
 
 const USAGE = 'usage: aptitude run --repo <path> [--repo <path> ...] [--dry-run] [--out <file>]';
@@ -42,12 +43,18 @@ export function formatSummary(
   { dryRun, out }: { dryRun: boolean; out: string },
 ): string {
   const { counts } = summary;
+  // Attempted work first; the not-affected verdicts, each with the match agent's reasoning, last.
+  const order: RunRecord['outcome'][] = ['verified', 'needs-review', 'failed', 'not-affected'];
   return [
     `Aptitude run on ${repo}${dryRun ? ' (dry run: no PRs opened)' : ''}`,
     `  outcomes: ${counts.verified} verified, ${counts['needs-review']} needs-review, ${counts['not-affected']} not-affected, ${counts.failed} failed`,
-    ...summary.records.map(
-      (r) =>
-        `  ${r.outcome.padEnd(12)} ${r.taskId}${r.pr ? `  ${r.pr}` : ''}${r.note ? `\n${' '.repeat(15)}${r.note}` : ''}`,
+    ...order.flatMap((outcome) =>
+      summary.records
+        .filter((r) => r.outcome === outcome)
+        .map(
+          (r) =>
+            `  ${r.outcome.padEnd(12)} ${r.taskId}${r.pr ? `  ${r.pr}` : ''}${r.note ? `\n${' '.repeat(15)}${r.note}` : ''}`,
+        ),
     ),
     `  PRs: ${summary.prs.length ? summary.prs.join(', ') : 'none'}`,
     `  cost: $${summary.costUsd.toFixed(4)}`,

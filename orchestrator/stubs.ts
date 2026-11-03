@@ -2,14 +2,17 @@
 import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
 import type {
   ApiUsage,
   InventoryRepo,
+  OpenPullRequest,
   ProviderChange,
+  ProviderHints,
   RunTask,
   WatchProvider,
 } from '../shared/types.ts';
-import type { LoopRecord, OpenPullRequest, RecordRun } from './loop.ts';
+import type { LoopRecord, RecordRun } from './loop.ts';
 import type { MatchChanges, MatchResult } from './match.ts';
 
 const fixture = (name: string) => fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url));
@@ -20,9 +23,24 @@ export function stubInventory(file = fixture('usages.json')): InventoryRepo {
   return async (_repoDir, repo) => (await readJson<ApiUsage[]>(file)).map((u) => ({ ...u, repo }));
 }
 
-// Stub for providers/: replays fixture changes and ignores `since`.
-export function stubWatcher(file = fixture('changes.json')): WatchProvider {
-  return () => readJson<ProviderChange[]>(file);
+// Stub for providers/: replays the fixture changes for one provider and ignores `since`.
+export function stubWatcher(provider: string, file = fixture('changes.json')): WatchProvider {
+  return async () =>
+    (await readJson<ProviderChange[]>(file)).filter((change) => change.provider === provider);
+}
+
+// Stub for F4's anyProviderWatcher (providers/core/any-watcher.ts), with its signature, until it lands.
+// It throws rather than return nothing, so the run reports the provider as unwatched.
+export function anyProviderWatcher(
+  provider: string,
+  _hints: ProviderHints,
+  _deps?: { budget?: WatchLedger },
+): WatchProvider {
+  return async () => {
+    throw new Error(
+      `no changelog watcher for ${provider} yet: anyProviderWatcher (providers/core/any-watcher.ts) has not landed`,
+    );
+  };
 }
 
 // Stub for harness/: changes nothing and says so. The real harness works in a sandboxed copy.
@@ -55,7 +73,7 @@ export function stubRecordRun(file: string): RecordRun {
 export const stubMatch: MatchChanges = async ({ repo, changes, usages }) => {
   const result: MatchResult = { tasks: [], notAffected: [], costUsd: 0 };
   for (const change of changes) {
-    const same = usages.filter((u) => u.provider === change.provider);
+    const same = usages.filter((u) => u.provider.toLowerCase() === change.provider.toLowerCase());
     if (same.length === 0) {
       result.notAffected.push({
         changeId: change.id,

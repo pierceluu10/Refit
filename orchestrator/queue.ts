@@ -11,11 +11,14 @@ export function createMemoryQueue({
   retries,
   backoffMs = 1000,
   log = () => {},
+  shouldRetry = () => true,
 }: {
   concurrency: number;
   retries: number;
   backoffMs?: number;
   log?: (line: string) => void;
+  // False for an error that another try cannot fix.
+  shouldRetry?: (error: unknown) => boolean;
 }): Queue {
   let running = 0;
   let pending = 0;
@@ -46,7 +49,7 @@ export function createMemoryQueue({
           try {
             return await job();
           } catch (error) {
-            if (attempt >= retries) throw error;
+            if (attempt >= retries || !shouldRetry(error)) throw error;
             const wait = backoffMs * 2 ** attempt;
             log(
               `${name}: attempt ${attempt + 1} failed (${error instanceof Error ? error.message : String(error)}); retrying in ${wait}ms`,
