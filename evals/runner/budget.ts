@@ -1,4 +1,4 @@
-// The run-level dollar cap: one of Aptitude's four hard limits. Every AI dollar the runner
+// The run-level dollar cap: one of Refit's four hard limits. Every AI dollar the runner
 // knows about goes through charge(); past the cap it throws and no new work starts.
 import type { Meter } from './types.ts';
 

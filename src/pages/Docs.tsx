@@ -36,7 +36,7 @@ export function Docs() {
         </aside>
         <main id="main-content" className="docs-content">
           <section id="introduction">
-            <h1>Meet Aptitude.</h1>
+            <h1>Meet Refit.</h1>
             <p className="docs-lead">
               A GitHub App that keeps your code current with the APIs it depends on.
             </p>
@@ -48,9 +48,9 @@ export function Docs() {
               </span>
             </div>
             <p>
-              Aptitude is designed to read each repository, map every external API it uses, watch
-              those APIs for changes, migrate the affected code in a sandbox, prove the result, and
-              open a pull request. You keep the review and the merge.
+              Refit is designed to read each repository, map every external API it uses, watch those
+              APIs for changes, migrate the affected code in a sandbox, prove the result, and open a
+              pull request. You keep the review and the merge.
             </p>
             <p>
               Use the interactive walkthrough to explore the intended experience without signing in
@@ -113,13 +113,13 @@ export function Docs() {
             <ol>
               <li>Review the app’s requested permissions in GitHub.</li>
               <li>Install it on your organization, for all repositories or selected ones.</li>
-              <li>Aptitude reads each repository and builds its API usage map.</li>
+              <li>Refit reads each repository and builds its API usage map.</li>
               <li>It re-reads on every push and watches the APIs it found.</li>
             </ol>
             <p>
               The planned permissions cover repository metadata, code access, migration branches,
               and pull requests. The final permission list must be reviewed against the implemented
-              GitHub App before launch. Aptitude must not request customer production API keys.
+              GitHub App before launch. Refit must not request customer production API keys.
             </p>
             <div className="docs-callout">
               <strong>Nothing is connected in this release.</strong>
@@ -176,7 +176,7 @@ export function Docs() {
                 and any behavior change.
               </li>
               <li>
-                <strong>Make the final decision.</strong> Aptitude never merges and never pushes to
+                <strong>Make the final decision.</strong> Refit never merges and never pushes to
                 your default branch.
               </li>
             </ul>

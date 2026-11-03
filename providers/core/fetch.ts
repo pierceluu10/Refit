@@ -29,7 +29,7 @@ export interface Fetcher {
   fetch(url: string, format?: ProviderSource['format']): Promise<FetchedPage>;
 }
 
-export const USER_AGENT = 'AptitudeWatcher/0.1 (+https://github.com/pierceluu10/Refit)';
+export const USER_AGENT = 'RefitWatcher/0.1 (+https://github.com/pierceluu10/Refit)';
 
 const ENTITIES: Record<string, string> = {
   amp: '&',

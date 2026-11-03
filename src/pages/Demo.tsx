@@ -15,7 +15,7 @@ export function Demo() {
       <Header />
       <main id="main-content" className="demo-page content-width">
         <Link className="back-link" to="/">
-          ← Back to Aptitude
+          ← Back to Refit
         </Link>
         <div className="demo-heading">
           <h1>

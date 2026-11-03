@@ -206,7 +206,7 @@ describe('shopify_validate_graphql (live, stubbed)', () => {
     expect(calls[0].body).toContain('__schema');
     expect(out).toContain('live introspection of 2026-07');
     expect(out).toContain('Shop.liveOnly is deprecated: Live reason');
-    expect(existsSync(join(cacheDir, 'aptitude-shopify-admin-schema-2026-07.json'))).toBe(true);
+    expect(existsSync(join(cacheDir, 'refit-shopify-admin-schema-2026-07.json'))).toBe(true);
 
     clearFetchCache();
     const again = await tool('shopify_validate_graphql', pack).run(

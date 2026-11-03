@@ -1,6 +1,6 @@
 # Agent guide
 
-This repository holds Aptitude: a GitHub App that reads an organization's codebases, understands which external APIs they use, watches those APIs for changes, migrates the affected code, proves the migration works and opens a PR. Refit was renamed Aptitude on 2026-11-01. The old deterministic engine stays in git history; don't port it back. `APTITUDE-PLAN.md` is the plan.
+This repository holds Refit: a GitHub App that reads an organization's codebases, understands which external APIs they use, watches those APIs for changes, migrates the affected code, proves the migration works and opens a PR. The old deterministic engine stays in git history; don't port it back. `REFIT-PLAN.md` is the plan.
 
 ## AI-first: the rule above all others
 
@@ -45,7 +45,7 @@ The only hard limits, enforced in code:
 
 ## AI spend
 
-- Every real model run needs a dollar cap in `APTITUDE_AI_BUDGET_USD`. A run without one refuses to spend.
+- Every real model run needs a dollar cap in `REFIT_AI_BUDGET_USD`. A run without one refuses to spend.
 - The founders approve benchmark budgets. Don't start a real benchmark without that approval and a cap.
 
 ## Working rules

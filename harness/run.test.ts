@@ -40,7 +40,7 @@ const ORIGINAL = `export function createPayment(stripe, amount) {
 `;
 
 function fixtureRepo(scripts: Record<string, string> = { test: 'node check.js' }): string {
-  const dir = mkdtempSync(join(tmpdir(), 'aptitude-fixture-'));
+  const dir = mkdtempSync(join(tmpdir(), 'refit-fixture-'));
   mkdirSync(join(dir, 'src'));
   writeFileSync(
     join(dir, 'package.json'),
@@ -120,7 +120,7 @@ const deps = (turns: ScriptedTurn[], budgetUsd = 1) => ({
   // The fake session's costs are exact, so no overshoot reserve is needed.
   turnReserveUsd: 0,
   // A path that doesn't exist yet: runTask creates it.
-  outDir: join(mkdtempSync(join(tmpdir(), 'aptitude-run-test-')), 'nested', 'out'),
+  outDir: join(mkdtempSync(join(tmpdir(), 'refit-run-test-')), 'nested', 'out'),
 });
 
 describe('runTask with a fake model', () => {

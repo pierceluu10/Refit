@@ -68,7 +68,7 @@ export function agentSdk(opts: { budget: Budget; model?: string }): AskModel {
     let queried = false;
     let result: SDKResultMessage | undefined;
     try {
-      workDir = mkdtempSync(join(tmpdir(), 'aptitude-match-'));
+      workDir = mkdtempSync(join(tmpdir(), 'refit-match-'));
       if (repoDir) copyForReading(repoDir, workDir);
       queried = true;
       for await (const message of query({

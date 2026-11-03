@@ -13,9 +13,9 @@ screen=evals/reports/round-3/screen
 out=evals/reports/round-3/iter-$iteration
 : "${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY for this command}"
 # Caps high enough that they never decide anything; the cap mechanism itself stays.
-export APTITUDE_SANDBOX=docker APTITUDE_AI_BUDGET_USD=2000
+export REFIT_SANDBOX=docker REFIT_AI_BUDGET_USD=2000
 # One memory store across iterations, written by this one process, so recipes carry over.
-export APTITUDE_MEMORY_DIR=${APTITUDE_MEMORY_DIR:-$HOME/.aptitude-r3-memory}
+export REFIT_MEMORY_DIR=${REFIT_MEMORY_DIR:-$HOME/.refit-r3-memory}
 mkdir -p "$out"
 date -u +"started %Y-%m-%dT%H:%M:%SZ at $(git rev-parse --short HEAD)" | tee "$out/started.txt"
 node evals/runner/cli.ts screen --sets "$sets" --budget-usd 300 --concurrency 6

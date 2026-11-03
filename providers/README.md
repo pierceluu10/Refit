@@ -32,7 +32,7 @@ Providers today: `stripe`, `shopify`, `meta` (Graph and Marketing API), `openai`
 ## Running
 
 - `npm run live-read -w providers -- <id|all>` fetches every starting page and saves it under `fixtures/live`. It makes no AI calls.
-- `npm run watch -w providers -- <id|all> [since]` runs the watcher with Claude through the SDK and prints the full `WatchReport`. Spend is capped by `APTITUDE_AI_BUDGET_USD` (default $1 a run).
+- `npm run watch -w providers -- <id|all> [since]` runs the watcher with Claude through the SDK and prints the full `WatchReport`. Spend is capped by `REFIT_AI_BUDGET_USD` (default $1 a run).
 - In code:
   - `folderWatcher(id)` returns a `WatchProvider`.
   - `runWatch(provider, since, deps)` returns the full report: changes, issues, unverified quotes, cost and a per-turn log.

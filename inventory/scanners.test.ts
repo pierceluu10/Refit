@@ -186,7 +186,7 @@ let base: string;
 let repo: string;
 
 beforeAll(async () => {
-  base = await mkdtemp(path.join(os.tmpdir(), 'aptitude-scanners-'));
+  base = await mkdtemp(path.join(os.tmpdir(), 'refit-scanners-'));
   repo = path.join(base, 'repo');
   const outside = path.join(base, 'outside');
   await mkdir(outside, { recursive: true });

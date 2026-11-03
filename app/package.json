@@ -1,5 +1,5 @@
 {
-  "name": "@aptitude/app",
+  "name": "@refit/app",
   "version": "0.0.0",
   "private": true,
   "type": "module",

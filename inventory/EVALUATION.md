@@ -1,6 +1,6 @@
 # Inventory agent evaluation (2026-11-01)
 
-Ten public repositories, cloned shallowly into `~/.aptitude/repos/` and only read. Nothing in them
+Ten public repositories, cloned shallowly into `~/.refit/repos/` and only read. Nothing in them
 was installed, built or run. Main agent: `claude-sonnet-5-5` at medium effort. Area readers:
 `claude-haiku-5-5` at low effort. Raw reports are in `evaluation/reports/v1` (prompt
 `inventory-v1`, all 10 repos) and `evaluation/reports/v2` (prompt `inventory-v2`, 4 repos). Ground

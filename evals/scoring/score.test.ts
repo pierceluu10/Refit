@@ -205,7 +205,7 @@ describe('hand-check log', () => {
   });
 
   it('round-trips through a file', () => {
-    const path = join(mkdtempSync(join(tmpdir(), 'aptitude-reviews-')), 'reviews.json');
+    const path = join(mkdtempSync(join(tmpdir(), 'refit-reviews-')), 'reviews.json');
     expect(readReviews(path)).toEqual([]);
     writeReviews(syncReviews([], results).reviews, path);
     expect(readReviews(path)).toHaveLength(2);

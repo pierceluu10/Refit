@@ -66,7 +66,7 @@ describe('githubRequest', () => {
       Authorization: 'Bearer tok',
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'aptitude-app',
+      'User-Agent': 'refit-app',
       'Content-Type': 'application/json',
     });
   });

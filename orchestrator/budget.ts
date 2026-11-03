@@ -59,10 +59,10 @@ export function worstCaseUsd(model: string, inputTokens: number, maxOutputTokens
 }
 
 // The run-level dollar cap is a hard limit: refuse to build a budget without one.
-export function createBudget(capUsd = Number(process.env.APTITUDE_AI_BUDGET_USD)): Budget {
+export function createBudget(capUsd = Number(process.env.REFIT_AI_BUDGET_USD)): Budget {
   if (!Number.isFinite(capUsd) || capUsd <= 0) {
     throw new Error(
-      'Set APTITUDE_AI_BUDGET_USD (or pass a cap) to a positive dollar amount before running AI.',
+      'Set REFIT_AI_BUDGET_USD (or pass a cap) to a positive dollar amount before running AI.',
     );
   }
   let spent = 0;

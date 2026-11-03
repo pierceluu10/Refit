@@ -47,7 +47,7 @@ function reader(overrides: Partial<WatchRead> = {}) {
   return { read, led };
 }
 
-const tempDir = () => mkdtemp(join(tmpdir(), 'aptitude-watch-cache-'));
+const tempDir = () => mkdtemp(join(tmpdir(), 'refit-watch-cache-'));
 
 describe('hints', () => {
   it('compares hints trimmed, de-duplicated and case-folded, and lets an empty request match any read', () => {
@@ -225,9 +225,9 @@ describe('readThroughCache', () => {
     await readThroughCache({ dir, provider: 'openai', read, now });
     expect(read).toHaveBeenCalledTimes(3);
 
-    expect(refreshTime('openai', { APTITUDE_WATCH_REFRESH: 'stripe, OpenAI' }, DAY)).toEqual(DAY);
-    expect(refreshTime('openai', { APTITUDE_WATCH_REFRESH: 'all' }, DAY)).toEqual(DAY);
-    expect(refreshTime('openai', { APTITUDE_WATCH_REFRESH: 'stripe' }, DAY)).toBeUndefined();
+    expect(refreshTime('openai', { REFIT_WATCH_REFRESH: 'stripe, OpenAI' }, DAY)).toEqual(DAY);
+    expect(refreshTime('openai', { REFIT_WATCH_REFRESH: 'all' }, DAY)).toEqual(DAY);
+    expect(refreshTime('openai', { REFIT_WATCH_REFRESH: 'stripe' }, DAY)).toBeUndefined();
     expect(refreshTime('openai', {}, DAY)).toBeUndefined();
   });
 
@@ -244,9 +244,9 @@ describe('readThroughCache', () => {
 });
 
 describe('defaultWatchDir', () => {
-  it('is APTITUDE_WATCH_CACHE when set, so every process of a run shares one folder', () => {
-    expect(defaultWatchDir({ APTITUDE_WATCH_CACHE: '/shared/watch' })).toBe('/shared/watch');
-    expect(defaultWatchDir({})).toBe(join(tmpdir(), 'aptitude-watch'));
+  it('is REFIT_WATCH_CACHE when set, so every process of a run shares one folder', () => {
+    expect(defaultWatchDir({ REFIT_WATCH_CACHE: '/shared/watch' })).toBe('/shared/watch');
+    expect(defaultWatchDir({})).toBe(join(tmpdir(), 'refit-watch'));
   });
 });
 

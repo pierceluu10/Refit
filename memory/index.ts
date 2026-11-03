@@ -70,7 +70,7 @@ export async function learnFromRun(
   });
 }
 
-// Called by the GitHub App for what a person did with an Aptitude PR; memory/README.md lists exactly
+// Called by the GitHub App for what a person did with an Refit PR; memory/README.md lists exactly
 // which pull_request events send which verdict. A merge or edit turns a needs-review run into a
 // success, distilled into a recipe unless it already was. A close counts against the recipes and
 // skills the run used, and takes its repo back off the recipe it was distilled into.

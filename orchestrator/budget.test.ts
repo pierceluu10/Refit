@@ -9,12 +9,12 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('createBudget', () => {
   it('refuses to exist without a cap', () => {
-    vi.stubEnv('APTITUDE_AI_BUDGET_USD', '');
-    expect(() => createBudget()).toThrow(/APTITUDE_AI_BUDGET_USD/);
+    vi.stubEnv('REFIT_AI_BUDGET_USD', '');
+    expect(() => createBudget()).toThrow(/REFIT_AI_BUDGET_USD/);
   });
 
   it('reads the cap from the environment', () => {
-    vi.stubEnv('APTITUDE_AI_BUDGET_USD', '2');
+    vi.stubEnv('REFIT_AI_BUDGET_USD', '2');
     expect(createBudget().capUsd).toBe(2);
   });
 

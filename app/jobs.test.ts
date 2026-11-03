@@ -7,7 +7,7 @@ import type { UnderstandJob } from './types.ts';
 const JOB: UnderstandJob = {
   kind: 'understand',
   installationId: 70000001,
-  repo: 'aptitude-example-org/billing-api',
+  repo: 'refit-example-org/billing-api',
   reason: 'push',
 };
 const RECORD: RunRecord = {
@@ -50,16 +50,16 @@ describe('createJobRunner', () => {
     const { run, calls, dir } = fakes(async () => [RECORD]);
     await run(JOB);
     expect(calls).toEqual([
-      'checkout token-70000001 aptitude-example-org/billing-api',
+      'checkout token-70000001 refit-example-org/billing-api',
       'opener 70000001',
-      'run aptitude-example-org/billing-api true true',
+      'run refit-example-org/billing-api true true',
     ]);
     expect(existsSync(dir())).toBe(false);
   });
 
   it('fails the job when runRepoJob throws, and still deletes the checkout', async () => {
     const { run, dir } = fakes(async () => {
-      throw new Error('no run records for aptitude-example-org/billing-api: inventory failed');
+      throw new Error('no run records for refit-example-org/billing-api: inventory failed');
     });
     await expect(run(JOB)).rejects.toThrow('no run records');
     expect(existsSync(dir())).toBe(false);

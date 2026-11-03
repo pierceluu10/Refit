@@ -1,10 +1,10 @@
-// The run-level dollar cap, one of Aptitude's four hard limits. Every real model run asks the
+// The run-level dollar cap, one of Refit's four hard limits. Every real model run asks the
 // ledger first and reports its cost back; the ledger refuses a run that could cross the cap.
 import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-export const BUDGET_ENV = 'APTITUDE_AI_BUDGET_USD';
-export const SPEND_LOG_ENV = 'APTITUDE_SPEND_LOG';
+export const BUDGET_ENV = 'REFIT_AI_BUDGET_USD';
+export const SPEND_LOG_ENV = 'REFIT_SPEND_LOG';
 
 export class BudgetExceededError extends Error {
   constructor(requestedUsd: number, remainingUsd: number) {

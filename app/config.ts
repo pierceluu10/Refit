@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 const DEFAULT_PORT = 3000;
-const DEFAULT_QUEUE_FILE = '.aptitude/queue.json';
+const DEFAULT_QUEUE_FILE = '.refit/queue.json';
 
 export class MissingConfigError extends Error {
   constructor(variable: string) {
@@ -36,6 +36,6 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     privateKey: readPrivateKey(env),
     webhookSecret: required(env, 'GITHUB_WEBHOOK_SECRET'),
     port: env.PORT ? Number(env.PORT) : DEFAULT_PORT,
-    queueFile: env.APTITUDE_QUEUE_FILE || DEFAULT_QUEUE_FILE,
+    queueFile: env.REFIT_QUEUE_FILE || DEFAULT_QUEUE_FILE,
   };
 }

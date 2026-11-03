@@ -12,7 +12,7 @@
 //   replaces the day's file; so a day settles on one read that covers every caller.
 // - Only a finished read is cached. A read that ended early (on its budget, its turns, a model
 //   error, cut-off replies) is returned to its caller but never cached, so the next caller reads.
-// - Refreshing on purpose: APTITUDE_WATCH_REFRESH=<provider,...|all> re-reads, once, any read made
+// - Refreshing on purpose: REFIT_WATCH_REFRESH=<provider,...|all> re-reads, once, any read made
 //   before the process started; `node providers/core/watch-cache-cli.ts refresh <provider|all>`
 //   drops the day's file so the next caller reads. `... report` prints the day's cost per repo.
 import { appendFile, mkdir, open, readFile, readdir, rename, rm, stat } from 'node:fs/promises';
@@ -23,12 +23,12 @@ import { mergeHints } from './folders.ts';
 import type { WatchReport } from './types.ts';
 import { NO_SUBMISSION } from './watcher.ts';
 
-export const WATCH_REFRESH_ENV = 'APTITUDE_WATCH_REFRESH';
-export const WATCH_CACHE_ENV = 'APTITUDE_WATCH_CACHE';
+export const WATCH_REFRESH_ENV = 'REFIT_WATCH_REFRESH';
+export const WATCH_CACHE_ENV = 'REFIT_WATCH_CACHE';
 
 /** The cache folder every process shares unless told otherwise. */
 export function defaultWatchDir(env: NodeJS.ProcessEnv = process.env): string {
-  return env[WATCH_CACHE_ENV] || join(tmpdir(), 'aptitude-watch');
+  return env[WATCH_CACHE_ENV] || join(tmpdir(), 'refit-watch');
 }
 const VERSION = 1;
 // How long a lock may sit untouched before another process takes over. A read takes minutes.
@@ -73,7 +73,7 @@ export type ReadThroughOptions = {
   /** Runs one read, led by these hints. It is called only by the process holding the lock. */
   read: (hints: ProviderHints) => Promise<WatchRead>;
   now?: () => Date;
-  /** Re-read a cached read made before this time (see APTITUDE_WATCH_REFRESH). */
+  /** Re-read a cached read made before this time (see REFIT_WATCH_REFRESH). */
   refreshBefore?: Date;
   log?: (line: string) => void;
   /** How often a process waiting on another's read looks again. */
@@ -343,7 +343,7 @@ export async function noteRepoProviders(
 }
 
 /**
- * The refresh time for a provider from APTITUDE_WATCH_REFRESH ("stripe,openai" or "all"): reads
+ * The refresh time for a provider from REFIT_WATCH_REFRESH ("stripe,openai" or "all"): reads
  * cached before it are read again once. Undefined when the provider is not named.
  */
 export function refreshTime(

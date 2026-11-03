@@ -12,9 +12,9 @@ const VECTOR_SIGNATURE = 'sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22
 const INSTALLATION_ID = 70000001;
 const INSTALL_TOKEN = 'ghs_test_installation_token';
 const API_REPOS = [
-  'aptitude-example-org/billing-api',
-  'aptitude-example-org/storefront',
-  'aptitude-example-org/ops-scripts',
+  'refit-example-org/billing-api',
+  'refit-example-org/storefront',
+  'refit-example-org/ops-scripts',
 ];
 
 const fixture = (name: string) =>
@@ -109,7 +109,7 @@ describe('handleWebhook', () => {
       ['billing-api', 'storefront', 'ops-scripts'].map((name) => ({
         kind: 'forget',
         installationId: INSTALLATION_ID,
-        repo: `aptitude-example-org/${name}`,
+        repo: `refit-example-org/${name}`,
       })),
     );
   });
@@ -125,7 +125,7 @@ describe('handleWebhook', () => {
       ['checkout-service', 'webhooks-relay'].map((name) => ({
         kind: 'understand',
         installationId: INSTALLATION_ID,
-        repo: `aptitude-example-org/${name}`,
+        repo: `refit-example-org/${name}`,
         reason: 'repos-added',
       })),
     );
@@ -139,7 +139,7 @@ describe('handleWebhook', () => {
       fake.deps,
     );
     expect(fake.jobs).toEqual([
-      { kind: 'forget', installationId: INSTALLATION_ID, repo: 'aptitude-example-org/storefront' },
+      { kind: 'forget', installationId: INSTALLATION_ID, repo: 'refit-example-org/storefront' },
     ]);
   });
 
@@ -150,7 +150,7 @@ describe('handleWebhook', () => {
       {
         kind: 'understand',
         installationId: INSTALLATION_ID,
-        repo: 'aptitude-example-org/billing-api',
+        repo: 'refit-example-org/billing-api',
         reason: 'push',
         sha: 'f0e1d2c3b4a5968778695a4b3c2d1e0f98765432',
       },
@@ -174,20 +174,20 @@ describe('handleWebhook', () => {
     expect(fake.jobs).toEqual([]);
   });
 
-  it('a merged Aptitude PR records merged', async () => {
+  it('a merged Refit PR records merged', async () => {
     const fake = fakeDeps();
     await handleWebhook('pull_request', fixture('pull_request.closed.merged'), fake.deps);
     expect(fake.verdicts).toEqual([
-      ['https://github.com/aptitude-example-org/billing-api/pull/41', 'merged'],
+      ['https://github.com/refit-example-org/billing-api/pull/41', 'merged'],
     ]);
     expect(fake.jobs).toEqual([]);
   });
 
-  it('a closed unmerged Aptitude PR records closed', async () => {
+  it('a closed unmerged Refit PR records closed', async () => {
     const fake = fakeDeps();
     await handleWebhook('pull_request', fixture('pull_request.closed.unmerged'), fake.deps);
     expect(fake.verdicts).toEqual([
-      ['https://github.com/aptitude-example-org/billing-api/pull/42', 'closed'],
+      ['https://github.com/refit-example-org/billing-api/pull/42', 'closed'],
     ]);
   });
 
@@ -209,7 +209,7 @@ describe('handleWebhook', () => {
 });
 
 describe('synchronize verdicts', () => {
-  const PR_URL = 'https://github.com/aptitude-example-org/billing-api/pull/41';
+  const PR_URL = 'https://github.com/refit-example-org/billing-api/pull/41';
   const synchronize = (sender = PERSON) => ({
     ...(fixture('pull_request.closed.merged') as object),
     action: 'synchronize',
@@ -222,7 +222,7 @@ describe('synchronize verdicts', () => {
     const fake = fakeDeps([commit(BOT), commit(PERSON)]);
     await handleWebhook('pull_request', synchronize(), fake.deps);
     expect(fake.comparisons).toEqual([
-      [INSTALL_TOKEN, 'aptitude-example-org/billing-api', 'before-sha', 'after-sha'],
+      [INSTALL_TOKEN, 'refit-example-org/billing-api', 'before-sha', 'after-sha'],
     ]);
     expect(fake.verdicts).toEqual([[PR_URL, 'edited']]);
   });
@@ -240,7 +240,7 @@ describe('synchronize verdicts', () => {
     expect(fake.verdicts).toEqual([]);
   });
 
-  it('records nothing for Update branch: a merge commit, or rebased Aptitude commits', async () => {
+  it('records nothing for Update branch: a merge commit, or rebased Refit commits', async () => {
     for (const compared of [[commit(PERSON, 2)], [commit(BOT), commit(BOT)]]) {
       const fake = fakeDeps(compared);
       await handleWebhook('pull_request', synchronize(), fake.deps);

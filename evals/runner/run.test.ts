@@ -57,7 +57,7 @@ function factoryWith(overrides: Partial<Pipeline> = {}, taskCount = 1): Pipeline
   });
 }
 
-const tmp = () => mkdtempSync(join(tmpdir(), 'aptitude-run-test-'));
+const tmp = () => mkdtempSync(join(tmpdir(), 'refit-run-test-'));
 
 describe('run config', () => {
   it('refuses to start without an explicit dollar cap', () => {
