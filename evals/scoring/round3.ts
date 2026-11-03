@@ -28,7 +28,7 @@ export type Round3Score = {
   outsideAuthorityShare: number;
   errors: number;
   costUsd: number;
-  repos: Round3Repo[];
+  rows: Round3Repo[];
 };
 
 const key = (set: string, repo: string) => `${set}/${repo}`;
@@ -87,13 +87,13 @@ export function scoreRound3(results: RepoResult[], screen: BaselineRecord[]): Ro
     outsideAuthorityShare: affected === 0 ? 0 : excluded['outside-authority'] / affected,
     errors: count('error'),
     costUsd: repos.reduce((sum, repo) => sum + repo.costUsd, 0),
-    repos,
+    rows: repos,
   };
 }
 
 export function formatRound3(score: Round3Score, title: string): string {
   const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
-  const rows = score.repos
+  const rows = score.rows
     .filter((repo) => repo.status !== 'excluded')
     .map(
       (repo) =>
