@@ -146,6 +146,8 @@ const JUDGE_SYSTEM = `You compare two attempts, A and B, at the same job on the 
 
 Each attempt gives its own explanation and its diff. An attempt may change nothing. Read both. For each attempt, list every API change it handles (one entry per change) and whether its handling is correct and complete, and anything it breaks or changes that no API change required. Then say which attempt does the job better, or tie.
 
+A test that checks the change is not a fault, whichever attempt adds it, as long as it doesn't break anything; judge the code change itself.
+
 Your knowledge of provider APIs may be older than these changes. When an attempt cites a change you can't confirm, judge whether its code is consistent with what it cites; don't call it invented on memory alone. A change one attempt finds and the other misses counts for the one that found it, if the code really uses the changed API.
 
 Reply with one JSON object and nothing else.`;
