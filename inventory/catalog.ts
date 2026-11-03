@@ -262,6 +262,22 @@ export const CATALOG: CatalogEntry[] = [
   { provider: 'ably', npm: ['ably'] },
   { provider: 'liveblocks', npm: ['@liveblocks/'] },
   { provider: 'braintrust', npm: ['braintrust'] },
+  // Browser-side services: a component or script calls the vendor from the visitor's browser.
+  {
+    provider: 'google-analytics',
+    npm: ['@next/third-parties', 'react-ga', 'react-ga4', 'vue-gtag', 'react-gtm-module'],
+    hosts: ['www.google-analytics.com', 'region1.google-analytics.com', 'www.googletagmanager.com'],
+  },
+  {
+    provider: 'google-recaptcha',
+    npm: ['react-google-recaptcha', 'react-google-recaptcha-v3'],
+  },
+  { provider: 'calendly', npm: ['react-calendly'], hosts: ['api.calendly.com'] },
+  { provider: 'plausible', npm: ['plausible-tracker', 'next-plausible'], hosts: ['plausible.io'] },
+  { provider: 'umami', hosts: ['analytics.umami.is', 'cloud.umami.is'] },
+  { provider: 'intercom', npm: ['@intercom/messenger-js-sdk', 'react-use-intercom'] },
+  { provider: 'hotjar', npm: ['react-hotjar', '@hotjar/browser'] },
+  { provider: 'crisp', npm: ['crisp-sdk-web'] },
   {
     provider: 'aws',
     npm: ['aws-sdk'],

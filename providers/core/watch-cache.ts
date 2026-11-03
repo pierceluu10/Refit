@@ -13,10 +13,10 @@
 // - Only a finished read is cached. A read that ended early (on its budget, its turns, a model
 //   error, cut-off replies) is returned to its caller but never cached, so the next caller reads.
 // - Refreshing on purpose: APTITUDE_WATCH_REFRESH=<provider,...|all> re-reads, once, any read made
-//   before the process started; `npm run -w providers watch-cache -- refresh <provider|all>` drops
-//   the day's file so the next caller reads.
+//   before the process started; `node providers/core/watch-cache-cli.ts refresh <provider|all>`
+//   drops the day's file so the next caller reads. `... report` prints the day's cost per repo.
 import { appendFile, mkdir, open, readFile, readdir, rename, rm, stat } from 'node:fs/promises';
-import { hostname } from 'node:os';
+import { hostname, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ProviderChange, ProviderHints } from '../../shared/types.ts';
 import { mergeHints } from './folders.ts';
@@ -24,6 +24,12 @@ import type { WatchReport } from './types.ts';
 import { NO_SUBMISSION } from './watcher.ts';
 
 export const WATCH_REFRESH_ENV = 'APTITUDE_WATCH_REFRESH';
+export const WATCH_CACHE_ENV = 'APTITUDE_WATCH_CACHE';
+
+/** The cache folder every process shares unless told otherwise. */
+export function defaultWatchDir(env: NodeJS.ProcessEnv = process.env): string {
+  return env[WATCH_CACHE_ENV] || join(tmpdir(), 'aptitude-watch');
+}
 const VERSION = 1;
 // How long a lock may sit untouched before another process takes over. A read takes minutes.
 const STALE_LOCK_MS = 20 * 60_000;

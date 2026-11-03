@@ -249,4 +249,48 @@ export const send = (r: Resend) => r;
     expect(result.usages).toEqual([]);
     await removeRepo(dir);
   });
+
+  it('records a UI-only SDK by its components, reads calls with type arguments, and lists base URLs', async () => {
+    const dir = await makeRepo({
+      'package.json':
+        '{\n  "dependencies": {\n    "@vercel/analytics": "^1.5.0",\n    "next-sanity": "^9.0.0",\n    "openai": "^4.0.0"\n  }\n}\n',
+      'app/layout.tsx': `import { Analytics } from '@vercel/analytics/react';
+export default function Layout({ children }) {
+  return (
+    <html>
+      <body>
+        {children}
+        <Analytics
+          mode="production"
+        />
+      </body>
+    </html>
+  );
+}
+`,
+      'lib/sanity.tsx': `import { createClient, PortableText } from 'next-sanity';
+export const client = createClient({ projectId: 'p', dataset: 'production' });
+export const posts = () => client.fetch<{ title: string }[]>('*[_type == "post"]');
+export const Body = ({ value }) => <PortableText value={value} />;
+`,
+      'lib/deepseek.ts': `import OpenAI from 'openai';
+export const deepseek = new OpenAI({
+  baseURL: 'https://api.deepseek.com/v1',
+});
+`,
+    });
+    const result = await scanRepo(dir, 'acme/site');
+    const sites = (provider: string) =>
+      result.usages
+        .filter((found) => found.provider === provider)
+        .flatMap((found) =>
+          found.callSites.map((site) => `${site.file}:${site.line} ${site.operation}`),
+        );
+    expect(sites('vercel')).toEqual(['app/layout.tsx:7 <Analytics />']);
+    // next-sanity has a real call, so its <PortableText /> is rendering, not a request.
+    expect(sites('sanity')).toEqual(['lib/sanity.tsx:3 fetch']);
+    const baseUrls = result.leads.find((lead) => lead.kind === 'base-urls');
+    expect(baseUrls?.items).toEqual([expect.stringContaining('lib/deepseek.ts:3')]);
+    await removeRepo(dir);
+  });
 });
