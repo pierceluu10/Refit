@@ -4,8 +4,9 @@ import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AREA_MODEL, CALL_RESERVE_USD, MAIN_MODEL, runInventory } from './agent.ts';
 import { BudgetExceededError, BudgetLedger } from './budget.ts';
+import { cleanCommit } from './cache.ts';
 import { AREA_READER } from './prompt.ts';
-import { fakeModel, fakeResult, makeRepo, removeRepo } from './test-fixtures.ts';
+import { fakeModel, fakeResult, makeRepo, noScan, removeRepo } from './test-fixtures.ts';
 
 const BILLING = `import Stripe from 'stripe';
 import { client } from './client';
@@ -169,9 +170,11 @@ describe('runInventory with a fake model', () => {
         },
       },
     ]);
+    // No code scan here, so only the agent's own hints are in the report.
     const report = await runInventory(repoDir, 'acme/shop', {
       ledger: new BudgetLedger({ capUsd: 1 }),
       runner,
+      scan: noScan,
     });
     console.log(outputs.join('\n---\n'));
 
@@ -308,10 +311,104 @@ describe('runInventory with a fake model', () => {
         modelUsage: {},
       } as never),
     );
-    const report = await runInventory(repoDir, 'acme/shop', { ledger, runner });
+    const report = await runInventory(repoDir, 'acme/shop', { ledger, runner, scan: noScan });
     expect(report.outcome).toBe('error_max_budget_usd');
     expect(report.usages).toHaveLength(1);
     expect(report.summary).toContain('may be incomplete');
     expect(ledger.spentUsd).toBeCloseTo(0.3);
+  });
+});
+
+describe('runInventory: the code scan first, then the agent', () => {
+  it('records the scan before the agent runs and hands the agent its usages and leads', async () => {
+    const { runner, requests, outputs } = fakeModel([
+      { tool: 'list_recorded_usages', input: {} },
+      // The agent settles a lead: the weather API the scan could not place.
+      {
+        tool: 'record_usage',
+        input: {
+          provider: 'api.weather.example.org',
+          via: 'http',
+          callSites: [{ file: 'src/billing.ts', line: 10, operation: 'GET /v2/forecast' }],
+        },
+      },
+      // A record without an sdk joins the scan's Stripe usage instead of making a second one.
+      {
+        tool: 'record_usage',
+        input: {
+          provider: 'stripe',
+          via: 'sdk',
+          callSites: [{ file: 'src/billing.ts', line: 5, operation: 'paymentIntents.create' }],
+        },
+      },
+    ]);
+    const report = await runInventory(repoDir, 'acme/shop', {
+      ledger: new BudgetLedger({ capUsd: 1 }),
+      runner,
+      cacheDir: false,
+    });
+    const prompt = requests[0].prompt;
+    expect(prompt).toContain('What the code scan found (no AI)');
+    expect(prompt).toContain('stripe via sdk stripe ^14.2.0, pins 2023-10-16: 1 call site(s)');
+    expect(prompt).toContain('WEATHER_URL');
+    // Before the agent's first record, the scan's usage is already there.
+    expect(JSON.parse(outputs[0])).toEqual([expect.objectContaining({ key: 'stripe|sdk|stripe' })]);
+    expect(report.usages.map((usage) => `${usage.provider}|${usage.via}`).sort()).toEqual([
+      'api.weather.example.org|http',
+      'stripe|sdk',
+    ]);
+    expect(report.scan).toMatchObject({ usages: 1, callSites: 1 });
+    expect(report.scan?.leads).toBeGreaterThan(0);
+  });
+
+  it('serves an unchanged commit from the cache at $0 and caches only a finished run', async () => {
+    const cacheDir = await mkdtemp(path.join(os.tmpdir(), 'inventory-cache-'));
+    const commit = 'a'.repeat(40);
+    const ledger = new BudgetLedger({ capUsd: 1 });
+
+    const partial = fakeModel(
+      [],
+      fakeResult({ subtype: 'error_max_turns', errors: ['turns'], total_cost_usd: 0.1 } as never),
+    );
+    await runInventory(repoDir, 'acme/shop', { ledger, runner: partial.runner, cacheDir, commit });
+    const first = fakeModel([]);
+    const read = await runInventory(repoDir, 'acme/shop', {
+      ledger,
+      runner: first.runner,
+      cacheDir,
+      commit,
+    });
+    expect(first.requests).toHaveLength(1); // the partial run was not cached
+    expect(read.cached).toBeUndefined();
+    expect(read.costUsd).toBe(0.02);
+
+    const again = fakeModel([]);
+    const spent = ledger.spentUsd;
+    const served = await runInventory(repoDir, 'acme/shop', {
+      ledger,
+      runner: again.runner,
+      cacheDir,
+      commit,
+    });
+    expect(again.requests).toHaveLength(0);
+    expect(served.costUsd).toBe(0);
+    expect(served.cached).toMatchObject({ costUsd: 0.02 });
+    expect(served.usages).toEqual(read.usages);
+    expect(ledger.spentUsd).toBe(spent);
+
+    // Another commit is another inventory.
+    const moved = fakeModel([]);
+    await runInventory(repoDir, 'acme/shop', {
+      ledger,
+      runner: moved.runner,
+      cacheDir,
+      commit: 'b'.repeat(40),
+    });
+    expect(moved.requests).toHaveLength(1);
+    await rm(cacheDir, { recursive: true, force: true });
+  });
+
+  it('finds no commit to cache by outside a clean git checkout', async () => {
+    expect(await cleanCommit(repoDir)).toBeUndefined();
   });
 });

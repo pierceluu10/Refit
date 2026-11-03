@@ -1,14 +1,23 @@
-// inventoryRepo: a Claude agent on the Agent SDK reads the repository with read-only tools and
-// records every external API it finds. The model chooses what to read, when to fan out to area
-// readers, and when it is done; this file only wires tools, budget and output.
+// inventoryRepo: ordinary code scans the repository first and records every plain SDK and API-host
+// usage it can prove (scan.ts). Then a Claude agent on the Agent SDK, with read-only tools and the
+// scan as evidence, settles what the scan could not and hunts for what no scan sees. The model
+// chooses what to read, when to fan out to area readers, and when it is done; this file only wires
+// the scan, tools, budget, the commit cache and output.
 import { appendFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import type { Options, SDKMessage, SDKResultMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { ApiUsage, InventoryRepo } from '../shared/types.ts';
 import { BudgetLedger } from './budget.ts';
+import {
+  cleanCommit,
+  defaultInventoryCache,
+  readCachedInventory,
+  writeCachedInventory,
+} from './cache.ts';
 import { UsageCollector } from './collector.ts';
 import type { RecordedUsage } from './collector.ts';
+import { SCAN_VERSION, scanEvidence, scanRepo, type ScanResult } from './scan.ts';
 import {
   AREA_READER,
   AREA_READER_DESCRIPTION,
@@ -41,7 +50,16 @@ export type InventoryOptions = {
   runCapUsd?: number;
   runner?: AgentRunner;
   transcriptPath?: string;
+  /** Where finished reports are kept by commit; false keeps none. Default: APTITUDE_INVENTORY_CACHE. */
+  cacheDir?: string | false;
+  /** The commit the checkout is at, when the caller knows it is clean; read from git otherwise. */
+  commit?: string;
+  /** The code scan; tests swap it. */
+  scan?: (repoDir: string, repo: string) => Promise<ScanResult>;
 };
+
+// A cached report is reused only by the same prompt and scan.
+export const INVENTORY_VERSION = `${PROMPT_VERSION}+${SCAN_VERSION}`;
 
 export type InventoryReport = {
   repo: string;
@@ -56,6 +74,11 @@ export type InventoryReport = {
   costByModel: Record<string, number>;
   turns: number;
   durationMs: number;
+  /** What the code scan recorded before the agent ran, and the leads it handed the agent. */
+  scan?: { version: string; usages: number; callSites: number; leads: number };
+  commit?: string;
+  /** Set when the report came from the commit cache: no model ran, so it cost $0. */
+  cached?: { cachedAt: string; costUsd: number };
 };
 
 const sdkRunner: AgentRunner = ({ prompt, options }) => query({ prompt, options });
@@ -95,19 +118,58 @@ export async function runInventory(
   repo: string,
   options: InventoryOptions = {},
 ): Promise<InventoryReport> {
+  const started = Date.now();
+  const cacheDir =
+    options.cacheDir === false ? undefined : (options.cacheDir ?? defaultInventoryCache());
+  const commit = cacheDir ? (options.commit ?? (await cleanCommit(repoDir))) : options.commit;
+  if (cacheDir && commit) {
+    const cached = await readCachedInventory<InventoryReport>(
+      cacheDir,
+      repo,
+      commit,
+      INVENTORY_VERSION,
+    );
+    if (cached) {
+      const { report } = cached;
+      return {
+        ...report,
+        costUsd: 0,
+        costByModel: {},
+        turns: 0,
+        durationMs: Date.now() - started,
+        commit,
+        cached: { cachedAt: cached.cachedAt, costUsd: report.costUsd },
+      };
+    }
+  }
+
   const ledger = options.ledger ?? (await BudgetLedger.fromEnv());
   const runCapUsd = Math.min(options.runCapUsd ?? DEFAULT_RUN_CAP_USD, ledger.remainingUsd);
   ledger.assertCanSpend(CALL_RESERVE_USD);
   const budgetUsd = Math.max(runCapUsd - CALL_RESERVE_USD, 0);
 
   const collector = new UsageCollector(repoDir, repo);
+  // The scan's usages go in first, through the same line checks the agent's records get.
+  const scan = await (options.scan ?? scanRepo)(repoDir, repo);
+  for (const usage of scan.usages) {
+    await collector.record(
+      {
+        provider: usage.provider,
+        via: usage.via,
+        ...(usage.sdk ? { sdk: usage.sdk } : {}),
+        ...(usage.pinnedVersion ? { pinnedVersion: usage.pinnedVersion } : {}),
+        callSites: usage.callSites,
+        ...(usage.hints ? { hints: usage.hints } : {}),
+      },
+      { python: usage.ecosystem === 'python' },
+    );
+  }
   const tools = [...readTools(repoDir), ...recordTools(collector)];
   const runner = options.runner ?? sdkRunner;
-  const started = Date.now();
   let result: SDKResultMessage | undefined;
   try {
     for await (const message of runner({
-      prompt: taskPrompt(repo),
+      prompt: taskPrompt(repo, scanEvidence(scan)),
       options: agentOptions(repoDir, tools, budgetUsd),
       tools,
     })) {
@@ -124,7 +186,7 @@ export async function runInventory(
 
   const recorded = collector.list().map(({ usage }) => usage);
   const usages = collector.usagesForOutput();
-  return {
+  const report: InventoryReport = {
     repo,
     promptVersion: PROMPT_VERSION,
     model: MAIN_MODEL,
@@ -139,7 +201,25 @@ export async function runInventory(
     ),
     turns: result.num_turns,
     durationMs: Date.now() - started,
+    scan: {
+      version: SCAN_VERSION,
+      usages: scan.usages.length,
+      callSites: scan.usages.reduce((sum, usage) => sum + usage.callSites.length, 0),
+      leads: scan.leads.reduce((sum, lead) => sum + lead.items.length + lead.more, 0),
+    },
+    ...(commit ? { commit } : {}),
   };
+  // A run that ended early (on its budget or turns) may be incomplete, so it is never reused.
+  if (cacheDir && commit && result.subtype === 'success') {
+    await writeCachedInventory(cacheDir, {
+      version: INVENTORY_VERSION,
+      repo,
+      commit,
+      cachedAt: new Date().toISOString(),
+      report,
+    }).catch(() => {});
+  }
+  return report;
 }
 
 export const inventoryRepo: InventoryRepo = async (repoDir, repo) =>

@@ -31,8 +31,14 @@ export type RecordOutcome = {
 
 const LINE_PREVIEW_LENGTH = 160;
 
+const PYTHON_FILES =
+  /(^|\/)(poetry\.lock|uv\.lock|Pipfile(\.lock)?|requirements[^/]*\.txt|pyproject\.toml|setup\.py)$/;
+
+// npm and PyPI both have a "stripe" and an "openai": a Python SDK's key says so, so the two stay apart.
 export function usageKey(report: Pick<UsageReport, 'provider' | 'via' | 'sdk'>): string {
-  return [report.provider.trim().toLowerCase(), report.via, report.sdk?.name ?? ''].join('|');
+  const key = [report.provider.trim().toLowerCase(), report.via, report.sdk?.name ?? ''];
+  if (report.sdk?.lockfile && PYTHON_FILES.test(report.sdk.lockfile)) key.push('python');
+  return key.join('|');
 }
 
 export class UsageCollector {
@@ -45,8 +51,27 @@ export class UsageCollector {
     this.repo = repo;
   }
 
-  async record(report: UsageReport): Promise<RecordOutcome> {
-    const key = usageKey(report);
+  // A report that says less than a usage already recorded (by the code scan, say) is that usage:
+  // no sdk for a provider and channel recorded once, or an sdk with no lockfile recorded once.
+  private keyFor(report: UsageReport): string {
+    const exact = usageKey(report);
+    if (this.usages.has(exact) || report.sdk?.lockfile) return exact;
+    const [provider, via] = exact.split('|');
+    const same = [...this.usages.keys()].filter((key) => {
+      const [knownProvider, knownVia, knownSdk] = key.split('|');
+      return (
+        knownProvider === provider &&
+        knownVia === via &&
+        (!report.sdk || knownSdk === report.sdk.name)
+      );
+    });
+    return same.length === 1 ? same[0] : exact;
+  }
+
+  async record(report: UsageReport, options: { python?: boolean } = {}): Promise<RecordOutcome> {
+    const found = this.keyFor(report);
+    // The code scan knows a Python SDK even when no manifest declares it.
+    const key = options.python && !found.endsWith('|python') ? `${found}|python` : found;
     const outcome: RecordOutcome = { key, accepted: [], rejected: [] };
     const existing = this.usages.get(key) ?? {
       repo: this.repo,
