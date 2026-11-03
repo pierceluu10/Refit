@@ -7,6 +7,8 @@ export type MatchedTask = MigrationTask & {
   reasoning: string;
   urgency: string;
   callSites: { file: string; line: number; why: string }[];
+  // Other changes the same move resolves (one SDK or API-version upgrade): one task, one PR.
+  alsoResolves?: { change: ProviderChange; why: string }[];
 };
 
 // Every change the agent judged gets a verdict: tasks, or "not affected" with a reason. Never a silent drop.
@@ -34,10 +36,17 @@ You receive a list of provider changes (each with a quote from its source) and t
 
 For EVERY change, read it against EVERY usage and call site, then decide:
 - Affected: the change touches at least one call site, pinned version or SDK in this repo. Create one task for the change. Name the usages (by their index) and each affected call site with why it is affected. Explain your reasoning, and rate urgency from the deadline and the impact (what breaks, how visibly, how soon).
+- Resolved by another task's move: list it in that task's alsoResolves (see "One task per upgrade").
 - Not affected: explain specifically why no usage in this repo is touched, in one or two sentences.
 
+One task per upgrade:
+- Each task becomes one PR. When several changes are resolved by the same move, one SDK major upgrade or one API-version bump, make ONE task for that move and list every other change it resolves in alsoResolves, each with why. Give the task the change that names the move itself (the SDK release, or the API version) as its changeId. The migration agent then makes one coherent edit, the bump plus everything the bump breaks, instead of several PRs that overlap and conflict.
+- A change that only bites once the repo moves its SDK or API version belongs inside that upgrade's task, not in a task of its own. So does a notice about the same SDK that only matters for that upgrade, such as the runtime versions the new release supports.
+- Changes that each stand on their own stay separate tasks, even with the same provider and date: a model retirement, an endpoint removal or a field change that hits the repo today without any upgrade. Twelve retired models the repo names are twelve tasks.
+- Never bundle a change that would still need its own edit after the upgrade task is merged.
+
 Rules:
-- Every change must come back exactly once: either as a task or in notAffected. Never leave one out.
+- Every change must come back exactly once: as a task, in exactly one task's alsoResolves, or in notAffected. Never leave one out.
 - When you are unsure whether a change applies, create the task anyway and say in the reasoning what is uncertain and what the migration agent should check. Unsure means attempt, not skip.
 - Think about indirect effects too: SDK defaults, pinned API versions, renamed models, webhook payloads, response shapes the code reads.
 - Provider names are labels, not proof: a change from "meta" applies to a usage recorded as "facebook" or "instagram". Two watchers may report the same change under different names; give it one task and mark the copy not affected, naming the change it repeats.
@@ -56,9 +65,28 @@ const SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['changeId', 'usageIndexes', 'callSites', 'reasoning', 'urgency', 'deadline'],
+        required: [
+          'changeId',
+          'alsoResolves',
+          'usageIndexes',
+          'callSites',
+          'reasoning',
+          'urgency',
+          'deadline',
+        ],
         properties: {
           changeId: { type: 'string' },
+          alsoResolves: {
+            type: 'array',
+            description:
+              'Other changes this same upgrade resolves, so they need no task of their own.',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['changeId', 'why'],
+              properties: { changeId: { type: 'string' }, why: { type: 'string' } },
+            },
+          },
           usageIndexes: { type: 'array', items: { type: 'integer' } },
           callSites: {
             type: 'array',
@@ -94,6 +122,7 @@ const SCHEMA = {
 type AgentOutput = {
   tasks: {
     changeId: string;
+    alsoResolves?: { changeId: string; why: string }[];
     usageIndexes: number[];
     callSites: { file: string; line: number; why: string }[];
     reasoning: string;
@@ -210,7 +239,8 @@ export function createMatchAgent(opts: {
     const ids = new Set<string>();
     const tasks: MatchedTask[] = [];
     // Unknown change ids are model slips; the real change is still attempted below.
-    for (const t of output.tasks.filter((t) => byId.has(t.changeId))) {
+    const found = output.tasks.filter((t) => byId.has(t.changeId));
+    for (const t of found) {
       const change = byId.get(t.changeId)!;
       let id = `${repo}:${change.id}`;
       for (let n = 2; ids.has(id); n++) id = `${repo}:${change.id}:${n}`;
@@ -232,6 +262,37 @@ export function createMatchAgent(opts: {
     // A change judged both ways keeps its task: unsure means attempt.
     const judged = new Set(tasks.map((t) => t.change.id));
     const notAffected: MatchResult['notAffected'] = [];
+    // A bundled change is judged too, by its upgrade's task. The loop records it with that task's
+    // id in the reasoning, and the harness reads it in the task's notes.
+    found.forEach((t, i) => {
+      const task = tasks[i];
+      for (const b of t.alsoResolves ?? []) {
+        const change = byId.get(b.changeId);
+        if (!change || judged.has(change.id)) continue;
+        judged.add(change.id);
+        (task.alsoResolves ??= []).push({ change, why: b.why });
+        notAffected.push({
+          changeId: change.id,
+          reasoning: `No task of its own: resolved inside ${task.id} (${task.change.title}). ${b.why}`,
+        });
+      }
+      if (!task.alsoResolves) return;
+      const dates = [task.change, ...task.alsoResolves.map((b) => b.change)]
+        .flatMap((c) => (c.effectiveDate ? [c.effectiveDate] : []))
+        .sort();
+      task.deadline = dates[0] ?? task.deadline;
+      task.notes = [
+        task.reasoning,
+        'This task also resolves these changes. Handle each in the same change, and say in the PR how:',
+        ...task.alsoResolves.map(({ change, why }) =>
+          [
+            `- ${change.id} (${change.kind}): ${change.title}${change.effectiveDate ? `, effective ${change.effectiveDate}` : ''}. ${why}`,
+            `  Source: ${change.source.url}`,
+            `  "${change.source.quote}"`,
+          ].join('\n'),
+        ),
+      ].join('\n');
+    });
     for (const n of output.notAffected) {
       if (!byId.has(n.changeId) || judged.has(n.changeId)) continue;
       judged.add(n.changeId);
