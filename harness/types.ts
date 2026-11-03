@@ -25,7 +25,8 @@ export type Sandbox = {
   dispose(): Promise<void>;
 };
 
-export type CheckCommand = { name: string; command: string };
+// `fallback`: the harness's own default (a bare tsc), not a check the repo defines.
+export type CheckCommand = { name: string; command: string; fallback?: true };
 
 export type CheckRun = {
   name: string;
