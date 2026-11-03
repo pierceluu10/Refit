@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xml:lang="en-US">
+  <id>tag:github.com,2008:https://github.com/anthropics/anthropic-sdk-typescript/releases</id>
+  <link type="text/html" rel="alternate" href="https://github.com/anthropics/anthropic-sdk-typescript/releases"/>
+  <link type="application/atom+xml" rel="self" href="https://github.com/anthropics/anthropic-sdk-typescript/releases.atom"/>
+  <title>Release notes from anthropic-sdk-typescript</title>
+  <updated>2026-11-02T19:12:29Z</updated>
+  <entry>
+    <id>tag:github.com,2008:Repository/595176353/vertex-sdk-v1.1.1</id>
+    <updated>2026-11-02T19:17:16Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/vertex-sdk-v1.1.1"/>
+    <title>vertex-sdk-v1.1.1</title>
+    <content type="html">&lt;h3&gt;Chores&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;internal:&lt;/strong&gt; type-check the published declarations of every subpackage&lt;/li&gt;
+&lt;/ul&gt;</content>
+    <author>
+      <name>anthropic-sdks-releaser[bot]</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/76263028?s=60&amp;v=4"/>
+  </entry><entry>
+    <id>tag:github.com,2008:Repository/595176353/sdk-v1.4.0</id>
+    <updated>2026-11-02T19:17:13Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/sdk-v1.4.0"/>
+    <title>sdk-v1.4.0</title>
+    <content type="html">&lt;h3&gt;Features&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;api:&lt;/strong&gt; add GA methods for analytics, spend limits and RBAC&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;api:&lt;/strong&gt; add named beta types for unified metrics and RBAC delete responses&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;api:&lt;/strong&gt; add shared analytics order and increase request actor types&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;api:&lt;/strong&gt; add tool_use_limit_reached_error and compaction_limit_reached_error session error types&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;api:&lt;/strong&gt; add types for analytics group_by and spend limit period filters&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;api:&lt;/strong&gt; add user_profile_id to External Keys and Workspaces&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Bug Fixes&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;api:&lt;/strong&gt; make spend_limit nullable in the spend limit increase request approve response&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;api:&lt;/strong&gt; require always-sent analytics fields and drop the unused project product field&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Chores&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;ci:&lt;/strong&gt; install only the headless Chromium shell in the browser ecosystem tests&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;ci:&lt;/strong&gt; remove unused build upload steps&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;docs:&lt;/strong&gt; clarify the Slack channel id description&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;docs:&lt;/strong&gt; clarify what disab</content>
+    <author>
+      <name>anthropic-sdks-releaser[bot]</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/76263028?s=60&amp;v=4"/>
+  </entry><entry>
+    <id>tag:github.com,2008:Repository/595176353/google-cloud-sdk-v1.1.2</id>
+    <updated>2026-11-02T19:17:27Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/google-cloud-sdk-v1.1.2"/>
+    <title>google-cloud-sdk-v1.1.2</title>
+    <content type="html">&lt;h3&gt;Chores&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;internal:&lt;/strong&gt; type-check the published declarations of every subpackage&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Documentation&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;examples:&lt;/strong&gt; use current model IDs&lt;/li&gt;
+&lt;/ul&gt;</content>
+    <author>
+      <name>anthropic-sdks-releaser[bot]</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/76263028?s=60&amp;v=4"/>
+  </entry><entry>
+    <id>tag:github.com,2008:Repository/595176353/foundry-sdk-v1.1.1</id>
+    <updated>2026-11-02T19:17:21Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/foundry-sdk-v1.1.1"/>
+    <title>foundry-sdk-v1.1.1</title>
+    <content type="html">&lt;h3&gt;Bug Fixes&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;foundry:&lt;/strong&gt; make client.d.ts type-check with skipLibCheck off&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Chores&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;internal:&lt;/strong&gt; type-check the published declarations of every subpackage&lt;/li&gt;
+&lt;/ul&gt;</content>
+    <author>
+      <name>anthropic-sdks-releaser[bot]</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/76263028?s=60&amp;v=4"/>
+  </entry><entry>
+    <id>tag:github.com,2008:Repository/595176353/bedrock-sdk-v1.1.1</id>
+    <updated>2026-11-02T19:17:18Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/bedrock-sdk-v1.1.1"/>
+    <title>bedrock-sdk-v1.1.1</title>
+    <content type="html">&lt;h3&gt;Chores&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;internal:&lt;/strong&gt; type-check the published declarations of every subpackage&lt;/li&gt;
+&lt;/ul&gt;</content>
+    <author>
+      <name>anthropic-sdks-releaser[bot]</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/76263028?s=60&amp;v=4"/>
+  </entry></feed>
