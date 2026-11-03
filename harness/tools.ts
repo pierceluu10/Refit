@@ -194,6 +194,35 @@ export function gitignoreProblems(diff: string): string[] {
   return problems;
 }
 
+// The host's own services and private networks are no docs page, and must stay out of reach:
+// the monitor and run reports live there. shortcut: checks the name as written, not where DNS
+// resolves it; resolve and check the address if a public name pointing inside matters.
+export function privateHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.internal'))
+    return true;
+  if (
+    host === '::1' ||
+    host === '::' ||
+    /^f[cd][0-9a-f]{2}:/.test(host) ||
+    host.startsWith('fe80:')
+  ) {
+    return true;
+  }
+  const octets = host.split('.').map(Number);
+  if (octets.length !== 4 || octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255))
+    return false;
+  const [a, b] = octets as [number, number, number, number];
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168)
+  );
+}
+
 export function buildTools(ctx: ToolContext): AgentTool[] {
   const { sandbox } = ctx;
   const runs: ValidatorRun[] = [];
@@ -483,6 +512,9 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
         const url = new URL(str(args, 'url'));
         if (url.protocol !== 'http:' && url.protocol !== 'https:') {
           return `error: only http and https URLs are supported, got ${url.protocol}`;
+        }
+        if (privateHost(url.hostname)) {
+          return `error: ${url.hostname} is a local or private address; fetch_url reads the public web only`;
         }
         const response = await (ctx.fetch ?? fetch)(url, { signal: AbortSignal.timeout(15_000) });
         const raw = await response.text();

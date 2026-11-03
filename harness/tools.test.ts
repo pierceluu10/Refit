@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { AgentTool, MigrationTask, Recipe } from '../shared/types.ts';
-import { buildTools, finishProblems, gitignoreProblems } from './tools.ts';
+import { buildTools, finishProblems, gitignoreProblems, privateHost } from './tools.ts';
 import type { ExecResult, FinishReport, Sandbox, ToolContext } from './types.ts';
 
 const task = { id: 't1', repo: 'acme/app' } as MigrationTask;
@@ -348,6 +348,25 @@ describe('web, memory, tool pack and finish', () => {
     expect(gitignoreProblems(joined)).toEqual([expect.stringContaining('drops `.env`')]);
     const kept = joined.replace('+.envdist', '+.env\n+dist');
     expect(gitignoreProblems(kept)).toEqual([]);
+  });
+
+  it('privateHost keeps fetch_url to the public web', () => {
+    for (const host of [
+      'localhost',
+      '127.0.0.1',
+      'host.docker.internal',
+      '10.0.0.5',
+      '172.20.1.1',
+      '192.168.1.2',
+      '169.254.169.254',
+      '[::1]',
+      'api.localhost',
+    ]) {
+      expect(privateHost(host), host).toBe(true);
+    }
+    for (const host of ['docs.stripe.com', '8.8.8.8', '172.32.0.1', 'platform.openai.com']) {
+      expect(privateHost(host), host).toBe(false);
+    }
   });
 
   it('every tool has an object input schema and never throws', async () => {
