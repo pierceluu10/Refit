@@ -1,0 +1,770 @@
+{
+  "commit": "cf8f84cc8bfc4b6fc35ae462deea9369ff7afc27",
+  "repo": "alanagoyal/branded",
+  "promptVersion": "inventory-v3",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "stripe",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/account/delete/route.ts",
+          "line": 50,
+          "operation": "new Stripe (passed to account-deletion helpers)",
+          "notes": "client construction; helpers perform calls"
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 22,
+          "operation": "customers.list",
+          "fields": ["email", "limit"]
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 26,
+          "operation": "customers.create",
+          "fields": ["email", "metadata"],
+          "notes": "Client from stripeClient() in lib/billing.ts:10 (new Stripe(STRIPE_SECRET_KEY), no apiVersion pinned)"
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 38,
+          "operation": "subscriptions.list",
+          "fields": ["customer", "status", "limit"]
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 52,
+          "operation": "checkout.sessions.create",
+          "fields": ["success_url", "cancel_url"],
+          "notes": "returns session url"
+        },
+        {
+          "file": "app/portal-session/route.ts",
+          "line": 10,
+          "operation": "billingPortal.sessions.create",
+          "fields": ["return_url"]
+        },
+        {
+          "file": "app/verify-subscription/route.ts",
+          "line": 14,
+          "operation": "checkout.sessions.retrieve",
+          "fields": ["checkoutId"]
+        },
+        {
+          "file": "lib/account-deletion.ts",
+          "line": 15,
+          "operation": "customers.retrieve"
+        },
+        {
+          "file": "lib/account-deletion.ts",
+          "line": 21,
+          "operation": "customers.retrieve"
+        },
+        {
+          "file": "lib/account-deletion.ts",
+          "line": 30,
+          "operation": "customers.list",
+          "fields": ["email", "limit"]
+        },
+        {
+          "file": "lib/account-deletion.ts",
+          "line": 37,
+          "operation": "checkout.sessions.list",
+          "fields": ["customer", "status", "limit"]
+        },
+        {
+          "file": "lib/account-deletion.ts",
+          "line": 42,
+          "operation": "subscriptions.list"
+        },
+        {
+          "file": "lib/account-deletion.ts",
+          "line": 57,
+          "operation": "subscriptionSchedules.list"
+        },
+        {
+          "file": "lib/billing.ts",
+          "line": 38,
+          "operation": "subscriptions.list",
+          "fields": ["customer", "status", "limit"],
+          "notes": "syncBilling, used by webhook, update-subscription, verify-subscription"
+        },
+        {
+          "file": "scripts/reconcile-billing.cjs",
+          "line": 29,
+          "operation": "customers.retrieve",
+          "notes": "CLI reconciliation script"
+        },
+        {
+          "file": "scripts/reconcile-billing.cjs",
+          "line": 35,
+          "operation": "subscriptions.list"
+        }
+      ],
+      "hints": {
+        "packages": ["stripe", "@stripe/stripe-js"],
+        "hosts": ["api.stripe.com", "billing.stripe.com", "checkout.stripe.com"],
+        "docsUrls": ["https://github.com/stripe/stripe-node", "https://docs.stripe.com/api"]
+      },
+      "sdk": {
+        "name": "stripe",
+        "version": "15.12.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "stripe",
+      "via": "webhook",
+      "callSites": [
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 18,
+          "operation": "webhooks.constructEvent",
+          "notes": "Verifies stripe-signature with STRIPE_ENDPOINT_SECRET, then syncBilling for the customer on subscription/checkout/invoice events"
+        }
+      ],
+      "hints": {
+        "packages": ["stripe"]
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/find-npm-names/route.ts",
+          "line": 29,
+          "operation": "chat.completions.create",
+          "fields": ["model gpt-4o-mini"],
+          "notes": "OpenAI client wrapped with braintrust wrapOpenAI, baseURL https://braintrustproxy.com/v1 (line 13); braintrust initLogger project namebase"
+        },
+        {
+          "file": "app/generate-logo/route.ts",
+          "line": 24,
+          "operation": "images.generate",
+          "fields": [
+            "model",
+            "prompt",
+            "n",
+            "quality",
+            "size",
+            "output_format",
+            "output_compression"
+          ],
+          "notes": "direct to OpenAI (client line 9); model gpt-image-2.5-flare; result image saved to logos table; one-pager-logo.ts fetches returned URLs"
+        },
+        {
+          "file": "app/generate-names/route.ts",
+          "line": 83,
+          "operation": "chat.completions.create",
+          "fields": ["model gpt-4o-mini"],
+          "notes": "via braintrustproxy.com/v1 baseURL (line 15)"
+        },
+        {
+          "file": "app/generate-one-pager-content/route.ts",
+          "line": 29,
+          "operation": "chat.completions.create",
+          "fields": ["model gpt-4o-mini"],
+          "notes": "via braintrustproxy.com/v1 (line 13)"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "gpt-4o-mini",
+        "file": "app/generate-names/route.ts",
+        "line": 84
+      },
+      "hints": {
+        "packages": ["openai", "braintrust"],
+        "hosts": ["braintrustproxy.com", "api.openai.com"],
+        "docsUrls": ["https://github.com/openai/openai-node", "https://platform.openai.com/docs"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "4.104.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "braintrust",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/find-npm-names/route.ts",
+          "line": 7,
+          "operation": "initLogger (projectName namebase) + traced/wrapOpenAI",
+          "notes": "logs traces to Braintrust; uses BRAINTRUST_API_KEY presumably"
+        },
+        {
+          "file": "app/generate-names/route.ts",
+          "line": 9,
+          "operation": "initLogger + traced/wrapOpenAI"
+        },
+        {
+          "file": "app/generate-one-pager-content/route.ts",
+          "line": 7,
+          "operation": "initLogger + traced/wrapOpenAI"
+        }
+      ],
+      "hints": {
+        "packages": ["braintrust"],
+        "hosts": ["braintrustproxy.com"],
+        "docsUrls": ["https://www.braintrust.dev/docs"]
+      },
+      "sdk": {
+        "name": "braintrust",
+        "version": "3.34.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "api.whoxy.com",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/find-domain-availability/route.ts",
+          "line": 16,
+          "operation": "GET /?key=&whois=",
+          "fields": ["key WHOXY_API_KEY", "whois"]
+        },
+        {
+          "file": "app/generate-names/route.ts",
+          "line": 34,
+          "operation": "GET /?key=&whois=",
+          "notes": "fetch( call at line 34, URL at 35"
+        }
+      ],
+      "hints": {
+        "hosts": ["api.whoxy.com"]
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "registry.npmjs.org",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/find-npm-availability/route.ts",
+          "line": 10,
+          "operation": "GET /{packageName}"
+        }
+      ],
+      "hints": {
+        "hosts": ["registry.npmjs.org"]
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "rapidapi-uspto-trademark",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/find-trademarks/route.ts",
+          "line": 10,
+          "operation": "GET /v1/trademarkSearch/{term}/active",
+          "fields": ["X-RapidAPI-Key RAPID_API_KEY", "X-RapidAPI-Host"],
+          "notes": "response JSON passed through"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "/v1/",
+        "file": "app/find-trademarks/route.ts",
+        "line": 10
+      },
+      "hints": {
+        "hosts": ["uspto-trademark.p.rapidapi.com"]
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "vercel",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/layout.tsx",
+          "line": 80,
+          "operation": "<Analytics /> component"
+        }
+      ],
+      "hints": {
+        "packages": ["@vercel/analytics"]
+      },
+      "sdk": {
+        "name": "@vercel/analytics",
+        "version": "^1.2.2",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "supabase",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/[id]/page.tsx",
+          "line": 13,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "app/[id]/page.tsx",
+          "line": 15,
+          "operation": "from names select"
+        },
+        {
+          "file": "app/account/delete/route.ts",
+          "line": 21,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "app/account/delete/route.ts",
+          "line": 27,
+          "operation": "rpc begin_account_deletion",
+          "notes": "admin client (supabase/admin.ts, service role)"
+        },
+        {
+          "file": "app/account/delete/route.ts",
+          "line": 33,
+          "operation": "rpc finish_account_deletion"
+        },
+        {
+          "file": "app/account/delete/route.ts",
+          "line": 37,
+          "operation": "from profiles"
+        },
+        {
+          "file": "app/account/delete/route.ts",
+          "line": 44,
+          "operation": "from billing_accounts"
+        },
+        {
+          "file": "app/account/delete/route.ts",
+          "line": 60,
+          "operation": "auth.signOut"
+        },
+        {
+          "file": "app/account/delete/route.ts",
+          "line": 63,
+          "operation": "auth.admin.deleteUser"
+        },
+        {
+          "file": "app/account/page.tsx",
+          "line": 9,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "app/account/page.tsx",
+          "line": 16,
+          "operation": "from profiles"
+        },
+        {
+          "file": "app/api/name-shares/route.ts",
+          "line": 10,
+          "operation": "from names select"
+        },
+        {
+          "file": "app/api/name-shares/route.ts",
+          "line": 13,
+          "operation": "from name_shares (admin)"
+        },
+        {
+          "file": "app/auth/confirm/route.ts",
+          "line": 20,
+          "operation": "auth.verifyOtp"
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 18,
+          "operation": "from profiles select"
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 29,
+          "operation": "from billing_accounts insert"
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 36,
+          "operation": "from profiles update"
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 43,
+          "operation": "rpc reserve_billing_checkout"
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 69,
+          "operation": "rpc renew_billing_checkout"
+        },
+        {
+          "file": "app/checkout/page.tsx",
+          "line": 8,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "app/favorites/page.tsx",
+          "line": 12,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "app/favorites/page.tsx",
+          "line": 19,
+          "operation": "from names"
+        },
+        {
+          "file": "app/generate-logo/route.ts",
+          "line": 15,
+          "operation": "from names select"
+        },
+        {
+          "file": "app/generate-logo/route.ts",
+          "line": 20,
+          "operation": "from logos select"
+        },
+        {
+          "file": "app/generate-logo/route.ts",
+          "line": 38,
+          "operation": "from logos update"
+        },
+        {
+          "file": "app/generate-logo/route.ts",
+          "line": 39,
+          "operation": "from logos insert"
+        },
+        {
+          "file": "app/layout.tsx",
+          "line": 35,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "app/login/actions.ts",
+          "line": 12,
+          "operation": "auth.signInWithPassword"
+        },
+        {
+          "file": "app/login/actions.ts",
+          "line": 15,
+          "operation": "rpc checkIfUser"
+        },
+        {
+          "file": "app/new/page.tsx",
+          "line": 16,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "app/new/page.tsx",
+          "line": 27,
+          "operation": "from names"
+        },
+        {
+          "file": "app/one-pager/route.tsx",
+          "line": 15,
+          "operation": "from names select"
+        },
+        {
+          "file": "app/one-pager/route.tsx",
+          "line": 20,
+          "operation": "from logos select"
+        },
+        {
+          "file": "app/one-pager/route.tsx",
+          "line": 23,
+          "operation": "from profiles select"
+        },
+        {
+          "file": "app/one-pager/route.tsx",
+          "line": 25,
+          "operation": "from one_pagers select"
+        },
+        {
+          "file": "app/one-pager/route.tsx",
+          "line": 33,
+          "operation": "from one_pagers update"
+        },
+        {
+          "file": "app/one-pager/route.tsx",
+          "line": 34,
+          "operation": "from one_pagers insert"
+        },
+        {
+          "file": "app/pricing/page.tsx",
+          "line": 10,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "app/pricing/page.tsx",
+          "line": 17,
+          "operation": "from profiles"
+        },
+        {
+          "file": "app/share/[token]/page.tsx",
+          "line": 13,
+          "operation": "from name_shares select (admin)"
+        },
+        {
+          "file": "app/share/[token]/page.tsx",
+          "line": 16,
+          "operation": "from names select (admin)"
+        },
+        {
+          "file": "app/signup/actions.ts",
+          "line": 15,
+          "operation": "auth.signUp"
+        },
+        {
+          "file": "app/signup/page.tsx",
+          "line": 17,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "components/account-form.tsx",
+          "line": 60,
+          "operation": "from profiles"
+        },
+        {
+          "file": "components/account-form.tsx",
+          "line": 115,
+          "operation": "from profiles"
+        },
+        {
+          "file": "components/auth-refresh.tsx",
+          "line": 12,
+          "operation": "auth.onAuthStateChange"
+        },
+        {
+          "file": "components/auth-refresh.tsx",
+          "line": 23,
+          "operation": "from names"
+        },
+        {
+          "file": "components/auth-refresh.tsx",
+          "line": 35,
+          "operation": "from names"
+        },
+        {
+          "file": "components/brand-generator.tsx",
+          "line": 70,
+          "operation": "from names"
+        },
+        {
+          "file": "components/brand-generator.tsx",
+          "line": 91,
+          "operation": "from names"
+        },
+        {
+          "file": "components/command-menu.tsx",
+          "line": 50,
+          "operation": "from profiles"
+        },
+        {
+          "file": "components/command-menu.tsx",
+          "line": 158,
+          "operation": "auth.signOut"
+        },
+        {
+          "file": "components/delete-account.tsx",
+          "line": 44,
+          "operation": "auth.signOut"
+        },
+        {
+          "file": "components/name-generator.tsx",
+          "line": 197,
+          "operation": "from names"
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 191,
+          "operation": "from names"
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 203,
+          "operation": "from names"
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 237,
+          "operation": "from names"
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 272,
+          "operation": "from domains"
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 305,
+          "operation": "from domains"
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 341,
+          "operation": "from trademarks"
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 382,
+          "operation": "from trademarks"
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 417,
+          "operation": "from npm_names"
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 445,
+          "operation": "from npm_names"
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 478,
+          "operation": "from logos"
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 519,
+          "operation": "from one_pagers"
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 527,
+          "operation": "from names"
+        },
+        {
+          "file": "components/site-header.tsx",
+          "line": 12,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "components/user-nav.tsx",
+          "line": 57,
+          "operation": "from profiles"
+        },
+        {
+          "file": "components/user-nav.tsx",
+          "line": 104,
+          "operation": "auth.signOut"
+        },
+        {
+          "file": "lib/billing.ts",
+          "line": 14,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "lib/billing.ts",
+          "line": 20,
+          "operation": "from billing_accounts select"
+        },
+        {
+          "file": "lib/billing.ts",
+          "line": 28,
+          "operation": "from billing_accounts select"
+        },
+        {
+          "file": "lib/billing.ts",
+          "line": 33,
+          "operation": "from billing_webhook_events select"
+        },
+        {
+          "file": "lib/billing.ts",
+          "line": 42,
+          "operation": "rpc apply_billing_snapshot"
+        },
+        {
+          "file": "lib/provider-access.ts",
+          "line": 21,
+          "operation": "auth.getUser"
+        },
+        {
+          "file": "lib/provider-access.ts",
+          "line": 33,
+          "operation": "from billing_accounts select"
+        },
+        {
+          "file": "lib/provider-access.ts",
+          "line": 39,
+          "operation": "rpc reserve_provider_usage",
+          "notes": "admin client created at line 15 with service role key"
+        },
+        {
+          "file": "scripts/reconcile-billing.cjs",
+          "line": 27,
+          "operation": "auth.admin.getUserById"
+        },
+        {
+          "file": "scripts/reconcile-billing.cjs",
+          "line": 31,
+          "operation": "from billing_accounts select"
+        },
+        {
+          "file": "scripts/reconcile-billing.cjs",
+          "line": 39,
+          "operation": "from billing_accounts insert"
+        },
+        {
+          "file": "scripts/reconcile-billing.cjs",
+          "line": 42,
+          "operation": "rpc apply_billing_snapshot"
+        },
+        {
+          "file": "utils/supabase/middleware.ts",
+          "line": 27,
+          "operation": "auth.getUser",
+          "notes": "@supabase/ssr middleware session refresh"
+        }
+      ],
+      "hints": {
+        "packages": ["@supabase/supabase-js", "@supabase/ssr", "supabase"],
+        "docsUrls": ["https://github.com/supabase/supabase-js", "https://supabase.com/docs"]
+      },
+      "sdk": {
+        "name": "@supabase/supabase-js",
+        "version": "2.114.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "openai",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "lib/one-pager-logo.ts",
+          "line": 19,
+          "operation": "GET {logo url}",
+          "notes": "Fetches URL returned by OpenAI images API (host-allowlisted per tests); converted to data URL"
+        }
+      ],
+      "hints": {
+        "hosts": ["oaidalleapiprodscus.blob.core.windows.net"]
+      }
+    }
+  ],
+  "purposes": {
+    "stripe": "Subscription billing: checkout, portal, customer sync, account deletion cleanup",
+    "openai": "Fetch generated logo image URL (oaidalleapiprodscus.blob.core.windows.net) for one-pager",
+    "braintrust": "LLM tracing/logging and OpenAI proxy",
+    "api.whoxy.com": "Whois domain availability",
+    "registry.npmjs.org": "npm package name availability",
+    "rapidapi-uspto-trademark": "USPTO trademark search",
+    "vercel": "Web analytics",
+    "supabase": "Auth, Postgres data (PostgREST/RPC), admin user deletion"
+  },
+  "summary": "alanagoyal/branded uses supabase for Auth, Postgres data (PostgREST/RPC), admin user deletion through @supabase/supabase-js 2.114.0 in 82 places; stripe for Subscription billing: checkout, portal, customer sync, account deletion cleanup through stripe 15.12.0 in 16 places; openai for Name generation, npm names, one-pager text, logo images through openai 4.104.0, pinned to gpt-4o-mini in 4 places; braintrust for LLM tracing/logging and OpenAI proxy through braintrust 3.34.0 in 3 places; api.whoxy.com for Whois domain availability through raw HTTP in 2 places; stripe through webhooks in 1 place; registry.npmjs.org for npm package name availability through raw HTTP in 1 place; rapidapi-uspto-trademark for USPTO trademark search through raw HTTP, pinned to /v1/ in 1 place; vercel for Web analytics through @vercel/analytics ^1.2.2 in 1 place; openai for Fetch generated logo image URL (oaidalleapiprodscus.blob.core.windows.net) for one-pager through raw HTTP in 1 place.",
+  "agentSummary": "I recorded nine usages across eight providers.\n\n- **Stripe (SDK, `stripe` 15.12.0):**\n  - It handles checkout sessions, the billing portal, customer and subscription sync, and account-deletion cleanup.\n  - Call sites are in `app/checkout-session`, `app/portal-session`, `app/verify-subscription`, `lib/billing.ts`, `lib/account-deletion.ts`, and `scripts/reconcile-billing.cjs`.\n  - No `apiVersion` is pinned.\n  - `@stripe/stripe-js` is in the manifest, but I found no browser-side Stripe call in the code. I listed it in the hints only.\n- **Stripe (webhook):** `app/api/webhook/stripe/route.ts` verifies the signature with `STRIPE_ENDPOINT_SECRET`.\n- **OpenAI (SDK, 4.104.0):**\n  - Three routes call `chat.completions.create` with `gpt-4o-mini`, through the Braintrust proxy at `braintrustproxy.com/v1`.\n  - `app/generate-logo/route.ts` calls `images.generate` directly, with model `gpt-image-2.5-flare`.\n  - A separate HTTP usage covers `lib/one-pager-logo.ts`, which fetches the generated logo URL, an `oaidalleapiprodscus.blob.core.windows.net` link.\n- **Braintrust (SDK, 3.34.0):** it provides `initLogger`, `traced` and `wrapOpenAI` tracing in the three chat routes, plus the proxy base URL.\n- **Supabase (SDK, `@supabase/supabase-js` 2.114.0):**\n  - It covers auth, table queries, RPCs, and the service-role admin client, including `auth.admin.deleteUser`.\n  - I recorded about 80 call sites across `app/`, `components/`, `lib/`, `utils/supabase/middleware.ts` and `scripts/`.\n  - They come from grepping `.from(`, `.auth.` and `.rpc(`. A few multi-line queries are recorded at the line of `.from(`.\n  - `@supabase/ssr` is also used (per the manifest and middleware), but I didn't enumerate its client factories separately.\n- **Whoxy (HTTP, `api.whoxy.com`):** a whois lookup in `app/find-domain-availability` and `app/generate-names`.\n- **npm registry (HTTP, `registry.npmjs.org`):** package-name availability in `app/find-npm-availability`.\n- **RapidAPI USPTO Trademark (HTTP, `uspto-trademark.p.rapidapi.com`):** trademark search in `app/find-trademarks`, with the path pinned at `/v1/`.\n- **Vercel Analytics (SDK):** the `<Analytics />` component in `app/layout.tsx`.\n\nI did not fully check the following:\n\n- I did not open `app/generate-names/route.ts` around lines 34–35 beyond the grep hit. I recorded its Whoxy call from the matched fetch URL.\n- I did not check whether `@vercel/og` or `@react-pdf/renderer` make network calls.\n- The README and docs were not read for further hosts.\n- The client components call the repo's own routes (`/portal-session`, `/generate-names` and so on). I treated those as internal, not external.\n- Some hosts in the scan are static links, such as the Namecheap affiliate link and the USPTO TSDR link. They are not API calls, so I left them out.",
+  "outcome": "success",
+  "costUsd": 0.2511862,
+  "costByModel": {
+    "claude-sonnet-5-5": 0.25105720000000004,
+    "claude-haiku-5-5": 0.000129
+  },
+  "turns": 24,
+  "durationMs": 57650
+}

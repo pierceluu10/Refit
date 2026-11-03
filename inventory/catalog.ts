@@ -252,8 +252,13 @@ export const CATALOG: CatalogEntry[] = [
     npm: ['plaid', 'react-plaid-link'],
     python: { packages: ['plaid-python'], modules: ['plaid'] },
   },
-  { provider: 'paypal', npm: ['@paypal/'], hosts: ['api-m.paypal.com', 'api.paypal.com'] },
-  { provider: 'square', npm: ['square'], hosts: ['connect.squareup.com'] },
+  // The legacy official SDKs too (paypal-rest-sdk, square-connect): old repos still run on them.
+  {
+    provider: 'paypal',
+    npm: ['@paypal/', 'paypal-rest-sdk'],
+    hosts: ['api-m.paypal.com', 'api.paypal.com'],
+  },
+  { provider: 'square', npm: ['square', 'square-connect'], hosts: ['connect.squareup.com'] },
   { provider: 'lemonsqueezy', npm: ['@lemonsqueezy/lemonsqueezy.js'] },
   { provider: 'paddle', npm: ['@paddle/'] },
   { provider: 'livekit', npm: ['livekit-server-sdk', 'livekit-client', '@livekit/'] },

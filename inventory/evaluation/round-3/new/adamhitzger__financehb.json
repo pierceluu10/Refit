@@ -1,0 +1,680 @@
+{
+  "commit": "6b409f3db888e0792800d10942ea361e0a338500",
+  "repo": "adamhitzger/financehb",
+  "promptVersion": "inventory-v8",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "adamhitzger/financehb",
+      "provider": "turso",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "actions/users.tsx",
+          "line": 127,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 364,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 403,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 417,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 444,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 478,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 530,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 590,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 629,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 659,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 709,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 755,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 768,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 782,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 808,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 826,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 44,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 163,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 186,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 228,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 256,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 278,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/paywall/page.tsx",
+          "line": 13,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/user/page.tsx",
+          "line": 8,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "database/currentUser.ts",
+          "line": 32,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "proxy.ts",
+          "line": 24,
+          "operation": "execute",
+          "fields": ["sql", "args"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["@libsql/client"]
+      },
+      "sdk": {
+        "name": "@libsql/client",
+        "version": "^0.15.4"
+      }
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "provider": "stripe",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "actions/users.tsx",
+          "line": 563,
+          "operation": "billingPortal.sessions.create",
+          "fields": ["customer", "return_url"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 820,
+          "operation": "customers.create",
+          "fields": ["email", "name"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 837,
+          "operation": "checkout.sessions.create",
+          "fields": [
+            "customer",
+            "customerStripeIdasstring",
+            "mode",
+            "billing_address_collection",
+            "payment_method_types",
+            "allow_promotion_codes",
+            "true",
+            "line_items",
+            "customer_update",
+            "success_url",
+            "cancel_url"
+          ],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 27,
+          "operation": "webhooks.constructEvent",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 70,
+          "operation": "subscriptions.retrieve",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 79,
+          "operation": "invoices.retrieve",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 223,
+          "operation": "subscriptions.retrieve",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 275,
+          "operation": "subscriptions.retrieve",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "2024-06-20",
+        "file": "lib/utils.ts",
+        "line": 10
+      },
+      "hints": {
+        "packages": ["@stripe/stripe-js", "stripe"],
+        "hosts": ["api.stripe.com", "js.stripe.com", "checkout.stripe.com", "billing.stripe.com"],
+        "docsUrls": ["https://docs.stripe.com/changelog"]
+      },
+      "sdk": {
+        "name": "stripe",
+        "version": "^16.12.0"
+      }
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "provider": "stripe",
+      "via": "webhook",
+      "callSites": [
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 27,
+          "operation": "webhooks.constructEvent",
+          "notes": "Webhook signature check (code scan)."
+        }
+      ],
+      "hints": {
+        "packages": ["@stripe/stripe-js", "stripe"],
+        "hosts": ["api.stripe.com", "js.stripe.com", "checkout.stripe.com", "billing.stripe.com"],
+        "docsUrls": ["https://docs.stripe.com/changelog"]
+      }
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "provider": "sanity",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "components/articles.tsx",
+          "line": 36,
+          "operation": "toPlainText",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/slider.tsx",
+          "line": 13,
+          "operation": "toPlainText",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "sanity/lib/client.ts",
+          "line": 28,
+          "operation": "fetch",
+          "fields": ["stega", "perspective", "token", "useCdn", "false", "next"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "sanity/lib/client.ts",
+          "line": 36,
+          "operation": "fetch",
+          "fields": ["stega", "perspective", "useCdn", "true", "next"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["next-sanity"],
+        "hosts": ["api.sanity.io", "cdn.sanity.io"]
+      },
+      "sdk": {
+        "name": "next-sanity",
+        "version": "^9.4.3"
+      }
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "provider": "google-recaptcha",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "components/contact.tsx",
+          "line": 38,
+          "operation": "useGoogleReCaptcha",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/ebookForm.tsx",
+          "line": 32,
+          "operation": "useGoogleReCaptcha",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/modals/ebookModal.tsx",
+          "line": 35,
+          "operation": "useGoogleReCaptcha",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["react-google-recaptcha-v3"]
+      },
+      "sdk": {
+        "name": "react-google-recaptcha-v3",
+        "version": "^1.11.0"
+      }
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "provider": "upstash",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "database/session.ts",
+          "line": 41,
+          "operation": "set",
+          "fields": ["ex", "SESSION_EXPIRATION_SECONDS"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "database/session.ts",
+          "line": 55,
+          "operation": "set",
+          "fields": ["ex", "SESSION_EXPIRATION_SECONDS"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "database/session.ts",
+          "line": 76,
+          "operation": "set",
+          "fields": ["ex", "SESSION_EXPIRATION_SECONDS"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "database/session.ts",
+          "line": 88,
+          "operation": "del",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "database/session.ts",
+          "line": 93,
+          "operation": "get",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["@upstash/redis"]
+      },
+      "sdk": {
+        "name": "@upstash/redis",
+        "version": "^1.34.8"
+      }
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "provider": "google-analytics",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/layout.tsx",
+          "line": 95,
+          "operation": "<GoogleAnalytics />",
+          "fields": ["gaId"],
+          "notes": "Rendered SDK component (code scan); it calls the vendor from the browser."
+        }
+      ],
+      "hints": {
+        "packages": ["@next/third-parties"],
+        "hosts": [
+          "www.google-analytics.com",
+          "region1.google-analytics.com",
+          "www.googletagmanager.com"
+        ]
+      },
+      "sdk": {
+        "name": "@next/third-parties",
+        "version": "^16.0.5"
+      }
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "provider": "calendly",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "components/calendlyPop.tsx",
+          "line": 12,
+          "operation": "<InlineWidget />",
+          "notes": "Rendered SDK component (code scan); it calls the vendor from the browser."
+        }
+      ],
+      "hints": {
+        "packages": ["react-calendly"],
+        "hosts": ["api.calendly.com"]
+      },
+      "sdk": {
+        "name": "react-calendly",
+        "version": "^4.3.1"
+      }
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "provider": "sanity",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/api/downloadPdf/route.ts",
+          "line": 7,
+          "operation": "GET (URL built at runtime)",
+          "notes": "Raw HTTP with a URL built at runtime; this file names only cdn.sanity.io (code scan)."
+        }
+      ],
+      "hints": {
+        "packages": ["next-sanity"],
+        "hosts": ["cdn.sanity.io", "api.sanity.io"]
+      }
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "provider": "raynet",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "actions/mail.ts",
+          "line": 141,
+          "operation": "PUT /api/v2/company/",
+          "fields": ["name", "rating", "state", "role", "addresses", "tags"],
+          "notes": "newsletter signup; response ignored. Basic auth RAYNET_EMAIL:RAYNET_API_KEY, X-Instance-Name financehb"
+        },
+        {
+          "file": "actions/mail.ts",
+          "line": 308,
+          "operation": "PUT /api/v2/company/",
+          "fields": ["name", "firstName", "lastName", "rating", "addresses", "tags"],
+          "notes": "ebook download creates contact; response ignored"
+        },
+        {
+          "file": "actions/mail.ts",
+          "line": 365,
+          "operation": "PUT /api/v2/company/",
+          "fields": ["name", "rating", "state", "role", "addresses"],
+          "notes": "saveRaynet; response ignored"
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 220,
+          "operation": "GET /api/v2/company/?tags[LIKE]=",
+          "notes": "reads data[].primaryAddress.contactInfo.email for newsletter recipients"
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 281,
+          "operation": "GET /api/v2/company/?primaryAddress-contactInfo.email=",
+          "notes": "reads data[].id"
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 295,
+          "operation": "POST /api/v2/company/{id}",
+          "fields": ["rating"],
+          "notes": "sets rating D (unsubscribe)"
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 430,
+          "operation": "GET /api/v2/company/?primaryAddress-contactInfo.email=",
+          "notes": "reads data[0].id stored as raynet_id"
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 656,
+          "operation": "POST /api/v2/company/{id}",
+          "fields": ["rating"],
+          "notes": "sets rating C; checks status 200"
+        },
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 105,
+          "operation": "PUT /api/v2/company/",
+          "notes": "create company after Stripe event if user has no raynet_id"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "/api/v2/",
+        "file": "actions/mail.ts",
+        "line": 64
+      },
+      "hints": {
+        "hosts": ["app.raynet.cz"]
+      }
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "provider": "idoklad",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "actions/users.tsx",
+          "line": 38,
+          "operation": "POST /server/connect/token (identity.idoklad.cz)",
+          "fields": ["grant_type", "client_id", "client_secret", "scope"],
+          "notes": "reads access_token"
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 74,
+          "operation": "POST /v3/Contacts",
+          "fields": ["CompanyName", "CountryId", "DeliveryAddresses"],
+          "notes": "reads Data.Id"
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 76,
+          "operation": "GET /v3/IssuedInvoices",
+          "notes": "counts Data.Items for serial number"
+        },
+        {
+          "file": "actions/users.tsx",
+          "line": 105,
+          "operation": "POST /v3/IssuedInvoices",
+          "fields": [
+            "CurrencyId",
+            "Items",
+            "PartnerId",
+            "DocumentSerialNumber",
+            "NumericSequenceId"
+          ],
+          "notes": "returns response data"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "v3",
+        "file": "actions/users.tsx",
+        "line": 50
+      },
+      "hints": {
+        "packages": ["axios"],
+        "hosts": ["api.idoklad.cz", "identity.idoklad.cz"]
+      }
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "provider": "smartemailing",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "actions/mail.ts",
+          "line": 12,
+          "operation": "GET /api/v3/contacts/{email}",
+          "notes": "Basic auth; checks json.status==='error'"
+        },
+        {
+          "file": "actions/mail.ts",
+          "line": 21,
+          "operation": "POST /api/v3/import",
+          "fields": ["settings", "data[].emailaddress", "name", "surname", "contactlists"],
+          "notes": "logs json.status"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "/api/v3/",
+        "file": "actions/mail.ts",
+        "line": 12
+      },
+      "hints": {
+        "hosts": ["app.smartemailing.cz"]
+      }
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "provider": "google-recaptcha",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "actions/captcha.ts",
+          "line": 12,
+          "operation": "POST /recaptcha/api/siteverify",
+          "fields": ["secret", "response"],
+          "notes": "returns JSON; caller checks success and score<0.8"
+        }
+      ],
+      "hints": {
+        "hosts": ["www.google.com"]
+      }
+    }
+  ],
+  "purposes": {
+    "raynet": "CRM: lookup/create/update companies (contacts, ratings, tags)",
+    "idoklad": "Invoicing: OAuth token, contacts, issued invoices (via axios)",
+    "smartemailing": "Email marketing contact lists",
+    "google-recaptcha": "Server-side recaptcha token verification"
+  },
+  "summary": "adamhitzger/financehb uses turso through @libsql/client ^0.15.4 in 26 places; raynet for CRM: lookup/create/update companies (contacts, ratings, tags) through raw HTTP, pinned to /api/v2/ in 9 places; stripe through stripe ^16.12.0, pinned to 2024-06-20 in 8 places; upstash through @upstash/redis ^1.34.8 in 5 places; sanity through next-sanity ^9.4.3 in 4 places; idoklad for Invoicing: OAuth token, contacts, issued invoices (via axios) through raw HTTP, pinned to v3 in 4 places; google-recaptcha through react-google-recaptcha-v3 ^1.11.0 in 3 places; smartemailing for Email marketing contact lists through raw HTTP, pinned to /api/v3/ in 2 places; stripe through webhooks in 1 place; google-analytics through @next/third-parties ^16.0.5 in 1 place; calendly through react-calendly ^4.3.1 in 1 place; sanity through raw HTTP in 1 place; google-recaptcha for Server-side recaptcha token verification through raw HTTP in 1 place.",
+  "agentSummary": "Inventory is complete. The scan had already recorded some providers. I added four more, all raw HTTP. I did not re-read the files the scan had already covered.\n\n**Added by me (via http):**\n- **Raynet CRM** (`app.raynet.cz/api/v2`): looks up, creates and updates companies, and sets ratings and tags.\n  - It has 9 call sites in `actions/mail.ts`, `actions/users.tsx` and the Stripe webhook route.\n  - Auth is basic auth built from `RAYNET_EMAIL` and `RAYNET_API_KEY`.\n- **iDoklad** (`identity.idoklad.cz` and `api.idoklad.cz/v3`): gets an OAuth token, then creates a contact and an invoice. It has 4 call sites in `actions/users.tsx`, all through axios.\n- **SmartEmailing** (`app.smartemailing.cz/api/v3`): checks whether a contact exists and imports it into a list. It has 2 call sites in `actions/mail.ts`.\n- **Google reCAPTCHA server-side verify** (`www.google.com/recaptcha/api/siteverify`): 1 call site in `actions/captcha.ts`. It sits alongside the existing browser-side usage.\n\n**Already recorded by the scan:** Turso, Stripe (SDK and webhook), Sanity (SDK and HTTP), Upstash Redis, Google Analytics, Calendly, and reCAPTCHA in the browser.\n\n**Leads that are not external APIs:**\n- **Email sending:** nodemailer sends through Gmail SMTP, using `FROM_EMAIL` and `FROM_EMAIL_PASSWORD` in `actions/users.tsx`, `actions/mail.ts` and the Stripe webhook route. That is SMTP to an operator-configured server, not an HTTP API, so I didn't record it.\n- **Unused dependencies:** `@stripe/stripe-js`, `@supabase/ssr`, `@supabase/supabase-js` (the scan flagged it as imported only in `types/index.d.ts`), `mapbox-gl`, `react-map-gl`, `openai`, `ai`, `twilio` and `sanity-plugin-mux-input` showed no import or call in the code. A grep for openai, twilio, supabase, mapbox and mux returned no matches. I did not open `types/index.d.ts` or `package.json` to confirm.\n- **Plain links and embeds:** social profile URLs, a YouTube iframe, `financehb.cz` links and the other hosts in the scan's host list.\n- **Own backend:** `app/api/downloadPdf/route.ts` fetches a file URL; the scan already recorded it under Sanity.\n\n**Not checked:**\n- I did not read lines 701–861 of `actions/users.tsx`. The grep showed only one more call there, a nodemailer `sendMail` at line 727.\n- I did not read lines 120–304 of the Stripe webhook route.\n- I did not open the shared-client files the scan flagged with no call found: `lib/utils.ts`, `database/client.ts`, `database/redis.ts`, `sanity/lib/queries.ts` and `sanity/lib/actions.tsx`.\n- I did not look in scripts or CI for network calls.",
+  "outcome": "success",
+  "costUsd": 0.1471483,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0006117000000000001,
+    "claude-sonnet-5-5": 0.14653660000000002
+  },
+  "turns": 11,
+  "durationMs": 29748,
+  "scan": {
+    "version": "scan-v7",
+    "usages": 9,
+    "callSites": 50,
+    "leads": 75
+  }
+}

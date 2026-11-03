@@ -1,0 +1,712 @@
+{
+  "commit": "cf8f84cc8bfc4b6fc35ae462deea9369ff7afc27",
+  "repo": "alanagoyal/branded",
+  "promptVersion": "inventory-v8",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "supabase",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/[id]/page.tsx",
+          "line": 13,
+          "operation": "auth.getUser",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/[id]/page.tsx",
+          "line": 15,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/account/delete/route.ts",
+          "line": 21,
+          "operation": "auth.getUser",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/account/delete/route.ts",
+          "line": 60,
+          "operation": "auth.signOut",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/account/page.tsx",
+          "line": 9,
+          "operation": "auth.getUser",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/account/page.tsx",
+          "line": 16,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/auth/confirm/route.ts",
+          "line": 20,
+          "operation": "auth.verifyOtp",
+          "fields": ["type", "token_hash"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/favorites/page.tsx",
+          "line": 12,
+          "operation": "auth.getUser",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/favorites/page.tsx",
+          "line": 19,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/layout.tsx",
+          "line": 35,
+          "operation": "auth.getUser",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/login/actions.ts",
+          "line": 12,
+          "operation": "auth.signInWithPassword",
+          "fields": ["email"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/login/actions.ts",
+          "line": 15,
+          "operation": "rpc",
+          "fields": ["given_mail"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/new/page.tsx",
+          "line": 16,
+          "operation": "auth.getUser",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/new/page.tsx",
+          "line": 27,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/pricing/page.tsx",
+          "line": 10,
+          "operation": "auth.getUser",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/pricing/page.tsx",
+          "line": 17,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/signup/actions.ts",
+          "line": 15,
+          "operation": "auth.signUp",
+          "fields": ["email", "password", "options"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/signup/page.tsx",
+          "line": 17,
+          "operation": "auth.getUser",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/account-form.tsx",
+          "line": 60,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/account-form.tsx",
+          "line": 115,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/auth-refresh.tsx",
+          "line": 12,
+          "operation": "auth.onAuthStateChange",
+          "fields": ["event"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/auth-refresh.tsx",
+          "line": 23,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/auth-refresh.tsx",
+          "line": 35,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/brand-generator.tsx",
+          "line": 70,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/brand-generator.tsx",
+          "line": 91,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/command-menu.tsx",
+          "line": 50,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/command-menu.tsx",
+          "line": 158,
+          "operation": "auth.signOut",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/name-generator.tsx",
+          "line": 197,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 191,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 203,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 237,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 272,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 305,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 341,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 382,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 417,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 445,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 478,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 519,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/names-display.tsx",
+          "line": 527,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/site-header.tsx",
+          "line": 12,
+          "operation": "auth.getUser",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/user-nav.tsx",
+          "line": 57,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "components/user-nav.tsx",
+          "line": 104,
+          "operation": "auth.signOut",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "lib/provider-access.ts",
+          "line": 21,
+          "operation": "auth.getUser",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "scripts/test-pdf-runtime.cjs",
+          "line": 76,
+          "operation": "auth.signInWithPassword",
+          "fields": ["email", "password"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "utils/supabase/middleware.ts",
+          "line": 27,
+          "operation": "auth.getUser",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["@supabase/ssr", "@supabase/supabase-js"],
+        "hosts": ["supabase.co"]
+      },
+      "sdk": {
+        "name": "@supabase/ssr",
+        "version": "0.12.7",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "braintrust",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/find-npm-names/route.ts",
+          "line": 8,
+          "operation": "wrapOpenAI",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/find-npm-names/route.ts",
+          "line": 25,
+          "operation": "traced",
+          "fields": ["name", "event"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/generate-names/route.ts",
+          "line": 10,
+          "operation": "wrapOpenAI",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/generate-names/route.ts",
+          "line": 81,
+          "operation": "traced",
+          "fields": ["name", "event"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/generate-one-pager-content/route.ts",
+          "line": 8,
+          "operation": "wrapOpenAI",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/generate-one-pager-content/route.ts",
+          "line": 25,
+          "operation": "traced",
+          "fields": ["Usethisdescription", "name", "event"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["braintrust"]
+      },
+      "sdk": {
+        "name": "braintrust",
+        "version": "3.34.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/find-npm-names/route.ts",
+          "line": 29,
+          "operation": "chat.completions.create",
+          "fields": ["model"],
+          "notes": "Same proxy setup (baseURL line 13), model gpt-4o-mini"
+        },
+        {
+          "file": "app/generate-logo/route.ts",
+          "line": 24,
+          "operation": "images.generate",
+          "fields": [
+            "model",
+            "prompt",
+            "n",
+            "quality",
+            "size",
+            "output_format",
+            "output_compression"
+          ],
+          "notes": "Found by the code scan (import, client, member call); response handling not read. Model \"gpt-image-2.5-flare\"."
+        },
+        {
+          "file": "app/generate-names/route.ts",
+          "line": 83,
+          "operation": "chat.completions.create",
+          "fields": ["model", "max_tokens", "messages"],
+          "notes": "Client wrapped with braintrust wrapOpenAI, baseURL braintrustproxy.com/v1; reads choices[0].message.content"
+        },
+        {
+          "file": "app/generate-one-pager-content/route.ts",
+          "line": 29,
+          "operation": "chat.completions.create",
+          "fields": ["model"],
+          "notes": "Same proxy setup (baseURL line 13), model gpt-4o-mini"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "gpt-4o-mini",
+        "file": "app/generate-names/route.ts",
+        "line": 84
+      },
+      "hints": {
+        "packages": ["openai", "braintrust"],
+        "hosts": ["api.openai.com", "braintrustproxy.com"],
+        "docsUrls": ["https://platform.openai.com/docs/deprecations"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "4.104.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "supabase",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/share/[token]/page.tsx",
+          "line": 13,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/share/[token]/page.tsx",
+          "line": 16,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "lib/provider-access.ts",
+          "line": 33,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "lib/provider-access.ts",
+          "line": 39,
+          "operation": "rpc",
+          "fields": ["p_user_id", "userId", "p_feature", "feature", "p_limit"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "scripts/reconcile-billing.cjs",
+          "line": 27,
+          "operation": "auth.admin.getUserById",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "scripts/reconcile-billing.cjs",
+          "line": 31,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "scripts/reconcile-billing.cjs",
+          "line": 39,
+          "operation": "from",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "scripts/reconcile-billing.cjs",
+          "line": 42,
+          "operation": "rpc",
+          "fields": ["p_customer_id", "id", "p_revision", "p_snapshot", "snapshot"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "supabase/admin.ts",
+          "line": 7,
+          "operation": "createClient",
+          "fields": ["auth"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["@supabase/ssr", "@supabase/supabase-js"],
+        "hosts": ["supabase.co"]
+      },
+      "sdk": {
+        "name": "@supabase/supabase-js",
+        "version": "2.114.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "stripe",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 18,
+          "operation": "webhooks.constructEvent",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 22,
+          "operation": "customers.list",
+          "fields": ["email", "limit"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 26,
+          "operation": "customers.create",
+          "fields": ["email", "metadata", "idempotencyKey"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 38,
+          "operation": "subscriptions.list",
+          "fields": ["customer", "customer_id", "status", "limit"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 52,
+          "operation": "checkout.sessions.create",
+          "fields": [
+            "expires_at",
+            "mode",
+            "customer",
+            "customer_id",
+            "client_reference_id",
+            "id",
+            "line_items",
+            "subscription_data",
+            "success_url",
+            "cancel_url",
+            "idempotencyKey"
+          ],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/verify-subscription/route.ts",
+          "line": 14,
+          "operation": "checkout.sessions.retrieve",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "scripts/reconcile-billing.cjs",
+          "line": 29,
+          "operation": "customers.retrieve",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "scripts/reconcile-billing.cjs",
+          "line": 35,
+          "operation": "subscriptions.list",
+          "fields": ["customer", "id", "status", "limit"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["@stripe/stripe-js", "stripe"],
+        "hosts": ["api.stripe.com", "js.stripe.com", "checkout.stripe.com", "billing.stripe.com"],
+        "docsUrls": ["https://docs.stripe.com/changelog"]
+      },
+      "sdk": {
+        "name": "stripe",
+        "version": "15.12.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "stripe",
+      "via": "webhook",
+      "callSites": [
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 18,
+          "operation": "webhooks.constructEvent",
+          "notes": "Webhook signature check (code scan)."
+        }
+      ],
+      "hints": {
+        "packages": ["@stripe/stripe-js", "stripe"],
+        "hosts": ["api.stripe.com", "js.stripe.com", "checkout.stripe.com", "billing.stripe.com"],
+        "docsUrls": ["https://docs.stripe.com/changelog"]
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "vercel",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/layout.tsx",
+          "line": 80,
+          "operation": "<Analytics />",
+          "notes": "Rendered SDK component (code scan); it calls the vendor from the browser."
+        }
+      ],
+      "hints": {
+        "packages": ["@vercel/analytics", "@vercel/og"]
+      },
+      "sdk": {
+        "name": "@vercel/analytics",
+        "version": "1.6.1",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "whoxy",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/find-domain-availability/route.ts",
+          "line": 16,
+          "operation": "GET /?key&whois=",
+          "fields": ["key (WHOXY_API_KEY)", "whois"],
+          "notes": "Reads domain_registered==='no' as available; one call per TLD"
+        },
+        {
+          "file": "app/generate-names/route.ts",
+          "line": 34,
+          "operation": "GET /?key&whois=",
+          "fields": ["key", "whois"],
+          "notes": "checkDomainAvailability helper; reads domain_registered"
+        }
+      ],
+      "hints": {
+        "hosts": ["api.whoxy.com"]
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "rapidapi-uspto-trademark",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/find-trademarks/route.ts",
+          "line": 10,
+          "operation": "GET /v1/trademarkSearch/{term}/active",
+          "fields": ["X-RapidAPI-Key (RAPID_API_KEY)", "X-RapidAPI-Host"],
+          "notes": "Returns JSON to client unchanged"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "v1",
+        "file": "app/find-trademarks/route.ts",
+        "line": 10
+      },
+      "hints": {
+        "hosts": ["uspto-trademark.p.rapidapi.com"]
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "npm-registry",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/find-npm-availability/route.ts",
+          "line": 10,
+          "operation": "GET /{package}",
+          "notes": "Existence check"
+        }
+      ],
+      "hints": {
+        "hosts": ["registry.npmjs.org"]
+      }
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "provider": "openai",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "lib/one-pager-logo.ts",
+          "line": 19,
+          "operation": "GET (generated image URL)",
+          "notes": "Host allowlisted; redirects disabled; size-limited, embedded in PDF"
+        }
+      ],
+      "hints": {
+        "hosts": ["oaidalleapiprodscus.blob.core.windows.net"]
+      }
+    }
+  ],
+  "purposes": {
+    "openai": "Fetch generated logo image from OpenAI image blob storage",
+    "whoxy": "WHOIS domain availability lookup",
+    "rapidapi-uspto-trademark": "USPTO trademark search via RapidAPI",
+    "npm-registry": "npm package name availability"
+  },
+  "summary": "alanagoyal/branded uses supabase through @supabase/ssr 0.12.7 in 46 places; supabase through @supabase/supabase-js 2.114.0 in 9 places; stripe through stripe 15.12.0 in 8 places; braintrust through braintrust 3.34.0 in 6 places; openai for Chat completions via Braintrust proxy (OpenAI-compatible, baseURL https://braintrustproxy.com/v1) through openai 4.104.0, pinned to gpt-4o-mini in 4 places; whoxy for WHOIS domain availability lookup through raw HTTP in 2 places; stripe through webhooks in 1 place; vercel through @vercel/analytics 1.6.1 in 1 place; rapidapi-uspto-trademark for USPTO trademark search via RapidAPI through raw HTTP, pinned to v1 in 1 place; npm-registry for npm package name availability through raw HTTP in 1 place; openai for Fetch generated logo image from OpenAI image blob storage through raw HTTP in 1 place.",
+  "agentSummary": "I found nine external providers. Seven were recorded earlier or by me. Two more are unconfirmed: Stripe.js and `@vercel/og`.\n\n**Recorded earlier by the scan**\n- **Supabase** (`@supabase/ssr` and `@supabase/supabase-js`): auth and data across the app.\n- **Braintrust** (SDK): logging and tracing in the three LLM routes.\n- **OpenAI** (SDK): logo generation with `images.generate`, pinned to `gpt-image-2.5-flare`.\n- **Stripe** (SDK and webhook receiver): checkout, billing and subscription handling.\n- **Vercel** (`@vercel/analytics`): analytics in `app/layout.tsx`.\n\n**Recorded by me**\n- **OpenAI through the Braintrust proxy** (SDK): `chat.completions.create` with `gpt-4o-mini` in `generate-names`, `find-npm-names` and `generate-one-pager-content`. The client uses `baseURL` `https://braintrustproxy.com/v1`. I filed it under provider `openai` with the proxy host in the hints, not as a separate provider.\n- **OpenAI image storage** (HTTP): `lib/one-pager-logo.ts` fetches the generated logo from `oaidalleapiprodscus.blob.core.windows.net`. The host is allowlisted, redirects are off and the size is capped.\n- **Whoxy** (HTTP): WHOIS domain availability in `find-domain-availability` and in `generate-names`.\n- **RapidAPI USPTO trademark search** (HTTP): `find-trademarks`.\n- **npm registry** (HTTP): `registry.npmjs.org` name availability in `find-npm-availability`.\n\n**Leads that are not external APIs**\n- The relative `fetch` calls to the repo's own routes (12, per the scan) are internal. I did not read these files, so I took the scan's word for it: `components/command-menu.tsx`, `components/user-nav.tsx` and `components/verify-subscription.tsx`.\n- The UI libraries (Radix, shadcn and similar), `react-hook-form` and `zod` make no network calls. I did not inspect their usage in code.\n- Hosts that are only links (`namecheap.pxf.io`, `tsdr.uspto.gov`, `docs.npmjs.com`, social and company sites) are not APIs. The `fetch` calls at `components/names-display.tsx:286`, `:354` and `:428` are unread, but the same file also built the purchase and USPTO links. The scan listed them as leads, so they are probably internal calls.\n- Test fixtures (`evil.example`, `vendor.example` and the like) and `scripts/test-pdf-runtime.cjs` are not APIs.\n\n**Unsure or not read**\n- **`@stripe/stripe-js` and `@vercel/og`:** both are declared in `package.json`, but I found no code that imports or uses either.\n- **`npm-name`:** I searched for it (`from \"npm-name\"` and `require(\"npm-name\")`) and found no usage.\n- **Stripe, Supabase and OpenAI files with no calls found:** I did not read these, so I did not check for missed call sites: `lib/billing.ts`, `app/portal-session/route.ts`, `app/update-subscription/route.ts`, `app/api/name-shares/route.ts` and `utils/supabase/*`.\n- **`NEXT_PUBLIC_ALPHARUN_URL`:** I did not follow it. It is probably only a link in `components/command-menu.tsx`.",
+  "outcome": "success",
+  "costUsd": 0.09106,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0007243,
+    "claude-sonnet-5-5": 0.0903357
+  },
+  "turns": 14,
+  "durationMs": 26740,
+  "scan": {
+    "version": "scan-v7",
+    "usages": 7,
+    "callSites": 72,
+    "leads": 86
+  }
+}

@@ -18,7 +18,7 @@ import {
 import { listFiles, readText } from './repo-files.ts';
 import { listManifests, lockedVersions, type Manifest } from './scanners.ts';
 
-export const SCAN_VERSION = 'scan-v4';
+export const SCAN_VERSION = 'scan-v7';
 
 type CallSite = ApiUsage['callSites'][number];
 
@@ -29,6 +29,8 @@ export type ScannedUsage = ApiUsage & { ecosystem?: 'python' };
 
 export type ScanResult = {
   usages: ScannedUsage[];
+  /** Folders holding many leads to read, for area readers; empty when there are few. */
+  areas?: { area: string; leads: number }[];
   leads: LeadGroup[];
   /** HTTP calls to the repo's own routes (relative URLs): not external, counted so nothing is hidden. */
   internalCalls: { count: number; examples: string[] };
@@ -200,7 +202,23 @@ type FileScan = {
   exportedFactories: Map<string, Binding>;
   /** Lines that construct a client: not call sites, but where the pinned version lives. */
   constructions: { binding: Binding; line: number; column: number }[];
+  /** Where each holder was given a client, so `this.client` in two classes keeps both apart. */
+  assignments: Map<string, { line: number; binding: Binding }[]>;
 };
+
+/**
+ * The client a name holds at a line. One file can give the same holder clients of different SDKs
+ * (`this.client = new Anthropic()` in one class, `new OpenAI()` in the next): a call then takes
+ * the nearest assignment above it, or failing that the first below it.
+ */
+function clientAt(scan: FileScan, name: string, line: number): Binding {
+  const assigned = scan.assignments.get(name) ?? [];
+  if (new Set(assigned.map((entry) => `${entry.binding.provider}|${entry.binding.pkg}`)).size < 2) {
+    return scan.clients.get(name) as Binding;
+  }
+  const above = assigned.filter((entry) => entry.line <= line).at(-1);
+  return (above ?? assigned[0]).binding;
+}
 
 const emptyScan = (): FileScan => ({
   clients: new Map(),
@@ -208,6 +226,7 @@ const emptyScan = (): FileScan => ({
   exported: new Map(),
   factories: new Map(),
   exportedFactories: new Map(),
+  assignments: new Map(),
   constructions: [],
 });
 
@@ -241,7 +260,12 @@ function findClients(source: Source, bindings: Binding[], scan: FileScan): void 
     const last = chain.at(-1) ?? binding.local;
     const makesClient = binding.factory || match[2] || CONSTRUCTOR.test(last) || FACTORY.test(last);
     if (!makesClient) return; // an API call, whose result is data
-    for (const name of holderNames(match[1])) scan.clients.set(name, binding);
+    for (const name of holderNames(match[1])) {
+      scan.clients.set(name, binding);
+      const assigned = scan.assignments.get(name) ?? [];
+      assigned.push({ line: index + 1, binding });
+      scan.assignments.set(name, assigned);
+    }
     scan.constructions.push({
       binding,
       line: index + 1,
@@ -451,7 +475,7 @@ function findCalls(
     if (/^\s*(import|from)\s/.test(line) || /\brequire\s*\(/.test(line)) return;
     for (const match of member ? line.matchAll(member) : []) {
       if (/\bnew\s+$/.test(line.slice(0, match.index))) continue; // new client.Error(): a class
-      const binding = scan.clients.get(match[1]) as Binding;
+      const binding = clientAt(scan, match[1], index + 1);
       const operation = match[2].replace(/\s+/g, '').replace(/\?\./g, '.');
       calls.push({
         binding,
@@ -464,7 +488,7 @@ function findCalls(
     const next = hanging ? continued.exec(source.lines[index + 1] ?? '') : undefined;
     if (hanging && next && !skipLines.has(index + 2)) {
       calls.push({
-        binding: scan.clients.get(hanging[1]) as Binding,
+        binding: clientAt(scan, hanging[1], index + 2),
         line: index + 2,
         operation: next[1].replace(/\s+/g, '').replace(/\?\./g, '.'),
         column: next.index + next[0].length - 1,
@@ -582,6 +606,17 @@ function pythonModuleFile(importer: string, module: string, candidates: string[]
 // ---- The scan ----
 
 type Draft = { usage: ApiUsage; seen: Set<string> };
+
+/** A scan that found nothing: what the agent starts from when the scan could not run. */
+export function emptyScanResult(): ScanResult {
+  return {
+    usages: [],
+    leads: [],
+    areas: [],
+    internalCalls: { count: 0, examples: [] },
+    stats: { files: 0, sourceFiles: 0, dependencies: 0, manifests: 0 },
+  };
+}
 
 export async function scanRepo(repoDir: string, repo: string): Promise<ScanResult> {
   const files = await listFiles(repoDir);
@@ -1082,10 +1117,12 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
       }
     });
   }
+  // Checks and verifications first: a line that only says "webhook" is the weakest signal.
+  const strength = (item: string) => Number(STRONG_WEBHOOK.test(item.replace(/^[^:]+:\d+: /, '')));
   group(
     'webhooks',
     'Webhook signals not tied to a scanned SDK call (receivers, signature checks, event handlers)',
-    webhookLines,
+    [...webhookLines].sort((a, b) => strength(b) - strength(a)),
   );
   const otherCode = sources.filter((source) => OTHER_CODE.has(source.ext)).length;
   if (otherCode > 0) {
@@ -1101,6 +1138,7 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
   return {
     usages,
     leads,
+    areas: suggestAreas(leads),
     internalCalls: { count: internalCount, examples: internal },
     stats: {
       files: files.length,
@@ -1111,6 +1149,40 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
       manifests: manifests.length,
     },
   };
+}
+
+// Leads that point at a file:line the agent has to read, as opposed to names (deps, env, hosts).
+// Webhook signals are left out: the word alone fills that list in any app with a webhook feature.
+const READ_LEADS = new Set(['base-urls', 'raw-http', 'graphql', 'sdk-without-calls']);
+// Above this many, reading them one by one on the main model costs more than area readers do.
+export const FAN_OUT_LEADS = 60;
+const MAX_AREAS = 6;
+
+/**
+ * Where the leads to read are, by folder, when there are enough of them to fan out: a suggestion
+ * the agent may take (one area reader each) or ignore. Empty below FAN_OUT_LEADS.
+ */
+function suggestAreas(leads: LeadGroup[]): { area: string; leads: number }[] {
+  const counts = new Map<string, number>();
+  let total = 0;
+  for (const lead of leads.filter((found) => READ_LEADS.has(found.kind))) {
+    total += lead.items.length + lead.more;
+    for (const item of lead.items) {
+      const file =
+        lead.kind === 'sdk-without-calls'
+          ? /no call found in ([^,\s]+)/.exec(item)?.[1]
+          : /^([^:\s]+)/.exec(item)?.[1];
+      if (!file) continue;
+      const segments = file.split('/');
+      const area = segments.slice(0, Math.min(3, Math.max(segments.length - 1, 1))).join('/');
+      counts.set(area, (counts.get(area) ?? 0) + 1);
+    }
+  }
+  if (total < FAN_OUT_LEADS) return [];
+  const sorted = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const top = sorted.slice(0, MAX_AREAS - 1).map(([area, count]) => ({ area, leads: count }));
+  const rest = sorted.slice(MAX_AREAS - 1).reduce((sum, [, count]) => sum + count, 0);
+  return rest ? [...top, { area: 'everything else', leads: rest }] : top;
 }
 
 const URL_HOST = /\bhttps?:\/\/(\[[0-9a-f:]+\]|[a-z0-9.-]+\.[a-z]{2,}|localhost)/gi;
@@ -1127,8 +1199,12 @@ const isCodeFile = (file: string) => {
 };
 const HTTP_CALL =
   /\bfetch\s*\(|\$fetch\s*\(|\bofetch\s*\(|\b(?:axios|got|ky|superagent|needle)(?:\s*\.\s*(?:get|post|put|patch|delete|head|request))?\s*\(|\brequests\s*\.\s*(?:get|post|put|patch|delete|head|request)\s*\(|\bhttpx\s*\.\s*(?:get|post|put|patch|delete|request)\s*\(|\bsession\s*\.\s*(?:get|post|put|patch|delete)\s*\(|\burlopen\s*\(|\bhttp\s*\.\s*(?:Get|Post|NewRequest|NewRequestWithContext)\s*\(|\bNet::HTTP\b|\bHTTParty\s*\.\s*\w+|\bFaraday\s*\.\s*\w+|\bRestClient\s*\.\s*\w+|\bcurl\s+-|\bwget\s+/;
+// Receivers and their checks: signatures, WebSub verification (hub.challenge, used by Meta, Twitch
+// and YouTube) and shared-token checks (Slack slash commands and the like).
 const WEBHOOK =
-  /webhook|stripe-signature|x-hub-signature|x-shopify-hmac|x-twilio-signature|x-slack-signature|svix|createHmac|hmac\.new|compare_digest|timingSafeEqual|constructEvent/i;
+  /webhook|stripe-signature|x-hub-signature|x-shopify-hmac|x-twilio-signature|x-slack-signature|svix|createHmac|hmac\.new|compare_digest|timingSafeEqual|constructEvent|hub\.(?:challenge|verify_token|mode)|signing_?secret|verification_?token/i;
+const STRONG_WEBHOOK =
+  /signature|svix|createHmac|hmac\.new|compare_digest|timingSafeEqual|constructEvent|hub\.(?:challenge|verify_token|mode)|signing_?secret|verification_?token|validate_?webhook|verify_?webhook/i;
 const ENV_READ =
   /process\.env\.([A-Za-z_]\w*)|process\.env\[\s*['"]([^'"]+)['"]\s*\]|import\.meta\.env\.([A-Za-z_]\w*)|os\.environ\[\s*['"]([^'"]+)['"]\s*\]|os\.environ\.get\(\s*['"]([^'"]+)['"]|getenv\(\s*['"]([^'"]+)['"]|\bENV\[\s*['"]([^'"]+)['"]\s*\]|^\s*([A-Z][A-Z0-9_]+)\s*=/g;
 const SERVICE_ENV = /URL|URI|HOST|ENDPOINT|BASE|API|KEY|TOKEN|SECRET|WEBHOOK|DSN|_ID$/;
@@ -1217,12 +1293,15 @@ export function scanEvidence(scan: ScanResult): string {
   const internal = scan.internalCalls.count
     ? `\n\nNot recorded, as calls to the repo's own routes (relative URLs): ${scan.internalCalls.count}, for example:\n${scan.internalCalls.examples.map((example) => `- ${example}`).join('\n')}`
     : '';
+  const areas = scan.areas?.length
+    ? `\n\n## Suggested areas for area readers\n\nThere are more leads to read than one reader should take on. Fan out: one area reader per area, each given its area's leads (file:line) from the lists below.\n${scan.areas.map((area) => `- ${area.area}: ${area.leads} leads`).join('\n')}`
+    : '';
   return `## What the code scan found (no AI)
 
 ${scan.stats.files} files, ${scan.stats.sourceFiles} of them code; ${scan.stats.manifests} manifests with ${scan.stats.dependencies} dependencies.
 
 Recorded already (list_recorded_usages shows them in full; do not record them again):
-${recorded}
+${recorded}${areas}
 
 ## Leads the scan could not settle
 

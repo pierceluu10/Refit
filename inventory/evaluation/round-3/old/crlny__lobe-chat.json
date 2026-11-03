@@ -1,0 +1,2089 @@
+{
+  "commit": "62043bba74ddd43020d5162d1acbedeb95300067",
+  "repo": "crlny/lobe-chat",
+  "promptVersion": "inventory-v3",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/(backend)/webapi/stt/openai/route.ts",
+          "line": 42,
+          "operation": "audio.transcriptions.create (via @lobehub/tts/server createOpenaiAudioTranscriptions)",
+          "fields": ["file (speech blob)", "model", "options from client"],
+          "notes": "POST /webapi/stt/openai; multipart speech blob from the browser; transcription JSON returned to client. Same createBizOpenAI client construction."
+        },
+        {
+          "file": "src/app/(backend)/webapi/tts/openai/route.ts",
+          "line": 37,
+          "operation": "audio.speech.create (via @lobehub/tts/server createOpenaiAudioSpeech)",
+          "fields": ["model", "voice", "input", "response_format"],
+          "notes": "POST /webapi/tts/openai; OpenAI client from createBizOpenAI -> createOpenai (src/app/(backend)/_deprecated/createBizOpenAI/createOpenai.ts line 17, new OpenAI({apiKey, baseURL})). Returns the audio response to the browser. baseURL from request endpoint, else OPENAI_PROXY_URL, else default."
+        },
+        {
+          "file": "src/libs/agent-runtime/openai/index.ts",
+          "line": 36,
+          "operation": "GET /v1/models (models.list)",
+          "notes": "Used by the OpenAI provider's models() via the factory-supplied client; response data ids are mapped to ChatModelCard with keyword heuristics."
+        },
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "fields": [
+            "model",
+            "messages",
+            "stream",
+            "stream_options.include_usage",
+            "tools",
+            "user"
+          ],
+          "notes": "Shared factory used by openai and ~35 OpenAI-compatible providers. Stream is returned to the UI via OpenAIStream. The OpenAI provider's handlePayload (openai/index.ts) strips reasoning params for o1/o3 models. Base URL https://api.openai.com/v1 set at openai/index.ts:12."
+        },
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 334,
+          "operation": "POST /v1/embeddings (embeddings.create)",
+          "fields": ["model", "input", "user"],
+          "notes": "Returns res.data[].embedding for the embeddings() path of the factory."
+        },
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 347,
+          "operation": "POST /v1/images/generations (images.generate)",
+          "notes": "Returns the url of each generated image."
+        },
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 356,
+          "operation": "POST /v1/audio/speech (audio.speech.create)",
+          "notes": "Returns the response as an ArrayBuffer (mp3)."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "v1",
+        "file": "src/libs/agent-runtime/openai/index.ts",
+        "line": 12
+      },
+      "hints": {
+        "packages": ["openai", "@lobehub/tts"],
+        "hosts": ["api.openai.com"],
+        "docsUrls": [
+          "https://github.com/openai/openai-node",
+          "https://platform.openai.com/docs/api-reference"
+        ]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "anthropic",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/anthropic/index.ts",
+          "line": 65,
+          "operation": "POST /v1/messages (messages.create, stream: true)",
+          "fields": [
+            "model",
+            "max_tokens",
+            "messages",
+            "system",
+            "temperature",
+            "top_p",
+            "tools",
+            "thinking",
+            "metadata.user_id"
+          ],
+          "notes": "Streams the response through AnthropicStream to the UI. Client built at line 50 with baseURL defaulting to https://api.anthropic.com (line 30); custom baseURL allowed from user config."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "bedrock-2023-05-31 (Bedrock only); anthropic-version 2023-06-01 used for raw models call",
+        "file": "src/libs/agent-runtime/anthropic/index.ts",
+        "line": 157
+      },
+      "hints": {
+        "packages": ["@anthropic-ai/sdk"],
+        "hosts": ["api.anthropic.com"],
+        "docsUrls": [
+          "https://github.com/anthropics/anthropic-sdk-typescript",
+          "https://docs.anthropic.com/en/api"
+        ]
+      },
+      "sdk": {
+        "name": "@anthropic-ai/sdk",
+        "version": "^0.39.0"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "anthropic",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/anthropic/index.ts",
+          "line": 155,
+          "operation": "GET /v1/models",
+          "fields": ["x-api-key", "anthropic-version"],
+          "notes": "Raw fetch against baseURL (default https://api.anthropic.com). Reads json.data[].id and display_name. No error check on response status."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "2023-06-01",
+        "file": "src/libs/agent-runtime/anthropic/index.ts",
+        "line": 157
+      },
+      "hints": {
+        "packages": ["@anthropic-ai/sdk"],
+        "hosts": ["api.anthropic.com"]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "google",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/google/index.ts",
+          "line": 143,
+          "operation": "POST v1beta models/{model}:streamGenerateContent (generateContentStream)",
+          "fields": [
+            "contents",
+            "systemInstruction",
+            "tools",
+            "generationConfig.maxOutputTokens",
+            "temperature",
+            "topP",
+            "safetySettings"
+          ],
+          "notes": "Model created at line 110 via getGenerativeModel with baseUrl from user config or https://generativelanguage.googleapis.com (line 73). Stream converted with GoogleGenerativeAIStream. When isVertexAi, the same call path receives a VertexAI client (see vertexai/index.ts) and VertexAIStream is used instead."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "v1beta",
+        "file": "src/libs/agent-runtime/google/index.ts",
+        "line": 141
+      },
+      "hints": {
+        "packages": ["@google/generative-ai", "@google-cloud/vertexai"],
+        "hosts": ["generativelanguage.googleapis.com"],
+        "docsUrls": ["https://github.com/google-gemini/generative-ai-js"]
+      },
+      "sdk": {
+        "name": "@google/generative-ai",
+        "version": "^0.24.0"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "google",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/google/index.ts",
+          "line": 182,
+          "operation": "GET /v1beta/models?key=<apiKey>",
+          "notes": "Raw fetch; API key placed in query string. Reads json.models[] name, displayName, inputTokenLimit, outputTokenLimit."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "v1beta",
+        "file": "src/libs/agent-runtime/google/index.ts",
+        "line": 181
+      },
+      "hints": {
+        "hosts": ["generativelanguage.googleapis.com"]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "aws-bedrock",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/bedrock/index.ts",
+          "line": 97,
+          "operation": "InvokeModel (bedrock-runtime)",
+          "fields": ["modelId", "body"],
+          "notes": "Non-streaming Claude invoke used for embeddings-like or non-stream path; response body parsed. Client built at line 44 with user-supplied access key, secret and region."
+        },
+        {
+          "file": "src/libs/agent-runtime/bedrock/index.ts",
+          "line": 140,
+          "operation": "InvokeModelWithResponseStream (bedrock-runtime)",
+          "fields": ["modelId", "body.anthropic_version", "messages", "max_tokens"],
+          "notes": "Streaming Claude invoke; output fed to AWSBedrockClaudeStream."
+        },
+        {
+          "file": "src/libs/agent-runtime/bedrock/index.ts",
+          "line": 187,
+          "operation": "InvokeModelWithResponseStream (bedrock-runtime, Llama)",
+          "fields": ["modelId", "body.prompt"],
+          "notes": "Streaming Llama invoke via invokeLlamaModel; output fed to AWSBedrockLlamaStream."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "bedrock-2023-05-31",
+        "file": "src/libs/agent-runtime/bedrock/index.ts",
+        "line": 126
+      },
+      "hints": {
+        "packages": ["@aws-sdk/client-bedrock-runtime"],
+        "docsUrls": ["https://github.com/aws/aws-sdk-js-v3"]
+      },
+      "sdk": {
+        "name": "@aws-sdk/client-bedrock-runtime",
+        "version": "^3.779.0"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "google-vertex-ai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/google/index.ts",
+          "line": 143,
+          "operation": "generateContentStream (Vertex AI generative model)",
+          "fields": ["contents", "systemInstruction", "tools", "generationConfig"],
+          "notes": "The VertexAI client is constructed in vertexai/index.ts:10 (new VertexAI(params)) and passed into LobeGoogleAI as client; the chat path is the same as the google provider. Response uses VertexAIStream."
+        }
+      ],
+      "hints": {
+        "packages": ["@google-cloud/vertexai"],
+        "hosts": ["aiplatform.googleapis.com"],
+        "docsUrls": ["https://github.com/googleapis/nodejs-vertexai"]
+      },
+      "sdk": {
+        "name": "@google-cloud/vertexai",
+        "version": "^1.9.3"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "ollama",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/ollama/index.ts",
+          "line": 55,
+          "operation": "POST /api/chat (client.chat)",
+          "fields": ["model", "messages", "stream", "tools", "options"],
+          "notes": "Streams through OllamaStream. Client constructed at line 41 with host from user baseURL (no default cloud host; local Ollama by default)."
+        },
+        {
+          "file": "src/libs/agent-runtime/ollama/index.ts",
+          "line": 123,
+          "operation": "GET /api/tags (client.list)",
+          "notes": "Lists locally installed models for models()."
+        },
+        {
+          "file": "src/libs/agent-runtime/ollama/index.ts",
+          "line": 148,
+          "operation": "POST /api/embeddings (client.embeddings)",
+          "fields": ["model", "prompt"],
+          "notes": "Embeddings path."
+        },
+        {
+          "file": "src/libs/agent-runtime/ollama/index.ts",
+          "line": 215,
+          "operation": "POST /api/pull (client.pull)",
+          "fields": ["model", "stream"],
+          "notes": "Pulls a model, streams progress back to the caller via pullModel."
+        }
+      ],
+      "hints": {
+        "packages": ["ollama"],
+        "docsUrls": ["https://github.com/ollama/ollama-js"]
+      },
+      "sdk": {
+        "name": "ollama",
+        "version": "^0.5.14"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "azure-openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/azureOpenai/index.ts",
+          "line": 52,
+          "operation": "POST {endpoint}/openai/deployments/{model}/chat/completions (chat.completions.create)",
+          "fields": ["messages", "model", "stream", "tools", "tool_choice", "temperature"],
+          "notes": "AzureOpenAI client built at lines 23-28 with user endpoint and apiVersion (user-supplied, not pinned in code). Streams through OpenAIStream. Embeddings/images not used here."
+        }
+      ],
+      "hints": {
+        "packages": ["openai"],
+        "hosts": ["openai.azure.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "azure-ai-inference",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/azureai/index.ts",
+          "line": 53,
+          "operation": "POST /chat/completions (ModelClient path post)",
+          "fields": ["messages", "model", "stream", "temperature", "tool_choice", "tools"],
+          "notes": "ModelClient created at line 29 from user baseURL and AzureKeyCredential. Response handled further down the file (lines 61-132, not read)."
+        }
+      ],
+      "hints": {
+        "packages": ["@azure-rest/ai-inference", "@azure/core-auth"]
+      },
+      "sdk": {
+        "name": "@azure-rest/ai-inference",
+        "version": "1.0.0-beta.5"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "cloudflare",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/cloudflare/index.ts",
+          "line": 66,
+          "operation": "POST {base}/{model} (Workers AI run, or AI Gateway)",
+          "fields": ["tools", "messages", "stream", "max_tokens", "temperature"],
+          "notes": "URL = new URL(model, baseURL) where baseURL is https://api.cloudflare.com/client/v4/accounts/{accountID}/ai/run/ or a user gateway URL. Response body streamed through CloudflareStreamTransformer. Bearer apiKey added when present."
+        },
+        {
+          "file": "src/libs/agent-runtime/cloudflare/index.ts",
+          "line": 118,
+          "operation": "GET /client/v4/accounts/{accountID}/ai/models/search",
+          "notes": "Lists models; reads json.result[] name, description, properties, task."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.cloudflare.com", "gateway.ai.cloudflare.com"]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "huggingface",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/huggingface/index.ts",
+          "line": 33,
+          "operation": "chatCompletionStream (HfInference)",
+          "fields": [
+            "endpointUrl",
+            "model",
+            "messages",
+            "max_tokens",
+            "temperature",
+            "top_p",
+            "stream"
+          ],
+          "notes": "Client created at line 52 with the user's token. endpointUrl is baseURL joined with the model id when a baseURL is set; otherwise SDK default routing."
+        }
+      ],
+      "hints": {
+        "packages": ["@huggingface/inference"],
+        "docsUrls": ["https://github.com/huggingface/huggingface.js"]
+      },
+      "sdk": {
+        "name": "@huggingface/inference",
+        "version": "^2.8.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "huggingface",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/huggingface/index.ts",
+          "line": 74,
+          "operation": "GET /api/models",
+          "notes": "Unauthenticated fetch; reads id and tags (function-calling, vision keywords) for the model list."
+        }
+      ],
+      "hints": {
+        "hosts": ["huggingface.co"],
+        "docsUrls": ["https://huggingface.co/docs/hub/api"]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "aws-s3",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/server/modules/S3/index.ts",
+          "line": 59,
+          "operation": "S3Client.send(DeleteObjectCommand)",
+          "fields": ["Bucket", "Key"],
+          "notes": "deleteFile; result returned to caller"
+        },
+        {
+          "file": "src/server/modules/S3/index.ts",
+          "line": 68,
+          "operation": "S3Client.send(DeleteObjectsCommand)",
+          "fields": ["Bucket", "Delete.Objects[].Key"],
+          "notes": "deleteFiles batch delete; result returned"
+        },
+        {
+          "file": "src/server/modules/S3/index.ts",
+          "line": 77,
+          "operation": "S3Client.send(GetObjectCommand)",
+          "fields": ["Bucket", "Key"],
+          "notes": "getFileContent; reads Body as string"
+        },
+        {
+          "file": "src/server/modules/S3/index.ts",
+          "line": 92,
+          "operation": "S3Client.send(GetObjectCommand)",
+          "fields": ["Bucket", "Key"],
+          "notes": "getFileByteArray; reads Body as byte array"
+        },
+        {
+          "file": "src/server/modules/S3/index.ts",
+          "line": 108,
+          "operation": "getSignedUrl(PutObjectCommand) presign",
+          "fields": ["Bucket", "Key", "ACL (public-read when S3_SET_ACL)"],
+          "notes": "createPreSignedUrl, 1h expiry; URL handed to client for browser upload, no network call from server"
+        },
+        {
+          "file": "src/server/modules/S3/index.ts",
+          "line": 117,
+          "operation": "getSignedUrl(GetObjectCommand) presign",
+          "fields": ["Bucket", "Key"],
+          "notes": "createPreSignedUrlForPreview; URL returned to client for preview"
+        },
+        {
+          "file": "src/server/modules/S3/index.ts",
+          "line": 130,
+          "operation": "S3Client.send(PutObjectCommand)",
+          "fields": ["Bucket", "Key", "Body", "ACL"],
+          "notes": "uploadContent, server-side upload"
+        }
+      ],
+      "hints": {
+        "packages": ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
+        "docsUrls": ["https://github.com/aws/aws-sdk-js-v3"]
+      },
+      "sdk": {
+        "name": "@aws-sdk/client-s3",
+        "version": "^3.779.0"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "openrouter",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/openrouter/index.ts",
+          "line": 59,
+          "operation": "GET https://openrouter.ai/api/frontend/models",
+          "notes": "Unauthenticated fetch of the public frontend models JSON; the response is mapped to model cards (type.ts defines the shape)."
+        }
+      ],
+      "hints": {
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "ai21",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /studio/v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL https://api.ai21.com/studio/v1 set at ai21/index.ts:5."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.ai21.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "microsoft",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/(backend)/webapi/tts/edge/route.ts",
+          "line": 8,
+          "operation": "EdgeSpeechTTS.createRequest (Microsoft Edge read-aloud TTS)",
+          "fields": ["payload (text, voice, ssml options)"],
+          "notes": "POST /webapi/tts/edge; edge-runtime route returns the upstream audio response to the browser. Upstream is the Microsoft Edge speech service through @lobehub/tts."
+        },
+        {
+          "file": "src/app/(backend)/webapi/tts/microsoft/route.ts",
+          "line": 8,
+          "operation": "MicrosoftSpeechTTS.createRequest (Azure Speech TTS)",
+          "fields": ["payload (text, voice, ssml options)"],
+          "notes": "POST /webapi/tts/microsoft; edge-runtime route returns the upstream response. Upstream is the Microsoft/Azure speech endpoint via @lobehub/tts, region/key handling lives inside the package."
+        }
+      ],
+      "hints": {
+        "packages": ["@lobehub/tts"],
+        "docsUrls": ["https://github.com/lobehub/lobe-tts"]
+      },
+      "sdk": {
+        "name": "@lobehub/tts",
+        "version": "^1.28.3"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "ai360",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at ai360/index.ts:13."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.360.cn"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "baichuan",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at baichuan/index.ts:15."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.baichuan-ai.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "cohere",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /compatibility/v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL https://api.cohere.ai/compatibility/v1 at cohere/index.ts:14. cohere/index.ts:42 overwrites client.baseURL to https://api.cohere.com/v1 for some path (not read in detail)."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.cohere.ai", "api.cohere.com"],
+        "docsUrls": ["https://docs.cohere.com/v2/docs/compatibility-api"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "deepseek",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at deepseek/index.ts:13."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.deepseek.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "cloudflare-r2",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "scripts/cdnWorkflow/s3/index.ts",
+          "line": 90,
+          "operation": "S3Client.send(PutObjectCommand)",
+          "fields": ["Bucket", "Key", "Body", "ContentType", "ContentEncoding", "ACL=public-read"],
+          "notes": "Uploads images from scripts/cdnWorkflow/uploader.ts (endpoint https://d35842305b91be4b48e06ff9a9ad83f5.r2.cloudflarestorage.com, bucket hub-apac-1, region auto, path-style). Uploader is called from scripts/cdnWorkflow/index.ts:129 and :133. Response only used for ETag/VersionId. Public URL is built from DOC_S3_PUBLIC_DOMAIN, so getSignedUrl (line 19, via @aws-sdk/s3-request-presigner) is only reached when no URL prefix is set. Run by a maintainer/CI script, not the app runtime."
+        }
+      ],
+      "hints": {
+        "packages": ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
+        "hosts": ["r2.cloudflarestorage.com"]
+      },
+      "sdk": {
+        "name": "@aws-sdk/client-s3",
+        "version": "^3.779.0"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "fireworks-ai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /inference/v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at fireworksai/index.ts:14."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.fireworks.ai"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "gitee-ai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at giteeai/index.ts:11."
+        }
+      ],
+      "hints": {
+        "hosts": ["ai.gitee.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "github-models",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL https://models.inference.ai.azure.com at github/index.ts:20."
+        }
+      ],
+      "hints": {
+        "hosts": ["models.inference.ai.azure.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "sentry",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "sentry.client.config.ts",
+          "line": 7,
+          "operation": "Sentry.init (browser runtime, dsn from NEXT_PUBLIC_SENTRY_DSN)",
+          "fields": ["dsn"],
+          "notes": "Browser SDK init. Events go to the DSN host, tunneled through the Next.js /monitoring route when the tunnel is active."
+        },
+        {
+          "file": "sentry.edge.config.ts",
+          "line": 8,
+          "operation": "Sentry.init (edge runtime, dsn from NEXT_PUBLIC_SENTRY_DSN)",
+          "fields": ["dsn"],
+          "notes": "Edge runtime init."
+        },
+        {
+          "file": "sentry.server.config.ts",
+          "line": 7,
+          "operation": "Sentry.init (server runtime, dsn from NEXT_PUBLIC_SENTRY_DSN)",
+          "fields": ["dsn", "tracesSampleRate=1", "debug=false"],
+          "notes": "Initialization only, no explicit API call; events are sent by the SDK to the DSN host. Only initialized when NEXT_PUBLIC_SENTRY_DSN is set. Build-time source map upload is configured via withSentryConfig in next.config.ts (around line 251, SENTRY_ORG/SENTRY_PROJECT, tunnelRoute /monitoring, automaticVercelMonitors)."
+        },
+        {
+          "file": "src/components/Error/sentryCaptureException.ts",
+          "line": 8,
+          "operation": "captureException (@sentry/nextjs, dynamic import)",
+          "fields": ["error object", "digest"],
+          "notes": "Called from src/components/Error/index.tsx line 23 when an error boundary renders. Sentry config files at the repo root are outside this area."
+        }
+      ],
+      "hints": {
+        "packages": ["@sentry/nextjs"],
+        "docsUrls": [
+          "https://docs.sentry.io/platforms/javascript/guides/nextjs/",
+          "https://github.com/getsentry/sentry-webpack-plugin",
+          "https://github.com/getsentry/sentry-javascript"
+        ]
+      },
+      "sdk": {
+        "name": "@sentry/nextjs",
+        "version": "^7.120.3"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "groq",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /openai/v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at groq/index.ts:13."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.groq.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "lobehub",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "scripts/readmeWorkflow/utlis.ts",
+          "line": 8,
+          "operation": "GET https://chat-agents.lobehub.com/index.json (or index.{lang}.json), GET https://chat-plugins.lobehub.com/index.json (or index.{lang}.json)",
+          "notes": "Plain fetch(url) in fetchIndex, called from fetchAgentIndex (line 14) and fetchPluginIndex (line 20). Reads data.agents or data.plugins. URLs defined in scripts/readmeWorkflow/const.ts:15-20. Callers: syncAgentIndex.ts:36 and syncPluginIndex.ts:36, run by readmeWorkflow/index.ts."
+        },
+        {
+          "file": "src/server/services/discover/index.ts",
+          "line": 135,
+          "operation": "GET {PLUGINS_INDEX_URL}/index.{locale}.json (chat-plugins.lobehub.com)",
+          "notes": "getPluginIndex: response parsed as plugin index and returned to /webapi/plugin/store consumers."
+        },
+        {
+          "file": "src/server/services/discover/index.ts",
+          "line": 140,
+          "operation": "GET {PLUGINS_INDEX_URL}/index.json (default locale fallback)",
+          "notes": "Fallback for unsupported locale."
+        }
+      ],
+      "hints": {
+        "packages": ["@lobehub/chat-plugin-sdk"],
+        "hosts": ["chat-agents.lobehub.com", "chat-plugins.lobehub.com", "registry.npmmirror.com"],
+        "docsUrls": [
+          "https://chat-plugin-sdk.lobehub.com/",
+          "https://github.com/lobehub/lobe-chat-plugins"
+        ]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "jina",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "packages/web-crawler/src/crawImpl/jina.ts",
+          "line": 7,
+          "operation": "GET https://r.jina.ai/{url}",
+          "fields": [
+            "Accept: application/json",
+            "Authorization: Bearer <JINA_READER_API_KEY or JINA_API_KEY>",
+            "x-send-from header"
+          ],
+          "notes": "Reads json.code (must be 200) and json.data.{content, description, siteName, title}. Errors are logged and undefined returned. The target URL is user-supplied at runtime and is embedded in the path."
+        }
+      ],
+      "hints": {
+        "packages": ["@lobechat/web-crawler"],
+        "hosts": ["r.jina.ai"]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "higress",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call. Sends HTTP-Referer https://chat-preview.lobehub.com header (higress/index.ts:21). Base URL not read in detail."
+        }
+      ],
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "search1api",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "packages/web-crawler/src/crawImpl/search1api.ts",
+          "line": 30,
+          "operation": "POST https://api.search1api.com/crawl",
+          "fields": ["url"],
+          "notes": "Bearer token from SEARCH1API_CRAWL_API_KEY or SEARCH1API_API_KEY. Reads results.content (returns nothing if under 100 chars), results.title, results.link. 404 maps to PageNotFoundError. Wrapped in withTimeout."
+        }
+      ],
+      "hints": {
+        "packages": ["@lobechat/web-crawler"],
+        "hosts": ["api.search1api.com"],
+        "docsUrls": ["https://www.search1api.com/"]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "hunyuan",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at hunyuan/index.ts:11."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.hunyuan.cloud.tencent.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "browserless",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "packages/web-crawler/src/crawImpl/browserless.ts",
+          "line": 32,
+          "operation": "POST {BROWSERLESS_URL or https://chrome.browserless.io}/content?token=<BROWSERLESS_TOKEN>",
+          "fields": ["url", "gotoOptions.waitUntil=networkidle2", "rejectRequestPattern"],
+          "notes": "Base URL is overridable by BROWSERLESS_URL (line 7). Requires BROWSERLESS_URL or BROWSERLESS_TOKEN (line 21). Response body is read as text and converted to markdown with htmlToMarkdown. Token is sent as a query parameter."
+        }
+      ],
+      "hints": {
+        "packages": ["@lobechat/web-crawler"],
+        "hosts": ["chrome.browserless.io"],
+        "docsUrls": ["https://docs.browserless.io/"]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "infini-ai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /maas/v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at infiniai/index.ts:12."
+        }
+      ],
+      "hints": {
+        "hosts": ["cloud.infini-ai.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "clerk",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/[variants]/(auth)/login/[[...login]]/page.tsx",
+          "line": 24,
+          "operation": "SignIn component (hosted Clerk sign-in UI)",
+          "notes": "Renders Clerk sign-in at /login."
+        },
+        {
+          "file": "src/app/[variants]/(auth)/signup/[[...signup]]/page.tsx",
+          "line": 30,
+          "operation": "SignUp component (hosted Clerk sign-up UI)",
+          "notes": "Renders Clerk sign-up at /signup."
+        },
+        {
+          "file": "src/app/[variants]/(main)/profile/features/ClerkProfile.tsx",
+          "line": 64,
+          "operation": "UserProfile component (hosted Clerk profile UI)",
+          "notes": "Renders Clerk account management UI."
+        },
+        {
+          "file": "src/layout/AuthProvider/Clerk/index.tsx",
+          "line": 45,
+          "operation": "ClerkProvider (client SDK init, loads Clerk frontend JS)",
+          "notes": "Wraps app with publishable key config and localization/theme; loads Clerk browser SDK."
+        },
+        {
+          "file": "src/layout/AuthProvider/Clerk/UserUpdater.tsx",
+          "line": 12,
+          "operation": "useUser (client)",
+          "notes": "Reads the Clerk user object and sign-in state, pushed into the user store."
+        },
+        {
+          "file": "src/layout/AuthProvider/Clerk/UserUpdater.tsx",
+          "line": 14,
+          "operation": "useClerk (client) -> signOut, openUserProfile, openSignIn",
+          "notes": "signOut is exposed to the store as clerkSignOut (line 35)."
+        },
+        {
+          "file": "src/libs/clerk-auth/index.ts",
+          "line": 26,
+          "operation": "auth() (Clerk server session check)",
+          "notes": "Reads the Clerk session from request context; verifying the session token may fetch Clerk JWKS from the Clerk instance (network, SDK-internal, not confirmed here). currentUser() is imported at line 1 and used elsewhere (not in this area). getAuth(request) at line 16 is local request parsing."
+        },
+        {
+          "file": "src/middleware.ts",
+          "line": 181,
+          "operation": "clerkMiddleware (server session check against Clerk)",
+          "notes": "Edge/server middleware wrapping the request, resolves Clerk session and auth object used downstream. Backend session validation calls Clerk's API through the SDK."
+        }
+      ],
+      "hints": {
+        "packages": ["@clerk/nextjs", "@clerk/themes", "@clerk/localizations", "@clerk/backend"],
+        "docsUrls": ["https://github.com/clerk/javascript"]
+      },
+      "sdk": {
+        "name": "@clerk/nextjs",
+        "version": "^6.12.12"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "internlm",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /puyu/api/v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at internlm/index.ts:11."
+        }
+      ],
+      "hints": {
+        "hosts": ["internlm-chat.intern-ai.org.cn"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "jina",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at jina/index.ts:11."
+        }
+      ],
+      "hints": {
+        "hosts": ["deepsearch.jina.ai"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "github",
+      "via": "http",
+      "callSites": [
+        {
+          "file": ".github/scripts/pr-comment.js",
+          "line": 15,
+          "operation": "GET /repos/{owner}/{repo}/releases/tags/{tag} (github.rest.repos.getReleaseByTag)",
+          "notes": "Reads release assets (name, size, browser_download_url) to build the PR desktop-build comment. The github client is injected by a github-script workflow step; that workflow file is not in this checkout."
+        },
+        {
+          "file": ".github/scripts/pr-comment.js",
+          "line": 102,
+          "operation": "GET /repos/{owner}/{repo}/issues/{issue_number}/comments (github.rest.issues.listComments)",
+          "notes": "Looks for an existing comment containing DESKTOP-BUILD-COMMENT marker."
+        },
+        {
+          "file": ".github/scripts/pr-comment.js",
+          "line": 113,
+          "operation": "PATCH /repos/{owner}/{repo}/issues/comments/{comment_id} (github.rest.issues.updateComment)",
+          "notes": "Updates the existing build comment body."
+        },
+        {
+          "file": ".github/scripts/pr-comment.js",
+          "line": 123,
+          "operation": "POST /repos/{owner}/{repo}/issues/{issue_number}/comments (github.rest.issues.createComment)",
+          "notes": "Creates the build comment when none exists."
+        },
+        {
+          "file": "docker-compose/setup.sh",
+          "line": 372,
+          "operation": "GET https://raw.githubusercontent.com/lobehub/lobe-chat/main/{file} (via wget)",
+          "notes": "download_file wrapper; invoked at lines 485-493 and 501 for docker-compose.yml, init_data.json, searxng-settings.yml and .env examples. Runs on the end user's machine during self-hosted install. SOURCE_URL defaults at line 28 and can be overridden by --url."
+        },
+        {
+          "file": "src/server/services/changelog/index.ts",
+          "line": 54,
+          "operation": "GET https://raw.githubusercontent.com/lobehub/lobe-chat/{branch}/.../index.json",
+          "notes": "getChangelogIndex: reads data.cloud and data.community, merges, returns the first 5 entries. URL built from CHANGELOG_URL_TEMPLATE or URL_TEMPLATE (line 12). Cached 1h."
+        },
+        {
+          "file": "src/server/services/changelog/index.ts",
+          "line": 92,
+          "operation": "GET raw.githubusercontent.com/.../{id}.mdx",
+          "notes": "getPostById: fetches MDX text, parsed with gray-matter; response text used as post body."
+        },
+        {
+          "file": "src/server/services/changelog/index.ts",
+          "line": 205,
+          "operation": "GET {cdnPath} (CDN URL map JSON)",
+          "notes": "cdnInit: reads JSON map of remote image URLs to CDN hashes; only when docCdnPrefix is set. Host comes from the configured template, so it may point to a CDN rather than GitHub."
+        }
+      ],
+      "hints": {
+        "hosts": ["raw.githubusercontent.com", "api.github.com"],
+        "docsUrls": ["https://docs.github.com/en/rest", "https://github.com/lobehub/lobe-chat"]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "clerk",
+      "via": "webhook",
+      "callSites": [
+        {
+          "file": "src/app/(backend)/api/webhooks/clerk/route.ts",
+          "line": 29,
+          "operation": "POST /api/webhooks/clerk (event switch: user.created, user.deleted, user.updated)",
+          "notes": "Event-type handler; switch on type at line 29."
+        },
+        {
+          "file": "src/app/(backend)/api/webhooks/clerk/validateRequest.ts",
+          "line": 17,
+          "operation": "POST /api/webhooks/clerk (Svix signature verification via Webhook.verify)",
+          "fields": ["svix-id", "svix-timestamp", "svix-signature headers", "raw body"],
+          "notes": "Verifies with CLERK_WEBHOOK_SECRET using svix Webhook class (line 14). Handler in route.ts POST dispatches user.created (creates user via UserService), user.deleted, user.updated."
+        }
+      ],
+      "hints": {
+        "packages": ["svix", "@clerk/nextjs"],
+        "docsUrls": ["https://github.com/svix/svix-webhooks"]
+      },
+      "sdk": {
+        "name": "svix",
+        "version": "^1.63.0"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "lmstudio",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; default base URL http://127.0.0.1:1234/v1 (lmstudio/index.ts:12), a local server, not a hosted API."
+        }
+      ],
+      "hints": {
+        "hosts": ["127.0.0.1"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "minimax",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at minimax/index.ts:12."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.minimax.chat"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "npmmirror",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "Dockerfile",
+          "line": 79,
+          "operation": "npm registry https://registry.npmmirror.com/ (npm config set registry)",
+          "notes": "Build-time configuration. Also sets SENTRYCLI_CDNURL=https://npmmirror.com/mirrors/sentry-cli (line 78) and canvas_binary_host_mirror=https://npmmirror.com/mirrors/canvas in .npmrc (line 80). The actual fetches happen during later npm install and build steps. Same pattern at Dockerfile.database:88-90 and Dockerfile.pglite:80-82."
+        },
+        {
+          "file": "Dockerfile.database",
+          "line": 89,
+          "operation": "npm registry https://registry.npmmirror.com/ (npm config set registry)",
+          "notes": "Same mirror config as Dockerfile:79."
+        },
+        {
+          "file": "Dockerfile.pglite",
+          "line": 81,
+          "operation": "npm registry https://registry.npmmirror.com/ (npm config set registry)",
+          "notes": "Same mirror config as Dockerfile:79."
+        },
+        {
+          "file": "src/server/modules/AssistantStore/index.ts",
+          "line": 33,
+          "operation": "GET {AGENTS_INDEX_URL}/index.{locale}.json (registry.npmmirror.com/@lobehub/agents-index/v1/files/public)",
+          "notes": "getAgentIndex: parses JSON into AgentStoreIndex, optionally filtered by Edge Config. Cached with next revalidate tag."
+        },
+        {
+          "file": "src/server/modules/AssistantStore/index.ts",
+          "line": 38,
+          "operation": "GET {AGENTS_INDEX_URL}/index.json (fallback to default language on 404)",
+          "notes": "Same as above for default language."
+        },
+        {
+          "file": "src/server/services/discover/index.ts",
+          "line": 63,
+          "operation": "GET {AGENTS_INDEX_URL}/{identifier}.{locale}.json",
+          "notes": "Agent detail fetch from the same agents index; response returned in the discover service."
+        },
+        {
+          "file": "src/server/services/discover/index.ts",
+          "line": 68,
+          "operation": "GET {AGENTS_INDEX_URL}/{identifier}.json (default locale fallback)",
+          "notes": "Fallback fetch."
+        },
+        {
+          "file": "src/services/global.ts",
+          "line": 14,
+          "operation": "GET https://registry.npmmirror.com/@lobehub/chat/latest",
+          "notes": "Client-side fetch of package metadata to read latest version. Response used for update check."
+        }
+      ],
+      "hints": {
+        "packages": ["@lobehub/agents-index"],
+        "hosts": ["registry.npmmirror.com", "npmmirror.com"]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "mistral",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at mistral/index.ts:17."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.mistral.ai"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "moonshot",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at moonshot/index.ts:11."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.moonshot.cn"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "novita",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v3/openai/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at novita/index.ts:8. novita/index.ts also has a custom models fixture (not read in detail)."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.novita.ai"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "nvidia-nim",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at nvidia/index.ts:11."
+        }
+      ],
+      "hints": {
+        "hosts": ["integrate.api.nvidia.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "logto",
+      "via": "webhook",
+      "callSites": [
+        {
+          "file": "src/app/(backend)/api/webhooks/logto/route.ts",
+          "line": 24,
+          "operation": "POST /api/webhooks/logto (event switch: User.Data.Updated)",
+          "fields": ["event", "data.id", "data.name", "data.avatar", "data.primaryEmail"],
+          "notes": "Only User.Data.Updated handled; calls NextAuthUserService.safeUpdateUser with provider logto."
+        },
+        {
+          "file": "src/app/(backend)/api/webhooks/logto/validateRequest.ts",
+          "line": 35,
+          "operation": "POST /api/webhooks/logto (HMAC-SHA256 signature check of body against logto-signature-sha-256 header)",
+          "fields": ["logto-signature-sha-256 header", "raw body"],
+          "notes": "Signing key from LOGTO_WEBHOOK_SIGNING_KEY via authEnv; compares hex digest with header string."
+        }
+      ]
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "openrouter",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /api/v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at openrouter/index.ts:13. Sends HTTP-Referer https://chat-preview.lobehub.com (line 35). Model list comes from the http usage above."
+        }
+      ],
+      "hints": {
+        "hosts": ["openrouter.ai"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "casdoor",
+      "via": "webhook",
+      "callSites": [
+        {
+          "file": "src/app/(backend)/api/webhooks/casdoor/route.ts",
+          "line": 22,
+          "operation": "POST /api/webhooks/casdoor (action switch: update-user)",
+          "fields": ["action", "object.id", "object.displayName", "object.avatar", "object.email"],
+          "notes": "Only update-user handled; calls NextAuthUserService.safeUpdateUser."
+        },
+        {
+          "file": "src/app/(backend)/api/webhooks/casdoor/validateRequest.ts",
+          "line": 24,
+          "operation": "POST /api/webhooks/casdoor (shared-secret check of casdoor-secret header)",
+          "fields": ["casdoor-secret header", "raw body"],
+          "notes": "Compares header to CASDOOR_WEBHOOK_SECRET; not an HMAC. Body object is JSON-in-JSON parsed."
+        }
+      ]
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "perplexity",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL https://api.perplexity.ai at perplexity/index.ts:7. Citations read from streamed chunks."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.perplexity.ai"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "ppio",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v3/openai/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at ppio/index.ts:8."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.ppinfra.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "qwen",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /compatible-mode/v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at qwen/index.ts:24."
+        }
+      ],
+      "hints": {
+        "hosts": ["dashscope.aliyuncs.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "sambanova",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at sambanova/index.ts:5."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.sambanova.ai"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "search1api",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at search1api/index.ts:13. search1api/index.ts imports OpenAI directly (not read)."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.search1api.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "vercel",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/[variants]/layout.tsx",
+          "line": 51,
+          "operation": "SpeedInsights component (@vercel/speed-insights/next) web vitals beacon",
+          "notes": "Rendered only when running inside Vercel (inVercel). Sends Web Vitals to Vercel. Package @vercel/speed-insights ^1.2.0."
+        },
+        {
+          "file": "src/components/Analytics/Vercel.tsx",
+          "line": 6,
+          "operation": "Analytics component (@vercel/analytics/react) page-view beacon",
+          "fields": ["debug"],
+          "notes": "Rendered by Analytics index when telemetry is enabled; sends page-view events to Vercel's analytics endpoint from the browser."
+        }
+      ],
+      "hints": {
+        "packages": [
+          "@vercel/analytics",
+          "@vercel/speed-insights",
+          "@vercel/functions",
+          "@vercel/edge-config"
+        ],
+        "docsUrls": ["https://github.com/vercel/analytics"]
+      },
+      "sdk": {
+        "name": "@vercel/analytics",
+        "version": "^1.5.0"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "sensenova",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /compatible-mode/v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at sensenova/index.ts:11. sensenova/index.ts:46 switches client.baseURL to https://api.sensenova.cn/v1/llm for another path (not read)."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.sensenova.cn"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "siliconcloud",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at siliconcloud/index.ts:12."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.siliconflow.cn"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "spark",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at spark/index.ts:7."
+        }
+      ],
+      "hints": {
+        "hosts": ["spark-api-open.xf-yun.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "google-analytics",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/components/Analytics/Google.tsx",
+          "line": 5,
+          "operation": "GoogleAnalytics component (@next/third-parties/google) loads gtag script for measurement id",
+          "fields": ["gaId (GOOGLE_ANALYTICS_MEASUREMENT_ID)"],
+          "notes": "Browser-side script injection; the analytics beacons go to Google. Not a server call."
+        }
+      ],
+      "hints": {
+        "packages": ["@next/third-parties"],
+        "docsUrls": ["https://github.com/vercel/next.js"]
+      },
+      "sdk": {
+        "name": "@next/third-parties",
+        "version": "^15.3.0"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "stepfun",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at stepfun/index.ts:11."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.stepfun.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "posthog",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/components/Analytics/Posthog.tsx",
+          "line": 16,
+          "operation": "posthog.init(token, { api_host })",
+          "fields": ["token (POSTHOG key)", "api_host (POSTHOG host)", "debug"],
+          "notes": "Initializes the browser client; subsequent capture calls send events to the configured api_host. Verify other posthog.capture uses if any."
+        }
+      ],
+      "hints": {
+        "packages": ["posthog-js"],
+        "docsUrls": ["https://github.com/PostHog/posthog-js"]
+      },
+      "sdk": {
+        "name": "posthog-js",
+        "version": "^1.234.6"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "taichu",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /maas/v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at taichu/index.ts:7."
+        }
+      ],
+      "hints": {
+        "hosts": ["ai-maas.wair.ac.cn"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "tencent-cloud-lkeap",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at tencentcloud/index.ts:11."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.lkeap.cloud.tencent.com"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "togetherai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at togetherai/index.ts:8. togetherai/index.ts:31 sets client.baseURL to https://api.together.xyz/api for another request (not read)."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.together.xyz"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "upstage",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/solar/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL set at upstage/index.ts:5."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.upstage.ai"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "vllm",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL from user config, not read in detail."
+        }
+      ],
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "volcengine",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL in volcengine/index.ts, not read in detail."
+        },
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /api/v3/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL https://ark.cn-beijing.volces.com/api/v3 at volcengine/index.ts:5."
+        }
+      ],
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      },
+      "hints": {
+        "hosts": ["ark.cn-beijing.volces.com"]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "vercel",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/server/modules/EdgeConfig/index.ts",
+          "line": 33,
+          "operation": "EdgeConfigClient.getAll(assistant_whitelist, assistant_blacklist)",
+          "fields": ["keys: assistant_whitelist, assistant_blacklist"],
+          "notes": "Client created from VERCEL_EDGE_CONFIG (line 21). Used by AssistantStore (src/server/modules/AssistantStore/index.ts line 54) to filter the agent index. Read-only."
+        }
+      ],
+      "hints": {
+        "packages": ["@vercel/edge-config"],
+        "docsUrls": ["https://github.com/vercel/edge-config"]
+      },
+      "sdk": {
+        "name": "@vercel/edge-config",
+        "version": "^1.4.0"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "wenxin",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL in wenxin/index.ts, not read in detail."
+        },
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v2/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL https://qianfan.baidubce.com/v2 at wenxin/index.ts:5."
+        }
+      ],
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      },
+      "hints": {
+        "hosts": ["qianfan.baidubce.com"]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "xai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL in xai/index.ts, not read in detail."
+        }
+      ],
+      "hints": {
+        "hosts": ["api.x.ai"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "xinference",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL from user config."
+        }
+      ],
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "zeroone",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /v1/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL in zeroone/index.ts, not read in detail."
+        }
+      ],
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "zhipu",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+          "line": 239,
+          "operation": "POST /api/paas/v4/chat/completions (chat.completions.create)",
+          "notes": "Shared factory call; base URL in zhipu/index.ts, not read in detail."
+        }
+      ],
+      "hints": {
+        "hosts": ["open.bigmodel.cn"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.91.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "langfuse",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/traces/event.ts",
+          "line": 41,
+          "operation": "Langfuse score create (client.score)",
+          "fields": ["name", "observationId", "traceId", "value"],
+          "notes": "Score sent through the langfuse-core client held by the trace."
+        },
+        {
+          "file": "src/libs/traces/event.ts",
+          "line": 48,
+          "operation": "Langfuse event create (trace.event)",
+          "notes": "Event observations added to the trace; similar calls at event.ts:70, 92, 112."
+        },
+        {
+          "file": "src/libs/traces/index.ts",
+          "line": 46,
+          "operation": "Langfuse trace create (client.trace, ingestion API)",
+          "fields": ["id", "name", "userId", "metadata", "input", "output"],
+          "notes": "Client constructed at traces/index.ts:30 with baseUrl from LANGFUSE_HOST env (getLangfuseConfig). Creates a trace per chat request via createTrace/createEvent. Called from agent-runtime and chat routes outside src/libs."
+        }
+      ],
+      "hints": {
+        "packages": ["langfuse", "langfuse-core"],
+        "docsUrls": ["https://github.com/langfuse/langfuse-js"]
+      },
+      "sdk": {
+        "name": "langfuse",
+        "version": "^3.37.1"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "unstructured",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/libs/unstructured/index.ts",
+          "line": 77,
+          "operation": "POST /general/v0/general (general.partition)",
+          "fields": [
+            "files.content",
+            "files.fileName",
+            "strategy",
+            "chunkingStrategy",
+            "maxCharacters",
+            "coordinates",
+            "includeOrigElements",
+            "uniqueElementIds"
+          ],
+          "notes": "Client created at line 66 with apiKeyAuth from UNSTRUCTURED_API_KEY and serverURL from UNSTRUCTURED_SERVER_URL (self-hosted or hosted Unstructured API). Reads response.elements when statusCode is 200."
+        }
+      ],
+      "hints": {
+        "packages": ["unstructured-client"],
+        "docsUrls": ["https://docs.unstructured.io/api-reference/api-services/overview"]
+      },
+      "sdk": {
+        "name": "unstructured-client",
+        "version": "^0.19.0"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "searxng",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/server/modules/SearXNG.ts",
+          "line": 32,
+          "operation": "GET {SEARXNG_URL}/search?{params} (JSON format query)",
+          "notes": "Query string built from user search text and options; response parsed and results returned to the search router. Host is operator-configured via SEARXNG_URL, so it is not a fixed vendor host."
+        }
+      ],
+      "hints": {
+        "docsUrls": ["https://github.com/searxng/searxng"]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "wechat",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/libs/next-auth/sso-providers/wechat.ts",
+          "line": 31,
+          "operation": "GET https://api.weixin.qq.com/sns/oauth2/access_token",
+          "notes": "Declared as the token endpoint in the Auth.js custom OAuth provider; the request is made by @auth/core during the login callback, not by code in this file. Userinfo endpoint is set in the same config (not read)."
+        }
+      ],
+      "hints": {
+        "packages": ["@auth/core", "next-auth"],
+        "hosts": ["api.weixin.qq.com"]
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "oidc-sso-providers",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/libs/next-auth/sso-providers/microsoft-entra-id-helper.ts",
+          "line": 19,
+          "operation": "OIDC issuer https://login.microsoftonline.com/{tenantId}/v2.0 (discovery, token, userinfo via @auth/core)",
+          "notes": "Issuer for Entra ID. Other providers take issuer URLs from env (AUTH_*_ISSUER), so the endpoints are operator-chosen. Requests are made by @auth/core during login, not by code in this file."
+        }
+      ],
+      "hints": {
+        "packages": ["next-auth", "@auth/core"],
+        "hosts": ["login.microsoftonline.com"],
+        "docsUrls": ["https://github.com/nextauthjs/next-auth"]
+      },
+      "sdk": {
+        "name": "next-auth",
+        "version": "beta"
+      }
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "provider": "umami",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/components/Analytics/index.tsx",
+          "line": 34,
+          "operation": "browser loads tracking script from UMAMI_SCRIPT_URL (default https://analytics.umami.is/script.js) and sends pageview beacons with websiteId",
+          "fields": ["scriptUrl", "websiteId"],
+          "notes": "Client-side script include, not a server-side API call. Uses a self-hosted host if UMAMI_SCRIPT_URL is overridden. Component import not in package.json, so it is likely a local or inline implementation."
+        }
+      ],
+      "hints": {
+        "hosts": ["analytics.umami.is"],
+        "docsUrls": ["https://umami.is/docs"]
+      }
+    }
+  ],
+  "purposes": {
+    "openai": "Text-to-speech and speech-to-text through the deprecated createBizOpenAI helper, using the user's or server's OpenAI key or endpoint",
+    "anthropic": "List Claude models for the model picker",
+    "google": "List Gemini models for the model picker",
+    "aws-bedrock": "Invoke Claude and Llama models on AWS Bedrock (streaming and non-streaming)",
+    "google-vertex-ai": "Gemini chat through Google Cloud Vertex AI using service-account credentials",
+    "ollama": "Chat, model listing, embeddings and model pull against a user-configured Ollama server",
+    "azure-openai": "Chat completions against an Azure OpenAI resource endpoint",
+    "azure-ai-inference": "Chat completions against Azure AI model inference endpoints (Azure AI Foundry, GitHub-hosted models)",
+    "cloudflare": "Workers AI model runs (streaming chat) and model search, via Cloudflare AI REST API or AI Gateway",
+    "huggingface": "List models on the Hugging Face Hub for the model picker",
+    "aws-s3": "Object storage for uploaded files and knowledge base content (S3-compatible endpoint)",
+    "openrouter": "OpenRouter chat via OpenAI-compatible endpoint",
+    "ai21": "AI21 chat via OpenAI-compatible endpoint",
+    "microsoft": "Text-to-speech via Microsoft Edge read-aloud service and Azure Speech, through the @lobehub/tts wrapper",
+    "ai360": "360 AI chat via OpenAI-compatible endpoint",
+    "baichuan": "Baichuan chat via OpenAI-compatible endpoint",
+    "cohere": "Cohere chat via its OpenAI compatibility API, then switched to native v1 base URL",
+    "deepseek": "DeepSeek chat via OpenAI-compatible endpoint",
+    "cloudflare-r2": "Doc/blog image uploads to the Cloudflare R2 bucket (S3-compatible) from the CDN workflow",
+    "fireworks-ai": "Fireworks chat via OpenAI-compatible endpoint",
+    "gitee-ai": "Gitee AI chat via OpenAI-compatible endpoint",
+    "github-models": "GitHub Models chat via OpenAI-compatible endpoint",
+    "sentry": "Error reporting: captures React error boundary exceptions to Sentry",
+    "groq": "Groq chat via OpenAI-compatible endpoint",
+    "lobehub": "Fetches the LobeHub chat plugin store index (plugin marketplace listing)",
+    "jina": "Jina DeepSearch chat via OpenAI-compatible endpoint",
+    "higress": "Higress AI gateway chat via OpenAI-compatible endpoint (base URL from user config)",
+    "search1api": "Search1API chat via OpenAI-compatible endpoint",
+    "hunyuan": "Tencent Hunyuan chat via OpenAI-compatible endpoint",
+    "browserless": "Headless Chrome rendering service used to fetch rendered HTML for web-page crawling",
+    "infini-ai": "Infini-AI chat via OpenAI-compatible endpoint",
+    "clerk": "Receives Clerk user lifecycle events (user.created, user.updated, user.deleted) to sync users into the database",
+    "internlm": "InternLM chat via OpenAI-compatible endpoint",
+    "github": "Fetches changelog index, MDX posts and CDN URL map from the lobehub/lobe-chat docs in the GitHub raw content host",
+    "lmstudio": "Local LM Studio server chat via OpenAI-compatible endpoint",
+    "minimax": "MiniMax chat via OpenAI-compatible endpoint",
+    "npmmirror": "Fetches the LobeHub agents index and individual agent JSON from the npm mirror, and reads the latest @lobehub/chat version",
+    "mistral": "Mistral chat via OpenAI-compatible endpoint",
+    "moonshot": "Moonshot (Kimi) chat via OpenAI-compatible endpoint",
+    "novita": "Novita AI chat via OpenAI-compatible endpoint",
+    "nvidia-nim": "NVIDIA NIM chat via OpenAI-compatible endpoint",
+    "logto": "Receives Logto user update events to refresh stored user profile",
+    "casdoor": "Receives Casdoor user update events to refresh stored user profile",
+    "perplexity": "Perplexity chat (with citations) via OpenAI-compatible endpoint",
+    "ppio": "PPIO chat via OpenAI-compatible endpoint",
+    "qwen": "Alibaba Qwen (DashScope) chat via OpenAI-compatible endpoint",
+    "sambanova": "SambaNova chat via OpenAI-compatible endpoint",
+    "vercel": "Vercel Edge Config reads of assistant whitelist and blacklist keys",
+    "sensenova": "SenseNova chat via OpenAI-compatible endpoint",
+    "siliconcloud": "SiliconFlow chat via OpenAI-compatible endpoint",
+    "spark": "iFlytek Spark chat via OpenAI-compatible endpoint",
+    "google-analytics": "Google Analytics (gtag) page analytics when GOOGLE_ANALYTICS_MEASUREMENT_ID is set",
+    "stepfun": "StepFun chat via OpenAI-compatible endpoint",
+    "posthog": "Product analytics event capture in the browser",
+    "taichu": "Taichu chat via OpenAI-compatible endpoint",
+    "tencent-cloud-lkeap": "Tencent Cloud LKEAP chat via OpenAI-compatible endpoint",
+    "togetherai": "Together AI chat via OpenAI-compatible endpoint",
+    "upstage": "Upstage Solar chat via OpenAI-compatible endpoint",
+    "vllm": "Self-hosted vLLM server chat via OpenAI-compatible endpoint (user-configured base URL)",
+    "volcengine": "Volcengine (ByteDance Ark) chat via OpenAI-compatible endpoint",
+    "wenxin": "Baidu Wenxin (Ernie) chat via OpenAI-compatible endpoint",
+    "xai": "xAI Grok chat via OpenAI-compatible endpoint",
+    "xinference": "Self-hosted Xinference server chat via OpenAI-compatible endpoint (user-configured base URL)",
+    "zeroone": "01.AI (Yi) chat via OpenAI-compatible endpoint",
+    "zhipu": "Zhipu GLM chat via OpenAI-compatible endpoint",
+    "langfuse": "LLM request tracing: traces, generations, events and scores sent to Langfuse (optional, when ENABLE_LANGFUSE)",
+    "unstructured": "Document partitioning (parse PDFs, Office files and images into elements) for knowledge base file uploads",
+    "searxng": "Web search for the search tool through an operator-configured SearXNG instance (SEARXNG_URL)",
+    "wechat": "WeChat OAuth login token exchange (Auth.js provider config)",
+    "oidc-sso-providers": "Operator-configured OAuth/OIDC login (Auth0, Authentik, Azure Entra ID, Keycloak, Zitadel, Logto, GitHub, etc.) via Auth.js",
+    "umami": "Privacy-focused web analytics script injected in the browser when UMAMI_WEBSITE_ID is set"
+  },
+  "summary": "crlny/lobe-chat uses clerk for Server-side session and user lookup for Clerk authentication (when enableClerk) through @clerk/nextjs ^6.12.12 in 8 places; github for Fetches changelog index, MDX posts and CDN URL map from the lobehub/lobe-chat docs in the GitHub raw content host through raw HTTP in 8 places; npmmirror for Fetches the LobeHub agents index and individual agent JSON from the npm mirror, and reads the latest @lobehub/chat version through raw HTTP in 8 places; openai for Text-to-speech and speech-to-text through the deprecated createBizOpenAI helper, using the user's or server's OpenAI key or endpoint through openai ^4.91.1, pinned to v1 in 7 places; aws-s3 for Object storage for uploaded files and knowledge base content (S3-compatible endpoint) through @aws-sdk/client-s3 ^3.779.0 in 7 places; ollama for Chat, model listing, embeddings and model pull against a user-configured Ollama server through ollama ^0.5.14 in 4 places; sentry for Error reporting: captures React error boundary exceptions to Sentry through @sentry/nextjs ^7.120.3 in 4 places; aws-bedrock for Invoke Claude and Llama models on AWS Bedrock (streaming and non-streaming) through @aws-sdk/client-bedrock-runtime ^3.779.0, pinned to bedrock-2023-05-31 in 3 places; lobehub for Fetches the LobeHub chat plugin store index (plugin marketplace listing) through raw HTTP in 3 places; langfuse for LLM request tracing: traces, generations, events and scores sent to Langfuse (optional, when ENABLE_LANGFUSE) through langfuse ^3.37.1 in 3 places; cloudflare for Workers AI model runs (streaming chat) and model search, via Cloudflare AI REST API or AI Gateway through raw HTTP in 2 places; microsoft for Text-to-speech via Microsoft Edge read-aloud service and Azure Speech, through the @lobehub/tts wrapper through @lobehub/tts ^1.28.3 in 2 places; clerk for Receives Clerk user lifecycle events (user.created, user.updated, user.deleted) to sync users into the database through svix ^1.63.0 in 2 places; logto for Receives Logto user update events to refresh stored user profile through webhooks in 2 places; casdoor for Receives Casdoor user update events to refresh stored user profile through webhooks in 2 places; vercel for Web analytics and speed insights beamed to Vercel from the browser through @vercel/analytics ^1.5.0 in 2 places; volcengine for Volcengine (ByteDance Ark) chat via OpenAI-compatible endpoint through openai ^4.91.1 in 2 places; wenxin for Baidu Wenxin (Ernie) chat via OpenAI-compatible endpoint through openai ^4.91.1 in 2 places; anthropic for Claude chat streaming via Messages API through @anthropic-ai/sdk ^0.39.0, pinned to bedrock-2023-05-31 (Bedrock only); anthropic-version 2023-06-01 used for raw models call in 1 place; anthropic for List Claude models for the model picker through raw HTTP, pinned to 2023-06-01 in 1 place; google for Gemini streaming chat via Generative Language API (also used for Vertex AI through @google-cloud/vertexai client) through @google/generative-ai ^0.24.0, pinned to v1beta in 1 place; google for List Gemini models for the model picker through raw HTTP, pinned to v1beta in 1 place; google-vertex-ai for Gemini chat through Google Cloud Vertex AI using service-account credentials through @google-cloud/vertexai ^1.9.3 in 1 place; azure-openai for Chat completions against an Azure OpenAI resource endpoint through openai ^4.91.1 in 1 place; azure-ai-inference for Chat completions against Azure AI model inference endpoints (Azure AI Foundry, GitHub-hosted models) through @azure-rest/ai-inference 1.0.0-beta.5 in 1 place; huggingface for Streaming chat completions on Hugging Face Inference endpoints through @huggingface/inference ^2.8.1 in 1 place; huggingface for List models on the Hugging Face Hub for the model picker through raw HTTP in 1 place; openrouter for Fetch OpenRouter frontend model catalog for the model list; chat goes through the OpenAI-compatible factory through raw HTTP in 1 place; ai21 for AI21 chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; ai360 for 360 AI chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; baichuan for Baichuan chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; cohere for Cohere chat via its OpenAI compatibility API, then switched to native v1 base URL through openai ^4.91.1 in 1 place; deepseek for DeepSeek chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; cloudflare-r2 for Doc/blog image uploads to the Cloudflare R2 bucket (S3-compatible) from the CDN workflow through @aws-sdk/client-s3 ^3.779.0 in 1 place; fireworks-ai for Fireworks chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; gitee-ai for Gitee AI chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; github-models for GitHub Models chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; groq for Groq chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; jina for Jina Reader used as a web-page crawl implementation (converts a URL to markdown) through raw HTTP in 1 place; higress for Higress AI gateway chat via OpenAI-compatible endpoint (base URL from user config) through openai ^4.91.1 in 1 place; search1api for Search1API crawl endpoint used as a web-page crawl implementation through raw HTTP in 1 place; hunyuan for Tencent Hunyuan chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; browserless for Headless Chrome rendering service used to fetch rendered HTML for web-page crawling through raw HTTP in 1 place; infini-ai for Infini-AI chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; internlm for InternLM chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; jina for Jina DeepSearch chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; lmstudio for Local LM Studio server chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; minimax for MiniMax chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; mistral for Mistral chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; moonshot for Moonshot (Kimi) chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; novita for Novita AI chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; nvidia-nim for NVIDIA NIM chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; openrouter for OpenRouter chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; perplexity for Perplexity chat (with citations) via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; ppio for PPIO chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; qwen for Alibaba Qwen (DashScope) chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; sambanova for SambaNova chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; search1api for Search1API chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; sensenova for SenseNova chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; siliconcloud for SiliconFlow chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; spark for iFlytek Spark chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; google-analytics for Google Analytics (gtag) page analytics when GOOGLE_ANALYTICS_MEASUREMENT_ID is set through @next/third-parties ^15.3.0 in 1 place; stepfun for StepFun chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; posthog for Product analytics event capture in the browser through posthog-js ^1.234.6 in 1 place; taichu for Taichu chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; tencent-cloud-lkeap for Tencent Cloud LKEAP chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; togetherai for Together AI chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; upstage for Upstage Solar chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; vllm for Self-hosted vLLM server chat via OpenAI-compatible endpoint (user-configured base URL) through openai ^4.91.1 in 1 place; vercel for Vercel Edge Config reads of assistant whitelist and blacklist keys through @vercel/edge-config ^1.4.0 in 1 place; xai for xAI Grok chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; xinference for Self-hosted Xinference server chat via OpenAI-compatible endpoint (user-configured base URL) through openai ^4.91.1 in 1 place; zeroone for 01.AI (Yi) chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; zhipu for Zhipu GLM chat via OpenAI-compatible endpoint through openai ^4.91.1 in 1 place; unstructured for Document partitioning (parse PDFs, Office files and images into elements) for knowledge base file uploads through unstructured-client ^0.19.0 in 1 place; searxng for Web search for the search tool through an operator-configured SearXNG instance (SEARXNG_URL) through raw HTTP in 1 place; wechat for WeChat OAuth login token exchange (Auth.js provider config) through raw HTTP in 1 place; oidc-sso-providers for Operator-configured OAuth/OIDC login (Auth0, Authentik, Azure Entra ID, Keycloak, Zitadel, Logto, GitHub, etc.) via Auth.js through next-auth beta in 1 place; umami for Privacy-focused web analytics script injected in the browser when UMAMI_WEBSITE_ID is set through raw HTTP in 1 place.",
+  "agentSummary": "All three readers have finished and recorded their usages. I did not run a final `list_recorded_usages` pass, so I haven't checked for duplicates or confirmed the SDK versions. Versions are manifest ranges because there is no lockfile.\n\n**Model and LLM providers (`src/libs/agent-runtime`)**\n- **OpenAI SDK:** the shared `LobeOpenAICompatibleFactory` handles chat, models, embeddings, text-to-image and text-to-speech.\n- **OpenAI-compatible providers (about 38):** these go through the same factory. They include DeepSeek, Groq, Mistral, Moonshot, Qwen, Zhipu, xAI, Perplexity, Together AI and others.\n- **Direct SDK or HTTP providers:**\n  - Anthropic\n  - Google Gemini and Vertex AI\n  - AWS Bedrock\n  - Ollama\n  - Azure OpenAI and Azure AI Inference\n  - Cloudflare Workers AI\n  - Hugging Face\n  - OpenRouter\n- **Speech:** the TTS and STT routes call OpenAI, and the Edge and Azure TTS routes use `@lobehub/tts`.\n\n**Other external services**\n- **Observability and analytics:**\n  - Langfuse\n  - Sentry\n  - PostHog\n  - Vercel Analytics, Speed Insights and Edge Config\n  - Google Analytics\n  - Umami (script include)\n- **Storage:**\n  - AWS S3, through the file service wrapper.\n  - Cloudflare R2, in the CDN workflow script.\n- **Auth:**\n  - Clerk, as an SDK and as a Svix-signed webhook receiver.\n  - Logto webhook, using an HMAC check.\n  - Casdoor webhook, using a shared secret.\n  - WeChat OAuth.\n  - Operator-configured next-auth OIDC providers, including Entra ID.\n- **Crawling, search and documents:**\n  - Jina, Search1API and Browserless for crawling.\n  - SearXNG at an operator-configured host.\n  - Unstructured for document parsing.\n- **Content and registry hosts:**\n  - `registry.npmmirror.com` for the agents index and version check.\n  - `chat-plugins.lobehub.com` and `chat-agents.lobehub.com` for plugin and agent indexes.\n  - `raw.githubusercontent.com` for changelogs and the compose installer.\n  - The GitHub REST API in `.github/scripts/pr-comment.js`.\n  - npmmirror configuration lines in the three Dockerfiles.\n\n**Gaps and uncertainties**\n- **OpenAI-compatible providers:** these were recorded from their base URLs and the shared factory call, not by reading each provider file.\n- **Second base URLs:** Cohere, Together AI, SenseNova and Zhipu set a second base URL for non-chat endpoints. Those calls are not recorded.\n- **Vertex hint:** the `aiplatform.googleapis.com` host hint was accepted but never seen in code.\n- **Missing CI workflows:** `.github` has no `workflows/` folder in this checkout, so any calls made from CI are unknown.\n- **`PROXY_URL`:** read in `scripts/serverLauncher/startServer.js`, but nobody traced where it is used.\n- **User-supplied URLs, not recorded:**\n  - Plugin gateway calls (`src/services/chat.ts:391` posts to `manifest.gateway`, which comes from the plugin manifest).\n  - The proxy route at `src/app/(backend)/webapi/proxy/route.ts`.\n  - `imageToBase64`.\n  - `toolManifest`.\n  - The web-crawler `naive` implementation.\n- **Own backend, not recorded:** `trpc/client/lambda.ts:13` fetches the app's own backend.\n- **Left out as a database driver:** the Neon serverless driver in `src/database`.\n- **Left out as user-configured:** y-webrtc sync connects to a signaling server the user configures.\n- **Left out as runtime content:** SearXNG's upstream engines and the docs image hosts fetched by `scripts/cdnWorkflow/utils.ts`.",
+  "outcome": "success",
+  "costUsd": 0.25633062500000003,
+  "costByModel": {
+    "claude-haiku-5-5": 0.196041125,
+    "claude-sonnet-5-5": 0.060289499999999996
+  },
+  "turns": 1,
+  "durationMs": 139893
+}

@@ -294,6 +294,95 @@ export const deepseek = new OpenAI({
     await removeRepo(dir);
   });
 
+  it('puts webhook checks before mere mentions, and knows legacy official SDKs', async () => {
+    const mentions = Array.from(
+      { length: 45 },
+      (_, index) => `// note ${index}\nexport const webhookName${index} = 'webhook-${index}';\n`,
+    ).join('');
+    const dir = await makeRepo({
+      'package.json': '{\n  "dependencies": {\n    "square-connect": "^4.0.0"\n  }\n}\n',
+      'src/names.ts': mentions,
+      'src/hooks/follow.ts': `export const verify = (query: Record<string, string>) => query['hub.challenge'];\n`,
+      'src/square.ts': `import * as SquareConnect from 'square-connect';
+const catalog = new SquareConnect.CatalogApi();
+export const items = () => catalog.listCatalog();
+`,
+    });
+    const result = await scanRepo(dir, 'acme/hooks');
+    const webhooks = result.leads.find((lead) => lead.kind === 'webhooks');
+    expect(webhooks?.items[0]).toContain('src/hooks/follow.ts:1');
+    expect(webhooks?.more).toBeGreaterThan(0);
+    expect(result.usages).toEqual([
+      expect.objectContaining({
+        provider: 'square',
+        sdk: { name: 'square-connect', version: '^4.0.0' },
+        callSites: [
+          expect.objectContaining({ file: 'src/square.ts', line: 3, operation: 'listCatalog' }),
+        ],
+      }),
+    ]);
+    await removeRepo(dir);
+  });
+
+  it('keeps two SDKs apart when two classes give the same holder a client', async () => {
+    const dir = await makeRepo({
+      'package.json':
+        '{\n  "dependencies": {\n    "@anthropic-ai/sdk": "^0.30.0",\n    "openai": "^4.0.0"\n  }\n}\n',
+      'llm.js': `const Anthropic = require('@anthropic-ai/sdk');
+const { OpenAI } = require('openai');
+class Claude {
+  constructor(key) {
+    this.client = new Anthropic({ apiKey: key });
+  }
+  ask(text) {
+    return this.client.messages.create({ model: 'claude-x', messages: [] });
+  }
+}
+class Gpt {
+  constructor(key) {
+    this.client = new OpenAI({ apiKey: key });
+  }
+  ask(text) {
+    return this.client.chat.completions.create({ model: 'gpt-x', messages: [] });
+  }
+}
+module.exports = { Claude, Gpt };
+`,
+    });
+    const result = await scanRepo(dir, 'acme/llm');
+    const sites = (provider: string) =>
+      result.usages
+        .filter((found) => found.provider === provider)
+        .flatMap((found) => found.callSites.map((site) => `${site.line} ${site.operation}`));
+    expect(sites('anthropic')).toEqual(['8 messages.create']);
+    expect(sites('openai')).toEqual(['16 chat.completions.create']);
+    await removeRepo(dir);
+  });
+
+  it('suggests areas for area readers only when there are many leads to read', async () => {
+    // An LLM gateway's layout, like lobe-chat's src/libs/agent-runtime/<provider>/index.ts.
+    const providers = Array.from({ length: 70 }, (_, index) => [
+      `src/libs/agent-runtime/p${index}/index.ts`,
+      `export const p${index} = { baseURL: 'https://api.vendor${index}.example-ai.io/v1' };\n`,
+    ]);
+    const many = await makeRepo({
+      'package.json': '{\n  "dependencies": {}\n}\n',
+      // A raw fetch counts toward fanning out; a webhook signal alone does not.
+      'src/app/proxy.ts': 'export const get = (url: string) => fetch(url);\n',
+      'src/app/hook.ts': "export const verify = (body: string) => createHmac('sha256', body);\n",
+      ...Object.fromEntries(providers),
+    });
+    const result = await scanRepo(many, 'acme/gateway');
+    expect(result.areas).toEqual([
+      { area: 'src/libs/agent-runtime', leads: 70 },
+      { area: 'src/app', leads: 1 },
+    ]);
+    expect(scanEvidence(result)).toContain('## Suggested areas for area readers');
+    await removeRepo(many);
+    expect(scan.areas).toEqual([]);
+    expect(scanEvidence(scan)).not.toContain('Suggested areas');
+  });
+
   it('ties a fetch with a runtime URL to the one known API host its file names, and leaves the rest as leads', async () => {
     const dir = await makeRepo({
       'package.json': '{\n  "dependencies": {}\n}\n',
