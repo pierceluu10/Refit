@@ -7,7 +7,15 @@
 //   node evals/runner/baseline.ts --in <iteration dir> --out <dir> --budget-usd <cap> --concurrency <n>
 //   node evals/runner/baseline.ts --in <iteration dir> --out <dir> --report-only
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { claudeAgentSession } from '../../harness/agent.ts';
 import { compareChecks, runChecks } from '../../harness/checks.ts';
@@ -89,6 +97,8 @@ export type BaselineRow = {
     prepCostUsd: number;
     diffLines: number;
     stopReason?: string;
+    /** Checkout to graded result, as Refit's durationMs counts a whole repo. */
+    durationMs?: number;
     finalText: string;
     transcriptPath: string;
     error?: string;
@@ -260,6 +270,7 @@ async function runClaude(
     finalText: '',
     transcriptPath: '',
   };
+  const started = Date.now();
   const hold = await budget.reserve(`baseline ${entry.repo}`, REPO_USD + 1);
   const ledger = new BudgetLedger(hold.usd);
   try {
@@ -269,8 +280,8 @@ async function runClaude(
       try {
         const prepared = await prepareBaseline(sandbox, ledger);
         run.prepCostUsd = ledger.spentUsd;
-        const outDir = join(copy.repoDir, '..', `baseline-${entry.repo.replace(/\W+/g, '-')}`);
-        mkdirSync(outDir, { recursive: true });
+        // Its own folder per run: a rerun must not append to an earlier run's transcript.
+        const outDir = mkdtempSync(join(tmpdir(), `baseline-${entry.repo.replace(/\W+/g, '-')}-`));
         const transcriptPath = join(outDir, 'transcript.jsonl');
         run.transcriptPath = transcriptPath;
         const tools = buildTools({
@@ -334,6 +345,7 @@ async function runClaude(
   } finally {
     hold.settle(ledger.spentUsd);
   }
+  run.durationMs = Date.now() - started;
   return run;
 }
 
