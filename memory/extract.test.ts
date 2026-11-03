@@ -121,6 +121,40 @@ describe('extractRecipe', () => {
     expect(await other.store.listRecipes()).toHaveLength(1);
   });
 
+  it('records the changes a recipe was made from, the bundled ones too, and merges them', async () => {
+    const { store, run } = await setup();
+    const bundled = { ...run.task.change, id: 'stripe-sources-removed' };
+    const upgrade = {
+      ...run,
+      task: { ...run.task, alsoResolves: [{ change: bundled, why: 'x' }] },
+    };
+    const recipe = await extractRecipe(upgrade, {
+      store,
+      model: fakeModel().model,
+      now: () => NOW,
+    });
+    expect(recipe?.changeIds).toEqual([
+      'stripe-charges-to-payment-intents',
+      'stripe-sources-removed',
+    ]);
+
+    const other = await setup({ repo: 'example-org/billing' });
+    await other.store.saveRecipe({ ...recipe!, changeIds: ['stripe-older-change'] });
+    const merged = await extractRecipe(other.run, {
+      store: other.store,
+      model: fakeModel(recipe!.id).model,
+      now: () => NOW,
+    });
+    expect(merged?.changeIds).toEqual(['stripe-older-change', 'stripe-charges-to-payment-intents']);
+  });
+
+  it('asks for the files, codegen, checks and test that got the fix verified', async () => {
+    const { store, run } = await setup();
+    const { model, requests } = fakeModel();
+    await extractRecipe(run, { store, model, now: () => NOW });
+    expect(requests[0].system).toMatch(/codegen.*checks.*the test it wrote/s);
+  });
+
   it('creates a new recipe when the model names an unknown recipe id', async () => {
     const { store, run } = await setup();
     await store.saveRecipe(makeRecipe());

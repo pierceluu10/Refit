@@ -39,7 +39,7 @@ const SYSTEM = `You distil a successful API migration run into a recipe: advice 
 
 You get the task, the agent's diff, the checks, the run's outcome and the agent's transcript. Write:
 - preconditions: what the code looks like when this recipe applies (SDK, version, call shapes).
-- steps: what to do, in order. Generalise away repository-specific names (files, variables, business logic) but keep exact provider API names, parameters, versions and model ids.
+- steps: what to do, in order. Generalise away repository-specific names (files, variables, business logic) but keep exact provider API names, parameters, versions and model ids. Cover the whole path to a verified fix: which kinds of files and code patterns it touched (for example "the webhook handler that reads subscription.current_period_end"), any codegen or setup it had to run before the checks could pass (prisma generate and the like), which checks it ran, and the test it wrote to prove the change: what the test asserts and where such a test lives.
 - pitfalls: what went wrong or nearly did, including every dead end the agent hit in the transcript and how it got out.
 - diffSketch: a short generic before/after diff of the core change.
 
@@ -110,6 +110,7 @@ export async function extractRecipe(
     recipe = {
       ...kept,
       ...guidance,
+      ...(success && { changeIds: [...new Set([...(same.changeIds ?? []), ...changeIds(run)])] }),
       sourceRuns: [...new Set([...same.sourceRuns, run.id])],
       repos,
       verifiedRepos: repos.length,
@@ -121,6 +122,7 @@ export async function extractRecipe(
       provider,
       kind,
       ...(guidance as Omit<Extraction, 'sameAsRecipeId'>),
+      changeIds: changeIds(run),
       sourceRuns: [run.id],
       repos: [run.task.repo],
       verifiedRepos: 1,
@@ -136,6 +138,14 @@ export async function extractRecipe(
     at: now,
   });
   return recipe;
+}
+
+// The task's change and any the match agent bundled into it (one task per upgrade).
+function changeIds(run: StoredRun): string[] {
+  const { change, alsoResolves } = run.task as StoredRun['task'] & {
+    alsoResolves?: { change: { id: string } }[];
+  };
+  return [change.id, ...(alsoResolves ?? []).map((bundled) => bundled.change.id)];
 }
 
 // One retry when the answer comes back degraded; any other error goes straight up.

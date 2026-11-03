@@ -58,6 +58,8 @@ const PICK_SCHEMA = {
 const PICK_SYSTEM = `You advise an engineer who is about to migrate code for an API change.
 From notes left by past verified migrations, choose the ones worth reading before starting.
 A note from another provider can still help when the migration has the same shape.
+A note made from this very same change is usually the best head start.
+Weigh each note's track record: one whose later runs failed more often than it verified is probably stale or wrong, so prefer another unless it clearly fits.
 Order picks from most to least useful and say in one sentence why each helps.
 Return an empty list only if none of the notes would help.`;
 
@@ -93,10 +95,14 @@ export function createRetriever(deps: {
       }),
     );
 
+    // Order is evidence for the judge and the fallback when there is none, never a filter: the same
+    // change first, a recipe that failed more often than it verified last, then by similarity.
+    const tier = (recipe: MemoryRecipe) =>
+      (sameChange(recipe, task) ? 0 : 1) + (losing(recipe) ? 2 : 0);
     return (
       recipes
         .map((recipe) => ({ recipe, score: cosine(taskVector, recipe.embedding!.vector) }))
-        .sort((a, b) => b.score - a.score)
+        .sort((a, b) => tier(a.recipe) - tier(b.recipe) || b.score - a.score)
         // A small store goes to the model whole; embeddings only shortlist once it is too big to read.
         .slice(0, recipes.length <= judgeAllUpTo ? recipes.length : candidates)
         .map(({ recipe }) => recipe)
@@ -109,6 +115,7 @@ export function createRetriever(deps: {
         `### ${recipe.id}`,
         `Provider: ${recipe.provider}, kind: ${recipe.kind}`,
         `Active skill: ${recipe.skill?.status === 'active' ? 'yes' : 'no'}; ${track(recipe)}`,
+        `Made from this same change: ${sameChange(recipe, task) ? 'yes' : 'no'}`,
         `Preconditions: ${recipe.preconditions}`,
         `Steps: ${recipe.steps}`,
         `Pitfalls: ${recipe.pitfalls}`,
@@ -149,11 +156,15 @@ export function createRetriever(deps: {
   };
 }
 
+const sameChange = (recipe: MemoryRecipe, task: MigrationTask) =>
+  recipe.changeIds?.includes(task.change.id) ?? false;
+const losing = (recipe: MemoryRecipe) => (recipe.failedRunIds?.length ?? 0) > recipe.verifiedRepos;
+
 // How a recipe has fared, for a model to weigh. A count to read, never a filter.
 function track(recipe: MemoryRecipe): string {
   const failed = recipe.failedRunIds?.length ?? 0;
   const against = failed
-    ? `; ${failed} later PR${failed === 1 ? '' : 's'} that used it closed by a human without merging`
+    ? `; ${failed} later run${failed === 1 ? '' : 's'} that used it failed (could not verify on a repo whose checks passed before the edit, or a human closed the PR)`
     : '';
   return `verified on ${recipe.verifiedRepos} repos${against}`;
 }
