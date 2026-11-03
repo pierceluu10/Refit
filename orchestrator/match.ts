@@ -221,8 +221,11 @@ export function messagesApi(opts: {
 
 // The answer ran out of tokens before every verdict was written; it carries what the call cost.
 export class MatchTruncatedError extends Error {
-  constructor(readonly costUsd: number) {
+  // A plain field: Node runs this file with type stripping, which rejects parameter properties.
+  readonly costUsd: number;
+  constructor(costUsd: number) {
     super(`Match agent hit max_tokens (${MAX_TOKENS}); its JSON is incomplete.`);
+    this.costUsd = costUsd;
   }
 }
 
