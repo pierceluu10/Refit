@@ -2,9 +2,12 @@
 // page into readable text and let tests replay saved snapshots.
 
 import { createHash } from 'node:crypto';
+import { lookup as dnsLookup, type LookupAddress, type LookupOptions } from 'node:dns';
 import { lookup } from 'node:dns/promises';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { request as httpsRequest } from 'node:https';
 import { join } from 'node:path';
+import { brotliDecompressSync, gunzipSync, inflateSync } from 'node:zlib';
 import type { ProviderSource } from './types.ts';
 
 export type PageLink = { url: string; text: string };
@@ -162,15 +165,20 @@ const PRIVATE_V4 =
 export function isPrivateAddress(address: string): boolean {
   const ip = address.toLowerCase().replace(/^\[|\]$/g, '');
   if (/^\d+\.\d+\.\d+\.\d+$/.test(ip)) return PRIVATE_V4.test(ip);
-  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(ip);
-  if (mapped) return PRIVATE_V4.test(mapped[1]);
+  // IPv6 forms that carry an IPv4 address: mapped (::ffff:), compatible (::) and NAT64 (64:ff9b::).
+  const dotted = /^(?:::ffff:|::|64:ff9b::)(\d+\.\d+\.\d+\.\d+)$/.exec(ip);
+  if (dotted) return PRIVATE_V4.test(dotted[1]);
+  const hex = /^(?:::ffff:|::|64:ff9b::)([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(ip);
+  if (hex) {
+    const [high, low] = [parseInt(hex[1], 16), parseInt(hex[2], 16)];
+    return PRIVATE_V4.test(`${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`);
+  }
   return (
     ip === '::' ||
     ip === '::1' ||
     /^f[cd]/.test(ip) || // unique local
     /^fe[89ab]/.test(ip) || // link-local
-    /^ff/.test(ip) || // multicast
-    ip.startsWith('::ffff:') // mapped, in hex form
+    /^ff/.test(ip) // multicast
   );
 }
 
@@ -245,6 +253,105 @@ export function extractLinks(raw: string, baseUrl: string): PageLink[] {
 
 type SafeResponse = { response: Response; finalUrl: string } | { error: string };
 
+/** One GET as the fetchers use it. The default is pinnedGet; tests pass a stand-in. */
+export type HttpGet = (
+  url: string,
+  init: { headers: Record<string, string>; signal: AbortSignal },
+) => Promise<Response>;
+
+type LookupCallback = (
+  error: NodeJS.ErrnoException | null,
+  address: string | LookupAddress[],
+  family?: number,
+) => void;
+
+/**
+ * A DNS lookup for the connection itself that refuses private addresses, so
+ * the address checked is the address connected to: a name that resolves to a
+ * public address once and a private one the next time (DNS rebinding) cannot
+ * slip between a check and the request.
+ */
+export function guardedLookup(resolve: typeof dnsLookup = dnsLookup) {
+  return (hostname: string, options: LookupOptions, callback: LookupCallback): void => {
+    resolve(hostname, { ...options, all: true }, (error, addresses) => {
+      if (error) return callback(error, []);
+      const list = addresses as LookupAddress[];
+      const blocked = list.find((entry) => isPrivateAddress(entry.address));
+      if (blocked || list.length === 0) {
+        const refused: NodeJS.ErrnoException = new Error(
+          `only public https URLs (${hostname} resolves to a private address)`,
+        );
+        refused.code = 'EPRIVATEADDRESS';
+        return callback(refused, []);
+      }
+      if (options.all) return callback(null, list);
+      return callback(null, list[0].address, list[0].family);
+    });
+  };
+}
+
+/** The most one response body may hold before it is cut off. */
+const MAX_BODY_BYTES = 50_000_000;
+
+function decode(body: Buffer, encoding: string | undefined): Buffer {
+  switch ((encoding ?? '').trim().toLowerCase()) {
+    case 'gzip':
+    case 'x-gzip':
+      return gunzipSync(body);
+    case 'deflate':
+      return inflateSync(body);
+    case 'br':
+      return brotliDecompressSync(body);
+    default:
+      return body;
+  }
+}
+
+/** A GET over node:https whose connection uses guardedLookup. No redirects are followed. */
+export const pinnedGet: HttpGet = (url, init) =>
+  new Promise((resolve, reject) => {
+    const request = httpsRequest(
+      url,
+      {
+        method: 'GET',
+        headers: { 'accept-encoding': 'gzip, deflate, br', ...init.headers },
+        lookup: guardedLookup() as never,
+        signal: init.signal,
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+        let size = 0;
+        response.on('data', (chunk: Buffer) => {
+          size += chunk.length;
+          if (size > MAX_BODY_BYTES) {
+            request.destroy(new Error(`response over ${MAX_BODY_BYTES} bytes`));
+            return;
+          }
+          chunks.push(chunk);
+        });
+        response.on('error', reject);
+        response.on('end', () => {
+          try {
+            const headers = new Headers();
+            for (const [name, value] of Object.entries(response.headers)) {
+              if (value === undefined || name === 'content-encoding' || name === 'content-length')
+                continue;
+              headers.set(name, Array.isArray(value) ? value.join(', ') : value);
+            }
+            const status = response.statusCode ?? 0;
+            const body = decode(Buffer.concat(chunks), response.headers['content-encoding']);
+            const empty = status === 204 || status === 304 || (status >= 300 && status < 400);
+            resolve(new Response(empty ? null : new Uint8Array(body), { status, headers }));
+          } catch (error) {
+            reject(error);
+          }
+        });
+      },
+    );
+    request.on('error', reject);
+    request.end();
+  });
+
 /** GitHub endpoints the optional token is sent to: release lists, for their rate limit. */
 const GITHUB_TOKEN_PATH = /^\/repos\/[^/]+\/[^/]+\/releases(\/|$)/;
 
@@ -256,9 +363,10 @@ const GITHUB_TOKEN_PATH = /^\/repos\/[^/]+\/[^/]+\/releases(\/|$)/;
 async function safeGet(
   url: string,
   headers: Record<string, string>,
-  options: { timeoutMs?: number; githubToken?: string; lookup?: HostLookup },
+  options: { timeoutMs?: number; githubToken?: string; lookup?: HostLookup; get?: HttpGet },
 ): Promise<SafeResponse> {
   const resolve = options.lookup ?? systemLookup;
+  const get = options.get ?? pinnedGet;
   let target = url;
   for (let hop = 0; hop <= 5; hop++) {
     if (!isFetchableUrl(target)) return { error: `only public https URLs (${target})` };
@@ -281,9 +389,9 @@ async function safeGet(
     ) {
       sent.authorization = `Bearer ${options.githubToken}`;
     }
-    const response = await fetch(target, {
+    // An early check above, and the real one in the connection's own lookup (pinnedGet).
+    const response = await get(target, {
       headers: sent,
-      redirect: 'manual',
       signal: AbortSignal.timeout(options.timeoutMs ?? 30_000),
     });
     const location = response.headers.get('location');
@@ -310,6 +418,7 @@ export function httpFetcher(
     timeoutMs?: number;
     githubToken?: string;
     lookup?: HostLookup;
+    get?: HttpGet;
   } = {},
 ): Fetcher {
   const maxChars = options.maxChars ?? 200_000;
@@ -375,6 +484,7 @@ export function httpJsonFetcher(
     maxBytes?: number;
     githubToken?: string;
     lookup?: HostLookup;
+    get?: HttpGet;
   } = {},
 ): JsonFetcher {
   const maxBytes = options.maxBytes ?? 40_000_000;
@@ -388,6 +498,7 @@ export function httpJsonFetcher(
             timeoutMs: options.timeoutMs ?? 60_000,
             githubToken: options.githubToken,
             lookup: options.lookup,
+            get: options.get,
           },
         );
         if ('error' in got) return { ok: false, status: 0, url, error: got.error };

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { runToolLoop } from './agent.ts';
-import { anyProviderWatcher, displayName, runAnyWatch } from './any-watcher.ts';
+import { NOTHING_READ, anyProviderWatcher, displayName, runAnyWatch } from './any-watcher.ts';
 import type { Fetcher, JsonFetcher } from './fetch.ts';
 import {
   BudgetExceededError,
@@ -309,6 +309,8 @@ describe('runAnyWatch', () => {
           /^server tools \(web_search\) failed, so the run went on without them/,
         ),
       },
+      // It submitted without reading anything, so its empty list proves nothing.
+      { message: NOTHING_READ },
     ]);
     expect(report.changes).toEqual([]);
   });
@@ -451,7 +453,101 @@ describe('the tool loop for any-provider reads', () => {
   });
 });
 
+describe('endings that are not answers', () => {
+  const reply = (
+    stopReason: string,
+    text = 'thinking out loud',
+  ): ModelClient & { calls: number } => {
+    const client = {
+      model: 'fake-model',
+      calls: 0,
+      async complete(): Promise<ModelResponse> {
+        client.calls++;
+        return {
+          content: [{ type: 'text', text }],
+          stopReason,
+          usage: { inputTokens: 10, outputTokens: 10 },
+        };
+      },
+    };
+    return client;
+  };
+
+  it('asks for a shorter reply when one is cut off at max_tokens, then reports the cut-offs', async () => {
+    const model = reply('max_tokens');
+    const result = await runToolLoop({
+      model,
+      system: 's',
+      prompt: 'p',
+      tools: [],
+      isDone: () => false,
+      nudge: 'Submit.',
+      wrapUp: 'Submit now.',
+    });
+    expect(model.calls).toBe(3);
+    expect(result.ended).toBe('max-tokens');
+    expect(result.error).toBe('replies were cut off at max_tokens before any tool call');
+    expect(JSON.stringify(result.messages.at(-2))).toContain(
+      'Your reply was cut off at the max_tokens limit. Reply more briefly. Submit now.',
+    );
+  });
+
+  it('reports a refusal as a model error, not as a quiet end', async () => {
+    const result = await runToolLoop({
+      model: reply('refusal', ''),
+      system: 's',
+      prompt: 'p',
+      tools: [],
+      isDone: () => false,
+      nudge: 'Submit.',
+    });
+    expect(result.ended).toBe('model-error');
+    expect(result.error).toMatch(/refusal/);
+  });
+
+  it('fails an empty read in which no page could be loaded', async () => {
+    const model = scriptedModel([
+      [{ type: 'tool_use', id: 'r', name: 'read_page', input: { url: CHANGELOG } }],
+      [{ type: 'tool_use', id: 's', name: 'submit_changes', input: { changes: [] } }],
+    ]);
+    const watch = anyProviderWatcher(
+      'acme',
+      { docsUrls: [DOCS] },
+      {
+        model,
+        fetcher: fakeFetcher({}),
+        registry: registry(),
+        budget: new BudgetLedger(100),
+      },
+    );
+    await expect(watch()).rejects.toThrow(NOTHING_READ);
+  });
+});
+
 describe('the hard cap', () => {
+  it('learns from what a call was billed and estimates the next call from it', async () => {
+    // A client billed 5 prompt tokens a character, ten times the default estimate.
+    let calls = 0;
+    const heavy: ModelClient = {
+      model: 'claude-sonnet-5-5',
+      async complete(request): Promise<ModelResponse> {
+        calls++;
+        return {
+          content: [{ type: 'text', text: 'ok' }],
+          stopReason: 'end_turn',
+          usage: { inputTokens: request.system.length * 5 + 1_000, outputTokens: 10 },
+        };
+      },
+    };
+    const request = { system: 'x'.repeat(2_000), messages: [], tools: [], maxTokens: 1_100 };
+    // The default estimate (2000 prompt tokens and 1100 output) fits $0.04; at the billed rate
+    // (11000 prompt tokens, about $0.03) the second call cannot fit 1024 output tokens in what is left.
+    const ledger = new BudgetLedger(0.04);
+    const capped = metered(heavy, ledger);
+    await capped.complete(request);
+    await expect(capped.complete(request)).rejects.toBeInstanceOf(BudgetExceededError);
+    expect(calls).toBe(1);
+  });
   it('shrinks max_tokens to fit what is left, then refuses a call that could pass the cap', async () => {
     const model = scriptedModel([[{ type: 'text', text: 'hi' }]], 'claude-sonnet-5-5');
     const request = { system: 's', messages: [], tools: [], maxTokens: 16_000 };
@@ -471,17 +567,18 @@ describe('the hard cap', () => {
   it('prices the shrunk output at the long-prompt rate when a long prompt raises it', async () => {
     // Haiku 5.5 bills output at $2.50 per million, not $0.50, once a prompt passes 100k tokens.
     const model = scriptedModel([[{ type: 'text', text: 'hi' }]], 'claude-haiku-5-5');
+    // About 91k estimated prompt tokens: near enough to the 100k threshold to price at the long rate.
     const long = {
-      system: 'x'.repeat(330_000),
+      system: 'x'.repeat(180_000),
       messages: [],
       tools: [],
       maxTokens: 16_000,
     };
-    const ledger = new BudgetLedger(0.1);
+    const ledger = new BudgetLedger(0.08);
     await metered(model, ledger).complete(long);
     const sent = model.requests[0];
     expect(sent.maxTokens).toBeLessThan(16_000);
-    expect(worstCaseUsd('claude-haiku-5-5', sent)).toBeLessThanOrEqual(0.1);
+    expect(worstCaseUsd('claude-haiku-5-5', sent)).toBeLessThanOrEqual(0.08);
   });
 
   it("counts a call's web searches and their results in its worst case", () => {

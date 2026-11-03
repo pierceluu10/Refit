@@ -129,6 +129,14 @@ describe('provider folders and discovery', () => {
       expect.arrayContaining(['npm:twilio', 'pypi:twilio', 'github.com/twilio/twilio-go']),
     );
     const model = scriptedModel([
+      [
+        {
+          type: 'tool_use',
+          id: 'r',
+          name: 'read_page',
+          input: { source_id: twilio.sources[0].id },
+        },
+      ],
       [{ type: 'tool_use', id: 's', name: 'submit_changes', input: { changes: [] } }],
     ]);
     const registry = recordingRegistry();
@@ -197,5 +205,27 @@ describe('provider folders and discovery', () => {
       (await savedRegistry(both).lookup('npm:acme-node')).found.map((i) => i.ecosystem),
     ).toEqual(['npm']);
     expect((await savedRegistry(both).lookup('acme-node')).found).toHaveLength(2);
+  });
+
+  it('fails the read of a folder that does not load, rather than watching it without its pages', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'apt-broken-folder-'));
+    try {
+      mkdirSync(join(root, 'acme'));
+      writeFileSync(join(root, 'acme', 'provider.json'), '{ "id": "acme", "name": "Acme", }');
+      writeFileSync(join(root, 'acme', 'prompt.md'), 'Acme announces changes in its changelog.');
+      const model = scriptedModel([[{ type: 'text', text: 'never asked' }]]);
+      await expect(
+        folderWatcher('acme', {
+          root,
+          model,
+          fetcher,
+          registry: recordingRegistry(),
+          budget: new BudgetLedger(100),
+        })(),
+      ).rejects.toBeInstanceOf(SyntaxError);
+      expect(model.requests).toHaveLength(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

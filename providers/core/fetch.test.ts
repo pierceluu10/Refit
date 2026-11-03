@@ -8,7 +8,9 @@ import {
   isPrivateAddress,
   truncatingFetcher,
   type Fetcher,
+  guardedLookup,
   type HostLookup,
+  type HttpGet,
 } from './fetch.ts';
 
 afterEach(() => {
@@ -17,6 +19,41 @@ afterEach(() => {
 
 // Every host resolves to a documentation address (TEST-NET-3), so no test needs DNS.
 const publicLookup: HostLookup = async () => ['203.0.113.7'];
+// Requests go through the stubbed global fetch instead of the pinned https transport.
+const viaFetch: HttpGet = (url, init) => fetch(url, { ...init, redirect: 'manual' });
+
+describe('the pinned connection lookup', () => {
+  type Resolve = (
+    host: string,
+    options: object,
+    callback: (error: Error | null, addresses: { address: string; family: number }[]) => void,
+  ) => void;
+  const answering =
+    (...addresses: string[]): Resolve =>
+    (_host, _options, callback) =>
+      callback(
+        null,
+        addresses.map((address) => ({ address, family: address.includes(':') ? 6 : 4 })),
+      );
+  const run = (resolve: Resolve, all: boolean) =>
+    new Promise<{ error: Error | null; address: unknown }>((done) =>
+      guardedLookup(resolve as never)('rebind.example', { all }, (error, address) =>
+        done({ error, address }),
+      ),
+    );
+
+  it('refuses a connection to any private address the name resolves to', async () => {
+    const { error } = await run(answering('203.0.113.7', '169.254.169.254'), true);
+    expect(error?.message).toMatch(/resolves to a private address/);
+  });
+
+  it('hands public addresses to the connection in the form it asked for', async () => {
+    expect((await run(answering('203.0.113.7'), true)).address).toEqual([
+      { address: '203.0.113.7', family: 4 },
+    ]);
+    expect((await run(answering('203.0.113.7'), false)).address).toBe('203.0.113.7');
+  });
+});
 
 describe('the SSRF guard', () => {
   it('refuses local and private hosts however they are written', () => {
@@ -50,15 +87,26 @@ describe('the SSRF guard', () => {
       'fe80::1',
       '::ffff:10.0.0.1',
       '224.0.0.1',
+      // IPv6 forms that carry a private IPv4 address: mapped in hex, compatible, NAT64.
+      '::ffff:a00:1',
+      '::10.0.0.1',
+      '64:ff9b::a00:5',
+      '64:ff9b::169.254.169.254',
     ])
       expect(isPrivateAddress(ip), ip).toBe(true);
-    for (const ip of ['8.8.8.8', '100.128.0.1', '2606:4700::1111', '203.0.113.7'])
+    for (const ip of [
+      '8.8.8.8',
+      '100.128.0.1',
+      '2606:4700::1111',
+      '203.0.113.7',
+      '64:ff9b::808:808',
+    ])
       expect(isPrivateAddress(ip), ip).toBe(false);
   });
 
   it('refuses a public name that resolves to a private address, before any request', async () => {
     const calls = stubFetch({ 'https://rebind.example/': () => new Response('secret') });
-    const page = await httpFetcher({ lookup: async () => ['10.0.0.5'] }).fetch(
+    const page = await httpFetcher({ lookup: async () => ['10.0.0.5'], get: viaFetch }).fetch(
       'https://rebind.example/',
     );
     expect(page.ok).toBe(false);
@@ -70,9 +118,11 @@ describe('the SSRF guard', () => {
     const calls = stubFetch({
       'https://api.github.com/repos/a/b/contents/secret.txt': () => new Response('{}'),
     });
-    await httpJsonFetcher({ githubToken: 'test-token-not-real', lookup: publicLookup }).json(
-      'https://api.github.com/repos/a/b/contents/secret.txt',
-    );
+    await httpJsonFetcher({
+      githubToken: 'test-token-not-real',
+      lookup: publicLookup,
+      get: viaFetch,
+    }).json('https://api.github.com/repos/a/b/contents/secret.txt');
     expect(calls[0].headers.authorization).toBeUndefined();
   });
 });
@@ -100,7 +150,7 @@ describe('httpFetcher', () => {
           headers: { 'content-type': 'application/rss+xml' },
         }),
     });
-    const page = await httpFetcher({ lookup: publicLookup }).fetch(
+    const page = await httpFetcher({ lookup: publicLookup, get: viaFetch }).fetch(
       'https://example.com/feed.xml',
       'rss',
     );
@@ -116,7 +166,11 @@ describe('httpFetcher', () => {
       'https://elsewhere.example/x': () =>
         new Response('[]', { headers: { 'content-type': 'application/json' } }),
     });
-    const fetcher = httpFetcher({ githubToken: 'test-token-not-real', lookup: publicLookup });
+    const fetcher = httpFetcher({
+      githubToken: 'test-token-not-real',
+      lookup: publicLookup,
+      get: viaFetch,
+    });
     const page = await fetcher.fetch(
       'https://api.github.com/repos/a/b/releases',
       'github-releases',
@@ -138,7 +192,9 @@ describe('httpFetcher', () => {
           headers: { location: 'https://169.254.169.254/latest' },
         }),
     });
-    const page = await httpFetcher({ lookup: publicLookup }).fetch('https://example.com/a');
+    const page = await httpFetcher({ lookup: publicLookup, get: viaFetch }).fetch(
+      'https://example.com/a',
+    );
     expect(page.ok).toBe(false);
     expect(page.error).toMatch(/only public https/);
   });
@@ -204,7 +260,9 @@ describe('extractLinks', () => {
           headers: { 'content-type': 'text/html' },
         }),
     });
-    const page = await httpFetcher({ lookup: publicLookup }).fetch('https://docs.example.com/');
+    const page = await httpFetcher({ lookup: publicLookup, get: viaFetch }).fetch(
+      'https://docs.example.com/',
+    );
     expect(page.links).toEqual([{ url: 'https://docs.example.com/changelog', text: 'Changelog' }]);
   });
 });
@@ -217,7 +275,7 @@ describe('httpJsonFetcher', () => {
       'https://registry.example.com/moved': () =>
         new Response(null, { status: 302, headers: { location: 'https://10.0.0.1/pkg' } }),
     });
-    const json = httpJsonFetcher({ lookup: publicLookup });
+    const json = httpJsonFetcher({ lookup: publicLookup, get: viaFetch });
     expect(await json.json('https://registry.example.com/pkg')).toEqual({
       ok: true,
       status: 200,
@@ -242,7 +300,7 @@ describe('httpJsonFetcher', () => {
         }),
     });
     expect(
-      await httpJsonFetcher({ maxBytes: 100, lookup: publicLookup }).json(
+      await httpJsonFetcher({ maxBytes: 100, lookup: publicLookup, get: viaFetch }).json(
         'https://registry.example.com/big',
       ),
     ).toMatchObject({ ok: false, error: 'over 100 bytes' });

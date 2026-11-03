@@ -58,6 +58,9 @@ export type AnyWatchReport = WatchReport & {
 };
 
 // Three searches a call: enough to find a provider's pages, and a small part of a call's worst case.
+/** The issue for a read where no page loaded and nothing was found: an empty list that proves nothing. */
+export const NOTHING_READ = 'no page could be read, so finding no changes proves nothing';
+
 export const DEFAULT_WEB_SEARCH: Required<WebSearchOption> = {
   type: 'web_search_20250305',
   maxUses: 3,
@@ -79,11 +82,15 @@ export function displayName(provider: string): string {
 
 /** The folder for a provider id, when providers/ has one. */
 function folderFor(id: string, root: string): LoadedProvider | undefined {
+  let ids: string[];
   try {
-    return listProviderIds(root).includes(id) ? loadProvider(id, root) : undefined;
+    ids = listProviderIds(root);
   } catch {
-    return undefined;
+    return undefined; // no providers/ to look in
   }
+  // A folder that exists but does not load (bad JSON, wrong id) fails the read, rather than
+  // being watched without its pages, prompt and knowledge.
+  return ids.includes(id) ? loadProvider(id, root) : undefined;
 }
 
 function httpsUrl(url: string): string | undefined {
@@ -303,8 +310,18 @@ export async function runAnyWatch(
     { ...deps, budget, maxTurns: deps.maxTurns ?? 20 },
   );
   deps.onPages?.(reader);
+  // An empty result is only "nothing changed" if something was read: with every fetch failed it means nothing.
+  const registryUrls = new Set(infos.map((info) => info.registryUrl));
+  const loaded = report.sourcesRead.filter((url) => !registryUrls.has(url));
+  const issues =
+    loaded.length === 0 &&
+    report.changes.length === 0 &&
+    !report.issues.some((issue) => issue.message === NO_SUBMISSION)
+      ? [...report.issues, { message: NOTHING_READ }]
+      : report.issues;
   return {
     ...report,
+    issues,
     name,
     hints,
     ...(folder ? { folder: folder.id } : {}),
@@ -327,7 +344,11 @@ export function anyProviderWatcher(
   return async (since?: string) => {
     const report = await runAnyWatch(provider, hints, since, deps);
     deps.onReport?.(report);
-    if (report.issues.some((issue) => issue.message === NO_SUBMISSION)) {
+    if (
+      report.issues.some(
+        (issue) => issue.message === NO_SUBMISSION || issue.message === NOTHING_READ,
+      )
+    ) {
       throw new WatchFailedError(report);
     }
     return report.changes;

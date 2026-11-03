@@ -300,8 +300,8 @@ export async function runWatchAgent(
 }
 
 /** A first-call error that says the request's server tools are not allowed or not understood. */
-const SERVER_TOOL_REFUSED =
-  /\b400\b|invalid_request|web[_ ]search|server[_ ]tool|tool type|not (enabled|supported|available|allowed)/i;
+// It must name the tool: a 400 for a low credit balance or a too-long prompt is not about it.
+const SERVER_TOOL_REFUSED = /web[_ ]search|server[_ ]tool|tool type|tools\.\d+/i;
 
 /** The entry point other folders use: a WatchProvider bound to one provider. */
 export const NO_SUBMISSION = 'the agent ended without submitting changes';

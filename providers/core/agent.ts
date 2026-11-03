@@ -34,8 +34,8 @@ export type LoopResult = {
   messages: Message[];
   log: TurnLog[];
   turns: number;
-  /** 'done' | 'max-turns' | 'budget' | 'model-error' */
-  ended: 'done' | 'max-turns' | 'budget' | 'model-error';
+  /** How the loop ended. 'max-tokens': replies kept being cut off before any tool call. */
+  ended: 'done' | 'max-turns' | 'budget' | 'model-error' | 'max-tokens';
   finalText: string;
   error?: string;
 };
@@ -75,6 +75,7 @@ export async function runToolLoop(options: {
   const log: TurnLog[] = [];
   let finalText = '';
   let nudged = false;
+  let cutReplies = 0;
 
   for (let turn = 1; turn <= maxTurns; turn++) {
     let response;
@@ -128,7 +129,41 @@ export async function runToolLoop(options: {
     if (response.stopReason === 'pause_turn' && calls.length === 0) continue;
 
     if (calls.length === 0) {
-      if (options.isDone?.() === false && options.nudge && !nudged && turn < maxTurns) {
+      const unfinished = options.isDone?.() === false;
+      // A reply cut off at max_tokens (which the ledger lowers near the cap) is not an answer.
+      if (response.stopReason === 'max_tokens' && unfinished) {
+        if (cutReplies < 2 && turn < maxTurns) {
+          cutReplies++;
+          messages.push({
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Your reply was cut off at the max_tokens limit. Reply more briefly. ${options.wrapUp ?? options.nudge ?? ''}`.trim(),
+              },
+            ],
+          });
+          continue;
+        }
+        return {
+          messages,
+          log,
+          turns: turn,
+          ended: 'max-tokens',
+          finalText,
+          error: 'replies were cut off at max_tokens before any tool call',
+        };
+      }
+      if (response.stopReason === 'refusal')
+        return {
+          messages,
+          log,
+          turns: turn,
+          ended: 'model-error',
+          finalText,
+          error: 'the model declined to answer (stop reason: refusal)',
+        };
+      if (unfinished && options.nudge && !nudged && turn < maxTurns) {
         nudged = true;
         messages.push({ role: 'user', content: [{ type: 'text', text: options.nudge }] });
         continue;

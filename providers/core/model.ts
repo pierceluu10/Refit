@@ -100,12 +100,14 @@ const CACHE_WRITE = 1.25;
 /** Server-side web search: $10 per 1,000 searches. */
 export const WEB_SEARCH_USD = 0.01;
 
-export function costOf(model: string, usage: Usage): number {
+/** Dollars for a call's usage. `longRate` prices it at the long-context rate whatever its size. */
+export function costOf(model: string, usage: Usage, options: { longRate?: boolean } = {}): number {
   const price = PRICES[model] ?? UNKNOWN_PRICE;
   const cacheWrite = usage.cacheWriteTokens ?? 0;
   const cacheRead = usage.cacheReadTokens ?? 0;
   const prompt = usage.inputTokens + cacheWrite + cacheRead;
-  const rate = price.long && price.longAbove && prompt > price.longAbove ? price.long : price;
+  const long = options.longRate || (price.longAbove !== undefined && prompt > price.longAbove);
+  const rate = price.long && long ? price.long : price;
   const tokens =
     usage.inputTokens * rate.input +
     cacheWrite * rate.input * CACHE_WRITE +
@@ -168,65 +170,102 @@ export class BudgetLedger {
   }
 }
 
-/** Characters per token for the worst-case estimate: low on purpose, so the estimate errs high. */
-const CHARS_PER_TOKEN = 3;
+/**
+ * Prompt tokens per character for the worst-case estimate. Tool schemas and
+ * JSON run near two characters a token (the recorded Sonnet runs billed one
+ * token per 1.9 to 2.6 characters), so this errs high for prose.
+ */
+const TOKENS_PER_CHAR = 1 / 2;
+/** Tokens the API adds that the request text does not show: the tool-use prompt, server tool definitions. */
+export const HIDDEN_PROMPT_TOKENS = 1_000;
 /** Input one server-side search can add inside a call (its results), at most. */
 export const SEARCH_RESULT_TOKENS = 15_000;
 /** The least output a call is sent with once the budget is nearly spent; below it, no call. */
 export const MIN_OUTPUT_TOKENS = 1_024;
 
-/** A call's worst-case usage with `outputTokens` of output: nothing cached, every search used. */
-function worstUsage(request: ModelRequest): (outputTokens: number) => Usage {
-  const chars =
+function requestChars(request: ModelRequest): number {
+  return (
     request.system.length +
     JSON.stringify(request.messages).length +
     JSON.stringify(request.tools).length +
-    JSON.stringify(request.serverTools ?? []).length;
+    JSON.stringify(request.serverTools ?? []).length
+  );
+}
+
+/**
+ * A call's worst-case cost as a function of its max_tokens: nothing cached
+ * (every prompt token and search result written to the cache), every search
+ * used. tokensPerChar may be raised from what earlier calls were billed.
+ */
+function worstCost(
+  model: string,
+  request: ModelRequest,
+  tokensPerChar = TOKENS_PER_CHAR,
+): (outputTokens: number) => number {
   const searches = (request.serverTools ?? []).reduce(
     (sum, tool) =>
       sum +
       (typeof tool.max_uses === 'number' ? tool.max_uses : tool.name === 'web_search' ? 10 : 0),
     0,
   );
-  // Every prompt token, and every search result, written to the cache: the dearest way to read them.
-  const cacheWriteTokens = Math.ceil(chars / CHARS_PER_TOKEN) + searches * SEARCH_RESULT_TOKENS;
-  return (outputTokens) => ({
-    inputTokens: 0,
-    outputTokens,
-    cacheWriteTokens,
-    webSearches: searches,
-  });
+  const promptTokens =
+    Math.ceil(requestChars(request) * Math.max(tokensPerChar, TOKENS_PER_CHAR)) +
+    HIDDEN_PROMPT_TOKENS;
+  // An estimate can fall short of a long-context threshold the real prompt passes; take the dearer rate near it.
+  const price = PRICES[model];
+  const longRate = Boolean(price?.longAbove && promptTokens > price.longAbove * 0.75);
+  const cacheWriteTokens = promptTokens + searches * SEARCH_RESULT_TOKENS;
+  return (outputTokens) =>
+    costOf(
+      model,
+      { inputTokens: 0, outputTokens, cacheWriteTokens, webSearches: searches },
+      { longRate },
+    );
 }
 
 /** The most one call can cost: no cache hits, every search used, every max_tokens token written. */
 export function worstCaseUsd(model: string, request: ModelRequest): number {
-  return costOf(model, worstUsage(request)(request.maxTokens));
+  return worstCost(model, request)(request.maxTokens);
 }
 
 /**
  * Wraps a client so every call is checked against and charged to the ledger.
  * A call is sent only if its worst case fits what is left of the cap; near the
  * end, max_tokens shrinks to fit, and when not even MIN_OUTPUT_TOKENS fit the
- * call is refused. So spend never passes the cap, whatever one call costs.
+ * call is refused. So spend never passes the cap, whatever one call costs. The
+ * estimate learns from each response how many tokens a character was billed.
  */
 export function metered(client: ModelClient, ledger: BudgetLedger, label?: string): ModelClient {
+  let tokensPerChar = TOKENS_PER_CHAR;
   return {
     model: client.model,
     async complete(request) {
       ledger.assertRoom();
       let sent = request;
       const room = ledger.capUsd - ledger.spentUsd;
-      const usage = worstUsage(request);
-      if (costOf(client.model, usage(request.maxTokens)) > room) {
+      const cost = worstCost(client.model, request, tokensPerChar);
+      if (cost(request.maxTokens) > room) {
         // Output's price at this prompt size (long prompts can raise it), then as many tokens as fit.
-        const fixed = costOf(client.model, usage(0));
-        const perToken = (costOf(client.model, usage(1_000)) - fixed) / 1_000;
+        const fixed = cost(0);
+        const perToken = (cost(1_000) - fixed) / 1_000;
         const fits = Math.floor((room - fixed) / perToken);
         if (fits < MIN_OUTPUT_TOKENS) throw new BudgetExceededError(ledger.capUsd, ledger.spentUsd);
         sent = { ...request, maxTokens: Math.min(request.maxTokens, fits) };
       }
       const response = await client.complete(sent);
       ledger.charge(client.model, response.usage, label);
+      // Learn the real rate, leaving out the hidden prompt and any search results billed inside the call.
+      const {
+        inputTokens,
+        cacheWriteTokens = 0,
+        cacheReadTokens = 0,
+        webSearches,
+      } = response.usage;
+      const chars = requestChars(sent);
+      if (chars > 0 && !webSearches) {
+        const billed = inputTokens + cacheWriteTokens + cacheReadTokens - HIDDEN_PROMPT_TOKENS;
+        tokensPerChar = Math.max(tokensPerChar, (billed / chars) * 1.05);
+      }
       return response;
     },
   };

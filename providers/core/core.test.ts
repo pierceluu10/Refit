@@ -118,7 +118,8 @@ describe('budget', () => {
     expect(
       costOf('claude-sonnet-5-5', { inputTokens: 1_000_000, outputTokens: 100_000 }),
     ).toBeCloseTo(3);
-    const ledger = new BudgetLedger(0.001);
+    // The first call's worst case (about 1,000 prompt tokens and 10 output) fits $0.005; it costs $0.004.
+    const ledger = new BudgetLedger(0.005);
     const model = metered(
       scriptedModel([[{ type: 'text', text: 'hi' }]], 'claude-sonnet-5-5'),
       ledger,
