@@ -60,6 +60,11 @@ describe('advisory reviewer', () => {
     expect(REVIEWER_SYSTEM).not.toMatch(/decline/i);
   });
 
+  it('warns the model its API knowledge may be older than the change', () => {
+    expect(REVIEWER_SYSTEM).toMatch(/could not confirm/i);
+    expect(REVIEWER_SYSTEM).toMatch(/don't call it invented/i);
+  });
+
   it('gives the model the change, quote, call sites, checks and diff', () => {
     const prompt = buildReviewPrompt(task, record);
     for (const part of [

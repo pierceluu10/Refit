@@ -67,8 +67,9 @@ set, or holds a repo list outside `sets/dev/`. `sets/recover.ts` refuses to read
 understand (inventory) → watch → match → harness (`runTask`) → advisory review, per repo.
 
 ```sh
-node evals/runner/cli.ts run --set stripe-dev-30 --budget-usd 5 --concurrency 2 [--shard 3]
-node evals/runner/cli.ts matrix --set stripe-dev-30 --budget-usd 40
+node evals/runner/cli.ts run --set stripe-dev-30 --budget-usd 5 --concurrency 2 [--shard 3] [--watch-cache dir]
+node evals/runner/cli.ts watch --set stripe-dev-30 --budget-usd 1.5 --watch-cache dir
+node evals/runner/cli.ts matrix --set stripe-dev-30 --budget-usd 120
 node evals/runner/cli.ts score --in evals/results --report report.md
 ```
 
@@ -96,8 +97,13 @@ node evals/runner/cli.ts score --in evals/results --report report.md
 - Working copies are shallow fetches of the frozen commit with hooks and submodules off. Repo
   code only ever runs inside the harness's sandbox.
 - `workflows/benchmark.yml` runs one repo per GitHub Actions shard, with `concurrency` as
-  `max-parallel` and the cap split evenly across shards. **A founder moves it to
-  `.github/workflows/`**; it is not active from here.
+  `max-parallel`. Each shard is its own process, so a `watch` job first reads each of the set's
+  providers once (`WATCH_USD` each, from the cap) and hands its cache to every shard
+  (`--watch-cache`, same UTC day); the rest of the cap is split evenly across the shards. `matrix`
+  refuses a cap whose shards would get less than `MIN_TASK_USD`, since no task could start. In the
+  first benchmark a repo spent $0.17 to $0.66 on inventory and matching before its first task, so
+  give a shard at least about $3. **A founder moves it to `.github/workflows/`**; it is not active
+  from here.
 
 ## Scoring (`scoring/`)
 

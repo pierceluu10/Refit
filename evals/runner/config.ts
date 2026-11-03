@@ -52,5 +52,6 @@ export function parseRunConfig(flags: Record<string, string | true>): RunConfig 
     }
   }
   const outDir = typeof flags.out === 'string' ? flags.out : 'evals/results';
-  return { set, budgetUsd, concurrency, shard, outDir };
+  const watchCache = typeof flags['watch-cache'] === 'string' ? flags['watch-cache'] : undefined;
+  return { set, budgetUsd, concurrency, shard, outDir, ...(watchCache ? { watchCache } : {}) };
 }

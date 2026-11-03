@@ -88,11 +88,36 @@ describe('run config', () => {
     ).toEqual({ set: 's', budgetUsd: 2.5, concurrency: 3, shard: 4, outDir: 'evals/results' });
   });
 
-  it('splits a total cap across one shard per repo', () => {
-    const plan = planMatrix('stripe-dev-30', 3);
+  it('keeps one watcher read per provider for the watch job and splits the rest across shards', () => {
+    const plan = planMatrix('stripe-dev-30', 106.5);
     expect(plan.shards).toHaveLength(30);
-    expect(plan.shardBudgetUsd).toBeCloseTo(0.1);
+    expect(plan.watchBudgetUsd).toBeCloseTo(1.5);
+    expect(plan.shardBudgetUsd).toBeCloseTo(3.5);
+    expect(planMatrix('longtail-dev-20', 100).watchBudgetUsd).toBeCloseTo(1.5 * 15);
     expect(() => planMatrix('stripe-dev-30', Number.NaN)).toThrow(ConfigError);
+  });
+
+  it('refuses a plan whose shards could never afford a task', () => {
+    expect(() => planMatrix('stripe-dev-30', 40)).toThrow(
+      /leaves \$1\.28 for each of 30 shards, below the \$2 a task needs free/,
+    );
+  });
+
+  it('reads the watch cache flag for shards', () => {
+    expect(
+      parseRunConfig(
+        parseFlags([
+          '--set',
+          's',
+          '--budget-usd',
+          '3',
+          '--concurrency',
+          '1',
+          '--watch-cache',
+          'wc',
+        ]),
+      ).watchCache,
+    ).toBe('wc');
   });
 });
 
@@ -293,6 +318,34 @@ describe('runSet', () => {
       }),
     );
     expect(order).toEqual([1, 2, 3]);
+  });
+
+  it('keeps each task’s change, the match agent’s reasoning and its call sites', async () => {
+    const { results } = await runSet(
+      { set: set.name, budgetUsd: 10, concurrency: 1, shard: 0, outDir: tmp() },
+      set,
+      factoryWith({
+        match: async () => ({
+          reasoning: 'example',
+          tasks: [
+            {
+              id: 'a/one#0',
+              repo: 'a/one',
+              change,
+              usages: [],
+              priority: 1,
+              notes: 'calls the removed field',
+              callSites: [{ file: 'src/pay.ts', line: 12, why: 'sends old_name' }],
+            } as MigrationTask,
+          ],
+        }),
+      }),
+    );
+    expect(results[0]?.tasks[0]).toMatchObject({
+      change,
+      reasoning: 'calls the removed field',
+      callSites: [{ file: 'src/pay.ts', line: 12, why: 'sends old_name' }],
+    });
   });
 
   it('passes the inventory’s usages to the watcher', async () => {

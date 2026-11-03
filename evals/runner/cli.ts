@@ -1,6 +1,7 @@
 // Benchmark runner CLI.
 //
-//   node evals/runner/cli.ts run --set <dev set> --budget-usd <cap> --concurrency <n> [--shard <i>] [--out <dir>]
+//   node evals/runner/cli.ts run --set <dev set> --budget-usd <cap> --concurrency <n> [--shard <i>] [--out <dir>] [--watch-cache <dir>]
+//   node evals/runner/cli.ts watch --set <dev set> --budget-usd <cap> --watch-cache <dir>
 //   node evals/runner/cli.ts matrix --set <dev set> --budget-usd <total cap>
 //   node evals/runner/cli.ts score --in <dir> [--reviews evals/reviews.json] [--report <file>]
 //
@@ -19,6 +20,9 @@ import {
   syncReviews,
   writeReviews,
 } from '../scoring/reviews.ts';
+import { MIN_TASK_USD, WATCH_USD } from '../../orchestrator/deps.ts';
+import type { DevSet } from '../sets/index.ts';
+import { BudgetLedger } from './budget.ts';
 import { ConfigError, parseFlags, parseRunConfig } from './config.ts';
 import { loadRealPipeline, type AnyProviderWatcher } from './real.ts';
 import { runSet } from './run.ts';
@@ -28,18 +32,42 @@ import { runSet } from './run.ts';
 //   import { anyProviderWatcher as watchAny } from '../../providers/core/any-watcher.ts';
 const watchAny: AnyProviderWatcher | undefined = undefined;
 
-/** GitHub Actions matrix: one shard per repo, each with an equal share of the total cap. */
+/** The providers a set's repos use: the set's own, or each entry's in a mixed set. */
+export function setProviders(set: Pick<DevSet, 'provider' | 'repos'>): string[] {
+  return [
+    ...new Set(
+      set.repos.map((entry) =>
+        typeof entry.provider === 'string' ? entry.provider : set.provider,
+      ),
+    ),
+  ].sort();
+}
+
+/**
+ * GitHub Actions matrix. One `watch` job reads each of the set's providers once (WATCH_USD each)
+ * and hands its cache to every shard, so a shard pays for no read of its own; the rest of the cap
+ * is split evenly across one shard per repo. A shard's share must leave a task MIN_TASK_USD free
+ * after its inventory and match, and a share below MIN_TASK_USD can never start a task, so the
+ * plan refuses it rather than spend on repos whose tasks are bound to be unrun.
+ */
 export function planMatrix(setName: string, totalBudgetUsd: number) {
   if (!Number.isFinite(totalBudgetUsd) || totalBudgetUsd <= 0) {
     throw new ConfigError('--budget-usd (the whole run’s cap) is required and must be above zero');
   }
   const set = loadDevSet(setName);
-  const shardBudgetUsd = Math.floor((totalBudgetUsd / set.repos.length) * 10_000) / 10_000;
-  if (shardBudgetUsd <= 0) throw new ConfigError('the cap is too small to split across shards');
+  const watchBudgetUsd = WATCH_USD * setProviders(set).length;
+  const shardBudgetUsd =
+    Math.floor(((totalBudgetUsd - watchBudgetUsd) / set.repos.length) * 10_000) / 10_000;
+  if (shardBudgetUsd < MIN_TASK_USD) {
+    throw new ConfigError(
+      `$${totalBudgetUsd} less $${watchBudgetUsd.toFixed(2)} for the watch job leaves $${Math.max(shardBudgetUsd, 0).toFixed(2)} for each of ${set.repos.length} shards, below the $${MIN_TASK_USD} a task needs free, so no task could start. In the first benchmark (evals/reports/2026-11-03.md) a repo spent $0.17 to $0.66 on inventory and matching before its first task.`,
+    );
+  }
   return {
     set: set.name,
     shards: set.repos.map((entry, index) => ({ index, repo: entry.repo })),
     shardBudgetUsd,
+    watchBudgetUsd,
   };
 }
 
@@ -50,7 +78,10 @@ export async function main(argv: string[]): Promise<number> {
     const config = parseRunConfig(flags);
     const set = loadDevSet(config.set);
     const startedAt = new Date().toISOString();
-    const real = await loadRealPipeline(config.budgetUsd, { watchAny });
+    const real = await loadRealPipeline(config.budgetUsd, {
+      watchAny,
+      ...(config.watchCache ? { watchCache: config.watchCache } : {}),
+    });
     const { results, ledger } = await runSet(config, set, real.factory);
     const score = scoreResults(results);
     const title = `${set.name}${config.shard === undefined ? '' : ` shard ${config.shard}`}`;
@@ -79,6 +110,36 @@ export async function main(argv: string[]): Promise<number> {
     );
     return score.attemptedRate === 1 ? 0 : 1;
   }
+  if (command === 'watch') {
+    // Reads each provider of the set once into the cache, for shards to share.
+    if (typeof flags.set !== 'string') throw new ConfigError('--set is required');
+    const watchCache = flags['watch-cache'];
+    if (typeof watchCache !== 'string') throw new ConfigError('--watch-cache <dir> is required');
+    const budgetUsd = typeof flags['budget-usd'] === 'string' ? Number(flags['budget-usd']) : NaN;
+    if (!Number.isFinite(budgetUsd) || budgetUsd <= 0) {
+      throw new ConfigError('--budget-usd is required and must be above zero');
+    }
+    const set = loadDevSet(flags.set);
+    const real = await loadRealPipeline(budgetUsd, { watchAny, watchCache });
+    const ledger = new BudgetLedger(budgetUsd);
+    let failed = 0;
+    for (const provider of setProviders(set)) {
+      const entry = set.repos.find((repo) => (repo.provider ?? set.provider) === provider);
+      if (!entry) continue;
+      const meter = ledger.meter(provider);
+      try {
+        const changes = await real.factory({ entry, provider, meter }).watch([]);
+        console.log(`${provider}: ${changes.length} changes, $${meter.totalUsd().toFixed(4)}`);
+      } catch (error) {
+        failed += 1;
+        console.error(`${provider}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    console.log(
+      `Spent $${real.spentUsd().toFixed(4)} of a $${budgetUsd} cap; cache in ${watchCache}`,
+    );
+    return failed === 0 ? 0 : 1;
+  }
   if (command === 'matrix') {
     if (typeof flags.set !== 'string') throw new ConfigError('--set is required');
     const budget = typeof flags['budget-usd'] === 'string' ? Number(flags['budget-usd']) : NaN;
@@ -101,7 +162,7 @@ Hand-check log: ${added.length} new entries, ${hand.pending} pending, ${hand.agr
     if (missingHandChecks(reviews, results).length > 0) return 1;
     return score.attemptedRate === 1 ? 0 : 1;
   }
-  console.error('usage: cli.ts run|matrix|score (see the header of evals/runner/cli.ts)');
+  console.error('usage: cli.ts run|watch|matrix|score (see the header of evals/runner/cli.ts)');
   return 2;
 }
 

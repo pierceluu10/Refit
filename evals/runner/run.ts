@@ -22,12 +22,34 @@ export function judgeAttempt(record: RunRecord): { attempted: boolean; reason?: 
   return { attempted: true };
 }
 
+/** What the match agent said about a task: its reasoning and call sites, when it gave them. */
+function matchContext(task: MigrationTask): Pick<TaskResult, 'reasoning' | 'callSites'> {
+  const named = (task as { callSites?: unknown }).callSites;
+  const callSites = Array.isArray(named)
+    ? named.flatMap((site) => {
+        const { file, line, why } = (site ?? {}) as {
+          file?: unknown;
+          line?: unknown;
+          why?: unknown;
+        };
+        return typeof file === 'string' && typeof line === 'number'
+          ? [{ file, line, ...(typeof why === 'string' ? { why } : {}) }]
+          : [];
+      })
+    : [];
+  return {
+    ...(task.notes ? { reasoning: task.notes } : {}),
+    ...(callSites.length > 0 ? { callSites } : {}),
+  };
+}
+
 function unrunTask(task: MigrationTask, reason?: string): TaskResult {
   return {
     taskId: task.id,
     changeId: task.change.id,
     kind: task.change.kind,
     change: task.change,
+    ...matchContext(task),
     attempted: false,
     unrun: 'budget',
     ...(reason ? { unrunReason: reason } : {}),
@@ -99,6 +121,7 @@ export async function runRepo(
         changeId: task.change.id,
         kind: task.change.kind,
         change: task.change,
+        ...matchContext(task),
         attempted: false,
       };
       result.tasks.push(taskResult);

@@ -75,6 +75,11 @@ export type RunConfig = {
   /** Run only this index of the set (one GitHub Actions shard). Omit to run every repo. */
   shard?: number;
   outDir: string;
+  /**
+   * Where provider reads are cached for the UTC day. Shards point it at the cache a single
+   * `watch` job wrote, so each shard doesn't pay for its own read.
+   */
+  watchCache?: string;
 };
 
 export type TaskResult = {
@@ -83,6 +88,9 @@ export type TaskResult = {
   kind: string;
   /** The change the task migrates, with its quoted source, for hand-checks and re-reviews. */
   change?: ProviderChange;
+  /** The match agent's reasoning for this task, and the call sites it named. */
+  reasoning?: string;
+  callSites?: { file: string; line: number; why?: string }[];
   /** True when the agent made an attempt: a diff, or an explicit not-affected verdict. */
   attempted: boolean;
   /** Why a task counts as not attempted. Every one of these is a bug to fix. */
