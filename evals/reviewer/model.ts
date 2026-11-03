@@ -39,10 +39,10 @@ export class FakeModelClient implements ModelClient {
   }
 }
 
-/** The reviewer's model: the same one the match agent uses. */
-export const REVIEWER_MODEL = 'claude-opus-5-5';
-// A second opinion is advisory and read next to a hand-check, so medium effort (Opus 5.5's default,
-// set explicitly) keeps each review to a few cents.
+/** The reviewer's model. Sonnet: the review is advisory, and on Opus it was 14% of round 3's first iteration. */
+export const REVIEWER_MODEL = 'claude-sonnet-5-5';
+// A second opinion is advisory and read next to a hand-check, so medium effort keeps each review
+// to a few cents.
 const REVIEWER_EFFORT = 'medium';
 // Code and diffs run nearer 3 characters per token than 4, so this overestimates on purpose: the
 // estimate sizes the hold, and a hold that is too small could let a call spend past the cap.

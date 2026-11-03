@@ -10,6 +10,9 @@ import {
 import type { MigrationTask, RunRecord } from '../../shared/types.ts';
 import { BudgetLedger } from '../runner/budget.ts';
 import { anthropicModelClient, FakeModelClient, REVIEWER_MODEL } from './model.ts';
+
+// The client's hold and charge tests below are written in Opus's prices.
+const PRICED_AS = 'claude-opus-5-5';
 import {
   buildReviewPrompt,
   contextPaths,
@@ -147,7 +150,7 @@ describe('the Anthropic reviewer client', () => {
   it('charges the run budget what the API reports and returns the text', async () => {
     const budget = createBudget(1);
     const { client, calls } = fakeAnthropic(() => message('{"opinion":"looks-right"}'));
-    const response = await anthropicModelClient({ budget, client }).complete({
+    const response = await anthropicModelClient({ budget, client, model: PRICED_AS }).complete({
       ...request,
       jsonSchema: REVIEW_SCHEMA,
     });
@@ -160,7 +163,7 @@ describe('the Anthropic reviewer client', () => {
     expect(budget.spentUsd()).toBeCloseTo(0.06);
     expect(budget.heldUsd()).toBe(0);
     expect(calls[0]).toMatchObject({
-      model: REVIEWER_MODEL,
+      model: PRICED_AS,
       max_tokens: 8000,
       system: 'sys',
       messages: [{ role: 'user', content: 'review this' }],
@@ -172,9 +175,9 @@ describe('the Anthropic reviewer client', () => {
     const budget = createBudget(0.1);
     const { client, calls } = fakeAnthropic(() => message('never'));
     // 8000 output tokens at $20/M alone is $0.16, more than the $0.10 cap.
-    await expect(anthropicModelClient({ budget, client }).complete(request)).rejects.toBeInstanceOf(
-      RunBudgetRefusal,
-    );
+    await expect(
+      anthropicModelClient({ budget, client, model: PRICED_AS }).complete(request),
+    ).rejects.toBeInstanceOf(RunBudgetRefusal);
     expect(calls).toHaveLength(0);
     expect(budget.spentUsd()).toBe(0);
   });
@@ -185,7 +188,11 @@ describe('the Anthropic reviewer client', () => {
       throw Object.assign(new Error('overloaded'), { status: 529 });
     });
     await expect(
-      anthropicModelClient({ budget: answered, client: rejected.client }).complete(request),
+      anthropicModelClient({
+        budget: answered,
+        client: rejected.client,
+        model: PRICED_AS,
+      }).complete(request),
     ).rejects.toThrow(/overloaded/);
     expect(answered.spentUsd()).toBe(0);
 
@@ -194,7 +201,9 @@ describe('the Anthropic reviewer client', () => {
       throw new Error('socket hang up');
     });
     await expect(
-      anthropicModelClient({ budget: dropped, client: reset.client }).complete(request),
+      anthropicModelClient({ budget: dropped, client: reset.client, model: PRICED_AS }).complete(
+        request,
+      ),
     ).rejects.toThrow(/socket hang up/);
     expect(dropped.spentUsd()).toBeGreaterThan(0.16);
   });
@@ -204,7 +213,9 @@ describe('the Anthropic reviewer client', () => {
     const { client } = fakeAnthropic(() =>
       message('', { stop_reason: 'refusal', stop_details: { type: 'refusal', category: 'cyber' } }),
     );
-    const response = await anthropicModelClient({ budget, client }).complete(request);
+    const response = await anthropicModelClient({ budget, client, model: PRICED_AS }).complete(
+      request,
+    );
     expect(response.text).toMatch(
       /declined to review this PR \(stop_reason refusal, category cyber\)/,
     );
@@ -225,11 +236,13 @@ describe('the Anthropic reviewer client', () => {
       ),
     );
     const ledger = new BudgetLedger(1);
-    const review = await createReviewer(anthropicModelClient({ budget, client }))({
-      task,
-      record,
-      meter: ledger.meter('o/r'),
-    });
+    const review = await createReviewer(anthropicModelClient({ budget, client, model: PRICED_AS }))(
+      {
+        task,
+        record,
+        meter: ledger.meter('o/r'),
+      },
+    );
     expect(review).toMatchObject({ opinion: 'has-concerns', costUsd: 0.06, model: REVIEWER_MODEL });
     expect(ledger.spentUsd).toBeCloseTo(budget.spentUsd());
   });
