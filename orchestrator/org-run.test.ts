@@ -64,6 +64,11 @@ vi.mock('../providers/core/registry.ts', () => ({
     },
 }));
 
+// The any-provider watcher for providers with no folder (sentry here): it reads and finds nothing.
+vi.mock('../providers/core/any-watcher.ts', () => ({
+  anyProviderWatcher: () => async () => [],
+}));
+
 // The match agent's Messages API: every Stripe change is a task, every other change is not.
 vi.mock('@anthropic-ai/sdk', () => ({
   default: class {
@@ -162,9 +167,7 @@ describe('an org run on the real wiring', () => {
     expect(seen.worst).toBeLessThanOrEqual(cap + 1e-9);
     expect(budget.spentUsd()).toBeLessThanOrEqual(cap + 1e-9);
     expect(budget.heldUsd()).toBe(0);
-    // Sentry has no folder in providers/, and the any-provider watcher has not landed yet.
-    expect(summary.errors).toEqual([
-      expect.stringMatching(/^watcher sentry failed: no changelog watcher for sentry yet/),
-    ]);
+    // Sentry has no folder in providers/; the any-provider watcher read it and found nothing.
+    expect(summary.errors).toEqual([]);
   });
 });

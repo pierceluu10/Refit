@@ -17,6 +17,32 @@ import {
 } from './deps.ts';
 import { stubRunTask } from './stubs.ts';
 
+// The any-provider watcher, offline: it spends $0.30 of the ledger it is given and finds one change.
+const watched = vi.hoisted(() => ({ calls: [] as { provider: string; hints: unknown }[] }));
+vi.mock('../providers/core/any-watcher.ts', () => ({
+  anyProviderWatcher:
+    (
+      provider: string,
+      hints: unknown,
+      { budget }: { budget: { charge: (model: string, usage: object) => void } },
+    ) =>
+    async () => {
+      watched.calls.push({ provider, hints });
+      // 100k input and 10k output tokens on Sonnet: $0.30.
+      budget.charge('claude-sonnet-5-5', { inputTokens: 100_000, outputTokens: 10_000 });
+      return [
+        {
+          provider,
+          id: `${provider}:example-change`,
+          kind: 'other',
+          title: 'An illustrative change',
+          source: { url: 'https://example.com/changelog', quote: '(illustrative)' },
+          affects: {},
+        },
+      ];
+    },
+}));
+
 // Each test may replace `run`; by default a harness run spends $0.75 and needs review.
 const harness = vi.hoisted(() => ({
   caps: [] as (number | undefined)[],
@@ -262,13 +288,18 @@ describe('recordRun', () => {
 });
 
 describe('anyWatcher', () => {
-  it('reports a provider with no folder as unwatched until the any-provider watcher lands', async () => {
+  it('watches a provider with no folder from its hints, settles to what it spent, and reads once a day', async () => {
     const budget = createBudget(3);
     const cache = await mkdtemp(join(tmpdir(), 'aptitude-watch-test-'));
     const watch = anyWatcher('resend', { packages: ['resend'] }, budget, cache);
-    await expect(watch()).rejects.toThrow(/no changelog watcher for resend yet/);
-    expect(budget.spentUsd()).toBe(0);
+    const changes = await watch();
+    expect(changes.map((change) => change.id)).toEqual(['resend:example-change']);
+    expect(watched.calls).toEqual([{ provider: 'resend', hints: { packages: ['resend'] } }]);
+    expect(budget.spentUsd()).toBeCloseTo(0.3);
     expect(budget.heldUsd()).toBe(0);
+    await watch();
+    expect(watched.calls).toHaveLength(1);
+    expect(budget.spentUsd()).toBeCloseTo(0.3);
   });
 });
 
