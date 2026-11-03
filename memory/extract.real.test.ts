@@ -8,7 +8,8 @@ import { extractRecipe } from './extract.ts';
 import { makeRecord, makeTask } from './fixtures/tasks.ts';
 import { JsonMemoryStore } from './store.ts';
 
-// Real model calls on illustrative transcripts, run only with APTITUDE_REAL_AI=1. One $3 cap for the whole file.
+// Real model calls on illustrative transcripts, run only with APTITUDE_REAL_AI=1. One cap for the whole
+// file, from APTITUDE_AI_BUDGET_USD; unset, nothing is spent.
 const budget = Budget.fromEnv();
 
 // Illustrative changes matching the transcript fixtures; not real customer tasks.

@@ -13,5 +13,6 @@ dist-cli/
 .claude/worktrees/
 .claude/settings.local.json
 .planning/
+.aptitude/
 # Registry credentials.
 /.npmrc

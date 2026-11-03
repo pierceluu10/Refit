@@ -11,11 +11,14 @@ export interface MemoryStore {
     record: RunRecord;
     transcript?: string;
     usedRecipeIds?: string[];
+    commit?: string;
   }): Promise<StoredRun>;
   saveRun(run: StoredRun): Promise<void>;
   getRun(id: string): Promise<StoredRun | undefined>;
   listRuns(): Promise<StoredRun[]>;
-  // Matches by run id or by PR URL, since the GitHub App only knows the PR.
+  // Matches by run id or by PR URL, since the GitHub App only knows the PR. 'merged' is final, since a
+  // merged PR can't be reopened, and a late 'edited' never replaces 'closed': GitHub can deliver an
+  // event after a later one, and a redelivery can replay an old one.
   recordVerdict(runIdOrPr: string, verdict: HumanVerdict): Promise<StoredRun | undefined>;
 
   saveRecipe(recipe: MemoryRecipe): Promise<void>;
@@ -49,6 +52,7 @@ export class JsonMemoryStore implements MemoryStore {
     record,
     transcript,
     usedRecipeIds = [],
+    commit,
   }: Parameters<MemoryStore['recordRun']>[0]): Promise<StoredRun> {
     const run: StoredRun = {
       id: `${record.taskId}-${randomUUID().slice(0, 8)}`,
@@ -57,6 +61,7 @@ export class JsonMemoryStore implements MemoryStore {
       record,
       transcript: transcript ?? (await readTranscript(record.transcriptPath)),
       usedRecipeIds,
+      ...(commit && { commit }),
     };
     await this.write('runs', run.id, run);
     return run;
@@ -82,6 +87,8 @@ export class JsonMemoryStore implements MemoryStore {
         .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))
         .at(-1);
     if (!run) return undefined;
+    const current = run.record.humanVerdict;
+    if (current === 'merged' || (current === 'closed' && verdict === 'edited')) return run;
     run.record = { ...run.record, humanVerdict: verdict };
     await this.write('runs', run.id, run);
     return run;

@@ -37,6 +37,33 @@ describe('JsonMemoryStore', () => {
     expect(await store.recordVerdict('https://example.invalid/none', 'closed')).toBeUndefined();
   });
 
+  it('keeps the commit a run read', async () => {
+    const store = await tempStore();
+    const run = await store.recordRun({
+      task: makeTask(),
+      record: makeRecord(),
+      commit: 'abc1234',
+    });
+
+    expect((await store.getRun(run.id))?.commit).toBe('abc1234');
+  });
+
+  it('keeps merged final and never lets a late edited replace a close', async () => {
+    const store = await tempStore();
+    const pr = 'https://github.com/example-org/shop/pull/8';
+    const run = await store.recordRun({ task: makeTask(), record: makeRecord({ pr }) });
+    const verdictAfter = async (verdict: 'merged' | 'closed' | 'edited') =>
+      (await store.recordVerdict(pr, verdict))?.record.humanVerdict;
+
+    expect(await verdictAfter('edited')).toBe('edited');
+    expect(await verdictAfter('closed')).toBe('closed');
+    expect(await verdictAfter('edited')).toBe('closed');
+    expect(await verdictAfter('merged')).toBe('merged');
+    // A redelivered close from before the reopen and merge.
+    expect(await verdictAfter('closed')).toBe('merged');
+    expect((await store.getRun(run.id))?.record.humanVerdict).toBe('merged');
+  });
+
   it('keeps ids with path characters inside the store folder', async () => {
     const store = await tempStore();
     await store.saveRecipe(makeRecipe({ id: '../../escape/me' }));
@@ -62,7 +89,8 @@ describe('Budget', () => {
 
   it('reads the cap from APTITUDE_AI_BUDGET_USD', () => {
     expect(Budget.fromEnv({ APTITUDE_AI_BUDGET_USD: '1.5' }).capUsd).toBe(1.5);
-    expect(Budget.fromEnv({}).capUsd).toBe(3);
+    expect(Budget.fromEnv({}).capUsd).toBe(0);
+    expect(() => Budget.fromEnv({}).reserve(0.01)).toThrow(BudgetExceededError);
     expect(() => Budget.fromEnv({ APTITUDE_AI_BUDGET_USD: 'lots' })).toThrow();
   });
 });
