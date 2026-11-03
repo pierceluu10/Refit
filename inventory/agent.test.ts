@@ -408,6 +408,36 @@ describe('runInventory: the code scan first, then the agent', () => {
     await rm(cacheDir, { recursive: true, force: true });
   });
 
+  it('falls back to the agent reading everything when the scan fails', async () => {
+    const { runner, requests } = fakeModel([
+      {
+        tool: 'record_usage',
+        input: {
+          provider: 'stripe',
+          via: 'sdk',
+          callSites: [{ file: 'src/billing.ts', line: 5, operation: 'paymentIntents.create' }],
+        },
+      },
+    ]);
+    const report = await runInventory(repoDir, 'acme/shop', {
+      ledger: new BudgetLedger({ capUsd: 1 }),
+      runner,
+      cacheDir: false,
+      scan: async () => {
+        throw new Error('a file the scan could not parse');
+      },
+    });
+    expect(requests[0].prompt).toContain(
+      'The code scan failed (Error: a file the scan could not parse)',
+    );
+    expect(requests[0].prompt).toContain('read it yourself');
+    expect(report.usages).toHaveLength(1);
+    expect(report.scan).toMatchObject({
+      usages: 0,
+      failed: 'Error: a file the scan could not parse',
+    });
+  });
+
   it('finds no commit to cache by outside a clean git checkout', async () => {
     expect(await cleanCommit(repoDir)).toBeUndefined();
   });

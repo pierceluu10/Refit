@@ -585,6 +585,17 @@ function pythonModuleFile(importer: string, module: string, candidates: string[]
 
 type Draft = { usage: ApiUsage; seen: Set<string> };
 
+/** A scan that found nothing: what the agent starts from when the scan could not run. */
+export function emptyScanResult(): ScanResult {
+  return {
+    usages: [],
+    leads: [],
+    areas: [],
+    internalCalls: { count: 0, examples: [] },
+    stats: { files: 0, sourceFiles: 0, dependencies: 0, manifests: 0 },
+  };
+}
+
 export async function scanRepo(repoDir: string, repo: string): Promise<ScanResult> {
   const files = await listFiles(repoDir);
   const sources = await readSources(repoDir, files);

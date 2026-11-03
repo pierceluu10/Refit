@@ -17,7 +17,7 @@ import {
 } from './cache.ts';
 import { UsageCollector } from './collector.ts';
 import type { RecordedUsage } from './collector.ts';
-import { SCAN_VERSION, scanEvidence, scanRepo, type ScanResult } from './scan.ts';
+import { emptyScanResult, SCAN_VERSION, scanEvidence, scanRepo, type ScanResult } from './scan.ts';
 import {
   AREA_READER,
   AREA_READER_DESCRIPTION,
@@ -75,7 +75,7 @@ export type InventoryReport = {
   turns: number;
   durationMs: number;
   /** What the code scan recorded before the agent ran, and the leads it handed the agent. */
-  scan?: { version: string; usages: number; callSites: number; leads: number };
+  scan?: { version: string; usages: number; callSites: number; leads: number; failed?: string };
   commit?: string;
   /** Set when the report came from the commit cache: no model ran, so it cost $0. */
   cached?: { cachedAt: string; costUsd: number };
@@ -150,7 +150,12 @@ export async function runInventory(
 
   const collector = new UsageCollector(repoDir, repo);
   // The scan's usages go in first, through the same line checks the agent's records get.
-  const scan = await (options.scan ?? scanRepo)(repoDir, repo);
+  // The scan is a shortcut: if it fails, the agent reads the whole repository itself, as before.
+  let scanFailure: string | undefined;
+  const scan = await (options.scan ?? scanRepo)(repoDir, repo).catch((error: unknown) => {
+    scanFailure = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    return emptyScanResult();
+  });
   for (const usage of scan.usages) {
     await collector.record(
       {
@@ -169,7 +174,12 @@ export async function runInventory(
   let result: SDKResultMessage | undefined;
   try {
     for await (const message of runner({
-      prompt: taskPrompt(repo, scanEvidence(scan)),
+      prompt: taskPrompt(
+        repo,
+        scanFailure
+          ? `## The code scan failed (${scanFailure})\n\nNothing is recorded yet and there are no leads: map the repository with repo_map and the helper scanners, and read it yourself.`
+          : scanEvidence(scan),
+      ),
       options: agentOptions(repoDir, tools, budgetUsd),
       tools,
     })) {
@@ -206,6 +216,7 @@ export async function runInventory(
       usages: scan.usages.length,
       callSites: scan.usages.reduce((sum, usage) => sum + usage.callSites.length, 0),
       leads: scan.leads.reduce((sum, lead) => sum + lead.items.length + lead.more, 0),
+      ...(scanFailure ? { failed: scanFailure } : {}),
     },
     ...(commit ? { commit } : {}),
   };
