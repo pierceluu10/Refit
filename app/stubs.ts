@@ -1,18 +1,13 @@
-import type { AppJob, JobQueue, RecordVerdict } from './types.ts';
+import type { RunRepoJob } from '../shared/types.ts';
+import type { ListRunViews } from './types.ts';
 
-// shortcut: in-memory and lost on restart, replace with the orchestrator's queue once it lands.
-export function createMemoryQueue(): JobQueue & { jobs: AppJob[] } {
-  const jobs: AppJob[] = [];
-  return {
-    jobs,
-    async enqueue(job) {
-      jobs.push(job);
-      console.log(`queued ${job.kind} ${job.repo}`);
-    },
-  };
-}
-
-// shortcut: logs only, replace with memory/'s run store once it lands.
-export const logVerdict: RecordVerdict = async (pr, verdict) => {
-  console.log(`verdict ${verdict} ${pr}`);
+// shortcut: runs nothing until the orchestrator's runRepoJob merges (#472, r2/orchestrator); then
+// main.ts imports `runRepoJob` from '../orchestrator/index.ts' and this goes.
+export const runRepoJob: RunRepoJob = async ({ repo }) => {
+  console.log(`orchestrator runRepoJob not merged yet; nothing ran for ${repo}`);
+  return [];
 };
+
+// shortcut: no runs until memory's listRunViews merges (#473, r2/memory); then main.ts imports
+// `listRunViews` from '../memory/index.ts' and this goes.
+export const listRunViews: ListRunViews = async () => [];

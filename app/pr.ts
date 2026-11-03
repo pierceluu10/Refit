@@ -1,3 +1,5 @@
+import type { OpenPullRequest, RunRecord } from '../shared/types.ts';
+import { filesFromDiff } from './git.ts';
 import { githubRequest } from './github.ts';
 import { BRANCH_PREFIX } from './types.ts';
 import type {
@@ -9,6 +11,7 @@ import type {
 
 const FILE_MODE = '100644';
 const BLOB = 'blob';
+const MAX_SLUG_CHARS = 80;
 
 export class UnsafeBranchError extends Error {
   constructor(branch: string, reason: string) {
@@ -80,4 +83,52 @@ export async function openPullRequest(
     draft: input.draft ?? true,
   });
   return { url: pull.html_url, number: pull.number, branch, sha: commit.sha };
+}
+
+export const branchFor = (taskId: string) =>
+  BRANCH_PREFIX +
+  taskId
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .slice(0, MAX_SLUG_CHARS)
+    .replace(/^-+|-+$/g, '');
+
+// The harness writes prBody beside RunRecord's own fields (HarnessRunRecord).
+type WrittenRecord = RunRecord & { prBody?: string };
+
+// The shared OpenPullRequest for one installation: the record's diff on aptitude/<task-slug>, as a draft.
+// A task that already has an open PR (the same change seen on a later push) gets that PR back.
+export function createOpenPullRequest(
+  tokens: InstallationTokens,
+  installationId: number,
+  fetchImpl: typeof fetch = fetch,
+): OpenPullRequest {
+  return async (task, record: WrittenRecord, repoDir) => {
+    const branch = branchFor(task.id);
+    const owner = task.repo.split('/')[0];
+    const open = await githubRequest<{ html_url: string }[]>(
+      await tokens.token(installationId),
+      'GET',
+      `/repos/${encodePath(task.repo)}/pulls?state=open&head=${encodeURIComponent(`${owner}:${branch}`)}`,
+      undefined,
+      fetchImpl,
+    );
+    if (open.length > 0) return open[0].html_url;
+    const title = task.change.title;
+    const pull = await openPullRequest(
+      tokens,
+      installationId,
+      {
+        repo: task.repo,
+        branch,
+        title,
+        body: record.prBody ?? `${title}\n\nSource: ${task.change.source.url}`,
+        commitMessage: `chore(${task.change.provider}): ${title}`,
+        files: await filesFromDiff(repoDir, record.diff),
+        draft: true,
+      },
+      fetchImpl,
+    );
+    return pull.url;
+  };
 }

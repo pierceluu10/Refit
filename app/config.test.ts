@@ -14,6 +14,7 @@ describe('readConfig', () => {
       privateKey: PEM,
       webhookSecret: 'super-secret-value',
       port: 3000,
+      queueFile: '.aptitude/queue.json',
     });
   });
 

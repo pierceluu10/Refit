@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { handleWebhook, verifySignature } from './webhooks.ts';
 import type { WebhookDeps } from './webhooks.ts';
+import type { ComparedCommit } from './github.ts';
 import type { AppJob, HumanVerdict } from './types.ts';
 
 // GitHub's published test vector: https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries
@@ -19,8 +20,16 @@ const API_REPOS = [
 const fixture = (name: string) =>
   JSON.parse(readFileSync(new URL(`fixtures/${name}.json`, import.meta.url), 'utf8')) as unknown;
 
-function fakeDeps() {
+const PERSON = { type: 'User' };
+const BOT = { type: 'Bot' };
+const commit = (author: { type: string } | null, parents = 1): ComparedCommit => ({
+  author,
+  parents: Array.from({ length: parents }, (_, index) => ({ sha: `parent-${index}` })),
+});
+
+function fakeDeps(compared: ComparedCommit[] = []) {
   const jobs: AppJob[] = [];
+  const comparisons: string[][] = [];
   const verdicts: [string, HumanVerdict][] = [];
   const tokenRequests: number[] = [];
   const listedWith: string[] = [];
@@ -37,8 +46,12 @@ function fakeDeps() {
       listedWith.push(token);
       return API_REPOS;
     },
+    compareCommits: async (token, repo, base, head) => {
+      comparisons.push([token, repo, base, head]);
+      return compared;
+    },
   };
-  return { deps, jobs, verdicts, tokenRequests, listedWith };
+  return { deps, jobs, verdicts, tokenRequests, listedWith, comparisons };
 }
 
 describe('verifySignature', () => {
@@ -191,6 +204,61 @@ describe('handleWebhook', () => {
     );
     expect(await handleWebhook('issues', { action: 'opened' }, fake.deps)).toEqual([]);
     expect(fake.jobs).toEqual([]);
+    expect(fake.verdicts).toEqual([]);
+  });
+});
+
+describe('synchronize verdicts', () => {
+  const PR_URL = 'https://github.com/aptitude-example-org/billing-api/pull/41';
+  const synchronize = (sender = PERSON) => ({
+    ...(fixture('pull_request.closed.merged') as object),
+    action: 'synchronize',
+    before: 'before-sha',
+    after: 'after-sha',
+    sender,
+  });
+
+  it("records edited when a person pushes their own commit, comparing the push's range", async () => {
+    const fake = fakeDeps([commit(BOT), commit(PERSON)]);
+    await handleWebhook('pull_request', synchronize(), fake.deps);
+    expect(fake.comparisons).toEqual([
+      [INSTALL_TOKEN, 'aptitude-example-org/billing-api', 'before-sha', 'after-sha'],
+    ]);
+    expect(fake.verdicts).toEqual([[PR_URL, 'edited']]);
+  });
+
+  it('counts a commit whose author has no GitHub account as a person', async () => {
+    const fake = fakeDeps([commit(null)]);
+    await handleWebhook('pull_request', synchronize(), fake.deps);
+    expect(fake.verdicts).toEqual([[PR_URL, 'edited']]);
+  });
+
+  it('records nothing for a bot push, without asking GitHub', async () => {
+    const fake = fakeDeps([commit(PERSON)]);
+    await handleWebhook('pull_request', synchronize(BOT), fake.deps);
+    expect(fake.comparisons).toEqual([]);
+    expect(fake.verdicts).toEqual([]);
+  });
+
+  it('records nothing for Update branch: a merge commit, or rebased Aptitude commits', async () => {
+    for (const compared of [[commit(PERSON, 2)], [commit(BOT), commit(BOT)]]) {
+      const fake = fakeDeps(compared);
+      await handleWebhook('pull_request', synchronize(), fake.deps);
+      expect(fake.verdicts).toEqual([]);
+    }
+  });
+
+  it("records nothing for a push to a human branch's PR", async () => {
+    const fake = fakeDeps([commit(PERSON)]);
+    const human = {
+      ...(fixture('pull_request.closed.human-branch') as object),
+      action: 'synchronize',
+    };
+    await handleWebhook(
+      'pull_request',
+      { ...human, before: 'a', after: 'b', sender: PERSON },
+      fake.deps,
+    );
     expect(fake.verdicts).toEqual([]);
   });
 });

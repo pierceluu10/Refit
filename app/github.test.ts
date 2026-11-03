@@ -7,6 +7,7 @@ import {
   createInstallationTokens,
   githubRequest,
   listInstallationRepos,
+  listViewerRepos,
 } from './github.ts';
 
 const { privateKey, publicKey } = generateKeyPairSync('rsa', {
@@ -174,6 +175,31 @@ describe('listInstallationRepos', () => {
       .mockResolvedValueOnce(json({ total_count: 5, repositories: [{ full_name: 'a/b' }] }))
       .mockResolvedValueOnce(json({ total_count: 5, repositories: [] }));
     expect(await listInstallationRepos('tok', fetchImpl)).toEqual(['a/b']);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('listViewerRepos', () => {
+  it("lists repos only from this App's installations the user can reach", async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      const path = url.slice(GITHUB_API.length);
+      if (path.startsWith('/user/installations?')) {
+        return json({
+          total_count: 2,
+          installations: [
+            { id: 1, app_id: Number(APP_ID) },
+            { id: 2, app_id: 99999 },
+          ],
+        });
+      }
+      if (path.startsWith('/user/installations/1/repositories?')) {
+        return json({ total_count: 1, repositories: [{ full_name: 'org/mine' }] });
+      }
+      throw new Error(`unexpected ${path}`);
+    });
+    expect(await listViewerRepos('ghu_user', APP_ID, fetchImpl as typeof fetch)).toEqual([
+      'org/mine',
+    ]);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });

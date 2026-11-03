@@ -1,4 +1,4 @@
-import type { RunRecord } from '../shared/types.ts';
+import type { RunRecord, RunView } from '../shared/types.ts';
 
 export type HumanVerdict = NonNullable<RunRecord['humanVerdict']>;
 
@@ -13,11 +13,15 @@ export type AppJob =
     }
   | { kind: 'forget'; installationId: number; repo: string };
 
-// The orchestrator's queue replaces this; app/ only enqueues.
+export type UnderstandJob = Extract<AppJob, { kind: 'understand' }>;
+
 export type JobQueue = { enqueue: (job: AppJob) => Promise<void> };
 
 // memory/ owns the run store; app/ reports what a human did with an Aptitude PR.
 export type RecordVerdict = (pr: string, verdict: HumanVerdict) => Promise<void>;
+
+// memory/'s listRunViews: every installation's runs, newest first, filtered by repo before the limit.
+export type ListRunViews = (filter: { repo?: string; limit?: number }) => Promise<RunView[]>;
 
 export type InstallationTokens = { token: (installationId: number) => Promise<string> };
 
@@ -38,3 +42,6 @@ export type OpenedPullRequest = { url: string; number: number; branch: string; s
 
 // Every Aptitude PR branch starts with this, which is how webhooks recognise our PRs.
 export const BRANCH_PREFIX = 'aptitude/';
+
+// owner/name with GitHub's characters (letters, digits, '-', '_', '.'); never '.' or '..' as a segment.
+export const REPO_PATTERN = /^(?!\.\.?\/)[\w.-]+\/(?!\.\.?$)[\w.-]+$/;
