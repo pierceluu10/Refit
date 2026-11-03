@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import type { AgentTool } from '../../shared/types.ts';
 import { fetchPage, resolveFetch, type NetworkOptions } from './fetch.ts';
 import { pageTitle, pageToText, type PageStore } from './pages.ts';
-import { htmlToText, rank, splitPassages } from './text.ts';
+import { rank, splitPassages } from './text.ts';
 import { defineTool, num, str, bool } from './tool.ts';
 
 export type DocsPage = {
@@ -248,17 +248,10 @@ export async function searchDocsWithNotes(
         if (asked.includes(url)) notes.push(`could not read ${url} (${result.error})`);
         continue;
       }
-      const text =
-        /<\w+[^>]*>/.test(result.text) && !/^\s*[[{]/.test(result.text)
-          ? htmlToText(result.text)
-          : pageToText(result.text, result.contentType, result.url);
+      // The page's main content with headings kept: navigation, scripts and app payloads dropped.
+      const text = pageToText(result.text, result.contentType, result.url);
       const title = titles.get(url) ?? pageTitle(result.text, text, url);
-      options.store?.add({
-        url,
-        title,
-        text: pageToText(result.text, result.contentType, result.url),
-        origin: 'fetched now',
-      });
+      options.store?.add({ url, title, text, origin: 'fetched now' });
       for (const passage of splitPassages(text)) {
         candidates.push({ url, title, text: passage, source: 'live' });
       }

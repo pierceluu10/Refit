@@ -130,6 +130,14 @@ export function detectKind(raw: string, contentType = '', url = ''): PageKind {
   if (type.includes('markdown') || /\.(md|markdown|mdx)$/i.test(url.split('?')[0])) {
     return 'markdown';
   }
+  // A fragment with no doctype and no content type, as some servers and test doubles send.
+  if (
+    /<\/?(p|div|h[1-6]|ul|ol|li|span|table|section|article|main|br)\b[^>]*>/i.test(
+      raw.slice(0, 2000),
+    )
+  ) {
+    return 'html';
+  }
   return 'text';
 }
 

@@ -1,4 +1,5 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { ToolPack } from '../../shared/types.ts';
@@ -6,6 +7,7 @@ import { clearFetchCache } from './fetch.ts';
 import {
   GENERIC_PLAYBOOKS_DIR,
   genericPlaybooks,
+  hintsFor,
   loadToolPack,
   providerSlug,
   resolveProviderFolder,
@@ -134,6 +136,66 @@ describe('loadToolPack', () => {
         }
       }
     }
+  });
+});
+
+describe('provider folders and hints', () => {
+  it("merges the hints on a task's usages, with the SDKs they name", () => {
+    expect(
+      hintsFor([
+        {
+          repo: 'o/r',
+          provider: 'acme',
+          via: 'sdk',
+          sdk: { name: '@acme/sdk', version: '2.1.0' },
+          callSites: [],
+          hints: {
+            packages: ['@acme/sdk'],
+            hosts: ['api.acme.dev'],
+            docsUrls: ['https://docs.acme.dev/'],
+          },
+        },
+        {
+          repo: 'o/r',
+          provider: 'acme',
+          via: 'http',
+          callSites: [],
+          hints: { hosts: ['api.acme.dev', 'uploads.acme.dev'] },
+        },
+      ]),
+    ).toEqual({
+      packages: ['@acme/sdk'],
+      hosts: ['api.acme.dev', 'uploads.acme.dev'],
+      docsUrls: ['https://docs.acme.dev/'],
+    });
+  });
+
+  it('uses a spec file a provider.json lists as the default spec, never a changelog of it', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'providers-'));
+    mkdirSync(join(root, 'acme'));
+    writeFileSync(
+      join(root, 'acme', 'provider.json'),
+      JSON.stringify({
+        id: 'acme',
+        name: 'Acme API',
+        sources: [
+          { id: 'spec-changes', kind: 'openapi', url: 'https://acme.example.com/spec/CHANGES.md' },
+          { id: 'spec', kind: 'openapi', url: 'https://acme.example.com/spec/openapi.yaml' },
+          { id: 'schema', kind: 'graphql-schema', url: 'https://acme.example.com/schema.graphql' },
+        ],
+      }),
+    );
+    const pack = await loadToolPack('Acme API', { root, fetch: null });
+    expect(pack.provider).toBe('acme');
+    expect(tool(pack, 'openapi_lookup').description).toContain(
+      'Default spec: https://acme.example.com/spec/openapi.yaml.',
+    );
+    expect(tool(pack, 'graphql_check').description).toContain(
+      'Default schema: https://acme.example.com/schema.graphql.',
+    );
+    expect(await tool(pack, 'fetch_changelog').run({}, ctx)).toContain(
+      'openapi (spec-changes): https://acme.example.com/spec/CHANGES.md',
+    );
   });
 });
 

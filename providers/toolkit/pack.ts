@@ -5,7 +5,13 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import type { AgentTool, MigrationKind, ProviderHints, ToolPack } from '../../shared/types.ts';
+import type {
+  AgentTool,
+  ApiUsage,
+  MigrationKind,
+  ProviderHints,
+  ToolPack,
+} from '../../shared/types.ts';
 import { createChangelogTool, type KnownSource } from './changelog.ts';
 import { isPublicUrl, type NetworkOptions } from './fetch.ts';
 import { createGraphqlTools } from './graphql-tools.ts';
@@ -37,6 +43,10 @@ export type ProviderFolder = {
   packages: string[];
   savedDir?: string;
   playbooksDir?: string;
+  /** A spec file provider.json lists (kind "openapi"), used when the agent names none. */
+  specUrl?: string;
+  /** A schema file provider.json lists (kind "graphql-schema"), used when the agent names none. */
+  schemaUrl?: string;
 };
 
 export function providerSlug(provider: string): string {
@@ -111,6 +121,12 @@ export function readProviderFolder(id: string, root = PROVIDERS_ROOT): ProviderF
   }
   const saved = join(dir, 'fixtures', 'live');
   const playbooks = join(dir, 'playbooks');
+  // Only a link to the spec file itself is a usable default; a changelog of the spec is not.
+  const specFile = (kind: string, file: RegExp) =>
+    (spec?.sources ?? []).find(
+      (source) =>
+        source.kind === kind && isPublicUrl(source.url) && file.test(new URL(source.url).pathname),
+    )?.url;
   return {
     id,
     name: spec?.name,
@@ -122,6 +138,8 @@ export function readProviderFolder(id: string, root = PROVIDERS_ROOT): ProviderF
       .map((sdk) => `${sdk.package} (${sdk.ecosystem.toLowerCase()})`),
     savedDir: existsSync(join(saved, 'manifest.json')) ? saved : undefined,
     playbooksDir: existsSync(playbooks) ? playbooks : undefined,
+    specUrl: specFile('openapi', /\.(json|ya?ml)$/i),
+    schemaUrl: specFile('graphql-schema', /\.(graphqls?|gql|json)$/i),
   };
 }
 
@@ -131,6 +149,8 @@ export type GenericToolOptions = NetworkOptions & {
   docsUrls?: string[];
   packages?: string[];
   savedDir?: string;
+  specUrl?: string;
+  schemaUrl?: string;
   /** Leave out search_docs, for a pack that has its own docs search. */
   withoutSearch?: boolean;
 };
@@ -146,6 +166,8 @@ export function createGenericTools(
     docsUrls,
     packages,
     savedDir,
+    specUrl,
+    schemaUrl,
     withoutSearch,
     ...network
   } = options;
@@ -164,8 +186,8 @@ export function createGenericTools(
   tools.push(
     createChangelogTool({ ...network, provider, store, sources }),
     createPackageLookupTool({ ...network, store, packages }),
-    ...createOpenApiTools(network),
-    ...createGraphqlTools(network),
+    ...createOpenApiTools({ ...network, specUrl }),
+    ...createGraphqlTools({ ...network, schemaUrl }),
   );
   return tools;
 }
@@ -177,6 +199,18 @@ export function genericPlaybooks(): Partial<Record<MigrationKind, string>> {
 
 function unique(values: string[]): string[] {
   return [...new Set(values)];
+}
+
+/** Every hint the inventory left on a task's usages, merged: what loadToolPack's `hints` takes. */
+export function hintsFor(usages: ApiUsage[]): ProviderHints {
+  const all = (pick: (hints: ProviderHints) => string[] | undefined) =>
+    unique(usages.flatMap((usage) => (usage.hints ? (pick(usage.hints) ?? []) : [])));
+  const sdks = usages.flatMap((usage) => (usage.sdk ? [usage.sdk.name] : []));
+  return {
+    packages: unique([...all((h) => h.packages), ...sdks]),
+    hosts: all((h) => h.hosts),
+    docsUrls: all((h) => h.docsUrls),
+  };
 }
 
 type PackModule = {
@@ -225,6 +259,8 @@ export async function loadToolPack(
     docsUrls,
     packages,
     savedDir: folder?.savedDir,
+    specUrl: folder?.specUrl,
+    schemaUrl: folder?.schemaUrl,
     withoutSearch: (own?.tools ?? []).some((tool) => tool.name.endsWith('_search_docs')),
   });
   const folderPlaybooks = !own && folder?.playbooksDir ? loadPlaybooks(folder.playbooksDir) : {};
