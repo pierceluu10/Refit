@@ -85,7 +85,7 @@ export async function gatherEvidence(dir: string, checks: CheckCommand[]): Promi
 
 const SYSTEM = `You prepare a code repository so its own checks (type check, build, tests) can run in a sandbox before anyone edits it.
 
-The sandbox already installed dependencies with install scripts OFF, so nothing in any package's postinstall, prepare or install hook ran, including the repo's own. Name the steps that the repo's own setup would have run and that its checks need: for example \`npx prisma generate\`, \`npx graphql-codegen\`, \`buf generate\`, a protoc step, the repo's own "postinstall", "prepare", "generate" or "codegen" script, or a workspace package's build that other packages import from.
+The sandbox already installed dependencies with install scripts OFF, so nothing in any package's postinstall, prepare or install hook ran, including the repo's own. Name the steps that the repo's own setup would have run and that its checks need: for example \`npx prisma generate\`, \`npx graphql-codegen\`, \`buf generate\`, a protoc step, the repo's own "postinstall", "prepare", "generate" or "codegen" script, or a workspace package's build that other packages import from, or installing a subfolder project's dependencies when the checks run there (for example \`cd client && npm ci --ignore-scripts\`; install scripts stay off).
 
 Rules:
 - Only the repo's own codegen and build preparation. Never run a dependency's install script, never deploy, never call a live service or database migration against a real server.
