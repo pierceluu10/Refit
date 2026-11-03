@@ -1277,6 +1277,9 @@ export function FilmPlayer({
         initialFrame={reduced ? POSTER_FRAME : 0}
         loop
         clickToPlay
+        // The films are silent. Unmuted, the player times playback on an AudioContext, which browsers
+        // keep suspended until a click, so clips sat frozen while showing "playing".
+        initiallyMuted
         numberOfSharedAudioTags={0}
         acknowledgeRemotionLicense
       />
@@ -1412,6 +1415,8 @@ export function LoopPlayer<Props extends Record<string, unknown>>({
         loop={!controlled}
         outFrame={controlled ? rest : undefined}
         moveToBeginningWhenEnded={!controlled}
+        // Silent, like FilmPlayer: muted keeps playback off the click-gated AudioContext.
+        initiallyMuted
         numberOfSharedAudioTags={0}
         acknowledgeRemotionLicense
       />
