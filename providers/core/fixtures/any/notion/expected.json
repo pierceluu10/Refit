@@ -1,0 +1,120 @@
+{
+  "note": "Hand-checked by the F4 session on 2026-11-03: 8 of the 29 changes from live-run.json, each read against its saved page for the quote and the claim. The replay test submits these through the real pipeline and checks every quote against pages/.",
+  "changes": [
+    {
+      "id": "2026-03-11-notion-version-2026-03-11",
+      "kind": "api-version",
+      "title": "New Notion API version 2026-03-11 with breaking changes: after→position, archived→in_trash, transcription→meeting_notes",
+      "source": {
+        "url": "https://developers.notion.com/page/changelog",
+        "quote": "We’ve released Notion API version 2026-03-11 with three breaking changes that simplify and modernize the API surface:"
+      },
+      "affects": {
+        "operations": ["PATCH /v1/blocks/{block_id}/children"],
+        "fields": ["after", "position", "archived", "in_trash", "transcription", "meeting_notes"],
+        "versions": ["2026-03-11"],
+        "sdk": "@notionhq/client"
+      },
+      "effectiveDate": "2026-03-11"
+    },
+    {
+      "id": "2026-03-11-archived-to-in-trash",
+      "kind": "field-renamed",
+      "title": "archived replaced by in_trash in all requests and responses on Notion-Version 2026-03-11",
+      "source": {
+        "url": "https://developers.notion.com/page/changelog",
+        "quote": "All endpoints now use in_trash instead of archived in both request parameters and response bodies."
+      },
+      "affects": {
+        "fields": ["archived", "in_trash"],
+        "versions": ["2026-03-11"]
+      },
+      "effectiveDate": "2026-03-11"
+    },
+    {
+      "id": "2026-04-20-query-10000-limit",
+      "kind": "pagination-or-limits",
+      "title": "Data source/view queries capped at 10,000 results; check request_status.type incomplete",
+      "source": {
+        "url": "https://developers.notion.com/page/changelog",
+        "quote": "now enforce a maximum pagination depth of 10,000 results per query."
+      },
+      "affects": {
+        "operations": ["POST /v1/data_sources/{id}/query"],
+        "fields": ["request_status"],
+        "versions": [">=5.20.0"],
+        "sdk": "@notionhq/client"
+      },
+      "effectiveDate": "2026-04-20"
+    },
+    {
+      "id": "2026-06-08-oauth-unique-tokens",
+      "kind": "auth-change",
+      "title": "New public connections get a fresh access_token/refresh_token on each OAuth authorization; store every pair",
+      "source": {
+        "url": "https://developers.notion.com/page/changelog",
+        "quote": "New public connections now mint a fresh access_token and refresh_token for each successful OAuth authorization instead of returning the existing active token."
+      },
+      "affects": {},
+      "effectiveDate": "2026-06-08"
+    },
+    {
+      "id": "2025-08-26-api-2025-09-03",
+      "kind": "api-version",
+      "title": "Notion API version 2025-09-03 separates databases from data sources; callers must upgrade to support multi-source databases; webhooks versioned too",
+      "source": {
+        "url": "https://developers.notion.com/page/changelog",
+        "quote": "Our new API version 2025-09-03 separates “databases” (containers) from “data sources” (tables), unlocking powerful new organizational capabilities."
+      },
+      "affects": {
+        "operations": ["databases", "data_sources"],
+        "versions": ["2025-09-03"]
+      },
+      "effectiveDate": "2025-09-03"
+    },
+    {
+      "id": "npm-notionhq-client-5-0-0",
+      "kind": "sdk-major",
+      "title": "npm @notionhq/client v5.0.0: targets Notion-Version 2025-09-03, adds dataSources.*, removes notion.databases.list; incompatible with older API versions",
+      "source": {
+        "url": "https://api.github.com/repos/makenotion/notion-sdk-js/releases?per_page=100",
+        "quote": "The list databases method has been removed, since this endpoint has been deprecated & unsupported since `2022-02-22`, and v5 of the SDK is tailored toward `2025-09-03`"
+      },
+      "affects": {
+        "operations": ["notion.databases.list", "notion.databases.*", "notion.dataSources.*"],
+        "versions": ["<5.0.0", "5.0.0"],
+        "sdk": "@notionhq/client"
+      },
+      "effectiveDate": "2025-09-03"
+    },
+    {
+      "id": "npm-notionhq-client-3-0-0",
+      "kind": "sdk-major",
+      "title": "npm @notionhq/client v3.0.0: minimum Node raised from 12 to 18, uses built-in fetch instead of node-fetch",
+      "source": {
+        "url": "https://api.github.com/repos/makenotion/notion-sdk-js/releases?per_page=100",
+        "quote": "This update, v2.3.0 → v3.0.0, is marked as a major version upgrade due to the Node minimum version increase to 18"
+      },
+      "affects": {
+        "versions": ["<3.0.0", "3.0.0"],
+        "sdk": "@notionhq/client"
+      },
+      "effectiveDate": "2025-05-05"
+    },
+    {
+      "id": "pypi-notion-client-3-0-0",
+      "kind": "sdk-major",
+      "title": "PyPI notion-client 3.0.0: is_full_page_or_database removed (use is_full_page_or_data_source); is_api_error_code made private",
+      "source": {
+        "url": "https://api.github.com/repos/ramnes/notion-sdk-py/releases?per_page=100",
+        "quote": "`is_full_page_or_database` has been removed. Use `is_full_page_or_data_source` instead."
+      },
+      "affects": {
+        "operations": ["is_full_page_or_database", "is_api_error_code"],
+        "versions": ["<3.0.0", "3.0.0"],
+        "sdk": "notion-client"
+      },
+      "effectiveDate": "2026-02-16"
+    }
+  ]
+}

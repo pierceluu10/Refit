@@ -118,7 +118,8 @@ describe('budget', () => {
     expect(
       costOf('claude-sonnet-5-5', { inputTokens: 1_000_000, outputTokens: 100_000 }),
     ).toBeCloseTo(3);
-    const ledger = new BudgetLedger(0.001);
+    // The first call's worst case (about 1,000 prompt tokens and 10 output) fits $0.005; it costs $0.004.
+    const ledger = new BudgetLedger(0.005);
     const model = metered(
       scriptedModel([[{ type: 'text', text: 'hi' }]], 'claude-sonnet-5-5'),
       ledger,
@@ -304,13 +305,16 @@ describe('runWatch', () => {
       [[{ type: 'tool_use', id: 'r', name: 'list_sources', input: {} }]],
       'claude-opus-5-5',
     );
+    // Each fake call costs $0.008 on Opus prices; the ledger refuses the call that could pass $0.05.
     const report = await runWatch(provider, undefined, {
       model,
       fetcher: fakeFetcher({}),
-      budget: new BudgetLedger(0.005),
+      budget: new BudgetLedger(0.05),
+      maxTokens: 2_000,
     });
     expect(report.issues.map((issue) => issue.message).join(' ')).toMatch(/budget/);
     expect(report.costUsd).toBeGreaterThan(0);
+    expect(report.costUsd).toBeLessThanOrEqual(0.05);
   });
 });
 

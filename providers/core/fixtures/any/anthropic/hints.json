@@ -1,0 +1,8 @@
+{
+  "provider": "anthropic",
+  "hints": {
+    "packages": ["@anthropic-ai/sdk", "anthropic"],
+    "hosts": ["api.anthropic.com"],
+    "docsUrls": ["https://docs.anthropic.com/en/api"]
+  }
+}

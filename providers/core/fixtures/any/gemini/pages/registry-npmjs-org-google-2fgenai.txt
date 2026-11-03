@@ -1,0 +1,10 @@
+### npm package @google/genai
+Registry data: https://registry.npmjs.org/@google%2Fgenai (read 2026-11-03); page: https://www.npmjs.com/package/@google/genai
+Description: "[![NPM Downloads](https://img.shields.io/npm/dw/%40google%2Fgenai)](https://www.npmjs.com/package/@google/genai) [![Node Current](https://img.shields.io/node/v/%40google%2Fgenai)](https://www.npmjs.com/package/@google/genai)"
+Repository: https://github.com/googleapis/js-genai
+Homepage: https://github.com/googleapis/js-genai#readme
+Latest: 2.32.0 (published 2026-10-29); 110 versions in the registry.
+Major lines (stable releases):
+- 2.x: 2.0.0 (2026-05-07) to 2.32.0 (2026-10-29), 36 releases
+- 1.x: 1.0.0 (2025-05-19) to 1.52.0 (2026-05-04), 57 releases
+- 0.x: 0.2.0 (2025-03-11) to 0.15.0 (2025-05-19), 16 releases

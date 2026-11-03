@@ -1,0 +1,8 @@
+### npm package @google/generative-ai
+Registry data: https://registry.npmjs.org/@google%2Fgenerative-ai (read 2026-11-03); page: https://www.npmjs.com/package/@google/generative-ai
+Description: "Google AI JavaScript SDK"
+Repository: https://github.com/google/generative-ai-js
+Homepage: https://github.com/google/generative-ai-js#readme
+Latest: 0.24.1 (published 2025-04-29); 40 versions in the registry.
+Major lines (stable releases):
+- 0.x: 0.1.0 (2023-12-12) to 0.24.1 (2025-04-29), 40 releases

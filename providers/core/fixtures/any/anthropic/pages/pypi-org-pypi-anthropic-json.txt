@@ -1,0 +1,10 @@
+### PyPI package anthropic
+Registry data: https://pypi.org/pypi/anthropic/json (read 2026-11-03); page: https://pypi.org/project/anthropic/
+Description: "The official Python library for the anthropic API"
+Repository: https://github.com/anthropics/anthropic-sdk-python
+Project links: Homepage https://github.com/anthropics/anthropic-sdk-python; Repository https://github.com/anthropics/anthropic-sdk-python
+Latest: 2.4.0 (published 2026-11-02); 235 versions in the registry.
+Major lines (stable releases):
+- 2.x: 2.0.0 (2026-10-21) to 2.4.0 (2026-11-02), 5 releases
+- 1.x: 1.0.0 (2026-08-20) to 1.17.0 (2026-10-20), 19 releases
+- 0.x: 0.2.2 (2023-02-09) to 0.125.0 (2026-08-19), 211 releases

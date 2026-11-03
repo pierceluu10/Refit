@@ -1,0 +1,6 @@
+{
+  "provider": "resend",
+  "hints": {
+    "hosts": ["api.resend.com"]
+  }
+}

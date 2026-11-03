@@ -1,0 +1,10 @@
+### PyPI package resend
+Registry data: https://pypi.org/pypi/resend/json (read 2026-11-03); page: https://pypi.org/project/resend/
+Description: "Resend Python SDK"
+Repository: https://github.com/resendlabs/resend-python
+Project links: Homepage https://github.com/resendlabs/resend-python
+Latest: 2.50.1 (published 2026-10-29); 81 versions in the registry.
+Major lines (stable releases):
+- 2.x: 2.0.0 (2024-05-27) to 2.50.1 (2026-10-29), 60 releases
+- 1.x: 1.0.0 (2024-05-09) to 1.2.0 (2024-05-24), 5 releases
+- 0.x: 0.1.0 (2023-01-17) to 0.8.0 (2024-03-06), 12 releases

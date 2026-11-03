@@ -13,6 +13,7 @@ import {
   defaultMemory,
   learnFromRun,
 } from '../memory/index.ts';
+import { anyProviderWatcher } from '../providers/core/any-watcher.ts';
 import { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
 import { folderWatcher, listProviderIds } from '../providers/core/registry.ts';
 import type {
@@ -27,7 +28,6 @@ import type { LoopDeps } from './loop.ts';
 import { createMatchAgent } from './match.ts';
 import { createMemoryQueue } from './queue.ts';
 import {
-  anyProviderWatcher,
   stubInventory,
   stubMatch,
   stubOpenPullRequest,

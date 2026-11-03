@@ -2,13 +2,11 @@
 import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
 import type {
   ApiUsage,
   InventoryRepo,
   OpenPullRequest,
   ProviderChange,
-  ProviderHints,
   RunTask,
   WatchProvider,
 } from '../shared/types.ts';
@@ -27,20 +25,6 @@ export function stubInventory(file = fixture('usages.json')): InventoryRepo {
 export function stubWatcher(provider: string, file = fixture('changes.json')): WatchProvider {
   return async () =>
     (await readJson<ProviderChange[]>(file)).filter((change) => change.provider === provider);
-}
-
-// Stub for F4's anyProviderWatcher (providers/core/any-watcher.ts), with its signature, until it lands.
-// It throws rather than return nothing, so the run reports the provider as unwatched.
-export function anyProviderWatcher(
-  provider: string,
-  _hints: ProviderHints,
-  _deps?: { budget?: WatchLedger },
-): WatchProvider {
-  return async () => {
-    throw new Error(
-      `no changelog watcher for ${provider} yet: anyProviderWatcher (providers/core/any-watcher.ts) has not landed`,
-    );
-  };
 }
 
 // Stub for harness/: changes nothing and says so. The real harness works in a sandboxed copy.

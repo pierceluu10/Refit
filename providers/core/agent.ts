@@ -6,9 +6,11 @@ import {
   BudgetExceededError,
   isText,
   isToolUse,
+  worstCaseUsd,
   type ContentBlock,
   type Message,
   type ModelClient,
+  type ServerTool,
   type ToolResultBlock,
   type ToolSpec,
 } from './model.ts';
@@ -32,25 +34,35 @@ export type LoopResult = {
   messages: Message[];
   log: TurnLog[];
   turns: number;
-  /** 'done' | 'max-turns' | 'budget' | 'model-error' */
-  ended: 'done' | 'max-turns' | 'budget' | 'model-error';
+  /** How the loop ended. 'max-tokens': replies kept being cut off before any tool call. */
+  ended: 'done' | 'max-turns' | 'budget' | 'model-error' | 'max-tokens';
   finalText: string;
   error?: string;
 };
+
+/** What the loop reads of a run's ledger to warn the model before the money runs out. */
+export type LoopBudget = { readonly capUsd: number; readonly spentUsd: number };
 
 export async function runToolLoop(options: {
   model: ModelClient;
   system: string;
   prompt: string;
   tools: LoopTool[];
+  /** Tools Anthropic runs itself, such as web search. Their blocks are passed back unchanged. */
+  serverTools?: ServerTool[];
   maxTurns?: number;
   maxTokens?: number;
   /** Checked after each round of tool calls; true ends the loop. */
   isDone?: () => boolean;
   /** One reminder sent if the model stops before isDone() is true. */
   nudge?: string;
-  /** Added to the tool results when two or fewer turns remain and isDone() is false. */
+  /**
+   * Added to the tool results when isDone() is false and the run is nearly out
+   * of turns (two or fewer left) or of budget (less than about two turns' cost left).
+   */
   wrapUp?: string;
+  /** The ledger the model is metered on, for the budget warning. */
+  budget?: LoopBudget;
 }): Promise<LoopResult> {
   const maxTurns = options.maxTurns ?? 16;
   const messages: Message[] = [{ role: 'user', content: [{ type: 'text', text: options.prompt }] }];
@@ -63,15 +75,18 @@ export async function runToolLoop(options: {
   const log: TurnLog[] = [];
   let finalText = '';
   let nudged = false;
+  let cutReplies = 0;
 
   for (let turn = 1; turn <= maxTurns; turn++) {
     let response;
+    const spentBefore = options.budget?.spentUsd ?? 0;
     try {
       response = await options.model.complete({
         system: options.system,
         messages,
         tools: specs,
         maxTokens: options.maxTokens ?? 16_000,
+        ...(options.serverTools?.length ? { serverTools: options.serverTools } : {}),
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -85,12 +100,20 @@ export async function runToolLoop(options: {
       };
     }
     const calls = response.content.filter(isToolUse);
+    // Server tools (web search) run inside the turn; they are logged with the client tools.
+    const serverCalls = response.content.filter(
+      (block): block is ContentBlock & { name: string; input?: unknown } =>
+        block.type === 'server_tool_use' && typeof (block as { name?: unknown }).name === 'string',
+    );
     log.push({
       turn,
       stopReason: response.stopReason,
-      inputTokens: response.usage.inputTokens,
+      inputTokens:
+        response.usage.inputTokens +
+        (response.usage.cacheWriteTokens ?? 0) +
+        (response.usage.cacheReadTokens ?? 0),
       outputTokens: response.usage.outputTokens,
-      calls: calls.map((call) => ({
+      calls: [...serverCalls, ...calls].map((call) => ({
         tool: call.name,
         input: JSON.stringify(call.input ?? {}).slice(0, 300),
       })),
@@ -102,8 +125,45 @@ export async function runToolLoop(options: {
     const text = response.content.filter(isText).map((block) => block.text);
     if (text.length) finalText = text.join('\n').trim();
 
+    // A long server-tool turn can pause; sending the conversation back as it is resumes it.
+    if (response.stopReason === 'pause_turn' && calls.length === 0) continue;
+
     if (calls.length === 0) {
-      if (options.isDone?.() === false && options.nudge && !nudged && turn < maxTurns) {
+      const unfinished = options.isDone?.() === false;
+      // A reply cut off at max_tokens (which the ledger lowers near the cap) is not an answer.
+      if (response.stopReason === 'max_tokens' && unfinished) {
+        if (cutReplies < 2 && turn < maxTurns) {
+          cutReplies++;
+          messages.push({
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Your reply was cut off at the max_tokens limit. Reply more briefly. ${options.wrapUp ?? options.nudge ?? ''}`.trim(),
+              },
+            ],
+          });
+          continue;
+        }
+        return {
+          messages,
+          log,
+          turns: turn,
+          ended: 'max-tokens',
+          finalText,
+          error: 'replies were cut off at max_tokens before any tool call',
+        };
+      }
+      if (response.stopReason === 'refusal')
+        return {
+          messages,
+          log,
+          turns: turn,
+          ended: 'model-error',
+          finalText,
+          error: 'the model declined to answer (stop reason: refusal)',
+        };
+      if (unfinished && options.nudge && !nudged && turn < maxTurns) {
         nudged = true;
         messages.push({ role: 'user', content: [{ type: 'text', text: options.nudge }] });
         continue;
@@ -156,11 +216,35 @@ export async function runToolLoop(options: {
       }),
     );
     const left = maxTurns - turn;
-    if (options.wrapUp && left <= 2 && options.isDone?.() === false) {
-      results.push({
-        type: 'text',
-        text: `${left} model turn${left === 1 ? '' : 's'} left. ${options.wrapUp}`,
-      });
+    if (options.wrapUp && options.isDone?.() === false) {
+      const turnUsd = (options.budget?.spentUsd ?? 0) - spentBefore;
+      const leftUsd = options.budget ? options.budget.capUsd - options.budget.spentUsd : Infinity;
+      // The ledger sends a call only if its worst case fits, so warn before that wall, too.
+      const nextWorstUsd = options.budget
+        ? worstCaseUsd(options.model.model, {
+            system: options.system,
+            messages: [...messages, { role: 'user', content: results }],
+            tools: specs,
+            maxTokens: options.maxTokens ?? 16_000,
+            serverTools: options.serverTools,
+          })
+        : 0;
+      if (left <= 2) {
+        results.push({
+          type: 'text',
+          text: `${left} model turn${left === 1 ? '' : 's'} left. ${options.wrapUp}`,
+        });
+      } else if (leftUsd < nextWorstUsd) {
+        results.push({
+          type: 'text',
+          text: `About $${Math.max(leftUsd, 0).toFixed(2)} of this run's AI budget is left, which may not cover another full turn: your next reply may be cut short. ${options.wrapUp}`,
+        });
+      } else if (turnUsd > 0 && leftUsd < turnUsd * 2.5) {
+        results.push({
+          type: 'text',
+          text: `About $${Math.max(leftUsd, 0).toFixed(2)} of this run's AI budget is left, enough for one or two more turns. ${options.wrapUp}`,
+        });
+      }
     }
     messages.push({ role: 'user', content: results });
     if (options.isDone?.()) return { messages, log, turns: turn, ended: 'done', finalText };

@@ -7,3 +7,5 @@ export * from './prompt.ts';
 export * from './watcher.ts';
 export * from './knowledge.ts';
 export * from './registry.ts';
+export * from './packages.ts';
+export * from './any-watcher.ts';

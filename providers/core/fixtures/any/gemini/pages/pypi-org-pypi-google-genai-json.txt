@@ -1,0 +1,10 @@
+### PyPI package google-genai
+Registry data: https://pypi.org/pypi/google-genai/json (read 2026-11-03); page: https://pypi.org/project/google-genai/
+Description: "GenAI Python SDK"
+Repository: https://github.com/googleapis/python-genai
+Project links: Homepage https://github.com/googleapis/python-genai
+Latest: 2.34.0 (published 2026-10-29); 123 versions in the registry.
+Major lines (stable releases):
+- 2.x: 2.0.0 (2026-05-07) to 2.34.0 (2026-10-29), 39 releases
+- 1.x: 1.0.0 (2025-02-05) to 1.75.0 (2026-05-04), 79 releases
+- 0.x: 0.7.0 (2025-01-28) to 0.8.0 (2025-01-30), 2 releases

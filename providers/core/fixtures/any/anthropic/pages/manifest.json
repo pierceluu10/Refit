@@ -1,0 +1,107 @@
+{
+  "provider": "anthropic",
+  "fetchedAt": "2026-11-03T03:54:49.706Z",
+  "note": "Every page the live run of 2026-11-03 read, cut to the parts the agent was shown, with gaps marked. Test input only.",
+  "sources": [
+    {
+      "id": "raw-githubusercontent-com-anthropics-anthropic-sdk-typescript-head-changelog-md",
+      "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md",
+      "status": 200,
+      "ok": true,
+      "file": "raw-githubusercontent-com-anthropics-anthropic-sdk-typescript-head-changelog-md.txt",
+      "chars": 2086,
+      "truncated": true,
+      "sha256": "2fbc9f40a900233a5b277d3784893dcfbb9f9ad959ca65ba66e1599c5e29f74d"
+    },
+    {
+      "id": "raw-githubusercontent-com-anthropics-anthropic-sdk-python-head-changelog-md",
+      "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/HEAD/CHANGELOG.md",
+      "status": 200,
+      "ok": true,
+      "file": "raw-githubusercontent-com-anthropics-anthropic-sdk-python-head-changelog-md.txt",
+      "chars": 4759,
+      "truncated": true,
+      "sha256": "d9e7203974f60e2d30ab282d804080c6e1cd339cf0969214ba9f53d0a8f7a318"
+    },
+    {
+      "id": "registry-npmjs-org-anthropic-ai-2fsdk",
+      "url": "https://registry.npmjs.org/@anthropic-ai%2Fsdk",
+      "status": 200,
+      "ok": true,
+      "file": "registry-npmjs-org-anthropic-ai-2fsdk.txt",
+      "chars": 599,
+      "truncated": false,
+      "sha256": "85350a97ead0074a546512e0affaecd9f6681c12f18d75f73145d1d61e91c281"
+    },
+    {
+      "id": "registry-npmjs-org-anthropic",
+      "url": "https://registry.npmjs.org/anthropic",
+      "status": 200,
+      "ok": true,
+      "file": "registry-npmjs-org-anthropic.txt",
+      "chars": 321,
+      "truncated": false,
+      "sha256": "8803f5a8c88efeec6320be0c7ab55fbd119c730fc98a6ce29cc51e2aa33d6a72"
+    },
+    {
+      "id": "pypi-org-pypi-anthropic-json",
+      "url": "https://pypi.org/pypi/anthropic/json",
+      "status": 200,
+      "ok": true,
+      "file": "pypi-org-pypi-anthropic-json.txt",
+      "chars": 690,
+      "truncated": false,
+      "sha256": "9dfa14855e11adf429e089ad62d0b36e6c3def02ad178507c237f8c96f8cf543"
+    },
+    {
+      "id": "docs-anthropic-com-llms-txt",
+      "url": "https://docs.anthropic.com/llms.txt",
+      "status": 200,
+      "ok": true,
+      "file": "docs-anthropic-com-llms-txt.txt",
+      "chars": 15033,
+      "truncated": true,
+      "sha256": "5699397804f4165a0b9a0c061f5f59e38c396155c201b1fa3473288c52d65a02"
+    },
+    {
+      "id": "platform-claude-com-docs-en-about-claude-model-deprecations-md",
+      "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+      "status": 200,
+      "ok": true,
+      "file": "platform-claude-com-docs-en-about-claude-model-deprecations-md.txt",
+      "chars": 13137,
+      "truncated": false,
+      "sha256": "b50d41b41f08a75fbdf9423caee725ae9aba6653b0b189a51f2e6c28a90adba5"
+    },
+    {
+      "id": "platform-claude-com-docs-en-release-notes-overview-md",
+      "url": "https://platform.claude.com/docs/en/release-notes/overview.md",
+      "status": 200,
+      "ok": true,
+      "file": "platform-claude-com-docs-en-release-notes-overview-md.txt",
+      "chars": 30033,
+      "truncated": true,
+      "sha256": "54c3dcc01dadea907f05015992e7066c1ef226fa2c6a9829e2ef66f1bcd7b583"
+    },
+    {
+      "id": "platform-claude-com-docs-en-api-migration-2026-10-21-md",
+      "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21.md",
+      "status": 200,
+      "ok": true,
+      "file": "platform-claude-com-docs-en-api-migration-2026-10-21-md.txt",
+      "chars": 30033,
+      "truncated": true,
+      "sha256": "1547e9c898576d496015b8e8be9e5c02b73ec09d079def4e475bf39e39438a6f"
+    },
+    {
+      "id": "raw-githubusercontent-com-anthropics-anthropic-sdk-python-head-migration-md",
+      "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/HEAD/MIGRATION.md",
+      "status": 200,
+      "ok": true,
+      "file": "raw-githubusercontent-com-anthropics-anthropic-sdk-python-head-migration-md.txt",
+      "chars": 2281,
+      "truncated": true,
+      "sha256": "c560e248d1462ed787973e61d1ceb04c1a693eb9673e15525645a87a654e538d"
+    }
+  ]
+}

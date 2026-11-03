@@ -1,0 +1,17 @@
+[... 33147 characters not shown ...]
+## v2.0.0 (v2.0.0, published 2024-05-27T17:50:21Z)
+https://github.com/resend/resend-python/releases/tag/v2.0.0
+## What's Changed
+* fixed type hints by @drish in https://github.com/resend/resend-python/pull/102
+* Chore/email auxiliary types by @pedroimpulcetto in https://github.com/resend/resend-python/pull/103
+* chore: Bump to v2.0.0 by @drish in https://github.com/resend/resend-python/pull/104
+
+**Full Changelog**: https://github.com/resend/resend-python/compare/v1.2.0...v2.0.0
+[... 2015 characters not shown ...]
+## v1.0.0 (v1.0.0, published 2024-05-09T02:00:01Z)
+https://github.com/resend/resend-python/releases/tag/v1.0.0
+## What's Changed
+* major release with type hinting support by @drish @pedroimpulcetto in https://github.com/resend/resend-python/pull/82
+
+**Full Changelog**: https://github.com/resend/resend-python/compare/v0.8.0...v1.0.0
+[... 6499 characters not shown ...]

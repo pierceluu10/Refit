@@ -1,0 +1,125 @@
+{
+  "note": "Hand-checked by the F4 session on 2026-11-03: 8 of the 18 changes from live-run.json, each read against its saved page for the quote and the claim. The replay test submits these through the real pipeline and checks every quote against pages/.",
+  "changes": [
+    {
+      "id": "2026-10-21-api-version",
+      "kind": "api-version",
+      "title": "New Claude API version 2026-10-21 (from 2023-06-01): anthropic-version header callers must move; breaking changes in Messages and Admin APIs",
+      "source": {
+        "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21.md",
+        "quote": "If you call the API without an SDK, set the `anthropic-version` header to `2026-10-21`."
+      },
+      "affects": {
+        "operations": ["POST /v1/messages", "anthropic-version header"],
+        "versions": ["2023-06-01", "2026-10-21"]
+      },
+      "effectiveDate": "2026-10-21"
+    },
+    {
+      "id": "2026-10-21-remove-sampling-params",
+      "kind": "field-removed",
+      "title": "temperature, top_p, top_k removed in API version 2026-10-21 (400 error) for Messages and Batches",
+      "source": {
+        "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21.md",
+        "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value."
+      },
+      "affects": {
+        "operations": [
+          "POST /v1/messages",
+          "POST /v1/messages/batches",
+          "POST /v1/messages/count_tokens"
+        ],
+        "fields": ["temperature", "top_p", "top_k"],
+        "versions": ["2026-10-21"]
+      },
+      "effectiveDate": "2026-10-21"
+    },
+    {
+      "id": "2026-10-21-sdk-npm-1-0-0",
+      "kind": "sdk-major",
+      "title": "npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; removes sampling params; MessageParam becomes a role union; bedrock/vertex/foundry SDKs must move to v1 too",
+      "source": {
+        "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md",
+        "quote": "* **api:** add support for new API version 2026-10-21"
+      },
+      "affects": {
+        "versions": ["<1.0.0", "1.0.0"],
+        "sdk": "@anthropic-ai/sdk"
+      },
+      "effectiveDate": "2026-10-21"
+    },
+    {
+      "id": "2026-10-21-sdk-pypi-2-0-0",
+      "kind": "sdk-major",
+      "title": "PyPI anthropic 2.0.0 sends API version 2026-10-21 by default; removes sampling params; MessageParam becomes a union (calling/subclassing it raises TypeError)",
+      "source": {
+        "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/HEAD/CHANGELOG.md",
+        "quote": "* **api:** add support for new API version 2026-10-21"
+      },
+      "affects": {
+        "versions": ["<2.0.0", "2.0.0"],
+        "sdk": "anthropic"
+      },
+      "effectiveDate": "2026-10-21"
+    },
+    {
+      "id": "2026-08-20-sdk-pypi-1-0-0",
+      "kind": "sdk-major",
+      "title": "PyPI anthropic 1.0.0 upgrades HTTP layer to httpx2; custom httpx clients/transports and httpx-based instrumentation must switch (see MIGRATION.md)",
+      "source": {
+        "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/HEAD/CHANGELOG.md",
+        "quote": "* **client:** upgrade to httpx2 and some minor breaking changes. See MIGRATION.md for details"
+      },
+      "affects": {
+        "versions": ["<1.0.0", "1.0.0"],
+        "sdk": "anthropic"
+      },
+      "effectiveDate": "2026-08-20"
+    },
+    {
+      "id": "2024-pypi-0-39-remove-count-tokens",
+      "kind": "sdk-major",
+      "title": "PyPI anthropic 0.39.0 removed client.count_tokens() and client.get_tokenizer()",
+      "source": {
+        "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/HEAD/CHANGELOG.md",
+        "quote": "* **client:** remove legacy `client.count_tokens()` & `client.get_tokenizer()` methods"
+      },
+      "affects": {
+        "operations": ["client.count_tokens", "client.get_tokenizer"],
+        "versions": ["<0.39.0", "0.39.0"],
+        "sdk": "anthropic"
+      }
+    },
+    {
+      "id": "2026-11-30-sonnet-4-5-retirement",
+      "kind": "model-retirement",
+      "title": "claude-sonnet-4-5-20250929 retires Nov 30, 2026; migrate to claude-sonnet-5-5",
+      "source": {
+        "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+        "quote": "| November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |"
+      },
+      "affects": {
+        "operations": ["claude-sonnet-4-5-20250929"]
+      },
+      "effectiveDate": "2026-11-30"
+    },
+    {
+      "id": "2026-06-retired-opus-sonnet-4",
+      "kind": "model-retirement",
+      "title": "Retired: claude-opus-4-20250514, claude-sonnet-4-20250514 (Jun 15, 2026), claude-opus-4-1-20250805 (Aug 5, 2026), claude-3-haiku-20240307 (Apr 20, 2026); requests fail",
+      "source": {
+        "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+        "quote": "| claude-opus-4-1-20250805 | Retired | June 5, 2026 | August 5, 2026 |"
+      },
+      "affects": {
+        "operations": [
+          "claude-opus-4-20250514",
+          "claude-sonnet-4-20250514",
+          "claude-opus-4-1-20250805",
+          "claude-3-haiku-20240307"
+        ]
+      },
+      "effectiveDate": "2026-08-05"
+    }
+  ]
+}

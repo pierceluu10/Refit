@@ -1,0 +1,56 @@
+[... 3710 characters not shown ...]
+## [1.0.0](https://github.com/anthropics/anthropic-sdk-typescript/compare/sdk-v0.137.0...sdk-v1.0.0) (2026-10-21)
+
+### ⚠ BREAKING CHANGES
+
+* **api:** add support for new API version 2026-10-21
+
+### Features
+
+* **api:** add a workspace_id filter and the usage_tier scope type to list spend limits
+* **api:** add support for new API version 2026-10-21
+
+### Chores
+
+* **ci:** check the changelog of each package a pull request changes
+* **internal:** specify which changelog a pull request updates
+
+### Documentation
+
+* **api:** remove outdated system role note from messages description
+[... 1956 characters not shown ...]
+ an unread JSONL response open while it is held
+
+### Chores
+
+* **ci:** speed up breaking change detection
+* **docs:** describe headers on Managed Agents and telemetry endpoints
+
+### Documentation
+
+* **api:** note that some models need a beta header
+[... 32294 characters not shown ...]
+25ca2a4f6))
+
+### Chores
+
+* **internal:** bundle the mock server spec and update breaking-change detection ([8752d02](https://github.com/anthropics/anthropic-sdk-typescript/commit/8752d0242274ddec2228fdb6d99a0c5a8885e6d7))
+* **internal:** codegen re
+[... 14364 characters not shown ...]
+pt/commit/5fbc729c82ec3967c9f76428d0f733b5fa61ddd5))
+
+### Chores
+
+* **ci:** run breaking-change detection as a ci.yml job on every push ([c34c1d5](https://github.com/anthropics/anthropic-sdk-typescript/commit/c34c1d53f3227b3978621590e67f5a33f5cad10
+[... 46780 characters not shown ...]
+-sdk-typescript/commit/99f40668ee2c1b25f527eb34f41eadf79550a73f))
+* **ci:** add breaking change detection workflow ([b181568](https://github.com/anthropics/anthropic-sdk-typescript/commit/b181568601537957f91f7123420d8d0f4625c2b7))
+* **client:** mig
+[... 18765 characters not shown ...]
+-typescript/commit/5f8d1bb6a1e7a71acf7a89a090bb2296c050e1d2))
+* **client:** add breaking change detection to CI ([04332aa](https://github.com/anthropics/anthropic-sdk-typescript/commit/04332aa52c371a2c3126c8c188e9855898017772))
+
+### Bug Fixes
+
+* **
+[... 80307 characters not shown ...]

@@ -1,0 +1,45 @@
+[... 1593 characters not shown ...]
+## 3.0.0 (3.0.0, published 2026-02-16T11:23:54Z)
+https://github.com/ramnes/notion-sdk-py/releases/tag/3.0.0
+Thanks to all the contributors for this new major version!
+
+⚠️ Beware of the following breaking changes:
+
+* `is_full_page_or_database` has been removed. Use `is_full_page_or_data_source` instead.
+* `is_api_error_code` has been made private.
+
+## What's Changed
+* Added `intro-to-notion-api` example for Python SDK by @Sumeet213 in https://github.com/ramnes/notion-sdk-py/pull/297
+* Added helper functions related to `data sources` in `helpers.py` and more namespace exports by @tsinglinrain in https://github.com/ramnes/notion-sdk-py/pull/299
+* Fixed mypy compatibility with Python 3.14 by @Sumeet213 in https://github.com/ramnes/notion-sdk-py/pull/300
+* Added OAuth token, introspect, and revoke endpoints by @Sumeet213 in https://github.com/ramnes/notion-sdk-py/pull/301
+* Added move method to pages endpoint by @JJocelynH in https://github.com/ramnes/notion-sdk-py/pull/307
+* Added error namespace and refactored `errors.py` following JS SDK implementation by @tsinglinrain in https://github.com/ramnes/notion-sdk-py/pull/308
+* Added path traversal validation in `error.py` following notion-sdk-js by @tsinglinrain in https://github.com/ramnes/notion-sdk-py/pull/312
+* Added support for Python 3.14 by @ramnes in https://github.com/ramnes/notion-sdk-py/pull/315
+
+## New Contributors
+* @JJocelynH made their first contribution in https://github.com/ramnes/notion-sdk-py/pull/307
+
+**Full Changelog**: https://github.com/ramnes/notion-sdk-py/compare/2.7.0...3.0.0
+[... 7678 characters not shown ...]
+## 2.0.0 (2.0.0, published 2022-12-10T14:24:59Z)
+https://github.com/ramnes/notion-sdk-py/releases/tag/2.0.0
+This major version update mostly adds [new helpers](https://ramnes.github.io/notion-sdk-py/reference/helpers/), support for the [comments API](https://ramnes.github.io/notion-sdk-py/reference/api_endpoints/#notion_client.api_endpoints.CommentsEndpoint), more tests, and Python 3.11.
+
+⚠️ Beware, `Notion-Version` has been upgraded to `2022-06-28` and it brings [breaking changes](https://developers.notion.com/changelog/releasing-notion-version-2022-06-28).
+
+Thanks to our new contributors, @ssredpanda and @andrewdircks, as well as to @mutt0-ds for his important work on this release!
+
+**Full Changelog**: https://github.com/ramnes/notion-sdk-py/compare/1.0.0...2.0.0
+[... 2 characters not shown ...]
+## 1.0.0 (1.0.0, published 2022-04-18T14:54:22Z)
+https://github.com/ramnes/notion-sdk-py/releases/tag/1.0.0
+Let's get out of beta and release 1.0.0!
+
+⚠️ Beware, `Notion-Version` has been upgraded to `2022-02-22` and it brings [breaking changes](https://developers.notion.com/changelog/releasing-notion-version-2022-02-22).
+
+Thanks to our new contributor for this release, @sudosubin!
+
+**Full Changelog**: https://github.com/ramnes/notion-sdk-py/compare/0.9.0...1.0.0
+[... 1 characters not shown ...]

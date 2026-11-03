@@ -1,0 +1,524 @@
+{
+  "note": "Live run: claude-sonnet-5-5 through the Messages API on 2026-11-03, reading live pages with web search. pages/ keeps what the agent was shown. Output recorded as returned, not edited.",
+  "runAt": "2026-11-03T03:54:13.249Z",
+  "model": "claude-sonnet-5-5",
+  "promptVersion": "any-watch-v1",
+  "input": {
+    "provider": "anthropic",
+    "hints": {
+      "packages": ["@anthropic-ai/sdk", "anthropic"],
+      "hosts": ["api.anthropic.com"],
+      "docsUrls": ["https://docs.anthropic.com/en/api"]
+    },
+    "maxTurns": 20,
+    "maxTokens": 16000,
+    "webSearch": {
+      "type": "web_search_20250305",
+      "maxUses": 5
+    },
+    "capUsd": 1
+  },
+  "report": {
+    "provider": "anthropic",
+    "changes": [
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-21-api-version",
+        "kind": "api-version",
+        "title": "New Claude API version 2026-10-21 (from 2023-06-01): anthropic-version header callers must move; breaking changes in Messages and Admin APIs",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21.md",
+          "quote": "If you call the API without an SDK, set the `anthropic-version` header to `2026-10-21`."
+        },
+        "affects": {
+          "operations": ["POST /v1/messages", "anthropic-version header"],
+          "versions": ["2023-06-01", "2026-10-21"]
+        },
+        "effectiveDate": "2026-10-21"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-21-remove-sampling-params",
+        "kind": "field-removed",
+        "title": "temperature, top_p, top_k removed in API version 2026-10-21 (400 error) for Messages and Batches",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21.md",
+          "quote": "In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value."
+        },
+        "affects": {
+          "operations": [
+            "POST /v1/messages",
+            "POST /v1/messages/batches",
+            "POST /v1/messages/count_tokens"
+          ],
+          "fields": ["temperature", "top_p", "top_k"],
+          "versions": ["2026-10-21"]
+        },
+        "effectiveDate": "2026-10-21"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-21-document-citations-errors",
+        "kind": "other",
+        "title": "API 2026-10-21 returns 400 for document blocks in assistant messages and citations on text blocks in user messages",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21.md",
+          "quote": "In `2026-10-21`, a request that places a `document` block directly in an `assistant` message returns a 400 error."
+        },
+        "affects": {
+          "operations": ["POST /v1/messages"],
+          "fields": ["document", "citations"],
+          "versions": ["2026-10-21"]
+        },
+        "effectiveDate": "2026-10-21"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-21-admin-api-field-renames",
+        "kind": "field-renamed",
+        "title": "Admin API and Enterprise Analytics responses rename fields in 2026-10-21 (roles→role_ids, group_id→rbac_group_id, name→display_name, group_type→group.type, workspace_id→scope, actor.email→actor.email_address, summaries→data)",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21.md",
+          "quote": "In `2026-10-21`, responses from the Admin API and the [Claude Enterprise Analytics API](https://platform.claude.com/docs/en/manage-claude/analytics-api) no longer include the old names of renamed fields."
+        },
+        "affects": {
+          "fields": [
+            "roles",
+            "group_id",
+            "name",
+            "group_type",
+            "workspace_id",
+            "actor.email",
+            "summaries"
+          ],
+          "versions": ["2026-10-21"]
+        },
+        "effectiveDate": "2026-10-21"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-21-sdk-npm-1-0-0",
+        "kind": "sdk-major",
+        "title": "npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; removes sampling params; MessageParam becomes a role union; bedrock/vertex/foundry SDKs must move to v1 too",
+        "source": {
+          "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md",
+          "quote": "* **api:** add support for new API version 2026-10-21"
+        },
+        "affects": {
+          "versions": ["<1.0.0", "1.0.0"],
+          "sdk": "@anthropic-ai/sdk"
+        },
+        "effectiveDate": "2026-10-21"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-21-sdk-pypi-2-0-0",
+        "kind": "sdk-major",
+        "title": "PyPI anthropic 2.0.0 sends API version 2026-10-21 by default; removes sampling params; MessageParam becomes a union (calling/subclassing it raises TypeError)",
+        "source": {
+          "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/HEAD/CHANGELOG.md",
+          "quote": "* **api:** add support for new API version 2026-10-21"
+        },
+        "affects": {
+          "versions": ["<2.0.0", "2.0.0"],
+          "sdk": "anthropic"
+        },
+        "effectiveDate": "2026-10-21"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-08-20-sdk-pypi-1-0-0",
+        "kind": "sdk-major",
+        "title": "PyPI anthropic 1.0.0 upgrades HTTP layer to httpx2; custom httpx clients/transports and httpx-based instrumentation must switch (see MIGRATION.md)",
+        "source": {
+          "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/HEAD/CHANGELOG.md",
+          "quote": "* **client:** upgrade to httpx2 and some minor breaking changes. See MIGRATION.md for details"
+        },
+        "affects": {
+          "versions": ["<1.0.0", "1.0.0"],
+          "sdk": "anthropic"
+        },
+        "effectiveDate": "2026-08-20"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2024-pypi-0-39-remove-count-tokens",
+        "kind": "sdk-major",
+        "title": "PyPI anthropic 0.39.0 removed client.count_tokens() and client.get_tokenizer()",
+        "source": {
+          "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/HEAD/CHANGELOG.md",
+          "quote": "* **client:** remove legacy `client.count_tokens()` & `client.get_tokenizer()` methods"
+        },
+        "affects": {
+          "operations": ["client.count_tokens", "client.get_tokenizer"],
+          "versions": ["<0.39.0", "0.39.0"],
+          "sdk": "anthropic"
+        }
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2024-pypi-0-28-remove-event-handler",
+        "kind": "sdk-major",
+        "title": "PyPI anthropic 0.28.0 removed the old streaming event_handler API",
+        "source": {
+          "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/HEAD/CHANGELOG.md",
+          "quote": "* **streaming:** remove old event_handler API"
+        },
+        "affects": {
+          "versions": ["<0.28.0", "0.28.0"],
+          "sdk": "anthropic"
+        }
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-11-30-sonnet-4-5-retirement",
+        "kind": "model-retirement",
+        "title": "claude-sonnet-4-5-20250929 retires Nov 30, 2026; migrate to claude-sonnet-5-5",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+          "quote": "| November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |"
+        },
+        "affects": {
+          "operations": ["claude-sonnet-4-5-20250929"]
+        },
+        "effectiveDate": "2026-11-30"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-11-30-opus-4-8-fast-mode",
+        "kind": "other",
+        "title": "Fast mode (speed: \"fast\") for claude-opus-4-8 removed Nov 30, 2026; requests will error; migrate to Claude Opus 5.5",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/release-notes/overview.md",
+          "quote": "After removal, requests to `claude-opus-4-8` with `speed: \"fast\"` will return an error."
+        },
+        "affects": {
+          "operations": ["claude-opus-4-8", "POST /v1/messages"],
+          "fields": ["speed"]
+        },
+        "effectiveDate": "2026-11-30"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-15-haiku-4-5-retirement-date",
+        "kind": "model-retirement",
+        "title": "claude-haiku-4-5-20251001 tentative retirement not sooner than Oct 15, 2026 (unsure if deprecation announced); claude-opus-4-5-20251101 not sooner than Nov 24, 2026",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+          "quote": "| claude-haiku-4-5-20251001 | Active | N/A | Not sooner than October 15, 2026 |"
+        },
+        "affects": {
+          "operations": ["claude-haiku-4-5-20251001", "claude-opus-4-5-20251101"]
+        },
+        "effectiveDate": "2026-10-15"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-06-retired-opus-sonnet-4",
+        "kind": "model-retirement",
+        "title": "Retired: claude-opus-4-20250514, claude-sonnet-4-20250514 (Jun 15, 2026), claude-opus-4-1-20250805 (Aug 5, 2026), claude-3-haiku-20240307 (Apr 20, 2026); requests fail",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+          "quote": "| claude-opus-4-1-20250805 | Retired | June 5, 2026 | August 5, 2026 |"
+        },
+        "affects": {
+          "operations": [
+            "claude-opus-4-20250514",
+            "claude-sonnet-4-20250514",
+            "claude-opus-4-1-20250805",
+            "claude-3-haiku-20240307"
+          ]
+        },
+        "effectiveDate": "2026-08-05"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-29-usage-cost-api-legacy",
+        "kind": "other",
+        "title": "Usage and Cost API and Enterprise Analytics usage/cost report endpoints now legacy (still supported); new Usage and Cost Analytics API in beta",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/release-notes/overview.md",
+          "quote": "All of them remain supported."
+        },
+        "affects": {
+          "operations": [
+            "/v1/organizations/usage_report",
+            "/v1/organizations/cost_report",
+            "/v1/organizations/analytics/usage",
+            "/v1/organizations/analytics/cost"
+          ]
+        },
+        "effectiveDate": "2026-10-29"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-09-30-admin-api-ga",
+        "kind": "other",
+        "title": "Admin API methods out of beta: call client.organization instead of client.beta.organization (beta still kept) in Python 1.10.0, TS 0.130.0",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/release-notes/overview.md",
+          "quote": "These releases also keep `client.beta.organization` and `ant beta:organization`."
+        },
+        "affects": {
+          "operations": ["client.organization", "client.beta.organization"]
+        },
+        "effectiveDate": "2026-09-30"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-09-model-5-5-breaking-params",
+        "kind": "other",
+        "title": "New models (Sonnet 5.5, Opus 5.5, Haiku 5.5) reject thinking disabled/enabled budget, forced tool_choice any/tool, older computer-use tools with 400 errors",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/release-notes/overview.md",
+          "quote": "On Claude Opus 5.5, thinking can’t be disabled: `thinking: {\"type\": \"disabled\"}` and `thinking: {\"type\": \"enabled\", ...}` return a 400 error."
+        },
+        "affects": {
+          "operations": ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"],
+          "fields": ["thinking", "tool_choice", "temperature", "top_p", "top_k"]
+        },
+        "effectiveDate": "2026-09-22"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-09-24-refusal-billing",
+        "kind": "other",
+        "title": "Billing resumes for pre-output refusals in bio/frontier_llm/reasoning_extraction categories",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/release-notes/overview.md",
+          "quote": "Mid-stream refusals were already billed."
+        },
+        "affects": {
+          "fields": ["stop_details.category"]
+        },
+        "effectiveDate": "2026-09-24"
+      },
+      {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-28-request-size-limit",
+        "kind": "pagination-or-limits",
+        "title": "Max request size for Messages and Token Counting raised from 32 MB to 128 MB",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/release-notes/overview.md",
+          "quote": "We’ve raised the [maximum request size](https://platform.claude.com/docs/en/api/overview#request-size-limits) for the Messages API and the Token Counting API from 32 MB to 128 MB on the first-party Claude API."
+        },
+        "affects": {
+          "operations": ["POST /v1/messages", "POST /v1/messages/count_tokens"]
+        },
+        "effectiveDate": "2026-10-28"
+      }
+    ],
+    "issues": [],
+    "unverifiedQuotes": [],
+    "sourcesRead": [
+      "https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md",
+      "https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/HEAD/CHANGELOG.md",
+      "https://registry.npmjs.org/@anthropic-ai%2Fsdk",
+      "https://registry.npmjs.org/anthropic",
+      "https://pypi.org/pypi/anthropic/json",
+      "https://docs.anthropic.com/llms.txt",
+      "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+      "https://platform.claude.com/docs/en/release-notes/overview.md",
+      "https://platform.claude.com/docs/en/api/migration-2026-10-21.md",
+      "https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/HEAD/MIGRATION.md"
+    ],
+    "model": "claude-sonnet-5-5",
+    "costUsd": 0.20295180000000002,
+    "turns": 5,
+    "summary": "Read: llms.txt, model-deprecations, release notes (first 30k chars of 136k, back to ~Sept 14 2026), migration-2026-10-21 (first 30k of 75k), changelog searches. Not read: older release notes, rest of migration guide, Python MIGRATION.md details beyond httpx2, 0.x npm breaking entries (searched: none flagged BREAKING in npm 0.x beyond 1.0.0). npm package 'anthropic' is an unrelated 2017 placeholder; ignored. Python 0.x majors other than 0.28/0.39 not enumerated. The Haiku 4.5/Opus 4.5 entry is uncertain: only tentative dates.",
+    "log": [
+      {
+        "turn": 1,
+        "stopReason": "tool_use",
+        "inputTokens": 9245,
+        "outputTokens": 145,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://docs.anthropic.com/llms.txt\"}"
+          },
+          {
+            "tool": "search_page",
+            "input": "{\"source_id\":\"anthropic-pypi-changelog\",\"query\":\"BREAKING\"}"
+          }
+        ]
+      },
+      {
+        "turn": 2,
+        "stopReason": "tool_use",
+        "inputTokens": 18028,
+        "outputTokens": 250,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://platform.claude.com/docs/en/about-claude/model-deprecations.md\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://platform.claude.com/docs/en/release-notes/overview.md\"}"
+          },
+          {
+            "tool": "search_page",
+            "input": "{\"source_id\":\"anthropic-ai-sdk-npm-changelog\",\"query\":\"BREAKING\"}"
+          }
+        ]
+      },
+      {
+        "turn": 3,
+        "stopReason": "tool_use",
+        "inputTokens": 30261,
+        "outputTokens": 178,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://platform.claude.com/docs/en/api/migration-2026-10-21.md\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://platform.claude.com/docs/en/release-notes/overview.md\",\"offset\":15000}"
+          }
+        ]
+      },
+      {
+        "turn": 4,
+        "stopReason": "tool_use",
+        "inputTokens": 42090,
+        "outputTokens": 268,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://platform.claude.com/docs/en/api/migration-2026-10-21.md\",\"offset\":15000}"
+          },
+          {
+            "tool": "search_page",
+            "input": "{\"url\":\"https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/HEAD/MIGRATION.md\",\"query\":\"httpx\"}"
+          }
+        ]
+      },
+      {
+        "turn": 5,
+        "stopReason": "tool_use",
+        "inputTokens": 51560,
+        "outputTokens": 4570,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{\"changes\":[{\"id\":\"2026-10-21-api-version\",\"kind\":\"api-version\",\"title\":\"New Claude API version 2026-10-21 (from 2023-06-01): anthropic-version header callers must move; breaking changes in Messages and Admin APIs\",\"effectiveDate\":\"2026-10-21\",\"source\":{\"url\":\"https://platform.claude.com/docs/en/api"
+          }
+        ]
+      }
+    ],
+    "name": "Anthropic",
+    "hints": {
+      "packages": ["@anthropic-ai/sdk", "anthropic"],
+      "hosts": ["api.anthropic.com"],
+      "docsUrls": ["https://docs.anthropic.com/en/api"]
+    },
+    "packages": [
+      {
+        "ecosystem": "npm",
+        "name": "@anthropic-ai/sdk",
+        "registryUrl": "https://registry.npmjs.org/@anthropic-ai%2Fsdk",
+        "pageUrl": "https://www.npmjs.com/package/@anthropic-ai/sdk",
+        "readAt": "2026-11-03",
+        "majors": [
+          {
+            "major": 1,
+            "first": "1.0.0",
+            "latest": "1.4.0",
+            "releases": 5,
+            "firstAt": "2026-10-21",
+            "latestAt": "2026-11-02"
+          },
+          {
+            "major": 0,
+            "first": "0.2.0",
+            "latest": "0.137.0",
+            "releases": 217,
+            "firstAt": "2023-01-31",
+            "latestAt": "2026-10-20"
+          }
+        ],
+        "versions": 223,
+        "description": "The official TypeScript library for the Anthropic API",
+        "latest": "1.4.0",
+        "latestAt": "2026-11-02",
+        "repository": "https://github.com/anthropics/anthropic-sdk-typescript",
+        "homepage": "https://github.com/anthropics/anthropic-sdk-typescript#readme"
+      },
+      {
+        "ecosystem": "npm",
+        "name": "anthropic",
+        "registryUrl": "https://registry.npmjs.org/anthropic",
+        "pageUrl": "https://www.npmjs.com/package/anthropic",
+        "readAt": "2026-11-03",
+        "majors": [
+          {
+            "major": 0,
+            "first": "0.0.0",
+            "latest": "0.0.0",
+            "releases": 1,
+            "firstAt": "2017-07-21",
+            "latestAt": "2017-07-21"
+          }
+        ],
+        "versions": 1,
+        "latest": "0.0.0",
+        "latestAt": "2017-07-21"
+      },
+      {
+        "ecosystem": "pypi",
+        "name": "anthropic",
+        "registryUrl": "https://pypi.org/pypi/anthropic/json",
+        "pageUrl": "https://pypi.org/project/anthropic/",
+        "readAt": "2026-11-03",
+        "majors": [
+          {
+            "major": 2,
+            "first": "2.0.0",
+            "latest": "2.4.0",
+            "releases": 5,
+            "firstAt": "2026-10-21",
+            "latestAt": "2026-11-02"
+          },
+          {
+            "major": 1,
+            "first": "1.0.0",
+            "latest": "1.17.0",
+            "releases": 19,
+            "firstAt": "2026-08-20",
+            "latestAt": "2026-10-20"
+          },
+          {
+            "major": 0,
+            "first": "0.2.2",
+            "latest": "0.125.0",
+            "releases": 211,
+            "firstAt": "2023-02-09",
+            "latestAt": "2026-08-19"
+          }
+        ],
+        "versions": 235,
+        "description": "The official Python library for the anthropic API",
+        "latest": "2.4.0",
+        "latestAt": "2026-11-02",
+        "repository": "https://github.com/anthropics/anthropic-sdk-python",
+        "homepage": "https://github.com/anthropics/anthropic-sdk-python",
+        "projectUrls": {
+          "Homepage": "https://github.com/anthropics/anthropic-sdk-python",
+          "Repository": "https://github.com/anthropics/anthropic-sdk-python"
+        }
+      }
+    ],
+    "startingPages": [
+      "https://docs.anthropic.com/en/api",
+      "https://docs.anthropic.com/llms.txt",
+      "https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md",
+      "https://api.github.com/repos/anthropics/anthropic-sdk-typescript/releases?per_page=100",
+      "https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/README.md",
+      "https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/HEAD/CHANGELOG.md",
+      "https://api.github.com/repos/anthropics/anthropic-sdk-python/releases?per_page=100",
+      "https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/HEAD/README.md"
+    ]
+  }
+}

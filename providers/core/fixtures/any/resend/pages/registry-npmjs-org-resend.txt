@@ -1,0 +1,14 @@
+### npm package resend
+Registry data: https://registry.npmjs.org/resend (read 2026-11-03); page: https://www.npmjs.com/package/resend
+Description: "Node.js library for the Resend API"
+Repository: https://github.com/resend/resend-node
+Homepage: https://github.com/resend/resend-node#readme
+Latest: 6.37.0 (published 2026-10-30); 212 versions in the registry.
+Major lines (stable releases):
+- 6.x: 6.0.0 (2025-08-07) to 6.37.0 (2026-10-30), 66 releases
+- 5.x: 5.0.0 (2025-08-06) to 5.0.0 (2025-08-06), 1 release
+- 4.x: 4.0.0 (2024-08-16) to 4.8.0 (2025-08-04), 14 releases
+- 3.x: 3.0.0 (2024-01-18) to 3.5.0 (2024-07-22), 6 releases
+- 2.x: 2.0.0 (2023-11-01) to 2.1.0 (2023-12-26), 2 releases
+- 1.x: 1.0.0 (2023-08-15) to 1.1.0 (2023-09-17), 2 releases
+- 0.x: 0.1.1 (2017-02-25) to 0.17.2 (2023-07-25), 24 releases

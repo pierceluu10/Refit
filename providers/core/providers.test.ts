@@ -4,10 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { runAnyWatch } from './any-watcher.ts';
 import { knowledgeProblems } from './knowledge.ts';
+import { savedRegistry } from './packages.ts';
 import { BudgetLedger } from './model.ts';
 import { containsQuote, snapshotFetcher } from './fetch.ts';
-import { listProviderIds, loadProvider } from './registry.ts';
+import { folderHints, listProviderIds, loadProvider } from './registry.ts';
 import { fixtureDir, loadExpected, replayModel } from './testing.ts';
 import { normaliseChanges, runWatch } from './watcher.ts';
 import type { LiveRunRecord } from './types.ts';
@@ -25,10 +27,11 @@ describe('provider folders', () => {
 describe.each(ids)('%s', (id) => {
   const provider = loadProvider(id);
 
-  it('has a spec, a prompt and sources', () => {
+  it('has a spec, a prompt, and starting pages or hints for discovery to start from', () => {
     expect(provider.name).toBeTruthy();
     expect(provider.prompt.trim().length).toBeGreaterThan(40);
-    expect(provider.sources.length).toBeGreaterThan(0);
+    // A folder needs only hints: the discovery step finds its pages. The six original folders list pages too.
+    expect(provider.sources.length + Object.keys(folderHints(provider)).length).toBeGreaterThan(0);
     const sourceIds = provider.sources.map((source) => source.id);
     expect(new Set(sourceIds).size).toBe(sourceIds.length);
     for (const source of provider.sources) {
@@ -37,29 +40,41 @@ describe.each(ids)('%s', (id) => {
     }
   });
 
-  it('has a knowledge.json where every entry is sourced and dated', () => {
-    expect(provider.knowledge, 'knowledge.json is missing').toBeDefined();
-    expect(knowledgeProblems(provider.knowledge)).toEqual([]);
-    expect(provider.knowledge!.provider).toBe(id);
-  });
+  // Folders that list starting pages carry knowledge and a saved read of them; a hints-only folder may not.
+  const listsPages = provider.sources.length > 0;
 
-  it('quotes knowledge.json word for word wherever the page is in the snapshot', () => {
-    const dir = fixtureDir(provider);
-    const manifest = JSON.parse(
-      readFileSync(join(dir, 'manifest.json'), 'utf8'),
-    ) as SnapshotManifest;
-    const pages = new Map(
-      manifest.sources.map((source) => [source.url, readFileSync(join(dir, source.file), 'utf8')]),
-    );
-    const k = provider.knowledge!;
-    for (const entry of [k.versioning, ...k.versions, ...k.retirements, ...k.docs, ...k.sdks]) {
-      const text = pages.get(entry.source.url);
-      if (!entry.source.quote || text === undefined) continue;
-      expect(containsQuote(text, entry.source.quote), entry.source.quote).toBe(true);
-    }
-  });
+  it.runIf(listsPages || provider.knowledge !== undefined)(
+    'has a knowledge.json where every entry is sourced and dated',
+    () => {
+      expect(provider.knowledge, 'knowledge.json is missing').toBeDefined();
+      expect(knowledgeProblems(provider.knowledge)).toEqual([]);
+      expect(provider.knowledge!.provider).toBe(id);
+    },
+  );
 
-  it('has a saved live read of its sources', () => {
+  it.runIf(listsPages)(
+    'quotes knowledge.json word for word wherever the page is in the snapshot',
+    () => {
+      const dir = fixtureDir(provider);
+      const manifest = JSON.parse(
+        readFileSync(join(dir, 'manifest.json'), 'utf8'),
+      ) as SnapshotManifest;
+      const pages = new Map(
+        manifest.sources.map((source) => [
+          source.url,
+          readFileSync(join(dir, source.file), 'utf8'),
+        ]),
+      );
+      const k = provider.knowledge!;
+      for (const entry of [k.versioning, ...k.versions, ...k.retirements, ...k.docs, ...k.sdks]) {
+        const text = pages.get(entry.source.url);
+        if (!entry.source.quote || text === undefined) continue;
+        expect(containsQuote(text, entry.source.quote), entry.source.quote).toBe(true);
+      }
+    },
+  );
+
+  it.runIf(listsPages)('has a saved live read of its sources', () => {
     const dir = fixtureDir(provider);
     const manifest = JSON.parse(
       readFileSync(join(dir, 'manifest.json'), 'utf8'),
@@ -68,34 +83,60 @@ describe.each(ids)('%s', (id) => {
     expect(manifest.sources.some((source) => source.ok && source.chars > 500)).toBe(true);
   });
 
-  it('turns the saved snapshot into ProviderChange[] with verified quotes', async () => {
-    const expected = loadExpected(provider);
-    expect(expected, 'fixtures/expected.json is missing').toBeDefined();
-    const model = replayModel(provider, expected!);
-    const report = await runWatch(provider, undefined, {
-      model,
-      fetcher: snapshotFetcher(fixtureDir(provider)),
-      budget: new BudgetLedger(1),
-      today: '2026-11-01',
-    });
+  it.runIf(listsPages)(
+    'turns the saved snapshot into ProviderChange[] with verified quotes',
+    async () => {
+      const expected = loadExpected(provider);
+      expect(expected, 'fixtures/expected.json is missing').toBeDefined();
+      const model = replayModel(provider, expected!);
+      const report = await runWatch(provider, undefined, {
+        model,
+        fetcher: snapshotFetcher(fixtureDir(provider)),
+        budget: new BudgetLedger(1),
+        today: '2026-11-01',
+      });
 
-    // The agent got the provider's own guidance and the whole page, unfiltered.
-    expect(model.requests[0].system).toContain(provider.prompt.trim().slice(0, 60));
-    const firstRead = model.requests[1].messages
-      .at(-1)!
-      .content.find((block) => block.type === 'tool_result');
-    expect(JSON.stringify(firstRead)).toContain('Characters 0-');
+      // The agent got the provider's own guidance and the whole page, unfiltered.
+      expect(model.requests[0].system).toContain(provider.prompt.trim().slice(0, 60));
+      const firstRead = model.requests[1].messages
+        .at(-1)!
+        .content.find((block) => block.type === 'tool_result');
+      expect(JSON.stringify(firstRead)).toContain('Characters 0-');
 
-    expect(report.issues).toEqual([]);
-    expect(report.unverifiedQuotes).toEqual([]);
-    expect(report.changes.length).toBe(expected!.changes.length);
-    for (const change of report.changes) {
-      expect(change.provider).toBe(id);
-      expect(change.id.startsWith(`${id}:`)).toBe(true);
-      expect(change.source.quote.length).toBeGreaterThan(10);
-      expect(change.title).toBeTruthy();
-    }
-  });
+      expect(report.issues).toEqual([]);
+      expect(report.unverifiedQuotes).toEqual([]);
+      expect(report.changes.length).toBe(expected!.changes.length);
+      for (const change of report.changes) {
+        expect(change.provider).toBe(id);
+        expect(change.id.startsWith(`${id}:`)).toBe(true);
+        expect(change.source.quote.length).toBeGreaterThan(10);
+        expect(change.title).toBeTruthy();
+      }
+    },
+  );
+
+  it.runIf(listsPages)(
+    'turns the saved snapshot into the same changes through the discovery path the loop uses',
+    async () => {
+      const expected = loadExpected(provider)!;
+      const model = replayModel(provider, expected);
+      // folderWatcher's path: runAnyWatch with the folder as its head start, offline.
+      const report = await runAnyWatch(id, {}, undefined, {
+        model,
+        fetcher: snapshotFetcher(fixtureDir(provider)),
+        registry: savedRegistry([]),
+        webSearch: false,
+        budget: new BudgetLedger(100),
+        today: '2026-11-01',
+      });
+      expect(report.folder).toBe(id);
+      expect(model.requests[0].system).toContain(provider.prompt.trim().slice(0, 60));
+      expect(report.issues).toEqual([]);
+      expect(report.unverifiedQuotes).toEqual([]);
+      expect(report.changes.length).toBe(expected.changes.length);
+      expect(report.hints.packages?.length).toBeGreaterThan(0);
+    },
+  );
 
   const liveRunPath = join(provider.dir, 'fixtures', 'live-run.json');
   it.runIf(existsSync(liveRunPath))('keeps its recorded live run checkable offline', () => {

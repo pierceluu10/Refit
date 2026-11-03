@@ -1,8 +1,9 @@
 // The provider contract. A provider is a folder with provider.json (this
-// ProviderSpec), prompt.md (a short note for the agent) and knowledge.json.
-// No code is needed to add one; see providers/README.md.
+// ProviderSpec: a name and hints, optionally starting pages) and prompt.md (a
+// short note for the agent), and optionally knowledge.json. No code is needed
+// to add one, and a provider with no folder is watched from its hints alone.
 
-import type { MigrationKind, ProviderChange } from '../../shared/types.ts';
+import type { MigrationKind, ProviderChange, ProviderHints } from '../../shared/types.ts';
 import type { TurnLog } from './agent.ts';
 
 export type SourceKind =
@@ -29,11 +30,14 @@ export type ProviderSpec = {
   /** Folder name and ProviderChange.provider value, e.g. 'stripe'. */
   id: string;
   name: string;
-  /** Pages the agent starts from. It may follow links from them. */
-  sources: ProviderSource[];
+  /** Pages the agent starts from. Optional: the discovery step finds pages from the hints. */
+  sources?: ProviderSource[];
+  /** Packages, API hosts and docs URLs to start discovery from, as an inventory would give them. */
+  hints?: ProviderHints;
 };
 
-export type LoadedProvider = ProviderSpec & {
+export type LoadedProvider = Omit<ProviderSpec, 'sources'> & {
+  sources: ProviderSource[];
   dir: string;
   /** Contents of prompt.md. */
   prompt: string;

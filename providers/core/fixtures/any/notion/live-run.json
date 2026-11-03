@@ -1,0 +1,792 @@
+{
+  "note": "Live run: claude-sonnet-5-5 through the Messages API on 2026-11-03, reading live pages with web search. pages/ keeps what the agent was shown. Output recorded as returned, not edited.",
+  "runAt": "2026-11-03T03:56:36.023Z",
+  "model": "claude-sonnet-5-5",
+  "promptVersion": "any-watch-v1",
+  "input": {
+    "provider": "notion",
+    "hints": {
+      "packages": ["@notionhq/client", "notion-client"],
+      "hosts": ["api.notion.com"]
+    },
+    "maxTurns": 20,
+    "maxTokens": 16000,
+    "webSearch": {
+      "type": "web_search_20250305",
+      "maxUses": 5
+    },
+    "capUsd": 1
+  },
+  "report": {
+    "provider": "notion",
+    "changes": [
+      {
+        "provider": "notion",
+        "id": "notion:2026-10-30-markdown-v2-default-next-version",
+        "kind": "api-version",
+        "title": "Next Notion-Version will default markdown endpoints to Notion-flavored Markdown (v2); markdown_version v1 will return 400 there; enhanced markdown v1 deprecated, retirement planned ~3 months after release",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "On that version, requests without markdown_version will use v2. Requests that set markdown_version to v1 will return a 400 validation_error."
+        },
+        "affects": {
+          "operations": [
+            "POST /v1/pages",
+            "GET /v1/pages/:page_id/markdown",
+            "PATCH /v1/pages/:page_id/markdown",
+            "POST /v1/comments",
+            "PATCH /v1/comments/:comment_id"
+          ],
+          "fields": ["markdown_version"],
+          "versions": [">=5.29.0"],
+          "sdk": "@notionhq/client"
+        },
+        "effectiveDate": "2026-10-30"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-03-11-notion-version-2026-03-11",
+        "kind": "api-version",
+        "title": "New Notion API version 2026-03-11 with breaking changes: after→position, archived→in_trash, transcription→meeting_notes",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "We’ve released Notion API version 2026-03-11 with three breaking changes that simplify and modernize the API surface:"
+        },
+        "affects": {
+          "operations": ["PATCH /v1/blocks/{block_id}/children"],
+          "fields": ["after", "position", "archived", "in_trash", "transcription", "meeting_notes"],
+          "versions": ["2026-03-11"],
+          "sdk": "@notionhq/client"
+        },
+        "effectiveDate": "2026-03-11"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-03-11-archived-to-in-trash",
+        "kind": "field-renamed",
+        "title": "archived replaced by in_trash in all requests and responses on Notion-Version 2026-03-11",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "All endpoints now use in_trash instead of archived in both request parameters and response bodies."
+        },
+        "affects": {
+          "fields": ["archived", "in_trash"],
+          "versions": ["2026-03-11"]
+        },
+        "effectiveDate": "2026-03-11"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-03-11-after-to-position",
+        "kind": "field-renamed",
+        "title": "Append block children: flat after string replaced by position object on Notion-Version 2026-03-11",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "The Append block children endpoint now uses a position object instead of a flat after string parameter"
+        },
+        "affects": {
+          "operations": ["PATCH /v1/blocks/{block_id}/children"],
+          "fields": ["after", "position"],
+          "versions": ["2026-03-11"]
+        },
+        "effectiveDate": "2026-03-11"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-03-11-transcription-to-meeting-notes",
+        "kind": "field-renamed",
+        "title": "Block type transcription renamed meeting_notes on Notion-Version 2026-03-11",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "The transcription block type has been renamed to meeting_notes across all block endpoints."
+        },
+        "affects": {
+          "fields": ["transcription", "meeting_notes"],
+          "versions": ["2026-03-11"]
+        },
+        "effectiveDate": "2026-03-11"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-11-02-agent-alpha-routes-deprecated",
+        "kind": "endpoint-removed",
+        "title": "Private alpha Notion Agent API routes (agents, threads, messages, chat) deprecated; migrate to public Agent APIs sessions by 2026-09-30 (deadline passed); Update agent status deprecated",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "Migrate off the alpha routes by September 30, 2026."
+        },
+        "affects": {
+          "operations": ["PATCH /v1/agents/{agent_id}"],
+          "fields": ["status"]
+        },
+        "effectiveDate": "2026-09-30"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-10-30-credits-fractional",
+        "kind": "other",
+        "title": "Agent API credit usage fields now return fractional numbers; code assuming integers must change",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "These fields were already typed as numbers. If your code assumes they’re integers, update it to handle decimals."
+        },
+        "affects": {
+          "fields": ["credits_used", "total_credits_used"]
+        },
+        "effectiveDate": "2026-10-30"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-09-09-rate-limits",
+        "kind": "pagination-or-limits",
+        "title": "Per-connection rate limit now 600/min (Business/Enterprise) or 180/min (others) in fixed 60s window; workspace-level limit added 2026-06-16; 429 bodies include additional_data.retry_after",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "The per-connection rate limit is now enforced over a fixed 60-second window: 600 requests per minute on Business and Enterprise plans, and 180 requests per minute on all other plans."
+        },
+        "affects": {},
+        "effectiveDate": "2026-09-09"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-06-16-workspace-rate-limit",
+        "kind": "pagination-or-limits",
+        "title": "Notion API now applies a shared per-workspace rate limit in addition to per-connection",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "The Notion API now applies a rate limit per workspace, in addition to the existing per-connection limit."
+        },
+        "affects": {},
+        "effectiveDate": "2026-06-16"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-04-20-query-10000-limit",
+        "kind": "pagination-or-limits",
+        "title": "Data source/view queries capped at 10,000 results; check request_status.type incomplete",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "now enforce a maximum pagination depth of 10,000 results per query."
+        },
+        "affects": {
+          "operations": ["POST /v1/data_sources/{id}/query"],
+          "fields": ["request_status"],
+          "versions": [">=5.20.0"],
+          "sdk": "@notionhq/client"
+        },
+        "effectiveDate": "2026-04-20"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-09-01-free-block-limits-rest",
+        "kind": "pagination-or-limits",
+        "title": "Free workspace block limits now enforced on the REST API (HTTP 403) for internal and restricted OAuth connections",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "the REST API enforces the existing Free workspace block limit for internal connections and OAuth connections restricted to selected workspaces."
+        },
+        "affects": {},
+        "effectiveDate": "2026-09-01"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-06-08-oauth-unique-tokens",
+        "kind": "auth-change",
+        "title": "New public connections get a fresh access_token/refresh_token on each OAuth authorization; store every pair",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "New public connections now mint a fresh access_token and refresh_token for each successful OAuth authorization instead of returning the existing active token."
+        },
+        "affects": {},
+        "effectiveDate": "2026-06-08"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-09-25-validation-tightening",
+        "kind": "other",
+        "title": "Stricter validation: custom_emoji icons must exist in workspace; invalid Notion icon URLs return validation_error; formula expressions that can't be stored return validation_error",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "A custom_emoji icon on a page, database, data source, or callout must now name a custom emoji in the integration’s workspace."
+        },
+        "affects": {
+          "fields": ["icon"]
+        },
+        "effectiveDate": "2026-09-25"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-08-05-unsupported-property-values",
+        "kind": "other",
+        "title": "Formula and rollup property values can now return type \"unsupported\"; handle in code",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "The API can now return formula and rollup page property values and property item values with type set to \"unsupported\" and an empty unsupported object."
+        },
+        "affects": {
+          "versions": [">=5.24.0"],
+          "sdk": "@notionhq/client"
+        },
+        "effectiveDate": "2026-08-05"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-07-15-notion-app-urls",
+        "kind": "other",
+        "title": "url/href values now use https://app.notion.com/p/{page-id} instead of notion.so; don't parse URLs",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "now point at the Notion app domain with a page path prefix, https://app.notion.com/p/{page-id}, instead of https://www.notion.so/{page-id}."
+        },
+        "affects": {
+          "fields": ["url", "href"]
+        },
+        "effectiveDate": "2026-07-15"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-10-09-admin-start-cursor",
+        "kind": "pagination-or-limits",
+        "title": "Admin API list endpoints now honor start_cursor; the old cursor parameter is deprecated and conflicting values return 400",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "The cursor parameter still works but is deprecated."
+        },
+        "affects": {
+          "fields": ["cursor", "start_cursor"]
+        },
+        "effectiveDate": "2026-10-09"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-10-09-data-source-update-semantics",
+        "kind": "other",
+        "title": "Update data source: omitted descriptions/options now preserved; option names match case-insensitively; color changes allowed",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "Property updates now keep the existing description when you omit it, for every property type and when you change a type."
+        },
+        "affects": {
+          "operations": ["PATCH /v1/data_sources/{id}"]
+        },
+        "effectiveDate": "2026-10-09"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-10-16-update-markdown-warnings",
+        "kind": "other",
+        "title": "Update page markdown update_content now applies matching edits and returns warnings for misses (behaviour change); empty old_str fails validation since 2026-08-25",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "The request fails only when no content-changing edit matches."
+        },
+        "affects": {
+          "operations": ["PATCH /v1/pages/:page_id/markdown"],
+          "fields": ["update_content", "old_str", "warnings"]
+        },
+        "effectiveDate": "2026-10-16"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-10-26-markdown-ignores-suggestions",
+        "kind": "other",
+        "title": "Page markdown retrieval now shows only accepted content (pending suggested edits excluded)",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "Retrieve a page as markdown and the notion-fetch MCP tool now show only accepted page content."
+        },
+        "affects": {
+          "operations": ["GET /v1/pages/:page_id/markdown"]
+        },
+        "effectiveDate": "2026-10-26"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-09-24-error-status-codes",
+        "kind": "other",
+        "title": "Page markdown writes return 504 on timeout (was 500) and 400 for pages too large to load (was 500)",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "now return HTTP 504 gateway_timeout when a request runs past its deadline. Before, they returned HTTP 500 internal_server_error."
+        },
+        "affects": {
+          "operations": ["PATCH /v1/pages/:page_id/markdown"]
+        },
+        "effectiveDate": "2026-09-24"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2026-mcp-query-database-view-removed",
+        "kind": "endpoint-removed",
+        "title": "Notion MCP tool notion-query-database-view removed; use notion-query-data-sources mode view; notion-search now keyword-only (notion-ai-search separate)",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "notion-query-database-view is no longer available. Call notion-query-data-sources instead"
+        },
+        "affects": {
+          "operations": ["notion-query-database-view", "notion-query-data-sources", "notion-search"]
+        },
+        "effectiveDate": "2026-09-29"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:2025-08-26-api-2025-09-03",
+        "kind": "api-version",
+        "title": "Notion API version 2025-09-03 separates databases from data sources; callers must upgrade to support multi-source databases; webhooks versioned too",
+        "source": {
+          "url": "https://developers.notion.com/page/changelog",
+          "quote": "Our new API version 2025-09-03 separates “databases” (containers) from “data sources” (tables), unlocking powerful new organizational capabilities."
+        },
+        "affects": {
+          "operations": ["databases", "data_sources"],
+          "versions": ["2025-09-03"]
+        },
+        "effectiveDate": "2025-09-03"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:npm-notionhq-client-5-0-0",
+        "kind": "sdk-major",
+        "title": "npm @notionhq/client v5.0.0: targets Notion-Version 2025-09-03, adds dataSources.*, removes notion.databases.list; incompatible with older API versions",
+        "source": {
+          "url": "https://api.github.com/repos/makenotion/notion-sdk-js/releases?per_page=100",
+          "quote": "The list databases method has been removed, since this endpoint has been deprecated & unsupported since `2022-02-22`, and v5 of the SDK is tailored toward `2025-09-03`"
+        },
+        "affects": {
+          "operations": ["notion.databases.list", "notion.databases.*", "notion.dataSources.*"],
+          "versions": ["<5.0.0", "5.0.0"],
+          "sdk": "@notionhq/client"
+        },
+        "effectiveDate": "2025-09-03"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:npm-notionhq-client-4-0-0",
+        "kind": "sdk-major",
+        "title": "npm @notionhq/client v4.0.0: removes legacy page properties shape in create/update page params",
+        "source": {
+          "url": "https://api.github.com/repos/makenotion/notion-sdk-js/releases?per_page=100",
+          "quote": "Removes support for the legacy (pre-Q3-2021) shape for page `properties` parameters from `CreatePageBodyParameters` and `UpdatePageBodyParameters` in `src/api-endpoints.ts`."
+        },
+        "affects": {
+          "operations": ["pages.create", "pages.update"],
+          "versions": ["<4.0.0", "4.0.0"],
+          "sdk": "@notionhq/client"
+        },
+        "effectiveDate": "2025-07-01"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:npm-notionhq-client-3-0-0",
+        "kind": "sdk-major",
+        "title": "npm @notionhq/client v3.0.0: minimum Node raised from 12 to 18, uses built-in fetch instead of node-fetch",
+        "source": {
+          "url": "https://api.github.com/repos/makenotion/notion-sdk-js/releases?per_page=100",
+          "quote": "This update, v2.3.0 → v3.0.0, is marked as a major version upgrade due to the Node minimum version increase to 18"
+        },
+        "affects": {
+          "versions": ["<3.0.0", "3.0.0"],
+          "sdk": "@notionhq/client"
+        },
+        "effectiveDate": "2025-05-05"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:npm-notionhq-client-2-0-0",
+        "kind": "sdk-major",
+        "title": "npm @notionhq/client v2.0.0: breaking changes, client uses Notion-Version 2022-06-28",
+        "source": {
+          "url": "https://api.github.com/repos/makenotion/notion-sdk-js/releases?per_page=100",
+          "quote": "Includes several breaking changes and updates the client to use Notion-Version `2022-06-28`."
+        },
+        "affects": {
+          "versions": ["<2.0.0", "2.0.0"],
+          "sdk": "@notionhq/client"
+        },
+        "effectiveDate": "2022-07-06"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:pypi-notion-client-3-0-0",
+        "kind": "sdk-major",
+        "title": "PyPI notion-client 3.0.0: is_full_page_or_database removed (use is_full_page_or_data_source); is_api_error_code made private",
+        "source": {
+          "url": "https://api.github.com/repos/ramnes/notion-sdk-py/releases?per_page=100",
+          "quote": "`is_full_page_or_database` has been removed. Use `is_full_page_or_data_source` instead."
+        },
+        "affects": {
+          "operations": ["is_full_page_or_database", "is_api_error_code"],
+          "versions": ["<3.0.0", "3.0.0"],
+          "sdk": "notion-client"
+        },
+        "effectiveDate": "2026-02-16"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:pypi-notion-client-2-0-0",
+        "kind": "sdk-major",
+        "title": "PyPI notion-client 2.0.0: Notion-Version upgraded to 2022-06-28 with breaking changes",
+        "source": {
+          "url": "https://api.github.com/repos/ramnes/notion-sdk-py/releases?per_page=100",
+          "quote": "⚠️ Beware, `Notion-Version` has been upgraded to `2022-06-28` and it brings [breaking changes]"
+        },
+        "affects": {
+          "versions": ["<2.0.0", "2.0.0"],
+          "sdk": "notion-client"
+        },
+        "effectiveDate": "2022-12-10"
+      },
+      {
+        "provider": "notion",
+        "id": "notion:pypi-notion-client-1-0-0",
+        "kind": "sdk-major",
+        "title": "PyPI notion-client 1.0.0: Notion-Version upgraded to 2022-02-22 with breaking changes",
+        "source": {
+          "url": "https://api.github.com/repos/ramnes/notion-sdk-py/releases?per_page=100",
+          "quote": "⚠️ Beware, `Notion-Version` has been upgraded to `2022-02-22` and it brings [breaking changes]"
+        },
+        "affects": {
+          "versions": ["<1.0.0", "1.0.0"],
+          "sdk": "notion-client"
+        },
+        "effectiveDate": "2022-04-18"
+      }
+    ],
+    "issues": [],
+    "unverifiedQuotes": [],
+    "sourcesRead": [
+      "https://api.github.com/repos/ramnes/notion-sdk-py/releases?per_page=100",
+      "https://api.github.com/repos/makenotion/notion-sdk-js/releases?per_page=100",
+      "https://registry.npmjs.org/@notionhq%2Fclient",
+      "https://registry.npmjs.org/notion-client",
+      "https://pypi.org/pypi/notion-client/json",
+      "https://developers.notion.com/page/changelog"
+    ],
+    "model": "claude-sonnet-5-5",
+    "costUsd": 0.2120723,
+    "turns": 7,
+    "summary": "Read the developers.notion.com changelog (all but ~offset 60000-64500, covering Mar-Apr 2026 items, unread) and SDK release notes supplied. Did not read the upgrade guides, versioning page, or the READMEs. npm 'notion-client' (unofficial, no repository, \"unofficial Notion API\") is unrelated to Notion's official SDK; ignored. @notionhq/client 1.0.0 has no notes; 0.x BREAKING not searched. Many Notion MCP-only changes and pure additions were left out on purpose. JS SDK 5.x minors (e.g. 5.12.0 for 2026-03-11) are not majors.",
+    "log": [
+      {
+        "turn": 1,
+        "stopReason": "tool_use",
+        "inputTokens": 12744,
+        "outputTokens": 85,
+        "calls": [
+          {
+            "tool": "list_sources",
+            "input": "{}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://developers.notion.com/page/changelog\"}"
+          }
+        ]
+      },
+      {
+        "turn": 2,
+        "stopReason": "tool_use",
+        "inputTokens": 18169,
+        "outputTokens": 224,
+        "calls": [
+          {
+            "tool": "search_page",
+            "input": "{\"url\":\"https://developers.notion.com/page/changelog\",\"query\":\"deprecat\"}"
+          },
+          {
+            "tool": "search_page",
+            "input": "{\"url\":\"https://developers.notion.com/page/changelog\",\"query\":\"retire\"}"
+          }
+        ]
+      },
+      {
+        "turn": 3,
+        "stopReason": "tool_use",
+        "inputTokens": 19211,
+        "outputTokens": 171,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://developers.notion.com/page/changelog\",\"offset\":64500}"
+          },
+          {
+            "tool": "search_page",
+            "input": "{\"url\":\"https://developers.notion.com/page/changelog\",\"query\":\"Notion-Version 2026\"}"
+          }
+        ]
+      },
+      {
+        "turn": 4,
+        "stopReason": "tool_use",
+        "inputTokens": 24135,
+        "outputTokens": 293,
+        "calls": [
+          {
+            "tool": "search_page",
+            "input": "{\"url\":\"https://developers.notion.com/page/changelog\",\"query\":\"breaking\"}"
+          },
+          {
+            "tool": "search_page",
+            "input": "{\"url\":\"https://developers.notion.com/page/changelog\",\"query\":\"no longer\"}"
+          },
+          {
+            "tool": "search_page",
+            "input": "{\"url\":\"https://developers.notion.com/page/changelog\",\"query\":\"limit\"}"
+          }
+        ]
+      },
+      {
+        "turn": 5,
+        "stopReason": "tool_use",
+        "inputTokens": 28315,
+        "outputTokens": 347,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://developers.notion.com/page/changelog\",\"offset\":15000}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://developers.notion.com/page/changelog\",\"offset\":30000}"
+          }
+        ]
+      },
+      {
+        "turn": 6,
+        "stopReason": "tool_use",
+        "inputTokens": 38504,
+        "outputTokens": 121,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://developers.notion.com/page/changelog\",\"offset\":45000}"
+          }
+        ]
+      },
+      {
+        "turn": 7,
+        "stopReason": "tool_use",
+        "inputTokens": 43541,
+        "outputTokens": 6257,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{\"changes\":[{\"id\":\"2026-10-30-markdown-v2-default-next-version\",\"kind\":\"api-version\",\"title\":\"Next Notion-Version will default markdown endpoints to Notion-flavored Markdown (v2); markdown_version v1 will return 400 there; enhanced markdown v1 deprecated, retirement planned ~3 months after release\","
+          }
+        ]
+      }
+    ],
+    "name": "Notion",
+    "hints": {
+      "packages": ["@notionhq/client", "notion-client"],
+      "hosts": ["api.notion.com"]
+    },
+    "packages": [
+      {
+        "ecosystem": "npm",
+        "name": "@notionhq/client",
+        "registryUrl": "https://registry.npmjs.org/@notionhq%2Fclient",
+        "pageUrl": "https://www.npmjs.com/package/@notionhq/client",
+        "readAt": "2026-11-03",
+        "majors": [
+          {
+            "major": 5,
+            "first": "5.0.0",
+            "latest": "5.30.0",
+            "releases": 39,
+            "firstAt": "2025-09-03",
+            "latestAt": "2026-10-30"
+          },
+          {
+            "major": 4,
+            "first": "4.0.0",
+            "latest": "4.0.2",
+            "releases": 3,
+            "firstAt": "2025-07-01",
+            "latestAt": "2025-08-13"
+          },
+          {
+            "major": 3,
+            "first": "3.0.0",
+            "latest": "3.1.3",
+            "releases": 6,
+            "firstAt": "2025-05-05",
+            "latestAt": "2025-05-28"
+          },
+          {
+            "major": 2,
+            "first": "2.0.0",
+            "latest": "2.3.0",
+            "releases": 22,
+            "firstAt": "2022-07-06",
+            "latestAt": "2025-03-13"
+          },
+          {
+            "major": 1,
+            "first": "1.0.0",
+            "latest": "1.0.4",
+            "releases": 5,
+            "firstAt": "2022-02-26",
+            "latestAt": "2022-03-18"
+          },
+          {
+            "major": 0,
+            "first": "0.1.0",
+            "latest": "0.4.13",
+            "releases": 32,
+            "firstAt": "2021-05-13",
+            "latestAt": "2022-01-25"
+          }
+        ],
+        "versions": 109,
+        "description": "A simple and easy to use client for the Notion API",
+        "latest": "5.30.0",
+        "latestAt": "2026-10-30",
+        "repository": "https://github.com/makenotion/notion-sdk-js",
+        "homepage": "https://developers.notion.com/docs/getting-started"
+      },
+      {
+        "ecosystem": "npm",
+        "name": "notion-client",
+        "registryUrl": "https://registry.npmjs.org/notion-client",
+        "pageUrl": "https://www.npmjs.com/package/notion-client",
+        "readAt": "2026-11-03",
+        "majors": [
+          {
+            "major": 8,
+            "first": "8.0.0",
+            "latest": "8.0.8",
+            "releases": 9,
+            "firstAt": "2026-08-18",
+            "latestAt": "2026-09-03"
+          },
+          {
+            "major": 7,
+            "first": "7.0.0",
+            "latest": "7.12.1",
+            "releases": 31,
+            "firstAt": "2024-11-01",
+            "latestAt": "2026-08-18"
+          },
+          {
+            "major": 6,
+            "first": "6.0.0",
+            "latest": "6.16.0",
+            "releases": 43,
+            "firstAt": "2022-03-25",
+            "latestAt": "2023-02-14"
+          },
+          {
+            "major": 5,
+            "first": "5.0.0",
+            "latest": "5.0.1",
+            "releases": 2,
+            "firstAt": "2022-03-24",
+            "latestAt": "2022-03-24"
+          },
+          {
+            "major": 4,
+            "first": "4.0.0",
+            "latest": "4.19.8",
+            "releases": 49,
+            "firstAt": "2021-01-29",
+            "latestAt": "2022-03-23"
+          },
+          {
+            "major": 3,
+            "first": "3.0.0",
+            "latest": "3.4.8",
+            "releases": 9,
+            "firstAt": "2021-01-15",
+            "latestAt": "2021-01-28"
+          },
+          {
+            "major": 2,
+            "first": "2.0.0",
+            "latest": "2.5.3",
+            "releases": 16,
+            "firstAt": "2020-08-24",
+            "latestAt": "2021-01-12"
+          },
+          {
+            "major": 1,
+            "first": "1.0.0",
+            "latest": "1.3.2",
+            "releases": 6,
+            "firstAt": "2020-08-18",
+            "latestAt": "2020-08-23"
+          },
+          {
+            "major": 0,
+            "first": "0.2.0",
+            "latest": "0.4.0",
+            "releases": 6,
+            "firstAt": "2020-08-15",
+            "latestAt": "2020-08-18"
+          }
+        ],
+        "versions": 177,
+        "description": "Robust TypeScript client for the unofficial Notion API.",
+        "latest": "8.0.8",
+        "latestAt": "2026-09-03"
+      },
+      {
+        "ecosystem": "pypi",
+        "name": "notion-client",
+        "registryUrl": "https://pypi.org/pypi/notion-client/json",
+        "pageUrl": "https://pypi.org/project/notion-client/",
+        "readAt": "2026-11-03",
+        "majors": [
+          {
+            "major": 3,
+            "first": "3.0.0",
+            "latest": "3.1.0",
+            "releases": 2,
+            "firstAt": "2026-02-16",
+            "latestAt": "2026-05-12"
+          },
+          {
+            "major": 2,
+            "first": "2.0.0",
+            "latest": "2.7.0",
+            "releases": 9,
+            "firstAt": "2022-12-10",
+            "latestAt": "2025-10-31"
+          },
+          {
+            "major": 1,
+            "first": "1.0.0",
+            "latest": "1.0.0",
+            "releases": 1,
+            "firstAt": "2022-04-18",
+            "latestAt": "2022-04-18"
+          },
+          {
+            "major": 0,
+            "first": "0.2.0",
+            "latest": "0.9.0",
+            "releases": 10,
+            "firstAt": "2021-05-14",
+            "latestAt": "2022-02-05"
+          }
+        ],
+        "versions": 22,
+        "description": "Python client for the official Notion API",
+        "latest": "3.1.0",
+        "latestAt": "2026-05-12",
+        "status": "Development Status :: 5 - Production/Stable",
+        "repository": "https://github.com/ramnes/notion-sdk-py",
+        "homepage": "https://github.com/ramnes/notion-sdk-py",
+        "projectUrls": {
+          "Homepage": "https://github.com/ramnes/notion-sdk-py"
+        }
+      }
+    ],
+    "startingPages": [
+      "https://api.github.com/repos/makenotion/notion-sdk-js/releases?per_page=100",
+      "https://raw.githubusercontent.com/makenotion/notion-sdk-js/HEAD/README.md",
+      "https://api.github.com/repos/ramnes/notion-sdk-py/releases?per_page=100",
+      "https://raw.githubusercontent.com/ramnes/notion-sdk-py/HEAD/README.md"
+    ]
+  }
+}
