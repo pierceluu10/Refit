@@ -69,6 +69,8 @@ export type ToolContext = {
   onToolPackCall?: (run: ValidatorRun) => void;
   // Registers an agent-named check: the harness runs it on the baseline and returns that run.
   addCheck?: (check: CheckCommand) => Promise<CheckRun>;
+  // Drops a check the agent added (never a detected one); false when there is none by that name.
+  removeCheck?: (name: string) => boolean;
   fetch?: typeof fetch;
 };
 

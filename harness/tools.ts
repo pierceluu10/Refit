@@ -347,7 +347,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
     ),
     tool(
       'run_checks',
-      'Run the type check, build and tests. Shows failures for each. Use `add` to register checks the detection missed (e.g. `make test`): the harness runs them on the original code and after your edit, and they count toward proof like the detected ones.',
+      'Run the type check, build and tests. Shows failures for each. Use `add` to register checks the detection missed (e.g. `make test`): the harness runs them on the original code and after your edit, and they count toward proof like the detected ones. Use `remove` to drop a check you added and gave up on; every check left counts, and a new failure in any of them holds back verified.',
       {
         names: { type: 'array', items: { type: 'string' }, description: 'Only these checks' },
         add: {
@@ -359,10 +359,22 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
             required: ['name', 'command'],
           },
         },
+        remove: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Names of checks you added and no longer want counted',
+        },
       },
       [],
       async (args) => {
         const notes: string[] = [];
+        for (const name of Array.isArray(args.remove) ? args.remove.map(String) : []) {
+          notes.push(
+            ctx.removeCheck?.(name)
+              ? `removed ${name}`
+              : `${name} was not removed: only a check you added can be`,
+          );
+        }
         for (const item of Array.isArray(args.add) ? args.add : []) {
           const { name, command } = (item ?? {}) as { name?: unknown; command?: unknown };
           if (typeof name !== 'string' || typeof command !== 'string' || !name || !command) {
