@@ -1,0 +1,724 @@
+{
+  "note": "Live run: claude-sonnet-5-5 through the Messages API on 2026-11-03, reading live pages with web search. pages/ keeps what the agent was shown. Output recorded as returned, not edited.",
+  "runAt": "2026-11-03T03:55:06.749Z",
+  "model": "claude-sonnet-5-5",
+  "promptVersion": "any-watch-v1",
+  "input": {
+    "provider": "gemini",
+    "hints": {
+      "packages": ["@google/genai", "@google/generative-ai", "google-genai", "google-generativeai"],
+      "hosts": ["generativelanguage.googleapis.com"],
+      "docsUrls": ["https://ai.google.dev/gemini-api/docs"]
+    },
+    "maxTurns": 20,
+    "maxTokens": 16000,
+    "webSearch": {
+      "type": "web_search_20250305",
+      "maxUses": 5
+    },
+    "capUsd": 1
+  },
+  "report": {
+    "provider": "gemini",
+    "changes": [
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-05-interactions-steps-schema",
+        "kind": "api-version",
+        "title": "Interactions API (v1beta): outputs replaced by steps, new default schema May 26, 2026; legacy schema removed June 8, 2026 (Api-Revision header 2026-05-20)",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The new schema becomes the default on **May 26** and the legacy schema will be removed on **June 8** ."
+        },
+        "affects": {
+          "operations": [
+            "POST /v1beta/interactions",
+            "GET /v1beta/interactions/{id}",
+            "interactions.create"
+          ],
+          "fields": ["outputs", "steps", "output_text"],
+          "versions": ["2026-05-20"]
+        },
+        "effectiveDate": "2026-06-08"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-05-interactions-response-format",
+        "kind": "field-removed",
+        "title": "Interactions API: response_mime_type removed; response_format becomes polymorphic; image_config moves from generation_config to response_format",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/interactions-breaking-changes-may-2026.md.txt",
+          "quote": "**The API removes `response_mime_type`.** You now specify the MIME type per format entry inside `response_format`."
+        },
+        "affects": {
+          "operations": ["interactions.create"],
+          "fields": ["response_mime_type", "response_format", "generation_config.image_config"]
+        },
+        "effectiveDate": "2026-06-08"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-05-interactions-sse-events",
+        "kind": "field-renamed",
+        "title": "Interactions API streaming events renamed (interaction.start->interaction.created, content.*->step.*, interaction.complete->interaction.completed)",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/interactions-breaking-changes-may-2026.md.txt",
+          "quote": "- `interaction.start` → `interaction.created`\n- `content.start` → `step.start`\n- `content.delta` → `step.delta`\n- `content.stop` → `step.stop`\n- `interaction.complete` → `interaction.completed`"
+        },
+        "affects": {
+          "operations": ["interactions.create"],
+          "fields": ["event_type"]
+        },
+        "effectiveDate": "2026-06-08"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2025-12-19-total-thought-tokens",
+        "kind": "field-renamed",
+        "title": "Interactions API v1beta: total_reasoning_tokens renamed to total_thought_tokens",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The `total_reasoning_tokens` field has been renamed to `total_thought_tokens` to better align with the concept of \"thoughts\" in thinking models."
+        },
+        "affects": {
+          "fields": ["total_reasoning_tokens", "total_thought_tokens"]
+        },
+        "effectiveDate": "2025-12-19"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-07-21-sampling-params-deprecated",
+        "kind": "other",
+        "title": "temperature, top_p and top_k sampling parameters deprecated (Gemini 3.6 Flash onward; check guide for per-model behaviour)",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The sampling parameters `temperature`, `top_p`\nand `top_k` are now deprecated."
+        },
+        "affects": {
+          "operations": ["gemini-3.6-flash"],
+          "fields": ["temperature", "top_p", "top_k"]
+        },
+        "effectiveDate": "2026-07-21"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-10-26-store-default",
+        "kind": "other",
+        "title": "Generate Content API: new paid-tier projects now store requests by default (store=true); opt out with store=false",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "New projects using the Generate Content API (`generateContent`, `streamGenerateContent`, and `batchGenerateContent`) on the paid tier now store requests by default (`store=true`), matching the Interactions API."
+        },
+        "affects": {
+          "operations": ["generateContent", "streamGenerateContent", "batchGenerateContent"],
+          "fields": ["store"]
+        },
+        "effectiveDate": "2026-10-26"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-10-08-gemini-3-7-3-5-flash-deprecated",
+        "kind": "model-retirement",
+        "title": "gemini-3.7-flash and gemini-3.5-flash deprecated; requests auto-routed to gemini-3.8-flash and gemini-3.6-flash",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "API requests to `gemini-3.7-flash` are automatically routed to `gemini-3.8-flash`."
+        },
+        "affects": {
+          "operations": [
+            "gemini-3.7-flash",
+            "gemini-3.5-flash",
+            "gemini-3.8-flash",
+            "gemini-3.6-flash"
+          ]
+        },
+        "effectiveDate": "2026-10-08"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-10-23-deep-research-pro-shutdown",
+        "kind": "model-retirement",
+        "title": "deep-research-pro-preview-12-2025 agent shut down Oct 23, 2026; migrate to deep-research-preview-04-2026 or deep-research-max-preview-04-2026",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The `deep-research-pro-preview-12-2025` agent is deprecated and will be\n[shut down](https://ai.google.dev/gemini-api/docs/deprecations#managed-agents) on **October 23,\n2026**."
+        },
+        "affects": {
+          "operations": ["deep-research-pro-preview-12-2025", "interactions.create"],
+          "fields": ["agent"]
+        },
+        "effectiveDate": "2026-10-23"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-09-17-antigravity-09-2026",
+        "kind": "model-retirement",
+        "title": "antigravity-preview-05-2026 shut down Oct 5, 2026; replaced by antigravity-preview-09-2026 with renamed built-in tools and PascalCase params",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "Released `antigravity-preview-09-2026`,\nwhich replaces and deprecates `antigravity-preview-05-2026`."
+        },
+        "affects": {
+          "operations": ["antigravity-preview-05-2026", "antigravity-preview-09-2026"]
+        },
+        "effectiveDate": "2026-10-05"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-11-17-preview-tts-live-shutdown",
+        "kind": "model-retirement",
+        "title": "Preview TTS and Live models shut down Nov 17, 2026 (gemini-3.1-flash-tts-preview, gemini-2.5-flash/pro-preview-tts, gemini-3.1-flash-live-preview, gemini-2.5-flash-native-audio-preview-12-2025); replace with gemini-3.8-flash-tts/-lite-tts or gemini-3.8-live",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/deprecations.md.txt",
+          "quote": "| `gemini-3.1-flash-tts-preview` | February 26, 2026 | November 17, 2026 | `gemini-3.8-flash-tts` or `gemini-3.8-flash-lite-tts` |"
+        },
+        "affects": {
+          "operations": [
+            "gemini-3.1-flash-tts-preview",
+            "gemini-2.5-flash-preview-tts",
+            "gemini-2.5-pro-preview-tts",
+            "gemini-3.1-flash-live-preview",
+            "gemini-2.5-flash-native-audio-preview-12-2025"
+          ]
+        },
+        "effectiveDate": "2026-11-17"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2027-future-model-shutdowns",
+        "kind": "model-retirement",
+        "title": "Upcoming shutdowns: gemini-3.1-flash-lite (May 7, 2027), gemini-2.5-flash-image (Mar 15, 2027), gemini-embedding-001 (May 14, 2028)",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/deprecations.md.txt",
+          "quote": "| `gemini-2.5-flash-image` | October 2, 2025 | March 15, 2027 | `gemini-3.1-flash-lite-image` |"
+        },
+        "affects": {
+          "operations": ["gemini-2.5-flash-image", "gemini-3.1-flash-lite", "gemini-embedding-001"]
+        },
+        "effectiveDate": "2027-03-15"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-08-17-imagen-4-shutdown",
+        "kind": "model-retirement",
+        "title": "Imagen 4 models (generate, ultra, fast) shut down Aug 17, 2026; use gemini-nano-banana-2.1",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "being deprecated and will be [shut down](https://ai.google.dev/gemini-api/docs/deprecations) on **August 17, 2026**:"
+        },
+        "affects": {
+          "operations": [
+            "imagen-4.0-generate-001",
+            "imagen-4.0-ultra-generate-001",
+            "imagen-4.0-fast-generate-001"
+          ]
+        },
+        "effectiveDate": "2026-08-17"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-06-30-veo-shutdown",
+        "kind": "model-retirement",
+        "title": "Veo 2/3.0 GA models shut down June 30, 2026; Veo 3.1 preview shut down Oct 22, 2026; replace with gemini-omni-1.1-flash",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "being deprecated and will be [shut down](https://ai.google.dev/gemini-api/docs/deprecations) on **June 30, 2026**:"
+        },
+        "affects": {
+          "operations": [
+            "veo-2.0-generate-001",
+            "veo-3.0-generate-001",
+            "veo-3.0-fast-generate-001",
+            "veo-3.1-generate-preview",
+            "veo-3.1-fast-generate-preview",
+            "veo-3.1-lite-generate-preview",
+            "gemini-omni-flash-preview"
+          ]
+        },
+        "effectiveDate": "2026-10-22"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-06-01-gemini-2-0-shutdown",
+        "kind": "model-retirement",
+        "title": "Gemini 2.0 Flash and Flash-Lite models shut down June 1, 2026",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The following Gemini 2.0 models are now [shut down](https://ai.google.dev/gemini-api/docs/deprecations):"
+        },
+        "affects": {
+          "operations": [
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-001",
+            "gemini-2.0-flash-lite",
+            "gemini-2.0-flash-lite-001"
+          ]
+        },
+        "effectiveDate": "2026-06-01"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-03-preview-model-shutdowns",
+        "kind": "model-retirement",
+        "title": "Preview models shut down: gemini-3-pro-preview (Mar 9, 2026, now aliased to 3.1 pro), gemini-2.5-flash-lite-preview-09-2025, gemini-3.1-flash-lite-preview (May 25), image previews (June 25)",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The Gemini 3 Pro Preview model has been [shut down](https://ai.google.dev/gemini-api/docs/deprecations). The `gemini-3-pro-preview` now points to [`gemini-3.1-pro-preview`]"
+        },
+        "affects": {
+          "operations": [
+            "gemini-3-pro-preview",
+            "gemini-2.5-flash-lite-preview-09-2025",
+            "gemini-3.1-flash-lite-preview",
+            "gemini-3.1-flash-image-preview",
+            "gemini-3-pro-image-preview"
+          ]
+        },
+        "effectiveDate": "2026-06-25"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-embedding-shutdowns",
+        "kind": "model-retirement",
+        "title": "text-embedding-004 shut down Jan 14, 2026; embedding-2-preview shut down Aug 10, 2026; use gemini-embedding-2",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The `text-embedding-004` model has been [shut down](https://ai.google.dev/gemini-api/docs/deprecations)."
+        },
+        "affects": {
+          "operations": ["text-embedding-004", "embedding-2-preview", "gemini-embedding-2-preview"]
+        },
+        "effectiveDate": "2026-01-14"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-06-15-gmp-contextual-view",
+        "kind": "product-shutdown",
+        "title": "Experimental GMP Contextual View tool for Grounding with Google Maps shut down June 15, 2026",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The experimental GMP Contextual View tool (a fixed interface for Grounding with Google Maps outputs) will [shut down](https://ai.google.dev/gemini-api/docs/deprecations) on **June 15, 2026**:"
+        },
+        "affects": {},
+        "effectiveDate": "2026-06-15"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-01-21-latest-aliases",
+        "kind": "other",
+        "title": "-latest aliases repointed (gemini-pro-latest, gemini-flash-latest; flash-latest later moved to gemini-3.5-flash on May 19, 2026) — behaviour change",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "`gemini-pro-latest` switched to `gemini-3-pro-preview`\n- `gemini-flash-latest` switched to `gemini-3-flash-preview`"
+        },
+        "affects": {
+          "operations": ["gemini-pro-latest", "gemini-flash-latest"]
+        },
+        "effectiveDate": "2026-01-21"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-gemini-2-5-access-limited",
+        "kind": "other",
+        "title": "Gemini 2.5 models limited to users who have previously used them (not deprecated); new projects may be unable to call them",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "we are limiting access to the 2.5 models to users who have actively used them in the past."
+        },
+        "affects": {
+          "operations": ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
+        },
+        "effectiveDate": "2026-09-18"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-05-js-genai-2-0-0",
+        "kind": "sdk-major",
+        "title": "npm @google/genai 2.0.0: breaking changes in Interactions (steps, response_format, SSE renames); generateContent unaffected",
+        "source": {
+          "url": "https://raw.githubusercontent.com/googleapis/js-genai/HEAD/CHANGELOG.md",
+          "quote": "Note: The breaking changes are only in interactions. `GenerateContent` usage in unaffected."
+        },
+        "affects": {
+          "versions": ["<2.0.0", "2.0.0"],
+          "sdk": "@google/genai"
+        },
+        "effectiveDate": "2026-05-07"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2026-05-python-genai-2-0-0",
+        "kind": "sdk-major",
+        "title": "PyPI google-genai 2.0.0: breaking changes in Interactions (steps, response_format, SSE renames); generate_content unaffected",
+        "source": {
+          "url": "https://raw.githubusercontent.com/googleapis/python-genai/HEAD/CHANGELOG.md",
+          "quote": "Note: The breaking changes are only in interactions. `GenerateContent` usage in unaffected."
+        },
+        "affects": {
+          "versions": ["<2.0.0", "2.0.0"],
+          "sdk": "google-genai"
+        },
+        "effectiveDate": "2026-05-07"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2025-05-js-genai-1-0-0",
+        "kind": "sdk-major",
+        "title": "npm @google/genai 1.0.0: Lyria method name fixed and parameter types changed (breaking, low impact)",
+        "source": {
+          "url": "https://raw.githubusercontent.com/googleapis/js-genai/HEAD/CHANGELOG.md",
+          "quote": "* Fix Lyria method name for JS, update parameters type"
+        },
+        "affects": {
+          "versions": ["<1.0.0", "1.0.0"],
+          "sdk": "@google/genai"
+        },
+        "effectiveDate": "2025-05-19"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2025-02-python-genai-1-0-0",
+        "kind": "sdk-major",
+        "title": "PyPI google-genai 1.0.0: removed deprecated field deprecated_response_payload; list models defaults to base models",
+        "source": {
+          "url": "https://raw.githubusercontent.com/googleapis/python-genai/HEAD/CHANGELOG.md",
+          "quote": "* Remove deprecated field: `deprecated_response_payload`"
+        },
+        "affects": {
+          "versions": ["<1.0.0", "1.0.0"],
+          "sdk": "google-genai"
+        },
+        "effectiveDate": "2025-02-05"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2025-11-30-generative-ai-js-eol",
+        "kind": "sdk-major",
+        "title": "npm @google/generative-ai deprecated, support ended Nov 30, 2025; migrate to @google/genai",
+        "source": {
+          "url": "https://raw.githubusercontent.com/google/generative-ai-js/HEAD/README.md",
+          "quote": "All support for this repository (including bug fixes) will permanently end on **November 30, 2025**."
+        },
+        "affects": {
+          "versions": ["<=0.24.1"],
+          "sdk": "@google/generative-ai"
+        },
+        "effectiveDate": "2025-11-30"
+      },
+      {
+        "provider": "gemini",
+        "id": "gemini:2025-11-30-generativeai-python-eol",
+        "kind": "sdk-major",
+        "title": "PyPI google-generativeai deprecated, support ended Nov 30, 2025; migrate to google-genai",
+        "source": {
+          "url": "https://raw.githubusercontent.com/google/generative-ai-python/HEAD/README.md",
+          "quote": "All support for this repository ended permanently on **November 30, 2025**."
+        },
+        "affects": {
+          "versions": ["<=0.8.6"],
+          "sdk": "google-genai"
+        },
+        "effectiveDate": "2025-11-30"
+      }
+    ],
+    "issues": [],
+    "unverifiedQuotes": [],
+    "sourcesRead": [
+      "https://raw.githubusercontent.com/googleapis/js-genai/HEAD/CHANGELOG.md",
+      "https://raw.githubusercontent.com/googleapis/python-genai/HEAD/CHANGELOG.md",
+      "https://raw.githubusercontent.com/google/generative-ai-js/HEAD/CHANGELOG.md",
+      "https://registry.npmjs.org/@google%2Fgenai",
+      "https://registry.npmjs.org/@google%2Fgenerative-ai",
+      "https://pypi.org/pypi/google-genai/json",
+      "https://pypi.org/pypi/google-generativeai/json",
+      "https://ai.google.dev/gemini-api/docs/deprecations",
+      "https://ai.google.dev/gemini-api/docs/changelog",
+      "https://ai.google.dev/gemini-api/docs/interactions-breaking-changes-may-2026",
+      "https://ai.google.dev/gemini-api/docs/deprecations.md.txt",
+      "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+      "https://ai.google.dev/gemini-api/docs/interactions-breaking-changes-may-2026.md.txt",
+      "https://raw.githubusercontent.com/google/generative-ai-js/HEAD/README.md",
+      "https://raw.githubusercontent.com/google/generative-ai-python/HEAD/README.md"
+    ],
+    "model": "claude-sonnet-5-5",
+    "costUsd": 0.3213363,
+    "turns": 8,
+    "summary": "Read changelog (to offset 45000 of ~63000), deprecations page, Interactions May 2026 guide (first 15000 of 25761 chars). Not read: older changelog, Gemini 3.6/4 guides, per-SDK changelog 0.x BREAKING entries. Model retirements grouped.",
+    "log": [
+      {
+        "turn": 1,
+        "stopReason": "tool_use",
+        "inputTokens": 11469,
+        "outputTokens": 211,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://ai.google.dev/gemini-api/docs/interactions-breaking-changes-may-2026\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://ai.google.dev/gemini-api/docs/deprecations\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://ai.google.dev/gemini-api/docs/changelog\"}"
+          }
+        ]
+      },
+      {
+        "turn": 2,
+        "stopReason": "tool_use",
+        "inputTokens": 12035,
+        "outputTokens": 247,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://ai.google.dev/gemini-api/docs/deprecations.md.txt\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://ai.google.dev/gemini-api/docs/changelog.md.txt\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://ai.google.dev/gemini-api/docs/interactions-breaking-changes-may-2026.md.txt\"}"
+          }
+        ]
+      },
+      {
+        "turn": 3,
+        "stopReason": "tool_use",
+        "inputTokens": 30701,
+        "outputTokens": 259,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://ai.google.dev/gemini-api/docs/changelog.md.txt\",\"offset\":15000}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://ai.google.dev/gemini-api/docs/changelog.md.txt\",\"offset\":30000}"
+          }
+        ]
+      },
+      {
+        "turn": 4,
+        "stopReason": "tool_use",
+        "inputTokens": 43849,
+        "outputTokens": 208,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"google-generativeai-pypi-readme\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"google-generative-ai-npm-readme\"}"
+          }
+        ]
+      },
+      {
+        "turn": 5,
+        "stopReason": "tool_use",
+        "inputTokens": 45622,
+        "outputTokens": 6363,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{\"changes\":[{\"id\":\"2026-05-interactions-steps-schema\",\"kind\":\"api-version\",\"title\":\"Interactions API (v1beta): outputs replaced by steps, new default schema May 26, 2026; legacy schema removed June 8, 2026 (Api-Revision header 2026-05-20)\",\"effectiveDate\":\"2026-06-08\",\"source\":{\"url\":\"https://ai.goo"
+          }
+        ]
+      },
+      {
+        "turn": 6,
+        "stopReason": "tool_use",
+        "inputTokens": 52310,
+        "outputTokens": 69,
+        "calls": [
+          {
+            "tool": "check_quote",
+            "input": "{\"quote\":\"The legacy schema will be removed on **June 8, 2026** .\"}"
+          }
+        ]
+      },
+      {
+        "turn": 7,
+        "stopReason": "tool_use",
+        "inputTokens": 52394,
+        "outputTokens": 147,
+        "calls": [
+          {
+            "tool": "check_quote",
+            "input": "{\"quote\":\"The new schema becomes the default on **May 26** and the legacy schema will be removed on **June 8** .\"}"
+          }
+        ]
+      },
+      {
+        "turn": 8,
+        "stopReason": "tool_use",
+        "inputTokens": 52577,
+        "outputTokens": 6515,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{\"changes\":[{\"id\":\"2026-05-interactions-steps-schema\",\"kind\":\"api-version\",\"title\":\"Interactions API (v1beta): outputs replaced by steps, new default schema May 26, 2026; legacy schema removed June 8, 2026 (Api-Revision header 2026-05-20)\",\"effectiveDate\":\"2026-06-08\",\"source\":{\"url\":\"https://ai.goo"
+          }
+        ]
+      }
+    ],
+    "name": "Gemini",
+    "hints": {
+      "packages": ["@google/genai", "@google/generative-ai", "google-genai", "google-generativeai"],
+      "hosts": ["generativelanguage.googleapis.com"],
+      "docsUrls": ["https://ai.google.dev/gemini-api/docs"]
+    },
+    "packages": [
+      {
+        "ecosystem": "npm",
+        "name": "@google/genai",
+        "registryUrl": "https://registry.npmjs.org/@google%2Fgenai",
+        "pageUrl": "https://www.npmjs.com/package/@google/genai",
+        "readAt": "2026-11-03",
+        "majors": [
+          {
+            "major": 2,
+            "first": "2.0.0",
+            "latest": "2.32.0",
+            "releases": 36,
+            "firstAt": "2026-05-07",
+            "latestAt": "2026-10-29"
+          },
+          {
+            "major": 1,
+            "first": "1.0.0",
+            "latest": "1.52.0",
+            "releases": 57,
+            "firstAt": "2025-05-19",
+            "latestAt": "2026-05-04"
+          },
+          {
+            "major": 0,
+            "first": "0.2.0",
+            "latest": "0.15.0",
+            "releases": 16,
+            "firstAt": "2025-03-11",
+            "latestAt": "2025-05-19"
+          }
+        ],
+        "versions": 110,
+        "description": "[![NPM Downloads](https://img.shields.io/npm/dw/%40google%2Fgenai)](https://www.npmjs.com/package/@google/genai) [![Node Current](https://img.shields.io/node/v/%40google%2Fgenai)](https://www.npmjs.com/package/@google/genai)",
+        "latest": "2.32.0",
+        "latestAt": "2026-10-29",
+        "repository": "https://github.com/googleapis/js-genai",
+        "homepage": "https://github.com/googleapis/js-genai#readme"
+      },
+      {
+        "ecosystem": "npm",
+        "name": "@google/generative-ai",
+        "registryUrl": "https://registry.npmjs.org/@google%2Fgenerative-ai",
+        "pageUrl": "https://www.npmjs.com/package/@google/generative-ai",
+        "readAt": "2026-11-03",
+        "majors": [
+          {
+            "major": 0,
+            "first": "0.1.0",
+            "latest": "0.24.1",
+            "releases": 40,
+            "firstAt": "2023-12-12",
+            "latestAt": "2025-04-29"
+          }
+        ],
+        "versions": 40,
+        "description": "Google AI JavaScript SDK",
+        "latest": "0.24.1",
+        "latestAt": "2025-04-29",
+        "repository": "https://github.com/google/generative-ai-js",
+        "homepage": "https://github.com/google/generative-ai-js#readme"
+      },
+      {
+        "ecosystem": "pypi",
+        "name": "google-genai",
+        "registryUrl": "https://pypi.org/pypi/google-genai/json",
+        "pageUrl": "https://pypi.org/project/google-genai/",
+        "readAt": "2026-11-03",
+        "majors": [
+          {
+            "major": 2,
+            "first": "2.0.0",
+            "latest": "2.34.0",
+            "releases": 39,
+            "firstAt": "2026-05-07",
+            "latestAt": "2026-10-29"
+          },
+          {
+            "major": 1,
+            "first": "1.0.0",
+            "latest": "1.75.0",
+            "releases": 79,
+            "firstAt": "2025-02-05",
+            "latestAt": "2026-05-04"
+          },
+          {
+            "major": 0,
+            "first": "0.7.0",
+            "latest": "0.8.0",
+            "releases": 2,
+            "firstAt": "2025-01-28",
+            "latestAt": "2025-01-30"
+          }
+        ],
+        "versions": 123,
+        "description": "GenAI Python SDK",
+        "latest": "2.34.0",
+        "latestAt": "2026-10-29",
+        "repository": "https://github.com/googleapis/python-genai",
+        "homepage": "https://github.com/googleapis/python-genai",
+        "projectUrls": {
+          "Homepage": "https://github.com/googleapis/python-genai"
+        }
+      },
+      {
+        "ecosystem": "pypi",
+        "name": "google-generativeai",
+        "registryUrl": "https://pypi.org/pypi/google-generativeai/json",
+        "pageUrl": "https://pypi.org/project/google-generativeai/",
+        "readAt": "2026-11-03",
+        "majors": [
+          {
+            "major": 0,
+            "first": "0.1.0",
+            "latest": "0.8.6",
+            "releases": 25,
+            "firstAt": "2023-05-26",
+            "latestAt": "2025-12-16"
+          }
+        ],
+        "versions": 27,
+        "description": "Google Generative AI High level API client library and tools.",
+        "latest": "0.8.6",
+        "latestAt": "2025-12-16",
+        "status": "Development Status :: 7 - Inactive",
+        "repository": "https://github.com/google/generative-ai-python",
+        "homepage": "https://github.com/google/generative-ai-python",
+        "projectUrls": {
+          "Homepage": "https://github.com/google/generative-ai-python"
+        }
+      }
+    ],
+    "startingPages": [
+      "https://ai.google.dev/gemini-api/docs",
+      "https://ai.google.dev/llms.txt",
+      "https://raw.githubusercontent.com/googleapis/js-genai/HEAD/CHANGELOG.md",
+      "https://api.github.com/repos/googleapis/js-genai/releases?per_page=100",
+      "https://raw.githubusercontent.com/googleapis/js-genai/HEAD/README.md",
+      "https://raw.githubusercontent.com/google/generative-ai-js/HEAD/CHANGELOG.md",
+      "https://api.github.com/repos/google/generative-ai-js/releases?per_page=100",
+      "https://raw.githubusercontent.com/google/generative-ai-js/HEAD/README.md",
+      "https://raw.githubusercontent.com/googleapis/python-genai/HEAD/CHANGELOG.md",
+      "https://api.github.com/repos/googleapis/python-genai/releases?per_page=100",
+      "https://raw.githubusercontent.com/googleapis/python-genai/HEAD/README.md",
+      "https://api.github.com/repos/google/generative-ai-python/releases?per_page=100",
+      "https://raw.githubusercontent.com/google/generative-ai-python/HEAD/README.md"
+    ]
+  }
+}

@@ -1,0 +1,106 @@
+[... 42811 characters not shown ...]
+## v5.0.0 (v5.0.0, published 2025-09-03T22:08:54Z)
+https://github.com/makenotion/notion-sdk-js/releases/tag/v5.0.0
+## What's Changed
+
+Major changes and highlights from `v4.0.2` to `v5.0.0`.
+
+### ⚡️ Major API and SDK updates
+
+- **Added support for multiple data sources**
+- Prepared the SDK for [Notion API version `2025-09-03`](https://developers.notion.com/docs/upgrade-guide-2025-09-03), introducing `notion.dataSources.*` endpoints to manage databases at the data source level and repurposing `notion.databases.*` endpoints for the database container. #600 #601 #602 #603 #607 #609
+- **Removed support for `notion.databases.list**
+- The list databases method has been removed, since this endpoint has been deprecated & unsupported since `2022-02-22`, and v5 of the SDK is tailored toward `2025-09-03` #600
+- **Added support for verification filters for data sources**
+- Added verification filter property to `queryDataSources` API shape #604
+
+### 📝 API shape and type improvements
+
+- **Richer API error details**
+- SDK now surfaces the optional `additional_data` field in API error responses for better diagnostics. #603
+- **API schema syncs**
+- `DataSourceObjectResponse["parent"]` now supports the `data_source_id` variant.
+- Search filter enum updated from `page | database` to `page | data_source`.
+- Typechecking added for all `examples/` projects in CI. #602
+
+### 🧩 Examples and internal maintenance
+
+- **Examples directory**
+- Migrated all `examples/` to TypeScript and committed missing build files. #603 #600
+- **CI improvements**
+- All examples are now typechecked as part of continuous integration. #602
+- **Other**
+- Added Copilot instructions file for repo #610
+
+### 🛠 Miscellaneous fixes
+
+- **Documentation**
+- Updated the minimum recommended TypeScript version in the README after a dependency upgrade. #598
+- **Patch releases**
+- Version bumps and lockfile updates to keep publish and infra consistent. #596 #597
+
+> [!NOTE]
+> v5.0.0 and `2025-09-03` bring fairly major changes to the SDK and to the
+[... 5277 characters not shown ...]
+## v4.0.0 (v4.0.0, published 2025-07-01T17:42:41Z)
+https://github.com/makenotion/notion-sdk-js/releases/tag/v4.0.0
+## What's Changed
+
+* Remove no-op duplicates from union types across all endpoints by @ksinder in https://github.com/makenotion/notion-sdk-js/pull/579
+* Remove legacy (<=2021) v1 API shape for page properties by @ksinder in https://github.com/makenotion/notion-sdk-js/pull/580
+- Removes support for the legacy (pre-Q3-2021) shape for page `properties` parameters from `CreatePageBodyParameters` and `UpdatePageBodyParameters` in `src/api-endpoints.ts`.
+- This collapses the union type of {old properties shape, new properties shape} down to the new shape only.
+- In the old shape, `properties` was a fairly ambiguous `Record<string, ...>` mapping each property key to the property value (a union type across all possible property types' values) e.g.
+```ts
+{
+// ...
+"numberId": 24,
+}
+```
+- In the new shape (the only one we want to support going forward), the value must be wrapped in an object that uses the polymorphic `type` pattern with the actual value defined in a sub-object to disambiguate:
+```ts
+{
+// ...
+"numberId": {
+"type": "number",
+"number": 24
+}
+}
+```
+- This matches up with our responses in the API read path so most, if not all, integrations are likely already using syntax compatible with the new shape
+* chore: add JSDoc comments to API types by @julyou in https://github.com/makenotion/notion-sdk-js/pull/585
+* Add support for attachments in Comment API by @julyou in https://github.com/makenotion/notion-sdk-js/pull/586
+* CreatePage: support workspace-level private pages (+ misc param type refactors) by @ksinder in https://github.com/makenotion/notion-sdk-js/pull/587
+- No-op refactors/cleanups: extracting some components into separate type aliases, e.g. `AnnotationRequest`
+- Support the new mode in `POST /v1/pages` (`CreatePage`) API where:
+- `parent` can be omitted, or passed as `{"workspace": true}`, to create top-level private pages at the workspace level (for public integr
+[... 4841 characters not shown ...]
+## v3.0.0 (v3.0.0, published 2025-05-05T21:18:07Z)
+https://github.com/makenotion/notion-sdk-js/releases/tag/v3.0.0
+## What's Changed
+
+This update, v2.3.0 → v3.0.0, is marked as a major version upgrade due to the Node minimum version increase to 18, as part of the change to use built-in `fetch` as the default in the `Client` constructor instead of `node-fetch`.
+
+* Sync OpenAPI schema as of 2025-04-08 to `src/api-endpoints.ts` by @ksinder in https://github.com/makenotion/notion-sdk-js/pull/558
+* Refactor common parameter shapes into new types: `InternalFileRequest`, `ExternalFileRequest`, and `InternalOrExternalFileWithNameRequest`
+* **Support commenting on a non-page block in the Create Comment API** by accepting a parent type of `block_id`
+* **Use isomorphic fetch** by @sv2dev in https://github.com/makenotion/notion-sdk-js/pull/506
+* This **[updates](https://github.com/makenotion/notion-sdk-js/compare/650d23bd94c1cd9a4179fcbea25be617e2f5a7e5...v3.0.0#diff-7ae45ad102eab3b6d7e7896acd08c427a9b25b346470d7bc6507b6481575d519R6) the [minimum Node engine version](https://nodejs.org/en/about/previous-releases)** from 12 **to 18**.
+* **Small typo fixes in docs and example files**
+* docs: fix incorrect example path in README by @R-jisu in https://github.com/makenotion/notion-sdk-js/pull/556
+* Update .env.example by @jtsmith1287 in https://github.com/makenotion/notion-sdk-js/pull/532
+* Update README.md with correct `cd` command by @crosskayla in https://github.com/makenotion/notion-sdk-js/pull/493
+
+**Full Changelog**: https://github.com/makenotion/notion-sdk-js/compare/650d23bd94c1cd9a4179fcbea25be617e2f5a7e5...v3.0.0
+
+**View this version on NPM**: https://www.npmjs.com/package/@notionhq/client/v/3.0.0
+
+## New Contributors
+* @sv2dev made their first contribution in https://github.com/makenotion/notion-sdk-js/pull/506
+* @R-jisu made their first contribution in https://github.com/makenotion/notion-sdk-js/pull/556
+* @jtsmith1287 made their first contribution in https://github.com/makenotion/notion-sd
+[... 5791 characters not shown ...]
+## v2.0.0 (v2.0.0, published 2022-07-06T20:29:27Z)
+https://github.com/makenotion/notion-sdk-js/releases/tag/v2.0.0
+Includes several breaking changes and updates the client to use Notion-Version `2022-06-28`. See [the changelog](https://developers.notion.com/changelog/releasing-notion-version-2022-06-28) for more details.
+[... 1 characters not shown ...]

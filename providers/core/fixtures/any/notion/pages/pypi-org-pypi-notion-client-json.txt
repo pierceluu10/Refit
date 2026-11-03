@@ -1,0 +1,12 @@
+### PyPI package notion-client
+Registry data: https://pypi.org/pypi/notion-client/json (read 2026-11-03); page: https://pypi.org/project/notion-client/
+Description: "Python client for the official Notion API"
+Repository: https://github.com/ramnes/notion-sdk-py
+Project links: Homepage https://github.com/ramnes/notion-sdk-py
+Latest: 3.1.0 (published 2026-05-12); 22 versions in the registry.
+Classifier: "Development Status :: 5 - Production/Stable"
+Major lines (stable releases):
+- 3.x: 3.0.0 (2026-02-16) to 3.1.0 (2026-05-12), 2 releases
+- 2.x: 2.0.0 (2022-12-10) to 2.7.0 (2025-10-31), 9 releases
+- 1.x: 1.0.0 (2022-04-18) to 1.0.0 (2022-04-18), 1 release
+- 0.x: 0.2.0 (2021-05-14) to 0.9.0 (2022-02-05), 10 releases

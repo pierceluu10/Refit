@@ -1,0 +1,96 @@
+[
+  {
+    "ecosystem": "npm",
+    "name": "@anthropic-ai/sdk",
+    "registryUrl": "https://registry.npmjs.org/@anthropic-ai%2Fsdk",
+    "pageUrl": "https://www.npmjs.com/package/@anthropic-ai/sdk",
+    "readAt": "2026-11-03",
+    "majors": [
+      {
+        "major": 1,
+        "first": "1.0.0",
+        "latest": "1.4.0",
+        "releases": 5,
+        "firstAt": "2026-10-21",
+        "latestAt": "2026-11-02"
+      },
+      {
+        "major": 0,
+        "first": "0.2.0",
+        "latest": "0.137.0",
+        "releases": 217,
+        "firstAt": "2023-01-31",
+        "latestAt": "2026-10-20"
+      }
+    ],
+    "versions": 223,
+    "description": "The official TypeScript library for the Anthropic API",
+    "latest": "1.4.0",
+    "latestAt": "2026-11-02",
+    "repository": "https://github.com/anthropics/anthropic-sdk-typescript",
+    "homepage": "https://github.com/anthropics/anthropic-sdk-typescript#readme"
+  },
+  {
+    "ecosystem": "npm",
+    "name": "anthropic",
+    "registryUrl": "https://registry.npmjs.org/anthropic",
+    "pageUrl": "https://www.npmjs.com/package/anthropic",
+    "readAt": "2026-11-03",
+    "majors": [
+      {
+        "major": 0,
+        "first": "0.0.0",
+        "latest": "0.0.0",
+        "releases": 1,
+        "firstAt": "2017-07-21",
+        "latestAt": "2017-07-21"
+      }
+    ],
+    "versions": 1,
+    "latest": "0.0.0",
+    "latestAt": "2017-07-21"
+  },
+  {
+    "ecosystem": "pypi",
+    "name": "anthropic",
+    "registryUrl": "https://pypi.org/pypi/anthropic/json",
+    "pageUrl": "https://pypi.org/project/anthropic/",
+    "readAt": "2026-11-03",
+    "majors": [
+      {
+        "major": 2,
+        "first": "2.0.0",
+        "latest": "2.4.0",
+        "releases": 5,
+        "firstAt": "2026-10-21",
+        "latestAt": "2026-11-02"
+      },
+      {
+        "major": 1,
+        "first": "1.0.0",
+        "latest": "1.17.0",
+        "releases": 19,
+        "firstAt": "2026-08-20",
+        "latestAt": "2026-10-20"
+      },
+      {
+        "major": 0,
+        "first": "0.2.2",
+        "latest": "0.125.0",
+        "releases": 211,
+        "firstAt": "2023-02-09",
+        "latestAt": "2026-08-19"
+      }
+    ],
+    "versions": 235,
+    "description": "The official Python library for the anthropic API",
+    "latest": "2.4.0",
+    "latestAt": "2026-11-02",
+    "repository": "https://github.com/anthropics/anthropic-sdk-python",
+    "homepage": "https://github.com/anthropics/anthropic-sdk-python",
+    "projectUrls": {
+      "Homepage": "https://github.com/anthropics/anthropic-sdk-python",
+      "Repository": "https://github.com/anthropics/anthropic-sdk-python"
+    }
+  }
+]

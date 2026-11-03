@@ -1,0 +1,8 @@
+{
+  "provider": "gemini",
+  "hints": {
+    "packages": ["@google/genai", "@google/generative-ai", "google-genai", "google-generativeai"],
+    "hosts": ["generativelanguage.googleapis.com"],
+    "docsUrls": ["https://ai.google.dev/gemini-api/docs"]
+  }
+}

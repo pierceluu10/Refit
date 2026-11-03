@@ -1,0 +1,50 @@
+[... 291 characters not shown ...]
+- [Environment requirements](#environment-requirements)
+- [The SDK is built on `httpx2`](#the-sdk-is-built-on-httpx2)
+- [`.with_raw_response` returns the new response classes](#with_raw_response-returns-the-new-response-classes)
+- [Removed: the legacy Text Completions API](#
+[... 1262 characters not shown ...]
+n particular Pydantic v1 and v2 both remain supported.
+
+## The SDK is built on `httpx2`
+
+The SDK's HTTP layer moved from `httpx`, which is no longer actively maintained, to [`httpx2`](https://github.com/pydantic/httpx2) - an API-compatible fork maintained by the Pydantic team.
+
+`httpx2` is a drop-in continuation of `httpx`, with the same classes, same behaviour, and security fixes included.
+This only affects code that hands `httpx` objects **to** the SDK or inspects the ones it gets **back**.
+
+If you only ever pass plain values (`timeout=30.0`, `max_retries=3`, …) there is _likely_ nothing for you to do.
+The exception is tooling that hooks `httpx` itself rather than your code — tracing / APM instrumentation and HTTP
+mocking libraries. Those keep working but silently stop seeing the SDK's requests until you point them at `httpx2`;
+see [Tracing, instrumentation and mocking libraries](#tracing-instrumentation-and-mocking-libraries) below.
+
+### Custom HTTP clients, transports, timeouts and limits
+
+Anything you construct from `httpx` and pass to the client must now come from `httpx2`. The simplest edit is
+to alias the import; the SDK's own re-exports (`anthropic.Timeout`, `anthropic.DefaultHttpxClient`,
+`anthropic.DefaultAsyncHttpxClient`, `anthropic.DefaultAioHttpClient`) already point at `httpx2` and keep working
+unchanged.
+
+```python
+# Before
+import httpx
+from anthropic import Anthropic, DefaultHttpxClient
+
+client = Anthropic(
+timeout=httpx.Timeout(60.0, connect=5.0),
+http_client=DefaultHttpxClient(
+proxy="http://my.proxy.example",
+transport=httpx.HTTPTransport(local_address="0.0.0.0"),
+),
+)
+
+# After
+import httpx2 as httpx # or `import httpx2` and rename the references
+from anthropic import Anthropic, DefaultHttpxClient
+
+client = Anthropic(
+timeout=httpx.Timeout(60.0, connect=5.0),
+http_client=DefaultHttpxClient(
+proxy="http://my.proxy.example",
+transport=httpx.HTTPTrans
+[... 1 characters not shown ...]

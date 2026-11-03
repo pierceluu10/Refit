@@ -1,0 +1,102 @@
+[... 4242 characters not shown ...]
+## [2.0.0](https://github.com/anthropics/anthropic-sdk-python/compare/v1.17.0...v2.0.0) (2026-10-21)
+
+### ⚠ BREAKING CHANGES
+
+* **api:** add support for new API version 2026-10-21
+
+### Features
+
+* **api:** add a workspace_id filter and the usage_tier scope type to list spend limits
+* **api:** add support for new API version 2026-10-21
+
+### Documentation
+
+* **api:** remove outdated system role note from messages description
+[... 1731 characters not shown ...]
+usage-tier spend cap as a read-only spend limit
+
+### Chores
+
+* **ci:** speed up breaking change detection
+* **docs:** describe headers on Managed Agents and telemetry endpoints
+* **internal:** simplify the script that formats code blocks in docs
+* 
+[... 30810 characters not shown ...]
+9ddabbf8f6af08041f868d8b))
+* **internal:** fix mypy unreachable error in detect-breaking-changes script ([07834f6](https://github.com/anthropics/anthropic-sdk-python/commit/07834f601fb4a81958f15e2129ca091cb9d1c646))
+* **internal:** narrower codeown
+[... 1914 characters not shown ...]
+mit/cbf9715a461b4c5deec7a669b2b6e211faaf8827))
+* **ci:** don't hard-wrap detect-breaking-changes output ([b5be779](https://github.com/anthropics/anthropic-sdk-python/commit/b5be779c110e68f6c884091b3524083733f3f8a9))
+* **client:** derive multipart f
+[... 3861 characters not shown ...]
+02d71966f5f8027758b3d703999936))
+* **ci:** resolve assignment aliases in detect-breaking-changes ([f2c4925](https://github.com/anthropics/anthropic-sdk-python/commit/f2c49254941b4d700fe97cbe6bb85205b06a6460))
+* **sessions:** make event accumulator 
+[... 3430 characters not shown ...]
+## 1.0.0 (2026-08-20)
+
+Full Changelog: [v0.125.0...v1.0.0](https://github.com/anthropics/anthropic-sdk-python/compare/v0.125.0...v1.0.0)
+
+### ⚠ BREAKING CHANGES
+
+* **client:** upgrade to httpx2 and some minor breaking changes. See MIGRATION.md for details
+
+### Features
+
+* **client:** upgrade to httpx2 and some minor breaking changes. See MIGRATION.md for details ([33e2967](https://github.com/anthropics/anthropic-sdk-python/commit/33e296749dda59c3b9af85d9bee37ae241b92a28))
+
+### Bug Fixes
+
+* **beta:** stop warning about `output_format=` on the parse/stream/tool_runner helpers ([59bf261](https://github.com/anthropics/anthropic-sdk-python/commit/59bf26106d3d66cef54b926aeae4268846bf13f2))
+
+### Chores
+
+* **streaming:** restore the original event imports in lib/streaming/_types.py ([87e9e01](https://github.com/anthropics/anthropic-sdk-python/commit/87e9e0157c08ad4b9bb4c44081171285499b1aa3))
+
+### Documentation
+
+* **examples:** use adaptive thinking in thinking examples ([b5870af](https://github.com/anthropics/anthropic-sdk-python/commit/b5870afda154cc12ab15fad5ca6f53a280e09ee3))
+[... 6887 characters not shown ...]
+on/commit/96723a000b6179f0bee51a0b5aa0129e360dc323))
+
+### Chores
+
+* **ci:** run breaking-change detection as a ci.yml job on every push ([6dfd16e](https://github.com/anthropics/anthropic-sdk-python/commit/6dfd16ea7a650dc65253c72264cbcb14db696c91))
+
+[... 45174 characters not shown ...]
+python/commit/2e4ff86d7b8bef8fe5c4b7e62bf47dfff79f0577))
+* remove class causing breaking change ([#1333](https://github.com/anthropics/anthropic-sdk-python/issues/1333)) ([81ee953](https://github.com/anthropics/anthropic-sdk-python/commit/81ee9533d
+[... 15291 characters not shown ...]
+ython/commit/eb8b19f5d7e6e4af3cfbf4cc6f02a9e5ce50f1b8))
+* **internal:** improve breaking change detection ([6c8afa9](https://github.com/anthropics/anthropic-sdk-python/commit/6c8afa9c9fb667d824d0630de22c1662e85d7bd3))
+* **internal:** refactor pydan
+[... 1417 characters not shown ...]
+/57a80e7a2cf6813db6633516dbb5bb65a6e85122))
+
+### Chores
+
+* **internal:** detect breaking changes when removing endpoints ([5c62d7b](https://github.com/anthropics/anthropic-sdk-python/commit/5c62d7bdaf8a180dcb6bc30c17a6bdf13d976ab2))
+* **internal:**
+[... 9174 characters not shown ...]
+dk-python/commit/447b793baf8ba4df63a8fcfcd870a85dd2d07f07))
+* **internal:** add breaking change detection ([e6d0eca](https://github.com/anthropics/anthropic-sdk-python/commit/e6d0eca3fc5c918b56e42fbe46fcf9bedd26ca4d))
+* **internal:** codegen relate
+[... 42365 characters not shown ...]
+://github.com/anthropics/anthropic-sdk-python/compare/v0.38.0...v0.39.0)
+
+### ⚠ BREAKING CHANGES
+
+* **client:** remove legacy `client.count_tokens()` & `client.get_tokenizer()` methods ([#726](https://github.com/anthropics/anthropic-sdk-python/issu
+[... 29461 characters not shown ...]
+://github.com/anthropics/anthropic-sdk-python/compare/v0.27.0...v0.28.0)
+
+### ⚠ BREAKING CHANGES
+
+* **streaming:** remove old event_handler API ([#532](https://github.com/anthropics/anthropic-sdk-python/issues/532))
+
+### Refactors
+
+* **streaming:**
+[... 2 characters not shown ...]

@@ -1,0 +1,7 @@
+{
+  "provider": "notion",
+  "hints": {
+    "packages": ["@notionhq/client", "notion-client"],
+    "hosts": ["api.notion.com"]
+  }
+}

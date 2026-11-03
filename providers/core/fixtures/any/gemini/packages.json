@@ -1,0 +1,133 @@
+[
+  {
+    "ecosystem": "npm",
+    "name": "@google/genai",
+    "registryUrl": "https://registry.npmjs.org/@google%2Fgenai",
+    "pageUrl": "https://www.npmjs.com/package/@google/genai",
+    "readAt": "2026-11-03",
+    "majors": [
+      {
+        "major": 2,
+        "first": "2.0.0",
+        "latest": "2.32.0",
+        "releases": 36,
+        "firstAt": "2026-05-07",
+        "latestAt": "2026-10-29"
+      },
+      {
+        "major": 1,
+        "first": "1.0.0",
+        "latest": "1.52.0",
+        "releases": 57,
+        "firstAt": "2025-05-19",
+        "latestAt": "2026-05-04"
+      },
+      {
+        "major": 0,
+        "first": "0.2.0",
+        "latest": "0.15.0",
+        "releases": 16,
+        "firstAt": "2025-03-11",
+        "latestAt": "2025-05-19"
+      }
+    ],
+    "versions": 110,
+    "description": "[![NPM Downloads](https://img.shields.io/npm/dw/%40google%2Fgenai)](https://www.npmjs.com/package/@google/genai) [![Node Current](https://img.shields.io/node/v/%40google%2Fgenai)](https://www.npmjs.com/package/@google/genai)",
+    "latest": "2.32.0",
+    "latestAt": "2026-10-29",
+    "repository": "https://github.com/googleapis/js-genai",
+    "homepage": "https://github.com/googleapis/js-genai#readme"
+  },
+  {
+    "ecosystem": "npm",
+    "name": "@google/generative-ai",
+    "registryUrl": "https://registry.npmjs.org/@google%2Fgenerative-ai",
+    "pageUrl": "https://www.npmjs.com/package/@google/generative-ai",
+    "readAt": "2026-11-03",
+    "majors": [
+      {
+        "major": 0,
+        "first": "0.1.0",
+        "latest": "0.24.1",
+        "releases": 40,
+        "firstAt": "2023-12-12",
+        "latestAt": "2025-04-29"
+      }
+    ],
+    "versions": 40,
+    "description": "Google AI JavaScript SDK",
+    "latest": "0.24.1",
+    "latestAt": "2025-04-29",
+    "repository": "https://github.com/google/generative-ai-js",
+    "homepage": "https://github.com/google/generative-ai-js#readme"
+  },
+  {
+    "ecosystem": "pypi",
+    "name": "google-genai",
+    "registryUrl": "https://pypi.org/pypi/google-genai/json",
+    "pageUrl": "https://pypi.org/project/google-genai/",
+    "readAt": "2026-11-03",
+    "majors": [
+      {
+        "major": 2,
+        "first": "2.0.0",
+        "latest": "2.34.0",
+        "releases": 39,
+        "firstAt": "2026-05-07",
+        "latestAt": "2026-10-29"
+      },
+      {
+        "major": 1,
+        "first": "1.0.0",
+        "latest": "1.75.0",
+        "releases": 79,
+        "firstAt": "2025-02-05",
+        "latestAt": "2026-05-04"
+      },
+      {
+        "major": 0,
+        "first": "0.7.0",
+        "latest": "0.8.0",
+        "releases": 2,
+        "firstAt": "2025-01-28",
+        "latestAt": "2025-01-30"
+      }
+    ],
+    "versions": 123,
+    "description": "GenAI Python SDK",
+    "latest": "2.34.0",
+    "latestAt": "2026-10-29",
+    "repository": "https://github.com/googleapis/python-genai",
+    "homepage": "https://github.com/googleapis/python-genai",
+    "projectUrls": {
+      "Homepage": "https://github.com/googleapis/python-genai"
+    }
+  },
+  {
+    "ecosystem": "pypi",
+    "name": "google-generativeai",
+    "registryUrl": "https://pypi.org/pypi/google-generativeai/json",
+    "pageUrl": "https://pypi.org/project/google-generativeai/",
+    "readAt": "2026-11-03",
+    "majors": [
+      {
+        "major": 0,
+        "first": "0.1.0",
+        "latest": "0.8.6",
+        "releases": 25,
+        "firstAt": "2023-05-26",
+        "latestAt": "2025-12-16"
+      }
+    ],
+    "versions": 27,
+    "description": "Google Generative AI High level API client library and tools.",
+    "latest": "0.8.6",
+    "latestAt": "2025-12-16",
+    "status": "Development Status :: 7 - Inactive",
+    "repository": "https://github.com/google/generative-ai-python",
+    "homepage": "https://github.com/google/generative-ai-python",
+    "projectUrls": {
+      "Homepage": "https://github.com/google/generative-ai-python"
+    }
+  }
+]

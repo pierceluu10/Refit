@@ -1,0 +1,168 @@
+{
+  "provider": "gemini",
+  "fetchedAt": "2026-11-03T03:56:19.974Z",
+  "note": "Every page the live run of 2026-11-03 read, cut to the parts the agent was shown, with gaps marked. Test input only.",
+  "sources": [
+    {
+      "id": "raw-githubusercontent-com-googleapis-js-genai-head-changelog-md",
+      "url": "https://raw.githubusercontent.com/googleapis/js-genai/HEAD/CHANGELOG.md",
+      "status": 200,
+      "ok": true,
+      "file": "raw-githubusercontent-com-googleapis-js-genai-head-changelog-md.txt",
+      "chars": 2342,
+      "truncated": true,
+      "sha256": "67a6c354d266208b20402a0f1eccc3d1a7041261c5467c5d560a4181b5687243"
+    },
+    {
+      "id": "raw-githubusercontent-com-google-generative-ai-js-head-changelog-md",
+      "url": "https://raw.githubusercontent.com/google/generative-ai-js/HEAD/CHANGELOG.md",
+      "status": 200,
+      "ok": true,
+      "file": "raw-githubusercontent-com-google-generative-ai-js-head-changelog-md.txt",
+      "chars": 0,
+      "truncated": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "raw-githubusercontent-com-google-generative-ai-python-head-changelog-md",
+      "url": "https://raw.githubusercontent.com/google/generative-ai-python/HEAD/CHANGELOG.md",
+      "status": 404,
+      "ok": false,
+      "file": "raw-githubusercontent-com-google-generative-ai-python-head-changelog-md.txt",
+      "chars": 0,
+      "truncated": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "error": "HTTP 404"
+    },
+    {
+      "id": "raw-githubusercontent-com-googleapis-python-genai-head-changelog-md",
+      "url": "https://raw.githubusercontent.com/googleapis/python-genai/HEAD/CHANGELOG.md",
+      "status": 200,
+      "ok": true,
+      "file": "raw-githubusercontent-com-googleapis-python-genai-head-changelog-md.txt",
+      "chars": 3079,
+      "truncated": true,
+      "sha256": "4777c31971fc7b22adbbda3474d8435934fc3def6fcbca11031c0cf28d5e241a"
+    },
+    {
+      "id": "registry-npmjs-org-google-2fgenai",
+      "url": "https://registry.npmjs.org/@google%2Fgenai",
+      "status": 200,
+      "ok": true,
+      "file": "registry-npmjs-org-google-2fgenai.txt",
+      "chars": 789,
+      "truncated": false,
+      "sha256": "abf1de9db981c8cdd28491a4db1808463e5914b86302cc3e8b17f9e188072ca1"
+    },
+    {
+      "id": "registry-npmjs-org-google-2fgenerative-ai",
+      "url": "https://registry.npmjs.org/@google%2Fgenerative-ai",
+      "status": 200,
+      "ok": true,
+      "file": "registry-npmjs-org-google-2fgenerative-ai.txt",
+      "chars": 496,
+      "truncated": false,
+      "sha256": "85b6c6667ade640cbff1d34f91104304fcaa5341c52fa1abd3c6ed66d4743f42"
+    },
+    {
+      "id": "pypi-org-pypi-google-genai-json",
+      "url": "https://pypi.org/pypi/google-genai/json",
+      "status": 200,
+      "ok": true,
+      "file": "pypi-org-pypi-google-genai-json.txt",
+      "chars": 586,
+      "truncated": false,
+      "sha256": "76e1091da1aa74fb9f097e432d0b6ebd9f341b2cce30d554c19a64eb6c250d59"
+    },
+    {
+      "id": "pypi-org-pypi-google-generativeai-json",
+      "url": "https://pypi.org/pypi/google-generativeai/json",
+      "status": 200,
+      "ok": true,
+      "file": "pypi-org-pypi-google-generativeai-json.txt",
+      "chars": 584,
+      "truncated": false,
+      "sha256": "95c90bdec389a45e470294af254f0e37f2f812c1ad8a3a6558e1c65baa2deab2"
+    },
+    {
+      "id": "ai-google-dev-gemini-api-docs-interactions-breaking-changes-may-2026",
+      "url": "https://ai.google.dev/gemini-api/docs/interactions-breaking-changes-may-2026",
+      "status": 200,
+      "ok": true,
+      "file": "ai-google-dev-gemini-api-docs-interactions-breaking-changes-may-2026.txt",
+      "chars": 0,
+      "truncated": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "ai-google-dev-gemini-api-docs-deprecations",
+      "url": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "status": 200,
+      "ok": true,
+      "file": "ai-google-dev-gemini-api-docs-deprecations.txt",
+      "chars": 0,
+      "truncated": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "ai-google-dev-gemini-api-docs-changelog",
+      "url": "https://ai.google.dev/gemini-api/docs/changelog",
+      "status": 200,
+      "ok": true,
+      "file": "ai-google-dev-gemini-api-docs-changelog.txt",
+      "chars": 0,
+      "truncated": false,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "ai-google-dev-gemini-api-docs-deprecations-md-txt",
+      "url": "https://ai.google.dev/gemini-api/docs/deprecations.md.txt",
+      "status": 200,
+      "ok": true,
+      "file": "ai-google-dev-gemini-api-docs-deprecations-md-txt.txt",
+      "chars": 12473,
+      "truncated": false,
+      "sha256": "4644b7af8fbed824bbc97f4b208eb40f57ffab9873d29a97d0179500be3f766e"
+    },
+    {
+      "id": "ai-google-dev-gemini-api-docs-changelog-md-txt",
+      "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+      "status": 200,
+      "ok": true,
+      "file": "ai-google-dev-gemini-api-docs-changelog-md-txt.txt",
+      "chars": 45033,
+      "truncated": true,
+      "sha256": "b2502600e02d3e9094b52ad2da0e970306a78ba80aec232524f698883488e433"
+    },
+    {
+      "id": "ai-google-dev-gemini-api-docs-interactions-breaking-changes-may-2026-md-txt",
+      "url": "https://ai.google.dev/gemini-api/docs/interactions-breaking-changes-may-2026.md.txt",
+      "status": 200,
+      "ok": true,
+      "file": "ai-google-dev-gemini-api-docs-interactions-breaking-changes-may-2026-md-txt.txt",
+      "chars": 15033,
+      "truncated": true,
+      "sha256": "a1a347825a305197d5fcbfa9dbefa8c2afd076b2e7116d7a2e3da0d685998ea9"
+    },
+    {
+      "id": "raw-githubusercontent-com-google-generative-ai-python-head-readme-md",
+      "url": "https://raw.githubusercontent.com/google/generative-ai-python/HEAD/README.md",
+      "status": 200,
+      "ok": true,
+      "file": "raw-githubusercontent-com-google-generative-ai-python-head-readme-md.txt",
+      "chars": 2001,
+      "truncated": false,
+      "sha256": "4be24842bbf3891dc06d48c7758ae3a0e920f0d7160647e9e9304f166d131919"
+    },
+    {
+      "id": "raw-githubusercontent-com-google-generative-ai-js-head-readme-md",
+      "url": "https://raw.githubusercontent.com/google/generative-ai-js/HEAD/README.md",
+      "status": 200,
+      "ok": true,
+      "file": "raw-githubusercontent-com-google-generative-ai-js-head-readme-md.txt",
+      "chars": 1858,
+      "truncated": false,
+      "sha256": "befb9abaeec214ad9328cd025950d19a8aad3444f02d2d0aeee6dea3d4fc78af"
+    }
+  ]
+}

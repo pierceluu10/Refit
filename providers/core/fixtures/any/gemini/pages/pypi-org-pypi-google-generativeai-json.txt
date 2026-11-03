@@ -1,0 +1,9 @@
+### PyPI package google-generativeai
+Registry data: https://pypi.org/pypi/google-generativeai/json (read 2026-11-03); page: https://pypi.org/project/google-generativeai/
+Description: "Google Generative AI High level API client library and tools."
+Repository: https://github.com/google/generative-ai-python
+Project links: Homepage https://github.com/google/generative-ai-python
+Latest: 0.8.6 (published 2025-12-16); 27 versions in the registry.
+Classifier: "Development Status :: 7 - Inactive"
+Major lines (stable releases):
+- 0.x: 0.1.0 (2023-05-26) to 0.8.6 (2025-12-16), 25 releases

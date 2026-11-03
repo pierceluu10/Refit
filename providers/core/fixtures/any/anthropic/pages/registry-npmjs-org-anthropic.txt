@@ -1,0 +1,6 @@
+### npm package anthropic
+Registry data: https://registry.npmjs.org/anthropic (read 2026-11-03); page: https://www.npmjs.com/package/anthropic
+Repository: none given
+Latest: 0.0.0 (published 2017-07-21); 1 versions in the registry.
+Major lines (stable releases):
+- 0.x: 0.0.0 (2017-07-21) to 0.0.0 (2017-07-21), 1 release
