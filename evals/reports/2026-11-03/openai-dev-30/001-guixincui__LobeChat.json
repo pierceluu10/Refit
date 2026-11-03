@@ -1,0 +1,76 @@
+{
+  "set": "openai-dev-30",
+  "index": 1,
+  "repo": "guixincui/LobeChat",
+  "commit": "c0f1ca77014de1669ebce0b45a3f1810cd5b6228",
+  "provider": "openai",
+  "usages": 12,
+  "changes": 35,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "guixincui/LobeChat:openai:2025-11-14-dalle-retirement",
+      "changeId": "openai:2025-11-14-dalle-retirement",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.12 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "guixincui/LobeChat:openai:2026-04-22-legacy-gpt-oct-retirement",
+      "changeId": "openai:2026-04-22-legacy-gpt-oct-retirement",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.12 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "guixincui/LobeChat:openai:2025-09-26-legacy-gpt-sep-2026",
+      "changeId": "openai:2025-09-26-legacy-gpt-sep-2026",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.12 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "guixincui/LobeChat:openai:2026-10-01-tts-retirement",
+      "changeId": "openai:2026-10-01-tts-retirement",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.12 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "guixincui/LobeChat:openai:2026-08-26-transcription-retirement",
+      "changeId": "openai:2026-08-26-transcription-retirement",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.12 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "guixincui/LobeChat:openai:2026-09-02-new-error-codes",
+      "changeId": "openai:2026-09-02-new-error-codes",
+      "kind": "other",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.12 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "guixincui/LobeChat:openai:2026-05-29-prompt-cache-retention-default",
+      "changeId": "openai:2026-05-29-prompt-cache-retention-default",
+      "kind": "other",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.12 of the $4 run cap left, below the $2 a task needs"
+    }
+  ],
+  "costUsd": 0.48095540000000003,
+  "durationMs": 115221,
+  "matchReasoning": "guixincui/LobeChat:openai:2025-11-14-dalle-retirement: Image generation goes through images.generate, and the payload comes from the DALL·E tool, whose default model is dall-e-3. The removal date has already passed, so image generation requests now fail. The fix is to switch to the gpt-image-2 family (or gpt-image-2.5). Note that gpt-image models do not support response_format='url' the way DALL·E did; they return b64_json. The migration agent should therefore check the response_format field and how the response data is read, and confirm where the model id is set in the payload or client config.\nguixincui/LobeChat:openai:2026-04-22-legacy-gpt-oct-retirement: The repo predates gpt-4o, and its default and selectable chat models are the gpt-3.5-turbo and gpt-4 families listed in this shutdown, which took effect on 2026-10-23. Chat, the app's core feature, now returns model-not-found errors for any session using these defaults. The migration agent should find the default model constant and model list (likely in src/const or the settings and agent config), replace them with gpt-5.6 models, and add a migration for persisted session and agent configs. Uncertain: the exact model ids hardcoded in the frontend catalog are not in the usage map and should be verified.\nguixincui/LobeChat:openai:2025-09-26-legacy-gpt-sep-2026: gpt-3.5-turbo-1106 was released alongside this SDK version, and LobeChat of that period listed it as a selectable chat model. Access ended on 2026-09-28, so sessions using it now fail. Uncertain: verify whether gpt-3.5-turbo-1106 (or gpt-3.5-turbo-instruct) appears in the frontend model list. If it does, replace it with gpt-5.6-terra.\nguixincui/LobeChat:openai:2026-10-01-tts-retirement: OpenAI TTS goes through @lobehub/tts, which uses tts-1 as its default and options model. After 2027-01-06, text-to-speech playback with the OpenAI voice will fail. The migration agent should check which model id the client or @lobehub/tts sends. It should then either update @lobehub/tts to a version supporting gpt-realtime-2.1-mini or override the model, noting that the replacement may require a different API surface than /v1/audio/speech.\nguixincui/LobeChat:openai:2026-08-26-transcription-retirement: Speech-to-text uses OpenAI transcriptions through @lobehub/tts, and its default model is whisper-1. After 2027-02-26, voice input will fail. The migration agent should switch the model to gpt-transcribe, either via a payload or options override or a @lobehub/tts upgrade, and verify that the response shape (text) is unchanged.\nguixincui/LobeChat:openai:2026-09-02-new-error-codes: Nothing breaks outright. However, the chat error handling maps OpenAI error codes and statuses to user-facing error types and does not retry. The migration agent should check that 429 slow_down and 503 server_is_overloaded produce a sensible user message and, ideally, a backoff and retry.\nguixincui/LobeChat:openai:2026-05-29-prompt-cache-retention-default: This is a default behavior change on the chat completions endpoint the repo calls, and the code does not set prompt_cache_retention. It is not breaking, but self-hosters with data-retention requirements may want to set prompt_cache_retention to in_memory explicitly. It is also uncertain whether extended caching applies to the models this repo uses. The migration agent should decide whether to expose or pin the parameter.\nopenai:2026-10-14-gpt-4-series-retirement: not affected: No gpt-4o or gpt-4.1 snapshot ids are referenced. This LobeChat version (openai ^4.17.3, late 2023) predates these models, and chat simply forwards the user-chosen model.\nopenai:2026-10-01-gpt53codex-gpt51-gpt54nano-retirement: not affected: The repo does not reference gpt-5.3-codex, gpt-5.1 or gpt-5.4-nano. Its model catalog predates GPT-5.\nopenai:2026-07-20-legacy-audio-realtime-retirement: not affected: No realtime or gpt-audio models are used. TTS and STT go through the standard speech and transcription endpoints with tts-1 and whisper-1, which are handled by other changes.\nopenai:2026-06-11-gpt5-o3-retirement: not affected: No gpt-5 or o3 model ids appear in the repo. Its model list predates these models.\nopenai:2026-06-03-reusable-prompts-shutdown: not affected: The repo never calls /v1/prompts or uses reusable prompt objects. System prompts are held in app state.\nopenai:2026-06-03-evals-shutdown: not affected: No usage of the Evals API or dashboard.\nopenai:2026-06-03-agent-builder-shutdown: not affected: The repo does not use OpenAI Agent Builder. Its 'agents' are its own market index from chat-agents.lobehub.com.\nopenai:2026-06-02-gpt-image-retirement: not affected: Image generation uses the DALL·E models (covered by the dall-e retirement task), not gpt-image-1-mini, gpt-image-1.5 or chatgpt-image-latest.\nopenai:2026-05-07-finetuning-restrictions: not affected: No calls to POST /v1/fine_tuning/jobs.\nopenai:2026-09-11-gpt-5-4-cyber-retirement: not affected: gpt-5.4-cyber is not referenced anywhere.\nopenai:2026-05-08-chat-latest-retirement: not affected: The gpt-5.2-chat-latest and gpt-5.3-chat-latest models are not part of this repo's catalog.\nopenai:2026-04-22-legacy-gpt-jul-retirement: not affected: The repo does not use computer-use, search-preview, codex, deep-research or gpt-5 chat-latest models.\nopenai:2026-03-24-sora-videos-shutdown: not affected: There are no Videos API or Sora calls.\nopenai:2025-11-18-chatgpt-4o-latest: not affected: chatgpt-4o-latest is not referenced, and the repo predates it.\nopenai:2025-11-17-codex-mini-latest: not affected: codex-mini-latest and the local shell tool are not used.\nopenai:2025-09-26-legacy-gpt-mar-2026: not affected: gpt-4-0314 is not referenced. gpt-4-0125-preview and gpt-4-turbo-preview postdate this repo's SDK pin (openai ^4.17.3, Nov 2023) and are not in its catalog. gpt-4-1106-preview is covered by the Oct 2026 retirement task.\nopenai:2025-09-15-realtime-beta-removed: not affected: There is no /v1/realtime usage or OpenAI-Beta realtime header.\nopenai:2025-09-15-gpt4o-realtime-preview: not affected: No gpt-4o realtime or audio preview models are used.\nopenai:2025-08-20-assistants-api-shutdown: not affected: The repo uses chat.completions only and never calls /v1/assistants or /v1/threads.\nopenai:2026-03-12-video-remix-deprecation: not affected: No Videos API usage.\nopenai:2026-09-03-gpt-6-astra-parameter-changes: not affected: This only matters when migrating to gpt-6-astra. None of the replacement models recommended for this repo's affected models is gpt-6-astra, and the repo does not call it.\nopenai:2026-04-24-gpt-5-5-behavior: not affected: gpt-5.5 is not used by the repo.\nopenai:2026-10-06-usage-tiers-simplified: not affected: This is an account-level billing and tier change with no code or API contract impact on the repo's calls.\nopenai:2026-07-30-priority-to-fast-mode: not affected: The repo never sets service_tier, so Priority and Fast mode tagging does not apply.\nopenai:2026-10-22-decisions-ga-limit: not affected: The repo does not call v1/decisions.\nopenai:2026-10-npm-7-44-0-decision-types: not affected: The openai npm SDK is pinned at ^4.17.3, which cannot resolve to 7.x, and the Decisions types are not used.\nopenai:2026-10-npm-7-43-0-decision-instructions: not affected: The openai npm SDK is pinned at ^4.17.3, which cannot resolve to 7.x, and question.instructions and DecisionInputMessage are not used.\nopenai:2026-10-pypi-3-37-0-decision-types: not affected: The repo is TypeScript and does not use the Python openai SDK or Decisions.",
+  "error": "$1.12 of the $4 run cap left, below the $2 a task needs",
+  "costByPart": {
+    "inventory": 0.2689273999999999,
+    "match": 0.2120280000000001
+  }
+}

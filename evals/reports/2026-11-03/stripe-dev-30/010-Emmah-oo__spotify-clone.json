@@ -1,0 +1,15 @@
+{
+  "set": "stripe-dev-30",
+  "index": 10,
+  "repo": "Emmah-oo/spotify-clone",
+  "commit": "23f84d4d703ea005c12f60bc9ae42148158cc0f8",
+  "provider": "stripe",
+  "usages": 0,
+  "changes": 0,
+  "verdict": "unrun",
+  "tasks": [],
+  "costUsd": 0,
+  "durationMs": 0,
+  "error": "dollar cap reached before this repo started: AI budget: $0.45 of the $4 cap left; the Anassarwar14/Chat-Nest-AI inventory needs $0.60.",
+  "costByPart": {}
+}

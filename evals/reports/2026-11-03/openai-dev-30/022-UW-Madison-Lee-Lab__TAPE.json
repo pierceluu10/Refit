@@ -1,0 +1,15 @@
+{
+  "set": "openai-dev-30",
+  "index": 22,
+  "repo": "UW-Madison-Lee-Lab/TAPE",
+  "commit": "98f1aa7044cc8cea34583b2952dad9262587e95d",
+  "provider": "openai",
+  "usages": 0,
+  "changes": 0,
+  "verdict": "unrun",
+  "tasks": [],
+  "costUsd": 0,
+  "durationMs": 0,
+  "error": "dollar cap reached before this repo started: AI budget: $0.43 of the $4 cap left; the gvprime/pubragi inventory needs $0.60.",
+  "costByPart": {}
+}

@@ -4,8 +4,11 @@
 # evals/ because the overnight prompts don't edit .github/. Nobody dispatches it until the
 # founders approve a first run and its budget.
 #
-# The dollar cap and concurrency are required inputs with no defaults. The plan job splits the
-# cap evenly across shards; each shard's runner and the harness ledger both enforce its share.
+# The dollar cap and concurrency are required inputs with no defaults. The plan job sets aside
+# one watcher read per provider for the watch job, which reads each provider once and hands its
+# cache to every shard, and splits the rest of the cap evenly across shards; each shard's runner
+# and the harness ledger both enforce its share. The plan refuses a cap whose shards could never
+# afford a task.
 name: Aptitude benchmark
 
 on:
@@ -33,6 +36,7 @@ jobs:
     outputs:
       shards: ${{ steps.plan.outputs.shards }}
       shard_budget: ${{ steps.plan.outputs.shard_budget }}
+      watch_budget: ${{ steps.plan.outputs.watch_budget }}
       concurrency: ${{ steps.plan.outputs.concurrency }}
     steps:
       - uses: actions/checkout@v4
@@ -54,10 +58,40 @@ jobs:
           plan=$(node evals/runner/cli.ts matrix --set "$SET" --budget-usd "$BUDGET_USD")
           echo "shards=$(jq -c '[.shards[].index]' <<<"$plan")" >> "$GITHUB_OUTPUT"
           echo "shard_budget=$(jq -r .shardBudgetUsd <<<"$plan")" >> "$GITHUB_OUTPUT"
+          echo "watch_budget=$(jq -r .watchBudgetUsd <<<"$plan")" >> "$GITHUB_OUTPUT"
           echo "concurrency=$CONCURRENCY" >> "$GITHUB_OUTPUT"
 
-  shard:
+  # One read of each provider for the whole run; shards reuse it from the cache (same UTC day).
+  watch:
     needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      # A provider whose read fails is read again by its shards, so the run still goes on.
+      - name: Read each provider once
+        continue-on-error: true
+        env:
+          SET: ${{ inputs.set }}
+          WATCH_BUDGET_USD: ${{ needs.plan.outputs.watch_budget }}
+          APTITUDE_AI_BUDGET_USD: ${{ needs.plan.outputs.watch_budget }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: >-
+          node evals/runner/cli.ts watch --set "$SET" --budget-usd "$WATCH_BUDGET_USD"
+          --watch-cache watch-cache
+      - uses: actions/upload-artifact@v4
+        with:
+          name: watch-cache
+          path: watch-cache/
+          if-no-files-found: warn
+
+  shard:
+    needs: [plan, watch]
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
@@ -72,6 +106,10 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: watch-cache
+          path: watch-cache/
       # Repo code runs only inside the harness's Docker sandbox; the runner itself only fetches
       # the frozen commit (no install, no hooks, no submodules).
       - name: Run one repo
@@ -79,10 +117,13 @@ jobs:
           SET: ${{ inputs.set }}
           INDEX: ${{ matrix.index }}
           SHARD_BUDGET_USD: ${{ needs.plan.outputs.shard_budget }}
+          APTITUDE_AI_BUDGET_USD: ${{ needs.plan.outputs.shard_budget }}
+          APTITUDE_SANDBOX: docker
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: >-
           node evals/runner/cli.ts run --set "$SET" --shard "$INDEX"
           --budget-usd "$SHARD_BUDGET_USD" --concurrency 1 --out results
+          --watch-cache watch-cache
       - if: always()
         uses: actions/upload-artifact@v4
         with:

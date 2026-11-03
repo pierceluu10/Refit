@@ -1,0 +1,336 @@
+{
+  "set": "openai-dev-30",
+  "index": 0,
+  "repo": "crlny/lobe-chat",
+  "commit": "62043bba74ddd43020d5162d1acbedeb95300067",
+  "provider": "openai",
+  "usages": 50,
+  "changes": 35,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "crlny/lobe-chat:openai:2025-11-18-chatgpt-4o-latest",
+      "changeId": "openai:2025-11-18-chatgpt-4o-latest",
+      "kind": "model-retirement",
+      "attempted": true,
+      "record": {
+        "taskId": "crlny/lobe-chat:openai:2025-11-18-chatgpt-4o-latest",
+        "outcome": "needs-review",
+        "diff": "diff --git a/src/config/aiModels/higress.ts b/src/config/aiModels/higress.ts\nindex cda8178..17914ae 100644\n--- a/src/config/aiModels/higress.ts\n+++ b/src/config/aiModels/higress.ts\n@@ -1415,22 +1415,6 @@ const higressChatModels: AIChatModelCard[] = [\n     },\n     type: 'chat',\n   },\n-  {\n-    abilities: {\n-      vision: true,\n-    },\n-    contextWindowTokens: 128_000,\n-    description:\n-      'ChatGPT-4o 是一款动态模型，实时更新以保持当前最新版本。它结合了强大的语言理解与生成能力，适合于大规模应用场景，包括客户服务、教育和技术支持。',\n-    displayName: 'ChatGPT-4o',\n-    enabled: true,\n-    id: 'chatgpt-4o-latest',\n-    pricing: {\n-      input: 5,\n-      output: 15,\n-    },\n-    type: 'chat',\n-  },\n   {\n     abilities: {\n       functionCall: true,\ndiff --git a/src/config/aiModels/openai.ts b/src/config/aiModels/openai.ts\nindex de82ef4..737a67b 100644\n--- a/src/config/aiModels/openai.ts\n+++ b/src/config/aiModels/openai.ts\n@@ -208,23 +208,6 @@ export const openaiChatModels: AIChatModelCard[] = [\n     releasedAt: '2024-10-01',\n     type: 'chat',\n   },\n-  {\n-    abilities: {\n-      vision: true,\n-    },\n-    contextWindowTokens: 128_000,\n-    description:\n-      'ChatGPT-4o 是一款动态模型，实时更新以保持当前最新版本。它结合了强大的语言理解与生成能力，适合于大规模应用场景，包括客户服务、教育和技术支持。',\n-    displayName: 'ChatGPT-4o',\n-    enabled: true,\n-    id: 'chatgpt-4o-latest',\n-    pricing: {\n-      input: 5,\n-      output: 15,\n-    },\n-    releasedAt: '2024-08-14',\n-    type: 'chat',\n-  },\n   {\n     abilities: {\n       functionCall: true,\ndiff --git a/src/config/modelProviders/higress.ts b/src/config/modelProviders/higress.ts\nindex 17a5789..964bc65 100644\n--- a/src/config/modelProviders/higress.ts\n+++ b/src/config/modelProviders/higress.ts\n@@ -1257,19 +1257,6 @@ const Higress: ModelProviderCard = {\n       },\n       vision: true,\n     },\n-    {\n-      contextWindowTokens: 128_000,\n-      description:\n-        'ChatGPT-4o 是一款动态模型，实时更新以保持当前最新版本。它结合了强大的语言理解与生成能力，适合于大规模应用场景，包括客户服务、教育和技术支持。',\n-      displayName: 'ChatGPT-4o',\n-      enabled: true,\n-      id: 'chatgpt-4o-latest',\n-      pricing: {\n-        input: 5,\n-        output: 15,\n-      },\n-      vision: true,\n-    },\n     {\n       contextWindowTokens: 128_000,\n       description:\ndiff --git a/src/config/modelProviders/openai.ts b/src/config/modelProviders/openai.ts\nindex ee7c03f..9483100 100644\n--- a/src/config/modelProviders/openai.ts\n+++ b/src/config/modelProviders/openai.ts\n@@ -118,19 +118,6 @@ const OpenAI: ModelProviderCard = {\n       releasedAt: '2024-05-13',\n       vision: true,\n     },\n-    {\n-      contextWindowTokens: 128_000,\n-      description:\n-        'ChatGPT-4o 是一款动态模型，实时更新以保持当前最新版本。它结合了强大的语言理解与生成能力，适合于大规模应用场景，包括客户服务、教育和技术支持。',\n-      displayName: 'ChatGPT-4o',\n-      enabled: true,\n-      id: 'chatgpt-4o-latest',\n-      pricing: {\n-        input: 5,\n-        output: 15,\n-      },\n-      vision: true,\n-    },\n     {\n       contextWindowTokens: 128_000,\n       description:\ndiff --git a/src/store/user/slices/modelList/selectors/modelProvider.test.ts b/src/store/user/slices/modelList/selectors/modelProvider.test.ts\nindex d385ea8..bc36423 100644\n--- a/src/store/user/slices/modelList/selectors/modelProvider.test.ts\n+++ b/src/store/user/slices/modelList/selectors/modelProvider.test.ts\n@@ -56,7 +56,6 @@ describe('modelProviderSelectors', () => {\n         'gpt-4o-mini',\n         'gpt-4o-2024-11-20',\n         'gpt-4o',\n-        'chatgpt-4o-latest',\n       ]);\n     });\n \n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "fail (1)",
+            "after": "fail (1)"
+          },
+          {
+            "name": "build",
+            "before": "fail (1)",
+            "after": "fail (1)"
+          },
+          {
+            "name": "test",
+            "before": "fail (1)",
+            "after": "fail (1)"
+          }
+        ],
+        "costUsd": 0.40460700000000005,
+        "transcriptPath": "/var/folders/n6/xyhw754x18xdyf69x35br71w0000gn/T/aptitude-run-crlny-lobe-chat-openai-2025-11-18-chatgpt-4o-latest-bZFmS8/transcript.jsonl",
+        "prBody": "## chatgpt-4o-latest removed Feb 17, 2026; use gpt-5.1-chat-latest [Needs review]\n\n### Change\n\nRemoved the built-in `chatgpt-4o-latest` model cards from src/config/aiModels/{openai,higress}.ts and src/config/modelProviders/{openai,higress}.ts, and removed it from the expected default-enabled list in modelProvider.test.ts. No SDK call sites hardcode the model id. Not changed: the locales/*/models.json i18n entries (not runtime config) and the dataImporter test fixtures that contain the id as sample data.\n\nFiles touched:\n- `src/config/aiModels/higress.ts`\n- `src/config/aiModels/openai.ts`\n- `src/config/modelProviders/higress.ts`\n- `src/config/modelProviders/openai.ts`\n- `src/store/user/slices/modelList/selectors/modelProvider.test.ts`\n\n### Why\n\nchatgpt-4o-latest was shut down on 2026-02-17, so the cards listed a model the API now rejects. The suggested replacement, gpt-5.1-chat-latest, is itself shut down (2026-07-23), so I didn't swap to it. I removed the cards instead. gpt-4o stays in the list as the nearest remaining option.\n\n> On November 18th, 2025, we notified developers using `chatgpt-4o-latest` model snapshot of its deprecation and removal from the API on February 17, 2026.\n\nSource: https://developers.openai.com/api/docs/deprecations.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | fail (1) | fail (1) | 0 |\n| build | fail (1) | fail (1) | 0 |\n| test | fail (1) | fail (1) | 0 |\n\nNew failures: 0\n\nProvider tool calls recorded by the harness:\n- `openai__openai_model_lookup`: fail\n\nThe agent's validator claims (not proof; graded against the recorded calls):\n- openai_model_lookup: pass (chatgpt-4o-latest is shut down since 2026-02-17. Its listed replacement, gpt-5.1-chat-latest, is shut down since 2026-07-23 (now gpt-5.6-sol).)\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Could not run type-check, build or tests. Baseline dependency install failed with an ERESOLVE peer-dependency conflict (react 19 vs @icons-pack/react-simple-icons), so tsc, next and vitest were missing.\n- The updated expected list in modelProvider.test.ts was not run.\n- The locales/*/models.json entries for chatgpt-4o-latest are left in place.\n- Existing user agents or sessions saved with model chatgpt-4o-latest are not migrated and will still error until the user picks another model.\n- typecheck was already failing before the change and still fails.\n- build was already failing before the change and still fails.\n- test was already failing before the change and still fails.\n- Validator openai_model_lookup failed: ## chatgpt-4o-latest\n\n### Behaviour changes\n\n- ChatGPT-4o no longer appears in the default OpenAI and Higress model lists, and is no longer enabled by default.\n- No new default model was added. If a replacement is wanted, add a current OpenAI chat model card; gpt-4o is still available.\n\n---\n\nPrompt harness-prompt/2026-11-01.10 · Models: claude-sonnet-5-5 · AI cost: $0.4046\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-01.10",
+        "recipeIds": [],
+        "agentChecks": [],
+        "summary": "# crlny/lobe-chat:openai:2025-11-18-chatgpt-4o-latest: needs-review, $0.4046\nChange: chatgpt-4o-latest removed Feb 17, 2026; use gpt-5.1-chat-latest (openai, model-retirement)\nBaseline checks: typecheck fail (1), build fail (1), test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=chatgpt-4o-latest → locales/ar/models.json:530:   \"chatgpt-4o-latest\": { | locales/bg-BG/models.json:530:   \"chatgpt-4o-latest\": { | locales/de-DE/models.json:530:   \"chatgpt-4o-latest\": {\n2. read_file path=src/config/aiModels/openai.ts offset=195 limit=60 → 195\t    releasedAt: '2024-05-13', | 196\t    type: 'chat', | 197\t  },\n3. read_file path=src/config/modelProviders/openai.ts offset=105 limit=40 → 105\t      vision: true, | 106\t    }, | 107\t    {\n4. openai__openai_model_lookup models=[\"chatgpt-4o-latest\",\"gpt-5.1-chat-latest\"] → ## chatgpt-4o-latest | Status (as of 2026-11-03): shut down (since 2026-02-17) | Announced: 2025-11-18 (chatgpt-4o-latest snapshot, listed under past deprecations)\n5. search pattern=id: 'gpt-5|id: 'gpt-4o'|chatgpt-4o path=src → src/config/aiModels/azure.ts:100:     id: 'gpt-4o', | src/config/aiModels/github.ts:82:     id: 'gpt-4o', | src/config/aiModels/higress.ts:1379:     id: 'gpt-4o',\n6. read_file path=src/store/user/slices/modelList/selectors/modelProvider.test.ts offset=40 limit=35 → 40\t        id: 'custom-model', | 41\t        displayName: 'Custom Model', | 42\t        isCustom: true,\n7. read_file path=src/config/aiModels/higress.ts offset=1418 limit=20 → 1418\t  { | 1419\t    abilities: { | 1420\t      vision: true,\n8. read_file path=src/config/modelProviders/higress.ts offset=1258 limit=18 → 1258\t      vision: true, | 1259\t    }, | 1260\t    {\n9. shell command=<668 chars> → exit code: 1 | --- stdout --- | --- stderr ---\n10. diff  → src/config/aiModels/higress.ts: +0 -16 | src/config/aiModels/openai.ts: +0 -17 | src/config/modelProviders/higress.ts: +0 -13\n11. finish verdict=migrated summary=<413 chars> why=<288 chars> validators=<200 chars> unproven=<493 chars> behaviourChanges=<243 chars> → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck fail (1) → fail (1), build fail (1) → fail (1), test fail (1) → fail (1)\n\n## Result\nFiles changed: src/config/aiModels/higress.ts, src/config/aiModels/openai.ts, src/config/modelProviders/higress.ts, src/config/modelProviders/openai.ts, src/store/user/slices/modelList/selectors/modelProvider.test.ts\nVerdict: migrated. Removed the built-in `chatgpt-4o-latest` model cards from src/config/aiModels/{openai,higress}.ts and src/config/modelProviders/{openai,higress}.ts, and removed it from the expected default-enabled list in modelProvider.test.ts. No SDK call sites hardcode the model id. Not changed: the locales/*/models.json i18n entries (not runtime config) and the dataImporter test fixtures that contain the id as sample data.\nUnproven: Could not run type-check, build or tests. Baseline dependency install failed with an ERESOLVE peer-dependency conflict (react 19 vs @icons-pack/react-simple-icons), so tsc, next and vitest were missing.; The updated expected list in modelProvider.test.ts was not run.; The locales/*/models.json entries for chatgpt-4o-latest are left in place.; Existing user agents or sessions saved with model chatgpt-4o-latest are not migrated and will still error until the user picks another model.\n"
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The PR deletes the `chatgpt-4o-latest` cards from the OpenAI and Higress model lists (aiModels and modelProviders) and updates one selector test. It never adds the recommended replacement, `gpt-5.1-chat-latest`. It also does nothing for users or agents that already have `chatgpt-4o-latest` saved; those requests will start failing after 2026-02-17. The model ID may still appear elsewhere in the repo. Typecheck, build and test all fail both before and after, so the checks prove nothing. The needs-review grade is correct.",
+        "concerns": [
+          {
+            "file": "src/config/aiModels/openai.ts",
+            "issue": "The `chatgpt-4o-latest` card (around line 211) is removed, but no `gpt-5.1-chat-latest` card is added. Users lose the model with no replacement listed. The deprecation notice names a specific successor, and it should get a card with correct abilities, context window and pricing.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/config/modelProviders/openai.ts",
+            "issue": "Same issue in the legacy provider card (around line 121): removed, with no replacement entry.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/services/chat.ts",
+            "issue": "At line 644 the model ID comes from persisted agent, session or user settings, and the PR adds no migration or fallback for them. Anyone with `chatgpt-4o-latest` saved, or set via env such as OPENAI_MODEL_LIST or a default agent config, will still send it and get a 404 after 2026-02-17. Removing the card only hides the model in the picker.",
+            "severity": "high"
+          },
+          {
+            "file": "src/config/aiModels/higress.ts",
+            "issue": "The Higress card is removed (around line 1418) on the assumption that Higress proxies OpenAI's retired model. That is plausible but unverified. Other aggregators were not touched (e.g. openrouter `openai/chatgpt-4o-latest`, github, azure, and any locale or fixture files), so the cleanup is either incomplete or inconsistent.",
+            "severity": "low"
+          },
+          {
+            "file": "src/store/user/slices/modelList/selectors/modelProvider.test.ts",
+            "issue": "The expected list is edited to match the removal, but the suite already failed before this change, so nobody has confirmed this test or any snapshot tests pass. Snapshot files that list default OpenAI models may also contain `chatgpt-4o-latest`.",
+            "severity": "medium"
+          },
+          {
+            "file": "(checks)",
+            "issue": "Typecheck, build and test fail with exit 1 both before and after the change, so they give no signal about this diff. None of the named runtime call sites (openaiCompatibleFactory, services/models.ts) were exercised.",
+            "severity": "medium"
+          }
+        ],
+        "checkFirst": [
+          "grep the whole repo (including locales, snapshots, docs, env defaults, and other provider configs such as openrouter, github, azure) for `chatgpt-4o-latest`",
+          "Decide whether to add a `gpt-5.1-chat-latest` card with accurate abilities, context window and pricing",
+          "Check whether there is a settings or agent-config migration path, or a fallback, for users with `chatgpt-4o-latest` persisted",
+          "Find out why typecheck, build and test fail on the base branch, then rerun them to confirm this diff introduces no new failures"
+        ],
+        "costUsd": 0.041892,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "crlny/lobe-chat:openai:2025-09-26-legacy-gpt-mar-2026",
+      "changeId": "openai:2025-09-26-legacy-gpt-mar-2026",
+      "kind": "model-retirement",
+      "attempted": true,
+      "record": {
+        "taskId": "crlny/lobe-chat:openai:2025-09-26-legacy-gpt-mar-2026",
+        "outcome": "needs-review",
+        "diff": "diff --git a/src/config/aiModels/openai.ts b/src/config/aiModels/openai.ts\nindex de82ef4..4386dab 100644\n--- a/src/config/aiModels/openai.ts\n+++ b/src/config/aiModels/openai.ts\n@@ -258,37 +258,6 @@ export const openaiChatModels: AIChatModelCard[] = [\n     releasedAt: '2024-04-09',\n     type: 'chat',\n   },\n-  {\n-    abilities: {\n-      functionCall: true,\n-    },\n-    contextWindowTokens: 128_000,\n-    description:\n-      '最新的 GPT-4 Turbo 模型具备视觉功能。现在，视觉请求可以使用 JSON 模式和函数调用。 GPT-4 Turbo 是一个增强版本，为多模态任务提供成本效益高的支持。它在准确性和效率之间找到平衡，适合需要进行实时交互的应用程序场景。',\n-    displayName: 'GPT-4 Turbo Preview',\n-    id: 'gpt-4-turbo-preview',\n-    pricing: {\n-      input: 10,\n-      output: 30,\n-    },\n-    type: 'chat',\n-  },\n-  {\n-    abilities: {\n-      functionCall: true,\n-    },\n-    contextWindowTokens: 128_000,\n-    description:\n-      '最新的 GPT-4 Turbo 模型具备视觉功能。现在，视觉请求可以使用 JSON 模式和函数调用。 GPT-4 Turbo 是一个增强版本，为多模态任务提供成本效益高的支持。它在准确性和效率之间找到平衡，适合需要进行实时交互的应用程序场景。',\n-    displayName: 'GPT-4 Turbo Preview 0125',\n-    id: 'gpt-4-0125-preview',\n-    pricing: {\n-      input: 10,\n-      output: 30,\n-    },\n-    releasedAt: '2024-01-25',\n-    type: 'chat',\n-  },\n   {\n     abilities: {\n       functionCall: true,\ndiff --git a/src/config/modelProviders/openai.ts b/src/config/modelProviders/openai.ts\nindex ee7c03f..78615a7 100644\n--- a/src/config/modelProviders/openai.ts\n+++ b/src/config/modelProviders/openai.ts\n@@ -157,30 +157,6 @@ const OpenAI: ModelProviderCard = {\n       },\n       vision: true,\n     },\n-    {\n-      contextWindowTokens: 128_000,\n-      description:\n-        '最新的 GPT-4 Turbo 模型具备视觉功能。现在，视觉请求可以使用 JSON 模式和函数调用。 GPT-4 Turbo 是一个增强版本，为多模态任务提供成本效益高的支持。它在准确性和效率之间找到平衡，适合需要进行实时交互的应用程序场景。',\n-      displayName: 'GPT-4 Turbo Preview',\n-      functionCall: true,\n-      id: 'gpt-4-turbo-preview',\n-      pricing: {\n-        input: 10,\n-        output: 30,\n-      },\n-    },\n-    {\n-      contextWindowTokens: 128_000,\n-      description:\n-        '最新的 GPT-4 Turbo 模型具备视觉功能。现在，视觉请求可以使用 JSON 模式和函数调用。 GPT-4 Turbo 是一个增强版本，为多模态任务提供成本效益高的支持。它在准确性和效率之间找到平衡，适合需要进行实时交互的应用程序场景。',\n-      displayName: 'GPT-4 Turbo Preview 0125',\n-      functionCall: true,\n-      id: 'gpt-4-0125-preview',\n-      pricing: {\n-        input: 10,\n-        output: 30,\n-      },\n-    },\n     {\n       contextWindowTokens: 128_000,\n       description:\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "fail (1)",
+            "after": "fail (1)"
+          },
+          {
+            "name": "build",
+            "before": "fail (1)",
+            "after": "fail (1)"
+          },
+          {
+            "name": "test",
+            "before": "fail (1)",
+            "after": "fail (1)"
+          }
+        ],
+        "costUsd": 0.372246,
+        "transcriptPath": "/var/folders/n6/xyhw754x18xdyf69x35br71w0000gn/T/aptitude-run-crlny-lobe-chat-openai-2025-09-26-legacy-gpt-mar-2026-7lKFRG/transcript.jsonl",
+        "prBody": "## gpt-4-0314 and gpt-4-0125-preview (gpt-4-turbo-preview) shut down Mar 26, 2026 [Needs review]\n\n### Change\n\nRemoved the built-in OpenAI model cards for gpt-4-turbo-preview and gpt-4-0125-preview from src/config/aiModels/openai.ts and src/config/modelProviders/openai.ts. They can no longer be picked in the default OpenAI provider list. gpt-4-0314 isn't referenced anywhere in the repo. I made no change to the SDK call sites, which pass the model id through from user settings. I didn't run any checks or provider validators.\n\nFiles touched:\n- `src/config/aiModels/openai.ts`\n- `src/config/modelProviders/openai.ts`\n\n### Why\n\nOpenAI shut these models down on 2026-03-26, so any request that selects them now errors. The repo shipped them as selectable built-in cards.\n\n> Access to these models was shut down on March 26, 2026.\n\nSource: https://developers.openai.com/api/docs/deprecations.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | fail (1) | fail (1) | 0 |\n| build | fail (1) | fail (1) | 0 |\n| test | fail (1) | fail (1) | 0 |\n\nNew failures: 0\n\nProvider validators: none run.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- No checks were run. `npm ci` failed with an ERESOLVE peer-dependency conflict (react 19 vs @icons-pack/react-simple-icons), so tsc, next and vitest were not installed. The type-check, build and test baselines all failed before my change.\n- Tests and snapshots that still use gpt-4-0125-preview were not updated or run. These are src/server/routers/edge/config/index.test.ts and its snapshot, src/utils/parseModels.test.ts, src/utils/_deprecated/parseModels.test.ts, src/store/user/slices/modelList/action.test.ts, and the OpenAI models.list fixtures and snapshot under src/libs/agent-runtime/openai. They may need regenerating now that the builtin card is gone.\n- Higress cards (src/config/aiModels/higress.ts and src/config/modelProviders/higress.ts) still list gpt-4-turbo-preview and gpt-4-0125-preview. I left them because Higress is a gateway whose upstream availability I couldn't check. The docs, which use gpt-4-0125-preview as an example in OPENAI_MODEL_LIST, and the locales/*/models.json files were also left alone.\n- I did not call the model lookup tool or look up the suggested replacement (for example gpt-4-turbo-2024-04-09 or gpt-4o). Neither the docs examples nor the settings placeholder was updated.\n- typecheck was already failing before the change and still fails.\n- build was already failing before the change and still fails.\n- test was already failing before the change and still fails.\n- No provider validator was run.\n\n### Behaviour changes\n\n- gpt-4-turbo-preview and gpt-4-0125-preview no longer appear in the built-in OpenAI model list. Users who had them enabled or set as the default model must pick another model, such as gpt-4-turbo-2024-04-09 or gpt-4o.\n- Users can still add these ids through OPENAI_MODEL_LIST or custom model settings, but OpenAI rejects requests for them.\n\n---\n\nPrompt harness-prompt/2026-11-01.10 · Models: claude-sonnet-5-5 · AI cost: $0.3722\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-01.10",
+        "recipeIds": [],
+        "agentChecks": [],
+        "summary": "# crlny/lobe-chat:openai:2025-09-26-legacy-gpt-mar-2026: needs-review, $0.3722\nChange: gpt-4-0314 and gpt-4-0125-preview (gpt-4-turbo-preview) shut down Mar 26, 2026 (openai, model-retirement)\nBaseline checks: typecheck fail (1), build fail (1), test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gpt-4-0314|gpt-4-0125-preview|gpt-4-turbo-preview → changelog/CHANGELOG.v0.md:7076: - **misc**: Update the gpt-4-1106-preview model to gpt-4-0125-preview. | changelog/CHANGELOG.v0.md:7085: - **misc**: Update the gpt-4-1106-preview model to gpt-4-0125-preview, closes [#1210](https://github.co…\n2. read_file path=src/config/aiModels/openai.ts offset=240 limit=70 → 240\t      output: 30, | 241\t    }, | 242\t    type: 'chat',\n3. read_file path=src/config/modelProviders/openai.ts offset=150 limit=50 → 150\t        '最新的 GPT-4 Turbo 模型具备视觉功能。现在，视觉请求可以使用 JSON 模式和函数调用。 GPT-4 Turbo 是一个增强版本，为多模态任务提供成本效益高的支持。它在准确性和效率之间找到平衡，适合需要进行实时交互的应用程序场景。', | 151\t      displayName: 'GPT-4 Turbo Vision 0409', | 152\t      functionCall: true,\n4. shell command=<208 chars> → exit code: 0 | --- stdout --- |       input: 10,\n5. read_file path=src/server/routers/edge/config/index.test.ts offset=25 limit=55 → 25\t  ctx = await createContextInner(); | 26\t  router = createCaller(ctx); | 27\t});\n6. finish verdict=migrated summary=<418 chars> why=<141 chars> validators=[] unproven=<1222 chars> behaviourChanges=<342 chars> → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck fail (1) → fail (1), build fail (1) → fail (1), test fail (1) → fail (1)\n\n## Result\nFiles changed: src/config/aiModels/openai.ts, src/config/modelProviders/openai.ts\nVerdict: migrated. Removed the built-in OpenAI model cards for gpt-4-turbo-preview and gpt-4-0125-preview from src/config/aiModels/openai.ts and src/config/modelProviders/openai.ts. They can no longer be picked in the default OpenAI provider list. gpt-4-0314 isn't referenced anywhere in the repo. I made no change to the SDK call sites, which pass the model id through from user settings. I didn't run any checks or provider validators.\nUnproven: No checks were run. `npm ci` failed with an ERESOLVE peer-dependency conflict (react 19 vs @icons-pack/react-simple-icons), so tsc, next and vitest were not installed. The type-check, build and test baselines all failed before my change.; Tests and snapshots that still use gpt-4-0125-preview were not updated or run. These are src/server/routers/edge/config/index.test.ts and its snapshot, src/utils/parseModels.test.ts, src/utils/_deprecated/parseModels.test.ts, src/store/user/slices/modelList/action.test.ts, and the OpenAI models.list fixtures and snapshot under src/libs/agent-runtime/openai. They may need regenerating now that the builtin card is gone.; Higress cards (src/config/aiModels/higress.ts and src/config/modelProviders/higress.ts) still list gpt-4-turbo-preview and gpt-4-0125-preview. I left them because Higress is a gateway whose upstream availability I couldn't check. The docs, which use gpt-4-0125-preview as an example in OPENAI_MODEL_LIST, and the locales/*/models.json files were also left alone.; I did not call the model lookup tool or look up the suggested replacement (for example gpt-4-turbo-2024-04-09 or gpt-4o). Neither the docs examples nor the settings placeholder was updated.\n"
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff removes the `gpt-4-turbo-preview` and `gpt-4-0125-preview` cards from `src/config/aiModels/openai.ts` and `src/config/modelProviders/openai.ts`. That is the right core change for the OpenAI provider. But typecheck, build and test failed both before and after, so the checks prove nothing about this change. Several things are not covered: `gpt-4-0314` is never mentioned, nothing handles users already persisted on the removed IDs, and other references to these IDs (tests, snapshots, locales, other providers) may remain. The needs-review grade fits; this should not be read as verified.",
+        "concerns": [
+          {
+            "file": "(checks)",
+            "issue": "typecheck, build and test all fail before and after (exit 1), so there is no signal that this diff compiles or passes tests. The pre-existing failure may be hiding new breakage, such as snapshot or test assertions that enumerate the OpenAI model list.",
+            "severity": "high"
+          },
+          {
+            "file": "src/config/aiModels/openai.ts",
+            "issue": "The retirement also covers `gpt-4-0314`. The diff does not touch it, and the PR does not say whether it is absent from the configs. Grep for `gpt-4-0314` across src/config, tests and locales to confirm.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/services/chat.ts:644",
+            "issue": "Some agents, sessions or user settings in the DB or localStorage may still have model=`gpt-4-turbo-preview` or `gpt-4-0125-preview`. Removing the cards only hides them from the picker; those users will hit a runtime 404 from OpenAI. Nothing remaps them to a successor such as `gpt-4-turbo` or `gpt-4o`, and there is no settings migration or user-facing message.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/libs/agent-runtime/openai/index.ts:36",
+            "issue": "`models.list` merges remote models with the local card list. Check whether any test fixture or snapshot (e.g. `__snapshots__` under `agent-runtime/openai` or `src/config` tests) hard-codes these IDs; those tests would now fail or go stale.",
+            "severity": "low"
+          },
+          {
+            "file": "src/config/aiModels/*, src/config/modelProviders/*",
+            "issue": "Other providers that proxy OpenAI (Azure, GitHub, OpenRouter, etc.) may still list `gpt-4-turbo-preview` or `gpt-4-0125-preview`. Some of those are upstream-dependent, so the right fix is not obvious, but they should be reviewed rather than silently left.",
+            "severity": "low"
+          },
+          {
+            "file": "locales/*/models.json",
+            "issue": "Orphaned i18n description entries for the removed IDs probably remain. They are harmless but should be cleaned up for consistency.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Run `rg \"gpt-4-0314|gpt-4-0125-preview|gpt-4-turbo-preview\"` across the repo (src, tests, snapshots, locales, docs) to find remaining references.",
+          "Fix or identify the pre-existing typecheck/build/test failure so the after-state is actually validated; run the relevant vitest suites for src/config and agent-runtime/openai.",
+          "Decide whether persisted agent or session configs using the removed IDs need a migration or fallback to a supported model.",
+          "Confirm whether removing these IDs from OpenAI-proxying providers (Azure, OpenRouter, GitHub) is in scope."
+        ],
+        "costUsd": 0.043116,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "crlny/lobe-chat:openai:2025-11-14-dalle-retirement",
+      "changeId": "openai:2025-11-14-dalle-retirement",
+      "kind": "model-retirement",
+      "attempted": true,
+      "record": {
+        "taskId": "crlny/lobe-chat:openai:2025-11-14-dalle-retirement",
+        "outcome": "needs-review",
+        "diff": "diff --git a/src/config/aiModels/openai.ts b/src/config/aiModels/openai.ts\nindex de82ef4..5ecfb7a 100644\n--- a/src/config/aiModels/openai.ts\n+++ b/src/config/aiModels/openai.ts\n@@ -508,25 +508,10 @@ export const openaiSTTModels: AISTTModelCard[] = [\n // 图像生成模型\n export const openaiImageModels: AIText2ImageModelCard[] = [\n   {\n-    description:\n-      '最新的 DALL·E 模型，于2023年11月发布。支持更真实、准确的图像生成，具有更强的细节表现力',\n-    displayName: 'DALL·E 3',\n-    id: 'dall-e-3',\n-    pricing: {\n-      hd: 0.08,\n-      standard: 0.04,\n-    },\n-    resolutions: ['1024x1024', '1024x1792', '1792x1024'],\n-    type: 'image',\n-  },\n-  {\n-    description: '第二代 DALL·E 模型，支持更真实、准确的图像生成，分辨率是第一代的4倍',\n-    displayName: 'DALL·E 2',\n-    id: 'dall-e-2',\n-    pricing: {\n-      input: 0.02, // $0.020 per image (1024×1024)\n-    },\n-    resolutions: ['256x256', '512x512', '1024x1024'],\n+    description: 'OpenAI 最新的 GPT Image 图像生成模型，取代已下线的 DALL·E 2 / DALL·E 3',\n+    displayName: 'GPT Image 2',\n+    id: 'gpt-image-2',\n+    resolutions: ['1024x1024', '1024x1536', '1536x1024'],\n     type: 'image',\n   },\n ];\ndiff --git a/src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts b/src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts\nindex c3a6afd..8ef9642 100644\n--- a/src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts\n+++ b/src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts\n@@ -345,7 +345,10 @@ export const LobeOpenAICompatibleFactory = <T extends Record<string, any> = any>\n     async textToImage(payload: TextToImagePayload) {\n       try {\n         const res = await this.client.images.generate(payload);\n-        return res.data.map((o) => o.url) as string[];\n+        // gpt-image models always return base64 (b64_json) instead of a url\n+        return (res.data ?? [])\n+          .map((o) => o.url ?? (o.b64_json ? `data:image/png;base64,${o.b64_json}` : undefined))\n+          .filter(Boolean) as string[];\n       } catch (error) {\n         throw this.handleError(error);\n       }\ndiff --git a/src/services/textToImage.ts b/src/services/textToImage.ts\nindex bf21a53..0984fdb 100644\n--- a/src/services/textToImage.ts\n+++ b/src/services/textToImage.ts\n@@ -13,7 +13,15 @@ class ImageGenerationService {\n     params: Omit<OpenAIImagePayload, 'model' | 'n'>,\n     options?: FetchOptions,\n   ) => {\n-    const payload: OpenAIImagePayload = { ...params, model: 'dall-e-3', n: 1 };\n+    // dall-e-2/3 were removed on 2026-05-12; gpt-image-2 has no `style` and uses different quality/size values\n+    const { quality, size, style: _style, ...rest } = params;\n+    const payload = {\n+      ...rest,\n+      model: 'gpt-image-2',\n+      n: 1,\n+      quality: quality === 'hd' ? 'high' : quality ? 'medium' : undefined,\n+      size: size === '1792x1024' ? '1536x1024' : size === '1024x1792' ? '1024x1536' : size,\n+    };\n \n     const provider = ModelProvider.OpenAI;\n \ndiff --git a/src/types/openai/image.ts b/src/types/openai/image.ts\nindex 515792f..966a824 100644\n--- a/src/types/openai/image.ts\n+++ b/src/types/openai/image.ts\n@@ -1,7 +1,7 @@\n import { DallEImageQuality, DallEImageSize, DallEImageStyle } from '@/types/tool/dalle';\n \n export interface OpenAIImagePayload {\n-  model: 'dall-e-2' | 'dall-e-3';\n+  model: 'gpt-image-2' | 'gpt-image-1' | 'gpt-image-1-mini';\n   /**\n    * The number of images to generate. Must be between 1 and 10.\n    */\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "fail (1)",
+            "after": "fail (1)"
+          },
+          {
+            "name": "build",
+            "before": "fail (1)",
+            "after": "fail (1)"
+          },
+          {
+            "name": "test",
+            "before": "fail (1)",
+            "after": "fail (1)"
+          }
+        ],
+        "costUsd": 0.42891219999999997,
+        "transcriptPath": "/var/folders/n6/xyhw754x18xdyf69x35br71w0000gn/T/aptitude-run-crlny-lobe-chat-openai-2025-11-14-dalle-retirement-Fn4t7b/transcript.jsonl",
+        "prBody": "## dall-e-2 and dall-e-3 removed May 12, 2026; use gpt-image-2 family [Needs review]\n\n### Change\n\nImage generation now uses gpt-image-2 instead of dall-e-3. The OpenAI-compatible factory's textToImage reads b64_json and returns data: URLs when no url is present. services/textToImage.ts sends gpt-image-2, maps quality (hd→high, standard→medium), maps size (1792x1024→1536x1024, 1024x1792→1024x1536) and drops style. OpenAIImagePayload.model is now gpt-image-2 | gpt-image-1 | gpt-image-1-mini. In src/config/aiModels/openai.ts the dall-e-2 and dall-e-3 cards are replaced by one gpt-image-2 card.\n\nFiles touched:\n- `src/config/aiModels/openai.ts`\n- `src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts`\n- `src/services/textToImage.ts`\n- `src/types/openai/image.ts`\n\n### Why\n\ndall-e-2 and dall-e-3 were removed on 2026-05-12. The default in services/textToImage.ts was dall-e-3, so image generation failed. gpt-image models return base64 rather than URLs, so the factory's res.data[].url read would have returned undefined.\n\n> On November 14th, 2025, we notified developers using DALL·E model snapshots of their deprecation and removal from the API on May 12, 2026.\n\nSource: https://developers.openai.com/api/docs/deprecations.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | fail (1) | fail (1) | 0 |\n| build | fail (1) | fail (1) | 0 |\n| test | fail (1) | fail (1) | 0 |\n\nNew failures: 0\n\nProvider tool calls recorded by the harness:\n- `openai__openai_model_lookup`: fail\n- `openai__openai_check_request`: pass\n\nThe agent's validator claims (not proof; graded against the recorded calls):\n- openai_model_lookup: pass (dall-e-3 is shut down; gpt-image-2 is active and supports images/generations)\n- openai_check_request: pass (images request body with gpt-image-2 has no unknown or deprecated params)\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Typecheck, build and tests were not run. The npm install failed with ERESOLVE and the baseline checks already failed because tsc, next and vitest were missing.\n- The data: URL flow through uploadService.getImageFileByUrlWithCORS (fetch of a data URL) was not exercised.\n- The DALL·E tool manifest in src/tools/dalle still advertises style and the hd/standard quality and 1792 sizes to the LLM and the edit UI. This is mapped or dropped in the service only.\n- The text-to-image route and other providers' image paths were not checked.\n- I did not update tests that reference dall-e-3.\n- typecheck was already failing before the change and still fails.\n- build was already failing before the change and still fails.\n- test was already failing before the change and still fails.\n- Validator openai_model_lookup failed: ## dall-e-3\n\n### Behaviour changes\n\n- Generated images arrive as base64 data: URLs, not hosted URLs. The route response and previewUrl will be large.\n- The style parameter (vivid/natural) is silently ignored.\n- Quality hd now means high and standard means medium. Output and cost differ from DALL·E 3, so check results on real prompts.\n- Sizes are remapped to the gpt-image-2 supported values (1536x1024 and 1024x1536).\n- The DALL·E 2 and DALL·E 3 model cards are removed from the OpenAI image model list. Cost is per token, so no pricing was added for gpt-image-2.\n\n---\n\nPrompt harness-prompt/2026-11-01.10 · Models: claude-sonnet-5-5 · AI cost: $0.4289\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-01.10",
+        "recipeIds": [],
+        "agentChecks": [],
+        "summary": "# crlny/lobe-chat:openai:2025-11-14-dalle-retirement: needs-review, $0.4289\nChange: dall-e-2 and dall-e-3 removed May 12, 2026; use gpt-image-2 family (openai, model-retirement)\nBaseline checks: typecheck fail (1), build fail (1), test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=dall-e|dalle|DALL glob=src/**/*.{ts,tsx} → src/config/aiModels/openai.ts:512:       '最新的 DALL·E 模型，于2023年11月发布。支持更真实、准确的图像生成，具有更强的细节表现力', | src/config/aiModels/openai.ts:513:     displayName: 'DALL·E 3', | src/config/aiModels/openai.ts:514:     id: 'dall-e-3',\n2. read_file path=src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts offset=320 limit=50 → 320\t            return { ...knownModel, releasedAt }; | 321\t          } | 322\t\n3. read_file path=src/services/textToImage.ts → 1\timport { ModelProvider } from '@/libs/agent-runtime'; | 2\timport { createHeaderWithAuth } from '@/services/_auth'; | 3\timport { OpenAIImagePayload } from '@/types/openai/image';\n4. read_file path=src/types/openai/image.ts → 1\timport { DallEImageQuality, DallEImageSize, DallEImageStyle } from '@/types/tool/dalle'; | 2\t | 3\texport interface OpenAIImagePayload {\n5. read_file path=src/libs/agent-runtime/types/textToImage.ts → 1\timport { DallEImageQuality, DallEImageSize, DallEImageStyle } from '@/types/tool/dalle'; | 2\t | 3\texport interface TextToImagePayload {\n6. read_file path=src/config/aiModels/openai.ts offset=500 limit=45 → 500\t    id: 'whisper-1', | 501\t    pricing: { | 502\t      input: 0.006, // per minute\n7. search pattern=textToImage|createImageUrl|OpenAIImagePayload glob=src/**/*.ts → src/app/(backend)/webapi/text-to-image/[provider]/route.ts:61:     const images = await agentRuntime.textToImage(data); | src/libs/agent-runtime/AgentRuntime.ts:67:   async textToImage(payload: TextToImagePayload) { | src/libs/agent-runtime…\n8. read_file path=src/store/chat/slices/builtinTool/actions/dalle.ts offset=30 limit=70 → 30\texport const dalleSlice: StateCreator< | 31\t  ChatStore, | 32\t  [['zustand/devtools', never]],\n9. search pattern=DallEImage(Quality|Size|Style)\\b.*=|hd|vivid|1792 glob=src/{types/tool,tools/dalle}/** → src/tools/dalle/index.ts:25:               'The quality of the image that will be generated. hd creates images with finer details and greater consistency across the image.', | src/tools/dalle/index.ts:26:             enum: ['standard', 'hd'…\n10. openai__openai_model_lookup models=[\"dall-e-3\",\"gpt-image-2\"] → ## dall-e-3 | Status (as of 2026-11-03): shut down (since 2026-05-12) | Announced: 2025-11-14 (DALL·E model snapshots, listed under past deprecations)\n11. edit_file path=src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts old=        return res.data.map((o) => o.url) as string[]; new=<245 chars> → edited src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts (1 replacement)\n12. edit_file path=src/services/textToImage.ts old=    const payload: OpenAIImagePayload = { ...params, model: 'dall-e-3', n: 1 }; new=<424 chars> → edited src/services/textToImage.ts (1 replacement)\n13. edit_file path=src/types/openai/image.ts old=  model: 'dall-e-2' | 'dall-e-3'; new=  model: 'gpt-image-2' | 'gpt-image-1' | 'gpt-image-1-mini'; → edited src/types/openai/image.ts (1 replacement)\n14. edit_file path=src/config/aiModels/openai.ts old=<534 chars> new=<215 chars> → edited src/config/aiModels/openai.ts (1 replacement)\n15. openai__openai_check_request endpoint=images body={\"model\":\"gpt-image-2\",\"prompt\":\"x\",\"n\":1,\"quality\":\"high\",\"size\":\"1536x1024\"} → POST /v1/images/generations (createImage) | Deprecated parameters: none found. | Unknown parameters: none.\n16. finish verdict=migrated summary=<499 chars> why=<247 chars> validators=<264 chars> unproven=<587 chars> behaviourChanges=<531 chars> → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck fail (1) → fail (1), build fail (1) → fail (1), test fail (1) → fail (1)\n\n## Result\nFiles changed: src/config/aiModels/openai.ts, src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts, src/services/textToImage.ts, src/types/openai/image.ts\nVerdict: migrated. Image generation now uses gpt-image-2 instead of dall-e-3. The OpenAI-compatible factory's textToImage reads b64_json and returns data: URLs when no url is present. services/textToImage.ts sends gpt-image-2, maps quality (hd→high, standard→medium), maps size (1792x1024→1536x1024, 1024x1792→1024x1536) and drops style. OpenAIImagePayload.model is now gpt-image-2 | gpt-image-1 | gpt-image-1-mini. In src/config/aiModels/openai.ts the dall-e-2 and dall-e-3 cards are replaced by one gpt-image-2 card.\nUnproven: Typecheck, build and tests were not run. The npm install failed with ERESOLVE and the baseline checks already failed because tsc, next and vitest were missing.; The data: URL flow through uploadService.getImageFileByUrlWithCORS (fetch of a data URL) was not exercised.; The DALL·E tool manifest in src/tools/dalle still advertises style and the hd/standard quality and 1792 sizes to the LLM and the edit UI. This is mapped or dropped in the service only.; The text-to-image route and other providers' image paths were not checked.; I did not update tests that reference dall-e-3.\n"
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff covers the real DALL·E call site: the hard-coded `model: 'dall-e-3'` in src/services/textToImage.ts and the url-only mapping in the factory's textToImage. The other four named call sites (chat, models, embeddings, speech) are unaffected by this retirement, so leaving them alone is correct. However, typecheck, build and test failed both before and after, so the checks prove nothing. The new payload in textToImage.ts is no longer typed as OpenAIImagePayload, which hides type mismatches. Returning base64 data URLs is a real behaviour change downstream. The needs-review grade is appropriate; nothing here is verified.",
+        "concerns": [
+          {
+            "file": "src/services/textToImage.ts",
+            "issue": "Around lines 16-24, the `: OpenAIImagePayload` annotation was dropped from `payload`. The new quality values ('high'/'medium') and sizes ('1536x1024'/'1024x1536') are likely outside the DallEImageQuality/DallEImageSize unions in src/types/tool/dalle, so the mismatch is hidden rather than fixed. The OpenAIImagePayload type in src/types/openai/image.ts still uses the DallE quality, size and style types. Since typecheck already fails, we cannot tell whether this introduces new errors.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/services/textToImage.ts",
+            "issue": "`...rest` forwards any remaining params unchanged. If the tool or plugin passes `response_format` (url/b64_json), gpt-image models reject that parameter and the request fails. It is unclear which fields `params` can carry.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+            "issue": "Lines 348-351 now return multi-MB `data:image/png;base64,...` strings where callers previously got short OpenAI URLs. Callers such as the DALL·E tool, message plugin state, DB persistence, any upload/fetch-by-URL step and image previews may assume an http URL or a small payload. The MIME type is hard-coded as png, which is wrong if `output_format` is ever jpeg/webp. This factory is shared by every OpenAI-compatible provider, though `url` is still preferred when present.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/config/aiModels/openai.ts",
+            "issue": "The new gpt-image-2 card has no `pricing`, so cost display or usage accounting may break or show nothing. The resolutions are copied from gpt-image-1 conventions and are not confirmed for gpt-image-2. Users or saved settings that reference 'dall-e-3'/'dall-e-2' ids get no migration or fallback.",
+            "severity": "low"
+          },
+          {
+            "file": "src/services/textToImage.ts",
+            "issue": "The DALL·E tool manifest and UI presumably still advertise `style` and the 1792 sizes to the LLM and user. These are now silently dropped or remapped. Other references to 'dall-e-3' elsewhere in the repo (tool manifest, tests, snapshots, Azure/other providers) were not checked or updated.",
+            "severity": "low"
+          },
+          {
+            "file": "(checks)",
+            "issue": "typecheck, build and test failed both before and after. No check exercises the image path, and nothing makes a live call to confirm gpt-image-2 accepts this payload or returns b64_json.",
+            "severity": "high"
+          }
+        ],
+        "checkFirst": [
+          "Run typecheck scoped to src/services/textToImage.ts and src/types/openai/image.ts, and confirm the quality/size values fit the declared types.",
+          "Grep the repo for 'dall-e' (tool manifest, DallE types, tests, Azure provider, default settings) for leftover references.",
+          "Trace where textToImage results are consumed (DALL·E plugin, image upload/persistence) and confirm data: URLs are handled and not stored or fetched as http URLs.",
+          "Confirm whether params can include response_format, and strip it for gpt-image models.",
+          "Make one live or recorded call to gpt-image-2 with the mapped payload to verify the accepted sizes, quality values and response shape."
+        ],
+        "costUsd": 0.05172,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "crlny/lobe-chat:openai:2026-05-29-prompt-cache-retention-default",
+      "changeId": "openai:2026-05-29-prompt-cache-retention-default",
+      "kind": "other",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.60 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "crlny/lobe-chat:openai:2026-04-22-legacy-gpt-jul-retirement",
+      "changeId": "openai:2026-04-22-legacy-gpt-jul-retirement",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.60 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "crlny/lobe-chat:openai:2026-09-02-new-error-codes",
+      "changeId": "openai:2026-09-02-new-error-codes",
+      "kind": "other",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.60 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "crlny/lobe-chat:openai:2025-09-26-legacy-gpt-sep-2026",
+      "changeId": "openai:2025-09-26-legacy-gpt-sep-2026",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.60 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "crlny/lobe-chat:openai:2026-04-22-legacy-gpt-oct-retirement",
+      "changeId": "openai:2026-04-22-legacy-gpt-oct-retirement",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.60 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "crlny/lobe-chat:openai:2026-06-11-gpt5-o3-retirement",
+      "changeId": "openai:2026-06-11-gpt5-o3-retirement",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.60 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "crlny/lobe-chat:openai:2026-10-01-tts-retirement",
+      "changeId": "openai:2026-10-01-tts-retirement",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.60 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "crlny/lobe-chat:openai:2026-10-14-gpt-4-series-retirement",
+      "changeId": "openai:2026-10-14-gpt-4-series-retirement",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.60 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "crlny/lobe-chat:openai:2026-08-26-transcription-retirement",
+      "changeId": "openai:2026-08-26-transcription-retirement",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$1.60 of the $4 run cap left, below the $2 a task needs"
+    }
+  ],
+  "costUsd": 2.39832723,
+  "durationMs": 481830,
+  "matchReasoning": "crlny/lobe-chat:openai:2025-11-18-chatgpt-4o-latest: This lobe-chat snapshot (openai ^4.91.1, around April 2025) ships built-in OpenAI model cards. That era's cards included chatgpt-4o-latest, which was removed on 2026-02-17, so any agent configured with it now gets errors. The cards are not in the usage map, so the migration agent should grep src/config/aiModels for 'chatgpt-4o-latest', remove or replace it (for example with a current gpt-5.6 model), and check default agent configs.\ncrlny/lobe-chat:openai:2025-09-26-legacy-gpt-mar-2026: Lobe-chat's built-in OpenAI cards of this era likely include gpt-4-turbo-preview and gpt-4-0125-preview. Both were shut down on 2026-03-26, so selecting them errors. This is uncertain because the card file is not in the usage map: grep src/config/aiModels for these ids and remove or replace them.\ncrlny/lobe-chat:openai:2025-11-14-dalle-retirement: dall-e-2 and dall-e-3 were removed on 2026-05-12. Lobe-chat's text-to-image feature defaulted to dall-e-3 in this era, so image generation now fails. Migrating to the gpt-image-2 family also breaks the res.data[].url read, because gpt-image models return base64. The migration agent should check the default image model in config and the DALL·E tool/plugin settings, and update response parsing to handle b64_json.\ncrlny/lobe-chat:openai:2026-05-29-prompt-cache-retention-default: Nothing breaks. However, prompts sent through this self-hostable chat app are now cached for 24h instead of in memory by default, which may matter for operators with privacy requirements. The migration agent should decide whether to set prompt_cache_retention explicitly, for example as an operator option, and only for the OpenAI provider, since other factory providers may reject the field.\ncrlny/lobe-chat:openai:2026-04-22-legacy-gpt-jul-retirement: Lobe-chat added gpt-4o-search-preview and gpt-4o-mini-search-preview cards around March 2025, so they are likely present in this snapshot. They have been shut down since 2026-07-23. The codex, deep-research and gpt-5 chat-latest ids in this change post-date the repo and are unlikely to be referenced. This is uncertain: grep src/config/aiModels and any search-model special-casing (for example, logic that strips params for search-preview models) and replace with gpt-5.6 models.\ncrlny/lobe-chat:openai:2026-09-02-new-error-codes: The openai SDK already retries 429/503 by default, so this mainly affects error classification and user messaging in the agent-runtime error handler. That handler checks codes such as insufficient_quota. This is uncertain and low impact: the migration agent should check the factory's error mapping and consider handling slow_down and server_is_overloaded explicitly.\ncrlny/lobe-chat:openai:2025-09-26-legacy-gpt-sep-2026: It is uncertain whether this snapshot's built-in OpenAI cards still list gpt-3.5-turbo-1106 or gpt-3.5-turbo-instruct; older lobe-chat versions did. These models are shut down. The migration agent should grep src/config/aiModels and remove or replace any matches; if none are found, the task can be closed.\ncrlny/lobe-chat:openai:2026-04-22-legacy-gpt-oct-retirement: This snapshot's built-in OpenAI cards almost certainly include gpt-3.5-turbo, gpt-4, gpt-4-turbo, o1, o1-pro and o3-mini, and probably o4-mini and gpt-4.1-nano. All were shut down on 2026-10-23, just passed, so agents using them now error. The runtime may also special-case reasoning models such as o1/o3-mini (for example, stripping temperature), which the migration agent should update for the replacements. Replace with gpt-5.6 models, and replace gpt-image-1 with gpt-image-2.5.\ncrlny/lobe-chat:openai:2026-06-11-gpt5-o3-retirement: o3 was released in April 2025 and may be in this snapshot's built-in cards; the gpt-5 family post-dates the repo. This is uncertain: the migration agent should grep src/config/aiModels for o3 and o3-pro and any reasoning-model regex such as /^o\\d/, then migrate to gpt-5.6-sol/terra/luna.\ncrlny/lobe-chat:openai:2026-10-01-tts-retirement: Lobe-chat's OpenAI TTS uses tts-1 by default, with tts-1-hd and possibly gpt-4o-mini-tts as options in settings. After 2027-01-06, read-aloud via OpenAI will fail. The suggested replacement, gpt-realtime-2.1-mini, may not be served by /v1/audio/speech, so the migration agent must confirm the replacement endpoint and shape. It should also check the @lobehub/tts default model and the TTS model options in src/config and settings.\ncrlny/lobe-chat:openai:2026-10-14-gpt-4-series-retirement: lobe-chat's DEFAULT_MODEL in this era is gpt-4o-mini, and the built-in cards include the gpt-4o, gpt-4.1 and gpt-4o-mini families. The listed fields are dated snapshots, but the title names the families, so the aliases may also go away. The migration agent should check whether aliases are retired and update the default model, system-agent defaults (topic naming, translation and similar), and cards to gpt-6-luna. Failure would hit most default users.\ncrlny/lobe-chat:openai:2026-08-26-transcription-retirement: Lobe-chat's speech-to-text uses OpenAI whisper-1 through @lobehub/tts. After 2027-02-26, voice input via OpenAI fails. The migration agent should switch the model to gpt-transcribe and check the STT model setting options and the @lobehub/tts default, upgrading the package if needed. /v1/audio/translations does not appear to be used.\nopenai:2026-10-01-gpt53codex-gpt51-gpt54nano-retirement: not affected: gpt-5.3-codex, gpt-5.1 and gpt-5.4-nano post-date this April 2025 snapshot and are not referenced by its built-in cards or defaults. Any such model is only reachable via the dynamic models.list, which will drop it automatically.\nopenai:2026-07-20-legacy-audio-realtime-retirement: not affected: The repo does not use the Realtime API or gpt-realtime/gpt-audio chat models. OpenAI STT uses whisper-1, which is covered by the transcription retirement task, and TTS uses /audio/speech.\nopenai:2026-06-03-reusable-prompts-shutdown: not affected: No call site uses /v1/prompts or reusable prompt objects; prompts are built in app code.\nopenai:2026-06-03-evals-shutdown: not affected: No usage calls the /v1/evals API.\nopenai:2026-06-03-agent-builder-shutdown: not affected: The repo does not use OpenAI Agent Builder; its agents are its own runtime calling chat completions.\nopenai:2026-06-02-gpt-image-retirement: not affected: gpt-image-1-mini, gpt-image-1.5 and chatgpt-image-latest post-date this snapshot and are not configured. images.generate uses DALL·E-era models, covered by the dall-e retirement task.\nopenai:2026-05-07-finetuning-restrictions: not affected: No usage calls /v1/fine_tuning/jobs.\nopenai:2026-09-11-gpt-5-4-cyber-retirement: not affected: gpt-5.4-cyber is not referenced anywhere in this repo's usages or model defaults.\nopenai:2026-05-08-chat-latest-retirement: not affected: gpt-5.2-chat-latest and gpt-5.3-chat-latest post-date this snapshot and are not referenced in its model cards or defaults.\nopenai:2026-03-24-sora-videos-shutdown: not affected: No usage calls the Videos API or Sora models.\nopenai:2025-11-17-codex-mini-latest: not affected: codex-mini-latest and the legacy local shell tool are not used; the repo's chat calls do not use the local_shell tool.\nopenai:2025-09-15-realtime-beta-removed: not affected: No usage calls /v1/realtime or sends the OpenAI-Beta: realtime=v1 header.\nopenai:2025-09-15-gpt4o-realtime-preview: not affected: The repo uses neither realtime nor audio-preview chat; the chat call sites do not send audio modalities, and these preview models are not part of its audio paths.\nopenai:2025-08-20-assistants-api-shutdown: not affected: No usage calls /v1/assistants or /v1/threads; chat uses chat.completions.\nopenai:2026-03-12-video-remix-deprecation: not affected: No usage calls any /v1/videos endpoint.\nopenai:2026-09-03-gpt-6-astra-parameter-changes: not affected: The repo does not use gpt-6-astra, and the migrations planned here target gpt-5.6/gpt-6-luna/sol. It becomes relevant only if a migration chooses Astra, because the factory sends temperature/top_p.\nopenai:2026-04-24-gpt-5-5-behavior: not affected: gpt-5.5 is not referenced by this snapshot's model cards, defaults or call sites.\nopenai:2026-10-06-usage-tiers-simplified: not affected: This is an account-level rate-limit tier change with no API contract change. The repo uses user- or operator-supplied keys and has no tier-specific logic.\nopenai:2026-07-30-priority-to-fast-mode: not affected: No call site sets service_tier, so the priority-to-Fast-mode remap does not apply.\nopenai:2026-10-22-decisions-ga-limit: not affected: No usage calls the Decisions API.\nopenai:2026-10-npm-7-44-0-decision-types: not affected: The repo pins openai ^4.x, so the caret range cannot resolve to 7.44.0, and the repo has no Decisions event usage.\nopenai:2026-10-npm-7-43-0-decision-instructions: not affected: The repo pins openai ^4.x, which cannot resolve to 7.43.0, and the repo does not use the Decisions types.\nopenai:2026-10-pypi-3-37-0-decision-types: not affected: The repo is TypeScript and does not depend on the openai Python package.",
+  "error": "$1.60 of the $4 run cap left, below the $2 a task needs",
+  "costByPart": {
+    "inventory": 0.29916603,
+    "watch": 0.396256,
+    "match": 0.36041199999999995,
+    "harness": 1.2057652,
+    "review": 0.13672800000000002
+  }
+}

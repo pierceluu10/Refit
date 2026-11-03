@@ -1,0 +1,15 @@
+{
+  "set": "stripe-dev-30",
+  "index": 28,
+  "repo": "tejashVaishnav/Fast-saas-next.js-boilerplate",
+  "commit": "cf9770e6e04a535cbcd9ce6b5ae0d5fa035f890d",
+  "provider": "stripe",
+  "usages": 0,
+  "changes": 0,
+  "verdict": "unrun",
+  "tasks": [],
+  "costUsd": 0,
+  "durationMs": 0,
+  "error": "dollar cap reached before this repo started: AI budget: $0.45 of the $4 cap left; the Anassarwar14/Chat-Nest-AI inventory needs $0.60.",
+  "costByPart": {}
+}

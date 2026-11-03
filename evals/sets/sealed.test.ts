@@ -72,7 +72,7 @@ describe('sealed repo sets', () => {
     expect(named).toEqual([]);
   });
 
-  it('keeps repo lists only in recovered dev sets that trace to a dev path', () => {
+  it('keeps repo lists only in dev sets that trace to a dev path or were curated here', () => {
     const devBlobs = new Map(
       catalog.filter((entry) => entry.class === 'dev').map((entry) => [entry.path, entry.blobs]),
     );
@@ -87,9 +87,18 @@ describe('sealed repo sets', () => {
         true,
       );
     }
+    const historyPaths = new Set(catalog.map((entry) => entry.path));
     for (const name of listDevSets()) {
       const set = loadDevSet(name);
       expect(isSealed(set.source.path)).toBe(false);
+      if (set.source.curated) {
+        // Built by hand in evals/, not copied from Refit's history: it names its own file and no
+        // path from the catalog, so it cannot be a copy of a sealed or legacy list.
+        expect(set.source.path).toBe(`evals/sets/dev/${name}.json`);
+        expect(historyPaths.has(set.source.path)).toBe(false);
+        expect(DEV_SETS.some((dev) => dev.name === name)).toBe(false);
+        continue;
+      }
       expect(DEV_SETS.some((dev) => dev.name === name && dev.path === set.source.path)).toBe(true);
       expect(devBlobs.get(set.source.path)).toContain(set.source.blob);
     }

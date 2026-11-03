@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { MigrationTask, ProviderChange, RunRecord } from '../../shared/types.ts';
 import type { DevSet } from '../sets/index.ts';
-import { BudgetExceededError, BudgetLedger } from './budget.ts';
+import { BudgetExceededError, BudgetLedger, partOf } from './budget.ts';
 import { planMatrix } from './cli.ts';
 import { ConfigError, parseFlags, parseRunConfig } from './config.ts';
 import { judgeAttempt, runSet } from './run.ts';
@@ -88,11 +88,36 @@ describe('run config', () => {
     ).toEqual({ set: 's', budgetUsd: 2.5, concurrency: 3, shard: 4, outDir: 'evals/results' });
   });
 
-  it('splits a total cap across one shard per repo', () => {
-    const plan = planMatrix('stripe-dev-30', 3);
+  it('keeps one watcher read per provider for the watch job and splits the rest across shards', () => {
+    const plan = planMatrix('stripe-dev-30', 106.5);
     expect(plan.shards).toHaveLength(30);
-    expect(plan.shardBudgetUsd).toBeCloseTo(0.1);
+    expect(plan.watchBudgetUsd).toBeCloseTo(1.5);
+    expect(plan.shardBudgetUsd).toBeCloseTo(3.5);
+    expect(planMatrix('longtail-dev-20', 100).watchBudgetUsd).toBeCloseTo(1.5 * 15);
     expect(() => planMatrix('stripe-dev-30', Number.NaN)).toThrow(ConfigError);
+  });
+
+  it('refuses a plan whose shards could never afford a task', () => {
+    expect(() => planMatrix('stripe-dev-30', 40)).toThrow(
+      /leaves \$1\.28 for each of 30 shards, below the \$2 a task needs free/,
+    );
+  });
+
+  it('reads the watch cache flag for shards', () => {
+    expect(
+      parseRunConfig(
+        parseFlags([
+          '--set',
+          's',
+          '--budget-usd',
+          '3',
+          '--concurrency',
+          '1',
+          '--watch-cache',
+          'wc',
+        ]),
+      ).watchCache,
+    ).toBe('wc');
   });
 });
 
@@ -100,6 +125,20 @@ describe('budget ledger', () => {
   it('refuses a missing or zero cap', () => {
     expect(() => new BudgetLedger(0)).toThrow();
     expect(() => new BudgetLedger(Number.NaN)).toThrow();
+  });
+
+  it('names the part each meter label belongs to', () => {
+    expect(
+      ['inventory', 'watch', 'match', 'task o/r:c1', 'review o/r:c1', 'misc'].map(partOf),
+    ).toEqual(['inventory', 'watch', 'match', 'harness', 'review', 'other']);
+  });
+
+  it('stops early when told to, keeping the first reason', () => {
+    const ledger = new BudgetLedger(5);
+    ledger.stop('first');
+    ledger.stop('second');
+    expect(ledger.exhausted()).toBe(true);
+    expect(ledger.stopReason).toBe('first');
   });
 
   it('throws once spend passes the cap', () => {
@@ -200,6 +239,175 @@ describe('runSet', () => {
     expect(first?.error).toMatch(/cap/);
     expect(second?.verdict).toBe('unrun');
     expect(third?.verdict).toBe('unrun');
+  });
+
+  it('counts a task the run cannot afford as unrun, not as an attempt bug, and goes on', async () => {
+    const started: string[] = [];
+    const { results } = await runSet(
+      { set: set.name, budgetUsd: 10, concurrency: 1, outDir: tmp() },
+      set,
+      factoryWith(
+        {
+          runTask: async (task) => {
+            started.push(task.id);
+            if (task.repo === 'a/one' && task.id.endsWith('#0')) return record({ taskId: task.id });
+            throw new BudgetExceededError(
+              '$1.00 of the $4 run cap left, below the $2 a task needs',
+              {
+                runOver: false,
+              },
+            );
+          },
+        },
+        2,
+      ),
+    );
+    const [first, second] = results;
+    expect(first?.tasks.map((task) => task.unrun ?? 'ran')).toEqual(['ran', 'budget']);
+    expect(first?.tasks[1]?.unrunReason).toMatch(/below the \$2 a task needs/);
+    expect(first?.tasks[1]?.noAttemptReason).toBeUndefined();
+    // The next repo still starts: its inventory and match may fit where a task did not.
+    expect(second?.verdict).toBe('tasks');
+    expect(second?.tasks.map((task) => task.unrun)).toEqual(['budget', 'budget']);
+    expect(started).toEqual(['a/one#0', 'a/one#1', 'b/two#0', 'c/three#0']);
+  });
+
+  it('stops starting repos once the run budget refuses a part every repo needs', async () => {
+    let checkouts = 0;
+    const { results, ledger } = await runSet(
+      { set: set.name, budgetUsd: 10, concurrency: 1, outDir: tmp() },
+      set,
+      factoryWith({
+        checkout: async () => {
+          checkouts += 1;
+          return { repoDir: '/nonexistent', cleanup: async () => undefined };
+        },
+        inventory: async () => {
+          throw new BudgetExceededError(
+            'AI budget: $0.40 of the $4 cap left; the inventory needs $0.60',
+          );
+        },
+      }),
+    );
+    expect(results.map((result) => result.verdict)).toEqual(['unrun', 'unrun', 'unrun']);
+    expect(results[1]?.error).toMatch(/before this repo started: AI budget/);
+    expect(checkouts).toBe(1);
+    expect(ledger.stopReason).toMatch(/inventory needs/);
+  });
+
+  it('runs the most urgent task (priority 1) first', async () => {
+    const order: number[] = [];
+    await runSet(
+      { set: set.name, budgetUsd: 10, concurrency: 1, shard: 0, outDir: tmp() },
+      set,
+      factoryWith({
+        match: async () => ({
+          reasoning: 'example',
+          tasks: [3, 1, 2].map((priority) => ({
+            id: `a/one#${priority}`,
+            repo: 'a/one',
+            change,
+            usages: [],
+            priority,
+          })),
+        }),
+        runTask: async (task) => {
+          order.push(task.priority);
+          return record({ taskId: task.id });
+        },
+      }),
+    );
+    expect(order).toEqual([1, 2, 3]);
+  });
+
+  it('keeps each task’s change, the match agent’s reasoning and its call sites', async () => {
+    const { results } = await runSet(
+      { set: set.name, budgetUsd: 10, concurrency: 1, shard: 0, outDir: tmp() },
+      set,
+      factoryWith({
+        match: async () => ({
+          reasoning: 'example',
+          tasks: [
+            {
+              id: 'a/one#0',
+              repo: 'a/one',
+              change,
+              usages: [],
+              priority: 1,
+              notes: 'calls the removed field',
+              callSites: [{ file: 'src/pay.ts', line: 12, why: 'sends old_name' }],
+            } as MigrationTask,
+          ],
+        }),
+      }),
+    );
+    expect(results[0]?.tasks[0]).toMatchObject({
+      change,
+      reasoning: 'calls the removed field',
+      callSites: [{ file: 'src/pay.ts', line: 12, why: 'sends old_name' }],
+    });
+  });
+
+  it('passes the inventory’s usages to the watcher', async () => {
+    const usage = { repo: 'a/one', provider: 'stripe', via: 'sdk' as const, callSites: [] };
+    let seen: unknown;
+    await runSet(
+      { set: set.name, budgetUsd: 10, concurrency: 1, shard: 0, outDir: tmp() },
+      set,
+      factoryWith({
+        inventory: async () => [usage],
+        watch: async (usages) => {
+          seen = usages;
+          return [change];
+        },
+      }),
+    );
+    expect(seen).toEqual([usage]);
+  });
+
+  it('splits each repo’s cost by part from the meter labels', async () => {
+    const { results } = await runSet(
+      { set: set.name, budgetUsd: 10, concurrency: 1, shard: 0, outDir: tmp() },
+      set,
+      (context) => ({
+        ...factoryWith({ runTask: async (task) => record({ taskId: task.id, costUsd: 0.5 }) })(
+          context,
+        ),
+        inventory: async () => {
+          context.meter.charge(0.25, 'inventory');
+          return [];
+        },
+        review: async ({ task, meter }) => {
+          meter.charge(0.125, `review ${task.id}`);
+          return {
+            opinion: 'looks-right',
+            summary: 'ok',
+            concerns: [],
+            costUsd: 0.125,
+            model: 'fake',
+          };
+        },
+      }),
+    );
+    expect(results[0]?.costByPart).toEqual({ inventory: 0.25, harness: 0.5, review: 0.125 });
+    expect(results[0]?.costUsd).toBeCloseTo(0.875);
+  });
+
+  it('asks for no second opinion on an empty diff', async () => {
+    let reviews = 0;
+    const { results } = await runSet(
+      { set: set.name, budgetUsd: 10, concurrency: 1, shard: 0, outDir: tmp() },
+      set,
+      factoryWith({
+        runTask: async (task) => record({ taskId: task.id, outcome: 'not-affected', diff: '' }),
+        review: async () => {
+          reviews += 1;
+          return { opinion: 'looks-right', summary: '', concerns: [], costUsd: 0, model: 'fake' };
+        },
+      }),
+    );
+    expect(reviews).toBe(0);
+    expect(results[0]?.tasks[0]?.record?.outcome).toBe('not-affected');
   });
 
   it('keeps a reviewer failure out of the grade', async () => {

@@ -1,1 +1,187 @@
-[]
+[
+  {
+    "key": "openai-dev-30/crlny/lobe-chat/crlny/lobe-chat:openai:2025-11-18-chatgpt-4o-latest",
+    "set": "openai-dev-30",
+    "repo": "crlny/lobe-chat",
+    "commit": "62043bba74ddd43020d5162d1acbedeb95300067",
+    "taskId": "crlny/lobe-chat:openai:2025-11-18-chatgpt-4o-latest",
+    "changeId": "openai:2025-11-18-chatgpt-4o-latest",
+    "grade": "needs-review",
+    "files": [
+      "src/config/aiModels/higress.ts",
+      "src/config/aiModels/openai.ts",
+      "src/config/modelProviders/higress.ts",
+      "src/config/modelProviders/openai.ts",
+      "src/store/user/slices/modelList/selectors/modelProvider.test.ts"
+    ],
+    "aiReview": {
+      "opinion": "has-concerns",
+      "summary": "The PR deletes the `chatgpt-4o-latest` cards from the OpenAI and Higress model lists (aiModels and modelProviders) and updates one selector test. It never adds the recommended replacement, `gpt-5.1-chat-latest`. It also does nothing for users or agents that already have `chatgpt-4o-latest` saved; those requests will start failing after 2026-02-17. The model ID may still appear elsewhere in the repo. Typecheck, build and test all fail both before and after, so the checks prove nothing. The needs-review grade is correct.",
+      "checkFirst": [
+        "grep the whole repo (including locales, snapshots, docs, env defaults, and other provider configs such as openrouter, github, azure) for `chatgpt-4o-latest`",
+        "Decide whether to add a `gpt-5.1-chat-latest` card with accurate abilities, context window and pricing",
+        "Check whether there is a settings or agent-config migration path, or a fallback, for users with `chatgpt-4o-latest` persisted",
+        "Find out why typecheck, build and test fail on the base branch, then rerun them to confirm this diff introduces no new failures"
+      ]
+    },
+    "handCheck": {
+      "status": "agree",
+      "reviewer": "F6 (round 2 evals session, for Furqan)",
+      "checkedAt": "2026-11-03",
+      "wouldMerge": "yes",
+      "notes": "Removes the chatgpt-4o-latest model card from the OpenAI lists (src/config/aiModels/openai.ts, src/config/modelProviders/openai.ts) and from the Higress gateway's lists, and drops it from the selector test's expected ids. OpenAI's deprecations page confirms the 2026-02-17 shutdown (replacement gpt-5.1-chat-latest), so the card offers a model that no longer answers; removing it is the smallest correct change, and adding a replacement card is a product choice the PR leaves alone. Typecheck, build and tests each fail once before and after on something else, so nothing is proven and needs-review is right. Not checked: other gateway providers' lists that may still name the id. Checked by reading the diff, the PR body and OpenAI's deprecations page; nothing was run."
+    },
+    "firstSeen": "2026-11-03T05:10:08.239Z"
+  },
+  {
+    "key": "openai-dev-30/crlny/lobe-chat/crlny/lobe-chat:openai:2025-09-26-legacy-gpt-mar-2026",
+    "set": "openai-dev-30",
+    "repo": "crlny/lobe-chat",
+    "commit": "62043bba74ddd43020d5162d1acbedeb95300067",
+    "taskId": "crlny/lobe-chat:openai:2025-09-26-legacy-gpt-mar-2026",
+    "changeId": "openai:2025-09-26-legacy-gpt-mar-2026",
+    "grade": "needs-review",
+    "files": ["src/config/aiModels/openai.ts", "src/config/modelProviders/openai.ts"],
+    "aiReview": {
+      "opinion": "has-concerns",
+      "summary": "The diff removes the `gpt-4-turbo-preview` and `gpt-4-0125-preview` cards from `src/config/aiModels/openai.ts` and `src/config/modelProviders/openai.ts`. That is the right core change for the OpenAI provider. But typecheck, build and test failed both before and after, so the checks prove nothing about this change. Several things are not covered: `gpt-4-0314` is never mentioned, nothing handles users already persisted on the removed IDs, and other references to these IDs (tests, snapshots, locales, other providers) may remain. The needs-review grade fits; this should not be read as verified.",
+      "checkFirst": [
+        "Run `rg \"gpt-4-0314|gpt-4-0125-preview|gpt-4-turbo-preview\"` across the repo (src, tests, snapshots, locales, docs) to find remaining references.",
+        "Fix or identify the pre-existing typecheck/build/test failure so the after-state is actually validated; run the relevant vitest suites for src/config and agent-runtime/openai.",
+        "Decide whether persisted agent or session configs using the removed IDs need a migration or fallback to a supported model.",
+        "Confirm whether removing these IDs from OpenAI-proxying providers (Azure, OpenRouter, GitHub) is in scope."
+      ]
+    },
+    "handCheck": {
+      "status": "agree",
+      "reviewer": "F6 (round 2 evals session, for Furqan)",
+      "checkedAt": "2026-11-03",
+      "wouldMerge": "yes",
+      "notes": "Removes the gpt-4-turbo-preview and gpt-4-0125-preview cards from both OpenAI model lists. OpenAI's deprecations page lists both, and gpt-4-0314, for shutdown on 2026-03-26 (gpt-4-turbo-preview points to gpt-4-0125-preview). The same pre-existing typecheck, build and test failures before and after, so needs-review is right. Small, correct cleanup. Checked by reading the diff, the PR body and OpenAI's deprecations page; nothing was run."
+    },
+    "firstSeen": "2026-11-03T05:10:08.239Z"
+  },
+  {
+    "key": "openai-dev-30/crlny/lobe-chat/crlny/lobe-chat:openai:2025-11-14-dalle-retirement",
+    "set": "openai-dev-30",
+    "repo": "crlny/lobe-chat",
+    "commit": "62043bba74ddd43020d5162d1acbedeb95300067",
+    "taskId": "crlny/lobe-chat:openai:2025-11-14-dalle-retirement",
+    "changeId": "openai:2025-11-14-dalle-retirement",
+    "grade": "needs-review",
+    "files": [
+      "src/config/aiModels/openai.ts",
+      "src/libs/agent-runtime/utils/openaiCompatibleFactory/index.ts",
+      "src/services/textToImage.ts",
+      "src/types/openai/image.ts"
+    ],
+    "aiReview": {
+      "opinion": "has-concerns",
+      "summary": "The diff covers the real DALL·E call site: the hard-coded `model: 'dall-e-3'` in src/services/textToImage.ts and the url-only mapping in the factory's textToImage. The other four named call sites (chat, models, embeddings, speech) are unaffected by this retirement, so leaving them alone is correct. However, typecheck, build and test failed both before and after, so the checks prove nothing. The new payload in textToImage.ts is no longer typed as OpenAIImagePayload, which hides type mismatches. Returning base64 data URLs is a real behaviour change downstream. The needs-review grade is appropriate; nothing here is verified.",
+      "checkFirst": [
+        "Run typecheck scoped to src/services/textToImage.ts and src/types/openai/image.ts, and confirm the quality/size values fit the declared types.",
+        "Grep the repo for 'dall-e' (tool manifest, DallE types, tests, Azure provider, default settings) for leftover references.",
+        "Trace where textToImage results are consumed (DALL·E plugin, image upload/persistence) and confirm data: URLs are handled and not stored or fetched as http URLs.",
+        "Confirm whether params can include response_format, and strip it for gpt-image models.",
+        "Make one live or recorded call to gpt-image-2 with the mapped payload to verify the accepted sizes, quality values and response shape."
+      ]
+    },
+    "handCheck": {
+      "status": "agree",
+      "reviewer": "F6 (round 2 evals session, for Furqan)",
+      "checkedAt": "2026-11-03",
+      "wouldMerge": "with-edits",
+      "notes": "The most substantial PR: replaces the DALL-E 2 and 3 cards with a gpt-image-2 card, switches the text-to-image service from dall-e-3 to gpt-image-2 (maps quality hd to high and the 1792 sizes to 1536, drops style, which gpt-image does not take), and makes the OpenAI-compatible textToImage accept b64_json responses as data: URLs, since gpt-image models return base64 rather than a URL. OpenAI's deprecations page confirms dall-e-2 and dall-e-3 shut down 2026-05-12 with gpt-image-2, gpt-image-1 or gpt-image-1-mini as replacements. The direction is right, but it changes behaviour the checks cannot see: images now arrive as data: URLs where the app stored remote URLs, and the DALL-E tool's style option silently stops doing anything. The payload type also offers gpt-image-1-mini, which this run's own watcher lists as retiring 2026-12-01. I would merge after checking how generated images are stored and shown, and after dropping the retiring model from the type. Checked by reading the diff, the PR body and OpenAI's deprecations page; nothing was run."
+    },
+    "firstSeen": "2026-11-03T05:10:08.239Z"
+  },
+  {
+    "key": "stripe-dev-30/4lbatr0s/jiro/4lbatr0s/jiro:stripe:2026-09-30-endive-remove-payment-method-types-checkout",
+    "set": "stripe-dev-30",
+    "repo": "4lbatr0s/jiro",
+    "commit": "313dbd324b09519252ab0791c8a5a2654be31ada",
+    "taskId": "4lbatr0s/jiro:stripe:2026-09-30-endive-remove-payment-method-types-checkout",
+    "changeId": "stripe:2026-09-30-endive-remove-payment-method-types-checkout",
+    "grade": "needs-review",
+    "files": ["src/trpc/controller/index.ts"],
+    "aiReview": {
+      "opinion": "has-concerns",
+      "summary": "The diff removes the only `payment_method_types` usage, the `checkout.sessions.create` call at src/trpc/controller/index.ts:102. The other named call sites (the `subscriptions.retrieve` calls and `billingPortal.sessions.create`) don't use this parameter and correctly need no change. The problem is that a plain deletion changes behaviour. The session now falls back to dynamic payment methods, so customers see whatever is enabled in the Stripe Dashboard instead of exactly card and PayPal. That may drop PayPal, which must be enabled and eligible for recurring payments, or add methods that weren't offered before. Passing `allowed_payment_method_types: ['card', 'paypal']` would keep today's behaviour. The checks prove nothing: typecheck (6 errors) and build (1 failure) fail the same way before and after, and no checkout session is created against Stripe. The needs-review grade fits.",
+      "checkFirst": [
+        "Check whether PayPal (and card) are enabled for subscription mode in the Stripe Dashboard payment method settings; if not, PayPal checkout silently disappears.",
+        "Decide whether to replace the field with `allowed_payment_method_types: ['card', 'paypal']` to keep current behaviour, and confirm the installed stripe SDK types include that field.",
+        "Check the `apiVersion` / stripe package version in src/lib/stripe.ts and whether the move to 2026-09-30 is part of this change.",
+        "Find out why typecheck and build already fail on main, so a later run can actually validate this call."
+      ]
+    },
+    "handCheck": {
+      "status": "agree",
+      "reviewer": "F6 (round 2 evals session, for Furqan)",
+      "checkedAt": "2026-11-03",
+      "wouldMerge": "no",
+      "notes": "Deletes payment_method_types: ['card', 'paypal'] from checkout.sessions.create (src/trpc/controller/index.ts:105). Stripe's Endive page confirms the removal (a 400 on 2026-09-30.endive) and names allowed_payment_method_types as the way to keep a fixed set. But the repo is on stripe-node 14.13.0 with no apiVersion, so it sends 2023-10-16, where the param still works: deleting it now switches checkout to dynamic payment methods (PayPal may disappear, others may appear) before anything forces it. The PR body says this. needs-review is right: typecheck and build fail before and after on pre-existing errors. Superseded by the node-v23-0-0 PR, which renames the param together with the SDK upgrade. Checked by reading the diff, the PR body, the files at the pinned commit and Stripe's changelog page; nothing was run."
+    },
+    "firstSeen": "2026-11-03T05:10:08.239Z"
+  },
+  {
+    "key": "stripe-dev-30/4lbatr0s/jiro/4lbatr0s/jiro:stripe:2026-09-30-endive-api-version",
+    "set": "stripe-dev-30",
+    "repo": "4lbatr0s/jiro",
+    "commit": "313dbd324b09519252ab0791c8a5a2654be31ada",
+    "taskId": "4lbatr0s/jiro:stripe:2026-09-30-endive-api-version",
+    "changeId": "stripe:2026-09-30-endive-api-version",
+    "grade": "needs-review",
+    "files": ["src/lib/stripe.ts"],
+    "aiReview": {
+      "opinion": "looks-right",
+      "summary": "The diff pins `apiVersion: '2023-10-16'` in src/lib/stripe.ts. That should be the same version stripe@14.13.0 already sends by default, so live request behaviour likely does not change. The PR is a defensive pin, not a migration to 2026-09-30.endive. No breaking Endive items are adopted, so the listed call sites in route.ts and trpc/controller/index.ts need no code change. needs-review is the right grade: typecheck (6) and build (1) fail identically before and after, so the checks prove nothing either way. The webhook path is untouched. Its payload shape is set by the endpoint's api_version in the Stripe dashboard, which this diff cannot control.",
+      "checkFirst": [
+        "Verify that node_modules/stripe (14.13.0) has '2023-10-16' as its default/latest API version, so the pin is a no-op at runtime.",
+        "Check the webhook endpoint's api_version in the Stripe dashboard and confirm it is not set to Endive or Dahlia.",
+        "Look at the 6 typecheck errors and the build error to confirm none involve src/lib/stripe.ts."
+      ]
+    },
+    "handCheck": {
+      "status": "agree",
+      "reviewer": "F6 (round 2 evals session, for Furqan)",
+      "checkedAt": "2026-11-03",
+      "wouldMerge": "no",
+      "notes": "Adds apiVersion: '2023-10-16' to new Stripe(...) in src/lib/stripe.ts. That is the version stripe-node 14.x already sends, so runtime behaviour is unchanged and nothing moves to Endive; the PR says so and lists what an Endive move needs (current_period_end in the webhook route, payment_method_types in checkout). Beside the node-v23-0-0 PR it works against the upgrade: the pin would keep calls on 2023-10-16 after the SDK moves to v23, whose types expect the SDK's own pinned version. needs-review is right. The AI reviewer's looks-right misses that conflict. Checked by reading the diff, the PR body and src/lib/stripe.ts at the pinned commit; nothing was run."
+    },
+    "firstSeen": "2026-11-03T05:10:08.239Z"
+  },
+  {
+    "key": "stripe-dev-30/4lbatr0s/jiro/4lbatr0s/jiro:stripe:node-v23-0-0",
+    "set": "stripe-dev-30",
+    "repo": "4lbatr0s/jiro",
+    "commit": "313dbd324b09519252ab0791c8a5a2654be31ada",
+    "taskId": "4lbatr0s/jiro:stripe:node-v23-0-0",
+    "changeId": "stripe:node-v23-0-0",
+    "grade": "needs-review",
+    "files": [
+      "package-lock.json",
+      "package.json",
+      "src/app/api/webhooks/stripe/route.ts",
+      "src/trpc/controller/index.ts"
+    ],
+    "aiReview": {
+      "opinion": "has-concerns",
+      "summary": "The PR jumps stripe-node from 14.13 to 23.0.0, nine majors and several API-version pins, but edits only two spots. The current_period_end move to the subscription item matches the Basil (2025-03-31) change. The checkout rename from payment_method_types to allowed_payment_method_types is not in the quoted changelog, and I don't recognise it as a Stripe param. Typecheck fails with 6 errors before and after, and build fails both times, so the checks prove nothing. src/lib/stripe.ts, a named call site, is untouched. needs-review is the right grade, but this should not merge as-is.",
+      "checkFirst": [
+        "Diff the 6 typecheck errors before and after; the counts match, but the errors may differ, and some may be new stripe errors hiding behind old ones.",
+        "Check the apiVersion string in src/lib/stripe.ts and whether its code around line 50 reads current_period_end.",
+        "Verify allowed_payment_method_types exists on Stripe.Checkout.SessionCreateParams in v23; if not, revert to payment_method_types.",
+        "Run a test-mode checkout and a `stripe trigger` for checkout.session.completed and invoice.payment_succeeded, then confirm stripeCurrentPeriodEnd is a valid date.",
+        "Confirm the deployment runtime is Node >=20."
+      ]
+    },
+    "handCheck": {
+      "status": "agree",
+      "reviewer": "F6 (round 2 evals session, for Furqan)",
+      "checkedAt": "2026-11-03",
+      "wouldMerge": "yes",
+      "notes": "The real migration. Bumps stripe ^14.13.0 to ^23.0.0 (package.json and package-lock.json), moves both current_period_end reads in src/app/api/webhooks/stripe/route.ts (lines 47 and 66) to subscription.items.data[0].current_period_end, and renames payment_method_types to allowed_payment_method_types in checkout.sessions.create, the replacement Stripe's Endive page names. The other Stripe calls (subscriptions.retrieve reading cancel_at_period_end in src/lib/stripe.ts, billingPortal.sessions.create, webhooks.constructEvent with the raw body and default tolerance) need no change I can see. Typecheck and build fail before and after on pre-existing errors: implicit any, and no Prisma client because postinstall (prisma generate) does not run with install scripts off. So nothing is proven, and needs-review is right. I would merge it after a test-mode checkout and webhook replay on Node 20 or later (v23 drops Node 18; the node-v23-drop-node18 task that would have checked this was unrun). The AI reviewer's three high concerns are wrong: allowed_payment_method_types is a real Endive param, src/lib/stripe.ts reads cancel_at_period_end rather than current_period_end, and the client pins no apiVersion. It saw only the diff, not those files. Checked by reading the diff, the PR body, the files at the pinned commit and Stripe's changelog page; nothing was run."
+    },
+    "firstSeen": "2026-11-03T05:10:08.239Z"
+  }
+]

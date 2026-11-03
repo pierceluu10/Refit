@@ -1,0 +1,15 @@
+{
+  "set": "openai-dev-30",
+  "index": 27,
+  "repo": "aparnaburhade/PDF-QA-CLI",
+  "commit": "5fe255c160e0bb93e3ae10a26a030b4894dedda9",
+  "provider": "openai",
+  "usages": 0,
+  "changes": 0,
+  "verdict": "unrun",
+  "tasks": [],
+  "costUsd": 0,
+  "durationMs": 0,
+  "error": "dollar cap reached before this repo started: AI budget: $0.43 of the $4 cap left; the gvprime/pubragi inventory needs $0.60.",
+  "costByPart": {}
+}

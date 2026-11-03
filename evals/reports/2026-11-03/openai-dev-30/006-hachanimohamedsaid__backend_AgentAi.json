@@ -1,0 +1,15 @@
+{
+  "set": "openai-dev-30",
+  "index": 6,
+  "repo": "hachanimohamedsaid/backend_AgentAi",
+  "commit": "387ace95142de78a7d8dd3a1378b9aba5aeb3048",
+  "provider": "openai",
+  "usages": 0,
+  "changes": 0,
+  "verdict": "unrun",
+  "tasks": [],
+  "costUsd": 0,
+  "durationMs": 0,
+  "error": "dollar cap reached before this repo started: AI budget: $0.43 of the $4 cap left; the gvprime/pubragi inventory needs $0.60.",
+  "costByPart": {}
+}

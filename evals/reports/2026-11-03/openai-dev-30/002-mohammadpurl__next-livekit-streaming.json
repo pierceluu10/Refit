@@ -1,0 +1,52 @@
+{
+  "set": "openai-dev-30",
+  "index": 2,
+  "repo": "mohammadpurl/next-livekit-streaming",
+  "commit": "9f2253c00ed7bcdd9f3017f7f6fb1676753d981f",
+  "provider": "openai",
+  "usages": 6,
+  "changes": 35,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "mohammadpurl/next-livekit-streaming:openai:2025-09-26-legacy-gpt-mar-2026",
+      "changeId": "openai:2025-09-26-legacy-gpt-mar-2026",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$0.84 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "mohammadpurl/next-livekit-streaming:openai:2025-08-20-assistants-api-shutdown",
+      "changeId": "openai:2025-08-20-assistants-api-shutdown",
+      "kind": "product-shutdown",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$0.84 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "mohammadpurl/next-livekit-streaming:openai:2026-07-20-legacy-audio-realtime-retirement",
+      "changeId": "openai:2026-07-20-legacy-audio-realtime-retirement",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$0.84 of the $4 run cap left, below the $2 a task needs"
+    },
+    {
+      "taskId": "mohammadpurl/next-livekit-streaming:openai:2026-08-26-transcription-retirement",
+      "changeId": "openai:2026-08-26-transcription-retirement",
+      "kind": "model-retirement",
+      "attempted": false,
+      "unrun": "budget",
+      "unrunReason": "$0.84 of the $4 run cap left, below the $2 a task needs"
+    }
+  ],
+  "costUsd": 0.2812684999999999,
+  "durationMs": 75767,
+  "matchReasoning": "mohammadpurl/next-livekit-streaming:openai:2025-09-26-legacy-gpt-mar-2026: The repo pins 'gpt-4-turbo-preview', which is listed in this retirement and was shut down 2026-03-26. That date has already passed, so the /api/chat route fails on every request because it creates an assistant with this model each time. Replace it with a current model such as gpt-5.6-terra or gpt-5.6-sol. Do this together with the Assistants API migration to the Responses API, since that API is also being shut down. The migration agent should also check what model app/openai-assistant.ts uses.\nmohammadpurl/next-livekit-streaming:openai:2025-08-20-assistants-api-shutdown: The whole chat flow runs on the Assistants API: assistants, threads, messages and runs. That API shuts down on 2026-08-26, so /api/chat stops working entirely. Rewrite it on the Responses API, using Conversations if thread state is needed. Put the instructions and tools inline, use a current model, and read output_text instead of run.status and messages.list. The browser-side OpenAIAssistant class (dangerouslyAllowBrowser) appears unused. Delete it or migrate it. Upgrade the openai SDK from 5.0.1 if required.\nmohammadpurl/next-livekit-streaming:openai:2026-07-20-legacy-audio-realtime-retirement: Uncertain. This retirement includes the snapshot gpt-4o-mini-transcribe-2025-03-20. The transcription route forwards the client's form data, so the model is set in app/audio-handler.ts. The migration agent should check which model that file sends. If it is this snapshot, switch to gpt-transcribe before 2027-01-20. Otherwise this change does not apply, and the related change openai:2026-08-26-transcription-retirement covers whisper-1 and the gpt-4o transcribe models.\nmohammadpurl/next-livekit-streaming:openai:2026-08-26-transcription-retirement: The repo calls POST /v1/audio/transcriptions over HTTP. whisper-1 and the gpt-4o-transcribe family are removed on 2027-02-26. The model field comes from the browser's FormData in app/audio-handler.ts:127 and is probably whisper-1. The migration agent should confirm the model there and switch to gpt-transcribe, checking that the response JSON shape the client reads (text) is unchanged. Voice input breaks if this is not done.\nopenai:2026-10-14-gpt-4-series-retirement: not affected: The repo uses gpt-4-turbo-preview and transcription models, not any gpt-4o or gpt-4.1 snapshot.\nopenai:2026-10-01-gpt53codex-gpt51-gpt54nano-retirement: not affected: No usage references gpt-5.3-codex, gpt-5.1 or gpt-5.4-nano.\nopenai:2026-10-01-tts-retirement: not affected: The repo makes no OpenAI text-to-speech calls. Speech output comes from the HeyGen avatar's speak calls.\nopenai:2026-06-11-gpt5-o3-retirement: not affected: No gpt-5 family or o3 models are used anywhere in the repo.\nopenai:2026-06-03-reusable-prompts-shutdown: not affected: The repo does not call /v1/prompts or use reusable prompt objects. Instructions are passed inline to assistants.create.\nopenai:2026-06-03-evals-shutdown: not affected: There is no usage of the Evals API (/v1/evals).\nopenai:2026-06-03-agent-builder-shutdown: not affected: The repo does not use Agent Builder. It uses the Assistants API via the SDK, which is covered by the Assistants shutdown task.\nopenai:2026-06-02-gpt-image-retirement: not affected: The repo makes no image generation calls.\nopenai:2026-05-07-finetuning-restrictions: not affected: The repo does not create fine-tuning jobs.\nopenai:2026-09-11-gpt-5-4-cyber-retirement: not affected: gpt-5.4-cyber is not used.\nopenai:2026-05-08-chat-latest-retirement: not affected: Neither gpt-5.2-chat-latest nor gpt-5.3-chat-latest is used.\nopenai:2026-04-22-legacy-gpt-oct-retirement: not affected: The pinned model is gpt-4-turbo-preview (gpt-4-0125-preview), which is not on this list. It is covered by the March 2026 retirement. No other listed model is used.\nopenai:2026-04-22-legacy-gpt-jul-retirement: not affected: None of the codex, search-preview, deep-research or computer-use models are used.\nopenai:2026-03-24-sora-videos-shutdown: not affected: The repo does not use the Videos API or Sora models.\nopenai:2025-11-18-chatgpt-4o-latest: not affected: chatgpt-4o-latest is not used.\nopenai:2025-11-17-codex-mini-latest: not affected: Neither codex-mini-latest nor the local shell tool is used.\nopenai:2025-11-14-dalle-retirement: not affected: The repo does not call DALL·E or /v1/images/generations.\nopenai:2025-09-26-legacy-gpt-sep-2026: not affected: None of gpt-3.5-turbo-instruct, babbage-002, davinci-002 or gpt-3.5-turbo-1106 is used.\nopenai:2025-09-15-realtime-beta-removed: not affected: The repo does not use the OpenAI Realtime API. Real-time media goes through LiveKit and HeyGen.\nopenai:2025-09-15-gpt4o-realtime-preview: not affected: The repo uses no gpt-4o realtime or audio preview models.\nopenai:2026-03-12-video-remix-deprecation: not affected: There is no Videos API usage.\nopenai:2026-05-29-prompt-cache-retention-default: not affected: The repo does not call Responses or Chat Completions and does not set prompt_cache_retention. Its only OpenAI calls are Assistants and audio transcription.\nopenai:2026-09-03-gpt-6-astra-parameter-changes: not affected: gpt-6-astra is not used, and no temperature, top_p, logprobs or reasoning effort parameters are sent.\nopenai:2026-04-24-gpt-5-5-behavior: not affected: gpt-5.5 is not used.\nopenai:2026-09-02-new-error-codes: not affected: The repo has no custom retry logic keyed on OpenAI error codes. The SDK's built-in retries already handle 429 and 503, and the transcribe route just passes responses through.\nopenai:2026-10-06-usage-tiers-simplified: not affected: This is an account-level rate-limit tier change. No code or pinned version in the repo depends on tier names.\nopenai:2026-07-30-priority-to-fast-mode: not affected: No call sets service_tier.\nopenai:2026-10-22-decisions-ga-limit: not affected: The repo does not use the Decisions API.\nopenai:2026-10-npm-7-44-0-decision-types: not affected: The repo pins openai npm 5.0.1 and does not use the Decisions types.\nopenai:2026-10-npm-7-43-0-decision-instructions: not affected: The repo pins openai npm 5.0.1 and makes no Decisions calls, so question.instructions is never read.\nopenai:2026-10-pypi-3-37-0-decision-types: not affected: This is the Python SDK. The repo is TypeScript-only and does not use Decisions.",
+  "error": "$0.84 of the $4 run cap left, below the $2 a task needs",
+  "costByPart": {
+    "inventory": 0.1148444999999998,
+    "match": 0.16642400000000013
+  }
+}

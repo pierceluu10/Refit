@@ -1,0 +1,15 @@
+{
+  "set": "openai-dev-30",
+  "index": 14,
+  "repo": "kkb2849/nextjs-1zdevcamp-template",
+  "commit": "0865bb268b395abac07042d6d6e627f92f24b159",
+  "provider": "openai",
+  "usages": 0,
+  "changes": 0,
+  "verdict": "unrun",
+  "tasks": [],
+  "costUsd": 0,
+  "durationMs": 0,
+  "error": "dollar cap reached before this repo started: AI budget: $0.43 of the $4 cap left; the gvprime/pubragi inventory needs $0.60.",
+  "costByPart": {}
+}

@@ -6,6 +6,7 @@ import type { RunRecord } from '../../shared/types.ts';
 import type { RepoResult, TaskResult } from '../runner/types.ts';
 import { formatReport, scoreResults } from './score.ts';
 import {
+  diffFiles,
   handCheckSummary,
   missingHandChecks,
   readReviews,
@@ -74,10 +75,38 @@ describe('scoreResults', () => {
     });
   });
 
+  it('tells started repos from those the cap never started or stopped at every task', () => {
+    const score = scoreResults([
+      ...results,
+      repo('o/stopped', 'tasks', [
+        { taskId: '9', changeId: 'c', kind: 'other', attempted: false, unrun: 'budget' },
+      ]),
+    ]);
+    expect(score).toMatchObject({ repos: 5, startedRepos: 4, capStoppedRepos: 1 });
+    expect(formatReport(score)).toContain(
+      'Repos: 5: 4 started, 1 never started (dollar cap); in 1 of the started, the cap stopped every task',
+    );
+  });
+
   it('reports cost per repo over the repos that ran', () => {
     const score = scoreResults(results);
     expect(score.costUsd).toBe(3);
     expect(score.costPerRepoUsd).toBe(1);
+  });
+
+  it('adds up the cost by part and prints it per repo', () => {
+    const score = scoreResults([
+      { ...repo('o/a', 'not-affected', [], 0.75), costByPart: { inventory: 0.5, match: 0.25 } },
+      {
+        ...repo('o/b', 'tasks', [task('1', 'verified')], 2),
+        costByPart: { inventory: 0.5, harness: 1.5 },
+      },
+    ]);
+    expect(score.costByPart).toEqual({ inventory: 1, match: 0.25, harness: 1.5 });
+    const report = formatReport(score);
+    expect(report).toContain('| Repo | inventory | match | harness | Total |');
+    expect(report).toContain('| o/b | $0.5000 | $0.0000 | $1.5000 | $2.0000 |');
+    expect(report).toContain('| All repos | $1.0000 | $0.2500 | $1.5000 | $2.7500 |');
   });
 
   it('holds attempted at 100% and lists every unattempted task as a bug', () => {
@@ -144,9 +173,9 @@ describe('hand-check log', () => {
     ]),
   ];
 
-  it('adds one pending entry per verified PR and keeps existing entries untouched', () => {
+  it('adds one pending entry per verified or needs-review PR and keeps existing entries untouched', () => {
     const first = syncReviews([], results, '2026-11-01T00:00:00Z');
-    expect(first.added).toHaveLength(1);
+    expect(first.added).toHaveLength(2);
     expect(first.added[0]).toMatchObject({
       key: 'dev/o/a/1',
       grade: 'verified',
@@ -154,6 +183,7 @@ describe('hand-check log', () => {
       aiReview: { opinion: 'looks-right' },
       handCheck: { status: 'pending' },
     });
+    expect(first.added[1]).toMatchObject({ key: 'dev/o/a/2', grade: 'needs-review' });
     const checked = first.reviews.map((entry) => ({
       ...entry,
       handCheck: { status: 'agree' as const, reviewer: 'furqan' },
@@ -162,15 +192,23 @@ describe('hand-check log', () => {
     expect(second.added).toHaveLength(0);
     expect(second.reviews[0]?.handCheck.status).toBe('agree');
     expect(missingHandChecks(second.reviews, results)).toEqual([]);
-    expect(missingHandChecks([], results)).toEqual(['dev/o/a/1']);
-    expect(handCheckSummary(second.reviews)).toMatchObject({ agree: 1, agreementRate: 1 });
+    expect(missingHandChecks([], results)).toEqual(['dev/o/a/1', 'dev/o/a/2']);
+    expect(handCheckSummary(second.reviews)).toMatchObject({ agree: 2, agreementRate: 1 });
+  });
+
+  it('names the files each diff touches', () => {
+    expect(
+      diffFiles(
+        '--- a/src/a.ts\n+++ b/src/a.ts\n@@ -1 +1 @@\n-x\n+y\n--- /dev/null\n+++ b/new.ts\n+z',
+      ),
+    ).toEqual(['src/a.ts', 'new.ts']);
   });
 
   it('round-trips through a file', () => {
     const path = join(mkdtempSync(join(tmpdir(), 'aptitude-reviews-')), 'reviews.json');
     expect(readReviews(path)).toEqual([]);
     writeReviews(syncReviews([], results).reviews, path);
-    expect(readReviews(path)).toHaveLength(1);
+    expect(readReviews(path)).toHaveLength(2);
   });
 
   it('ships an empty, valid evals/reviews.json', () => {

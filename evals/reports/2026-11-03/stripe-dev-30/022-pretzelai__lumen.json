@@ -1,0 +1,15 @@
+{
+  "set": "stripe-dev-30",
+  "index": 22,
+  "repo": "pretzelai/lumen",
+  "commit": "c689c56b32414c4a82c14816a8c2e4a98adea84d",
+  "provider": "stripe",
+  "usages": 0,
+  "changes": 0,
+  "verdict": "unrun",
+  "tasks": [],
+  "costUsd": 0,
+  "durationMs": 0,
+  "error": "dollar cap reached before this repo started: AI budget: $0.45 of the $4 cap left; the Anassarwar14/Chat-Nest-AI inventory needs $0.60.",
+  "costByPart": {}
+}

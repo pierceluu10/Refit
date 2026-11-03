@@ -28,7 +28,8 @@ export const DEV_SETS: { name: string; path: string; provider: string }[] = [
     path: 'docs/benchmarks/subsets/shopify-dev-60.json',
     provider: 'shopify',
   },
-  { name: 'meta-dev-60', path: 'docs/benchmarks/subsets/meta-dev-60.json', provider: 'meta-graph' },
+  // The providers/ folder is meta (the Graph API, WhatsApp and Instagram watcher).
+  { name: 'meta-dev-60', path: 'docs/benchmarks/subsets/meta-dev-60.json', provider: 'meta' },
   { name: 'stripe-dev-30', path: 'docs/benchmarks/subsets/dev-30.json', provider: 'stripe' },
   {
     name: 'stripe-progress-30',

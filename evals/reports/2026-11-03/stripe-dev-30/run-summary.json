@@ -1,0 +1,16 @@
+{
+  "set": "stripe-dev-30",
+  "capUsd": 4,
+  "meterSpentUsd": 3.5505899999999997,
+  "budgetSpentUsd": 3.5505899999999997,
+  "stopReason": "AI budget: $0.45 of the $4 cap left; the Anassarwar14/Chat-Nest-AI inventory needs $0.60.",
+  "costByPart": {
+    "inventory": 0.6781178000000001,
+    "watch": 0.888962,
+    "match": 0.704696,
+    "harness": 1.1597541999999998,
+    "review": 0.11906
+  },
+  "startedAt": "2026-11-03T04:31:00.980Z",
+  "finishedAt": "2026-11-03T04:44:02.720Z"
+}
