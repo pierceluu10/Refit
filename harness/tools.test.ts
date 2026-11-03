@@ -314,6 +314,26 @@ describe('web, memory, tool pack and finish', () => {
     expect(finishProblems(report, checks, [old, fixed])).toEqual([]);
   });
 
+  it('finishProblems names a claimed validator whose latest call did not pass', () => {
+    const lookup = {
+      tool: 'openai__openai_model_lookup',
+      output: '## gpt-4.1\nStatus: deprecated',
+      passed: false,
+    };
+    const report = {
+      verdict: 'migrated' as const,
+      summary: 's',
+      why: 'w',
+      validators: [{ name: 'openai__openai_model_lookup', passed: true, detail: 'checked' }],
+      unproven: [],
+      behaviourChanges: [],
+      proofTest: 'change-test',
+    };
+    expect(finishProblems(report, [{ name: 'change-test', command: 'true' }], [lookup])).toEqual([
+      expect.stringContaining("its latest call didn't pass"),
+    ]);
+  });
+
   it('every tool has an object input schema and never throws', async () => {
     const { tools } = setup();
     for (const tool of tools) {

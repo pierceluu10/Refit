@@ -13,7 +13,10 @@ const PROBLEMS = [
   /^(?:required by the spec but missing|required params missing):/im,
   /^enum mismatch:/im,
   /\bis not (?:supported|compatible)\b/i, // openai_check_request on reasoning models
-  /^endpoint note \((?!supported\b)/im, // openai_check_request: legacy, deprecated or shut down
+  // openai_check_request: the endpoint itself is legacy, deprecated or shut down. "models deprecated"
+  // names other models on the endpoint; the request's own model is graded by the line below.
+  /^endpoint note \((?!supported\b|models deprecated\b)/im,
+  /^model \S+: (?:deprecated|shut down)\b/im, // openai_check_request: the request's own model
   /^old sdk shapes found:/im, // openai_sdk_migration
   /^status\b[^:\n]*:\s*(?:deprecated|shut down)/im, // openai_model_lookup on a retiring model
   /^(?:product|version \S+) status:\s*(?:deprecated|end-of-life|retired|sunset)/im, // twilio_endpoint_lookup

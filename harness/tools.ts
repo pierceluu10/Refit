@@ -148,10 +148,16 @@ export function finishProblems(
       'Name your test of the change as proofTest (register it with run_checks add first), or say in noProofTestReason why none can be written.',
     );
   }
-  for (const grade of gradeValidators(report.validators, runs).filter((grade) => !grade.ran)) {
-    problems.push(
-      `You list ${grade.name} as a validator, but no call of it was recorded. Call it, or leave it out.`,
-    );
+  for (const grade of gradeValidators(report.validators, runs)) {
+    if (!grade.ran && !grade.passed) {
+      problems.push(
+        `You list ${grade.name} as a validator, but no call of it was recorded. Call it, or leave it out.`,
+      );
+    } else if (grade.ran && !grade.passed) {
+      problems.push(
+        `You list ${grade.name} as a validator, but its latest call didn't pass ("${grade.detail}"). List only validators of your final code: run it on that, or leave out a lookup you made while exploring.`,
+      );
+    }
   }
   for (const tool of failingCheckers(runs)) {
     const output = runs.filter((run) => run.tool === tool).at(-1)?.output ?? '';

@@ -87,6 +87,26 @@ describe('gradeValidators', () => {
   });
 });
 
+describe('openai_check_request', () => {
+  const output = (model: string) =>
+    [
+      'POST /v1/audio/transcriptions (createTranscription)',
+      'Endpoint note (models deprecated, 2027-02-26): whisper-1 shut down 2027-02-26; replacements gpt-transcribe.',
+      'Deprecated parameters: none found.',
+      'Unknown parameters: none.',
+      `Model ${model}. Run openai_model_lookup for replacement and dates.`,
+    ].join('\n\n');
+
+  it('passes a request on an active model, whatever the endpoint says of other models', () => {
+    expect(runPassed(output('gpt-transcribe: active'))).toBe(true);
+  });
+
+  it('fails a request whose own model is deprecated or shut down', () => {
+    expect(runPassed(output('whisper-1: deprecated (shutdown 2027-02-26)'))).toBe(false);
+    expect(runPassed(output('whisper-1: shut down (since 2027-02-26)'))).toBe(false);
+  });
+});
+
 describe('a validator that could not run', () => {
   it('is no proof and does not hold back the grade', () => {
     const [grade] = gradeValidators(
