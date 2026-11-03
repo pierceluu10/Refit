@@ -296,6 +296,21 @@ describe('runTask with a fake model', () => {
     expect(record.models).toEqual([MODEL, ESCALATION_MODEL]);
   });
 
+  it('runs the agent’s own checks with the placeholder env', async () => {
+    const addEnvCheck: ScriptedTurn = async (call) => {
+      await call('run_checks', {
+        add: [{ name: 'test', command: 'node -e "process.exit(process.env.X ? 0 : 1)"' }],
+      });
+      await fixIt(call, {} as never);
+    };
+    const record = await runTask(task, fixtureRepo({}), {
+      ...deps([addEnvCheck]),
+      planPreparation: async (): Promise<Plan> => ({ steps: [], env: { X: '1' }, reasoning: '' }),
+    });
+    expect(record.agentChecks[0]).toMatchObject({ name: 'test', before: 'pass', after: 'pass' });
+    expect(record.outcome).toBe('verified');
+  });
+
   it('plans again with the failing baseline in hand, and checks run with the placeholder env', async () => {
     const seen: string[] = [];
     const record = await runTask(
