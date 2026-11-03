@@ -294,6 +294,41 @@ export const deepseek = new OpenAI({
     await removeRepo(dir);
   });
 
+  it('keeps two SDKs apart when two classes give the same holder a client', async () => {
+    const dir = await makeRepo({
+      'package.json':
+        '{\n  "dependencies": {\n    "@anthropic-ai/sdk": "^0.30.0",\n    "openai": "^4.0.0"\n  }\n}\n',
+      'llm.js': `const Anthropic = require('@anthropic-ai/sdk');
+const { OpenAI } = require('openai');
+class Claude {
+  constructor(key) {
+    this.client = new Anthropic({ apiKey: key });
+  }
+  ask(text) {
+    return this.client.messages.create({ model: 'claude-x', messages: [] });
+  }
+}
+class Gpt {
+  constructor(key) {
+    this.client = new OpenAI({ apiKey: key });
+  }
+  ask(text) {
+    return this.client.chat.completions.create({ model: 'gpt-x', messages: [] });
+  }
+}
+module.exports = { Claude, Gpt };
+`,
+    });
+    const result = await scanRepo(dir, 'acme/llm');
+    const sites = (provider: string) =>
+      result.usages
+        .filter((found) => found.provider === provider)
+        .flatMap((found) => found.callSites.map((site) => `${site.line} ${site.operation}`));
+    expect(sites('anthropic')).toEqual(['8 messages.create']);
+    expect(sites('openai')).toEqual(['16 chat.completions.create']);
+    await removeRepo(dir);
+  });
+
   it('suggests areas for area readers only when there are many leads to read', async () => {
     // An LLM gateway's layout, like lobe-chat's src/libs/agent-runtime/<provider>/index.ts.
     const providers = Array.from({ length: 70 }, (_, index) => [
@@ -302,6 +337,8 @@ export const deepseek = new OpenAI({
     ]);
     const many = await makeRepo({
       'package.json': '{\n  "dependencies": {}\n}\n',
+      // A raw fetch counts toward fanning out; a webhook signal alone does not.
+      'src/app/proxy.ts': 'export const get = (url: string) => fetch(url);\n',
       'src/app/hook.ts': "export const verify = (body: string) => createHmac('sha256', body);\n",
       ...Object.fromEntries(providers),
     });

@@ -223,6 +223,29 @@ repos.
 - 23 of the 25 are requests. The two that are not are HeyGen's `avatarRef.current.on(...)`, an
   event listener, and Firestore's `doc(...)`, a reference builder.
 
+## After the measurement: `scan-v6` (no new model runs)
+
+I ran the scan alone ($0) on 15 more dev-set repos, from the Anthropic, Gemini and long-tail sets.
+It didn't crash on any of them and took 1 to 294 ms each. With `scan-v6` it records the set's own
+provider in 9 of the 15:
+
+- all 5 Anthropic repos and all 3 Gemini repos;
+- Google Analytics in jasper.
+
+The other 6 are long-tail APIs reached by raw HTTP or SDKs the catalog doesn't know. Those are
+leads for the agent.
+
+That check found one bug. A file that gives the same holder clients of two SDKs, such as
+`this.client = new Anthropic()` in one class and `new OpenAI()` in the next, filed every call
+under the last one. It happened in 2 Anthropic-set repos, jd-notes-things and a Python docstring
+agent. `scan-v6` gives each call the nearest assignment above it.
+
+`scan-v6` also stops counting webhook signals toward fanning out. That word alone fills the list in
+any app with a webhook feature.
+
+On the 8 repos above, `scan-v6` records exactly what `scan-v5` did. The only difference is
+lobe-chat's suggested-area counts, and lobe-chat still fans out.
+
 ## Limits
 
 - One run per version. Model runs vary: the old inventory found 72 of its own earlier 79 usages on

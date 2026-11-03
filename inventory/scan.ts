@@ -18,7 +18,7 @@ import {
 import { listFiles, readText } from './repo-files.ts';
 import { listManifests, lockedVersions, type Manifest } from './scanners.ts';
 
-export const SCAN_VERSION = 'scan-v5';
+export const SCAN_VERSION = 'scan-v6';
 
 type CallSite = ApiUsage['callSites'][number];
 
@@ -202,7 +202,23 @@ type FileScan = {
   exportedFactories: Map<string, Binding>;
   /** Lines that construct a client: not call sites, but where the pinned version lives. */
   constructions: { binding: Binding; line: number; column: number }[];
+  /** Where each holder was given a client, so `this.client` in two classes keeps both apart. */
+  assignments: Map<string, { line: number; binding: Binding }[]>;
 };
+
+/**
+ * The client a name holds at a line. One file can give the same holder clients of different SDKs
+ * (`this.client = new Anthropic()` in one class, `new OpenAI()` in the next): a call then takes
+ * the nearest assignment above it, or failing that the first below it.
+ */
+function clientAt(scan: FileScan, name: string, line: number): Binding {
+  const assigned = scan.assignments.get(name) ?? [];
+  if (new Set(assigned.map((entry) => `${entry.binding.provider}|${entry.binding.pkg}`)).size < 2) {
+    return scan.clients.get(name) as Binding;
+  }
+  const above = assigned.filter((entry) => entry.line <= line).at(-1);
+  return (above ?? assigned[0]).binding;
+}
 
 const emptyScan = (): FileScan => ({
   clients: new Map(),
@@ -210,6 +226,7 @@ const emptyScan = (): FileScan => ({
   exported: new Map(),
   factories: new Map(),
   exportedFactories: new Map(),
+  assignments: new Map(),
   constructions: [],
 });
 
@@ -243,7 +260,12 @@ function findClients(source: Source, bindings: Binding[], scan: FileScan): void 
     const last = chain.at(-1) ?? binding.local;
     const makesClient = binding.factory || match[2] || CONSTRUCTOR.test(last) || FACTORY.test(last);
     if (!makesClient) return; // an API call, whose result is data
-    for (const name of holderNames(match[1])) scan.clients.set(name, binding);
+    for (const name of holderNames(match[1])) {
+      scan.clients.set(name, binding);
+      const assigned = scan.assignments.get(name) ?? [];
+      assigned.push({ line: index + 1, binding });
+      scan.assignments.set(name, assigned);
+    }
     scan.constructions.push({
       binding,
       line: index + 1,
@@ -453,7 +475,7 @@ function findCalls(
     if (/^\s*(import|from)\s/.test(line) || /\brequire\s*\(/.test(line)) return;
     for (const match of member ? line.matchAll(member) : []) {
       if (/\bnew\s+$/.test(line.slice(0, match.index))) continue; // new client.Error(): a class
-      const binding = scan.clients.get(match[1]) as Binding;
+      const binding = clientAt(scan, match[1], index + 1);
       const operation = match[2].replace(/\s+/g, '').replace(/\?\./g, '.');
       calls.push({
         binding,
@@ -466,7 +488,7 @@ function findCalls(
     const next = hanging ? continued.exec(source.lines[index + 1] ?? '') : undefined;
     if (hanging && next && !skipLines.has(index + 2)) {
       calls.push({
-        binding: scan.clients.get(hanging[1]) as Binding,
+        binding: clientAt(scan, hanging[1], index + 2),
         line: index + 2,
         operation: next[1].replace(/\s+/g, '').replace(/\?\./g, '.'),
         column: next.index + next[0].length - 1,
@@ -1128,7 +1150,8 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
 }
 
 // Leads that point at a file:line the agent has to read, as opposed to names (deps, env, hosts).
-const READ_LEADS = new Set(['base-urls', 'raw-http', 'webhooks', 'graphql', 'sdk-without-calls']);
+// Webhook signals are left out: the word alone fills that list in any app with a webhook feature.
+const READ_LEADS = new Set(['base-urls', 'raw-http', 'graphql', 'sdk-without-calls']);
 // Above this many, reading them one by one on the main model costs more than area readers do.
 export const FAN_OUT_LEADS = 60;
 const MAX_AREAS = 6;
