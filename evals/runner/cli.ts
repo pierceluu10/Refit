@@ -5,6 +5,7 @@
 //   node evals/runner/cli.ts matrix --set <dev set> --budget-usd <total cap>
 //   node evals/runner/cli.ts score --in <dir> [--reviews evals/reviews.json] [--report <file>]
 //   node evals/runner/cli.ts review --in <dir> --budget-usd <cap> [--only <task id part>] [--out <file>]
+//   node evals/runner/cli.ts run ... [--repos owner/a,owner/b]   (only these repos of the set)
 //   node evals/runner/cli.ts screen --sets <a,b,...> --budget-usd <cap> --concurrency <n> [--out <dir>] [--exclusions <file>]
 //   node evals/runner/cli.ts score3 --in <results dir> --screen <dir> [--report <file>]
 //
@@ -119,7 +120,12 @@ export async function main(argv: string[]): Promise<number> {
       if (!file || !existsSync(file)) return !screenDir;
       return !(JSON.parse(readFileSync(file, 'utf8')) as BaselineRecord).exclusion;
     };
-    const set = { ...full, repos: full.repos.filter(green) };
+    // --repos owner/a,owner/b runs only those repos of the set (a rerun of chosen repos).
+    const only = typeof flags.repos === 'string' ? new Set(flags.repos.split(',')) : undefined;
+    const set = {
+      ...full,
+      repos: full.repos.filter((entry) => green(entry) && (!only || only.has(entry.repo))),
+    };
     console.log(`${set.name}: running ${set.repos.length} of ${full.repos.length} repos`);
     const startedAt = new Date().toISOString();
     const real = await loadRealPipeline(config.budgetUsd, {
