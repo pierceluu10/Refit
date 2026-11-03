@@ -1,4 +1,5 @@
-import { Budget, defaultAi, defaultMemory, recordVerdict } from '../memory/index.ts';
+import { Budget, defaultAi, defaultMemory, listRunViews, recordVerdict } from '../memory/index.ts';
+import { runRepoJob } from '../orchestrator/index.ts';
 import { readConfig } from './config.ts';
 import { cloneRepo } from './git.ts';
 import {
@@ -11,7 +12,6 @@ import { createJobRunner } from './jobs.ts';
 import { createOpenPullRequest } from './pr.ts';
 import { createFileQueue } from './queue.ts';
 import { createWebhookServer } from './server.ts';
-import { listRunViews, runRepoJob } from './stubs.ts';
 import type { RecordVerdict } from './types.ts';
 
 const DEFAULT_HOST = '127.0.0.1';
