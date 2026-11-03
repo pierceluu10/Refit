@@ -252,17 +252,35 @@ describe('twilio_sdk_versions', () => {
     expect(await sdkVersions('twilio-php', '99.0.0', offline)).toContain('newer than');
   });
 
-  it('adds the latest GitHub release when online (stubbed)', async () => {
+  it('adds the latest GitHub release for a library outside npm and PyPI (stubbed)', async () => {
     const fetch: FetchLike = async (url) => ({
       ok: true,
       status: 200,
       text: async () =>
-        url.includes('twilio-node')
-          ? JSON.stringify({ tag_name: '6.9.9', published_at: '2026-10-30T00:00:00Z' })
+        url.includes('twilio-ruby')
+          ? JSON.stringify({ tag_name: '7.9.9', published_at: '2026-10-30T00:00:00Z' })
           : '{}',
     });
+    const out = await sdkVersions('twilio-ruby', '6.0.0', { fetch });
+    expect(out).toContain('Live: latest GitHub release is 7.9.9 (2026-10-30)');
+  });
+
+  it('reads npm and PyPI libraries from their registry through the toolkit (stubbed)', async () => {
+    const fetch: FetchLike = async (url) => ({
+      ok: url === 'https://registry.npmjs.org/twilio',
+      status: url === 'https://registry.npmjs.org/twilio' ? 200 : 404,
+      text: async () =>
+        JSON.stringify({
+          'dist-tags': { latest: '6.9.9' },
+          versions: { '6.9.9': { engines: { node: '>=20.0.0' } } },
+          time: { '6.9.9': '2026-10-30T00:00:00Z' },
+        }),
+    });
     const out = await sdkVersions('node', '5.0.0', { fetch });
-    expect(out).toContain('Live: latest GitHub release is 6.9.9 (2026-10-30)');
+    expect(out).toContain(
+      'Live: latest on npm is 6.9.9 (2026-10-30); the latest needs node >=20.0.0.',
+    );
+    expect(out).toContain('package_lookup for the release notes');
   });
 
   it('parses versions and aliases', () => {
