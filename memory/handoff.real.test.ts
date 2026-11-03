@@ -10,12 +10,12 @@ import { createRetriever, renderMemoryForPrompt } from './retrieve.ts';
 import { JsonMemoryStore } from './store.ts';
 
 // A recipe from one repo's fix, handed to the next repo with the same change, with the real model.
-// Runs only with APTITUDE_REAL_AI=1, under one cap from APTITUDE_AI_BUDGET_USD.
+// Runs only with REFIT_REAL_AI=1, under one cap from REFIT_AI_BUDGET_USD.
 const budget = Budget.fromEnv();
 const json = async (path: string) =>
   JSON.parse(await readFile(new URL(path, import.meta.url), 'utf8'));
 
-describe.skipIf(process.env.APTITUDE_REAL_AI !== '1')('a recipe handed to the next repo', () => {
+describe.skipIf(process.env.REFIT_REAL_AI !== '1')('a recipe handed to the next repo', () => {
   // An API key when present, else the logged-in Claude Code credentials through the Agent SDK.
   const model = process.env.ANTHROPIC_API_KEY
     ? new AnthropicModel(budget)
@@ -40,7 +40,7 @@ describe.skipIf(process.env.APTITUDE_REAL_AI !== '1')('a recipe handed to the ne
     const usagesOf = (repo: string): ApiUsage[] =>
       round3.repos.find((r: { repo: string }) => r.repo === repo).usages;
 
-    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-handoff-')));
+    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'refit-handoff-')));
     const decoys = [
       makeRecipe(),
       makeRecipe({

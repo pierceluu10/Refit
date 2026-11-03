@@ -19,7 +19,7 @@ let repoDir: string;
 let sandbox: Sandbox;
 
 beforeEach(async () => {
-  repoDir = await fs.mkdtemp(path.join(os.tmpdir(), 'aptitude-fixture-'));
+  repoDir = await fs.mkdtemp(path.join(os.tmpdir(), 'refit-fixture-'));
   await fs.writeFile(path.join(repoDir, 'index.js'), 'console.log("v1");\n');
   await fs.mkdir(path.join(repoDir, 'src'));
   await fs.writeFile(path.join(repoDir, 'src', 'lib.js'), 'export const x = 1;\n');
@@ -42,7 +42,7 @@ describe('local sandbox', () => {
 
   it('copies the repo without .git or node_modules', async () => {
     expect(sandbox.mode).toBe('local');
-    expect(path.basename(path.dirname(sandbox.dir))).toMatch(/^aptitude-sandbox-/);
+    expect(path.basename(path.dirname(sandbox.dir))).toMatch(/^refit-sandbox-/);
     const entries = await fs.readdir(sandbox.dir);
     expect(entries.sort()).toEqual(['index.js', 'src']);
     await expect(fs.readFile(path.join(sandbox.dir, 'src', 'lib.js'), 'utf8')).resolves.toContain(

@@ -9,7 +9,7 @@ import { listRunViews, toRunView } from './index.ts';
 import { JsonMemoryStore } from './store.ts';
 
 async function fixtureStore() {
-  const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-views-')));
+  const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'refit-views-')));
   for (const run of storedRuns) await store.saveRun(run);
   return store;
 }

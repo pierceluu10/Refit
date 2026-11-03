@@ -15,7 +15,7 @@ import type { CheckRun } from './types.ts';
 
 const dirs: string[] = [];
 async function fixture(files: Record<string, string>): Promise<string> {
-  const dir = await mkdtemp(path.join(tmpdir(), 'aptitude-checks-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'refit-checks-'));
   dirs.push(dir);
   for (const [name, content] of Object.entries(files)) {
     await mkdir(path.dirname(path.join(dir, name)), { recursive: true });
@@ -56,7 +56,7 @@ describe('failureSignatures', () => {
 
  FAIL  src/pay.test.ts > payments > refunds a charge
 AssertionError: expected 'ok' to be 'refunded'
- ❯ /tmp/aptitude-abc123/src/pay.test.ts:22:18
+ ❯ /tmp/refit-abc123/src/pay.test.ts:22:18
 
  Test Files  1 failed (1)
 `;
@@ -77,7 +77,7 @@ AssertionError: expected 'ok' to be 'refunded'
 
     TypeError: stripe.customers.create is not a function
 
-      at Object.<anonymous> (/private/var/folders/xy/abc/T/aptitude-1/src/api.test.js:10:5)
+      at Object.<anonymous> (/private/var/folders/xy/abc/T/refit-1/src/api.test.js:10:5)
 `;
     expect(failureSignatures(output, false)).toEqual([
       'FAIL src/api.test.js',

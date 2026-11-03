@@ -139,7 +139,7 @@ describe('an org run on the real wiring', () => {
     const cap = 12;
     const budget = createBudget(cap);
     seen.check = () => (seen.worst = Math.max(seen.worst, budget.spentUsd() + budget.heldUsd()));
-    const dir = await mkdtemp(join(tmpdir(), 'aptitude-org-run-'));
+    const dir = await mkdtemp(join(tmpdir(), 'refit-org-run-'));
     const deps = createDeps({
       budget,
       out: join(dir, 'runs.jsonl'),

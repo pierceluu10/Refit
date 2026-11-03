@@ -13,9 +13,9 @@ const SECRET = 'test-webhook-secret';
 const DELIVERY = '00000000-0000-4000-8000-000000000001';
 const SMALL_CAP = 64;
 const INSTALLED_REPOS = [
-  'aptitude-example-org/billing-api',
-  'aptitude-example-org/storefront',
-  'aptitude-example-org/ops-scripts',
+  'refit-example-org/billing-api',
+  'refit-example-org/storefront',
+  'refit-example-org/ops-scripts',
 ];
 
 const raw = (name: string) => readFileSync(new URL(`fixtures/${name}.json`, import.meta.url));
@@ -76,13 +76,13 @@ describe('webhook server', () => {
     await vi.waitFor(() => expect(jobs).toHaveLength(count));
   });
 
-  it('records the verdict for a signed Aptitude PR close', async () => {
+  it('records the verdict for a signed Refit PR close', async () => {
     const { base, verdicts } = await start();
     const body = raw('pull_request.closed.merged');
     expect((await post(base, 'pull_request', body, sign(body))).status).toBe(202);
     await vi.waitFor(() => expect(verdicts).toHaveLength(1));
     expect(verdicts).toEqual([
-      ['https://github.com/aptitude-example-org/billing-api/pull/41', 'merged'],
+      ['https://github.com/refit-example-org/billing-api/pull/41', 'merged'],
     ]);
   });
 
@@ -164,7 +164,7 @@ const run = (repo: string, id: string): RunView => ({
 });
 
 describe('GET /api/runs', () => {
-  const MINE = 'aptitude-example-org/billing-api';
+  const MINE = 'refit-example-org/billing-api';
   const THEIRS = 'other-org/secret-service';
   const STORED = [run(THEIRS, '4'), run(MINE, '3'), run(THEIRS, '2'), run(MINE, '1')];
   const USER_TOKEN = 'ghu_test_user_token';

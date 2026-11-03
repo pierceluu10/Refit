@@ -1,8 +1,8 @@
 // One real match run on the illustrative fixtures:
-//   APTITUDE_AI_BUDGET_USD=2 ANTHROPIC_API_KEY=... node orchestrator/match-real.ts
-//   APTITUDE_AI_BUDGET_USD=2 node orchestrator/match-real.ts --agent-sdk   (logged-in Claude Code credentials)
+//   REFIT_AI_BUDGET_USD=2 ANTHROPIC_API_KEY=... node orchestrator/match-real.ts
+//   REFIT_AI_BUDGET_USD=2 node orchestrator/match-real.ts --agent-sdk   (logged-in Claude Code credentials)
 // The round 3 task-shape check (one task per upgrade) on jiro, financehb, branded and lobe-chat:
-//   APTITUDE_AI_BUDGET_USD=5 ANTHROPIC_API_KEY=... node orchestrator/match-real.ts --round-3
+//   REFIT_AI_BUDGET_USD=5 ANTHROPIC_API_KEY=... node orchestrator/match-real.ts --round-3
 import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { ApiUsage, ProviderChange } from '../shared/types.ts';

@@ -8,7 +8,7 @@ import { createDeps, defaultOut } from './deps.ts';
 import type { RunRecord } from '../shared/types.ts';
 import { runOrg, type RunSummary } from './loop.ts';
 
-const USAGE = 'usage: aptitude run --repo <path> [--repo <path> ...] [--dry-run] [--out <file>]';
+const USAGE = 'usage: refit run --repo <path> [--repo <path> ...] [--dry-run] [--out <file>]';
 
 function parse(argv: string[]) {
   const { values, positionals } = parseArgs({
@@ -46,7 +46,7 @@ export function formatSummary(
   // Attempted work first; the not-affected verdicts, each with the match agent's reasoning, last.
   const order: RunRecord['outcome'][] = ['verified', 'needs-review', 'failed', 'not-affected'];
   return [
-    `Aptitude run on ${repo}${dryRun ? ' (dry run: no PRs opened)' : ''}`,
+    `Refit run on ${repo}${dryRun ? ' (dry run: no PRs opened)' : ''}`,
     `  outcomes: ${counts.verified} verified, ${counts['needs-review']} needs-review, ${counts['not-affected']} not-affected, ${counts.failed} failed`,
     ...order.flatMap((outcome) =>
       summary.records
@@ -68,11 +68,11 @@ export async function main(argv: string[]): Promise<number> {
   try {
     args = parse(argv);
   } catch (error) {
-    console.error(`aptitude: ${error instanceof Error ? error.message : String(error)}\n${USAGE}`);
+    console.error(`refit: ${error instanceof Error ? error.message : String(error)}\n${USAGE}`);
     return 2;
   }
   try {
-    // The run-level dollar cap is a hard limit: createBudget throws without APTITUDE_AI_BUDGET_USD.
+    // The run-level dollar cap is a hard limit: createBudget throws without REFIT_AI_BUDGET_USD.
     const budget = process.env.ANTHROPIC_API_KEY ? createBudget() : undefined;
     const deps = createDeps({ out: args.out, budget });
     // SECURITY: nothing here runs the repo's code or scripts on this host; runTask hands it to the harness sandbox.
@@ -86,7 +86,7 @@ export async function main(argv: string[]): Promise<number> {
     console.log(formatSummary(args.name, { ...summary, costUsd }, args));
     return 0;
   } catch (error) {
-    console.error(`aptitude: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`refit: ${error instanceof Error ? error.message : String(error)}`);
     return 1;
   }
 }

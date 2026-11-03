@@ -1,4 +1,4 @@
-# Aptitude benchmark: understand -> match -> harness -> score, one repo per shard.
+# Refit benchmark: understand -> match -> harness -> score, one repo per shard.
 #
 # Founders: move this file to .github/workflows/benchmark.yml to enable it. It lives under
 # evals/ because the overnight prompts don't edit .github/. Nobody dispatches it until the
@@ -9,7 +9,7 @@
 # cache to every shard, and splits the rest of the cap evenly across shards; each shard's runner
 # and the harness ledger both enforce its share. The plan refuses a cap whose shards could never
 # afford a task.
-name: Aptitude benchmark
+name: Refit benchmark
 
 on:
   workflow_dispatch:
@@ -79,7 +79,7 @@ jobs:
         env:
           SET: ${{ inputs.set }}
           WATCH_BUDGET_USD: ${{ needs.plan.outputs.watch_budget }}
-          APTITUDE_AI_BUDGET_USD: ${{ needs.plan.outputs.watch_budget }}
+          REFIT_AI_BUDGET_USD: ${{ needs.plan.outputs.watch_budget }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: >-
           node evals/runner/cli.ts watch --set "$SET" --budget-usd "$WATCH_BUDGET_USD"
@@ -117,8 +117,8 @@ jobs:
           SET: ${{ inputs.set }}
           INDEX: ${{ matrix.index }}
           SHARD_BUDGET_USD: ${{ needs.plan.outputs.shard_budget }}
-          APTITUDE_AI_BUDGET_USD: ${{ needs.plan.outputs.shard_budget }}
-          APTITUDE_SANDBOX: docker
+          REFIT_AI_BUDGET_USD: ${{ needs.plan.outputs.shard_budget }}
+          REFIT_SANDBOX: docker
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: >-
           node evals/runner/cli.ts run --set "$SET" --shard "$INDEX"

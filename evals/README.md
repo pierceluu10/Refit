@@ -1,6 +1,6 @@
 # evals
 
-Aptitude's benchmark: frozen repo sets, the runner, scoring, hand-checks and an advisory AI
+Refit's benchmark: frozen repo sets, the runner, scoring, hand-checks and an advisory AI
 reviewer. Owner: Furqan.
 
 ## Quick start
@@ -157,6 +157,6 @@ numbers.
   Anthropic, Gemini and long-tail sets stop before any spend until F4's `anyProviderWatcher` is
   passed to the runner (the `watchAny` line in `runner/cli.ts`). Real runs otherwise go through
   the orchestrator's `createDeps`, under one run budget, and need `ANTHROPIC_API_KEY` and
-  `APTITUDE_AI_BUDGET_USD`.
+  `REFIT_AI_BUDGET_USD`.
 - PRs: the runner grades what the harness returns and never opens a PR, so `pr` is empty in
   benchmark records. The hand-check reads the diff and the PR body the harness wrote.

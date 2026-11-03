@@ -1,10 +1,10 @@
-# Aptitude: overnight build plan
+# Refit: overnight build plan
 
-Written 2026-11-01. Refit is renamed **Aptitude**, and we start from scratch. The old deterministic engine is deleted. Its history stays in git, but don't port it back.
+Written 2026-11-01. We start from scratch. The old deterministic engine is deleted. Its history stays in git, but don't port it back.
 
-## What Aptitude is
+## What Refit is
 
-A GitHub App for an organization. Once installed, Aptitude:
+A GitHub App for an organization. Once installed, Refit:
 
 - **reads each codebase** the way a new engineer would;
 - **understands** which external APIs it uses, where, and how;
@@ -13,7 +13,7 @@ A GitHub App for an organization. Once installed, Aptitude:
 
 ## AI-first: the rule above all others
 
-Refit failed because it was a rule engine with a little AI on top. About three in four repos hit a rule and stopped before anything was tried. Aptitude is the opposite: **an AI agent does the understanding, deciding and editing. Code exists to give it tools, context and a way to check its work.**
+Refit failed because it was a rule engine with a little AI on top. About three in four repos hit a rule and stopped before anything was tried. Refit is the opposite: **an AI agent does the understanding, deciding and editing. Code exists to give it tools, context and a way to check its work.**
 
 **Do:**
 
@@ -40,7 +40,7 @@ Refit failed because it was a rule engine with a little AI on top. About three i
 
 ## The end-to-end flow
 
-1. **Install.** An org admin installs the Aptitude GitHub App on the org (all repos or selected ones).
+1. **Install.** An org admin installs the Refit GitHub App on the org (all repos or selected ones).
 2. **Understand the codebase.** An agent reads each repo and writes an API usage map. For every external API it records:
    - which provider;
    - through what: an SDK and its version, raw HTTP, GraphQL, or webhooks;
@@ -66,12 +66,12 @@ Refit failed because it was a rule engine with a little AI on top. About three i
 | `memory/`       | Self-learning: run records, recipe extraction, retrieval, skill promotion, nightly self-eval                    | Otabek                   |
 | `app/`          | The GitHub App: install webhooks, org and repo sync, PR opener, verdict feedback                                | Pierce                   |
 | `inventory/`    | The codebase-understanding agent that produces `ApiUsage[]`                                                     | Pierce                   |
-| `src/`          | The website and dashboard, renamed to Aptitude                                                                  | Pierce                   |
+| `src/`          | The website and dashboard, renamed to Refit                                                                  | Pierce                   |
 | `providers/`    | Per provider: changelog-reading watcher, knowledge, tool pack, playbooks                                        | Furqan                   |
 | `evals/`        | Frozen dev and blind repo sets, the benchmark runner, scoring, hand-checks                                      | Furqan                   |
 | `shared/`       | `types.ts`, the contract every folder codes against                                                             | Everyone (additive only) |
 
-### Shared types (`shared/types.ts`, on `aptitude` before launch)
+### Shared types (`shared/types.ts`, on `refit` before launch)
 
 ```ts
 export type MigrationKind =
@@ -152,7 +152,7 @@ export type RunTask = (task: MigrationTask, repoDir: string) => Promise<RunRecor
 
 ### The harness system prompt (structure, built in O2)
 
-1. **Role:** "You are Aptitude, a senior engineer who migrates code when external APIs change. You always attempt the migration."
+1. **Role:** "You are Refit, a senior engineer who migrates code when external APIs change. You always attempt the migration."
 2. **The task:** the change (with its quoted source), the affected call sites, the deadline.
 3. **Workflow:**
    - understand the usage in this repo;
@@ -178,7 +178,7 @@ export type RunTask = (task: MigrationTask, repoDir: string) => Promise<RunRecor
 
 ## Running all 9 prompts in parallel
 
-- **Before launch (Otabek, five minutes, no AI):** push the `aptitude` branch scaffold. It's ready locally and contains:
+- **Before launch (Otabek, five minutes, no AI):** push the `refit` branch scaffold. It's ready locally and contains:
   - the folders as npm workspaces;
   - `shared/types.ts`;
   - typecheck, format, test and build wired for every folder.
@@ -191,7 +191,7 @@ export type RunTask = (task: MigrationTask, repoDir: string) => Promise<RunRecor
 
 ## Git rules for every prompt
 
-- Branch from `origin/aptitude` with `--no-track`, and open a draft PR into `aptitude`.
+- Branch from `origin/refit` with `--no-track`, and open a draft PR into `refit`.
 - Never push to `main` and never merge. The founders merge in the morning.
 - Run typecheck, format, tests and build before each commit. Conventional commits, no AI attribution lines.
 
@@ -209,24 +209,24 @@ On each laptop:
 ### O1: the end-to-end loop and the match agent
 
 ```text
-Build Aptitude's end-to-end loop in a new folder orchestrator/. Add it to the workspaces, the tsconfig include, the vitest backend list and the format scripts. Read APTITUDE-PLAN.md and shared/types.ts on origin/aptitude, especially "AI-first".
+Build Refit's end-to-end loop in a new folder orchestrator/. Add it to the workspaces, the tsconfig include, the vitest backend list and the format scripts. Read REFIT-PLAN.md and shared/types.ts on origin/refit, especially "AI-first".
 
 Deliver:
 - The match agent. Given ProviderChange[] and ApiUsage[], a Claude agent decides which changes touch which call sites, why, and how urgent each is, and outputs ranked MigrationTask[] with its reasoning. Do not write rule tables that decide relevance. Field and operation overlap may be passed to the agent as hints only.
 - The loop: for an installed org, understand (inventory) → watch → match → runTask → open the PR → record the outcome in memory. Code against the entry-point types with stubs; the real modules land in other branches tonight.
-- A CLI: `aptitude run --repo <path>` runs the whole loop on one local repo, with `--dry-run` stopping before the PR.
+- A CLI: `refit run --repo <path>` runs the whole loop on one local repo, with `--dry-run` stopping before the PR.
 - A simple in-process queue with retries and concurrency, behind an interface a real queue can replace later.
-- Update AGENTS.md and README.md for Aptitude, including the AI-first rule.
+- Update AGENTS.md and README.md for Refit, including the AI-first rule.
 
 Test end to end with stubs, plus one real match run on fixtures, capped at $2.
 
-Use subagents for the match agent, the loop and CLI, and the docs. Branch `aptitude/orchestrator`, draft PR into `aptitude`. Edit only orchestrator/, AGENTS.md, README.md and the root config lines that register orchestrator/. Never push to main. No AI attribution lines. AI spend cap: $2.
+Use subagents for the match agent, the loop and CLI, and the docs. Branch `refit/orchestrator`, draft PR into `refit`. Edit only orchestrator/, AGENTS.md, README.md and the root config lines that register orchestrator/. Never push to main. No AI attribution lines. AI spend cap: $2.
 ```
 
 ### O2: the harness agent
 
 ```text
-Build Aptitude's migration agent in harness/. Read APTITUDE-PLAN.md and shared/types.ts on origin/aptitude, especially "AI-first" and "The harness system prompt".
+Build Refit's migration agent in harness/. Read REFIT-PLAN.md and shared/types.ts on origin/refit, especially "AI-first" and "The harness system prompt".
 
 Goal: runTask(task, repoDir) runs a Claude agent on the Claude Agent SDK and returns a RunRecord. Use model claude-sonnet-5-5, escalating to claude-opus-5-5 when it gets stuck. The agent works in a sandboxed copy of the repo.
 
@@ -241,19 +241,19 @@ Deliver:
 - The agent decides which tools to use. Tools return information and never block it.
 - The sandbox: Docker on Linux CI. Locally without Docker, a temp copy with install scripts disabled. Untrusted code never runs on the host with scripts enabled.
 - Before/after checks that count only new failures. The agent iterates on failures itself. Outcome: verified or needs-review, never stopped.
-- A budget ledger with a hard run cap (APTITUDE_AI_BUDGET_USD) that every model call goes through.
+- A budget ledger with a hard run cap (REFIT_AI_BUDGET_USD) that every model call goes through.
 - A PR body writer: change, why, proof, unproven, behaviour changes.
 - The four hard limits from the plan, and NO other refusal or gating logic.
 
 Test the loop with a fake model. Then ONE real run on one public dev repo with a small known change (a Stripe or OpenAI SDK repo you find), capped at $5. Report the diff and whether you'd merge it.
 
-Use subagents for the sandbox, the tools, and the prompt and PR writer, then integrate. Branch `aptitude/harness`, draft PR into `aptitude`. Edit only harness/. Never push to main. No AI attribution lines. AI spend cap: $8.
+Use subagents for the sandbox, the tools, and the prompt and PR writer, then integrate. Branch `refit/harness`, draft PR into `refit`. Edit only harness/. Never push to main. No AI attribution lines. AI spend cap: $8.
 ```
 
 ### O3: self-learning memory
 
 ```text
-Build Aptitude's self-learning in memory/. Read APTITUDE-PLAN.md and shared/types.ts on origin/aptitude, especially "AI-first".
+Build Refit's self-learning in memory/. Read REFIT-PLAN.md and shared/types.ts on origin/refit, especially "AI-first".
 
 Deliver:
 - A run store: every RunRecord, its transcript and the human verdict, as local JSON for now, behind an interface that can move to Postgres.
@@ -264,7 +264,7 @@ Deliver:
 
 Memory is guidance the agent reads, never a rule that blocks it. Unit-test with fixtures; real AI calls only for 3 extraction tests.
 
-Use subagents per component. Branch `aptitude/memory`, draft PR into `aptitude`. Edit only memory/. Never push to main. No AI attribution lines. AI spend cap: $3.
+Use subagents per component. Branch `refit/memory`, draft PR into `refit`. Edit only memory/. Never push to main. No AI attribution lines. AI spend cap: $3.
 ```
 
 ---
@@ -274,7 +274,7 @@ Use subagents per component. Branch `aptitude/memory`, draft PR into `aptitude`.
 ### P1: the GitHub App and install flow
 
 ```text
-Build Aptitude's GitHub App in app/. Reuse the existing GitHub App, "Refit Agent" (App ID 5275879, owned by refit-dev, slug refit-agent[bot]), rather than registering a new one. A founder renames it to Aptitude, changes its logo, turns on webhooks and adds the permissions and events below, in GitHub settings. Write app/SETUP.md with the exact settings to change. Read APTITUDE-PLAN.md and shared/types.ts on origin/aptitude.
+Build Refit's GitHub App in app/. Reuse the existing GitHub App, "Refit Agent" (App ID 5275879, owned by refit-dev, slug refit-agent[bot]), rather than registering a new one. A founder renames it to Refit, changes its logo, turns on webhooks and adds the permissions and events below, in GitHub settings. Write app/SETUP.md with the exact settings to change. Read REFIT-PLAN.md and shared/types.ts on origin/refit.
 
 Deliver:
 - An app manifest:
@@ -291,13 +291,13 @@ Deliver:
 
 Tests with recorded webhook payloads. No AI calls needed here.
 
-Use subagents for the webhooks, the token client and PR opener, and the docs. Branch `aptitude/app`, draft PR into `aptitude`. Edit only app/. Never push to main. No AI attribution lines. AI spend: $0.
+Use subagents for the webhooks, the token client and PR opener, and the docs. Branch `refit/app`, draft PR into `refit`. Edit only app/. Never push to main. No AI attribution lines. AI spend: $0.
 ```
 
 ### P2: the codebase-understanding agent
 
 ```text
-Build Aptitude's codebase-understanding agent in inventory/. Read APTITUDE-PLAN.md and shared/types.ts on origin/aptitude, especially "AI-first".
+Build Refit's codebase-understanding agent in inventory/. Read REFIT-PLAN.md and shared/types.ts on origin/refit, especially "AI-first".
 
 Goal: inventoryRepo(repoDir, repo) returns ApiUsage[]: every external API the repo talks to, found the way a new engineer would find it.
 
@@ -314,19 +314,19 @@ How:
 
 Test on 10 public repos of different kinds that you pick, including at least two that use an API outside the big names. Hand-check 15 usages and report precision and anything missed.
 
-Use subagents for the agent loop, the helper tools, and the evaluation. Branch `aptitude/inventory`, draft PR into `aptitude`. Edit only inventory/. Never push to main. No AI attribution lines. AI spend cap: $6.
+Use subagents for the agent loop, the helper tools, and the evaluation. Branch `refit/inventory`, draft PR into `refit`. Edit only inventory/. Never push to main. No AI attribution lines. AI spend cap: $6.
 ```
 
-### P3: rename the website to Aptitude, plus a dashboard skeleton
+### P3: rename the website to Refit, plus a dashboard skeleton
 
 ```text
-Rename the website in src/ from Refit to Aptitude: copy, titles, metadata, logo text and links. Keep DESIGN.md's design system. Polish, don't redesign. Read APTITUDE-PLAN.md and AGENTS.md on origin/aptitude.
+Rename the website in src/ from Refit to Refit: copy, titles, metadata, logo text and links. Keep DESIGN.md's design system. Polish, don't redesign. Read REFIT-PLAN.md and AGENTS.md on origin/refit.
 
-Update the site's story to the AI-first flow: install → Aptitude reads your code and understands every API you use → it watches them → it migrates and proves → you review the PR.
+Update the site's story to the AI-first flow: install → Refit reads your code and understands every API you use → it watches them → it migrates and proves → you review the PR.
 
 Then add a dashboard skeleton: org → repos → APIs each repo uses (the ApiUsage shape) → open migration tasks and PRs. Fixture data must be visibly labelled as an example. No invented customers or metrics.
 
-Run typecheck, format, tests and build. Use subagents for the rename sweep and the dashboard. Branch `aptitude/website`, draft PR into `aptitude`. Edit only src/, public/ and index.html. Never push to main. No AI attribution lines. AI spend: $0.
+Run typecheck, format, tests and build. Use subagents for the rename sweep and the dashboard. Branch `refit/website`, draft PR into `refit`. Edit only src/, public/ and index.html. Never push to main. No AI attribution lines. AI spend: $0.
 ```
 
 ---
@@ -336,7 +336,7 @@ Run typecheck, format, tests and build. Use subagents for the rename sweep and t
 ### F1: provider watchers that read changelogs
 
 ```text
-Build Aptitude's provider watchers in providers/. Read APTITUDE-PLAN.md and shared/types.ts on origin/aptitude, especially "AI-first".
+Build Refit's provider watchers in providers/. Read REFIT-PLAN.md and shared/types.ts on origin/refit, especially "AI-first".
 
 For each of Stripe, Shopify, Meta Graph, OpenAI and Twilio, build providers/<name>/ with:
 - watcher.ts: an AI agent reads the provider's changelog, release notes, SDK releases and deprecation pages, and writes ProviderChange[]. Each change gets a MigrationKind, the affected operations and fields, an effective date, and an exact source quote. Fetching and spec diffs (OpenAPI, the GraphQL schema) are inputs the agent can use, not the classifier.
@@ -345,13 +345,13 @@ For each of Stripe, Shopify, Meta Graph, OpenAI and Twilio, build providers/<nam
 
 Test each watcher on saved fixtures, plus one live read per provider.
 
-Use one subagent per provider. Branch `aptitude/providers`, draft PR into `aptitude`. Edit only providers/ (not providers/*/tools.ts or providers/*/playbooks/, which F2 owns). Never push to main. No AI attribution lines. AI spend cap: $5.
+Use one subagent per provider. Branch `refit/providers`, draft PR into `refit`. Edit only providers/ (not providers/*/tools.ts or providers/*/playbooks/, which F2 owns). Never push to main. No AI attribution lines. AI spend cap: $5.
 ```
 
 ### F2: provider tool packs and playbooks
 
 ```text
-Build each provider's ToolPack in providers/<name>/tools.ts and providers/<name>/playbooks/. Read APTITUDE-PLAN.md and shared/types.ts on origin/aptitude, especially "AI-first".
+Build each provider's ToolPack in providers/<name>/tools.ts and providers/<name>/playbooks/. Read REFIT-PLAN.md and shared/types.ts on origin/refit, especially "AI-first".
 
 Tools are helpers the agent may call to check itself. They return information and never block:
 - **Shopify:** validate a GraphQL document against a version's Admin schema; look up the REST-to-GraphQL mapping.
@@ -363,13 +363,13 @@ Tools are helpers the agent may call to check itself. They return information an
 
 Playbooks: one short markdown per MigrationKind per provider, drafted by AI from the provider docs with links, then reviewed by you. Each covers what usually changes, how to spot it in code, what to check, and common pitfalls. Write them as advice to a smart engineer, not rules.
 
-Unit-test every tool. Use one subagent per provider. Branch `aptitude/toolpacks`, draft PR into `aptitude`. Edit only providers/*/tools.ts and providers/*/playbooks/. Never push to main. No AI attribution lines. AI spend cap: $3.
+Unit-test every tool. Use one subagent per provider. Branch `refit/toolpacks`, draft PR into `refit`. Edit only providers/*/tools.ts and providers/*/playbooks/. Never push to main. No AI attribution lines. AI spend cap: $3.
 ```
 
 ### F3: evals and the benchmark harness
 
 ```text
-Build Aptitude's evals in evals/. Read APTITUDE-PLAN.md and shared/types.ts on origin/aptitude.
+Build Refit's evals in evals/. Read REFIT-PLAN.md and shared/types.ts on origin/refit.
 
 Deliver:
 - Repo sets: recover the frozen Refit repo lists from git history as data only (`git log --all -- 'subsets/*.json' 'docs/benchmarks/*-repos.json'`). Recover the dev sets (shopify-dev-60, meta-dev-60, the Stripe dev lists). Keep the blind sets frozen and unopened; record only their paths and hashes.
@@ -384,14 +384,14 @@ Deliver:
 
 Do not run a real benchmark tonight; the founders approve the first one with a budget.
 
-Use subagents for the repo-set recovery, the runner and the scoring. Branch `aptitude/evals`, draft PR into `aptitude`. Edit only evals/. Never push to main. No AI attribution lines. AI spend: $0.
+Use subagents for the repo-set recovery, the runner and the scoring. Branch `refit/evals`, draft PR into `refit`. Edit only evals/. Never push to main. No AI attribution lines. AI spend: $0.
 ```
 
 ---
 
 ## Morning checklist (founders)
 
-1. Review the draft PRs into `aptitude`. For each one, check the AI-first rule: reject any new rule that stops or skips a task.
+1. Review the draft PRs into `refit`. For each one, check the AI-first rule: reject any new rule that stops or skips a task.
 2. Merge in this order:
    1. F1 providers;
    2. F2 tool packs;
@@ -404,4 +404,4 @@ Use subagents for the repo-set recovery, the runner and the scoring. Branch `apt
    9. F3 evals.
 3. Regenerate the lockfile if needed, then run F3's smoke test end to end.
 4. Approve a budget for the first real dev benchmark (suggestion: 20 repos, $40), and read the hand-checks before trusting any number.
-5. In the existing Refit Agent App's settings (ID 5275879): rename it to Aptitude, swap the logo, turn on webhooks, and add the permissions and events from app/SETUP.md. Then install it on a test org first.
+5. In the existing Refit Agent App's settings (ID 5275879): rename it to Refit, swap the logo, turn on webhooks, and add the permissions and events from app/SETUP.md. Then install it on a test org first.

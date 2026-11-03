@@ -9,8 +9,8 @@ sets=sealed:stripe,sealed:openai,sealed:anthropic,sealed:gemini
 screen=evals/reports/round-3/sealed/screen
 out=evals/reports/round-3/sealed/results
 : "${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY for this command}"
-export APTITUDE_SANDBOX=docker APTITUDE_AI_BUDGET_USD=2000
-export APTITUDE_MEMORY_DIR=${APTITUDE_MEMORY_DIR:-$HOME/.aptitude-r3-memory}
+export REFIT_SANDBOX=docker REFIT_AI_BUDGET_USD=2000
+export REFIT_MEMORY_DIR=${REFIT_MEMORY_DIR:-$HOME/.refit-r3-memory}
 mkdir -p "$out"
 date -u +"started %Y-%m-%dT%H:%M:%SZ at $(git rev-parse --short HEAD)" | tee "$out/started.txt"
 node evals/runner/cli.ts screen --sets "$sets" --budget-usd 500 --concurrency 6 --out "$screen" \

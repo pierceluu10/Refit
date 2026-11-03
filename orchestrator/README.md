@@ -1,6 +1,6 @@
 # orchestrator
 
-Aptitude's end-to-end loop. For each repo it runs inventory → watch → match → harness → PR → record,
+Refit's end-to-end loop. For each repo it runs inventory → watch → match → harness → PR → record,
 and every change ends as an attempted task or a recorded verdict.
 
 | File           | What it does                                                                        |
@@ -13,7 +13,7 @@ and every change ends as an attempted task or a recorded verdict.
 | `agent-sdk.ts` | A second match transport, on the Claude Agent SDK, that can read the code           |
 | `queue.ts`     | An in-process queue with concurrency and retries, behind a replaceable interface    |
 | `stubs.ts`     | Offline stand-ins, and the stub for `anyProviderWatcher` until providers/ has it    |
-| `cli.ts`       | `aptitude run --repo <path> [--repo <path> ...] [--dry-run] [--out <file>]`         |
+| `cli.ts`       | `refit run --repo <path> [--repo <path> ...] [--dry-run] [--out <file>]`            |
 
 ## For the app: `runRepoJob`
 
@@ -28,10 +28,10 @@ const records = await runRepoJob({ repo: 'owner/name', dir: checkout, openPullRe
   with a diff, unless `dryRun` is set. A PR that fails to open turns that record into `failed`.
 - It returns every record: one per provider change the repo faced. A job that ends with errors and
   no records (the inventory and every watcher failed) throws with the errors instead of returning `[]`.
-- Every job in one process shares **one** run budget, `APTITUDE_AI_BUDGET_USD`, and one queue, so jobs
+- Every job in one process shares **one** run budget, `REFIT_AI_BUDGET_USD`, and one queue, so jobs
   started together can never each spend the cap. Pass your own deps and cap to `createRunRepoJob`
   for a budget per org or per install.
-- With `ANTHROPIC_API_KEY` set, it needs `APTITUDE_AI_BUDGET_USD` and refuses to start without it.
+- With `ANTHROPIC_API_KEY` set, it needs `REFIT_AI_BUDGET_USD` and refuses to start without it.
   Without the key, offline stubs stand in for every AI part.
 
 ## The run budget

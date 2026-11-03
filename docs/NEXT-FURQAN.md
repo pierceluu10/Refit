@@ -1,4 +1,4 @@
-# Aptitude round 2: Furqan's laptop (F4, F5, F6)
+# Refit round 2: Furqan's laptop (F4, F5, F6)
 
 > **Update, 2026-11-02:** every other round 2 PR is merged into `main` (#470–#477). Start each worktree from the current `origin/main`. `anyProviderWatcher` and `loadToolPack` still come from `orchestrator/stubs.ts`: when F4's or F5's real function exists, that session swaps it into `orchestrator/deps.ts` itself (one import each) and deletes its stub. F6 uses the real `anyProviderWatcher` if F4 is ready, and otherwise keeps it injectable.
 
@@ -34,7 +34,7 @@ Never merge a PR, never push to `main`, and leave the founders' steps at the end
 
 Three sessions run on this laptop, F4, F5 and F6, each in its own git worktree, on Opus 5.5 at max effort. Each does only its own section, follows the shared rules and contracts, and works for about 4 hours: its deliverables first, then its stretch goals.
 
-Sessions with a real-AI cap above $0 need `ANTHROPIC_API_KEY` and `APTITUDE_AI_BUDGET_USD=<cap>` in their environment.
+Sessions with a real-AI cap above $0 need `ANTHROPIC_API_KEY` and `REFIT_AI_BUDGET_USD=<cap>` in their environment.
 
 | Session | Work                                   | Branch        | Real-AI cap |
 | ------- | -------------------------------------- | ------------- | ----------- |
@@ -46,12 +46,12 @@ Caps across all three laptops: $34 (Otabek $16, Pierce $5, Furqan $13).
 
 ## Where things stand (2026-11-01)
 
-- `main` has all of Aptitude: the nine overnight PRs (#457 to #465), the wiring that connects them (#466), the benchmark-runner fix (#468), Pierce's loop-budget fixes (#469) and this round's contract types (#470).
+- `main` has all of Refit: the nine overnight PRs (#457 to #465), the wiring that connects them (#466), the benchmark-runner fix (#468), Pierce's loop-budget fixes (#469) and this round's contract types (#470).
 - With `ANTHROPIC_API_KEY` set, the loop runs on the real parts under one run budget. Without it, offline stubs stand in.
 - The GitHub App (ID 5275879) is now **Aptitude Agent** (`aptitude-agent`, owned by `aptitude-dev`) and is installed on a test org. On 2026-11-01 it had no event subscriptions and no Checks permission, though `app/SETUP.md` asks for both; `gh api apps/aptitude-agent` shows what it has now.
 - Typecheck, format check, tests and build pass. The CLI runs offline end to end, and the evals smoke test passes at $0.
 - **Nothing is proven on real repos yet.** No benchmark has run. Pierce's 3-repo dev run on 2026-11-01 got 0 verified and 3 needs-review with empty diffs, at about $3.75 a repo. #469 fixed the four causes it found:
-  - The six changelog reads cost about $2.60. They're now cached for the UTC day, and `aptitude run` takes several `--repo` flags.
+  - The six changelog reads cost about $2.60. They're now cached for the UTC day, and `refit run` takes several `--repo` flags.
   - The harness keeps a $1 reserve under its cap (`TURN_RESERVE_USD`), and a task starts only with $2 of the run left (`MIN_TASK_USD`). Below that it is recorded as `failed`, "not attempted".
   - A failed match marks its changes `failed` instead of running the harness on every one.
   - A harness run with no edit and no report is `failed`, not needs-review.
@@ -65,7 +65,7 @@ Caps across all three laptops: $34 (Otabek $16, Pierce $5, Furqan $13).
 
 ## Rules for every session
 
-1. Read `APTITUDE-PLAN.md` (especially "AI-first") and `AGENTS.md` on `origin/main` before you start.
+1. Read `REFIT-PLAN.md` (especially "AI-first") and `AGENTS.md` on `origin/main` before you start.
 2. **AI-first.** The model reads, decides and edits. Code gives it tools, context and checks, never gates. Every task ends in a PR or a "not affected" verdict with reasons, never a silent stop. When the agent is unsure, it tries anyway and says so in the PR.
 3. **Reject these in your own work:**
    - a rule that decides whether a repo, file or change is "supported";

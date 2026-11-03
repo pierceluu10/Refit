@@ -51,7 +51,7 @@ export type SmokeOutcome = {
   reviewsPath: string;
 };
 
-export async function runSmoke(outDir = mkdtempSync(join(tmpdir(), 'aptitude-smoke-out-'))) {
+export async function runSmoke(outDir = mkdtempSync(join(tmpdir(), 'refit-smoke-out-'))) {
   const set = smokeSet();
   const fixturesDir = join(import.meta.dirname, 'fixtures');
   const fixtureFor = new Map<string, string>(
@@ -81,7 +81,7 @@ export async function runSmoke(outDir = mkdtempSync(join(tmpdir(), 'aptitude-smo
   const reviewed = results.flatMap((repo) => repo.tasks).filter((task) => task.review);
   if (reviewed.length === 0) problems.push('the advisory reviewer never ran');
 
-  const report = `${formatReport(score, 'Aptitude smoke test (fake model, $0 real spend)')}
+  const report = `${formatReport(score, 'Refit smoke test (fake model, $0 real spend)')}
 Simulated spend: $${ledger.spentUsd.toFixed(4)} of a $${SMOKE_BUDGET_USD} simulated cap
 Results: ${outDir}
 ${problems.length === 0 ? 'SMOKE OK' : `SMOKE FAILED\n${problems.map((p) => `- ${p}`).join('\n')}`}

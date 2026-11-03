@@ -50,7 +50,7 @@ export type InventoryOptions = {
   runCapUsd?: number;
   runner?: AgentRunner;
   transcriptPath?: string;
-  /** Where finished reports are kept by commit; false keeps none. Default: APTITUDE_INVENTORY_CACHE. */
+  /** Where finished reports are kept by commit; false keeps none. Default: REFIT_INVENTORY_CACHE. */
   cacheDir?: string | false;
   /** The commit the checkout is at, when the caller knows it is clean; read from git otherwise. */
   commit?: string;

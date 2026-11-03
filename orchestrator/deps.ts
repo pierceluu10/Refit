@@ -44,11 +44,11 @@ import {
   stubWatcher,
 } from './stubs.ts';
 
-// Run records go outside the target repo; Aptitude never writes into a repo except through a PR.
-export const defaultOut = join(tmpdir(), 'aptitude-runs.jsonl');
+// Run records go outside the target repo; Refit never writes into a repo except through a PR.
+export const defaultOut = join(tmpdir(), 'refit-runs.jsonl');
 
 // Provider changelogs change at most daily, so one read per provider per UTC day serves every run,
-// in every process pointed at the same folder: APTITUDE_WATCH_CACHE (providers/core/watch-cache.ts).
+// in every process pointed at the same folder: REFIT_WATCH_CACHE (providers/core/watch-cache.ts).
 export const defaultWatchCache = defaultWatchDir();
 
 // The most one task holds of a small run, so several tasks run at once. In a big run a task may hold

@@ -446,7 +446,7 @@ function resolveEndpoint(raw: string, known: string[]): { path?: string; note?: 
 
 type LiveSpec = { endpoints: Record<string, EndpointParams>; source: string };
 
-const SPEC_CACHE_FILE = 'aptitude-openai-openapi.json';
+const SPEC_CACHE_FILE = 'refit-openai-openapi.json';
 const SPEC_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 type Schema = Record<string, unknown>;

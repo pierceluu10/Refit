@@ -8,10 +8,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
-export const INVENTORY_CACHE_ENV = 'APTITUDE_INVENTORY_CACHE';
+export const INVENTORY_CACHE_ENV = 'REFIT_INVENTORY_CACHE';
 
 export function defaultInventoryCache(env: NodeJS.ProcessEnv = process.env): string {
-  return env[INVENTORY_CACHE_ENV] || path.join(tmpdir(), 'aptitude-inventory');
+  return env[INVENTORY_CACHE_ENV] || path.join(tmpdir(), 'refit-inventory');
 }
 
 // Read-only git queries on the checkout's own metadata: nothing in the repo runs.

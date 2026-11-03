@@ -37,7 +37,7 @@ function fakeModel(store: JsonMemoryStore): Model {
 
 describe('learnFromRun end to end', () => {
   it('distils runs, promotes a skill at 3 repos, retrieves it, and demotes it after 2 failures', async () => {
-    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-memory-')));
+    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'refit-memory-')));
     const deps = { store, embedder: new LocalEmbedder(), model: fakeModel(store) };
 
     for (const repo of ['example-org/a', 'example-org/b', 'example-org/c']) {
@@ -74,7 +74,7 @@ describe('learnFromRun end to end', () => {
   });
 
   it('keeps every count when runs from parallel repos learn at once', async () => {
-    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-memory-')));
+    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'refit-memory-')));
     const deps = { store, embedder: new LocalEmbedder(), model: fakeModel(store) };
 
     await Promise.all(
@@ -90,7 +90,7 @@ describe('learnFromRun end to end', () => {
   });
 
   it('stores the run even without a model', async () => {
-    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-memory-')));
+    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'refit-memory-')));
     const result = await learnFromRun(
       { task: makeTask(), record: makeRecord(), transcript: 'ok' },
       { store, embedder: new LocalEmbedder() },
@@ -100,7 +100,7 @@ describe('learnFromRun end to end', () => {
   });
 
   it('distils a needs-review run into a recipe once a human merges its PR', async () => {
-    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-memory-')));
+    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'refit-memory-')));
     const deps = { store, embedder: new LocalEmbedder(), model: fakeModel(store) };
     const pr = 'https://github.com/example-org/shop/pull/9';
 
@@ -125,7 +125,7 @@ describe('learnFromRun end to end', () => {
 
 describe('recordVerdict', () => {
   async function setup() {
-    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-memory-')));
+    const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'refit-memory-')));
     return { store, deps: { store, embedder: new LocalEmbedder(), model: fakeModel(store) } };
   }
   const prFor = (repo: string) => `https://github.com/${repo}/pull/1`;

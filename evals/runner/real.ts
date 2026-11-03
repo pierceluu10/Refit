@@ -1,4 +1,4 @@
-// Wires the runner to the real Aptitude modules through the orchestrator's createDeps, so the
+// Wires the runner to the real Refit modules through the orchestrator's createDeps, so the
 // benchmark runs what the loop runs, under one run budget. It refuses to start without a key.
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { TURN_RESERVE_USD } from '../../harness/index.ts';

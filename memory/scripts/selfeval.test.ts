@@ -10,7 +10,7 @@ import { main, type SelfEvalParts } from './selfeval.ts';
 
 // Illustrative stored history: two harness runs, one with its commit recorded.
 async function parts(capUsd = 10, costUsd = 1) {
-  const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-selfeval-cli-')));
+  const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'refit-selfeval-cli-')));
   for (const [id, commit] of [
     ['task-a', 'abc1234'],
     ['task-b', undefined],
@@ -90,11 +90,11 @@ describe('selfeval command', () => {
   });
 
   it('forces the Docker sandbox for the real parts', async () => {
-    vi.stubEnv('APTITUDE_SANDBOX', 'local');
-    vi.stubEnv('APTITUDE_AI_BUDGET_USD', '');
+    vi.stubEnv('REFIT_SANDBOX', 'local');
+    vi.stubEnv('REFIT_AI_BUDGET_USD', '');
 
     expect(await main([])).toBe(2);
-    expect(process.env.APTITUDE_SANDBOX).toBe('docker');
+    expect(process.env.REFIT_SANDBOX).toBe('docker');
   });
 
   it('refuses to measure anything without a model', async () => {
@@ -105,9 +105,9 @@ describe('selfeval command', () => {
     expect(make).not.toHaveBeenCalled();
   });
 
-  it('refuses to spend without APTITUDE_AI_BUDGET_USD', async () => {
-    vi.stubEnv('APTITUDE_SANDBOX', '');
-    vi.stubEnv('APTITUDE_AI_BUDGET_USD', '');
+  it('refuses to spend without REFIT_AI_BUDGET_USD', async () => {
+    vi.stubEnv('REFIT_SANDBOX', '');
+    vi.stubEnv('REFIT_AI_BUDGET_USD', '');
     expect(await main([])).toBe(2);
   });
 
