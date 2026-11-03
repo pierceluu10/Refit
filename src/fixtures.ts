@@ -1,6 +1,12 @@
 // Example data for the dashboard preview. Nothing here comes from a real organization,
 // repository, provider page or run.
-import type { ApiUsage, MigrationTask, ProviderChange, RunRecord } from '../shared/types.ts';
+import type {
+  ApiUsage,
+  MigrationTask,
+  ProviderChange,
+  RunRecord,
+  RunView,
+} from '../shared/types.ts';
 
 export type Repository = { id: string; name: string; language: string; description: string };
 export type Outcome = Exclude<RunRecord['outcome'], 'failed'>;
@@ -10,10 +16,11 @@ export type TaskResult = Pick<RunRecord, 'taskId' | 'checks' | 'pr'> & {
   unproven: string[];
 };
 
-export const outcomeLabels: Record<Outcome, string> = {
+export const outcomeLabels: Record<RunRecord['outcome'], string> = {
   verified: 'Verified',
   'needs-review': 'Needs review',
   'not-affected': 'Not affected',
+  failed: 'Failed',
 };
 
 const providerNames: Record<string, string> = {
@@ -306,6 +313,28 @@ export const results: TaskResult[] = [
     unproven: [],
   },
 ];
+
+const runTimes: Record<string, Pick<RunView, 'costUsd' | 'finishedAt'>> = {
+  'billing-latest-charge': { costUsd: 1.84, finishedAt: '2026-10-30T14:12:00Z' },
+  'notifications-auth-header': { costUsd: 0.92, finishedAt: '2026-10-30T11:47:00Z' },
+  'support-bot-model': { costUsd: 1.31, finishedAt: '2026-10-29T16:05:00Z' },
+  'billing-refund-webhook': { costUsd: 0.18, finishedAt: '2026-10-29T09:30:00Z' },
+};
+
+export const runs: RunView[] = results.map((result) => {
+  const task = tasks.find((item) => item.id === result.taskId)!;
+  return {
+    id: `run-${task.id}`,
+    repo: task.repo,
+    taskId: task.id,
+    provider: task.change.provider,
+    changeId: task.change.id,
+    outcome: result.outcome,
+    pr: result.pr,
+    summary: result.summary,
+    ...runTimes[task.id],
+  };
+});
 
 export function resultOf(taskId: string) {
   return results.find((result) => result.taskId === taskId);
