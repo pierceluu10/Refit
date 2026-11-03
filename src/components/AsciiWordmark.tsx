@@ -41,6 +41,10 @@ function rasterize(columns: number, withWord: boolean) {
   canvas.height = rows * CELL_HEIGHT;
   const context = canvas.getContext('2d')!;
   context.scale(scale, scale);
+  // The baseline sits on the bottom edge of the last row, so the letters end flat on it and the
+  // overshoot of round letters, like the bottom of the e, falls outside instead of leaving a
+  // stray row of faint glyphs.
+  context.translate(0, (rows * CELL_HEIGHT) / scale - mark);
   context.fillStyle = '#000';
 
   const unit = mark / MARK_BOX.height;
@@ -64,18 +68,23 @@ function rasterize(columns: number, withWord: boolean) {
         for (let x = 0; x < CELL_WIDTH; x++)
           ink += pixels[((row * CELL_HEIGHT + y) * canvas.width + column * CELL_WIDTH + x) * 4 + 3];
       const coverage = ink / (CELL_WIDTH * CELL_HEIGHT * 255);
-      // Solid areas shade from the top left to the bottom right so the letters read as carved;
-      // half-covered edge cells take the light end of the ramp.
+      // Cells under half ink stay blank, so edges are crisp rather than frayed. The rest shade
+      // from the top left to the bottom right so the letters read as carved, with edge cells a
+      // step lighter than solid ones.
       const depth = (column / columns + row / rows) / 2;
-      const level = coverage * (1 - 0.3 * depth) + (noise(column, row) - 0.5) * 0.14;
+      const level = 0.45 + 0.55 * coverage * (1 - 0.3 * depth) + (noise(column, row) - 0.5) * 0.12;
       line.push(
-        coverage < 0.18
+        coverage < 0.45
           ? ' '
-          : RAMP[Math.max(1, Math.min(RAMP.length - 1, Math.round(level * (RAMP.length - 1))))],
+          : RAMP[Math.max(6, Math.min(RAMP.length - 1, Math.round(level * (RAMP.length - 1))))],
       );
     }
     cells.push(line);
   }
+  // Moving the baseline down can leave the top row under the threshold, and so empty.
+  const blank = (line: string[]) => line.every((char) => char === ' ');
+  while (cells.length > 1 && blank(cells[0])) cells.shift();
+  while (cells.length > 1 && blank(cells[cells.length - 1])) cells.pop();
   return cells;
 }
 
