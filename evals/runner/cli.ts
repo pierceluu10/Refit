@@ -8,6 +8,9 @@
 //   node evals/runner/cli.ts screen --sets <a,b,...> --budget-usd <cap> --concurrency <n> [--out <dir>] [--exclusions <file>]
 //   node evals/runner/cli.ts score3 --in <results dir> --screen <dir> [--report <file>]
 //
+// A set named `sealed:<provider>` is that provider's sealed set (runner/sealed-run.ts), for round
+// 3's one sealed run: `screen --sets sealed:stripe,...` opens it once, and `run` resumes it.
+//
 // `run --screen <dir>` runs only the repos that screen found green (evals only, never the product).
 //
 // `run` refuses to start without an explicit dollar cap and concurrency. It uses the real
@@ -39,6 +42,7 @@ import { ConfigError, parseFlags, parseRunConfig } from './config.ts';
 import { loadRealPipeline, type AnyProviderWatcher } from './real.ts';
 import { runSet } from './run.ts';
 import { exclusionsOf, readScreen, screenFile, screenSet } from './screen.ts';
+import { openSealedSet } from './sealed-run.ts';
 import { formatRound3, scoreRound3 } from '../scoring/round3.ts';
 import { existsSync, readFileSync } from 'node:fs';
 import type { BaselineRecord } from './screen.ts';
@@ -85,6 +89,14 @@ export function planMatrix(setName: string, totalBudgetUsd: number) {
   };
 }
 
+// `sealed:<provider>` names that provider's sealed set, opened once, for round 3's sealed run. The
+// screen opens it; a later run of the same set resumes that opening.
+const SEALED_DIR = 'evals/reports/round-3/sealed';
+function loadSet(name: string, { opening = false, resume = false } = {}): DevSet {
+  if (!name.startsWith('sealed:')) return loadDevSet(name);
+  return openSealedSet(name.slice('sealed:'.length), SEALED_DIR, { resume: resume || !opening });
+}
+
 export async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
   const flags = parseFlags(rest);
@@ -99,7 +111,7 @@ export async function main(argv: string[]): Promise<number> {
   }
   if (command === 'run') {
     const config = parseRunConfig(flags);
-    const full = loadDevSet(config.set);
+    const full = loadSet(config.set);
     // The screen's green repos only: a red baseline can't prove a fix, so it is never run.
     const screenDir = typeof flags.screen === 'string' ? flags.screen : undefined;
     const green = (entry: (typeof full.repos)[number]) => {
@@ -216,7 +228,8 @@ export async function main(argv: string[]): Promise<number> {
       classify: anthropicModelClient({ budget, model: 'claude-sonnet-5-5' }),
     };
     for (const name of flags.sets.split(',')) {
-      const records = await screenSet(loadDevSet(name), outDir, concurrency, deps);
+      const set = loadSet(name, { opening: true, resume: flags.resume === true });
+      const records = await screenSet(set, outDir, concurrency, deps);
       const green = records.filter((record) => !record.exclusion).length;
       console.log(`${name}: ${green} of ${records.length} green`);
     }
