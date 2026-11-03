@@ -86,7 +86,9 @@ export function installCommand(pm: PackageManager, version?: string): string {
   const bin = packageManagerBinary(pm, version);
   switch (pm) {
     case 'npm':
-      return `${bin} ci --ignore-scripts --no-audit --no-fund || ${bin} install --ignore-scripts --no-audit --no-fund`;
+      // A peer conflict the repo's own lockfile settled (or its pinned npm tolerated) stops a fresh
+      // resolve, so the last fallback accepts it, as the repo's own install did.
+      return `${bin} ci --ignore-scripts --no-audit --no-fund || ${bin} install --ignore-scripts --no-audit --no-fund || ${bin} install --ignore-scripts --no-audit --no-fund --legacy-peer-deps`;
     // The sandbox sets CI, which makes pnpm and Yarn 2+ install frozen by default, so each fallback
     // unfreezes explicitly: after a dependency change only an unfrozen install can update the lockfile.
     case 'pnpm':
