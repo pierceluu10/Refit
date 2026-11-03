@@ -1,5 +1,6 @@
 import type { Model } from './ai.ts';
 import { succeeded } from './extract.ts';
+import type { RunRecord } from '../shared/types.ts';
 import type { MemoryStore } from './store.ts';
 import type { MemoryRecipe, StoredRun } from './types.ts';
 
@@ -81,9 +82,7 @@ export async function recordRecipeOutcome(
   run: StoredRun,
   { store, now = () => new Date() }: { store: MemoryStore; now?: () => Date },
 ): Promise<MemoryRecipe[]> {
-  // Only a person closing the PR says the guidance was wrong. A harness 'failed' means nothing was
-  // attempted (the model was down, the budget ran out) or the PR couldn't be opened.
-  const failed = run.record.humanVerdict === 'closed';
+  const failed = failedWith(run.record);
   const demoted: MemoryRecipe[] = [];
   for (const id of new Set(run.usedRecipeIds)) {
     const recipe = await store.getRecipe(id);
@@ -115,6 +114,17 @@ export async function recordRecipeOutcome(
     await recountRepo(extraction.recipeId, run, { store, now });
   }
   return demoted;
+}
+
+// What says the guidance a run was shown was wrong or stale: a person closing its PR, or a
+// needs-review run on a repo whose checks all passed before the edit, so the environment is not what
+// kept it from verifying. A harness 'failed' says nothing: nothing was attempted (the model was down,
+// the budget ran out) or the PR couldn't be opened.
+export function failedWith(record: RunRecord): boolean {
+  if (record.humanVerdict) return record.humanVerdict === 'closed';
+  const ran = record.checks.filter((check) => check.before !== 'not run');
+  const green = ran.length > 0 && ran.every((check) => check.before === 'pass');
+  return record.outcome === 'needs-review' && green;
 }
 
 function tally(ids: string[], id: string, failed: boolean): string[] {

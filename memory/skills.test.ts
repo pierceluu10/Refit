@@ -178,6 +178,26 @@ describe('recordRecipeOutcome', () => {
     expect((await store.getRecipe('other'))?.failedRunIds).toEqual(['closed']);
   });
 
+  it('counts a run that could not verify on a green baseline, but not one on a red baseline', async () => {
+    const store = await tempStore();
+    await store.saveRecipe(makeRecipe());
+    const green = makeRun('green', { outcome: 'needs-review' });
+    const red = makeRun('red', {
+      outcome: 'needs-review',
+      checks: [{ name: 'tsc', before: 'fail (6)', after: 'fail (6)' }],
+    });
+    await recordRecipeOutcome(green, { store, now });
+    await recordRecipeOutcome(red, { store, now });
+    expect((await store.getRecipe('recipe-stripe-charges'))?.failedRunIds).toEqual(['green']);
+
+    // A human merging that PR after all takes the failure back.
+    await recordRecipeOutcome(
+      { ...green, record: { ...green.record, humanVerdict: 'merged' } },
+      { store, now },
+    );
+    expect((await store.getRecipe('recipe-stripe-charges'))?.failedRunIds).toEqual([]);
+  });
+
   it('takes a failure back when a later verdict reverses it', async () => {
     const store = await storeWithSkill();
     const closed = makeRun('reopened', { outcome: 'needs-review', humanVerdict: 'closed' });
