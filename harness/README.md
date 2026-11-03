@@ -40,9 +40,10 @@ count toward proof.
 
 Outcome: **verified** when the agent changed code, called `finish`, at least one check ran, no
 check has a failure it didn't have before, every provider validator it claims is backed by a
-passing ToolPack call the harness recorded (`validators.ts`), and it lists nothing unproven. Limits no
-run can get past, such as the sandbox having no credentials for live API calls, are stated in every
-PR by the sandbox note rather than listed.
+passing ToolPack call the harness recorded (`validators.ts`), and its own test of the change passes.
+What the agent lists as unproven goes to the PR for the reviewer and does not change the outcome.
+Limits no run can get past, such as the sandbox having no credentials for live API calls, are stated
+in every PR by the sandbox note rather than listed.
 Otherwise **needs-review**. A query stops the moment its metered spend reaches its grant, so it
 overshoots by at most the model call in flight; the Agent SDK's own `maxBudgetUsd`, which it checks
 only between turns, stays as a second guard. `TURN_RESERVE_USD` is held back for that call.
