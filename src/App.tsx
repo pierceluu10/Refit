@@ -4,10 +4,11 @@ import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-rou
 import { PagePosition } from './components/Layout';
 import { Demo } from './pages/Demo';
 import { Docs } from './pages/Docs';
-import { Waitlist } from './pages/Waitlist';
+import { Premiere } from './pages/directions/Premiere';
 import { Workspace } from './pages/Workspace';
 
-// Loaded on demand so the homepage doesn't carry the drafts' fonts and styles.
+// The other design directions, loaded on demand so the homepage doesn't carry their fonts and
+// styles.
 const Directions = lazy(() =>
   import('./pages/directions/Directions').then((module) => ({ default: module.Directions })),
 );
@@ -20,7 +21,7 @@ export function App() {
       </a>
       <PagePosition />
       <Routes>
-        <Route path="/" element={<Waitlist />} />
+        <Route path="/" element={<Premiere />} />
         <Route path="/demo" element={<Demo />} />
         <Route path="/docs" element={<Docs />} />
         <Route path="/sample/*" element={<Workspace />} />

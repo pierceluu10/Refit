@@ -10,6 +10,10 @@
     />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Refit: Keep your integrations current</title>
+    <script>
+      // The homepage is black: start it black before the app loads, rather than flash white.
+      if (location.pathname === '/') document.documentElement.style.background = '#000';
+    </script>
   </head>
   <body>
     <div id="root"></div>

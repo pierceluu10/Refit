@@ -111,6 +111,8 @@ export function Premiere() {
     meta.content = '#000000';
     return () => {
       meta.content = before;
+      // index.html starts the homepage black; other pages keep their own background.
+      document.documentElement.style.background = '';
     };
   }, []);
 

@@ -4,26 +4,21 @@ import { describe, expect, it, vi } from 'vitest';
 import { App } from '../App';
 import { AgentDemo } from '../components/AgentDemo';
 
-describe('waitlist page', () => {
-  it('renders the headline, both signups, the labelled demo and both sections', () => {
+describe('homepage', () => {
+  it('renders the headline, both signups, the six steps and the closing section', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
         <App />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'Stop chasing API changelogs.',
-    );
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Refit fixed it.');
     const emails = screen.getAllByLabelText('Work email');
     expect(emails).toHaveLength(2);
     expect(new Set(emails.map((input) => input.id)).size).toBe(emails.length);
-    expect(screen.getByText(/^Illustrative example\./).tagName).toBe('FIGCAPTION');
     expect(
-      screen.getByRole('heading', { name: 'Why not ask a coding agent to do it?' }),
-    ).toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { level: 3 }).map((step) => step.textContent)).toEqual(
-      expect.arrayContaining(['Detect the change', 'Your review. Your merge.']),
-    );
+      screen.getByRole('list', { name: 'How Refit works, step by step' }).children,
+    ).toHaveLength(6);
+    expect(screen.getByRole('heading', { level: 2, name: /^Stop chasing/ })).toBeInTheDocument();
   });
 });
 
