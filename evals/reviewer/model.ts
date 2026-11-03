@@ -61,13 +61,14 @@ export function anthropicModelClient(opts: {
   const model = opts.model ?? REVIEWER_MODEL;
   return {
     complete: async ({ system, prompt, maxTokens, jsonSchema }) => {
+      // No silent SDK retries: each try is one request against one hold. Built before the hold, so
+      // a client that can't be built (no key) never leaves a hold open for other parts to wait on.
+      const client = opts.client ?? new Anthropic({ maxRetries: 0 });
       const inputTokens = Math.ceil((system.length + prompt.length) / CHARS_PER_TOKEN);
       const hold = await opts.budget.reserve(
         'an advisory review',
         worstCaseUsd(model, inputTokens, maxTokens),
       );
-      // No silent SDK retries: each try is one request against one hold.
-      const client = opts.client ?? new Anthropic({ maxRetries: 0 });
       // Unknown until the API answers: an error with a status was not billed, but a dropped
       // connection may have been, so it counts the whole hold.
       let costUsd = Number.NaN;
