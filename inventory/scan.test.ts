@@ -293,4 +293,42 @@ export const deepseek = new OpenAI({
     expect(baseUrls?.items).toEqual([expect.stringContaining('lib/deepseek.ts:3')]);
     await removeRepo(dir);
   });
+
+  it('ties a fetch with a runtime URL to the one known API host its file names, and leaves the rest as leads', async () => {
+    const dir = await makeRepo({
+      'package.json': '{\n  "dependencies": {}\n}\n',
+      'lib/models.ts': `const BASE = 'https://api.anthropic.com';
+export async function models(key: string) {
+  const url = \`\${BASE}/v1/models\`;
+  const response = await fetch(url, { method: 'GET', headers: { 'x-api-key': key } });
+  return response.json();
+}
+`,
+      'lib/two.ts': `const A = 'https://api.anthropic.com';
+const B = 'https://api.example-vendor.io';
+export const get = (url: string) => fetch(url);
+`,
+    });
+    const result = await scanRepo(dir, 'acme/models');
+    expect(result.usages).toEqual([
+      expect.objectContaining({
+        provider: 'anthropic',
+        via: 'http',
+        callSites: [
+          expect.objectContaining({
+            file: 'lib/models.ts',
+            line: 4,
+            operation: 'GET (URL built at runtime)',
+          }),
+        ],
+      }),
+    ]);
+    const raw = result.leads.find((lead) => lead.kind === 'raw-http');
+    expect(raw?.items).toEqual([
+      expect.stringContaining(
+        'lib/two.ts:3: export const get = (url: string) => fetch(url); [this file names api.anthropic.com, api.example-vendor.io]',
+      ),
+    ]);
+    await removeRepo(dir);
+  });
 });

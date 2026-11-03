@@ -18,7 +18,7 @@ import {
 import { listFiles, readText } from './repo-files.ts';
 import { listManifests, lockedVersions, type Manifest } from './scanners.ts';
 
-export const SCAN_VERSION = 'scan-v3';
+export const SCAN_VERSION = 'scan-v4';
 
 type CallSite = ApiUsage['callSites'][number];
 
@@ -873,8 +873,14 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
         if (internal.length < 3) internal.push(`${source.file}:${index + 1}: ${clip(line)}`);
         return;
       }
-      const host = url?.[1].toLowerCase();
-      const entry = host ? hostProvider(host) : undefined;
+      let host = url?.[1].toLowerCase();
+      let entry = host ? hostProvider(host) : undefined;
+      // A URL built at runtime in a file whose only named host is a known API's: that API.
+      const only = !host && fileHosts.length === 1 ? hostProvider(fileHosts[0]) : undefined;
+      if (only) {
+        host = fileHosts[0];
+        entry = only;
+      }
       if (!host || !entry) {
         const named = host ? [] : fileHosts.slice(0, 3);
         if (named.length) {
@@ -891,7 +897,9 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
         /\bmethod\s*[:=]\s*['"`](\w+)['"`]/i.exec(region)?.[1]?.toUpperCase() ??
         /\.(get|post|put|patch|delete)\s*\(/i.exec(call[0])?.[1]?.toUpperCase() ??
         'GET';
-      const urlPath = new RegExp(`${escape(url![0])}([^'"\`\\s?$]*)`).exec(line)?.[1] ?? '';
+      const urlPath = url
+        ? (new RegExp(`${escape(url[0])}([^'"\`\\s?$]*)`).exec(line)?.[1] ?? '')
+        : '';
       const draft = draftFor(`${entry.provider}|http|`, () => ({
         repo,
         provider: entry.provider,
@@ -901,8 +909,10 @@ export async function scanRepo(repoDir: string, repo: string): Promise<ScanResul
       draft.usage.callSites.push({
         file: source.file,
         line: index + 1,
-        operation: `${method} ${urlPath || '/'}`,
-        notes: `Raw HTTP to ${host} (code scan); response handling not read.`,
+        operation: url ? `${method} ${urlPath || '/'}` : `${method} (URL built at runtime)`,
+        notes: url
+          ? `Raw HTTP to ${host} (code scan); response handling not read.`
+          : `Raw HTTP with a URL built at runtime; this file names only ${host} (code scan).`,
       });
       draft.usage.hints = mergeHintLists(draft.usage.hints, { hosts: [host] });
     });
