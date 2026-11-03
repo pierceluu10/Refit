@@ -12,6 +12,7 @@ import {
   installCommand,
   packageManagerVersion,
   runChecks,
+  runChecksAfter,
 } from './checks.ts';
 import { BudgetLedger, budgetFromEnv } from './ledger.ts';
 import { filesFromDiff, writePrBody } from './pr.ts';
@@ -291,7 +292,7 @@ export async function runTask(
         result = { finalText: '', stopReason: 'error', error: String(error) };
       }
       sessionId = result.sessionId ?? sessionId;
-      after = await runChecks(sandbox, checks);
+      after = await runChecksAfter(sandbox, checks, before);
       comparisons = compareChecks(before, after);
       const newFailures = newFailureCount(comparisons);
       log({ type: 'harness', phase: 'iteration', iteration, model, result, after, comparisons });

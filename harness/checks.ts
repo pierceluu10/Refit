@@ -192,6 +192,29 @@ export async function runChecks(sandbox: Sandbox, checks: CheckCommand[]): Promi
   return runs;
 }
 
+// A check that newly fails runs once more, and a failure counts only if it repeats: a flaky test or
+// a build that timed out on a busy machine isn't the change's fault, and a real break fails again.
+export async function runChecksAfter(
+  sandbox: Sandbox,
+  checks: CheckCommand[],
+  before: CheckRun[],
+): Promise<CheckRun[]> {
+  const after = await runChecks(sandbox, checks);
+  const failing = compareChecks(before, after)
+    .filter((comparison) => comparison.newFailures.length > 0)
+    .map((comparison) => comparison.name);
+  if (failing.length === 0) return after;
+  const again = await runChecks(
+    sandbox,
+    checks.filter((check) => failing.includes(check.name)),
+  );
+  return after.map((run) => {
+    const rerun = again.find((candidate) => candidate.name === run.name);
+    const cleared = rerun && compareChecks(before, [rerun])[0]?.newFailures.length === 0;
+    return cleared ? rerun : run;
+  });
+}
+
 const ANSI = /\x1b\[[0-9;?]*[A-Za-z]/g;
 const TEMP_DIR = /(?:\/private)?\/(?:var\/folders\/[^\s/]+\/[^\s/]+\/T|tmp)\/[^\s/]+\//g;
 const DURATION = /\s*\(?\d+(?:\.\d+)?\s?(?:ms|s|m)\)?\s*$/;

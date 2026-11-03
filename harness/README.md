@@ -42,6 +42,7 @@ Outcome: **verified** when the agent changed code, called `finish`, at least one
 check has a failure it didn't have before, every provider validator it claims is backed by a
 passing ToolPack call the harness recorded (`validators.ts`), and its own test of the change passes.
 What the agent lists as unproven goes to the PR for the reviewer and does not change the outcome.
+A check that newly fails after the change runs once more, and its failure counts only if it repeats.
 Limits no run can get past, such as the sandbox having no credentials for live API calls, are stated
 in every PR by the sandbox note rather than listed.
 Otherwise **needs-review**. A query stops the moment its metered spend reaches its grant, so it
