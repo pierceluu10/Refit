@@ -31,6 +31,24 @@ export function changelogTarget(raw: string): { url: string; github?: string } {
   return { url: rawGithubUrl(value) };
 }
 
+/** RSS or Atom feeds an HTML page announces with <link rel="alternate">, as absolute URLs. */
+export function feedLinks(html: string, base: string): string[] {
+  const links: string[] = [];
+  for (const tag of html.slice(0, 50_000).match(/<link\b[^>]*>/gi) ?? []) {
+    if (!/rel=["']?alternate/i.test(tag) || !/type=["']?application\/(rss|atom)\+xml/i.test(tag)) {
+      continue;
+    }
+    const href = /href=["']([^"']+)["']/i.exec(tag)?.[1];
+    if (!href) continue;
+    try {
+      links.push(new URL(href, base).toString());
+    } catch {
+      // A malformed href is left out.
+    }
+  }
+  return [...new Set(links)].slice(0, 3);
+}
+
 export type ChangelogInput = {
   url?: string;
   since?: string;
@@ -104,6 +122,8 @@ export async function changelogReport(
   store?.add({ url: page.url, title: target.github ?? page.url, text, origin: 'fetched now' });
   const header = [`Read ${page.url} (HTTP ${page.status}, ${text.length} characters).`];
   if (note) header.push(note);
+  const feeds = feedLinks(page.text, page.url);
+  if (feeds.length) header.push(`The page links a feed: ${feeds.join(', ')}`);
 
   if (text.trim().length < 200) {
     return [

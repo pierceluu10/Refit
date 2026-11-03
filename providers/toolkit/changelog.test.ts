@@ -133,6 +133,21 @@ describe('fetch_changelog on recorded pages', () => {
     expect(out).not.toContain('Copilot Fusion');
   });
 
+  it('points to the feed a page announces (hand-written page)', async () => {
+    const url = 'https://acme.example.com/changelog';
+    const body =
+      '<html><head><link rel="alternate" type="application/rss+xml" href="/changelog/feed.xml"></head><body><div id="app"></div></body></html>';
+    const out = await changelogReport(
+      { url },
+      {
+        fetch: recordedFetch({ [url]: { status: 200, body, contentType: 'text/html' } }),
+        provider: 'acme',
+      },
+    );
+    expect(out).toContain('The page links a feed: https://acme.example.com/changelog/feed.xml');
+    expect(out).toContain('The page has almost no readable text.');
+  });
+
   it('says when a page is drawn by script and has no text to read', async () => {
     const url = 'https://app.example.com/changelog';
     const out = await changelogReport(
