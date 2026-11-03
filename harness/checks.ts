@@ -72,8 +72,12 @@ export async function packageManagerVersion(
 
 // The command that runs that release: npx for npm, corepack for pnpm and yarn. The Docker image
 // has no pnpm binary, so pnpm always goes through corepack.
+const BUN = '/tmp/bun/bin/bun';
+
 export function packageManagerBinary(pm: PackageManager, version?: string): string {
   if (pm === 'npm') return version ? `npx -y npm@${version}` : 'npm';
+  // The Node image has no bun; installCommand fetches bun's own release into the container's /tmp.
+  if (pm === 'bun') return BUN;
   if (pm === 'pnpm' || (pm === 'yarn' && version)) {
     return `corepack ${pm}${version ? `@${version}` : ''}`;
   }
@@ -101,7 +105,7 @@ export function installCommand(pm: PackageManager, version?: string): string {
       return `if yarn --version | grep -q '^1\\.'; then ${classic}; else ${berry}; fi`;
     }
     case 'bun':
-      return 'bun install --frozen-lockfile --ignore-scripts || bun install --ignore-scripts';
+      return `(test -x ${BUN} || curl -fsSL https://bun.sh/install | BUN_INSTALL=/tmp/bun bash >/dev/null 2>&1); ${bin} install --frozen-lockfile --ignore-scripts || ${bin} install --ignore-scripts`;
     case 'pip':
       // One requirement without a wheel (PyAudio, say) fails the whole file, so the fallback installs
       // the rest one at a time and names what it could not.

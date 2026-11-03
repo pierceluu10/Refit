@@ -34,6 +34,8 @@ export type Preparation = {
   env: Record<string, string>;
   reasoning: string;
   error?: string;
+  // Repo files the steps changed. They stay out of the PR, so the PR names them.
+  changedFiles?: string[];
 };
 
 // Picks the steps from what the repo shows. Injected so tests and the screen's dry runs spend $0.
@@ -90,6 +92,8 @@ Rules:
 - Don't run the checks themselves; the harness runs them next.
 - Commands run from the repo root in a POSIX shell with the repo's package manager available (npm, npx, corepack pnpm/yarn, python3).
 - env: placeholder values for environment variables the checks need just to load or build (for example DATABASE_URL=postgresql://user:pass@localhost:5432/db or OPENAI_API_KEY=placeholder), read from the env templates or the code. Never a real secret. Leave it empty when nothing needs one.
+- Never edit the repo's source files: a check that fails because of the repo's own code stays failing.
+- When you are shown checks that failed before any edit, name only what addresses an environmental cause: generated code, an env var read at build or test time, a workspace package that must be built first, a tool the repo expects. If the cause is the repo's own code, return nothing.
 - When nothing is needed, return no steps. You are a shortcut, not a gate: be concrete and brief.`;
 
 const SCHEMA = {
@@ -180,10 +184,17 @@ export async function prepareRepo(
   checks: CheckCommand[],
   ledger: BudgetLedger,
   plan: PlanPreparation = modelPlan,
+  failures?: string,
 ): Promise<Preparation> {
   let planned: Plan;
   try {
-    planned = await plan(await gatherEvidence(sandbox.dir, checks), ledger);
+    const evidence = await gatherEvidence(sandbox.dir, checks);
+    planned = await plan(
+      failures
+        ? `${evidence}\n\nThese checks failed before any edit, after the steps already run:\n${redactSecrets(failures)}`
+        : evidence,
+      ledger,
+    );
   } catch (error) {
     const message = redactSecrets(error instanceof Error ? error.message : String(error));
     return { steps: [], env: {}, reasoning: '', error: `no codegen plan: ${message}` };
@@ -200,5 +211,8 @@ export function preparationNotes(prep: Preparation): string[] {
   const env = Object.keys(prep.env).length
     ? [`Checks ran with placeholder env: ${Object.keys(prep.env).join(', ')}.`]
     : [];
-  return [...steps, ...env, ...(prep.error ? [prep.error] : [])];
+  const changed = prep.changedFiles?.length
+    ? [`Preparation changed repo files, kept out of this PR: ${prep.changedFiles.join(', ')}.`]
+    : [];
+  return [...steps, ...env, ...changed, ...(prep.error ? [prep.error] : [])];
 }
