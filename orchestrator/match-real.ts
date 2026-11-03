@@ -3,7 +3,7 @@
 //   APTITUDE_AI_BUDGET_USD=2 node orchestrator/match-real.ts --agent-sdk   (logged-in Claude Code credentials)
 // The round 3 task-shape check (one task per upgrade) on jiro, financehb, branded and lobe-chat:
 //   APTITUDE_AI_BUDGET_USD=5 ANTHROPIC_API_KEY=... node orchestrator/match-real.ts --round-3
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { ApiUsage, ProviderChange } from '../shared/types.ts';
 import { agentSdk } from './agent-sdk.ts';
@@ -80,5 +80,8 @@ async function main() {
   console.log(`budget.spentUsd(): ${budget.spentUsd()} of $${budget.capUsd}`);
 }
 
-// Only as a script, so the test can import shapeProblems without a model run.
-if (process.argv[1] === fileURLToPath(import.meta.url)) await main();
+// Only as a script, so the test can import shapeProblems without a model run. Real paths, since a
+// symlinked path (macOS /tmp) would otherwise make the script silently do nothing.
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await main();
+}
