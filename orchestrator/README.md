@@ -41,15 +41,15 @@ when it ends, so parts that run at once never spend the same remainder, and spen
 passes the cap. A part that cannot get its minimum waits while other holds are open, and is refused
 once none could free enough.
 
-| Part                     | Holds                                                            | Notes                                     |
-| ------------------------ | ---------------------------------------------------------------- | ----------------------------------------- |
-| One provider read        | `WATCH_USD` ($1.50)                                              | Cached per provider per UTC day           |
-| One inventory            | inventory's `DEFAULT_RUN_CAP_USD` ($0.60)                        |                                           |
-| One match call           | Its worst case                                                   | Up to `MATCH_BATCH` (50) changes per call |
-| One task                 | Up to `TASK_USD` ($5), or a quarter of what is free in a big run | Starts only with `MIN_TASK_USD` ($2) free |
-| Learning from an attempt | `MEMORY_USD` ($1)                                                | Records with no attempt hold nothing      |
+| Part                     | Holds                                                            | Notes                                       |
+| ------------------------ | ---------------------------------------------------------------- | ------------------------------------------- |
+| One provider read        | `WATCH_USD` ($1.50)                                              | Cached per provider per UTC day             |
+| One inventory            | inventory's `DEFAULT_RUN_CAP_USD` ($0.60)                        |                                             |
+| One match call           | Its worst case                                                   | Up to `MATCH_BATCH` (50) changes per call   |
+| One task                 | Up to `TASK_USD` ($5), or a quarter of what is free in a big run | Starts once `TURN_RESERVE_USD` ($1) is free |
+| Learning from an attempt | `MEMORY_USD` ($1)                                                | Records with no attempt hold nothing        |
 
-A task's recipes come out of its own hold, from what it has above `MIN_TASK_USD`. A part whose spend
+A task's recipes come out of its own hold, from what it has above the harness's `TURN_RESERVE_USD`. A part whose spend
 is unknown counts its whole hold as spent: a harness run or an inventory that throws, or a match
 call that may have been billed. A harness that throws comes back as a failed record, so the queue
 does not retry it and count its share again. A refusal from the run budget is never retried.

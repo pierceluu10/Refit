@@ -1,5 +1,7 @@
 // Wires the runner to the real Aptitude modules through the orchestrator's createDeps, so the
 // benchmark runs what the loop runs, under one run budget. It refuses to start without a key.
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { TURN_RESERVE_USD } from '../../harness/index.ts';
 import {
   BudgetExceededError as RunBudgetRefusal,
   createBudget,
@@ -9,7 +11,6 @@ import {
   cachedChanges,
   createDeps,
   defaultWatchCache,
-  MIN_TASK_USD,
   providerWatcher,
   WATCH_USD,
 } from '../../orchestrator/deps.ts';
@@ -96,7 +97,7 @@ export function hintsFor(provider: string, usages: ApiUsage[]): ProviderHints {
 
 type NotedRecord = RunRecord & { note?: unknown };
 
-/** The record orchestrator/deps.ts returns when the run can't hold MIN_TASK_USD for a task. */
+/** The record orchestrator/deps.ts returns when the run can't hold a task's overshoot reserve. */
 export function unaffordableNote(record: NotedRecord): string | undefined {
   const note = typeof record.note === 'string' ? record.note : '';
   const nothingRan =
@@ -117,40 +118,52 @@ export async function loadRealPipeline(
       'Set ANTHROPIC_API_KEY for a real run. For a $0 check run "npm run smoke -w evals".',
     );
   }
-  const budget = createBudget(budgetUsd);
+  const runBudget = createBudget(budgetUsd);
+  // The repo and part a spending call runs for. Repos run at once, so each hold charges the meter of
+  // the call that took it when it settles, rather than a before-and-after read of the run's spend.
+  const charging = new AsyncLocalStorage<{ meter: Meter; label: string }>();
+  const budget: Budget = {
+    ...runBudget,
+    chargeUsd: (costUsd) => {
+      const spent = runBudget.chargeUsd(costUsd);
+      const context = charging.getStore();
+      context?.meter.charge(costUsd, context.label);
+      return spent;
+    },
+    reserve: async (label, maxUsd, minUsd) => {
+      const hold = await runBudget.reserve(label, maxUsd, minUsd);
+      const context = charging.getStore();
+      return {
+        usd: hold.usd,
+        settle: (spentUsd) => {
+          const left = hold.settle(spentUsd);
+          context?.meter.charge(spentUsd, context.label);
+          return left;
+        },
+      };
+    },
+  };
   const deps = createDeps({ budget });
   const folders = listProviderIds();
   const watchCache = options.watchCache ?? defaultWatchCache;
 
-  // One spending call at a time: each part may spend what is left of the run, so calls from
-  // repos running in parallel could each spend the same remainder.
-  let last: Promise<unknown> = Promise.resolve();
-  const oneAtATime = <T>(call: () => Promise<T>): Promise<T> => {
-    const run = last.then(call);
-    last = run.catch(() => {});
-    return run;
-  };
-  // Charges the repo's meter with what the call spent from the run budget. A part the run budget
-  // refuses is the cap being reached: what it stops is unrun, not an attempt.
-  const spending = <T>(
+  // Charges the repo's meter with what the call's holds settled. A part the run budget refuses is
+  // the cap being reached: what it stops is unrun, not an attempt.
+  const spending = async <T>(
     meter: Meter,
     label: string,
     call: () => Promise<T>,
     runOver = true,
-  ): Promise<T> =>
-    oneAtATime(async () => {
-      const before = budget.spentUsd();
-      try {
-        return await call();
-      } catch (error) {
-        if (error instanceof RunBudgetRefusal) {
-          throw new BudgetExceededError(error.message, { runOver });
-        }
-        throw error;
-      } finally {
-        meter.charge(budget.spentUsd() - before, label);
+  ): Promise<T> => {
+    try {
+      return await charging.run({ meter, label }, call);
+    } catch (error) {
+      if (error instanceof RunBudgetRefusal) {
+        throw new BudgetExceededError(error.message, { runOver });
       }
-    });
+      throw error;
+    }
+  };
 
   const checkout = gitCheckout();
   const review = createReviewer(anthropicModelClient({ budget }));
@@ -213,35 +226,28 @@ export async function loadRealPipeline(
       }),
     // The runner charges each record's costUsd to the meter itself. A task the run can't afford is
     // not started: it, and what follows it in this repo, is reported unrun.
-    runTask: (task, repoDir) =>
-      oneAtATime(async () => {
-        const freeUsd = budget.capUsd - budget.spentUsd() - budget.heldUsd();
-        if (freeUsd < MIN_TASK_USD) {
-          throw new BudgetExceededError(
-            `$${freeUsd.toFixed(2)} of the $${budget.capUsd} run cap left, below the $${MIN_TASK_USD} a task needs`,
-            { runOver: false },
-          );
-        }
-        // The harness holds everything that is free, so the advisory review's worst case is set
-        // aside first, when the task can spare it, and handed back as soon as the harness returns.
-        const spare =
-          freeUsd - MIN_TASK_USD >= REVIEW_RESERVE_USD
-            ? await budget.reserve(`the review of ${task.id}`, REVIEW_RESERVE_USD)
-            : undefined;
-        let record: RunRecord;
-        try {
-          record = await deps.runTask(task, repoDir);
-        } finally {
-          spare?.settle(0);
-        }
-        const note = unaffordableNote(record);
-        if (note) throw new BudgetExceededError(note, { runOver: false });
-        return record;
-      }),
-    // Charges the meter itself; serialised with every other spending call.
-    review: (input) => oneAtATime(() => review(input)),
+    runTask: async (task, repoDir) => {
+      // The harness holds a share of what is free, so the advisory review's worst case is set aside
+      // first, when the run can spare it, and handed back as soon as the harness returns.
+      const freeUsd = budget.capUsd - budget.spentUsd() - budget.heldUsd();
+      const spare =
+        freeUsd - TURN_RESERVE_USD >= REVIEW_RESERVE_USD
+          ? await budget.reserve(`the review of ${task.id}`, REVIEW_RESERVE_USD)
+          : undefined;
+      let record: RunRecord;
+      try {
+        record = await deps.runTask(task, repoDir);
+      } finally {
+        spare?.settle(0);
+      }
+      const note = unaffordableNote(record);
+      if (note) throw new BudgetExceededError(note, { runOver: false });
+      return record;
+    },
+    // Charges the meter itself.
+    review: (input) => review(input),
   });
-  return { factory, spentUsd: () => budget.spentUsd() };
+  return { factory, spentUsd: () => runBudget.spentUsd() };
 }
 
 /**

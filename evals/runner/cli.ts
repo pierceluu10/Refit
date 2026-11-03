@@ -22,7 +22,9 @@ import {
   writeReviews,
 } from '../scoring/reviews.ts';
 import { createBudget } from '../../orchestrator/budget.ts';
-import { MIN_TASK_USD, WATCH_USD } from '../../orchestrator/deps.ts';
+import { WATCH_USD } from '../../orchestrator/deps.ts';
+import { TURN_RESERVE_USD } from '../../harness/index.ts';
+import { anyProviderWatcher } from '../../providers/core/any-watcher.ts';
 import { anthropicModelClient } from '../reviewer/model.ts';
 import { createReviewer } from '../reviewer/reviewer.ts';
 import { formatRereviews, rereview } from '../reviewer/rereview.ts';
@@ -33,10 +35,8 @@ import { ConfigError, parseFlags, parseRunConfig } from './config.ts';
 import { loadRealPipeline, type AnyProviderWatcher } from './real.ts';
 import { runSet } from './run.ts';
 
-// Watches providers with no folder in providers/ (the Anthropic, Gemini and long-tail sets). Unset
-// until F4's anyProviderWatcher merges; then this line becomes
-//   import { anyProviderWatcher as watchAny } from '../../providers/core/any-watcher.ts';
-const watchAny: AnyProviderWatcher | undefined = undefined;
+// Watches providers with no folder in providers/ (the Anthropic, Gemini and long-tail sets).
+const watchAny: AnyProviderWatcher = anyProviderWatcher;
 
 /** The providers a set's repos use: the set's own, or each entry's in a mixed set. */
 export function setProviders(set: Pick<DevSet, 'provider' | 'repos'>): string[] {
@@ -52,9 +52,9 @@ export function setProviders(set: Pick<DevSet, 'provider' | 'repos'>): string[] 
 /**
  * GitHub Actions matrix. One `watch` job reads each of the set's providers once (WATCH_USD each)
  * and hands its cache to every shard, so a shard pays for no read of its own; the rest of the cap
- * is split evenly across one shard per repo. A shard's share must leave a task MIN_TASK_USD free
- * after its inventory and match, and a share below MIN_TASK_USD can never start a task, so the
- * plan refuses it rather than spend on repos whose tasks are bound to be unrun.
+ * is split evenly across one shard per repo. A share below a task's overshoot reserve
+ * (TURN_RESERVE_USD) can never start a task, so the plan refuses it rather than spend on repos
+ * whose tasks are bound to be unrun.
  */
 export function planMatrix(setName: string, totalBudgetUsd: number) {
   if (!Number.isFinite(totalBudgetUsd) || totalBudgetUsd <= 0) {
@@ -64,9 +64,9 @@ export function planMatrix(setName: string, totalBudgetUsd: number) {
   const watchBudgetUsd = WATCH_USD * setProviders(set).length;
   const shardBudgetUsd =
     Math.floor(((totalBudgetUsd - watchBudgetUsd) / set.repos.length) * 10_000) / 10_000;
-  if (shardBudgetUsd < MIN_TASK_USD) {
+  if (shardBudgetUsd < TURN_RESERVE_USD) {
     throw new ConfigError(
-      `$${totalBudgetUsd} less $${watchBudgetUsd.toFixed(2)} for the watch job leaves $${Math.max(shardBudgetUsd, 0).toFixed(2)} for each of ${set.repos.length} shards, below the $${MIN_TASK_USD} a task needs free, so no task could start. In the first benchmark (evals/reports/2026-11-03.md) a repo spent $0.17 to $0.66 on inventory and matching before its first task.`,
+      `$${totalBudgetUsd} less $${watchBudgetUsd.toFixed(2)} for the watch job leaves $${Math.max(shardBudgetUsd, 0).toFixed(2)} for each of ${set.repos.length} shards, below the $${TURN_RESERVE_USD} overshoot reserve a task needs free, so no task could start. In the first benchmark (evals/reports/2026-11-03.md) a repo spent $0.17 to $0.66 on inventory and matching before its first task.`,
     );
   }
   return {

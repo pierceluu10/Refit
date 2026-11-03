@@ -3,7 +3,7 @@ import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { runTask, type HarnessRunRecord } from '../harness/index.ts';
+import { runTask, TURN_RESERVE_USD, type HarnessRunRecord } from '../harness/index.ts';
 import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
 import { BudgetLedger as InventoryLedger, runInventory } from '../inventory/index.ts';
 import {
@@ -43,8 +43,6 @@ export const defaultOut = join(tmpdir(), 'aptitude-runs.jsonl');
 // Provider changelogs change at most daily, so one read per provider per UTC day serves every run.
 export const defaultWatchCache = join(tmpdir(), 'aptitude-watch');
 
-// Below this, a harness run cannot get past its overshoot reserve (TURN_RESERVE_USD) to edit.
-export const MIN_TASK_USD = 2;
 // The most one task holds of a small run, so several tasks run at once. In a big run a task may hold
 // a fair share of what is free instead: a CONCURRENCY-th of it. What it leaves goes back to the run.
 export const TASK_USD = 5;
@@ -250,7 +248,8 @@ export function createDeps({
         hold = await budget.reserve(
           `task ${task.id}`,
           Math.max(TASK_USD, freeUsd / CONCURRENCY),
-          MIN_TASK_USD,
+          // A task starts whenever the run has room for the harness's overshoot reserve.
+          TURN_RESERVE_USD,
         );
       } catch (error) {
         if (!(error instanceof BudgetExceededError)) throw error;
@@ -258,14 +257,14 @@ export function createDeps({
         return failed(
           task.id,
           0,
-          `not attempted: $${leftUsd.toFixed(2)} of the run cap left, below the $${MIN_TASK_USD} a task needs`,
+          `not attempted: $${leftUsd.toFixed(2)} of the run cap left, below the $${TURN_RESERVE_USD} overshoot reserve a task needs`,
         );
       }
       let spentUsd = 0;
       try {
-        // Recipes come first, from what the hold has above the harness's minimum.
+        // Recipes come first, from what the hold has above the harness's overshoot reserve.
         const ai = memory(
-          new MemoryBudget(Math.max(Math.min(MEMORY_USD, hold.usd - MIN_TASK_USD), 0)),
+          new MemoryBudget(Math.max(Math.min(MEMORY_USD, hold.usd - TURN_RESERVE_USD), 0)),
         );
         const recipes = await createRetriever(ai)(task).catch((error) => {
           log(`memory: no recipes for ${task.id}: ${error}`);
