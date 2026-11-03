@@ -190,7 +190,7 @@ const ISO_DATE = /\b(\d{4}-\d{2}-\d{2})\b/;
 const MONTHS =
   'jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?';
 const LONG_DATE = new RegExp(
-  `\\b((?:${MONTHS})\\.? \\d{1,2},? \\d{4}|\\d{1,2} (?:${MONTHS})\\.? \\d{4})\\b`,
+  `\\b((?:${MONTHS})\\.? \\d{1,2}(?:st|nd|rd|th)?,? \\d{4}|\\d{1,2}(?:st|nd|rd|th)? (?:${MONTHS})\\.?,? \\d{4})\\b`,
   'i',
 );
 
@@ -200,7 +200,12 @@ export function findDate(text: string): string | undefined {
   if (iso) return iso[1];
   const long = LONG_DATE.exec(text);
   if (!long) return undefined;
-  const parsed = new Date(`${long[1].replace(/\./g, '').replace(',', '')} UTC`);
+  const parsed = new Date(
+    `${long[1]
+      .replace(/\./g, '')
+      .replace(/,/g, '')
+      .replace(/(\d)(st|nd|rd|th)\b/i, '$1')} UTC`,
+  );
   return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString().slice(0, 10);
 }
 

@@ -100,6 +100,33 @@
       "contentType": "application/octet-stream",
       "recordedAt": "2026-11-03T05:05:56Z",
       "trimmed": "kept 12 definitions: Query, Node, CheckAnnotation, CheckAnnotationPosition, CheckAnnotationSpan, CheckAnnotationLevel, CheckAnnotationConnection, CheckAnnotationEdge, PageInfo, URI, DateTime, CheckRun"
+    },
+    {
+      "file": "pypi-httpx.json",
+      "url": "https://pypi.org/pypi/httpx/json",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-03T05:31:12Z",
+      "trimmed": "kept all 77 releases (first file each, dates and yanked fields only); people fields removed"
+    },
+    {
+      "file": "changelog-httpx.md.txt",
+      "url": "https://raw.githubusercontent.com/encode/httpx/master/CHANGELOG.md",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/plain; charset=utf-8",
+      "recordedAt": "2026-11-03T05:31:12Z",
+      "trimmed": "kept the first 8 of 78 version sections"
+    },
+    {
+      "file": "github-changelog-feed.rss.txt",
+      "url": "https://github.blog/changelog/feed/",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/rss+xml; charset=UTF-8",
+      "recordedAt": "2026-11-03T05:31:12Z",
+      "trimmed": "kept the newest 6 of 10 items; content cut to 1200 characters; author bylines removed"
     }
   ]
 }

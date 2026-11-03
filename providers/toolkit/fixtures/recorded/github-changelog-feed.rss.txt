@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>Archive: 2026 - GitHub Changelog</title>
+	<atom:link href="https://github.blog/changelog/feed/" rel="self" type="application/rss+xml" />
+	<link>https://github.blog/changelog/</link>
+	<description>Updates, ideas, and inspiration from GitHub to help developers build and design software.</description>
+	<lastBuildDate>Mon, 02 Nov 2026 17:43:51 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=7.1.4</generator>
+
+<image>
+	<url>https://github.blog/wp-content/uploads/2019/01/cropped-github-favicon-512.png?fit=32%2C32</url>
+	<title>Archive: 2026 - GitHub Changelog</title>
+	<link>https://github.blog/changelog/</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+<site xmlns="com-wordpress:feed-additions:1">153214340</site>	<item>
+		<title>Security risk assessments include repository protection status</title>
+		<link>https://github.blog/changelog/2026-11-02-security-risk-assessments-include-repository-protection-status</link>
+		<pubDate>Mon, 02 Nov 2026 15:47:21 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-02-security-risk-assessments-include-repository-protection-status</guid>
+
+					<description><![CDATA[<p>The GitHub code security risk assessment and secret risk assessment now show whether findings are in protected or unprotected repositories, helping you identify where to extend your security coverage. Organization&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-11-02-security-risk-assessments-include-repository-protection-status">Security risk assessments include repository protection status</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>The GitHub code security risk assessment and secret risk assessment now show whether findings are in protected or unprotected repositories, helping you identify where to extend your security coverage.</p>
+<p>Organization admins and security managers can start an assessment by going to <strong>Assessments</strong> under their organization&rsquo;s <strong>Security</strong> tab.</p>
+<p>This improvement is available in GitHub Enterprise Cloud and GitHub Team. It will be available for the secret risk assessment in GitHub Enterprise Server 3.24.</p>
+<p>Read more in the <a href="https://docs.github.com/code-security/concepts/code-scanning/risk-assessment">code security risk assessment documentation</a> and <a href="https://docs.github.com/code-security/concepts/secret-security/secret-security-with-github">secret risk assessment documentation</a>.</p>
+</body></html>
+<p>The post <a href="https://github.blog/changelog/2026-11-02-security-risk-assessments-include-repository-protection-status">Security risk assessments include repository protection status</a> appea</content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Improvement]]></category>
+<category domain="changelog-label"><![CDATA[application security]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">99941</post-id>	</item><item>
+		<title>pull_request_target blocked by default December 2</title>
+		<link>https://github.blog/changelog/2026-11-02-pull_request_target-blocked-by-default-december-2</link>
+		<pubDate>Mon, 02 Nov 2026 15:14:46 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-02-pull_request_target-blocked-by-default-december-2</guid>
+
+					<description><![CDATA[<p>Starting December 2, 2026, GitHub Actions will block pull_request_target events by default in all public repositories, unless an applicable Actions event policy explicitly allows them. Enforcement was previously scheduled for&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-11-02-pull_request_target-blocked-by-default-december-2">pull_request_target blocked by default December 2</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>Starting December 2, 2026, GitHub Actions will block <code>pull_request_target</code> events by default in all public repositories, unless an applicable Actions event policy explicitly allows them. Enforcement was previously scheduled for November 2, 2026.</p>
+<p>GitHub introduced this default rule through workflow execution protections. The rule initially runs in evaluate mode, so you can see which workflow runs it would block before enforcement begins.</p>
+<p>Private and internal repositories aren&rsquo;t affected.</p>
+<h2 id="why-were-making-this-change" id="why-were-making-this-change" ><a class="heading-link" href="#why-were-making-this-change">Why we&rsquo;re making this change<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p><code>pull_request_target</code> runs in the context of the base repository and can access its secrets. If a workflow executes untrusted code from a fork, that code could compromise your pipeline or steal secrets. The default rule helps reduce this risk while letting you explicitly a</content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Retired]]></category>
+<category domain="changelog-label"><![CDATA[actions]]></category>
+<category domain="changelog-label"><![CDATA[application security]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">99939</post-id>	</item><item>
+		<title>Webhook IP ranges added to the Meta API</title>
+		<link>https://github.blog/changelog/2026-10-29-webhook-ip-ranges-added-to-the-meta-api</link>
+		<pubDate>Thu, 29 Oct 2026 17:14:38 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-10-29-webhook-ip-ranges-added-to-the-meta-api</guid>
+
+					<description><![CDATA[<p>We&#8217;re adding IP ranges for GitHub webhook deliveries on github.com. The Meta API now includes these additional ranges in the hooks field. If you maintain a static network allowlist for&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-10-29-webhook-ip-ranges-added-to-the-meta-api">Webhook IP ranges added to the Meta API</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>We&rsquo;re adding IP ranges for GitHub webhook deliveries on github.com. The Meta API now includes these additional ranges in the <code>hooks</code> field.</p>
+<p>If you maintain a static network allowlist for incoming webhook deliveries, add these CIDR prefixes alongside your existing webhook IP ranges to avoid rejecting deliveries:</p>
+<ul>
+<li><code>9.234.98.160/28</code></li>
+<li><code>9.234.98.176/28</code></li>
+<li><code>9.234.106.48/28</code></li>
+</ul>
+<p>If you already keep your allowlist up to date using the Meta API, no changes are needed for these additions.</p>
+<p>These ranges apply to webhook deliveries on github.com across all plans, including GitHub Enterprise Cloud.</p>
+<p>You can retrieve the current webhook IP ranges using the <a href="https://docs.github.com/rest/meta/meta#get-github-meta-information">Meta API</a> and follow the <a href="https://docs.github.com/webhooks/using-webhooks/best-practices-for-using-webhooks">webhook delivery best practices</a>.</p>
+</body></html>
+<p>The post <a href="https://github.blog/changelog/2026-10-</content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Improvement]]></category>
+<category domain="changelog-label"><![CDATA[ecosystem &amp; accessibility]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">99913</post-id>	</item><item>
+		<title>Route and orchestrate models with GitHub Copilot Fusion</title>
+		<link>https://github.blog/changelog/2026-10-28-route-and-orchestrate-models-with-github-copilot-fusion</link>
+		<pubDate>Wed, 28 Oct 2026 16:00:00 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-26-route-and-orchestrate-models-with-github-copilot-fusion</guid>
+
+					<description><![CDATA[<p>GitHub Copilot Fusion is generally available. Instead of picking a model for each task, choose Copilot Fusion and let Copilot intelligently route and orchestrate which models it uses for you.&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-10-28-route-and-orchestrate-models-with-github-copilot-fusion">Route and orchestrate models with GitHub Copilot Fusion</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>GitHub Copilot Fusion is generally available. Instead of picking a model for each task, choose Copilot Fusion and let Copilot intelligently route and orchestrate which models it uses for you.</p>
+<p>Copilot Fusion brings together <a href="https://github.blog/ai-and-ml/github-copilot/project-hydrafusion-frontier-quality-via-multi-model-orchestration/">Project HydraFusion&rsquo;s</a> multi-model orchestration and <a href="https://docs.github.com/copilot/concepts/models/auto-model-selection">Copilot auto model selection&rsquo;s</a> fine-tuned model selection, leveraging the benefits of both to balance performance and cost efficiency.</p>
+<p>Since Project HydraFusion launched, we&rsquo;ve improved its performance. In the Artificial Analysis Coding Agent Index, Copilot Fusion Max scored 60, within two points of Claude Code with Opus 5.5 Max. It delivered that result at about half the average API cost per task, using about half as many tokens and taking about 40% less time per task.</p>
+<h2 id="smarter-choices-for-developers" id="smarter-choices-for-developer</content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Release]]></category>
+<category domain="changelog-label"><![CDATA[copilot]]></category>
+<category domain="changelog-label"><![CDATA[enterprise management tools]]></category>
+<category domain="changelog-label"><![CDATA[universe26]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">99793</post-id>	</item><item>
+		<title>GitHub Copilot app, Universe releases</title>
+		<link>https://github.blog/changelog/2026-10-28-github-copilot-app-universe-releases</link>
+		<pubDate>Wed, 28 Oct 2026 15:55:00 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-26-github-copilot-app-universe-releases</guid>
+
+					<description><![CDATA[<p>Work doesn&#8217;t always fit in a single repository or session. A feature can span several repositories. A launch plan can pull in specs, designs, and assets without touching a repository&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-10-28-github-copilot-app-universe-releases">GitHub Copilot app, Universe releases</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>Work doesn&rsquo;t always fit in a single repository or session. A feature can span several repositories. A launch plan can pull in specs, designs, and assets without touching a repository at all. Projects in the GitHub Copilot app give that work one home, with its context, agents, and results together. Copilot coordinates the work in the background and checks in when it needs you.</p>
+<h3 id="give-copilot-a-goal" id="give-copilot-a-goal" ><a class="heading-link" href="#give-copilot-a-goal">Give Copilot a goal<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h3>
+<p>Start a project, describe what you want to get done, and add the context Copilot needs (e.g., repositories, design mocks, Slack threads, or notes from a design meeting). Choose the models and tools for the job. Copilot runs as many agents as the work needs and brings back results (e.g., pull requests) for your review.</p>
+<p>Use project automations for repeatable tasks, such as creating a new promo video whenever a feature lands.</p>
+<p>For a focused task i</content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Release]]></category>
+<category domain="changelog-label"><![CDATA[copilot]]></category>
+<category domain="changelog-label"><![CDATA[universe26]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">99830</post-id>	</item><item>
+		<title>GitHub Enterprise now includes access to GitHub Copilot</title>
+		<link>https://github.blog/changelog/2026-10-28-github-enterprise-now-includes-access-to-github-copilot</link>
+		<pubDate>Wed, 28 Oct 2026 15:50:00 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-26-github-enterprise-now-includes-access-to-github-copilot</guid>
+
+					<description><![CDATA[<p>Enterprises working with a GitHub or Microsoft account team can now get Copilot included with GitHub Enterprise for every licensed user. Previously, you had to manage two things: how many&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-10-28-github-enterprise-now-includes-access-to-github-copilot">GitHub Enterprise now includes access to GitHub Copilot</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>Enterprises working with a GitHub or Microsoft account team can now get Copilot included with GitHub Enterprise for every licensed user. Previously, you had to manage two things: how many Copilot seats you were paying for and how much AI usage those users consumed. With Copilot included in the platform, usage against your enterprise budget is the primary thing to manage.</p>
+<p>Self-serve availability is coming in stages, and current self-serve subscriptions are unaffected. Copilot Business and Copilot Enterprise remain available.</p>
+<p>Users in your enterprise account who do not hold a GitHub Enterprise license get the same Copilot access through Copilot Standalone, at $10 per user per month.</p>
+<p>Copilot access through GitHub Enterprise and Copilot Standalone has the same features and models as Copilot Enterprise but does not include monthly AI credits per seat.</p>
+<h2 id="what-you-manage" id="what-you-manage" ><a class="heading-link" href="#what-you-manage">What you manage<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></</content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Release]]></category>
+<category domain="changelog-label"><![CDATA[copilot]]></category>
+<category domain="changelog-label"><![CDATA[universe26]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">99869</post-id>	</item></channel></rss>

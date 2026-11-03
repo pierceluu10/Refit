@@ -48,6 +48,8 @@ describe('pages', () => {
   it('finds dates in the forms changelogs use', () => {
     expect(findDate('March 3, 2026')).toBe('2026-03-03');
     expect(findDate('3 Mar 2026')).toBe('2026-03-03');
+    expect(findDate('0.28.1 (6th December, 2024)')).toBe('2024-12-06');
+    expect(findDate('Mon, 02 Nov 2026 15:47:21 +0000')).toBe('2026-11-02');
     expect(findDate('v2 (2025-12-01)')).toBe('2025-12-01');
     expect(findDate('no date')).toBeUndefined();
   });
@@ -118,6 +120,17 @@ describe('fetch_changelog on recorded pages', () => {
     expect(changelogTarget('https://github.com/o/r/blob/main/CHANGES.md').url).toBe(
       'https://raw.githubusercontent.com/o/r/main/CHANGES.md',
     );
+  });
+
+  it('reads a recorded RSS changelog and keeps the entries after a date', async () => {
+    const out = await changelogReport(
+      { url: 'https://github.blog/changelog/feed/', since: '2026-10-29' },
+      { fetch: recordedFetch(), provider: 'github' },
+    );
+    expect(out).toContain('6 entries; after 2026-10-29: 3 of 6 entries');
+    expect(out).toContain('## pull_request_target blocked by default December 2 (Mon, 02 Nov 2026');
+    expect(out).toContain('## Webhook IP ranges added to the Meta API');
+    expect(out).not.toContain('Copilot Fusion');
   });
 
   it('says when a page is drawn by script and has no text to read', async () => {

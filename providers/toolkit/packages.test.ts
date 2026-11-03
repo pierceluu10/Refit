@@ -135,6 +135,26 @@ describe('package_lookup on recorded registry responses', () => {
     );
   });
 
+  it('reads a PyPI package’s notes from the changelog its project_urls name', async () => {
+    const fetch = recordedFetch();
+    const out = await packageReport(
+      { name: 'httpx', ecosystem: 'pypi', version: '==0.27.0' },
+      { fetch },
+    );
+    expect(out).toContain('Latest: 0.28.1 (2024-12-06)');
+    expect(out).toContain(
+      'from changelog https://raw.githubusercontent.com/encode/httpx/master/CHANGELOG.md',
+    );
+    expect(out).toMatch(/## 0\.28\.1 \(2024-12-06\)/);
+    // Under semver a 0.x minor may break, so it is marked and kept first.
+    expect(out).toMatch(/## 0\.28\.0 \(2024-11-28\) \[0\.x minor: may break\]/);
+    expect(out).toContain('The `verify` argument as a string argument is now deprecated');
+    // The releases API was tried first and had nothing recorded (404).
+    expect(fetch.calls[1]).toBe(
+      'GET https://api.github.com/repos/encode/httpx/releases?per_page=100',
+    );
+  });
+
   it('says plainly when a name is on neither registry', async () => {
     const out = await packageReport({ name: 'no-such-package-here' }, { fetch: recordedFetch() });
     expect(out).toContain(
