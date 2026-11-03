@@ -1,58 +1,38 @@
-// Finds providers by folder. Any folder under providers/ with a provider.json
-// and a prompt.md is a provider; no code changes are needed to add one.
+// Finds providers by folder and watches them. A folder is a head start for the same discovery
+// step every provider gets (any-watcher.ts): its prompt, knowledge, starting pages and hints.
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type { ProviderChange, WatchProvider } from '../../shared/types.ts';
+import { anyProviderWatcher, runAnyWatch, type AnyWatchDeps } from './any-watcher.ts';
+import { listProviderIds, PROVIDERS_DIR } from './folders.ts';
 import { budgetFromEnv } from './model.ts';
-import { createWatcher, runWatch, type WatchDeps } from './watcher.ts';
-import type { LoadedProvider, ProviderKnowledge, ProviderSpec, WatchReport } from './types.ts';
+import type { WatchReport } from './types.ts';
 
-export const PROVIDERS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
+export {
+  folderHints,
+  listProviderIds,
+  loadProvider,
+  mergeHints,
+  PROVIDERS_DIR,
+} from './folders.ts';
 
-const ID = /^[a-z0-9][a-z0-9-]*$/;
-
-export function listProviderIds(root = PROVIDERS_DIR): string[] {
-  return readdirSync(root, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && ID.test(entry.name))
-    .filter((entry) => existsSync(join(root, entry.name, 'provider.json')))
-    .map((entry) => entry.name)
-    .sort();
+/**
+ * A WatchProvider for one provider folder: the discovery watcher, with the
+ * folder's prompt, knowledge, starting pages and hints as its head start. This
+ * is all a provider's watcher.ts needs, and a folder needs only provider.json
+ * (with hints) and prompt.md.
+ */
+export function folderWatcher(id: string, deps: AnyWatchDeps = {}): WatchProvider {
+  // runAnyWatch finds the folder and adds its hints, so the folder's own watcher is the same one.
+  return anyProviderWatcher(id, {}, deps);
 }
 
-export function loadProvider(id: string, root = PROVIDERS_DIR): LoadedProvider {
-  if (!ID.test(id)) throw new Error(`bad provider id: ${id}`);
-  const dir = join(root, id);
-  const spec = JSON.parse(readFileSync(join(dir, 'provider.json'), 'utf8')) as ProviderSpec;
-  if (spec.id !== id)
-    throw new Error(`${id}/provider.json has id "${spec.id}"; it must match the folder`);
-  const promptPath = join(dir, 'prompt.md');
-  const knowledgePath = join(dir, 'knowledge.json');
-  return {
-    ...spec,
-    dir,
-    prompt: existsSync(promptPath) ? readFileSync(promptPath, 'utf8') : '',
-    knowledge: existsSync(knowledgePath)
-      ? (JSON.parse(readFileSync(knowledgePath, 'utf8')) as ProviderKnowledge)
-      : undefined,
-  };
-}
-
-/** A WatchProvider for one provider folder. This is all a provider's watcher.ts needs. */
-export function folderWatcher(
-  id: string,
-  deps: WatchDeps & { onReport?: (report: WatchReport) => void } = {},
-): WatchProvider {
-  return createWatcher(() => loadProvider(id), deps);
-}
-
-/** Runs every provider's watcher in turn, sharing one budget through deps. */
-export async function watchAll(since?: string, deps: WatchDeps = {}): Promise<WatchReport[]> {
+/** Runs every provider folder's watcher in turn, sharing one budget through deps. */
+export async function watchAll(since?: string, deps: AnyWatchDeps = {}): Promise<WatchReport[]> {
+  const root = deps.root ?? PROVIDERS_DIR;
   // One ledger for the whole run, so the cap is per run rather than per provider.
-  const shared: WatchDeps = { ...deps, budget: deps.budget ?? budgetFromEnv() };
+  const shared: AnyWatchDeps = { ...deps, root, budget: deps.budget ?? budgetFromEnv() };
   const reports: WatchReport[] = [];
-  for (const id of listProviderIds()) reports.push(await runWatch(loadProvider(id), since, shared));
+  for (const id of listProviderIds(root)) reports.push(await runAnyWatch(id, {}, since, shared));
   return reports;
 }
 

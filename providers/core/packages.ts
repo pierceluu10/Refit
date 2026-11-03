@@ -292,9 +292,16 @@ export function pypiInfo(
 
 /** Which registries a manifest name can belong to. Scoped names are npm only; module paths none. */
 export function registriesFor(name: string): Ecosystem[] {
+  const pinned = /^(npm|pypi):(.+)$/.exec(name);
+  if (pinned) return [pinned[1] as Ecosystem];
   if (/^@[^/\s]+\/[^/\s]+$/.test(name)) return ['npm'];
   if (name.includes('/') || name.includes(':') || /\s/.test(name)) return [];
   return ['npm', 'pypi'];
+}
+
+/** A package name without the registry a folder may pin it to ("npm:octokit" is "octokit"). */
+export function packageName(name: string): string {
+  return name.replace(/^(npm|pypi):/, '');
 }
 
 export function npmRegistryUrl(name: string): string {
@@ -312,11 +319,12 @@ export function registryClient(
   const json = options.json ?? httpJsonFetcher();
   const today = options.today ?? (() => new Date().toISOString().slice(0, 10));
   return {
-    async lookup(name) {
+    async lookup(pinnedName) {
+      const name = packageName(pinnedName);
       const found: PackageInfo[] = [];
       const errors: string[] = [];
       await Promise.all(
-        registriesFor(name).map(async (ecosystem) => {
+        registriesFor(pinnedName).map(async (ecosystem) => {
           const url = ecosystem === 'npm' ? npmRegistryUrl(name) : pypiRegistryUrl(name);
           const result = await json.json(url);
           if (!result.ok) {
@@ -339,11 +347,14 @@ export function registryClient(
 /** A registry that answers from saved lookups, for replaying a recorded run. */
 export function savedRegistry(saved: PackageInfo[]): PackageRegistry {
   return {
-    async lookup(name) {
-      const lower = name.toLowerCase();
+    async lookup(pinnedName) {
+      const lower = packageName(pinnedName).toLowerCase();
+      const ecosystems = registriesFor(pinnedName);
       return {
-        name,
-        found: saved.filter((info) => info.name.toLowerCase() === lower),
+        name: packageName(pinnedName),
+        found: saved.filter(
+          (info) => info.name.toLowerCase() === lower && ecosystems.includes(info.ecosystem),
+        ),
         errors: [],
       };
     },

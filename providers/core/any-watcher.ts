@@ -10,6 +10,7 @@ import { httpFetcher, type FetchedPage } from './fetch.ts';
 import { budgetFromEnv, type ServerTool } from './model.ts';
 import {
   githubRepo,
+  packageName,
   registryClient,
   releaseNotesFor,
   renderPackage,
@@ -19,7 +20,13 @@ import {
 } from './packages.ts';
 import { PageReader } from './page-tools.ts';
 import { anyWatchSystemPrompt, anyWatchUserPrompt } from './prompt.ts';
-import { listProviderIds, loadProvider, PROVIDERS_DIR } from './registry.ts';
+import {
+  folderHints,
+  listProviderIds,
+  loadProvider,
+  mergeHints,
+  PROVIDERS_DIR,
+} from './folders.ts';
 import type { LoadedProvider, ProviderSource, WatchReport } from './types.ts';
 import { NO_SUBMISSION, WatchFailedError, runWatchAgent, slug, type WatchDeps } from './watcher.ts';
 
@@ -123,8 +130,9 @@ async function readPackages(
   sources: Sources,
 ): Promise<{ infos: PackageInfo[]; rendered: string[] }> {
   const looked = await Promise.all(
-    names.map(async (name) => {
-      const lookup = await registry.lookup(name).catch((error: unknown) => ({
+    names.map(async (pinned) => {
+      const name = packageName(pinned);
+      const lookup = await registry.lookup(pinned).catch((error: unknown) => ({
         name,
         found: [] as PackageInfo[],
         errors: [`${name}: ${error instanceof Error ? error.message : String(error)}`],
@@ -212,17 +220,20 @@ function lookupTool(
 
 /**
  * One read of any provider: discovery, registry lookups, then the watcher
- * agent. The provider id is the inventory's (lowercased), so changes match its usages.
+ * agent. The provider id is the inventory's (lowercased), so changes match its
+ * usages. When providers/ has a folder for it, the folder's hints join the
+ * given ones and its prompt, knowledge and pages are the head start.
  */
 export async function runAnyWatch(
   provider: string,
-  hints: ProviderHints = {},
+  given: ProviderHints = {},
   since?: string,
   deps: AnyWatchDeps = {},
 ): Promise<AnyWatchReport> {
   const id = provider.trim().toLowerCase();
   const budget = deps.budget ?? budgetFromEnv();
   const folder = folderFor(id, deps.root ?? PROVIDERS_DIR);
+  const hints = folder ? mergeHints(folderHints(folder), given) : given;
   const name = folder?.name ?? displayName(provider);
   const today = deps.today ?? new Date().toISOString().slice(0, 10);
   const registry = deps.registry ?? registryClient();

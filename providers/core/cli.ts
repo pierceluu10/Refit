@@ -17,7 +17,6 @@ import { budgetFromEnv } from './model.ts';
 import { savePages, type PageReader } from './page-tools.ts';
 import { ANY_WATCH_PROMPT_VERSION } from './prompt.ts';
 import { listProviderIds, loadProvider } from './registry.ts';
-import { runWatch } from './watcher.ts';
 
 const [command, target = 'all', ...rest] = process.argv.slice(2);
 const budget = budgetFromEnv(1);
@@ -109,7 +108,12 @@ if (command === 'any') {
         );
       }
     } else if (command === 'watch') {
-      console.log(JSON.stringify(await runWatch(provider, since, { budget }), null, 2));
+      // The production path: discovery with the folder as its head start.
+      const report = await runAnyWatch(provider.id, {}, since, {
+        budget,
+        fetcher: httpFetcher({ githubToken }),
+      });
+      console.log(JSON.stringify(report, null, 2));
     } else if (command === 'knowledge') {
       console.log(JSON.stringify(await draftKnowledge(provider, [], { budget }), null, 2));
     } else {
