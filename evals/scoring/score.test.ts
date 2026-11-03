@@ -75,6 +75,19 @@ describe('scoreResults', () => {
     });
   });
 
+  it('tells started repos from those the cap never started or stopped at every task', () => {
+    const score = scoreResults([
+      ...results,
+      repo('o/stopped', 'tasks', [
+        { taskId: '9', changeId: 'c', kind: 'other', attempted: false, unrun: 'budget' },
+      ]),
+    ]);
+    expect(score).toMatchObject({ repos: 5, startedRepos: 4, capStoppedRepos: 1 });
+    expect(formatReport(score)).toContain(
+      'Repos: 5: 4 started, 1 never started (dollar cap); in 1 of the started, the cap stopped every task',
+    );
+  });
+
   it('reports cost per repo over the repos that ran', () => {
     const score = scoreResults(results);
     expect(score.costUsd).toBe(3);

@@ -10,6 +10,10 @@ export type Score = {
   repos: number;
   /** Repos the dollar cap stopped before they started. The run is incomplete if this is > 0. */
   unrunRepos: number;
+  /** Repos whose run started (a checkout, an inventory, and usually a match). */
+  startedRepos: number;
+  /** Started repos whose every task the dollar cap stopped, so nothing in them was graded. */
+  capStoppedRepos: number;
   /**
    * Graded units: every task the agent ran, plus one per repo the match agent called
    * not-affected (it found no task there).
@@ -120,6 +124,10 @@ export function scoreResults(results: RepoResult[]): Score {
   return {
     repos: results.length,
     unrunRepos: repoCounts.unrun,
+    startedRepos: ran.length,
+    capStoppedRepos: ran.filter(
+      (repo) => repo.tasks.length > 0 && repo.tasks.every((task) => task.unrun),
+    ).length,
     units,
     counts,
     rates,
@@ -184,7 +192,11 @@ export function formatReport(score: Score, title = 'Aptitude eval'): string {
   const lines = [
     `# ${title}`,
     '',
-    `Repos: ${score.repos} (${score.unrunRepos} not run: dollar cap)`,
+    `Repos: ${score.repos}: ${score.startedRepos} started, ${score.repos - score.startedRepos} never started (dollar cap)${
+      score.capStoppedRepos > 0
+        ? `; in ${score.capStoppedRepos} of the started, the cap stopped every task`
+        : ''
+    }`,
     `Graded units: ${score.units} (tasks, plus repos the match agent called not-affected)`,
     '',
     '| Outcome | Units | Rate |',
