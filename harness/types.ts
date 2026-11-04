@@ -22,6 +22,8 @@ export type Sandbox = {
   diff(): Promise<string>;
   // Takes a new snapshot, so what the harness's own preparation wrote stays out of the PR.
   snapshot?(): Promise<void>;
+  // Puts the working copy back to the last snapshot (or creation): edits undone, new files removed.
+  reset?(): Promise<void>;
   dispose(): Promise<void>;
 };
 

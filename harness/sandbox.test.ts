@@ -91,9 +91,20 @@ describe('local sandbox', () => {
     expect(diff).not.toContain('node_modules');
   });
 
-  it('leaves a proof test under .refit-proof out of the diff', async () => {
+  it('resets the working copy to its last snapshot', async () => {
+    await fs.writeFile(path.join(sandbox.dir, 'index.js'), 'console.log("changed");\n');
+    await sandbox.exec('mkdir -p dist && echo built > dist/out.js');
+    await sandbox.reset?.();
+    expect(await sandbox.diff()).toBe('');
+    expect(await fs.readFile(path.join(sandbox.dir, 'index.js'), 'utf8')).toContain('v1');
+  });
+
+  it('leaves a proof test under .refit-proof and compiled Python out of the diff', async () => {
     await sandbox.exec(
       'mkdir -p .refit-proof && echo "assert(true)" > .refit-proof/model.test.mjs',
+    );
+    await sandbox.exec(
+      'mkdir -p __pycache__ && printf "\\001\\002" > __pycache__/main.cpython-312.pyc',
     );
     expect(await sandbox.diff()).toBe('');
   });
