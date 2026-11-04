@@ -3,11 +3,52 @@
 Each row is one practice iteration run from `r3/integration`, scored by
 `node evals/runner/cli.ts score3`. Times are EST on 2026-11-03.
 
-| #   | Time | Commit | Eligible | Verified | Score | Cost | Top causes | What changed |
-| --- | ---- | ------ | -------- | -------- | ----- | ---- | ---------- | ------------ |
+| #   | Time                                           | Commit                                                     | Eligible | Verified | Score | Cost                           | Top causes                                                                                                                                                                                                                                                  | What changed                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --- | ---------------------------------------------- | ---------------------------------------------------------- | -------- | -------- | ----- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | from 13:53; stopped before every repo finished | `a02bb8a7`; Stripe and OpenAI rerun at 15:38 on `657e0905` | 62       | 45       | 72.6% | $73.99 for the 69 scored repos | All 17 misses were needs-review. Read by hand: the agent's own caveats (`unproven`) held back verified; a validator that could not run counted as a failure; flaky checks; type errors matched by the types tsc prints; edits beyond what the change forced | First scored run. Screen of all 125 practice repos: 33 red baseline and 6 outside our authority excluded (8.8% of affected repos)                                                                                                                                                                                                                                                                                                              |
+| 2   | 17:38 to 17:47                                 | `b661ece4`                                                 | 9        | 9        | 100%  | $4.29 ($0.43 a repo)           | None failed. Against plain Claude, judged blind: Claude 5, Refit 3, 2 ties                                                                                                                                                                                  | One harness run per repo and provider (`a25423df`); memory and review on Sonnet (`81d42265`); match on Sonnet (`a25423df`); tool descriptions out of the system prompt (`d0681bd5`); finish refuses a report that would miss verified (`5c150798`); the fixes for iteration 1's misses (`5710e830`, `c9109a3e`, `ef8e49d0`, `346c06c9`, `3f873db7`, `e75ed7c2`)                                                                                |
+| 3   | 18:00 to 18:48                                 | `380043d1`                                                 | 9        | 9        | 100%  | $14.39 ($1.44 a repo)          | None failed. Against plain Claude: Claude 5, Refit 3, 2 ties. Refit missed providers it doesn't watch (OpenRouter and Groq on t2-chat, Tableau's sign-in) and made changes nothing required (lamp-bot's Stripe major upgrade)                               | Every provider a repo uses, not only its set's (`8f611c7c`): 34 tasks where iteration 2 had 10, so cost and wall time rose (lamp-bot 5 to 35 min, t2-chat 9 to 46 min); act on what breaks now or within 90 days, let not-affected stand, keep proof tests tidy (`463a0557`); match on Opus again (`a77eedf7`); rebuilt tsbuildinfo out of diffs (`4bcffbee`); a finish that drops a secret-guarding `.gitignore` line is refused (`ba1d8832`) |
 
-No scored iteration has run yet: this session has no `ANTHROPIC_API_KEY`, so nothing that calls a
-model can run (inventory, match, the codegen planner, the harness, the reviewer).
+Iterations 2 and 3 ran only 10 repos, picked from the ones Refit verified in iteration 1 (`--repos`).
+Their scores are not comparable with iteration 1's, and their 40% outside-authority share is over
+that subset, not the screen. Iteration 1's cost covers the scored repos; it does not include the
+screen or the runs that were stopped.
+
+## Refit against plain Claude (iteration 3)
+
+Both start from the repo alone, each in its own sandbox. Plain Claude (Sonnet 5.5) gets one prompt
+with the same job (what breaks now or within 90 days), file, shell and web tools, one session and
+no retries. A blind judge (Opus 5.5) reads both diffs. The code check applies each PR to a fresh,
+prepared copy and runs the repo's checks plus a syntax check of every changed file; broken means a
+check that passed before fails after. It ran with no model key, so it has no codegen planner.
+
+|                                        | Refit                     | Plain Claude |
+| -------------------------------------- | ------------------------- | ------------ |
+| Judge prefers (10 repos)               | 3                         | 5 (2 ties)   |
+| API changes handled correctly          | 26 of 30                  | 22 of 23     |
+| Code check: clean                      | 8                         | 7            |
+| Code check: broken                     | 0                         | 0            |
+| Code check: no check covers the change | 1                         | 2            |
+| Code check: nothing changed            | 1                         | 1            |
+| Cost per repo                          | $1.44 ($1.06 for the fix) | $0.15        |
+| Agent time per repo                    | 6.0 min                   | 44 s         |
+| Checkout to result per repo            | 17.5 min                  | not measured |
+
+Refit's cost per repo by part: harness $0.45, match $0.34, memory $0.30, watch $0.28, review $0.08.
+Its agent ran on Sonnet 5.5, the same model as plain Claude; it worked for 34% of the wall time.
+Plain Claude installed no packages and ran no repo's tests in any of the 10 repos.
+
+The first code check reported Refit's backend_AgentAi PR 3 of 5 as broken. That was the checker:
+`reset()` kept `node_modules`, so PR 3 (Crunchbase) ran against the packages PR 2 (the Gemini SDK
+upgrade) had installed. The checker now reinstalls the original packages after a PR that changed
+them (`efa4cebf`), and all four multi-PR repos came back clean.
+
+## Since iteration 3, not yet measured
+
+- A repo's tasks run at once, match runs one call per provider in parallel, and memory learns in
+  the background (`b4412695`).
+- `--verify`, the code check above (`efa4cebf`), on `Sandbox.reset()` (`301ed203`).
+- Env-var references are no longer scrubbed as secrets (`6fae24be`).
 
 ## Dry screens ($0, not iterations)
 
