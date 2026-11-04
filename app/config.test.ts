@@ -14,12 +14,12 @@ describe('readConfig', () => {
       privateKey: PEM,
       webhookSecret: 'super-secret-value',
       port: 3000,
-      queueFile: '.aptitude/queue.json',
+      queueFile: '.refit/queue.json',
     });
   });
 
   it('reads the key from a file and honours PORT', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'aptitude-config-'));
+    const dir = mkdtempSync(join(tmpdir(), 'refit-config-'));
     try {
       const file = join(dir, 'app.pem');
       writeFileSync(file, PEM);

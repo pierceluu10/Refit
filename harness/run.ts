@@ -87,7 +87,7 @@ export async function runTask(
 ): Promise<HarnessRunRecord> {
   const ledger = new BudgetLedger(deps.budgetUsd ?? budgetFromEnv(), deps.chargeRun);
   const outDir =
-    deps.outDir ?? (await mkdtemp(join(tmpdir(), `aptitude-run-${task.id.replace(/\W+/g, '-')}-`)));
+    deps.outDir ?? (await mkdtemp(join(tmpdir(), `refit-run-${task.id.replace(/\W+/g, '-')}-`)));
   await mkdir(outDir, { recursive: true });
   const transcriptPath = join(outDir, 'transcript.jsonl');
   const log = (event: unknown) =>

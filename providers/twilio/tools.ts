@@ -284,7 +284,7 @@ export async function fetchOaiPaths(
   if (!version.oaiUrl || !version.oaiFile)
     return { ok: false, error: 'no OAI file for this version' };
   if (!resolveFetch(options)) return { ok: false, error: 'offline' };
-  const dir = options.cacheDir ?? join(tmpdir(), 'aptitude-twilio-oai');
+  const dir = options.cacheDir ?? join(tmpdir(), 'refit-twilio-oai');
   const file = join(dir, version.oaiFile);
   const maxAge = options.cacheMaxAgeMs ?? 24 * 3600 * 1000;
   let text: string | undefined;

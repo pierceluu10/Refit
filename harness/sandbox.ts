@@ -33,7 +33,7 @@ const SANDBOX_ENV = {
   // CI makes Yarn 2+ refuse any lockfile change, which would block the agent's `yarn add`.
   YARN_ENABLE_IMMUTABLE_INSTALLS: 'false',
   // pnpm puts its store at the mount's root when home is on another disk: the copy, and so the diff.
-  npm_config_store_dir: '/tmp/aptitude-pnpm-store',
+  npm_config_store_dir: '/tmp/refit-pnpm-store',
 };
 
 export type SandboxOptions = { mode?: 'docker' | 'local'; image?: string };
@@ -43,7 +43,7 @@ export async function createSandbox(
   options: SandboxOptions = {},
 ): Promise<Sandbox & { image?: string }> {
   const mode = options.mode ?? (await pickMode());
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'aptitude-sandbox-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'refit-sandbox-'));
   const dir = path.join(root, 'repo');
   // The git dir lives outside the working copy, so sandboxed code cannot plant hooks, fsmonitor or
   // filter drivers in a config that host-side git later reads. The repo's own .git is never copied.
@@ -57,8 +57,8 @@ export async function createSandbox(
     const git = (...args: string[]) => runGit(gitDir, dir, args);
     await git('init', '-q');
     await fs.appendFile(path.join(gitDir, 'info', 'exclude'), '\nnode_modules\n.pnpm-store\n');
-    await git('config', 'user.name', 'Aptitude');
-    await git('config', 'user.email', 'aptitude@localhost');
+    await git('config', 'user.name', 'Refit');
+    await git('config', 'user.email', 'refit@localhost');
     await git('add', '-A');
     await git('commit', '-q', '--allow-empty', '--no-verify', '-m', 'baseline');
     const baseline = (await git('rev-parse', 'HEAD')).trim();
@@ -79,8 +79,8 @@ export async function createSandbox(
       };
     }
 
-    const image = options.image ?? process.env.APTITUDE_SANDBOX_IMAGE ?? (await pickImage(repoDir));
-    const name = `aptitude-${randomBytes(6).toString('hex')}`;
+    const image = options.image ?? process.env.REFIT_SANDBOX_IMAGE ?? (await pickImage(repoDir));
+    const name = `refit-${randomBytes(6).toString('hex')}`;
     // Run as the host user so files the container writes stay editable and removable on the host.
     const user =
       process.getuid && process.getgid ? ['--user', `${process.getuid()}:${process.getgid()}`] : [];
@@ -135,7 +135,7 @@ async function pickImage(repoDir: string): Promise<string> {
 }
 
 async function pickMode(): Promise<'docker' | 'local'> {
-  const fromEnv = process.env.APTITUDE_SANDBOX;
+  const fromEnv = process.env.REFIT_SANDBOX;
   if (fromEnv === 'docker' || fromEnv === 'local') return fromEnv;
   // On Linux CI never fall back to running repo code on the host; a missing Docker should fail loudly.
   if (process.env.CI && process.platform === 'linux') return 'docker';

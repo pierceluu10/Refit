@@ -63,7 +63,7 @@ export async function cloneRepo(token: string, repo: string, dir: string): Promi
 // Applies the harness's diff to a scratch index, never the checkout's files, and reads back each file.
 // shortcut: text files only; a binary or mode-only change needs `git diff --binary` from the harness first.
 export async function filesFromDiff(repoDir: string, diff: string): Promise<FileChange[]> {
-  const scratch = await mkdtemp(join(tmpdir(), 'aptitude-index-'));
+  const scratch = await mkdtemp(join(tmpdir(), 'refit-index-'));
   const options = { cwd: repoDir, env: { GIT_INDEX_FILE: join(scratch, 'index') } };
   try {
     await git(['read-tree', 'HEAD'], options);

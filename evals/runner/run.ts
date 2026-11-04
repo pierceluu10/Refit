@@ -11,7 +11,7 @@ const message = (error: unknown) => (error instanceof Error ? error.message : St
 
 /**
  * Did the agent attempt this task? An attempt is a diff, or an explicit not-affected verdict.
- * Anything else (a throw, an empty needs-review, a 'failed' with no diff) is a bug: Aptitude
+ * Anything else (a throw, an empty needs-review, a 'failed' with no diff) is a bug: Refit
  * always tries.
  */
 export function judgeAttempt(record: RunRecord): { attempted: boolean; reason?: string } {

@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 async function tempStore() {
-  return new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-selfeval-')));
+  return new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'refit-selfeval-')));
 }
 
 // Illustrative history: records harness runs at fixed times so "oldest first" is deterministic.

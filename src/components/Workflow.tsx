@@ -234,11 +234,11 @@ function StageContent({ stage, scenario = 'affected' }: { stage: number; scenari
         <span className={`draft-badge ${failed ? 'badge-warning' : ''}`}>
           {failed ? 'Needs review' : 'Verified'}
         </span>
-        <code>aptitude/stripe/charge-reference</code>
+        <code>refit/stripe/charge-reference</code>
       </div>
       <p>
-        What changed and why, the proof, and what is unproven, in one place. Aptitude never merges
-        and never pushes to your default branch.
+        What changed and why, the proof, and what is unproven, in one place. Refit never merges and
+        never pushes to your default branch.
       </p>
       <div className="review-summary">
         <span>
@@ -334,7 +334,7 @@ export function Workflow({
             <div className="engine-node">
               <Mark />
             </div>
-            <span>aptitude</span>
+            <span>refit</span>
           </div>
           <div className="map-endpoint map-output">
             <GitPullRequest size={24} />
@@ -354,7 +354,7 @@ export function Workflow({
             <i />
           </div>
           <span>
-            <FileCode size={14} /> {expanded ? 'Aptitude / interactive walkthrough' : 'acme / api'}
+            <FileCode size={14} /> {expanded ? 'Refit / interactive walkthrough' : 'acme / api'}
           </span>
           <span className="preview-label">Illustrative example</span>
         </div>

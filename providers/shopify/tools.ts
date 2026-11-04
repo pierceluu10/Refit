@@ -306,7 +306,7 @@ async function liveSchema(
   now: Date,
 ): Promise<ResolvedSchema | { error: string }> {
   const cacheFile = cacheDir
-    ? join(cacheDir, `aptitude-shopify-admin-schema-${version}.json`)
+    ? join(cacheDir, `refit-shopify-admin-schema-${version}.json`)
     : undefined;
   if (cacheFile && existsSync(cacheFile)) {
     try {

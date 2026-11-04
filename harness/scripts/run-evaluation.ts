@@ -1,6 +1,6 @@
 // The real-task evaluation: node harness/scripts/run-evaluation.ts [task id ...]
-// Needs ANTHROPIC_API_KEY and APTITUDE_AI_BUDGET_USD, the cap for the whole batch. Each task gets
-// APTITUDE_TASK_BUDGET_USD (default $2) or what is left of the cap. Repos are cloned at their
+// Needs ANTHROPIC_API_KEY and REFIT_AI_BUDGET_USD, the cap for the whole batch. Each task gets
+// REFIT_TASK_BUDGET_USD (default $2) or what is left of the cap. Repos are cloned at their
 // pinned commit outside this repo and run in the Docker sandbox; results land in
 // harness/evaluation/results/<id>/. Nothing is pushed or opened.
 import { execFileSync } from 'node:child_process';
@@ -22,7 +22,7 @@ if (!process.env.ANTHROPIC_API_KEY) {
 }
 const capUsd = budgetFromEnv();
 // The harness keeps TURN_RESERVE_USD of a task's budget back, so $2 leaves $1 of agent work.
-const perTaskUsd = Number(process.env.APTITUDE_TASK_BUDGET_USD ?? 2);
+const perTaskUsd = Number(process.env.REFIT_TASK_BUDGET_USD ?? 2);
 let spentUsd = 0;
 const wanted = process.argv.slice(2);
 const entries = (
@@ -37,7 +37,7 @@ for (const entry of entries) {
     continue;
   }
   try {
-    const work = mkdtempSync(join(tmpdir(), `aptitude-eval-${entry.id}-`));
+    const work = mkdtempSync(join(tmpdir(), `refit-eval-${entry.id}-`));
     const repoDir = join(work, 'repo');
     const url = `https://github.com/${entry.repo}.git`;
     execFileSync('git', ['clone', '-q', '--filter=blob:none', url, repoDir]);

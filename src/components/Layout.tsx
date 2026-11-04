@@ -63,7 +63,7 @@ export function Footer() {
         </div>
       </div>
       <div className="footer-bottom">
-        <span>© {new Date().getFullYear()} Aptitude</span>
+        <span>© {new Date().getFullYear()} Refit</span>
         <span>Pull requests only. Human reviewed.</span>
         <span className="footer-status">
           <span /> In development
@@ -80,11 +80,11 @@ export function PagePosition() {
     if (target) target.scrollIntoView();
     else window.scrollTo(0, 0);
     const titlesByPath: Record<string, string> = {
-      '/': 'Aptitude: Keep your integrations current',
-      '/demo': 'Aptitude: Interactive workflow',
-      '/docs': 'Aptitude: Documentation',
+      '/': 'Refit: Keep your integrations current',
+      '/demo': 'Refit: Interactive workflow',
+      '/docs': 'Refit: Documentation',
     };
-    document.title = titlesByPath[pathname] ?? 'Aptitude: Dashboard preview';
+    document.title = titlesByPath[pathname] ?? 'Refit: Dashboard preview';
   }, [pathname, hash]);
   return null;
 }

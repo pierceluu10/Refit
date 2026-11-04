@@ -98,10 +98,10 @@ export class BudgetLedger {
 }
 
 export function budgetFromEnv(env: NodeJS.ProcessEnv = process.env): number {
-  const raw = env.APTITUDE_AI_BUDGET_USD;
+  const raw = env.REFIT_AI_BUDGET_USD;
   const capUsd = Number(raw);
   if (!raw || !Number.isFinite(capUsd) || capUsd <= 0) {
-    throw new Error('Set APTITUDE_AI_BUDGET_USD to a positive dollar cap for this run');
+    throw new Error('Set REFIT_AI_BUDGET_USD to a positive dollar cap for this run');
   }
   return capUsd;
 }

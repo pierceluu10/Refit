@@ -1,6 +1,6 @@
 // One real match run on the illustrative fixtures:
-//   APTITUDE_AI_BUDGET_USD=2 ANTHROPIC_API_KEY=... node orchestrator/match-real.ts
-//   APTITUDE_AI_BUDGET_USD=2 node orchestrator/match-real.ts --agent-sdk   (logged-in Claude Code credentials)
+//   REFIT_AI_BUDGET_USD=2 ANTHROPIC_API_KEY=... node orchestrator/match-real.ts
+//   REFIT_AI_BUDGET_USD=2 node orchestrator/match-real.ts --agent-sdk   (logged-in Claude Code credentials)
 import { readFileSync } from 'node:fs';
 import type { ApiUsage, ProviderChange } from '../shared/types.ts';
 import { agentSdk } from './agent-sdk.ts';

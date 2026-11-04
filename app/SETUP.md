@@ -1,4 +1,4 @@
-# Setting up the Aptitude GitHub App
+# Setting up the Refit GitHub App
 
 We reuse the existing GitHub App **Refit Agent** (App ID `5275879`, owned by the `refit-dev` org, bot
 login `refit-agent[bot]`) instead of registering a new one through the manifest flow.
@@ -13,12 +13,12 @@ after the rename below.
 
 ## 1. General (basic information)
 
-- [ ] **GitHub App name**: `Aptitude` (34 characters max, unique across GitHub). Renaming changes the
-      slug, the settings URL (likely `.../settings/apps/aptitude`) and the bot login (likely
-      `aptitude[bot]`). Nothing in our code depends on either: Aptitude PRs are recognised by the
-      `aptitude/` branch prefix, not the bot login. GitHub's docs don't say whether the old URL
+- [ ] **GitHub App name**: `Refit` (34 characters max, unique across GitHub). Renaming changes the
+      slug, the settings URL (likely `.../settings/apps/refit`) and the bot login (likely
+      `refit[bot]`). Nothing in our code depends on either: Refit PRs are recognised by the
+      `refit/` branch prefix, not the bot login. GitHub's docs don't say whether the old URL
       redirects.
-- [ ] **Homepage URL**: set Aptitude's real homepage. `manifest.json` holds
+- [ ] **Homepage URL**: set Refit's real homepage. `manifest.json` holds
       `https://github.com/pierceluu10/Refit` as a placeholder; update it there too.
 - [ ] Logo: under **Display information**, click **Upload a logo**, crop if needed, then **Set new
       avatar**. GitHub wants a PNG, JPG or GIF under 1 MB; 200 × 200 px renders best, square with the
@@ -60,12 +60,12 @@ them manually. Our install, uninstall and repos-added/removed handlers rely on t
 `pull_request` already covers `synchronize`, which the `edited` verdict uses. No new permission is
 needed: cloning and `compare` use Contents (read), and `/user/installations` needs none.
 
-- [ ] Optionally fill **Add a note to users** (for example "Aptitude now opens migration PRs").
+- [ ] Optionally fill **Add a note to users** (for example "Refit now opens migration PRs").
 - [ ] **Save changes**.
 
 Existing installations keep their old permissions until an owner approves the new ones. GitHub emails
 each org owner of every installation to review the request. Until they accept, the new access doesn't
-apply there, so Aptitude can't push branches or open PRs on those installations.
+apply there, so Refit can't push branches or open PRs on those installations.
 
 ## 3. Installation target and private key
 
@@ -76,7 +76,7 @@ apply there, so Aptitude can't push branches or open PRs on those installations.
 - [ ] Private key: if nobody has the `.pem`, sidebar → **Credentials** → **Key pairs** → **New key**
       (older UI: **Private keys** → **Generate a private key**; label may differ). The download is
       the only copy (PKCS#1 PEM). Store it in the password manager and outside the repo, e.g.
-      `~/.config/aptitude/aptitude.pem`, and point `GITHUB_APP_PRIVATE_KEY_FILE` at it. `*.pem` is
+      `~/.config/refit/refit.pem`, and point `GITHUB_APP_PRIVATE_KEY_FILE` at it. `*.pem` is
       gitignored, but don't rely on that. Delete old keys nobody holds.
 
 ## 4. User sign-in for the dashboard
@@ -96,32 +96,32 @@ apply there, so Aptitude can't push branches or open PRs on those installations.
 
 Put these in `app/.env` (gitignored; `npm run dev` loads it). Never commit or print them.
 
-| Variable                      | Value                                                                            |
-| ----------------------------- | -------------------------------------------------------------------------------- |
-| `GITHUB_APP_ID`               | `5275879`                                                                        |
-| `GITHUB_APP_PRIVATE_KEY_FILE` | Path to the `.pem`                                                               |
-| `GITHUB_APP_PRIVATE_KEY`      | PEM contents instead of a file, for hosts that only take env vars                |
-| `GITHUB_WEBHOOK_SECRET`       | The webhook secret from step 1                                                   |
-| `PORT`                        | Default `3000`                                                                   |
-| `HOST`                        | Default `127.0.0.1`                                                              |
-| `SMEE_URL`                    | Dev tunnel only                                                                  |
-| `APTITUDE_QUEUE_FILE`         | Job queue file; default `.aptitude/queue.json` (a persistent path in production) |
-| `APTITUDE_MEMORY_DIR`         | memory/'s store; absolute path on a persistent volume in production              |
-| `APTITUDE_AI_BUDGET_USD`      | Run cap for the loop; required once `ANTHROPIC_API_KEY` is set                   |
-| `ANTHROPIC_API_KEY`           | Real model runs; without it the loop and memory use offline stubs                |
+| Variable                      | Value                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------- |
+| `GITHUB_APP_ID`               | `5275879`                                                                     |
+| `GITHUB_APP_PRIVATE_KEY_FILE` | Path to the `.pem`                                                            |
+| `GITHUB_APP_PRIVATE_KEY`      | PEM contents instead of a file, for hosts that only take env vars             |
+| `GITHUB_WEBHOOK_SECRET`       | The webhook secret from step 1                                                |
+| `PORT`                        | Default `3000`                                                                |
+| `HOST`                        | Default `127.0.0.1`                                                           |
+| `SMEE_URL`                    | Dev tunnel only                                                               |
+| `REFIT_QUEUE_FILE`            | Job queue file; default `.refit/queue.json` (a persistent path in production) |
+| `REFIT_MEMORY_DIR`            | memory/'s store; absolute path on a persistent volume in production           |
+| `REFIT_AI_BUDGET_USD`         | Run cap for the loop; required once `ANTHROPIC_API_KEY` is set                |
+| `ANTHROPIC_API_KEY`           | Real model runs; without it the loop and memory use offline stubs             |
 
 Jobs run the harness in Docker, so the host needs Docker running.
 
 ## Local development
 
 Needs Node >= 22.12 (the app runs TypeScript with `--experimental-strip-types`). Run the scripts from
-the repo root with `-w @aptitude/app`, or from inside `app/`.
+the repo root with `-w @refit/app`, or from inside `app/`.
 
 1. Open <https://smee.io/new> and copy the channel URL.
 2. Set `SMEE_URL` in `app/.env`, and set the App's **Webhook URL** to the same URL.
-3. Terminal 1: `npm run tunnel -w @aptitude/app` (smee-client 5.0.0 via npx, forwarding `SMEE_URL`
+3. Terminal 1: `npm run tunnel -w @refit/app` (smee-client 5.0.0 via npx, forwarding `SMEE_URL`
    to `http://127.0.0.1:$PORT/webhooks`; it reads `SMEE_URL` and `PORT` from `app/.env`).
-4. Terminal 2: `npm run dev -w @aptitude/app` (watch mode). `npm start -w @aptitude/app` runs it
+4. Terminal 2: `npm run dev -w @refit/app` (watch mode). `npm start -w @refit/app` runs it
    without watching.
 5. `curl http://127.0.0.1:3000/healthz` should answer.
 6. Trigger a delivery: on the App's settings, sidebar → **Advanced** → **Recent Deliveries**, click a
@@ -134,11 +134,11 @@ Install on a test org first, never a real customer org. Check that:
 
 - [ ] each delivery is answered `202` within a second, before the job runs;
 - [ ] installing queues one `understand` job per repo, and each runs (clone, `runRepoJob`, cleanup);
-- [ ] a run that opens a PR opens it as a draft from an `aptitude/` branch, never on the default branch;
-- [ ] pushing your own commit to an Aptitude PR records `edited`; **Update branch** records nothing;
+- [ ] a run that opens a PR opens it as a draft from an `refit/` branch, never on the default branch;
+- [ ] pushing your own commit to a Refit PR records `edited`; **Update branch** records nothing;
 - [ ] adding and removing repos on the installation queues `understand` and `forget` jobs;
 - [ ] a push to the default branch queues an `understand` job with the new sha;
-- [ ] merging or closing a PR from an `aptitude/` branch records `merged` or `closed`;
+- [ ] merging or closing a PR from an `refit/` branch records `merged` or `closed`;
 - [ ] uninstalling queues `forget` for every repo.
 
 ## What runs

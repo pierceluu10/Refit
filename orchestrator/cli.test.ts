@@ -5,11 +5,11 @@ import { join } from 'node:path';
 import { formatSummary, main } from './cli.ts';
 import type { LoopRecord } from './loop.ts';
 
-describe('aptitude CLI', () => {
+describe('refit CLI', () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), 'aptitude-cli-'));
+    dir = await mkdtemp(join(tmpdir(), 'refit-cli-'));
     vi.stubEnv('ANTHROPIC_API_KEY', '');
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
@@ -40,13 +40,13 @@ describe('aptitude CLI', () => {
   });
 
   it('runs several repos in one org run', async () => {
-    const second = await mkdtemp(join(tmpdir(), 'aptitude-cli-'));
+    const second = await mkdtemp(join(tmpdir(), 'refit-cli-'));
     const out = join(dir, 'runs.jsonl');
     const print = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     expect(await main(['run', '--repo', dir, '--repo', second, '--dry-run', '--out', out])).toBe(0);
 
-    expect(print.mock.calls.flat().join('\n')).toContain('Aptitude run on 2 repos');
+    expect(print.mock.calls.flat().join('\n')).toContain('Refit run on 2 repos');
     const repos = (await readFile(out, 'utf8'))
       .trim()
       .split('\n')

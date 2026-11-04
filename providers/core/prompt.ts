@@ -36,9 +36,9 @@ const KIND_GUIDE = `- api-version: a new API version, or an old one being retire
 - other: anything else a developer would have to change code for.`;
 
 export function watchSystemPrompt(provider: LoadedProvider): string {
-  return `You are Aptitude's API change watcher for ${provider.name}. Prompt ${WATCH_PROMPT_VERSION}.
+  return `You are Refit's API change watcher for ${provider.name}. Prompt ${WATCH_PROMPT_VERSION}.
 
-Aptitude migrates customers' code when external APIs change. Your job is the first step: read what ${provider.name} has published and write down every change that could make a developer change their code. Another agent later matches your changes to real call sites, so be specific about what is affected.
+Refit migrates customers' code when external APIs change. Your job is the first step: read what ${provider.name} has published and write down every change that could make a developer change their code. Another agent later matches your changes to real call sites, so be specific about what is affected.
 
 How to work:
 - The starting pages are listed below the task. Read them with read_page; asking for several at once is fine. Page through long pages with offset. Follow links to deprecation notices, upgrade guides or release notes when a summary is too thin to say what is affected.
@@ -70,7 +70,7 @@ const windowLine = (since: string | undefined) =>
 
 function knownLine(provider: Pick<LoadedProvider, 'knowledge'>): string {
   return provider.knowledge
-    ? `\n\nWhat Aptitude already knows (knowledge.json, may be stale):\n${JSON.stringify(
+    ? `\n\nWhat Refit already knows (knowledge.json, may be stale):\n${JSON.stringify(
         {
           versioning: provider.knowledge.versioning.scheme,
           versions: provider.knowledge.versions.map((version) => ({
@@ -114,7 +114,7 @@ const EACH_CHANGE = `Each change:
 - affects: operations (endpoint paths, SDK methods, GraphQL operations, model ids), fields, versions (API or SDK versions involved) and sdk (package name) - whatever the source supports. Leave a list out rather than invent entries.`;
 
 /**
- * For a provider Aptitude has no folder for (or a folder used only as a head
+ * For a provider Refit has no folder for (or a folder used only as a head
  * start): the agent finds the pages itself, then reads them like a folder watcher.
  */
 export function anyWatchSystemPrompt(provider: {
@@ -125,9 +125,9 @@ export function anyWatchSystemPrompt(provider: {
   const search = provider.webSearch
     ? ' web_search finds pages anywhere on the web: search for things like "<provider> API changelog" or "<provider> deprecations".'
     : '';
-  return `You are Aptitude's API change watcher for ${provider.name}. Prompt ${ANY_WATCH_PROMPT_VERSION}.
+  return `You are Refit's API change watcher for ${provider.name}. Prompt ${ANY_WATCH_PROMPT_VERSION}.
 
-Aptitude migrates customers' code when external APIs change. A codebase reader found code that calls ${provider.name}. Your job is the first step: find where ${provider.name} publishes its changes, read them, and write down every change that could make a developer change their code. Another agent later matches your changes to real call sites and pinned versions, so be specific about what is affected.
+Refit migrates customers' code when external APIs change. A codebase reader found code that calls ${provider.name}. Your job is the first step: find where ${provider.name} publishes its changes, read them, and write down every change that could make a developer change their code. Another agent later matches your changes to real call sites and pinned versions, so be specific about what is affected.
 
 Finding the pages:
 - Start from what you are given: the docs URLs and API hosts the codebase reader saw, the starting pages listed below the task, and the package registry summaries, which name each SDK's source repository.
@@ -158,7 +158,7 @@ MigrationKinds:
 ${KIND_GUIDE}
 
 About ${provider.name}:
-${provider.prompt.trim() || `Aptitude has no notes on ${provider.name} yet. Work out how it versions its API and SDKs from what you read.`}`;
+${provider.prompt.trim() || `Refit has no notes on ${provider.name} yet. Work out how it versions its API and SDKs from what you read.`}`;
 }
 
 export function anyWatchUserPrompt(input: {
@@ -194,7 +194,7 @@ ${sources}${packages}${knownLine({ knowledge: input.knowledge })}`;
 }
 
 export function knowledgeSystemPrompt(provider: LoadedProvider): string {
-  return `You are Aptitude's docs researcher for ${provider.name}. Prompt ${KNOWLEDGE_PROMPT_VERSION}.
+  return `You are Refit's docs researcher for ${provider.name}. Prompt ${KNOWLEDGE_PROMPT_VERSION}.
 
 Draft knowledge.json: the facts a migration agent needs about ${provider.name}. Read the provider's versioning, deprecation and SDK pages with read_page, then call submit_knowledge.
 

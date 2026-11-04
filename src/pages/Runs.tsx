@@ -104,7 +104,7 @@ export function Runs() {
         <div className="empty-state" role="alert">
           <WarningCircle size={30} />
           <h2>Couldn’t load runs.</h2>
-          <p>{state.message} Check that the Aptitude app is running, then try again.</p>
+          <p>{state.message} Check that the Refit app is running, then try again.</p>
           <button
             className="button button-secondary button-small"
             onClick={() => setAttempt((count) => count + 1)}

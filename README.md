@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="public/refit-agent-avatar.png" alt="Aptitude logo" width="96" height="96" />
+  <img src="public/refit-agent-avatar.png" alt="Refit logo" width="96" height="96" />
 </p>
-<h1 align="center">Aptitude</h1>
+<h1 align="center">Refit</h1>
 <p align="center"><strong>Turn upstream API changes into reviewed code updates.</strong></p>
 
-Aptitude is a GitHub App for an organization. Once installed, it reads each codebase the way a new engineer would, understands which external APIs it uses, where and how, then watches those APIs for changes, migrates the affected code, proves the migration works and opens a PR. It learns from every outcome. Aptitude was previously called Refit.
+Refit is a GitHub App for an organization. Once installed, it reads each codebase the way a new engineer would, understands which external APIs it uses, where and how, then watches those APIs for changes, migrates the affected code, proves the migration works and opens a PR. It learns from every outcome. Refit was previously called Refit.
 
 ## How it works
 
@@ -47,10 +47,10 @@ npm run dev
 ## Run the loop locally
 
 ```sh
-APTITUDE_AI_BUDGET_USD=2 ANTHROPIC_API_KEY=... npx aptitude run --repo ../some-repo --dry-run
+REFIT_AI_BUDGET_USD=2 ANTHROPIC_API_KEY=... npx refit run --repo ../some-repo --dry-run
 ```
 
-Or directly: `node orchestrator/cli.ts run --repo <path> [--dry-run] [--out <file>]`. `--dry-run` stops before opening the PR. `APTITUDE_AI_BUDGET_USD` caps the run's AI spend; a run without it refuses to spend. Without `ANTHROPIC_API_KEY`, the CLI runs offline: stubs stand in for every AI part and nothing is migrated. With it, inventory, watchers, the match agent, the harness and memory all draw on that one cap. The CLI's PR step is still a stand-in that prints a `stub://pr/...` link.
+Or directly: `node orchestrator/cli.ts run --repo <path> [--dry-run] [--out <file>]`. `--dry-run` stops before opening the PR. `REFIT_AI_BUDGET_USD` caps the run's AI spend; a run without it refuses to spend. Without `ANTHROPIC_API_KEY`, the CLI runs offline: stubs stand in for every AI part and nothing is migrated. With it, inventory, watchers, the match agent, the harness and memory all draw on that one cap. The CLI's PR step is still a stand-in that prints a `stub://pr/...` link.
 
 Current status: inventory, watch, migrate, PR and memory are stubs in this branch until their branches merge.
 

@@ -152,7 +152,7 @@ describe('provider folders and discovery', () => {
     const prompt = JSON.stringify(model.requests[0].messages[0]);
     for (const source of twilio.sources) expect(prompt).toContain(`${source.id} [${source.kind}]`);
     expect(prompt).toContain('https://api.github.com/repos/twilio/twilio-go/releases?per_page=100');
-    expect(prompt).toContain('What Aptitude already knows (knowledge.json, may be stale)');
+    expect(prompt).toContain('What Refit already knows (knowledge.json, may be stale)');
   });
 
   it('reads every folder in one run with one shared budget', async () => {

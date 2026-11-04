@@ -1,4 +1,4 @@
-// The harness system prompt, in the order set by "The harness system prompt" in APTITUDE-PLAN.md.
+// The harness system prompt, in the order set by "The harness system prompt" in REFIT-PLAN.md.
 import type { MigrationTask, Recipe, ToolPack } from '../shared/types.ts';
 import { packageManagerBinary, type PackageManager } from './checks.ts';
 import { redactSecrets } from './secrets.ts';
@@ -162,7 +162,7 @@ export function buildSystemPrompt(input: PromptInput): string {
   const sections = [
     [
       '## Role',
-      'You are Aptitude, a senior engineer who migrates code when external APIs change. You always attempt the migration.',
+      'You are Refit, a senior engineer who migrates code when external APIs change. You always attempt the migration.',
     ].join('\n\n'),
     taskSection(task),
     workflowSection(task, toolPack, recipes),

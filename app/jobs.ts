@@ -15,7 +15,7 @@ export type JobRunnerDeps = {
 // the checkout; the orchestrator's harness runs repo code in its Docker sandbox.
 export function createJobRunner(deps: JobRunnerDeps) {
   return async (job: UnderstandJob): Promise<void> => {
-    const dir = await mkdtemp(join(tmpdir(), 'aptitude-checkout-'));
+    const dir = await mkdtemp(join(tmpdir(), 'refit-checkout-'));
     try {
       await deps.checkout(await deps.tokens.token(job.installationId), job.repo, dir);
       // runRepoJob throws when a job has errors and no records; the queue logs that as a failed job.

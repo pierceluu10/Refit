@@ -1,6 +1,6 @@
 // The model seam. Every watcher talks to a ModelClient, so tests run on a fake
 // and production runs on Claude. All calls go through a BudgetLedger: the
-// run-level dollar cap is one of Aptitude's four hard limits.
+// run-level dollar cap is one of Refit's four hard limits.
 
 import Anthropic from '@anthropic-ai/sdk';
 
@@ -351,7 +351,7 @@ export function anthropicModel(
 ): ModelClient {
   let client = options.client;
   return messagesApiModel({
-    model: options.model ?? process.env.APTITUDE_WATCH_MODEL ?? DEFAULT_WATCH_MODEL,
+    model: options.model ?? process.env.REFIT_WATCH_MODEL ?? DEFAULT_WATCH_MODEL,
     effort: options.effort ?? 'medium',
     cache: options.cache ?? true,
     async send(body) {
@@ -366,12 +366,12 @@ export function anthropicModel(
 }
 
 /**
- * The run's ledger from APTITUDE_AI_BUDGET_USD. With it unset, the cap is
+ * The run's ledger from REFIT_AI_BUDGET_USD. With it unset, the cap is
  * fallbackUsd, which is $0 unless a caller (such as the CLI) chooses one: a
  * run without a cap refuses to spend.
  */
 export function budgetFromEnv(fallbackUsd = 0): BudgetLedger {
-  const raw = process.env.APTITUDE_AI_BUDGET_USD;
+  const raw = process.env.REFIT_AI_BUDGET_USD;
   const cap = raw === undefined || raw === '' ? fallbackUsd : Number(raw);
   return new BudgetLedger(cap);
 }

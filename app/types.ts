@@ -17,7 +17,7 @@ export type UnderstandJob = Extract<AppJob, { kind: 'understand' }>;
 
 export type JobQueue = { enqueue: (job: AppJob) => Promise<void> };
 
-// memory/ owns the run store; app/ reports what a human did with an Aptitude PR.
+// memory/ owns the run store; app/ reports what a human did with a Refit PR.
 export type RecordVerdict = (pr: string, verdict: HumanVerdict) => Promise<void>;
 
 // memory/'s listRunViews: every installation's runs, newest first, filtered by repo before the limit.
@@ -40,8 +40,8 @@ export type OpenPullRequestInput = {
 
 export type OpenedPullRequest = { url: string; number: number; branch: string; sha: string };
 
-// Every Aptitude PR branch starts with this, which is how webhooks recognise our PRs.
-export const BRANCH_PREFIX = 'aptitude/';
+// Every Refit PR branch starts with this, which is how webhooks recognise our PRs.
+export const BRANCH_PREFIX = 'refit/';
 
 // owner/name with GitHub's characters (letters, digits, '-', '_', '.'); never '.' or '..' as a segment.
 export const REPO_PATTERN = /^(?!\.\.?\/)[\w.-]+\/(?!\.\.?$)[\w.-]+$/;
