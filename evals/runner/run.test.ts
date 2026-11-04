@@ -269,7 +269,15 @@ describe('runSet', () => {
     // The next repo still starts: its inventory and match may fit where a task did not.
     expect(second?.verdict).toBe('tasks');
     expect(second?.tasks.map((task) => task.unrun)).toEqual(['budget', 'budget']);
-    expect(started).toEqual(['a/one#0', 'a/one#1', 'b/two#0', 'c/three#0']);
+    // A repo's tasks start at once, so each one the cap can't afford is tried and reported unrun.
+    expect([...started].sort()).toEqual([
+      'a/one#0',
+      'a/one#1',
+      'b/two#0',
+      'b/two#1',
+      'c/three#0',
+      'c/three#1',
+    ]);
   });
 
   it('stops starting repos once the run budget refuses a part every repo needs', async () => {

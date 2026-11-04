@@ -70,6 +70,12 @@ export async function createSandbox(
       await git('commit', '-q', '--allow-empty', '--no-verify', '-m', 'prepared');
       baseline = (await git('rev-parse', 'HEAD')).trim();
     };
+    // Back to the last snapshot: tracked files restored, new files gone (node_modules is kept, as
+    // git excludes it). What running the checks built doesn't then collide with a diff applied after.
+    const reset = async () => {
+      await git('checkout', '-q', '-f', baseline, '--', '.');
+      await git('clean', '-fdq');
+    };
     // tsc rewrites a committed *.tsbuildinfo whenever the checks build, so it is no change of the
     // agent's: left in, a task that changed nothing read as a diff (round 3, liamstamper/lamp-bot).
     const diff = async () => {
@@ -82,6 +88,9 @@ export async function createSandbox(
         '--',
         '.',
         ':(exclude,glob)**/*.tsbuildinfo',
+        // Python bytecode the checks compile (round 3, bcrant/Tableau2Slack), and nothing to review.
+        ':(exclude,glob)**/__pycache__/**',
+        ':(exclude,glob)**/*.pyc',
         // A proof test for a repo with no test setup: run by the harness, kept out of the PR.
         ':(exclude).refit-proof',
       );
@@ -96,6 +105,7 @@ export async function createSandbox(
         exec: (command, opts) => run('sh', ['-c', command], { cwd: dir, env, ...opts }),
         diff,
         snapshot,
+        reset,
         dispose: remove,
       };
     }
@@ -147,6 +157,7 @@ export async function createSandbox(
       },
       diff,
       snapshot,
+      reset,
       dispose: async () => {
         await run('docker', ['rm', '-f', name], { timeoutMs: 60_000 });
         await remove();

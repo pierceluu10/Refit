@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { FakeModelClient } from '../reviewer/model.ts';
-import { baselinePrompt, judge, passesChecks, refitIsA } from './baseline.ts';
+import {
+  baselinePrompt,
+  judge,
+  passesChecks,
+  refitIsA,
+  syntaxCheck,
+  unredact,
+} from './baseline.ts';
 
 describe('passesChecks', () => {
   const own = new Set(['typecheck', 'build']);
@@ -64,5 +71,42 @@ describe('judge', () => {
       // The prompt never says which attempt is Refit.
       expect(client.requests[0]?.prompt).not.toMatch(/refit|claude/i);
     }
+  });
+});
+
+describe('syntaxCheck', () => {
+  it('checks JavaScript, Python and JSON files, and skips what it has no cheap check for', () => {
+    expect(syntaxCheck('src/app.mjs')?.command).toBe("node --check 'src/app.mjs'");
+    expect(syntaxCheck('bot/main.py')?.command).toBe("python3 -m py_compile 'bot/main.py'");
+    expect(syntaxCheck('package.json')?.command).toContain('JSON.parse');
+    expect(syntaxCheck('tsconfig.json')).toBeUndefined();
+    expect(syntaxCheck('src/app.ts')).toBeUndefined();
+    expect(syntaxCheck("it's.js")?.command).toBe("node --check 'it'\\''s.js'");
+  });
+});
+
+describe('unredact', () => {
+  it("restores the repo's own lines the scrubber rewrote, and keeps an added line as recorded", () => {
+    const original = [
+      'const s3 = new S3({',
+      '  accessKeyId: process.env.R2_ACCESS_KEY_ID,',
+      '  region: "auto",',
+      '});',
+    ];
+    const diff = [
+      'diff --git a/lib/r2.ts b/lib/r2.ts',
+      '--- a/lib/r2.ts',
+      '+++ b/lib/r2.ts',
+      '@@ -1,4 +1,4 @@',
+      ' const s3 = new S3({',
+      '   accessKeyId: [redacted],',
+      '-  region: "auto",',
+      '+  region: "[redacted]",',
+      ' });',
+    ].join('\n');
+    const restored = unredact(diff, (file) => (file === 'lib/r2.ts' ? original : undefined));
+    expect(restored).toContain('   accessKeyId: process.env.R2_ACCESS_KEY_ID,');
+    expect(restored).toContain('-  region: "auto",');
+    expect(restored).toContain('+  region: "[redacted]",');
   });
 });

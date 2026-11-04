@@ -28,6 +28,8 @@ describe('redactSecrets', () => {
       'const key = process.env.OPENAI_API_KEY;',
       'primaryKey: 1,',
       'OPENAI_API_KEY=your-key-here',
+      'accessKeyId: process.env.R2_ACCESS_KEY_ID,',
+      'const token = import.meta.env.VITE_S3_TOKEN;',
     ].join('\n');
     expect(redactSecrets(code, env)).toBe(code);
   });

@@ -175,97 +175,111 @@ export async function loadRealPipeline(
     return anyWatcher(provider, hintsFor(provider, usages), budget, watchCache, options.watchAny);
   };
 
-  const factory: PipelineFactory = ({ entry, provider, meter }) => ({
-    checkout,
-    // Inventory is the first step that spends, so a provider nothing can watch stops before any
-    // spend, and so does one whose read already failed in this run.
-    inventory: async (repoDir, repo) => {
-      if (!providerFolder(provider, folders) && !options.watchAny) {
-        throw new Error(
-          `no changelog watcher for ${provider} yet: providers/ has no ${provider} folder and no any-provider watcher was passed`,
-        );
-      }
-      const read = changesByProvider.get(provider);
-      if (read) await read;
-      return spending(meter, 'inventory', () => deps.inventory(repoDir, repo));
-    },
-    watch: async (usages) => {
-      // Every provider the inventory found, as the loop watches them, not only the set's: a repo on
-      // OpenAI and Gemini must see Gemini's changes too. One watcher read per provider per run, so
-      // every repo is matched against the same changes. A refused read is not the end of the run:
-      // repos of providers already read can still go.
-      const providers = [
-        ...new Set([provider, ...usages.map((usage) => usage.provider.toLowerCase())]),
-      ];
-      const reads = providers.map((name) => {
-        let changes = changesByProvider.get(name);
-        if (!changes) {
-          changes = spending(meter, 'watch', () => watcherFor(name, usages)(), false);
-          changesByProvider.set(name, changes);
-        }
-        // Only the set's provider can fail the repo; another's failed read adds no changes.
-        return name === provider ? changes : changes.catch(() => []);
-      });
-      return (await Promise.all(reads)).flat();
-    },
-    // The loop's batching: each call judges at most MATCH_BATCH changes, and across calls the most
-    // urgent tasks go first.
-    match: (changes, usages) =>
-      spending(meter, 'match', async () => {
-        const tasks: MatchedTask[] = [];
-        const reasons: string[] = [];
-        for (let start = 0; start < changes.length; start += MATCH_BATCH) {
-          const result = await deps.match({
-            repo: entry.repo,
-            changes: changes.slice(start, start + MATCH_BATCH),
-            usages,
-          });
-          tasks.push(...result.tasks);
-          reasons.push(
-            ...result.notAffected.map((n) => `${n.changeId}: not affected: ${n.reasoning}`),
+  const factory: PipelineFactory = ({ entry, provider, meter }) => {
+    const learning: Promise<unknown>[] = [];
+    return {
+      checkout,
+      // Inventory is the first step that spends, so a provider nothing can watch stops before any
+      // spend, and so does one whose read already failed in this run.
+      inventory: async (repoDir, repo) => {
+        if (!providerFolder(provider, folders) && !options.watchAny) {
+          throw new Error(
+            `no changelog watcher for ${provider} yet: providers/ has no ${provider} folder and no any-provider watcher was passed`,
           );
         }
-        if (changes.length > MATCH_BATCH) tasks.sort((a, b) => urgencyRank(a) - urgencyRank(b));
-        tasks.forEach((task, index) => (task.priority = index + 1));
-        return {
-          // One harness run and one PR per repo and provider, as the loop does.
-          tasks: bundleTasks(tasks),
-          reasoning: [...tasks.map((task) => `${task.id}: ${task.reasoning}`), ...reasons].join(
-            '\n',
+        const read = changesByProvider.get(provider);
+        if (read) await read;
+        return spending(meter, 'inventory', () => deps.inventory(repoDir, repo));
+      },
+      watch: async (usages) => {
+        // Every provider the inventory found, as the loop watches them, not only the set's: a repo on
+        // OpenAI and Gemini must see Gemini's changes too. One watcher read per provider per run, so
+        // every repo is matched against the same changes. A refused read is not the end of the run:
+        // repos of providers already read can still go.
+        const providers = [
+          ...new Set([provider, ...usages.map((usage) => usage.provider.toLowerCase())]),
+        ];
+        const reads = providers.map((name) => {
+          let changes = changesByProvider.get(name);
+          if (!changes) {
+            changes = spending(meter, 'watch', () => watcherFor(name, usages)(), false);
+            changesByProvider.set(name, changes);
+          }
+          // Only the set's provider can fail the repo; another's failed read adds no changes.
+          return name === provider ? changes : changes.catch(() => []);
+        });
+        return (await Promise.all(reads)).flat();
+      },
+      // The loop's batching: each call judges at most MATCH_BATCH changes, and across calls the most
+      // urgent tasks go first.
+      match: (changes, usages) =>
+        spending(meter, 'match', async () => {
+          // One call per provider (and per MATCH_BATCH of its changes), all at once: a repo on four
+          // providers waited on one long call over every change before.
+          const byProvider = new Map<string, typeof changes>();
+          for (const change of changes) {
+            byProvider.set(change.provider, [...(byProvider.get(change.provider) ?? []), change]);
+          }
+          const batches = [...byProvider.values()].flatMap((group) =>
+            Array.from({ length: Math.ceil(group.length / MATCH_BATCH) }, (_, i) =>
+              group.slice(i * MATCH_BATCH, (i + 1) * MATCH_BATCH),
+            ),
+          );
+          const results = await Promise.all(
+            batches.map((batch) => deps.match({ repo: entry.repo, changes: batch, usages })),
+          );
+          const tasks: MatchedTask[] = results.flatMap((result) => result.tasks);
+          const reasons = results.flatMap((result) =>
+            result.notAffected.map((n) => `${n.changeId}: not affected: ${n.reasoning}`),
+          );
+          if (batches.length > 1) tasks.sort((a, b) => urgencyRank(a) - urgencyRank(b));
+          tasks.forEach((task, index) => (task.priority = index + 1));
+          return {
+            // One harness run and one PR per repo and provider, as the loop does.
+            tasks: bundleTasks(tasks),
+            reasoning: [...tasks.map((task) => `${task.id}: ${task.reasoning}`), ...reasons].join(
+              '\n',
+            ),
+          };
+        }),
+      // The runner charges each record's costUsd to the meter itself. A task the run can't afford is
+      // not started: it, and what follows it in this repo, is reported unrun.
+      runTask: async (task, repoDir) => {
+        // The harness holds a share of what is free, so the advisory review's worst case is set aside
+        // first, when the run can spare it, and handed back as soon as the harness returns.
+        const freeUsd = budget.capUsd - budget.spentUsd() - budget.heldUsd();
+        const spare =
+          freeUsd - TURN_RESERVE_USD >= REVIEW_RESERVE_USD
+            ? await budget.reserve(`the review of ${task.id}`, REVIEW_RESERVE_USD)
+            : undefined;
+        let record: RunRecord;
+        try {
+          record = await deps.runTask(task, repoDir);
+        } finally {
+          spare?.settle(0);
+        }
+        const note = unaffordableNote(record);
+        if (note) throw new BudgetExceededError(note, { runOver: false });
+        // Memory learns from the attempt, as the loop's recordRun does, so recipes carry across
+        // iterations. It runs beside the review, not before it; drain() waits for it before the repo
+        // is recorded. A failure to learn never touches the task.
+        learning.push(
+          spending(meter, 'memory', () => deps.recordRun(task, record, repoDir)).catch(
+            (error: unknown) =>
+              console.error(
+                `memory: ${task.id} not recorded: ${error instanceof Error ? error.message : error}`,
+              ),
           ),
-        };
-      }),
-    // The runner charges each record's costUsd to the meter itself. A task the run can't afford is
-    // not started: it, and what follows it in this repo, is reported unrun.
-    runTask: async (task, repoDir) => {
-      // The harness holds a share of what is free, so the advisory review's worst case is set aside
-      // first, when the run can spare it, and handed back as soon as the harness returns.
-      const freeUsd = budget.capUsd - budget.spentUsd() - budget.heldUsd();
-      const spare =
-        freeUsd - TURN_RESERVE_USD >= REVIEW_RESERVE_USD
-          ? await budget.reserve(`the review of ${task.id}`, REVIEW_RESERVE_USD)
-          : undefined;
-      let record: RunRecord;
-      try {
-        record = await deps.runTask(task, repoDir);
-      } finally {
-        spare?.settle(0);
-      }
-      const note = unaffordableNote(record);
-      if (note) throw new BudgetExceededError(note, { runOver: false });
-      // Memory learns from the attempt, as the loop's recordRun does, so recipes carry across
-      // iterations. A failure to learn never touches the task.
-      await spending(meter, 'memory', () => deps.recordRun(task, record, repoDir)).catch(
-        (error: unknown) =>
-          console.error(
-            `memory: ${task.id} not recorded: ${error instanceof Error ? error.message : error}`,
-          ),
-      );
-      return record;
-    },
-    // Charges the meter itself.
-    review: (input) => review(input),
-  });
+        );
+        return record;
+      },
+      // Charges the meter itself.
+      review: (input) => review(input),
+      drain: async () => {
+        await Promise.allSettled(learning);
+      },
+    };
+  };
   return { factory, spentUsd: () => runBudget.spentUsd() };
 }
 
