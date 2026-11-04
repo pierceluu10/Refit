@@ -1,0 +1,275 @@
+[
+  {
+    "set": "anthropic-dev-30",
+    "repo": "BoomerAng9/acheevy-agent",
+    "commit": "980c9194530f7d7a29da8003647a2575e046809d",
+    "class": "red-baseline",
+    "reason": "pytest failed at collection with ModuleNotFoundError: No module named 'ii_agent.tools' in 6 test modules; the repo's own imports are broken, with no external credentials, services or toolchain involved."
+  },
+  {
+    "set": "anthropic-dev-30",
+    "repo": "jdbrucecpa/jd-notes-things",
+    "commit": "b317a6ec91f11ac40621724ad70800abe8faf11a",
+    "class": "outside-authority",
+    "reason": "`npm run test` fails in tests/unit/aiServiceManager.test.js with `spawn taskkill ENOENT`: the code path under test calls the Windows-only `taskkill` command, which doesn't exist on the Linux sandbox, so passing needs a platform other than Linux."
+  },
+  {
+    "set": "anthropic-dev-30",
+    "repo": "jorkun/vue3-migration-extension",
+    "commit": "c4c833402c21ff623e4d9e383dbd2c6c73a5b7dc",
+    "class": "red-baseline",
+    "reason": "npm install crashed with an npm-internal error (timeout, exit 124), so tsc was never installed and typecheck failed; the test script then failed because ./out/test/runTest.js was never compiled. This is a missing install/build artifact, not a credential, private registry, or unsupported toolchain, although the VS Code extension test runner may later need a downloaded VS Code."
+  },
+  {
+    "set": "anthropic-dev-30",
+    "repo": "mignotD/quorum",
+    "commit": "928a47b41c585fcc3ec967ca9227d77cccbdd05d",
+    "class": "red-baseline",
+    "reason": "npm test fails: tests/authMiddleware.test.js and tests/loginRedirect.test.js cannot load because bcrypt's native binding (bcrypt_lib.node) is missing after install. This is a fixable build problem (rebuild bcrypt or switch to bcryptjs), not a credential, service or platform limit, and no test needed a live database."
+  },
+  {
+    "set": "anthropic-dev-30",
+    "repo": "nikolaev-gd/splitting-to-components-v0",
+    "commit": "eb60db79fbf05d9db90f33656ac26045d081e775",
+    "class": "red-baseline",
+    "reason": "typecheck fails with TS2554 (wrong argument count) in InteractiveText.tsx and TS7006 (implicit any) in useTextDisplay.ts, and the Next.js build fails on the deprecated `export const config` in app/api/generateFlashcard/route.ts; these are the repo's own code errors, not external dependencies."
+  },
+  {
+    "set": "anthropic-dev-30",
+    "repo": "openlegion-ai/openlegion",
+    "commit": "24efd6e06b28768cbbcd9275f43c479b3df37b18",
+    "class": "red-baseline",
+    "reason": "pytest timed out after 10 minutes at ~89% with no failures or missing credentials/services shown; the repo's own test suite hangs or runs too slowly as it stands."
+  },
+  {
+    "set": "anthropic-dev-30",
+    "repo": "Rzbyte/PhylaX",
+    "commit": "9b25ac1f623549f288fa1ae831e7d55a3c5d5ada",
+    "class": "outside-authority",
+    "reason": "npm run test fails on 'Rate limiting works or remains intact' after repeated Privy access token verification failures; the tests need a real Privy app/secret (placeholders supplied) and likely Postgres/Redis servers, which the sandbox lacks."
+  },
+  {
+    "set": "anthropic-dev-30",
+    "repo": "SIGKITTEN/claude-code",
+    "commit": "f75d8f2591afe01cc2fe493651e182f1afcfc458",
+    "class": "red-baseline",
+    "reason": "typecheck (tsc --noEmit) fails on the repo's own code: missing modules (../types/message.js, postCommitAttribution.js), missing exports from agentSdkTypes.js, wrong config types, and implicit-any/lib target errors; the bun-not-found build failure is secondary and the typecheck failures are not environmental."
+  },
+  {
+    "set": "gemini-dev-15",
+    "repo": "AravindKVishwanath/uplyticBackend",
+    "commit": "0077f61a34f4fb76b90bf4d5b353925b2c3ab1d9",
+    "class": "red-baseline",
+    "reason": "npm run build fails because the package.json build script is self-referential (\"build\": \"npm run build\"), causing infinite recursion until the process is killed; this is a bug in the repo's own config, not an external dependency."
+  },
+  {
+    "set": "gemini-dev-15",
+    "repo": "NateviratYungram/crypto-stream-ai",
+    "commit": "afc0aae51977bc8f74632d3be5c674fc5ce0a1e5",
+    "class": "red-baseline",
+    "reason": "pytest failed with 41 collection errors; the install also broke because requirements.txt has inline '#' comments after package names that pip rejects as invalid requirements, so the repo's dependencies are never installed. This is a defect in the repo's own files, not an outside-authority blocker."
+  },
+  {
+    "set": "gemini-dev-15",
+    "repo": "ShamWuo/Prasic",
+    "commit": "99690dd831fda1d0bac47834b92df147e6e8db98",
+    "class": "red-baseline",
+    "reason": "npm run type-check fails with 10 TypeScript errors in the repo's own code (e.g. missing 'useTheme' in StatsView.tsx, nonexistent 'textOnPrimary' theme property in SessionOverlay.tsx, TS2345 in ChallengeHeroCard.tsx), none involving external resources."
+  },
+  {
+    "set": "longtail-dev-20",
+    "repo": "Arcath/gatsby-source-square-catalog",
+    "commit": "fbaff74e207e28f464388987fc7c3f97c388374b",
+    "class": "red-baseline",
+    "reason": "npm run test (tsc & jest) fails with TS2322 in src/index.spec.ts: process.env['GSSC_TOKEN'] is 'string | undefined' but config token expects 'string'; this is a type error in the repo's own test code, before any credential would be used."
+  },
+  {
+    "set": "longtail-dev-20",
+    "repo": "cokia/dimi-online-notification-backend",
+    "commit": "2a608524638b814bcfd46ad1789137dffb0d162c",
+    "class": "red-baseline",
+    "reason": "typecheck fails before any edit: src/util/cron.ts: error TS2307: Cannot find module '../timetable/first.json'."
+  },
+  {
+    "set": "longtail-dev-20",
+    "repo": "fafrd/ens-reverse-lookup",
+    "commit": "e0565b08c619e63d8fdae07c4a02d02fd7be6b06",
+    "class": "red-baseline",
+    "reason": "typecheck (tsc --noEmit) fails on conflicting type definitions between @cloudflare/workers-types and DOM libs, and the jest test 'handle GET' fails because the handler returns a usage string instead of 'request method: GET' - both are repo code/config problems, not external dependencies."
+  },
+  {
+    "set": "longtail-dev-20",
+    "repo": "funsocietyirc/MrNodeBot",
+    "commit": "ec7bc720d8aa05fd7cb682ea131335f0861fe66e",
+    "class": "outside-authority",
+    "reason": "`npm run test` runs `snyk test` first, which fails because it requires an authenticated Snyk account (`snyk auth`), i.e. real credentials for a live external service; the mocha tests never run."
+  },
+  {
+    "set": "longtail-dev-20",
+    "repo": "michaeljolley/number-one",
+    "commit": "a5d25f47c965263101d8ad86e7b48eec2f9b7a46",
+    "class": "red-baseline",
+    "reason": "typecheck and build (tsc) fail parsing node_modules/@types/express-serve-static-core/index.d.ts because the installed type definitions use syntax newer than the repo's old TypeScript supports, a dependency/version mismatch in the repo's own setup that needs no outside access to fix."
+  },
+  {
+    "set": "longtail-dev-20",
+    "repo": "MyMICDS/MyMICDS-v2",
+    "commit": "5c246fe5f93313b7444961fa84e8010f6151e777",
+    "class": "red-baseline",
+    "reason": "typecheck and test fail with TS2307 because src/libs/config module is missing from the checkout (likely a gitignored/generated config file), which is a repo-level problem rather than an external credential, service, or toolchain requirement."
+  },
+  {
+    "set": "longtail-dev-20",
+    "repo": "yellowme/slack-poll",
+    "commit": "d123b06a88ea7f0611522318b48364af7cefca4d",
+    "class": "outside-authority",
+    "reason": "The test suite fails with 'Please install sqlite3 package manually': the sqlite3 native module was not built because install ran with scripts ignored, so the in-memory SQLite tests cannot load in this sandbox."
+  },
+  {
+    "set": "openai-dev-30",
+    "repo": "akshat-mechlin/Ghost",
+    "commit": "e7605b2d653660143185c5b6eb3d33a8836c6764",
+    "class": "red-baseline",
+    "reason": "npm run typecheck fails with many TypeScript errors in the repo's own code (e.g. duplicate declarations of screenshots/videos in lib/test-runner.ts, Stripe API version mismatch in lib/stripe.ts, unknown error types in route files), and the build also fails; none of this requires external credentials or services."
+  },
+  {
+    "set": "openai-dev-30",
+    "repo": "crlny/lobe-chat",
+    "commit": "62043bba74ddd43020d5162d1acbedeb95300067",
+    "class": "red-baseline",
+    "reason": "typecheck fails on the repo's own code and dependency types (missing @testing-library/react exports like screen/waitFor, AuthObject lacking userId, zustand Devtools typing, Next route type errors), and tests also fail in-repo (crawlImpls not a function, browserless URL assertion); none need credentials or external services."
+  },
+  {
+    "set": "openai-dev-30",
+    "repo": "gaurangpb/test-mate",
+    "commit": "52f56177d577c76d80a3577acda439b29882779a",
+    "class": "red-baseline",
+    "reason": "npm run test fails 8 tests across 4 suites (adoService, styleGuideLoader, generate, config) with assertion mismatches in the repo's own code and tests, with mocked OpenAI and ADO config and no real credentials or external service needed."
+  },
+  {
+    "set": "openai-dev-30",
+    "repo": "GLOBAL-PALO-IT/th_PALO-LLM-Playground",
+    "commit": "19c6665f79e9e498d9bc29be6e27ae3e9375a933",
+    "class": "red-baseline",
+    "reason": "tsc --noEmit and npm run build fail on the repo's own code: Next.js route handlers use synchronous params instead of Promise<{id}>, RAGChat.tsx references an undefined 'debugPrompt', and tests have type errors, none needing external services or credentials."
+  },
+  {
+    "set": "openai-dev-30",
+    "repo": "guixincui/LobeChat",
+    "commit": "c0f1ca77014de1669ebce0b45a3f1810cd5b6228",
+    "class": "red-baseline",
+    "reason": "typecheck, build and test all fail on the repo's own state: TS errors (OpenAI stream types, possibly-undefined res.data), and unresolved public packages (@lobehub/tts, @lobehub/icons, @lobehub/fluent-emoji, @lobehub/ui exports), which points to dependency/version drift in the repo rather than credentials, a private registry or an unsupported toolchain."
+  },
+  {
+    "set": "openai-dev-30",
+    "repo": "janiluuk/gpt-buddy",
+    "commit": "7274a87fa1875f69804ba209807565f03fe05424",
+    "class": "red-baseline",
+    "reason": "pytest reports 28 setup errors in tests/unit (apprise_sender, gpt, helpers, scheduled_image); the cause isn't shown, but nothing points to credentials, private deps or an unrunnable toolchain, so it is treated as the repo's own test/fixture failures."
+  },
+  {
+    "set": "openai-dev-30",
+    "repo": "Lealdos/Shopify-ecommerce",
+    "commit": "9c9ef956ca4aec1d990dca0fa620d2c777ec362b",
+    "class": "outside-authority",
+    "reason": "`npm run build` fails because static generation fetches the Shopify Admin API (/admin/api/2024-04/products.json) with an empty base URL; the Shopify store domain and access token env vars are missing, so a real Shopify store and credentials are needed."
+  },
+  {
+    "set": "openai-dev-30",
+    "repo": "ravi-aman/pureFeedback",
+    "commit": "5121b3eca9cc48cbcbed94e52130e08e8a62d22c",
+    "class": "red-baseline",
+    "reason": "typecheck and next build fail on the repo's own code: TS2322/TS2345 'unknown' type errors in dashboard/page.tsx and MessageCard.tsx, plus filename casing conflicts (NavBar/Navbar, verifySchema/verifyschema), none needing external services."
+  },
+  {
+    "set": "stripe-dev-30",
+    "repo": "adamhitzger/financehb",
+    "commit": "6b409f3db888e0792800d10942ea361e0a338500",
+    "class": "red-baseline",
+    "reason": "npm run build fails with Turbopack module-not-found errors: @sanity/ui and sanity/insert-menu cannot resolve imports such as @sanity/icons and @floating-ui/react-dom when bundling the studio page. This is a dependency or config problem in the repo, not a missing credential or external service."
+  },
+  {
+    "set": "stripe-dev-30",
+    "repo": "ArhanAnsari/InspireGem",
+    "commit": "a6bf456cd830a5f5d7267d69407c5c0a5fcc8336",
+    "class": "red-baseline",
+    "reason": "typecheck (tsc --noEmit) fails on the repo's own code: possibly-undefined/null errors in app/api/auth/[...nextauth]/route.ts and a missing react-katex type declaration in components/MathRenderer.tsx, which need no external service to fix."
+  },
+  {
+    "set": "stripe-dev-30",
+    "repo": "brunobola-portfolio/GitHub-Repo-Manager",
+    "commit": "982052f27557a18b93e2fe6cc7bd0b3308b6778f",
+    "class": "red-baseline",
+    "reason": "build fails before any edit: failed: Build failed in"
+  },
+  {
+    "set": "stripe-dev-30",
+    "repo": "doganarif/build-it",
+    "commit": "7c1a3e5fff4f12e106658cc2a1fc409e00c455d4",
+    "class": "red-baseline",
+    "reason": "npm install hits an ERESOLVE peer conflict (lucide-react@0.307.0 wants react <=18 but root uses react 19), and the build then fails because @stripe/stripe-js and @stripe/react-stripe-js are imported but not resolved; these are the repo's own dependency declarations, not credentials or a private registry."
+  },
+  {
+    "set": "stripe-dev-30",
+    "repo": "ggallon/type-last",
+    "commit": "f2c76e13f28f30e1b7ca09d4acb89087be6f7105",
+    "class": "red-baseline",
+    "reason": "typecheck (tsc --noEmit) and build fail on TypeScript errors in the repo's own code: app/(dashboard)/layout.tsx passes a partial user object where a full Prisma User is required, and 'teamSwitcher' and 'teams' are missing from SiteHeaderProps and User. No external credentials or services are involved."
+  },
+  {
+    "set": "stripe-dev-30",
+    "repo": "Harries/startfast-free",
+    "commit": "567f2bfa4a3596fd6058e05dd53bf70fc3164733",
+    "class": "red-baseline",
+    "reason": "typecheck and build fail in src/lib/stripe.ts because apiVersion '2024-12-18.acacia' doesn't match the installed Stripe SDK's expected '2025-02-24.acacia' type; this is a code/dependency mismatch in the repo itself, with no real credentials or services needed."
+  },
+  {
+    "set": "stripe-dev-30",
+    "repo": "JensenMPillay/pdfai",
+    "commit": "76eee198ded23bf4fafba0e2d431cf01d2f60290",
+    "class": "red-baseline",
+    "reason": "Build fails because bcrypt's native binding (bcrypt_lib.node) is missing from the install, and `jest` exits 1 with no tests found; neither needs credentials, a paid service, or an unrunnable toolchain, so both are repo or setup failures."
+  },
+  {
+    "set": "stripe-dev-30",
+    "repo": "karljuhl/Club_Connect",
+    "commit": "5c3cc8acc606128a130463137e12f1e3442d75fd",
+    "class": "red-baseline",
+    "reason": "typecheck (tsc --noEmit) fails on the repo's own code: missing next-auth modules, Prisma client types out of sync with the schema (openaiKey, chatbotId), implicit anys and prop type mismatches. The build's P1001 database failure is a separate issue, but the typecheck errors are genuine code/type failures."
+  },
+  {
+    "set": "stripe-dev-30",
+    "repo": "qesmsep/noir-crm-dashboard",
+    "commit": "1f59675a9636716b8efc028c9a637c9568e8fb8e",
+    "class": "red-baseline",
+    "reason": "tsc typecheck fails with TS2540 (assigning read-only NODE_ENV in security.test.ts), and npm test fails in security.test.ts (query1.in is not a function mock gap) and stripe-webhook-skip-cron.test.ts (Invalid signature); these are repo code/test bugs, not external dependencies."
+  },
+  {
+    "set": "stripe-dev-30",
+    "repo": "rishabhsingroha/MusicListeningPlatform",
+    "commit": "0726851cc55569983b1e14db7b64468395012191",
+    "class": "red-baseline",
+    "reason": "typecheck and build fail because src/app/api/webHooks/route.ts imports '@/libs/supabaseAdmin', a module missing from the repo (a code defect, not an external credential or service need)."
+  },
+  {
+    "set": "stripe-dev-30",
+    "repo": "shagunmistry/FlowCraft",
+    "commit": "ae2e307c4e725bde23e9829d8d1bc97946338c8d",
+    "class": "red-baseline",
+    "reason": "`next build` compiled successfully but hung in the 'Linting and checking validity of types' step until the 10-minute timeout; no credential, private registry or unsupported-toolchain requirement is shown, so the failure is in the repo's own build/type-check."
+  },
+  {
+    "set": "stripe-dev-30",
+    "repo": "tejashVaishnav/Fast-saas-next.js-boilerplate",
+    "commit": "cf9770e6e04a535cbcd9ce6b5ae0d5fa035f890d",
+    "class": "outside-authority",
+    "reason": "`npm run build` failed at `prisma db push` with P1001 because it needs a live PostgreSQL server at localhost:5432, which the sandbox doesn't have."
+  },
+  {
+    "set": "stripe-dev-30",
+    "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+    "commit": "96a68ad7967b112a75956d37a51b3bef30c717c7",
+    "class": "red-baseline",
+    "reason": "typecheck fails before any edit: exit-nonzero: sh: 1: tsc: not found"
+  }
+]

@@ -1,0 +1,70 @@
+{
+  "set": "openai-dev-30",
+  "repo": "akshat-mechlin/Ghost",
+  "commit": "e7605b2d653660143185c5b6eb3d33a8836c6764",
+  "provider": "openai",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "typecheck",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/ghostqa' NEXTAUTH_URL='http://localhost:3000' NEXTAUTH_SECRET='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' OPENAI_API_KEY='placeholder' REDIS_URL='redis://localhost:6379'; npm run typecheck",
+      "ok": false,
+      "failures": [
+        "app/api/test-runs/execute/route.ts: error TS18046: 'error' is of type 'unknown'.",
+        "app/api/test-runs/execute/route.ts: error TS18046: 'stepError' is of type 'unknown'.",
+        "app/api/tests/run/route.ts: error TS2322: Type '{ organizationId: string; testCaseId: any; userId: string; status: \"PENDING\"; }' is not assignable to type '(Without<TestRunCreateInput, TestRunUncheckedCreateInput> & TestRunUncheckedCreateInput) | (Without<...> & TestRunCreateInput)'.",
+        "app/api/websites/crawl/route.ts: error TS2339: Property 'type' does not exist on type 'Element'.",
+        "app/api/websites/crawl/route.ts: error TS2339: Property 'name' does not exist on type 'Element'.",
+        "app/api/websites/crawl/route.ts: error TS2339: Property 'placeholder' does not exist on type 'Element'.",
+        "app/api/websites/crawl/route.ts: error TS2339: Property 'required' does not exist on type 'Element'.",
+        "app/api/websites/crawl/route.ts: error TS2339: Property 'href' does not exist on type 'Element'.",
+        "app/websites/page.tsx: error TS1355: A 'const' assertions can only be applied to references to enum members, or string, number, boolean, array, or object literals.",
+        "lib/auth.ts: error TS2322: Type '{ signIn: string; signUp: string; }' is not assignable to type 'Partial<PagesOptions>'."
+      ],
+      "tail": "{ organizationId: any; testCaseId: string; userId: string; status: \"PENDING\"; }' but required in type 'TestRunUncheckedCreateInput'.\nlib/stripe.ts(4,3): error TS2322: Type '\"2024-06-20\"' is not assignable to type '\"2025-08-27.basil\"'.\nlib/test-runner.ts(34,7): error TS2451: Cannot redeclare block-scoped variable 'screenshots'.\nlib/test-runner.ts(35,7): error TS2451: Cannot redeclare block-scoped variable 'videos'.\nlib/test-runner.ts(38,27): error TS2531: Object is possibly 'null'.\nlib/test-runner.ts(38,40): error TS2339: Property 'createContext' does not exist on type 'Browser'.\nlib/test-runner.ts(44,11): error TS2451: Cannot redeclare block-scoped variable 'screenshots'.\nlib/test-runner.ts(45,11): error TS2451: Cannot redeclare block-scoped variable 'videos'.\nlib/test-runner.ts(48,24): error TS7006: Parameter 'msg' implicitly has an 'any' type.\nlib/test-runner.ts(57,30): error TS7006: Parameter 'request' implicitly has an 'any' type.\nlib/test-runner.ts(81,25): error TS2339: Property 'push' does not exist on type 'true'.\nlib/test-runner.ts(89,25): error TS2339: Property 'push' does not exist on type 'true'.\nlib/test-runner.ts(104,9): error TS2322: Type 'boolean' is not assignable to type 'string[]'.\nlib/test-runner.ts(105,9): error TS2322: Type 'boolean' is not assignable to type 'string[]'.\nlib/test-runner.ts(117,9): error TS2322: Type 'boolean' is not assignable to type 'string[]'.\nlib/test-runner.ts(118,9): error TS2322: Type 'boolean' is not assignable to type 'string[]'."
+    },
+    {
+      "name": "build",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/ghostqa' NEXTAUTH_URL='http://localhost:3000' NEXTAUTH_SECRET='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' OPENAI_API_KEY='placeholder' REDIS_URL='redis://localhost:6379'; npm run build",
+      "ok": false,
+      "failures": [
+        "exit-nonzero: at async eval (eval at <anonymous> (eval at <anonymous> (eval at <anonymous> (/work/next.config.js))), <anonymous>)"
+      ],
+      "tail": "> nextjs@0.1.0 build\n> next build\n\n   Creating an optimized production build ...\n\nunhandledRejection TypeError: Cannot read properties of undefined (reading 'payload')\n    at t (eval at <anonymous> (eval at <anonymous> (eval at <anonymous> (/work/next.config.js:9:5403))), <anonymous>:3:2248)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async eval (eval at <anonymous> (eval at <anonymous> (eval at <anonymous> (/work/next.config.js:9:5403))), <anonymous>:3:3011)"
+    }
+  ],
+  "costUsd": 0.0691679999999999,
+  "durationMs": 123936,
+  "install": {
+    "code": 0,
+    "tail": "added 846 packages in 47s\n\nnpm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated glob@7.1.7: Glob versions prior to v9 are no longer supported\nnpm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead\nnpm warn deprecated @humanwhocodes/config-array@0.11.14: Use @eslint/config-array instead\nnpm warn deprecated eslint@8.49.0: This version is no longer supported. Please see https://eslint.org/version-support for other options."
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "@prisma/client types and client are generated from prisma/schema.prisma. Install scripts were off, so this did not run, and typecheck and build import PrismaClient.",
+        "code": 0
+      },
+      {
+        "command": "npx prisma generate",
+        "why": "Installs ran with scripts off, so the Prisma client was never generated by @prisma/client's postinstall. Typecheck and build need the generated types.",
+        "code": 0
+      }
+    ],
+    "env": [
+      "DATABASE_URL",
+      "NEXTAUTH_URL",
+      "NEXTAUTH_SECRET",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "OPENAI_API_KEY",
+      "REDIS_URL"
+    ]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "npm run typecheck fails with many TypeScript errors in the repo's own code (e.g. duplicate declarations of screenshots/videos in lib/test-runner.ts, Stripe API version mismatch in lib/stripe.ts, unknown error types in route files), and the build also fails; none of this requires external credentials or services."
+  }
+}

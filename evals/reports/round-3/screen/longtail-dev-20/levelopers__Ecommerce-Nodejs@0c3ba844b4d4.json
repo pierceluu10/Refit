@@ -1,0 +1,19 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "levelopers/Ecommerce-Nodejs",
+  "commit": "0c3ba844b4d4ff5a4a64109050dd906b6334a532",
+  "provider": "paypal",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.003924,
+  "durationMs": 26773,
+  "install": {
+    "code": 0,
+    "tail": "added 420 packages in 6.035s\n\n(node:48) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "set": "anthropic-dev-30",
+  "index": 19,
+  "repo": "adri14gl/Chatbot-multiproveedor-con-fallback-y-streaming",
+  "commit": "955c63eeec11b28dd6aa82035eb6c721b7255bf5",
+  "provider": "anthropic",
+  "usages": 3,
+  "changes": 15,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "adri14gl/Chatbot-multiproveedor-con-fallback-y-streaming:anthropic:2026-11-30-retire-claude-sonnet-4-5",
+      "changeId": "anthropic:2026-11-30-retire-claude-sonnet-4-5",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "anthropic",
+        "id": "anthropic:2026-11-30-retire-claude-sonnet-4-5",
+        "kind": "model-retirement",
+        "title": "claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+          "quote": "| November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |"
+        },
+        "affects": {
+          "operations": ["claude-sonnet-4-5-20250929"]
+        },
+        "effectiveDate": "2026-11-30"
+      },
+      "reasoning": "The usage map records that all three Anthropic call sites pass a `model`, but it does not record which model ID the repo uses. Unlike the Gemini usage, no pinned model value is captured. This is a 2025-era multi-provider chatbot, so claude-sonnet-4-5-20250929 is a plausible default, and retirement would make every Anthropic request fail. The fallback to other providers would hide this, but the Anthropic path would stop working. Uncertain: the migration agent should find where the Anthropic model ID is defined (providers/anthropic_provider.py constants, main.py, env/config). If it is claude-sonnet-4-5-20250929, replace it with claude-sonnet-5-5. If it is another model, close this task as not needed. If moving to claude-sonnet-5-5, the current calls are compatible: they send only model, messages and max_tokens, with no thinking or forced tool_choice.",
+      "callSites": [
+        {
+          "file": "providers/anthropic_provider.py",
+          "line": 36,
+          "why": "messages.create passes a `model`. If that model (or its default/config value) is claude-sonnet-4-5-20250929, the call fails after Nov 30, 2026."
+        },
+        {
+          "file": "providers/anthropic_provider.py",
+          "line": 38,
+          "why": "messages.create passes a `model`. Same exposure if it resolves to claude-sonnet-4-5-20250929."
+        },
+        {
+          "file": "providers/anthropic_provider.py",
+          "line": 59,
+          "why": "messages.stream passes a `model`. Same exposure, and the streaming path would break."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "adri14gl/Chatbot-multiproveedor-con-fallback-y-streaming:anthropic:2026-11-30-retire-claude-sonnet-4-5",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [],
+        "costUsd": 0.07538020000000001,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-adri14gl-Chatbot-multiproveedor-con-fallback-y-streaming-anthropic-2026-11-30-retire-claude-sonnet-4-5-iGcnAM/transcript.jsonl",
+        "prBody": "## claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 [Not affected]\n\n### Change\n\nNo change made. The repo never names claude-sonnet-4-5-20250929. The Anthropic model defaults to `claude-3-7-sonnet-latest`, set in main.py:21 (via the ANTHROPIC_MODEL env var) and in providers/anthropic_provider.py:10.\n\nNo files changed.\n\n### Why\n\nThe Nov 30, 2026 retirement applies only to claude-sonnet-4-5-20250929. A search of the whole repo for claude, sonnet and ANTHROPIC found no reference to that ID, so no code change is forced.\n\n> | November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |\n\nSource: https://platform.claude.com/docs/en/about-claude/model-deprecations.md\n\n### Proof\n\nNo checks were run.\n\nNew failures: 0\n\nProvider validators: none run.\n\nWhere checks ran: Docker container python:3.12-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- A deployed ANTHROPIC_MODEL env var could still be set to claude-sonnet-4-5-20250929. That would override the default and break on the retirement date; I could not check deployment config.\n- claude-3-7-sonnet-latest may be affected by a separate deprecation notice. This task did not cover it and I did not check it.\n- No checks were run.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0754\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-anthropic-model-retirement-9b5d480a",
+          "recipe-anthropic-api-version-a547c43b",
+          "recipe-openai-model-retirement-58a73d88"
+        ],
+        "agentChecks": [],
+        "summary": "# adri14gl/Chatbot-multiproveedor-con-fallback-y-streaming:anthropic:2026-11-30-retire-claude-sonnet-4-5: not-affected, $0.0754\nChange: claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 (anthropic, model-retirement)\nBaseline checks: none\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=claude|sonnet|ANTHROPIC → main.py:15:     anthropic_key = os.getenv(\"ANTHROPIC_API_KEY\", \"\")\r | main.py:21:         AnthropicProvider(api_key=anthropic_key, model=os.getenv(\"ANTHROPIC_MODEL\", \"claude-3-7-sonnet-latest\")),\r | providers/anthropic_provider.py:10:     d…\n2. finish verdict=not-affected summary=<219 chars> why=<191 chars> validators=[] unproven=<319 chars> behaviourChanges=[] → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: none\n\n## Result\nFiles changed: none\nVerdict: not-affected. No change made. The repo never names claude-sonnet-4-5-20250929. The Anthropic model defaults to `claude-3-7-sonnet-latest`, set in main.py:21 (via the ANTHROPIC_MODEL env var) and in providers/anthropic_provider.py:10.\nUnproven: A deployed ANTHROPIC_MODEL env var could still be set to claude-sonnet-4-5-20250929. That would override the default and break on the retirement date; I could not check deployment config.; claude-3-7-sonnet-latest may be affected by a separate deprecation notice. This task did not cover it and I did not check it.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "No checks were detected, and the README only says to copy .env.example to .env. There is no sign of codegen, a build step or a workspace package that checks would need, so no setup steps or env placeholders are required."
+        }
+      }
+    }
+  ],
+  "costUsd": 0.1903893,
+  "durationMs": 68853,
+  "matchReasoning": "adri14gl/Chatbot-multiproveedor-con-fallback-y-streaming:anthropic:2026-11-30-retire-claude-sonnet-4-5: The usage map records that all three Anthropic call sites pass a `model`, but it does not record which model ID the repo uses. Unlike the Gemini usage, no pinned model value is captured. This is a 2025-era multi-provider chatbot, so claude-sonnet-4-5-20250929 is a plausible default, and retirement would make every Anthropic request fail. The fallback to other providers would hide this, but the Anthropic path would stop working. Uncertain: the migration agent should find where the Anthropic model ID is defined (providers/anthropic_provider.py constants, main.py, env/config). If it is claude-sonnet-4-5-20250929, replace it with claude-sonnet-5-5. If it is another model, close this task as not needed. If moving to claude-sonnet-5-5, the current calls are compatible: they send only model, messages and max_tokens, with no thinking or forced tool_choice.\nanthropic:2026-10-21-sdk-typescript-1-0-0: not affected: This is the npm @anthropic-ai/sdk TypeScript release. The repo uses the Python `anthropic` SDK pinned at ==0.106.0. It also sends no temperature, top_p or top_k.\nanthropic:2026-10-21-api-version-2026-10-21: not affected: The pinned Python SDK anthropic==0.106.0 keeps sending anthropic-version 2023-06-01, so nothing changes unless the repo upgrades. Even after an upgrade, the call sites send only model, messages and max_tokens, which none of the 2026-10-21 breaking changes touch.\nanthropic:2026-10-21-sampling-params-removed: not affected: The repo's messages.create and messages.stream calls send only model, messages and max_tokens, never temperature, top_p or top_k. They are also still on API version 2023-06-01.\nanthropic:2026-10-21-document-citations-user-assistant-errors: not affected: The chatbot sends plain chat messages. No document blocks or citations are used, and the repo remains on API version 2023-06-01.\nanthropic:2026-10-21-admin-api-field-renames: not affected: The repo only calls the Messages API. It does not use the Admin API or the Enterprise Analytics API.\nanthropic:2026-11-30-fast-mode-opus-4-8-removal: not affected: No call site sends the `speed` field. The repo has no recorded use of claude-opus-4-8 fast mode.\nanthropic:2026-10-07-haiku-5-5-breaking: not affected: The repo does not use claude-haiku-5-5. Its calls also send none of the breaking parameters: budget_tokens, sampling params, prefill or computer tools.\nanthropic:2026-09-28-sonnet-5-5-breaking: not affected: The repo does not currently use claude-sonnet-5-5. Its calls send no thinking or tool_choice, so a move to that model would not hit these 400s.\nanthropic:2026-09-22-opus-5-5-breaking: not affected: The repo does not use claude-opus-5-5. It sends no thinking, tool_choice or computer tool parameters.\nanthropic:2026-09-01-fable-5-1-tool-choice: not affected: The repo does not use claude-fable-5-1 or claude-mythos-5-1. It sends no tool_choice.\nanthropic:2026-10-14-ts-sdk-otel-default: not affected: This applies to the TypeScript SDK 0.134.0. The repo uses the Python anthropic SDK ==0.106.0.\nanthropic:2026-08-27-ts-sdk-beta-files-skills: not affected: This is a TypeScript SDK change to beta files and skills. The repo uses the Python SDK and only calls messages.create and messages.stream.\nanthropic:2026-10-07-text-completions-deprecated: not affected: The repo uses the Messages API (messages.create and messages.stream), not the Text Completions API. It also uses the Python SDK, not the TypeScript SDK.\nanthropic:2026-09-24-compliance-activity-names-removed: not affected: The repo does not call the Compliance API Activity Feed.",
+  "costByPart": {
+    "inventory": 0.0339051,
+    "match": 0.081104,
+    "other": 0,
+    "harness": 0.07538020000000001
+  }
+}

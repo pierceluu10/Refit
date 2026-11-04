@@ -1,0 +1,90 @@
+anthropic-dev-30: running 22 of 30 repos
+gemini-dev-15: running 12 of 15 repos
+longtail-dev-20: running 13 of 20 repos
+# longtail-dev-20
+
+Repos: 13: 13 started, 0 never started (dollar cap)
+Graded units: 22 (tasks, plus repos the match agent called not-affected)
+
+| Outcome | Units | Rate |
+| --- | --- | --- |
+| verified | 16 | 72.7% |
+| needs-review | 3 | 13.6% |
+| not-affected | 3 | 13.6% |
+| failed | 0 | 0.0% |
+
+Attempted: 100.0% (must be 100%)
+
+Cost: $10.9542 total, $0.8426 per repo
+
+Cost by part (from the meter labels):
+
+| Repo | inventory | watch | match | harness | review | other | Total |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| mantou132/Spotify-Lyrics | $0.0999 | $0.1487 | $0.0387 | $0.0000 | $0.0000 | $0.0000 | $0.2873 |
+| provinzio/CoinTaxman | $0.0342 | $0.1266 | $0.0566 | $0.0924 | $0.0523 | $0.1744 | $0.5367 |
+| levelopers/Ecommerce-Nodejs | $0.0153 | $0.0308 | $0.0421 | $0.1587 | $0.1477 | $0.3726 | $0.7671 |
+| yokingma/one-search-mcp | $0.0752 | $0.0633 | $0.0316 | $0.0998 | $0.0705 | $0.2320 | $0.5723 |
+| bcrant/Tableau2Slack | $0.0361 | $0.1396 | $0.0782 | $0.2802 | $0.1759 | $0.5354 | $1.2455 |
+| LeviathanLevi/Coinbase-Pro-Crypto-Trading-Bot-CrypFinder | $0.0860 | $0.0000 | $0.1131 | $0.3917 | $0.4065 | $0.7745 | $1.7718 |
+| bricefrisco/NamesLoL | $0.0615 | $0.2077 | $0.0451 | $0.1208 | $0.0658 | $0.1933 | $0.6941 |
+| MitchellHarrison/python-twitch-chatbot | $0.0926 | $0.0619 | $0.0693 | $0.2172 | $0.1870 | $0.4790 | $1.1069 |
+| jasperapp/jasper | $0.0623 | $0.0000 | $0.0263 | $0.0000 | $0.0000 | $0.0000 | $0.0887 |
+| natbat/pillarpointstewards | $0.0563 | $0.1411 | $0.0538 | $0.3261 | $0.0645 | $0.0000 | $0.6417 |
+| b1f6c1c4/c | $0.0446 | $0.1071 | $0.0869 | $0.2717 | $0.1772 | $0.5005 | $1.1880 |
+| outlook/ALTAR | $0.0555 | $0.0966 | $0.0964 | $0.4625 | $0.2546 | $0.5987 | $1.5644 |
+| kognise/stalker | $0.0836 | $0.3436 | $0.0625 | $0.0000 | $0.0000 | $0.0000 | $0.4897 |
+| All repos | $0.8033 | $1.4670 | $0.8006 | $2.4210 | $1.6019 | $3.8604 | $10.9542 |
+
+AI reviewer (advisory, not counted): looks-right 4, has-concerns 15
+PRs to hand-check in evals/reviews.json (verified and needs-review): 19
+
+Spent $10.9542 by the meter, $13.0659 by the run budget, of a $2000 cap
+# anthropic-dev-30
+
+Repos: 22: 22 started, 0 never started (dollar cap)
+Graded units: 36 (tasks, plus repos the match agent called not-affected)
+
+| Outcome | Units | Rate |
+| --- | --- | --- |
+| verified | 14 | 38.9% |
+| needs-review | 6 | 16.7% |
+| not-affected | 16 | 44.4% |
+| failed | 0 | 0.0% |
+
+Attempted: 100.0% (must be 100%)
+
+Cost: $15.7642 total, $0.7166 per repo
+
+Cost by part (from the meter labels):
+
+| Repo | inventory | watch | match | harness | review | other | Total |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| rainmana/cursorify | $0.0402 | $0.1494 | $0.1023 | $0.1468 | $0.2138 | $0.5529 | $1.2053 |
+| swharr/TrailblazerAI | $0.1143 | $0.0000 | $0.1556 | $0.1998 | $0.1459 | $0.2355 | $0.8511 |
+| atrueempire/yk | $0.0872 | $0.0000 | $0.1197 | $0.2966 | $0.1336 | $0.4854 | $1.1225 |
+| ducknife/Music_Agent | $0.0779 | $0.0000 | $0.1021 | $0.1850 | $0.0821 | $0.2893 | $0.7363 |
+| smartflow-systems/smartflow-hub | $0.0151 | $0.0000 | $0.0767 | $0.0925 | $0.0517 | $0.1774 | $0.4134 |
+| saxllc/journey-intelligence | $0.0860 | $0.0000 | $0.1498 | $0.2081 | $0.2844 | $0.5755 | $1.3038 |
+| elnazar535-coder/eleko-bot | $0.0299 | $0.0000 | $0.0838 | $0.0820 | $0.0734 | $0.2971 | $0.5662 |
+| wimvwu-design/factuur-scanner | $0.0671 | $0.0000 | $0.0932 | $0.0968 | $0.1032 | $0.4019 | $0.7623 |
+| nielspac177/massmonitor | $0.0489 | $0.0000 | $0.1006 | $0.1919 | $0.0669 | $0.4316 | $0.8400 |
+| rickkxu/stylescout | $0.0987 | $0.0000 | $0.1125 | $0.0709 | $0.0000 | $0.0000 | $0.2821 |
+| nfindler/playbook-pipeline | $0.0650 | $0.0000 | $0.1316 | $0.1926 | $0.0684 | $0.2823 | $0.7399 |
+| souravdas2003/Chatbot-Using-Anthropic-Api-Key | $0.0153 | $0.0000 | $0.0837 | $0.1071 | $0.0987 | $0.3704 | $0.6752 |
+| Jmk125/ConstructionDocuments | $0.0318 | $0.0000 | $0.0983 | $0.2242 | $0.0901 | $0.3026 | $0.7471 |
+| William-franklyn/data-visualization-library | $0.0364 | $0.0000 | $0.1079 | $0.1856 | $0.0650 | $0.3444 | $0.7394 |
+| xiaoshuntian/academic-paper-skill | $0.0540 | $0.0000 | $0.0969 | $0.1803 | $0.0618 | $0.3589 | $0.7520 |
+| kumarswamyg2005/Docstring-Generation-Agent-and-README-Generation-Agent | $0.0352 | $0.0000 | $0.0841 | $0.1967 | $0.0577 | $0.2640 | $0.6376 |
+| MFaizanali2/Code-Review-Agent | $0.0951 | $0.0000 | $0.1101 | $0.2224 | $0.0693 | $0.3680 | $0.8648 |
+| konan-ny/MAF2024 | $0.0494 | $0.0000 | $0.0898 | $0.2123 | $0.0747 | $0.3879 | $0.8141 |
+| PunsaraniJayawardhana/AIspect | $0.0324 | $0.0000 | $0.0962 | $0.2561 | $0.0802 | $0.3139 | $0.7788 |
+| adri14gl/Chatbot-multiproveedor-con-fallback-y-streaming | $0.0339 | $0.0000 | $0.0811 | $0.0754 | $0.0000 | $0.0000 | $0.1904 |
+| rosscrooke/specialist-swarm | $0.0115 | $0.0000 | $0.1136 | $0.2093 | $0.0797 | $0.2160 | $0.6301 |
+| Brettjo77/YTAstroAssistant | $0.0376 | $0.0000 | $0.0744 | $0.0000 | $0.0000 | $0.0000 | $0.1119 |
+| All repos | $1.1630 | $0.1494 | $2.2641 | $3.6320 | $1.9005 | $6.6551 | $15.7642 |
+
+AI reviewer (advisory, not counted): looks-right 6, has-concerns 14
+PRs to hand-check in evals/reviews.json (verified and needs-review): 20
+
+Spent $15.7642 by the meter, $24.7288 by the run budget, of a $2000 cap

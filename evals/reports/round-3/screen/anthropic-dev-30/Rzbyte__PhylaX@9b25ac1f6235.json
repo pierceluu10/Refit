@@ -1,0 +1,55 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "Rzbyte/PhylaX",
+  "commit": "9b25ac1f623549f288fa1ae831e7d55a3c5d5ada",
+  "provider": "anthropic",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export APP_TRADING_MODE='demo' DATABASE_URL='postgresql://user:pass@localhost:5432/db' REDIS_URL='redis://localhost:6379' ADMIN_SECRET='placeholder' APPROVAL_SECRET='placeholder' NEXT_PUBLIC_PRIVY_APP_ID='cmabcdefghijklmnopqrstuvw' PRIVY_APP_SECRET='placeholder' ANTHROPIC_API_KEY='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export APP_TRADING_MODE='demo' DATABASE_URL='postgresql://user:pass@localhost:5432/db' REDIS_URL='redis://localhost:6379' ADMIN_SECRET='placeholder' APPROVAL_SECRET='placeholder' NEXT_PUBLIC_PRIVY_APP_ID='cmabcdefghijklmnopqrstuvw' PRIVY_APP_SECRET='placeholder' ANTHROPIC_API_KEY='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "test",
+      "command": "export APP_TRADING_MODE='demo' DATABASE_URL='postgresql://user:pass@localhost:5432/db' REDIS_URL='redis://localhost:6379' ADMIN_SECRET='placeholder' APPROVAL_SECRET='placeholder' NEXT_PUBLIC_PRIVY_APP_ID='cmabcdefghijklmnopqrstuvw' PRIVY_APP_SECRET='placeholder' ANTHROPIC_API_KEY='placeholder'; npm run test",
+      "ok": false,
+      "failures": ["exit-nonzero: ⚠️ Some tests failed!"],
+      "tail": "ess token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n[privy-auth] access token verification failed: Failed to verify authentication token\n  ❌ FAIL: Rate limiting works or remains intact\n\n⚠️  Some tests failed!"
+    }
+  ],
+  "costUsd": 0.16251000000000015,
+  "durationMs": 274151,
+  "install": {
+    "code": 0,
+    "tail": "d @walletconnect/universal-provider@2.21.0: Reliability and performance improvements. See: https://github.com/WalletConnect/walletconnect-monorepo/releases\nnpm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated @metamask/sdk-communication-layer@0.33.1: No longer maintained, superseded by https://docs.metamask.io/metamask-connect\nnpm warn deprecated @metamask/sdk@0.33.1: No longer maintained, superseded by https://docs.metamask.io/metamask-connect"
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "APP_TRADING_MODE",
+      "DATABASE_URL",
+      "REDIS_URL",
+      "ADMIN_SECRET",
+      "APPROVAL_SECRET",
+      "NEXT_PUBLIC_PRIVY_APP_ID",
+      "PRIVY_APP_SECRET",
+      "ANTHROPIC_API_KEY"
+    ]
+  },
+  "exclusion": {
+    "class": "outside-authority",
+    "reason": "npm run test fails on 'Rate limiting works or remains intact' after repeated Privy access token verification failures; the tests need a real Privy app/secret (placeholders supplied) and likely Postgres/Redis servers, which the sandbox lacks."
+  }
+}

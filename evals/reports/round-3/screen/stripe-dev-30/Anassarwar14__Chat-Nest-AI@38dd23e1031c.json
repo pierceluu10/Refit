@@ -1,0 +1,60 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "Anassarwar14/Chat-Nest-AI",
+  "commit": "38dd23e1031c5fdad36e3a830092f00d519baac6",
+  "provider": "stripe",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_URL='postgresql://user:pass@localhost:5432/db' STRIPE_API_KEY='sk_test_placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='pk_test_Y2xlcmsuZXhhbXBsZS5jb20k' CLERK_SECRET_KEY='sk_test_placeholder' OPENAI_API_KEY='placeholder' PINECONE_API_KEY='placeholder' COHERE_API_KEY='placeholder' REPLICATE_API_TOKEN='placeholder' UPSTASH_REDIS_REST_URL='https://placeholder.upstash.io' UPSTASH_REDIS_REST_TOKEN='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_URL='postgresql://user:pass@localhost:5432/db' STRIPE_API_KEY='sk_test_placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='pk_test_Y2xlcmsuZXhhbXBsZS5jb20k' CLERK_SECRET_KEY='sk_test_placeholder' OPENAI_API_KEY='placeholder' PINECONE_API_KEY='placeholder' COHERE_API_KEY='placeholder' REPLICATE_API_TOKEN='placeholder' UPSTASH_REDIS_REST_URL='https://placeholder.upstash.io' UPSTASH_REDIS_REST_TOKEN='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.17931,
+  "durationMs": 271418,
+  "install": {
+    "code": 0,
+    "tail": "added 756 packages in 1m\n\nnpm warn deprecated @aws-sdk/protocol-http@3.374.0: This package has moved to @smithy/protocol-http\nnpm warn deprecated @aws-sdk/signature-v4@3.374.0: This package has moved to @smithy/signature-v4"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "The repo's postinstall (prisma generate) was skipped because install scripts are off; @prisma/client types and the client are needed for tsc and next build.",
+        "code": 0
+      },
+      {
+        "command": "npx prisma generate",
+        "why": "The postinstall hook (prisma generate) did not run because install scripts are off, so the Prisma client is missing. The typecheck and build both need it.",
+        "code": 0
+      }
+    ],
+    "env": [
+      "DATABASE_URL",
+      "DIRECT_URL",
+      "STRIPE_API_KEY",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+      "CLERK_SECRET_KEY",
+      "OPENAI_API_KEY",
+      "PINECONE_API_KEY",
+      "COHERE_API_KEY",
+      "REPLICATE_API_TOKEN",
+      "UPSTASH_REDIS_REST_URL",
+      "UPSTASH_REDIS_REST_TOKEN"
+    ]
+  }
+}

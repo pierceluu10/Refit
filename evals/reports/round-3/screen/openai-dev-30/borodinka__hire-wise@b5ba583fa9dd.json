@@ -1,0 +1,43 @@
+{
+  "set": "openai-dev-30",
+  "repo": "borodinka/hire-wise",
+  "commit": "b5ba583fa9dd9ba695a6a27b171bf4991945bfb6",
+  "provider": "openai",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export VITE_FIREBASE_API_KEY='placeholder' VITE_FIREBASE_AUTH_DOMAIN='placeholder.firebaseapp.com' VITE_FIREBASE_PROJECT_ID='placeholder' VITE_FIREBASE_STORAGE_BUCKET='placeholder.appspot.com' VITE_FIREBASE_MESSAGING_SENDER_ID='placeholder' VITE_FIREBASE_APP_ID='placeholder' VITE_OPENAI_API_KEY='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export VITE_FIREBASE_API_KEY='placeholder' VITE_FIREBASE_AUTH_DOMAIN='placeholder.firebaseapp.com' VITE_FIREBASE_PROJECT_ID='placeholder' VITE_FIREBASE_STORAGE_BUCKET='placeholder.appspot.com' VITE_FIREBASE_MESSAGING_SENDER_ID='placeholder' VITE_FIREBASE_APP_ID='placeholder' VITE_OPENAI_API_KEY='placeholder'; corepack yarn@1 run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.07974599999999987,
+  "durationMs": 186998,
+  "install": {
+    "code": 0,
+    "tail": "yarn install v1.22.22\n[1/4] Resolving packages...\n[2/4] Fetching packages...\n[3/4] Linking dependencies...\n[4/4] Building fresh packages...\nDone in 131.91s.\n\nwarning \" > @mui/lab@6.0.0-beta.17\" has incorrect peer dependency \"@mui/material@^6.1.9\".\nwarning \" > @mui/x-charts@7.23.2\" has unmet peer dependency \"@mui/system@^5.15.14 || ^6.0.0\".\nwarning \" > @mui/x-date-pickers@7.23.3\" has unmet peer dependency \"@mui/system@^5.15.14 || ^6.0.0\".\nwarning \"notistack > goober@2.1.16\" has unmet peer dependency \"csstype@^3.0.10\".\nwarning \" > redux-persist@6.0.0\" has unmet peer dependency \"redux@>4.0.0\".\nwarning Ignored scripts due to flag."
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "VITE_FIREBASE_API_KEY",
+      "VITE_FIREBASE_AUTH_DOMAIN",
+      "VITE_FIREBASE_PROJECT_ID",
+      "VITE_FIREBASE_STORAGE_BUCKET",
+      "VITE_FIREBASE_MESSAGING_SENDER_ID",
+      "VITE_FIREBASE_APP_ID",
+      "VITE_OPENAI_API_KEY"
+    ]
+  }
+}

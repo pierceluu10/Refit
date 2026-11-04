@@ -1,0 +1,54 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "LeviathanLevi/Coinbase-Pro-Crypto-Trading-Bot-CrypFinder",
+  "refit": {
+    "checks": "no-repo-checks",
+    "costUsd": 0.2154047,
+    "tasks": 1,
+    "verified": 1
+  },
+  "claude": {
+    "checks": "no-repo-checks",
+    "costUsd": 0.2105891,
+    "prepCostUsd": 0.007274,
+    "diffLines": 68,
+    "finalText": "I changed the Coinbase API hostnames and the README doc links. I could not confirm that the old Pro hostnames have actually stopped working, so treat this as a precaution rather than a confirmed fix.\n\n**What the repo uses**\n- **Coinbase Pro REST and WebSocket API:** called through the `coinbase-pro` npm package (`^0.9.0`) and a custom axios client in `coinbaseProLibrary.js`.\n- **Other packages:** axios, pino, dotenv and csv-parse. I did not check these for deprecations.\n\n**What I found**\n- **Coinbase Pro is retired as a product.** It was merged into Coinbase's main platform and the Advanced Trade API.\n- **The Exchange API is still live and supported.** Coinbase's [Exchange changelog](https://docs.cdp.coinbase.com/exchange/changes/changelog) has entries through February 2026, and it uses `api.exchange.coinbase.com`.\n- **The sandbox hosts differ from the repo's.** The official [Exchange sandbox page](https://docs.cdp.coinbase.com/exchange/introduction/sandbox) lists these:\n  - REST: `https://api-public.sandbox.exchange.coinbase.com`\n  - WebSocket: `wss://ws-feed-public.sandbox.exchange.coinbase.com`\n- **The repo still pointed at the old `*.pro.coinbase.com` hosts.** I found no official page saying when or whether those hosts shut down.\n\n**What I changed**\n- In `momentumTrading.js`, `momentumTradingWithStopLoss.js` and `reverseMomentumTrading.js`, I moved the production and sandbox REST and WebSocket URLs to the Exchange hosts above. Production is now `https://api.exchange.coinbase.com` and `wss://ws-feed.exchange.coinbase.com`.\n- In `README.md`, I replaced the dead `docs.pro.coinbase.com` links with Coinbase's current Exchange docs. The API docs link goes to the Exchange docs entry point, which is not a page specific to the API.\n\n**What you need to do**\n- **Sandbox keys:** the old `.pro` sandbox keys may not work on the new sandbox. Create new sandbox keys through the sandbox web interface.\n- **Production keys:** Coinbase's docs say sandbox keys are separate from production. Check whether your production key works against `api.exchange.coinbase.com`.\n- **No test run:** I did not run the bot or call the live API, so the new hostnames are untested.\n\n**Later risks I did not edit for**\n- **Possible Exchange REST shutdown:** one community repo says Coinbase will close the Pro and Exchange REST APIs in favour of Advanced Trade. I found no official confirmation or date.\n- **`coinbase-pro` package:** it has been deprecated since January 2020 and is unmaintained.\n- **Migration to Advanced Trade:** if the Exchange API is closed, the bot would need a rewrite. Advanced Trade uses JWT authentication instead of the key, secret and passphrase scheme.\n\nSources:\n- [Exchange Sandbox docs](https://docs.cdp.coinbase.com/exchange/introduction/sandbox)\n- [Exchange Changelog](https://docs.cdp.coinbase.com/exchange/changes/changelog)",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-LeviathanLevi-Coinbase-Pro-Crypto-Trading-Bot-CrypFinder/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "Coinbase Pro hosts replaced by the Exchange API hosts (REST and WebSocket, production and sandbox)",
+          "correct": true,
+          "note": "Same URI swap as A in all three strategy files. README links are updated to CDP Exchange docs and reference pages."
+        },
+        {
+          "change": "Profile transfer response gains a transfer_id field (effective 2026-10-13)",
+          "correct": true,
+          "note": "Not required within the window, since the library already returns result.data. The edit is harmless: it logs JSON.stringify of the result plus transfer_id, which also fixes the old '[object Object]' log line. Indentation is off by one space, which is cosmetic."
+        },
+        {
+          "change": "TLS 1.2 requirement and portfolio isolation",
+          "correct": true,
+          "note": "Both are named, with a reason why no code change is needed now: Node already defaults to TLS 1.2, and portfolio isolation is opt-in with no date."
+        }
+      ],
+      "breaks": []
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "Coinbase Pro hosts (api.pro.coinbase.com, ws-feed.pro.coinbase.com and the sandbox hosts) replaced by the Exchange API hosts (api.exchange.coinbase.com, ws-feed.exchange.coinbase.com, *.sandbox.exchange.coinbase.com)",
+          "correct": true,
+          "note": "Production and sandbox REST and WebSocket URIs are updated in all three strategy files. The axios helper and SDK clients take these constants, so nothing else needs editing. The dead docs.pro.coinbase.com README links now point to CDP docs, though the 'API Docs' link lands on the rest-auth page rather than the docs index."
+        }
+      ],
+      "breaks": []
+    },
+    "better": "refit",
+    "why": "Both make the same necessary host migration correctly. B also identifies more of the related API changes (transfer_id, TLS 1.2, portfolio isolation), handles the transfer_id one harmlessly, and adds a host test that breaks nothing. A only flags speculative risks: the unmaintained coinbase-pro package and a possible Exchange REST shutdown with no official confirmation or date.",
+    "costUsd": 0.056212
+  }
+}

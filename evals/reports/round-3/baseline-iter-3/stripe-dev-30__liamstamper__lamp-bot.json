@@ -1,0 +1,69 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "liamstamper/lamp-bot",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 1.88897,
+    "tasks": 4,
+    "verified": 4
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.18136790000000003,
+    "prepCostUsd": 0.015452,
+    "diffLines": 174,
+    "finalText": "I replaced the model IDs that no longer work or stop working within 90 days. I didn't run a type-check, build or test, so none of this has been run.\n\n**What broke**\n- **Groq:** `llama-3.3-70b-versatile` and `llama-3.1-8b-instant` shut down on 2026-08-16. Groq's [deprecations page](https://console.groq.com/docs/deprecations) lists `openai/gpt-oss-120b` and `openai/gpt-oss-20b` as replacements. Requests using the old IDs now return errors, so the GitHub webhook reply and the AI-config test calls are failing today.\n- **OpenAI:** `gpt-4o-2024-08-06` and `gpt-4.1-mini-2025-04-14` are removed on 2027-01-14, which is 72 days from now. OpenAI's [deprecations page](https://platform.openai.com/docs/deprecations) names `gpt-6-luna` as the replacement for both.\n\n**What I changed**\n- **`lib/ai/modelChoices.ts`:**\n  - **Model list:** it now offers `gpt-6-luna`, `openai/gpt-oss-120b` and `openai/gpt-oss-20b`. The plan restrictions are unchanged, so the 20b model is the free-tier one.\n  - **`resolveModel`:** I added this helper. It maps the old model IDs to their replacements, so saved configs that still hold an old ID keep working.\n- **`lib/ai/modelPromptingService.ts`:**\n  - **`resolveModel`:** both chat runners now apply it.\n  - **`reasoning_effort: \"none\"`:** the OpenAI call now sends this. The `gpt-6-luna` docs say `temperature` is rejected unless reasoning effort is `none`, and the default is `medium`.\n  - **`as any` cast:** I cast the OpenAI call and its response to `any`. I assumed the installed `openai` 4.x types don't include `\"none\"` or the new model, but I didn't check.\n- **`lib/webhook/promptModel.ts` and `AIConfigurationClient.tsx`:** I swapped the hardcoded `llama-3.3-70b-versatile`, `llama-3.1-8b-instant` (commented-out line only) and `gpt-4o` defaults for the new IDs.\n\n**Other notes**\n- Routing in `app/api/prompts/test/route.ts` still works. It sends IDs starting with `gpt-` to OpenAI, and `openai/gpt-oss-*` goes to Groq.\n- Pre-existing rows in the database still hold the old IDs. The mapping covers them at call time, but I didn't migrate the stored data.\n- Replacement models behave differently from the old ones, so check output quality and token usage.\n- Groq's deprecation applies to free and developer tiers only. Enterprise accounts with a committed-spend contract aren't affected.\n- I found no other deadlines inside 90 days that affect this repo. The Stripe API version `2025-04-30.basil` and the other SDKs (Octokit, SendGrid, Upstash) showed nothing, though I only searched deprecations for the Groq and OpenAI models.\n- The prebuilt `.next/` folder still contains the old IDs. It will update on the next build.\n\nSources:\n- [Groq deprecations](https://console.groq.com/docs/deprecations)\n- [OpenAI deprecations](https://platform.openai.com/docs/deprecations)\n- [GPT-6 Luna model page](https://platform.openai.com/docs/models/gpt-6-luna)",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-liamstamper-lamp-bot/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "Groq retired llama-3.3-70b-versatile and llama-3.1-8b-instant on 2026-08-16; replacements are openai/gpt-oss-120b and openai/gpt-oss-20b.",
+          "correct": false,
+          "note": "B replaces the hardcoded IDs and the model list. It has no mapping for llama IDs already stored in saved configs, and those models are shut down now, so those configs fail today."
+        },
+        {
+          "change": "OpenAI retires gpt-4o-2024-08-06 and gpt-4.1-mini-2025-04-14 on 2027-01-14, with gpt-6-luna as the replacement.",
+          "correct": false,
+          "note": "B replaces both with one gpt-6-luna entry and stops sending temperature, which is a reasonable choice for a reasoning model. Configs storing the old IDs are not mapped and will break on retirement."
+        },
+        {
+          "change": "stripe-node 23.0.0 and API version 2026-09-30.endive",
+          "correct": true,
+          "note": "B cites no retirement that forces this within 90 days, so the upgrade wasn't needed. It bumps the SDK, changes the apiVersion and makes code edits to fit the new types."
+        },
+        {
+          "change": "@upstash/redis read-your-writes stale sync-token fix in 1.38.4",
+          "correct": true,
+          "note": "An optional bug-fix bump that no breaking change required."
+        }
+      ],
+      "breaks": [
+        "Removed payment_method_types: ['card'] from Checkout, which changes which payment methods customers see. It was only needed because of an optional Stripe upgrade.",
+        "Unrequested Stripe major upgrade installed with --legacy-peer-deps, moving to a new API version that brings behavior changes.",
+        "package-lock.json root name changed from 'lamp-bot' to 'work', with large unrelated lockfile churn (dev flags changed, packages removed).",
+        "Unrequested @upstash/redis version bump."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "Groq retired llama-3.3-70b-versatile and llama-3.1-8b-instant on 2026-08-16; replacements are openai/gpt-oss-120b and openai/gpt-oss-20b.",
+          "correct": true,
+          "note": "A replaces the IDs in the model list, the webhook default, the saved model name and the UI fallbacks. It also adds resolveModel, which maps old IDs stored in configs to the replacements at call time, so saved configs keep working."
+        },
+        {
+          "change": "OpenAI retires gpt-4o-2024-08-06 and gpt-4.1-mini-2025-04-14 on 2027-01-14, 72 days out, with gpt-6-luna as the replacement.",
+          "correct": true,
+          "note": "A swaps both for gpt-6-luna in the list and the UI defaults and maps legacy gpt-4o and gpt-4.1-mini IDs. It sends reasoning_effort 'none' so the temperature parameter is accepted, which matches the docs it cites. The as-any cast is crude but harmless. Nothing was run."
+        }
+      ],
+      "breaks": []
+    },
+    "better": "claude",
+    "why": "Both handle the two model retirements that matter. Only A maps old model IDs stored in saved configs to their replacements, and the Groq models are already shut down, so B leaves those configs failing today. B also adds an unrequired Stripe major upgrade, removes payment_method_types, bumps Upstash and corrupts the lockfile name.",
+    "costUsd": 0.128116
+  }
+}

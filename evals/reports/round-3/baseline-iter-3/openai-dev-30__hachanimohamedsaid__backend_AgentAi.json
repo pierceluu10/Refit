@@ -1,0 +1,87 @@
+{
+  "set": "openai-dev-30",
+  "repo": "hachanimohamedsaid/backend_AgentAi",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 2.7315359,
+    "tasks": 5,
+    "verified": 5
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.2548304,
+    "prepCostUsd": 0.01368,
+    "diffLines": 236,
+    "finalText": "I updated the repo for the shutdowns and removals that already apply, and for the OpenAI model retirement due within 90 days. `tsc --noEmit` passes. I didn't run the tests or call any live API.\n\nI read the vendors' official deprecation pages. The Gemini one was the fetched page, and the OpenAI one is the markdown copy of its page. I couldn't read OpenAI's Realtime beta-to-GA migration guide, so the Realtime changes are from memory of the GA interface. Please check them against that guide before shipping.\n\n**What changed**\n- **Gemini model default:** `gemini-2.0-flash` was shut down on 2026-06-01, so any call that used the default now fails. I switched it to `gemini-3.6-flash`, Google's listed replacement. This is in `ai/dispatch-email-llm.service.ts`, `ai/task-assignment-llm.service.ts` and `pm/proposal-plan-generator.service.ts`.\n- **Gemini fallback model:** the doc comment's fallback example `gemini-1.5-flash` is now `gemini-2.5-flash-lite`, which has no announced shutdown.\n- **OpenAI Realtime (`realtime/realtime-voice.service.ts`):** the Realtime beta was removed on 2026-05-12, and the `gpt-4o-realtime-preview` models were removed on 2026-05-07. I made these changes:\n  - The model is now `gpt-realtime-2.1`.\n  - I removed the `OpenAI-Beta: realtime=v1` header.\n  - `session.update` now sends `type: 'realtime'` and `audio.output.voice`, instead of a top-level `voice`.\n  - I renamed the audio event handler to `response.output_audio.delta`.\n- **OpenAI chat model default:** `gpt-4o-mini` is being removed on 2027-01-14, which is 72 days away. The default is now `gpt-6-luna` everywhere it appeared. That covers `ai`, `assistant`, `meeting`, `market-intelligence` and `pm`. The `OPENAI_*_MODEL` environment variables still override it.\n- **Chat Completions parameters:** I renamed `max_tokens` to `max_completion_tokens` in three places. OpenAI's GPT-6 migration notes say `temperature` is only accepted when reasoning effort is `none`. So I added `reasoning_effort: 'none'` to the three calls that set `temperature`.\n\nIf you set `OPENAI_MODEL` to an older model such as `gpt-4o`, `reasoning_effort` may be rejected on those three calls. Remove it there if so.\n\n**Later deprecations, not edited**\n- `gemini-2.5-flash` and `gemini-2.5-pro` start auto-routing to other models on 2026-12-01. The repo doesn't use them as defaults.\n- `gpt-realtime` and `gpt-4o-realtime` are retired on 2027-01-20. The code already uses `gpt-realtime-2.1`.\n- `@google/generative-ai` (`^0.24.1`) is the legacy Google SDK. I didn't confirm a retirement date for it. Gemini 3 models may need a newer SDK for some features.\n- The chat calls still use Chat Completions. GPT-6 requires the Responses API for tool calling, but this code doesn't use tools, so I left it.\n- I didn't check Stripe, Resend, SendGrid, Uber or Google OAuth. I only looked at OpenAI and Gemini.\n\nSources:\n- [Gemini deprecations](https://ai.google.dev/gemini-api/docs/deprecations)\n- [OpenAI deprecations](https://developers.openai.com/api/docs/deprecations)\n- [OpenAI GPT-6 migration notes](https://developers.openai.com/api/docs/guides/latest-model)",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-hachanimohamedsaid-backend_AgentAi/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "OpenAI Realtime beta removed and preview models retired",
+          "correct": true,
+          "note": "Full GA migration with explicit pcm 24k formats and output_modalities, docs updated, and a spec added."
+        },
+        {
+          "change": "gpt-4o-mini retirement",
+          "correct": true,
+          "note": "Default replaced with gpt-6-luna in code, .env.example and docs."
+        },
+        {
+          "change": "GPT-6 parameter rules",
+          "correct": true,
+          "note": "It renames to max_completion_tokens and removes temperature. This works on both new and old models, though it gives up the temperature tuning."
+        },
+        {
+          "change": "Gemini gemini-2.0-flash shutdown and @google/generative-ai deprecation",
+          "correct": true,
+          "note": "Migrates to @google/genai and sets the default to gemini-2.5-flash-lite. The source diff is truncated but is described as complete and tested."
+        },
+        {
+          "change": "Crunchbase legacy keys",
+          "correct": false,
+          "note": "There is no hard date, so no change was needed. It changes the endpoint path anyway without changing the key handling, which risks breaking the current call."
+        }
+      ],
+      "breaks": [
+        "Bumps stripe to 23.0.0 with no apiVersion set, so the account silently moves to a new API version pin. No change required this.",
+        "Bumps google-auth-library to 11 and moves the Docker images and engines to Node 22. No near-term deadline required this.",
+        "Changes the Crunchbase URL path without a confirmed deadline, which could break the existing integration.",
+        "Adds store:false extraBody to every Gemini call, which no API change required."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "Gemini gemini-2.0-flash shut down (2026-06-01)",
+          "correct": true,
+          "note": "The default is switched to the cited replacement gemini-3.6-flash in all three call sites. The fallback example in the comment is also updated."
+        },
+        {
+          "change": "OpenAI Realtime beta removed and gpt-4o-realtime-preview retired",
+          "correct": true,
+          "note": "Switches the model to gpt-realtime-2.1, drops the OpenAI-Beta header, uses the GA session shape (type realtime, audio.output.voice) and renames the event to response.output_audio.delta. This matches the GA interface."
+        },
+        {
+          "change": "gpt-4o-mini retirement (2027-01-14, within 90 days)",
+          "correct": true,
+          "note": "Default replaced with gpt-6-luna in every code site. .env.example and docs still say gpt-4o-mini."
+        },
+        {
+          "change": "GPT-6 parameter rules (max_tokens to max_completion_tokens; temperature only with reasoning_effort none)",
+          "correct": false,
+          "note": "It renames to max_completion_tokens and adds reasoning_effort:'none' while keeping temperature. Because .env.example still sets OPENAI_MODEL=gpt-4o-mini, deployments that follow it send reasoning_effort to a non-reasoning model, and those three calls are likely rejected now. The attempt acknowledges this risk but leaves it in."
+        }
+      ],
+      "breaks": [
+        "reasoning_effort:'none' on the three chat calls is likely to fail for any deployment using OPENAI_MODEL=gpt-4o-mini (the documented .env.example value) or another non-reasoning model.",
+        "It leaves .env.example and the docs pointing at the retiring gpt-4o-mini."
+      ]
+    },
+    "better": "refit",
+    "why": "Both cover the OpenAI and Gemini changes that matter. A's reasoning_effort addition is likely to break three live calls for deployments that use the documented OPENAI_MODEL=gpt-4o-mini, and A leaves the env and docs on the retiring model. B handles the parameters in a way that works across models and updates the config, but it adds unrequired dependency bumps (Stripe, google-auth-library and Node 22) and a speculative Crunchbase URL change. On balance, B's core migrations are more robust, so B wins narrowly despite the scope creep.",
+    "costUsd": 0.14426
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "status": "clean",
+  "problems": [],
+  "checked": ["typecheck", "syntax package-lock.json", "syntax package.json"]
+}

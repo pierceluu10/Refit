@@ -1,0 +1,95 @@
+{
+  "set": "stripe-dev-30",
+  "index": 1,
+  "repo": "samiamjidkhan/dota2-helper",
+  "commit": "91e32cce572510c11c7aa82388abac3cc163ce96",
+  "provider": "stripe",
+  "usages": 5,
+  "changes": 27,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "samiamjidkhan/dota2-helper:stripe:2026-03-25-checkout-ui-mode-enum+1",
+      "changeId": "stripe:2026-03-25-checkout-ui-mode-enum",
+      "kind": "field-renamed",
+      "change": {
+        "provider": "stripe",
+        "id": "stripe:2026-03-25-checkout-ui-mode-enum",
+        "kind": "field-renamed",
+        "title": "2 changes: Checkout Session ui_mode enum values updated (Checkout Sessions and Payment Links) and more",
+        "source": {
+          "url": "https://docs.stripe.com/changelog/dahlia.md",
+          "quote": "Updates Checkout Session UI mode enum values"
+        },
+        "affects": {
+          "operations": ["POST /v1/checkout/sessions"],
+          "fields": ["ui_mode"],
+          "versions": ["2026-03-25.dahlia"]
+        },
+        "effectiveDate": "2026-03-25"
+      },
+      "reasoning": "This one task covers all 2 stripe changes that affect this repo. Handle every one of them in this single change set, prove each with your test, and say in finish which you changed and which needed no change.\n\n1. Checkout Session ui_mode enum values updated (Checkout Sessions and Payment Links) (field-renamed, effective 2026-03-25)\n   Source: https://docs.stripe.com/changelog/dahlia.md\n   Quote: Updates Checkout Session UI mode enum values\n   Affects: operations: POST /v1/checkout/sessions; fields: ui_mode; versions: 2026-03-25.dahlia\n   Call sites: server.js:289 (checkout.sessions.create may pass ui_mode. The installed stripe-node 22.0.0 already sends the dahlia API version, so renamed enum values would apply today.); server.js:411 (checkout.sessions.retrieve may read or branch on session.ui_mode, which now returns the updated enum values.)\n   Why it applies: stripe-node 22.0.0 is newer than 21.0.0, which pinned 2026-03-25.dahlia. Dahlia's ui_mode enum change therefore already applies to this repo's Checkout calls without any further upgrade. The usage map does not list the fields passed, so it is uncertain whether ui_mode is used at all. The migration agent should check the params at server.js:289 and any ui_mode reads near server.js:411. Replace any old enum values (e.g. 'embedded', 'hosted') with the new ones, or drop the field if unused. If ui_mode is unused, no edit is needed.\n\n2. stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields (sdk-major, effective 2026-09-30)\n   Source: https://raw.githubusercontent.com/stripe/stripe-node/HEAD/CHANGELOG.md\n   Quote: Removed the function `Stripe.constructEventWithoutVerification()` that was mistakenly added in version 22.5.0 of this package.\n   Affects: versions: <23.0.0, 23.0.0; sdk: stripe\n   Call sites: server.js:15 (The Stripe client is constructed here. 23.0.0 changes the pinned API version to 2026-09-30.endive. Keep the 22.x ES6 `new Stripe()` form.); server.js:289 (checkout.sessions.create must not send payment_method_types, which is removed in endive. It is unconfirmed whether the call does.); server.js:318 (billingPortal.sessions.create runs on the new API version. No known breaking change touches it, so verify only.); server.js:336 (stripe.webhooks.constructEvent is unaffected, since only constructEventWithoutVerification was removed. The migration agent should confirm that function is not used anywhere.)\n   Why it applies: The repo pins stripe-node 22.0.0, and the 23.0.0 major moves the pinned API to 2026-09-30.endive. This is the single upgrade move for the endive release. Of the endive breaking changes, only the removal of payment_method_types from Checkout Sessions could touch this repo's Stripe calls (checkout sessions create/retrieve, billing portal, webhook signature verification). It is uncertain whether server.js passes payment_method_types. The migration agent should grep for it and remove it, since Checkout then picks payment methods dynamically. It should also check for use of Stripe.constructEventWithoutVerification and the ErrorType export, and confirm that the webhook handler's subscription events still parse. The upgrade is not forced before the SDK is bumped, because the SDK pins the API version.",
+      "callSites": [
+        {
+          "file": "server.js",
+          "line": 289,
+          "why": "checkout.sessions.create may pass ui_mode. The installed stripe-node 22.0.0 already sends the dahlia API version, so renamed enum values would apply today."
+        },
+        {
+          "file": "server.js",
+          "line": 411,
+          "why": "checkout.sessions.retrieve may read or branch on session.ui_mode, which now returns the updated enum values."
+        },
+        {
+          "file": "server.js",
+          "line": 15,
+          "why": "The Stripe client is constructed here. 23.0.0 changes the pinned API version to 2026-09-30.endive. Keep the 22.x ES6 `new Stripe()` form."
+        },
+        {
+          "file": "server.js",
+          "line": 289,
+          "why": "checkout.sessions.create must not send payment_method_types, which is removed in endive. It is unconfirmed whether the call does."
+        },
+        {
+          "file": "server.js",
+          "line": 318,
+          "why": "billingPortal.sessions.create runs on the new API version. No known breaking change touches it, so verify only."
+        },
+        {
+          "file": "server.js",
+          "line": 336,
+          "why": "stripe.webhooks.constructEvent is unaffected, since only constructEventWithoutVerification was removed. The migration agent should confirm that function is not used anywhere."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "samiamjidkhan/dota2-helper:stripe:2026-03-25-checkout-ui-mode-enum+1",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [],
+        "costUsd": 0.0972007,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-samiamjidkhan-dota2-helper-stripe-2026-03-25-checkout-ui-mode-enum-1-vwXVwr/transcript.jsonl",
+        "prBody": "## 2 changes: Checkout Session ui_mode enum values updated (Checkout Sessions and Payment Links) and more [Not affected]\n\n### Change\n\nNo code changes. server.js never sets or reads ui_mode. The checkout.sessions.create call at line 289 passes mode, payment_method_types, line_items and the URLs. The checkout.sessions.retrieve call at line 411 was not read for ui_mode, and a repo-wide search found no ui_mode anywhere. I did not bump stripe-node, so the second change (the stripe-node 23.0.0 endive bump) is not applied. I did not write or register a proof test. I ran `new Stripe(key)` under stripe@22.0.0 in node, and it constructs fine with the existing CommonJS require.\n\nNo files changed.\n\n### Why\n\nThe Dahlia ui_mode enum rename only matters if the code uses ui_mode, and it doesn't. The endive removal of payment_method_types only takes effect on a bump to stripe-node 23, which the repo isn't on. The task didn't force that bump, and dropping the parameter would be a product decision.\n\n> Updates Checkout Session UI mode enum values\n\nSource: https://docs.stripe.com/changelog/dahlia.md\n\n### Proof\n\nNo checks were run.\n\nNew failures: 0\n\nProvider validators: none run.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- No test or provider validator was run (no checks exist in the repo).\n- The checkout.sessions.retrieve call at server.js:411 was not read; the repo-wide search for ui_mode found no reads.\n- server.js:291 passes payment_method_types: ['card']. It still works on stripe 22 (dahlia). It must be removed when the repo moves to stripe-node 23 (endive), which pins API 2026-09-30.\n- Whether the 2026-03-25.dahlia change reaches this repo depends on the API version of the Stripe account and of the webhook endpoint, which cannot be checked from the repo.\n- No checks were run.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-4 · Models: claude-sonnet-5-5 · AI cost: $0.0972\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-4",
+        "recipeIds": ["recipe-stripe-sdk-major-4c09cc63", "recipe-stripe-sdk-major-b9279065"],
+        "agentChecks": [],
+        "summary": "# samiamjidkhan/dota2-helper:stripe:2026-03-25-checkout-ui-mode-enum+1: not-affected, $0.0972\nChange: 2 changes: Checkout Session ui_mode enum values updated (Checkout Sessions and Payment Links) and more (stripe, field-renamed)\nBaseline checks: none\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=<114 chars> path=. glob=**/*.{js,html,json} → server.js:7: const Stripe = require('stripe'); | server.js:15: const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null; | server.js:291:       payment_method_types: ['card'],\n2. read_file path=server.js offset=280 limit=50 → 280\t | 281\t// Default rate limiter for /api/get-tips (preserves existing key prefix) | 282\tconst rateLimitMiddleware = makeRateLimitMiddleware('ratelimit');\n3. shell command=<161 chars> → exit code: 0 | --- stdout --- | function undefined\n4. finish verdict=not-affected summary=<541 chars> why=<289 chars> validators=[] unproven=<551 chars> behaviourChanges=[] noProofTestReason=<83 chars> → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: none\n\n## Result\nFiles changed: none\nVerdict: not-affected. No code changes. server.js never sets or reads ui_mode. The checkout.sessions.create call at line 289 passes mode, payment_method_types, line_items and the URLs. The checkout.sessions.retrieve call at line 411 was not read for ui_mode, and a repo-wide search found no ui_mode anywhere. I did not bump stripe-node, so the second change (the stripe-node 23.0.0 endive bump) is not applied. I did not write or register a proof test. I ran `new Stripe(key)` under stripe@22.0.0 in node, and it constructs fine with the existing CommonJS require.\nUnproven: No test or provider validator was run (no checks exist in the repo).; The checkout.sessions.retrieve call at server.js:411 was not read; the repo-wide search for ui_mode found no reads.; server.js:291 passes payment_method_types: ['card']. It still works on stripe 22 (dahlia). It must be removed when the repo moves to stripe-node 23 (endive), which pins API 2026-09-30.; Whether the 2026-03-25.dahlia change reaches this repo depends on the API version of the Stripe account and of the webhook endpoint, which cannot be checked from the repo.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "No checks were detected, and the package has no build, test, or typecheck script. The only custom script is generate-seo, which is content generation rather than something checks need. There are no install hooks or codegen steps to run, so nothing is needed."
+        }
+      }
+    }
+  ],
+  "costUsd": 0.1683587,
+  "durationMs": 58976,
+  "matchReasoning": "samiamjidkhan/dota2-helper:stripe:2026-03-25-checkout-ui-mode-enum: stripe-node 22.0.0 is newer than 21.0.0, which pinned 2026-03-25.dahlia. Dahlia's ui_mode enum change therefore already applies to this repo's Checkout calls without any further upgrade. The usage map does not list the fields passed, so it is uncertain whether ui_mode is used at all. The migration agent should check the params at server.js:289 and any ui_mode reads near server.js:411. Replace any old enum values (e.g. 'embedded', 'hosted') with the new ones, or drop the field if unused. If ui_mode is unused, no edit is needed.\nsamiamjidkhan/dota2-helper:stripe:node-23-0-0: The repo pins stripe-node 22.0.0, and the 23.0.0 major moves the pinned API to 2026-09-30.endive. This is the single upgrade move for the endive release. Of the endive breaking changes, only the removal of payment_method_types from Checkout Sessions could touch this repo's Stripe calls (checkout sessions create/retrieve, billing portal, webhook signature verification). It is uncertain whether server.js passes payment_method_types. The migration agent should grep for it and remove it, since Checkout then picks payment methods dynamically. It should also check for use of Stripe.constructEventWithoutVerification and the ErrorType export, and confirm that the webhook handler's subscription events still parse. The upgrade is not forced before the SDK is bumped, because the SDK pins the API version.\nstripe:2026-09-30-endive-api-version: not affected: No task of its own: resolved inside samiamjidkhan/dota2-helper:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). stripe-node 23.0.0 pins 2026-09-30.endive, so bumping the SDK is the API version bump. One PR covers both.\nstripe:2026-09-30-remove-payment-method-types-checkout: not affected: No task of its own: resolved inside samiamjidkhan/dota2-helper:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). This only bites once the account or SDK moves to endive. If checkout.sessions.create at server.js:289 passes payment_method_types, it will start returning a 400, so remove it in the same upgrade PR.\nstripe:2026-09-30-remove-payment-method-types-intents: not affected: The repo does not call PaymentIntents or SetupIntents. It only uses Checkout Sessions, billing portal sessions and webhooks.\nstripe:2026-09-30-billing-cycle-anchor-object: not affected: The repo makes no Subscription update/resume or invoice preview calls. Subscriptions are only handled through webhook events.\nstripe:2026-09-30-fc-countries-to-country: not affected: The repo does not use Financial Connections.\nstripe:2026-09-30-account-links-v2-configurations: not affected: The repo does not use Account Links v2 or Connect.\nstripe:2026-09-30-payto-fields-removed: not affected: The repo does not create or read Payment Methods, and does not use PayTo.\nstripe:2026-09-30-reserve-release-reason: not affected: The repo does not use Reserve Releases. Its webhook handles subscription events only.\nstripe:2026-09-30-other-breaking-endive: not affected: The items listed (BLIK decline codes, Accounts requirement errors, Tax calculation errors, SEPA settings, Payment Evaluation, 3DS Data Share Only, dispute evidence, India mandates) concern APIs this repo does not call. It only uses Checkout sessions, billing portal and subscription webhooks.\nstripe:2026-09-30-stripejs-payment-request-button: not affected: This concerns client-side Stripe.js Elements. The usage map has no Stripe.js call sites, only server-side stripe-node calls.\nstripe:2026-03-25-dahlia-api-version: not affected: The repo already uses stripe-node 22.0.0, which is later than 21.0.0 and therefore already pins the dahlia version or newer. The only dahlia item that could touch the repo's calls is handled as its own task, the ui_mode enum.\nstripe:2026-03-25-stripejs-removals: not affected: This concerns browser-side Stripe.js methods. The repo has no recorded Stripe.js usage, only server-side SDK calls.\nstripe:2026-03-25-events-from-destinations: not affected: This concerns the event destinations API. The repo uses a classic webhook endpoint with constructEvent and does not manage destinations.\nstripe:2026-08-26-preview-dahlia-pmt-removal: not affected: This concerns public-preview API versions for Financial Addresses, Received Credits and Payout Methods v2. The repo uses none of them.\nstripe:runtime-go-1-24-drop: not affected: This concerns Go, Python and Node runtime support in Stripe SDKs. The repo is a Node app with no Go or Python SDK, and the Node 20 drop is due in September 2027. The Node runtime version is not recorded in the usage map.\nstripe:node-22-0-0: not affected: The repo is already on stripe-node 22.0.0, so this upgrade is done.\nstripe:node-21-0-0: not affected: The repo is already on stripe-node 22.0.0, which is past 21.0.0. The upgrade is already applied.\nstripe:node-20-0-0: not affected: The repo is already on stripe-node 22.0.0, which is past 20.0.0. The upgrade is already applied.\nstripe:node-19-0-0: not affected: The repo is already on stripe-node 22.0.0, which is past 19.0.0. The upgrade is already applied. The repo does not use thin events (parseThinEvent).\nstripe:python-16-0-0: not affected: The repo uses the Node SDK (stripe npm). It has no Python stripe dependency.\nstripe:python-15-0-0: not affected: The repo uses the Node SDK (stripe npm). It has no Python stripe dependency.\nstripe:python-14-0-0: not affected: The repo uses the Node SDK (stripe npm). It has no Python stripe dependency.\nstripe:python-13-0-0: not affected: The repo uses the Node SDK (stripe npm). It has no Python stripe dependency.\nstripe:python-12-0-0: not affected: The repo uses the Node SDK (stripe npm). It has no Python stripe dependency.\nstripe:go-87-0-0: not affected: The repo uses the Node SDK (stripe npm). It has no Go stripe-go dependency.",
+  "costByPart": {
+    "inventory": 0,
+    "match": 0.071158,
+    "memory": 0,
+    "harness": 0.0972007
+  }
+}

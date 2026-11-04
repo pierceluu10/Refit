@@ -1,0 +1,180 @@
+{
+  "set": "anthropic-dev-30",
+  "index": 15,
+  "repo": "kumarswamyg2005/Docstring-Generation-Agent-and-README-Generation-Agent",
+  "commit": "a9af9e56509c62b17a58d7cb4c395b495bd13a25",
+  "provider": "anthropic",
+  "usages": 3,
+  "changes": 15,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "kumarswamyg2005/Docstring-Generation-Agent-and-README-Generation-Agent:anthropic:2026-10-21-api-version-2026-10-21",
+      "changeId": "anthropic:2026-10-21-api-version-2026-10-21",
+      "kind": "api-version",
+      "change": {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-21-api-version-2026-10-21",
+        "kind": "api-version",
+        "title": "New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21.md",
+          "quote": "This guide lists the code changes for moving from API version `2023-06-01` to `2026-10-21`."
+        },
+        "affects": {
+          "operations": ["POST /v1/messages"],
+          "versions": ["2023-06-01", "2026-10-21"]
+        }
+      },
+      "reasoning": "requirements.txt pins the Python anthropic SDK only as >=0.20.0, with no upper bound. The source says SDKs older than the new majors keep sending 2023-06-01, so the new Python major presumably sends 2026-10-21 by default, and a fresh install or CI run would pull it. The call at ai_provider.py:135 passes temperature, which returns 400 in 2026-10-21, so every Anthropic generation request would fail. Uncertain: the changelog quoted is for TypeScript, so the migration agent should confirm which Python anthropic release defaults to 2026-10-21. Then choose one fix: add an upper bound (e.g. anthropic<1.0) for now, or upgrade deliberately and remove temperature from the Anthropic call. If any document blocks or citations are sent, also check them against the 2026-10-21 rules.\nThis task also resolves these changes. Handle each in the same change, and say in the PR how:\n- anthropic:2026-10-21-sampling-params-removed (field-removed): In API version 2026-10-21, temperature, top_p and top_k in Messages and Batch requests return 400. The 400 on temperature/top_p/top_k only happens once requests carry anthropic-version 2026-10-21. The same edit fixes both: either pin the Python SDK below its new major, or move to 2026-10-21 and drop temperature from the messages.create call.\n  Source: https://platform.claude.com/docs/en/api/migration-2026-10-21.md\n  \"In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.\"",
+      "callSites": [
+        {
+          "file": "ai_provider.py",
+          "line": 135,
+          "why": "messages.create sends temperature. Under API version 2026-10-21 any temperature value, even the default, returns 400."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "kumarswamyg2005/Docstring-Generation-Agent-and-README-Generation-Agent:anthropic:2026-10-21-api-version-2026-10-21",
+        "outcome": "verified",
+        "diff": "diff --git a/ai_provider.py b/ai_provider.py\nindex 8e65934..9893eb4 100644\n--- a/ai_provider.py\n+++ b/ai_provider.py\n@@ -135,7 +135,6 @@ class AnthropicProvider(AIProvider):\n             message = self.client.messages.create(\n                 model=self.model,\n                 max_tokens=config.max_tokens,\n-                temperature=config.temperature,\n                 messages=[\n                     {\n                         \"role\": \"user\",\n@@ -143,7 +142,9 @@ class AnthropicProvider(AIProvider):\n                     }\n                 ]\n             )\n-            return message.content[0].text.strip()\n+            return \"\".join(\n+                b.text for b in message.content if b.type == \"text\"\n+            ).strip()\n         except Exception as e:\n             print(f\"Anthropic API error: {e}\")\n             return \"\"\ndiff --git a/requirements.txt b/requirements.txt\nindex 5e32268..c2238b1 100644\n--- a/requirements.txt\n+++ b/requirements.txt\n@@ -1,6 +1,6 @@\n # Core Dependencies\n openai>=1.0.0  # AI Provider SDK\n-anthropic>=0.20.0  # AI Provider SDK\n+anthropic>=1.0.0  # AI Provider SDK\n \n # Web API\n fastapi>=0.104.0\ndiff --git a/tests/test_anthropic_version.py b/tests/test_anthropic_version.py\nnew file mode 100644\nindex 0000000..0223659\n--- /dev/null\n+++ b/tests/test_anthropic_version.py\n@@ -0,0 +1,34 @@\n+import json\n+import os\n+import sys\n+\n+import httpx2 as httpx\n+\n+sys.path.insert(0, os.path.join(os.path.dirname(__file__), \"..\"))\n+\n+import ai_provider  # noqa: E402\n+\n+\n+def test_anthropic_request_has_no_sampling_params():\n+    seen = []\n+\n+    def handler(request):\n+        seen.append(request)\n+        return httpx.Response(200, json={\n+            \"id\": \"m\", \"type\": \"message\", \"role\": \"assistant\", \"model\": \"x\",\n+            \"content\": [{\"type\": \"text\", \"text\": \" hi \"}],\n+            \"stop_reason\": \"end_turn\", \"stop_sequence\": None,\n+            \"usage\": {\"input_tokens\": 1, \"output_tokens\": 1},\n+        })\n+\n+    ai_provider.config.anthropic_api_key = \"dummy\"\n+    p = ai_provider.AnthropicProvider()\n+    p.client = p.client.with_options(\n+        http_client=httpx.Client(transport=httpx.MockTransport(handler)))\n+    out = p.generate_description(\"code\", \"prompt\")\n+    assert out == \"hi\"\n+    assert len(seen) == 1\n+    body = json.loads(seen[0].content)\n+    for k in (\"temperature\", \"top_p\", \"top_k\"):\n+        assert k not in body\n+    assert seen[0].headers[\"anthropic-version\"] == \"2026-10-21\"\n",
+        "checks": [
+          {
+            "name": "anthropic-proof",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.13039879999999998,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-kumarswamyg2005-Docstring-Generation-Agent-and-README-Generation-Agent-anthropic-2026-10-21-api-version-2026-10-21-iaoXoU/transcript.jsonl",
+        "prBody": "## New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01 [Verified]\n\n### Change\n\nRemoved temperature from the Anthropic messages.create call, made response reading robust (join text blocks instead of content[0].text), raised requirements to anthropic>=1.0.0 (2.4.0 installed in sandbox sends 2026-10-21). Added tests/test_anthropic_version.py (mocked transport) asserting version header 2026-10-21, no temperature/top_p/top_k in the body, and parsed text.\n\nFiles touched:\n- `ai_provider.py`\n- `requirements.txt`\n- `tests/test_anthropic_version.py`\n\n### Why\n\nAPI version 2026-10-21 returns 400 when temperature/top_p/top_k is sent; the new SDK major sends that version by default.\n\n> This guide lists the code changes for moving from API version `2023-06-01` to `2026-10-21`.\n\nSource: https://platform.claude.com/docs/en/api/migration-2026-10-21.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| anthropic-proof | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- anthropic-proof, added by the agent: `python -m pytest tests/test_anthropic_version.py -q` (fail (1) → pass)\n\nProvider validators: none run.\n\nTest of this change: `anthropic-proof`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container python:3.12-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- No live API call\n- Default model claude-3-sonnet-20240229 is deprecated/retired; model id not changed\n- Test uses httpx2 (the transport the installed anthropic 2.x depends on); the exact SDK release where 2026-10-21 became default was not independently confirmed beyond the test passing on 2.4.0\n- OpenAI/GitHub providers still send temperature (unaffected)\n- No provider validator was run.\n\n### Behaviour changes\n\n- TEMPERATURE config no longer affects the Anthropic provider (still used by OpenAI and GitHub Models); Claude output sampling now uses API defaults\n- Response text now concatenates all text blocks rather than only the first block\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1304\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-anthropic-sdk-major-50cc7085",
+          "recipe-openai-model-retirement-58a73d88"
+        ],
+        "agentChecks": [
+          {
+            "name": "anthropic-proof",
+            "command": "python -m pytest tests/test_anthropic_version.py -q",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# kumarswamyg2005/Docstring-Generation-Agent-and-README-Generation-Agent:anthropic:2026-10-21-api-version-2026-10-21: verified, $0.1304\nChange: New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01 (anthropic, api-version)\nBaseline checks: anthropic-proof fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=ai_provider.py offset=90 limit=90 → 90\t            return \"\" | 91\t | 92\t\n2. search pattern=temperature|top_p|top_k|anthropic glob=**/*.{py,txt,toml,md} → ai_provider.py:85:                 temperature=config.temperature | ai_provider.py:111:         if not config.anthropic_api_key: | ai_provider.py:115:             from anthropic import Anthropic\n3. edit_file path=ai_provider.py old=<313 chars> new=<332 chars> → edited ai_provider.py (1 replacement)\n4. edit_file path=requirements.txt old=anthropic>=0.20.0  new=anthropic>=1.0.0  → edited requirements.txt (1 replacement)\n5. write_file path=tests/test_anthropic_version.py content=<1070 chars> → wrote tests/test_anthropic_version.py (1070 bytes)\n6. run_checks add=<92 chars> → registered anthropic-proof; on the original code it fails (1) | ## anthropic-proof: fail | command: python -m pytest tests/test_anthropic_version.py -q\n7. shell command=<170 chars> → exit code: 0 | --- stdout --- | 2.4.0\n8. shell command=<152 chars> → exit code: 0 | --- stdout --- | .                                                                        [100%]\n9. finish verdict=migrated summary=<374 chars> why=<121 chars> validators=[] unproven=<361 chars> behaviourChanges=<232 chars> proofTest=anthropic-proof → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: anthropic-proof fail (1) → pass\n\n## Result\nFiles changed: ai_provider.py, requirements.txt, tests/test_anthropic_version.py\nVerdict: migrated. Removed temperature from the Anthropic messages.create call, made response reading robust (join text blocks instead of content[0].text), raised requirements to anthropic>=1.0.0 (2.4.0 installed in sandbox sends 2026-10-21). Added tests/test_anthropic_version.py (mocked transport) asserting version header 2026-10-21, no temperature/top_p/top_k in the body, and parsed text.\nUnproven: No live API call; Default model claude-3-sonnet-20240229 is deprecated/retired; model id not changed; Test uses httpx2 (the transport the installed anthropic 2.x depends on); the exact SDK release where 2026-10-21 became default was not independently confirmed beyond the test passing on 2.4.0; OpenAI/GitHub providers still send temperature (unaffected)\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "This is a Python project with no detected checks. It has no codegen, no build step, and no Node install hooks, and the AI provider variables in .env.example are optional and not needed to load or build. Nothing needs preparing."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff updates the only Anthropic call site (ai_provider.py:135). It bumps the SDK floor, drops `temperature` and makes text extraction tolerate non-text content blocks. The new test checks the outgoing `anthropic-version` header and the absence of sampling params through a mock transport. That is reasonable evidence for the request shape, but it never makes a live call. Several things are unconfirmed and should be checked against the migration guide and SDK: the `httpx2` import, whether `anthropic>=1.0.0` is really the major that sends 2026-10-21, and whether removing `temperature` is required or only a behaviour change. The configured model also needs to work under the new version. 'Verified' is defensible for the request shape but not for runtime behaviour.",
+        "concerns": [
+          {
+            "file": "ai_provider.py",
+            "issue": "`temperature=config.temperature` was removed only from the Anthropic call; OpenAI and GitHub Models still honour it. If the 2026-10-21 guide does not actually reject or remove sampling params for the models used here, this silently changes output determinism for Anthropic users. I could not confirm the requirement from the single quoted line; check the migration guide's section on sampling parameters.",
+            "severity": "medium"
+          },
+          {
+            "file": "requirements.txt",
+            "issue": "`anthropic>=1.0.0` assumes 1.0.0 is the first SDK major that sends `anthropic-version: 2026-10-21`. I could not confirm that version number. Check the SDK changelog or release notes. There is also no upper bound, so a later major could change behaviour again.",
+            "severity": "medium"
+          },
+          {
+            "file": "tests/test_anthropic_version.py",
+            "issue": "The test does `import httpx2 as httpx` and passes an `httpx2.Client` to `client.with_options(http_client=...)`. I don't recognise `httpx2`. It is not listed in requirements.txt, so it only works if the new SDK pulls it in transitively and accepts that client type. Confirm against the SDK's installed dependencies and the type of its `http_client` parameter. Otherwise the test will break on a clean install.",
+            "severity": "medium"
+          },
+          {
+            "file": "ai_provider.py",
+            "issue": "The default and configured model (docstring cites 'claude-3-sonnet-20240229'; config.anthropic_model is not shown) is never exercised against the real API. The mock returns model 'x'. If that model is retired or unsupported under 2026-10-21, every call fails. Because the error is caught, printed and returned as \"\", the app would silently fall back to rule-based descriptions with no visible failure.",
+            "severity": "medium"
+          },
+          {
+            "file": "tests/test_anthropic_version.py",
+            "issue": "The test mutates the global `ai_provider.config.anthropic_api_key` and never restores it. That can leak into other tests and change which provider `get_ai_provider` selects.",
+            "severity": "low"
+          },
+          {
+            "file": "ai_provider.py",
+            "issue": "Joining all text blocks is a minor behaviour change from taking `content[0]`: multiple text blocks are now concatenated with no separator. It is harmless here, and safer if a non-text block comes first.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Read the migration guide (migration-2026-10-21.md) to confirm that temperature/top_p/top_k are actually removed or rejected, rather than optional.",
+          "Confirm which anthropic SDK release first sends anthropic-version 2026-10-21, and that 1.0.0 is correct.",
+          "Verify `httpx2` is installed by the SDK and is the client type `with_options(http_client=...)` expects, or add it to requirements.txt.",
+          "Check config.anthropic_model's default and confirm that model works under API version 2026-10-21 with one live call."
+        ],
+        "costUsd": 0.05768,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "kumarswamyg2005/Docstring-Generation-Agent-and-README-Generation-Agent:anthropic:2026-11-30-retire-claude-sonnet-4-5",
+      "changeId": "anthropic:2026-11-30-retire-claude-sonnet-4-5",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "anthropic",
+        "id": "anthropic:2026-11-30-retire-claude-sonnet-4-5",
+        "kind": "model-retirement",
+        "title": "claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+          "quote": "| November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |"
+        },
+        "affects": {
+          "operations": ["claude-sonnet-4-5-20250929"]
+        },
+        "effectiveDate": "2026-11-30"
+      },
+      "reasoning": "The usage map lists model as a field of the Anthropic messages.create call but does not record its value. This repo is an LLM docstring/README generator and may well default to a Sonnet 4.5 snapshot. The migration agent should read the model string or default near ai_provider.py:135 and any config or env defaults. If it is claude-sonnet-4-5-20250929, switch to claude-sonnet-5-5. Note that Sonnet 5.5 rejects disabled thinking and forced tool_choice. This call uses neither, but temperature should be checked against Sonnet 5.5's sampling-param rules. If the model is something else, close the task as no-op.",
+      "callSites": [
+        {
+          "file": "ai_provider.py",
+          "line": 135,
+          "why": "messages.create passes a model whose value the scan did not record. If it is claude-sonnet-4-5-20250929 (or a default that resolves to it), requests fail after Nov 30, 2026."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "kumarswamyg2005/Docstring-Generation-Agent-and-README-Generation-Agent:anthropic:2026-11-30-retire-claude-sonnet-4-5",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [],
+        "costUsd": 0.06626860000000001,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-kumarswamyg2005-Docstring-Generation-Agent-and-README-Generation-Agent-anthropic-2026-11-30-retire-claude-sonnet-4-5-n9c0aT/transcript.jsonl",
+        "prBody": "## claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 [Not affected]\n\n### Change\n\nNo change made. The repo never names claude-sonnet-4-5-20250929. The Anthropic model comes from config.py:44, `ANTHROPIC_MODEL`, which defaults to `claude-3-sonnet-20240229`. A search for `4-5` and `20250929` across the repo found nothing.\n\nNo files changed.\n\n### Why\n\nThe Nov 30, 2026 retirement covers only claude-sonnet-4-5-20250929, and this repo doesn't reference it. The code at ai_provider.py:135 passes the model from config. Its default is a different model, `claude-3-sonnet-20240229`.\n\n> | November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |\n\nSource: https://platform.claude.com/docs/en/about-claude/model-deprecations.md\n\n### Proof\n\nNo checks were run.\n\nNew failures: 0\n\nProvider validators: none run.\n\nWhere checks ran: Docker container python:3.12-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- A deployed ANTHROPIC_MODEL env var could be set to claude-sonnet-4-5-20250929. The sandbox has no real env files, so I couldn't check.\n- The default claude-3-sonnet-20240229 is a separate, already-retired model. I left it alone because it is out of scope for this task.\n- No checks were run.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0663\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-anthropic-model-retirement-9b5d480a",
+          "recipe-anthropic-api-version-a547c43b",
+          "recipe-openai-model-retirement-58a73d88"
+        ],
+        "agentChecks": [],
+        "summary": "# kumarswamyg2005/Docstring-Generation-Agent-and-README-Generation-Agent:anthropic:2026-11-30-retire-claude-sonnet-4-5: not-affected, $0.0663\nChange: claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 (anthropic, model-retirement)\nBaseline checks: none\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=claude|temperature|sonnet glob=**/*.{py,txt,md,env,example,toml,yaml,yml,json} → ai_provider.py:85:                 temperature=config.temperature | ai_provider.py:101:         model (str): Model identifier (e.g., 'claude-3-sonnet-20240229'). | ai_provider.py:138:                 temperature=config.temperature,\n2. shell command=<87 chars> → exit code: 0 | --- stdout --- | .\n3. finish verdict=not-affected summary=<239 chars> why=<226 chars> validators=[] unproven=<273 chars> behaviourChanges=[] → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: none\n\n## Result\nFiles changed: none\nVerdict: not-affected. No change made. The repo never names claude-sonnet-4-5-20250929. The Anthropic model comes from config.py:44, `ANTHROPIC_MODEL`, which defaults to `claude-3-sonnet-20240229`. A search for `4-5` and `20250929` across the repo found nothing.\nUnproven: A deployed ANTHROPIC_MODEL env var could be set to claude-sonnet-4-5-20250929. The sandbox has no real env files, so I couldn't check.; The default claude-3-sonnet-20240229 is a separate, already-retired model. I left it alone because it is out of scope for this task.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "This is a Python project with no detected checks. It has no codegen, no workspace builds and no install hooks that the checks depend on. The AI keys in .env.example are optional and not needed to load or build, so no steps or env vars are required."
+        }
+      }
+    }
+  ],
+  "costUsd": 0.6376337,
+  "durationMs": 298670,
+  "matchReasoning": "kumarswamyg2005/Docstring-Generation-Agent-and-README-Generation-Agent:anthropic:2026-10-21-api-version-2026-10-21: requirements.txt pins the Python anthropic SDK only as >=0.20.0, with no upper bound. The source says SDKs older than the new majors keep sending 2023-06-01, so the new Python major presumably sends 2026-10-21 by default, and a fresh install or CI run would pull it. The call at ai_provider.py:135 passes temperature, which returns 400 in 2026-10-21, so every Anthropic generation request would fail. Uncertain: the changelog quoted is for TypeScript, so the migration agent should confirm which Python anthropic release defaults to 2026-10-21. Then choose one fix: add an upper bound (e.g. anthropic<1.0) for now, or upgrade deliberately and remove temperature from the Anthropic call. If any document blocks or citations are sent, also check them against the 2026-10-21 rules.\nkumarswamyg2005/Docstring-Generation-Agent-and-README-Generation-Agent:anthropic:2026-11-30-retire-claude-sonnet-4-5: The usage map lists model as a field of the Anthropic messages.create call but does not record its value. This repo is an LLM docstring/README generator and may well default to a Sonnet 4.5 snapshot. The migration agent should read the model string or default near ai_provider.py:135 and any config or env defaults. If it is claude-sonnet-4-5-20250929, switch to claude-sonnet-5-5. Note that Sonnet 5.5 rejects disabled thinking and forced tool_choice. This call uses neither, but temperature should be checked against Sonnet 5.5's sampling-param rules. If the model is something else, close the task as no-op.\nanthropic:2026-10-21-sampling-params-removed: not affected: No task of its own: resolved inside kumarswamyg2005/Docstring-Generation-Agent-and-README-Generation-Agent:anthropic:2026-10-21-api-version-2026-10-21 (New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01). The 400 on temperature/top_p/top_k only happens once requests carry anthropic-version 2026-10-21. The same edit fixes both: either pin the Python SDK below its new major, or move to 2026-10-21 and drop temperature from the messages.create call.\nanthropic:2026-10-21-sdk-typescript-1-0-0: not affected: This is the npm @anthropic-ai/sdk release. The repo uses the Python anthropic package from requirements.txt and has no TypeScript SDK.\nanthropic:2026-10-21-document-citations-user-assistant-errors: not affected: The Anthropic call sends plain text prompts for docstring/README generation. No usage places document blocks in assistant messages or citations on user text blocks.\nanthropic:2026-10-21-admin-api-field-renames: not affected: The repo only calls messages.create. It does not use the Admin API or the Enterprise Analytics API.\nanthropic:2026-11-30-fast-mode-opus-4-8-removal: not affected: No call site sends the speed parameter or uses fast mode on claude-opus-4-8.\nanthropic:2026-10-07-haiku-5-5-breaking: not affected: This only matters for code moving to claude-haiku-5-5. No usage targets that model, and the sampling-param removal is already handled by the API-version task.\nanthropic:2026-09-28-sonnet-5-5-breaking: not affected: The repo does not currently use claude-sonnet-5-5 and sends no thinking or tool_choice. The caveat is noted in the Sonnet 4.5 retirement task in case it migrates.\nanthropic:2026-09-22-opus-5-5-breaking: not affected: No usage targets claude-opus-5-5 or sends thinking, tool_choice or computer-use tools.\nanthropic:2026-09-01-fable-5-1-tool-choice: not affected: No usage targets claude-fable-5-1 or claude-mythos-5-1, and no call sends tool_choice.\nanthropic:2026-10-14-ts-sdk-otel-default: not affected: This is a behaviour change in the TypeScript SDK 0.134.0. The repo uses the Python anthropic SDK.\nanthropic:2026-08-27-ts-sdk-beta-files-skills: not affected: This is a TypeScript SDK change to client.beta.files/skills. The repo uses the Python SDK and only calls messages.create.\nanthropic:2026-10-07-text-completions-deprecated: not affected: The repo uses the Messages API (messages.create), not client.completions.create.\nanthropic:2026-09-24-compliance-activity-names-removed: not affected: The repo does not call the Compliance API Activity Feed.",
+  "costByPart": {
+    "inventory": 0.0351543,
+    "match": 0.084136,
+    "other": 0.263996,
+    "harness": 0.1966674,
+    "review": 0.05768
+  }
+}

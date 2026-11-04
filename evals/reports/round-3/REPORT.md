@@ -5,15 +5,15 @@ here was measured. Anything not measured says so.
 
 ## The headline
 
-**No scored iteration ran, and no sealed run ran.** This session has no `ANTHROPIC_API_KEY`, and
-the laptop's secret-file guard stops the agent from loading one from any `.env`. Every part that
-calls a model needs it: inventory, match, the codegen planner, the harness agent and the reviewer.
-So there is no practice score, no sealed score, no cost per repo and no hand-check sample from this
-round. What did run cost $0: two screens of all 125 practice repos without a model, unit tests,
-and a Docker end-to-end of the harness with a scripted agent.
+**Practice score 72.6%: 45 of 62 eligible repos verified in iteration 1. No sealed run yet.** The
+key holder passed `ANTHROPIC_API_KEY` to each run's command, so the model ran from the afternoon
+on. Iterations 2 and 3 reran 10 repos Refit had verified, each verified 9 of 9 eligible, and each
+was compared with plain Claude on the same repos: the blind judge preferred plain Claude 5 to 3
+both times, with 2 ties. Neither side broke a check that passed before. Refit cost $1.44 a repo in
+iteration 3 against plain Claude's $0.15. See [`iterations.md`](iterations.md).
 
 Everything the brief asked L1 to build before the first iteration is built, tested and on
-`r3/integration`, and one command runs an iteration once a key is passed to it:
+`r3/integration`, and one command runs an iteration with a key passed to it:
 
 ```sh
 ANTHROPIC_API_KEY=... sh evals/scripts/round3.sh 1        # screen, run every set's green repos, score
@@ -35,7 +35,13 @@ ANTHROPIC_API_KEY=... sh evals/scripts/round3-sealed.sh   # the one sealed run, 
 
 ## Practice
 
-Not scored: no iteration ran. The screen is the only measurement of the practice sets.
+Iteration 1 is the only run over the whole practice set. The screen, with the codegen planner,
+left 86 of 125 repos green; 39 were excluded (33 red baseline, 6 outside our authority, 8.8% of
+affected repos), each logged in [`exclusions.json`](exclusions.json). Of the green repos, 69 were
+scored before the run was stopped: 45 verified, 17 needs-review, 7 not affected. Score: 45 of 62
+eligible, 72.6%.
+
+The dry screens before it, with no model:
 
 | Screen                                           | Green of 125 | Notes                                                     |
 | ------------------------------------------------ | ------------ | --------------------------------------------------------- |
@@ -44,15 +50,20 @@ Not scored: no iteration ran. The screen is the only measurement of the practice
 
 Without a model, the screen has no codegen planner and no placeholder env. Of the 70 still red,
 the planner targets 47: 24 need a build-time env var, 13 need the Prisma client generated, and
-about 10 need a subfolder install, a workspace build or a template config. That is what the
-planner is for, not what it achieved: it has never run on a real repo.
-
-No exclusions file was written, because the screen's classifier is a model call too.
-`exclusions.json` comes from the first real screen.
+about 10 need a subfolder install, a workspace build or a template config. With the planner, the
+real screen had 86 green, 31 more than dry screen 2's 55.
 
 ## Iterations
 
-None. See [`iterations.md`](iterations.md) for the two dry screens and every cause found.
+| #   | Repos                                  | Score           | Cost a repo | Against plain Claude (judge) |
+| --- | -------------------------------------- | --------------- | ----------- | ---------------------------- |
+| 1   | the practice set, stopped at 69 scored | 45 of 62, 72.6% | $1.07       | not compared                 |
+| 2   | 10 Refit verified in iteration 1       | 9 of 9          | $0.43       | Claude 5, Refit 3, 2 ties    |
+| 3   | the same 10, every provider each uses  | 9 of 9          | $1.44       | Claude 5, Refit 3, 2 ties    |
+
+Iterations 2 and 3 can't be compared with iteration 1: their repos were picked from its verified
+ones. [`iterations.md`](iterations.md) has each iteration's commit, causes and changes, the code
+check of both sides' PRs, and the two dry screens.
 
 ## Sealed
 
@@ -60,7 +71,10 @@ Not run. No sealed set was opened.
 
 ## Causes
 
-Every cause the dry screens found, with its fix. These are sandbox causes, found with no model.
+Every cause the dry screens found, with its fix. These are sandbox causes, found with no model. The
+causes of iteration 1's 17 needs-review repos, and of losing to plain Claude, are in
+[`iterations.md`](iterations.md) with the commits that fixed them; those repos were read by hand,
+not counted per cause.
 
 | Repos   | Cause                                                                   | Fix                                                                   |
 | ------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
@@ -80,8 +94,16 @@ Every cause the dry screens found, with its fix. These are sandbox causes, found
 
 ## Cost
 
-$0 of model spend by L1. Nothing that calls a model ran. There is no cost per repo, per task or by
-part to report.
+| Iteration | Total  | Repos | A repo |
+| --------- | ------ | ----- | ------ |
+| 1         | $73.99 | 69    | $1.07  |
+| 2         | $4.29  | 10    | $0.43  |
+| 3         | $14.39 | 10    | $1.44  |
+
+Iteration 1's total covers the scored repos, not the screen or the stopped runs. Iteration 3 by
+part, a repo: harness $0.45, match $0.34, memory $0.30, watch $0.28, review $0.08, inventory $0.00.
+Its 34 tasks averaged $0.42 each, all parts included. Plain Claude cost $0.15 a repo; the judge
+$0.72 for 10.
 
 ## Wall time
 
@@ -91,14 +113,19 @@ Screens only, at concurrency 5 to 6 in Docker on this laptop (14 CPUs, 7.7 GB fo
 - dry screen 2: the 78 red ones in 51 minutes;
 - one repo took 3 seconds to 11 minutes, mostly install and `next build`.
 
-No task wall time: no task ran.
+Iteration 3, checkout to graded result: 17.5 minutes a repo, of which the agent worked 6.0. Its
+34 tasks ran one after another within each repo, about 5 minutes each; the slowest repos were
+t2-chat (46 min, 4 tasks), backend_AgentAi (41 min, 8), lamp-bot (35 min, 5) and buddy_connect
+(33 min, 5). In iteration 2, with one task a repo, every repo took 1 to 9 minutes. Plain Claude's
+agent took 44 seconds a repo.
 
 ## Hand-checks
 
-None: no PR was produced, so there is nothing to hand-check and no agreement rate.
+None yet: no PR has been hand-checked, so there is no agreement rate. The blind judge is not a
+hand-check.
 
 ## Blockers
 
-1. **No API key in this session.** It blocks every iteration and the sealed run. The fix is
-   for the key holder to run `evals/scripts/round3.sh` with the key passed to that one command.
-2. **The two-no-gain rule never ran,** since there was no iteration to compare.
+1. **The sealed run has not run.** No sealed set was opened.
+2. **The two-no-gain rule did not decide the stop.** Iterations 2 and 3 scored a 10-repo subset at
+   100%, so neither could gain; the full practice set was not rerun after iteration 1.

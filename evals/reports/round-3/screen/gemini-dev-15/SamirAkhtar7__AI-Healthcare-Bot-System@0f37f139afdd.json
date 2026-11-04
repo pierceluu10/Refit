@@ -1,0 +1,27 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "SamirAkhtar7/AI-Healthcare-Bot-System",
+  "commit": "0f37f139afdd1e3da050a5187d927757b892d0cf",
+  "provider": "gemini",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "build",
+      "command": "npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.03616799999999998,
+  "durationMs": 36638,
+  "install": {
+    "code": 0,
+    "tail": "added 206 packages in 11s"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

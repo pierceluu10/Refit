@@ -1,0 +1,183 @@
+{
+  "set": "stripe-dev-30",
+  "index": 1,
+  "repo": "alanagoyal/branded",
+  "commit": "cf8f84cc8bfc4b6fc35ae462deea9369ff7afc27",
+  "provider": "stripe",
+  "usages": 11,
+  "changes": 27,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "alanagoyal/branded:stripe:node-23-0-0",
+      "changeId": "stripe:node-23-0-0",
+      "kind": "sdk-major",
+      "change": {
+        "provider": "stripe",
+        "id": "stripe:node-23-0-0",
+        "kind": "sdk-major",
+        "title": "stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields",
+        "source": {
+          "url": "https://raw.githubusercontent.com/stripe/stripe-node/HEAD/CHANGELOG.md",
+          "quote": "Removed the function `Stripe.constructEventWithoutVerification()` that was mistakenly added in version 22.5.0 of this package."
+        },
+        "affects": {
+          "versions": ["<23.0.0", "23.0.0"],
+          "sdk": "stripe"
+        },
+        "effectiveDate": "2026-09-30"
+      },
+      "reasoning": "The repo uses stripe-node 15.12.0, which pins API version 2024-04-10. This is eight majors behind 23.0.0, the current release, which pins 2026-09-30.endive. Nothing breaks today, because the SDK keeps sending its pinned version. Moving to a supported SDK means one coherent bump to 23.x that absorbs majors 16 through 23 and the API versions they pin (Basil, Clover, Dahlia, Endive). Concrete risks for the migration agent:\n1. The v22 ES6-class change requires `new Stripe(...)`, especially in scripts/reconcile-billing.cjs.\n2. Basil subscription field moves (current_period_* moved to items, and invoice field removals) matter wherever subscription or invoice fields are read in lib/billing.ts, lib/account-deletion.ts, the reconcile script and the webhook handler.\n3. The webhook endpoint's Dashboard API version should be aligned with the new SDK typings.\n4. The Node runtime must meet the new minimum.\nThe repo uses none of the Endive/Dahlia-specific fields reviewed (payment_method_types, billing_cycle_anchor, ui_mode, FC filters, v2 account links, PayTo).\nThis task also resolves these changes. Handle each in the same change, and say in the PR how:\n- stripe:2026-09-30-endive-api-version (api-version): New API major 2026-09-30.endive carries breaking changes; pin it via Stripe-Version or upgrade SDKs (node 23, python 16, go v87), effective 2026-09-30. stripe-node 23.0.0 pins 2026-09-30.endive. The repo relies on the SDK's pinned API version, so Endive's breaking changes only reach this repo through this upgrade. The specific Endive field changes reviewed do not touch the repo's call sites.\n  Source: https://docs.stripe.com/changelog/endive.md\n  \"As the first version in the Endive release, `2026-09-30.endive` introduces both breaking changes and new features.\"\n- stripe:2026-03-25-dahlia-api-version (api-version): API major 2026-03-25.dahlia with breaking changes (Checkout ui_mode enum values, events_from on event destinations, Capabilities risk requirements, Stripe.js method removals), effective 2026-03-25. Dahlia is pinned by stripe-node 21. Jumping from 15.12.0 to 23 passes through it, so its breaking changes are reviewed in the same PR.\n  Source: https://docs.stripe.com/changelog/dahlia.md\n  \"As the first version in the Dahlia release, `2026-03-25.dahlia` introduces both breaking changes and new features\"\n- stripe:node-22-0-0 (sdk-major): stripe-node (npm) 22.0.0: Stripe is a true ES6 class (use new Stripe()), types reworked, per-request host override removed, effective 2026-04-02. This is an intermediate major on the path from 15.12.0 to 23. Stripe becomes a true ES6 class, so calls like require('stripe')(key) or Stripe(key) without new must change to new Stripe(key). Its type rework also lands in this upgrade.\n  Source: https://raw.githubusercontent.com/stripe/stripe-node/HEAD/CHANGELOG.md\n  \"Stripe import is now a true ES6 class. Use `new Stripe()` to create a StripeClient instead of calling it:\"\n- stripe:node-21-0-0 (sdk-major): stripe-node (npm) 21.0.0: pins 2026-03-25.dahlia, drops Node 16, decimal_string fields become Stripe.Decimal, wrong webhook parsing method throws, effective 2026-03-25. This is an intermediate major on the path to 23. It pins Dahlia, drops Node 16, turns decimal_string fields into Stripe.Decimal, and makes the wrong webhook parsing method throw. All of this is handled in the same bump.\n  Source: https://raw.githubusercontent.com/stripe/stripe-node/HEAD/CHANGELOG.md\n  \"All `decimal_string` fields changed type from `string` to `Stripe.Decimal` in both request params and response objects.\"\n- stripe:node-20-0-0 (sdk-major): stripe-node (npm) 20.0.0: pins 2025-11-17.clover; v2 array params use indexed serialization (may break mock-server tests), effective 2025-11-18. This is an intermediate major that pins 2025-11-17.clover and changes v2 array serialization. The repo uses no v2 endpoints, so only the API-version jump matters, and that is covered by this upgrade.\n  Source: https://raw.githubusercontent.com/stripe/stripe-node/HEAD/CHANGELOG.md\n  \"This may break any unit tests that expect the latter behavior when setting up a mock server.\"\n- stripe:node-19-0-0 (sdk-major): stripe-node (npm) 19.0.0: pins 2025-09-30.clover; parseThinEvent renamed parseEventNotification, v2 delete returns V2DeletedObject, v2 nullable props optional; 19.x deprecated (Files API timeout bug), effective 2025-09-30. This is an intermediate major that pins 2025-09-30.clover and renames parseThinEvent. The repo does not use thin events, so the API-version jump is handled in the same bump.\n  Source: https://raw.githubusercontent.com/stripe/stripe-node/HEAD/CHANGELOG.md\n  \"Rename function `StripeClient.parseThinEvent` to `StripeClient.parseEventNotification` and remove the `Stripe.ThinEvent` interface.\"",
+      "callSites": [
+        {
+          "file": "app/api/webhook/stripe/route.ts",
+          "line": 18,
+          "why": "webhooks.constructEvent is still supported. However, event object typings change across Basil, Clover, Dahlia and Endive. v21 also throws when the wrong parsing method is used for an event type. Verify the handler's field reads and the webhook endpoint's API version in the Dashboard."
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 52,
+          "why": "checkout.sessions.create params (subscription_data, line_items, expires_at) are retyped across the API versions. Confirm that no now-removed parameters (payment_method_types, ui_mode values) are passed and that the types compile."
+        },
+        {
+          "file": "lib/billing.ts",
+          "line": 38,
+          "why": "subscriptions.list responses change shape between 2024-04-10 and Endive. For example, Basil moved current_period_start/end onto subscription items. Check which subscription fields billing logic reads."
+        },
+        {
+          "file": "scripts/reconcile-billing.cjs",
+          "line": 35,
+          "why": "This CommonJS script probably constructs the client as require('stripe')(key), which breaks in v22 (the client must be created with new). Its subscriptions.list response reads are also exposed to the Basil field moves."
+        },
+        {
+          "file": "scripts/reconcile-billing.cjs",
+          "line": 29,
+          "why": "The customers.retrieve response shape and the client construction pattern both change with the major upgrade."
+        },
+        {
+          "file": "app/verify-subscription/route.ts",
+          "line": 14,
+          "why": "checkout.sessions.retrieve response typing changes across versions. Verify any fields it reads, such as the expanded subscription and status."
+        },
+        {
+          "file": "app/checkout-session/route.ts",
+          "line": 38,
+          "why": "subscriptions.list params and response fields change across the pinned API versions."
+        },
+        {
+          "file": "lib/account-deletion.ts",
+          "line": 42,
+          "why": "subscriptions.list and cancellation logic read subscription fields that are affected by the Basil and later shape changes."
+        },
+        {
+          "file": "app/portal-session/route.ts",
+          "line": 10,
+          "why": "The billingPortal.sessions.create client construction and types change with the v22 ES6-class change."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "alanagoyal/branded:stripe:node-23-0-0",
+        "outcome": "needs-review",
+        "diff": "diff --git a/lib/billing-state.ts b/lib/billing-state.ts\nindex 727bc7b..0b7091a 100644\n--- a/lib/billing-state.ts\n+++ b/lib/billing-state.ts\n@@ -9,6 +9,9 @@ export type BillingSnapshot = {\n   cancel_at_period_end: boolean;\n };\n \n+// Basil+ moved current_period_end from the subscription to its items.\n+const periodEnd = (subscription?: Stripe.Subscription) => subscription?.items.data[0]?.current_period_end;\n+\n export function billingSnapshot(\n   subscriptions: Stripe.Subscription[],\n   prices: { pro?: string; business?: string },\n@@ -21,7 +24,7 @@ export function billingSnapshot(\n   };\n   const entitled = subscriptions.filter(subscription =>\n     [\"active\", \"trialing\"].includes(subscription.status) &&\n-    subscription.current_period_end * 1000 > now && tier(subscription) !== \"free\",\n+    (periodEnd(subscription) ?? 0) * 1000 > now && tier(subscription) !== \"free\",\n   );\n   // An old canceled subscription must not hide a newer active subscription.\n   entitled.sort((a, b) => Number(tier(b) === \"business\") - Number(tier(a) === \"business\") || b.created - a.created);\n@@ -33,7 +36,7 @@ export function billingSnapshot(\n     plan_tier: hasAccess ? tier(subscription) : \"free\",\n     subscription_id: subscription?.id ?? null,\n     subscription_status: subscription?.status ?? null,\n-    current_period_end: subscription?.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,\n+    current_period_end: periodEnd(subscription) ? new Date(periodEnd(subscription)! * 1000).toISOString() : null,\n     cancel_at_period_end: subscription?.cancel_at_period_end ?? false,\n   };\n }\ndiff --git a/package-lock.json b/package-lock.json\nindex d5bc11f..652ebcf 100644\n--- a/package-lock.json\n+++ b/package-lock.json\n@@ -45,7 +45,7 @@\n         \"react-dom\": \"^18\",\n         \"react-hook-form\": \"^7.50.1\",\n         \"react-icons\": \"^5.0.1\",\n-        \"stripe\": \"^15.1.0\",\n+        \"stripe\": \"^23.0.0\",\n         \"tailwind-merge\": \"^2.2.1\",\n         \"tailwindcss-animate\": \"^1.0.7\",\n         \"uuid\": \"11.1.1\",\n@@ -10010,16 +10010,20 @@\n       }\n     },\n     \"node_modules/stripe\": {\n-      \"version\": \"15.12.0\",\n-      \"resolved\": \"https://registry.npmjs.org/stripe/-/stripe-15.12.0.tgz\",\n-      \"integrity\": \"sha512-slTbYS1WhRJXVB8YXU8fgHizkUrM9KJyrw4Dd8pLEwzKHYyQTIE46EePC2MVbSDZdE24o1GdNtzmJV4PrPpmJA==\",\n+      \"version\": \"23.0.0\",\n+      \"resolved\": \"https://registry.npmjs.org/stripe/-/stripe-23.0.0.tgz\",\n+      \"integrity\": \"sha512-MDE2A5ZVVluYURORaZEVghSmnLJc3w6aHAlZSxDQMsOjOb3V0O6ro/CiaeFlJS4N7uIVmsg98ocRsPmUK6YfyA==\",\n       \"license\": \"MIT\",\n-      \"dependencies\": {\n-        \"@types/node\": \">=8.1.0\",\n-        \"qs\": \"^6.11.0\"\n-      },\n       \"engines\": {\n-        \"node\": \">=12.*\"\n+        \"node\": \">=20\"\n+      },\n+      \"peerDependencies\": {\n+        \"@types/node\": \">=20\"\n+      },\n+      \"peerDependenciesMeta\": {\n+        \"@types/node\": {\n+          \"optional\": true\n+        }\n       }\n     },\n     \"node_modules/styled-jsx\": {\ndiff --git a/package.json b/package.json\nindex 5b875c7..af840be 100644\n--- a/package.json\n+++ b/package.json\n@@ -49,7 +49,7 @@\n     \"react-dom\": \"^18\",\n     \"react-hook-form\": \"^7.50.1\",\n     \"react-icons\": \"^5.0.1\",\n-    \"stripe\": \"^15.1.0\",\n+    \"stripe\": \"^23.0.0\",\n     \"tailwind-merge\": \"^2.2.1\",\n     \"tailwindcss-animate\": \"^1.0.7\",\n     \"uuid\": \"11.1.1\",\ndiff --git a/tests/billing.test.cjs b/tests/billing.test.cjs\nindex dac0046..0f825c4 100644\n--- a/tests/billing.test.cjs\n+++ b/tests/billing.test.cjs\n@@ -18,8 +18,8 @@ const { billingSnapshot } = load(\"lib/billing-state.ts\");\n const prices = { pro: \"price_pro\", business: \"price_business\" };\n const now = 2000000000000;\n function subscription(overrides = {}) {\n-  return { id: \"sub_1\", status: \"active\", created: 1, current_period_end: now / 1000 + 1000,\n-    cancel_at_period_end: false, items: { data: [{ price: { id: \"price_pro\", product: \"prod_pro\" } }] }, ...overrides };\n+  return { id: \"sub_1\", status: \"active\", created: 1,\n+    cancel_at_period_end: false, items: { data: [{ current_period_end: overrides.current_period_end ?? now / 1000 + 1000, price: { id: \"price_pro\", product: \"prod_pro\" } }] }, ...overrides };\n }\n test(\"scheduled cancellation retains paid access and customer state until expiration\", () => {\n   const state = billingSnapshot([subscription({ cancel_at_period_end: true })], prices, now);\n@@ -36,7 +36,7 @@ for (const status of [\"canceled\", \"past_due\", \"unpaid\", \"paused\", \"incomplete\",\n   });\n }\n test(\"active allowed plan wins over a newer canceled record; business wins over pro\", () => {\n-  const business = subscription({ id: \"sub_business\", items: { data: [{ price: { id: \"price_business\", product: \"prod_business\" } }] } });\n+  const business = subscription({ id: \"sub_business\", items: { data: [{ current_period_end: now / 1000 + 1000, price: { id: \"price_business\", product: \"prod_business\" } }] } });\n   assert.equal(billingSnapshot([subscription({ status: \"canceled\", created: 2 }), subscription()], prices, now).plan_tier, \"pro\");\n   assert.equal(billingSnapshot([subscription(), business], prices, now).plan_tier, \"business\");\n });\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "test",
+            "before": "pass",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.15947970000000003,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-alanagoyal-branded-stripe-node-23-0-0-WWVjz5/transcript.jsonl",
+        "prBody": "## stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields [Needs review]\n\n### Change\n\nBumped stripe 15.12.0 to 23.0.0 with npm. Fixed lib/billing-state.ts to read current_period_end from subscription.items.data[0], because the v23 types no longer have it on Subscription. Updated the billing test fixtures to the new shape. Typecheck, build and all 150 tests pass. The repo already used `new Stripe(...)` everywhere, including scripts/reconcile-billing.cjs. It never used constructEventWithoutVerification, the ErrorType export or V2List, so those removals don't affect it.\n\nFiles touched:\n- `lib/billing-state.ts`\n- `package-lock.json`\n- `package.json`\n- `tests/billing.test.cjs`\n\n### Why\n\nMoving to API 2026-09-30.endive (via Basil) moved current_period_end from the subscription to its items. The old field read would have broken the typecheck and given wrong entitlement results.\n\n> Removed the function `Stripe.constructEventWithoutVerification()` that was mistakenly added in version 22.5.0 of this package.\n\nSource: https://raw.githubusercontent.com/stripe/stripe-node/HEAD/CHANGELOG.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| test | pass | pass | 0 |\n\nNew failures: 0\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, OPENAI_API_KEY, BRAINTRUST_API_KEY, WHOXY_API_KEY, RAPID_API_KEY, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, STRIPE_SECRET_KEY, STRIPE_ENDPOINT_SECRET, STRIPE_PRO_PRICE_ID, STRIPE_BUSINESS_PRICE_ID.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- I did not run the Stripe provider validators (stripe_check_params and similar).\n- The webhook endpoint's Dashboard API version is not aligned with the SDK's pinned 2026-09-30.endive. This is an external setting.\n- I did not check the production Node runtime against the minimum that v23 requires.\n- Multi-item subscriptions use the first item's period end, which matches how the tier is already chosen.\n- I added no new test. The existing billing tests were updated and they cover this read. They pass after the change, but I did not check whether they failed on the old code.\n- The agent wrote no test of this change and gave no reason why none can be written.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Subscription period end is now read from items.data[0].current_period_end. A subscription whose first item has no period end counts as not entitled.\n- The SDK now sends API version 2026-09-30.endive instead of 2024-04-10. Live response shapes were not checked.\n- The webhook endpoint's API version should be aligned in the Stripe Dashboard so event payloads match the new types.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1595\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [],
+        "agentChecks": [],
+        "summary": "# alanagoyal/branded:stripe:node-23-0-0: needs-review, $0.1595\nChange: stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields (stripe, sdk-major)\nBaseline checks: typecheck pass, build pass, test pass\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=stripe|Stripe path=. glob=**/*.{ts,tsx,cjs,js,json} → app/account/delete/route.ts:2: import Stripe from \"stripe\"; | app/account/delete/route.ts:50:     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!); | app/account/delete/route.ts:52:       stripe, user.email, profile?.customer_id ??…\n2. search pattern=current_period|\\.type\\b|apiVersion|latest_invoice|\\.invoice glob={lib,app,scripts}/**/*.{ts,cjs} → app/api/webhook/stripe/route.ts:22:   if (!handled.has(event.type)) return Response.json({ received: true }); | app/checkout-session/route.ts:67:       if (failure.type !== \"StripeInvalidRequestError\" || failure.param !== \"expires_at\" || | …\n3. install  → package manager: npm | command: npm ci --ignore-scripts --no-audit --no-fund || { rm -rf node_modules; npm install --ignore-scripts --no-audit --no-fund || npm install --ignore-scripts --no-audit --no-fund --legacy-peer-deps || npm install …\n4. shell command=<112 chars> → exit code: 0 | --- stdout --- | changed 1 package in 8s\n5. read_file path=lib/billing-state.ts → 1\timport type Stripe from \"stripe\"; | 2\t | 3\texport type BillingSnapshot = {\n6. search pattern=current_period_end path=tests → tests/billing.test.cjs:21:   return { id: \"sub_1\", status: \"active\", created: 1, current_period_end: now / 1000 + 1000, | tests/billing.test.cjs:29:   assert.equal(billingSnapshot([subscription({ current_period_end: now / 1000 })], prices, …\n7. read_file path=tests/billing.test.cjs offset=15 limit=25 → 15\t  return exports; | 16\t} | 17\tconst { billingSnapshot } = load(\"lib/billing-state.ts\");\n8. shell command=<1153 chars> → exit code: 0 | --- stdout --- | test(\"active allowed plan wins over a newer canceled record; business wins over pro\", () => {\n9. shell command=<226 chars> → exit code: 0 | --- stdout --- | # Subtest: middleware returns all refreshed cookie chunks and no-cache headers\n10. run_checks  → ## typecheck: pass | command: export NEXT_PUBLIC_SUPABASE_URL='http://localhost:54321' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' OPENAI_API_KEY='placeholder' BRAINTRUST_API_KEY='placeholder' WHOXY_A…\n11. finish verdict=migrated summary=<487 chars> why=<192 chars> validators=[] unproven=<580 chars> behaviourChanges=<382 chars> → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, test pass → pass\n\n## Result\nFiles changed: lib/billing-state.ts, package-lock.json, package.json, tests/billing.test.cjs\nVerdict: migrated. Bumped stripe 15.12.0 to 23.0.0 with npm. Fixed lib/billing-state.ts to read current_period_end from subscription.items.data[0], because the v23 types no longer have it on Subscription. Updated the billing test fixtures to the new shape. Typecheck, build and all 150 tests pass. The repo already used `new Stripe(...)` everywhere, including scripts/reconcile-billing.cjs. It never used constructEventWithoutVerification, the ErrorType export or V2List, so those removals don't affect it.\nUnproven: I did not run the Stripe provider validators (stripe_check_params and similar).; The webhook endpoint's Dashboard API version is not aligned with the SDK's pinned 2026-09-30.endive. This is an external setting.; I did not check the production Node runtime against the minimum that v23 requires.; Multi-item subscriptions use the first item's period end, which matches how the tier is already chosen.; I added no new test. The existing billing tests were updated and they cover this read. They pass after the change, but I did not check whether they failed on the old code.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "NEXT_PUBLIC_SUPABASE_URL": "http://localhost:54321",
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY": "placeholder",
+            "SUPABASE_SERVICE_ROLE_KEY": "placeholder",
+            "OPENAI_API_KEY": "placeholder",
+            "BRAINTRUST_API_KEY": "placeholder",
+            "WHOXY_API_KEY": "placeholder",
+            "RAPID_API_KEY": "placeholder",
+            "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_placeholder",
+            "STRIPE_SECRET_KEY": "sk_test_placeholder",
+            "STRIPE_ENDPOINT_SECRET": "whsec_placeholder",
+            "STRIPE_PRO_PRICE_ID": "price_placeholder_pro",
+            "STRIPE_BUSINESS_PRICE_ID": "price_placeholder_business"
+          },
+          "reasoning": "No codegen or workspace builds are needed: scripts are plain tsc, next build and node tests, and no install hooks of the repo's own are required. The build and module loading may read Supabase, Stripe and provider env vars, so inert placeholders from .env.example are supplied (README says CI uses such placeholders for builds)."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The removed items (`constructEventWithoutVerification`, the `ErrorType` export, V2List fields) are not used anywhere in the repo. The diff's real work is the 15→23 SDK jump. `stripeClient()` in `lib/billing.ts` and `scripts/reconcile-billing.cjs` call `new Stripe(key)` with no `apiVersion`, so every live call moves from the 2024-era default to the SDK's pinned 2026-09-30.endive. That crosses acacia, basil, clover and later breaking versions. The agent fixed the one break the typecheck exposed: `current_period_end` moved to subscription items in `lib/billing-state.ts`. That fix looks correct and the tests were updated sensibly. All checks run against hand-built mocks, though, so nothing proves runtime behaviour against the new API version. That covers error shapes, webhook payloads and list/expand defaults. needs-review is the right grade.",
+        "concerns": [
+          {
+            "file": "lib/billing.ts",
+            "issue": "`new Stripe(process.env.STRIPE_SECRET_KEY!)` has no `apiVersion`. The upgrade therefore silently changes the API version for every call: customers, subscriptions, checkout.sessions, billingPortal and subscriptionSchedules. Several versions in between changed response shapes. Typecheck catches only the fields this code reads through typed paths. Consider pinning `apiVersion` explicitly, or confirm in the Stripe changelog that each call site in the named list is unaffected.",
+            "severity": "medium"
+          },
+          {
+            "file": "app/api/webhook/stripe/route.ts",
+            "issue": "Webhook payloads use the API version configured on the Stripe webhook endpoint, not the SDK's version. The handler only reads `event.id`, `event.type` and `data.object.customer`, so it is probably safe. However, `Stripe.Event` types now describe endive objects while the live endpoint may still send an older version. Check the endpoint's version in the Dashboard. Also confirm that every handled event type, including invoice events and `checkout.session.async_*`, still carries a top-level `customer` on the endpoint's version.",
+            "severity": "medium"
+          },
+          {
+            "file": "app/checkout-session/route.ts",
+            "issue": "The expiry-renewal path relies on a thrown error having `type === \"StripeInvalidRequestError\"` and `param === \"expires_at\"`. The changelog mentions removing the `ErrorType` export, and I could not confirm whether v23 still sets `error.type` to the class-name string. Tests use plain mock objects, so a changed shape would silently turn renewal into a 503. Verify against v23's `Error.ts` / types.",
+            "severity": "medium"
+          },
+          {
+            "file": "lib/billing-state.ts",
+            "issue": "`periodEnd` reads only `items.data[0].current_period_end`. This matches how `tier()` picks the item, but a multi-item subscription with different periods could gain or lose entitlement incorrectly. This is low risk if subscriptions are always single-price, as checkout creates them.",
+            "severity": "low"
+          },
+          {
+            "file": "tests/billing.test.cjs",
+            "issue": "The `subscription()` helper still spreads `current_period_end` from overrides onto the top level, so the old field can still sit on test fixtures. It is harmless now, but no test asserts that a top-level value is ignored. The tests also never exercise a subscription with an empty `items.data`, where `periodEnd` returns undefined and access should fail closed.",
+            "severity": "low"
+          },
+          {
+            "file": "scripts/reconcile-billing.cjs",
+            "issue": "This script uses the same unpinned client and transpiles `lib/billing-state.ts` at runtime. It inherits the fix, but it is untested and makes live calls; run it in dry-run mode against test mode before relying on it.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Decide whether to pass an explicit `apiVersion` in `stripeClient()` and in `reconcile-billing.cjs`. Otherwise, review the Stripe API changelog from the old default through 2026-09-30.endive for each call site.",
+          "Confirm the webhook endpoint's configured API version in the Stripe Dashboard. Check that handled events (subscription, invoice, checkout.session) still expose `data.object.customer` on that version.",
+          "Check stripe-node v23 error classes to confirm `error.type === 'StripeInvalidRequestError'` and `error.param` still exist for the `expires_at` renewal path.",
+          "Smoke-test in Stripe test mode: create a checkout, complete it, receive the webhook, and confirm `billingSnapshot` writes a correct `current_period_end` from `items.data[0]`."
+        ],
+        "costUsd": 0.124844,
+        "model": "claude-opus-5-5"
+      }
+    }
+  ],
+  "costUsd": 0.6202012,
+  "durationMs": 635067,
+  "matchReasoning": "alanagoyal/branded:stripe:node-23-0-0: The repo uses stripe-node 15.12.0, which pins API version 2024-04-10. This is eight majors behind 23.0.0, the current release, which pins 2026-09-30.endive. Nothing breaks today, because the SDK keeps sending its pinned version. Moving to a supported SDK means one coherent bump to 23.x that absorbs majors 16 through 23 and the API versions they pin (Basil, Clover, Dahlia, Endive). Concrete risks for the migration agent:\n1. The v22 ES6-class change requires `new Stripe(...)`, especially in scripts/reconcile-billing.cjs.\n2. Basil subscription field moves (current_period_* moved to items, and invoice field removals) matter wherever subscription or invoice fields are read in lib/billing.ts, lib/account-deletion.ts, the reconcile script and the webhook handler.\n3. The webhook endpoint's Dashboard API version should be aligned with the new SDK typings.\n4. The Node runtime must meet the new minimum.\nThe repo uses none of the Endive/Dahlia-specific fields reviewed (payment_method_types, billing_cycle_anchor, ui_mode, FC filters, v2 account links, PayTo).\nstripe:2026-09-30-endive-api-version: not affected: No task of its own: resolved inside alanagoyal/branded:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). stripe-node 23.0.0 pins 2026-09-30.endive. The repo relies on the SDK's pinned API version, so Endive's breaking changes only reach this repo through this upgrade. The specific Endive field changes reviewed do not touch the repo's call sites.\nstripe:2026-03-25-dahlia-api-version: not affected: No task of its own: resolved inside alanagoyal/branded:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). Dahlia is pinned by stripe-node 21. Jumping from 15.12.0 to 23 passes through it, so its breaking changes are reviewed in the same PR.\nstripe:node-22-0-0: not affected: No task of its own: resolved inside alanagoyal/branded:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). This is an intermediate major on the path from 15.12.0 to 23. Stripe becomes a true ES6 class, so calls like require('stripe')(key) or Stripe(key) without new must change to new Stripe(key). Its type rework also lands in this upgrade.\nstripe:node-21-0-0: not affected: No task of its own: resolved inside alanagoyal/branded:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). This is an intermediate major on the path to 23. It pins Dahlia, drops Node 16, turns decimal_string fields into Stripe.Decimal, and makes the wrong webhook parsing method throw. All of this is handled in the same bump.\nstripe:node-20-0-0: not affected: No task of its own: resolved inside alanagoyal/branded:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). This is an intermediate major that pins 2025-11-17.clover and changes v2 array serialization. The repo uses no v2 endpoints, so only the API-version jump matters, and that is covered by this upgrade.\nstripe:node-19-0-0: not affected: No task of its own: resolved inside alanagoyal/branded:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). This is an intermediate major that pins 2025-09-30.clover and renames parseThinEvent. The repo does not use thin events, so the API-version jump is handled in the same bump.\nstripe:2026-09-30-remove-payment-method-types-intents: not affected: The repo never creates or updates PaymentIntents or SetupIntents; it uses Checkout Sessions, customers, subscriptions and the billing portal.\nstripe:2026-09-30-remove-payment-method-types-checkout: not affected: The checkout.sessions.create call in app/checkout-session/route.ts does not pass payment_method_types. The repo also has no recorded Stripe.js Elements usage with paymentMethodTypes.\nstripe:2026-09-30-billing-cycle-anchor-object: not affected: No call site updates or resumes subscriptions or previews invoices with billing_cycle_anchor. The repo only lists subscriptions and creates Checkout Sessions.\nstripe:2026-09-30-fc-countries-to-country: not affected: The repo does not use Financial Connections Sessions.\nstripe:2026-09-30-account-links-v2-configurations: not affected: The repo does not call the v2 Account Links API or use Connect at all.\nstripe:2026-09-30-payto-fields-removed: not affected: The repo does not create or read PayTo Payment Methods.\nstripe:2026-09-30-reserve-release-reason: not affected: The repo does not use Reserve Releases or read their reason enum.\nstripe:2026-09-30-other-breaking-endive: not affected: The listed items (BLIK decline codes, Accounts requirements, SEPA settings on Accounts, Tax Calculation errors, Payment Evaluations, 3DS data share, dispute evidence, India mandates) cover features this subscription-checkout app does not call.\nstripe:2026-09-30-stripejs-payment-request-button: not affected: No Stripe.js Elements, payment request button or handleNextAction call sites are recorded. The app uses hosted Checkout and the billing portal.\nstripe:2026-03-25-stripejs-removals: not affected: No Stripe.js call sites using the deprecated Payment Intents, Setup Intents or Sources methods, or initCheckout/initEmbeddedCheckout, are recorded. Stripe.js versioning also follows @stripe/stripe-js, not the stripe-node bump.\nstripe:2026-03-25-checkout-ui-mode-enum: not affected: The checkout.sessions.create call does not pass ui_mode; it uses default hosted Checkout with success_url/cancel_url. No code reads ui_mode.\nstripe:2026-03-25-events-from-destinations: not affected: The repo does not create or configure event destinations through the API. It only verifies incoming webhooks with constructEvent.\nstripe:2026-08-26-preview-dahlia-pmt-removal: not affected: These are preview-channel changes to Financial Addresses, Received Credits and Payout Methods v2. The repo uses none of these and does not pin a preview version.\nstripe:runtime-go-1-24-drop: not affected: This is a stripe-go/stripe-python runtime notice, plus a Node 20 drop planned for a future September 2027 stripe-node major. The repo has no Go or Python Stripe SDK, and the Node drop is not part of the current 23.x upgrade.\nstripe:python-16-0-0: not affected: The repo uses stripe-node (npm), not stripe-python.\nstripe:python-15-0-0: not affected: The repo uses stripe-node (npm), not stripe-python.\nstripe:python-14-0-0: not affected: The repo uses stripe-node (npm), not stripe-python.\nstripe:python-13-0-0: not affected: The repo uses stripe-node (npm), not stripe-python.\nstripe:python-12-0-0: not affected: The repo uses stripe-node (npm), not stripe-python.\nstripe:go-87-0-0: not affected: The repo uses stripe-node (npm), not stripe-go.",
+  "costByPart": {
+    "inventory": 0.1427335,
+    "match": 0.193144,
+    "other": 0,
+    "harness": 0.15947970000000003,
+    "review": 0.124844
+  }
+}

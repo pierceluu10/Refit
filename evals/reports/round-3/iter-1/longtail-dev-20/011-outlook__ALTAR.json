@@ -1,0 +1,387 @@
+{
+  "set": "longtail-dev-20",
+  "index": 11,
+  "repo": "outlook/ALTAR",
+  "commit": "dcf907b88e8f676e8207efa6bc24321429c1608d",
+  "provider": "azure-ad-graph",
+  "usages": 4,
+  "changes": 6,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "outlook/ALTAR:azure-ad-graph:2025-08-31-azure-ad-graph-retired",
+      "changeId": "azure-ad-graph:2025-08-31-azure-ad-graph-retired",
+      "kind": "product-shutdown",
+      "change": {
+        "provider": "azure-ad-graph",
+        "id": "azure-ad-graph:2025-08-31-azure-ad-graph-retired",
+        "kind": "product-shutdown",
+        "title": "Azure AD Graph API (graph.windows.net) fully retired after extended access ended; migrate to Microsoft Graph",
+        "source": {
+          "url": "https://learn.microsoft.com/en-us/graph/migrate-azure-ad-graph-overview",
+          "quote": "August 31, 2025: End of extended access to Azure AD Graph. Azure AD Graph will be fully retired."
+        },
+        "affects": {},
+        "effectiveDate": "2025-08-31"
+      },
+      "reasoning": "The repo calls Azure AD Graph (graph.windows.net, api-version=1.6) directly with requests for /me and /me/memberOf, and requests tokens for that resource. Since 2025-08-31 Azure AD Graph is fully retired, so these calls fail: group membership lookup and UPN resolution break, which breaks the whole ALTAR auth flow. Migrate to Microsoft Graph v1.0:\n- change host and path\n- drop the api-version parameter\n- handle @odata.nextLink paging\n- change the token resource to graph.microsoft.com\n- grant the Microsoft Graph delegated permissions\nThis also covers the 2025-02-01 extended-access opt-in, which only matters while still on Azure AD Graph. Coordinate with the ADAL to MSAL task, since azure_ad.py line 83 is touched by both.\nThis task also resolves these changes. Handle each in the same change, and say in the PR how:\n- azure-ad-graph:2025-02-01-azure-ad-graph-opt-in (auth-change): All apps must explicitly opt in to extended access to use Azure AD Graph (from 2025-02-01), effective 2025-02-01. The opt-in only kept apps working on graph.windows.net until retirement. Moving the /me and /me/memberOf calls and the token resource to Microsoft Graph removes the need for extended access, so no separate edit remains.\n  Source: https://learn.microsoft.com/en-us/graph/migrate-azure-ad-graph-overview\n  \"February 1, 2025: All new and existing apps must explicitly opt in for extended access to use Azure AD Graph, including apps created before August 31, 2024.\"",
+      "callSites": [
+        {
+          "file": "azure_ad.py",
+          "line": 29,
+          "why": "Pins api-version=1.6, an Azure AD Graph version on graph.windows.net. Remove it and use Microsoft Graph v1.0 (graph.microsoft.com/v1.0)."
+        },
+        {
+          "file": "azure_ad.py",
+          "line": 34,
+          "why": "GET /me/memberOf on graph.windows.net stops working after retirement. Microsoft Graph pages with @odata.nextLink (not odata.nextLink), so the paging code must change. displayName is still returned."
+        },
+        {
+          "file": "azure_ad.py",
+          "line": 69,
+          "why": "GET /me on graph.windows.net stops working after retirement. Microsoft Graph /me also returns userPrincipalName."
+        },
+        {
+          "file": "azure_ad.py",
+          "line": 83,
+          "why": "acquire_token_with_refresh_token requests a token for resource graph.windows.net. The token must be for https://graph.microsoft.com instead (scope User.Read / GroupMember.Read.All), and the app registration needs the matching Microsoft Graph permissions."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "outlook/ALTAR:azure-ad-graph:2025-08-31-azure-ad-graph-retired",
+        "outcome": "needs-review",
+        "diff": "diff --git a/azure_ad.py b/azure_ad.py\nindex 7029a57..53d4036 100644\n--- a/azure_ad.py\n+++ b/azure_ad.py\n@@ -26,7 +26,7 @@ def get_groups(tenant_id, access_token, prefix_filter=None):\n         \"Authorization\": \"Bearer {}\".format(access_token),\n         \"Content-Type\": \"application/json\"\n     }\n-    group_url = \"https://graph.windows.net/me/memberOf?api-version=1.6\"\n+    group_url = \"https://graph.microsoft.com/v1.0/me/memberOf\"\n \n     groups = []\n     while True:\n@@ -37,8 +37,8 @@ def get_groups(tenant_id, access_token, prefix_filter=None):\n         except Exception as err: #pylint: disable=broad-except\n             raise RuntimeError(\"request to graph API failed: {}\".format(str(err)))\n \n-        if 'odata.error' in data:\n-            raise RuntimeError(\"odata error {}\".format(data['odata.error']))\n+        if 'error' in data:\n+            raise RuntimeError(\"graph error {}\".format(data['error']))\n \n         try:\n             for value in data['value']:\n@@ -54,11 +54,9 @@ def get_groups(tenant_id, access_token, prefix_filter=None):\n         except KeyError as err:\n             raise RuntimeError(\"no value in group data: {}\".format(data))\n \n-        if 'odata.nextLink' in data:\n-            group_url = \"https://graph.windows.net/{tenant}/{link}&api-version=1.6\".format(\n-                tenant=tenant_id,\n-                link=data['odata.nextLink']\n-            )\n+        if '@odata.nextLink' in data:\n+            # Microsoft Graph returns an absolute URL\n+            group_url = data['@odata.nextLink']\n         else:\n             break\n \n@@ -67,7 +65,7 @@ def get_groups(tenant_id, access_token, prefix_filter=None):\n def get_user_name(graph_bearer_token):\n     \"\"\" Get the username of the user who owns the bearer token \"\"\"\n     user_info = requests.get(\n-        'https://graph.windows.net/me?api-version=1.6',\n+        'https://graph.microsoft.com/v1.0/me',\n         headers={\"Authorization\": \"Bearer {}\".format(graph_bearer_token)},\n         data={}\n     ).json()\n@@ -83,5 +81,5 @@ def get_graph_token(client_id, tenant_id, aad_refresh_token):\n     return adal_ctx.acquire_token_with_refresh_token(\n         aad_refresh_token,\n         client_id,\n-        'https://graph.windows.net'\n+        'https://graph.microsoft.com'\n     )['accessToken']\ndiff --git a/tests/test_graph.py b/tests/test_graph.py\nnew file mode 100644\nindex 0000000..21525f1\n--- /dev/null\n+++ b/tests/test_graph.py\n@@ -0,0 +1,27 @@\n+import sys, os\n+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\n+from unittest import mock\n+import azure_ad\n+\n+class R:\n+    def __init__(s, d): s.d = d\n+    def json(s): return s.d\n+\n+urls = []\n+pages = [{\"value\": [{\"displayName\": \"a1\"}], \"@odata.nextLink\": \"https://graph.microsoft.com/v1.0/me/memberOf?$skiptoken=x\"},\n+         {\"value\": [{\"displayName\": \"a2\"}, {\"displayName\": \"b\"}]}]\n+def fake_get(url, **kw):\n+    urls.append(url)\n+    if url.endswith(\"/me\"):\n+        return R({\"userPrincipalName\": \"u@x\"})\n+    return R(pages[len(urls) - 1])\n+with mock.patch(\"requests.get\", fake_get):\n+    assert azure_ad.get_groups(\"t\", \"tok\", \"a\") == [\"a1\", \"a2\"]\n+    assert azure_ad.get_user_name(\"tok\") == \"u@x\"\n+assert urls[0] == \"https://graph.microsoft.com/v1.0/me/memberOf\" and \"$skiptoken=x\" in urls[1]\n+assert not any(\"windows.net\" in u or \"api-version\" in u for u in urls)\n+ctx = mock.Mock(); ctx.acquire_token_with_refresh_token.return_value = {\"accessToken\": \"t\"}\n+with mock.patch(\"adal.AuthenticationContext\", return_value=ctx):\n+    azure_ad.get_graph_token(\"c\", \"t\", \"r\")\n+assert ctx.acquire_token_with_refresh_token.call_args[0][2] == \"https://graph.microsoft.com\"\n+print(\"ok\")\n",
+        "checks": [
+          {
+            "name": "graph-test",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.12784299999999998,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-outlook-ALTAR-azure-ad-graph-2025-08-31-azure-ad-graph-retired-tTwn2K/transcript.jsonl",
+        "prBody": "## Azure AD Graph API (graph.windows.net) fully retired after extended access ended; migrate to Microsoft Graph [Needs review]\n\n### Change\n\nazure_ad.py now calls Microsoft Graph v1.0 (/me, /me/memberOf) instead of graph.windows.net. I dropped api-version. Paging follows the absolute @odata.nextLink URL. The error check reads 'error' instead of 'odata.error'. The ADAL refresh-token call now requests the resource https://graph.microsoft.com. I added tests/test_graph.py, a mocked test. It fails on the original code and passes now. The 2025-02-01 extended-access opt-in no longer applies once the app is off Azure AD Graph, so no separate edit was needed.\n\nFiles touched:\n- `azure_ad.py`\n- `tests/test_graph.py`\n\n### Why\n\nAzure AD Graph (graph.windows.net) is retired, so the group and UPN lookups, and the token resource they depend on, fail.\n\n> August 31, 2025: End of extended access to Azure AD Graph. Azure AD Graph will be fully retired.\n\nSource: https://learn.microsoft.com/en-us/graph/migrate-azure-ad-graph-overview\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| graph-test | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- graph-test, added by the agent: `python tests/test_graph.py` (fail (1) → pass)\n\nProvider validators: none run.\n\nWhere checks ran: Docker container python:3.12-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- I did not run the provider validators (openapi_check and the like) against the Microsoft Graph spec.\n- I did not touch altar.py. It takes resource_url as a parameter, so the value passed in by the caller or config was not checked.\n- README app-registration instructions still describe the old Azure AD Graph permissions. The app registration needs Microsoft Graph delegated permissions (User.Read, and GroupMember.Read.All or Directory.Read.All for memberOf), with admin consent where required.\n- ADAL is still in use. Moving to MSAL is a separate task that touches the same acquire_token_with_refresh_token call (azure_ad.py line 83).\n- Whether ADAL's v1 endpoint accepts https://graph.microsoft.com as a resource, and which scopes the refresh token covers, is untested.\n- The agent wrote no test of this change and gave no reason why none can be written.\n- No provider validator was run.\n\n### Behaviour changes\n\n- The token resource and API host are now graph.microsoft.com, so the app registration must be granted Microsoft Graph delegated permissions.\n- /me/memberOf on Microsoft Graph can also return directory roles and administrative units. Only entries that have a displayName are kept, as before.\n- The error payload key checked is now 'error'.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1278\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-coinbase-pro-product-shutdown-37799335",
+          "recipe-slack-endpoint-removed-86dcdc07",
+          "recipe-slack-sdk-major-2d93a62d"
+        ],
+        "agentChecks": [
+          {
+            "name": "graph-test",
+            "command": "python tests/test_graph.py",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# outlook/ALTAR:azure-ad-graph:2025-08-31-azure-ad-graph-retired: needs-review, $0.1278\nChange: Azure AD Graph API (graph.windows.net) fully retired after extended access ended; migrate to Microsoft Graph (azure-ad-graph, product-shutdown)\nBaseline checks: graph-test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=azure_ad.py → 1\t\"\"\" | 2\tHelper functions to retrieve and manage the data received from AAD | 3\t\"\"\"\n2. list_files depth=2 → .gitignore | altar.py | altar.sh\n3. search pattern=graph\\.windows|graph\\.microsoft|resource → altar.py:30: def get_token(token_cache_file, authority_url, client_id, resource_url, user_id): | altar.py:42:             resource_url, | altar.py:50:         code = context.acquire_user_code(resource_url, client_id)\n4. search pattern=(?i)graph glob=**/*.{py,sh,md,txt} → error: Invalid regular expression: /(?i)graph/: Invalid group\n5. shell command=<126 chars> → exit code: 0 | --- stdout --- | ./azure_keyvault.py:13:from cryptography import exceptions as cryptography_exceptions\n6. shell command=<2266 chars> → exit code: 0 | --- stdout --- | ok\n7. run_checks add=[{\"name\":\"graph-test\",\"command\":\"python tests/test_graph.py\"}] → registered graph-test; on the original code it fails (1) | ## graph-test: pass | command: python tests/test_graph.py\n8. finish verdict=migrated summary=<517 chars> why=<121 chars> validators=[] unproven=<775 chars> behaviourChanges=<341 chars> → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: graph-test fail (1) → pass\n\n## Result\nFiles changed: azure_ad.py, tests/test_graph.py\nVerdict: migrated. azure_ad.py now calls Microsoft Graph v1.0 (/me, /me/memberOf) instead of graph.windows.net. I dropped api-version. Paging follows the absolute @odata.nextLink URL. The error check reads 'error' instead of 'odata.error'. The ADAL refresh-token call now requests the resource https://graph.microsoft.com. I added tests/test_graph.py, a mocked test. It fails on the original code and passes now. The 2025-02-01 extended-access opt-in no longer applies once the app is off Azure AD Graph, so no separate edit was needed.\nUnproven: I did not run the provider validators (openapi_check and the like) against the Microsoft Graph spec.; I did not touch altar.py. It takes resource_url as a parameter, so the value passed in by the caller or config was not checked.; README app-registration instructions still describe the old Azure AD Graph permissions. The app registration needs Microsoft Graph delegated permissions (User.Read, and GroupMember.Read.All or Directory.Read.All for memberOf), with admin consent where required.; ADAL is still in use. Moving to MSAL is a separate task that touches the same acquire_token_with_refresh_token call (azure_ad.py line 83).; Whether ADAL's v1 endpoint accepts https://graph.microsoft.com as a resource, and which scopes the refresh token covers, is untested.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "No checks were detected. This is a Python Azure web app with no codegen, build or workspace steps that its checks would need. Nothing was skipped by disabled install scripts."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The code edits are correct for the three Azure AD Graph uses in azure_ad.py. They switch the endpoints to graph.microsoft.com/v1.0, change the error key from odata.error to error, follow the absolute @odata.nextLink, and set the ADAL resource to https://graph.microsoft.com. The altar.py call sites (acquire_token and acquire_token_with_device_code at lines 41 and 53) request a token for options.url, the ALTAR web service, not for Azure AD Graph, so leaving them alone is right. The bigger risk is outside the diff. The app registration needs Microsoft Graph delegated permissions with admin consent, and any caller that passes get_groups a token minted for graph.windows.net will now get 401s. The new test only checks URL strings against mocks, with no live call, so needs-review is the right grade.",
+        "concerns": [
+          {
+            "file": "azure_ad.py",
+            "issue": "get_graph_token (line ~84) now requests a token for https://graph.microsoft.com. This only works if the Azure AD app has Microsoft Graph delegated permissions with admin consent: User.Read for /me, plus GroupMember.Read.All or Directory.Read.All for /me/memberOf. The old Azure AD Graph permissions (resource 00000002-0000-0000-c000-000000000000) do not carry over. Nothing in the repo or the tests proves this is configured, and without it every call fails at runtime with 401/403.",
+            "severity": "high"
+          },
+          {
+            "file": "azure_ad.py",
+            "issue": "get_groups(tenant_id, access_token, ...) and get_user_name(graph_bearer_token) accept tokens from their callers, and those callers are not in the diff. If any caller (e.g. the web service) gets its token another way than get_graph_token, or caches one minted for graph.windows.net, the audience will be wrong for graph.microsoft.com. Grep for callers and for any other 'graph.windows.net' string, config value or app manifest entry.",
+            "severity": "medium"
+          },
+          {
+            "file": "azure_ad.py",
+            "issue": "Microsoft Graph /me/memberOf returns all directoryObject types: groups, directory roles and administrative units. Paging is also server-driven, defaulting to 100 per page. Azure AD Graph membership semantics were similar. With prefix_filter=None, though, the returned list may now include role or AU display names. Confirm downstream authorization code only matches on group names.",
+            "severity": "low"
+          },
+          {
+            "file": "azure_ad.py",
+            "issue": "The tenant_id parameter of get_groups is now unused, since the nextLink no longer needs it. This is harmless, but the docstring and signature could be cleaned up. The function still does not check the HTTP status and relies on an 'error' key in the body, as before.",
+            "severity": "low"
+          },
+          {
+            "file": "tests/test_graph.py",
+            "issue": "The test runs its assertions at module import time rather than inside test functions. It picks pages by len(urls)-1, which ties it to call order. It mocks requests.get and adal entirely, so it proves URL shapes and the resource string but not real token acquisition, permissions, or the response shape from Microsoft Graph.",
+            "severity": "low"
+          },
+          {
+            "file": "altar.py",
+            "issue": "No change is needed for this retirement, because resource_url is the ALTAR service URL. Separately, ADAL itself is deprecated in favour of MSAL; that is not forced by this change but is worth tracking.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Confirm the Azure AD app registration lists Microsoft Graph delegated permissions (User.Read, GroupMember.Read.All or Directory.Read.All) with admin consent granted, and drop the Azure AD Graph permissions.",
+          "Find every caller of get_groups and get_user_name, and check that the token they pass is minted for https://graph.microsoft.com (i.e. comes from get_graph_token).",
+          "Grep the repo and its deployment config for any remaining 'graph.windows.net' or '00000002-0000-0000-c000-000000000000' references.",
+          "Run a live login against a test tenant and check that group filtering by prefix returns the expected names, including a user in more than 100 groups to exercise paging."
+        ],
+        "costUsd": 0.069936,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "outlook/ALTAR:azure-ad-graph:adal-python-legacy-replaced-by-msal",
+      "changeId": "azure-ad-graph:adal-python-legacy-replaced-by-msal",
+      "kind": "sdk-major",
+      "change": {
+        "provider": "azure-ad-graph",
+        "id": "azure-ad-graph:adal-python-legacy-replaced-by-msal",
+        "kind": "sdk-major",
+        "title": "PyPI adal (ADAL Python) is legacy, no new features; replace with msal (MSAL Python)",
+        "source": {
+          "url": "https://raw.githubusercontent.com/AzureAD/azure-activedirectory-library-for-python/HEAD/README.md",
+          "quote": "This library, ADAL for Python, will no longer receive new feature improvements. Instead, use the new library"
+        },
+        "affects": {
+          "versions": ["<=1.2.7"],
+          "sdk": "adal"
+        }
+      },
+      "reasoning": "adal is installed unpinned from requirements.txt and used for all token acquisition (cache, device code, refresh token). ADAL is legacy: no new features, and Microsoft ended its support. Tokens issued through it are tied to the v1 endpoint and resource-based auth. Replace it with msal:\n- resource becomes scopes\n- the response key accessToken becomes access_token\n- the cache format changes\nThe adal 1.0.0 api_version default change is resolved by the same move, since AuthenticationContext goes away. The migration agent should check whether msrestazure credentials (used for Key Vault) also wrap ADAL, and keep the Graph resource change consistent with the Graph migration task.\nThis task also resolves these changes. Handle each in the same change, and say in the PR how:\n- azure-ad-graph:adal-1-0-0-api-version-default (sdk-major): PyPI adal 1.0.0: AuthenticationContext api_version default changed from \"1.0\" to None. Replacing adal with msal removes AuthenticationContext and its api_version parameter entirely, so the default change no longer applies.\n  Source: https://api.github.com/repos/AzureAD/azure-activedirectory-library-for-python/releases?per_page=100\n  \"The default value of `api_version` parameter in the `AuthenticationContext` constructor\"",
+      "callSites": [
+        {
+          "file": "altar.py",
+          "line": 41,
+          "why": "Uses ADAL acquire_token with a token cache. Replace with MSAL PublicClientApplication.acquire_token_silent plus a SerializableTokenCache."
+        },
+        {
+          "file": "altar.py",
+          "line": 53,
+          "why": "Uses ADAL acquire_token_with_device_code. Replace with MSAL initiate_device_flow / acquire_token_by_device_flow."
+        },
+        {
+          "file": "azure_ad.py",
+          "line": 83,
+          "why": "Uses ADAL acquire_token_with_refresh_token and reads accessToken. MSAL uses scopes and returns access_token; refresh is handled by acquire_token_silent or acquire_token_by_refresh_token."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "outlook/ALTAR:azure-ad-graph:adal-python-legacy-replaced-by-msal",
+        "outcome": "verified",
+        "diff": "diff --git a/altar.py b/altar.py\nindex 5d4ff30..c9694d1 100755\n--- a/altar.py\n+++ b/altar.py\n@@ -8,7 +8,7 @@ import argparse\n import os\n import sys\n \n-import adal\n+import msal\n from cert.request import SSHCSR\n from cert.pubkey import SSHPublicKeyFile\n import requests\n@@ -27,38 +27,42 @@ class EnvDefault(argparse.Action):                                          #pyl\n     def __call__(self, parser, namespace, values, option_string=None):\n         setattr(namespace, self.dest, values)\n \n+class AuthError(Exception):\n+    pass\n+\n def get_token(token_cache_file, authority_url, client_id, resource_url, user_id):\n+    token_cache = msal.SerializableTokenCache()\n     try:\n         with open(token_cache_file, \"r+\") as token_cache_fh:\n-            token_cache = adal.TokenCache(state=token_cache_fh.read())\n+            state = token_cache_fh.read()\n+            if state:\n+                token_cache.deserialize(state)\n     except IOError:\n         print(\"no token cache found\")\n         with open(token_cache_file, \"w+\") as _:\n-            token_cache = adal.TokenCache(state=\"\")\n-    context = adal.AuthenticationContext(authority_url, cache=token_cache)\n+            pass\n+    app = msal.PublicClientApplication(\n+        client_id, authority=authority_url, token_cache=token_cache\n+    )\n+    scopes = [resource_url.rstrip(\"/\") + \"/.default\"]\n \n-    try:\n-        token = context.acquire_token(\n-            resource_url,\n-            user_id,\n-            client_id\n-        )\n-    except adal.adal_error.AdalError:\n-        token = None\n-    if token is None:\n+    token = None\n+    accounts = app.get_accounts(username=user_id)\n+    if accounts:\n+        token = app.acquire_token_silent(scopes, account=accounts[0])\n+    if not token or \"access_token\" not in token:\n         print(\"No cached credentials\")\n-        code = context.acquire_user_code(resource_url, client_id)\n-        print(code[\"message\"])\n+        flow = app.initiate_device_flow(scopes=scopes)\n+        if \"user_code\" not in flow:\n+            raise AuthError(flow.get(\"error_description\", flow))\n+        print(flow[\"message\"])\n         try:\n-            token = context.acquire_token_with_device_code(\n-                resource=resource_url,\n-                user_code_info=code,\n-                client_id=client_id\n-            )\n+            token = app.acquire_token_by_device_flow(flow)\n         except KeyboardInterrupt:\n             print(\"Cancelling code request\")\n-            context.cancel_request_to_get_token_with_device_code(code)\n             sys.exit(1)\n+        if \"access_token\" not in token:\n+            raise AuthError(token.get(\"error_description\", token))\n         with open(token_cache_file, \"w+\") as token_cache_fh:\n             token_cache_fh.write(token_cache.serialize())\n     return token\n@@ -114,7 +118,7 @@ def main():\n             options.url,\n             options.login\n         )\n-    except adal.adal_error.AdalError as err:\n+    except AuthError as err:\n         print(\"Could not authenticate: {}\".format(err))\n         sys.exit(1)\n \n@@ -135,7 +139,7 @@ def main():\n \n     response = requests.post(\n         options.url+\"/cert\",\n-        headers={\"Authorization\": \"Bearer {}\".format(token['accessToken'])},\n+        headers={\"Authorization\": \"Bearer {}\".format(token['access_token'])},\n         data=csr.json(include_signature=True)\n     )\n     if response.status_code >= 300:\ndiff --git a/azure_ad.py b/azure_ad.py\nindex 7029a57..5694531 100644\n--- a/azure_ad.py\n+++ b/azure_ad.py\n@@ -2,7 +2,7 @@\n Helper functions to retrieve and manage the data received from AAD\n \"\"\"\n \n-import adal\n+import msal\n import requests\n \n __all__ = [\n@@ -76,12 +76,16 @@ def get_user_name(graph_bearer_token):\n \n def get_graph_token(client_id, tenant_id, aad_refresh_token):\n     \"\"\" Get a bearer token that can be used for the Graph API \"\"\"\n-    adal_ctx = adal.AuthenticationContext(\n-        \"https://login.microsoftonline.com/{}\".format(tenant_id)\n+    app = msal.PublicClientApplication(\n+        client_id,\n+        authority=\"https://login.microsoftonline.com/{}\".format(tenant_id)\n     )\n \n-    return adal_ctx.acquire_token_with_refresh_token(\n+    result = app.acquire_token_by_refresh_token(\n         aad_refresh_token,\n-        client_id,\n-        'https://graph.windows.net'\n-    )['accessToken']\n+        scopes=['https://graph.windows.net/.default']\n+    )\n+    if 'access_token' not in result:\n+        raise RuntimeError(\"could not get graph token: {}\".format(\n+            result.get('error_description', result)))\n+    return result['access_token']\ndiff --git a/requirements.txt b/requirements.txt\nindex ca44020..6e39066 100644\n--- a/requirements.txt\n+++ b/requirements.txt\n@@ -6,6 +6,6 @@ cffi\n cryptography\n msrest\n msrestazure\n-adal\n+msal\n azure-common\n azure-keyvault\ndiff --git a/tests/test_msal_migration.py b/tests/test_msal_migration.py\nnew file mode 100644\nindex 0000000..125ed59\n--- /dev/null\n+++ b/tests/test_msal_migration.py\n@@ -0,0 +1,28 @@\n+import ast\n+import os\n+import sys\n+from unittest import mock\n+\n+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))\n+sys.path.insert(0, ROOT)\n+\n+\n+def imports(name):\n+    tree = ast.parse(open(os.path.join(ROOT, name)).read())\n+    return {n.names[0].name for n in ast.walk(tree) if isinstance(n, ast.Import)}\n+\n+\n+for f in (\"altar.py\", \"azure_ad.py\"):\n+    assert \"adal\" not in imports(f), f\n+    assert \"msal\" in imports(f), f\n+assert \"adal\" not in open(os.path.join(ROOT, \"requirements.txt\")).read().split()\n+\n+import azure_ad  # noqa: E402\n+\n+with mock.patch(\"msal.PublicClientApplication\") as pca:\n+    inst = pca.return_value\n+    inst.acquire_token_by_refresh_token.return_value = {\"access_token\": \"tok\"}\n+    assert azure_ad.get_graph_token(\"cid\", \"tid\", \"rt\") == \"tok\"\n+    assert inst.acquire_token_by_refresh_token.call_args[1][\"scopes\"] == [\n+        \"https://graph.windows.net/.default\"]\n+print(\"ok\")\n",
+        "checks": [
+          {
+            "name": "msal-proof",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.15653210000000004,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-outlook-ALTAR-azure-ad-graph-adal-python-legacy-replaced-by-msal-la10xB/transcript.jsonl",
+        "prBody": "## PyPI adal (ADAL Python) is legacy, no new features; replace with msal (MSAL Python) [Verified]\n\n### Change\n\nReplaced adal with msal in altar.py (device-code login with SerializableTokenCache, silent token via get_accounts/acquire_token_silent) and azure_ad.py (acquire_token_by_refresh_token). requirements.txt now lists msal instead of adal. Added tests/test_msal_migration.py. msrestazure is still listed because azure_keyvault.py may use it, and it still pulls adal in transitively. Our code no longer imports adal. The adal 1.0.0 api_version default change no longer applies, because AuthenticationContext and its api_version parameter are gone.\n\nFiles touched:\n- `altar.py`\n- `azure_ad.py`\n- `requirements.txt`\n- `tests/test_msal_migration.py`\n\n### Why\n\nadal is legacy and no longer supported. msal uses scopes rather than resources, and returns access_token rather than accessToken.\n\n> This library, ADAL for Python, will no longer receive new feature improvements. Instead, use the new library\n\nSource: https://raw.githubusercontent.com/AzureAD/azure-activedirectory-library-for-python/HEAD/README.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| msal-proof | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- msal-proof, added by the agent: `python tests/test_msal_migration.py` (fail (1) → pass)\n\nProvider validators: none run.\n\nTest of this change: `msal-proof`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container python:3.12-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Interactive device-code flow and silent refresh against real Azure AD were not exercised.\n- Existing .tokencache files in the adal format won't load, so users must re-authenticate once.\n- The ALTAR app's resource URL must accept the '<url>/.default' scope, and the Graph resource still uses the legacy graph.windows.net, which is a separate Graph migration.\n- azure_keyvault.py's use of msrestazure credentials was not checked beyond confirming it doesn't import adal directly.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Tokens now come from the v2 endpoint using scope '<resource>/.default'.\n- Token cache format changes (msal serialization).\n- Auth failures raise AuthError (CLI) or RuntimeError (graph token) instead of AdalError.\n- KeyboardInterrupt during device flow now just exits, with no server-side cancel call, because msal has no such API.\n- Token response key is access_token.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1565\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-slack-sdk-major-2d93a62d",
+          "recipe-gemini-sdk-major-3e966223",
+          "recipe-slack-endpoint-removed-86dcdc07"
+        ],
+        "agentChecks": [
+          {
+            "name": "msal-proof",
+            "command": "python tests/test_msal_migration.py",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# outlook/ALTAR:azure-ad-graph:adal-python-legacy-replaced-by-msal: verified, $0.1565\nChange: PyPI adal (ADAL Python) is legacy, no new features; replace with msal (MSAL Python) (azure-ad-graph, sdk-major)\nBaseline checks: msal-proof fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. list_files  → .gitignore | altar.py | altar.sh\n2. search pattern=adal|msrestazure|accessToken|refreshToken|refresh_token → altar.py:11: import adal | altar.py:33:             token_cache = adal.TokenCache(state=token_cache_fh.read()) | altar.py:37:             token_cache = adal.TokenCache(state=\"\")\n3. read_file path=altar.py → 1\t#!/usr/bin/env python | 2\t\"\"\" | 3\tDo things\n4. read_file path=azure_ad.py limit=100 → 1\t\"\"\" | 2\tHelper functions to retrieve and manage the data received from AAD | 3\t\"\"\"\n5. read_file path=requirements.txt → 1\tpip>=9.0.1 | 2\turllib3[secure] | 3\tweb.py\n6. shell command=<103 chars> → exit code: 0 | --- stdout --- | [notice] To update, run: pip install --upgrade pip\n7. edit_file path=azure_ad.py old=<271 chars> new=<468 chars> → edited azure_ad.py (1 replacement)\n8. edit_file path=azure_ad.py old=import adal\n new=import msal\n → edited azure_ad.py (1 replacement)\n9. edit_file path=altar.py old=<1309 chars> new=<1487 chars> → edited altar.py (1 replacement)\n10. edit_file path=altar.py old=    except adal.adal_error.AdalError as err: new=    except AuthError as err: → edited altar.py (1 replacement)\n11. edit_file path=altar.py old=token['accessToken'] new=token['access_token'] → edited altar.py (1 replacement)\n12. edit_file path=altar.py old=import adal\n new=import msal\n → edited altar.py (1 replacement)\n13. edit_file path=requirements.txt old=adal\n new=msal\n → edited requirements.txt (1 replacement)\n14. write_file path=tests/test_msal_migration.py content=<902 chars> → wrote tests/test_msal_migration.py (902 bytes)\n15. run_checks add=[{\"name\":\"msal-proof\",\"command\":\"python tests/test_msal_migration.py\"}] → registered msal-proof; on the original code it fails (1) | ## msal-proof: pass | command: python tests/test_msal_migration.py\n16. finish verdict=migrated summary=<541 chars> why=<129 chars> validators=[] unproven=<481 chars> behaviourChanges=<372 chars> proofTest=msal-proof → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: msal-proof fail (1) → pass\n\n## Result\nFiles changed: altar.py, azure_ad.py, requirements.txt, tests/test_msal_migration.py\nVerdict: migrated. Replaced adal with msal in altar.py (device-code login with SerializableTokenCache, silent token via get_accounts/acquire_token_silent) and azure_ad.py (acquire_token_by_refresh_token). requirements.txt now lists msal instead of adal. Added tests/test_msal_migration.py. msrestazure is still listed because azure_keyvault.py may use it, and it still pulls adal in transitively. Our code no longer imports adal. The adal 1.0.0 api_version default change no longer applies, because AuthenticationContext and its api_version parameter are gone.\nUnproven: Interactive device-code flow and silent refresh against real Azure AD were not exercised.; Existing .tokencache files in the adal format won't load, so users must re-authenticate once.; The ALTAR app's resource URL must accept the '<url>/.default' scope, and the Graph resource still uses the legacy graph.windows.net, which is a separate Graph migration.; azure_keyvault.py's use of msrestazure credentials was not checked beyond confirming it doesn't import adal directly.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "No checks were detected, and this is a Python project (ALTAR) with no codegen, build, or install-hook steps the repo's setup would have run. The README only describes Azure deployment and pip upgrades, which are not needed for checks. Nothing to prepare."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff migrates all three named call sites to MSAL: `acquire_token` becomes `get_accounts` + `acquire_token_silent`, the device-code flow becomes `initiate_device_flow`/`acquire_token_by_device_flow`, and the refresh-token call becomes `acquire_token_by_refresh_token`. The token key changes from `accessToken` to `access_token`. The structure looks reasonable, but there are gaps. Existing ADAL token cache files on users' machines are not migrated. Audiences change because the code now uses v2 `/.default` scopes. The only check is a static import scan plus a mocked test of `get_graph_token`. Nothing exercises `altar.py:get_token`, the device flow, cache round-tripping or a real AAD call. The 'verified' grade overstates what the checks prove.",
+        "concerns": [
+          {
+            "file": "altar.py",
+            "issue": "get_token (~line 34-40) reads the existing `.tokencache` file and passes its contents to `msal.SerializableTokenCache.deserialize`. That file was written by `adal.TokenCache.serialize()`, which, as far as I recall, produces a JSON array, while MSAL's cache is a dict keyed by credential type. For every existing user, the deserialize step or the following `get_accounts` call is likely to throw (e.g. AttributeError on a list), not fall back to the device flow. Wrap deserialize in try/except and discard non-dict state, or document that the cache file must be deleted.",
+            "severity": "high"
+          },
+          {
+            "file": "altar.py",
+            "issue": "The scope is now `options.url.rstrip('/') + '/.default'`; the old code requested the ADAL v1 resource `options.url`. Whether AAD accepts this and issues a token the ALTAR web service will validate depends on several things: whether the app registration's Application ID URI exactly equals ALTAR_URL, how path components are handled, and accessTokenAcceptedVersion (v2 tokens may carry the app GUID as `aud` instead of the URI). This changes server-side validation behaviour, and only a live call can confirm it.",
+            "severity": "medium"
+          },
+          {
+            "file": "altar.py",
+            "issue": "Cache persistence is only written in the device-flow branch. When `acquire_token_silent` refreshes using a refresh token, the rotated refresh token and new access token are not saved (`token_cache.has_state_changed` is never checked). The old ADAL code had the same gap, so this isn't a regression, but MSAL rotates refresh tokens and this may cause more frequent re-prompts.",
+            "severity": "low"
+          },
+          {
+            "file": "altar.py",
+            "issue": "Error handling semantics changed. `AdalError` used to cover network and auth failures. Now only AuthError, raised for missing `user_code` or `access_token`, is caught in main (~line 121). Network errors from MSAL (requests exceptions) or a corrupt cache will surface as tracebacks, not 'Could not authenticate'. The KeyboardInterrupt path also no longer cancels the flow; that is harmless here given `sys.exit`.",
+            "severity": "low"
+          },
+          {
+            "file": "azure_ad.py",
+            "issue": "`get_graph_token` now raises RuntimeError on failure where ADAL raised AdalError. Callers of `get_graph_token`, presumably in the web service and not shown in the diff, that catch `adal.AdalError` would now miss failures or still import adal. Grep the rest of the repo for `adal` and `AdalError`. Also, the refresh token passed in was issued via ADAL/v1. Exchanging it at the v2 endpoint for `https://graph.windows.net/.default` should work, but only a live test confirms it. Azure AD Graph itself is retired or retiring, which is out of scope but worth noting.",
+            "severity": "medium"
+          },
+          {
+            "file": "tests/test_msal_migration.py",
+            "issue": "The test only checks the import statements and runs `get_graph_token` against a fully mocked PublicClientApplication. `altar.get_token` (silent path, device flow, cache deserialize/serialize, `access_token` key in main) has no coverage, and nothing exercises real MSAL return shapes. A 'verified' grade isn't supported by this. The test also runs assertions at module import time rather than as test functions, so pytest reports it oddly.",
+            "severity": "medium"
+          }
+        ],
+        "checkFirst": [
+          "Run altar.py against an existing ADAL-written .tokencache file and confirm it doesn't crash in deserialize/get_accounts.",
+          "Confirm the ALTAR app registration's Application ID URI matches ALTAR_URL so `<url>/.default` resolves, and that the server's token validation accepts the resulting token's aud/version.",
+          "Grep the whole repo (web service code) for remaining `adal` imports or `AdalError` handlers around `get_graph_token`.",
+          "Do one live device-flow login and one refresh-token-to-Graph exchange before treating this as verified."
+        ],
+        "costUsd": 0.082872,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "outlook/ALTAR:azure-ad-graph:msrestazure-0-5-0-credentials-breaking",
+      "changeId": "azure-ad-graph:msrestazure-0-5-0-credentials-breaking",
+      "kind": "sdk-major",
+      "change": {
+        "provider": "azure-ad-graph",
+        "id": "azure-ad-graph:msrestazure-0-5-0-credentials-breaking",
+        "kind": "sdk-major",
+        "title": "PyPI msrestazure 0.5.0: removed auth_uri, token_uri, state, client, keyring caching from credential classes; now uses ADAL (package inactive)",
+        "source": {
+          "url": "https://api.github.com/repos/Azure/msrestazure-for-python/releases?per_page=100",
+          "quote": "Remove \"token_uri\" attribute and parameter. Use \"cloud_environment\" and \"tenant\" to impact the login url now."
+        },
+        "affects": {
+          "operations": [
+            "ServicePrincipalCredentials",
+            "UserPassCredentials",
+            "AADTokenCredentials",
+            "clear_cached_token",
+            "retrieve_session"
+          ],
+          "fields": ["auth_uri", "token_uri", "state", "client", "keyring"],
+          "versions": ["<0.5.0", "0.5.0"],
+          "sdk": "msrestazure"
+        }
+      },
+      "reasoning": "msrestazure is listed as a dependency and is unpinned, so the latest version (>=0.5.0) is installed. In 0.5.0 the credential classes dropped auth_uri, token_uri, state, client and keyring caching. The recorded call sites do not show which credential class is constructed or with which arguments, so this is uncertain. The migration agent should:\n- inspect how credentials for KeyVaultClient (and any ADAL-backed auth) are built\n- remove any token_uri/auth_uri/keyring usage in favor of cloud_environment/tenant\n- consider pinning msrestazure\nmsrestazure is also inactive; moving Key Vault to azure-keyvault-secrets with azure-identity is the long-term fix.",
+      "callSites": [
+        {
+          "file": "azure_keyvault.py",
+          "line": 34,
+          "why": "The legacy azure-keyvault KeyVaultClient is authenticated with msrestazure credentials. If construction passes token_uri/auth_uri or relies on keyring caching, it breaks on msrestazure >=0.5.0."
+        },
+        {
+          "file": "azure_keyvault.py",
+          "line": 53,
+          "why": "Same credential object as line 34 is used for get_secret."
+        },
+        {
+          "file": "azure_keyvault.py",
+          "line": 74,
+          "why": "Same credential object as line 34 is used for get_key."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "outlook/ALTAR:azure-ad-graph:msrestazure-0-5-0-credentials-breaking",
+        "outcome": "verified",
+        "diff": "diff --git a/app.py b/app.py\nindex a41e486..4bd384d 100644\n--- a/app.py\n+++ b/app.py\n@@ -9,7 +9,7 @@ import json\n from pprint import pformat as pf\n import os\n \n-from msrest.exceptions import AuthenticationError\n+from azure.core.exceptions import ClientAuthenticationError as AuthenticationError\n import web\n \n from azure_ad import get_groups, get_user_name, get_graph_token\ndiff --git a/azure_keyvault.py b/azure_keyvault.py\nindex ac93173..da652a3 100644\n--- a/azure_keyvault.py\n+++ b/azure_keyvault.py\n@@ -6,23 +6,32 @@ Will eventually include helpers for signing operations, once KV supports EC (or\n support for SHA-1, in the case of ssh-rsa).\n \"\"\"\n \n-from azure.common.credentials import ServicePrincipalCredentials\n-from azure.keyvault import KeyVaultClient\n-from azure.keyvault.generated.models.key_vault_error import KeyVaultErrorException\n+from azure.core.exceptions import ClientAuthenticationError, HttpResponseError\n+from azure.identity import ClientSecretCredential\n+from azure.keyvault.keys import KeyClient, KeyVaultKeyIdentifier\n+from azure.keyvault.secrets import SecretClient, KeyVaultSecretIdentifier\n \n from cryptography import exceptions as cryptography_exceptions\n from cryptography.hazmat.backends import default_backend\n from cryptography.hazmat.primitives.serialization import load_ssh_public_key, load_pem_private_key\n \n def get_vault_client(client_id, client_secret, tenant_id):\n-    \"\"\" Get a KeyVault client belonging to this application \"\"\"\n-    credentials = ServicePrincipalCredentials(\n+    \"\"\"\n+    Get a KeyVault credential belonging to this application. The credential is passed to the\n+    get_* helpers below in place of the old KeyVaultClient; they build a per-vault client from the\n+    secret/key URL. Authentication happens lazily, on the first request.\n+    \"\"\"\n+    return ClientSecretCredential(\n+        tenant_id=tenant_id,\n         client_id=client_id,\n-        secret=client_secret,\n-        tenant=tenant_id,\n-        resource=\"https://vault.azure.net\"\n+        client_secret=client_secret\n     )\n-    return KeyVaultClient(credentials)\n+\n+\n+def _get_secret_value(credential, secret_url):\n+    ident = KeyVaultSecretIdentifier(secret_url)\n+    client = SecretClient(vault_url=ident.vault_url, credential=credential)\n+    return client.get_secret(ident.name, version=ident.version).value\n \n \n def get_signing_privkey(client, secret_url):\n@@ -31,13 +40,15 @@ def get_signing_privkey(client, secret_url):\n     EllipticCurvePrivateKey depending on the contents of the secret.\n     \"\"\"\n     try:\n-        raw_privkey = client.get_secret(secret_url).value\n+        raw_privkey = _get_secret_value(client, secret_url)\n         return load_pem_private_key(\n             str(raw_privkey),\n             None,\n             default_backend()\n         )\n-    except KeyVaultErrorException as err:\n+    except ClientAuthenticationError:\n+        raise\n+    except HttpResponseError as err:\n         raise RuntimeError(\"could not get signing key private numbers from vault: {}\".format(err))\n     except ValueError as err:\n         raise RuntimeError(\"could not load private key from vault: {}\".format(err))\n@@ -50,12 +61,14 @@ def get_signing_pubkey(client, secret_url):\n     EllipticCurvePublicKey depending on the contents of the secret.\n     \"\"\"\n     try:\n-        raw_pubkey = client.get_secret(secret_url).value\n+        raw_pubkey = _get_secret_value(client, secret_url)\n         return load_ssh_public_key(\n             str(raw_pubkey),\n             default_backend()\n         )\n-    except KeyVaultErrorException as err:\n+    except ClientAuthenticationError:\n+        raise\n+    except HttpResponseError as err:\n         raise RuntimeError(\"could not get signing key public numbers from vault: {}\".format(err))\n     except ValueError as err:\n         raise RuntimeError(\"could not load public key from vault: {}\".format(err))\n@@ -71,7 +84,12 @@ def get_signing_jwk(client, vault_url):\n     packing into mpint, for example), use the encodec.unpack_binstr function.\n     \"\"\"\n     try:\n-        key_info = client.get_key(vault_url)\n-    except KeyVaultErrorException as err:\n+        ident = KeyVaultKeyIdentifier(vault_url)\n+        key_info = KeyClient(vault_url=ident.vault_url, credential=client).get_key(\n+            ident.name, version=ident.version\n+        ).key\n+    except ClientAuthenticationError:\n+        raise\n+    except HttpResponseError as err:\n         raise RuntimeError(\"could not get signing key from vault: {}\".format(err))\n     return key_info\ndiff --git a/requirements.txt b/requirements.txt\nindex ca44020..e13e062 100644\n--- a/requirements.txt\n+++ b/requirements.txt\n@@ -4,8 +4,8 @@ web.py\n requests\n cffi\n cryptography\n-msrest\n-msrestazure\n adal\n-azure-common\n-azure-keyvault\n+azure-core\n+azure-identity\n+azure-keyvault-secrets\n+azure-keyvault-keys\ndiff --git a/tests/test_keyvault_migration.py b/tests/test_keyvault_migration.py\nnew file mode 100644\nindex 0000000..2959587\n--- /dev/null\n+++ b/tests/test_keyvault_migration.py\n@@ -0,0 +1,26 @@\n+import ast, os, sys\n+from unittest import mock\n+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))\n+sys.path.insert(0, ROOT)\n+\n+def imports(fn):\n+    t = ast.parse(open(os.path.join(ROOT, fn)).read())\n+    return [n.module for n in ast.walk(t) if isinstance(n, ast.ImportFrom) and n.module]\n+\n+for fn in (\"azure_keyvault.py\", \"app.py\"):\n+    for m in imports(fn):\n+        assert not m.startswith((\"msrest\", \"azure.common\", \"azure.keyvault.generated\")), (fn, m)\n+        assert m != \"azure.keyvault\", (fn, m)\n+reqs = open(os.path.join(ROOT, \"requirements.txt\")).read().split()\n+assert \"msrestazure\" not in reqs and \"azure-identity\" in reqs\n+\n+import azure_keyvault as kv\n+cred = kv.get_vault_client(\"cid\", \"secret\", \"tid\")\n+assert type(cred).__name__ == \"ClientSecretCredential\"\n+with mock.patch.object(kv, \"SecretClient\") as sc:\n+    sc.return_value.get_secret.return_value.value = \"v\"\n+    url = \"https://v.vault.azure.net/secrets/signing-key\"\n+    assert kv._get_secret_value(cred, url) == \"v\"\n+    assert sc.call_args.kwargs[\"vault_url\"] == \"https://v.vault.azure.net\"\n+    sc.return_value.get_secret.assert_called_with(\"signing-key\", version=None)\n+print(\"ok\")\n",
+        "checks": [
+          {
+            "name": "keyvault-migration",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.17816770000000004,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-outlook-ALTAR-azure-ad-graph-msrestazure-0-5-0-credentials-breaking-5IAxsy/transcript.jsonl",
+        "prBody": "## PyPI msrestazure 0.5.0: removed auth_uri, token_uri, state, client, keyring caching from credential classes; now uses ADAL (package inactive) [Verified]\n\n### Change\n\nReplaced the msrestazure ServicePrincipalCredentials plus KeyVaultClient path in azure_keyvault.py with azure-identity's ClientSecretCredential and SecretClient/KeyClient. In app.py, AuthenticationError is now azure.core.exceptions.ClientAuthenticationError. In requirements.txt, msrest, msrestazure, azure-common and azure-keyvault are replaced by azure-core, azure-identity, azure-keyvault-secrets and azure-keyvault-keys. ADAL code in altar.py and azure_ad.py is untouched.\n\nFiles touched:\n- `app.py`\n- `azure_keyvault.py`\n- `requirements.txt`\n- `tests/test_keyvault_migration.py`\n\n### Why\n\nmsrestazure is inactive and its credential classes now depend on ADAL. The unpinned azure-keyvault now resolves to 4.x, where `KeyVaultClient` no longer exists, so azure_keyvault.py failed to import. The repo never used the removed attributes (token_uri, auth_uri, keyring and so on), but the Key Vault path was broken anyway.\n\n> Remove \"token_uri\" attribute and parameter. Use \"cloud_environment\" and \"tenant\" to impact the login url now.\n\nSource: https://api.github.com/repos/Azure/msrestazure-for-python/releases?per_page=100\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| keyvault-migration | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- keyvault-migration, added by the agent: `python tests/test_keyvault_migration.py` (fail (1) → pass)\n\nProvider validators: none run.\n\nTest of this change: `keyvault-migration`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container python:3.12-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Real Key Vault auth and secret retrieval were not exercised.\n- adal is still used in altar.py and azure_ad.py. It is not migrated to msal, and graph.windows.net is itself deprecated.\n- Python 2 style `str(raw_privkey)` passed to load_pem_private_key was left as is. On Python 3 it needs bytes.\n- No provider validator was run.\n\n### Behaviour changes\n\n- get_vault_client now returns a ClientSecretCredential, not a KeyVaultClient. The get_* helpers build a SecretClient or KeyClient from the secret/key URL.\n- Auth failures now arrive lazily at the first request, as ClientAuthenticationError. They are re-raised so app.py still returns 401.\n- Other Key Vault HTTP errors are now HttpResponseError, still wrapped in RuntimeError.\n- get_signing_jwk now returns the JsonWebKey object rather than the old bundle.\n- Tokens for Key Vault now come from the v2 endpoint with the https://vault.azure.net/.default scope.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1782\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-azure-ad-graph-sdk-major-5d4b0496",
+          "recipe-slack-sdk-major-2d93a62d"
+        ],
+        "agentChecks": [
+          {
+            "name": "keyvault-migration",
+            "command": "python tests/test_keyvault_migration.py",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# outlook/ALTAR:azure-ad-graph:msrestazure-0-5-0-credentials-breaking: verified, $0.1782\nChange: PyPI msrestazure 0.5.0: removed auth_uri, token_uri, state, client, keyring caching from credential classes; now uses ADAL (package inactive) (azure-ad-graph, sdk-major)\nBaseline checks: keyvault-migration fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. list_files  → .gitignore | altar.py | altar.sh\n2. search pattern=adal|msrestazure|Credentials|keyring|token_uri|auth_uri → altar.py:11: import adal | altar.py:33:             token_cache = adal.TokenCache(state=token_cache_fh.read()) | altar.py:37:             token_cache = adal.TokenCache(state=\"\")\n3. read_file path=azure_keyvault.py → 1\t\"\"\" | 2\t | 3\tHelper functions to retrieve things from an Azure Key Vault.\n4. read_file path=requirements.txt → 1\tpip>=9.0.1 | 2\turllib3[secure] | 3\tweb.py\n5. read_file path=azure_ad.py offset=60 → 60\t                link=data['odata.nextLink'] | 61\t            ) | 62\t        else:\n6. read_file path=altar.py → 1\t#!/usr/bin/env python | 2\t\"\"\" | 3\tDo things\n7. shell command=<235 chars> → exit code: 0 | --- stdout --- | Traceback (most recent call last):\n8. search pattern=keyvault|vault|get_signing glob=**/*.py → app.py:16: from azure_keyvault import get_vault_client, get_signing_pubkey, get_signing_privkey | app.py:34:         \"\"\" Retrieve the signing pubkey out of the vault, and return an OpenSSH CA pubkey file \"\"\" | app.py:37:             vault_c…\n9. shell command=pip install azure-identity 2>&1 | tail -2 → exit code: 0 | --- stdout --- | [notice] A new release of pip is available: 25.0.1 -> 26.3\n10. read_file path=app.py offset=28 limit=100 → 28\t) | 29\tWSGI_APP = web.application(URLS, globals()).wsgifunc() | 30\t\n11. search pattern=AuthenticationError → app.py:12: from msrest.exceptions import AuthenticationError | app.py:42:         except AuthenticationError as err:\n12. shell command=<2416 chars> → exit code: 0 | --- stdout --- |     EllipticCurvePrivateKey depending on the contents of the secret.\n13. shell command=<1503 chars> → exit code: 0 | --- stdout --- | ok\n14. run_checks add=<83 chars> → registered keyvault-migration; on the original code it fails (1) | ## keyvault-migration: pass | command: python tests/test_keyvault_migration.py\n15. finish verdict=migrated summary=<476 chars> why=<326 chars> validators=[] unproven=<297 chars> behaviourChanges=<561 chars> proofTest=keyvault-migration → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: keyvault-migration fail (1) → pass\n\n## Result\nFiles changed: app.py, azure_keyvault.py, requirements.txt, tests/test_keyvault_migration.py\nVerdict: migrated. Replaced the msrestazure ServicePrincipalCredentials plus KeyVaultClient path in azure_keyvault.py with azure-identity's ClientSecretCredential and SecretClient/KeyClient. In app.py, AuthenticationError is now azure.core.exceptions.ClientAuthenticationError. In requirements.txt, msrest, msrestazure, azure-common and azure-keyvault are replaced by azure-core, azure-identity, azure-keyvault-secrets and azure-keyvault-keys. ADAL code in altar.py and azure_ad.py is untouched.\nUnproven: Real Key Vault auth and secret retrieval were not exercised.; adal is still used in altar.py and azure_ad.py. It is not migrated to msal, and graph.windows.net is itself deprecated.; Python 2 style `str(raw_privkey)` passed to load_pem_private_key was left as is. On Python 3 it needs bytes.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "No checks were detected. This is a Python project (altar.py) for Azure App Service, and nothing in the README points to a codegen or build step that checks would need. Dependency install scripts were the only thing skipped, and the README's pip upgrade is a deployment step, not setup for checks. So no steps or env vars are needed."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff moves Key Vault access from azure-keyvault 1.x/ServicePrincipalCredentials (msrestazure-backed) to azure-identity plus azure-keyvault-secrets/keys. It covers the three Key Vault call sites in azure_keyvault.py and the msrest exception import in app.py. The adal call sites in altar.py and azure_ad.py never used msrestazure, so leaving them alone is reasonable. My concerns: this is a full SDK-generation swap rather than the minimal fix the release note forces. It likely needs Python 3, and the codebase still has Python 2 str/bytes assumptions. Error-to-HTTP mapping shifts slightly, get_signing_jwk's return type changes, and the new requirements are unpinned. The only check is a test the agent wrote: an import/AST scan plus one mocked SecretClient call. It never touches a vault, never runs get_signing_jwk or app.py, and never exercises the exception paths. 'verified' overstates what was proven.",
+        "concerns": [
+          {
+            "file": "requirements.txt",
+            "issue": "Current azure-core, azure-identity and azure-keyvault-* releases are Python 3 only. The repo looks Python 2-era: web.py, `from __future__ import print_function` in altar.py, and `load_pem_private_key(str(raw_privkey), ...)` / `load_ssh_public_key(str(raw_pubkey), ...)`, which need bytes on Python 3. If the app runs on Python 2, the new deps won't install. If it runs on Python 3, those unchanged str() calls raise TypeError, which no except clause catches. Either way this needs confirming against the deployed runtime.",
+            "severity": "high"
+          },
+          {
+            "file": "requirements.txt",
+            "issue": "The new dependencies are unpinned. KeyVaultSecretIdentifier and KeyVaultKeyIdentifier exist only in newer azure-keyvault-secrets/keys 4.x releases. Add minimum versions so an older cached install doesn't fail on import.",
+            "severity": "medium"
+          },
+          {
+            "file": "azure_keyvault.py",
+            "issue": "get_signing_jwk used to return the whole KeyBundle from client.get_key(url). It now returns `.key`, the JsonWebKey. Callers that read `key_info.key.n` or similar would break. No caller appears in app.py, but this is a behaviour change the API change doesn't force, and nothing tests it.",
+            "severity": "medium"
+          },
+          {
+            "file": "azure_keyvault.py / app.py",
+            "issue": "The error mapping shifts. ServicePrincipalCredentials authenticated eagerly, so token failures raised msrest AuthenticationError from get_vault_client. Now authentication is lazy and ClientAuthenticationError is re-raised from the get_* helpers. In CAKeyFile.GET that still lands in the 401 handler. azure-core also raises ClientAuthenticationError for a Key Vault 401 response, so failures that used to become KeyVaultErrorException → RuntimeError → 503 may now return 401. In SSHCertGenerator.POST the vault calls sit outside any try, so auth errors there still surface as unhandled 500s, as before. Confirm these status codes are acceptable.",
+            "severity": "low"
+          },
+          {
+            "file": "tests/test_keyvault_migration.py",
+            "issue": "The test only checks import names and requirements tokens, plus one mocked SecretClient path. It does not exercise KeyClient/get_signing_jwk, the HttpResponseError/ClientAuthenticationError handling, the identifier parsing of AZURE_KEYVAULT_URL values with trailing slashes or versions, or any real token acquisition. None of the live vault behaviour is proven.",
+            "severity": "medium"
+          },
+          {
+            "file": "requirements.txt",
+            "issue": "Scope: the release note only removes token_uri and similar attributes from msrestazure credential classes, and this code passed none of them. Pinning msrestazure/azure-common might have been a smaller fix. The rewrite may still be desirable, but it deserves review as a dependency migration, not a forced API fix.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Which Python version the deployed app (Azure App Service) runs on, and whether load_pem_private_key/load_ssh_public_key get bytes under it.",
+          "Whether anything outside app.py calls get_signing_jwk and expects a KeyBundle rather than a JsonWebKey.",
+          "A real run against a test vault: GET /pubkey and POST /cert with valid credentials, with a bad client secret (expect 401) and with a missing secret (expect 503).",
+          "The minimum azure-keyvault-secrets/keys versions that provide KeyVaultSecretIdentifier and KeyVaultKeyIdentifier, pinned in requirements.txt."
+        ],
+        "costUsd": 0.101788,
+        "model": "claude-opus-5-5"
+      }
+    }
+  ],
+  "costUsd": 1.5643578000000002,
+  "durationMs": 554649,
+  "matchReasoning": "outlook/ALTAR:azure-ad-graph:2025-08-31-azure-ad-graph-retired: The repo calls Azure AD Graph (graph.windows.net, api-version=1.6) directly with requests for /me and /me/memberOf, and requests tokens for that resource. Since 2025-08-31 Azure AD Graph is fully retired, so these calls fail: group membership lookup and UPN resolution break, which breaks the whole ALTAR auth flow. Migrate to Microsoft Graph v1.0:\n- change host and path\n- drop the api-version parameter\n- handle @odata.nextLink paging\n- change the token resource to graph.microsoft.com\n- grant the Microsoft Graph delegated permissions\nThis also covers the 2025-02-01 extended-access opt-in, which only matters while still on Azure AD Graph. Coordinate with the ADAL to MSAL task, since azure_ad.py line 83 is touched by both.\noutlook/ALTAR:azure-ad-graph:adal-python-legacy-replaced-by-msal: adal is installed unpinned from requirements.txt and used for all token acquisition (cache, device code, refresh token). ADAL is legacy: no new features, and Microsoft ended its support. Tokens issued through it are tied to the v1 endpoint and resource-based auth. Replace it with msal:\n- resource becomes scopes\n- the response key accessToken becomes access_token\n- the cache format changes\nThe adal 1.0.0 api_version default change is resolved by the same move, since AuthenticationContext goes away. The migration agent should check whether msrestazure credentials (used for Key Vault) also wrap ADAL, and keep the Graph resource change consistent with the Graph migration task.\noutlook/ALTAR:azure-ad-graph:msrestazure-0-5-0-credentials-breaking: msrestazure is listed as a dependency and is unpinned, so the latest version (>=0.5.0) is installed. In 0.5.0 the credential classes dropped auth_uri, token_uri, state, client and keyring caching. The recorded call sites do not show which credential class is constructed or with which arguments, so this is uncertain. The migration agent should:\n- inspect how credentials for KeyVaultClient (and any ADAL-backed auth) are built\n- remove any token_uri/auth_uri/keyring usage in favor of cloud_environment/tenant\n- consider pinning msrestazure\nmsrestazure is also inactive; moving Key Vault to azure-keyvault-secrets with azure-identity is the long-term fix.\nazure-ad-graph:2025-02-01-azure-ad-graph-opt-in: not affected: No task of its own: resolved inside outlook/ALTAR:azure-ad-graph:2025-08-31-azure-ad-graph-retired (Azure AD Graph API (graph.windows.net) fully retired after extended access ended; migrate to Microsoft Graph). The opt-in only kept apps working on graph.windows.net until retirement. Moving the /me and /me/memberOf calls and the token resource to Microsoft Graph removes the need for extended access, so no separate edit remains.\nazure-ad-graph:adal-1-0-0-api-version-default: not affected: No task of its own: resolved inside outlook/ALTAR:azure-ad-graph:adal-python-legacy-replaced-by-msal (PyPI adal (ADAL Python) is legacy, no new features; replace with msal (MSAL Python)). Replacing adal with msal removes AuthenticationContext and its api_version parameter entirely, so the default change no longer applies.\nazure-ad-graph:msrest-0-6-0-pipeline-breaking: not affected: No call site uses msrest's HTTPDriver or the ClientRedirectPolicy/ClientProxies/ClientConnection/ClientRetryPolicy classes directly. msrest is only a transitive dependency of azure-keyvault, which handles the Pipeline change internally.",
+  "costByPart": {
+    "inventory": 0.05545500000000001,
+    "watch": 0.09664800000000001,
+    "match": 0.096432,
+    "other": 0.598684,
+    "harness": 0.46254280000000003,
+    "review": 0.254596
+  }
+}

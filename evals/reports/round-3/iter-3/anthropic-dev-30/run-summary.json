@@ -1,0 +1,16 @@
+{
+  "set": "anthropic-dev-30",
+  "capUsd": 150,
+  "meterSpentUsd": 1.0435778,
+  "budgetSpentUsd": 1.7193298,
+  "costByPart": {
+    "inventory": 0,
+    "watch": 0.3634988,
+    "match": 0.269492,
+    "memory": 0.112094,
+    "harness": 0.23655299999999999,
+    "review": 0.06194
+  },
+  "startedAt": "2026-11-03T23:00:35.892Z",
+  "finishedAt": "2026-11-03T23:05:08.014Z"
+}

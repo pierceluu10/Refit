@@ -1,0 +1,44 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "saxllc/journey-intelligence",
+  "refit": {
+    "checks": "no-repo-checks",
+    "costUsd": 0.8695438,
+    "tasks": 1,
+    "verified": 1
+  },
+  "claude": {
+    "checks": "no-repo-checks",
+    "costUsd": 0.08856400000000002,
+    "prepCostUsd": 0.00549,
+    "diffLines": 198,
+    "finalText": "I changed one thing: the Claude model ID. `claude-sonnet-4-5` is retired on November 30, 2026, which is 27 days away. I replaced it with `claude-sonnet-5-5`, the replacement Anthropic recommends. I didn't run the code or test it against the API.\n\n**APIs and SDKs the repo uses**\n- **Anthropic Messages API**, called both through `@anthropic-ai/sdk` ^0.82.0 and through raw `fetch` with `anthropic-version: 2023-06-01`.\n- **Sarvam AI**: text-to-speech with `bulbul:v3`, and speech-to-text with `saaras:v3`.\n- `express` and `dotenv`, which have no relevant changes that I checked.\n\n**What I changed**\n- I replaced `claude-sonnet-4-5` with `claude-sonnet-5-5` in these files:\n  - `api/`: `klh-script.js`, `journey-chunk.js`, `ekyc-chunk.js`, `umang-chunk.js`\n  - `src/rhetorical.js`\n  - `scripts/`: `generate-cache.js`, `generate-chunks.js`, `generate-ekyc-chunks.js`, `seed-cache.js`, `seed-umang-chunks.js`\n  - `demo/server.js`\n- The generator and seed scripts also write the model name into the cache entries they produce. Those entries will now say `claude-sonnet-5-5`.\n- I left these alone because they aren't live code or they record history: `demo/server_old.js`, `scripts/chunks-backup.json` and the other backup JSON files, and the old reference in `SKILL-old.md`. The backups still say `claude-sonnet-4-5`.\n\n**Checked, no edit needed**\n- **Sarvam:** I found no retirement notice for `bulbul:v3` or `saaras:v3`. Both are current. The search result I relied on is secondhand, so check Sarvam's own docs if this matters.\n- **Anthropic `temperature`/`top_p`/`top_k`:** these are removed in API version 2026-10-21 and return a 400 error. The repo sets none of them and pins version `2023-06-01`, so nothing breaks.\n\n**Later or uncertain items, not edited**\n- **`claude-haiku-4-5-20251001`** is used in `api/umang-chunk.js`. It is still listed as active, but its tentative retirement date is \"not sooner than October 15, 2026\", and that date has passed. A retirement notice could come at any time. The replacement is `claude-haiku-5-5`. I didn't change it because there is no announced retirement, so please confirm you want it moved.\n- **The pinned API version** `2023-06-01` still works. Anthropic has introduced a newer version, 2026-10-21, but nothing requires moving to it yet.\n\nSources:\n- [Anthropic model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations)\n- [Sarvam changelog](https://docs.sarvam.ai/api/changelog)",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-saxllc-journey-intelligence/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "claude-sonnet-4-5 retires Nov 30, 2026 (within 90 days); replaced with claude-sonnet-5-5",
+          "correct": true,
+          "note": "Same replacements as A, and it also updated demo/server_old.js. It added a static test that checks for the old ID; the test scans only .js files, so it should pass and breaks nothing. It explicitly skipped the SDK bump and the new anthropic-version, which is reasonable."
+        }
+      ],
+      "breaks": []
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "claude-sonnet-4-5 retires Nov 30, 2026 (within 90 days); replaced with claude-sonnet-5-5",
+          "correct": true,
+          "note": "Replaced in all live call sites (api/, src/rhetorical.js, scripts/, demo/server.js), including the cache-entry model metadata. It deliberately left demo/server_old.js and the backup JSON unchanged and said so. It also notes, without editing, the Haiku 4.5 tentative retirement, the temperature/top_p removal in API version 2026-10-21 (which the repo doesn't use), and that Sarvam has no changes."
+        }
+      ],
+      "breaks": []
+    },
+    "better": "tie",
+    "why": "The two code changes are essentially identical and both correctly migrate every live Sonnet 4.5 call to the cited replacement. B also covers server_old.js and adds a harmless test. A gives a fuller audit, covering the Haiku outlook, Sarvam and the sampling parameters, but neither of those needs a code change. On balance, neither attempt is materially better.",
+    "costUsd": 0.06836
+  }
+}

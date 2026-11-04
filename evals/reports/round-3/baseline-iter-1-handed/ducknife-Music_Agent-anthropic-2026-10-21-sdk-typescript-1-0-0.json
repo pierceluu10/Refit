@@ -1,0 +1,99 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "ducknife/Music_Agent",
+  "taskId": "ducknife/Music_Agent:anthropic:2026-10-21-sdk-typescript-1-0-0",
+  "title": "npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too",
+  "refit": {
+    "outcome": "verified",
+    "passesChecks": true,
+    "costUsd": 0.12570540000000002,
+    "diffLines": 119,
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The PR bumps @anthropic-ai/sdk to ^1.0.0, pins MiniMax's compat client to anthropic-version 2023-06-01, adds a system-role guard in hardTrimOldToolResults, and adds a mocked-fetch test. The direction is sensible and typecheck/build pass. The 'verified' grade overstates what the checks show, though. The only behavioural check is a test the PR wrote itself. It stubs fetch and only asserts the header values and that temperature/top_p/top_k are absent from a minimal request. It never exercises the real ReAct loop's create/stream calls, the compaction beta ('compact-2026-01-12'), thinking/effort options, tool_use responses, or countTokens under the new API version. No call sites were named, so the files that actually build requests (the agent loop calling client.beta.messages.create/stream) were not shown or reviewed. Typecheck passing suggests no typed use of the removed sampling params, but casts or spread objects could hide them. Pinning MiniMax to 2023-06-01 while the 1.x SDK may serialize 2026-10-21-shaped bodies (for example, the new MessageParam union with system-role messages) is an untested assumption against a live third-party endpoint. The SDK licence also changes from MIT to Apache-2.0, and @opentelemetry/api arrives as a new transitive dependency. I could not confirm the details of API version 2026-10-21 or of SDK 1.0 (header name and default, the system role in MessageParam, removed params) from memory. Check the quoted CHANGELOG and the SDK's resources/beta/messages type definitions.",
+      "concerns": [
+        {
+          "file": "src/agent/llm/provider.ts",
+          "issue": "The MiniMax client overrides anthropic-version to 2023-06-01 via defaultHeaders. The request body is still produced by SDK 1.x types and serialization built for 2026-10-21. If the agent loop ever sends system-role messages or other new-version-only fields, MiniMax (supportsAnthropicBetas: false) may reject or misinterpret them. The test only checks that the header is sent, not that MiniMax accepts the payload. A live smoke call with tool_use is needed.",
+          "severity": "medium"
+        },
+        {
+          "file": "src/agent/llm/provider.ts",
+          "issue": "The Anthropic provider now silently moves to API version 2026-10-21. Response or streaming semantics, the compaction beta (COMPACTION_BETA in contextManager.ts), and thinking/effort betas used by the agent loop are not exercised by any check. Whether 'compact-2026-01-12' is still valid under the new version is unconfirmed.",
+          "severity": "medium"
+        },
+        {
+          "file": "src/agent/contextManager.ts",
+          "issue": "The new `msg.role === \"system\"` guard implies BetaMessageParam now includes system-role entries. Other code that walks messages may need the same handling but was not reviewed: roughTokenEstimate, the agent loop that appends assistant/tool_result turns, and any UI serialization. Also, the keepRecentTurns*2 cutoff math assumes strict user/assistant alternation, which system entries would break.",
+          "severity": "low"
+        },
+        {
+          "file": "test/provider-request.test.ts",
+          "issue": "The test was authored by the PR and mocks globalThis.fetch, so 'before fail / after pass' only proves the header default changed. It sends one trivial message without the real loop's options. No npm 'test' script exists in package.json, so the test will not run in the project's normal workflow.",
+          "severity": "medium"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "The SDK licence changes from MIT to Apache-2.0, and @opentelemetry/api is added as a new runtime dependency. Both are minor, but worth a human acknowledgement for a major-version bump.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Grep src/ for messages.create, messages.stream and countTokens call sites (the agent loop) and confirm none pass temperature/top_p/top_k, including via casts or spread option objects.",
+        "Run one real end-to-end turn with tool_use against MiniMax to confirm its compat endpoint accepts SDK 1.x payloads with the 2023-06-01 header.",
+        "Run one real turn against Anthropic with the compaction beta and thinking/effort options enabled under 2026-10-21, and check whether 'compact-2026-01-12' is still accepted.",
+        "Confirm in the SDK 1.0 type definitions that BetaMessageParam's new union members (system role) are handled everywhere messages are iterated, not just in hardTrimOldToolResults.",
+        "Consider downgrading the grade to needs-review, since no live calls or real call sites were exercised."
+      ],
+      "costUsd": 0.073476,
+      "model": "claude-opus-5-5"
+    }
+  },
+  "claude": {
+    "passesChecks": true,
+    "costUsd": 0.029137700000000002,
+    "prepCostUsd": 0.007762,
+    "diffLines": 73,
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-ducknife-Music_Agent-anthropic-2026-10-21-sdk-typescript-1-0-0/transcript.jsonl",
+    "stopReason": "done",
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The diff bumps @anthropic-ai/sdk from ^0.115.0 to ^1.0.0 (the lock resolves 1.4.0). It adds one type-narrowing guard in src/agent/contextManager.ts so that `system`-role entries of the new MessageParam union are not trimmed. Typecheck and build pass on both sides, which is good evidence for three things: no call site still passes temperature/top_p/top_k through typed params, the union change compiles, and the guard is only needed for TypeScript narrowing. The checks prove nothing about runtime behaviour. With 1.0.0 every request now sends the 2026-10-21 API version by default. That covers the main messages.create path, the beta countTokens call in contextManager.ts, and the `compact-2026-01-12` beta. The code comments say the same Anthropic client is also pointed at MiniMax, and whether that provider accepts the new version header is unknown. The match agent named no call sites, so nobody inspected the main agent loop or the client construction (src/agent/*, wherever `new Anthropic(...)` lives). The `verified` grade rests only on compile-level checks. For a major SDK bump that changes the wire API version, `needs-review` would describe the evidence more accurately. I could not confirm from the quote alone what else 2026-10-21 changes; the full CHANGELOG/migration guide is the place to check.",
+      "concerns": [
+        {
+          "file": "package.json",
+          "issue": "SDK 1.0.0 sends API version 2026-10-21 by default, which changes runtime behaviour for every request. No test or live call exercises messages.create, beta.messages.countTokens or the compaction beta (COMPACTION_BETA = 'compact-2026-01-12') under the new version. Typecheck/build cannot detect response-shape or behaviour changes.",
+          "severity": "high"
+        },
+        {
+          "file": "src/agent/contextManager.ts",
+          "issue": "The comments say MiniMax is used as an alternate provider through the same Anthropic client. The new default version header (2026-10-21) may be rejected or misinterpreted by MiniMax's Anthropic-compatible endpoint. The diff does not pin the old version for that provider or test it.",
+          "severity": "high"
+        },
+        {
+          "file": "src/agent/contextManager.ts",
+          "issue": "The new `msg.role === \"system\"` guard is fine for narrowing. But under the union type, system-role messages could now appear in the messages array. roughTokenEstimate and countTokens will include them, and if the code that builds the conversation never emits them, the guard is only cosmetic. Confirm whether anything in the codebase produces system-role messages, and whether hardTrim should still leave them untouched.",
+          "severity": "low"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "The lock resolves 1.4.0, not 1.0.0. It also changes the license from MIT to Apache-2.0 and adds a new runtime dependency, @opentelemetry/api. These are minor, but a license or dependency review may want to note them.",
+          "severity": "low"
+        },
+        {
+          "file": "package.json",
+          "issue": "The grade is 'verified', but the only checks are typecheck and build. A sdk-major change that alters the default API version and removes sampling params needs at least a smoke run against the real API (and MiniMax) to count as verified.",
+          "severity": "medium"
+        }
+      ],
+      "checkFirst": [
+        "Find where the Anthropic client is constructed and where messages.create / beta.messages.create is called (the match agent listed none). Confirm no sampling params are passed via untyped objects or `as any` casts that typecheck would miss.",
+        "Run one live agent turn against Anthropic with SDK 1.4.0. Verify that countTokens, the compact-2026-01-12 beta and tool_use/tool_result flows still work under API version 2026-10-21.",
+        "Run one live turn against the MiniMax provider. If it fails on the new version header, pin the anthropic-version header for that client.",
+        "Read the SDK 1.0.0 migration notes and CHANGELOG for other 2026-10-21 behaviour changes (response fields, beta header handling) beyond the quoted line."
+      ],
+      "costUsd": 0.055944,
+      "model": "claude-opus-5-5"
+    }
+  }
+}

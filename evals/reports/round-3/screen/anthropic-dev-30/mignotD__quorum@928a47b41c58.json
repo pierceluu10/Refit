@@ -1,0 +1,31 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "mignotD/quorum",
+  "commit": "928a47b41c585fcc3ec967ca9227d77cccbdd05d",
+  "provider": "anthropic",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "test",
+      "command": "export JWT_SECRET='placeholder_secret' DB_URI='mongodb://localhost:27017/quorum' NODE_ENV='test'; npm run test",
+      "ok": false,
+      "failures": ["FAIL tests/authMiddleware.test.js", "FAIL tests/loginRedirect.test.js"],
+      "tail": "bject.require (tests/authMiddleware.test.js:1:38)\n\nPASS tests/sanitize.test.js\nPASS tests/tokens.test.js\nFAIL tests/loginRedirect.test.js\n  ● Test suite failed to run\n\n    Cannot find module '/work/node_modules/bcrypt/lib/binding/napi-v3/bcrypt_lib.node' from 'node_modules/bcrypt/bcrypt.js'\n\n    Require stack:\n      node_modules/bcrypt/bcrypt.js\n      model/user.js\n      middleware/authMiddleware.js\n      tests/loginRedirect.test.js\n\n    \u001b[0m \u001b[90m 1 |\u001b[39m \u001b[36mconst\u001b[39m mongoose \u001b[33m=\u001b[39m require(\u001b[32m'mongoose'\u001b[39m)\u001b[33m;\u001b[39m\n     \u001b[90m 2 |\u001b[39m \u001b[36mconst\u001b[39m  { isEmail } \u001b[33m=\u001b[39m require(\u001b[32m'validator'\u001b[39m)\u001b[33m;\u001b[39m\n    \u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 3 |\u001b[39m \u001b[36mconst\u001b[39m bcrypt \u001b[33m=\u001b[39m require(\u001b[32m'bcrypt'\u001b[39m)\u001b[33m;\u001b[39m\n     \u001b[90m   |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n     \u001b[90m 4 |\u001b[39m \u001b[36mconst\u001b[39m crypto \u001b[33m=\u001b[39m require(\u001b[32m'crypto'\u001b[39m)\u001b[33m;\u001b[39m\n     \u001b[90m 5 |\u001b[39m \u001b[36mconst\u001b[39m \u001b[33mSchema\u001b[39m \u001b[33m=\u001b[39m mongoose\u001b[33m.\u001b[39m\u001b[33mSchema\u001b[39m\u001b[33m;\u001b[39m\n     \u001b[90m 6 |\u001b[39m\u001b[0m\n\n      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/index.js:895:11)\n      at Object.<anonymous> (node_modules/bcrypt/bcrypt.js:6:16)\n      at Object.require (model/user.js:3:16)\n      at Object.require (middleware/authMiddleware.js:3:14)\n      at Object.require (tests/loginRedirect.test.js:1:32)\n\nTest Suites: 2 failed, 3 passed, 5 total\nTests:       23 passed, 23 total\nSnapshots:   0 total\nTime:        4.186 s\nRan all test suites."
+    }
+  ],
+  "costUsd": 0.051246000000000125,
+  "durationMs": 71015,
+  "install": {
+    "code": 0,
+    "tail": "added 712 packages in 14s\n\nnpm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated npmlog@5.0.1: This package is no longer supported.\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported\nnpm warn deprecated gauge@3.0.2: This package is no longer supported.\nnpm warn deprecated are-we-there-yet@2.0.0: This package is no longer supported.\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me"
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["JWT_SECRET", "DB_URI", "NODE_ENV"]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "npm test fails: tests/authMiddleware.test.js and tests/loginRedirect.test.js cannot load because bcrypt's native binding (bcrypt_lib.node) is missing after install. This is a fixable build problem (rebuild bcrypt or switch to bcryptjs), not a credential, service or platform limit, and no test needed a live database."
+  }
+}

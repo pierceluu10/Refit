@@ -1,0 +1,88 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "saxllc/journey-intelligence",
+  "taskId": "saxllc/journey-intelligence:anthropic:2026-10-21-sdk-typescript-1-0-0",
+  "title": "npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too",
+  "refit": {
+    "outcome": "verified",
+    "passesChecks": false,
+    "costUsd": 0.0929044,
+    "diffLines": 245,
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "Every Anthropic call in the quoted files is a raw `fetch` to /v1/messages; none goes through `@anthropic-ai/sdk`. No call site was named. The only change the SDK 1.0.0 bump forces is the package.json/lock bump. Changing the hard-coded `anthropic-version` header from 2023-06-01 to 2026-10-21 in four api/ files and five scripts/ files is a separate decision. It moves production traffic onto a new API version the SDK changelog only mentions. I could not confirm the request and response semantics of 2026-10-21; check Anthropic's versioning docs and the SDK 1.0.0 types. The response parsing (`data.content?.[0]?.text`) is unchanged, and the new test only proves the header string and that the SDK sends 2026-10-21 against a mocked fetch. No live call with the new header was made, so 'verified' overstates what the checks show. Pre-existing: api/klh-script.js contains unresolved merge-conflict markers (<<<<<<< HEAD / >>>>>>> db8f43e), so it cannot parse regardless of this PR. The api/*.js files use `export default` under \"type\": \"commonjs\".",
+      "concerns": [
+        {
+          "file": "api/ekyc-chunk.js, api/journey-chunk.js, api/klh-script.js, api/umang-chunk.js",
+          "issue": "Raw fetch calls are moved to anthropic-version 2026-10-21 even though nothing in the SDK bump requires it. If that version changes the response shape (content blocks, stop reasons, error format), `data.content?.[0]?.text?.trim() || ''` would quietly return an empty script. journey-chunk.js would then throw 'Empty generation'. ekyc/klh/umang would serve empty text with 200. No test exercises these handlers.",
+          "severity": "high"
+        },
+        {
+          "file": "scripts/generate-cache.js, scripts/generate-chunks.js, scripts/generate-ekyc-chunks.js, scripts/seed-cache.js, scripts/seed-umang-chunks.js",
+          "issue": "The cache-seeding scripts now use the new API version. If output or behaviour differs, the Upstash cache would be repopulated with content generated under different semantics. The checks do not run these scripts.",
+          "severity": "medium"
+        },
+        {
+          "file": "test/sdk.test.js",
+          "issue": "The test checks for string absence (no '2023-06-01', no temperature/top_p/top_k) and runs an SDK call against a mocked fetch. It does not exercise any application code path, since the app never uses the SDK. It cannot prove that the 2026-10-21 header is accepted or that responses parse the same. The 'verified' grade rests only on this test. It also forbids pinning 2023-06-01 anywhere, which bakes the optional header change into CI.",
+          "severity": "medium"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "SDK 1.0.0 brings in new transitive deps (@opentelemetry/api, standardwebhooks, fast-sha256, @stablelib/base64) and changes its license from MIT to Apache-2.0. These are probably harmless, but worth a licence and footprint check.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Decide whether the raw fetch calls should change version at all. Keeping 'anthropic-version: 2023-06-01' on raw fetches would still satisfy the SDK bump, since the SDK is unused.",
+        "If moving to 2026-10-21, make one live call per handler (ekyc-chunk, journey-chunk, klh-script, umang-chunk with both Sonnet and Haiku) and confirm `content[0].text` is still populated.",
+        "Grep the rest of the repo, including the truncated part of api/umang-chunk.js and any non-.js or HTML files, for other raw Anthropic calls or direct SDK usage the match agent missed.",
+        "Resolve the merge-conflict markers in api/klh-script.js separately; that file will not load in any version."
+      ],
+      "costUsd": 0.138012,
+      "model": "claude-opus-5-5"
+    }
+  },
+  "claude": {
+    "passesChecks": false,
+    "costUsd": 0.022748600000000004,
+    "prepCostUsd": 0.00547,
+    "diffLines": 97,
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-saxllc-journey-intelligence-anthropic-2026-10-21-sdk-typescript-1-0-0/transcript.jsonl",
+    "stopReason": "done",
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The PR changes only the dependency, moving @anthropic-ai/sdk from ^0.82.0 to ^1.0.0. The lockfile resolves 1.4.0, not 1.0.0. It adds @opentelemetry/api, standardwebhooks, @stablelib/base64 and fast-sha256, and the SDK licence changes from MIT to Apache-2.0. No application code was touched, and the match agent named no call sites. I can't tell whether the repo really has no messages.create usage or whether the scan missed it. The breaking changes listed for this release would fail at runtime in plain CommonJS JS, with no compile step to catch them: the default API version is now 2026-10-21, temperature/top_p/top_k are removed, and MessageParam becomes a union. The package.json test script is the npm placeholder that exits 1, so nothing here is checked, and no checks were recorded at all. The needs-review grade is appropriate. Calling this migrated would be premature until someone has grepped the source (index.js and any Express route handlers) for Anthropic client usage. Pre-existing: the repo has no test suite.",
+      "concerns": [
+        {
+          "file": "package.json",
+          "issue": "Only the version range was bumped. Any existing anthropic.messages.create call in the JS source that passes temperature, top_p or top_k, or relies on 2023-06-01 response shapes, will break at runtime under the new default API version 2026-10-21. The diff does not show or audit those call sites, and the match agent listed none.",
+          "severity": "high"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "The lockfile resolves @anthropic-ai/sdk 1.4.0 rather than 1.0.0. Any behaviour changes in 1.1–1.4 beyond the one being migrated come in unreviewed.",
+          "severity": "medium"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "The SDK licence changes from MIT to Apache-2.0, and new transitive dependencies are added: @opentelemetry/api, standardwebhooks, fast-sha256 (Unlicense) and @stablelib/base64. These may need licence or supply-chain sign-off.",
+          "severity": "low"
+        },
+        {
+          "file": "package.json",
+          "issue": "No tests exist (the test script exits 1) and no checks ran. Nothing confirms the app still starts or that a live Messages call succeeds with the new SDK.",
+          "severity": "medium"
+        }
+      ],
+      "checkFirst": [
+        "grep the repo for '@anthropic-ai/sdk', 'messages.create' and 'temperature|top_p|top_k' to find the real call sites the match agent missed",
+        "Check the 1.0.0 CHANGELOG/migration notes in the anthropic-sdk-typescript repo for removed params and response-shape changes under API version 2026-10-21",
+        "Decide whether to pin to exactly 1.0.0 or accept 1.4.0, and review the 1.1–1.4 changelog entries",
+        "Run the Express app and make one live request through each Anthropic-backed route"
+      ],
+      "costUsd": 0.034244,
+      "model": "claude-opus-5-5"
+    }
+  }
+}

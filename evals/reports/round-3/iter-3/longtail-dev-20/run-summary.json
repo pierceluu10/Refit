@@ -1,0 +1,16 @@
+{
+  "set": "longtail-dev-20",
+  "capUsd": 150,
+  "meterSpentUsd": 0.7553842000000001,
+  "budgetSpentUsd": 1.2042642,
+  "costByPart": {
+    "inventory": 0,
+    "watch": 0.049934400000000004,
+    "match": 0.20700000000000002,
+    "memory": 0.206484,
+    "harness": 0.2195598,
+    "review": 0.072406
+  },
+  "startedAt": "2026-11-03T23:00:35.894Z",
+  "finishedAt": "2026-11-03T23:02:42.204Z"
+}

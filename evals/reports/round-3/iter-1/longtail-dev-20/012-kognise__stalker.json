@@ -1,0 +1,19 @@
+{
+  "set": "longtail-dev-20",
+  "index": 12,
+  "repo": "kognise/stalker",
+  "commit": "152fa25afa8c21c179d2e0e22bf57dbad796da7a",
+  "provider": "zoom",
+  "usages": 7,
+  "changes": 14,
+  "verdict": "not-affected",
+  "tasks": [],
+  "costUsd": 0.4897449,
+  "durationMs": 105454,
+  "matchReasoning": "zoom:2026-11-15-rtms-tls-required: not affected: The repo does not connect to Zoom RTMS (Realtime Media Streams). Its only Zoom usage is an inbound webhook receiver for user.presence_status_updated at src/index.ts:335, so the RTMS TLS requirement does not apply.\nzoom:2026-11-rtms-v2-protocol: not affected: There are no RTMS connections or RTMS event handling anywhere in the repo. The presence webhook handler at src/index.ts:335 does not read RTMS event_type or event_code fields.\nzoom:2026-10-29-zcc-agent-workspace-apps: not affected: The repo does not build a Zoom App or use the Contact Center agent workspace. It only receives presence webhooks.\nzoom:2026-12-30-phone-number-endpoints-sunset: not affected: The repo calls no Zoom Phone REST endpoints (phone numbers, plans, SIP, SMS). Its only Zoom integration is the presence webhook.\nzoom:2026-05-phone-call-logs-deprecation: not affected: The repo does not call the Zoom Phone Call Logs or Call History APIs. It only handles user.presence_status_updated webhooks.\nzoom:2026-11-phone-call-webhooks-deprecated: not affected: The webhook handler at src/index.ts:335 processes only user.presence_status_updated. It does not subscribe to or handle any phone.call_history, call_log or call_element events.\nzoom:2026-10-22-meeting-sdk-web-6-10-0: not affected: The repo does not depend on @zoom/meetingsdk. Zoom is integrated only through an inbound webhook.\nzoom:2026-09-16-meeting-sdk-web-6-5-0: not affected: The repo does not depend on @zoom/meetingsdk or embed the Meeting SDK client view.\nzoom:2026-10-22-ui-toolkit-mobile-2-6-11-1: not affected: The repo's Android app (mobile/) uses Ktor only to ping api.kognise.dev and does not include the Zoom UI Toolkit. There is no iOS Zoom usage either.\nzoom:2026-10-15-video-sdk-rn-2-6-11: not affected: The repo has no React Native code and no Zoom Video SDK dependency.\nzoom:2026-09-22-video-sdk-native-2-6-11: not affected: No native Zoom Video SDK is used in the Android app (mobile/), the Rust daemon (stalkerd/) or elsewhere in the repo.\nzoom:2026-07-22-meeting-sdk-7-2-1: not affected: No native or Electron Zoom Meeting SDK is used anywhere in the repo.\nzoom:2026-06-24-sdk-2-6-0-command-channel: not affected: The repo uses neither the Zoom Video SDK nor the Meeting SDK, so command channel compatibility and the audio config renames do not apply.\nzoom:2026-03-25-meeting-sdk-7-0-0: not affected: The repo has no native Zoom Meeting SDK dependency and no iOS/macOS/Windows Zoom integration. It only handles a presence webhook.",
+  "costByPart": {
+    "inventory": 0.083609,
+    "watch": 0.3436159,
+    "match": 0.06252
+  }
+}

@@ -1,0 +1,232 @@
+{
+  "set": "anthropic-dev-30",
+  "index": 16,
+  "repo": "MFaizanali2/Code-Review-Agent",
+  "commit": "32fd5bb17d89cf9678d3f88802a074d08798e0ae",
+  "provider": "anthropic",
+  "usages": 4,
+  "changes": 15,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "MFaizanali2/Code-Review-Agent:anthropic:2026-10-21-api-version-2026-10-21",
+      "changeId": "anthropic:2026-10-21-api-version-2026-10-21",
+      "kind": "api-version",
+      "change": {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-21-api-version-2026-10-21",
+        "kind": "api-version",
+        "title": "New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/api/migration-2026-10-21.md",
+          "quote": "This guide lists the code changes for moving from API version `2023-06-01` to `2026-10-21`."
+        },
+        "affects": {
+          "operations": ["POST /v1/messages"],
+          "versions": ["2023-06-01", "2026-10-21"]
+        }
+      },
+      "reasoning": "The repo uses the Python anthropic SDK with an unbounded constraint (>=0.18.0) in requirements.txt. Older SDKs keep sending 2023-06-01, but a fresh install resolves to the newest major. The change notes indicate Python v1.0 exists and has dropped legacy APIs, so it presumably sends 2026-10-21 by default. Under that version, the temperature argument at line 561 returns a hard 400, which breaks the Anthropic provider path for code reviews.\n\nUncertain: confirm which Python anthropic release first defaults to 2026-10-21. The migration agent should do one of the following:\n- remove temperature/top_p/top_k from Anthropic requests and confirm the parsing in _parse_anthropic_response still matches the new version's response shape, or\n- at minimum, cap the dependency (e.g. anthropic<1.0) until that work is done.\nThis task also resolves these changes. Handle each in the same change, and say in the PR how:\n- anthropic:2026-10-21-sampling-params-removed (field-removed): In API version 2026-10-21, temperature, top_p and top_k in Messages and Batch requests return 400. The 400 on temperature/top_p/top_k only applies once requests carry anthropic-version 2026-10-21. The fix is to drop temperature from messages.create at llm_client.py:561, which is part of moving to the new API version.\n  Source: https://platform.claude.com/docs/en/api/migration-2026-10-21.md\n  \"In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.\"\n- anthropic:2026-10-07-haiku-5-5-breaking (other): Code written for Haiku 4.5 can break on claude-haiku-5-5 (budget_tokens, sampling params, prefill, computer_20250124 return 400). The only Haiku 5.5 break this repo could hit is temperature sent at llm_client.py:561, and the version task removes it. The repo sends no budget_tokens, assistant prefill or computer_20250124 tool.\n  Source: https://docs.anthropic.com/en/release-notes/api\n  \"Code written for Claude Haiku 4.5 can break on Claude Haiku 5.5.\"",
+      "callSites": [
+        {
+          "file": "backend/llm/llm_client.py",
+          "line": 561,
+          "why": "messages.create sends temperature. Under API version 2026-10-21, any temperature (even the default) returns 400, so every non-streaming Anthropic review call would fail."
+        },
+        {
+          "file": "backend/llm/llm_client.py",
+          "line": 613,
+          "why": "messages.stream goes through the same client and anthropic-version header. Verify it does not pass temperature/top_p/top_k and that stream handling still works under the new version."
+        },
+        {
+          "file": "backend/llm/llm_client.py",
+          "line": 180,
+          "why": "The AsyncAnthropic client is built here. If needed, pin the anthropic-version header, or the SDK version, explicitly here."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "MFaizanali2/Code-Review-Agent:anthropic:2026-10-21-api-version-2026-10-21",
+        "outcome": "verified",
+        "diff": "diff --git a/backend/llm/llm_client.py b/backend/llm/llm_client.py\nindex f30b1c7..f2ebec2 100644\n--- a/backend/llm/llm_client.py\n+++ b/backend/llm/llm_client.py\n@@ -545,8 +545,8 @@ class LLMClient:\n             \"model\": self.model,\n             \"messages\": converted,\n             \"max_tokens\": self.config.max_output_tokens,\n-            \"temperature\": self.config.temperature,\n         }\n+        # temperature/top_p/top_k return 400 on anthropic-version 2026-10-21\n         if system_text:\n             kwargs[\"system\"] = system_text\n         if tools:\ndiff --git a/requirements.txt b/requirements.txt\nindex 1a31ee1..affe007 100644\n--- a/requirements.txt\n+++ b/requirements.txt\n@@ -9,7 +9,7 @@ sqlalchemy>=2.0.25\n # LLM providers (Person 3 install karega)\n google-genai>=1.0.0\n openai>=1.12.0\n-anthropic>=0.18.0\n+anthropic>=1.0.0\n \n # Frontend\n streamlit>=1.30.0\ndiff --git a/tests/test_anthropic_version.py b/tests/test_anthropic_version.py\nnew file mode 100644\nindex 0000000..fc29ef5\n--- /dev/null\n+++ b/tests/test_anthropic_version.py\n@@ -0,0 +1,43 @@\n+import asyncio\n+import json\n+import os\n+import sys\n+\n+import pytest\n+\n+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\n+\n+anthropic = pytest.importorskip(\"anthropic\")\n+from backend.llm.llm_client import LLMClient  # noqa: E402\n+from backend.llm.llm_types import LLMConfig, Message, Role  # noqa: E402\n+\n+\n+def test_anthropic_request_has_no_sampling_params():\n+    try:\n+        import httpx2 as httpx\n+    except ImportError:\n+        import httpx\n+\n+    seen = []\n+\n+    def handler(req):\n+        seen.append(req)\n+        return httpx.Response(200, json={\n+            \"id\": \"m\", \"type\": \"message\", \"role\": \"assistant\", \"model\": \"x\",\n+            \"content\": [{\"type\": \"text\", \"text\": \"hi\"}],\n+            \"stop_reason\": \"end_turn\", \"stop_sequence\": None,\n+            \"usage\": {\"input_tokens\": 1, \"output_tokens\": 1},\n+        })\n+\n+    cfg = LLMConfig(provider=\"anthropic\", model=\"claude-sonnet-4-20250514\",\n+                    api_key=\"dummy\", temperature=0.2)\n+    c = LLMClient(config=cfg)\n+    c._client = c._client.with_options(\n+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))\n+    msgs = [Message(role=Role.SYSTEM, content=\"sys\"), Message(role=Role.USER, content=\"q\")]\n+    res = asyncio.run(c._call_anthropic(msgs, None))\n+    assert res.success and res.text == \"hi\"\n+    assert len(seen) == 1\n+    body = json.loads(seen[0].content)\n+    assert not {\"temperature\", \"top_p\", \"top_k\"} & body.keys()\n+    assert seen[0].headers[\"anthropic-version\"] == \"2026-10-21\"\n",
+        "checks": [
+          {
+            "name": "pytest",
+            "before": "fail (1)",
+            "after": "fail (1)"
+          },
+          {
+            "name": "anthropic-version",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.147059,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-MFaizanali2-Code-Review-Agent-anthropic-2026-10-21-api-version-2026-10-21-ik8v7j/transcript.jsonl",
+        "prBody": "## New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01 [Verified]\n\n### Change\n\nRemoved `temperature` from the Anthropic `messages.create` call in `_call_anthropic` (backend/llm/llm_client.py). Raised the requirement to `anthropic>=1.0.0`. Added tests/test_anthropic_version.py. It drives the real `LLMClient._call_anthropic` through a mocked transport and asserts the request has no temperature, top_p or top_k, that the `anthropic-version` header is 2026-10-21, and that the parsed text is \"hi\". This also covers the Haiku 5.5 item: temperature was the only break this repo could hit, and the repo sends no budget_tokens, prefill or computer tool. The streaming call already sent no sampling params.\n\nFiles touched:\n- `backend/llm/llm_client.py`\n- `requirements.txt`\n- `tests/test_anthropic_version.py`\n\n### Why\n\nAPI version 2026-10-21 returns 400 for temperature, top_p and top_k. The unpinned `anthropic>=0.18.0` already resolves to a new major that sends that version by default (2.4.0 installed in the sandbox).\n\n> This guide lists the code changes for moving from API version `2023-06-01` to `2026-10-21`.\n\nSource: https://platform.claude.com/docs/en/api/migration-2026-10-21.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| pytest | fail (1) | fail (1) | 0 |\n| anthropic-version | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- anthropic-version, added by the agent: `export LLM_PROVIDER='mock' GEMINI_API_KEY='placeholder' OPENAI_API_KEY='placeholder'; export LLM_PROVIDER=mock GEMINI_API_KEY=placeholder OPENAI_API_KEY=placeholder; python3 -m pytest tests/test_anthropic_version.py -q` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Before the baseline the harness ran `if [ -f requirements.txt ]; then python3 -m pip install -q --only-binary=:all: -r requirements.txt || python3 -m pip install -q --only-binary=:all: GitPython; else python3 -m pip install -q --only-binary=:all: GitPython; fi` (Test collection fails with ModuleNotFoundError: No module named 'git' (GitPython). The Python dependencies were never installed, so install the repo's requirements. If that fails, fall back to GitPython alone, using wheels only so no build scripts run.); it exited 0.\n- Checks ran with placeholder env: LLM_PROVIDER, GEMINI_API_KEY, OPENAI_API_KEY.\n\nTest of this change: `anthropic-version`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container python:3.12-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- No live call was made.\n- Which SDK release first defaults to 2026-10-21 was not confirmed; 2.4.0 sent it in the test.\n- `stream_response` passes `stream=True` to `messages.stream()`. That predates this change and was not touched or tested, so check it.\n- `_parse_anthropic_response` keeps only the last text block (`text = block.text`). This is unchanged and was not checked against the new response shape beyond a simple text block.\n- The pre-existing test collection error (no module named 'git') comes from GitPython missing from the sandbox, not from this change.\n- The default model ids may be deprecated; I left them unchanged.\n- I did not run the openapi/search validators.\n- pytest was already failing before the change and still fails.\n- No provider validator was run.\n\n### Behaviour changes\n\n- `config.temperature` is no longer sent to Anthropic. It is still used for the other providers, so for Claude it is now a dead setting.\n- requirements.txt now needs anthropic>=1.0.0.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1471\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-anthropic-api-version-a547c43b",
+          "recipe-anthropic-sdk-major-50cc7085"
+        ],
+        "agentChecks": [
+          {
+            "name": "anthropic-version",
+            "command": "export LLM_PROVIDER='mock' GEMINI_API_KEY='placeholder' OPENAI_API_KEY='placeholder'; export LLM_PROVIDER=mock GEMINI_API_KEY=placeholder OPENAI_API_KEY=placeholder; python3 -m pytest tests/test_anthropic_version.py -q",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# MFaizanali2/Code-Review-Agent:anthropic:2026-10-21-api-version-2026-10-21: verified, $0.1471\nChange: New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01 (anthropic, api-version)\nBaseline checks: pytest fail (1), anthropic-version fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=backend/llm/llm_client.py offset=170 limit=30 → 170\t                    client_kwargs[\"base_url\"] = self.config.base_url | 171\t                if self.config.extra_headers: | 172\t                    client_kwargs[\"default_headers\"] = self.config.extra_headers\n2. read_file path=backend/llm/llm_client.py offset=540 limit=120 → 540\t        return self._parse_openai_response(response) | 541\t | 542\t    async def _call_anthropic(self, messages: list[Message], tools: Optional[list[dict]]) -> LLMResponse:\n3. shell command=<179 chars> → exit code: 0 | --- stdout --- | 12:anthropic>=0.18.0\n4. edit_file path=backend/llm/llm_client.py old=<142 chars> new=<167 chars> → edited backend/llm/llm_client.py (1 replacement)\n5. edit_file path=requirements.txt old=anthropic>=0.18.0 new=anthropic>=1.0.0 → edited requirements.txt (1 replacement)\n6. shell command=<207 chars> → exit code: 0 | --- stdout --- | 1:import asyncio\n7. write_file path=tests/test_anthropic_version.py content=<1497 chars> → wrote tests/test_anthropic_version.py (1497 bytes)\n8. run_checks add=<175 chars> → registered anthropic-version; on the original code it fails (1) | ## pytest: fail | command: export LLM_PROVIDER='mock' GEMINI_API_KEY='placeholder' OPENAI_API_KEY='placeholder'; (python3 -m pytest --version >/dev/null 2>&1 || python3 -m pi…\n9. finish verdict=migrated summary=<621 chars> why=<202 chars> validators=[] unproven=<684 chars> behaviourChanges=<185 chars> proofTest=anthropic-version → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: pytest fail (1) → fail (1), anthropic-version fail (1) → pass\n\n## Result\nFiles changed: backend/llm/llm_client.py, requirements.txt, tests/test_anthropic_version.py\nVerdict: migrated. Removed `temperature` from the Anthropic `messages.create` call in `_call_anthropic` (backend/llm/llm_client.py). Raised the requirement to `anthropic>=1.0.0`. Added tests/test_anthropic_version.py. It drives the real `LLMClient._call_anthropic` through a mocked transport and asserts the request has no temperature, top_p or top_k, that the `anthropic-version` header is 2026-10-21, and that the parsed text is \"hi\". This also covers the Haiku 5.5 item: temperature was the only break this repo could hit, and the repo sends no budget_tokens, prefill or computer tool. The streaming call already sent no sampling params.\nUnproven: No live call was made.; Which SDK release first defaults to 2026-10-21 was not confirmed; 2.4.0 sent it in the test.; `stream_response` passes `stream=True` to `messages.stream()`. That predates this change and was not touched or tested, so check it.; `_parse_anthropic_response` keeps only the last text block (`text = block.text`). This is unchanged and was not checked against the new response shape beyond a simple text block.; The pre-existing test collection error (no module named 'git') comes from GitPython missing from the sandbox, not from this change.; The default model ids may be deprecated; I left them unchanged.; I did not run the openapi/search validators.\n",
+        "preparation": {
+          "steps": [
+            {
+              "command": "if [ -f requirements.txt ]; then python3 -m pip install -q --only-binary=:all: -r requirements.txt || python3 -m pip install -q --only-binary=:all: GitPython; else python3 -m pip install -q --only-binary=:all: GitPython; fi",
+              "why": "Test collection fails with ModuleNotFoundError: No module named 'git' (GitPython). The Python dependencies were never installed, so install the repo's requirements. If that fails, fall back to GitPython alone, using wheels only so no build scripts run.",
+              "code": 0,
+              "output": "[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip"
+            }
+          ],
+          "env": {
+            "LLM_PROVIDER": "mock",
+            "GEMINI_API_KEY": "placeholder",
+            "OPENAI_API_KEY": "placeholder"
+          },
+          "reasoning": "This is a Python project and the checks run pytest. Nothing in the repo points to codegen or a build step, and there is no Node workspace to build. The harness installs pytest itself. The only environmental need is env vars so the code can load. The example env file sets LLM_PROVIDER=mock for testing, and placeholder API keys avoid any key-missing errors at import time.\nThe only failure is an environmental one: the third-party package 'git' (GitPython) is missing and is imported by agent/tools/builtin/github_tool.py. The harness only installs pytest, so the repo's Python dependencies need installing. No codegen or build step is needed. The env values come from .env.example and the harness command."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff removes `temperature` from the kwargs built for the `messages.create` call (llm_client.py ~line 548), bumps `anthropic` to >=1.0.0 and adds a mock-transport test. I have three concerns. First, the second named call site, `messages.stream` at line 613, falls in the truncated part of the file, and the diff does not touch it. If it builds its own kwargs with temperature, streaming will still send it. Second, pytest fails both before and after (1 failure each), so the suite does not prove the change works. A `verified` grade does not match that. Third, I cannot confirm from the quoted source that 2026-10-21 rejects temperature/top_p/top_k, or that anthropic 1.0.0 is the major that sends the new header. The quote only says the guide lists code changes, and the other changes it may list are not addressed here.",
+        "concerns": [
+          {
+            "file": "backend/llm/llm_client.py",
+            "issue": "The named call site `messages.stream` at line 613 is not in the diff. The visible change only edits the kwargs dict around line 545. If the streaming path builds its own request with `temperature` (or top_p/top_k), it will still send it, and on 2026-10-21 that would return 400 if the PR's claim is right. The new test only exercises `_call_anthropic` (create), not streaming.",
+            "severity": "high"
+          },
+          {
+            "file": "tests/test_anthropic_version.py",
+            "issue": "pytest fails 1 before and 1 after. Nothing shows which test fails, so it could be this new test (e.g. the header assertion if the installed SDK still sends 2023-06-01) or a pre-existing failure. Either way, the `verified` grade is not backed by a green suite.",
+            "severity": "high"
+          },
+          {
+            "file": "backend/llm/llm_client.py",
+            "issue": "I could not confirm from the quote that 2026-10-21 rejects sampling parameters. The PR only shows the code comment saying so. Removing `temperature` changes behaviour: `self.config.temperature` is now silently ignored for Anthropic. Any user-configured low temperature (e.g. 0.2 for deterministic reviews) is lost with no warning. Check the migration guide's exact wording, and whether it rejects these parameters outright or only for some models or combinations.",
+            "severity": "medium"
+          },
+          {
+            "file": "requirements.txt",
+            "issue": "`anthropic>=1.0.0` assumes 1.0.0 is the first SDK major that sends `anthropic-version: 2026-10-21`. I could not confirm this. Check the SDK changelog and release notes. A major bump may also change response types or client options (`with_options(http_client=...)`), which affect `_parse_anthropic_response` and the stream code.",
+            "severity": "medium"
+          },
+          {
+            "file": "backend/llm/llm_client.py",
+            "issue": "The migration guide likely lists several code changes. This PR handles only sampling params. Other changes the guide lists (request or response shape, stream event types, tool formats) are not reviewed against `_convert_messages_for_anthropic`, `_parse_anthropic_response` or the stream handler.",
+            "severity": "medium"
+          },
+          {
+            "file": "tests/test_anthropic_version.py",
+            "issue": "The `import httpx2 as httpx` fallback is unusual. I could not confirm that the new SDK uses an `httpx2` package. If the SDK's http_client type differs from what is passed, the test may fail for unrelated reasons. The test is also mock-only: no live call proves the API accepts the request.",
+            "severity": "low"
+          },
+          {
+            "file": "backend/llm/llm_client.py",
+            "issue": "When `config.base_url` points at a proxy or gateway, the behaviour on the new header version is not considered.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Open llm_client.py around line 613 (`messages.stream`) and confirm whether it passes temperature/top_p/top_k or reuses the edited kwargs.",
+          "Look at the pytest output to see which test fails before and after, and whether it is the new test_anthropic_version.py.",
+          "Read the migration-2026-10-21 guide for the exact sampling-param rule and any other required changes.",
+          "Confirm in the anthropic SDK changelog which version first defaults to anthropic-version 2026-10-21, and whether `httpx2` is involved."
+        ],
+        "costUsd": 0.069264,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "MFaizanali2/Code-Review-Agent:anthropic:2026-11-30-retire-claude-sonnet-4-5",
+      "changeId": "anthropic:2026-11-30-retire-claude-sonnet-4-5",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "anthropic",
+        "id": "anthropic:2026-11-30-retire-claude-sonnet-4-5",
+        "kind": "model-retirement",
+        "title": "claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+          "quote": "| November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |"
+        },
+        "affects": {
+          "operations": ["claude-sonnet-4-5-20250929"]
+        },
+        "effectiveDate": "2026-11-30"
+      },
+      "reasoning": "The usage map does not record which Anthropic model ids the repo defaults to. The model lists and base URLs live in llm_types.py, and the model may also be user-selected. A code-review agent plausibly defaults to Sonnet 4.5, so this task is attempted rather than skipped.\n\nThe migration agent should check:\n- llm_types.py and any config, UI or model lists for 'claude-sonnet-4-5-20250929' or the 'claude-sonnet-4-5' alias, and replace them with 'claude-sonnet-5-5';\n- that the switch is safe: the repo sends no thinking or forced tool_choice to Anthropic, so the Sonnet 5.5 breaks do not apply.",
+      "callSites": [
+        {
+          "file": "backend/llm/llm_client.py",
+          "line": 561,
+          "why": "messages.create passes a model id. If the default or configured Anthropic model is claude-sonnet-4-5-20250929, calls fail after retirement."
+        },
+        {
+          "file": "backend/llm/llm_client.py",
+          "line": 613,
+          "why": "messages.stream passes the same model id, so it fails the same way."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "MFaizanali2/Code-Review-Agent:anthropic:2026-11-30-retire-claude-sonnet-4-5",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [
+          {
+            "name": "pytest",
+            "before": "pass",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.07531389999999998,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-MFaizanali2-Code-Review-Agent-anthropic-2026-11-30-retire-claude-sonnet-4-5-i654jW/transcript.jsonl",
+        "prBody": "## claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 [Not affected]\n\n### Change\n\nNo changes made. The repo never names claude-sonnet-4-5-20250929 or the claude-sonnet-4-5 alias.\n\nNo files changed.\n\n### Why\n\nThe retirement covers only claude-sonnet-4-5-20250929. A search of the whole repo for sonnet-4-5, sonnet-4.5 and 20250929 found no matches. The Anthropic model ids in the repo are claude-sonnet-4-20250514 (default in llm_types.py:46, plus llm_client.py:45, 641 and 755), claude-opus-4-20250514 and claude-haiku-3-5-20241022. These are different models, and this retirement does not name them. The repo sends no thinking parameter. The only tool_choice is \"auto\" (llm_client.py:538), so the Sonnet 5.5 breaking params do not apply.\n\n> | November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |\n\nSource: https://platform.claude.com/docs/en/about-claude/model-deprecations.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| pytest | pass | pass | 0 |\n\nNew failures: 0\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Before the baseline the harness ran `python3 -m pip install -q --only-binary=:all: GitPython` (tests/test_builtin_tools.py imports agent.tools.builtin.github_tool, which does `from git import Repo`. The GitPython package that provides `git` is not installed, so collection fails.); it exited 0.\n- Checks ran with placeholder env: LLM_PROVIDER, GEMINI_API_KEY, OPENAI_API_KEY.\n\nWhere checks ran: Docker container python:3.12-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- The default claude-sonnet-4-20250514 is an older model with its own retirement schedule. I did not check that schedule or change the id, because it is outside this task.\n- I did not run the repo's tests. I made no edits, so there was nothing to prove.\n- The claude-3-5-sonnet entry in the Streamlit UI model list (frontend/streamlit_app.py:471) is not covered by this retirement. I left it alone.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0753\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-anthropic-model-retirement-9b5d480a",
+          "recipe-anthropic-api-version-a547c43b"
+        ],
+        "agentChecks": [],
+        "summary": "# MFaizanali2/Code-Review-Agent:anthropic:2026-11-30-retire-claude-sonnet-4-5: not-affected, $0.0753\nChange: claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 (anthropic, model-retirement)\nBaseline checks: pytest pass\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=claude-sonnet-4|claude-3|tool_choice|thinking\\s*[:=] glob=**/*.{py,md,txt,toml,yaml,yml,json,example,env,js,ts,html} → backend/llm/llm_client.py:45:         \"claude-sonnet-4-20250514\": {\"input\": 0.003, \"output\": 0.015}, | backend/llm/llm_client.py:538:             kwargs[\"tool_choice\"] = \"auto\" | backend/llm/llm_client.py:641:                 return [\"claud…\n2. search pattern=sonnet-4-5|sonnet-4\\.5|20250929 → no matches\n3. finish verdict=not-affected summary=<96 chars> why=<530 chars> validators=[] unproven=<400 chars> behaviourChanges=[] → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: pytest pass → pass\n\n## Result\nFiles changed: none\nVerdict: not-affected. No changes made. The repo never names claude-sonnet-4-5-20250929 or the claude-sonnet-4-5 alias.\nUnproven: The default claude-sonnet-4-20250514 is an older model with its own retirement schedule. I did not check that schedule or change the id, because it is outside this task.; I did not run the repo's tests. I made no edits, so there was nothing to prove.; The claude-3-5-sonnet entry in the Streamlit UI model list (frontend/streamlit_app.py:471) is not covered by this retirement. I left it alone.\n",
+        "preparation": {
+          "steps": [
+            {
+              "command": "python3 -m pip install -q --only-binary=:all: GitPython",
+              "why": "tests/test_builtin_tools.py imports agent.tools.builtin.github_tool, which does `from git import Repo`. The GitPython package that provides `git` is not installed, so collection fails.",
+              "code": 0,
+              "output": "[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip"
+            }
+          ],
+          "env": {
+            "LLM_PROVIDER": "mock",
+            "GEMINI_API_KEY": "placeholder",
+            "OPENAI_API_KEY": "placeholder"
+          },
+          "reasoning": "This is a Python project and pytest is run directly. The harness installs pytest itself, and there is no codegen or build step to run. The only environmental needs are env vars from .env.example, so I set LLM_PROVIDER=mock to avoid any live LLM calls and added placeholder API keys in case config loading requires them.\nThe only failure is a ModuleNotFoundError for `git` at collection. That is a missing Python dependency, not a bug in the repo's code. Installing GitPython from a wheel fixes it. The LLM_PROVIDER and API key variables are already exported by the check command, so no extra env is needed."
+        }
+      }
+    }
+  ],
+  "costUsd": 0.8647766,
+  "durationMs": 473673,
+  "matchReasoning": "MFaizanali2/Code-Review-Agent:anthropic:2026-10-21-api-version-2026-10-21: The repo uses the Python anthropic SDK with an unbounded constraint (>=0.18.0) in requirements.txt. Older SDKs keep sending 2023-06-01, but a fresh install resolves to the newest major. The change notes indicate Python v1.0 exists and has dropped legacy APIs, so it presumably sends 2026-10-21 by default. Under that version, the temperature argument at line 561 returns a hard 400, which breaks the Anthropic provider path for code reviews.\n\nUncertain: confirm which Python anthropic release first defaults to 2026-10-21. The migration agent should do one of the following:\n- remove temperature/top_p/top_k from Anthropic requests and confirm the parsing in _parse_anthropic_response still matches the new version's response shape, or\n- at minimum, cap the dependency (e.g. anthropic<1.0) until that work is done.\nMFaizanali2/Code-Review-Agent:anthropic:2026-11-30-retire-claude-sonnet-4-5: The usage map does not record which Anthropic model ids the repo defaults to. The model lists and base URLs live in llm_types.py, and the model may also be user-selected. A code-review agent plausibly defaults to Sonnet 4.5, so this task is attempted rather than skipped.\n\nThe migration agent should check:\n- llm_types.py and any config, UI or model lists for 'claude-sonnet-4-5-20250929' or the 'claude-sonnet-4-5' alias, and replace them with 'claude-sonnet-5-5';\n- that the switch is safe: the repo sends no thinking or forced tool_choice to Anthropic, so the Sonnet 5.5 breaks do not apply.\nanthropic:2026-10-21-sampling-params-removed: not affected: No task of its own: resolved inside MFaizanali2/Code-Review-Agent:anthropic:2026-10-21-api-version-2026-10-21 (New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01). The 400 on temperature/top_p/top_k only applies once requests carry anthropic-version 2026-10-21. The fix is to drop temperature from messages.create at llm_client.py:561, which is part of moving to the new API version.\nanthropic:2026-10-07-haiku-5-5-breaking: not affected: No task of its own: resolved inside MFaizanali2/Code-Review-Agent:anthropic:2026-10-21-api-version-2026-10-21 (New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01). The only Haiku 5.5 break this repo could hit is temperature sent at llm_client.py:561, and the version task removes it. The repo sends no budget_tokens, assistant prefill or computer_20250124 tool.\nanthropic:2026-10-21-sdk-typescript-1-0-0: not affected: This is the npm @anthropic-ai/sdk TypeScript release. The repo is Python and uses the 'anthropic' PyPI package, so no TypeScript SDK is involved. The equivalent API-version effect is covered by the 2026-10-21 API version task.\nanthropic:2026-10-21-document-citations-user-assistant-errors: not affected: The Anthropic calls at llm_client.py:561/613 send plain text messages for code review. No document blocks are placed in assistant messages and no citations are attached to user text blocks.\nanthropic:2026-10-21-admin-api-field-renames: not affected: The repo only calls messages.create and messages.stream. It never calls the Admin API or the Enterprise Analytics API, so the renamed response fields are never read.\nanthropic:2026-11-30-fast-mode-opus-4-8-removal: not affected: No Anthropic call site sends the speed parameter, and claude-opus-4-8 fast mode is not used.\nanthropic:2026-09-28-sonnet-5-5-breaking: not affected: The breaks are disabled thinking and forced tool_choice. The Anthropic call sites send neither thinking nor tool_choice; tool_choice appears only in the OpenAI-compatible call at line 539.\nanthropic:2026-09-22-opus-5-5-breaking: not affected: The Anthropic requests at lines 561/613 set no thinking config, no tool_choice and no computer_20251124 tool, so none of the Opus 5.5 400 conditions are triggered.\nanthropic:2026-09-01-fable-5-1-tool-choice: not affected: The Anthropic call sites do not send tool_choice, and nothing indicates the repo targets claude-fable-5-1 or mythos-5-1.\nanthropic:2026-10-14-ts-sdk-otel-default: not affected: This is TypeScript SDK 0.134.0 behavior. The repo uses the Python anthropic SDK, so the TypeScript OpenTelemetry default does not apply.\nanthropic:2026-08-27-ts-sdk-beta-files-skills: not affected: This is a TypeScript SDK change to client.beta.files and skills. The repo is Python and never calls beta files or skills.\nanthropic:2026-10-07-text-completions-deprecated: not affected: The repo uses the Messages API (messages.create/stream), not client.completions.create. The deprecation is also in the TypeScript SDK.\nanthropic:2026-09-24-compliance-activity-names-removed: not affected: The repo does not call the Compliance API Activity Feed.",
+  "costByPart": {
+    "inventory": 0.0950677,
+    "match": 0.110096,
+    "other": 0.367976,
+    "harness": 0.22237289999999998,
+    "review": 0.069264
+  }
+}

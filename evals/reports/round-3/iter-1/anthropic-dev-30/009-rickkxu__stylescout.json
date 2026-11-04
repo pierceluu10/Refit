@@ -1,0 +1,100 @@
+{
+  "set": "anthropic-dev-30",
+  "index": 9,
+  "repo": "rickkxu/stylescout",
+  "commit": "1fbbe767d5eb38b4c7603765e42f073dc8bdbfd0",
+  "provider": "anthropic",
+  "usages": 3,
+  "changes": 15,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "rickkxu/stylescout:anthropic:2026-11-30-retire-claude-sonnet-4-5",
+      "changeId": "anthropic:2026-11-30-retire-claude-sonnet-4-5",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "anthropic",
+        "id": "anthropic:2026-11-30-retire-claude-sonnet-4-5",
+        "kind": "model-retirement",
+        "title": "claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+          "quote": "| November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |"
+        },
+        "affects": {
+          "operations": ["claude-sonnet-4-5-20250929"]
+        },
+        "effectiveDate": "2026-11-30"
+      },
+      "reasoning": "Uncertain match. The primary model is pinned to claude-opus-5-5 (src/lib/claude.ts:6), not Sonnet 4.5. However, both Messages call sites send a `fallbacks` array, and the usage map does not say which models it contains. Sonnet 4.5 is a plausible fallback choice. The migration agent should read the fallbacks values in claude.ts and finder.ts, plus any model constants near claude.ts:6, and replace claude-sonnet-4-5-20250929 with claude-sonnet-5-5 if it is present. When moving to claude-sonnet-5-5, check that no forced tool_choice or thinking:disabled is sent on that path. If the ID is absent, close the task with no change. Impact if present: the fallback silently stops working, so primary-model failures would no longer be covered.",
+      "callSites": [
+        {
+          "file": "src/lib/claude.ts",
+          "line": 25,
+          "why": "askJson passes a `fallbacks` list (server-side-fallback-2026-07-01 beta) whose model IDs the scan did not record. If it names claude-sonnet-4-5-20250929, that fallback fails after 2026-11-30."
+        },
+        {
+          "file": "src/lib/finder.ts",
+          "line": 121,
+          "why": "The agent loop also sends `fallbacks` with unrecorded model IDs. Any reference to claude-sonnet-4-5-20250929 must move to claude-sonnet-5-5."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "rickkxu/stylescout:anthropic:2026-11-30-retire-claude-sonnet-4-5",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.07086379999999999,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-rickkxu-stylescout-anthropic-2026-11-30-retire-claude-sonnet-4-5-eU6rLl/transcript.jsonl",
+        "prBody": "## claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 [Not affected]\n\n### Change\n\nNo change. The repo never names claude-sonnet-4-5-20250929. The primary model is claude-opus-5-5 (src/lib/claude.ts:6). Both call sites send fallbacks: \"default\" (claude.ts:29, finder.ts:126), so no fallback model ID is hard-coded. A repo-wide grep for \"sonnet-4-5\" and \"20250929\" outside node_modules and .next found nothing.\n\nNo files changed.\n\n### Why\n\nThe retiring model ID is absent from the code, config and tests, so the retirement does not force any edit.\n\n> | November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |\n\nSource: https://platform.claude.com/docs/en/about-claude/model-deprecations.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n\nNew failures: 0\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Before the baseline the harness ran `npx --no-install next typegen` (RouteContext and LayoutProps are global helper types that Next generates into .next/types. Typecheck fails without them, and the install did not run any generation.); it exited 0.\n- Checks ran with placeholder env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- What the server-side fallbacks: \"default\" resolves to is decided by the API. If it includes Sonnet 4.5, Anthropic handles that, not this repo.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0709\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-anthropic-model-retirement-9b5d480a",
+          "recipe-anthropic-sdk-major-50cc7085",
+          "recipe-openai-model-retirement-58a73d88"
+        ],
+        "agentChecks": [],
+        "summary": "# rickkxu/stylescout:anthropic:2026-11-30-retire-claude-sonnet-4-5: not-affected, $0.0709\nChange: claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 (anthropic, model-retirement)\nBaseline checks: typecheck pass, build pass\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=claude-(sonnet|opus|haiku)|fallbacks|tool_choice|thinking path=src glob=**/*.{ts,tsx,js,mjs,json,md} → src/lib/claude.ts:6: export const MODEL = \"claude-opus-5-5\"; | src/lib/claude.ts:29:     fallbacks: \"default\", | src/lib/finder.ts:126:         fallbacks: \"default\",\n2. shell command=<116 chars> → exit code: 0 | --- stdout --- | --- stderr ---\n3. finish verdict=not-affected summary=<326 chars> why=<107 chars> validators=[] unproven=<148 chars> behaviourChanges=[] → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass\n\n## Result\nFiles changed: none\nVerdict: not-affected. No change. The repo never names claude-sonnet-4-5-20250929. The primary model is claude-opus-5-5 (src/lib/claude.ts:6). Both call sites send fallbacks: \"default\" (claude.ts:29, finder.ts:126), so no fallback model ID is hard-coded. A repo-wide grep for \"sonnet-4-5\" and \"20250929\" outside node_modules and .next found nothing.\nUnproven: What the server-side fallbacks: \"default\" resolves to is decided by the API. If it includes Sonnet 4.5, Anthropic handles that, not this repo.\n",
+        "preparation": {
+          "steps": [
+            {
+              "command": "npx --no-install next typegen",
+              "why": "RouteContext and LayoutProps are global helper types that Next generates into .next/types. Typecheck fails without them, and the install did not run any generation.",
+              "code": 0,
+              "output": "Generating route types...\n✓ Types generated successfully"
+            }
+          ],
+          "env": {
+            "NEXT_PUBLIC_SUPABASE_URL": "https://placeholder.supabase.co",
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY": "placeholder",
+            "SUPABASE_SERVICE_ROLE_KEY": "placeholder",
+            "ANTHROPIC_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen, prepare, or postinstall scripts exist, and there are no workspace packages to build, so no setup steps are needed. The build probably loads Supabase and Anthropic clients on the server side, and the README says env vars come from .env.example. I could not see that file, so these names are guesses at the usual ones and the values are placeholders only.\nThe only errors are missing RouteContext and LayoutProps. Next.js 15 and later generates these types with `next typegen`, which normally runs during dev or build. Running it before tsc fixes the typecheck without editing source. The build check generates them itself."
+        }
+      }
+    }
+  ],
+  "costUsd": 0.2820888,
+  "durationMs": 254723,
+  "matchReasoning": "rickkxu/stylescout:anthropic:2026-11-30-retire-claude-sonnet-4-5: Uncertain match. The primary model is pinned to claude-opus-5-5 (src/lib/claude.ts:6), not Sonnet 4.5. However, both Messages call sites send a `fallbacks` array, and the usage map does not say which models it contains. Sonnet 4.5 is a plausible fallback choice. The migration agent should read the fallbacks values in claude.ts and finder.ts, plus any model constants near claude.ts:6, and replace claude-sonnet-4-5-20250929 with claude-sonnet-5-5 if it is present. When moving to claude-sonnet-5-5, check that no forced tool_choice or thinking:disabled is sent on that path. If the ID is absent, close the task with no change. Impact if present: the fallback silently stops working, so primary-model failures would no longer be covered.\nanthropic:2026-10-21-sdk-typescript-1-0-0: not affected: The repo already pins @anthropic-ai/sdk 1.3.0, past the 1.0.0 major. Its call sites send no temperature/top_p/top_k, and it uses no Bedrock/Vertex/Foundry SDKs.\nanthropic:2026-10-21-api-version-2026-10-21: not affected: SDK 1.3.0 already sends anthropic-version 2026-10-21 by default, so the repo is already on the new API version. Its recorded request fields (model, max_tokens, betas, fallbacks, output_config, system, messages, tools) use nothing the version removed.\nanthropic:2026-10-21-sampling-params-removed: not affected: Neither beta.messages.parse (claude.ts:25) nor beta.messages.create (finder.ts:121) sends temperature, top_p or top_k.\nanthropic:2026-10-21-document-citations-user-assistant-errors: not affected: The repo sends no document blocks, and nothing indicates citations on text blocks in user messages. The finder agent loop replays assistant content, and citations there are allowed. The repo already runs on 2026-10-21 via SDK 1.3.0.\nanthropic:2026-10-21-admin-api-field-renames: not affected: The repo calls only the Messages API. It makes no Admin API or Enterprise Analytics calls.\nanthropic:2026-11-30-fast-mode-opus-4-8-removal: not affected: The repo uses claude-opus-5-5 and sends no `speed` field. Fast mode on claude-opus-4-8 is not used.\nanthropic:2026-10-07-haiku-5-5-breaking: not affected: No call site uses claude-haiku-5-5, and none sends budget_tokens, sampling params, prefill or the computer tool.\nanthropic:2026-09-28-sonnet-5-5-breaking: not affected: The pinned model is claude-opus-5-5, not claude-sonnet-5-5, and the recorded call sites send no thinking or tool_choice fields.\nanthropic:2026-09-22-opus-5-5-breaking: not affected: The repo already runs on claude-opus-5-5. Its recorded call sites send no thinking config or tool_choice and do not use computer_20251124, so none of the 400 conditions apply. It relies on normal tool use for submit_products.\nanthropic:2026-09-01-fable-5-1-tool-choice: not affected: The repo does not use claude-fable-5-1 or claude-mythos-5-1, and sends no tool_choice.\nanthropic:2026-10-14-ts-sdk-otel-default: not affected: The repo is already on SDK 1.3.0, well past 0.134.0, so this default is already in effect. The usage map shows no global OpenTelemetry tracer provider, and no change is needed.\nanthropic:2026-08-27-ts-sdk-beta-files-skills: not affected: The repo does not call client.beta.files or client.beta.skills and does not reference BetaSkill. It uses only beta.messages.parse and beta.messages.create.\nanthropic:2026-10-07-text-completions-deprecated: not affected: The repo does not call client.completions.create. It uses only the Messages API.\nanthropic:2026-09-24-compliance-activity-names-removed: not affected: The repo does not call the Compliance API Activity Feed.",
+  "costByPart": {
+    "inventory": 0.09874100000000001,
+    "match": 0.112484,
+    "other": 0,
+    "harness": 0.07086379999999999
+  }
+}

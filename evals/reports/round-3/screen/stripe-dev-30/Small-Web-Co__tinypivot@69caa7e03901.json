@@ -1,0 +1,47 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "Small-Web-Co/tinypivot",
+  "commit": "69caa7e039014cd4b3dafd35361deaa27a02399a",
+  "provider": "stripe",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "typecheck",
+      "command": "corepack pnpm@10.34.3 run type-check",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "corepack pnpm@10.34.3 run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "test",
+      "command": "corepack pnpm@10.34.3 run test",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.07749800000000018,
+  "durationMs": 141738,
+  "install": {
+    "code": 0,
+    "tail": "d 906, reused 0, downloaded 897, added 794\nProgress: resolved 906, reused 0, downloaded 897, added 816\nProgress: resolved 906, reused 0, downloaded 897, added 838\nProgress: resolved 906, reused 0, downloaded 897, added 876\nProgress: resolved 906, reused 0, downloaded 897, added 897\nProgress: resolved 906, reused 0, downloaded 897, added 898\nProgress: resolved 906, reused 0, downloaded 897, added 906, done\n WARN  Failed to create bin at /work/node_modules/.pnpm/node_modules/.bin/arrow2csv. ENOENT: no such file or directory, open '/work/node_modules/.pnpm/node_modules/apache-arrow/bin/arrow2csv.cjs'\n WARN  Failed to create bin at /work/node_modules/.pnpm/@duckdb+duckdb-wasm@1.33.1-dev13.0/node_modules/@duckdb/duckdb-wasm/node_modules/.bin/arrow2csv. ENOENT: no such file or directory, open '/work/node_modules/.pnpm/apache-arrow@17.0.0/node_modules/apache-arrow/bin/arrow2csv.cjs'\n\ndependencies:\n+ @duckdb/duckdb-wasm 1.33.1-dev13.0\n+ @tanstack/vue-table 8.21.3\n+ @vercel/analytics 1.6.1\n+ vue-router 4.6.4\n\ndevDependencies:\n+ @antfu/eslint-config 9.0.0\n+ @types/node 20.19.41\n+ @vercel/node 5.8.0\n+ @vitejs/plugin-vue 5.2.4\n+ @vitest/coverage-v8 3.2.6\n+ @vue/server-renderer 3.5.38\n+ @vue/test-utils 2.4.10\n+ autoprefixer 10.5.0\n+ eslint 9.39.4\n+ happy-dom 20.9.0\n+ husky 9.1.7\n+ lint-staged 16.4.0\n+ postcss 8.5.14\n+ stripe 22.1.1\n+ tailwindcss 3.4.19\n+ typescript 5.3.3\n+ vite 6.4.3\n+ vite-plugin-dts 5.0.0\n+ vitest 3.2.6\n+ vue 3.5.34\n+ vue-tsc 2.2.12\n\nDone in 1m 27.8s using pnpm v10.34.3"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "corepack pnpm@10.34.3 run build:core",
+        "why": "Server, vue and react packages import @smallwebco/tinypivot-core via its dist output, which does not exist until core is built. Type-check and tests need it.",
+        "code": 0
+      }
+    ],
+    "env": []
+  }
+}

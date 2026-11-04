@@ -1,0 +1,41 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "kognise/stalker",
+  "commit": "152fa25afa8c21c179d2e0e22bf57dbad796da7a",
+  "provider": "zoom",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db'; corepack yarn@1 run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.014817999999999942,
+  "durationMs": 40243,
+  "install": {
+    "code": 0,
+    "tail": "yarn install v1.22.22\n[1/4] Resolving packages...\n[2/4] Fetching packages...\n[3/4] Linking dependencies...\n[4/4] Building fresh packages...\nDone in 10.78s.\n\nwarning Ignored scripts due to flag."
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "Generates the Prisma client (@prisma/client types) that src imports; the typecheck needs it, and it was skipped because install scripts are off.",
+        "code": 0
+      }
+    ],
+    "env": ["DATABASE_URL"]
+  }
+}

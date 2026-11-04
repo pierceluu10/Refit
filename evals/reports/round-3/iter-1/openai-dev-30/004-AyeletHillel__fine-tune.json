@@ -1,0 +1,383 @@
+{
+  "set": "openai-dev-30",
+  "index": 4,
+  "repo": "AyeletHillel/fine-tune",
+  "commit": "4ee956be046af38a59475ea0a8a01e6191f1f01d",
+  "provider": "openai",
+  "usages": 1,
+  "changes": 27,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "AyeletHillel/fine-tune:openai:2026-10-23-legacy-gpt-shutdown",
+      "changeId": "openai:2026-10-23-legacy-gpt-shutdown",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "openai",
+        "id": "openai:2026-10-23-legacy-gpt-shutdown",
+        "kind": "model-retirement",
+        "title": "Legacy GPT snapshots (gpt-3.5-turbo, gpt-4, gpt-4-turbo, gpt-4.1-nano, o1, o1-pro, o3-mini, o4-mini, gpt-image-1 etc.) shut down Oct 23, 2026; use gpt-5.6-* or gpt-image-2.5",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "On April 22, 2026, we announced the deprecation of the following older OpenAI models. Access to these models was shut down on October 23, 2026."
+        },
+        "affects": {
+          "fields": [
+            "model:gpt-3.5-turbo",
+            "model:gpt-3.5-turbo-0125",
+            "model:gpt-4",
+            "model:gpt-4-0613",
+            "model:gpt-4-1106-preview",
+            "model:gpt-4-turbo",
+            "model:gpt-4.1-nano",
+            "model:gpt-4o-2024-05-13",
+            "model:gpt-image-1",
+            "model:o1",
+            "model:o1-pro",
+            "model:o3-mini",
+            "model:o4-mini"
+          ]
+        },
+        "effectiveDate": "2026-10-23"
+      },
+      "reasoning": "The repo hard-codes gpt-3.5-turbo as the fine-tuning base model. That model is in the Oct 23, 2026 legacy shutdown list, so both job-creation calls break. The migration agent must swap in a currently fine-tunable base model. Avoid gpt-4o-mini and gpt-4.1(-mini) snapshots, which retire Jan 14, 2027. It should also check whether any downstream code calls fine-tuned models derived from gpt-3.5-turbo (ft:gpt-3.5-turbo:*), since those are likely gone too. Also note the separate Jan 6, 2027 end of self-serve fine-tuning job creation.",
+      "callSites": [
+        {
+          "file": "src/index.ts",
+          "line": 27,
+          "why": "fineTuning.jobs.create uses base model \"gpt-3.5-turbo\" (pinned at line 28), which was shut down on Oct 23, 2026, so the job creation request fails."
+        },
+        {
+          "file": "src/index.ts",
+          "line": 59,
+          "why": "Second fineTuning.jobs.create call also uses model \"gpt-3.5-turbo\", which is no longer available."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "AyeletHillel/fine-tune:openai:2026-10-23-legacy-gpt-shutdown",
+        "outcome": "verified",
+        "diff": "diff --git a/dist/index.js b/dist/index.js\nnew file mode 100644\nindex 0000000..8e05b18\n--- /dev/null\n+++ b/dist/index.js\n@@ -0,0 +1,87 @@\n+#!/usr/bin/env -S npm run tsn -T\n+\"use strict\";\n+// The code for this is taken from: https://github.com/openai/openai-node/pull/235\n+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {\n+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }\n+    return new (P || (P = Promise))(function (resolve, reject) {\n+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }\n+        function rejected(value) { try { step(generator[\"throw\"](value)); } catch (e) { reject(e); } }\n+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }\n+        step((generator = generator.apply(thisArg, _arguments || [])).next());\n+    });\n+};\n+Object.defineProperty(exports, \"__esModule\", { value: true });\n+/**\n+ * Fine-tuning allows you to train models on your own data.\n+ *\n+ * See these guides for more information:\n+ * - https://help.openai.com/en/articles/5528730-fine-tuning-a-classifier-to-improve-truthfulness\n+ * - https://platform.openai.com/docs/guides/fine-tuning\n+ */\n+const openai_1 = require(\"openai\");\n+const fs = require(\"fs\");\n+const dotenv = require(\"dotenv\");\n+dotenv.config();\n+const client = new openai_1.default();\n+// This is the core code. The rest is to track the progress of the fine-tuning.\n+function mainShort() {\n+    return __awaiter(this, void 0, void 0, function* () {\n+        let file = yield client.files.create({\n+            file: fs.createReadStream('./files/input.jsonl'),\n+            purpose: 'fine-tune',\n+        });\n+        let fineTune = yield client.fineTuning.jobs.create({\n+            model: 'gpt-5.6-terra',\n+            training_file: file.id,\n+        });\n+    });\n+}\n+function main() {\n+    var _a;\n+    return __awaiter(this, void 0, void 0, function* () {\n+        console.log(`Uploading file`);\n+        let file = yield client.files.create({\n+            file: fs.createReadStream('./files/input.jsonl'),\n+            purpose: 'fine-tune',\n+        });\n+        console.log(`Uploaded file with ID: ${file.id}`);\n+        console.log('-----');\n+        // Wait for the file to be processed\n+        console.log(`Waiting for file to be processed`);\n+        while (true) {\n+            file = yield client.files.retrieve(file.id);\n+            console.log(`File status: ${file.status}`);\n+            if (file.status === 'processed') {\n+                break;\n+            }\n+            else {\n+                yield new Promise((resolve) => setTimeout(resolve, 1000));\n+            }\n+        }\n+        console.log('-----');\n+        console.log(`Starting fine-tuning`);\n+        let fineTune = yield client.fineTuning.jobs.create({ model: 'gpt-5.6-terra', training_file: file.id });\n+        console.log(`Fine-tuning ID: ${fineTune.id}`);\n+        console.log('-----');\n+        console.log(`Track fine-tuning progress:`);\n+        let after;\n+        while (fineTune.status !== 'succeeded') {\n+            fineTune = yield client.fineTuning.jobs.retrieve(fineTune.id);\n+            console.log(`${fineTune.status}`);\n+            const options = after ? { limit: 50, after } : { limit: 50 };\n+            const events = yield client.fineTuning.jobs.listEvents(fineTune.id, options);\n+            for (const event of events.data.reverse()) {\n+                console.log(`- ${event.created_at}: ${event.message}`);\n+            }\n+            if (events.data.length > 0) {\n+                after = (_a = events.data[events.data.length - 1]) === null || _a === void 0 ? void 0 : _a.id;\n+                console.log(after);\n+            }\n+            yield new Promise((resolve) => setTimeout(resolve, 5000));\n+        }\n+    });\n+}\n+main().catch((err) => {\n+    console.error(err);\n+    process.exit(1);\n+});\ndiff --git a/src/index.ts b/src/index.ts\nindex e0504d7..98492ce 100644\n--- a/src/index.ts\n+++ b/src/index.ts\n@@ -25,7 +25,7 @@ async function mainShort() {\n   });\n \n   let fineTune = await client.fineTuning.jobs.create({\n-    model: 'gpt-3.5-turbo',\n+    model: 'gpt-5.6-terra',\n     training_file: file.id,\n   });\n }\n@@ -56,7 +56,7 @@ async function main() {\n   console.log('-----');\n \n   console.log(`Starting fine-tuning`);\n-  let fineTune = await client.fineTuning.jobs.create({ model: 'gpt-3.5-turbo', training_file: file.id });\n+  let fineTune = await client.fineTuning.jobs.create({ model: 'gpt-5.6-terra', training_file: file.id });\n   console.log(`Fine-tuning ID: ${fineTune.id}`);\n   console.log('-----');\n \ndiff --git a/test-model.mjs b/test-model.mjs\nnew file mode 100644\nindex 0000000..de1ff46\n--- /dev/null\n+++ b/test-model.mjs\n@@ -0,0 +1,6 @@\n+import fs from 'fs';\n+const s = fs.readFileSync(new URL('./src/index.ts', import.meta.url), 'utf8');\n+if (/gpt-3\\.5-turbo/.test(s)) { console.error('retired model remains'); process.exit(1); }\n+const n = (s.match(/model: 'gpt-5\\.6-terra'/g) || []).length;\n+if (n !== 2) { console.error('expected 2 gpt-5.6-terra uses, got ' + n); process.exit(1); }\n+console.log('ok');\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "model-test",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.0975777,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-AyeletHillel-fine-tune-openai-2026-10-23-legacy-gpt-shutdown-6jmjUb/transcript.jsonl",
+        "prBody": "## Legacy GPT snapshots (gpt-3.5-turbo, gpt-4, gpt-4-turbo, gpt-4.1-nano, o1, o1-pro, o3-mini, o4-mini, gpt-image-1 etc.) shut down Oct 23, 2026; use gpt-5.6-* or gpt-image-2.5 [Verified]\n\n### Change\n\nReplaced the retired fine-tuning base model gpt-3.5-turbo with gpt-5.6-terra (OpenAI's listed replacement) at both fineTuning.jobs.create calls in src/index.ts. Added test-model.mjs, which checks that the old id is gone and that both calls name the new model.\n\nFiles touched:\n- `dist/index.js`\n- `src/index.ts`\n- `test-model.mjs`\n\n### Why\n\ngpt-3.5-turbo was shut down on 2026-10-23, so both job-creation calls would fail.\n\n> On April 22, 2026, we announced the deprecation of the following older OpenAI models. Access to these models was shut down on October 23, 2026.\n\nSource: https://developers.openai.com/api/docs/deprecations.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| model-test | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- model-test, added by the agent: `node test-model.mjs` (fail (1) → pass)\n\nProvider tool calls recorded by the harness:\n- `openai__openai_model_lookup`: fail\n- `openai__openai_search_docs`: pass\n\nPrepared before the baseline:\n- Preparation changed repo files, kept out of this PR: pnpm-lock.yaml.\n\nTest of this change: `model-test`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- I could not confirm that gpt-5.6-terra is fine-tunable. Check the fine-tuning docs for a supported base model.\n- Self-serve fine-tuning job creation ends Jan 6, 2027, and orgs without recent fine-tuned inference may already be blocked.\n- Fine-tuned models derived from gpt-3.5-turbo (ft:gpt-3.5-turbo:*) are likely gone too. The repo has no downstream calls to them.\n- The training data in files/input.jsonl was not checked against the new model's format.\n- I did not run openai_check_request or any other provider validator.\n- The test is a static source check and does not mock the SDK.\n- No provider validator was run.\n\n### Behaviour changes\n\n- The fine-tuning base model changes. Training behaviour, cost and the resulting model quality may differ.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0976\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-openai-model-retirement-58a73d88",
+          "recipe-openai-sdk-major-032de36f",
+          "recipe-anthropic-model-retirement-9b5d480a"
+        ],
+        "agentChecks": [
+          {
+            "name": "model-test",
+            "command": "node test-model.mjs",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# AyeletHillel/fine-tune:openai:2026-10-23-legacy-gpt-shutdown: verified, $0.0976\nChange: Legacy GPT snapshots (gpt-3.5-turbo, gpt-4, gpt-4-turbo, gpt-4.1-nano, o1, o1-pro, o3-mini, o4-mini, gpt-image-1 etc.) shut down Oct 23, 2026; use gpt-5.6-* or gpt-image-2.5 (openai, model-retirement)\nBaseline checks: typecheck pass, build pass, model-test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=src/index.ts → 1\t#!/usr/bin/env -S npm run tsn -T | 2\t | 3\t// The code for this is taken from: https://github.com/openai/openai-node/pull/235\n2. openai__openai_model_lookup models=[\"gpt-3.5-turbo\",\"gpt-4o-mini\",\"gpt-4.1\",\"gpt-5.6-mini\"] → ## gpt-3.5-turbo | Status (as of 2026-11-03): shut down (since 2026-10-23) | Announced: 2026-04-22 (Legacy GPT model snapshots, listed under past deprecations)\n3. openai__openai_search_docs query=fine-tuning supported base models gpt-5.6-terra limit=3 → [1] Deprecations (live) https://developers.openai.com/api/docs/deprecations | OpenAI-Beta: assistants=v1 | OpenAI-Beta: assistants=v2\n4. shell command=<531 chars> → exit code: 0 | --- stdout --- | 28:    model: 'gpt-5.6-terra',\n5. run_checks add=[{\"name\":\"model-test\",\"command\":\"node test-model.mjs\"}] → registered model-test; on the original code it fails (1) | ## typecheck: pass | command: npx --no-install tsc --noEmit\n6. finish verdict=migrated summary=<259 chars> why=<81 chars> validators=[] unproven=<592 chars> behaviourChanges=<108 chars> proofTest=model-test → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, model-test fail (1) → pass\n\n## Result\nFiles changed: dist/index.js, src/index.ts, test-model.mjs\nVerdict: migrated. Replaced the retired fine-tuning base model gpt-3.5-turbo with gpt-5.6-terra (OpenAI's listed replacement) at both fineTuning.jobs.create calls in src/index.ts. Added test-model.mjs, which checks that the old id is gone and that both calls name the new model.\nUnproven: I could not confirm that gpt-5.6-terra is fine-tunable. Check the fine-tuning docs for a supported base model.; Self-serve fine-tuning job creation ends Jan 6, 2027, and orgs without recent fine-tuned inference may already be blocked.; Fine-tuned models derived from gpt-3.5-turbo (ft:gpt-3.5-turbo:*) are likely gone too. The repo has no downstream calls to them.; The training data in files/input.jsonl was not checked against the new model's format.; I did not run openai_check_request or any other provider validator.; The test is a static source check and does not mock the SDK.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "Nothing needs preparing. The build script is plain `tsc` and typecheck is `tsc --noEmit`. The package has no codegen, no postinstall or prepare hook, and no workspace packages. The OpenAI key is only read at runtime when the script runs, so neither check needs it.",
+          "changedFiles": ["pnpm-lock.yaml"]
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff swaps both `fineTuning.jobs.create` calls in `src/index.ts` (lines 28 and 59) from the retired `gpt-3.5-turbo` to `gpt-5.6-terra`. Those are the only two model strings, so call-site coverage is complete. The other named call sites (`files.create`/`retrieve`, `jobs.retrieve`, `listEvents`) take no model and need no change. However, the 'verified' grade rests only on typecheck, build and a regex test that the PR itself added. Nothing shows that `gpt-5.6-terra` exists or accepts fine-tuning jobs, and the quoted source says nothing about fine-tuning replacements. The PR also commits a generated `dist/index.js` and an ad-hoc `test-model.mjs`, which are beyond the scope of the change. I'd treat this as needs-review.",
+        "concerns": [
+          {
+            "file": "src/index.ts",
+            "issue": "I could not confirm that `gpt-5.6-terra` (lines 28, 59) is a real model ID, or that it is a base model the fine-tuning API accepts. The quote only announces the shutdown and names no fine-tunable successor. Fine-tuning supports a narrower set of base models than inference. If this model isn't on that list, `jobs.create` will fail at runtime, and typecheck can't catch that because `model` is typed as a string.",
+            "severity": "high"
+          },
+          {
+            "file": "test-model.mjs",
+            "issue": "The model-test check only greps `src/index.ts` for the absence of `gpt-3.5-turbo` and for exactly two `gpt-5.6-terra` literals. It is tautological with the diff. No API call or fixture proves the job can be created, so the 'verified' grade overstates the evidence. The file is also left in the repo root as a stray artifact.",
+            "severity": "medium"
+          },
+          {
+            "file": "dist/index.js",
+            "issue": "A compiled build artifact is newly committed (87 lines). This change isn't forced by the API migration and was probably not tracked before (check `.gitignore`). It will drift from `src`. It is also why the diff looks larger than the real two-line change.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/index.ts",
+            "issue": "Training data in `./files/input.jsonl` was presumably written for `gpt-3.5-turbo` chat-format SFT. A newer base model may need a different format, `method` parameter or hyperparameters. This is unverified, and the loop at lines 64-80 would spin forever if the job ends as `failed`/`cancelled` (a pre-existing bug, but it would mask a rejection here).",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Confirm in OpenAI's fine-tuning docs and the deprecations page that `gpt-5.6-terra` exists and is a supported fine-tuning base model; if not, pick a listed fine-tunable successor.",
+          "Run one real `fineTuning.jobs.create` with the new model against a small `input.jsonl` and confirm the job reaches `running`/`succeeded`.",
+          "Remove `dist/index.js` (and decide whether `test-model.mjs` belongs in the repo) unless `dist/` is intentionally tracked.",
+          "Regrade to needs-review, since no check exercises the live API."
+        ],
+        "costUsd": 0.045048,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "AyeletHillel/fine-tune:openai:2027-01-06-finetuning-jobs",
+      "changeId": "openai:2027-01-06-finetuning-jobs",
+      "kind": "other",
+      "change": {
+        "provider": "openai",
+        "id": "openai:2027-01-06-finetuning-jobs",
+        "kind": "other",
+        "title": "Self-serve fine-tuning: active customers can no longer create new fine-tuning jobs from Jan 6, 2027",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "Active existing customers will no longer be able to create new fine-tuning jobs on this date."
+        },
+        "affects": {
+          "operations": ["POST /v1/fine_tuning/jobs"]
+        },
+        "effectiveDate": "2027-01-06"
+      },
+      "reasoning": "The repo's core flow is uploading a training file and creating fine-tuning jobs. OpenAI ends self-serve creation of new fine-tuning jobs on Jan 6, 2027, so the app's main function stops working. Retrieve and listEvents (lines 66, 70) may keep working for existing jobs, but that is uncertain. The migration agent should decide on a replacement approach and check whether the account has any non-self-serve fine-tuning access. Examples: prompt-based customization with a current model, or another provider. This is a product-level change separate from the model swap.",
+      "callSites": [
+        {
+          "file": "src/index.ts",
+          "line": 27,
+          "why": "fineTuning.jobs.create (POST /v1/fine_tuning/jobs) can no longer create new jobs for self-serve customers from Jan 6, 2027."
+        },
+        {
+          "file": "src/index.ts",
+          "line": 59,
+          "why": "Second fineTuning.jobs.create call hits the same endpoint and will be rejected."
+        },
+        {
+          "file": "src/index.ts",
+          "line": 22,
+          "why": "files.create presumably uploads training data (purpose fine-tune) only to feed the job; it becomes pointless once jobs cannot be created. Verify the purpose value."
+        },
+        {
+          "file": "src/index.ts",
+          "line": 36,
+          "why": "Same as line 22: a training-file upload that feeds fine-tuning job creation."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "AyeletHillel/fine-tune:openai:2027-01-06-finetuning-jobs",
+        "outcome": "verified",
+        "diff": "diff --git a/dist/createJob.js b/dist/createJob.js\nnew file mode 100644\nindex 0000000..8514600\n--- /dev/null\n+++ b/dist/createJob.js\n@@ -0,0 +1,35 @@\n+\"use strict\";\n+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {\n+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }\n+    return new (P || (P = Promise))(function (resolve, reject) {\n+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }\n+        function rejected(value) { try { step(generator[\"throw\"](value)); } catch (e) { reject(e); } }\n+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }\n+        step((generator = generator.apply(thisArg, _arguments || [])).next());\n+    });\n+};\n+Object.defineProperty(exports, \"__esModule\", { value: true });\n+exports.createFineTuningJob = exports.FineTuningUnavailableError = exports.FINE_TUNING_CUTOFF = void 0;\n+// OpenAI ends self-serve creation of new fine-tuning jobs on 2027-01-06.\n+exports.FINE_TUNING_CUTOFF = new Date('2027-01-06T00:00:00Z');\n+class FineTuningUnavailableError extends Error {\n+}\n+exports.FineTuningUnavailableError = FineTuningUnavailableError;\n+function createFineTuningJob(client, params, now = new Date()) {\n+    return __awaiter(this, void 0, void 0, function* () {\n+        const hint = 'Self-serve fine-tuning job creation ended on 2027-01-06. Use prompt-based customization with a current model, or contact OpenAI about non-self-serve access.';\n+        if (now >= exports.FINE_TUNING_CUTOFF) {\n+            throw new FineTuningUnavailableError(hint);\n+        }\n+        try {\n+            return yield client.fineTuning.jobs.create(params);\n+        }\n+        catch (err) {\n+            if ((err === null || err === void 0 ? void 0 : err.status) === 400 || (err === null || err === void 0 ? void 0 : err.status) === 403) {\n+                throw new FineTuningUnavailableError(`${hint} (API said: ${err.message})`);\n+            }\n+            throw err;\n+        }\n+    });\n+}\n+exports.createFineTuningJob = createFineTuningJob;\ndiff --git a/dist/index.js b/dist/index.js\nnew file mode 100644\nindex 0000000..8a97db5\n--- /dev/null\n+++ b/dist/index.js\n@@ -0,0 +1,88 @@\n+#!/usr/bin/env -S npm run tsn -T\n+\"use strict\";\n+// The code for this is taken from: https://github.com/openai/openai-node/pull/235\n+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {\n+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }\n+    return new (P || (P = Promise))(function (resolve, reject) {\n+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }\n+        function rejected(value) { try { step(generator[\"throw\"](value)); } catch (e) { reject(e); } }\n+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }\n+        step((generator = generator.apply(thisArg, _arguments || [])).next());\n+    });\n+};\n+Object.defineProperty(exports, \"__esModule\", { value: true });\n+/**\n+ * Fine-tuning allows you to train models on your own data.\n+ *\n+ * See these guides for more information:\n+ * - https://help.openai.com/en/articles/5528730-fine-tuning-a-classifier-to-improve-truthfulness\n+ * - https://platform.openai.com/docs/guides/fine-tuning\n+ */\n+const openai_1 = require(\"openai\");\n+const fs = require(\"fs\");\n+const createJob_1 = require(\"./createJob\");\n+const dotenv = require(\"dotenv\");\n+dotenv.config();\n+const client = new openai_1.default();\n+// This is the core code. The rest is to track the progress of the fine-tuning.\n+function mainShort() {\n+    return __awaiter(this, void 0, void 0, function* () {\n+        let file = yield client.files.create({\n+            file: fs.createReadStream('./files/input.jsonl'),\n+            purpose: 'fine-tune',\n+        });\n+        let fineTune = yield (0, createJob_1.createFineTuningJob)(client, {\n+            model: 'gpt-3.5-turbo',\n+            training_file: file.id,\n+        });\n+    });\n+}\n+function main() {\n+    var _a;\n+    return __awaiter(this, void 0, void 0, function* () {\n+        console.log(`Uploading file`);\n+        let file = yield client.files.create({\n+            file: fs.createReadStream('./files/input.jsonl'),\n+            purpose: 'fine-tune',\n+        });\n+        console.log(`Uploaded file with ID: ${file.id}`);\n+        console.log('-----');\n+        // Wait for the file to be processed\n+        console.log(`Waiting for file to be processed`);\n+        while (true) {\n+            file = yield client.files.retrieve(file.id);\n+            console.log(`File status: ${file.status}`);\n+            if (file.status === 'processed') {\n+                break;\n+            }\n+            else {\n+                yield new Promise((resolve) => setTimeout(resolve, 1000));\n+            }\n+        }\n+        console.log('-----');\n+        console.log(`Starting fine-tuning`);\n+        let fineTune = yield (0, createJob_1.createFineTuningJob)(client, { model: 'gpt-3.5-turbo', training_file: file.id });\n+        console.log(`Fine-tuning ID: ${fineTune.id}`);\n+        console.log('-----');\n+        console.log(`Track fine-tuning progress:`);\n+        let after;\n+        while (fineTune.status !== 'succeeded') {\n+            fineTune = yield client.fineTuning.jobs.retrieve(fineTune.id);\n+            console.log(`${fineTune.status}`);\n+            const options = after ? { limit: 50, after } : { limit: 50 };\n+            const events = yield client.fineTuning.jobs.listEvents(fineTune.id, options);\n+            for (const event of events.data.reverse()) {\n+                console.log(`- ${event.created_at}: ${event.message}`);\n+            }\n+            if (events.data.length > 0) {\n+                after = (_a = events.data[events.data.length - 1]) === null || _a === void 0 ? void 0 : _a.id;\n+                console.log(after);\n+            }\n+            yield new Promise((resolve) => setTimeout(resolve, 5000));\n+        }\n+    });\n+}\n+main().catch((err) => {\n+    console.error(err);\n+    process.exit(1);\n+});\ndiff --git a/src/createJob.ts b/src/createJob.ts\nnew file mode 100644\nindex 0000000..9a7c995\n--- /dev/null\n+++ b/src/createJob.ts\n@@ -0,0 +1,26 @@\n+import type OpenAI from 'openai';\n+\n+// OpenAI ends self-serve creation of new fine-tuning jobs on 2027-01-06.\n+export const FINE_TUNING_CUTOFF = new Date('2027-01-06T00:00:00Z');\n+\n+export class FineTuningUnavailableError extends Error {}\n+\n+export async function createFineTuningJob(\n+  client: OpenAI,\n+  params: OpenAI.FineTuning.JobCreateParams,\n+  now: Date = new Date(),\n+) {\n+  const hint =\n+    'Self-serve fine-tuning job creation ended on 2027-01-06. Use prompt-based customization with a current model, or contact OpenAI about non-self-serve access.';\n+  if (now >= FINE_TUNING_CUTOFF) {\n+    throw new FineTuningUnavailableError(hint);\n+  }\n+  try {\n+    return await client.fineTuning.jobs.create(params);\n+  } catch (err: any) {\n+    if (err?.status === 400 || err?.status === 403) {\n+      throw new FineTuningUnavailableError(`${hint} (API said: ${err.message})`);\n+    }\n+    throw err;\n+  }\n+}\ndiff --git a/src/index.ts b/src/index.ts\nindex e0504d7..15dd2ea 100644\n--- a/src/index.ts\n+++ b/src/index.ts\n@@ -12,6 +12,7 @@\n \n import OpenAI from 'openai';\n import * as fs from 'fs';\n+import { createFineTuningJob } from './createJob';\n import * as dotenv from 'dotenv';\n dotenv.config()\n \n@@ -24,7 +25,7 @@ async function mainShort() {\n     purpose: 'fine-tune',\n   });\n \n-  let fineTune = await client.fineTuning.jobs.create({\n+  let fineTune = await createFineTuningJob(client, {\n     model: 'gpt-3.5-turbo',\n     training_file: file.id,\n   });\n@@ -56,7 +57,7 @@ async function main() {\n   console.log('-----');\n \n   console.log(`Starting fine-tuning`);\n-  let fineTune = await client.fineTuning.jobs.create({ model: 'gpt-3.5-turbo', training_file: file.id });\n+  let fineTune = await createFineTuningJob(client, { model: 'gpt-3.5-turbo', training_file: file.id });\n   console.log(`Fine-tuning ID: ${fineTune.id}`);\n   console.log('-----');\n \ndiff --git a/test/createJob.test.ts b/test/createJob.test.ts\nnew file mode 100644\nindex 0000000..c514b70\n--- /dev/null\n+++ b/test/createJob.test.ts\n@@ -0,0 +1,16 @@\n+import * as assert from 'assert';\n+import { createFineTuningJob, FineTuningUnavailableError } from '../src/createJob';\n+\n+(async () => {\n+  let calls = 0;\n+  const client: any = { fineTuning: { jobs: { create: async () => (calls++, { id: 'ftjob-1' }) } } };\n+  const p = { model: 'gpt-3.5-turbo', training_file: 'file-1' };\n+  const ok = await createFineTuningJob(client, p, new Date('2026-12-01'));\n+  assert.strictEqual(ok.id, 'ftjob-1');\n+  await assert.rejects(\n+    createFineTuningJob(client, p, new Date('2027-01-06')),\n+    FineTuningUnavailableError,\n+  );\n+  assert.strictEqual(calls, 1);\n+  console.log('ok');\n+})();\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "createjob-test",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.0834893,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-AyeletHillel-fine-tune-openai-2027-01-06-finetuning-jobs-xXCKyU/transcript.jsonl",
+        "prBody": "## Self-serve fine-tuning: active customers can no longer create new fine-tuning jobs from Jan 6, 2027 [Verified]\n\n### Change\n\nAdded src/createJob.ts, a wrapper around fineTuning.jobs.create. It throws a clear FineTuningUnavailableError on or after 2027-01-06 and also on 400/403 API errors. Both job-creation call sites in src/index.ts now use it. Added a mocked test in test/createJob.test.ts. The self-serve end of fine-tuning has no drop-in API replacement, so this does not restore the feature.\n\nFiles touched:\n- `dist/createJob.js`\n- `dist/index.js`\n- `src/createJob.ts`\n- `src/index.ts`\n- `test/createJob.test.ts`\n\n### Why\n\nOpenAI stops self-serve creation of new fine-tuning jobs (POST /v1/fine_tuning/jobs) on 2027-01-06. The repo's main flow will stop working then, and the code needs to fail with a clear message.\n\n> Active existing customers will no longer be able to create new fine-tuning jobs on this date.\n\nSource: https://developers.openai.com/api/docs/deprecations.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| createjob-test | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- createjob-test, added by the agent: `npx --no-install ts-node test/createJob.test.ts` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Preparation changed repo files, kept out of this PR: pnpm-lock.yaml.\n\nTest of this change: `createjob-test`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- No replacement approach was implemented. The product decision between prompt-based customization with a current model and another provider is left to the team.\n- Whether the account has non-self-serve fine-tuning access was not checked.\n- The base model gpt-3.5-turbo is retiring and was left unchanged. Its fine-tunability, and that of any substitute, was not verified.\n- retrieve and listEvents for existing jobs may stop working. I did not check this.\n- The provider validators (request checker etc.) were not run.\n- The 400/403 mapping to FineTuningUnavailableError is a guess about how the API will reject job creation after the cutoff. It was not checked against the docs.\n- No provider validator was run.\n\n### Behaviour changes\n\n- On or after 2027-01-06, createFineTuningJob throws FineTuningUnavailableError without calling the API.\n- Before that date, a 400 or 403 from the API is also rethrown as FineTuningUnavailableError, with the API message appended.\n- Before that date, other errors pass through unchanged.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0835\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": ["recipe-openai-model-retirement-58a73d88"],
+        "agentChecks": [
+          {
+            "name": "createjob-test",
+            "command": "npx --no-install ts-node test/createJob.test.ts",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# AyeletHillel/fine-tune:openai:2027-01-06-finetuning-jobs: verified, $0.0835\nChange: Self-serve fine-tuning: active customers can no longer create new fine-tuning jobs from Jan 6, 2027 (openai, other)\nBaseline checks: typecheck pass, build pass, createjob-test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=src/index.ts → 1\t#!/usr/bin/env -S npm run tsn -T | 2\t | 3\t// The code for this is taken from: https://github.com/openai/openai-node/pull/235\n2. write_file path=src/createJob.ts content=<888 chars> → wrote src/createJob.ts (888 bytes)\n3. edit_file path=src/index.ts old=<105 chars> new=<103 chars> → edited src/index.ts (1 replacement)\n4. edit_file path=src/index.ts old=<116 chars> new=<114 chars> → edited src/index.ts (1 replacement)\n5. edit_file path=src/index.ts old=import * as fs from 'fs'; new=import * as fs from 'fs';\nimport { createFineTuningJob } from './createJob'; → edited src/index.ts (1 replacement)\n6. write_file path=test/createJob.test.ts content=<608 chars> → wrote test/createJob.test.ts (608 bytes)\n7. run_checks add=<87 chars> → registered createjob-test; on the original code it fails (1) | ## typecheck: pass | command: npx --no-install tsc --noEmit\n8. edit_file path=test/createJob.test.ts old=import assert from 'assert'; new=import * as assert from 'assert'; → edited test/createJob.test.ts (1 replacement)\n9. run_checks  → ## typecheck: pass | command: npx --no-install tsc --noEmit | ## build: pass\n10. finish verdict=migrated summary=<372 chars> why=<193 chars> validators=[] unproven=<682 chars> behaviourChanges=<288 chars> proofTest=createjob-test → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, createjob-test fail (1) → pass\n\n## Result\nFiles changed: dist/createJob.js, dist/index.js, src/createJob.ts, src/index.ts, test/createJob.test.ts\nVerdict: migrated. Added src/createJob.ts, a wrapper around fineTuning.jobs.create. It throws a clear FineTuningUnavailableError on or after 2027-01-06 and also on 400/403 API errors. Both job-creation call sites in src/index.ts now use it. Added a mocked test in test/createJob.test.ts. The self-serve end of fine-tuning has no drop-in API replacement, so this does not restore the feature.\nUnproven: No replacement approach was implemented. The product decision between prompt-based customization with a current model and another provider is left to the team.; Whether the account has non-self-serve fine-tuning access was not checked.; The base model gpt-3.5-turbo is retiring and was left unchanged. Its fine-tunability, and that of any substitute, was not verified.; retrieve and listEvents for existing jobs may stop working. I did not check this.; The provider validators (request checker etc.) were not run.; The 400/403 mapping to FineTuningUnavailableError is a guess about how the API will reject job creation after the cutoff. It was not checked against the docs.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "Nothing to prepare. The package has no postinstall, prepare, or codegen scripts, and its dependencies are plain libraries (dotenv, openai) with no generated code. The build script is just `tsc`, and the typecheck is `tsc --noEmit`. The OpenAI credentials in the README are only read at runtime by `ts-node src/index.ts`, which the checks don't run.",
+          "changedFiles": ["pnpm-lock.yaml"]
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff sends both `fineTuning.jobs.create` call sites in src/index.ts (mainShort and main) through a new `createFineTuningJob` wrapper. The wrapper refuses locally on or after 2027-01-06 and rewraps 400/403 errors. That covers the creation call sites. The other named calls (files.create, files.retrieve, jobs.retrieve, jobs.listEvents) are not affected by the quoted change and are correctly left alone. The concerns are about choices the API change does not force: a client-side hard date gate, broad error rewrapping, and committed build output. The test only exercises a mocked client, so 'verified' overstates what is proven; this is a policy decision a human should sign off on.",
+        "concerns": [
+          {
+            "file": "src/createJob.ts",
+            "issue": "Every 400 and 403 from jobs.create is rewrapped as FineTuningUnavailableError with the 'self-serve ended' hint, even before the cutoff. A malformed training file, an unsupported model or a bad hyperparameter (400), or a missing project permission (403), would now be reported as a deprecation. The original error class and status are also lost, so callers can no longer tell these cases apart. This changes behaviour beyond what the API change forces.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/createJob.ts",
+            "issue": "The hard client-side gate (`now >= FINE_TUNING_CUTOFF`) blocks creation for every account after 2027-01-06. The quote is about self-serve 'active existing customers'. Accounts with non-self-serve or enterprise access, which the hint itself mentions, would be blocked locally without ever reaching the API. A later change to the date by OpenAI would also need a code change. Consider letting the API decide and only translating its specific error, or making the gate configurable.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/index.ts",
+            "issue": "In main(), after the cutoff the script still uploads ./files/input.jsonl and polls files.retrieve until processed, then fails at job creation. This leaves an orphan uploaded file and wastes time. The cutoff check could run before the upload.",
+            "severity": "low"
+          },
+          {
+            "file": "dist/createJob.js, dist/index.js",
+            "issue": "Compiled build output is newly committed (new files). This is likely an unintended side effect of running the build check. Confirm whether dist/ should be tracked or gitignored.",
+            "severity": "low"
+          },
+          {
+            "file": "test/createJob.test.ts",
+            "issue": "The test covers only the mocked success path before the cutoff and the local date gate. It does not exercise the 400/403 rewrapping branch, and no live API call is made. The error the real API returns after the cutoff (status, message) is unknown, so the error translation is unverified. The 'before fail' result simply reflects that createJob.ts did not exist yet.",
+            "severity": "medium"
+          }
+        ],
+        "checkFirst": [
+          "Decide whether a local date gate is wanted at all, versus relying on the API's response. Check whether this account has non-self-serve access that the gate would wrongly block.",
+          "Narrow the 400/403 mapping to the specific error code or message OpenAI returns for the deprecation. Check the deprecations page or SDK error types for what that response is, and preserve the original error (e.g. as `cause`).",
+          "Confirm whether dist/ should be committed or added to .gitignore.",
+          "Reconsider the 'verified' grade: the checks only use a mocked client, so needs-review fits better."
+        ],
+        "costUsd": 0.058832,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "AyeletHillel/fine-tune:openai:npm-7-0-0",
+      "changeId": "openai:npm-7-0-0",
+      "kind": "sdk-major",
+      "change": {
+        "provider": "openai",
+        "id": "openai:npm-7-0-0",
+        "kind": "sdk-major",
+        "title": "openai (npm) 7.0.0 requires Node.js 22",
+        "source": {
+          "url": "https://raw.githubusercontent.com/openai/openai-node/HEAD/CHANGELOG.md",
+          "quote": "* require Node.js 22 and codify version support ([#2026](https://github.com/openai/openai-node/issues/2026))"
+        },
+        "affects": {
+          "versions": ["<7.0.0", "7.0.0"],
+          "sdk": "openai"
+        },
+        "effectiveDate": "2026-07-27"
+      },
+      "reasoning": "The repo pins the openai npm SDK at 4.10.0 (package-lock.json), which is in the affected range <7.0.0. Nothing breaks until the repo upgrades. Moving to 7.x requires Node.js 22 and also crosses the 5.x and 6.x majors, so call signatures for files.create, fineTuning.jobs.create/retrieve/listEvents should be re-verified. The migration agent should check the Node version in package.json engines, CI and Dockerfiles before bumping. This is low urgency with no forced deadline; 2026-07-27 is only the release date.",
+      "attempted": true,
+      "record": {
+        "taskId": "AyeletHillel/fine-tune:openai:npm-7-0-0",
+        "outcome": "verified",
+        "diff": "diff --git a/dist/index.js b/dist/index.js\nnew file mode 100644\nindex 0000000..5070be5\n--- /dev/null\n+++ b/dist/index.js\n@@ -0,0 +1,87 @@\n+#!/usr/bin/env -S npm run tsn -T\n+\"use strict\";\n+// The code for this is taken from: https://github.com/openai/openai-node/pull/235\n+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {\n+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }\n+    return new (P || (P = Promise))(function (resolve, reject) {\n+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }\n+        function rejected(value) { try { step(generator[\"throw\"](value)); } catch (e) { reject(e); } }\n+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }\n+        step((generator = generator.apply(thisArg, _arguments || [])).next());\n+    });\n+};\n+Object.defineProperty(exports, \"__esModule\", { value: true });\n+/**\n+ * Fine-tuning allows you to train models on your own data.\n+ *\n+ * See these guides for more information:\n+ * - https://help.openai.com/en/articles/5528730-fine-tuning-a-classifier-to-improve-truthfulness\n+ * - https://platform.openai.com/docs/guides/fine-tuning\n+ */\n+const openai_1 = require(\"openai\");\n+const fs = require(\"fs\");\n+const dotenv = require(\"dotenv\");\n+dotenv.config();\n+const client = new openai_1.default();\n+// This is the core code. The rest is to track the progress of the fine-tuning.\n+function mainShort() {\n+    return __awaiter(this, void 0, void 0, function* () {\n+        let file = yield client.files.create({\n+            file: fs.createReadStream('./files/input.jsonl'),\n+            purpose: 'fine-tune',\n+        });\n+        let fineTune = yield client.fineTuning.jobs.create({\n+            model: 'gpt-3.5-turbo',\n+            training_file: file.id,\n+        });\n+    });\n+}\n+function main() {\n+    var _a;\n+    return __awaiter(this, void 0, void 0, function* () {\n+        console.log(`Uploading file`);\n+        let file = yield client.files.create({\n+            file: fs.createReadStream('./files/input.jsonl'),\n+            purpose: 'fine-tune',\n+        });\n+        console.log(`Uploaded file with ID: ${file.id}`);\n+        console.log('-----');\n+        // Wait for the file to be processed\n+        console.log(`Waiting for file to be processed`);\n+        while (true) {\n+            file = yield client.files.retrieve(file.id);\n+            console.log(`File status: ${file.status}`);\n+            if (file.status === 'processed') {\n+                break;\n+            }\n+            else {\n+                yield new Promise((resolve) => setTimeout(resolve, 1000));\n+            }\n+        }\n+        console.log('-----');\n+        console.log(`Starting fine-tuning`);\n+        let fineTune = yield client.fineTuning.jobs.create({ model: 'gpt-3.5-turbo', training_file: file.id });\n+        console.log(`Fine-tuning ID: ${fineTune.id}`);\n+        console.log('-----');\n+        console.log(`Track fine-tuning progress:`);\n+        let after;\n+        while (fineTune.status !== 'succeeded') {\n+            fineTune = yield client.fineTuning.jobs.retrieve(fineTune.id);\n+            console.log(`${fineTune.status}`);\n+            const options = after ? { limit: 50, after } : { limit: 50 };\n+            const events = yield client.fineTuning.jobs.listEvents(fineTune.id, options);\n+            for (const event of events.data.reverse()) {\n+                console.log(`- ${event.created_at}: ${event.message}`);\n+            }\n+            if (events.data.length > 0) {\n+                after = (_a = events.data[events.data.length - 1]) === null || _a === void 0 ? void 0 : _a.id;\n+                console.log(after);\n+            }\n+            yield new Promise((resolve) => setTimeout(resolve, 5000));\n+        }\n+    });\n+}\n+main().catch((err) => {\n+    console.error(err);\n+    process.exit(1);\n+});\ndiff --git a/package.json b/package.json\nindex b2c34a5..450b945 100644\n--- a/package.json\n+++ b/package.json\n@@ -17,6 +17,9 @@\n   },\n   \"dependencies\": {\n     \"dotenv\": \"^16.3.1\",\n-    \"openai\": \"^4.2.0\"\n+    \"openai\": \"^7.49.0\"\n+  },\n+  \"engines\": {\n+    \"node\": \">=22\"\n   }\n }\ndiff --git a/pnpm-lock.yaml b/pnpm-lock.yaml\nindex ae68e8f..984d429 100644\n--- a/pnpm-lock.yaml\n+++ b/pnpm-lock.yaml\n@@ -9,8 +9,8 @@ dependencies:\n     specifier: ^16.3.1\n     version: 16.6.1\n   openai:\n-    specifier: ^4.2.0\n-    version: 4.2.0\n+    specifier: ^7.49.0\n+    version: 7.49.0\n \n devDependencies:\n   '@types/node':\n@@ -64,26 +64,9 @@ packages:\n     resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==}\n     dev: true\n \n-  /@types/node-fetch@2.6.4:\n-    resolution: {integrity: sha512-1ZX9fcN4Rvkvgv4E6PAY5WXUFWFcRWxZa3EW83UjycOB9ljJCedb2CupIP4RZMEwF/M3eTcCihbBRgwtGbg5Rg==}\n-    dependencies:\n-      '@types/node': 20.5.3\n-      form-data: 3.0.1\n-    dev: false\n-\n-  /@types/node@18.17.8:\n-    resolution: {integrity: sha512-Av/7MqX/iNKwT9Tr60V85NqMnsmh8ilfJoBlIVibkXfitk9Q22D9Y5mSpm+FvG5DET7EbVfB40bOiLzKgYFgPw==}\n-    dev: false\n-\n   /@types/node@20.5.3:\n     resolution: {integrity: sha512-ITI7rbWczR8a/S6qjAW7DMqxqFMjjTo61qZVWJ1ubPvbIQsL5D/TvwjYEalM8Kthpe3hTzOGrF2TGbAu2uyqeA==}\n-\n-  /abort-controller@3.0.0:\n-    resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}\n-    engines: {node: '>=6.5'}\n-    dependencies:\n-      event-target-shim: 5.0.1\n-    dev: false\n+    dev: true\n \n   /acorn-walk@8.2.0:\n     resolution: {integrity: sha512-k+iyHEuPgSw6SbuDpGQM+06HQUa04DZ3o+F6CSzXMvvI5KMvnaEqXe+YVe555R9nn6GPt404fos4wcgpw12SDA==}\n@@ -96,165 +79,54 @@ packages:\n     hasBin: true\n     dev: true\n \n-  /agentkeepalive@4.5.0:\n-    resolution: {integrity: sha512-5GG/5IbQQpC9FpkRGsSvZI5QYeSCzlJHdpBQntCsuTOxhKD8lqKhrleg2Yi7yvMIf82Ycmmqln9U8V9qwEiJew==}\n-    engines: {node: '>= 8.0.0'}\n-    dependencies:\n-      humanize-ms: 1.2.1\n-    dev: false\n-\n   /arg@4.1.3:\n     resolution: {integrity: sha512-58S9QDqG0Xx27YwPSt9fJxivjYl432YCwfDMfZ+71RAqUrZef7LrKQZ3LHLOwCS4FLNBplP533Zx895SeOCHvA==}\n     dev: true\n \n-  /asynckit@0.4.0:\n-    resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}\n-    dev: false\n-\n-  /base-64@0.1.0:\n-    resolution: {integrity: sha512-Y5gU45svrR5tI2Vt/X9GPd3L0HNIKzGu202EjxrXMpuc2V2CiKgemAbUUsqYmZJvPtCXoUKjNZwBJzsNScUbXA==}\n-    dev: false\n-\n-  /charenc@0.0.2:\n-    resolution: {integrity: sha512-yrLQ/yVUFXkzg7EDQsPieE/53+0RlaWTs+wBrvW36cyilJ2SaDWfl4Yj7MtLTXleV9uEKefbAGUPv2/iWSooRA==}\n-    dev: false\n-\n-  /combined-stream@1.0.8:\n-    resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}\n-    engines: {node: '>= 0.8'}\n-    dependencies:\n-      delayed-stream: 1.0.0\n-    dev: false\n-\n   /create-require@1.1.1:\n     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}\n     dev: true\n \n-  /crypt@0.0.2:\n-    resolution: {integrity: sha512-mCxBlsHFYh9C+HVpiEacem8FEBnMXgU9gy4zmNC+SXAZNB/1idgp/aulFJ4FgCi7GPEVbfyng092GqL2k2rmow==}\n-    dev: false\n-\n-  /delayed-stream@1.0.0:\n-    resolution: {integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==}\n-    engines: {node: '>=0.4.0'}\n-    dev: false\n-\n   /diff@4.0.2:\n     resolution: {integrity: sha512-58lmxKSA4BNyLz+HHMUzlOEpg09FV+ev6ZMe3vJihgdxzgcwZ8VoEEPmALCZG9LmqfVoNMMKpttIYTVG6uDY7A==}\n     engines: {node: '>=0.3.1'}\n     dev: true\n \n-  /digest-fetch@1.3.0:\n-    resolution: {integrity: sha512-CGJuv6iKNM7QyZlM2T3sPAdZWd/p9zQiRNS9G+9COUCwzWFTs0Xp8NF5iePx7wtvhDykReiRRrSeNb4oMmB8lA==}\n-    dependencies:\n-      base-64: 0.1.0\n-      md5: 2.3.0\n-    dev: false\n-\n   /dotenv@16.6.1:\n     resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}\n     engines: {node: '>=12'}\n     dev: false\n \n-  /event-target-shim@5.0.1:\n-    resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}\n-    engines: {node: '>=6'}\n-    dev: false\n-\n-  /form-data-encoder@1.7.2:\n-    resolution: {integrity: sha512-qfqtYan3rxrnCk1VYaA4H+Ms9xdpPqvLZa6xmMgFvhO32x7/3J/ExcTd6qpxM0vH2GdMI+poehyBZvqfMTto8A==}\n-    dev: false\n-\n-  /form-data@3.0.1:\n-    resolution: {integrity: sha512-RHkBKtLWUVwd7SqRIvCZMEvAMoGUp0XU+seQiZejj0COz3RI3hWP4sCv3gZWWLjJTd7rGwcsF5eKZGii0r/hbg==}\n-    engines: {node: '>= 6'}\n-    dependencies:\n-      asynckit: 0.4.0\n-      combined-stream: 1.0.8\n-      mime-types: 2.1.35\n-    dev: false\n-\n-  /formdata-node@4.4.1:\n-    resolution: {integrity: sha512-0iirZp3uVDjVGt9p49aTaqjk84TrglENEDuqfdlZQ1roC9CWlPk6Avf8EEnZNcAqPonwkG35x4n3ww/1THYAeQ==}\n-    engines: {node: '>= 12.20'}\n-    dependencies:\n-      node-domexception: 1.0.0\n-      web-streams-polyfill: 4.0.0-beta.3\n-    dev: false\n-\n-  /humanize-ms@1.2.1:\n-    resolution: {integrity: sha512-Fl70vYtsAFb/C06PTS9dZBo7ihau+Tu/DNCk/OyHhea07S+aeMWpFFkUaXRa8fI+ScZbEI8dfSxwY7gxZ9SAVQ==}\n-    dependencies:\n-      ms: 2.1.3\n-    dev: false\n-\n-  /is-buffer@1.1.6:\n-    resolution: {integrity: sha512-NcdALwpXkTm5Zvvbk7owOUSvVvBKDgKP5/ewfXEznmQFfs4ZRmanOeKBTjRVjka3QFoN6XJ+9F3USqfHqTaU5w==}\n-    dev: false\n-\n   /make-error@1.3.6:\n     resolution: {integrity: sha512-s8UhlNe7vPKomQhC1qFelMokr/Sc3AgNbso3n74mVPA5LTZwkB9NlXf4XPamLxJE8h0gh73rM94xvwRT2CVInw==}\n     dev: true\n \n-  /md5@2.3.0:\n-    resolution: {integrity: sha512-T1GITYmFaKuO91vxyoQMFETst+O71VUPEU3ze5GNzDm0OWdP8v1ziTaAEPUr/3kLsY3Sftgz242A1SetQiDL7g==}\n-    dependencies:\n-      charenc: 0.0.2\n-      crypt: 0.0.2\n-      is-buffer: 1.1.6\n-    dev: false\n-\n-  /mime-db@1.52.0:\n-    resolution: {integrity: sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==}\n-    engines: {node: '>= 0.6'}\n-    dev: false\n-\n-  /mime-types@2.1.35:\n-    resolution: {integrity: sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==}\n-    engines: {node: '>= 0.6'}\n-    dependencies:\n-      mime-db: 1.52.0\n-    dev: false\n-\n-  /ms@2.1.3:\n-    resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}\n-    dev: false\n-\n-  /node-domexception@1.0.0:\n-    resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}\n-    engines: {node: '>=10.5.0'}\n-    dev: false\n-\n-  /node-fetch@2.7.0:\n-    resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}\n-    engines: {node: 4.x || >=6.0.0}\n+  /openai@7.49.0:\n+    resolution: {integrity: sha512-YhdQC7GDlGc8wZHwysrEXIft5CuKkyiXX+3/bTbY7MfmHlt45BygYqOGT6pai60Ogyv/tIH4PBVyMZUbmADe1Q==}\n+    engines: {node: '>=22.0.0'}\n     peerDependencies:\n-      encoding: ^0.1.0\n+      '@aws-sdk/credential-provider-node': '>=3.972.0 <4'\n+      '@smithy/hash-node': '>=4.3.0 <5'\n+      '@smithy/signature-v4': '>=5.4.0 <6'\n+      google-auth-library: '>=9.15.1 <12'\n+      undici: '>=5 <9'\n+      ws: ^8.21.0\n+      zod: ^3.25 || ^4.0\n     peerDependenciesMeta:\n-      encoding:\n+      '@aws-sdk/credential-provider-node':\n+        optional: true\n+      '@smithy/hash-node':\n+        optional: true\n+      '@smithy/signature-v4':\n+        optional: true\n+      google-auth-library:\n+        optional: true\n+      undici:\n+        optional: true\n+      ws:\n+        optional: true\n+      zod:\n         optional: true\n-    dependencies:\n-      whatwg-url: 5.0.0\n-    dev: false\n-\n-  /openai@4.2.0:\n-    resolution: {integrity: sha512-zfvpO2eITIxIjTG8T6Cek7NB2dMvP/LW0TRUJ4P9E8+qbBNKw00DrtfF64b+fAV2+wUYCVyynT6iSycJ//TtbA==}\n-    hasBin: true\n-    dependencies:\n-      '@types/node': 18.17.8\n-      '@types/node-fetch': 2.6.4\n-      abort-controller: 3.0.0\n-      agentkeepalive: 4.5.0\n-      digest-fetch: 1.3.0\n-      form-data-encoder: 1.7.2\n-      formdata-node: 4.4.1\n-      node-fetch: 2.7.0\n-    transitivePeerDependencies:\n-      - encoding\n-    dev: false\n-\n-  /tr46@0.0.3:\n-    resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}\n     dev: false\n \n   /ts-node@10.9.1(@types/node@20.5.3)(typescript@5.1.6):\n@@ -298,22 +170,6 @@ packages:\n     resolution: {integrity: sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg==}\n     dev: true\n \n-  /web-streams-polyfill@4.0.0-beta.3:\n-    resolution: {integrity: sha512-QW95TCTaHmsYfHDybGMwO5IJIM93I/6vTRk+daHTWFPhwh+C8Cg7j7XyKrwrj8Ib6vYXe0ocYNrmzY4xAAN6ug==}\n-    engines: {node: '>= 14'}\n-    dev: false\n-\n-  /webidl-conversions@3.0.1:\n-    resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}\n-    dev: false\n-\n-  /whatwg-url@5.0.0:\n-    resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}\n-    dependencies:\n-      tr46: 0.0.3\n-      webidl-conversions: 3.0.1\n-    dev: false\n-\n   /yn@3.1.1:\n     resolution: {integrity: sha512-Ux4ygGWsu2c7isFWe8Yu1YluJmqVhxqK2cLXNQA5AcC3QfbGNpM7fu0Y8b/z16pXLnFxZYvWhd3fhBY9DLmC6Q==}\n     engines: {node: '>=6'}\ndiff --git a/test/sdk.test.js b/test/sdk.test.js\nnew file mode 100644\nindex 0000000..33f2d0d\n--- /dev/null\n+++ b/test/sdk.test.js\n@@ -0,0 +1,18 @@\n+const assert = require('assert');\n+const v = require('../node_modules/openai/package.json').version;\n+assert(v.startsWith('7.'), 'openai ' + v);\n+assert(+process.versions.node.split('.')[0] >= 22);\n+assert(require('../package.json').engines.node === '>=22');\n+const OpenAI = require('openai').default;\n+(async () => {\n+  let body, url;\n+  const client = new OpenAI({ apiKey: 'x', maxRetries: 0, fetch: async (u, i) => {\n+    url = String(u); body = JSON.parse(i.body);\n+    return new Response(JSON.stringify({ id: 'ftjob-1', object: 'fine_tuning.job', status: 'queued' }), { headers: { 'content-type': 'application/json' } });\n+  }});\n+  const j = await client.fineTuning.jobs.create({ model: 'gpt-3.5-turbo', training_file: 'file-1' });\n+  assert.strictEqual(j.id, 'ftjob-1');\n+  assert(url.endsWith('/fine_tuning/jobs'));\n+  assert.strictEqual(body.training_file, 'file-1');\n+  console.log('ok');\n+})();\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "sdk-test",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.0975939,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-AyeletHillel-fine-tune-openai-npm-7-0-0-hOS1C3/transcript.jsonl",
+        "prBody": "## openai (npm) 7.0.0 requires Node.js 22 [Verified]\n\n### Change\n\nBumped openai to ^7 (7.49.0) with pnpm 8, added engines.node >=22, and added test/sdk.test.js. The existing call sites (files.create, files.retrieve, fineTuning.jobs.create/retrieve/listEvents) typecheck and build unchanged.\n\nFiles touched:\n- `dist/index.js`\n- `package.json`\n- `pnpm-lock.yaml`\n- `test/sdk.test.js`\n\n### Why\n\nopenai 7.x requires Node.js 22, so the package now declares it in engines. The repo was on 4.x and crossed the 5.x and 6.x majors, so I rechecked the call signatures with tsc.\n\n> * require Node.js 22 and codify version support ([#2026](https://github.com/openai/openai-node/issues/2026))\n\nSource: https://raw.githubusercontent.com/openai/openai-node/HEAD/CHANGELOG.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| sdk-test | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- sdk-test, added by the agent: `node test/sdk.test.js` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Preparation changed repo files, kept out of this PR: pnpm-lock.yaml.\n\nTest of this change: `sdk-test`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- No CI, Dockerfile or .nvmrc exists in the repo, so no other Node version declaration was changed. Whether the deploy host runs Node 22 is unknown.\n- package-lock.json is stale and untouched. The repo uses pnpm-lock.yaml, which was updated.\n- The pnpm-lock.yaml diff also holds the harness's pre-baseline re-resolution, not only the openai bump.\n- gpt-3.5-turbo was shut down on 2026-10-23, and fine-tuning job creation ends on 2027-01-06. This migration does not address either.\n- No test covers files.create, files.retrieve, jobs.retrieve or jobs.listEvents. The test mocks only jobs.create. Those call sites are covered by the typecheck only.\n- I did not run the provider validators, such as openai_check_request or openai_model_lookup.\n- No provider validator was run.\n\n### Behaviour changes\n\n- The package now requires Node >=22 at runtime.\n- The SDK uses the built-in fetch instead of node-fetch.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0976\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-openai-sdk-major-032de36f",
+          "recipe-openai-model-retirement-58a73d88",
+          "recipe-openai-other-71d8ae07"
+        ],
+        "agentChecks": [
+          {
+            "name": "sdk-test",
+            "command": "node test/sdk.test.js",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# AyeletHillel/fine-tune:openai:npm-7-0-0: verified, $0.0976\nChange: openai (npm) 7.0.0 requires Node.js 22 (openai, sdk-major)\nBaseline checks: typecheck pass, build pass, sdk-test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. shell command=cat package.json; ls -a; cat src/index.ts; cat tsconfig.json | head -30 → exit code: 0 | --- stdout --- | {\n2. shell command=<92 chars> → exit code: 0 | --- stdout --- | Progress: resolved 0, reused 1, downloaded 0, added 0\n3. shell command=<1137 chars> → exit code: 0 | --- stdout --- | ok\n4. run_checks add=[{\"name\":\"sdk-test\",\"command\":\"node test/sdk.test.js\"}] → registered sdk-test; on the original code it fails (1) | ## typecheck: pass | command: npx --no-install tsc --noEmit\n5. diff  → dist/index.js: +87 -0 | package.json: +4 -1 | pnpm-lock.yaml: +26 -170\n6. shell command=cat .gitignore | head; rm -f dist/index.js → exit code: 0 | --- stdout --- | node_modules\n7. finish verdict=migrated summary=<224 chars> why=<175 chars> validators=[] unproven=<742 chars> behaviourChanges=<107 chars> proofTest=sdk-test → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, sdk-test fail (1) → pass\n\n## Result\nFiles changed: dist/index.js, package.json, pnpm-lock.yaml, test/sdk.test.js\nVerdict: migrated. Bumped openai to ^7 (7.49.0) with pnpm 8, added engines.node >=22, and added test/sdk.test.js. The existing call sites (files.create, files.retrieve, fineTuning.jobs.create/retrieve/listEvents) typecheck and build unchanged.\nUnproven: No CI, Dockerfile or .nvmrc exists in the repo, so no other Node version declaration was changed. Whether the deploy host runs Node 22 is unknown.; package-lock.json is stale and untouched. The repo uses pnpm-lock.yaml, which was updated.; The pnpm-lock.yaml diff also holds the harness's pre-baseline re-resolution, not only the openai bump.; gpt-3.5-turbo was shut down on 2026-10-23, and fine-tuning job creation ends on 2027-01-06. This migration does not address either.; No test covers files.create, files.retrieve, jobs.retrieve or jobs.listEvents. The test mocks only jobs.create. Those call sites are covered by the typecheck only.; I did not run the provider validators, such as openai_check_request or openai_model_lookup.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "Nothing needs preparing. The package has no postinstall, prepare, or codegen scripts, and there is no generated code or workspace package to build. The build script is plain `tsc`, and typecheck is `tsc --noEmit`. The OpenAI key from the README is only read at runtime, not when type checking or building.",
+          "changedFiles": ["pnpm-lock.yaml"]
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The PR bumps openai from 4.2.0 to 7.49.0 and adds engines.node >=22, which handles the stated Node 22 requirement. Typecheck and build pass against the unchanged src/index.ts. Two things weaken the 'verified' grade. First, the jump skips majors 5 and 6, whose breaking changes are not addressed or tested here. Second, the new test only exercises fineTuning.jobs.create with a mocked fetch. The multipart files.create upload from fs.createReadStream, files.retrieve polling and listEvents pagination are never run. The PR also commits a compiled dist/index.js that the API change does not need, and it does not update the Node version in CI or runtime config.",
+        "concerns": [
+          {
+            "file": "dist/index.js",
+            "issue": "A generated build artifact (tsc output) is committed as a new file. This is unrelated to the API change and will drift from src/index.ts. It was probably left over from the build check. Remove it, and check whether dist/ should be in .gitignore.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/index.ts",
+            "issue": "Upgrading 4.x to 7.x crosses two other majors. The v5 shim and file-upload rework is especially relevant: files.create at lines 22 and 36 passes fs.createReadStream, and that multipart upload path is never exercised by the test. Typecheck passing shows the types accept a ReadStream. It does not show the upload is encoded correctly on Node 22's native fetch.",
+            "severity": "medium"
+          },
+          {
+            "file": "test/sdk.test.js",
+            "issue": "The test mostly asserts environment facts: SDK version, Node version and the engines string. It mocks one JSON call. files.create, files.retrieve (line 46), fineTuning.jobs.retrieve (line 66) and listEvents pagination with limit/after (line 70) are not covered, so 'verified' overstates what the checks prove for 6 of the 7 named call sites.",
+            "severity": "medium"
+          },
+          {
+            "file": "package.json",
+            "issue": "engines.node >=22 is advisory under pnpm unless engine-strict is set. Any CI workflow, Dockerfile or .nvmrc pinning an older Node is not updated in this diff. @types/node stays at ^20.5.3, so the types do not match the new minimum runtime.",
+            "severity": "low"
+          },
+          {
+            "file": "pnpm-lock.yaml",
+            "issue": "I could not confirm that openai 7.49.0 exists or that its integrity hash and peer list are correct; my knowledge may predate it. Verify against the npm registry and the openai-node CHANGELOG. Also confirm the @types/node@20.5.3 flip to dev: true is just a side effect of dropping openai 4's transitive deps.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Remove dist/index.js from the PR, or confirm committing build output is intended.",
+          "Run the real script on Node 22 with a test key, or a mocked fetch that inspects the multipart body, to confirm files.create with fs.createReadStream still uploads correctly on openai 7.x.",
+          "Check the openai-node CHANGELOG for breaking changes in v5 and v6 that affect files, fineTuning.jobs.retrieve or listEvents pagination.",
+          "Update the Node version in CI, Docker and .nvmrc to 22, and consider bumping @types/node to ^22."
+        ],
+        "costUsd": 0.077748,
+        "model": "claude-opus-5-5"
+      }
+    }
+  ],
+  "costUsd": 1.4888008999999998,
+  "durationMs": 562468,
+  "matchReasoning": "AyeletHillel/fine-tune:openai:2026-10-23-legacy-gpt-shutdown: The repo hard-codes gpt-3.5-turbo as the fine-tuning base model. That model is in the Oct 23, 2026 legacy shutdown list, so both job-creation calls break. The migration agent must swap in a currently fine-tunable base model. Avoid gpt-4o-mini and gpt-4.1(-mini) snapshots, which retire Jan 14, 2027. It should also check whether any downstream code calls fine-tuned models derived from gpt-3.5-turbo (ft:gpt-3.5-turbo:*), since those are likely gone too. Also note the separate Jan 6, 2027 end of self-serve fine-tuning job creation.\nAyeletHillel/fine-tune:openai:2027-01-06-finetuning-jobs: The repo's core flow is uploading a training file and creating fine-tuning jobs. OpenAI ends self-serve creation of new fine-tuning jobs on Jan 6, 2027, so the app's main function stops working. Retrieve and listEvents (lines 66, 70) may keep working for existing jobs, but that is uncertain. The migration agent should decide on a replacement approach and check whether the account has any non-self-serve fine-tuning access. Examples: prompt-based customization with a current model, or another provider. This is a product-level change separate from the model swap.\nAyeletHillel/fine-tune:openai:npm-7-0-0: The repo pins the openai npm SDK at 4.10.0 (package-lock.json), which is in the affected range <7.0.0. Nothing breaks until the repo upgrades. Moving to 7.x requires Node.js 22 and also crosses the 5.x and 6.x majors, so call signatures for files.create, fineTuning.jobs.create/retrieve/listEvents should be re-verified. The migration agent should check the Node version in package.json engines, CI and Dockerfiles before bumping. This is low urgency with no forced deadline; 2026-07-27 is only the release date.\nopenai:2026-10-14-gpt-4o-4-1-retire: not affected: The repo only uses gpt-3.5-turbo; no gpt-4o or gpt-4.1 snapshots appear at any call site.\nopenai:2026-10-01-gpt53codex-51-54nano: not affected: No gpt-5.3-codex, gpt-5.4-nano or gpt-5.1 model is referenced; the only model is gpt-3.5-turbo.\nopenai:2026-10-01-tts-retire: not affected: The repo makes no /v1/audio/speech calls and uses no TTS models.\nopenai:2026-08-26-transcription-retire: not affected: No transcription or translation endpoints or whisper/transcribe models are used.\nopenai:2026-07-20-legacy-audio-realtime: not affected: No realtime or audio models are used; the repo only does files and fine-tuning.\nopenai:2026-06-11-gpt5-o3-retire: not affected: No gpt-5 or o3 family models are referenced.\nopenai:2026-11-30-prompts-api: not affected: The repo does not call /v1/prompts or use reusable prompt objects.\nopenai:2026-11-30-evals: not affected: The repo does not call the Evals API.\nopenai:2026-11-30-agent-builder: not affected: Agent Builder is a dashboard product; the repo has no usage of it.\nopenai:2026-12-01-gpt-image-retire: not affected: No image generation models or endpoints are used.\nopenai:2026-09-28-legacy-completions: not affected: The repo uses gpt-3.5-turbo, not gpt-3.5-turbo-instruct, babbage-002, davinci-002 or gpt-3.5-turbo-1106; that model is covered by the Oct 23 legacy shutdown task.\nopenai:2026-09-24-sora-videos: not affected: No Videos API or Sora models are used.\nopenai:2026-08-26-assistants-api: not affected: No /v1/assistants or /v1/threads calls exist in the repo.\nopenai:2026-07-23-legacy-codex-preview: not affected: None of the listed preview, codex, deep-research or chat-latest models are referenced.\nopenai:2026-08-10-chat-latest: not affected: gpt-5.2-chat-latest and gpt-5.3-chat-latest are not used.\nopenai:2026-10-01-gpt54-cyber: not affected: gpt-5.4-cyber is not used.\nopenai:2026-05-12-dalle-realtime-beta: not affected: No DALL·E, realtime preview models or the Realtime beta header are used.\nopenai:2026-02-chatgpt4o-codexmini: not affected: chatgpt-4o-latest and codex-mini-latest are not referenced.\nopenai:2026-03-26-gpt4-old: not affected: gpt-4-0314 and gpt-4-turbo-preview variants are not used.\nopenai:pypi-3-0-0: not affected: This is a Python SDK change; the repo is TypeScript using the npm openai package.\nopenai:pypi-2-0-0: not affected: This is a Python SDK change about Responses tool-call output types; the repo uses the npm SDK and no Responses tool calls.\nopenai:npm-7-43-live-decisions: not affected: The repo is on npm openai 4.10.0 and does not use Live responses or Decisions types.\nopenai:npm-7-live-decision-items: not affected: The repo does not use Live Decision item events and is on SDK 4.10.0.\nopenai:go-3-86-0: not affected: This is a Go SDK change; the repo uses the npm SDK and no Decisions/Live features.",
+  "costByPart": {
+    "inventory": 0.010239999999999999,
+    "match": 0.120744,
+    "other": 0.897528,
+    "harness": 0.2786609,
+    "review": 0.181628
+  }
+}

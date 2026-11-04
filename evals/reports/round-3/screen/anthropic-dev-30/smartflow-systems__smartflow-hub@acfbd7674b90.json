@@ -1,0 +1,35 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "smartflow-systems/smartflow-hub",
+  "commit": "acfbd7674b90954d535c14f8a0e0102548029f50",
+  "provider": "anthropic",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export ANTHROPIC_API_KEY='placeholder' SmartFlow_Hub='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export ANTHROPIC_API_KEY='placeholder' SmartFlow_Hub='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.006912000000000029,
+  "durationMs": 52294,
+  "install": {
+    "code": 0,
+    "tail": "added 367 packages in 20s"
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["ANTHROPIC_API_KEY", "SmartFlow_Hub"]
+  }
+}

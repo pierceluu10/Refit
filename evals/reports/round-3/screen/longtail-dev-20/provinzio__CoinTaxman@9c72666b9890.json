@@ -1,0 +1,19 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "provinzio/CoinTaxman",
+  "commit": "9c72666b989094a24c89220446825d90706da655",
+  "provider": "coinbase-pro",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.005238,
+  "durationMs": 23174,
+  "install": {
+    "code": 0,
+    "tail": "ing tzdata==2026.3 (from -r requirements.txt (line 19))\n  Downloading tzdata-2026.3-py2.py3-none-any.whl.metadata (1.4 kB)\nCollecting urllib3==2.6.0 (from -r requirements.txt (line 21))\n  Downloading urllib3-2.6.0-py3-none-any.whl.metadata (6.6 kB)\nCollecting xlsxwriter==3.2.9 (from -r requirements.txt (line 23))\n  Downloading xlsxwriter-3.2.9-py3-none-any.whl.metadata (2.7 kB)\nDownloading certifi-2024.7.4-py3-none-any.whl (162 kB)\nDownloading charset_normalizer-3.1.0-py3-none-any.whl (46 kB)\nDownloading idna-3.15-py3-none-any.whl (72 kB)\nDownloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)\nDownloading requests-2.32.5-py3-none-any.whl (64 kB)\nDownloading six-1.16.0-py2.py3-none-any.whl (11 kB)\nDownloading tzdata-2026.3-py2.py3-none-any.whl (348 kB)\nDownloading urllib3-2.6.0-py3-none-any.whl (131 kB)\nDownloading xlsxwriter-3.2.9-py3-none-any.whl (175 kB)\nInstalling collected packages: xlsxwriter, urllib3, tzdata, six, idna, charset-normalizer, certifi, requests, python-dateutil\nSuccessfully installed certifi-2024.7.4 charset-normalizer-3.1.0 idna-3.15 python-dateutil-2.9.0.post0 requests-2.32.5 six-1.16.0 tzdata-2026.3 urllib3-2.6.0 xlsxwriter-3.2.9\n\n  WARNING: The script normalizer is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "Harries/startfast-free",
+  "commit": "567f2bfa4a3596fd6058e05dd53bf70fc3164733",
+  "provider": "stripe",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export NEXT_PUBLIC_APP_URL='http://localhost:3000' NEXT_PUBLIC_APP_NAME='StartFast' DATABASE_URL='postgresql://username:password@localhost:5432/startfast' BETTER_AUTH_SECRET='placeholder-secret-for-build-0123456789' BETTER_AUTH_URL='http://localhost:3000' RESEND_API_KEY='re_placeholder' EMAIL_FROM='onboarding@example.com' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='pk_test_placeholder'; npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "src/lib/stripe.ts: error TS2322: Type '\"2024-12-18.acacia\"' is not assignable to type '\"2025-02-24.acacia\"'."
+      ],
+      "tail": "src/lib/stripe.ts(4,3): error TS2322: Type '\"2024-12-18.acacia\"' is not assignable to type '\"2025-02-24.acacia\"'."
+    },
+    {
+      "name": "build",
+      "command": "export NEXT_PUBLIC_APP_URL='http://localhost:3000' NEXT_PUBLIC_APP_NAME='StartFast' DATABASE_URL='postgresql://username:password@localhost:5432/startfast' BETTER_AUTH_SECRET='placeholder-secret-for-build-0123456789' BETTER_AUTH_URL='http://localhost:3000' RESEND_API_KEY='re_placeholder' EMAIL_FROM='onboarding@example.com' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='pk_test_placeholder'; npm run build",
+      "ok": false,
+      "failures": ["exit-nonzero: 7 |"],
+      "tail": "> startfast-free@1.0.0 build\n> next build\n\n⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache\nAttention: Next.js now collects completely anonymous telemetry regarding usage.\nThis information is used to shape Next.js' roadmap and prioritize features.\nYou can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:\nhttps://nextjs.org/telemetry\n\n   ▲ Next.js 15.1.0\n\n   Creating an optimized production build ...\n ✓ Compiled successfully\n   Linting and checking validity of types ...\n\nFailed to compile.\n\n./src/lib/stripe.ts:4:3\nType error: Type '\"2024-12-18.acacia\"' is not assignable to type '\"2025-02-24.acacia\"'.\n\n\u001b[0m \u001b[90m 2 |\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 3 |\u001b[39m \u001b[36mexport\u001b[39m \u001b[36mconst\u001b[39m stripe \u001b[33m=\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mStripe\u001b[39m(process\u001b[33m.\u001b[39menv\u001b[33m.\u001b[39m\u001b[33mSTRIPE_SECRET_KEY\u001b[39m \u001b[33m||\u001b[39m \u001b[32m''\u001b[39m\u001b[33m,\u001b[39m {\u001b[0m\n\u001b[0m\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 4 |\u001b[39m   apiVersion\u001b[33m:\u001b[39m \u001b[32m'2024-12-18.acacia'\u001b[39m\u001b[33m,\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m   |\u001b[39m   \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 5 |\u001b[39m   typescript\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m\u001b[33m,\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 6 |\u001b[39m })\u001b[33m;\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 7 |\u001b[39m\u001b[0m"
+    }
+  ],
+  "costUsd": 0.1170519999999999,
+  "durationMs": 120785,
+  "install": {
+    "code": 0,
+    "tail": " >= 1. Run an install with npm@5 or\nnpm error later to generate a package-lock.json file, then try again.\nnpm error\nnpm error Clean install a project\nnpm error\nnpm error Usage:\nnpm error npm ci\nnpm error\nnpm error Options:\nnpm error [--install-strategy <hoisted|nested|shallow|linked>] [--legacy-bundling]\nnpm error [--global-style] [--omit <dev|optional|peer> [--omit <dev|optional|peer> ...]]\nnpm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]\nnpm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]\nnpm error [--no-bin-links] [--no-fund] [--dry-run]\nnpm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]\nnpm error [-ws|--workspaces] [--include-workspace-root] [--install-links]\nnpm error\nnpm error aliases: clean-install, ic, install-clean, isntall-clean\nnpm error\nnpm error Run \"npm help ci\" for more info\nnpm error A complete log of this run can be found in: /tmp/.npm/_logs/2026-11-03T18_58_34_756Z-debug-0.log\nnpm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.hirok.io\nnpm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.hirok.io\nnpm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options.\nnpm warn deprecated next@15.1.0: This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/CVE-2025-66478 for more details."
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_APP_NAME",
+      "DATABASE_URL",
+      "BETTER_AUTH_SECRET",
+      "BETTER_AUTH_URL",
+      "RESEND_API_KEY",
+      "EMAIL_FROM",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+    ]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "typecheck and build fail in src/lib/stripe.ts because apiVersion '2024-12-18.acacia' doesn't match the installed Stripe SDK's expected '2025-02-24.acacia' type; this is a code/dependency mismatch in the repo itself, with no real credentials or services needed."
+  }
+}

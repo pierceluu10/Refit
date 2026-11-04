@@ -1,0 +1,59 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "tejashVaishnav/Fast-saas-next.js-boilerplate",
+  "commit": "cf9770e6e04a535cbcd9ce6b5ae0d5fa035f890d",
+  "provider": "stripe",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export POSTGRES_PRISMA_URL='postgresql://user:pass@localhost:5432/db' POSTGRES_URL_NON_POOLING='postgresql://user:pass@localhost:5432/db' NEXTAUTH_SECRET='placeholder' NEXTAUTH_URL='http://localhost:3000' STRIPE_SK='placeholder' STRIPE_WEBHOOK_SECRET='placeholder' GOOGLE_CLIENT_ID='placeholder' GOOGLE_CLIENT_SECRET='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export POSTGRES_PRISMA_URL='postgresql://user:pass@localhost:5432/db' POSTGRES_URL_NON_POOLING='postgresql://user:pass@localhost:5432/db' NEXTAUTH_SECRET='placeholder' NEXTAUTH_URL='http://localhost:3000' STRIPE_SK='placeholder' STRIPE_WEBHOOK_SECRET='placeholder' GOOGLE_CLIENT_ID='placeholder' GOOGLE_CLIENT_SECRET='placeholder'; npm run build",
+      "ok": false,
+      "failures": ["Error: P1001: Can't reach database server at `localhost`"],
+      "tail": "> fast-saas@0.1.0 build\n> prisma generate && prisma db push && next build\n\nPrisma schema loaded from prisma/schema.prisma\n\n✔ Generated Prisma Client (v5.16.1) to ./node_modules/@prisma/client in 48ms\n\nStart using Prisma Client in Node.js (See: https://pris.ly/d/client)\n```\nimport { PrismaClient } from '@prisma/client'\nconst prisma = new PrismaClient()\n```\nor start using Prisma Client at the edge (See: https://pris.ly/d/accelerate)\n```\nimport { PrismaClient } from '@prisma/client/edge'\nconst prisma = new PrismaClient()\n```\n\nSee other ways of importing Prisma Client: http://pris.ly/d/importing-client\n\n┌─────────────────────────────────────────────────────────────┐\n│  Deploying your app to serverless or edge functions?        │\n│  Try Prisma Accelerate for connection pooling and caching.  │\n│  https://pris.ly/cli/--accelerate                           │\n└─────────────────────────────────────────────────────────────┘\n\nPrisma schema loaded from prisma/schema.prisma\nDatasource \"db\": PostgreSQL database \"db\", schema \"public\" at \"localhost:5432\"\n\n\nError: P1001: Can't reach database server at `localhost:5432`\n\nPlease make sure your database server is running at `localhost:5432`."
+    }
+  ],
+  "costUsd": 0.030232000000000037,
+  "durationMs": 78324,
+  "install": {
+    "code": 0,
+    "tail": "added 886 packages in 41s\n\nnpm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated @humanwhocodes/config-array@0.11.14: Use @eslint/config-array instead\nnpm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported\nnpm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead\nnpm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "Generates the Prisma client (node_modules/.prisma/client) that src code imports; @prisma/client's postinstall did not run, so tsc and next build would fail on missing types.",
+        "code": 0
+      },
+      {
+        "command": "npx prisma generate",
+        "why": "Generates the Prisma client that the typecheck and Next build import from @prisma/client; the install ran with scripts off. The build script's `prisma db push` needs a live database and fails with P1001, so it is not run here.",
+        "code": 0
+      }
+    ],
+    "env": [
+      "POSTGRES_PRISMA_URL",
+      "POSTGRES_URL_NON_POOLING",
+      "NEXTAUTH_SECRET",
+      "NEXTAUTH_URL",
+      "STRIPE_SK",
+      "STRIPE_WEBHOOK_SECRET",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET"
+    ]
+  },
+  "exclusion": {
+    "class": "outside-authority",
+    "reason": "`npm run build` failed at `prisma db push` with P1001 because it needs a live PostgreSQL server at localhost:5432, which the sandbox doesn't have."
+  }
+}

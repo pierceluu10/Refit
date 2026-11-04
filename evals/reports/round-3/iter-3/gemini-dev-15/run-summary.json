@@ -1,0 +1,16 @@
+{
+  "set": "gemini-dev-15",
+  "capUsd": 150,
+  "meterSpentUsd": 5.208121800000002,
+  "budgetSpentUsd": 7.644935800000001,
+  "costByPart": {
+    "inventory": 0,
+    "watch": 0.9491806,
+    "match": 1.01898,
+    "memory": 1.2399539999999998,
+    "harness": 1.7089772,
+    "review": 0.29103
+  },
+  "startedAt": "2026-11-03T23:00:35.893Z",
+  "finishedAt": "2026-11-03T23:46:53.718Z"
+}
