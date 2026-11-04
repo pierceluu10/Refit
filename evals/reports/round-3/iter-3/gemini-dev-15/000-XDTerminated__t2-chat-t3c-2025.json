@@ -1,0 +1,700 @@
+{
+  "set": "gemini-dev-15",
+  "index": 0,
+  "repo": "XDTerminated/t2-chat-t3c-2025",
+  "commit": "89102edbbb3f10dd78f1483cfb5aa3dba73880ed",
+  "provider": "gemini",
+  "usages": 9,
+  "changes": 68,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "XDTerminated/t2-chat-t3c-2025:gemini:2026-06-01-gemini-2-0-shutdown+4",
+      "changeId": "gemini:2026-06-01-gemini-2-0-shutdown",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-06-01-gemini-2-0-shutdown",
+        "kind": "model-retirement",
+        "title": "5 changes: gemini-2.0-flash and flash-lite models shut down June 1 2026 and more",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The following Gemini 2.0 models are now [shut down](/docs/deprecations):"
+        },
+        "affects": {
+          "operations": [
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-001",
+            "gemini-2.0-flash-lite",
+            "gemini-2.0-flash-lite-001"
+          ]
+        },
+        "effectiveDate": "2026-06-01"
+      },
+      "reasoning": "This one task covers all 5 gemini changes that affect this repo. Handle every one of them in this single change set, prove each with your test, and say in finish which you changed and which needed no change.\n\n1. gemini-2.0-flash and flash-lite models shut down June 1 2026 (model-retirement, effective 2026-06-01)\n   Source: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n   Quote: The following Gemini 2.0 models are now [shut down](/docs/deprecations):\n   Affects: operations: gemini-2.0-flash, gemini-2.0-flash-001, gemini-2.0-flash-lite, gemini-2.0-flash-lite-001\n   Call sites: src/lib/api/gemini-api.ts:45 (getGenerativeModel is pinned to \"gemini-2.0-flash-preview-image-generation\" (line 46). Gemini 2.0 Flash models are shut down, so image generation through this call now fails.); src/app/api/chats/generate-title/route.ts:64 (getGenerativeModel passes a model that the scan did not capture. If it is gemini-2.0-flash or gemini-2.0-flash-lite, title generation is already failing.); src/lib/api/gemini-api.ts:308 (getGenerativeModel uses an unrecorded model ID. It may be a 2.0 Flash variant.); src/lib/api/gemini-api.ts:221 (models.generateContent takes a model value; check whether it can resolve to a 2.0 Flash ID.); src/lib/api/gemini-api.ts:284 (models.generateContent takes a model value; check whether it can resolve to a 2.0 Flash ID.)\n   Why it applies: The repo pins the Gemini 2.0 Flash family for image generation (gemini-2.0-flash-preview-image-generation). The exact preview ID is not in the quoted list, but the 2.0 Flash family is shut down and that preview model was retired as well, so this call is very likely broken today. The usage map does not show the other model IDs; this 2025 T3-chat clone may also offer gemini-2.0-flash or -lite in its model picker or title generator. The migration agent should grep for every gemini-2.0-* string. Replace the image model with a current Gemini image model; avoid gemini-3.1-flash-image-preview and gemini-3-pro-image-preview, which are also being retired. Replace text 2.0 models with a supported Flash model.\n\n2. @google/generative-ai (npm) is deprecated and reaches end of life; migrate to @google/genai (sdk-major, effective 2025-11-30)\n   Source: https://raw.githubusercontent.com/google/generative-ai-js/HEAD/README.md\n   Quote: All support for this repository (including bug fixes) will permanently end on **November 30, 2025**.\n   Affects: versions: <=0.24.1; sdk: @google/generative-ai\n   Call sites: src/app/api/chats/generate-title/route.ts:64 (Uses getGenerativeModel from @google/generative-ai 0.24.1. That SDK is end of life with no further fixes.); src/lib/api/gemini-api.ts:45 (Uses getGenerativeModel from the deprecated @google/generative-ai SDK.); src/lib/api/gemini-api.ts:308 (Uses getGenerativeModel from the deprecated @google/generative-ai SDK.)\n   Why it applies: The repo still depends on @google/generative-ai 0.24.1, and all support ended on 2025-11-30. The repo already has @google/genai 1.35.0 for the models.generateContent calls (usage 3). Port the three getGenerativeModel call sites to ai.models.generateContent and drop the old package. Nothing breaks on the date itself, but the package receives no fixes and new model features will not reach it.\n\n3. gemini-2.5-pro deprecated; from Dec 1 2026 requests route to gemini-3.8-flash with breaking API changes (thought_signature validation, thinking_level replaces thinking_budget, sampling params and prefill removed) (model-retirement, effective 2026-12-01)\n   Source: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n   Quote: Effective December 1, 2026, all API requests to `gemini-2.5-pro` will automatically route to\n   Affects: operations: gemini-2.5-pro, gemini-3.8-flash; fields: thinking_budget, thinking_level, temperature, top_p, top_k\n   Call sites: src/lib/api/gemini-api.ts:221 (generateContent takes a runtime model. If gemini-2.5-pro is offered, it reroutes to gemini-3.8-flash, where thinking_budget and sampling params are rejected.); src/lib/api/gemini-api.ts:284 (generateContent with config. Any temperature, top_p, top_k or thinking_budget passed for gemini-2.5-pro breaks after the reroute.); src/lib/api/google-gemini-api.ts:32 (Raw HTTP POST with a runtime model. It may target gemini-2.5-pro.)\n   Why it applies: Uncertain: the usage map does not record the model IDs used by generateContent or the raw HTTP call. This T3-chat clone very likely offers gemini-2.5-pro in its model list. From 2026-12-01, requests are rerouted to gemini-3.8-flash with breaking request changes: thinking_level replaces thinking_budget, temperature, top_p and top_k are removed, prefill is removed, and thought_signature is validated. The migration agent should grep for gemini-2.5-pro, move to a supported model and strip unsupported config fields.\n\n4. gemini-2.5-flash deprecated; from Dec 1 2026 requests route to gemini-3.5-flash-lite with breaking API changes (model-retirement, effective 2026-12-01)\n   Source: https://ai.google.dev/gemini-api/docs/deprecations.md.txt\n   Quote: Effective December 1, 2026, all API requests to `gemini-2.5-flash` will automatically route to\n   Affects: operations: gemini-2.5-flash, gemini-3.5-flash-lite; fields: thinking_budget, thinking_level\n   Call sites: src/lib/api/gemini-api.ts:221 (generateContent takes a runtime model. If it is gemini-2.5-flash, requests reroute to gemini-3.5-flash-lite with breaking changes.); src/lib/api/gemini-api.ts:284 (generateContent with config. thinking_budget would need to become thinking_level.); src/app/api/chats/generate-title/route.ts:64 (The title-generation model is unrecorded and may be gemini-2.5-flash.); src/lib/api/google-gemini-api.ts:32 (Raw HTTP POST with a runtime model. It may target gemini-2.5-flash.)\n   Why it applies: Uncertain: model IDs are not captured in the usage map, but gemini-2.5-flash is a likely default for a 2025 chat clone. From 2026-12-01, calls reroute to gemini-3.5-flash-lite, and thinking_budget gives way to thinking_level. The migration agent should grep for gemini-2.5-flash, pick an explicit supported model and adjust the thinking config.\n\n5. Generate Content API: new paid-tier projects now store requests by default (store=true); opt out with store=false (other, effective 2026-10-26)\n   Source: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n   Quote: now store requests by default (`store=true`), matching the Interactions API.\n   Affects: operations: generateContent, streamGenerateContent, batchGenerateContent; fields: store\n   Call sites: src/lib/api/gemini-api.ts:221 (Calls generateContent. On new paid-tier projects, requests are now stored by default unless store=false is set.); src/lib/api/gemini-api.ts:284 (Calls generateContent; same default storage change.)\n   Why it applies: New paid-tier projects now store Generate Content requests by default. This is a chat app that may run with user-supplied keys, so user chat content could be retained without the app opting out. No code breaks. Consider setting store=false in config, if the SDK version supports the field, and the same on the raw HTTP call in google-gemini-api.ts. Uncertain whether the keys in use belong to new paid-tier projects.",
+      "callSites": [
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 45,
+          "why": "getGenerativeModel is pinned to \"gemini-2.0-flash-preview-image-generation\" (line 46). Gemini 2.0 Flash models are shut down, so image generation through this call now fails."
+        },
+        {
+          "file": "src/app/api/chats/generate-title/route.ts",
+          "line": 64,
+          "why": "getGenerativeModel passes a model that the scan did not capture. If it is gemini-2.0-flash or gemini-2.0-flash-lite, title generation is already failing."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 308,
+          "why": "getGenerativeModel uses an unrecorded model ID. It may be a 2.0 Flash variant."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 221,
+          "why": "models.generateContent takes a model value; check whether it can resolve to a 2.0 Flash ID."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 284,
+          "why": "models.generateContent takes a model value; check whether it can resolve to a 2.0 Flash ID."
+        },
+        {
+          "file": "src/app/api/chats/generate-title/route.ts",
+          "line": 64,
+          "why": "Uses getGenerativeModel from @google/generative-ai 0.24.1. That SDK is end of life with no further fixes."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 45,
+          "why": "Uses getGenerativeModel from the deprecated @google/generative-ai SDK."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 308,
+          "why": "Uses getGenerativeModel from the deprecated @google/generative-ai SDK."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 221,
+          "why": "generateContent takes a runtime model. If gemini-2.5-pro is offered, it reroutes to gemini-3.8-flash, where thinking_budget and sampling params are rejected."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 284,
+          "why": "generateContent with config. Any temperature, top_p, top_k or thinking_budget passed for gemini-2.5-pro breaks after the reroute."
+        },
+        {
+          "file": "src/lib/api/google-gemini-api.ts",
+          "line": 32,
+          "why": "Raw HTTP POST with a runtime model. It may target gemini-2.5-pro."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 221,
+          "why": "generateContent takes a runtime model. If it is gemini-2.5-flash, requests reroute to gemini-3.5-flash-lite with breaking changes."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 284,
+          "why": "generateContent with config. thinking_budget would need to become thinking_level."
+        },
+        {
+          "file": "src/app/api/chats/generate-title/route.ts",
+          "line": 64,
+          "why": "The title-generation model is unrecorded and may be gemini-2.5-flash."
+        },
+        {
+          "file": "src/lib/api/google-gemini-api.ts",
+          "line": 32,
+          "why": "Raw HTTP POST with a runtime model. It may target gemini-2.5-flash."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 221,
+          "why": "Calls generateContent. On new paid-tier projects, requests are now stored by default unless store=false is set."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 284,
+          "why": "Calls generateContent; same default storage change."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "XDTerminated/t2-chat-t3c-2025:gemini:2026-06-01-gemini-2-0-shutdown+4",
+        "outcome": "verified",
+        "diff": "diff --git a/package.json b/package.json\nindex 8c84352..01d1e38 100644\n--- a/package.json\n+++ b/package.json\n@@ -20,7 +20,6 @@\n   \"dependencies\": {\n     \"@clerk/nextjs\": \"^6.36.7\",\n     \"@google/genai\": \"^1.35.0\",\n-    \"@google/generative-ai\": \"^0.24.1\",\n     \"@lexical/code\": \"^0.31.2\",\n     \"@lexical/link\": \"^0.31.2\",\n     \"@lexical/list\": \"^0.31.2\",\ndiff --git a/pnpm-lock.yaml b/pnpm-lock.yaml\nindex f6cef70..9feb37e 100644\n--- a/pnpm-lock.yaml\n+++ b/pnpm-lock.yaml\n@@ -14,9 +14,6 @@ importers:\n       '@google/genai':\n         specifier: ^1.35.0\n         version: 1.35.0\n-      '@google/generative-ai':\n-        specifier: ^0.24.1\n-        version: 0.24.1\n       '@lexical/code':\n         specifier: ^0.31.2\n         version: 0.31.2\n@@ -337,10 +334,6 @@ packages:\n       '@modelcontextprotocol/sdk':\n         optional: true\n \n-  '@google/generative-ai@0.24.1':\n-    resolution: {integrity: sha512-MqO+MLfM6kjxcKoy0p1wRzG3b4ZZXtPI+z2IE26UogS2Cm/XHO+7gGRBh6gcJsOiIVoH93UwKvW4HdgiOZCy9Q==}\n-    engines: {node: '>=18.0.0'}\n-\n   '@hono/node-server@1.19.6':\n     resolution: {integrity: sha512-Shz/KjlIeAhfiuE93NDKVdZ7HdBVLQAfdbaXEaoAVO3ic9ibRSLGIQGkcBbFyuLr+7/1D5ZCINM8B+6IvXeMtw==}\n     engines: {node: '>=18.14.1'}\n@@ -4175,8 +4168,6 @@ snapshots:\n       - supports-color\n       - utf-8-validate\n \n-  '@google/generative-ai@0.24.1': {}\n-\n   '@hono/node-server@1.19.6(hono@4.10.6)':\n     dependencies:\n       hono: 4.10.6\ndiff --git a/src/app/api/chats/generate-title/route.ts b/src/app/api/chats/generate-title/route.ts\nindex 474566a..5598ef3 100644\n--- a/src/app/api/chats/generate-title/route.ts\n+++ b/src/app/api/chats/generate-title/route.ts\n@@ -1,10 +1,10 @@\n import { NextResponse } from \"next/server\";\n import { currentUser } from \"@clerk/nextjs/server\";\n import {\n-  GoogleGenerativeAI,\n+  GoogleGenAI,\n   HarmCategory,\n   HarmBlockThreshold,\n-} from \"@google/generative-ai\";\n+} from \"@google/genai\";\n import {\n   checkRateLimit,\n   getClientIdentifier,\n@@ -12,7 +12,7 @@ import {\n   RATE_LIMITS,\n } from \"~/lib/rate-limit\";\n \n-const MODEL_NAME = \"gemini-2.0-flash-exp\"; // Fast model for quick title generation\n+const MODEL_NAME = \"gemini-2.5-flash-lite\"; // (replaces a shut-down 2.0 flash model) Fast model for quick title generation\n \n export async function POST(request: Request) {\n   // Rate limiting check (expensive operation: 10 req/min)\n@@ -60,8 +60,7 @@ export async function POST(request: Request) {\n       );\n     }\n \n-    const genAI = new GoogleGenerativeAI(apiKey);\n-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });\n+    const genAI = new GoogleGenAI({ apiKey });\n     const generationConfig = {\n       temperature: 0.3, // Lower temperature for faster, more consistent results\n       topK: 10, // Increased for faster token selection\n@@ -86,14 +85,14 @@ export async function POST(request: Request) {\n \n     const parts = [{ text: prompt }];\n \n-    const result = await model.generateContent({\n+    const result = await genAI.models.generateContent({\n+      model: MODEL_NAME,\n       contents: [{ role: \"user\", parts }],\n-      generationConfig,\n-      safetySettings,\n+      config: { ...generationConfig, safetySettings },\n     });\n     let generatedTitle = \"New Chat\"; // Default title\n-    if (result.response?.candidates && result.response.candidates.length > 0) {\n-      const candidate = result.response.candidates[0];\n+    if (result.candidates && result.candidates.length > 0) {\n+      const candidate = result.candidates[0];\n       if (candidate?.content?.parts && candidate.content.parts.length > 0) {\n         // Ensure part.text is defined before trying to access it\n         const textPart = candidate.content.parts[0]?.text;\ndiff --git a/src/lib/api/gemini-api.ts b/src/lib/api/gemini-api.ts\nindex 36f0d49..08b9b86 100644\n--- a/src/lib/api/gemini-api.ts\n+++ b/src/lib/api/gemini-api.ts\n@@ -1,16 +1,13 @@\n-import { GoogleGenerativeAI } from \"@google/generative-ai\";\n import { GoogleGenAI } from \"@google/genai\";\n import type { UploadFileResponse } from \"../types\";\n import type { MessageContent, ChatStreamOptions, ChatMessage } from \"./types\";\n-import { mapToGeminiModelName } from \"./model-helpers\";\n+import { mapToGeminiModelName, GEMINI_IMAGE_MODEL } from \"./model-helpers\";\n \n export class GeminiAPI {\n   private genAI: GoogleGenAI;\n-  private legacyGenAI: GoogleGenerativeAI;\n \n   constructor(apiKey: string) {\n     this.genAI = new GoogleGenAI({ apiKey });\n-    this.legacyGenAI = new GoogleGenerativeAI(apiKey);\n   }\n \n   async generateChatStream(\n@@ -36,19 +33,18 @@ export class GeminiAPI {\n \n   async generateImage(\n     prompt: string,\n-    _model = \"gemini-2.0-flash-preview-image-generation\",\n+    _model = GEMINI_IMAGE_MODEL,\n     _options?: {\n       numberOfImages?: number;\n       aspectRatio?: \"1:1\" | \"3:4\" | \"4:3\" | \"9:16\" | \"16:9\";\n     },\n   ): Promise<{ data: Array<{ url: string }> }> {\n-    const model = this.legacyGenAI.getGenerativeModel({\n-      model: \"gemini-2.0-flash-preview-image-generation\",\n+    const response = await this.genAI.models.generateContent({\n+      model: GEMINI_IMAGE_MODEL,\n+      contents: [{ role: \"user\", parts: [{ text: prompt }] }],\n+      config: { responseModalities: [\"TEXT\", \"IMAGE\"] },\n     });\n-\n-    const result = await model.generateContent([{ text: prompt }]);\n     const images: Array<{ url: string }> = [];\n-    const response = result.response;\n \n     for (const candidate of response.candidates ?? []) {\n       for (const part of candidate.content?.parts ?? []) {\n@@ -300,14 +296,12 @@ export class GeminiAPI {\n   ) {\n     const { contents, systemInstruction } = this.convertToGeminiFormat(messages);\n \n-    const modelConfig = {\n+    const stream = await this.genAI.models.generateContentStream({\n       model: mapToGeminiModelName(modelId),\n-      systemInstruction: systemInstruction,\n-    };\n-\n-    const model = this.legacyGenAI.getGenerativeModel(modelConfig);\n-    const result = await model.generateContentStream({ contents });\n-    return this.createCompatibleStream(result);\n+      contents,\n+      config: systemInstruction ? { systemInstruction } : {},\n+    });\n+    return this.createCompatibleStream(stream);\n   }\n \n   private convertToGeminiFormat(messages: ChatMessage[]) {\n@@ -620,17 +614,17 @@ export class GeminiAPI {\n     }\n   }\n \n-  private async createCompatibleStream(result: {\n-    stream: AsyncIterable<{ text(): string }>;\n-  }) {\n+  private async createCompatibleStream(\n+    stream: AsyncIterable<{ text?: string }>,\n+  ) {\n     const encoder = new TextEncoder();\n \n     return new Response(\n       new ReadableStream({\n         async start(controller) {\n           try {\n-            for await (const chunk of result.stream) {\n-              const text: string = chunk.text();\n+            for await (const chunk of stream) {\n+              const text: string = chunk.text ?? \"\";\n               if (text) {\n                 const payload = JSON.stringify({ token: text, reasoning: \"\" });\n                 controller.enqueue(encoder.encode(`data: ${payload}\\n\\n`));\ndiff --git a/src/lib/api/google-gemini-api.ts b/src/lib/api/google-gemini-api.ts\nindex a7134f2..dbeec5a 100644\n--- a/src/lib/api/google-gemini-api.ts\n+++ b/src/lib/api/google-gemini-api.ts\n@@ -1,3 +1,5 @@\n+import { GEMINI_IMAGE_MODEL } from \"./model-helpers\";\n+\n /**\n  * Google Gemini API for image generation\n  * Uses the direct REST API for image generation capabilities\n@@ -12,7 +14,7 @@ export class GoogleGeminiAPI {\n \n   async generateImage(\n     prompt: string,\n-    _model = \"gemini-2.0-flash-preview-image-generation\",\n+    _model = GEMINI_IMAGE_MODEL,\n     _options?: {\n       numberOfImages?: number;\n       aspectRatio?: \"1:1\" | \"3:4\" | \"4:3\" | \"9:16\" | \"16:9\";\n@@ -30,7 +32,7 @@ export class GoogleGeminiAPI {\n     };\n \n     const response = await fetch(\n-      `${this.baseUrl}/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${this.apiKey}`,\n+      `${this.baseUrl}/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent?key=${this.apiKey}`,\n       {\n         method: \"POST\",\n         headers: { \"Content-Type\": \"application/json\" },\ndiff --git a/src/lib/api/model-helpers.ts b/src/lib/api/model-helpers.ts\nindex 12f6394..666357a 100644\n--- a/src/lib/api/model-helpers.ts\n+++ b/src/lib/api/model-helpers.ts\n@@ -39,21 +39,30 @@ export function modelSupportsThinking(modelId: string): boolean {\n }\n \n /**\n- * Map internal model ID to the actual Gemini API model name\n+ * Gemini API model used for image generation.\n+ * gemini-2.0-flash-preview-image-generation was shut down; internal UI id is kept.\n+ */\n+export const GEMINI_IMAGE_MODEL = \"gemini-2.5-flash-image\";\n+\n+/**\n+ * Map internal model ID to the actual Gemini API model name.\n+ * The gemini-2.0-flash* family (and its exp/preview ids) was shut down on\n+ * 2026-06-01, so those internal ids are remapped to current models.\n+ * Note: gemini-2.5-flash / gemini-2.5-pro reroute on 2026-12-01.\n  */\n export function mapToGeminiModelName(modelId: string): string {\n   switch (modelId) {\n     case \"gemini-2.0-flash-exp\":\n-      return \"gemini-2.0-flash-exp\";\n+    case \"gemini-2.0-flash-lite-exp\":\n     case \"gemini-2.0-flash-thinking-exp\":\n-      return \"gemini-2.0-flash-thinking-exp\";\n+      return \"gemini-2.5-flash-lite\";\n     case \"gemini-2.5-flash-preview-05-20\":\n-      return \"gemini-2.5-flash-preview-05-20\";\n+      return \"gemini-2.5-flash\";\n     case \"gemini-2.5-pro-preview-06-05\":\n-      return \"gemini-2.5-pro-preview-06-05\";\n+      return \"gemini-2.5-pro\";\n     case \"gemini-2.0-flash-preview-image-generation\":\n-      return \"gemini-2.0-flash-preview-image-generation\";\n+      return GEMINI_IMAGE_MODEL;\n     default:\n-      return \"gemini-2.0-flash-exp\";\n+      return \"gemini-2.5-flash-lite\";\n   }\n }\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "proof-models",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.29257720000000004,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-XDTerminated-t2-chat-t3c-2025-gemini-2026-06-01-gemini-2-0-shutdown-4-ognLxb/transcript.jsonl",
+        "prBody": "## 5 changes: gemini-2.0-flash and flash-lite models shut down June 1 2026 and more [Verified]\n\n### Change\n\nChanges 1 and 2 are done. 1: every API call that used a shut-down gemini-2.0-flash* id now uses a current model. `mapToGeminiModelName` returns gemini-2.5-flash-lite for the 2.0 flash, flash-lite and thinking ids, and for the default branch. It returns gemini-2.5-flash for the 2.5 flash preview id and gemini-2.5-pro for the 2.5 pro preview id. The image model is now `gemini-2.5-flash-image` (constant `GEMINI_IMAGE_MODEL`), used by both the SDK path and the raw REST path in google-gemini-api.ts. Title generation uses gemini-2.5-flash-lite. Internal UI/DB model ids are unchanged; only the name sent to the API is remapped. 2: all three `getGenerativeModel` call sites (image generation, the legacy streaming path, and the title route) now use `@google/genai`. `@google/generative-ai` was removed with pnpm, so the lockfile is updated. Typecheck and build pass, and the proof script passes (it failed on the old code). No change for 3, 4 and 5: 3 and 4 take effect on 2026-12-01, and my edit already maps the 2.5 preview ids to gemini-2.5-pro and gemini-2.5-flash. Those two ids are exactly what reroute on that date, so they will need another move before then. I did not add `store:false` for 5: @google/genai 1.35.0 has no typed `store`, and I couldn't confirm the API accepts it via `httpOnly.extraBody`.\n\nFiles touched:\n- `package.json`\n- `pnpm-lock.yaml`\n- `src/app/api/chats/generate-title/route.ts`\n- `src/lib/api/gemini-api.ts`\n- `src/lib/api/google-gemini-api.ts`\n- `src/lib/api/model-helpers.ts`\n\n### Why\n\ngemini-2.0-flash* and its preview image model are shut down, and @google/generative-ai is end of life. Requests using those model ids fail.\n\n> The following Gemini 2.0 models are now [shut down](/docs/deprecations):\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| proof-models | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- proof-models, added by the agent: `export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder' SKIP_ENV_VALIDATION='1'; node .refit-proof/models.mjs` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Before the baseline the harness ran `corepack pnpm@10.2.0 exec prisma generate` (The postinstall hook (prisma generate) did not run because install scripts are off. The client is generated into src/generated/prisma, which the code imports, so typecheck needs it. Build already runs it, but typecheck does not.); it exited 0.\n- Before the baseline the harness ran `npx prisma generate` (The postinstall hook did not run (install scripts are off), and typecheck needs the generated client in src/generated/prisma.); it exited 0.\n- Checks ran with placeholder env: DATABASE_URL, DIRECT_DATABASE_URL, CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, GEMINI_API_KEY, UPLOADTHING_TOKEN, OPENROUTER_API_KEY, SKIP_ENV_VALIDATION.\n\nTest of this change: `proof-models`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- No live call: the new models' output quality and the image response shape (responseModalities TEXT+IMAGE was kept from the old code) are untested.\n- gemini-2.5-flash and gemini-2.5-pro reroute on 2026-12-01 to models that drop thinking_budget and sampling params. Move the mapping and thinking config before then.\n- Whether gemini-2.5-flash-lite handles the thinkingConfig the old thinking-exp path sent (includeThoughts, thinkingBudget).\n- store=false opt-out is not applied (SDK 1.35.0 has no typed field; the REST body could carry it).\n- The legacy fallback and title route now use @google/genai: empty or blocked responses give an empty string instead of the old text() throwing. The title route's safetySettings and sampling params now go under config.\n- The proof is a static script (checks source text), not a request mock.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Gemini 2.0 Flash, Flash Lite and Flash Thinking picker entries now run on gemini-2.5-flash-lite; the labels are unchanged.\n- The 2.5 Flash and 2.5 Pro preview entries now call the stable gemini-2.5-flash and gemini-2.5-pro.\n- Image generation now uses gemini-2.5-flash-image.\n- Title generation now runs on gemini-2.5-flash-lite.\n- Output tone, length and latency may differ on the new models.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-5 · Models: claude-sonnet-5-5 · AI cost: $0.2926\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-5",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-gemini-sdk-major-3e966223",
+          "recipe-gemini-other-9e8975ad"
+        ],
+        "agentChecks": [
+          {
+            "name": "proof-models",
+            "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder' SKIP_ENV_VALIDATION='1'; node .refit-proof/models.mjs",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# XDTerminated/t2-chat-t3c-2025:gemini:2026-06-01-gemini-2-0-shutdown+4: verified, $0.2926\nChange: 5 changes: gemini-2.0-flash and flash-lite models shut down June 1 2026 and more (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass, proof-models fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-|generative-ai|getGenerativeModel|generateContent|generativelanguage glob=src/** → src/app/api/chat/route.ts:47:     \"gemini-2.0-flash-thinking-exp\", | src/app/api/chat/route.ts:48:     \"gemini-2.5-flash-preview-05-20\", | src/app/api/chat/route.ts:49:     \"gemini-2.5-pro-preview-06-05\",\n2. read_file path=src/lib/api/model-helpers.ts → 1\timport { GEMINI_MODELS, GROQ_MODELS } from \"./models\"; | 2\t | 3\t/**\n3. read_file path=src/lib/api/gemini-api.ts → 1\timport { GoogleGenerativeAI } from \"@google/generative-ai\"; | 2\timport { GoogleGenAI } from \"@google/genai\"; | 3\timport type { UploadFileResponse } from \"../types\";\n4. read_file path=src/lib/api/google-gemini-api.ts → 1\t/** | 2\t * Google Gemini API for image generation | 3\t * Uses the direct REST API for image generation capabilities\n5. read_file path=src/lib/api/gemini-api.ts offset=283 limit=80 → 283\t | 284\t      const response = await this.genAI.models.generateContent({ | 285\t        model: mapToGeminiModelName(modelId),\n6. read_file path=src/app/api/chats/generate-title/route.ts → 1\timport { NextResponse } from \"next/server\"; | 2\timport { currentUser } from \"@clerk/nextjs/server\"; | 3\timport {\n7. read_file path=src/lib/api/models.ts limit=60 → 1\timport type { OpenRouterModel } from \"./types\"; | 2\t | 3\t// Gemini models that will use the official Google SDK\n8. shell command=<4737 chars> → exit code: 0 | --- stdout --- | - @google/generative-ai 0.24.1\n9. shell command=<1052 chars> → exit code: 1 | --- stdout --- | --- stderr ---\n10. run_checks add=[{\"name\":\"proof-models\",\"command\":\"node .refit-proof/models.mjs\"}] → registered proof-models; on the original code it fails (1) | ## typecheck: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_te…\n11. shell command=<231 chars> → exit code: 0 | --- stdout --- | src/lib/api/gemini-api.ts:67:      \"gemini-2.0-flash-thinking-exp\",\n12. shell command=<205 chars> → exit code: 1 | --- stdout --- | --- stderr ---\n13. run_checks  → ## typecheck: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]…\n14. shell command=<166 chars> → exit code: 0 | --- stdout --- | ok\n15. run_checks  → ## typecheck: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]…\n16. finish verdict=migrated summary=<1311 chars> why=<139 chars> validators=[] unproven=<834 chars> behaviourChanges=<397 chars> proofTest=proof-models → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, proof-models fail (1) → pass\n\n## Result\nFiles changed: package.json, pnpm-lock.yaml, src/app/api/chats/generate-title/route.ts, src/lib/api/gemini-api.ts, src/lib/api/google-gemini-api.ts, src/lib/api/model-helpers.ts\nVerdict: migrated. Changes 1 and 2 are done. 1: every API call that used a shut-down gemini-2.0-flash* id now uses a current model. `mapToGeminiModelName` returns gemini-2.5-flash-lite for the 2.0 flash, flash-lite and thinking ids, and for the default branch. It returns gemini-2.5-flash for the 2.5 flash preview id and gemini-2.5-pro for the 2.5 pro preview id. The image model is now `gemini-2.5-flash-image` (constant `GEMINI_IMAGE_MODEL`), used by both the SDK path and the raw REST path in google-gemini-api.ts. Title generation uses gemini-2.5-flash-lite. Internal UI/DB model ids are unchanged; only the name sent to the API is remapped. 2: all three `getGenerativeModel` call sites (image generation, the legacy streaming path, and the title route) now use `@google/genai`. `@google/generative-ai` was removed with pnpm, so the lockfile is updated. Typecheck and build pass, and the proof script passes (it failed on the old code). No change for 3, 4 and 5: 3 and 4 take effect on 2026-12-01, and my edit already maps the 2.5 preview ids to gemini-2.5-pro and gemini-2.5-flash. Those two ids are exactly what reroute on that date, so they will need another move before then. I did not add `store:false` for 5: @google/genai 1.35.0 has no typed `store`, and I couldn't confirm the API accepts it via `httpOnly.extraBody`.\nUnproven: No live call: the new models' output quality and the image response shape (responseModalities TEXT+IMAGE was kept from the old code) are untested.; gemini-2.5-flash and gemini-2.5-pro reroute on 2026-12-01 to models that drop thinking_budget and sampling params. Move the mapping and thinking config before then.; Whether gemini-2.5-flash-lite handles the thinkingConfig the old thinking-exp path sent (includeThoughts, thinkingBudget).; store=false opt-out is not applied (SDK 1.35.0 has no typed field; the REST body could carry it).; The legacy fallback and title route now use @google/genai: empty or blocked responses give an empty string instead of the old text() throwing. The title route's safetySettings and sampling params now go under config.; The proof is a static script (checks source text), not a request mock.\n",
+        "preparation": {
+          "steps": [
+            {
+              "command": "corepack pnpm@10.2.0 exec prisma generate",
+              "why": "The postinstall hook (prisma generate) did not run because install scripts are off. The client is generated into src/generated/prisma, which the code imports, so typecheck needs it. Build already runs it, but typecheck does not.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 46ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            },
+            {
+              "command": "npx prisma generate",
+              "why": "The postinstall hook did not run (install scripts are off), and typecheck needs the generated client in src/generated/prisma.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 55ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            }
+          ],
+          "env": {
+            "DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "DIRECT_DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "CLERK_SECRET_KEY": "sk_test_placeholder",
+            "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k",
+            "GEMINI_API_KEY": "placeholder",
+            "UPLOADTHING_TOKEN": "placeholder",
+            "OPENROUTER_API_KEY": "placeholder",
+            "SKIP_ENV_VALIDATION": "1"
+          },
+          "reasoning": "The Prisma generator writes to src/generated/prisma, which is generated code that the checks need. Install scripts were off, so the postinstall hook never ran. The env vars are placeholders so that src/env.js loads during next build. SKIP_ENV_VALIDATION is also set so the build does not fail on placeholder values.\nThe build failed while prerendering /_not-found because Clerk rejected the publishable key 'pk_test_placeholder'. Clerk checks that the part after pk_test_ is base64 of a domain ending in '$'. pk_test_Y2xlcmsuZXhhbXBsZS5jb20k decodes to 'clerk.example.com$', which passes that check without being a real secret. Prisma client generation is the only codegen the repo needs, and the build script already runs it. I list it as a step so typecheck also has the client. The checks export their own NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, so the harness has to use the valid-format value above instead of pk_test_placeholder for the build to pass."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff swaps the retired 2.0 model ids for 2.5 equivalents and moves the remaining legacy SDK call sites to @google/genai, which covers all six named call sites. Typecheck and build pass, and the proof-models check goes from fail to pass. Nothing exercises the migrated runtime paths: title generation, streaming, and image generation. There are also a few behaviour changes the retirement does not force. Pre-existing: modelSupportsThinking in both gemini-api.ts and model-helpers.ts still lists the old preview ids, and isImageGenerationModel still matches the old image model id. These are unchanged by this diff.",
+        "concerns": [
+          {
+            "file": "src/lib/api/model-helpers.ts",
+            "issue": "The 2.5-flash-preview-05-20 and 2.5-pro-preview-06-05 ids are now mapped to gemini-2.5-flash and gemini-2.5-pro. The quoted change only covers 2.0 shutdowns, so this is a scope expansion. The comment says 2.5-flash and 2.5-pro reroute on 2026-12-01, so they are not stable targets. Also, gemini-2.0-flash-thinking-exp is mapped to gemini-2.5-flash-lite, which is a different model and may not honour thinking. The thinking path still runs for that id, so thinkingConfig with includeThoughts is sent to flash-lite. Whether flash-lite accepts it needs checking.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/app/api/chats/generate-title/route.ts",
+            "issue": "The old SDK took generationConfig and safetySettings at top level. They are now merged into config: { ...generationConfig, safetySettings }. The HarmCategory and HarmBlockThreshold enums are imported from @google/genai, and I could not confirm the member names match the old package. Typecheck passing suggests they do. maxOutputTokens: 15 combined with 2.5 models, which may use thinking tokens, could truncate titles or return empty text. The code then falls back to a local title silently.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/gemini-api.ts",
+            "issue": "generateWithLegacySDK now calls genAI.models.generateContentStream with the new SDK. The stream chunk text is a property in the new SDK, and createCompatibleStream now reads chunk.text. The type annotation { text?: string } was changed by hand rather than taken from the SDK's own type, so check it against the SDK's chunk type. No runtime test covers streaming. The function name and the contents/systemInstruction conversion are otherwise unchanged. An empty config object is passed when there is no system instruction, which is probably fine.",
+            "severity": "low"
+          },
+          {
+            "file": "src/lib/api/gemini-api.ts",
+            "issue": "generateImage now ignores the model parameter and hardcodes GEMINI_IMAGE_MODEL, which preserves the old behaviour. The new model gemini-2.5-flash-image is not one I can confirm. Check its name and whether responseModalities ['TEXT','IMAGE'] is accepted in the Gemini changelog source. The REST variant in google-gemini-api.ts has the same dependency.",
+            "severity": "medium"
+          },
+          {
+            "file": "package.json",
+            "issue": "Removing @google/generative-ai is reasonable since no call site remains, but confirm no other file imports it. Only the touched files were shown, and the build passing suggests none do.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Confirm gemini-2.5-flash-image and gemini-2.5-flash-lite exist and are the replacements recommended in the changelog and deprecations page.",
+          "Smoke-test title generation with maxOutputTokens: 15 on gemini-2.5-flash-lite, and check that thinkingConfig is accepted for the flash-lite mapping of gemini-2.0-flash-thinking-exp.",
+          "Run the streaming chat path and image generation against the live API, since the checks only cover types, build, and model names.",
+          "grep for remaining imports of @google/generative-ai and for the old model ids in the UI model list (models.ts), which the diff did not touch."
+        ],
+        "costUsd": 0.04732,
+        "model": "claude-sonnet-5-5"
+      }
+    },
+    {
+      "taskId": "XDTerminated/t2-chat-t3c-2025:groq:2026-03-09-llama4-maverick+4",
+      "changeId": "groq:2026-03-09-llama4-maverick",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "groq",
+        "id": "groq:2026-03-09-llama4-maverick",
+        "kind": "model-retirement",
+        "title": "5 changes: meta-llama/llama-4-maverick-17b-128e-instruct shut down 2026-03-09; use openai/gpt-oss-120b and more",
+        "source": {
+          "url": "https://console.groq.com/docs/deprecations",
+          "quote": "on February 20, 2026, we emailed users to announce the deprecation of meta-llama/llama-4-maverick-17b-128e-instruct in favor of"
+        },
+        "affects": {
+          "operations": ["meta-llama/llama-4-maverick-17b-128e-instruct"]
+        },
+        "effectiveDate": "2026-03-09"
+      },
+      "reasoning": "This one task covers all 5 groq changes that affect this repo. Handle every one of them in this single change set, prove each with your test, and say in finish which you changed and which needed no change.\n\n1. meta-llama/llama-4-maverick-17b-128e-instruct shut down 2026-03-09; use openai/gpt-oss-120b (model-retirement, effective 2026-03-09)\n   Source: https://console.groq.com/docs/deprecations\n   Quote: on February 20, 2026, we emailed users to announce the deprecation of meta-llama/llama-4-maverick-17b-128e-instruct in favor of\n   Affects: operations: meta-llama/llama-4-maverick-17b-128e-instruct\n   Call sites: src/lib/api/groq-api.ts:51 (Raw HTTP chat request to api.groq.com with a model chosen at runtime. If the app offers meta-llama/llama-4-maverick-17b-128e-instruct, those requests have failed since 2026-03-09.)\n   Why it applies: The model ID is not in the usage map. T3-chat-style clones commonly list Llama 4 Maverick as a Groq model, and it is already shut down, so any user who selects it gets errors. The migration agent should grep the repo (groq-api.ts, model lists or constants, UI selectors) for 'llama-4-maverick'. Replace it with openai/gpt-oss-120b and update the display labels.\n\n2. moonshotai/kimi-k2-instruct-0905 shut down 2026-04-15; use openai/gpt-oss-120b (model-retirement, effective 2026-04-15)\n   Source: https://console.groq.com/docs/deprecations\n   Quote: on March 23, 2026, we emailed users to announce the deprecation of moonshotai/kimi-k2-instruct-0905 in favor of\n   Affects: operations: moonshotai/kimi-k2-instruct-0905\n   Call sites: src/lib/api/groq-api.ts:51 (Raw HTTP chat request with a runtime model. If moonshotai/kimi-k2-instruct-0905 is offered, it has failed since 2026-04-15.)\n   Why it applies: It is uncertain whether the repo names this model, because the usage map lacks model IDs for the Groq call. It is already retired, so if it is present the chat calls break right now. The migration agent should grep for 'kimi-k2'. Replace it with openai/gpt-oss-120b in the model registry and the request body.\n\n3. qwen/qwen3-32b and meta-llama/llama-4-scout-17b-16e-instruct shut down 2026-07-17; use openai/gpt-oss-120b or qwen/qwen3.6-27b (model-retirement, effective 2026-07-17)\n   Source: https://console.groq.com/docs/deprecations\n   Quote: on June 17, 2026, we emailed users to announce the deprecation of qwen/qwen3-32b and meta-llama/llama-4-scout-17b-16e-instruct.\n   Affects: operations: qwen/qwen3-32b, meta-llama/llama-4-scout-17b-16e-instruct\n   Call sites: src/lib/api/groq-api.ts:51 (Raw HTTP chat request with a runtime model. If qwen/qwen3-32b or meta-llama/llama-4-scout-17b-16e-instruct is offered, those requests fail from 2026-07-17.)\n   Why it applies: Both are popular Groq chat models that a multi-model chat app likely exposes, but the model IDs are not recorded, so the agent must verify. Grep for 'qwen3-32b' and 'llama-4-scout'. Replace them with openai/gpt-oss-120b or qwen/qwen3.6-27b. If the Qwen3 model is used for reasoning, check any reasoning-specific params.\n\n4. llama-3.1-8b-instant and llama-3.3-70b-versatile shut down 2026-08-16 (free/developer tiers); use openai/gpt-oss-20b, openai/gpt-oss-120b or qwen/qwen3.6-27b (model-retirement, effective 2026-08-16)\n   Source: https://console.groq.com/docs/deprecations\n   Quote: on June 17, 2026, we emailed users to announce the deprecation of llama-3.1-8b-instant and llama-3.3-70b-versatile.\n   Affects: operations: llama-3.1-8b-instant, llama-3.3-70b-versatile\n   Call sites: src/lib/api/groq-api.ts:51 (Raw HTTP chat request with a runtime model. llama-3.3-70b-versatile and llama-3.1-8b-instant are the most common Groq defaults and are likely used here. They shut down on 2026-08-16.)\n   Why it applies: These are Groq's flagship Llama chat models and very likely appear in this chat app's Groq model list or as defaults. Model IDs are not in the usage map, so the agent should grep for 'llama-3.3-70b-versatile' and 'llama-3.1-8b-instant'. Replace them with openai/gpt-oss-120b or openai/gpt-oss-20b (or qwen/qwen3.6-27b) and update any defaults and labels.\n\n5. meta-llama/llama-guard-4-12b shut down 2026-03-05; use openai/gpt-oss-safeguard-20b (model-retirement, effective 2026-03-05)\n   Source: https://console.groq.com/docs/deprecations\n   Quote: on February 10, 2026, we emailed users to announce the deprecation of meta-llama/llama-guard-4-12b in favor of\n   Affects: operations: meta-llama/llama-guard-4-12b\n   Call sites: src/lib/api/groq-api.ts:51 (The only Groq call site is a raw HTTP POST with a URL and model built at runtime. If meta-llama/llama-guard-4-12b is in the model list or passed here, requests have failed since 2026-03-05.)\n   Why it applies: The usage map does not record which Groq model IDs the repo sends. A guard or moderation model is less likely in a chat client than the chat models, but it cannot be ruled out. The migration agent should search groq-api.ts and the model registry/selector for 'llama-guard-4-12b'. If found, switch it to openai/gpt-oss-safeguard-20b. If absent, close the task.",
+      "callSites": [
+        {
+          "file": "src/lib/api/groq-api.ts",
+          "line": 51,
+          "why": "Raw HTTP chat request to api.groq.com with a model chosen at runtime. If the app offers meta-llama/llama-4-maverick-17b-128e-instruct, those requests have failed since 2026-03-09."
+        },
+        {
+          "file": "src/lib/api/groq-api.ts",
+          "line": 51,
+          "why": "Raw HTTP chat request with a runtime model. If moonshotai/kimi-k2-instruct-0905 is offered, it has failed since 2026-04-15."
+        },
+        {
+          "file": "src/lib/api/groq-api.ts",
+          "line": 51,
+          "why": "Raw HTTP chat request with a runtime model. If qwen/qwen3-32b or meta-llama/llama-4-scout-17b-16e-instruct is offered, those requests fail from 2026-07-17."
+        },
+        {
+          "file": "src/lib/api/groq-api.ts",
+          "line": 51,
+          "why": "Raw HTTP chat request with a runtime model. llama-3.3-70b-versatile and llama-3.1-8b-instant are the most common Groq defaults and are likely used here. They shut down on 2026-08-16."
+        },
+        {
+          "file": "src/lib/api/groq-api.ts",
+          "line": 51,
+          "why": "The only Groq call site is a raw HTTP POST with a URL and model built at runtime. If meta-llama/llama-guard-4-12b is in the model list or passed here, requests have failed since 2026-03-05."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "XDTerminated/t2-chat-t3c-2025:groq:2026-03-09-llama4-maverick+4",
+        "outcome": "verified",
+        "diff": "diff --git a/src/app/api/chat/route.ts b/src/app/api/chat/route.ts\nindex 682076e..cc88368 100644\n--- a/src/app/api/chat/route.ts\n+++ b/src/app/api/chat/route.ts\n@@ -48,7 +48,7 @@ function modelSupportsThinking(modelId: string): boolean {\n     \"gemini-2.5-flash-preview-05-20\",\n     \"gemini-2.5-pro-preview-06-05\",\n     \"deepseek-r1-distill-llama-70b\",\n-    \"qwen/qwen3-32b\",\n+    \"qwen/qwen3.6-27b\",\n   ];\n   return thinkingModels.includes(modelId);\n }\ndiff --git a/src/lib/api/model-helpers.ts b/src/lib/api/model-helpers.ts\nindex 12f6394..0c69501 100644\n--- a/src/lib/api/model-helpers.ts\n+++ b/src/lib/api/model-helpers.ts\n@@ -33,7 +33,7 @@ export function modelSupportsThinking(modelId: string): boolean {\n     \"gemini-2.5-pro-preview-06-05\",\n     // Groq thinking models\n     \"deepseek-r1-distill-llama-70b\",\n-    \"qwen/qwen3-32b\",\n+    \"qwen/qwen3.6-27b\",\n   ];\n   return thinkingModels.includes(modelId);\n }\ndiff --git a/src/lib/api/models.ts b/src/lib/api/models.ts\nindex c512b25..ec3f9fc 100644\n--- a/src/lib/api/models.ts\n+++ b/src/lib/api/models.ts\n@@ -56,15 +56,15 @@ export const GROQ_MODELS: OpenRouterModel[] = [\n     capabilities: [\"reasoning\", \"thinking\"],\n   },\n   {\n-    id: \"meta-llama/llama-4-maverick-17b-128e-instruct\",\n-    name: \"Llama 4 Maverick 17B\",\n+    id: \"openai/gpt-oss-120b\",\n+    name: \"GPT OSS 120B\",\n     contextLength: 131072,\n     provider: \"Groq\",\n     capabilities: [],\n   },\n   {\n-    id: \"qwen/qwen3-32b\",\n-    name: \"Qwen 3 32B\",\n+    id: \"qwen/qwen3.6-27b\",\n+    name: \"Qwen 3.6 27B\",\n     contextLength: 32768,\n     provider: \"Groq\",\n     capabilities: [\"reasoning\", \"thinking\"],\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "models-proof-cjs",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.20452800000000002,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-XDTerminated-t2-chat-t3c-2025-groq-2026-03-09-llama4-maverick-4-o85frr/transcript.jsonl",
+        "prBody": "## 5 changes: meta-llama/llama-4-maverick-17b-128e-instruct shut down 2026-03-09; use openai/gpt-oss-120b and more [Verified]\n\n### Change\n\nChanged two of the five groq notices. (1) Maverick: GROQ_MODELS in src/lib/api/models.ts now lists openai/gpt-oss-120b (\"GPT OSS 120B\") in place of meta-llama/llama-4-maverick-17b-128e-instruct. (3) qwen/qwen3-32b (shut down 2026-07-17): replaced by qwen/qwen3.6-27b in models.ts and in both thinking-model lists (model-helpers.ts and api/chat/route.ts). Needed no change because the repo has no references: kimi-k2 (2), llama-4-scout (3), llama-3.1-8b-instant and llama-3.3-70b-versatile (4), llama-guard-4 (5). The raw HTTP call in groq-api.ts takes the model from the list, so it needed no edit. Not touched: deepseek-r1-distill-llama-70b, which is not in these notices, and the OpenRouter ids (a different provider). The proof is a static source scan, .refit-proof/models.test.cjs, which fails on the original code and passes now. Typecheck and build pass.\n\nFiles touched:\n- `src/app/api/chat/route.ts`\n- `src/lib/api/model-helpers.ts`\n- `src/lib/api/models.ts`\n\n### Why\n\nGroq shut down the Maverick and Qwen3-32B model IDs the app offered in its Groq picker, so requests using them fail.\n\n> on February 20, 2026, we emailed users to announce the deprecation of meta-llama/llama-4-maverick-17b-128e-instruct in favor of\n\nSource: https://console.groq.com/docs/deprecations\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| models-proof-cjs | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- models-proof-cjs, added by the agent: `export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder' SKIP_ENV_VALIDATION='1'; node .refit-proof/models.test.cjs` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Before the baseline the harness ran `corepack pnpm@10.2.0 exec prisma generate` (The postinstall hook (prisma generate) did not run with install scripts off. The Prisma client is generated into src/generated/prisma, and typecheck needs it.); it exited 0.\n- Before the baseline the harness ran `npx prisma generate` (The postinstall hook did not run, and typecheck imports the generated client in src/generated/prisma.); it exited 0.\n- Checks ran with placeholder env: DATABASE_URL, DIRECT_DATABASE_URL, CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, GEMINI_API_KEY, UPLOADTHING_TOKEN, OPENROUTER_API_KEY, SKIP_ENV_VALIDATION.\n\nTest of this change: `models-proof-cjs`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- I did not check the model IDs qwen/qwen3.6-27b and openai/gpt-oss-120b against Groq's live model list. The IDs come from the notice text.\n- The request still sends temperature 0.7 and max_tokens 4096. I did not check that the replacement models accept them. gpt-oss models reason, so the token cap may also cover reasoning tokens.\n- The thinking and reasoning display is untested for the new models. gpt-oss-120b is listed with no reasoning capability, so its reasoning output is not parsed or shown as thinking.\n- Saved chat history or user settings may still hold the old model IDs. I did not migrate stored data.\n- deepseek-r1-distill-llama-70b was not in these notices and was left alone. Check it separately, because Groq may have retired it already.\n- The proof test is a static source scan. It does not check what is sent to Groq.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Users who pick the former Maverick slot now get GPT OSS 120B. Users who pick the former Qwen 3 32B slot now get Qwen 3.6 27B. Tone, length and reasoning output will differ.\n- The model-identity system prompt matches on the model ID, so it changes. Maverick no longer matches 'llama' and now gets the generic assistant prompt. The Qwen ID still matches 'qwen'.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-5 · Models: claude-sonnet-5-5 · AI cost: $0.2045\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-5",
+        "recipeIds": [
+          "recipe-groq-model-retirement-c41887d1",
+          "recipe-anthropic-model-retirement-9b5d480a",
+          "recipe-openai-model-retirement-58a73d88"
+        ],
+        "agentChecks": [
+          {
+            "name": "models-proof-cjs",
+            "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder' SKIP_ENV_VALIDATION='1'; node .refit-proof/models.test.cjs",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# XDTerminated/t2-chat-t3c-2025:groq:2026-03-09-llama4-maverick+4: verified, $0.2045\nChange: 5 changes: meta-llama/llama-4-maverick-17b-128e-instruct shut down 2026-03-09; use openai/gpt-oss-120b and more (groq, model-retirement)\nBaseline checks: typecheck pass, build pass, models-proof-cjs fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=llama|kimi|qwen|gpt-oss|guard|versatile|instant|groq glob=**/*.{ts,tsx,js,json,md,mjs} → src/app/api/chat/route.ts:37:   groqApiKey?: string; // User's Groq API key | src/app/api/chat/route.ts:50:     \"deepseek-r1-distill-llama-70b\", | src/app/api/chat/route.ts:51:     \"qwen/qwen3-32b\",\n2. read_file path=src/lib/api/models.ts limit=80 → 1\timport type { OpenRouterModel } from \"./types\"; | 2\t | 3\t// Gemini models that will use the official Google SDK\n3. read_file path=src/app/api/chat/route.ts offset=40 limit=30 → 40\t  thinkingEnabled?: boolean; | 41\t  thinkingBudget?: number; | 42\t};\n4. read_file path=src/app/api/chat/route.ts offset=265 limit=30 → 265\t          }, | 266\t          { status: 500 }, | 267\t        );\n5. read_file path=src/lib/api/model-helpers.ts limit=60 → 1\timport { GEMINI_MODELS, GROQ_MODELS } from \"./models\"; | 2\t | 3\t/**\n6. read_file path=src/lib/api/groq-api.ts → 1\timport type { MessageContent, ChatStreamOptions, ChatMessage } from \"./types\"; | 2\t | 3\texport class GroqAPI {\n7. edit_file path=src/lib/api/models.ts old=<220 chars> new=<190 chars> → edited src/lib/api/models.ts (1 replacement)\n8. edit_file path=src/lib/api/model-helpers.ts old=\"qwen/qwen3-32b\" new=\"qwen/qwen3.6-27b\" → edited src/lib/api/model-helpers.ts (1 replacement)\n9. edit_file path=src/app/api/chat/route.ts old=\"qwen/qwen3-32b\" new=\"qwen/qwen3.6-27b\" → edited src/app/api/chat/route.ts (1 replacement)\n10. write_file path=.refit-proof/models.test.js content=<841 chars> → wrote .refit-proof/models.test.js (841 bytes)\n11. run_checks add=[{\"name\":\"models-proof\",\"command\":\"node .refit-proof/models.test.js\"}] → registered models-proof; on the original code it fails (1) | ## typecheck: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_te…\n12. shell command=<96 chars> → exit code: 0 | --- stdout --- | ok 1\n13. run_checks names=[\"models-proof-cjs\"] add=[{\"name\":\"models-proof-cjs\",\"command\":\"node .refit-proof/models.test.cjs\"}] remove=[\"models-proof\"] → removed models-proof | registered models-proof-cjs; on the original code it fails (1) | ## models-proof-cjs: pass\n14. finish verdict=migrated summary=<860 chars> why=<116 chars> validators=[] unproven=<841 chars> behaviourChanges=<363 chars> proofTest=models-proof-cjs → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, models-proof-cjs fail (1) → pass\n\n## Result\nFiles changed: src/app/api/chat/route.ts, src/lib/api/model-helpers.ts, src/lib/api/models.ts\nVerdict: migrated. Changed two of the five groq notices. (1) Maverick: GROQ_MODELS in src/lib/api/models.ts now lists openai/gpt-oss-120b (\"GPT OSS 120B\") in place of meta-llama/llama-4-maverick-17b-128e-instruct. (3) qwen/qwen3-32b (shut down 2026-07-17): replaced by qwen/qwen3.6-27b in models.ts and in both thinking-model lists (model-helpers.ts and api/chat/route.ts). Needed no change because the repo has no references: kimi-k2 (2), llama-4-scout (3), llama-3.1-8b-instant and llama-3.3-70b-versatile (4), llama-guard-4 (5). The raw HTTP call in groq-api.ts takes the model from the list, so it needed no edit. Not touched: deepseek-r1-distill-llama-70b, which is not in these notices, and the OpenRouter ids (a different provider). The proof is a static source scan, .refit-proof/models.test.cjs, which fails on the original code and passes now. Typecheck and build pass.\nUnproven: I did not check the model IDs qwen/qwen3.6-27b and openai/gpt-oss-120b against Groq's live model list. The IDs come from the notice text.; The request still sends temperature 0.7 and max_tokens 4096. I did not check that the replacement models accept them. gpt-oss models reason, so the token cap may also cover reasoning tokens.; The thinking and reasoning display is untested for the new models. gpt-oss-120b is listed with no reasoning capability, so its reasoning output is not parsed or shown as thinking.; Saved chat history or user settings may still hold the old model IDs. I did not migrate stored data.; deepseek-r1-distill-llama-70b was not in these notices and was left alone. Check it separately, because Groq may have retired it already.; The proof test is a static source scan. It does not check what is sent to Groq.\n",
+        "preparation": {
+          "steps": [
+            {
+              "command": "corepack pnpm@10.2.0 exec prisma generate",
+              "why": "The postinstall hook (prisma generate) did not run with install scripts off. The Prisma client is generated into src/generated/prisma, and typecheck needs it.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 51ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            },
+            {
+              "command": "npx prisma generate",
+              "why": "The postinstall hook did not run, and typecheck imports the generated client in src/generated/prisma.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 105ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            }
+          ],
+          "env": {
+            "DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "DIRECT_DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "CLERK_SECRET_KEY": "sk_test_placeholder",
+            "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk",
+            "GEMINI_API_KEY": "placeholder",
+            "UPLOADTHING_TOKEN": "placeholder",
+            "OPENROUTER_API_KEY": "placeholder",
+            "SKIP_ENV_VALIDATION": "1"
+          },
+          "reasoning": "The only setup step the checks need is prisma generate, which the postinstall hook would normally have run. The schema's generator outputs to src/generated/prisma, which the app imports, so tsc fails without it. The build script already runs prisma generate itself, but typecheck runs separately. The env vars are placeholders so next.config.js can load src/env.js. SKIP_ENV_VALIDATION=1 avoids validation failures during the build.\nThe build already runs prisma generate itself. It failed while prerendering /_not-found because Clerk rejects the publishable key pk_test_placeholder: a valid key is pk_test_ plus a base64-encoded frontend domain ending in $. The env value above decodes to example.clerk.accounts.dev$, so it passes Clerk's format check without being a real secret. The harness's check commands export their own pk_test_placeholder, which would override this value, so the harness's key may need to change too. Typecheck needs the generated Prisma client, and the added prisma generate step provides it."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff swaps the retired Llama 4 Maverick Groq ID for openai/gpt-oss-120b and, in the same change, replaces qwen/qwen3-32b with qwen/qwen3.6-27b across models.ts and both thinking-model lists. The call site in groq-api.ts passes the model string through unchanged, so no code change is needed there. The qwen3.6-27b ID and the \"5 changes\" scope are not confirmed by the quoted source, which mentions only Maverick, and I could not confirm that qwen/qwen3.6-27b is a valid Groq model; check the Groq deprecations page. The bigger problems are behavioural. The Llama-to-GPT-OSS swap silently drops the Llama identity prompt, and gpt-oss is a reasoning model whose output is not handled by the existing <think>-tag stream parsing. The 'verified' grade rests on typecheck, build and a models-proof check that only shows IDs are present, with no live Groq call or streaming test. Pre-existing: modelSupportsThinking is duplicated in route.ts and model-helpers.ts, and the drift risk is why both had to be edited.",
+        "concerns": [
+          {
+            "file": "src/lib/api/models.ts",
+            "issue": "qwen/qwen3.6-27b is not confirmed as a valid Groq model ID from the quoted source, which only names Maverick. The Qwen replacement also keeps contextLength 32768 and the thinking capabilities from the old Qwen 3 32B, which may not match the new model.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/models.ts",
+            "issue": "openai/gpt-oss-120b is a reasoning model, but it is listed with capabilities: [] and is not in either thinkingModels list. Its reasoning output may arrive in a different field (e.g. delta.reasoning) that the route's <think>-tag parser ignores. The 131072 context length is carried over from Maverick and unverified.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/app/api/chat/route.ts",
+            "issue": "getModelIdentity matched modelId.includes(\"llama\") for Maverick. openai/gpt-oss-120b now falls to the generic prompt, and qwen/qwen3.6-27b still matches \"qwen\". This is a small behaviour change beyond what the retirement forces.",
+            "severity": "low"
+          },
+          {
+            "file": "src/lib/api/groq-api.ts",
+            "issue": "The request still sends max_tokens: 4096 and temperature 0.7. Whether the new models accept these (gpt-oss may prefer max_completion_tokens) and whether the token cap truncates reasoning output is untested. No live call proves the new IDs work.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/models.ts",
+            "issue": "Persisted chats or user settings that stored the old model IDs are not migrated. They would fall through isGroqModel and be routed as OpenRouter, producing a confusing API-key error.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Confirm on https://console.groq.com/docs/deprecations and the Groq models list that openai/gpt-oss-120b and qwen/qwen3.6-27b are valid IDs and are the recommended replacements.",
+          "Make one live streaming request to each new model and check that the response parses and the thinking/reasoning output renders.",
+          "Check whether the stored chat or model-preference code can reference the old IDs (e.g. localStorage or a DB model field).",
+          "Check what models-proof-cjs actually asserts."
+        ],
+        "costUsd": 0.034642,
+        "model": "claude-sonnet-5-5"
+      }
+    },
+    {
+      "taskId": "XDTerminated/t2-chat-t3c-2025:clerk:nextjs-7-0-0-core-3",
+      "changeId": "clerk:nextjs-7-0-0-core-3",
+      "kind": "sdk-major",
+      "change": {
+        "provider": "clerk",
+        "id": "clerk:nextjs-7-0-0-core-3",
+        "kind": "sdk-major",
+        "title": "@clerk/nextjs (npm) 7.0.0 (Core 3): requires Next.js 15.2.8+/16.0.10+ and Node 20.9+, renames unstable/experimental APIs, removes deprecated props",
+        "source": {
+          "url": "https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3",
+          "quote": "Support for Next.js 13 and 14 has been dropped. @clerk/nextjs now requires Next.js 15.2.8 or later. On Next.js 16, it requires 16.0.10 or later."
+        },
+        "affects": {
+          "operations": [
+            "__unstable_invokeMiddlewareOnAuthStateChange",
+            "useAuth().getToken",
+            "clerkMiddleware"
+          ],
+          "versions": ["<7.0.0", "7.0.0"],
+          "sdk": "@clerk/nextjs"
+        },
+        "effectiveDate": "2026-03-03"
+      },
+      "reasoning": "The repo is on @clerk/nextjs 6.36.7, and 7.0.0 (Core 3) is the current major. The upgrade requires Next.js 15.2.8+ or 16.0.10+ and Node 20.9+; the migration agent must check the repo's Next version first. Server-side auth() and currentUser() calls are largely unchanged. The client hooks, the middleware and the sign-in flows need checking against the bundled Core 3 changes. Nothing breaks while the repo stays on 6.x, so urgency is low-to-medium, but 6.x will fall behind on fixes.\nThis task also resolves these changes. Handle each in the same change, and say in the PR how:\n- clerk:core3-gettoken-behavior (other): Core 3: getToken() throws ClerkOfflineError when offline (instead of null) and throws on server instead of being undefined. This only bites after the 7.0 upgrade. useAuth is used in chatbox.tsx, ChatContext.tsx, app-sidebar.tsx and others, and the getToken() callers that expect null offline must handle ClerkOfflineError.\n  Source: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3\n  \"getToken() now throws a ClerkOfflineError instead of returning null when the browser is offline.\"\n- clerk:core3-show-replaces-protect-signedin-signedout (sdk-major): @clerk/nextjs 7: Protect, SignedIn, SignedOut removed in favor of Show. SignedIn, SignedOut and Protect are removed in 7.0. If any component (sidebar, top-right icons, layout) uses them, switch to Show as part of the upgrade.\n  Source: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3\n  \"Protect, SignedIn, and SignedOut are replaced by a single Show component.\"\n- clerk:core3-removed-deprecated-apis (field-renamed): Core 3 (@clerk/nextjs 7): saml strategy/samlAccount(s)/UserSettings.saml renamed to enterprise_sso/enterpriseAccount(s)/enterpriseSSO; appearance.layout renamed appearance.options; legacy redirect props and Client.activeSessions removed. Legacy redirect props (afterSignInUrl, redirectUrl) and appearance.layout are removed in 7.0. The sign-in pages may use them; fix them during the upgrade.\n  Source: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3\n  \"The saml authentication strategy has been renamed to enterprise_sso.\"\n- clerk:core3-setactive-beforeemit-navigate (field-renamed): Core 3: setActive({ beforeEmit }) replaced by setActive({ navigate }) with changed callback signature. sign-in/google/page.tsx uses useSignIn and probably calls setActive. Any beforeEmit callback there must become navigate during the upgrade.\n  Source: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3\n  \"The beforeEmit callback in setActive() has been replaced with navigate.\"\n- clerk:core3-auth-protect-401 (other): Core 3 @clerk/nextjs: auth.protect() returns 401 instead of 404 for unauthenticated server actions. The behaviour changes only on 7.0. If middleware.ts calls auth.protect(), unauthenticated server actions get 401 instead of 404.\n  Source: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3\n  \"auth.protect() in clerkMiddleware() now returns a 401 Unauthorized response instead of a 404 Not Found when an unauthenticated request is made from a server action.\"\n- clerk:core3-nextjs-encryption-key (auth-change): Core 3 @clerk/nextjs: CLERK_ENCRYPTION_KEY required when passing secretKey at runtime to clerkMiddleware(). This applies only on 7.0 and only if middleware.ts passes secretKey at runtime to clerkMiddleware. Verify during the upgrade.\n  Source: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3\n  \"When passing secretKey as a runtime option to clerkMiddleware(), you must now also provide a CLERK_ENCRYPTION_KEY environment variable.\"\n- clerk:core3-cachecomponents-clerkprovider (other): Core 3 @clerk/nextjs: ClerkProvider must be inside body for Next.js 16 Cache Components. This applies only on 7.0 with Next 16 Cache Components. Check where ClerkProvider sits in the root layout during the upgrade.\n  Source: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3\n  \"This prevents \"Uncached data was accessed outside of \" errors.\"",
+      "callSites": [
+        {
+          "file": "src/middleware.ts",
+          "line": 5,
+          "why": "Uses clerkMiddleware. Core 3 changes its options and auth.protect behaviour, and requires CLERK_ENCRYPTION_KEY if secretKey is passed at runtime."
+        },
+        {
+          "file": "src/app/sign-in/google/page.tsx",
+          "line": 8,
+          "why": "Uses useSignIn. Any setActive({ beforeEmit }) here must become navigate."
+        },
+        {
+          "file": "src/app/sign-in/[[...sign-in]]/page.tsx",
+          "line": 8,
+          "why": "Uses useAuth. The sign-in page may use the removed redirect or appearance props."
+        },
+        {
+          "file": "src/contexts/ChatContext.tsx",
+          "line": 200,
+          "why": "Uses useAuth. getToken now throws ClerkOfflineError instead of returning null."
+        },
+        {
+          "file": "src/components/chatbox.tsx",
+          "line": 39,
+          "why": "Uses useAuth; same getToken behaviour change."
+        },
+        {
+          "file": "src/components/app-sidebar.tsx",
+          "line": 22,
+          "why": "Uses useAuth and useUser. The sidebar may use SignedIn or SignedOut."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "XDTerminated/t2-chat-t3c-2025:clerk:nextjs-7-0-0-core-3",
+        "outcome": "verified",
+        "diff": "diff --git a/package.json b/package.json\nindex 8c84352..38b4bb9 100644\n--- a/package.json\n+++ b/package.json\n@@ -18,7 +18,7 @@\n     \"typecheck\": \"tsc --noEmit\"\n   },\n   \"dependencies\": {\n-    \"@clerk/nextjs\": \"^6.36.7\",\n+    \"@clerk/nextjs\": \"^7.9.24\",\n     \"@google/genai\": \"^1.35.0\",\n     \"@google/generative-ai\": \"^0.24.1\",\n     \"@lexical/code\": \"^0.31.2\",\ndiff --git a/pnpm-lock.yaml b/pnpm-lock.yaml\nindex f6cef70..3ff1847 100644\n--- a/pnpm-lock.yaml\n+++ b/pnpm-lock.yaml\n@@ -9,8 +9,8 @@ importers:\n   .:\n     dependencies:\n       '@clerk/nextjs':\n-        specifier: ^6.36.7\n-        version: 6.36.7(next@15.5.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n+        specifier: ^7.9.24\n+        version: 7.9.24(next@15.5.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n       '@google/genai':\n         specifier: ^1.35.0\n         version: 1.35.0\n@@ -212,28 +212,28 @@ packages:\n   '@chevrotain/utils@10.5.0':\n     resolution: {integrity: sha512-hBzuU5+JjB2cqNZyszkDHZgOSrUUT8V3dhgRl8Q9Gp6dAj/H5+KILGjbhDpc3Iy9qmqlm/akuOI2ut9VUtzJxQ==}\n \n-  '@clerk/backend@2.29.2':\n-    resolution: {integrity: sha512-HflWfWG0jfnOB++3bu1N0lzAgOuapJRmkfX1jdtF3M+Wn4QVHczLMt2To9VIGiTt62+kRUWLV4SONzVvCoOcsA==}\n-    engines: {node: '>=18.17.0'}\n+  '@clerk/backend@3.26.6':\n+    resolution: {integrity: sha512-tm2ZWWFW+qBzW9SkdR0RxL++hww/ArtTzrtsu8k2cCXJIVGKaIMl/5tKi+4wy7iouvgk33Bs22fv3vKJ0RRrHg==}\n+    engines: {node: '>=20.9.0'}\n \n-  '@clerk/clerk-react@5.59.3':\n-    resolution: {integrity: sha512-r1gmAYxhXs+QkXjDwj5Eqvm0Io8PtJ4FKkA45khiAzIQXcaQLFq/wFy7d1K8OSIYAIdFbuO0bnIOU/FdgWOc+A==}\n-    engines: {node: '>=18.17.0'}\n+  '@clerk/nextjs@7.9.24':\n+    resolution: {integrity: sha512-XvzqiPB131pua3AV/jMz2y2VooJSva4XE5LfnbG+djSeHzZdmOmP5D9nGZ9kiUtUaRR8k/zjvTgbifHk8TI5Iw==}\n+    engines: {node: '>=20.9.0'}\n     peerDependencies:\n+      next: ^15.2.8 || ^15.3.8 || ^15.4.10 || ^15.5.9 || ^15.6.0-0 || ^16.0.10 || ^16.1.0-0\n       react: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0\n       react-dom: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0\n \n-  '@clerk/nextjs@6.36.7':\n-    resolution: {integrity: sha512-sH+bZsdKAdxAL6/E6w3QZarDz6Y2F1pavp1eAZRVitckiZFZJMzBDdNC6K1vOyQdzke1Y3jUwLcHfIF+oswBOA==}\n-    engines: {node: '>=18.17.0'}\n+  '@clerk/react@6.18.5':\n+    resolution: {integrity: sha512-zljTeKwyo27xmFPEmUB7mG2TC9GmtaSy8CxnwUTzG3Awu6iaMS3HPw1Qk7yJh1HySfTTsOuIP8XqkDJ/vELNMA==}\n+    engines: {node: '>=20.9.0'}\n     peerDependencies:\n-      next: ^13.5.7 || ^14.2.25 || ^15.2.3 || ^16\n       react: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0\n       react-dom: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0\n \n-  '@clerk/shared@3.42.0':\n-    resolution: {integrity: sha512-sJUur/7jnHHlAsdoDosxpOmfV05VR7K5rvqlFskj3GaAMFEJrvdOztw0hmhBGVSWiCpjTZfdGITegton8mo7mQ==}\n-    engines: {node: '>=18.17.0'}\n+  '@clerk/shared@4.44.0':\n+    resolution: {integrity: sha512-cSkplKEZZStBciwo+4iJZOg44rfs/C2jlMPwim4t6dVn2wykUts5NVr0HVote7XNAXP5s0A+UzV1n6pkz4CCHg==}\n+    engines: {node: '>=20.9.0'}\n     peerDependencies:\n       react: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0\n       react-dom: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0\n@@ -243,10 +243,6 @@ packages:\n       react-dom:\n         optional: true\n \n-  '@clerk/types@4.101.10':\n-    resolution: {integrity: sha512-qlmgnAm/IeK02RKEKVN8/Glx07xw/Lcv67jBfikM8HXhHc5v7bfYLD8UiWTr6H2RGtvB09cIt9JezRRlsuVBew==}\n-    engines: {node: '>=18.17.0'}\n-\n   '@effect/platform@0.90.3':\n     resolution: {integrity: sha512-XvQ37yzWQKih4Du2CYladd1i/MzqtgkTPNCaN6Ku6No4CK83hDtXIV/rP03nEoBg2R3Pqgz6gGWmE2id2G81HA==}\n     peerDependencies:\n@@ -1180,6 +1176,9 @@ packages:\n   '@tailwindcss/postcss@4.1.18':\n     resolution: {integrity: sha512-Ce0GFnzAOuPyfV5SxjXGn0CubwGcuDB0zcdaPuCSzAa/2vII24JTkH+I6jcbXLb1ctjZMZZI6OjDaLPJQL1S0g==}\n \n+  '@tanstack/query-core@5.105.3':\n+    resolution: {integrity: sha512-v1rbNy7MB/4Akth7CQH+CerV13K7Ok9hAusEsfz4sCjDdu3/kOSJPoWfoB+YjdEX1eBFBWKNAGE5nqZCgdlHDw==}\n+\n   '@tybys/wasm-util@0.10.1':\n     resolution: {integrity: sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==}\n \n@@ -1709,9 +1708,6 @@ packages:\n     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}\n     engines: {node: '>= 8'}\n \n-  csstype@3.1.3:\n-    resolution: {integrity: sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==}\n-\n   csstype@3.2.3:\n     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}\n \n@@ -2558,9 +2554,8 @@ packages:\n     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}\n     hasBin: true\n \n-  js-cookie@3.0.5:\n-    resolution: {integrity: sha512-cEiJEAEoIbWfCZYKWhVwFuvPX1gETRYPw6LlaTKoxD3s2AkXzkCjnp6h0V77ozyqj0jakteJ4YqDJT830+lVGw==}\n-    engines: {node: '>=14'}\n+  js-cookie@3.0.8:\n+    resolution: {integrity: sha512-yeJd4aNAdYZQjaon2bpD/Gb0B/omw7HQOsynXXcOiWVCacbBcPlgn8S/d1X6blFSaHao7ozqtW7NZW19xpCtIw==}\n \n   js-tokens@4.0.0:\n     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}\n@@ -3628,9 +3623,6 @@ packages:\n     resolution: {integrity: sha512-DvEy55V3DB7uknRo+4iOGT5fP1slR8wQohVdknigZPMpMstaKJQWhwiYBACJE3Ul2pTnATihhBYnRhZQHGBiRw==}\n     engines: {node: '>= 0.8'}\n \n-  std-env@3.10.0:\n-    resolution: {integrity: sha512-5GS12FdOZNliM5mAOxFRg7Ir0pWz8MdpYm6AY6VPkGpbA7ZzmbzNcBJQ0GPvvyWgcY7QAhCgf9Uy89I03faLkg==}\n-\n   std-env@3.9.0:\n     resolution: {integrity: sha512-UGvjygr6F6tpH7o2qyqR6QYpwraIjKSdtzyBdyytFOHmPZY917kwdwLG0RbOjWOnKmnm3PeHjaoLLMie7kPLQw==}\n \n@@ -3715,11 +3707,6 @@ packages:\n     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}\n     engines: {node: '>= 0.4'}\n \n-  swr@2.3.4:\n-    resolution: {integrity: sha512-bYd2lrhc+VarcpkgWclcUi92wYCpOgMws9Sd1hG1ntAu0NEy+14CbotuFjshBU2kt9rYj9TSmDcybpxpeTU1fg==}\n-    peerDependencies:\n-      react: ^16.11.0 || ^17.0.0 || ^18.0.0 || ^19.0.0\n-\n   tailwind-merge@3.4.0:\n     resolution: {integrity: sha512-uSaO4gnW+b3Y2aWoWfFpX62vn2sR3skfhbjsEnaBI81WD1wBLlHZe5sWf0AqjksNdYTbGBEd0UasQMT3SNV15g==}\n \n@@ -3892,11 +3879,6 @@ packages:\n       '@types/react':\n         optional: true\n \n-  use-sync-external-store@1.6.0:\n-    resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}\n-    peerDependencies:\n-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0\n-\n   valibot@1.2.0:\n     resolution: {integrity: sha512-mm1rxUsmOxzrwnX5arGS+U4T25RdvpPjPN4yR0u9pUBov9+zGVtO84tif1eY4r6zWxVxu3KzIyknJy3rxfRZZg==}\n     peerDependencies:\n@@ -4021,54 +4003,40 @@ snapshots:\n \n   '@chevrotain/utils@10.5.0': {}\n \n-  '@clerk/backend@2.29.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':\n+  '@clerk/backend@3.26.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':\n     dependencies:\n-      '@clerk/shared': 3.42.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n-      '@clerk/types': 4.101.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n+      '@clerk/shared': 4.44.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n       standardwebhooks: 1.0.0\n-      tslib: 2.8.1\n     transitivePeerDependencies:\n       - react\n       - react-dom\n \n-  '@clerk/clerk-react@5.59.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':\n+  '@clerk/nextjs@7.9.24(next@15.5.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':\n     dependencies:\n-      '@clerk/shared': 3.42.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n+      '@clerk/backend': 3.26.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n+      '@clerk/react': 6.18.5(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n+      '@clerk/shared': 4.44.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n+      next: 15.5.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n       react: 19.2.3\n       react-dom: 19.2.3(react@19.2.3)\n-      tslib: 2.8.1\n+      server-only: 0.0.1\n \n-  '@clerk/nextjs@6.36.7(next@15.5.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':\n+  '@clerk/react@6.18.5(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':\n     dependencies:\n-      '@clerk/backend': 2.29.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n-      '@clerk/clerk-react': 5.59.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n-      '@clerk/shared': 3.42.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n-      '@clerk/types': 4.101.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n-      next: 15.5.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n+      '@clerk/shared': 4.44.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n       react: 19.2.3\n       react-dom: 19.2.3(react@19.2.3)\n-      server-only: 0.0.1\n-      tslib: 2.8.1\n \n-  '@clerk/shared@3.42.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':\n+  '@clerk/shared@4.44.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':\n     dependencies:\n-      csstype: 3.1.3\n+      '@tanstack/query-core': 5.105.3\n       dequal: 2.0.3\n       glob-to-regexp: 0.4.1\n-      js-cookie: 3.0.5\n-      std-env: 3.10.0\n-      swr: 2.3.4(react@19.2.3)\n+      js-cookie: 3.0.8\n     optionalDependencies:\n       react: 19.2.3\n       react-dom: 19.2.3(react@19.2.3)\n \n-  '@clerk/types@4.101.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':\n-    dependencies:\n-      '@clerk/shared': 3.42.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)\n-    transitivePeerDependencies:\n-      - react\n-      - react-dom\n-\n   '@effect/platform@0.90.3(effect@3.17.7)':\n     dependencies:\n       '@opentelemetry/semantic-conventions': 1.38.0\n@@ -4967,6 +4935,8 @@ snapshots:\n       postcss: 8.5.6\n       tailwindcss: 4.1.18\n \n+  '@tanstack/query-core@5.105.3': {}\n+\n   '@tybys/wasm-util@0.10.1':\n     dependencies:\n       tslib: 2.8.1\n@@ -5512,8 +5482,6 @@ snapshots:\n       shebang-command: 2.0.0\n       which: 2.0.2\n \n-  csstype@3.1.3: {}\n-\n   csstype@3.2.3: {}\n \n   d3-array@3.2.4:\n@@ -6590,7 +6558,7 @@ snapshots:\n \n   jiti@2.6.1: {}\n \n-  js-cookie@3.0.5: {}\n+  js-cookie@3.0.8: {}\n \n   js-tokens@4.0.0: {}\n \n@@ -7955,8 +7923,6 @@ snapshots:\n   statuses@2.0.2:\n     optional: true\n \n-  std-env@3.10.0: {}\n-\n   std-env@3.9.0: {}\n \n   stop-iteration-iterator@1.1.0:\n@@ -8062,12 +8028,6 @@ snapshots:\n \n   supports-preserve-symlinks-flag@1.0.0: {}\n \n-  swr@2.3.4(react@19.2.3):\n-    dependencies:\n-      dequal: 2.0.3\n-      react: 19.2.3\n-      use-sync-external-store: 1.6.0(react@19.2.3)\n-\n   tailwind-merge@3.4.0: {}\n \n   tailwindcss@4.1.18: {}\n@@ -8278,10 +8238,6 @@ snapshots:\n     optionalDependencies:\n       '@types/react': 19.2.8\n \n-  use-sync-external-store@1.6.0(react@19.2.3):\n-    dependencies:\n-      react: 19.2.3\n-\n   valibot@1.2.0(typescript@5.9.3):\n     optionalDependencies:\n       typescript: 5.9.3\ndiff --git a/src/app/sign-in/google/page.tsx b/src/app/sign-in/google/page.tsx\nindex 84741a0..090d677 100644\n--- a/src/app/sign-in/google/page.tsx\n+++ b/src/app/sign-in/google/page.tsx\n@@ -1,6 +1,7 @@\n \"use client\";\n \n-import { useSignIn, useAuth } from \"@clerk/nextjs\";\n+import { useAuth } from \"@clerk/nextjs\";\n+import { useSignIn } from \"@clerk/nextjs/legacy\";\n import { useEffect, useState } from \"react\";\n import { useRouter } from \"next/navigation\";\n \ndiff --git a/src/app/sign-in/sso-callback/page.tsx b/src/app/sign-in/sso-callback/page.tsx\nindex 936a21e..a193629 100644\n--- a/src/app/sign-in/sso-callback/page.tsx\n+++ b/src/app/sign-in/sso-callback/page.tsx\n@@ -17,7 +17,10 @@ export default function SSOCallbackPage() {\n         <div className=\"border-primary mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2\"></div>\n         <div className=\"text-foreground\">Completing sign-in...</div>\n       </div>\n-      <AuthenticateWithRedirectCallback afterSignInUrl=\"/\" afterSignUpUrl=\"/\" />\n+      <AuthenticateWithRedirectCallback\n+        signInFallbackRedirectUrl=\"/\"\n+        signUpFallbackRedirectUrl=\"/\"\n+      />\n     </div>\n   );\n }\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "proof",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.22963870000000006,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-XDTerminated-t2-chat-t3c-2025-clerk-nextjs-7-0-0-core-3-MNM0Fv/transcript.jsonl",
+        "prBody": "## @clerk/nextjs (npm) 7.0.0 (Core 3): requires Next.js 15.2.8+/16.0.10+ and Node 20.9+, renames unstable/experimental APIs, removes deprecated props [Verified]\n\n### Change\n\nUpgraded @clerk/nextjs 6.36.7 to 7.9.24 with pnpm; the lockfile changed only for Clerk's dependencies. The repo is on Next 15.5.9 and Node 22, so it meets the new minimums. Typecheck and build pass. Two source edits were needed. In sign-in/google/page.tsx, useSignIn now imports from \"@clerk/nextjs/legacy\", because the Core 3 useSignIn is a new signal-based API without isLoaded or authenticateWithRedirect. In sign-in/sso-callback/page.tsx, afterSignInUrl and afterSignUpUrl on AuthenticateWithRedirectCallback became signInFallbackRedirectUrl and signUpFallbackRedirectUrl. Items I checked that need no change: there is no SignedIn, SignedOut, Protect, getToken, setActive or beforeEmit use. clerkMiddleware() takes no options, so there is no secretKey or CLERK_ENCRYPTION_KEY issue and no auth.protect. The repo doesn't use Next 16 Cache Components, so ClerkProvider placement doesn't matter. The only appearance option is variables, and appearance.layout is not used. Upcoming: moving the Google sign-in to the new signal API is optional, because the legacy entry point still works.\n\nFiles touched:\n- `package.json`\n- `pnpm-lock.yaml`\n- `src/app/sign-in/google/page.tsx`\n- `src/app/sign-in/sso-callback/page.tsx`\n\n### Why\n\nCore 3 removes the legacy useSignIn shape and the afterSignInUrl/afterSignUpUrl props, and typecheck failed on them after the bump.\n\n> Support for Next.js 13 and 14 has been dropped. @clerk/nextjs now requires Next.js 15.2.8 or later. On Next.js 16, it requires 16.0.10 or later.\n\nSource: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| proof | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- proof, added by the agent: `export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder'; node .refit-proof/clerk7.test.js` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Before the baseline the harness ran `corepack pnpm@10.2.0 exec prisma generate` (The postinstall hook (prisma generate) did not run because install scripts are off. The schema writes the client to src/generated/prisma, which the code imports and typecheck needs.); it exited 0.\n- Before the baseline the harness ran `npx prisma generate` (postinstall (prisma generate) was skipped, and typecheck needs the generated client in src/generated/prisma); it exited 0.\n- Checks ran with placeholder env: DATABASE_URL, DIRECT_DATABASE_URL, CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, GEMINI_API_KEY, UPLOADTHING_TOKEN, OPENROUTER_API_KEY.\n\nTest of this change: `proof`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Runtime behaviour of the Google OAuth redirect flow through @clerk/nextjs/legacy is not exercised.\n- SSO callback fallback redirect behaviour is unchanged only per the types and docs, not run.\n- No Clerk provider validators were run.\n- No provider validator was run.\n\n### Behaviour changes\n\n- The SSO callback now uses fallback redirect URLs. They only apply when no redirect_url is present, so the behaviour is the same in the normal flow.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-5 · Models: claude-sonnet-5-5 · AI cost: $0.2296\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-5",
+        "recipeIds": [
+          "recipe-stripe-other-16a3e60d",
+          "recipe-stripe-sdk-major-4c09cc63",
+          "recipe-openai-sdk-major-032de36f"
+        ],
+        "agentChecks": [
+          {
+            "name": "proof",
+            "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder'; node .refit-proof/clerk7.test.js",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# XDTerminated/t2-chat-t3c-2025:clerk:nextjs-7-0-0-core-3: verified, $0.2296\nChange: @clerk/nextjs (npm) 7.0.0 (Core 3): requires Next.js 15.2.8+/16.0.10+ and Node 20.9+, renames unstable/experimental APIs, removes deprecated props (clerk, sdk-major)\nBaseline checks: typecheck pass, build pass, proof fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=<162 chars> path=src → src/app/layout.tsx:6: import { ClerkProvider } from \"@clerk/nextjs\"; | src/app/layout.tsx:27:     <ClerkProvider | src/app/layout.tsx:28:       appearance={{\n2. read_file path=src/middleware.ts → 1\timport { clerkMiddleware } from \"@clerk/nextjs/server\"; | 2\t | 3\t// For now, we're not protecting any routes - keeping the main page public\n3. read_file path=src/app/layout.tsx → 1\timport \"katex/dist/katex.min.css\"; | 2\timport \"~/styles/globals.css\"; | 3\t\n4. read_file path=src/app/sign-in/google/page.tsx → 1\t\"use client\"; | 2\t | 3\timport { useSignIn, useAuth } from \"@clerk/nextjs\";\n5. shell command=corepack pnpm@10.2.0 add @clerk/nextjs@^7.0.0 2>&1 | tail -15 → exit code: 0 | --- stdout --- | Progress: resolved 143, reused 139, downloaded 0, added 0\n6. run_checks  → ## typecheck: fail | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]…\n7. shell command=<110 chars> → exit code: 0 | --- stdout --- | app-router\n8. edit_file path=src/app/sign-in/google/page.tsx old=import { useSignIn, useAuth } from \"@clerk/nextjs\"; new=<90 chars> → edited src/app/sign-in/google/page.tsx (1 replacement)\n9. edit_file path=src/app/sign-in/sso-callback/page.tsx old=<AuthenticateWithRedirectCallback afterSignInUrl=\"/\" afterSignUpUrl=\"/\" /> new=<118 chars> → edited src/app/sign-in/sso-callback/page.tsx (1 replacement)\n10. run_checks  → ## typecheck: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]…\n11. write_file path=.refit-proof/clerk7.test.js content=<499 chars> → wrote .refit-proof/clerk7.test.js (499 bytes)\n12. run_checks names=[\"proof\"] add=[{\"name\":\"proof\",\"command\":\"node .refit-proof/clerk7.test.js\"}] → registered proof; on the original code it fails (1) | ## proof: fail | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placehol…\n13. shell command=mv .refit-proof/clerk7.test.js .refit-proof/clerk7.test.cjs → exit code: 0 | --- stdout --- | --- stderr ---\n14. run_checks names=[\"proof\"] add=[{\"name\":\"proof\",\"command\":\"node .refit-proof/clerk7.test.cjs\"}] → a check named proof already exists; pick another name | ## proof: fail | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeh…\n15. shell command=<250 chars> → exit code: 0 | --- stdout --- | ok\n16. run_checks names=[\"proof\"] → ## proof: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GE…\n17. finish verdict=migrated summary=<1087 chars> why=<131 chars> validators=[] unproven=<237 chars> behaviourChanges=<151 chars> proofTest=proof → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, proof fail (1) → pass\n\n## Result\nFiles changed: package.json, pnpm-lock.yaml, src/app/sign-in/google/page.tsx, src/app/sign-in/sso-callback/page.tsx\nVerdict: migrated. Upgraded @clerk/nextjs 6.36.7 to 7.9.24 with pnpm; the lockfile changed only for Clerk's dependencies. The repo is on Next 15.5.9 and Node 22, so it meets the new minimums. Typecheck and build pass. Two source edits were needed. In sign-in/google/page.tsx, useSignIn now imports from \"@clerk/nextjs/legacy\", because the Core 3 useSignIn is a new signal-based API without isLoaded or authenticateWithRedirect. In sign-in/sso-callback/page.tsx, afterSignInUrl and afterSignUpUrl on AuthenticateWithRedirectCallback became signInFallbackRedirectUrl and signUpFallbackRedirectUrl. Items I checked that need no change: there is no SignedIn, SignedOut, Protect, getToken, setActive or beforeEmit use. clerkMiddleware() takes no options, so there is no secretKey or CLERK_ENCRYPTION_KEY issue and no auth.protect. The repo doesn't use Next 16 Cache Components, so ClerkProvider placement doesn't matter. The only appearance option is variables, and appearance.layout is not used. Upcoming: moving the Google sign-in to the new signal API is optional, because the legacy entry point still works.\nUnproven: Runtime behaviour of the Google OAuth redirect flow through @clerk/nextjs/legacy is not exercised.; SSO callback fallback redirect behaviour is unchanged only per the types and docs, not run.; No Clerk provider validators were run.\n",
+        "preparation": {
+          "steps": [
+            {
+              "command": "corepack pnpm@10.2.0 exec prisma generate",
+              "why": "The postinstall hook (prisma generate) did not run because install scripts are off. The schema writes the client to src/generated/prisma, which the code imports and typecheck needs.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 51ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            },
+            {
+              "command": "npx prisma generate",
+              "why": "postinstall (prisma generate) was skipped, and typecheck needs the generated client in src/generated/prisma",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 255ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            }
+          ],
+          "env": {
+            "DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "DIRECT_DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "CLERK_SECRET_KEY": "sk_test_placeholder",
+            "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk",
+            "GEMINI_API_KEY": "placeholder",
+            "UPLOADTHING_TOKEN": "placeholder",
+            "OPENROUTER_API_KEY": "placeholder"
+          },
+          "reasoning": "The Prisma client is generated into src/generated/prisma by the postinstall script, which was skipped, so it must be generated before typecheck. The build script already runs prisma generate itself. next.config.js imports src/env.js, which validates env vars at build time, so placeholders are needed for them. Prisma 7 may need a prisma.config.ts for generate, but I can't see one, so I'm assuming generate works from the schema alone.\nThe only environmental gap for typecheck is the Prisma client that postinstall would have generated. The build already runs prisma generate itself. The build failure comes from Clerk rejecting the pk_test_placeholder key while prerendering /sign-in/google. A publishable key with valid base64 format avoids that, but the harness command exports its own placeholder and may override this env. I can't change the check command, so that part may stay failing."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The bump to @clerk/nextjs 7.9.24 is compatible with the repo's next 15.5.9 (it satisfies ^15.5.9) and Node 20+ requirements, and the two code edits look like genuine Core 3 renames. The risk sits in the Google sign-in page, where the diff moves useSignIn to a `/legacy` subpath. The checks (typecheck, build, a proof run) show the code compiles, but they do not exercise the OAuth flow or middleware at runtime. Pre-existing and out of scope: the repo is on next 15.5.9 so the Next 16 floor does not apply. Most named call sites (auth, currentUser, useAuth, useUser, clerkMiddleware) are untouched. Core 3 may have changed behaviour for these that the types do not show, and I could not confirm that from the quoted source.",
+        "concerns": [
+          {
+            "file": "src/app/sign-in/google/page.tsx",
+            "issue": "useSignIn now comes from `@clerk/nextjs/legacy`. I could not confirm this subpath from the quoted source; check the Core 3 upgrade guide and the SDK exports. The legacy hook keeps the old `signIn.authenticateWithRedirect` API, which is a stopgap. The new hook has a different signIn shape, so the diff defers the real migration. Typecheck and build passing do not prove that the OAuth redirect still works at runtime.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/app/sign-in/sso-callback/page.tsx",
+            "issue": "afterSignInUrl/afterSignUpUrl were replaced with signInFallbackRedirectUrl/signUpFallbackRedirectUrl. This is likely the correct rename. Fallback semantics differ from the old props, because a redirect_url param or a forced redirect can override them. The post-login landing behaviour is not tested.",
+            "severity": "low"
+          },
+          {
+            "file": "src/middleware.ts",
+            "issue": "clerkMiddleware is a named call site, but the diff does not change it and its contents were not shown. Core 3 may have altered middleware or auth() behaviour (for example the handling of unauthenticated requests). Nothing in the checks exercises this at runtime.",
+            "severity": "low"
+          },
+          {
+            "file": "package.json",
+            "issue": "The lockfile moves @clerk/shared to 4.x and drops swr and std-env. Any code that imports from @clerk/types or @clerk/shared directly would break. Typecheck passing suggests there is none. Core 3 also requires Node 20.9+, but no engines field or deployment config was checked (Vercel/Node version).",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Confirm `@clerk/nextjs/legacy` exports useSignIn in the 7.9.24 types and the Core 3 guide, and decide whether to migrate to the new signIn API instead of the legacy shim",
+          "Manually test Google sign-in end to end: /sign-in/google, then the SSO callback, then landing on /",
+          "Check src/middleware.ts and the protected API routes against the Core 3 auth()/clerkMiddleware changes",
+          "Confirm the deploy environment runs Node 20.9+",
+          "Grep for remaining deprecated Clerk props (e.g. afterSignInUrl, redirectUrl, clerk, sdk-major) in layout/sign-in components"
+        ],
+        "costUsd": 0.061086,
+        "model": "claude-sonnet-5-5"
+      }
+    },
+    {
+      "taskId": "XDTerminated/t2-chat-t3c-2025:uploadthing:2025-ufsurl-deprecate-url",
+      "changeId": "uploadthing:2025-ufsurl-deprecate-url",
+      "kind": "field-removed",
+      "change": {
+        "provider": "uploadthing",
+        "id": "uploadthing:2025-ufsurl-deprecate-url",
+        "kind": "field-removed",
+        "title": "uploadthing 7.5.0: file `url` and `appUrl` fields deprecated in favour of `ufsUrl` (older than 12 months; may be removed later)",
+        "source": {
+          "url": "https://raw.githubusercontent.com/pingdotgg/uploadthing/HEAD/packages/uploadthing/CHANGELOG.md",
+          "quote": "chore: add new `ufsUrl` field with `https://APP_ID.ufs.sh/f/FILE_KEY` url. deprecated `url` and `appUrl` fields."
+        },
+        "affects": {
+          "fields": ["url", "appUrl", "ufsUrl"],
+          "versions": ["7.5.0"],
+          "sdk": "uploadthing"
+        }
+      },
+      "reasoning": "The repo runs uploadthing 7.7.4, where the file url and appUrl fields are deprecated in favour of ufsUrl. The code fetches file.url, likely stored from onClientUploadComplete results. Uncertain where the url is first read; the migration agent should find the upload-complete handler and the router onUploadComplete in core.ts, and switch to ufsUrl. Nothing breaks yet, but removal may come in a future version.",
+      "callSites": [
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 142,
+          "why": "Fetches file.url, which probably comes from the UploadThing upload result. url is deprecated in favour of ufsUrl."
+        },
+        {
+          "file": "src/lib/api/openrouter-api.ts",
+          "line": 39,
+          "why": "Fetches file.url for PDFs, probably the deprecated UploadThing url field."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 390,
+          "why": "Fetches image_url.url, which is likely an UploadThing URL."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "XDTerminated/t2-chat-t3c-2025:uploadthing:2025-ufsurl-deprecate-url",
+        "outcome": "verified",
+        "diff": "diff --git a/src/app/api/uploadthing/core.ts b/src/app/api/uploadthing/core.ts\nindex d957ce4..3b61fbe 100644\n--- a/src/app/api/uploadthing/core.ts\n+++ b/src/app/api/uploadthing/core.ts\n@@ -23,7 +23,7 @@ export const ourFileRouter = {\n     .onUploadComplete(async ({ metadata, file }) => {\n       // This code RUNS ON YOUR SERVER after upload\n       console.log(\"Upload complete for userId:\", metadata.userId);\n-      console.log(\"file url\", file.url);\n+      console.log(\"file url\", file.ufsUrl);\n \n       // !!! Whatever is returned here is sent to the clientside `onClientUploadComplete` callback\n       return { type: file.type };\ndiff --git a/src/components/chatbox.tsx b/src/components/chatbox.tsx\nindex c628f0c..82bad62 100644\n--- a/src/components/chatbox.tsx\n+++ b/src/components/chatbox.tsx\n@@ -73,9 +73,13 @@ export function Chatbox({ onSend }: { onSend: (data: ChatMessage) => void }) {\n   };\n \n   const { startUpload, isUploading } = useUploadThing(\"chatFiles\", {\n-    onClientUploadComplete: (res?: UploadFileResponse<{ type: string }>[]) => {\n+    onClientUploadComplete: (\n+      res?: (UploadFileResponse<{ type: string }> & { ufsUrl?: string })[],\n+    ) => {\n       if (res) {\n-        setUploadedFiles((prev) => [...prev, ...res]);\n+        // `url` is deprecated in uploadthing 7.5+; store `ufsUrl` in the `url` slot\n+        const files = res.map((f) => ({ ...f, url: f.ufsUrl ?? f.url }));\n+        setUploadedFiles((prev) => [...prev, ...files]);\n         const completedNames = res.map((f) => f.name);\n         setFilesToUpload((prev) =>\n           prev.filter((f) => !completedNames.includes(f.name)),\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "ufsurl-proof",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.1734843,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-XDTerminated-t2-chat-t3c-2025-uploadthing-2025-ufsurl-deprecate-url-IcTbtN/transcript.jsonl",
+        "prBody": "## uploadthing 7.5.0: file `url` and `appUrl` fields deprecated in favour of `ufsUrl` (older than 12 months; may be removed later) [Verified]\n\n### Change\n\nThe client upload-complete handler in chatbox.tsx now stores `ufsUrl` in the file's `url` slot, falling back to `url` if `ufsUrl` is missing. core.ts now logs `file.ufsUrl`. The downstream fetches in gemini-api.ts and openrouter-api.ts, and the UI, still read `.url` on the app's own stored file type. They now get the ufsUrl value for new uploads, so I did not change them. Old stored files keep their old `url` values.\n\nFiles touched:\n- `src/app/api/uploadthing/core.ts`\n- `src/components/chatbox.tsx`\n\n### Why\n\nuploadthing 7.5.0 deprecated the file `url` and `appUrl` fields in favour of `ufsUrl`. The repo uses `url` from upload results, and removal may come later.\n\n> chore: add new `ufsUrl` field with `https://APP_ID.ufs.sh/f/FILE_KEY` url. deprecated `url` and `appUrl` fields.\n\nSource: https://raw.githubusercontent.com/pingdotgg/uploadthing/HEAD/packages/uploadthing/CHANGELOG.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| ufsurl-proof | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- ufsurl-proof, added by the agent: `export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder' SKIP_ENV_VALIDATION='1'; node .refit-proof/ufsurl.mjs` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Before the baseline the harness ran `corepack pnpm@10.2.0 exec prisma generate` (The postinstall hook (prisma generate) was skipped. The client is generated into src/generated/prisma, which the code imports, so typecheck needs it. Prisma 7 reads the datasource URL from prisma.config, not the schema, and generate does not connect to the database.); it exited 0.\n- Before the baseline the harness ran `npx prisma generate` (The Prisma client is generated into src/generated/prisma, which is gitignored. The postinstall hook did not run, and typecheck needs this output.); it exited 0.\n- Checks ran with placeholder env: DATABASE_URL, DIRECT_DATABASE_URL, CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, GEMINI_API_KEY, UPLOADTHING_TOKEN, OPENROUTER_API_KEY, SKIP_ENV_VALIDATION.\n\nTest of this change: `ufsurl-proof`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- The proof test only checks the source text, not runtime behaviour.\n- I did not run any uploadthing docs or spec validator.\n- Previously stored messages keep their old `url` values (`utfs.io/f/...`). Those may stop working if uploadthing removes the old URL form.\n- I did not confirm that `ufsUrl` is present in the client `onClientUploadComplete` result at the pinned @uploadthing/react 7.3.3.\n- No provider validator was run.\n\n### Behaviour changes\n\n- New uploads now carry `https://APP_ID.ufs.sh/f/KEY` URLs instead of the older `utfs.io` URLs.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-5 · Models: claude-sonnet-5-5 · AI cost: $0.1735\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-5",
+        "recipeIds": [
+          "recipe-gemini-field-removed-f71d943e",
+          "recipe-coinbase-pro-other-2ac650b4",
+          "recipe-twitch-other-e3cc531f"
+        ],
+        "agentChecks": [
+          {
+            "name": "ufsurl-proof",
+            "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder' SKIP_ENV_VALIDATION='1'; node .refit-proof/ufsurl.mjs",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# XDTerminated/t2-chat-t3c-2025:uploadthing:2025-ufsurl-deprecate-url: verified, $0.1735\nChange: uploadthing 7.5.0: file `url` and `appUrl` fields deprecated in favour of `ufsUrl` (older than 12 months; may be removed later) (uploadthing, field-removed)\nBaseline checks: typecheck pass, build pass, ufsurl-proof fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=\\.url\\b|appUrl|ufsUrl|\\burl: path=src → src/app/api/branches/route.ts:11:     const { searchParams } = new URL(request.url); | src/app/api/chat/route.ts:26:   url: string; | src/app/api/chat/route.ts:241:           const imageUrl = imageResult.data[0]?.url;\n2. search pattern=onClientUploadComplete|onUploadComplete|res\\.|\\.ufsUrl path=src glob=**/*.{ts,tsx} → src/app/api/uploadthing/core.ts:23:     .onUploadComplete(async ({ metadata, file }) => { | src/app/api/uploadthing/core.ts:28:       // !!! Whatever is returned here is sent to the clientside `onClientUploadComplete` callback | src/compone…\n3. read_file path=src/app/api/uploadthing/core.ts → 1\timport { createUploadthing, type FileRouter } from \"uploadthing/next\"; | 2\timport { auth } from \"@clerk/nextjs/server\"; | 3\t\n4. read_file path=src/components/chatbox.tsx offset=60 limit=80 → 60\t    if (isGroqModel(selectedModel.id)) { | 61\t      return hasGroqKey; | 62\t    }\n5. search pattern=UploadFileResponse|uploadedFiles|setUploadedFiles path=src → src/app/api/chat/route.ts:22: type UploadFileResponse<T = unknown> = { | src/app/api/chat/route.ts:39:   files?: UploadFileResponse[]; | src/app/api/chat/route.ts:101:         const allFiles: UploadFileResponse[] = [];\n6. read_file path=src/lib/types.ts → 1\t// HACK: Manual type definition to avoid client-side import issues | 2\texport type UploadFileResponse<T = unknown> = { | 3\t  name: string;\n7. edit_file path=src/components/chatbox.tsx old=<151 chars> new=<349 chars> → edited src/components/chatbox.tsx (1 replacement)\n8. edit_file path=src/app/api/uploadthing/core.ts old=file.url); new=file.ufsUrl); → edited src/app/api/uploadthing/core.ts (1 replacement)\n9. run_checks  → ## typecheck: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]…\n10. write_file path=.refit-proof/ufsurl.mjs content=<318 chars> → wrote .refit-proof/ufsurl.mjs (318 bytes)\n11. run_checks add=[{\"name\":\"ufsurl-proof\",\"command\":\"node .refit-proof/ufsurl.mjs\"}] → registered ufsurl-proof; on the original code it fails (1) | ## typecheck: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_te…\n12. finish verdict=migrated summary=<420 chars> why=<155 chars> validators=[] unproven=<397 chars> behaviourChanges=<97 chars> proofTest=ufsurl-proof → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, ufsurl-proof fail (1) → pass\n\n## Result\nFiles changed: src/app/api/uploadthing/core.ts, src/components/chatbox.tsx\nVerdict: migrated. The client upload-complete handler in chatbox.tsx now stores `ufsUrl` in the file's `url` slot, falling back to `url` if `ufsUrl` is missing. core.ts now logs `file.ufsUrl`. The downstream fetches in gemini-api.ts and openrouter-api.ts, and the UI, still read `.url` on the app's own stored file type. They now get the ufsUrl value for new uploads, so I did not change them. Old stored files keep their old `url` values.\nUnproven: The proof test only checks the source text, not runtime behaviour.; I did not run any uploadthing docs or spec validator.; Previously stored messages keep their old `url` values (`utfs.io/f/...`). Those may stop working if uploadthing removes the old URL form.; I did not confirm that `ufsUrl` is present in the client `onClientUploadComplete` result at the pinned @uploadthing/react 7.3.3.\n",
+        "preparation": {
+          "steps": [
+            {
+              "command": "corepack pnpm@10.2.0 exec prisma generate",
+              "why": "The postinstall hook (prisma generate) was skipped. The client is generated into src/generated/prisma, which the code imports, so typecheck needs it. Prisma 7 reads the datasource URL from prisma.config, not the schema, and generate does not connect to the database.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 52ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            },
+            {
+              "command": "npx prisma generate",
+              "why": "The Prisma client is generated into src/generated/prisma, which is gitignored. The postinstall hook did not run, and typecheck needs this output.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 73ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            }
+          ],
+          "env": {
+            "DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "DIRECT_DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "CLERK_SECRET_KEY": "sk_test_placeholder",
+            "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk",
+            "GEMINI_API_KEY": "placeholder",
+            "UPLOADTHING_TOKEN": "placeholder",
+            "OPENROUTER_API_KEY": "placeholder",
+            "SKIP_ENV_VALIDATION": "1"
+          },
+          "reasoning": "Install scripts were off, so the postinstall prisma generate never ran and the generated Prisma client in src/generated/prisma is missing. Typecheck imports it, and build runs prisma generate itself but benefits from the env placeholders. next.config.js imports src/env.js, which validates env vars at build, so placeholders plus SKIP_ENV_VALIDATION let it load without real secrets.\nBuild compiled and Prisma generated fine, but prerendering /_not-found failed because Clerk rejected the publishable key 'pk_test_placeholder'. Clerk checks that the key is 'pk_test_' followed by base64 of a domain ending in '$'. The replacement value decodes to 'example.clerk.accounts.dev$', so it passes that check without being a real key. The failure comes from the placeholder env value, not from the repo's code. The prisma generate step makes typecheck independent of the skipped postinstall."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff swaps `file.url` for `file.ufsUrl` in the server log and, in chatbox.tsx, overwrites the client-side `url` with `ufsUrl` so the downstream consumers keep working without edits. That covers the real data path, but it is a shim rather than a migration. The gemini-api.ts and openrouter-api.ts call sites named by the match agent are unchanged and still read `file.url`; they only work if the chatbox remap always runs. The `ufsurl-proof` check flipped from fail to pass, which is good, but I could not see what it asserts. Typecheck and build passing do not prove the remap works at runtime. `ufsUrl` is declared as optional in the intersection type, so I could not confirm from the diff whether the installed uploadthing version already types it. The `UploadFileResponse` type in ~/lib/types is not shown. Pre-existing: the SDK generate* helpers and createRouteHandler need no change for this deprecation.",
+        "concerns": [
+          {
+            "file": "src/components/chatbox.tsx",
+            "issue": "The fix remaps `url` to `ufsUrl` on the client and keeps the deprecated field name in app state. `UploadFileResponse.url` now silently holds a different URL (the ufs.sh host). Files are sent through `onSend`, so this works only because the remap runs first. It is fragile and misleading to later readers. A cleaner fix is to add `ufsUrl` to the app's type and read it where the URL is used.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/gemini-api.ts",
+            "issue": "Lines 142, 390 and the fetch of `file.url` still use `.url`. They are not updated and rely on the chatbox remap. If files reach the API from any other path (stored chat history, other upload components), they will use the deprecated URL, which may be removed later. The `fetch(file.url)` for documents would then break.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/openrouter-api.ts",
+            "issue": "Lines 39 and the PDF `fetch(file.url)` are unchanged. The same reliance on the remap applies, and there is no fallback to `ufsUrl` at the consumer.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/components/chatbox.tsx",
+            "issue": "`file.url` is still used in `handleFileClick` (`window.open`). It now gets the remapped value, so it works, but it is another place relying on the shim. The `ufsUrl?: string` intersection is a manual type workaround. If the installed uploadthing already types `ufsUrl`, it is redundant. If it does not, the installed version may be older than 7.5.0.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Confirm the installed uploadthing and @uploadthing/react versions in package.json and the lockfile are >= 7.5.0, so `ufsUrl` is actually returned by the server and client.",
+          "Read what the `ufsurl-proof` check asserts. If it only greps for `ufsUrl`, it does not prove the gemini/openrouter paths receive the new URL.",
+          "Check whether uploaded file objects reach gemini-api.ts or openrouter-api.ts from anywhere other than the chatbox onSend path (persisted messages, other components), where `ufsUrl` would not be remapped.",
+          "Upload a file in a running app and confirm the image and PDF are fetched from the `ufs.sh` URL end to end."
+        ],
+        "costUsd": 0.044612,
+        "model": "claude-sonnet-5-5"
+      }
+    }
+  ],
+  "costUsd": 2.6722452000000003,
+  "durationMs": 2777818,
+  "matchReasoning": "XDTerminated/t2-chat-t3c-2025:gemini:2026-06-01-gemini-2-0-shutdown: The repo pins the Gemini 2.0 Flash family for image generation (gemini-2.0-flash-preview-image-generation). The exact preview ID is not in the quoted list, but the 2.0 Flash family is shut down and that preview model was retired as well, so this call is very likely broken today. The usage map does not show the other model IDs; this 2025 T3-chat clone may also offer gemini-2.0-flash or -lite in its model picker or title generator. The migration agent should grep for every gemini-2.0-* string. Replace the image model with a current Gemini image model; avoid gemini-3.1-flash-image-preview and gemini-3-pro-image-preview, which are also being retired. Replace text 2.0 models with a supported Flash model.\nXDTerminated/t2-chat-t3c-2025:gemini:generative-ai-js-eol: The repo still depends on @google/generative-ai 0.24.1, and all support ended on 2025-11-30. The repo already has @google/genai 1.35.0 for the models.generateContent calls (usage 3). Port the three getGenerativeModel call sites to ai.models.generateContent and drop the old package. Nothing breaks on the date itself, but the package receives no fixes and new model features will not reach it.\nXDTerminated/t2-chat-t3c-2025:groq:2026-03-09-llama4-maverick: The model ID is not in the usage map. T3-chat-style clones commonly list Llama 4 Maverick as a Groq model, and it is already shut down, so any user who selects it gets errors. The migration agent should grep the repo (groq-api.ts, model lists or constants, UI selectors) for 'llama-4-maverick'. Replace it with openai/gpt-oss-120b and update the display labels.\nXDTerminated/t2-chat-t3c-2025:groq:2026-04-15-kimi-k2-0905: It is uncertain whether the repo names this model, because the usage map lacks model IDs for the Groq call. It is already retired, so if it is present the chat calls break right now. The migration agent should grep for 'kimi-k2'. Replace it with openai/gpt-oss-120b in the model registry and the request body.\nXDTerminated/t2-chat-t3c-2025:groq:2026-07-17-qwen3-32b-llama4-scout: Both are popular Groq chat models that a multi-model chat app likely exposes, but the model IDs are not recorded, so the agent must verify. Grep for 'qwen3-32b' and 'llama-4-scout'. Replace them with openai/gpt-oss-120b or qwen/qwen3.6-27b. If the Qwen3 model is used for reasoning, check any reasoning-specific params.\nXDTerminated/t2-chat-t3c-2025:groq:2026-08-16-llama31-8b-llama33-70b: These are Groq's flagship Llama chat models and very likely appear in this chat app's Groq model list or as defaults. Model IDs are not in the usage map, so the agent should grep for 'llama-3.3-70b-versatile' and 'llama-3.1-8b-instant'. Replace them with openai/gpt-oss-120b or openai/gpt-oss-20b (or qwen/qwen3.6-27b) and update any defaults and labels.\nXDTerminated/t2-chat-t3c-2025:clerk:nextjs-7-0-0-core-3: The repo is on @clerk/nextjs 6.36.7, and 7.0.0 (Core 3) is the current major. The upgrade requires Next.js 15.2.8+ or 16.0.10+ and Node 20.9+; the migration agent must check the repo's Next version first. Server-side auth() and currentUser() calls are largely unchanged. The client hooks, the middleware and the sign-in flows need checking against the bundled Core 3 changes. Nothing breaks while the repo stays on 6.x, so urgency is low-to-medium, but 6.x will fall behind on fixes.\nXDTerminated/t2-chat-t3c-2025:gemini:2026-12-01-gemini-2-5-pro-reroute: Uncertain: the usage map does not record the model IDs used by generateContent or the raw HTTP call. This T3-chat clone very likely offers gemini-2.5-pro in its model list. From 2026-12-01, requests are rerouted to gemini-3.8-flash with breaking request changes: thinking_level replaces thinking_budget, temperature, top_p and top_k are removed, prefill is removed, and thought_signature is validated. The migration agent should grep for gemini-2.5-pro, move to a supported model and strip unsupported config fields.\nXDTerminated/t2-chat-t3c-2025:gemini:2026-12-01-gemini-2-5-flash-reroute: Uncertain: model IDs are not captured in the usage map, but gemini-2.5-flash is a likely default for a 2025 chat clone. From 2026-12-01, calls reroute to gemini-3.5-flash-lite, and thinking_budget gives way to thinking_level. The migration agent should grep for gemini-2.5-flash, pick an explicit supported model and adjust the thinking config.\nXDTerminated/t2-chat-t3c-2025:groq:2026-03-05-llama-guard-4: The usage map does not record which Groq model IDs the repo sends. A guard or moderation model is less likely in a chat client than the chat models, but it cannot be ruled out. The migration agent should search groq-api.ts and the model registry/selector for 'llama-guard-4-12b'. If found, switch it to openai/gpt-oss-safeguard-20b. If absent, close the task.\nXDTerminated/t2-chat-t3c-2025:gemini:2026-10-26-store-default: New paid-tier projects now store Generate Content requests by default. This is a chat app that may run with user-supplied keys, so user chat content could be retained without the app opting out. No code breaks. Consider setting store=false in config, if the SDK version supports the field, and the same on the raw HTTP call in google-gemini-api.ts. Uncertain whether the keys in use belong to new paid-tier projects.\nXDTerminated/t2-chat-t3c-2025:uploadthing:2025-ufsurl-deprecate-url: The repo runs uploadthing 7.7.4, where the file url and appUrl fields are deprecated in favour of ufsUrl. The code fetches file.url, likely stored from onClientUploadComplete results. Uncertain where the url is first read; the migration agent should find the upload-complete handler and the router onUploadComplete in core.ts, and switch to ufsUrl. Nothing breaks yet, but removal may come in a future version.\nclerk:core3-gettoken-behavior: not affected: No task of its own: resolved inside XDTerminated/t2-chat-t3c-2025:clerk:nextjs-7-0-0-core-3 (@clerk/nextjs (npm) 7.0.0 (Core 3): requires Next.js 15.2.8+/16.0.10+ and Node 20.9+, renames unstable/experimental APIs, removes deprecated props). This only bites after the 7.0 upgrade. useAuth is used in chatbox.tsx, ChatContext.tsx, app-sidebar.tsx and others, and the getToken() callers that expect null offline must handle ClerkOfflineError.\nclerk:core3-show-replaces-protect-signedin-signedout: not affected: No task of its own: resolved inside XDTerminated/t2-chat-t3c-2025:clerk:nextjs-7-0-0-core-3 (@clerk/nextjs (npm) 7.0.0 (Core 3): requires Next.js 15.2.8+/16.0.10+ and Node 20.9+, renames unstable/experimental APIs, removes deprecated props). SignedIn, SignedOut and Protect are removed in 7.0. If any component (sidebar, top-right icons, layout) uses them, switch to Show as part of the upgrade.\nclerk:core3-removed-deprecated-apis: not affected: No task of its own: resolved inside XDTerminated/t2-chat-t3c-2025:clerk:nextjs-7-0-0-core-3 (@clerk/nextjs (npm) 7.0.0 (Core 3): requires Next.js 15.2.8+/16.0.10+ and Node 20.9+, renames unstable/experimental APIs, removes deprecated props). Legacy redirect props (afterSignInUrl, redirectUrl) and appearance.layout are removed in 7.0. The sign-in pages may use them; fix them during the upgrade.\nclerk:core3-setactive-beforeemit-navigate: not affected: No task of its own: resolved inside XDTerminated/t2-chat-t3c-2025:clerk:nextjs-7-0-0-core-3 (@clerk/nextjs (npm) 7.0.0 (Core 3): requires Next.js 15.2.8+/16.0.10+ and Node 20.9+, renames unstable/experimental APIs, removes deprecated props). sign-in/google/page.tsx uses useSignIn and probably calls setActive. Any beforeEmit callback there must become navigate during the upgrade.\nclerk:core3-auth-protect-401: not affected: No task of its own: resolved inside XDTerminated/t2-chat-t3c-2025:clerk:nextjs-7-0-0-core-3 (@clerk/nextjs (npm) 7.0.0 (Core 3): requires Next.js 15.2.8+/16.0.10+ and Node 20.9+, renames unstable/experimental APIs, removes deprecated props). The behaviour changes only on 7.0. If middleware.ts calls auth.protect(), unauthenticated server actions get 401 instead of 404.\nclerk:core3-nextjs-encryption-key: not affected: No task of its own: resolved inside XDTerminated/t2-chat-t3c-2025:clerk:nextjs-7-0-0-core-3 (@clerk/nextjs (npm) 7.0.0 (Core 3): requires Next.js 15.2.8+/16.0.10+ and Node 20.9+, renames unstable/experimental APIs, removes deprecated props). This applies only on 7.0 and only if middleware.ts passes secretKey at runtime to clerkMiddleware. Verify during the upgrade.\nclerk:core3-cachecomponents-clerkprovider: not affected: No task of its own: resolved inside XDTerminated/t2-chat-t3c-2025:clerk:nextjs-7-0-0-core-3 (@clerk/nextjs (npm) 7.0.0 (Core 3): requires Next.js 15.2.8+/16.0.10+ and Node 20.9+, renames unstable/experimental APIs, removes deprecated props). This applies only on 7.0 with Next 16 Cache Components. Check where ClerkProvider sits in the root layout during the upgrade.\ngemini:genai-js-2-0-0-interactions: not affected: The breaking changes cover only the Interactions API. The repo uses @google/genai only for models.generateContent, which the changelog says is unaffected.\ngemini:genai-js-1-0-0-lyria: not affected: The repo is already on @google/genai 1.35.0 and does not use the Lyria music methods.\ngemini:genai-js-1-46-0-interactions-breaking: not affected: Only Interactions API types changed. The repo does not use interactions; it only calls models.generateContent.\ngemini:genai-js-0x-breaking-0-9-0: not affected: These 0.x breaking changes are long past; the repo pins @google/genai 1.35.0.\ngemini:2026-05-interactions-steps-schema: not affected: The repo does not call /v1beta/interactions. The SDK uses generateContent, and the raw HTTP call is a 2025-era chat call that predates the Interactions API.\ngemini:2025-12-19-total-thought-tokens: not affected: This field rename applies only to Interactions API usage metadata, which the repo does not use.\ngemini:2026-07-21-sampling-params-deprecated: not affected: This applies only to Gemini 3.6+ models, which this repo does not target. Sampling-param removal after the 2.5 reroutes is handled in the gemini-2.5-pro and gemini-2.5-flash reroute tasks.\ngemini:2026-11-17-preview-shutdowns: not affected: The repo uses no TTS, Live or native-audio preview models.\ngemini:2026-10-22-veo-omni-shutdown: not affected: The repo does no Veo video generation and does not use gemini-omni-flash-preview.\ngemini:2026-10-23-deep-research-pro-shutdown: not affected: The repo uses no managed agents or Interactions agent parameter.\ngemini:2026-09-antigravity-agent-tools: not affected: The repo does not use the antigravity agents.\ngemini:2026-08-17-imagen-4-shutdown: not affected: Image generation uses a Gemini 2.0 image model and OpenRouter flux-schnell, not Imagen 4.\ngemini:2026-06-30-veo-2-3-shutdown: not affected: The repo uses no Veo models.\ngemini:2026-06-25-image-preview-shutdown: not affected: The repo's image model is gemini-2.0-flash-preview-image-generation, not the 3.x image previews. That model is handled in the Gemini 2.0 shutdown task.\ngemini:2026-10-08-3-5-3-7-flash-reroute: not affected: The repo, a 2025 project, does not reference gemini-3.5-flash or gemini-3.7-flash.\ngemini:2026-05-embedding-lifecycle: not affected: The repo makes no embedding calls.\ngemini:2027-gemini-3-1-flash-lite-and-2-5-flash-image: not affected: Neither gemini-3.1-flash-lite nor gemini-2.5-flash-image appears in the repo's recorded usage.\ngemini:2026-03-gemini-3-pro-preview-shutdown: not affected: The repo predates and does not reference gemini-3-pro-preview.\nclerk:core3-backend-verify-methods-removed: not affected: The repo does not call @clerk/backend verifySecret, verifyAccessToken or verifyToken; it only uses auth(), currentUser() and the client hooks.\nclerk:core3-satellite-autosync: not affected: The repo is a single-domain app with no satellite configuration.\nclerk:core3-metadata-params-deprecated: not affected: No user.update, updateUser or updateOrganization metadata calls appear in the usage map. These params are also still accepted.\nclerk:core3-clerk-types-deprecated: not affected: The repo does not depend on @clerk/types; only @clerk/nextjs is listed.\nclerk:core3-usecheckout-return: not affected: The repo does not use Clerk billing, useCheckout or Clerk.checkout.\nclerk:2026-10-26-test-emails-not-sent: not affected: The repo has no tests that read +clerk_test inbox emails.\nclerk:2026-11-03-directory-sync-webhooks: not affected: The repo uses no Directory Sync and no Clerk webhooks.\nuploadthing:7-0-0-token-and-handler: not affected: The repo is already on uploadthing 7.7.4, past this breaking release.\nuploadthing:react-7-0-0-follows-core: not affected: The repo is already on @uploadthing/react 7.3.3.\nuploadthing:6-0-0-callback-data-multipart: not affected: The repo is on uploadthing 7.7.4, well past 6.0.0.\nuploadthing:react-6-0-0-types: not affected: The repo is on @uploadthing/react 7.3.3 and already uses the generate* helpers.\nuploadthing:5-0-0-client-metadata: not affected: The repo is on uploadthing 7.7.4, past 5.0.0.\nuploadthing:4-0-0-router-syntax: not affected: The repo is on uploadthing 7.7.4, past 4.0.0.\nuploadthing:removed-utapi-export-6: not affected: The repo does not use UTApi or the utapi export, and is on 7.x.\nuploadthing:deprecate-getfileurls: not affected: The repo does not use UTApi.getFileUrls.\nuploadthing:v1-4-unsupported: not affected: The repo runs uploadthing 7.7.4 and @uploadthing/react 7.3.3, both supported.\ngroq:2026-09-21-compound-shutdown: not affected: The Groq raw HTTP call is a 2025-era chat completions call; groq/compound and compound-mini are not referenced in the recorded usage.\ngroq:2026-09-14-qwen3-6-27b: not affected: qwen/qwen3.6-27b postdates this 2025 repo and is not referenced in the recorded Groq usage.\ngroq:2025-12-31-playai-tts: not affected: The repo's only Groq usage is a chat-style HTTP POST in groq-api.ts. No text-to-speech or audio endpoint usage is recorded, so the PlayAI TTS models are not used.\ngroq:2026-python-sdk-1-1-0-py39: not affected: This is a TypeScript/Next.js repo that calls Groq via raw HTTP. It does not use the Python groq SDK.\ngroq:2025-12-15-groq-sdk-1-0-0: not affected: The repo does not depend on groq-sdk. Groq is called with raw fetch to api.groq.com in groq-api.ts.\nopenrouter:2026-10-23-remove-interns-api: not affected: The repo only calls OpenRouter's /api/v1/models and /api/v1/chat/completions over raw HTTP. It uses no /interns endpoints and no @openrouter/sdk.\nopenrouter:2026-10-21-messages-no-done-sentinel: not affected: The streaming call uses POST /api/v1/chat/completions, not the Anthropic-style POST /messages endpoint. The [DONE] change applies only to /messages.\nopenrouter:2026-10-21-guardrail-bulk-members-limit-500: not affected: No guardrail assignment endpoints are called. The repo uses only models and chat completions.\nopenrouter:2026-10-21-end-users-renamed-external-users: not affected: The repo does not call /end-users and does not use the OpenRouter Python or TS SDK.\nopenrouter:2026-10-28-observability-s3-rolearn: not affected: No observability destination endpoints are called anywhere in the repo.\nopenrouter:2026-10-27-observability-s3-optional-keys: not affected: The repo never reads GET /observability/destinations responses.\nopenrouter:2026-10-29-private-endpoint-patch-upstream-model-id: not affected: No private-endpoint management routes are called. The repo uses only models and chat completions.\nopenrouter:2026-agent-toolkit-moved-to-openrouter-agent: not affected: The repo does not depend on @openrouter/sdk and does not use callModel or tool exports. OpenRouter is called via raw fetch.\nopenrouter:2026-11-03-openrouter-agent-1-0-0: not affected: The repo does not depend on @openrouter/agent.\nopenrouter:2026-07-20-openrouter-sdk-1-0-0: not affected: The repo does not use @openrouter/sdk. All OpenRouter calls are raw HTTP to /api/v1.",
+  "costByPart": {
+    "inventory": 0,
+    "watch": 0.522535,
+    "match": 0.419788,
+    "memory": 0.6420339999999999,
+    "harness": 0.9002282000000001,
+    "review": 0.18766
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "bricefrisco/NamesLoL",
+  "commit": "c997bdd9419f801d3461869c42bd1039e8f163b6",
+  "provider": "riot",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "node_modules/@serverless/typescript/index.d.ts: error TS2411: Property '\"Fn::Transform\"' of type '{ Name: string; Parameters?: { [k: string]: unknown; } | undefined; } | undefined' is not assignable to 'string' index type '{ Type: string; Properties?: { [k: string]: unknown; } | undefined; CreationPolicy?: { [k: string]: unknown; } | undefined; DeletionPolicy?: string | undefined; DependsOn?: AwsResourceDependsOn | undefined; Metadata?: { ...; } | undefined; UpdatePolicy?: { ...; } | undefined; UpdateReplacePolicy?: string | undefined...'.",
+        "node_modules/formdata-polyfill/esm.min.d.ts: error TS2749: 'FormData' refers to a value, but is being used as a type here. Did you mean 'typeof FormData'?",
+        "node_modules/node-fetch/@types/index.d.ts: error TS2749: 'FormData' refers to a value, but is being used as a type here. Did you mean 'typeof FormData'?"
+      ],
+      "tail": "node_modules/@serverless/typescript/index.d.ts(1323,7): error TS2411: Property '\"Fn::Transform\"' of type '{ Name: string; Parameters?: { [k: string]: unknown; } | undefined; } | undefined' is not assignable to 'string' index type '{ Type: string; Properties?: { [k: string]: unknown; } | undefined; CreationPolicy?: { [k: string]: unknown; } | undefined; DeletionPolicy?: string | undefined; DependsOn?: AwsResourceDependsOn | undefined; Metadata?: { ...; } | undefined; UpdatePolicy?: { ...; } | undefined; UpdateReplacePolicy?: string | undefined...'.\nnode_modules/formdata-polyfill/esm.min.d.ts(2,11): error TS2749: 'FormData' refers to a value, but is being used as a type here. Did you mean 'typeof FormData'?\nnode_modules/formdata-polyfill/esm.min.d.ts(3,14): error TS2749: 'FormData' refers to a value, but is being used as a type here. Did you mean 'typeof FormData'?\nnode_modules/formdata-polyfill/esm.min.d.ts(5,50): error TS2749: 'FormData' refers to a value, but is being used as a type here. Did you mean 'typeof FormData'?\nnode_modules/node-fetch/@types/index.d.ts(124,4): error TS2749: 'FormData' refers to a value, but is being used as a type here. Did you mean 'typeof FormData'?\nnode_modules/node-fetch/@types/index.d.ts(137,22): error TS2749: 'FormData' refers to a value, but is being used as a type here. Did you mean 'typeof FormData'?"
+    }
+  ],
+  "costUsd": 0.011889999999999998,
+  "durationMs": 66815,
+  "install": {
+    "code": 0,
+    "tail": "added 695 packages in 29s\n\nnpm WARN deprecated querystring@0.2.1: The querystring API is considered Legacy. new code should use the URLSearchParams API instead.\nnpm WARN deprecated superagent@7.1.6: Please downgrade to v7.1.5 if you need IE/ActiveXObject support OR upgrade to v8.0.0 as we no longer support IE and published an incorrect patch version (see https://github.com/visionmedia/superagent/issues/1731)\nnpm WARN deprecated querystring@0.2.0: The querystring API is considered Legacy. new code should use the URLSearchParams API instead.\nnpm WARN deprecated querystring@0.2.0: The querystring API is considered Legacy. new code should use the URLSearchParams API instead."
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

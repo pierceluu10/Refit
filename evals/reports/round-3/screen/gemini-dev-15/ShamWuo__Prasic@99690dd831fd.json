@@ -1,0 +1,38 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "ShamWuo/Prasic",
+  "commit": "99690dd831fda1d0bac47834b92df147e6e8db98",
+  "provider": "gemini",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "typecheck",
+      "command": "npm run type-check",
+      "ok": false,
+      "failures": ["exit-nonzero: Check Failed. Found 10 issue(s)."],
+      "tail": "'.\n\n  \u001b[37msrc/components/community/ChallengeHeroCard.tsx\u001b[0m\n    \u001b[90mline 105\u001b[0m  \u001b[31mTS2345\u001b[0m  Argument of type '{ container: { marginTop: 16; marginHorizontal: 16; borderRadius: number; overflow: \"hidden\"; shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; ... 14 more ...; timerValue: { ...; }; }' is not assignable to parameter of type '{ container: { marginTop: 16; marginHorizontal: 16; borderRadius: number; overflow: \"hidden\"; shadowColor: string; shadowOffset: { width: number; height: number; }; shadowOpacity: number; shadowRadius: number; elevation: number; }; ... 14 more ...; timerValue: { ...; }; } & NamedStyles<...>'.\n\n  \u001b[37msrc/components/practice/SessionOverlay.tsx\u001b[0m\n    \u001b[90mline 347\u001b[0m  \u001b[31mTS2551\u001b[0m  Property 'textOnPrimary' does not exist on type '{ background: string; surface: string; surfaceLight: string; border: string; textPrimary: string; textSecondary: string; textMuted: string; isDark: boolean; primary: string; primaryDark: string; ... 8 more ...; orange: string; }'. Did you mean 'textPrimary'?\n\n  \u001b[37msrc/components/stats/StatsView.tsx\u001b[0m\n    \u001b[90mline 23\u001b[0m  \u001b[31mTS2304\u001b[0m  Cannot find name 'useTheme'.\n    \u001b[90mline 37\u001b[0m  \u001b[31mTS2304\u001b[0m  Cannot find name 'useTheme'.\n    \u001b[90mline 69\u001b[0m  \u001b[31mTS2304\u001b[0m  Cannot find name 'useTheme'.\n\n\u001b[32m✔ \u001b[1mScripts\u001b[0m (1.22s)\n\n\u001b[90m──────────────────────────────\u001b[0m\n\u001b[31m\u001b[1mCheck Failed.\u001b[0m Found 10 issue(s)."
+    },
+    {
+      "name": "test",
+      "command": "npm run test",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.03283400000000003,
+  "durationMs": 127140,
+  "install": {
+    "code": 0,
+    "tail": "e current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "npm run type-check fails with 10 TypeScript errors in the repo's own code (e.g. missing 'useTheme' in StatsView.tsx, nonexistent 'textOnPrimary' theme property in SessionOverlay.tsx, TS2345 in ChallengeHeroCard.tsx), none involving external resources."
+  }
+}

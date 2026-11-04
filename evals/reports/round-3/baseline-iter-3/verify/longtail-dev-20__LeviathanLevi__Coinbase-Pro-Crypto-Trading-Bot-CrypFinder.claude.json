@@ -1,0 +1,9 @@
+{
+  "status": "clean",
+  "problems": [],
+  "checked": [
+    "syntax strategies/momentumTrading/momentumTrading.js",
+    "syntax strategies/momentumTradingWithStopLoss/momentumTradingWithStopLoss.js",
+    "syntax strategies/reverseMomentumTrading/reverseMomentumTrading.js"
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "set": "openai-dev-30",
+  "repo": "janiluuk/gpt-buddy",
+  "commit": "7274a87fa1875f69804ba209807565f03fe05424",
+  "provider": "openai",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "pytest",
+      "command": "(python3 -m pytest --version >/dev/null 2>&1 || python3 -m pip install -q --only-binary=:all: pytest) && python3 -m pytest -q",
+      "ok": false,
+      "failures": [
+        "ERROR tests/unit/test_apprise_sender.py::TestSend::test_send_with_configured_services",
+        "ERROR tests/unit/test_apprise_sender.py::TestSend::test_send_with_no_services",
+        "ERROR tests/unit/test_apprise_sender.py::TestSend::test_send_with_none_services",
+        "ERROR tests/unit/test_apprise_sender.py::TestSend::test_send_with_empty_title_and_message",
+        "ERROR tests/unit/test_apprise_sender.py::TestSend::test_send_multiple_services",
+        "ERROR tests/unit/test_gpt.py::TestGetAssistant::test_get_assistant_success",
+        "ERROR tests/unit/test_gpt.py::TestWhisperTextToSpeech::test_whisper_text_to_speech_success",
+        "ERROR tests/unit/test_gpt.py::TestWhisperTextToSpeech::test_whisper_text_to_speech_empty_text",
+        "ERROR tests/unit/test_gpt.py::TestGenerateChatGPTImage::test_generate_image_success",
+        "ERROR tests/unit/test_gpt.py::TestGenerateChatGPTImage::test_generate_image_network_error"
+      ],
+      "tail": "t_gpt.py::TestSendToAssistant::test_send_to_assistant_no_tts\nERROR tests/unit/test_gpt.py::TestSendToAssistant::test_send_to_assistant_timeout\nERROR tests/unit/test_gpt.py::TestSendToAssistant::test_send_to_assistant_brief_prompt_added\nERROR tests/unit/test_helpers.py::TestPlayAudio::test_play_audio_with_valid_file\nERROR tests/unit/test_helpers.py::TestPlayAudio::test_play_audio_with_missing_file\nERROR tests/unit/test_helpers.py::TestPlayAudio::test_play_audio_waits_for_completion\nERROR tests/unit/test_helpers.py::TestDisplayImage::test_display_image_with_valid_path\nERROR tests/unit/test_helpers.py::TestDisplayImage::test_display_image_with_missing_file\nERROR tests/unit/test_helpers.py::TestDisplayImage::test_display_image_prevents_command_injection\nERROR tests/unit/test_helpers.py::TestDisplayImage::test_display_image_uses_absolute_path\nERROR tests/unit/test_helpers.py::TestDisplayImage::test_display_image_kills_previous_fbi\nERROR tests/unit/test_scheduled_image.py::TestScheduledImage::test_scheduled_image_success\nERROR tests/unit/test_scheduled_image.py::TestScheduledImage::test_scheduled_image_missing_file\nERROR tests/unit/test_scheduled_image.py::TestScheduledImage::test_scheduled_image_empty_thread_id\nERROR tests/unit/test_scheduled_image.py::TestScheduledImage::test_scheduled_image_strips_whitespace\nERROR tests/unit/test_scheduled_image.py::TestScheduledImage::test_scheduled_image_api_error\n============================== 28 errors in 2.70s =============================="
+    }
+  ],
+  "costUsd": 0.06262199999999973,
+  "durationMs": 128893,
+  "install": {
+    "code": 0,
+    "tail": "--upgrade pip\n  WARNING: The script sprc is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n  WARNING: The script isympy is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n  WARNING: The script tqdm is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "cp -n settings.py.example settings.py",
+        "why": "The repo's setup copies settings.py.example to settings.py, and modules import settings at load time, so tests need it to exist (-n keeps any existing file).",
+        "code": 0
+      },
+      {
+        "command": "python3 -m pip install -q --only-binary=:all: pytest pytest-cov",
+        "why": "pyproject.toml addopts pass --cov flags, which pytest rejects unless the pytest-cov plugin is installed.",
+        "code": 0
+      },
+      {
+        "command": "[ -f settings.py ] || [ ! -f settings.py.example ] || cp settings.py.example settings.py",
+        "why": "The README setup copies settings.py.example to settings.py, and the code likely imports it at load time.",
+        "code": 0
+      }
+    ],
+    "env": []
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "pytest reports 28 setup errors in tests/unit (apprise_sender, gpt, helpers, scheduled_image); the cause isn't shown, but nothing points to credentials, private deps or an unrunnable toolchain, so it is treated as the repo's own test/fixture failures."
+  }
+}

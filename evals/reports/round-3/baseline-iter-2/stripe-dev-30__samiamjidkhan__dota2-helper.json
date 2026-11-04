@@ -1,0 +1,32 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "samiamjidkhan/dota2-helper",
+  "refit": {
+    "checks": "no-change",
+    "costUsd": 0.1683587,
+    "tasks": 0,
+    "verified": 0
+  },
+  "claude": {
+    "checks": "no-change",
+    "costUsd": 0.056398199999999996,
+    "prepCostUsd": 0.004308,
+    "diffLines": 0,
+    "finalText": "I changed nothing. None of the external APIs or SDKs this repository uses has changed in a way that affects its code.\n\n**What the repo uses**\n- **Groq chat completions.** The code calls the `openai/gpt-oss-120b` model with `reasoning_effort: 'low'`, in `server.js` and `scripts/generate-seo-content.js`.\n- **OpenDota API.** It uses the `/matches`, `/heroStats` and `/heroes/{id}/matchups` endpoints.\n- **Stripe.** It uses the `stripe` Node package with Checkout sessions, the billing portal and webhooks.\n- **Other packages.** `@upstash/redis`, `axios`, `express`, `cors`, `dotenv`, `dotaconstants` and `marked`.\n\n**What I checked**\nI read Groq's official deprecations page. Groq has retired several models this year:\n- `llama-3.3-70b-versatile` and `llama-3.1-8b-instant` (16 Aug 2026)\n- `qwen/qwen3-32b` and `llama-4-scout` (17 Jul 2026)\n- the Kimi K2 models, `groq/compound` and `groq/compound-mini`\n\nThe repo uses none of these. `openai/gpt-oss-120b` is not deprecated, and Groq names it as the recommended replacement for several of the retired models.\n\nI did not search for OpenDota, Stripe or the other packages. The code only makes basic Stripe calls and basic OpenDota GETs, and I found nothing in it that would be affected. I didn't look for newer package versions either, so a `package.json` bump is still possible.\n\nSources:\n- [Groq deprecations](https://console.groq.com/docs/deprecations.md)",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-samiamjidkhan-dota2-helper/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [],
+      "breaks": []
+    },
+    "claude": {
+      "handled": [],
+      "breaks": []
+    },
+    "better": "tie",
+    "why": "Neither side changed anything.",
+    "costUsd": 0
+  }
+}

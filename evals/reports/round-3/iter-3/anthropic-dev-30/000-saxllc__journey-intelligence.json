@@ -1,0 +1,367 @@
+{
+  "set": "anthropic-dev-30",
+  "index": 0,
+  "repo": "saxllc/journey-intelligence",
+  "commit": "03b196bac826b0444339ea78157dce86e6723308",
+  "provider": "anthropic",
+  "usages": 5,
+  "changes": 49,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "saxllc/journey-intelligence:sarvam:2026-06-29-stt-default-saaras-v3",
+      "changeId": "sarvam:2026-06-29-stt-default-saaras-v3",
+      "kind": "other",
+      "change": {
+        "provider": "sarvam",
+        "id": "sarvam:2026-06-29-stt-default-saaras-v3",
+        "kind": "other",
+        "title": "/speech-to-text REST and Batch default model changed from saarika:v2.5 to saaras:v3 (pass model explicitly to keep old behaviour)",
+        "source": {
+          "url": "https://docs.sarvam.ai/changelog/2026/6/29.md",
+          "quote": "The `/speech-to-text` REST and Batch endpoints now default to `saaras:v3` when no `model` is specified (previously `saarika:v2.5`)."
+        },
+        "affects": {
+          "operations": ["/speech-to-text"],
+          "fields": ["model", "mode"]
+        },
+        "effectiveDate": "2026-06-29"
+      },
+      "reasoning": "The STT endpoint is called directly over raw HTTP. The usage map does not show which model, if any, is sent. If none is sent, behaviour already changed on 2026-06-29. If saarika:v2.5 is sent, that model is slated for deprecation. The migration agent should read api/stt.js and set model explicitly to saaras:v3 (with mode='transcribe' if needed). It should then confirm the response fields the code reads (e.g. transcript, language_code) are unchanged. This is uncertain because the request body was not captured.\nThis task also resolves these changes. Handle each in the same change, and say in the PR how:\n- sarvam:2026-saarika-v2-5-deprecated (model-retirement): saarika:v2.5 STT model deprecated (removal date not given); use saaras:v3/v4. The fix sets an explicit STT model on api/stt.js. Pinning saaras:v3, not saarika:v2.5, also moves the call off the deprecated Saarika v2.5 model. If the code already passes saarika:v2.5, this same edit replaces it.\n  Source: https://docs.sarvam.ai/api/getting-started/models/saarika\n  \"Saarika v2.5 will be deprecated soon.\"",
+      "callSites": [
+        {
+          "file": "api/stt.js",
+          "line": 28,
+          "why": "POST /speech-to-text with no model recorded in the usage map. Since 2026-06-29 a request with no model is served by saaras:v3 instead of saarika:v2.5, which can change transcript output and mode semantics. If it passes saarika:v2.5 explicitly, that model is deprecated."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "saxllc/journey-intelligence:sarvam:2026-06-29-stt-default-saaras-v3",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [],
+        "costUsd": 0.0745421,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-saxllc-journey-intelligence-sarvam-2026-06-29-stt-default-saaras-v3-Di04rb/transcript.jsonl",
+        "prBody": "## /speech-to-text REST and Batch default model changed from saarika:v2.5 to saaras:v3 (pass model explicitly to keep old behaviour) [Not affected]\n\n### Change\n\nThe only /speech-to-text call is api/stt.js, and it already sends model=saaras:v3 explicitly (line 21). The new default doesn't change it, and it isn't on the deprecated saarika:v2.5. A repo-wide search for speech-to-text, saarika and saaras found no other STT call sites. The TTS call sites are unrelated to this change. No edits were made.\n\nNo files changed.\n\n### Why\n\nThe default-model change only applies to requests that omit `model`. This repo's STT request names the model, so behaviour is unchanged.\n\n> The `/speech-to-text` REST and Batch endpoints now default to `saaras:v3` when no `model` is specified (previously `saarika:v2.5`).\n\nSource: https://docs.sarvam.ai/changelog/2026/6/29.md\n\n### Proof\n\nNo checks were run.\n\nNew failures: 0\n\nProvider validators: none run.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- saaras:v3 defaults to mode=transcribe, and the request sends no mode field. I didn't confirm this against the docs.\n- The response fields the handler reads (transcript, language_code) were not checked against the saaras:v3 docs.\n- No checks were run.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-5 · Models: claude-sonnet-5-5 · AI cost: $0.0745\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-5",
+        "recipeIds": [
+          "recipe-anthropic-model-retirement-9b5d480a",
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-openai-model-retirement-6b9faf3f"
+        ],
+        "agentChecks": [],
+        "summary": "# saxllc/journey-intelligence:sarvam:2026-06-29-stt-default-saaras-v3: not-affected, $0.0745\nChange: /speech-to-text REST and Batch default model changed from saarika:v2.5 to saaras:v3 (pass model explicitly to keep old behaviour) (sarvam, other)\nBaseline checks: none\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=api/stt.js → 1\texport const config = { api: { bodyParser: false } }; | 2\t | 3\texport default async function handler(req, res) {\n2. list_files depth=2 → .claude/ |   settings.local.json | .gitignore\n3. search pattern=speech-to-text|saarika|saaras glob=**/*.{js,html,json} → api/stt.js:21:       `\\r\\n--${boundary}\\r\\nContent-Disposition: form-data; name=\"model\"\\r\\n\\r\\nsaaras:v3`, | api/stt.js:28:     const r = await fetch('https://api.sarvam.ai/speech-to-text', {\n4. finish verdict=not-affected summary=<341 chars> why=<136 chars> validators=[] unproven=<232 chars> behaviourChanges=[] → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: none\n\n## Result\nFiles changed: none\nVerdict: not-affected. The only /speech-to-text call is api/stt.js, and it already sends model=saaras:v3 explicitly (line 21). The new default doesn't change it, and it isn't on the deprecated saarika:v2.5. A repo-wide search for speech-to-text, saarika and saaras found no other STT call sites. The TTS call sites are unrelated to this change. No edits were made.\nUnproven: saaras:v3 defaults to mode=transcribe, and the request sends no mode field. I didn't confirm this against the docs.; The response fields the handler reads (transcript, language_code) were not checked against the saaras:v3 docs.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "No checks were detected and the package has no build, codegen, postinstall or prepare scripts. The cache generation scripts call live services (Anthropic, Upstash), so they must not be run. Nothing needs to be prepared."
+        }
+      }
+    },
+    {
+      "taskId": "saxllc/journey-intelligence:supabase:2026-11-10-tls12-ciphers",
+      "changeId": "supabase:2026-11-10-tls12-ciphers",
+      "kind": "other",
+      "change": {
+        "provider": "supabase",
+        "id": "supabase:2026-11-10-tls12-ciphers",
+        "kind": "other",
+        "title": "Supabase disables a subset of TLS 1.2 ciphers on project HTTP APIs (*.supabase.co); old clients may fail",
+        "source": {
+          "url": "https://supabase.com/changelog",
+          "quote": "Supabase will be disabling a subset of TLS 1.2 ciphers on project HTTP APIs on November 10, 2026."
+        },
+        "affects": {},
+        "effectiveDate": "2026-11-10"
+      },
+      "reasoning": "The repo calls the project HTTP API on supabase.co directly. Supabase is disabling a subset of TLS 1.2 ciphers on 2026-11-10. Modern Node fetch/https negotiates TLS 1.3 or strong TLS 1.2 ciphers, so most likely no code change is needed. The migration agent should check the Node runtime version and any custom https.Agent cipher or minVersion settings in demo/server.js and demo/server_old.js. This is a low-impact verification.",
+      "callSites": [
+        {
+          "file": "demo/server.js",
+          "line": 185,
+          "why": "Raw HTTPS GET to the project's *.supabase.co PostgREST API, which is subject to the TLS 1.2 cipher removal."
+        },
+        {
+          "file": "demo/server.js",
+          "line": 199,
+          "why": "Raw HTTPS write to *.supabase.co PostgREST, which is subject to the TLS 1.2 cipher removal."
+        },
+        {
+          "file": "demo/server_old.js",
+          "line": 89,
+          "why": "Raw HTTPS GET to *.supabase.co."
+        },
+        {
+          "file": "demo/server_old.js",
+          "line": 101,
+          "why": "Raw HTTPS write to *.supabase.co."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "saxllc/journey-intelligence:supabase:2026-11-10-tls12-ciphers",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [],
+        "costUsd": 0.0619373,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-saxllc-journey-intelligence-supabase-2026-11-10-tls12-ciphers-2ONitF/transcript.jsonl",
+        "prBody": "## Supabase disables a subset of TLS 1.2 ciphers on project HTTP APIs (*.supabase.co); old clients may fail [Not affected]\n\n### Change\n\ndemo/server.js and demo/server_old.js call Supabase REST with Node's global fetch. There is no custom https.Agent, cipher list, minVersion or secureProtocol setting in demo/. Node's built-in TLS (Node 22 in the sandbox) negotiates TLS 1.3 or modern TLS 1.2 ciphers, so the disabled TLS 1.2 ciphers should not affect these calls. No code was changed.\n\nNo files changed.\n\n### Why\n\nSupabase will disable a subset of TLS 1.2 ciphers on 2026-11-10. This repo's clients don't pin old ciphers or TLS versions, so nothing in the code forces a change.\n\n> Supabase will be disabling a subset of TLS 1.2 ciphers on project HTTP APIs on November 10, 2026.\n\nSource: https://supabase.com/changelog\n\n### Proof\n\nNo checks were run.\n\nNew failures: 0\n\nProvider validators: none run.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- The production Node runtime version was not checked; a very old runtime could fail the handshake.\n- I did not read the Supabase changelog entry or docs for the exact list of disabled ciphers.\n- I did not search server_old.js separately for fetch usage; the grep covered all of demo/ and found no TLS settings.\n- No checks were run.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-5 · Models: claude-sonnet-5-5 · AI cost: $0.0619\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-5",
+        "recipeIds": [
+          "recipe-twitch-other-e3cc531f",
+          "recipe-coinbase-pro-other-2ac650b4",
+          "recipe-stripe-other-16a3e60d"
+        ],
+        "agentChecks": [],
+        "summary": "# saxllc/journey-intelligence:supabase:2026-11-10-tls12-ciphers: not-affected, $0.0619\nChange: Supabase disables a subset of TLS 1.2 ciphers on project HTTP APIs (*.supabase.co); old clients may fail (supabase, other)\nBaseline checks: none\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=<98 chars> path=demo glob=**/*.{js,json} → no matches\n2. search pattern=fetch\\(|supabase|https path=demo/server.js → demo/server.js:125:     const r = await fetch('https://api.sarvam.ai/text-to-speech', { | demo/server.js:185:     const r = await fetch( | demo/server.js:199:     const r = await fetch(\n3. finish verdict=not-affected summary=<349 chars> why=<163 chars> validators=[] unproven=<313 chars> behaviourChanges=[] → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: none\n\n## Result\nFiles changed: none\nVerdict: not-affected. demo/server.js and demo/server_old.js call Supabase REST with Node's global fetch. There is no custom https.Agent, cipher list, minVersion or secureProtocol setting in demo/. Node's built-in TLS (Node 22 in the sandbox) negotiates TLS 1.3 or modern TLS 1.2 ciphers, so the disabled TLS 1.2 ciphers should not affect these calls. No code was changed.\nUnproven: The production Node runtime version was not checked; a very old runtime could fail the handshake.; I did not read the Supabase changelog entry or docs for the exact list of disabled ciphers.; I did not search server_old.js separately for fetch usage; the grep covered all of demo/ and found no TLS settings.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "No checks were detected, and package.json has no build, codegen, postinstall or prepare scripts. The only scripts in the README (generate-cache.js and generate-ekyc-chunks.js) call live services (Anthropic and Upstash) to populate a cache, so they must not run. Nothing needs preparing."
+        }
+      }
+    },
+    {
+      "taskId": "saxllc/journey-intelligence:anthropic:2026-11-30-retire-claude-sonnet-4-5+1",
+      "changeId": "anthropic:2026-11-30-retire-claude-sonnet-4-5",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "anthropic",
+        "id": "anthropic:2026-11-30-retire-claude-sonnet-4-5",
+        "kind": "model-retirement",
+        "title": "2 changes: claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 and more",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+          "quote": "| November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |"
+        },
+        "affects": {
+          "operations": ["claude-sonnet-4-5-20250929"]
+        },
+        "effectiveDate": "2026-11-30"
+      },
+      "reasoning": "This one task covers all 2 anthropic changes that affect this repo. Handle every one of them in this single change set, prove each with your test, and say in finish which you changed and which needed no change.\n\n1. claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 (model-retirement, effective 2026-11-30)\n   Source: https://platform.claude.com/docs/en/about-claude/model-deprecations.md\n   Quote: | November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |\n   Affects: operations: claude-sonnet-4-5-20250929\n   Call sites: src/rhetorical.js:49 (messages.create with model 'claude-sonnet-4-5' (pinned at line 50). This alias resolves to claude-sonnet-4-5-20250929, which retires 2026-11-30.); demo/server.js:87 (messages.create with model claude-sonnet-4-5.); demo/server_old.js:132 (messages.create; the model is not recorded, likely the same claude-sonnet-4-5. Check it.); demo/server_old.js:203 (messages.create; the model is not recorded. Check it.); api/ekyc-chunk.js:81 (Raw POST /v1/messages; the model is not recorded. Check for claude-sonnet-4-5.); api/journey-chunk.js:129 (Raw POST /v1/messages; the model is not recorded. Check it.); api/klh-script.js:179 (Raw POST /v1/messages; the model is not recorded. Check it.); api/umang-chunk.js:140 (Raw POST /v1/messages; the model is not recorded. Check it.); scripts/generate-cache.js:134 (Raw POST /v1/messages; the model is not recorded. Check it.); scripts/generate-chunks.js:118 (Raw POST /v1/messages; the model is not recorded. Check it.); scripts/generate-ekyc-chunks.js:60 (Raw POST /v1/messages; the model is not recorded. Check it.); scripts/seed-cache.js:117 (Raw POST /v1/messages; the model is not recorded. Check it.); scripts/seed-umang-chunks.js:108 (Raw POST /v1/messages; the model is not recorded. Check it.)\n   Why it applies: The repo pins claude-sonnet-4-5 in src/rhetorical.js and demo/server.js. That alias points at claude-sonnet-4-5-20250929, which retires on the Claude API on 2026-11-30, after which these calls fail. The replacement is claude-sonnet-5-5. The raw HTTP call sites in api/ and scripts/ likely use the same model, but their bodies were not read, so the agent must grep for every model string. When switching, remove thinking:{type:'disabled'} and forced tool_choice (any/tool) if present, since those return 400 on Sonnet 5.5.\n\n2. New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01 (api-version)\n   Source: https://platform.claude.com/docs/en/api/migration-2026-10-21.md\n   Quote: This guide lists the code changes for moving from API version `2023-06-01` to `2026-10-21`.\n   Affects: operations: POST /v1/messages; versions: 2023-06-01, 2026-10-21\n   Call sites: src/rhetorical.js:49 (SDK messages.create. After the 1.0.0 bump, sampling params return 400 and MessageParam typing changes.); demo/server.js:87 (SDK messages.create, affected by the same SDK bump.); demo/server_old.js:132 (SDK messages.create.); demo/server_old.js:203 (SDK messages.create.); api/ekyc-chunk.js:81 (Raw POST /v1/messages sets its own anthropic-version header (likely 2023-06-01). Moving it to 2026-10-21 needs the body checked for temperature/top_p/top_k.); api/journey-chunk.js:129 (Raw POST /v1/messages; header and body checks as above.); api/klh-script.js:179 (Raw POST /v1/messages; header and body checks as above.); api/umang-chunk.js:140 (Raw POST /v1/messages; header and body checks as above.); scripts/generate-cache.js:134 (Raw POST /v1/messages; header and body checks as above.); scripts/generate-chunks.js:118 (Raw POST /v1/messages; header and body checks as above.); scripts/generate-ekyc-chunks.js:60 (Raw POST /v1/messages; header and body checks as above.); scripts/seed-cache.js:117 (Raw POST /v1/messages; header and body checks as above.); scripts/seed-umang-chunks.js:108 (Raw POST /v1/messages; header and body checks as above.)\n   Why it applies: The repo is on @anthropic-ai/sdk 0.82.0 and raw HTTP calls that keep sending anthropic-version 2023-06-01. Nothing breaks until the repo moves, and the source gives no retirement date for 2023-06-01. This is therefore a planned upgrade task: bump the SDK to 1.0.0, move the raw HTTP header to 2026-10-21, and in the same edit remove temperature/top_p/top_k. It should also verify there are no document blocks in assistant messages or citations in user messages, and decide on OpenTelemetry auto-spans. Request bodies were not captured, so the agent must read each one.",
+      "callSites": [
+        {
+          "file": "src/rhetorical.js",
+          "line": 49,
+          "why": "messages.create with model 'claude-sonnet-4-5' (pinned at line 50). This alias resolves to claude-sonnet-4-5-20250929, which retires 2026-11-30."
+        },
+        {
+          "file": "demo/server.js",
+          "line": 87,
+          "why": "messages.create with model claude-sonnet-4-5."
+        },
+        {
+          "file": "demo/server_old.js",
+          "line": 132,
+          "why": "messages.create; the model is not recorded, likely the same claude-sonnet-4-5. Check it."
+        },
+        {
+          "file": "demo/server_old.js",
+          "line": 203,
+          "why": "messages.create; the model is not recorded. Check it."
+        },
+        {
+          "file": "api/ekyc-chunk.js",
+          "line": 81,
+          "why": "Raw POST /v1/messages; the model is not recorded. Check for claude-sonnet-4-5."
+        },
+        {
+          "file": "api/journey-chunk.js",
+          "line": 129,
+          "why": "Raw POST /v1/messages; the model is not recorded. Check it."
+        },
+        {
+          "file": "api/klh-script.js",
+          "line": 179,
+          "why": "Raw POST /v1/messages; the model is not recorded. Check it."
+        },
+        {
+          "file": "api/umang-chunk.js",
+          "line": 140,
+          "why": "Raw POST /v1/messages; the model is not recorded. Check it."
+        },
+        {
+          "file": "scripts/generate-cache.js",
+          "line": 134,
+          "why": "Raw POST /v1/messages; the model is not recorded. Check it."
+        },
+        {
+          "file": "scripts/generate-chunks.js",
+          "line": 118,
+          "why": "Raw POST /v1/messages; the model is not recorded. Check it."
+        },
+        {
+          "file": "scripts/generate-ekyc-chunks.js",
+          "line": 60,
+          "why": "Raw POST /v1/messages; the model is not recorded. Check it."
+        },
+        {
+          "file": "scripts/seed-cache.js",
+          "line": 117,
+          "why": "Raw POST /v1/messages; the model is not recorded. Check it."
+        },
+        {
+          "file": "scripts/seed-umang-chunks.js",
+          "line": 108,
+          "why": "Raw POST /v1/messages; the model is not recorded. Check it."
+        },
+        {
+          "file": "src/rhetorical.js",
+          "line": 49,
+          "why": "SDK messages.create. After the 1.0.0 bump, sampling params return 400 and MessageParam typing changes."
+        },
+        {
+          "file": "demo/server.js",
+          "line": 87,
+          "why": "SDK messages.create, affected by the same SDK bump."
+        },
+        {
+          "file": "demo/server_old.js",
+          "line": 132,
+          "why": "SDK messages.create."
+        },
+        {
+          "file": "demo/server_old.js",
+          "line": 203,
+          "why": "SDK messages.create."
+        },
+        {
+          "file": "api/ekyc-chunk.js",
+          "line": 81,
+          "why": "Raw POST /v1/messages sets its own anthropic-version header (likely 2023-06-01). Moving it to 2026-10-21 needs the body checked for temperature/top_p/top_k."
+        },
+        {
+          "file": "api/journey-chunk.js",
+          "line": 129,
+          "why": "Raw POST /v1/messages; header and body checks as above."
+        },
+        {
+          "file": "api/klh-script.js",
+          "line": 179,
+          "why": "Raw POST /v1/messages; header and body checks as above."
+        },
+        {
+          "file": "api/umang-chunk.js",
+          "line": 140,
+          "why": "Raw POST /v1/messages; header and body checks as above."
+        },
+        {
+          "file": "scripts/generate-cache.js",
+          "line": 134,
+          "why": "Raw POST /v1/messages; header and body checks as above."
+        },
+        {
+          "file": "scripts/generate-chunks.js",
+          "line": 118,
+          "why": "Raw POST /v1/messages; header and body checks as above."
+        },
+        {
+          "file": "scripts/generate-ekyc-chunks.js",
+          "line": 60,
+          "why": "Raw POST /v1/messages; header and body checks as above."
+        },
+        {
+          "file": "scripts/seed-cache.js",
+          "line": 117,
+          "why": "Raw POST /v1/messages; header and body checks as above."
+        },
+        {
+          "file": "scripts/seed-umang-chunks.js",
+          "line": 108,
+          "why": "Raw POST /v1/messages; header and body checks as above."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "saxllc/journey-intelligence:anthropic:2026-11-30-retire-claude-sonnet-4-5+1",
+        "outcome": "verified",
+        "diff": "diff --git a/api/ekyc-chunk.js b/api/ekyc-chunk.js\nindex 7135ab4..0b0c466 100644\n--- a/api/ekyc-chunk.js\n+++ b/api/ekyc-chunk.js\n@@ -86,7 +86,7 @@ Respond in 2-3 sentences in Hindi DEVANAGARI ONLY. Conversational, direct, no fi\n         'anthropic-version': '2023-06-01',\n       },\n       body: JSON.stringify({\n-        model: 'claude-sonnet-4-5',\n+        model: 'claude-sonnet-5-5',\n         max_tokens: 400,\n         messages: [{ role: 'user', content: prompt }],\n       }),\ndiff --git a/api/journey-chunk.js b/api/journey-chunk.js\nindex 5e3b414..12fc11e 100644\n--- a/api/journey-chunk.js\n+++ b/api/journey-chunk.js\n@@ -134,7 +134,7 @@ Rules:\n       'anthropic-version': '2023-06-01',\n     },\n     body: JSON.stringify({\n-      model: 'claude-sonnet-4-5',\n+      model: 'claude-sonnet-5-5',\n       max_tokens: 500,\n       messages: [{ role: 'user', content: prompt }],\n     }),\n@@ -177,7 +177,7 @@ export default async function handler(req, res) {\n     if (!nocache) {\n       await cacheSet(key, {\n         script, chunk: intentId, journey, persona: personaSlug,\n-        language: 'hi', generated_at: new Date().toISOString(), model: 'claude-sonnet-4-5', tier: 1,\n+        language: 'hi', generated_at: new Date().toISOString(), model: 'claude-sonnet-5-5', tier: 1,\n       });\n     }\n     return res.status(200).json({\ndiff --git a/api/klh-script.js b/api/klh-script.js\nindex 333da6e..159f643 100644\n--- a/api/klh-script.js\n+++ b/api/klh-script.js\n@@ -184,7 +184,7 @@ Return ONLY the script text. No JSON. No labels. No explanation. Just the words\n         'anthropic-version': '2023-06-01'\n       },\n       body: JSON.stringify({\n-        model: 'claude-sonnet-4-5',\n+        model: 'claude-sonnet-5-5',\n         max_tokens: 1200,\n         messages: [{ role: 'user', content: prompt }]\n       })\n@@ -213,7 +213,7 @@ Return ONLY the script text. No JSON. No labels. No explanation. Just the words\n         verbosity: vLevel,\n         language: langCode,\n         generated_at: new Date().toISOString(),\n-        model: 'claude-sonnet-4-5',\n+        model: 'claude-sonnet-5-5',\n         tier: 1,\n       });\n     }\ndiff --git a/api/umang-chunk.js b/api/umang-chunk.js\nindex bfb3346..ecc11ad 100644\n--- a/api/umang-chunk.js\n+++ b/api/umang-chunk.js\n@@ -27,7 +27,7 @@\n const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;\n const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;\n const THRESHOLD = parseFloat(process.env.UMANG_MATCH_THRESHOLD || '0.5');\n-const SONNET = 'claude-sonnet-4-5';\n+const SONNET = 'claude-sonnet-5-5';\n const HAIKU = 'claude-haiku-4-5-20251001';\n \n const NOTICE = 'मेरे पास इसका तैयार जवाब नहीं है। सही समाधान के लिए मैं ऑनलाइन देखता हूँ…';\ndiff --git a/demo/server.js b/demo/server.js\nindex 33ffef1..42d5a98 100644\n--- a/demo/server.js\n+++ b/demo/server.js\n@@ -85,7 +85,7 @@ app.post('/api/klh-script', async (req, res) => {\n \n     const client = new (require('@anthropic-ai/sdk'))({ apiKey: process.env.ANTHROPIC_API_KEY });\n     const response = await client.messages.create({\n-      model: 'claude-sonnet-4-5',\n+      model: 'claude-sonnet-5-5',\n       max_tokens: 1200,\n       messages: [{ role: 'user', content: `You are GATO, the DPIx Journey Intelligence agent. Generate an audio explanation script.\n \ndiff --git a/demo/server_old.js b/demo/server_old.js\nindex 3544f71..edf111b 100644\n--- a/demo/server_old.js\n+++ b/demo/server_old.js\n@@ -130,7 +130,7 @@ app.post('/api/klh-script', async (req, res) => {\n     const { screen_content, persona_profile, language } = req.body;\n     const client = new (require('@anthropic-ai/sdk'))({ apiKey: process.env.ANTHROPIC_API_KEY });\n     const response = await client.messages.create({\n-      model: 'claude-sonnet-4-5',\n+      model: 'claude-sonnet-5-5',\n       max_tokens: 1200,\n       messages: [{ role: 'user', content: `You are GATO, the DPIx Journey Intelligence agent. Generate a comprehensive audio explanation script for the screen content below.\n \n@@ -201,7 +201,7 @@ app.post('/api/klh-script', async (req, res) => {\n     const vInstruction = VERBOSITY[verbosity] || VERBOSITY.MEDIUM;\n     const client = new (require('@anthropic-ai/sdk'))({ apiKey: process.env.ANTHROPIC_API_KEY });\n     const response = await client.messages.create({\n-      model:'claude-sonnet-4-5', max_tokens:1200,\n+      model:'claude-sonnet-5-5', max_tokens:1200,\n       messages:[{ role:'user', content:`You are GATO, the DPIx Journey Intelligence agent. Generate an audio explanation script.\n \n SCREEN CONTENT:\ndiff --git a/scripts/generate-cache.js b/scripts/generate-cache.js\nindex 2f8c60c..386cd3e 100644\n--- a/scripts/generate-cache.js\n+++ b/scripts/generate-cache.js\n@@ -139,7 +139,7 @@ Return ONLY the script text. No JSON. No labels. No explanation. Just the words\n       'anthropic-version': '2023-06-01',\n     },\n     body: JSON.stringify({\n-      model: 'claude-sonnet-4-5',\n+      model: 'claude-sonnet-5-5',\n       max_tokens: 1200,\n       messages: [{ role: 'user', content: prompt }],\n     }),\n@@ -174,7 +174,7 @@ async function main() {\n         verbosity: job.verbosity,\n         language: job.lang,\n         generated_at: new Date().toISOString(),\n-        model: 'claude-sonnet-4-5',\n+        model: 'claude-sonnet-5-5',\n         tier: 1,\n       };\n \ndiff --git a/scripts/generate-chunks.js b/scripts/generate-chunks.js\nindex 903404b..3879958 100644\n--- a/scripts/generate-chunks.js\n+++ b/scripts/generate-chunks.js\n@@ -118,7 +118,7 @@ Rules:\n     const r = await fetch('https://api.anthropic.com/v1/messages', {\n       method: 'POST',\n       headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },\n-      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 500, messages: [{ role: 'user', content: prompt }] }),\n+      body: JSON.stringify({ model: 'claude-sonnet-5-5', max_tokens: 500, messages: [{ role: 'user', content: prompt }] }),\n     });\n     if (!r.ok) throw new Error(`Claude ${r.status}: ${await r.text()}`);\n     const data = await r.json();\n@@ -153,7 +153,7 @@ async function main() {\n       }\n       process.stdout.write(`${label} ... `);\n       const script = await generate(job);\n-      const entry = { script, chunk: job.chunkId, journey: job.journey.id, persona: job.persona, language: 'hi', generated_at: new Date().toISOString(), model: 'claude-sonnet-4-5', tier: 1 };\n+      const entry = { script, chunk: job.chunkId, journey: job.journey.id, persona: job.persona, language: 'hi', generated_at: new Date().toISOString(), model: 'claude-sonnet-5-5', tier: 1 };\n       await redisSet(job.key, entry);\n       const check = await redisGet(job.key);\n       if (!check || !check.script) throw new Error('verify failed after SET');\ndiff --git a/scripts/generate-ekyc-chunks.js b/scripts/generate-ekyc-chunks.js\nindex 0997b8c..7dc21ee 100644\n--- a/scripts/generate-ekyc-chunks.js\n+++ b/scripts/generate-ekyc-chunks.js\n@@ -65,7 +65,7 @@ Rules:\n       'anthropic-version': '2023-06-01',\n     },\n     body: JSON.stringify({\n-      model: 'claude-sonnet-4-5',\n+      model: 'claude-sonnet-5-5',\n       max_tokens: 400,\n       messages: [{ role: 'user', content: prompt }],\n     }),\ndiff --git a/scripts/seed-cache.js b/scripts/seed-cache.js\nindex f087f99..228f4ae 100644\n--- a/scripts/seed-cache.js\n+++ b/scripts/seed-cache.js\n@@ -117,7 +117,7 @@ Return ONLY the script text. No JSON. No labels. No explanation. Just the words\n     const r = await fetch('https://api.anthropic.com/v1/messages', {\n       method: 'POST',\n       headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },\n-      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 1200, messages: [{ role: 'user', content: prompt }] }),\n+      body: JSON.stringify({ model: 'claude-sonnet-5-5', max_tokens: 1200, messages: [{ role: 'user', content: prompt }] }),\n     });\n     if (!r.ok) throw new Error(`Claude ${r.status}: ${await r.text()}`);\n     const data = await r.json();\n@@ -146,7 +146,7 @@ async function main() {\n       const script = await generateNarration(job);\n       const entry = {\n         script, journey: job.journey.id, persona: job.personaId, verbosity: job.verbosity,\n-        language: job.lang, generated_at: new Date().toISOString(), model: 'claude-sonnet-4-5', tier: 1,\n+        language: job.lang, generated_at: new Date().toISOString(), model: 'claude-sonnet-5-5', tier: 1,\n       };\n       await redisSet(job.key, entry);\n       // verify read-back\ndiff --git a/scripts/seed-umang-chunks.js b/scripts/seed-umang-chunks.js\nindex a42a292..e97275d 100644\n--- a/scripts/seed-umang-chunks.js\n+++ b/scripts/seed-umang-chunks.js\n@@ -108,7 +108,7 @@ LANGUAGE: Hindi — Devanagari script ONLY, no Roman letters except unavoidable\n     const r = await fetch('https://api.anthropic.com/v1/messages', {\n       method: 'POST',\n       headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },\n-      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 700, messages: [{ role: 'user', content: prompt }] }),\n+      body: JSON.stringify({ model: 'claude-sonnet-5-5', max_tokens: 700, messages: [{ role: 'user', content: prompt }] }),\n     });\n     if (!r.ok) throw new Error(`Claude ${r.status}: ${await r.text()}`);\n     const data = await r.json();\n@@ -137,7 +137,7 @@ async function main() {\n       }\n       process.stdout.write(`${label} ... `);\n       const script = await generate(job);\n-      const entry = { script, dim: job.dim, journey: job.journey, persona: job.persona, verbosity: job.verbosity, language: 'hi', generated_at: new Date().toISOString(), model: 'claude-sonnet-4-5', tier: 1 };\n+      const entry = { script, dim: job.dim, journey: job.journey, persona: job.persona, verbosity: job.verbosity, language: 'hi', generated_at: new Date().toISOString(), model: 'claude-sonnet-5-5', tier: 1 };\n       await redisSet(job.key, entry);\n       const check = await redisGet(job.key);\n       if (!check || !check.script) throw new Error('verify failed after SET');\ndiff --git a/src/rhetorical.js b/src/rhetorical.js\nindex b1a7383..4ba2da7 100644\n--- a/src/rhetorical.js\n+++ b/src/rhetorical.js\n@@ -47,7 +47,7 @@ Return a single JSON object. No markdown. No explanation. No wrapper text. Only\n For risk_signal: set to a one-line warning string only if materiality is CONSEQUENTIAL, else null.`;\n \n   const response = await client.messages.create({\n-    model: 'claude-sonnet-4-5',\n+    model: 'claude-sonnet-5-5',\n     max_tokens: 1200,\n     messages: [{ role: 'user', content: prompt }]\n   });\ndiff --git a/test/model.test.js b/test/model.test.js\nnew file mode 100644\nindex 0000000..535fc80\n--- /dev/null\n+++ b/test/model.test.js\n@@ -0,0 +1,12 @@\n+const fs=require('fs'),path=require('path');\n+const bad=[];let n=0;\n+function walk(d){for(const e of fs.readdirSync(d,{withFileTypes:true})){\n+ if(e.name==='node_modules'||e.name==='test'||e.name.startsWith('.'))continue;\n+ const p=path.join(d,e.name);\n+ if(e.isDirectory())walk(p);else if(e.name.endsWith('.js')){const s=fs.readFileSync(p,'utf8');\n+  if(s.includes('claude-sonnet-4-5'))bad.push(p+': old id');\n+  if(/tool_choice|type:\\s*'disabled'/.test(s))bad.push(p+': forbidden param');\n+  if(s.includes('claude-sonnet-5-5'))n++;}}}\n+walk('.');\n+if(bad.length||n<10){console.error(bad,n);process.exit(1)}\n+console.log('ok',n);\n",
+        "checks": [
+          {
+            "name": "model-test",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.10007359999999998,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-saxllc-journey-intelligence-anthropic-2026-11-30-retire-claude-sonnet-4-5-1-b9VZNu/transcript.jsonl",
+        "prBody": "## 2 changes: claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 and more [Verified]\n\n### Change\n\nReplaced claude-sonnet-4-5 with claude-sonnet-5-5 in all 12 code files (api/, demo/ including server_old.js, scripts/, src/rhetorical.js), including cache-entry model metadata. No dated id, tool_choice, thinking disabled, or sampling params found. Added test/model.test.js (static check). SDK 1.0.0 bump and anthropic-version 2026-10-21 deliberately skipped (not needed for the retirement; no retirement date for 2023-06-01 given).\n\nFiles touched:\n- `api/ekyc-chunk.js`\n- `api/journey-chunk.js`\n- `api/klh-script.js`\n- `api/umang-chunk.js`\n- `demo/server.js`\n- `demo/server_old.js`\n- `scripts/generate-cache.js`\n- `scripts/generate-chunks.js`\n- `scripts/generate-ekyc-chunks.js`\n- `scripts/seed-cache.js`\n- `scripts/seed-umang-chunks.js`\n- `src/rhetorical.js`\n- `test/model.test.js`\n\n### Why\n\nclaude-sonnet-4-5 aliases claude-sonnet-4-5-20250929, which retires 2026-11-30.\n\n> | November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |\n\nSource: https://platform.claude.com/docs/en/about-claude/model-deprecations.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| model-test | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- model-test, added by the agent: `node test/model.test.js` (fail (1) → pass)\n\nProvider validators: none run.\n\nTest of this change: `model-test`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- SDK/API-version change (2026-10-21) not applied; upcoming, planned upgrade\n- Existing cached backup data still names the old model id\n- SDK 0.82.0 not verified against the new model\n- No provider validator was run.\n\n### Behaviour changes\n\n- Generated text from Sonnet 5.5 may differ in tone, length, JSON adherence, cost and latency; spot-check output\n- New cache entries are labelled model claude-sonnet-5-5\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-5 · Models: claude-sonnet-5-5 · AI cost: $0.1001\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-5",
+        "recipeIds": [
+          "recipe-anthropic-model-retirement-9b5d480a",
+          "recipe-anthropic-api-version-a547c43b",
+          "recipe-anthropic-other-b417d9b7"
+        ],
+        "agentChecks": [
+          {
+            "name": "model-test",
+            "command": "node test/model.test.js",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# saxllc/journey-intelligence:anthropic:2026-11-30-retire-claude-sonnet-4-5+1: verified, $0.1001\nChange: 2 changes: claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 and more (anthropic, model-retirement)\nBaseline checks: model-test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=claude-sonnet|tool_choice|thinking\\s*:|temperature|top_p|top_k glob=**/*.{js,mjs,cjs,ts} → api/ekyc-chunk.js:89:         model: 'claude-sonnet-4-5', | api/journey-chunk.js:137:       model: 'claude-sonnet-4-5', | api/journey-chunk.js:180:         language: 'hi', generated_at: new Date().toISOString(), model: 'claude-sonnet-4-5', …\n2. shell command=<952 chars> → exit code: 0 | --- stdout --- | ok 12\n3. run_checks add=[{\"name\":\"model-test\",\"command\":\"node test/model.test.js\"}] → registered model-test; on the original code it fails (1) | ## model-test: pass | command: node test/model.test.js\n4. finish verdict=migrated summary=<431 chars> why=claude-sonnet-4-5 aliases claude-sonnet-4-5-20250929, which retires 2026-11-30. validators=[] unproven=<185 chars> behaviourChanges=<171 chars> proofTest=model-test → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: model-test fail (1) → pass\n\n## Result\nFiles changed: api/ekyc-chunk.js, api/journey-chunk.js, api/klh-script.js, api/umang-chunk.js, demo/server.js, demo/server_old.js, scripts/generate-cache.js, scripts/generate-chunks.js, scripts/generate-ekyc-chunks.js, scripts/seed-cache.js, scripts/seed-umang-chunks.js, src/rhetorical.js, test/model.test.js\nVerdict: migrated. Replaced claude-sonnet-4-5 with claude-sonnet-5-5 in all 12 code files (api/, demo/ including server_old.js, scripts/, src/rhetorical.js), including cache-entry model metadata. No dated id, tool_choice, thinking disabled, or sampling params found. Added test/model.test.js (static check). SDK 1.0.0 bump and anthropic-version 2026-10-21 deliberately skipped (not needed for the retirement; no retirement date for 2023-06-01 given).\nUnproven: SDK/API-version change (2026-10-21) not applied; upcoming, planned upgrade; Existing cached backup data still names the old model id; SDK 0.82.0 not verified against the new model\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "No checks were detected and package.json has no build, codegen, postinstall or prepare scripts. The cache generation scripts in the README call a live service (Anthropic and Upstash), so they must not be run. Nothing needs preparing."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff swaps the model ID at every call site in the named files, and the added grep-style test passes. But the old files used the alias 'claude-sonnet-4-5', while the retirement row in the quote is for the dated ID 'claude-sonnet-4-5-20250929'. 'claude-sonnet-5-5' comes straight from the quoted deprecation table; I could not confirm it from memory, so check the table and SDK/model list. The 'verified' grade rests on a static string-scan test that makes no live API call, so it proves nothing about whether the new model accepts these requests or behaves the same. Pre-existing and unrelated to this change: api/klh-script.js contains unresolved git merge conflict markers (<<<<<<< HEAD) and cannot parse as written; the diff edits lines inside the conflicted region without resolving it. The match list also names other files, such as api/umang-chunk.js's HAIKU, that were not touched, which looks fine.",
+        "concerns": [
+          {
+            "file": "test/model.test.js",
+            "issue": "The test only greps source for strings (no old id, 'claude-sonnet-5-5' appears in at least 10 files). It makes no API call and does not check request or response shape. Its n<10 threshold is arbitrary, and the 'forbidden param' regex looks for tool_choice or type:'disabled', which nothing here uses. 'Verified' is therefore weakly supported.",
+            "severity": "medium"
+          },
+          {
+            "file": "api/klh-script.js",
+            "issue": "The file has unresolved merge conflict markers, a pre-existing problem. The model edits sit inside the conflict regions, so the file is a syntax error, and the endpoint (and the model swap in it) cannot run until the conflict is resolved. The test does not parse files, so it misses this.",
+            "severity": "high"
+          },
+          {
+            "file": "api/umang-chunk.js",
+            "issue": "SONNET is also written into cache entries as the model field and used for several calls (generateDim, liveAnswer). A different model may change Hindi/Devanagari output quality, length adherence and latency. Cached entries that carry the old model label will now coexist with new-model generations, and no output-quality check was run.",
+            "severity": "low"
+          },
+          {
+            "file": "scripts/generate-cache.js",
+            "issue": "The model field in cached metadata changes in the generate and seed scripts, so entries seeded before and after the change are labelled differently. This is cosmetic but is behaviour beyond the API change, and the live-call paths in the scripts were not exercised.",
+            "severity": "low"
+          },
+          {
+            "file": "demo/server_old.js",
+            "issue": "This is a legacy file being migrated. It may be dead code, in which case the change is harmless but needless.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Confirm in the model-deprecations page and the model list that 'claude-sonnet-5-5' is a valid API model ID, and that it replaces the alias 'claude-sonnet-4-5' as well as the dated ID.",
+          "Resolve the merge conflict markers in api/klh-script.js and run node --check or deploy a preview.",
+          "Make one live call per distinct call pattern (HTTP fetch and SDK) against the new model with max_tokens, and confirm a 200 response and Devanagari output.",
+          "Compare Hindi output quality and latency on a few personas versus the old model before trusting cached self-heal write-backs."
+        ],
+        "costUsd": 0.06194,
+        "model": "claude-sonnet-5-5"
+      }
+    }
+  ],
+  "costUsd": 1.0435778,
+  "durationMs": 272116,
+  "matchReasoning": "saxllc/journey-intelligence:sarvam:2026-06-29-stt-default-saaras-v3: The STT endpoint is called directly over raw HTTP. The usage map does not show which model, if any, is sent. If none is sent, behaviour already changed on 2026-06-29. If saarika:v2.5 is sent, that model is slated for deprecation. The migration agent should read api/stt.js and set model explicitly to saaras:v3 (with mode='transcribe' if needed). It should then confirm the response fields the code reads (e.g. transcript, language_code) are unchanged. This is uncertain because the request body was not captured.\nsaxllc/journey-intelligence:supabase:2026-11-10-tls12-ciphers: The repo calls the project HTTP API on supabase.co directly. Supabase is disabling a subset of TLS 1.2 ciphers on 2026-11-10. Modern Node fetch/https negotiates TLS 1.3 or strong TLS 1.2 ciphers, so most likely no code change is needed. The migration agent should check the Node runtime version and any custom https.Agent cipher or minVersion settings in demo/server.js and demo/server_old.js. This is a low-impact verification.\nsaxllc/journey-intelligence:anthropic:2026-11-30-retire-claude-sonnet-4-5: The repo pins claude-sonnet-4-5 in src/rhetorical.js and demo/server.js. That alias points at claude-sonnet-4-5-20250929, which retires on the Claude API on 2026-11-30, after which these calls fail. The replacement is claude-sonnet-5-5. The raw HTTP call sites in api/ and scripts/ likely use the same model, but their bodies were not read, so the agent must grep for every model string. When switching, remove thinking:{type:'disabled'} and forced tool_choice (any/tool) if present, since those return 400 on Sonnet 5.5.\nsaxllc/journey-intelligence:anthropic:2026-10-21-api-version-2026-10-21: The repo is on @anthropic-ai/sdk 0.82.0 and raw HTTP calls that keep sending anthropic-version 2023-06-01. Nothing breaks until the repo moves, and the source gives no retirement date for 2023-06-01. This is therefore a planned upgrade task: bump the SDK to 1.0.0, move the raw HTTP header to 2026-10-21, and in the same edit remove temperature/top_p/top_k. It should also verify there are no document blocks in assistant messages or citations in user messages, and decide on OpenTelemetry auto-spans. Request bodies were not captured, so the agent must read each one.\nsarvam:2026-saarika-v2-5-deprecated: not affected: No task of its own: resolved inside saxllc/journey-intelligence:sarvam:2026-06-29-stt-default-saaras-v3 (/speech-to-text REST and Batch default model changed from saarika:v2.5 to saaras:v3 (pass model explicitly to keep old behaviour)). The fix sets an explicit STT model on api/stt.js. Pinning saaras:v3, not saarika:v2.5, also moves the call off the deprecated Saarika v2.5 model. If the code already passes saarika:v2.5, this same edit replaces it.\nanthropic:2026-09-28-sonnet-5-5-breaking: not affected: No task of its own: resolved inside saxllc/journey-intelligence:anthropic:2026-11-30-retire-claude-sonnet-4-5 (claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5). This only bites when moving to the replacement claude-sonnet-5-5, which this task does. Disabled thinking and forced tool_choice return 400 there, so the same edit must drop or adjust those params.\nanthropic:2026-10-21-sdk-typescript-1-0-0: not affected: No task of its own: resolved inside saxllc/journey-intelligence:anthropic:2026-10-21-api-version-2026-10-21 (New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01). SDK 1.0.0 is the SDK side of the same version move: it sends 2026-10-21 by default. Bumping @anthropic-ai/sdk from 0.82.0 to 1.0.0 is part of this task, together with the MessageParam union typing and sampling-param removal.\nanthropic:2026-10-21-sampling-params-removed: not affected: No task of its own: resolved inside saxllc/journey-intelligence:anthropic:2026-10-21-api-version-2026-10-21 (New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01). This only bites once requests send anthropic-version 2026-10-21. The same edit must strip temperature/top_p/top_k from the SDK and raw HTTP bodies.\nanthropic:2026-10-21-document-citations-user-assistant-errors: not affected: No task of its own: resolved inside saxllc/journey-intelligence:anthropic:2026-10-21-api-version-2026-10-21 (New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01). This only applies under 2026-10-21. The same edit should check message construction for document blocks in assistant turns or citations in user turns.\nanthropic:2026-10-14-ts-sdk-otel-default: not affected: No task of its own: resolved inside saxllc/journey-intelligence:anthropic:2026-10-21-api-version-2026-10-21 (New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01). Upgrading 0.82.0 to 1.0.0 passes 0.134.0. If the app registers a global tracer provider, set openTelemetry:false or accept the new spans as part of the same SDK bump.\nanthropic:2026-10-21-admin-api-field-renames: not affected: The repo only calls messages.create / POST /v1/messages. No Admin API or Enterprise Analytics endpoints are used.\nanthropic:2026-11-30-fast-mode-opus-4-8-removal: not affected: The repo uses claude-sonnet-4-5, not claude-opus-4-8, and no speed:'fast' parameter is recorded.\nanthropic:2026-10-07-haiku-5-5-breaking: not affected: No Haiku model is used, and the planned migration is to claude-sonnet-5-5, not Haiku 5.5.\nanthropic:2026-09-22-opus-5-5-breaking: not affected: The repo does not use or migrate to claude-opus-5-5.\nanthropic:2026-09-01-fable-5-1-tool-choice: not affected: The repo does not use claude-fable-5-1 or claude-mythos-5-1.\nanthropic:2026-08-27-ts-sdk-beta-files-skills: not affected: No client.beta.files or client.beta.skills calls exist. Only messages.create is used.\nanthropic:2026-10-07-text-completions-deprecated: not affected: The repo uses the Messages API, not client.completions.create / Text Completions.\nanthropic:2026-09-24-compliance-activity-names-removed: not affected: The repo does not call the Compliance API Activity Feed.\nupstash:2026-10-26-redis-js-response-encoding-default: not affected: The repo calls the Upstash REST API with raw HTTP (/get, /set, /scan, /del), not the @upstash/redis SDK. The SDK's client-side responseEncoding default does not apply.\nupstash:2026-05-05-redis-js-autopipeline-split: not affected: This is @upstash/redis auto-pipelining behaviour. The repo uses raw single-command REST calls, not the SDK.\nupstash:2026-09-04-redis-js-ryw-sync-token-fix: not affected: This is an @upstash/redis SDK readYourWrites fix. The repo does not use the SDK.\nupstash:2026-09-23-ratelimit-token-bucket-reject: not affected: The repo does not use @upstash/ratelimit.\nupstash:2024-07-16-ratelimit-2-0-0-getremaining-reset: not affected: The repo does not use @upstash/ratelimit or getRemaining.\nupstash:2024-09-11-ratelimit-cachescripts-deprecated: not affected: The repo does not use @upstash/ratelimit or the cacheScripts option.\nsarvam:2026-11-10-bulbul-v3-eol-voice-agents: not affected: bulbul:v3 is used only via the REST /text-to-speech API (api/tts.js), which the notice says is unaffected. The EOL applies to Voice Agents only.\nsarvam:2026-08-18-sarvam-30b-deprecated: not affected: The repo does not call Sarvam Chat Completions or use sarvam-30b.\nsarvam:2026-06-05-sarvam-m-deprecated: not affected: The repo does not call Sarvam Chat Completions or use sarvam-m.\nsarvam:2026-06-29-speech-to-text-translate-legacy: not affected: The repo calls /speech-to-text, not /speech-to-text-translate.\nsarvam:2026-08-18-document-digitization-legacy: not affected: No Document Digitization or Document AI endpoints are used.\nsarvam:2026-10-20-chat-v2-responses-ga: not affected: This is a new optional endpoint. The repo uses no Sarvam chat/responses endpoints.\nsarvam:2026-08-18-realtime-stt-supersedes-ws: not affected: The repo uses REST /speech-to-text, not the streaming WebSocket. The legacy WS also remains available.\nsarvam:2026-08-05-llm-pricing-increase: not affected: The repo does not use sarvam-105b or any Sarvam LLM.\nsarvam:2026-10-26-voice-clone-language-optional: not affected: The repo does not call the voice cloning endpoints. target_language_code is used on /text-to-speech, which is unchanged.\nsarvam:2026-10-12-sdk-voice-cloning-min-versions: not affected: The repo calls Sarvam over raw HTTP, not the sarvamai SDK, and does not use voice cloning.\nsupabase:2026-10-30-data-api-tables-not-exposed: not affected: This applies only to newly created public tables. The repo reads and writes the existing configurations table, whose grants are unchanged. Re-check only if that table is ever recreated on a new project.\nsupabase:2026-09-23-mgmt-api-logs-all-removed: not affected: The repo does not call the Management API logs endpoint.\nsupabase:2026-08-05-extension-version-pinning: not affected: No CREATE/ALTER EXTENSION usage is recorded. The repo only calls PostgREST.\nsupabase:2026-07-14-realtime-schema-locked: not affected: The repo does not use Realtime or modify the realtime schema.\nsupabase:2027-01-31-supabase-js-ts5: not affected: The repo calls Supabase via raw HTTP, not @supabase/supabase-js.\nsupabase:2026-06-30-node20-dropped: not affected: This applies to the supabase-js client libraries. The repo uses raw HTTP fetch to PostgREST and no Supabase SDK.\nsupabase:2026-06-01-oauth-token-200: not affected: The repo does not call the /v1/oauth/token endpoint.\nsupabase:2026-04-08-openapi-anon-key: not affected: The repo queries /rest/v1/configurations and does not fetch the OpenAPI spec from the Data API root.\nsupabase:2026-pg-graphql-opt-in: not affected: The repo uses PostgREST REST endpoints, not GraphQL.\nsupabase:2026-07-01-postgres14-eol: not affected: Projects are auto-upgraded. The repo only uses PostgREST on a simple table, with no timescaledb/plv8/pgjwt usage recorded.\nsupabase:2026-04-postgrest-auto-retry: not affected: Auto-retry is a client-library behaviour. The repo uses raw HTTP, not the Supabase client libs.\nsupabase:2026-03-edge-recursive-rate-limit: not affected: The repo does not use Supabase Edge Functions.\nsupabase:2026-06-free-smtp-templates: not affected: The repo does not use Supabase Auth email templates.\nsupabase:2026-self-hosted-auth-url: not affected: The repo targets hosted supabase.co and does not use Auth/SAML.\nsupabase:2025-10-pgmq-delay: not affected: The repo does not use pgmq.",
+  "costByPart": {
+    "inventory": 0,
+    "watch": 0.3634988,
+    "match": 0.269492,
+    "memory": 0.112094,
+    "harness": 0.23655299999999999,
+    "review": 0.06194
+  }
+}

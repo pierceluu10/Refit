@@ -1,0 +1,40 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "ducknife/Music_Agent",
+  "commit": "061858e6864f1f4461e766464f1690dce1879fd7",
+  "provider": "anthropic",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.00785199999999997,
+  "durationMs": 51739,
+  "install": {
+    "code": 0,
+    "tail": "added 131 packages in 15s\n\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npm --prefix client install --ignore-scripts",
+        "why": "The root postinstall (npm --prefix client install) did not run because install scripts are off, so the client's dependencies (vite, react, @types/react, typescript) are missing for the client typecheck and build.",
+        "code": 0
+      }
+    ],
+    "env": []
+  }
+}

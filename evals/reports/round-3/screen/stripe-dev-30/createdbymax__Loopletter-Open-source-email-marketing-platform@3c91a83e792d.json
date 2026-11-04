@@ -1,0 +1,56 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "createdbymax/Loopletter-Open-source-email-marketing-platform",
+  "commit": "3c91a83e792d84178c86be02a486cfb7f14b6d00",
+  "provider": "stripe",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='pk_test_Y2xlcmstZXhhbXBsZS5hY2NvdW50cy5kZXYk' CLERK_SECRET_KEY='sk_test_placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' SPOTIFY_CLIENT_ID='placeholder' SPOTIFY_CLIENT_SECRET='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='pk_test_Y2xlcmstZXhhbXBsZS5hY2NvdW50cy5kZXYk' CLERK_SECRET_KEY='sk_test_placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' SPOTIFY_CLIENT_ID='placeholder' SPOTIFY_CLIENT_SECRET='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.3115499999999999,
+  "durationMs": 374111,
+  "install": {
+    "code": 0,
+    "tail": "added 1425 packages in 2m\n\nnpm warn ERESOLVE overriding peer dependency\nnpm warn While resolving: react-reconciler@0.31.0-rc-935180c7e0-20240524\nnpm warn Found: react@19.1.0\nnpm warn node_modules/react\nnpm warn   react@\"^19.0.0\" from the root project\nnpm warn   116 more (@clerk/clerk-react, @clerk/nextjs, @clerk/shared, ...)\nnpm warn\nnpm warn Could not resolve dependency:\nnpm warn peer react@\"19.0.0-rc-935180c7e0-20240524\" from react-reconciler@0.31.0-rc-935180c7e0-20240524\nnpm warn node_modules/react-reconciler\nnpm warn   react-reconciler@\"0.31.0-rc-935180c7e0-20240524\" from @react-three/fiber@9.0.0-alpha.8\nnpm warn   node_modules/@react-three/fiber\nnpm warn\nnpm warn Conflicting peer dependency: react@19.0.0-rc-935180c7e0-20240524\nnpm warn node_modules/react\nnpm warn   peer react@\"19.0.0-rc-935180c7e0-20240524\" from react-reconciler@0.31.0-rc-935180c7e0-20240524\nnpm warn   node_modules/react-reconciler\nnpm warn     react-reconciler@\"0.31.0-rc-935180c7e0-20240524\" from @react-three/fiber@9.0.0-alpha.8\nnpm warn     node_modules/@react-three/fiber"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx fumadocs-mdx",
+        "why": "Generates the .source folder that fumadocs-mdx normally creates at setup. The docs source imports it, so typecheck and build need it.",
+        "code": 0
+      },
+      {
+        "command": "npx --no-install fumadocs-mdx",
+        "why": "Generates the .source folder that the docs code imports. The postinstall hook that would normally create it was skipped, and tsc needs it before the build runs.",
+        "code": 0
+      }
+    ],
+    "env": [
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+      "CLERK_SECRET_KEY",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "SPOTIFY_CLIENT_ID",
+      "SPOTIFY_CLIENT_SECRET"
+    ]
+  }
+}

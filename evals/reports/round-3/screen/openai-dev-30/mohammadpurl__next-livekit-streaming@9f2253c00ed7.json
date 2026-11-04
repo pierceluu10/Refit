@@ -1,0 +1,35 @@
+{
+  "set": "openai-dev-30",
+  "repo": "mohammadpurl/next-livekit-streaming",
+  "commit": "9f2253c00ed7bcdd9f3017f7f6fb1676753d981f",
+  "provider": "openai",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export OPENAI_API_KEY='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export OPENAI_API_KEY='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.05629799999999985,
+  "durationMs": 167102,
+  "install": {
+    "code": 0,
+    "tail": "added 431 packages in 3m"
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["OPENAI_API_KEY"]
+  }
+}

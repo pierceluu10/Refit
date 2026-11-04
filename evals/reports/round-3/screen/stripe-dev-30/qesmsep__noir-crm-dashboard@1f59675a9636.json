@@ -1,0 +1,64 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "qesmsep/noir-crm-dashboard",
+  "commit": "1f59675a9636716b8efc028c9a637c9568e8fb8e",
+  "provider": "stripe",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='pk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' OPENPHONE_API_KEY='placeholder' OPENPHONE_PHONE_NUMBER_ID='placeholder' SENDGRID_API_KEY='placeholder' CAMPAIGN_PROCESSING_TOKEN='placeholder' ENCRYPTION_KEY='0000000000000000000000000000000000000000000000000000000000000000'; npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "src/lib/__tests__/security.test.ts: error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property."
+      ],
+      "tail": "src/lib/__tests__/security.test.ts(90,17): error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property.\nsrc/lib/__tests__/security.test.ts(95,17): error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property.\nsrc/lib/__tests__/security.test.ts(100,17): error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property."
+    },
+    {
+      "name": "build",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='pk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' OPENPHONE_API_KEY='placeholder' OPENPHONE_PHONE_NUMBER_ID='placeholder' SENDGRID_API_KEY='placeholder' CAMPAIGN_PROCESSING_TOKEN='placeholder' ENCRYPTION_KEY='0000000000000000000000000000000000000000000000000000000000000000'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "test",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='pk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' OPENPHONE_API_KEY='placeholder' OPENPHONE_PHONE_NUMBER_ID='placeholder' SENDGRID_API_KEY='placeholder' CAMPAIGN_PROCESSING_TOKEN='placeholder' ENCRYPTION_KEY='0000000000000000000000000000000000000000000000000000000000000000'; npm run test",
+      "ok": false,
+      "failures": [
+        "FAIL src/lib/__tests__/security.test.ts",
+        "TypeError: query1.in is not a function",
+        "FAIL src/lib/__tests__/stripe-webhook-skip-cron.test.ts"
+      ],
+      "tail": "enCalledWith(\n     \u001b[90m     |\u001b[39m                    \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n     \u001b[90m 120 |\u001b[39m       expect\u001b[33m.\u001b[39mobjectContaining({ received\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m\u001b[33m,\u001b[39m skipped\u001b[33m:\u001b[39m \u001b[32m'cron billing payment'\u001b[39m })\n     \u001b[90m 121 |\u001b[39m     )\u001b[33m;\u001b[39m\n     \u001b[90m 122 |\u001b[39m\u001b[0m\n\n      at Object.toHaveBeenCalledWith (src/lib/__tests__/stripe-webhook-skip-cron.test.ts:119:20)\n\n  ● stripe-webhook: cron billing PI skip gate › should skip PaymentIntent associated with an invoice (subscription payment)\n\n    expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\n    Expected: ObjectContaining {\"received\": true, \"skipped\": \"subscription payment\"}\n    Received: {\"error\": \"Invalid signature\"}\n\n    Number of calls: 1\n\n    \u001b[0m \u001b[90m 179 |\u001b[39m     \u001b[36mawait\u001b[39m handler(req\u001b[33m,\u001b[39m res)\u001b[33m;\u001b[39m\n     \u001b[90m 180 |\u001b[39m\n    \u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 181 |\u001b[39m     expect(jsonFn)\u001b[33m.\u001b[39mtoHaveBeenCalledWith(\n     \u001b[90m     |\u001b[39m                    \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n     \u001b[90m 182 |\u001b[39m       expect\u001b[33m.\u001b[39mobjectContaining({ received\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m\u001b[33m,\u001b[39m skipped\u001b[33m:\u001b[39m \u001b[32m'subscription payment'\u001b[39m })\n     \u001b[90m 183 |\u001b[39m     )\u001b[33m;\u001b[39m\n     \u001b[90m 184 |\u001b[39m   })\u001b[33m;\u001b[39m\u001b[0m\n\n      at Object.toHaveBeenCalledWith (src/lib/__tests__/stripe-webhook-skip-cron.test.ts:181:20)\n\n\nTest Suites: 2 failed, 31 passed, 33 total\nTests:       8 failed, 347 passed, 355 total\nSnapshots:   0 total\nTime:        53.517 s\nRan all test suites."
+    }
+  ],
+  "costUsd": 0.19289200000000017,
+  "durationMs": 284214,
+  "install": {
+    "code": 0,
+    "tail": "added 1105 packages in 1m\n\nnpm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated puppeteer@22.15.0: < 24.15.0 is no longer supported\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me"
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "STRIPE_SECRET_KEY",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "OPENPHONE_API_KEY",
+      "OPENPHONE_PHONE_NUMBER_ID",
+      "SENDGRID_API_KEY",
+      "CAMPAIGN_PROCESSING_TOKEN",
+      "ENCRYPTION_KEY"
+    ]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "tsc typecheck fails with TS2540 (assigning read-only NODE_ENV in security.test.ts), and npm test fails in security.test.ts (query1.in is not a function mock gap) and stripe-webhook-skip-cron.test.ts (Invalid signature); these are repo code/test bugs, not external dependencies."
+  }
+}

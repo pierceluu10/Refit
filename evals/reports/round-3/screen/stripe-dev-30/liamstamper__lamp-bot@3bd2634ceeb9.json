@@ -1,0 +1,61 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "liamstamper/lamp-bot",
+  "commit": "3bd2634ceeb9c820666f2369ddf3ceea8651da98",
+  "provider": "stripe",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export GROQ_API_KEY='placeholder' OPENAI_API_KEY='placeholder' NEON_DATABASE_URL='postgresql://user:pass@localhost:5432/db' JWT_SECRET='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' SENDGRID_SECRET_KEY='SG.placeholder' UPSTASH_REDIS_REST_URL='https://placeholder.upstash.io' UPSTASH_REDIS_REST_TOKEN='placeholder' GITHUB_APP_ID='1' GITHUB_WEBHOOK_SECRET='placeholder' NEXTAUTH_SECRET='placeholder' NEXTAUTH_URL='http://localhost:3000' NEXT_PUBLIC_BASE_URL='http://localhost:3000' GITHUB_APP_PRIVATE_KEY='placeholder' GITHUB_CLIENT_ID='placeholder' GITHUB_CLIENT_SECRET='placeholder' GITHUB_CALLBACK_URL='http://localhost:3000/api/auth/github/callback' CRON_SECRET='placeholder' SENDGRID_SENDER_EMAIL='placeholder@example.com' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='pk_test_placeholder' STRIPE_PRICEID_PRO_MONTH='price_placeholder' STRIPE_PRICEID_PRO_YEAR='price_placeholder' NEXT_PUBLIC_TURNSTILE_SITE_KEY='placeholder' TURNSTILE_SECRET_KEY='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export GROQ_API_KEY='placeholder' OPENAI_API_KEY='placeholder' NEON_DATABASE_URL='postgresql://user:pass@localhost:5432/db' JWT_SECRET='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' SENDGRID_SECRET_KEY='SG.placeholder' UPSTASH_REDIS_REST_URL='https://placeholder.upstash.io' UPSTASH_REDIS_REST_TOKEN='placeholder' GITHUB_APP_ID='1' GITHUB_WEBHOOK_SECRET='placeholder' NEXTAUTH_SECRET='placeholder' NEXTAUTH_URL='http://localhost:3000' NEXT_PUBLIC_BASE_URL='http://localhost:3000' GITHUB_APP_PRIVATE_KEY='placeholder' GITHUB_CLIENT_ID='placeholder' GITHUB_CLIENT_SECRET='placeholder' GITHUB_CALLBACK_URL='http://localhost:3000/api/auth/github/callback' CRON_SECRET='placeholder' SENDGRID_SENDER_EMAIL='placeholder@example.com' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='pk_test_placeholder' STRIPE_PRICEID_PRO_MONTH='price_placeholder' STRIPE_PRICEID_PRO_YEAR='price_placeholder' NEXT_PUBLIC_TURNSTILE_SITE_KEY='placeholder' TURNSTILE_SECRET_KEY='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.14284799999999992,
+  "durationMs": 220842,
+  "install": {
+    "code": 0,
+    "tail": "added 681 packages in 37s"
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "GROQ_API_KEY",
+      "OPENAI_API_KEY",
+      "NEON_DATABASE_URL",
+      "JWT_SECRET",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "SENDGRID_SECRET_KEY",
+      "UPSTASH_REDIS_REST_URL",
+      "UPSTASH_REDIS_REST_TOKEN",
+      "GITHUB_APP_ID",
+      "GITHUB_WEBHOOK_SECRET",
+      "NEXTAUTH_SECRET",
+      "NEXTAUTH_URL",
+      "NEXT_PUBLIC_BASE_URL",
+      "GITHUB_APP_PRIVATE_KEY",
+      "GITHUB_CLIENT_ID",
+      "GITHUB_CLIENT_SECRET",
+      "GITHUB_CALLBACK_URL",
+      "CRON_SECRET",
+      "SENDGRID_SENDER_EMAIL",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "STRIPE_PRICEID_PRO_MONTH",
+      "STRIPE_PRICEID_PRO_YEAR",
+      "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
+      "TURNSTILE_SECRET_KEY"
+    ]
+  }
+}

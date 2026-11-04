@@ -1,0 +1,70 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "ggallon/type-last",
+  "commit": "f2c76e13f28f30e1b7ca09d4acb89087be6f7105",
+  "provider": "stripe",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "typecheck",
+      "command": "export DATABASE_URL='mysql://root:root@localhost:3306/proactice?schema=public' NEXTAUTH_SECRET='placeholder' NEXTAUTH_URL='http://localhost:3000' NEXT_PUBLIC_APP_URL='http://localhost:3000' GITHUB_CLIENT_ID='placeholder' GITHUB_CLIENT_SECRET='placeholder' GITHUB_ACCESS_TOKEN='placeholder' STRIPE_KEY_SECRET='sk_test_placeholder' STRIPE_KEY_PUBLIC='pk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' STRIPE_PRO_MONTHLY_PLAN_ID='price_placeholder' EMAIL_SERVER_HOST='localhost' EMAIL_SERVER_USER='placeholder' EMAIL_SERVER_PASS='placeholder'; corepack pnpm@8 run type-check",
+      "ok": false,
+      "failures": [
+        "app/(dashboard)/layout.tsx: error TS2740: Type '{ image: string; name: string; id: string; username: string; teams: { team: { name: string; id: string; slug: string; }; }[]; }' is missing the following properties from type 'User': email, emailVerified, password, identityProvider, and 7 more.",
+        "components/dashboard-header.tsx: error TS2339: Property 'teamSwitcher' does not exist on type 'SiteHeaderProps'.",
+        "components/team-switcher.tsx: error TS2339: Property 'teams' does not exist on type 'User'.",
+        "components/team-switcher.tsx: error TS7006: Parameter 't' implicitly has an 'any' type.",
+        "components/team-switcher.tsx: error TS7006: Parameter 'item' implicitly has an 'any' type."
+      ],
+      "tail": "> type-last@0.1.0 type-check /work\n> tsc --noEmit\n\napp/(dashboard)/layout.tsx(61,24): error TS2740: Type '{ image: string; name: string; id: string; username: string; teams: { team: { name: string; id: string; slug: string; }; }[]; }' is missing the following properties from type 'User': email, emailVerified, password, identityProvider, and 7 more.\ncomponents/dashboard-header.tsx(18,3): error TS2339: Property 'teamSwitcher' does not exist on type 'SiteHeaderProps'.\ncomponents/team-switcher.tsx(52,34): error TS2339: Property 'teams' does not exist on type 'User'.\ncomponents/team-switcher.tsx(73,22): error TS7006: Parameter 't' implicitly has an 'any' type.\ncomponents/team-switcher.tsx(107,37): error TS7006: Parameter 'item' implicitly has an 'any' type.\n ELIFECYCLE  Command failed with exit code 2."
+    },
+    {
+      "name": "build",
+      "command": "export DATABASE_URL='mysql://root:root@localhost:3306/proactice?schema=public' NEXTAUTH_SECRET='placeholder' NEXTAUTH_URL='http://localhost:3000' NEXT_PUBLIC_APP_URL='http://localhost:3000' GITHUB_CLIENT_ID='placeholder' GITHUB_CLIENT_SECRET='placeholder' GITHUB_ACCESS_TOKEN='placeholder' STRIPE_KEY_SECRET='sk_test_placeholder' STRIPE_KEY_PUBLIC='pk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' STRIPE_PRO_MONTHLY_PLAN_ID='price_placeholder' EMAIL_SERVER_HOST='localhost' EMAIL_SERVER_USER='placeholder' EMAIL_SERVER_PASS='placeholder'; corepack pnpm@8 run build",
+      "ok": false,
+      "failures": ["exit-nonzero: 64 | name: user.name,"],
+      "tail": "back\ninfo  - Creating an optimized production build...\ninfo  - Compiled successfully\ninfo  - Linting and checking validity of types...\n ELIFECYCLE  Command failed with exit code 1.\n\nwarn  - You have enabled experimental feature (appDir) in next.config.mjs.\nwarn  - Experimental features are not covered by semver, and may cause unexpected or broken application behavior. Use at your own risk.\n\nBrowserslist: caniuse-lite is outdated. Please run:\n  npx browserslist@latest --update-db\n  Why you should do it regularly: https://github.com/browserslist/browserslist#browsers-data-updating\nFailed to compile.\n\n./app/(dashboard)/layout.tsx:61:24\nType error: Type '{ image: string; teams: { team: { id: string; name: string; slug: string; }; }[]; id: string; name: string; username: string; }' is missing the following properties from type 'User': email, emailVerified, password, identityProvider, and 7 more.\n\n\u001b[0m \u001b[90m 59 | \u001b[39m  \u001b[36mreturn\u001b[39m (\u001b[0m\n\u001b[0m \u001b[90m 60 | \u001b[39m    \u001b[33m<\u001b[39m\u001b[33mdiv\u001b[39m className\u001b[33m=\u001b[39m\u001b[32m\"flex min-h-screen flex-col\"\u001b[39m\u001b[33m>\u001b[39m\u001b[0m\n\u001b[0m\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 61 | \u001b[39m      \u001b[33m<\u001b[39m\u001b[33mDashboardHeader\u001b[39m userWithTeams\u001b[33m=\u001b[39m{userWithTeams} teamSwitcher\u001b[33m>\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m    | \u001b[39m                       \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 62 | \u001b[39m        \u001b[33m<\u001b[39m\u001b[33mUserAccountNav\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 63 | \u001b[39m          user\u001b[33m=\u001b[39m{{\u001b[0m\n\u001b[0m \u001b[90m 64 | \u001b[39m            name\u001b[33m:\u001b[39m user\u001b[33m.\u001b[39mname\u001b[33m,\u001b[39m\u001b[0m"
+    }
+  ],
+  "costUsd": 0.1298799999999999,
+  "durationMs": 154854,
+  "install": {
+    "code": 0,
+    "tail": "+ @radix-ui/react-navigation-menu 1.1.2\n+ @radix-ui/react-popover 1.0.5\n+ @radix-ui/react-progress 1.0.2\n+ @radix-ui/react-radio-group 1.1.2\n+ @radix-ui/react-scroll-area 1.0.3\n+ @radix-ui/react-select 1.2.1\n+ @radix-ui/react-separator 1.0.2\n+ @radix-ui/react-slider 1.1.1\n+ @radix-ui/react-switch 1.0.2\n+ @radix-ui/react-tabs 1.0.3\n+ @radix-ui/react-toast 1.1.3\n+ @radix-ui/react-toggle 1.0.2\n+ @radix-ui/react-tooltip 1.0.5\n+ @vercel/analytics 1.0.0\n+ bcryptjs 2.4.3\n+ class-variance-authority 0.6.0\n+ clsx 1.2.1\n+ cmdk 0.2.0\n+ date-fns 2.29.3\n+ lucide-react 0.181.0\n+ next 13.3.1\n+ next-auth 4.22.1\n+ next-themes 0.2.1\n+ nodemailer 6.9.1\n+ react 18.2.0\n+ react-day-picker 8.7.1\n+ react-dom 18.2.0\n+ react-editor-js 2.1.0\n+ react-hook-form 7.43.9\n+ react-hot-toast 2.4.0\n+ react-textarea-autosize 8.4.1\n+ stripe 12.2.0\n+ tailwind-merge 1.12.0\n+ tailwindcss-animate 1.0.5\n+ tinycolor2 1.6.0\n+ zod 3.21.4\n\ndevDependencies:\n+ @commitlint/cli 17.6.1\n+ @commitlint/config-conventional 17.6.1\n+ @next/bundle-analyzer 13.3.1\n+ @tailwindcss/typography 0.5.9\n+ @trivago/prettier-plugin-sort-imports 4.1.1\n+ @types/bcryptjs 2.4.2\n+ @types/node 18.16.1\n+ @types/nodemailer 6.4.7\n+ @types/react 18.2.0\n+ @types/react-dom 18.2.1\n+ @types/tinycolor2 1.4.3\n+ autoprefixer 10.4.14\n+ eslint 8.39.0\n+ eslint-config-next 13.3.1\n+ husky 8.0.3\n+ postcss 8.4.31\n+ prettier 2.8.8\n+ prettier-plugin-tailwindcss 0.2.7\n+ pretty-quick 3.1.3\n+ prisma 4.13.0\n+ sharp 0.32.1\n+ tailwindcss 3.3.2\n+ typescript 4.9.5\n\nDone in 55.2s"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "The repo's postinstall runs prisma generate, which was skipped. Type-check and build need the generated @prisma/client types.",
+        "code": 0
+      },
+      {
+        "command": "npx prisma generate",
+        "why": "The repo's postinstall (prisma generate) was skipped because install scripts are off, so the Prisma client types must be generated before type-check and build.",
+        "code": 0
+      }
+    ],
+    "env": [
+      "DATABASE_URL",
+      "NEXTAUTH_SECRET",
+      "NEXTAUTH_URL",
+      "NEXT_PUBLIC_APP_URL",
+      "GITHUB_CLIENT_ID",
+      "GITHUB_CLIENT_SECRET",
+      "GITHUB_ACCESS_TOKEN",
+      "STRIPE_KEY_SECRET",
+      "STRIPE_KEY_PUBLIC",
+      "STRIPE_WEBHOOK_SECRET",
+      "STRIPE_PRO_MONTHLY_PLAN_ID",
+      "EMAIL_SERVER_HOST",
+      "EMAIL_SERVER_USER",
+      "EMAIL_SERVER_PASS"
+    ]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "typecheck (tsc --noEmit) and build fail on TypeScript errors in the repo's own code: app/(dashboard)/layout.tsx passes a partial user object where a full Prisma User is required, and 'teamSwitcher' and 'teams' are missing from SiteHeaderProps and User. No external credentials or services are involved."
+  }
+}

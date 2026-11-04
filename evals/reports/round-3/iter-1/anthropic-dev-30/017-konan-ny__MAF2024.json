@@ -1,0 +1,125 @@
+{
+  "set": "anthropic-dev-30",
+  "index": 17,
+  "repo": "konan-ny/MAF2024",
+  "commit": "51c679259fd414060fbce448ecdf6ccde2becec7",
+  "provider": "anthropic",
+  "usages": 6,
+  "changes": 15,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "konan-ny/MAF2024:anthropic:2026-10-07-text-completions-deprecated",
+      "changeId": "anthropic:2026-10-07-text-completions-deprecated",
+      "kind": "other",
+      "change": {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-07-text-completions-deprecated",
+        "kind": "other",
+        "title": "Text Completions API marked deprecated in TypeScript SDK 0.132.0 (Python v1.0 removed it)",
+        "source": {
+          "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md",
+          "quote": "**api:** mark the Text Completions API as deprecated"
+        },
+        "affects": {
+          "operations": ["client.completions.create"],
+          "versions": ["0.132.0"],
+          "sdk": "@anthropic-ai/sdk"
+        }
+      },
+      "reasoning": "The source entry concerns the TypeScript SDK, but it also states that Python SDK v1.0 removed Text Completions. This repo depends on that API through the Python SDK. The pinned 0.2.10 still exposes completion, so nothing breaks just from this notice. However, any SDK upgrade past 1.0 removes the method. The models usable with Text Completions (claude-1.x, claude-2.x, claude-instant) have also already been retired on the Claude API, so this call site probably fails today whatever SDK is installed. The migration agent should: (1) check which model string is passed at line 36; (2) rewrite the call to client.messages.create with a supported current model, converting the Human/Assistant prompt into messages, max_tokens_to_sample into max_tokens and stop_sequences as-is; (3) read content[0].text instead of .completion in the response handling, which the scan did not read; (4) bump anthropic in requirements.txt to a current version. Uncertain: whether the benchmark is still run. If it is, it is likely already broken.",
+      "callSites": [
+        {
+          "file": "benchmark/kobbq/util.py",
+          "line": 36,
+          "why": "Calls the legacy Text Completions API (prompt, stop_sequences, max_tokens_to_sample) through the Python anthropic SDK pinned at ==0.2.10. Anthropic has now deprecated this API: the TypeScript SDK marks it deprecated, and Python SDK v1.0 removed client.completions entirely."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "konan-ny/MAF2024:anthropic:2026-10-07-text-completions-deprecated",
+        "outcome": "verified",
+        "diff": "diff --git a/benchmark/kobbq/util.py b/benchmark/kobbq/util.py\nindex 6d5c95d..0bb2c28 100644\n--- a/benchmark/kobbq/util.py\n+++ b/benchmark/kobbq/util.py\n@@ -9,7 +9,7 @@ from openai import OpenAI\n from transformers import pipeline, AutoModelForTokenClassification, AutoTokenizer\n import anthropic\n \n-CLAUDE_MODEL = [\"claude-instant-1.2\", \"claude-2.0\"]\n+CLAUDE_MODEL = [\"claude-haiku-4-5\", \"claude-sonnet-4-5\"]\n CLAUDE_API_KEY = os.environ.get(\"CLAUDE\")\n HYPERCLOVA_MODEL = {\"clova-x\": os.environ.get(\"CLOVA_URL\")}\n HEADERS = {\n@@ -32,12 +32,11 @@ def get_claude_response(prompt, model_name, max_tokens=128, max_try=10):\n \n         try:\n             time.sleep(1)\n-            c = anthropic.Client(CLAUDE_API_KEY)\n-            resp = c.completion(\n-                prompt=f\"{anthropic.HUMAN_PROMPT} {prompt}{anthropic.AI_PROMPT}\",\n-                stop_sequences=[anthropic.HUMAN_PROMPT],\n+            c = anthropic.Anthropic(api_key=CLAUDE_API_KEY)\n+            resp = c.messages.create(\n                 model=model_name,\n-                max_tokens_to_sample=max_tokens,\n+                max_tokens=max_tokens,\n+                messages=[{\"role\": \"user\", \"content\": prompt}],\n             )\n             break\n \n@@ -50,7 +49,7 @@ def get_claude_response(prompt, model_name, max_tokens=128, max_try=10):\n             n_try += 1\n             continue\n \n-    return resp[\"completion\"]\n+    return \"\".join(b.text for b in resp.content if b.type == \"text\")\n \n \n def get_hyperclova_response(\ndiff --git a/requirements.txt b/requirements.txt\nindex 11f5bcd..40d4fc0 100644\n--- a/requirements.txt\n+++ b/requirements.txt\n@@ -76,7 +76,7 @@ zipp==3.20.2\n openai==1.35.3\n jsonlines==4.0.0\n spacy==3.7.5\n-anthropic==0.2.10\n+anthropic==2.4.0\n transformers==4.30.0\n nltk\n datasets\ndiff --git a/tests/test_kobbq_claude.py b/tests/test_kobbq_claude.py\nnew file mode 100644\nindex 0000000..456c520\n--- /dev/null\n+++ b/tests/test_kobbq_claude.py\n@@ -0,0 +1,38 @@\n+import sys, types, json, importlib.util, pathlib\n+import httpx2 as httpx\n+\n+for name in [\"torch\", \"requests\", \"tqdm\", \"tqdm.auto\", \"openai\", \"transformers\"]:\n+    sys.modules.setdefault(name, types.ModuleType(name))\n+sys.modules[\"tqdm.auto\"].tqdm = lambda x, **k: x\n+sys.modules[\"openai\"].OpenAI = object\n+for n in [\"pipeline\", \"AutoModelForTokenClassification\", \"AutoTokenizer\"]:\n+    setattr(sys.modules[\"transformers\"], n, object)\n+\n+p = pathlib.Path(__file__).resolve().parents[1] / \"benchmark/kobbq/util.py\"\n+spec = importlib.util.spec_from_file_location(\"kobbq_util\", p)\n+util = importlib.util.module_from_spec(spec)\n+spec.loader.exec_module(util)\n+\n+\n+def test_claude_uses_messages(monkeypatch):\n+    import anthropic\n+    seen = []\n+\n+    def handler(req):\n+        seen.append(req)\n+        return httpx.Response(200, json={\n+            \"id\": \"m\", \"type\": \"message\", \"role\": \"assistant\", \"model\": \"x\",\n+            \"content\": [{\"type\": \"text\", \"text\": \"hi\"}], \"stop_reason\": \"end_turn\",\n+            \"stop_sequence\": None, \"usage\": {\"input_tokens\": 1, \"output_tokens\": 1}})\n+\n+    orig = anthropic.Anthropic\n+    monkeypatch.setattr(anthropic, \"Anthropic\", lambda api_key=None: orig(\n+        api_key=\"dummy\", http_client=httpx.Client(transport=httpx.MockTransport(handler))))\n+    monkeypatch.setattr(util.time, \"sleep\", lambda s: None)\n+    out = util.get_claude_response(\"Q?\", util.CLAUDE_MODEL[0], max_tokens=7)\n+    assert out == \"hi\"\n+    assert len(seen) == 1 and seen[0].url.path == \"/v1/messages\"\n+    body = json.loads(seen[0].content)\n+    assert body[\"max_tokens\"] == 7\n+    assert body[\"messages\"] == [{\"role\": \"user\", \"content\": \"Q?\"}]\n+    assert \"prompt\" not in body\n",
+        "checks": [
+          {
+            "name": "kobbq-claude-test",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.2122533,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-konan-ny-MAF2024-anthropic-2026-10-07-text-completions-deprecated-1cNA14/transcript.jsonl",
+        "prBody": "## Text Completions API marked deprecated in TypeScript SDK 0.132.0 (Python v1.0 removed it) [Verified]\n\n### Change\n\nbenchmark/kobbq/util.py get_claude_response now uses anthropic.Anthropic().messages.create instead of the removed Client.completion. The Human/Assistant prompt became a single user message, max_tokens_to_sample became max_tokens, and stop_sequences was dropped. The response is read from content text blocks instead of [\"completion\"]. CLAUDE_MODEL changed to claude-haiku-4-5 and claude-sonnet-4-5, because claude-instant-1.2 and claude-2.0 are retired. requirements.txt now pins anthropic==2.4.0. Added tests/test_kobbq_claude.py, which runs the real function against a mocked HTTP transport.\n\nFiles touched:\n- `benchmark/kobbq/util.py`\n- `requirements.txt`\n- `tests/test_kobbq_claude.py`\n\n### Why\n\nThe source says the Text Completions API is deprecated, and Python SDK v1.0 removed it. The old call would break on any SDK upgrade, and the models it used are retired.\n\n> **api:** mark the Text Completions API as deprecated\n\nSource: https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| kobbq-claude-test | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- kobbq-claude-test, added by the agent: `python -m pytest tests/test_kobbq_claude.py -q` (fail (1) → pass)\n\nProvider tool calls recorded by the harness:\n- `anthropic__package_lookup`: pass\n\nTest of this change: `kobbq-claude-test`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container python:3.12-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- No live call was made, so it is unconfirmed that the new model ids behave well on the KoBBQ prompts.\n- Commented-out model names in kobbq.py and kobbq_demo.py still show the old claude-instant-1.2 and claude-2.0.\n- The full requirements.txt install was not verified: several unrelated pins (levenshtein, BlackBoxAuditing, ecos) already failed to install in the sandbox.\n- anthropic 2.x requires Python >=3.10 and sends API version 2026-10-21. Both are untested against the rest of the repo's pins.\n- The new test's pre-change failure is only because the test file and the new call did not exist yet. It does not independently show the old behaviour.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Allowed Claude model names changed. Existing CLI args that pass claude-instant-1.2 or claude-2.0 now fail the assert.\n- The \\n\\nHuman: stop sequence is no longer sent, because the Messages API has no use for it.\n- The prompt is now a plain user message rather than Human/Assistant-formatted text.\n- The returned string is the concatenated text blocks, with no leading-space convention from the old completions output.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.2123\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-anthropic-api-version-a547c43b",
+          "recipe-anthropic-sdk-major-50cc7085"
+        ],
+        "agentChecks": [
+          {
+            "name": "kobbq-claude-test",
+            "command": "python -m pytest tests/test_kobbq_claude.py -q",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# konan-ny/MAF2024:anthropic:2026-10-07-text-completions-deprecated: verified, $0.2123\nChange: Text Completions API marked deprecated in TypeScript SDK 0.132.0 (Python v1.0 removed it) (anthropic, other)\nBaseline checks: kobbq-claude-test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=benchmark/kobbq/util.py → 1\timport os, sys, re | 2\timport json | 3\timport time\n2. search pattern=anthropic|claude glob=**/*.{py,txt,toml,md,sh} → benchmark/crehate/util.py:60:     if \"gpt\" in model_name or \"claude\" in model_name: | benchmark/kobbq/kobbq_demo.py:110:                 util.get_claude_response(prompt, model_name, max_tokens=args.max_tokens) | benchmark/kobbq/kobbq_demo.p…\n3. anthropic__package_lookup name=anthropic ecosystem=pypi limit=1 → pypi package anthropic: https://pypi.org/project/anthropic/ | The official Python library for the anthropic API | Latest: 2.4.0 (2026-11-02). 235 versions published. The latest needs Python >=3.10.\n4. edit_file path=benchmark/kobbq/util.py old=<335 chars> new=<266 chars> → edited benchmark/kobbq/util.py (1 replacement)\n5. edit_file path=benchmark/kobbq/util.py old=    return resp[\"completion\"] new=    return \"\".join(b.text for b in resp.content if b.type == \"text\") → edited benchmark/kobbq/util.py (1 replacement)\n6. edit_file path=benchmark/kobbq/util.py old=CLAUDE_MODEL = [\"claude-instant-1.2\", \"claude-2.0\"] new=CLAUDE_MODEL = [\"claude-haiku-4-5\", \"claude-sonnet-4-5\"] → edited benchmark/kobbq/util.py (1 replacement)\n7. edit_file path=requirements.txt old=anthropic==0.2.10 new=anthropic==2.4.0 → edited requirements.txt (1 replacement)\n8. shell command=<1835 chars> → exit code: 0 | --- stdout --- | [notice] A new release of pip is available: 25.0.1 -> 26.3\n9. run_checks add=<89 chars> → registered kobbq-claude-test; on the original code it fails (1) | ## kobbq-claude-test: pass | command: python -m pytest tests/test_kobbq_claude.py -q\n10. finish verdict=migrated summary=<593 chars> why=<168 chars> validators=[] unproven=<653 chars> behaviourChanges=<423 chars> proofTest=kobbq-claude-test → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: kobbq-claude-test fail (1) → pass\n\n## Result\nFiles changed: benchmark/kobbq/util.py, requirements.txt, tests/test_kobbq_claude.py\nVerdict: migrated. benchmark/kobbq/util.py get_claude_response now uses anthropic.Anthropic().messages.create instead of the removed Client.completion. The Human/Assistant prompt became a single user message, max_tokens_to_sample became max_tokens, and stop_sequences was dropped. The response is read from content text blocks instead of [\"completion\"]. CLAUDE_MODEL changed to claude-haiku-4-5 and claude-sonnet-4-5, because claude-instant-1.2 and claude-2.0 are retired. requirements.txt now pins anthropic==2.4.0. Added tests/test_kobbq_claude.py, which runs the real function against a mocked HTTP transport.\nUnproven: No live call was made, so it is unconfirmed that the new model ids behave well on the KoBBQ prompts.; Commented-out model names in kobbq.py and kobbq_demo.py still show the old claude-instant-1.2 and claude-2.0.; The full requirements.txt install was not verified: several unrelated pins (levenshtein, BlackBoxAuditing, ecos) already failed to install in the sandbox.; anthropic 2.x requires Python >=3.10 and sends API version 2026-10-21. Both are untested against the rest of the repo's pins.; The new test's pre-change failure is only because the test file and the new call did not exist yet. It does not independently show the old behaviour.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "No checks were detected, and the README setup is a Docker build plus dataset download and preprocessing scripts. Those fetch external data and are not codegen or build preparation that a type check, build or test needs, so nothing is required."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The only named call site (benchmark/kobbq/util.py:36) moves correctly from the Text Completions API (`Client.completion`, `max_tokens_to_sample`, `resp[\"completion\"]`) to `anthropic.Anthropic().messages.create` and reads the reply from the text content blocks. The new test checks the request shape against a mocked transport. Three things go beyond the forced change or aren't proven by the check: the benchmark's model list is swapped, the SDK pin makes a major-version jump inside a tightly pinned requirements file, and the test imports `httpx2`, which isn't declared anywhere. The `verified` grade rests on one mocked test, so it proves the request shape but not live model IDs or that the dependencies install together.",
+        "concerns": [
+          {
+            "file": "benchmark/kobbq/util.py",
+            "issue": "Line 12 changes `CLAUDE_MODEL` from `[\"claude-instant-1.2\", \"claude-2.0\"]` to `[\"claude-haiku-4-5\", \"claude-sonnet-4-5\"]`. Because of the `assert model_name in CLAUDE_MODEL` on line 26, any script, config or CLI argument that still passes the old names will now fail the assert. The swap also quietly changes which models the KoBBQ benchmark evaluates, so results are no longer comparable with earlier runs. The old models are likely retired, so a swap may be needed, but it is a product decision beyond the deprecation and should be called out. I could not confirm the new IDs against a live API; check Anthropic's models list.",
+            "severity": "medium"
+          },
+          {
+            "file": "requirements.txt",
+            "issue": "`anthropic==0.2.10` jumps to `anthropic==2.4.0`. I can't confirm 2.4.0 from memory; check PyPI or the SDK changelog. A jump this large inside a fully pinned file risks resolver conflicts with `pydantic==2.5.2`, `pydantic_core==2.14.5`, `anyio==3.7.1`, `typing_extensions==4.12.2` and `openai==1.35.3`, and the new SDK may need a newer Python than the repo's environment (numpy 1.24.4 and torch 2.4.1 suggest Python 3.8–3.11). Nothing shows the full requirements.txt installs cleanly.",
+            "severity": "medium"
+          },
+          {
+            "file": "tests/test_kobbq_claude.py",
+            "issue": "The test does `import httpx2 as httpx`, but `httpx2` is not in requirements.txt. It passes only if the CI environment pulls it in some other way, possibly transitively via the new SDK. I could not confirm that the SDK accepts an `httpx2.Client` as `http_client`; check the SDK's `_base_client` types. If it's a typo for `httpx`, the test is fragile.",
+            "severity": "medium"
+          },
+          {
+            "file": "tests/test_kobbq_claude.py",
+            "issue": "The only check stubs out torch, requests, openai, transformers and tqdm and uses a MockTransport. It proves the request body and response parsing, but not a real API call, that the new model IDs are accepted, or that the real module imports with the pinned dependencies.",
+            "severity": "low"
+          },
+          {
+            "file": "benchmark/kobbq/util.py",
+            "issue": "The output format changes slightly. The old completion text usually began with a leading space after `AI_PROMPT`, and the `HUMAN_PROMPT` stop sequence is gone. Any downstream KoBBQ answer parsing that depended on the old formatting could behave differently. The new form is probably cleaner, but worth a glance at the parsers.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Grep the repo (benchmark/kobbq scripts, configs, shell scripts, READMEs) for `claude-instant-1.2` and `claude-2.0`; those callers would now hit the assert on line 26.",
+          "Confirm `anthropic==2.4.0` exists and that `pip install -r requirements.txt` resolves alongside pydantic 2.5.2, anyio 3.7.1 and openai 1.35.3 on the repo's Python version.",
+          "Find where `httpx2` comes from and whether the SDK accepts its Client as `http_client`, or change the import to `httpx`.",
+          "Decide with the maintainers whether replacing the benchmarked Claude models is acceptable, and run one live call to confirm the new model IDs."
+        ],
+        "costUsd": 0.074704,
+        "model": "claude-opus-5-5"
+      }
+    }
+  ],
+  "costUsd": 0.8141303999999999,
+  "durationMs": 997339,
+  "matchReasoning": "konan-ny/MAF2024:anthropic:2026-10-07-text-completions-deprecated: The source entry concerns the TypeScript SDK, but it also states that Python SDK v1.0 removed Text Completions. This repo depends on that API through the Python SDK. The pinned 0.2.10 still exposes completion, so nothing breaks just from this notice. However, any SDK upgrade past 1.0 removes the method. The models usable with Text Completions (claude-1.x, claude-2.x, claude-instant) have also already been retired on the Claude API, so this call site probably fails today whatever SDK is installed. The migration agent should: (1) check which model string is passed at line 36; (2) rewrite the call to client.messages.create with a supported current model, converting the Human/Assistant prompt into messages, max_tokens_to_sample into max_tokens and stop_sequences as-is; (3) read content[0].text instead of .completion in the response handling, which the scan did not read; (4) bump anthropic in requirements.txt to a current version. Uncertain: whether the benchmark is still run. If it is, it is likely already broken.\nanthropic:2026-10-21-sdk-typescript-1-0-0: not affected: The repo is Python and uses the Python anthropic SDK (==0.2.10). It does not depend on the npm @anthropic-ai/sdk package.\nanthropic:2026-10-21-api-version-2026-10-21: not affected: The repo's pinned Python SDK 0.2.10 does not send the new 2026-10-21 version, and nothing in the repo opts into it. Its only Anthropic call uses legacy Text Completions, not POST /v1/messages.\nanthropic:2026-10-21-sampling-params-removed: not affected: This applies only to Messages/Batch requests sent with API version 2026-10-21. The repo's only Anthropic call is a legacy completion that sends no temperature, top_p or top_k, on an old SDK that does not send 2026-10-21. The temperature fields in the usage map belong to OpenAI and HyperCLOVA calls.\nanthropic:2026-10-21-document-citations-user-assistant-errors: not affected: The repo never sends document blocks or citations in Messages requests. Its only Anthropic call is a plain-text legacy completion.\nanthropic:2026-10-21-admin-api-field-renames: not affected: The repo does not call the Anthropic Admin API or the Enterprise Analytics API.\nanthropic:2026-11-30-fast-mode-opus-4-8-removal: not affected: The repo does not use claude-opus-4-8 or the speed parameter. Its only Anthropic call is a legacy completion.\nanthropic:2026-11-30-retire-claude-sonnet-4-5: not affected: The only Anthropic call site uses the legacy Text Completions API, which cannot serve claude-sonnet-4-5-20250929. No call site in the repo names that model.\nanthropic:2026-10-07-haiku-5-5-breaking: not affected: The repo does not use claude-haiku-5-5 or Haiku 4.5. Its only Anthropic call is a legacy completion without budget_tokens or sampling params.\nanthropic:2026-09-28-sonnet-5-5-breaking: not affected: The repo does not use claude-sonnet-5-5, thinking or tool_choice.\nanthropic:2026-09-22-opus-5-5-breaking: not affected: The repo does not use claude-opus-5-5, thinking, tool_choice or computer-use tools.\nanthropic:2026-09-01-fable-5-1-tool-choice: not affected: The repo does not use claude-fable-5-1, claude-mythos-5-1 or tool_choice.\nanthropic:2026-10-14-ts-sdk-otel-default: not affected: This is a TypeScript SDK behavior. The repo uses the Python anthropic SDK and has no @anthropic-ai/sdk dependency.\nanthropic:2026-08-27-ts-sdk-beta-files-skills: not affected: This affects the TypeScript SDK's client.beta.files and client.beta.skills, which the repo neither depends on nor calls.\nanthropic:2026-09-24-compliance-activity-names-removed: not affected: The repo does not call the Anthropic Compliance API Activity Feed.",
+  "costByPart": {
+    "inventory": 0.049417100000000005,
+    "match": 0.089824,
+    "other": 0.38793199999999994,
+    "harness": 0.2122533,
+    "review": 0.074704
+  }
+}

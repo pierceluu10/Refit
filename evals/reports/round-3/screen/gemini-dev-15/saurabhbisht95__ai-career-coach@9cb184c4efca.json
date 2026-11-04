@@ -1,0 +1,32 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "saurabhbisht95/ai-career-coach",
+  "commit": "9cb184c4efca809ced17dfd06da7de4705995fb4",
+  "provider": "gemini",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "build",
+      "command": "export NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk' CLERK_SECRET_KEY='sk_test_placeholder' GEMINI_API_KEY='placeholder' MONGODB_URI='mongodb://user:pass@localhost:27017/db'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.04662999999999995,
+  "durationMs": 176572,
+  "install": {
+    "code": 0,
+    "tail": "added 818 packages in 1m\n\nnpm warn deprecated serialize-error-cjs@0.1.4: Rolling release, please update to 0.2.0"
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+      "CLERK_SECRET_KEY",
+      "GEMINI_API_KEY",
+      "MONGODB_URI"
+    ]
+  }
+}

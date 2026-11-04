@@ -1,0 +1,89 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "djnightmare9909/Dungeon-master-OS-WFGY",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 1.1030482,
+    "tasks": 7,
+    "verified": 7
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.12782489999999996,
+    "prepCostUsd": 0.011606,
+    "diffLines": 37,
+    "finalText": "I changed three retired Gemini model references in the source. I didn't run a build or lint, and I didn't check the other APIs and SDKs the repo uses (such as the `@google/genai` SDK or the OpenAI- and Anthropic-style endpoints in `gemini.ts`).\n\nI checked the model IDs against Google's [Gemini deprecations page](https://ai.google.dev/gemini-api/docs/deprecations).\n\n**What I changed**\n- **Embedding model, `gemini.ts`:** `gemini-embedding-2-preview` was shut down on 2026-08-10. I switched it to `gemini-embedding-2` in the `embedContent` call and in the doc comment. Until now that call was probably failing and silently falling back to the deterministic vector, so memory retrieval would have been much weaker.\n- **Flash Lite option, `index.html`:** `gemini-3.1-flash-lite-preview` was shut down on 2026-05-25. The model dropdown option now uses `gemini-3.1-flash-lite`.\n- **Pro option, `index.html`:** `gemini-3-pro-preview` was shut down on 2026-03-09. I removed that dropdown option. `gemini-3.1-pro-preview`, its recommended replacement, is already in the list.\n\n**Left alone**\n- **`gemini-3.5-flash-lite` and `gemini-3.1-pro-preview`:** both are still current.\n- **`gemini-3.5-flash`:** it is superseded, but Google routes it automatically to `gemini-3.6-flash` and isn't shutting it down.\n- **`gemini-3-flash-preview`:** it has no shutdown date announced.\n- **`dist/`:** it is a build output, so I didn't edit it. Rebuild to refresh it.\n\nA user who previously saved one of the retired models in their settings will keep that value until they pick a new one. I didn't add any migration for that.\n\nSources:\n- https://ai.google.dev/gemini-api/docs/deprecations",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-djnightmare9909-Dungeon-master-OS-WFGY/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "gemini-3-pro-preview shut down",
+          "correct": true,
+          "note": "Removes the dropdown option and adds a small test."
+        },
+        {
+          "change": "Sampling params (temperature/top_p/top_k) deprecated for Gemini 3.6+",
+          "correct": true,
+          "note": "Sends temperature only to models below 3.6. One gap: a saved gemini-3.5-flash is auto-routed to 3.6 but still passes the ID check, so it still gets temperature."
+        },
+        {
+          "change": "gemini-embedding-2-preview shut down; use gemini-embedding-2",
+          "correct": true,
+          "note": "Same fix as A."
+        },
+        {
+          "change": "gemini-3.5-flash deprecated, auto-routed to gemini-3.6-flash",
+          "correct": true,
+          "note": "The dropdown option now uses gemini-3.6-flash, and the temperature gate covers that choice. Users who already saved 3.5-flash are not migrated."
+        },
+        {
+          "change": "gemini-2.5-pro deprecated, rerouted to gemini-3.8-flash with breaking changes",
+          "correct": true,
+          "note": "The repo never names this model; B reuses the same sampling gate for the custom-model case. Reasonable."
+        },
+        {
+          "change": "gemini-2.5-flash deprecated",
+          "correct": true,
+          "note": "Only a user-facing 429 error message referenced it; the text now names Gemini 3.5 Flash Lite. Cosmetic but accurate."
+        },
+        {
+          "change": "Generate Content store=true default for new paid-tier projects",
+          "correct": false,
+          "note": "Not a breaking change. Forcing store=false through extraBody on every request is a policy choice that no API change required."
+        }
+      ],
+      "breaks": [
+        "Adds a store=false opt-out (via httpOptions.extraBody) to all Gemini SDK generateContent and chat calls, which no API change required.",
+        "Misses the gemini-3.1-flash-lite-preview shutdown, so the picker still offers a dead model.",
+        "The separate PRs each redefine supportsSamplingParams and edit the same lines, so they conflict when merged.",
+        "Adds several stray test scripts."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "gemini-embedding-2-preview shut down (2026-08-10); replaced with gemini-embedding-2",
+          "correct": true,
+          "note": "Updates the embedContent model ID and its doc comment. Without this, embeddings silently fell back to the deterministic vector."
+        },
+        {
+          "change": "gemini-3.1-flash-lite-preview shut down (2026-05-25)",
+          "correct": true,
+          "note": "The dropdown option now points to gemini-3.1-flash-lite. B missed this entirely."
+        },
+        {
+          "change": "gemini-3-pro-preview shut down (2026-03-09)",
+          "correct": true,
+          "note": "Removes the dropdown option; the replacement gemini-3.1-pro-preview is already listed."
+        }
+      ],
+      "breaks": []
+    },
+    "better": "refit",
+    "why": "B covers more of the changes that actually matter: the embedding retirement, the pro-preview removal, the sampling-parameter deprecation and the 3.5-flash supersession. A explicitly skipped the sampling and SDK checks. A did catch the flash-lite-preview shutdown, which B missed, and B adds an unrequired store opt-out and PRs that conflict when merged. On balance, B's broader correct coverage outweighs those faults.",
+    "costUsd": 0.080196
+  }
+}

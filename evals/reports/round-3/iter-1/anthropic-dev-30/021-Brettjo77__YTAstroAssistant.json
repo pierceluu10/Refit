@@ -1,0 +1,18 @@
+{
+  "set": "anthropic-dev-30",
+  "index": 21,
+  "repo": "Brettjo77/YTAstroAssistant",
+  "commit": "c5b11f8ca4a1e11fc3a60d6d296ef3374d77a65b",
+  "provider": "anthropic",
+  "usages": 3,
+  "changes": 15,
+  "verdict": "not-affected",
+  "tasks": [],
+  "costUsd": 0.11194180000000001,
+  "durationMs": 38607,
+  "matchReasoning": "anthropic:2026-10-21-sdk-typescript-1-0-0: not affected: This is the npm @anthropic-ai/sdk (TypeScript) major release. The repo uses the Python `anthropic` SDK (requirements.txt), and its messages.create calls in app.py and weekly_ingest.py send no temperature, top_p or top_k.\nanthropic:2026-10-21-api-version-2026-10-21: not affected: The repo's Python `anthropic` SDK (>=0.25.0) could float to a new major that sends 2026-10-21, but its calls only send model, max_tokens, system and messages. None of the breaking changes listed for that version (sampling params, document/citation placement, Admin API renames) apply. Response handling was not read by the scan, so any future SDK bump should spot-check how responses are read.\nanthropic:2026-10-21-sampling-params-removed: not affected: Neither call site (app.py:152, weekly_ingest.py:186) sends temperature, top_p or top_k. They only send model, max_tokens, system and messages.\nanthropic:2026-10-21-document-citations-user-assistant-errors: not affected: The repo sends no document blocks or citations in messages. Its calls pass plain message content for transcript summarisation and chat.\nanthropic:2026-10-21-admin-api-field-renames: not affected: The repo does not call the Admin API or the Enterprise Analytics API. It only uses messages.create.\nanthropic:2026-11-30-fast-mode-opus-4-8-removal: not affected: The repo uses claude-sonnet-4-20250514, not claude-opus-4-8, and never sets speed: \"fast\".\nanthropic:2026-11-30-retire-claude-sonnet-4-5: not affected: The retired model is claude-sonnet-4-5-20250929. The repo pins claude-sonnet-4-20250514 (Sonnet 4, not 4.5), so this retirement does not touch it.\nanthropic:2026-10-07-haiku-5-5-breaking: not affected: The repo does not use claude-haiku-5-5. It also sends no budget_tokens, sampling params or computer tool.\nanthropic:2026-09-28-sonnet-5-5-breaking: not affected: The repo does not use claude-sonnet-5-5. It also sets no thinking or tool_choice.\nanthropic:2026-09-22-opus-5-5-breaking: not affected: The repo does not use claude-opus-5-5. It also sets no thinking, tool_choice or computer tool.\nanthropic:2026-09-01-fable-5-1-tool-choice: not affected: The repo does not use claude-fable-5-1 or claude-mythos-5-1, and it sets no tool_choice.\nanthropic:2026-10-14-ts-sdk-otel-default: not affected: This OpenTelemetry default applies to the TypeScript SDK 0.134.0. The repo uses the Python `anthropic` SDK.\nanthropic:2026-08-27-ts-sdk-beta-files-skills: not affected: This change is to the TypeScript SDK's beta.files and beta.skills. The repo uses the Python SDK and only calls messages.create.\nanthropic:2026-10-07-text-completions-deprecated: not affected: The repo calls messages.create, not completions.create, so the Text Completions deprecation does not touch it.\nanthropic:2026-09-24-compliance-activity-names-removed: not affected: The repo does not call the Compliance API Activity Feed.",
+  "costByPart": {
+    "inventory": 0.0375778,
+    "match": 0.074364
+  }
+}

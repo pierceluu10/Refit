@@ -1,0 +1,42 @@
+{
+  "set": "openai-dev-30",
+  "repo": "ioiuea/assistant-api-openai",
+  "commit": "8b57e1392ca74ba85f495a431ec3610c4c58d98f",
+  "provider": "openai",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export OPENAI_API_KEY='placeholder' AZURE_OPENAI_API='false' AZURE_OPENAI_API_KEY='placeholder' AZURE_OPENAI_API_VERSION='2024-02-15-preview' AZURE_OPENAI_API_ENDPOINT='https://placeholder.openai.azure.com/openai' AZURE_OPENAI_API_DEPLOYMENT='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export OPENAI_API_KEY='placeholder' AZURE_OPENAI_API='false' AZURE_OPENAI_API_KEY='placeholder' AZURE_OPENAI_API_VERSION='2024-02-15-preview' AZURE_OPENAI_API_ENDPOINT='https://placeholder.openai.azure.com/openai' AZURE_OPENAI_API_DEPLOYMENT='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.02438600000000002,
+  "durationMs": 76307,
+  "install": {
+    "code": 0,
+    "tail": "added 377 packages in 21s"
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "OPENAI_API_KEY",
+      "AZURE_OPENAI_API",
+      "AZURE_OPENAI_API_KEY",
+      "AZURE_OPENAI_API_VERSION",
+      "AZURE_OPENAI_API_ENDPOINT",
+      "AZURE_OPENAI_API_DEPLOYMENT"
+    ]
+  }
+}

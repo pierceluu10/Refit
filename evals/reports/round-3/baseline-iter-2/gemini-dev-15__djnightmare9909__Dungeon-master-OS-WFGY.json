@@ -1,0 +1,74 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "djnightmare9909/Dungeon-master-OS-WFGY",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 0.2468326,
+    "tasks": 1,
+    "verified": 1
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.13297009999999998,
+    "prepCostUsd": 0.011516,
+    "diffLines": 40,
+    "finalText": "I updated the repo for three Gemini model changes and left everything else alone. I didn't build or lint the project, and I didn't touch `dist/`, which is generated, so it still holds the old model list until you rebuild.\n\nThe app uses the Gemini API through `@google/genai` and the browser's SpeechSynthesis for text-to-speech. It can also call OpenAI-compatible and Anthropic endpoints, but those URLs and models come from user settings, so nothing in the code is pinned to them. I checked the code against Google's [Gemini deprecations page](https://ai.google.dev/gemini-api/docs/deprecations).\n\nWhat I changed:\n- **Embeddings (`gemini.ts`):** `gemini-embedding-2-preview` was shut down on Aug 10, 2026, so I switched the model and its doc comment to `gemini-embedding-2`. The code that reads the response already handles both response shapes, so it needed no other change.\n- **Model dropdown (`index.html`):**\n  - `gemini-3.1-flash-lite-preview` was shut down on May 25, 2026, so the option now points to `gemini-3.1-flash-lite`.\n  - `gemini-3-pro-preview` was shut down on Mar 9, 2026 and now routes to `gemini-3.1-pro-preview`, which is already in the list, so I removed the duplicate option.\n  - `gemini-3.5-flash` is no longer in AI Studio, and its API endpoint now routes to `gemini-3.6-flash`, so I replaced the option with `gemini-3.6-flash`.\n\nWhat I left alone:\n- `gemini-3.5-flash-lite` (the default model) and `gemini-3-flash-preview` have no shutdown date announced.\n- `gemini-3.1-pro-preview` also has no shutdown date announced.\n- Newer models exist, such as `gemini-3.8-flash`. I didn't switch to them because their migration guides list breaking API changes.\n\nOne thing to watch: anyone who saved `gemini-3.5-flash`, `gemini-3-pro-preview` or `gemini-3.1-flash-lite-preview` as their model in settings. I didn't check how the settings page handles a saved value that is no longer in the dropdown. `ui.ts` appears to fall back to the custom-model field in that case.\n\nSources:\n- [Gemini deprecations](https://ai.google.dev/gemini-api/docs/deprecations)",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-djnightmare9909-Dungeon-master-OS-WFGY/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "gemini-3-pro-preview shut down Mar 9, 2026",
+          "correct": true,
+          "note": "The option is removed from the dropdown."
+        },
+        {
+          "change": "gemini-embedding-2-preview shut down; switch to gemini-embedding-2",
+          "correct": true,
+          "note": "The model is switched and outputDimensionality is set to 768 to match the fallback and stored vectors."
+        },
+        {
+          "change": "Sampling parameters deprecated or removed for Gemini 3.6+",
+          "correct": true,
+          "note": "temperature is now sent only for models below 3.6, decided by a version parser. This is consistent with the change it cites."
+        }
+      ],
+      "breaks": [
+        "It leaves gemini-3.1-flash-lite-preview in the dropdown even though that model was shut down May 25, 2026. B's explanation misreads this as not applicable.",
+        "It adds an unrequested test script, scripts/test-migration.mjs. This is harmless."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "gemini-embedding-2-preview shut down Aug 10, 2026; switch to gemini-embedding-2",
+          "correct": false,
+          "note": "The model ID is swapped, but no outputDimensionality is set. The code's fallback and existing stored memory vectors are 768-dimensional, so if the GA model returns its larger default size, similarity checks against stored memories will mismatch. B handles this."
+        },
+        {
+          "change": "gemini-3.1-flash-lite-preview shut down May 25, 2026",
+          "correct": true,
+          "note": "The dropdown option now points to gemini-3.1-flash-lite."
+        },
+        {
+          "change": "gemini-3-pro-preview shut down and routed to gemini-3.1-pro-preview",
+          "correct": true,
+          "note": "The duplicate option is removed."
+        },
+        {
+          "change": "gemini-3.5-flash removed from AI Studio and routed to gemini-3.6-flash",
+          "correct": false,
+          "note": "The option is replaced with gemini-3.6-flash, but chat still always sends temperature 0.9. A itself says newer models carry breaking changes, and B cites sampling params as removed for 3.6+, so selecting this option may fail or misbehave."
+        }
+      ],
+      "breaks": [
+        "It offers gemini-3.6-flash while chat still sends temperature unconditionally, which may break on a model that dropped sampling parameters."
+      ]
+    },
+    "better": "refit",
+    "why": "Each attempt misses something. A covers more dropdown changes, including the shut-down flash-lite-preview. B gets two less obvious runtime issues right that A misses: the embedding dimension, which keeps existing memory vectors compatible, and the temperature parameter on 3.6+ models. A also adds gemini-3.6-flash without handling the temperature issue. B's miss is limited to one stale dropdown option, while A's problems affect memory retrieval and chat calls, so B is slightly better overall.",
+    "costUsd": 0.056468
+  }
+}

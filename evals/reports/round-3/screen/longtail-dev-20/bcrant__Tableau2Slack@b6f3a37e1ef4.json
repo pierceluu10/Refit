@@ -1,0 +1,19 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "bcrant/Tableau2Slack",
+  "commit": "b6f3a37e1ef4f6908e01cad64ce324286d6c29e4",
+  "provider": "slack",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.033742,
+  "durationMs": 44231,
+  "install": {
+    "code": 0,
+    "tail": "p312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (506 kB)\nDownloading propcache-0.5.4-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (251 kB)\nDownloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)\nDownloading yarl-1.25.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (115 kB)\nInstalling collected packages: pytz, python-dotenv, chardet, urllib3, typing_extensions, propcache, nest-asyncio, multidict, idna, frozenlist, certifi, attrs, aiohappyeyeballs, yarl, requests, aiosignal, tableauserverclient, aiohttp, slackclient\nSuccessfully installed aiohappyeyeballs-2.7.1 aiohttp-3.14.5 aiosignal-1.4.0 attrs-26.1.0 certifi-2026.10.23 chardet-3.0.4 frozenlist-1.8.0 idna-2.8 multidict-7.2.1 nest-asyncio-1.3.3 propcache-0.5.4 python-dotenv-0.12.0 pytz-2019.3 requests-2.22.0 slackclient-2.5.0 tableauserverclient-0.11 typing_extensions-4.16.0 urllib3-1.25.11 yarl-1.25.1\n\n  WARNING: The script dotenv is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script chardetect is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

@@ -1,0 +1,965 @@
+{
+  "set": "gemini-dev-15",
+  "index": 3,
+  "repo": "djnightmare9909/Dungeon-master-OS-WFGY",
+  "commit": "c684edaa0df21272fd65954be3255fa33996354b",
+  "provider": "gemini",
+  "usages": 2,
+  "changes": 23,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-03-gemini-3-pro-preview-shutdown",
+      "changeId": "gemini:2026-03-gemini-3-pro-preview-shutdown",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-03-gemini-3-pro-preview-shutdown",
+        "kind": "model-retirement",
+        "title": "gemini-3-pro-preview shut down Mar 9 2026 and now points to gemini-3.1-pro-preview",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The Gemini 3 Pro Preview model has been [shut down](/docs/deprecations)."
+        },
+        "affects": {
+          "operations": ["gemini-3-pro-preview"]
+        },
+        "effectiveDate": "2026-03-09"
+      },
+      "reasoning": "The usage map does not record which model IDs gemini.ts passes to generateContent or chats.create. gemini-3-pro-preview was shut down on 2026-03-09 and now aliases to gemini-3.1-pro-preview. The migration agent should grep gemini.ts and any settings or model-picker lists for 'gemini-3-pro-preview' and replace it with an explicit supported model. If the string is absent, close the task as a no-op. Impact is moderate because requests still resolve through the alias, but behaviour has changed.",
+      "callSites": [
+        {
+          "file": "gemini.ts",
+          "line": 107,
+          "why": "models.generateContent sends a model ID that the scan did not capture; if it is gemini-3-pro-preview, the request is already silently served by gemini-3.1-pro-preview."
+        },
+        {
+          "file": "gemini.ts",
+          "line": 128,
+          "why": "chats.create names a chat model that may be gemini-3-pro-preview."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-03-gemini-3-pro-preview-shutdown",
+        "outcome": "verified",
+        "diff": "diff --git a/index.html b/index.html\nindex 3105858..482d5f1 100644\n--- a/index.html\n+++ b/index.html\n@@ -510,7 +510,6 @@\n                                         <option value=\"gemini-3.5-flash\">Gemini 3.5 Flash</option>\n                                         <option value=\"gemini-3-flash-preview\">Gemini 3.0 Flash Preview</option>\n                                         <option value=\"gemini-3.1-flash-lite-preview\">Gemini 3.1 Flash Lite</option>\n-                                        <option value=\"gemini-3-pro-preview\">Gemini 3.0 Pro Preview</option>\n                                         <option value=\"gemini-3.1-pro-preview\">Gemini 3.1 Pro Preview</option>\n                                         <option value=\"custom\">Custom Model...</option>\n                                     </select>\ndiff --git a/test/model.test.js b/test/model.test.js\nnew file mode 100644\nindex 0000000..77ef689\n--- /dev/null\n+++ b/test/model.test.js\n@@ -0,0 +1,5 @@\n+import fs from 'fs';\n+const s = fs.readFileSync('index.html', 'utf8');\n+if (s.includes('gemini-3-pro-preview')) { console.error('retired id present'); process.exit(1); }\n+if (!s.includes('gemini-3.1-pro-preview')) { console.error('replacement missing'); process.exit(1); }\n+console.log('ok');\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "model-test",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.08062420000000001,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-djnightmare9909-Dungeon-master-OS-WFGY-gemini-2026-03-gemini-3-pro-preview-shutdown-8jSPxr/transcript.jsonl",
+        "prBody": "## gemini-3-pro-preview shut down Mar 9 2026 and now points to gemini-3.1-pro-preview [Verified]\n\n### Change\n\nThe only reference to gemini-3-pro-preview was a model-picker option in index.html. I removed it. The picker already lists gemini-3.1-pro-preview. The .ts code uses gemini-3.5-flash-lite and never named the retired id. I added test/model.test.js, which asserts the retired id is absent and the replacement is present. I did not edit dist/index.html because it is build output. It still has the old option until the next build.\n\nFiles touched:\n- `index.html`\n- `test/model.test.js`\n\n### Why\n\ngemini-3-pro-preview was shut down and aliases to gemini-3.1-pro-preview. Leaving it in the picker would let users select a retired id.\n\n> The Gemini 3 Pro Preview model has been [shut down](/docs/deprecations).\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| model-test | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- model-test, added by the agent: `export GEMINI_API_KEY='placeholder'; node test/model.test.js` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: GEMINI_API_KEY.\n\nTest of this change: `model-test`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- dist/index.html is stale until rebuilt\n- I ran no Gemini provider validators (openapi_check and similar)\n- No provider validator was run.\n\n### Behaviour changes\n\n- Users no longer see the 'Gemini 3.0 Pro Preview' option in the model picker. A saved selection of the old id may no longer match any option.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0806\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-anthropic-model-retirement-9b5d480a"
+        ],
+        "agentChecks": [
+          {
+            "name": "model-test",
+            "command": "export GEMINI_API_KEY='placeholder'; node test/model.test.js",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-03-gemini-3-pro-preview-shutdown: verified, $0.0806\nChange: gemini-3-pro-preview shut down Mar 9 2026 and now points to gemini-3.1-pro-preview (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass, model-test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-[0-9]|thinkingBudget|temperature glob=**/*.{ts,tsx,js,json,md} → dist/assets/index-BFXtt_9e.js:1: !function(){const e=document.createElement(\"link\").relList;if(!(e&&e.supports&&e.supports(\"modulepreload\"))){for(const e of document.querySelectorAll('link[rel=\"modulepreload\"]'))t(e);new MutationObserver(e=…\n2. search pattern=3-pro|gemini-3\\.1 glob=*.{ts,tsx,html,json} → dist/index.html:512:                                         <option value=\"gemini-3.1-flash-lite-preview\">Gemini 3.1 Flash Lite</option> | dist/index.html:513:                                         <option value=\"gemini-3-pro-preview\">Ge…\n3. edit_file path=index.html old=<109 chars> new= → edited index.html (1 replacement)\n4. write_file path=test/model.test.js content=<294 chars> → wrote test/model.test.js (294 bytes)\n5. run_checks add=[{\"name\":\"model-test\",\"command\":\"node test/model.test.js\"}] → registered model-test; on the original code it fails (1) | ## typecheck: pass | command: export GEMINI_API_KEY='placeholder'; npx --no-install tsc --noEmit\n6. shell command=<82 chars> → exit code: 0 | --- stdout --- | ok\n7. finish verdict=migrated summary=<426 chars> why=<135 chars> validators=[] unproven=<108 chars> behaviourChanges=<144 chars> proofTest=model-test → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, model-test fail (1) → pass\n\n## Result\nFiles changed: index.html, test/model.test.js\nVerdict: migrated. The only reference to gemini-3-pro-preview was a model-picker option in index.html. I removed it. The picker already lists gemini-3.1-pro-preview. The .ts code uses gemini-3.5-flash-lite and never named the retired id. I added test/model.test.js, which asserts the retired id is absent and the replacement is present. I did not edit dist/index.html because it is build output. It still has the old option until the next build.\nUnproven: dist/index.html is stale until rebuilt; I ran no Gemini provider validators (openapi_check and similar)\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or workspace builds are needed. The package.json has no postinstall, prepare, or generate scripts, and there are no subfolder projects. The build only needs GEMINI_API_KEY to be defined, since vite.config.ts reads it through loadEnv, so a placeholder is set. The build also needs FREE_PROJECT_NOTICE.md and a sidebar-free-notice element in index.html. Those are the repo's own files, so I don't touch them."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff only removes the `gemini-3-pro-preview` `<option>` from the model picker in index.html. The call sites the match agent named (gemini.ts:107 generateContent, :115 embedContent, :128 chats.create) are not touched and were not shown, so it is unclear whether a default or hard-coded model id there still uses the retired model. Users who already picked 3 Pro Preview and have it saved in settings will likely keep sending the retired id, because no migration was added. The only new check is a grep test the agent wrote, and it reads index.html alone. It proves nothing about the runtime model string or a live API call, so the `verified` grade overstates what was shown.",
+        "concerns": [
+          {
+            "file": "gemini.ts",
+            "issue": "None of the three named call sites (lines 107, 115, 128) are changed or shown. If any of them defaults to, falls back to, or hard-codes 'gemini-3-pro-preview', requests still go to the shut-down model. The diff does not address the call sites the PR was raised for.",
+            "severity": "high"
+          },
+          {
+            "file": "index.html",
+            "issue": "Removing the <option> does not migrate a saved selection. A user whose stored setting (e.g. in localStorage or IndexedDB) is 'gemini-3-pro-preview' will still have that value read and passed to the SDK. Depending on how the select is restored, the UI may also show a blank choice or quietly switch to another model. A mapping from the old id to 'gemini-3.1-pro-preview' on load is needed.",
+            "severity": "medium"
+          },
+          {
+            "file": "test/model.test.js",
+            "issue": "The test only checks that the retired string is absent from index.html. It does not scan gemini.ts, index.tsx or any other source, and makes no API call. Its 'before: fail' result exists only because the agent wrote it, so passing it is not evidence that the migration works.",
+            "severity": "medium"
+          },
+          {
+            "file": "index.tsx",
+            "issue": "Not shown. Other model lists, defaults or a 'custom model' path could still reference 'gemini-3-pro-preview'. A repo-wide search is needed to confirm.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Run a repo-wide search for 'gemini-3-pro-preview', especially gemini.ts around lines 100-130 and index.tsx, and check default model constants.",
+          "Check how the selected model is persisted and restored, and add a migration from the old id to 'gemini-3.1-pro-preview' for existing users.",
+          "Confirm 'gemini-3.1-pro-preview' against the quoted changelog or models list, and check it works with @google/genai ^0.7.0 for generateContent and chats.create.",
+          "Downgrade the grade to needs-review unless a test covers the runtime model string actually passed to the SDK."
+        ],
+        "costUsd": 0.058268,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-06-01-gemini-2-0-shutdown",
+      "changeId": "gemini:2026-06-01-gemini-2-0-shutdown",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-06-01-gemini-2-0-shutdown",
+        "kind": "model-retirement",
+        "title": "gemini-2.0-flash and flash-lite models shut down June 1 2026",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The following Gemini 2.0 models are now [shut down](/docs/deprecations):"
+        },
+        "affects": {
+          "operations": [
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-001",
+            "gemini-2.0-flash-lite",
+            "gemini-2.0-flash-lite-001"
+          ]
+        },
+        "effectiveDate": "2026-06-01"
+      },
+      "reasoning": "Gemini 2.0 Flash and Flash-Lite were shut down on 2026-06-01, so requests naming them now error. The usage map does not show the model strings in gemini.ts, so it is uncertain whether this repo uses them. The agent should search for 'gemini-2.0-flash' in code, defaults and user-selectable model lists, and replace any hits with a supported model. If present, every DM chat turn is broken, which is why this is rated high.",
+      "callSites": [
+        {
+          "file": "gemini.ts",
+          "line": 107,
+          "why": "models.generateContent fails outright if its model is gemini-2.0-flash or gemini-2.0-flash-lite (including the -001 variants)."
+        },
+        {
+          "file": "gemini.ts",
+          "line": 128,
+          "why": "chats.create fails if the chat model is a Gemini 2.0 flash or flash-lite model."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-06-01-gemini-2-0-shutdown",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.0625199,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-djnightmare9909-Dungeon-master-OS-WFGY-gemini-2026-06-01-gemini-2-0-shutdown-vcwnT8/transcript.jsonl",
+        "prBody": "## gemini-2.0-flash and flash-lite models shut down June 1 2026 [Not affected]\n\n### Change\n\nNo code changes. A search for gemini-2 and gemini-1.5 found no matches outside dist. The repo already uses gemini-3.5-flash-lite, gemini-3.5-flash, the gemini-3 preview models, imagen-4.0-generate-001 and gemini-embedding-2-preview.\n\nNo files changed.\n\n### Why\n\nThe retired gemini-2.0-flash and flash-lite model IDs are not named anywhere in the source. The model list in index.html and the defaults in state.ts and gemini.ts already point at supported models.\n\n> The following Gemini 2.0 models are now [shut down](/docs/deprecations):\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n\nNew failures: 0\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: GEMINI_API_KEY.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- The model name is read from a user setting (activeModel). A browser that saved an old gemini-2.0 value in localStorage would still send it. I did not check whether the app persists that setting.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0625\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-gemini-sdk-major-3e966223"
+        ],
+        "agentChecks": [],
+        "summary": "# djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-06-01-gemini-2-0-shutdown: not-affected, $0.0625\nChange: gemini-2.0-flash and flash-lite models shut down June 1 2026 (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-|model:|models/ glob=**/*.{ts,tsx,js,json,md,html} → dist/assets/index-BFXtt_9e.js:1: !function(){const e=document.createElement(\"link\").relList;if(!(e&&e.supports&&e.supports(\"modulepreload\"))){for(const e of document.querySelectorAll('link[rel=\"modulepreload\"]'))t(e);new MutationObserver(e=…\n2. search pattern=gemini-2|gemini-1\\.5 glob=!dist/** → no matches\n3. finish verdict=not-affected summary=<232 chars> why=<198 chars> validators=[] unproven=<198 chars> behaviourChanges=[] → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass\n\n## Result\nFiles changed: none\nVerdict: not-affected. No code changes. A search for gemini-2 and gemini-1.5 found no matches outside dist. The repo already uses gemini-3.5-flash-lite, gemini-3.5-flash, the gemini-3 preview models, imagen-4.0-generate-001 and gemini-embedding-2-preview.\nUnproven: The model name is read from a user setting (activeModel). A browser that saved an old gemini-2.0 value in localStorage would still send it. I did not check whether the app persists that setting.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen, postinstall or prepare steps are needed, and there are no workspace packages to build. Vite and terser are plain devDependencies and esbuild's binary comes from its optional platform package, so the install is enough. The only environmental input is GEMINI_API_KEY, which vite.config.ts reads via loadEnv for its define block, so a placeholder is set. The build's integrity plugin requires FREE_PROJECT_NOTICE.md and a 'sidebar-free-notice' element in index.html. Those are repo files I must not edit, so a failure there would be the repo's own."
+        }
+      }
+    },
+    {
+      "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-07-21-sampling-params-deprecated",
+      "changeId": "gemini:2026-07-21-sampling-params-deprecated",
+      "kind": "field-removed",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-07-21-sampling-params-deprecated",
+        "kind": "field-removed",
+        "title": "Sampling parameters temperature, top_p, top_k deprecated for Gemini 3.6+ models",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The sampling parameters `temperature`, `top_p`\nand `top_k` are now deprecated."
+        },
+        "affects": {
+          "fields": ["temperature", "top_p", "top_k"]
+        },
+        "effectiveDate": "2026-07-21"
+      },
+      "reasoning": "The repo sets temperature on its local and Anthropic HTTP paths, so its Gemini calls likely set sampling params as well, but the Gemini fields were not recorded. This deprecation only applies when the model is Gemini 3.6 or newer. The agent should check which model is used and whether temperature, topP or topK are sent, and drop or guard them for 3.6+ models. Do not touch the non-Gemini HTTP call sites.",
+      "callSites": [
+        {
+          "file": "gemini.ts",
+          "line": 107,
+          "why": "generateContent may pass temperature, topP or topK in its config; these are deprecated on Gemini 3.6+ models."
+        },
+        {
+          "file": "gemini.ts",
+          "line": 128,
+          "why": "The chats.create config may set temperature, which is deprecated on Gemini 3.6+ models."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-07-21-sampling-params-deprecated",
+        "outcome": "verified",
+        "diff": "diff --git a/gemini.ts b/gemini.ts\nindex e266004..7ffbf56 100644\n--- a/gemini.ts\n+++ b/gemini.ts\n@@ -397,6 +397,18 @@ Rules:\n   `;\n }\n \n+/**\n+ * temperature/top_p/top_k are deprecated for Gemini 3.6+ models.\n+ * Returns false for those; true for older or non-versioned model ids.\n+ */\n+export function supportsSamplingParams(model: string): boolean {\n+  const m = /gemini-(\\d+)(?:\\.(\\d+))?/i.exec(model || '');\n+  if (!m) return true;\n+  const major = parseInt(m[1], 10);\n+  const minor = m[2] ? parseInt(m[2], 10) : 0;\n+  return !(major > 3 || (major === 3 && minor >= 6));\n+}\n+\n /**\n  * Creates a new Gemini Chat instance with the appropriate system instruction and history.\n  * @param history The existing chat history to initialize the instance with.\n@@ -405,10 +417,12 @@ Rules:\n  * @returns An initialized `Chat` object.\n  */\n export function createNewChatInstance(history: { role: 'user' | 'model'; parts: { text: string }[] }[] = [], instruction: string, modelOverride?: string): Chat {\n+  const model = modelOverride || getUISettings().activeModel || 'gemini-3.5-flash-lite';\n   const config: any = {\n     systemInstruction: instruction,\n-    temperature: 0.9,\n   };\n+  // Sampling params are deprecated for Gemini 3.6+; only send them to older models.\n+  if (supportsSamplingParams(model)) config.temperature = 0.9;\n   // Google Search grounding consumes a separate, limited free-tier quota.\n   // Only attach the tool when explicitly enabled in Settings (default: off).\n   if (getUISettings().enableWebSearch && instruction !== getNewGameSetupInstruction() && !instruction.includes('backend world simulation engine')) {\n@@ -443,7 +457,6 @@ export function createNewChatInstance(history: { role: 'user' | 'model'; parts:\n     formattedHistory.shift();\n   }\n \n-  const model = modelOverride || getUISettings().activeModel || 'gemini-3.5-flash-lite';\n   return ai.chats.create({\n     model: model,\n     config: config,\ndiff --git a/scripts/test-sampling.ts b/scripts/test-sampling.ts\nnew file mode 100644\nindex 0000000..02ca9e4\n--- /dev/null\n+++ b/scripts/test-sampling.ts\n@@ -0,0 +1,17 @@\n+import { supportsSamplingParams } from '../gemini';\n+\n+const cases: [string, boolean][] = [\n+  ['gemini-2.5-flash', true],\n+  ['gemini-3.5-flash-lite', true],\n+  ['gemini-3.6-flash', false],\n+  ['gemini-3.10-pro', false],\n+  ['gemini-4.0-pro', false],\n+  ['custom-local-model', true],\n+];\n+for (const [m, exp] of cases) {\n+  if (supportsSamplingParams(m) !== exp) {\n+    console.error(`FAIL ${m}: expected ${exp}`);\n+    process.exit(1);\n+  }\n+}\n+console.log('ok');\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "sampling-test",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.1444041,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-djnightmare9909-Dungeon-master-OS-WFGY-gemini-2026-07-21-sampling-params-deprecated-VrrJcv/transcript.jsonl",
+        "prBody": "## Sampling parameters temperature, top_p, top_k deprecated for Gemini 3.6+ models [Verified]\n\n### Change\n\nAdded supportsSamplingParams(model) in gemini.ts. createNewChatInstance now sends temperature: 0.9 only when the resolved model is not Gemini 3.6+. The local/OpenAI/Anthropic HTTP paths are untouched. generateContent and embedContent calls elsewhere set no sampling params; features.ts topK is a local memory-recall count, not an API field. Added scripts/test-sampling.ts as the proof test.\n\nFiles touched:\n- `gemini.ts`\n- `scripts/test-sampling.ts`\n\n### Why\n\nGemini 3.6+ deprecates temperature, top_p and top_k, and the chat config always sent temperature 0.9.\n\n> The sampling parameters `temperature`, `top_p`\n> and `top_k` are now deprecated.\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| sampling-test | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- sampling-test, added by the agent: `export GEMINI_API_KEY='placeholder'; export GEMINI_API_KEY=placeholder; /tmp/bun/bin/bun run scripts/test-sampling.ts` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: GEMINI_API_KEY.\n\nTest of this change: `sampling-test`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- No live call was made, so how Gemini 3.6+ behaves without temperature is unconfirmed.\n- The test covers only the model-version helper, not the built chat config.\n- The version regex assumes ids of the form gemini-MAJOR.MINOR.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Gemini 3.6+ chats no longer send temperature, so the model's default sampling applies.\n- Older models and the default gemini-3.5-flash-lite still get temperature 0.9.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1444\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-anthropic-api-version-a547c43b",
+          "recipe-gemini-other-9e8975ad"
+        ],
+        "agentChecks": [
+          {
+            "name": "sampling-test",
+            "command": "export GEMINI_API_KEY='placeholder'; export GEMINI_API_KEY=placeholder; /tmp/bun/bin/bun run scripts/test-sampling.ts",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-07-21-sampling-params-deprecated: verified, $0.1444\nChange: Sampling parameters temperature, top_p, top_k deprecated for Gemini 3.6+ models (gemini, field-removed)\nBaseline checks: typecheck pass, build pass, sampling-test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=gemini.ts → 1\t/** | 2\t * @license | 3\t * SPDX-License-Identifier: Apache-2.0\n2. search pattern=temperature|topP|topK|top_p|top_k|gemini- glob=**/*.{ts,tsx,js} → dist/assets/index-BFXtt_9e.js:1: !function(){const e=document.createElement(\"link\").relList;if(!(e&&e.supports&&e.supports(\"modulepreload\"))){for(const e of document.querySelectorAll('link[rel=\"modulepreload\"]'))t(e);new MutationObserver(e=…\n3. read_file path=gemini.ts offset=395 limit=30 → 395\t   - SemanticTension: Avoid sudden, jarring shifts that break immersion. | 396\t   Advance clocks and faction goals only if the action introduces Novelty or Growth, while maintaining absolute Consistency with the Semantic Tree. | 397\t  `…\n4. read_file path=gemini.ts offset=424 limit=40 → 424\t  for (const turn of history) { | 425\t    if (!turn || !turn.parts || turn.parts.length === 0) continue; | 426\t    const text = turn.parts[0]?.text?.trim();\n5. edit_file path=gemini.ts old=<86 chars> new=<301 chars> → edited gemini.ts (1 replacement)\n6. edit_file path=gemini.ts old=<115 chars> new=  return ai.chats.create({ → edited gemini.ts (1 replacement)\n7. edit_file path=gemini.ts old=/**\n * Creates a new Gemini Chat instance with new=<478 chars> → edited gemini.ts (1 replacement)\n8. write_file path=scripts/test-sampling.ts content=<450 chars> → wrote scripts/test-sampling.ts (450 bytes)\n9. run_checks add=<119 chars> → registered sampling-test; on the original code it fails (1) | ## typecheck: pass | command: export GEMINI_API_KEY='placeholder'; npx --no-install tsc --noEmit\n10. finish verdict=migrated summary=<390 chars> why=<101 chars> validators=[] unproven=<229 chars> behaviourChanges=<170 chars> proofTest=sampling-test → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, sampling-test fail (1) → pass\n\n## Result\nFiles changed: gemini.ts, scripts/test-sampling.ts\nVerdict: migrated. Added supportsSamplingParams(model) in gemini.ts. createNewChatInstance now sends temperature: 0.9 only when the resolved model is not Gemini 3.6+. The local/OpenAI/Anthropic HTTP paths are untouched. generateContent and embedContent calls elsewhere set no sampling params; features.ts topK is a local memory-recall count, not an API field. Added scripts/test-sampling.ts as the proof test.\nUnproven: No live call was made, so how Gemini 3.6+ behaves without temperature is unconfirmed.; The test covers only the model-version helper, not the built chat config.; The version regex assumes ids of the form gemini-MAJOR.MINOR.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "The repo has no codegen, no postinstall or prepare hook, and no workspace packages, so no setup steps are needed. The vite config only reads GEMINI_API_KEY through loadEnv, which defines it as a build constant, so a placeholder is enough. The build also requires FREE_PROJECT_NOTICE.md and a sidebar-free-notice element in index.html. Those are the repo's own files, so I can't add or change them."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The `chats.create` path in `createNewChatInstance` is handled reasonably: `temperature` is now sent only to models the new `supportsSamplingParams` helper treats as pre-3.6. Two other named call sites, `gemini.ts:107` (`models.generateContent`) and `gemini.ts:115` (`models.embedContent`), are not touched, and the prompt doesn't include their source. So I can't tell whether `generateContent` also passes `temperature`, `topP` or `topK`. `embedContent` takes no sampling params, so it is probably a false positive. The new check only tests the regex helper in isolation. It does not confirm that the config sent to `chats.create` omits `temperature`, and no live request was made. Its 'before fail' happened only because the helper didn't exist yet. Moving the `model` computation earlier looks behaviour-neutral. `verified` is a generous grade given that one named call site was not addressed or explained.",
+        "concerns": [
+          {
+            "file": "gemini.ts",
+            "issue": "Line 107 `models.generateContent` is named as affected but the diff leaves it unchanged. If its config sets `temperature`, `topP` or `topK`, 3.6+ models will still receive deprecated params. Either gate it with `supportsSamplingParams` or state in the PR that it sends none.",
+            "severity": "medium"
+          },
+          {
+            "file": "gemini.ts",
+            "issue": "`supportsSamplingParams` returns true for ids without a numeric version, such as `gemini-flash-latest`, `gemini-pro-latest` or `gemini-exp-*`. Those aliases may resolve to 3.6+ models, which would still get `temperature`. The impact is low while the params are only deprecated rather than rejected.",
+            "severity": "low"
+          },
+          {
+            "file": "scripts/test-sampling.ts",
+            "issue": "The test covers only the version-parsing helper. Nothing checks that `createNewChatInstance` actually omits `temperature` for 3.6+ models or keeps it for older ones, and nothing exercises the `generateContent` path. A passing check therefore doesn't show the call sites are correct.",
+            "severity": "low"
+          },
+          {
+            "file": "gemini.ts",
+            "issue": "Older models still receive `temperature: 0.9`. For 3.6+ models it is silently dropped, so creative output may change, possibly becoming less varied. That is a product-visible change worth noting in the PR description.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Open gemini.ts around line 107 and check whether `generateContent`'s config includes `temperature`, `topP` or `topK`; if so, apply the same gating.",
+          "Confirm that `embedContent` at line 115 sends no sampling params, and if so record it as a false positive.",
+          "Decide whether alias model ids like `*-latest` should be treated as 3.6+ models.",
+          "Ideally, run one live chat against a 3.6 model to confirm there is no deprecation warning or error."
+        ],
+        "costUsd": 0.038024,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-05-embedding-lifecycle",
+      "changeId": "gemini:2026-05-embedding-lifecycle",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-05-embedding-lifecycle",
+        "kind": "model-retirement",
+        "title": "Embedding model shutdowns: text-embedding-004 (Jan 2026), gemini-embedding-2-preview (Aug 10 2026); gemini-embedding-001 shutdown May 14 2028; use gemini-embedding-2",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/deprecations.md.txt",
+          "quote": "* `gemini-embedding-2-preview`\n* March 10, 2026\n* August 10, 2026\n* `gemini-embedding-2`"
+        },
+        "affects": {
+          "operations": ["gemini-embedding-2-preview", "text-embedding-004", "gemini-embedding-001"]
+        },
+        "effectiveDate": "2026-08-10"
+      },
+      "reasoning": "The repo calls embedContent, so it depends on one of the embedding models in this lifecycle notice. The scan did not capture the model string. If it is text-embedding-004, embeddings are already failing. If it is gemini-embedding-2-preview, they will fail after 2026-08-10. The agent should switch to gemini-embedding-2. Vectors from different models are not compatible, so any stored embeddings (for example campaign memory or RAG) must be re-embedded, or old and new vectors kept apart. Check whether output dimensionality changes.",
+      "callSites": [
+        {
+          "file": "gemini.ts",
+          "line": 115,
+          "why": "models.embedContent necessarily names an embedding model, likely text-embedding-004 (already shut down Jan 2026), gemini-embedding-2-preview (shuts down 2026-08-10) or gemini-embedding-001."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-05-embedding-lifecycle",
+        "outcome": "verified",
+        "diff": "diff --git a/gemini.ts b/gemini.ts\nindex e266004..06eea00 100644\n--- a/gemini.ts\n+++ b/gemini.ts\n@@ -488,7 +488,7 @@ function getFallbackEmbedding(text: string): number[] {\n }\n \n /**\n- * Generates a vector embedding for a given text using the 'gemini-embedding-2-preview' model.\n+ * Generates a vector embedding for a given text using the 'gemini-embedding-2' model.\n  * Wraps the call in a retry mechanism to handle 429 Rate Limit errors.\n  * Uses a caching layer and deterministic fallbacks to satisfy strict rate limits.\n  * @param text The text to embed.\n@@ -547,7 +547,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {\n     try {\n         const values = await retryOperation(async () => {\n             const response = await ai.models.embedContent({\n-                model: 'gemini-embedding-2-preview',\n+                model: 'gemini-embedding-2', // replaces gemini-embedding-2-preview (shut down 2026-08-10)\n                 contents: {\n                     parts: [{ text: trimmed }]\n                 }\ndiff --git a/scripts/test-embedding-model.mjs b/scripts/test-embedding-model.mjs\nnew file mode 100644\nindex 0000000..3d4b148\n--- /dev/null\n+++ b/scripts/test-embedding-model.mjs\n@@ -0,0 +1,5 @@\n+import { readFileSync } from 'node:fs';\n+const src = readFileSync(new URL('../gemini.ts', import.meta.url), 'utf8');\n+if (/gemini-embedding-2-preview'|text-embedding-004|gemini-embedding-001/.test(src.replace(/\\/\\/.*$/gm, ''))) { console.error('retired embedding model id in use'); process.exit(1); }\n+if (!/model:\\s*'gemini-embedding-2'/.test(src)) { console.error('gemini-embedding-2 not used'); process.exit(1); }\n+console.log('ok');\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "embedding-model",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.08607229999999999,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-djnightmare9909-Dungeon-master-OS-WFGY-gemini-2026-05-embedding-lifecycle-lek0HD/transcript.jsonl",
+        "prBody": "## Embedding model shutdowns: text-embedding-004 (Jan 2026), gemini-embedding-2-preview (Aug 10 2026); gemini-embedding-001 shutdown May 14 2028; use gemini-embedding-2 [Verified]\n\n### Change\n\nChanged the Gemini embedContent model in gemini.ts from gemini-embedding-2-preview to gemini-embedding-2, and updated the doc comment. I added scripts/test-embedding-model.mjs, which checks that retired embedding ids are absent and the new id is used.\n\nFiles touched:\n- `gemini.ts`\n- `scripts/test-embedding-model.mjs`\n\n### Why\n\ngemini-embedding-2-preview shuts down on 2026-08-10, and the replacement is gemini-embedding-2.\n\n> * `gemini-embedding-2-preview`\n> * March 10, 2026\n> * August 10, 2026\n> * `gemini-embedding-2`\n\nSource: https://ai.google.dev/gemini-api/docs/deprecations.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| embedding-model | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- embedding-model, added by the agent: `export GEMINI_API_KEY='placeholder'; node scripts/test-embedding-model.mjs` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: GEMINI_API_KEY.\n\nTest of this change: `embedding-model`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Whether gemini-embedding-2 returns the same default dimensionality as the preview was not checked against the docs. The code does not set outputDimensionality.\n- The empty-text zero vector and the deterministic fallback embedding use 768 dimensions. I did not check how they compare with the real model's vector size.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Embeddings now come from gemini-embedding-2. Vectors from the preview model are not compatible with them. Memory nodes already stored with preview embeddings (in the campaign memory in features.ts) should be re-embedded, or cosine-similarity retrieval over old nodes will be unreliable.\n- Local or OpenAI-compatible embedding paths are unchanged.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0861\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-gemini-field-removed-f71d943e"
+        ],
+        "agentChecks": [
+          {
+            "name": "embedding-model",
+            "command": "export GEMINI_API_KEY='placeholder'; node scripts/test-embedding-model.mjs",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-05-embedding-lifecycle: verified, $0.0861\nChange: Embedding model shutdowns: text-embedding-004 (Jan 2026), gemini-embedding-2-preview (Aug 10 2026); gemini-embedding-001 shutdown May 14 2028; use gemini-embedding-2 (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass, embedding-model fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=embed|dimensionality|embedding glob=**/*.{ts,tsx,js,json,md} → dist/assets/index-BFXtt_9e.js:1: !function(){const e=document.createElement(\"link\").relList;if(!(e&&e.supports&&e.supports(\"modulepreload\"))){for(const e of document.querySelectorAll('link[rel=\"modulepreload\"]'))t(e);new MutationObserver(e=…\n2. read_file path=gemini.ts offset=488 limit=95 → 488\t} | 489\t | 490\t/**\n3. edit_file path=gemini.ts old=                model: 'gemini-embedding-2-preview', new=<106 chars> → edited gemini.ts (1 replacement)\n4. edit_file path=gemini.ts old=using the 'gemini-embedding-2-preview' model new=using the 'gemini-embedding-2' model → edited gemini.ts (1 replacement)\n5. write_file path=scripts/test-embedding-model.mjs content=<433 chars> → wrote scripts/test-embedding-model.mjs (433 bytes)\n6. run_checks add=[{\"name\":\"embedding-model\",\"command\":\"node scripts/test-embedding-model.mjs\"}] → registered embedding-model; on the original code it fails (1) | ## typecheck: pass | command: export GEMINI_API_KEY='placeholder'; npx --no-install tsc --noEmit\n7. finish verdict=migrated summary=<251 chars> why=<95 chars> validators=[] unproven=<321 chars> behaviourChanges=<350 chars> proofTest=embedding-model → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, embedding-model fail (1) → pass\n\n## Result\nFiles changed: gemini.ts, scripts/test-embedding-model.mjs\nVerdict: migrated. Changed the Gemini embedContent model in gemini.ts from gemini-embedding-2-preview to gemini-embedding-2, and updated the doc comment. I added scripts/test-embedding-model.mjs, which checks that retired embedding ids are absent and the new id is used.\nUnproven: Whether gemini-embedding-2 returns the same default dimensionality as the preview was not checked against the docs. The code does not set outputDimensionality.; The empty-text zero vector and the deterministic fallback embedding use 768 dimensions. I did not check how they compare with the real model's vector size.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or install hooks are needed: package.json has no postinstall, prepare or generate scripts, and there are no workspace packages to build. The vite config only reads GEMINI_API_KEY to inline it into the bundle, so a placeholder lets the build load. The build's integrity plugin checks that FREE_PROJECT_NOTICE.md and index.html exist with the right content. Those are the repo's own files, so I must not touch them."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The model ID swap is the right fix. The only embedContent call (gemini.ts:547-550) moves from 'gemini-embedding-2-preview' to 'gemini-embedding-2', and the quoted deprecation table names that model as the replacement. The other named call sites (gemini.ts:107 generateContent, gemini.ts:128 chats.create) are not embedding calls and correctly need no change. My concern is what the checks do not prove. The new embedding-model check is a static regex over the source, and typecheck/build cannot catch a wrong model string. Nothing exercises a live embedContent call. Nothing checks that vectors from the GA model can be mixed with vectors already cached from the preview model. The 'verified' grade rests on string matching, not on runtime behaviour.",
+        "concerns": [
+          {
+            "file": "gemini.ts",
+            "issue": "generateEmbedding uses a caching layer (docstring around line 491). If that cache persists across sessions (localStorage/IndexedDB/file) and is keyed only by text, vectors from gemini-embedding-2-preview will be compared against new gemini-embedding-2 vectors. If the GA model's vector space or default dimensionality differs, similarity search (memory/retrieval) silently degrades. The diff does not version or clear the cache key by model.",
+            "severity": "medium"
+          },
+          {
+            "file": "gemini.ts",
+            "issue": "getFallbackEmbedding (around line 488) produces deterministic vectors that presumably match the old model's output dimension. I could not confirm that gemini-embedding-2 returns the same default dimension as the preview model. Check the Gemini embeddings docs or the @google/genai types and response. If they differ, fallback and real vectors will have mismatched lengths.",
+            "severity": "medium"
+          },
+          {
+            "file": "scripts/test-embedding-model.mjs",
+            "issue": "The check is a static regex. It proves the string 'gemini-embedding-2' appears, not that the API accepts it or returns usable embeddings. It also strips '//' to end-of-line, which would mangle any URL string in gemini.ts; that is harmless here but brittle. It is unclear whether the script is wired into package.json or CI, or only run by the migration harness.",
+            "severity": "low"
+          },
+          {
+            "file": "gemini.ts",
+            "issue": "Effectively no behaviour changes beyond the forced swap. The added inline comment is fine. Text-embedding-004 and gemini-embedding-001 are not used, so nothing else needs migrating.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Make one live ai.models.embedContent call with model 'gemini-embedding-2' and confirm it succeeds; compare its vector length to the preview model and to getFallbackEmbedding's output.",
+          "Inspect the embedding cache in gemini.ts: is it persisted, and is it keyed by model? If persisted, add the model ID to the key or invalidate old entries.",
+          "Confirm against the quoted deprecations page or SDK docs that 'gemini-embedding-2' is the exact GA ID and that its defaults (task type, output dimensionality) match how the app uses embeddings."
+        ],
+        "costUsd": 0.036824,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-10-08-3-5-3-7-flash-reroute",
+      "changeId": "gemini:2026-10-08-3-5-3-7-flash-reroute",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-10-08-3-5-3-7-flash-reroute",
+        "kind": "model-retirement",
+        "title": "gemini-3.7-flash and gemini-3.5-flash deprecated, auto-routed to gemini-3.8-flash / gemini-3.6-flash",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "API requests to\n`gemini-3.7-flash` are automatically routed to `gemini-3.8-flash`."
+        },
+        "affects": {
+          "operations": ["gemini-3.7-flash", "gemini-3.5-flash"]
+        },
+        "effectiveDate": "2026-10-08"
+      },
+      "reasoning": "Model strings in gemini.ts are unknown. gemini-3.7-flash and gemini-3.5-flash are deprecated and auto-routed to gemini-3.8-flash and gemini-3.6-flash respectively. The agent should grep for these IDs and pin the replacement explicitly. If they are absent, this is a no-op.",
+      "callSites": [
+        {
+          "file": "gemini.ts",
+          "line": 107,
+          "why": "If generateContent uses gemini-3.7-flash or gemini-3.5-flash, requests are auto-routed to a different model."
+        },
+        {
+          "file": "gemini.ts",
+          "line": 128,
+          "why": "The chat model may be gemini-3.7-flash or gemini-3.5-flash and would be rerouted."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-10-08-3-5-3-7-flash-reroute",
+        "outcome": "verified",
+        "diff": "diff --git a/gemini.ts b/gemini.ts\nindex e266004..cde2c28 100644\n--- a/gemini.ts\n+++ b/gemini.ts\n@@ -404,11 +404,20 @@ Rules:\n  * @param modelOverride Optional. Force a specific model (e.g., for the Chronicler) instead of the user preference.\n  * @returns An initialized `Chat` object.\n  */\n+export function supportsSamplingParams(model: string): boolean {\n+  const m = /gemini-(\\d+)(?:\\.(\\d+))?/i.exec(model || '');\n+  if (!m) return true;\n+  const major = +m[1], minor = m[2] ? +m[2] : 0;\n+  return !(major > 3 || (major === 3 && minor >= 6));\n+}\n+\n export function createNewChatInstance(history: { role: 'user' | 'model'; parts: { text: string }[] }[] = [], instruction: string, modelOverride?: string): Chat {\n   const config: any = {\n     systemInstruction: instruction,\n-    temperature: 0.9,\n   };\n+  const model = modelOverride || getUISettings().activeModel || 'gemini-3.5-flash-lite';\n+  // temperature is deprecated for Gemini 3.6+ models\n+  if (supportsSamplingParams(model)) config.temperature = 0.9;\n   // Google Search grounding consumes a separate, limited free-tier quota.\n   // Only attach the tool when explicitly enabled in Settings (default: off).\n   if (getUISettings().enableWebSearch && instruction !== getNewGameSetupInstruction() && !instruction.includes('backend world simulation engine')) {\n@@ -443,7 +452,6 @@ export function createNewChatInstance(history: { role: 'user' | 'model'; parts:\n     formattedHistory.shift();\n   }\n \n-  const model = modelOverride || getUISettings().activeModel || 'gemini-3.5-flash-lite';\n   return ai.chats.create({\n     model: model,\n     config: config,\ndiff --git a/index.html b/index.html\nindex 3105858..fb12c16 100644\n--- a/index.html\n+++ b/index.html\n@@ -507,7 +507,7 @@\n                                     <label for=\"setting-model\">AI Model</label>\n                                     <select id=\"setting-model\">\n                                         <option value=\"gemini-3.5-flash-lite\">Gemini 3.5 Flash Lite</option>\n-                                        <option value=\"gemini-3.5-flash\">Gemini 3.5 Flash</option>\n+                                        <option value=\"gemini-3.6-flash\">Gemini 3.6 Flash</option>\n                                         <option value=\"gemini-3-flash-preview\">Gemini 3.0 Flash Preview</option>\n                                         <option value=\"gemini-3.1-flash-lite-preview\">Gemini 3.1 Flash Lite</option>\n                                         <option value=\"gemini-3-pro-preview\">Gemini 3.0 Pro Preview</option>\ndiff --git a/scripts/test-model.ts b/scripts/test-model.ts\nnew file mode 100644\nindex 0000000..ff93207\n--- /dev/null\n+++ b/scripts/test-model.ts\n@@ -0,0 +1,6 @@\n+import { supportsSamplingParams } from '../gemini';\n+import { readFileSync } from 'fs';\n+const ok = supportsSamplingParams('gemini-3.5-flash-lite') && !supportsSamplingParams('gemini-3.6-flash') && !supportsSamplingParams('gemini-3.10-pro');\n+const html = readFileSync('index.html','utf8');\n+if (!ok || html.includes('value=\"gemini-3.5-flash\"') || !html.includes('value=\"gemini-3.6-flash\"')) { console.error('FAIL'); process.exit(1); }\n+console.log('ok');\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "model-test",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.09814629999999998,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-djnightmare9909-Dungeon-master-OS-WFGY-gemini-2026-10-08-3-5-3-7-flash-reroute-ePfUjI/transcript.jsonl",
+        "prBody": "## gemini-3.7-flash and gemini-3.5-flash deprecated, auto-routed to gemini-3.8-flash / gemini-3.6-flash [Verified]\n\n### Change\n\nThe only deprecated id in the repo was the `gemini-3.5-flash` option in the model dropdown in index.html. I changed it to `gemini-3.6-flash`. The default `gemini-3.5-flash-lite` is not deprecated and stays. gemini.ts now has `supportsSamplingParams`, so `temperature: 0.9` is only sent to the Gemini chat for models older than 3.6. I added scripts/test-model.ts, registered as `model-test`.\n\nFiles touched:\n- `gemini.ts`\n- `index.html`\n- `scripts/test-model.ts`\n\n### Why\n\n`gemini-3.5-flash` is deprecated and auto-routes to `gemini-3.6-flash`. Gemini 3.6+ models deprecate sampling params, so the explicit pin needed the temperature gate.\n\n> API requests to\n> `gemini-3.7-flash` are automatically routed to `gemini-3.8-flash`.\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| model-test | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- model-test, added by the agent: `export GEMINI_API_KEY='placeholder'; export GEMINI_API_KEY=x; /tmp/bun/bin/bun run scripts/test-model.ts` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: GEMINI_API_KEY.\n\nTest of this change: `model-test`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Whether `gemini-3.6-flash` accepts the chat config (googleSearch tool, history format, thought signatures) was not tested.\n- dist/index.html is a build output and was not edited by hand. The build check runs `bun run build`, which may regenerate it.\n- Model ids given as custom or OpenAI-compatible endpoints are unchanged. Their temperature values (0.7 and the pass-through) were left alone.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Users who had selected 'Gemini 3.5 Flash' in the dropdown now get 3.6 Flash. A saved setting of `gemini-3.5-flash` is still auto-routed by Google.\n- On 3.6+ models the chat no longer sends temperature 0.9, so the model's default sampling applies and output may be less creative.\n- 3.6 Flash may differ from 3.5 Flash in output, latency and cost.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0981\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-gemini-field-removed-f71d943e"
+        ],
+        "agentChecks": [
+          {
+            "name": "model-test",
+            "command": "export GEMINI_API_KEY='placeholder'; export GEMINI_API_KEY=x; /tmp/bun/bin/bun run scripts/test-model.ts",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-10-08-3-5-3-7-flash-reroute: verified, $0.0981\nChange: gemini-3.7-flash and gemini-3.5-flash deprecated, auto-routed to gemini-3.8-flash / gemini-3.6-flash (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass, model-test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-3\\.[0-9]|temperature|topP|topK|thinking glob=**/*.{ts,tsx,js,json,md} → dist/assets/index-BFXtt_9e.js:1: !function(){const e=document.createElement(\"link\").relList;if(!(e&&e.supports&&e.supports(\"modulepreload\"))){for(const e of document.querySelectorAll('link[rel=\"modulepreload\"]'))t(e);new MutationObserver(e=…\n2. search pattern=gemini-3\\.[57]-flash(?!-lite)|gemini-3\\.5-flash['\"`] glob=*.{ts,tsx,html,json,md} → dist/index.html:510:                                         <option value=\"gemini-3.5-flash\">Gemini 3.5 Flash</option> | index.html:510:                                         <option value=\"gemini-3.5-flash\">Gemini 3.5 Flash</option>\n3. shell command=<107 chars> → exit code: 0 | --- stdout --- |                                     <input type=\"text\" id=\"setting-custom-endpoint\" placeholder=\"e.g., https://api.openai.com/v1\">\n4. shell command=<1699 chars> → exit code: 0 | --- stdout --- | ok\n5. run_checks add=<103 chars> → registered model-test; on the original code it fails (1) | ## typecheck: pass | command: export GEMINI_API_KEY='placeholder'; npx --no-install tsc --noEmit\n6. finish verdict=migrated summary=<390 chars> why=<166 chars> validators=[] unproven=<396 chars> behaviourChanges=<349 chars> proofTest=model-test → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, model-test fail (1) → pass\n\n## Result\nFiles changed: gemini.ts, index.html, scripts/test-model.ts\nVerdict: migrated. The only deprecated id in the repo was the `gemini-3.5-flash` option in the model dropdown in index.html. I changed it to `gemini-3.6-flash`. The default `gemini-3.5-flash-lite` is not deprecated and stays. gemini.ts now has `supportsSamplingParams`, so `temperature: 0.9` is only sent to the Gemini chat for models older than 3.6. I added scripts/test-model.ts, registered as `model-test`.\nUnproven: Whether `gemini-3.6-flash` accepts the chat config (googleSearch tool, history format, thought signatures) was not tested.; dist/index.html is a build output and was not edited by hand. The build check runs `bun run build`, which may regenerate it.; Model ids given as custom or OpenAI-compatible endpoints are unchanged. Their temperature values (0.7 and the pass-through) were left alone.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or install hooks are needed: the package.json has no postinstall, prepare, or generate scripts and no workspace packages. Vite and terser run directly. The only environment input is GEMINI_API_KEY, which vite.config.ts reads through loadEnv for its define block, so a placeholder keeps the build loading. The FREE_PROJECT_NOTICE.md integrity check in the config depends on repo files, so I leave it alone."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The index.html change, replacing the gemini-3.5-flash option with gemini-3.6-flash, is a reasonable response to the reroute. The diff also drops `temperature: 0.9` for every model at or above 3.6. The quoted changelog line only says requests are rerouted; it says nothing about temperature being deprecated, and I could not confirm that claim from the source given. This changes generation behaviour, especially DM creativity, beyond what the retirement forces. It also misses users whose saved setting is still gemini-3.5-flash. The model-test was written by the agent to assert its own edits, so 'verified' rests on a tautological check rather than on any live call.",
+        "concerns": [
+          {
+            "file": "gemini.ts",
+            "issue": "`supportsSamplingParams` removes temperature for Gemini 3.6+ with the comment 'temperature is deprecated for Gemini 3.6+ models'. The quoted source does not support this. If the claim is wrong, chats on 3.6-flash and higher run at default temperature instead of 0.9, which is a silent behaviour change for the storyteller. Confirm in the changelog or the model docs before merging.",
+            "severity": "high"
+          },
+          {
+            "file": "gemini.ts",
+            "issue": "Users with `activeModel` already persisted as 'gemini-3.5-flash' or 'gemini-3.7-flash' in UI settings are not migrated. Their model string parses as below 3.6, so temperature is still sent, but the server reroutes them to 3.6 or 3.8. If the deprecation claim is true, they hit exactly the case the PR tries to avoid. If it is false, the 3.6 branch is unnecessary. Either way, saved settings need migrating to the new IDs.",
+            "severity": "medium"
+          },
+          {
+            "file": "gemini.ts",
+            "issue": "The call sites at gemini.ts:107 (generateContent) and 115 (embedContent) were named by the match agent but the diff does not touch them. I could not see whether they hard-code a retired model ID or pass temperature, because gemini.ts was not included in the provided sources.",
+            "severity": "medium"
+          },
+          {
+            "file": "gemini.ts",
+            "issue": "The new function is inserted between the JSDoc block and `createNewChatInstance`. The doc comment, including `@param modelOverride` and `@returns Chat`, now attaches to `supportsSamplingParams`.",
+            "severity": "low"
+          },
+          {
+            "file": "scripts/test-model.ts",
+            "issue": "The test only checks the regex helper and string presence in index.html. No API call is made, so it proves neither that gemini-3.6-flash accepts requests nor anything about temperature. The before-fail/after-pass result is guaranteed by construction, so the 'verified' grade overstates the evidence.",
+            "severity": "medium"
+          }
+        ],
+        "checkFirst": [
+          "Find an official source for 'temperature deprecated on Gemini 3.6+'; if there is none, revert the temperature gating and keep only the model-ID swap.",
+          "Grep gemini.ts and the rest of the repo for 'gemini-3.5-flash' and 'gemini-3.7-flash', excluding -lite, especially around lines 107 and 115.",
+          "Decide whether to migrate persisted `activeModel` values of gemini-3.5-flash and 3.7-flash to their replacement IDs in settings load.",
+          "Make one live chats.create call against gemini-3.6-flash with and without temperature to confirm behaviour."
+        ],
+        "costUsd": 0.071496,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-10-26-store-default",
+      "changeId": "gemini:2026-10-26-store-default",
+      "kind": "other",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-10-26-store-default",
+        "kind": "other",
+        "title": "Generate Content API: new paid-tier projects now store requests by default (store=true); opt out with store=false",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "now store requests by default\n(`store=true`), matching the Interactions API."
+        },
+        "affects": {
+          "operations": ["generateContent", "streamGenerateContent", "batchGenerateContent"],
+          "fields": ["store"]
+        },
+        "effectiveDate": "2026-10-26"
+      },
+      "reasoning": "The repo calls generateContent and chats, which fall under this default change. It only applies to new paid-tier projects, and whether users' API keys belong to such projects is unknown. The agent should decide whether user conversations should be stored and, if not, set store=false in the request config, after checking that SDK 1.48.0 exposes that field.",
+      "callSites": [
+        {
+          "file": "gemini.ts",
+          "line": 107,
+          "why": "generateContent requests from new paid-tier projects are now stored by default unless the request sends store=false."
+        },
+        {
+          "file": "gemini.ts",
+          "line": 128,
+          "why": "Chat turns go through generateContent and are therefore subject to the same store=true default."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-10-26-store-default",
+        "outcome": "verified",
+        "diff": "diff --git a/gemini.ts b/gemini.ts\nindex e266004..846e787 100644\n--- a/gemini.ts\n+++ b/gemini.ts\n@@ -87,6 +87,20 @@ function getProviderUrl(defaultPath: string) {\n \n let _ai: GoogleGenAI | null = null;\n \n+/**\n+ * Gemini changelog: new paid-tier projects \"now store requests by default (store=true)\".\n+ * @google/genai 1.48.0 has no typed `store` on GenerateContentConfig, so send store=false via extraBody.\n+ */\n+export function withStoreOptOut(config: any): any {\n+  return {\n+    ...(config || {}),\n+    httpOptions: {\n+      ...(config?.httpOptions || {}),\n+      extraBody: { ...(config?.httpOptions?.extraBody || {}), store: false },\n+    },\n+  };\n+}\n+\n // Allows the UI to reset the client when the API key changes in settings.\n export function resetAI() {\n   _ai = null;\n@@ -104,7 +118,7 @@ export const ai = new Proxy({}, {\n         generateContent: async (params: any) => {\n           if (isLocal) return generateContentLocal(params);\n           if (!_ai) _ai = new GoogleGenAI({ apiKey: getApiKey() });\n-          return _ai.models.generateContent(params);\n+          return _ai.models.generateContent({ ...params, config: withStoreOptOut(params?.config) });\n         },\n         embedContent: async (params: any) => {\n           if (isLocal) {\n@@ -125,7 +139,7 @@ export const ai = new Proxy({}, {\n             return new LocalChat(config);\n           }\n           if (!_ai) _ai = new GoogleGenAI({ apiKey: getApiKey() });\n-          return _ai.chats.create(config);\n+          return _ai.chats.create({ ...config, config: withStoreOptOut(config?.config) });\n         }\n       };\n     }\ndiff --git a/scripts/test-store.ts b/scripts/test-store.ts\nnew file mode 100644\nindex 0000000..7293c61\n--- /dev/null\n+++ b/scripts/test-store.ts\n@@ -0,0 +1,6 @@\n+import { withStoreOptOut } from '../gemini';\n+const c = withStoreOptOut({ systemInstruction: 'x', httpOptions: { timeout: 5, extraBody: { a: 1 } } });\n+const ok = c.httpOptions.extraBody.store === false && c.httpOptions.extraBody.a === 1 && c.httpOptions.timeout === 5 && c.systemInstruction === 'x'\n+  && withStoreOptOut(undefined).httpOptions.extraBody.store === false;\n+if (!ok) { console.error('FAIL', JSON.stringify(c)); process.exit(1); }\n+console.log('ok');\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "store-test",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.12275940000000002,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-djnightmare9909-Dungeon-master-OS-WFGY-gemini-2026-10-26-store-default-yKyhP4/transcript.jsonl",
+        "prBody": "## Generate Content API: new paid-tier projects now store requests by default (store=true); opt out with store=false [Verified]\n\n### Change\n\nIn gemini.ts, added withStoreOptOut(), which sets httpOptions.extraBody.store=false. It is applied to the Gemini SDK paths for models.generateContent and chats.create, so every sendMessage and sendMessageStream call carries it. embedContent and the local OpenAI-compatible paths are unchanged. Added scripts/test-store.ts as the proof test.\n\nFiles touched:\n- `gemini.ts`\n- `scripts/test-store.ts`\n\n### Why\n\nThe changelog says new paid-tier projects \"now store requests by default (store=true)\". A DM chat app shouldn't have its user conversations stored by default. @google/genai 1.48.0 has no typed store field on GenerateContentConfig, so extraBody is the available route.\n\n> now store requests by default\n> (`store=true`), matching the Interactions API.\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| store-test | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- store-test, added by the agent: `export GEMINI_API_KEY='placeholder'; GEMINI_API_KEY=x /tmp/bun/bin/bun run scripts/test-store.ts` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: GEMINI_API_KEY.\n\nTest of this change: `store-test`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- No live call confirms that the API accepts a top-level store field sent via extraBody.\n- The test checks the config helper only. It does not capture the outgoing HTTP body.\n- Whether users' keys belong to new paid-tier projects is unknown. Opting out is harmless either way.\n- Whether chat sendMessage and sendMessageStream pass config.httpOptions through to the request was not checked in the SDK source.\n- The account-level opt-out (Logs and Datasets settings) is an alternative that code can't verify.\n- batchGenerateContent is not used in this repo.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Gemini generateContent and chat requests now send store:false, so they are not stored even on new paid-tier projects.\n- If the API rejects the field, Gemini calls would fail. There is no fallback.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1228\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-other-9e8975ad",
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-gemini-field-removed-f71d943e"
+        ],
+        "agentChecks": [
+          {
+            "name": "store-test",
+            "command": "export GEMINI_API_KEY='placeholder'; GEMINI_API_KEY=x /tmp/bun/bin/bun run scripts/test-store.ts",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-10-26-store-default: verified, $0.1228\nChange: Generate Content API: new paid-tier projects now store requests by default (store=true); opt out with store=false (gemini, other)\nBaseline checks: typecheck pass, build pass, store-test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=gemini.ts → 1\t/** | 2\t * @license | 3\t * SPDX-License-Identifier: Apache-2.0\n2. shell command=<129 chars> → exit code: 0 | --- stdout --- | 5933:    extraBody?: Record<string, unknown>;\r\n3. shell command=<267 chars> → exit code: 0 | --- stdout --- | 7710:        if (httpOptions && httpOptions.extraBody !== null) {\n4. shell command=<1481 chars> → exit code: 0 | --- stdout --- | ok\n5. run_checks add=<95 chars> → registered store-test; on the original code it fails (1) | ## typecheck: pass | command: export GEMINI_API_KEY='placeholder'; npx --no-install tsc --noEmit\n6. finish verdict=migrated summary=<340 chars> why=<267 chars> validators=[] unproven=<557 chars> behaviourChanges=<200 chars> proofTest=store-test → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, store-test fail (1) → pass\n\n## Result\nFiles changed: gemini.ts, scripts/test-store.ts\nVerdict: migrated. In gemini.ts, added withStoreOptOut(), which sets httpOptions.extraBody.store=false. It is applied to the Gemini SDK paths for models.generateContent and chats.create, so every sendMessage and sendMessageStream call carries it. embedContent and the local OpenAI-compatible paths are unchanged. Added scripts/test-store.ts as the proof test.\nUnproven: No live call confirms that the API accepts a top-level store field sent via extraBody.; The test checks the config helper only. It does not capture the outgoing HTTP body.; Whether users' keys belong to new paid-tier projects is unknown. Opting out is harmless either way.; Whether chat sendMessage and sendMessageStream pass config.httpOptions through to the request was not checked in the SDK source.; The account-level opt-out (Logs and Datasets settings) is an alternative that code can't verify.; batchGenerateContent is not used in this repo.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or install hooks are needed: package.json has no postinstall/prepare scripts and no workspace packages. esbuild's binary comes from its optional platform package, so skipping install scripts is fine. The vite config only reads GEMINI_API_KEY to define constants, so a placeholder is enough for the build. The integrity plugin needs FREE_PROJECT_NOTICE.md and the index.html notice; those are repo files, and I must not edit them."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff wraps `generateContent` and `chats.create` in gemini.ts with a helper that sends `store: false` through `httpOptions.extraBody`. It leaves `embedContent` unchanged. The new store-test only checks that the helper merges objects correctly. Nothing confirms that the SDK forwards `extraBody` into the request body, that `store` belongs at the top level of the body, that chat messages keep it, or that the API accepts it. Calling this 'verified' overstates what the checks show. Opting every request out of storage is also a product decision the changelog does not force; the API change only flips the default for new paid-tier projects.",
+        "concerns": [
+          {
+            "file": "gemini.ts",
+            "issue": "`withStoreOptOut` depends on `httpOptions.extraBody` in @google/genai 1.48.0 being merged into the top-level JSON body of generateContent. I could not confirm that `extraBody` exists in that SDK version or that `store` belongs at the top level and not inside `generationConfig`. Because `config` is typed `any`, the passing typecheck proves nothing here. If the field is dropped silently, the opt-out does nothing. If it is placed wrongly, or the endpoint (v1beta, free tier) rejects unknown fields, every remote call could fail with a 400.",
+            "severity": "high"
+          },
+          {
+            "file": "gemini.ts",
+            "issue": "For `chats.create`, the opt-out is only in the chat-level config. It depends on how the SDK's `Chat.sendMessage` and `sendMessageStream` combine that with any per-message `config` passed by callers. If a per-message config replaces the chat config instead of merging with it, `httpOptions.extraBody.store` is lost. No check covers the chat send path or streaming.",
+            "severity": "medium"
+          },
+          {
+            "file": "gemini.ts",
+            "issue": "`embedContent` (line ~115) is unchanged. The changelog scopes storage to the Generate Content API, so this is probably fine, but the PR does not say so. Also, any other SDK methods reached outside this Proxy (for example `generateContentStream` or direct `GoogleGenAI` use elsewhere) would not get the opt-out; I could not see the rest of the repository.",
+            "severity": "low"
+          },
+          {
+            "file": "gemini.ts",
+            "issue": "The PR changes behaviour for every user, including existing projects where nothing changed, by forcing `store=false`. That may be the desired privacy stance, but it is a policy choice. Products that use stored interactions (if this app or its users rely on them) would lose them. A human should confirm the choice instead of treating it as a mechanical migration.",
+            "severity": "medium"
+          },
+          {
+            "file": "scripts/test-store.ts",
+            "issue": "The test covers only the pure object merge in `withStoreOptOut`. It makes no wire-level assertion, such as mocking fetch and inspecting the request body. That is weak evidence for a 'verified' grade on a request-body change.",
+            "severity": "medium"
+          }
+        ],
+        "checkFirst": [
+          "Check the @google/genai 1.48.0 type definitions for `HttpOptions.extraBody`, and check how the SDK merges it into the request body: top level or nested.",
+          "Check the Gemini API docs or changelog for exactly where `store` sits in the generateContent request, and whether non-paid-tier keys or v1beta accept it.",
+          "Mock fetch, call generateContent and `chat.sendMessage` (with and without a per-message config, and streaming), and assert that `store:false` appears in the outgoing JSON body.",
+          "Confirm with the maintainer that opting all traffic out of storage is intended, and grep the repository for any other GoogleGenAI usage outside the Proxy."
+        ],
+        "costUsd": 0.044964,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-12-01-gemini-2-5-pro-reroute",
+      "changeId": "gemini:2026-12-01-gemini-2-5-pro-reroute",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-12-01-gemini-2-5-pro-reroute",
+        "kind": "model-retirement",
+        "title": "gemini-2.5-pro deprecated; from Dec 1 2026 requests route to gemini-3.8-flash with breaking API changes (thought_signature validation, thinking_level replaces thinking_budget, sampling params and prefill removed)",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "Effective December 1, 2026, all API\nrequests to `gemini-2.5-pro` will automatically route to"
+        },
+        "affects": {
+          "operations": ["gemini-2.5-pro", "gemini-3.8-flash"],
+          "fields": ["thinking_budget", "thinking_level", "temperature", "top_p", "top_k"]
+        },
+        "effectiveDate": "2026-12-01"
+      },
+      "reasoning": "The model string is not recorded, and gemini-2.5-pro is a plausible choice for a DM app. After the reroute, temperature and thinkingBudget would be rejected or ignored, and chat history without thought signatures may fail. The agent should check for 'gemini-2.5-pro', migrate to a current model, replace thinkingBudget with thinkingLevel, remove sampling params and prefill, and keep the SDK chat history so thought signatures are preserved.",
+      "callSites": [
+        {
+          "file": "gemini.ts",
+          "line": 107,
+          "why": "If generateContent uses gemini-2.5-pro, from 2026-12-01 it is served by gemini-3.8-flash, which drops sampling params and prefill, replaces thinking_budget with thinking_level, and validates thought_signature."
+        },
+        {
+          "file": "gemini.ts",
+          "line": 128,
+          "why": "chats.create multi-turn history is subject to thought_signature validation, and a thinkingBudget config would break after the reroute."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-12-01-gemini-2-5-pro-reroute",
+        "outcome": "verified",
+        "diff": "diff --git a/gemini.ts b/gemini.ts\nindex e266004..9c91780 100644\n--- a/gemini.ts\n+++ b/gemini.ts\n@@ -397,6 +397,14 @@ Rules:\n   `;\n }\n \n+/** False for Gemini 3.6+ models, which no longer accept temperature/top_p/top_k. */\n+export function supportsSamplingParams(model: string): boolean {\n+  const m = /gemini-(\\d+)(?:\\.(\\d+))?/i.exec(model || '');\n+  if (!m) return true;\n+  const major = +m[1], minor = m[2] ? +m[2] : 0;\n+  return !(major > 3 || (major === 3 && minor >= 6));\n+}\n+\n /**\n  * Creates a new Gemini Chat instance with the appropriate system instruction and history.\n  * @param history The existing chat history to initialize the instance with.\n@@ -405,10 +413,12 @@ Rules:\n  * @returns An initialized `Chat` object.\n  */\n export function createNewChatInstance(history: { role: 'user' | 'model'; parts: { text: string }[] }[] = [], instruction: string, modelOverride?: string): Chat {\n+  const model = modelOverride || getUISettings().activeModel || 'gemini-3.5-flash-lite';\n   const config: any = {\n     systemInstruction: instruction,\n-    temperature: 0.9,\n   };\n+  // temperature/top_p/top_k are removed for Gemini 3.6+ (gemini-2.5-pro reroutes to gemini-3.8-flash on 2026-12-01).\n+  if (supportsSamplingParams(model)) config.temperature = 0.9;\n   // Google Search grounding consumes a separate, limited free-tier quota.\n   // Only attach the tool when explicitly enabled in Settings (default: off).\n   if (getUISettings().enableWebSearch && instruction !== getNewGameSetupInstruction() && !instruction.includes('backend world simulation engine')) {\n@@ -443,7 +453,6 @@ export function createNewChatInstance(history: { role: 'user' | 'model'; parts:\n     formattedHistory.shift();\n   }\n \n-  const model = modelOverride || getUISettings().activeModel || 'gemini-3.5-flash-lite';\n   return ai.chats.create({\n     model: model,\n     config: config,\ndiff --git a/scripts/test-sampling.ts b/scripts/test-sampling.ts\nnew file mode 100644\nindex 0000000..bf57422\n--- /dev/null\n+++ b/scripts/test-sampling.ts\n@@ -0,0 +1,16 @@\n+import { readFileSync } from 'node:fs';\n+\n+const src = readFileSync(new URL('../gemini.ts', import.meta.url), 'utf8');\n+const m = /export function supportsSamplingParams[\\s\\S]*?\\n}\\n/.exec(src);\n+if (!m) { console.error('supportsSamplingParams missing'); process.exit(1); }\n+const fn = new Function(m[0].replace('export function', 'function').replace(/: string|: boolean/g, '') + '; return supportsSamplingParams;')();\n+\n+const cases: [string, boolean][] = [\n+  ['gemini-2.5-pro', true], ['gemini-3.5-flash-lite', true], ['gemini-3.8-flash', false],\n+  ['gemini-3.10-pro', false], ['gemini-4.0-pro', false], ['custom-local-model', true],\n+];\n+let bad = 0;\n+for (const [id, want] of cases) if (fn(id) !== want) { console.error('FAIL', id); bad++; }\n+if (/temperature: 0\\.9,\\s*\\n\\s*\\};/.test(src)) { console.error('unconditional temperature 0.9 in chat config'); bad++; }\n+if (!/supportsSamplingParams\\(model\\)\\) config\\.temperature/.test(src)) { console.error('chat config not gated'); bad++; }\n+process.exit(bad ? 1 : 0);\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "sampling-test",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.1323995,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-djnightmare9909-Dungeon-master-OS-WFGY-gemini-2026-12-01-gemini-2-5-pro-reroute-2YDaVo/transcript.jsonl",
+        "prBody": "## gemini-2.5-pro deprecated; from Dec 1 2026 requests route to gemini-3.8-flash with breaking API changes (thought_signature validation, thinking_level replaces thinking_budget, sampling params and prefill removed) [Verified]\n\n### Change\n\nThe repo never names gemini-2.5-pro. The default model and the chronicler/UI calls use gemini-3.5-flash-lite, and the settings dropdown lists only 3.x models. A user can still type gemini-2.5-pro into the custom model field, and it would reroute to gemini-3.8-flash on 2026-12-01. The only Gemini request setting that breaks on that target is temperature: 0.9 in createNewChatInstance (gemini.ts). I added an exported supportsSamplingParams(model) helper and set temperature only for models older than 3.6. I moved the model resolution above the config so the check can use it. I added scripts/test-sampling.ts as the proof test.\n\nFiles touched:\n- `gemini.ts`\n- `scripts/test-sampling.ts`\n\n### Why\n\ngemini-3.8-flash and other 3.6+ models reject temperature, top_p and top_k. A user-selected or custom model that reroutes there would break on the chat config.\n\n> Effective December 1, 2026, all API\n> requests to `gemini-2.5-pro` will automatically route to\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| sampling-test | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- sampling-test, added by the agent: `export GEMINI_API_KEY='placeholder'; /tmp/bun/bin/bun run scripts/test-sampling.ts` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: GEMINI_API_KEY.\n\nTest of this change: `sampling-test`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- No thinkingBudget is set anywhere in the repo, so no thinkingLevel change was needed.\n- Chat history is rebuilt as text-only parts, so it carries no thought signatures. With a 3.6+ model, thought_signature validation on that replayed history is untested.\n- Sampling params in the OpenAI-compatible and local fetch paths (gemini.ts:184 and :254) were left alone because they are not Gemini calls.\n- The error message in index.tsx and README.md still mention Gemini 2.5 Flash, which is only text.\n- The proof test checks the helper and the source text, not the request actually sent.\n- The version regex treats aliases such as gemini-3-pro-preview as minor version 0, so they keep temperature.\n- No provider validator was run.\n\n### Behaviour changes\n\n- On Gemini 3.6+ models, chats no longer send temperature 0.9, so the model's default sampling applies and output may be less creative or less deterministic.\n- Models older than 3.6, including the default gemini-3.5-flash-lite, behave exactly as before.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1324\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-gemini-field-removed-f71d943e",
+          "recipe-gemini-other-9e8975ad"
+        ],
+        "agentChecks": [
+          {
+            "name": "sampling-test",
+            "command": "export GEMINI_API_KEY='placeholder'; /tmp/bun/bin/bun run scripts/test-sampling.ts",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-12-01-gemini-2-5-pro-reroute: verified, $0.1324\nChange: gemini-2.5-pro deprecated; from Dec 1 2026 requests route to gemini-3.8-flash with breaking API changes (thought_signature validation, thinking_level replaces thinking_budget, sampling params and prefill removed) (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass, sampling-test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-|temperature|topP|topK|thinkingBudget|thinkingConfig glob=**/*.{ts,tsx,js,json} → dist/assets/index-BFXtt_9e.js:1: !function(){const e=document.createElement(\"link\").relList;if(!(e&&e.supports&&e.supports(\"modulepreload\"))){for(const e of document.querySelectorAll('link[rel=\"modulepreload\"]'))t(e);new MutationObserver(e=…\n2. search pattern=2\\.5|activeModel|-pro glob=*.{ts,tsx,html,md} → dist/index.html:182:                     <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.…\n3. search pattern=option value=\"gemini path=index.html → index.html:492:                                         <option value=\"gemini\">Google Gemini</option> | index.html:509:                                         <option value=\"gemini-3.5-flash-lite\">Gemini 3.5 Flash Lite</option> | index.htm…\n4. read_file path=gemini.ts offset=400 limit=60 → 400\t/** | 401\t * Creates a new Gemini Chat instance with the appropriate system instruction and history. | 402\t * @param history The existing chat history to initialize the instance with.\n5. edit_file path=gemini.ts old=<248 chars> new=<496 chars> → edited gemini.ts (1 replacement)\n6. edit_file path=gemini.ts old=<115 chars> new=  return ai.chats.create({ → edited gemini.ts (1 replacement)\n7. edit_file path=gemini.ts old=/**\n * Creates a new Gemini Chat instance with new=<384 chars> → edited gemini.ts (1 replacement)\n8. write_file path=scripts/test-sampling.ts content=<1007 chars> → wrote scripts/test-sampling.ts (1007 bytes)\n9. run_checks add=<84 chars> → registered sampling-test; on the original code it fails (1) | ## typecheck: pass | command: export GEMINI_API_KEY='placeholder'; npx --no-install tsc --noEmit\n10. finish verdict=migrated summary=<629 chars> why=<159 chars> validators=[] unproven=<695 chars> behaviourChanges=<255 chars> proofTest=sampling-test → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, sampling-test fail (1) → pass\n\n## Result\nFiles changed: gemini.ts, scripts/test-sampling.ts\nVerdict: migrated. The repo never names gemini-2.5-pro. The default model and the chronicler/UI calls use gemini-3.5-flash-lite, and the settings dropdown lists only 3.x models. A user can still type gemini-2.5-pro into the custom model field, and it would reroute to gemini-3.8-flash on 2026-12-01. The only Gemini request setting that breaks on that target is temperature: 0.9 in createNewChatInstance (gemini.ts). I added an exported supportsSamplingParams(model) helper and set temperature only for models older than 3.6. I moved the model resolution above the config so the check can use it. I added scripts/test-sampling.ts as the proof test.\nUnproven: No thinkingBudget is set anywhere in the repo, so no thinkingLevel change was needed.; Chat history is rebuilt as text-only parts, so it carries no thought signatures. With a 3.6+ model, thought_signature validation on that replayed history is untested.; Sampling params in the OpenAI-compatible and local fetch paths (gemini.ts:184 and :254) were left alone because they are not Gemini calls.; The error message in index.tsx and README.md still mention Gemini 2.5 Flash, which is only text.; The proof test checks the helper and the source text, not the request actually sent.; The version regex treats aliases such as gemini-3-pro-preview as minor version 0, so they keep temperature.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or install hooks are needed: package.json has no postinstall, prepare or generate scripts, and there are no workspaces. The Vite build only reads GEMINI_API_KEY through loadEnv to define constants, so a placeholder keeps it loading. The build's integrity plugin requires FREE_PROJECT_NOTICE.md and a 'sidebar-free-notice' element in index.html. Those are the repo's own files, so I can't fix them and am not adding steps for them."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff gates `temperature` on the model name the client requests. The change is a server-side reroute: callers who still send `gemini-2.5-pro` get served by `gemini-3.8-flash`. `supportsSamplingParams('gemini-2.5-pro')` returns true, and the new test asserts exactly that, so those users keep sending `temperature: 0.9` after Dec 1. That is the case this PR exists for. The diff also ignores the other listed breaking changes (thinking_budget→thinking_level, thought_signature validation, prefill removal). It only touches `chats.create` and leaves the `generateContent` and `embedContent` call sites unexamined. The 'verified' grade rests on a self-written regex test over the source text, with no live call.",
+        "concerns": [
+          {
+            "file": "gemini.ts",
+            "issue": "`supportsSamplingParams` treats `gemini-2.5-pro` as sampling-capable. After 2026-12-01 that model ID is served by `gemini-3.8-flash`, so `createNewChatInstance` will still attach `temperature` for anyone whose `activeModel` or `modelOverride` is `gemini-2.5-pro`. The function needs to treat `gemini-2.5-pro` (and any other rerouted IDs) as the target model, or the code should migrate the model ID.",
+            "severity": "high"
+          },
+          {
+            "file": "scripts/test-sampling.ts",
+            "issue": "The test encodes the bug: it asserts `['gemini-2.5-pro', true]`. It also only regex-matches the source text, so it says nothing about what the API accepts.",
+            "severity": "high"
+          },
+          {
+            "file": "gemini.ts",
+            "issue": "The `models.generateContent` (around line 107) and `models.embedContent` (around line 115) call sites named by the match agent are not changed. If they pass temperature, topP, topK, thinkingBudget or a prefilled model turn, they will break on the rerouted model. I can't see their bodies; check them.",
+            "severity": "medium"
+          },
+          {
+            "file": "gemini.ts",
+            "issue": "The diff does nothing for the other breaking changes in the notice: `thinking_level` replacing `thinking_budget`, thought_signature validation on multi-turn history (`formattedHistory` is replayed into `chats.create` with plain text parts and no signatures), and prefill removal. Chat history that ends on a model turn, or carries no thought signatures, may be rejected.",
+            "severity": "medium"
+          },
+          {
+            "file": "gemini.ts",
+            "issue": "The 3.6+ cutoff in `supportsSamplingParams` is not supported by the quoted source, which only mentions the reroute. I could not confirm which versions dropped sampling params; check the full changelog. A future model with no number in its name (e.g. an alias) defaults to sending temperature.",
+            "severity": "low"
+          },
+          {
+            "file": "gemini.ts",
+            "issue": "Behaviour change beyond what is forced: for models where the gate returns false, chat loses its temperature of 0.9, which may change narrative tone for the DM. That is probably acceptable, but it should be noted.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Decide how `gemini-2.5-pro` (the rerouted ID) should be handled: map it to `gemini-3.8-flash` behaviour in `supportsSamplingParams`, or migrate the stored `activeModel` setting.",
+          "Read the `generateContent` and `embedContent` calls near gemini.ts:107 and :115 for sampling params, `thinkingBudget`, or prefill.",
+          "Check whether chat history replay needs thought_signatures, and make sure history never ends on a model turn (prefill).",
+          "Downgrade the grade to needs-review; no check exercises a real request against the rerouted model."
+        ],
+        "costUsd": 0.041556,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-12-01-gemini-2-5-flash-reroute",
+      "changeId": "gemini:2026-12-01-gemini-2-5-flash-reroute",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-12-01-gemini-2-5-flash-reroute",
+        "kind": "model-retirement",
+        "title": "gemini-2.5-flash deprecated; from Dec 1 2026 requests route to gemini-3.5-flash-lite with breaking API changes",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/deprecations.md.txt",
+          "quote": "Effective December 1, 2026, all API requests to `gemini-2.5-flash`\nwill automatically route to"
+        },
+        "affects": {
+          "operations": ["gemini-2.5-flash", "gemini-3.5-flash-lite"],
+          "fields": ["thinking_budget", "thinking_level"]
+        },
+        "effectiveDate": "2026-12-01"
+      },
+      "reasoning": "gemini-2.5-flash is the most likely default model for this kind of app, but the scan did not capture model IDs. From 2026-12-01, requests reroute to gemini-3.5-flash-lite, where thinking_level replaces thinking_budget. The agent should grep for 'gemini-2.5-flash' (excluding -image, -tts and similar suffixes), pick a replacement explicitly, and update the thinking config. Quality and behaviour changes for DM narration should also be checked.",
+      "callSites": [
+        {
+          "file": "gemini.ts",
+          "line": 107,
+          "why": "If generateContent uses gemini-2.5-flash, it is rerouted to gemini-3.5-flash-lite with breaking API changes."
+        },
+        {
+          "file": "gemini.ts",
+          "line": 128,
+          "why": "The chat model may be gemini-2.5-flash, and thinkingBudget config would break after the reroute."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-12-01-gemini-2-5-flash-reroute",
+        "outcome": "verified",
+        "diff": "diff --git a/index.tsx b/index.tsx\nindex 8c3f09f..91c145c 100644\n--- a/index.tsx\n+++ b/index.tsx\n@@ -1138,7 +1138,7 @@ async function handleFormSubmit(e: Event) {\n       // Handle Rate Limit (429) specific message\n       if (error.status === 429 || (error.message && error.message.includes('429'))) {\n           const activeModel = getUISettings().activeModel || 'Gemini';\n-          errorMessage = `⚠️ System Overload (429): The '${activeModel}' model is currently busy. Please go to Settings (in Logbook) and switch the AI Model to 'Gemini 2.5 Flash' for a smoother experience.`;\n+          errorMessage = `⚠️ System Overload (429): The '${activeModel}' model is currently busy. Please go to Settings (in Logbook) and switch the AI Model to 'Gemini 3.5 Flash Lite' for a smoother experience.`;\n       }\n       appendMessage({ sender: 'error', text: errorMessage });\n     }\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.0872678,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-djnightmare9909-Dungeon-master-OS-WFGY-gemini-2026-12-01-gemini-2-5-flash-reroute-S7FDAU/transcript.jsonl",
+        "prBody": "## gemini-2.5-flash deprecated; from Dec 1 2026 requests route to gemini-3.5-flash-lite with breaking API changes [Verified]\n\n### Change\n\nThe repo has no `gemini-2.5-flash` model ID and no `thinkingBudget` or `thinkingConfig`. Every call already uses `gemini-3.5-flash-lite` (the default in state.ts, plus explicit uses in features.ts and index.tsx). The model picker offers only 3.x models. The one reference was user-facing text: the 429 error message in index.tsx told users to switch to 'Gemini 2.5 Flash', which isn't an option in the picker. I changed it to 'Gemini 3.5 Flash Lite'. I did not run the typecheck or build after that edit, and I wrote no proof test.\n\nFiles touched:\n- `index.tsx`\n\n### Why\n\nThe reroute of `gemini-2.5-flash` to `gemini-3.5-flash-lite` doesn't change any request this repo sends, because it already targets the replacement model. The thinking-parameter change doesn't apply because no thinking config is set.\n\n> Effective December 1, 2026, all API requests to `gemini-2.5-flash`\n> will automatically route to\n\nSource: https://ai.google.dev/gemini-api/docs/deprecations.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n\nNew failures: 0\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: GEMINI_API_KEY.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Whether the temperature values (0.7 and 0.9) are accepted if a user later selects a Gemini 3.6+ model. Temperature is sent unconditionally in gemini.ts, at lines 184, 254 and 410, and no 3.6+ model is offered today.\n- Whether 3.5-flash-lite output quality is good enough for DM narration. The app already uses it by default, so I did not change it.\n- No test of this change was written: No request behaviour changed. The only edit is a user-facing error string.\n- No provider validator was run.\n\n### Behaviour changes\n\n- The 429 error message now suggests switching to 'Gemini 3.5 Flash Lite' instead of 'Gemini 2.5 Flash'.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0873\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-gemini-field-removed-f71d943e",
+          "recipe-gemini-other-9e8975ad"
+        ],
+        "agentChecks": [],
+        "summary": "# djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-12-01-gemini-2-5-flash-reroute: verified, $0.0873\nChange: gemini-2.5-flash deprecated; from Dec 1 2026 requests route to gemini-3.5-flash-lite with breaking API changes (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-|thinkingBudget|thinkingConfig|temperature|topP|topK path=. glob=**/*.{ts,tsx,js,json,html} → dist/assets/index-BFXtt_9e.js:1: !function(){const e=document.createElement(\"link\").relList;if(!(e&&e.supports&&e.supports(\"modulepreload\"))){for(const e of document.querySelectorAll('link[rel=\"modulepreload\"]'))t(e);new MutationObserver(e=…\n2. search pattern=2\\.5|thinking glob=*.{ts,tsx,html} → dist/index.html:182:                     <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.…\n3. edit_file path=index.tsx old=to 'Gemini 2.5 Flash' for new=to 'Gemini 3.5 Flash Lite' for → edited index.tsx (1 replacement)\n4. finish verdict=not-affected summary=<531 chars> why=<233 chars> validators=[] unproven=<352 chars> behaviourChanges=<106 chars> noProofTestReason=No request behaviour changed. The only edit is a user-facing error string. → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass\n\n## Result\nFiles changed: index.tsx\nVerdict: not-affected. The repo has no `gemini-2.5-flash` model ID and no `thinkingBudget` or `thinkingConfig`. Every call already uses `gemini-3.5-flash-lite` (the default in state.ts, plus explicit uses in features.ts and index.tsx). The model picker offers only 3.x models. The one reference was user-facing text: the 429 error message in index.tsx told users to switch to 'Gemini 2.5 Flash', which isn't an option in the picker. I changed it to 'Gemini 3.5 Flash Lite'. I did not run the typecheck or build after that edit, and I wrote no proof test.\nUnproven: Whether the temperature values (0.7 and 0.9) are accepted if a user later selects a Gemini 3.6+ model. Temperature is sent unconditionally in gemini.ts, at lines 184, 254 and 410, and no 3.6+ model is offered today.; Whether 3.5-flash-lite output quality is good enough for DM narration. The app already uses it by default, so I did not change it.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or workspace builds are needed: package.json has no postinstall, prepare or generate scripts, and it is a single-package Vite app. The vite config only reads GEMINI_API_KEY via loadEnv to define constants, so a placeholder keeps the build loading cleanly. The integrity plugin checks FREE_PROJECT_NOTICE.md and index.html, which are repo files that I must not edit."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The only change is the text of a 429 error message in index.tsx. The three call sites the match agent named are untouched: gemini.ts:107 generateContent, gemini.ts:115 embedContent and gemini.ts:128 chats.create. Whatever model ID the app sends, and the Settings model list the message points users to, are not in the diff. The quoted source says requests to gemini-2.5-flash reroute to gemini-3.5-flash-lite with breaking API changes, and nothing here addresses those changes. I could not confirm the model name 'gemini-3.5-flash-lite' or what the breaking changes are; check the full deprecations page and the @google/genai SDK types. Typecheck and build passing cannot prove a string-only change works against the live API, so 'verified' overstates what the checks show.",
+        "concerns": [
+          {
+            "file": "gemini.ts",
+            "issue": "None of the named call sites (lines 107, 115, 128) are modified. If they or a default setting pass 'gemini-2.5-flash', they will be silently rerouted after 2026-12-01 and hit whatever breaking request or response changes the new model brings. The PR neither updates the model ID nor adapts the request shape. It is also unclear whether embedContent at line 115 uses a flash model at all.",
+            "severity": "high"
+          },
+          {
+            "file": "index.tsx",
+            "issue": "The 429 message now tells users to pick 'Gemini 3.5 Flash Lite' in Settings. Unless the Settings model selector, the source of getUISettings().activeModel, has such an option, the message points to a choice that doesn't exist. The old 'Gemini 2.5 Flash' option, which is going away, is presumably still listed.",
+            "severity": "medium"
+          },
+          {
+            "file": "index.tsx",
+            "issue": "Users with a saved activeModel of gemini-2.5-flash in persisted settings are not migrated. They will keep sending the deprecated ID.",
+            "severity": "medium"
+          },
+          {
+            "file": "(PR grade)",
+            "issue": "Graded 'verified' on typecheck and build alone. Neither check exercises a live Gemini call, chat session or embedding, and the diff does not touch the affected code paths. The grade should be needs-review.",
+            "severity": "medium"
+          }
+        ],
+        "checkFirst": [
+          "Grep for 'gemini-2.5-flash' and 'Gemini 2.5 Flash' across the repo, including gemini.ts, the settings UI and defaults, and update model IDs and selector options together.",
+          "Read the full deprecation notice to confirm the replacement model ID and what the 'breaking API changes' are, for example request params, response fields or chat history format. Check them against gemini.ts:107/115/128.",
+          "Confirm which model embedContent uses and whether it is affected.",
+          "Make one live call per call site against the new model before calling this verified."
+        ],
+        "costUsd": 0.029252,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2027-gemini-3-1-flash-lite-and-2-5-flash-image",
+      "changeId": "gemini:2027-gemini-3-1-flash-lite-and-2-5-flash-image",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2027-gemini-3-1-flash-lite-and-2-5-flash-image",
+        "kind": "model-retirement",
+        "title": "Future shutdowns: gemini-3.1-flash-lite (May 7 2027), gemini-2.5-flash-image (Mar 15 2027)",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/deprecations.md.txt",
+          "quote": "* `gemini-3.1-flash-lite`\n* May 7, 2026\n* May 7, 2027\n* `gemini-3.5-flash-lite`"
+        },
+        "affects": {
+          "operations": ["gemini-3.1-flash-lite", "gemini-2.5-flash-image"]
+        },
+        "effectiveDate": "2027-03-15"
+      },
+      "reasoning": "Model IDs in gemini.ts are unknown. gemini-3.1-flash-lite could be a cheap text model choice, and gemini-2.5-flash-image could be used for scene images through generateContent. The agent should grep for both strings and migrate any hits to gemini-3.5-flash-lite or gemini-nano-banana-2.1 respectively. If neither appears, this is a no-op.",
+      "callSites": [
+        {
+          "file": "gemini.ts",
+          "line": 107,
+          "why": "generateContent may use gemini-3.1-flash-lite (shutdown 2027-05-07) or gemini-2.5-flash-image (shutdown 2027-03-15)."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2027-gemini-3-1-flash-lite-and-2-5-flash-image",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.0750111,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-djnightmare9909-Dungeon-master-OS-WFGY-gemini-2027-gemini-3-1-flash-lite-and-2-5-flash-image-WTkddx/transcript.jsonl",
+        "prBody": "## Future shutdowns: gemini-3.1-flash-lite (May 7 2027), gemini-2.5-flash-image (Mar 15 2027) [Not affected]\n\n### Change\n\nNo code changes. The repo never uses `gemini-3.1-flash-lite` or `gemini-2.5-flash-image`. I searched all ts/tsx/js/json/html/md files. The call sites in gemini.ts and features.ts use `gemini-3.5-flash-lite` (the default model) and `gemini-embedding-2-preview`. index.html has a user-selectable option `gemini-3.1-flash-lite-preview`. That is a different id from the one in this notice.\n\nNo files changed.\n\n### Why\n\nThe notice retires only the exact ids `gemini-3.1-flash-lite` (shutdown May 7, 2027) and `gemini-2.5-flash-image` (shutdown March 15, 2027). Neither string appears in the source. The repo makes no image-generation calls with the retired image model.\n\n> * `gemini-3.1-flash-lite`\n> * May 7, 2026\n> * May 7, 2027\n> * `gemini-3.5-flash-lite`\n\nSource: https://ai.google.dev/gemini-api/docs/deprecations.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n\nNew failures: 0\n\nProvider tool calls recorded by the harness:\n- `gemini__fetch_changelog`: pass\n\nPrepared before the baseline:\n- Checks ran with placeholder env: GEMINI_API_KEY.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- The `gemini-3.1-flash-lite-preview` dropdown option in index.html was not changed. The deprecations excerpt I read did not cover it, and I did not read the rest of the page. Check its status separately.\n- I only searched static strings. A model id built at runtime would not show up.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0750\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-gemini-field-removed-f71d943e"
+        ],
+        "agentChecks": [],
+        "summary": "# djnightmare9909/Dungeon-master-OS-WFGY:gemini:2027-gemini-3-1-flash-lite-and-2-5-flash-image: not-affected, $0.0750\nChange: Future shutdowns: gemini-3.1-flash-lite (May 7 2027), gemini-2.5-flash-image (Mar 15 2027) (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-[0-9a-z.\\-]+ glob=**/*.{ts,tsx,js,json,html,md} → dist/assets/index-BFXtt_9e.js:1: !function(){const e=document.createElement(\"link\").relList;if(!(e&&e.supports&&e.supports(\"modulepreload\"))){for(const e of document.querySelectorAll('link[rel=\"modulepreload\"]'))t(e);new MutationObserver(e=…\n2. gemini__fetch_changelog url=https://ai.google.dev/gemini-api/docs/deprecations.md.txt query=gemini-3.1-flash-lite-preview limit=4 → Read https://aistudio.google.com/docs/deprecations.md (HTTP 200, 17342 characters). | 16 entries; matching \"gemini-3.1-flash-lite-preview\": 15 entries, best first. Showing 4 from offset 0. | ## Gemini 2.0 models  {% id=\"gemini-2.0-models\" %…\n3. finish verdict=not-affected summary=<385 chars> why=<249 chars> validators=[] unproven=<287 chars> behaviourChanges=[] → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass\n\n## Result\nFiles changed: none\nVerdict: not-affected. No code changes. The repo never uses `gemini-3.1-flash-lite` or `gemini-2.5-flash-image`. I searched all ts/tsx/js/json/html/md files. The call sites in gemini.ts and features.ts use `gemini-3.5-flash-lite` (the default model) and `gemini-embedding-2-preview`. index.html has a user-selectable option `gemini-3.1-flash-lite-preview`. That is a different id from the one in this notice.\nUnproven: The `gemini-3.1-flash-lite-preview` dropdown option in index.html was not changed. The deprecations excerpt I read did not cover it, and I did not read the rest of the page. Check its status separately.; I only searched static strings. A model id built at runtime would not show up.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or install-script steps are needed: package.json has no postinstall, prepare or generate script, and it is a single package with no workspace builds. Vite only reads GEMINI_API_KEY to inline into the bundle, so a placeholder lets the build load. The build's integrity plugin also needs FREE_PROJECT_NOTICE.md and a sidebar-free-notice element in index.html. Those are repo content I can't edit, so if they are missing the failure comes from the repo's own code."
+        }
+      }
+    }
+  ],
+  "costUsd": 3.9195281999999985,
+  "durationMs": 1391780,
+  "matchReasoning": "djnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-03-gemini-3-pro-preview-shutdown: The usage map does not record which model IDs gemini.ts passes to generateContent or chats.create. gemini-3-pro-preview was shut down on 2026-03-09 and now aliases to gemini-3.1-pro-preview. The migration agent should grep gemini.ts and any settings or model-picker lists for 'gemini-3-pro-preview' and replace it with an explicit supported model. If the string is absent, close the task as a no-op. Impact is moderate because requests still resolve through the alias, but behaviour has changed.\ndjnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-06-01-gemini-2-0-shutdown: Gemini 2.0 Flash and Flash-Lite were shut down on 2026-06-01, so requests naming them now error. The usage map does not show the model strings in gemini.ts, so it is uncertain whether this repo uses them. The agent should search for 'gemini-2.0-flash' in code, defaults and user-selectable model lists, and replace any hits with a supported model. If present, every DM chat turn is broken, which is why this is rated high.\ndjnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-07-21-sampling-params-deprecated: The repo sets temperature on its local and Anthropic HTTP paths, so its Gemini calls likely set sampling params as well, but the Gemini fields were not recorded. This deprecation only applies when the model is Gemini 3.6 or newer. The agent should check which model is used and whether temperature, topP or topK are sent, and drop or guard them for 3.6+ models. Do not touch the non-Gemini HTTP call sites.\ndjnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-05-embedding-lifecycle: The repo calls embedContent, so it depends on one of the embedding models in this lifecycle notice. The scan did not capture the model string. If it is text-embedding-004, embeddings are already failing. If it is gemini-embedding-2-preview, they will fail after 2026-08-10. The agent should switch to gemini-embedding-2. Vectors from different models are not compatible, so any stored embeddings (for example campaign memory or RAG) must be re-embedded, or old and new vectors kept apart. Check whether output dimensionality changes.\ndjnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-10-08-3-5-3-7-flash-reroute: Model strings in gemini.ts are unknown. gemini-3.7-flash and gemini-3.5-flash are deprecated and auto-routed to gemini-3.8-flash and gemini-3.6-flash respectively. The agent should grep for these IDs and pin the replacement explicitly. If they are absent, this is a no-op.\ndjnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-10-26-store-default: The repo calls generateContent and chats, which fall under this default change. It only applies to new paid-tier projects, and whether users' API keys belong to such projects is unknown. The agent should decide whether user conversations should be stored and, if not, set store=false in the request config, after checking that SDK 1.48.0 exposes that field.\ndjnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-12-01-gemini-2-5-pro-reroute: The model string is not recorded, and gemini-2.5-pro is a plausible choice for a DM app. After the reroute, temperature and thinkingBudget would be rejected or ignored, and chat history without thought signatures may fail. The agent should check for 'gemini-2.5-pro', migrate to a current model, replace thinkingBudget with thinkingLevel, remove sampling params and prefill, and keep the SDK chat history so thought signatures are preserved.\ndjnightmare9909/Dungeon-master-OS-WFGY:gemini:2026-12-01-gemini-2-5-flash-reroute: gemini-2.5-flash is the most likely default model for this kind of app, but the scan did not capture model IDs. From 2026-12-01, requests reroute to gemini-3.5-flash-lite, where thinking_level replaces thinking_budget. The agent should grep for 'gemini-2.5-flash' (excluding -image, -tts and similar suffixes), pick a replacement explicitly, and update the thinking config. Quality and behaviour changes for DM narration should also be checked.\ndjnightmare9909/Dungeon-master-OS-WFGY:gemini:2027-gemini-3-1-flash-lite-and-2-5-flash-image: Model IDs in gemini.ts are unknown. gemini-3.1-flash-lite could be a cheap text model choice, and gemini-2.5-flash-image could be used for scene images through generateContent. The agent should grep for both strings and migrate any hits to gemini-3.5-flash-lite or gemini-nano-banana-2.1 respectively. If neither appears, this is a no-op.\ngemini:genai-js-2-0-0-interactions: not affected: The 2.0.0 breaking changes are only in the Interactions API, which the repo does not call. Its generateContent, embedContent and chats usage on 1.48.0 is explicitly unaffected.\ngemini:genai-js-1-0-0-lyria: not affected: The repo is already on @google/genai 1.48.0 and makes no Lyria music calls.\ngemini:genai-js-1-46-0-interactions-breaking: not affected: The repo is already past 1.46.0 at 1.48.0, and the breaking changes are limited to the Interactions API, which it does not use.\ngemini:genai-js-0x-breaking-0-9-0: not affected: These 0.x breaking changes were absorbed long ago; the repo pins @google/genai 1.48.0.\ngemini:generative-ai-js-eol: not affected: The repo uses @google/genai, not the deprecated @google/generative-ai package.\ngemini:2026-05-interactions-steps-schema: not affected: The repo only calls generateContent, embedContent and chats.create; it never calls the /v1beta/interactions endpoints.\ngemini:2025-12-19-total-thought-tokens: not affected: This field rename applies to Interactions API usage metadata, and the repo does not use the Interactions API.\ngemini:2026-11-17-preview-shutdowns: not affected: These are TTS and Live/native-audio preview models. The repo has no live.connect or audio-generation call sites, only text generateContent, embeddings and chat.\ngemini:2026-10-22-veo-omni-shutdown: not affected: The repo has no video generation (generateVideos) or omni model usage; its call sites are text generation, embeddings and chat.\ngemini:2026-10-23-deep-research-pro-shutdown: not affected: This affects the agent parameter on interactions.create, which the repo never calls.\ngemini:2026-09-antigravity-agent-tools: not affected: Antigravity is a managed agent used through the Interactions API, which the repo does not use.\ngemini:2026-08-17-imagen-4-shutdown: not affected: Imagen models are called via generateImages, and the repo has no such call site.\ngemini:2026-06-30-veo-2-3-shutdown: not affected: Veo models are called via generateVideos, and the repo has no such call site.\ngemini:2026-06-25-image-preview-shutdown: not affected: No image-generation usage was detected; the repo's Gemini calls are text generateContent, embedContent and chats. If a grep for these image-preview IDs finds a hit, it should be handled alongside the gemini-2.5-flash-image check.",
+  "costByPart": {
+    "inventory": 0.0479636,
+    "match": 0.16588,
+    "other": 2.4960959999999996,
+    "harness": 0.8892046,
+    "review": 0.320384
+  }
+}

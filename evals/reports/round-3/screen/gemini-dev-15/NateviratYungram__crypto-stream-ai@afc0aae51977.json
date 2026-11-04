@@ -1,0 +1,59 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "NateviratYungram/crypto-stream-ai",
+  "commit": "afc0aae51977bc8f74632d3be5c674fc5ce0a1e5",
+  "provider": "gemini",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "pytest",
+      "command": "export GEMINI_API_KEY='placeholder' MCP_API_KEY='placeholder' APP_API_KEY='placeholder' JWT_SECRET_KEY='placeholder-jwt-secret' DB_HOST='localhost' DB_PORT='5432' DB_NAME='crypto_stream_db' DB_USER='user' DB_PASS='placeholder' KAFKA_BROKER='localhost:9092'; (python3 -m pytest --version >/dev/null 2>&1 || python3 -m pip install -q --only-binary=:all: pytest) && python3 -m pytest -q",
+      "ok": false,
+      "failures": [
+        "ERROR tests/unit/test_alpha_sentinel.py",
+        "ERROR tests/unit/test_backtest_cost_model.py",
+        "ERROR tests/unit/test_backtest_crypto_core.py",
+        "ERROR tests/unit/test_chat_server_core_helpers.py",
+        "ERROR tests/unit/test_chat_server_persistence.py",
+        "ERROR tests/unit/test_compaction_calendar_agents.py",
+        "ERROR tests/unit/test_crypto_intelligence_core.py",
+        "ERROR tests/unit/test_dbt_yaml.py",
+        "ERROR tests/unit/test_decision_confluence_reflector_agents.py",
+        "ERROR tests/unit/test_execution_bridge_position_monitor.py"
+      ],
+      "tail": "_monitor.py\nERROR tests/unit/test_feature_extractor_core.py\nERROR tests/unit/test_guard_modules.py\nERROR tests/unit/test_indicator_sentiment_intermarket_agents.py\nERROR tests/unit/test_lake_writer.py\nERROR tests/unit/test_low_coverage_support_modules.py\nERROR tests/unit/test_market_hours.py\nERROR tests/unit/test_market_support_bundle.py\nERROR tests/unit/test_market_tool_index_helpers.py\nERROR tests/unit/test_market_tool_primitives.py\nERROR tests/unit/test_market_tools_core.py\nERROR tests/unit/test_master_agent_core.py\nERROR tests/unit/test_mcp_server_main.py\nERROR tests/unit/test_ml_readiness.py\nERROR tests/unit/test_ml_risk_manager.py\nERROR tests/unit/test_mt5_connector.py\nERROR tests/unit/test_notification_service.py\nERROR tests/unit/test_paper_label_policy_gate.py\nERROR tests/unit/test_readiness.py\nERROR tests/unit/test_risk_manager.py\nERROR tests/unit/test_signal_model_core.py\nERROR tests/unit/test_signal_model_promotion_gate.py\nERROR tests/unit/test_signal_model_support_helpers.py\nERROR tests/unit/test_signal_scanner.py\nERROR tests/unit/test_stream_whale_bundle.py\nERROR tests/unit/test_technical_engine.py\nERROR tests/unit/test_telegram_paper_fallback.py\nERROR tests/unit/test_trading_quality_gate.py\nERROR tests/unit/test_train_v8.py\nERROR tests/unit/test_utility_modules_core.py\nERROR tests/unit/test_yfinance_ingestion_service.py\nERROR tests/unit/test_zero_coverage_bundle.py\n!!!!!!!!!!!!!!!!!!! Interrupted: 41 errors during collection !!!!!!!!!!!!!!!!!!!\n41 errors in 1.60s"
+    }
+  ],
+  "costUsd": 0.05319600000000002,
+  "durationMs": 86232,
+  "install": {
+    "code": 0,
+    "tail": "not exist.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\nERROR: Invalid requirement: 'scikit-learn          # GradientBoostingClassifier for win-probability prediction': Expected end or semicolon (after name and no valid version specifier)\n    scikit-learn          # GradientBoostingClassifier for win-probability prediction\n                          ^\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\nERROR: Invalid requirement: 'joblib                # Fast model serialization (complement to scikit-learn)': Expected end or semicolon (after name and no valid version specifier)\n    joblib                # Fast model serialization (complement to scikit-learn)\n                          ^\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\nERROR: Invalid requirement: 'pytest                # Python test runner': Expected end or semicolon (after name and no valid version specifier)\n    pytest                # Python test runner\n                          ^\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\nERROR: Invalid requirement: 'pytest-cov            # Coverage reporting for pytest': Expected end or semicolon (after name and no valid version specifier)\n    pytest-cov            # Coverage reporting for pytest\n                          ^"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "for f in requirements.txt requirements-dev.txt requirements-test.txt; do [ -f \"$f\" ] && python3 -m pip install -q --only-binary=:all: -r \"$f\" || true; done",
+        "why": "All 41 test modules fail at collection, which usually means the app's Python dependencies are missing. The harness only installs pytest, so the repo's requirements files need installing.",
+        "code": 0
+      }
+    ],
+    "env": [
+      "GEMINI_API_KEY",
+      "MCP_API_KEY",
+      "APP_API_KEY",
+      "JWT_SECRET_KEY",
+      "DB_HOST",
+      "DB_PORT",
+      "DB_NAME",
+      "DB_USER",
+      "DB_PASS",
+      "KAFKA_BROKER"
+    ]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "pytest failed with 41 collection errors; the install also broke because requirements.txt has inline '#' comments after package names that pip rejects as invalid requirements, so the repo's dependencies are never installed. This is a defect in the repo's own files, not an outside-authority blocker."
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "jasperapp/jasper",
+  "commit": "a7cbefefaa79dd764099217a3946b8210423b0ed",
+  "provider": "google-analytics",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "node_modules/@types/react-redux/index.d.ts: error TS2305: Module '\"react\"' has no exported member 'JSX'.",
+        "src/Renderer/Fragment/Issues/IssuesHeaderFragment.tsx: error TS2307: Cannot find module '../../Library/Type/IconNameType' or its corresponding type declarations.",
+        "src/Renderer/Fragment/Side/SideHeaderFragment.tsx: error TS2307: Cannot find module '../../Library/Type/IconNameType' or its corresponding type declarations.",
+        "src/Renderer/Fragment/Stream/SampleIconNames.ts: error TS2307: Cannot find module '../../Library/Type/IconNameType' or its corresponding type declarations.",
+        "src/Renderer/Fragment/Stream/UserStream/FilterStreamEditorFragment.tsx: error TS2307: Cannot find module '../../../Library/Type/IconNameType' or its corresponding type declarations.",
+        "src/Renderer/Fragment/Stream/UserStream/ProjectStreamEditorFragment.tsx: error TS2307: Cannot find module '../../../Library/Type/IconNameType' or its corresponding type declarations.",
+        "src/Renderer/Fragment/Stream/UserStream/StreamEditorFragment.tsx: error TS2307: Cannot find module '../../../Library/Type/IconNameType' or its corresponding type declarations.",
+        "src/Renderer/Library/Type/StreamEntity.ts: error TS2307: Cannot find module './IconNameType' or its corresponding type declarations.",
+        "src/Renderer/Library/Util/GitHubUtil.ts: error TS2307: Cannot find module '../Type/IconNameType' or its corresponding type declarations.",
+        "src/Renderer/Library/View/ContextMenu.tsx: error TS2307: Cannot find module '../Type/IconNameType' or its corresponding type declarations."
+      ],
+      "tail": "ragment.tsx(6,28): error TS2307: Cannot find module '../../../Library/Type/IconNameType' or its corresponding type declarations.\nsrc/Renderer/Fragment/Stream/UserStream/ProjectStreamEditorFragment.tsx(7,28): error TS2307: Cannot find module '../../../Library/Type/IconNameType' or its corresponding type declarations.\nsrc/Renderer/Fragment/Stream/UserStream/StreamEditorFragment.tsx(19,28): error TS2307: Cannot find module '../../../Library/Type/IconNameType' or its corresponding type declarations.\nsrc/Renderer/Library/Type/StreamEntity.ts(1,28): error TS2307: Cannot find module './IconNameType' or its corresponding type declarations.\nsrc/Renderer/Library/Util/GitHubUtil.ts(2,28): error TS2307: Cannot find module '../Type/IconNameType' or its corresponding type declarations.\nsrc/Renderer/Library/View/ContextMenu.tsx(6,28): error TS2307: Cannot find module '../Type/IconNameType' or its corresponding type declarations.\nsrc/Renderer/Library/View/Icon.tsx(2,28): error TS2307: Cannot find module '../Type/IconNameType' or its corresponding type declarations.\nsrc/Renderer/Library/View/IconButton.tsx(2,28): error TS2307: Cannot find module '../Type/IconNameType' or its corresponding type declarations.\nsrc/Renderer/Library/View/IssueRow.tsx(8,28): error TS2307: Cannot find module '../Type/IconNameType' or its corresponding type declarations.\nsrc/Renderer/Repository/StreamRepo.ts(2,28): error TS2307: Cannot find module '../Library/Type/IconNameType' or its corresponding type declarations."
+    }
+  ],
+  "costUsd": 0.049541999999999975,
+  "durationMs": 41376,
+  "install": {
+    "code": 0,
+    "tail": "added 474 packages in 14s\n\nnpm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npm run build:dev",
+        "why": "The missing src/Renderer/Library/Type/IconNameType module looks like generated output. I couldn't see the scripts, so I'm assuming the repo's own build-dev script produces it (along with the esbuild output) before tsc runs.",
+        "code": 0
+      }
+    ],
+    "env": []
+  }
+}

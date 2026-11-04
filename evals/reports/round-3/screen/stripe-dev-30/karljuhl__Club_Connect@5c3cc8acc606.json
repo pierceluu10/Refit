@@ -1,0 +1,71 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "karljuhl/Club_Connect",
+  "commit": "5c3cc8acc606128a130463137e12f1e3442d75fd",
+  "provider": "stripe",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export POSTGRES_PRISMA_URL='postgresql://user:pass@localhost:5432/db' POSTGRES_DIRECT_URL='postgresql://user:pass@localhost:5432/db'; npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "app/(auth)/login/page.tsx: error TS5097: An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.",
+        "app/(dashboard)/dashboard/chatbots/[chatbotId]/embed/page.tsx: error TS2322: Type '{ children: Element; className: string; }' is not assignable to type 'IntrinsicAttributes & ((AccordionSingleProps | AccordionMultipleProps) & RefAttributes<HTMLDivElement>)'.",
+        "app/(dashboard)/dashboard/chatbots/[chatbotId]/inquiries/page.tsx: error TS2741: Property 'defaultLayout' is missing in type '{ inquiries: InquiryMessages[]; }' but required in type 'InquiryProps'.",
+        "app/(dashboard)/dashboard/chatbots/[chatbotId]/page.tsx: error TS2339: Property 'openaiKey' does not exist on type '{ model: { id: string; name: string; } | null; id: string; name: string; createdAt: Date; prompt: string | null; welcomeMessage: string; chatbotErrorMessage: string; modelId: string | null; openaiId: string; isImported: boolean; }'.",
+        "app/(dashboard)/dashboard/chatbots/[chatbotId]/page.tsx: error TS2741: Property 'openaiKey' is missing in type '{ model: { id: string; name: string; } | null; id: string; name: string; createdAt: Date; prompt: string | null; welcomeMessage: string; chatbotErrorMessage: string; modelId: string | null; openaiId: string; isImported: boolean; }' but required in type 'Pick<{ id: string; name: string; userId: string; openaiId: string; createdAt: Date; openaiKey: string; modelId: string | null; prompt: string | null; welcomeMessage: string; chatbotErrorMessage: string; ... 22 more ...; inquiryDisplayLinkAfterXMessage: number; }, \"id\" | ... 7 more ... | \"isImported\">'.",
+        "app/(dashboard)/dashboard/chatbots/[chatbotId]/page.tsx: error TS2741: Property 'openaiKey' is missing in type '{ model: { id: string; name: string; } | null; id: string; name: string; createdAt: Date; prompt: string | null; welcomeMessage: string; chatbotErrorMessage: string; modelId: string | null; openaiId: string; isImported: boolean; }' but required in type 'Pick<{ id: string; name: string; userId: string; openaiId: string; createdAt: Date; openaiKey: string; modelId: string | null; prompt: string | null; welcomeMessage: string; chatbotErrorMessage: string; ... 22 more ...; inquiryDisplayLinkAfterXMessage: number; }, \"id\" | ... 8 more ... | \"isImported\">'.",
+        "app/(dashboard)/dashboard/chatbots/page.tsx: error TS2741: Property 'model' is missing in type '{ key: any; chatbot: any; }' but required in type 'ChatbotProps'.",
+        "app/(dashboard)/dashboard/crawlers/[crawlerId]/page.tsx: error TS2739: Type '{ id: string; name: string; crawlUrl: string; }' is missing the following properties from type 'Pick<{ id: string; name: string; createdAt: Date; userId: string; crawlUrl: string; urlMatch: string; selector: string; maxPagesToCrawl: number; }, \"id\" | \"name\" | \"crawlUrl\" | \"urlMatch\" | \"selector\">': urlMatch, selector",
+        "app/(dashboard)/dashboard/onboarding/page.tsx: error TS18047: 'chatbot' is possibly 'null'.",
+        "app/(dashboard)/dashboard/page.tsx: error TS7006: Parameter 'entry' implicitly has an 'any' type."
+      ],
+      "tail": "botId' implicitly has an 'any' type.\nlib/prismaOperations.ts(24,56): error TS7006: Parameter 'platform' implicitly has an 'any' type.\nlib/prismaOperations.ts(27,7): error TS2561: Object literal may only specify known properties, but 'chatbotId' does not exist in type 'IntegrationWhereInput'. Did you mean to write 'Chatbot'?\nlib/prismaOperations.ts(37,47): error TS7006: Parameter 'chatbotId' implicitly has an 'any' type.\nlib/prismaOperations.ts(40,7): error TS2561: Object literal may only specify known properties, but 'chatbotId' does not exist in type 'IntegrationWhereInput'. Did you mean to write 'Chatbot'?\nlib/session.ts(1,34): error TS2307: Cannot find module 'next-auth/next' or its corresponding type declarations.\nmiddleware.ts(1,26): error TS2307: Cannot find module 'next-auth/jwt' or its corresponding type declarations.\nmiddleware.ts(2,26): error TS2307: Cannot find module 'next-auth/middleware' or its corresponding type declarations.\nmiddleware.ts(7,31): error TS7006: Parameter 'req' implicitly has an 'any' type.\ntypes/next-auth-d.ts(1,22): error TS2307: Cannot find module 'next-auth' or its corresponding type declarations.\ntypes/next-auth-d.ts(2,21): error TS2307: Cannot find module 'next-auth/jwt' or its corresponding type declarations.\ntypes/next-auth-d.ts(6,16): error TS2664: Invalid module name in augmentation, module 'next-auth/jwt' cannot be found.\ntypes/next-auth-d.ts(12,16): error TS2664: Invalid module name in augmentation, module 'next-auth' cannot be found."
+    },
+    {
+      "name": "build",
+      "command": "export POSTGRES_PRISMA_URL='postgresql://user:pass@localhost:5432/db' POSTGRES_DIRECT_URL='postgresql://user:pass@localhost:5432/db'; corepack pnpm@8 run build",
+      "ok": false,
+      "failures": ["Error: P1001: Can't reach database server at `localhost`"],
+      "tail": "> @ build /work\n> prisma generate && prisma db push && next build\n\nPrisma schema loaded from prisma/schema.prisma\n\n✔ Generated Prisma Client (v5.14.0) to ./node_modules/.pnpm/@prisma+client@5.14.0_prisma@5.14.0/node_modules/@prisma/client in 92ms\n\nStart using Prisma Client in Node.js (See: https://pris.ly/d/client)\n```\nimport { PrismaClient } from '@prisma/client'\nconst prisma = new PrismaClient()\n```\nor start using Prisma Client at the edge (See: https://pris.ly/d/accelerate)\n```\nimport { PrismaClient } from '@prisma/client/edge'\nconst prisma = new PrismaClient()\n```\n\nSee other ways of importing Prisma Client: http://pris.ly/d/importing-client\n\n┌─────────────────────────────────────────────────────────────┐\n│  Deploying your app to serverless or edge functions?        │\n│  Try Prisma Accelerate for connection pooling and caching.  │\n│  https://pris.ly/cli/--accelerate                           │\n└─────────────────────────────────────────────────────────────┘\n\nPrisma schema loaded from prisma/schema.prisma\nDatasource \"db\": PostgreSQL database \"db\", schema \"public\" at \"localhost:5432\"\n\n ELIFECYCLE  Command failed with exit code 1.\n\nError: P1001: Can't reach database server at `localhost:5432`\n\nPlease make sure your database server is running at `localhost:5432`."
+    }
+  ],
+  "costUsd": 0.23646199999999984,
+  "durationMs": 281263,
+  "install": {
+    "code": 0,
+    "tail": "i/react-toast 1.1.5\n+ @radix-ui/react-tooltip 1.0.7\n+ @react-email/components 0.0.16\n+ @sentry/nextjs 7.116.0\n+ @stripe/stripe-js 2.4.0\n+ @tanstack/react-table 8.17.3\n+ @types/node 18.19.33\n+ @types/react 18.3.2\n+ @vercel/analytics 1.2.2\n+ @vercel/blob 0.22.3\n+ @vercel/og 0.6.2\n+ ai 3.1.12\n+ aos 3.0.0-beta.6\n+ async_hooks 1.0.0\n+ bcrypt 5.1.1\n+ better-react-mathjax 2.0.3\n+ cheerio 1.0.0-rc.12\n+ child_process 1.0.2\n+ class-variance-authority 0.7.0\n+ clsx 2.1.1\n+ contentlayer 0.3.4\n+ date-fns 3.6.0\n+ fs 0.0.1-security\n+ jotai 2.8.0\n+ jsdom 24.0.0\n+ lucide-react 0.292.0\n+ mdast-util-toc 7.0.1\n+ next 14.2.3\n+ next-contentlayer 0.3.4\n+ next-themes 0.3.0\n+ nodemailer 6.9.13\n+ oas 24.3.5\n+ openai 4.47.1\n+ openai-edge 1.2.2\n+ react 18.3.1\n+ react-day-picker 8.10.1\n+ react-dom 18.3.1\n+ react-email 2.1.2\n+ react-hook-form 7.51.4\n+ react-hot-toast 2.4.1\n+ react-markdown 9.0.1\n+ react-mathjax 1.0.1\n+ react-resizable-panels 2.0.19\n+ react-select 5.8.0\n+ react-syntax-highlighter 15.5.0\n+ recharts 2.12.7\n+ rehype-autolink-headings 7.1.0\n+ rehype-pretty-code 0.12.6\n+ rehype-slug 6.0.0\n+ remark 15.0.1\n+ remark-gfm 4.0.0\n+ remark-math 6.0.0\n+ resend 3.2.0\n+ sharp 0.33.4\n+ stripe 14.25.0\n+ tailwind-merge 2.3.0\n+ tailwindcss-animate 1.0.7\n+ zod 3.23.8\n\ndevDependencies:\n+ @tailwindcss/typography 0.5.13\n+ @types/aos 3.0.7\n+ @types/bcrypt 5.0.2\n+ autoprefixer 10.4.19\n+ eslint 8.56.0\n+ eslint-config-next 14.2.3\n+ postcss 8.4.38\n+ prisma 5.14.0\n+ tailwindcss 3.4.3\n+ typescript 5.4.5\n\nDone in 2m 44.5s"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "Generates the Prisma client (@prisma/client types) that the source imports; typecheck fails without it since install scripts were off.",
+        "code": 0
+      },
+      {
+        "command": "npx contentlayer build",
+        "why": "The repo uses contentlayer/next-contentlayer; this generates the .contentlayer/generated types that code imports (contentlayer/generated) for tsc.",
+        "code": 0
+      },
+      {
+        "command": "npx prisma generate",
+        "why": "Generates the Prisma client from prisma/schema.prisma so tsc sees the model types. The typecheck runs without the generate that the build script does first.",
+        "code": 0
+      },
+      {
+        "command": "npx contentlayer build",
+        "why": "Generates .contentlayer/generated, which the code imports from 'contentlayer/generated'. Only package.json is present there, and the generated output is otherwise only produced during next build or dev.",
+        "code": 0
+      }
+    ],
+    "env": ["POSTGRES_PRISMA_URL", "POSTGRES_DIRECT_URL"]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "typecheck (tsc --noEmit) fails on the repo's own code: missing next-auth modules, Prisma client types out of sync with the schema (openaiKey, chatbotId), implicit anys and prop type mismatches. The build's P1001 database failure is a separate issue, but the typecheck errors are genuine code/type failures."
+  }
+}

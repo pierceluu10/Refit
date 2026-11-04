@@ -1,0 +1,62 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "PRIYESHSINGH24/buddy_connect",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 0.25931269999999995,
+    "tasks": 1,
+    "verified": 1
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.10319700000000001,
+    "prepCostUsd": 0.014852,
+    "diffLines": 69,
+    "finalText": "I changed the Gemini model name in the code. The Gemini model was the only API change I found that affects this repo. I didn't run a build or any tests.\n\n**What changed:** Google's [Gemini deprecations page](https://ai.google.dev/gemini-api/docs/deprecations) lists `gemini-2.0-flash` as shut down on June 1, 2026, and recommends `gemini-3.6-flash` as the replacement. The code was still calling `gemini-2.0-flash`, so those calls would fail. I made these edits:\n- `lib/ai-client.ts`, `lib/ai-utils.ts`, `lib/ai-advanced-utils.ts` and `app/api/ai/chat/route.ts`: `gemini-2.0-flash` is now `gemini-3.6-flash`.\n- `app/api/hackathon/match-teams/route.ts`: the fallback list was `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`. It is now `gemini-3.6-flash` then `gemini-2.5-flash-lite`. I dropped the 1.5 models without checking their status, because they were already stale. `gemini-2.5-flash-lite` has no announced shutdown date.\n\n**Left alone:**\n- **SDK versions:** I didn't search for any deprecation of `@google/generative-ai`, and I didn't check the other dependencies (Next, Prisma, AWS S3, Pusher, Resend and so on). I changed no package versions, so the lockfile is untouched.\n- **Hackathon route:** its `@google-ai/generativelanguage` import doesn't match the `@google/generative-ai` and `@google-ai/generativelanguage`-style packages in `package.json`. It also calls a REST `:generate` endpoint that I didn't check against current Gemini docs. Both are wrapped in fallbacks, so I left them.\n- **Gemini 3.x parameters:** I didn't check whether Gemini 3.x needs different request parameters than the old SDK sends. It's worth one manual call to confirm.\n- **`gemini-2.5-flash`:** the repo doesn't use it. It gets rerouted on December 1, 2026, so don't pick it.\n\nSources:\n- [Gemini deprecations](https://ai.google.dev/gemini-api/docs/deprecations)",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-PRIYESHSINGH24-buddy_connect/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "@google/generative-ai SDK deprecated / end of life; migrate to @google/genai",
+          "correct": true,
+          "note": "Full port of every call site to the new SDK's ai.models.generateContent and result.text. In ai-client, generationConfig moved to config. package.json and the lockfile are updated, and B reports that typecheck and build pass."
+        },
+        {
+          "change": "gemini-2.0-flash shutdown",
+          "correct": true,
+          "note": "Replaced with gemini-2.5-flash-lite in all four SDK files and in the match-teams list. That model has no announced shutdown date."
+        },
+        {
+          "change": "Hackathon match-teams fallback list",
+          "correct": false,
+          "note": "Only 2.0-flash was replaced. The retired gemini-1.5-flash and gemini-1.5-pro entries are still in the fallback list."
+        }
+      ],
+      "breaks": [
+        "Adds an unrequested scripts/check-genai-migration.mjs file (harmless).",
+        "@google/genai 2.x requires Node >=20, a tighter runtime requirement that B does not mention."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "gemini-2.0-flash shutdown (June 1, 2026); model replaced in chat route, ai-client, ai-utils and ai-advanced-utils",
+          "correct": true,
+          "note": "Switched to gemini-3.6-flash, the replacement A cites from the deprecations page. The edits match that citation. A did not check whether Gemini 3.x needs different request parameters."
+        },
+        {
+          "change": "Hackathon match-teams model fallback list",
+          "correct": true,
+          "note": "Replaced 2.0-flash with 3.6-flash and 2.5-flash-lite, and dropped the stale 1.5 models, which are long retired."
+        }
+      ],
+      "breaks": []
+    },
+    "better": "refit",
+    "why": "Both fix the retired gemini-2.0-flash model. Only B handles the deprecation and end of life of the @google/generative-ai SDK the code depends on, and it ports every call site to @google/genai correctly. A explicitly skipped checking the SDK. B's leftover 1.5 entries in the fallback list are a minor gap by comparison.",
+    "costUsd": 0.077672
+  }
+}

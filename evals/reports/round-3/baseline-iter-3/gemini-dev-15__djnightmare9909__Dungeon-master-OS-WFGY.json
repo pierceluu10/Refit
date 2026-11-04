@@ -1,0 +1,54 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "djnightmare9909/Dungeon-master-OS-WFGY",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 0.45131,
+    "tasks": 1,
+    "verified": 1
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.1122674,
+    "prepCostUsd": 0.011646,
+    "diffLines": 37,
+    "finalText": "I made four edits for three retired Gemini models. I didn't build or lint, and I didn't check the `@google/genai` SDK version or the code that calls the SDK.\n\nThe repo's only external service is the Gemini API, through `@google/genai`. It can also call OpenAI-compatible and Anthropic endpoints through user-configured URLs. Browser speech synthesis and the Wake Lock API are built-in browser features, not external services. I checked model names against Google's Gemini deprecations page.\n\n**Changed (already shut down):**\n- **Embeddings:** `gemini.ts` used `gemini-embedding-2-preview`, which was shut down on 2026‑08‑10. It now uses `gemini-embedding-2`. I also updated the doc comment.\n- **Settings dropdown in `index.html`:**\n  - `gemini-3.1-flash-lite-preview` was shut down on 2026‑05‑25. The option now points to `gemini-3.1-flash-lite`.\n  - `gemini-3-pro-preview` was shut down on 2026‑03‑09. I removed the option. `gemini-3.1-pro-preview` is already in the list as its replacement.\n\n**Not changed:**\n- `dist/` is build output. It still has the old dropdown values until you rebuild.\n- `gemini-3.5-flash-lite` is the default model and is fine.\n- `gemini-3.5-flash` now silently routes to `gemini-3.6-flash`. It isn't shutting down, so I left it.\n- `gemini-3-flash-preview` and `gemini-3.1-pro-preview` have no shutdown date announced.\n\n**Worth checking:**\n- `gemini-embedding-2` may return vectors of a different size than the preview model did. `gemini.ts` uses 768 dimensions for its zero and fallback vectors. If you store embeddings, check that old and new vectors are compatible.\n\n**Later deprecations:** none affect this code. `gemini-2.5-flash` and `gemini-2.5-pro` start auto-routing on 2026‑12‑01, but the repo doesn't use them.\n\nSources:\n- https://ai.google.dev/gemini-api/docs/deprecations",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-djnightmare9909-Dungeon-master-OS-WFGY/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "gemini-embedding-2-preview shut down (2026-08-10), replaced by gemini-embedding-2",
+          "correct": true,
+          "note": "Same fix as A in generateEmbedding, plus a comment."
+        }
+      ],
+      "breaks": []
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "gemini-embedding-2-preview shut down (2026-08-10), replaced by gemini-embedding-2",
+          "correct": true,
+          "note": "Updates the model id in the generateEmbedding embedContent call and its doc comment. It also flags a possible change in vector size against the hard-coded 768-dimension fallback."
+        },
+        {
+          "change": "gemini-3.1-flash-lite-preview shut down (2026-05-25)",
+          "correct": true,
+          "note": "The settings dropdown option now points to gemini-3.1-flash-lite, so users who pick it no longer get errors."
+        },
+        {
+          "change": "gemini-3-pro-preview shut down (2026-03-09)",
+          "correct": true,
+          "note": "Removes the dead option. gemini-3.1-pro-preview is already listed as its replacement. It does not migrate a previously saved setting, but that is minor."
+        }
+      ],
+      "breaks": []
+    },
+    "better": "claude",
+    "why": "Both fix the retired embedding model the same way. A also fixes two retired models that users can still pick in the index.html settings dropdown (gemini-3.1-flash-lite-preview and gemini-3-pro-preview); B says all UI options are 3.x and misses them. B names a store=false item with an October deadline but leaves it as a product decision, so it adds no code value.",
+    "costUsd": 0.029172
+  }
+}

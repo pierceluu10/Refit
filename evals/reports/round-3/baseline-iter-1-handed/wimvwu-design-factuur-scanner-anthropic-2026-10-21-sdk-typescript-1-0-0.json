@@ -1,0 +1,88 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "wimvwu-design/factuur-scanner",
+  "taskId": "wimvwu-design/factuur-scanner:anthropic:2026-10-21-sdk-typescript-1-0-0",
+  "title": "npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too",
+  "refit": {
+    "outcome": "verified",
+    "passesChecks": false,
+    "costUsd": 0.0968274,
+    "diffLines": 490,
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The PR bumps @anthropic-ai/sdk from ^0.39.0 to ^1.0.0 in package.json and the lockfile and adds test/sdk.test.js. No application code changes. The new test does check that server.js and api/extract.js contain no temperature/top_p/top_k strings, and it passes after the change, so the removed sampling params are probably not used at those two sites. However, 0.39 to 1.0 is a large major jump. The runtime moves off node-fetch/agentkeepalive to global fetch, gains OpenTelemetry and standardwebhooks dependencies, and changes the default anthropic-version header to 2026-10-21. The test never loads server.js or api/extract.js. It builds its own client with a mocked fetch and handles both `Anthropic.default` and bare `Anthropic`. So nothing proves the app's own import, construction, model names, or response parsing still work under v1 and the new API version. The 'before fail' is partly circular, since the test asserts the installed version starts with '1.'. I could not confirm the 2026-10-21 version string or the v1 export shape from memory; check them against the quoted CHANGELOG and the SDK's package exports and typings. The 'verified' grade overstates what the checks prove. I'd treat this as needs-review until the real call sites are run against v1. package.json also has no \"test\" script, so this test will not run in CI unless invoked directly.",
+      "concerns": [
+        {
+          "file": "server.js / api/extract.js",
+          "issue": "These call sites were not shown and are not exercised by any check. Three things could break silently under SDK 1.0: the app's `require('@anthropic-ai/sdk')` pattern (default export vs CJS), client construction options, and response handling such as `content[0].text` and stop reasons. The test hedges with `Anthropic.default || Anthropic`, which suggests the export shape is not guaranteed.",
+          "severity": "medium"
+        },
+        {
+          "file": "package.json",
+          "issue": "Moving to API version 2026-10-21 changes live request/response behaviour for every production call. The models the app requests may also behave differently or be unavailable under the new version. Only a mocked fetch was tested; no live or recorded call against the new version was run.",
+          "severity": "medium"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "SDK v1 drops node-fetch and relies on global fetch/Headers/Response, and its license changes from MIT to Apache-2.0. The deployment runtime (likely Vercel, given api/extract.js) needs a Node version with native fetch. The license change may matter for compliance review.",
+          "severity": "low"
+        },
+        {
+          "file": "test/sdk.test.js",
+          "issue": "The test mostly verifies the SDK itself (header value, version string) rather than app behaviour. The sampling-param check is a regex over only two files, so other modules calling the SDK would be missed. The test is not hooked into an npm test script.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Read server.js and api/extract.js: how they import and instantiate Anthropic, which model IDs they pass, and how they parse the response. Run one real extraction locally on SDK 1.0.0.",
+        "Confirm against the SDK CHANGELOG/types that 2026-10-21 is the default version and that the CJS `require` export shape matches how the app uses it.",
+        "Confirm the deployment Node version supports global fetch, and check that no other file (lib/, utils) calls the SDK with temperature/top_p/top_k.",
+        "Consider downgrading the grade to needs-review, since no check exercises the application call sites."
+      ],
+      "costUsd": 0.084504,
+      "model": "claude-opus-5-5"
+    }
+  },
+  "claude": {
+    "passesChecks": false,
+    "costUsd": 0.026882,
+    "prepCostUsd": 0.004316,
+    "diffLines": 460,
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-wimvwu-design-factuur-scanner-anthropic-2026-10-21-sdk-typescript-1-0-0/transcript.jsonl",
+    "stopReason": "done",
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The diff only bumps @anthropic-ai/sdk from ^0.39.0 to ^1.0.0 in package.json, and the lockfile resolves it to 1.4.0. No application code changed, and the match agent named no call sites. This is a jump across many SDK releases, from 0.39 to 1.x, into a major version. That major version changes the default API version to 2026-10-21, turns MessageParam into a union, and removes temperature/top_p/top_k. The repo's server.js and anything under api/ were not quoted, so I cannot tell whether they pass temperature/top_p/top_k, build message objects in a shape the new types reject, or depend on 0.x behaviour. The project is plain JS (node server.js) with no TypeScript build, so no type check would catch these problems. The removed sampling parameters would only fail at runtime against the live API. No checks were recorded at all, not even an install or a startup smoke test. The needs-review grade is appropriate. Some lockfile details I could not confirm: version 1.4.0, the license change to Apache-2.0, and the new deps (@opentelemetry/api, standardwebhooks, json-schema-to-ts, optional zod peer). Confirm these against the npm registry and the SDK CHANGELOG. The removal of node-fetch/form-data suggests the 1.x SDK relies on global fetch, which would require Node 18+. Upgrading through the 0.x→1.x line also likely includes the 0.x→newer client rewrite, which changed import paths and some response/stream helpers.",
+      "concerns": [
+        {
+          "file": "package.json",
+          "issue": "Major SDK bump with no code changes and no call sites identified. Any messages.create call that passes temperature, top_p or top_k (common in extraction code like an invoice scanner) may now be rejected, and nothing in this PR checks for that.",
+          "severity": "high"
+        },
+        {
+          "file": "package.json",
+          "issue": "The default API version silently changes to 2026-10-21 for every request. Response shape or behaviour changes under the new version are untested; no live or mocked call was run.",
+          "severity": "medium"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "The SDK's node-fetch and form-data polyfills are removed, implying it needs global fetch (Node 18+). No engines field is set and no Node version check was done, so deployments on older Node could break at startup.",
+          "severity": "medium"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "The resolved version is 1.4.0, not 1.0.0, so behaviour from 1.1–1.4 also lands in this PR. The license changed from MIT to Apache-2.0, and new transitive deps were added (@opentelemetry/api, standardwebhooks). I could not confirm these from the quoted source.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Grep server.js and any api/ handlers for messages.create and check for temperature, top_p and top_k.",
+        "Check how message arrays and image/PDF document blocks are built, and compare them against the 1.x MessageParam union in the SDK's types.",
+        "Confirm the deployment Node version is 18 or higher, now that the SDK no longer bundles node-fetch.",
+        "Run one real invoice scan end-to-end against the API with SDK 1.4.0 before merging."
+      ],
+      "costUsd": 0.066984,
+      "model": "claude-opus-5-5"
+    }
+  }
+}

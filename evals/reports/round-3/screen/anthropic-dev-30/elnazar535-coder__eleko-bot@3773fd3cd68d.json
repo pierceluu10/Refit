@@ -1,0 +1,19 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "elnazar535-coder/eleko-bot",
+  "commit": "3773fd3cd68dfa7eba99cba8c1e81d9cce412c58",
+  "provider": "anthropic",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.07543599999999984,
+  "durationMs": 34121,
+  "install": {
+    "code": 0,
+    "tail": "added 149 packages in 9s\n\nnpm error code EUSAGE\nnpm error\nnpm error The `npm ci` command can only install with an existing package-lock.json or\nnpm error npm-shrinkwrap.json with lockfileVersion >= 1. Run an install with npm@5 or\nnpm error later to generate a package-lock.json file, then try again.\nnpm error\nnpm error Clean install a project\nnpm error\nnpm error Usage:\nnpm error npm ci\nnpm error\nnpm error Options:\nnpm error [--install-strategy <hoisted|nested|shallow|linked>] [--legacy-bundling]\nnpm error [--global-style] [--omit <dev|optional|peer> [--omit <dev|optional|peer> ...]]\nnpm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]\nnpm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]\nnpm error [--no-bin-links] [--no-fund] [--dry-run]\nnpm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]\nnpm error [-ws|--workspaces] [--include-workspace-root] [--install-links]\nnpm error\nnpm error aliases: clean-install, ic, install-clean, isntall-clean\nnpm error\nnpm error Run \"npm help ci\" for more info\nnpm error A complete log of this run can be found in: /tmp/.npm/_logs/2026-11-03T20_02_38_231Z-debug-0.log\nnpm warn deprecated scmp@2.1.0: Just use Node.js's crypto.timingSafeEqual()\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}
