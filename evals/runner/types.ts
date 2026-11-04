@@ -59,6 +59,8 @@ export type Pipeline = {
   match: MatchChanges;
   runTask: RunTask;
   review?: ReviewPr;
+  /** Waits for what the tasks started in the background (memory learning) before the repo is recorded. */
+  drain?: () => Promise<void>;
 };
 export type PipelineFactory = (context: {
   entry: RepoEntry;
