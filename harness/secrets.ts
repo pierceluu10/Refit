@@ -23,8 +23,10 @@ export function secretValues(env: NodeJS.ProcessEnv = process.env): string[] {
 // NAME=value, NAME: value and "NAME": "value" where NAME mentions a key, token, secret or password.
 // shortcut: only values with a digit and 8+ token characters count, so code like `apiKey: getApiKey()`
 // or `process.env.API_KEY` stays readable; a digit-free secret slips through.
+// A reference to an env var is no secret, digits in its name or not (`process.env.R2_ACCESS_KEY_ID`
+// was redacted in round 3, and the PR diff no longer matched the file).
 const NAMED_SECRET =
-  /(\b[\w.-]*(?:KEY|TOKEN|SECRET|PASSWORD)[\w.-]*["']?\s*[:=]\s*["']?)(?=[\w+/=.~-]*\d)([\w+/=.~-]{8,})/gi;
+  /(\b[\w.-]*(?:KEY|TOKEN|SECRET|PASSWORD)[\w.-]*["']?\s*[:=]\s*["']?)(?!process\.env\.|import\.meta\.env\.|os\.environ|Deno\.env\.)(?=[\w+/=.~-]*\d)([\w+/=.~-]{8,})/gi;
 
 export function redactSecrets(text: string, env: NodeJS.ProcessEnv = process.env): string {
   let out = text;
