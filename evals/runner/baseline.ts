@@ -6,6 +6,7 @@
 //
 //   node evals/runner/baseline.ts --in <iteration dir> --out <dir> --budget-usd <cap> --concurrency <n>
 //   node evals/runner/baseline.ts --in <iteration dir> --out <dir> --report-only
+import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   existsSync,
@@ -18,10 +19,11 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { claudeAgentSession } from '../../harness/agent.ts';
-import { compareChecks, runChecks } from '../../harness/checks.ts';
+import { compareChecks, installCommand, runChecks } from '../../harness/checks.ts';
 import { BudgetLedger } from '../../harness/ledger.ts';
 import { MODEL, TURN_RESERVE_USD, prepareBaseline } from '../../harness/run.ts';
 import { createSandbox } from '../../harness/sandbox.ts';
+import { filesFromDiff } from '../../harness/pr.ts';
 import { buildTools } from '../../harness/tools.ts';
 import { createBudget } from '../../orchestrator/budget.ts';
 import type { RunRecord } from '../../shared/types.ts';
@@ -389,6 +391,178 @@ async function compareRepo(
   return row;
 }
 
+/** Whether a side's diff leaves the code broken, by the same neutral check for both sides. */
+export type CodeCheck = {
+  status: 'clean' | 'broken' | 'no-change' | 'unverifiable' | 'did-not-apply' | 'error';
+  problems: string[];
+  checked: string[];
+};
+
+/**
+ * Refit's recorded diffs pass the secret scrubber, which also rewrites lines the change didn't
+ * touch, so the patch no longer matches the file. Context and removed lines are the repo's own
+ * text: they are restored from the original file. An added line the scrubber rewrote stays as
+ * recorded, since that is what the PR would carry.
+ */
+export function unredact(diff: string, original: (file: string) => string[] | undefined): string {
+  let lines: string[] | undefined;
+  let at = 0;
+  return diff
+    .split('\n')
+    .map((line) => {
+      const file = line.match(/^--- a\/(.+)$/)?.[1];
+      if (file !== undefined) {
+        lines = original(file);
+        return line;
+      }
+      if (line.startsWith('--- ')) lines = undefined;
+      const hunk = line.match(/^@@ -(\d+)/);
+      if (hunk) {
+        at = Number(hunk[1]) - 1;
+        return line;
+      }
+      if (line.startsWith(' ') || (line.startsWith('-') && !line.startsWith('---'))) {
+        const real = lines?.[at];
+        at += 1;
+        return line.includes('[redacted]') && real !== undefined ? `${line[0]}${real}` : line;
+      }
+      return line;
+    })
+    .join('\n');
+}
+
+/** A syntax or load check for one changed file, when its language has a cheap one. */
+export function syntaxCheck(file: string): { name: string; command: string } | undefined {
+  const quoted = `'${file.replace(/'/g, `'\\''`)}'`;
+  if (/\.(?:c|m)?js$/.test(file))
+    return { name: `syntax ${file}`, command: `node --check ${quoted}` };
+  if (/\.py$/.test(file))
+    return { name: `syntax ${file}`, command: `python3 -m py_compile ${quoted}` };
+  if (/\.json$/.test(file) && !/(?:^|\/)tsconfig[^/]*\.json$/.test(file)) {
+    return {
+      name: `syntax ${file}`,
+      command: `node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" ${quoted}`,
+    };
+  }
+  return undefined;
+}
+
+/**
+ * Applies a side's diffs to a fresh, prepared copy and runs the repo's checks (the harness's
+ * fallback type check included) and a syntax check of every changed file, before and after. Any
+ * failure the change added means the code is broken. Plain compute: the only model call is the
+ * same setup planner both sides' runs had.
+ */
+async function checkCode(
+  entry: RepoAt,
+  diffs: string[],
+  budget: ReturnType<typeof createBudget>,
+): Promise<CodeCheck> {
+  // A binary file (bytecode the checks compiled) can't be applied from a text diff and is no
+  // part of the change; its entry is left out.
+  const textOnly = (diff: string) =>
+    diff
+      .split(/(?=^diff --git )/m)
+      .filter((file) => !/^(?:Binary files .* differ|GIT binary patch)$/m.test(file))
+      .join('');
+  const changes = diffs.map(textOnly).filter((diff) => diff.trim());
+  if (changes.length === 0) return { status: 'no-change', problems: [], checked: [] };
+  const hold = await budget.reserve(`code check ${entry.repo}`, 1);
+  const ledger = new BudgetLedger(hold.usd);
+  try {
+    const copy = await gitCheckout()({ repo: entry.repo, commit: entry.commit });
+    try {
+      const sandbox = await createSandbox(copy.repoDir);
+      try {
+        const prepared = await prepareBaseline(sandbox, ledger);
+        const files = [...new Set(changes.flatMap(filesFromDiff))];
+        const syntax = files.flatMap((file) => syntaxCheck(file) ?? []);
+        const existing = syntax.filter((check) =>
+          existsSync(join(sandbox.dir, check.name.slice(7))),
+        );
+        const before = [...prepared.before, ...(await runChecks(sandbox, existing))];
+        // Running the checks builds files (dist/); each diff goes onto the prepared copy, after a reset.
+        // Each diff is one PR and merges on its own against the original, so each is applied to
+        // the prepared copy by itself: two of a repo's PRs may edit the same lines.
+        const checks = [...prepared.checks, ...syntax];
+        const problems: string[] = [];
+        let reinstalled = false;
+        for (const [i, scrubbed] of changes.entries()) {
+          await sandbox.reset?.();
+          // reset() leaves node_modules alone: a previous PR's install must not leak into this one.
+          if (reinstalled) {
+            await sandbox.exec(installCommand(prepared.pm, prepared.pmVersion));
+            reinstalled = false;
+          }
+          const diff = unredact(scrubbed, (file) => {
+            try {
+              return readFileSync(join(sandbox.dir, file), 'utf8').split('\n');
+            } catch {
+              return undefined;
+            }
+          });
+          const patch = join(mkdtempSync(join(tmpdir(), 'code-check-')), `${i}.patch`);
+          writeFileSync(patch, diff.endsWith('\n') ? diff : `${diff}\n`);
+          const failed = await new Promise<string | undefined>((done) =>
+            execFile(
+              'git',
+              ['apply', '--whitespace=nowarn', patch],
+              { cwd: sandbox.dir },
+              (error, _out, err) =>
+                done(error ? String(err || error.message).slice(0, 300) : undefined),
+            ),
+          );
+          if (failed) return { status: 'did-not-apply', problems: [failed], checked: [] };
+          // A change to the dependencies needs them installed, as the PR's own CI would.
+          if (
+            prepared.pm !== 'none' &&
+            /^diff --git a\/\S*(?:package\.json|lock|requirements[^/\s]*\.txt|pyproject\.toml)\b/m.test(
+              diff,
+            )
+          ) {
+            await sandbox.exec(installCommand(prepared.pm, prepared.pmVersion));
+            reinstalled = true;
+          }
+          const after = await runChecks(sandbox, checks);
+          const label = changes.length > 1 ? `PR ${i + 1} of ${changes.length}: ` : '';
+          // Broken means a check that passed before fails after. One that already failed (a build
+          // short of env vars, say) can't tell either way, and its error text varies run to run.
+          for (const run of after.filter((candidate) => !candidate.ok)) {
+            const was = before.find((candidate) => candidate.name === run.name);
+            if (was && !was.ok) continue;
+            problems.push(
+              `${label}${run.name}: ${run.failures.slice(0, 2).join('; ')}`.slice(0, 300),
+            );
+          }
+        }
+        // Checks that passed before are the only ones that can show a break.
+        const usable = checks.filter(
+          (check) =>
+            before.some((run) => run.name === check.name && run.ok) ||
+            !before.some((run) => run.name === check.name),
+        );
+        return {
+          status: problems.length ? 'broken' : usable.length ? 'clean' : 'unverifiable',
+          problems,
+          checked: usable.map((check) => check.name),
+        };
+      } finally {
+        await sandbox.dispose();
+      }
+    } finally {
+      await copy.cleanup().catch(() => undefined);
+    }
+  } catch (error) {
+    return {
+      status: 'error',
+      problems: [error instanceof Error ? error.message : String(error)],
+      checked: [],
+    };
+  } finally {
+    hold.settle(ledger.spentUsd);
+  }
+}
+
 export function formatComparison(rows: BaselineRow[]): string {
   const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : '-');
   const judged = rows.filter((row) => row.judge);
@@ -487,6 +661,55 @@ async function main(argv: string[]) {
     if (!run.error) writeFileSync(file, `${JSON.stringify(run, null, 2)}\n`);
     return run;
   };
+  if (argv.includes('--verify')) {
+    // The same neutral code check on both sides' diffs, for every repo both have finished.
+    const verifyDir = join(outDir, 'verify');
+    mkdirSync(verifyDir, { recursive: true });
+    // Each side is checked on its own, as soon as it exists: plain Claude's runs don't wait for Refit's.
+    const results = new Map(
+      repoResults(inDir).map((result) => [`${result.set}/${result.repo}`, result]),
+    );
+    const pairs = readdirSync(claudeDir)
+      .filter((name) => name.endsWith('.json'))
+      .map((name) => JSON.parse(readFileSync(join(claudeDir, name), 'utf8')) as ClaudeRun)
+      .map((claude) => ({ claude, result: results.get(`${claude.set}/${claude.repo}`) }));
+    const entryOf = (claude: ClaudeRun): RepoAt => {
+      const set = loadDevSet(claude.set);
+      const found = set.repos.find((entry) => entry.repo === claude.repo);
+      if (!found) throw new Error(`${claude.repo} is not in ${claude.set}`);
+      return { set: set.name, repo: claude.repo, commit: found.commit, provider: set.provider };
+    };
+    let at = 0;
+    const checker = async () => {
+      while (at < pairs.length) {
+        const { result, claude } = pairs[at++] as (typeof pairs)[number];
+        const base = join(verifyDir, `${claude.set}__${claude.repo.replace('/', '__')}`);
+        const entry = entryOf(claude);
+        const jobs: Promise<void>[] = [];
+        if (!existsSync(`${base}.claude.json`)) {
+          jobs.push(
+            checkCode(entry, [claude.diff], budget).then((check) => {
+              writeFileSync(`${base}.claude.json`, `${JSON.stringify(check, null, 2)}\n`);
+              console.log(`${claude.repo}: code check Claude ${check.status}`);
+            }),
+          );
+        }
+        if (result && !existsSync(`${base}.refit.json`)) {
+          const diffs = attemptedTasks(result).map((task) => task.record?.diff ?? '');
+          jobs.push(
+            checkCode(entry, diffs, budget).then((check) => {
+              writeFileSync(`${base}.refit.json`, `${JSON.stringify(check, null, 2)}\n`);
+              console.log(`${claude.repo}: code check Refit ${check.status}`);
+            }),
+          );
+        }
+        await Promise.all(jobs);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(concurrency, pairs.length) }, checker));
+    console.log(`Spent $${budget.spentUsd().toFixed(2)} of $${budgetUsd}`);
+    return;
+  }
   if (argv.includes('--claude-only')) {
     // Plain Claude alone, on chosen repos of the sets: nothing of Refit's is read.
     const repos = new Set((flag('repos') ?? '').split(',').filter(Boolean));
