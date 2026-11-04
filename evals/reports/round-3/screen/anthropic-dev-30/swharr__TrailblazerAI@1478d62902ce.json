@@ -1,0 +1,41 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "swharr/TrailblazerAI",
+  "commit": "1478d62902cef9593c784096f55d23d15e5b87e3",
+  "provider": "anthropic",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export DATABASE_URL='postgresql://postgres:placeholder@localhost:5433/trailblazer?schema=public' NEXTAUTH_SECRET='placeholder-secret-for-build' NEXTAUTH_URL='http://localhost:3636' NEXT_PUBLIC_APP_URL='http://localhost:3636'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export DATABASE_URL='postgresql://postgres:placeholder@localhost:5433/trailblazer?schema=public' NEXTAUTH_SECRET='placeholder-secret-for-build' NEXTAUTH_URL='http://localhost:3636' NEXT_PUBLIC_APP_URL='http://localhost:3636'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.08866400000000008,
+  "durationMs": 203849,
+  "install": {
+    "code": 0,
+    "tail": "added 1002 packages in 1m\n\nnpm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead\nnpm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.\nnpm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.\nnpm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.\nnpm warn deprecated @simplewebauthn/types@9.0.1: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.\nnpm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead\nnpm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "The postinstall/prepare hooks were skipped, so the Prisma client in node_modules/.prisma has not been generated. Both tsc and next build import @prisma/client types.",
+        "code": 0
+      }
+    ],
+    "env": ["DATABASE_URL", "NEXTAUTH_SECRET", "NEXTAUTH_URL", "NEXT_PUBLIC_APP_URL"]
+  }
+}

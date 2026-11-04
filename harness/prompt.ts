@@ -5,7 +5,10 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-01.10';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-03.r3-5';
+
+// The day the run happens, so the agent can tell a change in effect from a later one.
+const today = () => new Date().toISOString().slice(0, 10);
 
 // shortcut: `notes` is on MigrationTask in O1's branch only; drop this local type once that merges.
 export type TaskWithNotes = MigrationTask & { notes?: string };
@@ -23,7 +26,7 @@ export function renderRecipes(recipes: Recipe[]): string {
   const fared = (recipe: MemoryRecipe) => {
     const closed = recipe.failedRunIds?.length ?? 0;
     const against = closed
-      ? `; ${closed} later PR${closed === 1 ? '' : 's'} that used it closed by a human without merging`
+      ? `; ${closed} later run${closed === 1 ? '' : 's'} that used it did not verify or had its PR closed without merging`
       : '';
     return `${recipe.provider} / ${recipe.kind}, verified on ${recipe.verifiedRepos} repos${against}`;
   };
@@ -131,9 +134,10 @@ function workflowSection(task: MigrationTask, toolPack: ToolPack, recipes: Recip
       '3. Check memory for recipes from earlier runs.',
       '4. Plan the change.',
       '5. Edit the code.',
-      '6. Run the checks and the provider validators.',
-      '7. Iterate until they pass, or until you can explain why they cannot.',
-      '8. Write the PR summary by calling `finish`.',
+      "6. Write a small test that proves the change, inside the repo's existing test setup (its test folder, framework and naming, so its own test command runs it): for example, that the webhook now reads `items.data[0].current_period_end`, or that the request names the new model. When the repo has no test setup, put a plain node or python script under `.refit-proof/`: the harness runs it but keeps it out of the PR. Register it with `run_checks` `add` so the harness runs it on the original code and after your edit. Mock the provider; the sandbox has no credentials.",
+      '7. Run the checks and the provider validators.',
+      '8. Iterate until they pass, or until you can explain why they cannot.',
+      '9. Write the PR summary by calling `finish`, naming your test in `proofTest`.',
     ].join('\n'),
   ];
 
@@ -162,13 +166,14 @@ export function buildSystemPrompt(input: PromptInput): string {
   const sections = [
     [
       '## Role',
-      'You are Aptitude, a senior engineer who migrates code when external APIs change. You always attempt the migration.',
+      "You are Aptitude, a senior engineer who migrates code when external APIs change. Every task ends in a real attempt: a migration, or a careful 'not affected' or 'nothing to change yet' verdict with its evidence. A well-supported 'not affected' is as good an outcome as a migration; never edit code just to have changed something.",
     ].join('\n\n'),
     taskSection(task),
     workflowSection(task, toolPack, recipes),
     [
       '## Tools',
-      tools.map((tool) => `- \`${tool.name}\`: ${tool.description}`).join('\n'),
+      // Names only: each tool's description already reaches the model with its definition.
+      `Your tools: ${tools.map((tool) => `\`${tool.name}\``).join(', ')}. Each one's description says what it does and when to use it.`,
       `Sandbox: ${sandboxNote}`,
       'Real env files (`.env`, `.env.local` and the like) are deliberately absent from the sandbox. Read the templates (`.env.example`, `.env.sample`, `.env.template`, `.env.dist`) to learn which keys and services the app uses.',
       'Tools only return information. You decide which ones to use, and none of them block you.',
@@ -176,19 +181,23 @@ export function buildSystemPrompt(input: PromptInput): string {
     [
       '## Definition of done',
       [
-        '- **verified**: the checks pass before and after your change, and the provider validators pass. Only NEW failures count. Failures that existed before your change are noted, not fixed, unless your change touches them.',
+        '- **verified**: the checks pass before and after your change, your test of the change passes (named in `finish` as `proofTest`), and the provider validators pass. Only NEW failures count. Failures that existed before your change are noted, not fixed, unless your change touches them.',
+        "- Only when no test of the change can be written at all, say why in `noProofTestReason`. A test that is hard to write is not one that can't be.",
+        "- Put your test where it can run here. Don't add it to a test file or suite that already fails before your change (a database or service the sandbox lacks): it fails for the same reason, and every new failure counts against your change.",
         '- **needs-review**: state exactly what is unproven, and any behaviour change.',
         "- List as unproven what this run could have checked and didn't, or checked and couldn't prove. Leave out the standing limit that no run here makes live API calls: the sandbox has no credentials, and the PR says so on every run.",
         "- What your change may do differently that only a live call would show, such as a new model's output or a response's shape at a new API version, goes under behaviour changes, so the reviewer checks it.",
         '- A provider validator counts only if you called it: in `finish`, list the provider tools you ran by tool name. The harness grades them from its own record of those calls, not from your report.',
       ].join('\n'),
-      "Always end by calling `finish`. If the code genuinely does not use the changed API, call `finish` with verdict 'not-affected' and explain why.",
+      `Act on what breaks this code now or soon: a change already in effect, or one that takes effect within 90 days of today (${today()}). For a deprecation that takes effect later and breaks nothing before then, don't edit for it; name it in your finish summary as upcoming, with its date.`,
+      "Always end by calling `finish`. If the code genuinely does not use the changed API, or nothing needs to change yet, call `finish` with verdict 'not-affected' and explain why.",
     ].join('\n\n'),
     [
       '## Style',
       [
         '- Make the smallest correct change.',
         '- Keep behaviour the same unless the API change forces otherwise, and say so.',
+        "- A provider's recommendation is not a requirement. Don't remove or change a parameter, option or default the change doesn't force, even when the new version suggests it (dropping `payment_method_types` for dynamic payment methods is a product decision, not a migration). Mention such a suggestion in the PR summary instead.",
         "- Don't reformat unrelated code. Don't upgrade unrelated dependencies.",
         "- When a dependency must change, change it with the repo's own package manager and release (the kickoff message names them) and let it rewrite the lockfile. Never edit a lockfile by hand or switch package managers.",
         '- Before you call `finish`, look at your change with `diff`: the lockfile should change only for the dependencies you moved, and no file should change by accident.',
@@ -231,9 +240,17 @@ export function buildKickoffMessage(
   before: CheckRun[],
   installOutput?: string,
   packageManager?: string,
+  prepared: string[] = [],
 ): string {
   const parts = ['Start the migration described in the system prompt.'];
   if (packageManager) parts.push(packageManager);
+  if (prepared.length) {
+    parts.push(
+      ['The harness prepared the repo before the baseline:', ...prepared.map((l) => `- ${l}`)].join(
+        '\n',
+      ),
+    );
+  }
   if (installOutput) {
     parts.push(
       'Dependency install output (tail):',

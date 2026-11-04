@@ -1,0 +1,35 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "djnightmare9909/Dungeon-master-OS-WFGY",
+  "commit": "c684edaa0df21272fd65954be3255fa33996354b",
+  "provider": "gemini",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export GEMINI_API_KEY='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export GEMINI_API_KEY='placeholder'; /tmp/bun/bin/bun run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.028105999999999964,
+  "durationMs": 125299,
+  "install": {
+    "code": 0,
+    "tail": "bun install v1.4.4 (38afee6c8)\n\n+ @types/node@25.5.2\n+ esbuild@0.28.1\n+ terser@5.51.2\n+ typescript@6.0.2\n+ vite@6.4.3\n+ @google/genai@1.48.0\n+ framer-motion@12.38.0\n+ lucide-react@1.7.0\n+ marked@18.0.9\n\n110 packages installed [9.26s]"
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["GEMINI_API_KEY"]
+  }
+}

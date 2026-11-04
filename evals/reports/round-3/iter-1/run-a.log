@@ -1,0 +1,49 @@
+stripe-dev-30: running 17 of 30 repos
+openai-dev-30: running 22 of 30 repos
+memory: stored benlamiro/ShipGenAI:stripe:node-23-0-0 but learned no recipe: Error: AI budget: $0.0000 spent of $1; next call could cost $1.0607
+memory: stored liamstamper/lamp-bot:stripe:node-23-0-0 but learned no recipe: Error: AI budget: $0.0000 spent of $1; next call could cost $4.0322
+memory: stored liamstamper/lamp-bot:stripe:2026-09-30-stripejs-payment-request-button but learned no recipe: Error: AI budget: $0.0000 spent of $1; next call could cost $4.7312
+# stripe-dev-30
+
+Repos: 17: 17 started, 0 never started (dollar cap)
+Graded units: 21 (tasks, plus repos the match agent called not-affected)
+
+| Outcome | Units | Rate |
+| --- | --- | --- |
+| verified | 17 | 81.0% |
+| needs-review | 2 | 9.5% |
+| not-affected | 2 | 9.5% |
+| failed | 0 | 0.0% |
+
+Attempted: 100.0% (must be 100%)
+
+Cost: $15.8889 total, $0.9346 per repo
+
+Cost by part (from the meter labels):
+
+| Repo | inventory | match | harness | review | other | Total |
+| --- | --- | --- | --- | --- | --- | --- |
+| 4lbatr0s/jiro | $0.0000 | $0.1549 | $0.1364 | $0.0842 | $0.2913 | $0.6668 |
+| alanagoyal/branded | $0.0000 | $0.1826 | $0.1744 | $0.1251 | $0.3975 | $0.8797 |
+| Anassarwar14/Chat-Nest-AI | $0.0000 | $0.1579 | $0.1753 | $0.0665 | $0.3768 | $0.7766 |
+| benlamiro/ShipGenAI | $0.0000 | $0.4544 | $0.3512 | $0.2600 | $0.0000 | $1.0657 |
+| createdbymax/Loopletter-Open-source-email-marketing-platform | $0.0865 | $0.2294 | $0.2235 | $0.1464 | $0.5172 | $1.2030 |
+| Devanshjain2110/QueryPDF | $0.0479 | $0.1483 | $0.1233 | $0.0883 | $0.2887 | $0.6966 |
+| Emmah-oo/spotify-clone | $0.0591 | $0.1856 | $0.1795 | $0.1003 | $0.4021 | $0.9266 |
+| imran-farooq7/next-gen-ai-yt | $0.0231 | $0.1562 | $0.1038 | $0.0954 | $0.3265 | $0.7051 |
+| liamstamper/lamp-bot | $0.0764 | $0.1826 | $0.3031 | $0.3621 | $0.0000 | $0.9241 |
+| manu14357/smartdoc | $0.0695 | $0.1556 | $0.1339 | $0.0872 | $0.3669 | $0.8131 |
+| Miguel07Alm/text2question | $0.0571 | $0.1473 | $0.1242 | $0.0625 | $0.3580 | $0.7491 |
+| MuhammadTanveerAbbas/Clario-ai | $0.0671 | $0.1863 | $0.1941 | $0.0961 | $0.5176 | $1.0612 |
+| nicuk/docsflow | $0.1917 | $0.2498 | $0.2284 | $0.1199 | $0.6217 | $1.4115 |
+| palashb01/DocuChat | $0.0463 | $0.1545 | $0.1134 | $0.0781 | $0.2354 | $0.6278 |
+| pretzelai/lumen | $0.1851 | $0.3202 | $0.4032 | $0.1628 | $0.5968 | $1.6682 |
+| samiamjidkhan/dota2-helper | $0.0635 | $0.1370 | $0.1565 | $0.1253 | $0.4875 | $0.9698 |
+| Small-Web-Co/tinypivot | $0.0725 | $0.1529 | $0.1333 | $0.0805 | $0.3048 | $0.7440 |
+| All repos | $1.0458 | $3.3556 | $3.2576 | $2.1408 | $6.0890 | $15.8889 |
+
+AI reviewer (advisory, not counted): has-concerns 19
+PRs to hand-check in evals/reviews.json (verified and needs-review): 19
+
+Spent $15.8889 by the meter, $21.5281 by the run budget, of a $2000 cap
+memory: stored Jeffansah/whop-ai-chat:openai:2026-08-26-assistants-api but learned no recipe: Error: AI budget: $0.0000 spent of $1; next call could cost $1.0726

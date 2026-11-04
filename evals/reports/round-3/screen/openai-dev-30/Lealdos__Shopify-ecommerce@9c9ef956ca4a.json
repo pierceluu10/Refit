@@ -1,0 +1,43 @@
+{
+  "set": "openai-dev-30",
+  "repo": "Lealdos/Shopify-ecommerce",
+  "commit": "9c9ef956ca4aec1d990dca0fa620d2c777ec362b",
+  "provider": "openai",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export OPENAI_API_KEY='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export OPENAI_API_KEY='placeholder'; npm run build",
+      "ok": false,
+      "failures": [
+        "TypeError: Failed to parse URL from /admin/api/2024-04/products.json",
+        "Error: An error occurred while fetching products",
+        "TypeError: Failed to parse URL from /admin/api/2024-04/collections/476133196095/products.json"
+      ],
+      "tail": "     at F (/work/.next/server/chunks/638.js:1:39671)\n      at /work/.next/server/chunks/638.js:1:41820\n      at async globalThis.fetch (/work/.next/server/chunks/638.js:1:36415)\n      at async i (/work/.next/server/app/(home)/page.js:1:8201)\n      at async a (/work/.next/server/app/(home)/page.js:1:6452) {\n    code: 'ERR_INVALID_URL',\n    input: '/admin/api/2024-04/collections/476133196095/products.json'\n  }\n}\nTypeError: Failed to parse URL from /admin/api/2024-04/collections/476133196095/products.json\n    at new Request (node:internal/deps/undici/undici:10036:19)\n    at i (/work/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:177224)\n    ... 4 lines matching cause stack trace ...\n    at async a (/work/.next/server/app/(home)/page.js:1:6452) {\n  [cause]: TypeError: Invalid URL\n      at new URL (node:internal/url:818:25)\n      at new Request (node:internal/deps/undici/undici:10034:25)\n      at i (/work/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:177224)\n      at F (/work/.next/server/chunks/638.js:1:39671)\n      at /work/.next/server/chunks/638.js:1:41820\n      at async globalThis.fetch (/work/.next/server/chunks/638.js:1:36415)\n      at async i (/work/.next/server/app/(home)/page.js:1:8201)\n      at async a (/work/.next/server/app/(home)/page.js:1:6452) {\n    code: 'ERR_INVALID_URL',\n    input: '/admin/api/2024-04/collections/476133196095/products.json'\n  }\n}\n\n> Export encountered errors on following paths:\n\t/api/route: /api"
+    }
+  ],
+  "costUsd": 0.07246999999999981,
+  "durationMs": 108728,
+  "install": {
+    "code": 0,
+    "tail": "added 495 packages in 29s"
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["OPENAI_API_KEY"]
+  },
+  "exclusion": {
+    "class": "outside-authority",
+    "reason": "`npm run build` fails because static generation fetches the Shopify Admin API (/admin/api/2024-04/products.json) with an empty base URL; the Shopify store domain and access token env vars are missing, so a real Shopify store and credentials are needed."
+  }
+}

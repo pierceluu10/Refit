@@ -1,0 +1,44 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "nikolaev-gd/splitting-to-components-v0",
+  "commit": "eb60db79fbf05d9db90f33656ac26045d081e775",
+  "provider": "anthropic",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export ANTHROPIC_API_KEY='placeholder' OPENAI_API_KEY='placeholder' AI_PROVIDER='openai'; npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "app/components/InteractiveText.tsx: error TS2554: Expected 2 arguments, but got 3.",
+        "app/hooks/useTextDisplay.ts: error TS7006: Parameter 'paragraph' implicitly has an 'any' type."
+      ],
+      "tail": "app/components/InteractiveText.tsx(26,38): error TS2554: Expected 2 arguments, but got 3.\napp/hooks/useTextDisplay.ts(63,56): error TS7006: Parameter 'paragraph' implicitly has an 'any' type."
+    },
+    {
+      "name": "build",
+      "command": "export ANTHROPIC_API_KEY='placeholder' OPENAI_API_KEY='placeholder' AI_PROVIDER='openai'; corepack yarn@1 run build",
+      "ok": false,
+      "failures": [
+        "Error: Page config in /work/app/api/generateFlashcard/route.ts is deprecated. Replace `export const config=…` with the following:"
+      ],
+      "tail": "-cache\nAttention: Next.js now collects completely anonymous telemetry regarding usage.\nThis information is used to shape Next.js' roadmap and prioritize features.\nYou can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:\nhttps://nextjs.org/telemetry\n\n  ▲ Next.js 14.2.13\n\n   Creating an optimized production build ...\ninfo Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.\n\n\n> Build error occurred\nError: Page config in /work/app/api/generateFlashcard/route.ts is deprecated. Replace `export const config=…` with the following:\nVisit https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config for more information.\n    at getPageStaticInfo (/work/node_modules/next/dist/build/analysis/get-page-static-info.js:425:27)\n    at async getStaticInfoIncludingLayouts (/work/node_modules/next/dist/build/entries.js:108:28)\n    at async /work/node_modules/next/dist/build/entries.js:410:32\n    at async Promise.all (index 1)\n    at async Promise.all (index 0)\n    at async createEntrypoints (/work/node_modules/next/dist/build/entries.js:550:5)\n    at async Span.traceAsyncFn (/work/node_modules/next/dist/trace/trace.js:154:20)\n    at async webpackBuildImpl (/work/node_modules/next/dist/build/webpack-build/impl.js:104:25)\n    at async Object.workerMain (/work/node_modules/next/dist/build/webpack-build/impl.js:330:20) {\n  type: 'Error'\n}\nerror Command failed with exit code 1."
+    }
+  ],
+  "costUsd": 0.04263400000000006,
+  "durationMs": 137055,
+  "install": {
+    "code": 0,
+    "tail": "ed not to mix package managers in order to avoid resolution inconsistencies caused by unsynchronized lock files. To clear this warning, remove package-lock.json.\nwarning \" > eslint-config-next@14.2.13\" has unmet peer dependency \"eslint@^7.23.0 || ^8.0.0\".\nwarning \"eslint-config-next > @typescript-eslint/eslint-plugin@8.8.0\" has unmet peer dependency \"eslint@^8.57.0 || ^9.0.0\".\nwarning \"eslint-config-next > @typescript-eslint/parser@8.8.0\" has unmet peer dependency \"eslint@^8.57.0 || ^9.0.0\".\nwarning \"eslint-config-next > eslint-import-resolver-typescript@3.6.3\" has unmet peer dependency \"eslint@*\".\nwarning \"eslint-config-next > eslint-plugin-import@2.30.0\" has unmet peer dependency \"eslint@^2 || ^3 || ^4 || ^5 || ^6 || ^7.2.0 || ^8\".\nwarning \"eslint-config-next > eslint-plugin-jsx-a11y@6.10.0\" has unmet peer dependency \"eslint@^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9\".\nwarning \" > eslint-plugin-react@7.37.0\" has unmet peer dependency \"eslint@^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9.7\".\nwarning \"eslint-config-next > eslint-plugin-react-hooks@4.6.2\" has unmet peer dependency \"eslint@^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0\".\nwarning \"typescript-eslint > @typescript-eslint/utils@8.8.0\" has unmet peer dependency \"eslint@^8.57.0 || ^9.0.0\".\nwarning \"eslint-config-next > @typescript-eslint/eslint-plugin > @typescript-eslint/utils > @eslint-community/eslint-utils@4.4.0\" has unmet peer dependency \"eslint@^6.0.0 || ^7.0.0 || >=8.0.0\".\nwarning Ignored scripts due to flag."
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "AI_PROVIDER"]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "typecheck fails with TS2554 (wrong argument count) in InteractiveText.tsx and TS7006 (implicit any) in useTextDisplay.ts, and the Next.js build fails on the deprecated `export const config` in app/api/generateFlashcard/route.ts; these are the repo's own code errors, not external dependencies."
+  }
+}

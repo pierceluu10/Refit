@@ -1,0 +1,56 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "saxllc/journey-intelligence",
+  "refit": {
+    "checks": "no-repo-checks",
+    "costUsd": 0.16670859999999998,
+    "tasks": 1,
+    "verified": 1
+  },
+  "claude": {
+    "checks": "no-repo-checks",
+    "costUsd": 0.07024250000000001,
+    "prepCostUsd": 0.00564,
+    "diffLines": 198,
+    "finalText": "I changed one thing: the model ID `claude-sonnet-4-5` is now `claude-sonnet-5-5`. I didn't run the app or any generation scripts, so the new model ID is untested here.\n\n**Why:** Anthropic's deprecation page lists `claude-sonnet-4-5-20250929` as deprecated on 2026-09-30. It retires on 2026-11-30, and the recommended replacement is `claude-sonnet-5-5`. After that date, calls using the old ID will fail.\n\n**Where I changed it:**\n- `api/`: `klh-script.js`, `journey-chunk.js`, `ekyc-chunk.js` and `umang-chunk.js` (the `SONNET` constant).\n- `src/rhetorical.js`.\n- `demo/server.js`.\n- `scripts/`: `generate-chunks.js`, `generate-cache.js`, `generate-ekyc-chunks.js`, `seed-cache.js` and `seed-umang-chunks.js`.\n\nSome of these files also write the model name into the cached entries they generate, so new entries will now say `claude-sonnet-5-5`.\n\n**What I left alone:**\n- **Old copies and backups:** `demo/server_old.js`, `.claude/settings.local.json` and `scripts/chunks-backup.json` still say `claude-sonnet-4-5`. They are an archived server, local permission notes and historical backup data.\n- **Haiku model:** `claude-haiku-4-5-20251001` in `api/umang-chunk.js` is still listed as active. The page gives only a \"not sooner than October 15, 2026\" retirement date, with no deprecation notice.\n- **Removed parameters:** the page says `temperature`, `top_p` and `top_k` are removed in API version 2026-10-21. The repo doesn't set any of them, and it sends the older `anthropic-version: 2023-06-01` header, so nothing needs to change.\n- **Sarvam APIs:** `bulbul:v3` for text-to-speech and `saaras:v3` for speech-to-text still look current. I didn't look up their docs, so I haven't confirmed that.\n\nSources: https://docs.claude.com/en/docs/about-claude/model-deprecations",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-saxllc-journey-intelligence/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "claude-sonnet-4-5 retirement; replace with claude-sonnet-5-5",
+          "correct": true,
+          "note": "Same edits as A, plus demo/server_old.js. That file has real SDK calls, so B's coverage is more complete."
+        },
+        {
+          "change": "Removed sampling params / tool_choice / thinking:disabled",
+          "correct": true,
+          "note": "Checked and found none in use. Correctly treated the SDK 1.0.0 bump and the anthropic-version bump as optional and did not do them."
+        }
+      ],
+      "breaks": [
+        "Added test/model.test.js, a new test no API change required. It is not wired into any runner, and its hard-coded thresholds (n<10, a regex banning tool_choice) are brittle. Harmless but unrequested."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "claude-sonnet-4-5 (claude-sonnet-4-5-20250929) deprecated, retiring 2026-11-30; replace with claude-sonnet-5-5",
+          "correct": true,
+          "note": "Updated all 11 active files: api handlers, src/rhetorical.js, demo/server.js and the scripts, including the model metadata in cache entries. Left demo/server_old.js unchanged as archived. Defensible, though that file still makes a live call with the old ID if anyone runs it."
+        },
+        {
+          "change": "temperature/top_p/top_k removed in API version 2026-10-21",
+          "correct": true,
+          "note": "Correctly found the repo sets none of them and still sends anthropic-version 2023-06-01, so no change is needed."
+        }
+      ],
+      "breaks": []
+    },
+    "better": "tie",
+    "why": "Both make the same correct core model swap. B also updates the archived server_old.js, which does call the API, but adds an unrequested, brittle test file. A gives a clearer and more careful explanation of what it left alone and why, including Haiku and the removed parameters. The differences roughly cancel out.",
+    "costUsd": 0.059968
+  }
+}

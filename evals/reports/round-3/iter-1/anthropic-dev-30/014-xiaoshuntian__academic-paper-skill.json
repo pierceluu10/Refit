@@ -1,0 +1,172 @@
+{
+  "set": "anthropic-dev-30",
+  "index": 14,
+  "repo": "xiaoshuntian/academic-paper-skill",
+  "commit": "0120d7f37daec0c9e71d902f67b6fb048de54c45",
+  "provider": "anthropic",
+  "usages": 6,
+  "changes": 15,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "xiaoshuntian/academic-paper-skill:anthropic:2026-11-30-retire-claude-sonnet-4-5",
+      "changeId": "anthropic:2026-11-30-retire-claude-sonnet-4-5",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "anthropic",
+        "id": "anthropic:2026-11-30-retire-claude-sonnet-4-5",
+        "kind": "model-retirement",
+        "title": "claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+          "quote": "| November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |"
+        },
+        "affects": {
+          "operations": ["claude-sonnet-4-5-20250929"]
+        },
+        "effectiveDate": "2026-11-30"
+      },
+      "reasoning": "The repo streams Claude Messages through @anthropic-ai/sdk 0.55.1 and sends a configurable `model`. The usage map has no pinned Anthropic model value, so it is unclear whether claude-sonnet-4-5-20250929 is the default or a user-selected option. The migration agent should check src/api.js, config files and README defaults for 'claude-sonnet-4-5' and replace any match with claude-sonnet-5-5. The call uses only model, max_tokens, system and messages, with no thinking or tool_choice, so the Sonnet 5.5 behavior changes should not bite. If no Sonnet 4.5 reference exists, close this task as a no-op.",
+      "callSites": [
+        {
+          "file": "src/api.js",
+          "line": 95,
+          "why": "messages.stream passes a `model` field to Anthropic. The scan did not record the model value. If it is or defaults to claude-sonnet-4-5-20250929, the call will fail once that model retires on 2026-11-30."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "xiaoshuntian/academic-paper-skill:anthropic:2026-11-30-retire-claude-sonnet-4-5",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [],
+        "costUsd": 0.0730681,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-xiaoshuntian-academic-paper-skill-anthropic-2026-11-30-retire-claude-sonnet-4-5-ZwAysR/transcript.jsonl",
+        "prBody": "## claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 [Not affected]\n\n### Change\n\nNo code change. The repo has no reference to claude-sonnet-4-5 or claude-sonnet-4-5-20250929. A search for 20250929, sonnet-4.5 and sonnet_4_5 also found nothing. The Claude default in src/api.js:10 and in README.md and README.zh.md is claude-sonnet-4-6, which this retirement does not cover.\n\nNo files changed.\n\n### Why\n\nThe retirement only affects claude-sonnet-4-5-20250929, and this repo never names that model. The call at src/api.js:95 takes its model from config, and the default is claude-sonnet-4-6.\n\n> | November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |\n\nSource: https://platform.claude.com/docs/en/about-claude/model-deprecations.md\n\n### Proof\n\nNo checks were run.\n\nNew failures: 0\n\nProvider validators: none run.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- A user could still choose claude-sonnet-4-5-20250929 at runtime through config or an environment variable. The repo cannot show that, and a user who does would need to switch models themselves.\n- I registered no tests, since there was no code change.\n- No checks were run.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0731\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-anthropic-model-retirement-9b5d480a",
+          "recipe-openai-model-retirement-58a73d88",
+          "recipe-anthropic-sdk-major-50cc7085"
+        ],
+        "agentChecks": [],
+        "summary": "# xiaoshuntian/academic-paper-skill:anthropic:2026-11-30-retire-claude-sonnet-4-5: not-affected, $0.0731\nChange: claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 (anthropic, model-retirement)\nBaseline checks: none\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=claude-sonnet-4|sonnet-4-5 → README.md:128: | Claude | `ANTHROPIC_API_KEY` | `claude-sonnet-4-6` | International | | README.zh.md:128: | Claude | `ANTHROPIC_API_KEY` | `claude-sonnet-4-6` | 国际用户 | | src/api.js:10:     defaultModel: 'claude-sonnet-4-6',\n2. search pattern=20250929|sonnet-4\\.5|sonnet_4_5 → no matches\n3. finish verdict=not-affected summary=<292 chars> why=<186 chars> validators=[] unproven=<254 chars> behaviourChanges=[] → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: none\n\n## Result\nFiles changed: none\nVerdict: not-affected. No code change. The repo has no reference to claude-sonnet-4-5 or claude-sonnet-4-5-20250929. A search for 20250929, sonnet-4.5 and sonnet_4_5 also found nothing. The Claude default in src/api.js:10 and in README.md and README.zh.md is claude-sonnet-4-6, which this retirement does not cover.\nUnproven: A user could still choose claude-sonnet-4-5-20250929 at runtime through config or an environment variable. The repo cannot show that, and a user who does would need to switch models themselves.; I registered no tests, since there was no code change.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "Plain Node ESM CLI with only runtime dependencies and a single start script. It has no postinstall, prepare, codegen, or build steps, no workspace packages, and no subfolder projects. CONTRIBUTING says no special setup is needed. API keys are only read when the CLI runs, not at load or build, and no checks were detected, so nothing is required."
+        }
+      }
+    },
+    {
+      "taskId": "xiaoshuntian/academic-paper-skill:anthropic:2026-10-21-sdk-typescript-1-0-0",
+      "changeId": "anthropic:2026-10-21-sdk-typescript-1-0-0",
+      "kind": "sdk-major",
+      "change": {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-21-sdk-typescript-1-0-0",
+        "kind": "sdk-major",
+        "title": "npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too",
+        "source": {
+          "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md",
+          "quote": "* **api:** add support for new API version 2026-10-21"
+        },
+        "affects": {
+          "fields": ["temperature", "top_p", "top_k", "MessageParam"],
+          "versions": ["<1.0.0", "1.0.0"],
+          "sdk": "@anthropic-ai/sdk"
+        }
+      },
+      "reasoning": "The repo pins @anthropic-ai/sdk 0.55.1 (package-lock.json). SDK 1.0.0 is a breaking major that defaults to API version 2026-10-21, removes temperature/top_p/top_k and turns MessageParam into a union. Nothing in the source says the old SDK or the 2023-06-01 API version stop working, so this is an opportunistic upgrade, not a forced one. The current call site uses no removed parameters, no document blocks in assistant turns and no citations in user turns, so the upgrade should be mostly mechanical. The agent should bump the SDK, verify messages.stream event handling still works, check that no temperature or top_p is set anywhere, and review the OpenTelemetry default.\nThis task also resolves these changes. Handle each in the same change, and say in the PR how:\n- anthropic:2026-10-21-api-version-2026-10-21 (api-version): New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01. SDK 1.0.0 is what moves the anthropic-version header from 2023-06-01 to 2026-10-21. The repo on 0.55.1 keeps sending 2023-06-01 until this upgrade.\n  Source: https://platform.claude.com/docs/en/api/migration-2026-10-21.md\n  \"This guide lists the code changes for moving from API version `2023-06-01` to `2026-10-21`.\"\n- anthropic:2026-10-21-sampling-params-removed (field-removed): In API version 2026-10-21, temperature, top_p and top_k in Messages and Batch requests return 400. temperature, top_p and top_k only return 400 under API version 2026-10-21, which the repo adopts by moving to SDK 1.0.0. The recorded call site sends none of them, but response and option handling was not fully read, so the agent should confirm during the upgrade that none are passed.\n  Source: https://platform.claude.com/docs/en/api/migration-2026-10-21.md\n  \"In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.\"\n- anthropic:2026-10-14-ts-sdk-otel-default (other): TypeScript SDK 0.134.0 auto-creates OpenTelemetry spans and trace headers if a global tracer provider exists (unsure if affects; opt out with openTelemetry:false). OpenTelemetry auto-instrumentation starts in 0.134.0, which this jump from 0.55.1 crosses. If the app registers a global tracer provider, decide during the upgrade whether to set openTelemetry:false.\n  Source: https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md\n  \"If your app registers a global tracer provider, the SDK will create spans with it after upgrading, and they'll be exported with the rest of your traces.\"",
+      "callSites": [
+        {
+          "file": "src/api.js",
+          "line": 95,
+          "why": "messages.stream is called through @anthropic-ai/sdk 0.55.1. Upgrading to 1.0.0 changes the default API version to 2026-10-21 and changes MessageParam typing. The call passes model, max_tokens, system and messages, with no sampling params recorded."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "xiaoshuntian/academic-paper-skill:anthropic:2026-10-21-sdk-typescript-1-0-0",
+        "outcome": "verified",
+        "diff": "diff --git a/package-lock.json b/package-lock.json\nindex 747dfa4..704356b 100644\n--- a/package-lock.json\n+++ b/package-lock.json\n@@ -9,7 +9,7 @@\n       \"version\": \"0.1.0\",\n       \"license\": \"MIT\",\n       \"dependencies\": {\n-        \"@anthropic-ai/sdk\": \"^0.55.0\",\n+        \"@anthropic-ai/sdk\": \"^1.0.0\",\n         \"commander\": \"^13.0.0\",\n         \"openai\": \"^4.0.0\"\n       },\n@@ -21,14 +21,51 @@\n       }\n     },\n     \"node_modules/@anthropic-ai/sdk\": {\n-      \"version\": \"0.55.1\",\n-      \"resolved\": \"https://registry.npmjs.org/@anthropic-ai/sdk/-/sdk-0.55.1.tgz\",\n-      \"integrity\": \"sha512-gjOMS4chmm8BxClKmCjNHmvf1FrO1Cn++CSX6K3YCZjz5JG4I9ZttQ/xEH4FBsz6HQyZvnUpiKlOAkmxaGmEaQ==\",\n-      \"license\": \"MIT\",\n+      \"version\": \"1.0.0\",\n+      \"resolved\": \"https://registry.npmjs.org/@anthropic-ai/sdk/-/sdk-1.0.0.tgz\",\n+      \"integrity\": \"sha512-I1KiDtqRl1F9mZgRJxTYiLxeM/jgLve/8YBeNpNBkPRttOFgABJQcDm70RFFGmOruTujiBbaCA+Vhx2Q8l0qPA==\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@opentelemetry/api\": \"^1.4.1\",\n+        \"json-schema-to-ts\": \"^3.1.1\",\n+        \"standardwebhooks\": \"^1.0.0\"\n+      },\n       \"bin\": {\n         \"anthropic-ai-sdk\": \"bin/cli\"\n+      },\n+      \"peerDependencies\": {\n+        \"zod\": \"^3.25.0 || ^4.0.0\"\n+      },\n+      \"peerDependenciesMeta\": {\n+        \"zod\": {\n+          \"optional\": true\n+        }\n+      }\n+    },\n+    \"node_modules/@babel/runtime\": {\n+      \"version\": \"7.29.10\",\n+      \"resolved\": \"https://registry.npmjs.org/@babel/runtime/-/runtime-7.29.10.tgz\",\n+      \"integrity\": \"sha512-NpugTzbKgGrNe45Ui32cN8vCFFMxVtP/9rtfwv0nP5FRDAjvYBxJcLVpYA9mr1jxP6cnIT7x9LUzuDTbWYYNRA==\",\n+      \"license\": \"MIT\",\n+      \"engines\": {\n+        \"node\": \">=6.9.0\"\n+      }\n+    },\n+    \"node_modules/@opentelemetry/api\": {\n+      \"version\": \"1.10.0\",\n+      \"resolved\": \"https://registry.npmjs.org/@opentelemetry/api/-/api-1.10.0.tgz\",\n+      \"integrity\": \"sha512-lMkyes8iHrG+mk6WH7X70MdCLI2RS0FwNBY1PyQ8UemaijE2m5mv5A0Niy3HtbYTFrgkUEQjFMXmSAk2hQDuPQ==\",\n+      \"license\": \"Apache-2.0\",\n+      \"engines\": {\n+        \"node\": \">=8.0.0\"\n       }\n     },\n+    \"node_modules/@stablelib/base64\": {\n+      \"version\": \"1.0.1\",\n+      \"resolved\": \"https://registry.npmjs.org/@stablelib/base64/-/base64-1.0.1.tgz\",\n+      \"integrity\": \"sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==\",\n+      \"license\": \"MIT\"\n+    },\n     \"node_modules/@types/node\": {\n       \"version\": \"18.19.130\",\n       \"resolved\": \"https://registry.npmjs.org/@types/node/-/node-18.19.130.tgz\",\n@@ -189,6 +226,12 @@\n         \"node\": \">=6\"\n       }\n     },\n+    \"node_modules/fast-sha256\": {\n+      \"version\": \"1.3.0\",\n+      \"resolved\": \"https://registry.npmjs.org/fast-sha256/-/fast-sha256-1.3.0.tgz\",\n+      \"integrity\": \"sha512-n11RGP/lrWEFI/bWdygLxhI+pVeo1ZYIVwvvPkW7azl/rOy+F3HYRZ2K5zeE9mmkhQppyv9sQFx0JM9UabnpPQ==\",\n+      \"license\": \"Unlicense\"\n+    },\n     \"node_modules/form-data\": {\n       \"version\": \"4.0.5\",\n       \"resolved\": \"https://registry.npmjs.org/form-data/-/form-data-4.0.5.tgz\",\n@@ -330,6 +373,19 @@\n         \"ms\": \"^2.0.0\"\n       }\n     },\n+    \"node_modules/json-schema-to-ts\": {\n+      \"version\": \"3.1.1\",\n+      \"resolved\": \"https://registry.npmjs.org/json-schema-to-ts/-/json-schema-to-ts-3.1.1.tgz\",\n+      \"integrity\": \"sha512-+DWg8jCJG2TEnpy7kOm/7/AxaYoaRbjVB4LFZLySZlWn8exGs3A4OLJR966cVvU26N7X9TWxl+Jsw7dzAqKT6g==\",\n+      \"license\": \"MIT\",\n+      \"dependencies\": {\n+        \"@babel/runtime\": \"^7.18.3\",\n+        \"ts-algebra\": \"^2.0.0\"\n+      },\n+      \"engines\": {\n+        \"node\": \">=16\"\n+      }\n+    },\n     \"node_modules/math-intrinsics\": {\n       \"version\": \"1.1.0\",\n       \"resolved\": \"https://registry.npmjs.org/math-intrinsics/-/math-intrinsics-1.1.0.tgz\",\n@@ -436,12 +492,28 @@\n         }\n       }\n     },\n+    \"node_modules/standardwebhooks\": {\n+      \"version\": \"1.1.1\",\n+      \"resolved\": \"https://registry.npmjs.org/standardwebhooks/-/standardwebhooks-1.1.1.tgz\",\n+      \"integrity\": \"sha512-bCbX9ZEyFkWPsRz7Bl3NuQUJohmwGSev/yhr7vhaGPlc4AfIrspIRa6cPTBuI1ItmrTDJ4d/S2hCsfe4+vQGnQ==\",\n+      \"license\": \"MIT\",\n+      \"dependencies\": {\n+        \"@stablelib/base64\": \"^1.0.0\",\n+        \"fast-sha256\": \"^1.3.0\"\n+      }\n+    },\n     \"node_modules/tr46\": {\n       \"version\": \"0.0.3\",\n       \"resolved\": \"https://registry.npmjs.org/tr46/-/tr46-0.0.3.tgz\",\n       \"integrity\": \"sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==\",\n       \"license\": \"MIT\"\n     },\n+    \"node_modules/ts-algebra\": {\n+      \"version\": \"2.0.0\",\n+      \"resolved\": \"https://registry.npmjs.org/ts-algebra/-/ts-algebra-2.0.0.tgz\",\n+      \"integrity\": \"sha512-FPAhNPFMrkwz76P7cdjdmiShwMynZYN6SgOujD1urY4oNm80Ou9oMdmbR45LotcKOXoy7wSmHkRFE6Mxbrhefw==\",\n+      \"license\": \"MIT\"\n+    },\n     \"node_modules/undici-types\": {\n       \"version\": \"5.26.5\",\n       \"resolved\": \"https://registry.npmjs.org/undici-types/-/undici-types-5.26.5.tgz\",\ndiff --git a/package.json b/package.json\nindex 99fad9d..f9885e6 100644\n--- a/package.json\n+++ b/package.json\n@@ -15,7 +15,7 @@\n     \"start\": \"node bin/aps.js\"\n   },\n   \"dependencies\": {\n-    \"@anthropic-ai/sdk\": \"^0.55.0\",\n+    \"@anthropic-ai/sdk\": \"^1.0.0\",\n     \"commander\": \"^13.0.0\",\n     \"openai\": \"^4.0.0\"\n   },\ndiff --git a/tests/anthropic-sdk1.test.mjs b/tests/anthropic-sdk1.test.mjs\nnew file mode 100644\nindex 0000000..85f029e\n--- /dev/null\n+++ b/tests/anthropic-sdk1.test.mjs\n@@ -0,0 +1,28 @@\n+import assert from 'node:assert';\n+const seen = [];\n+const sse = [\n+  ['message_start', { type: 'message_start', message: { id: 'm', type: 'message', role: 'assistant', model: 'x', content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } } }],\n+  ['content_block_start', { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } }],\n+  ['content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Hel' } }],\n+  ['content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'lo' } }],\n+  ['content_block_stop', { type: 'content_block_stop', index: 0 }],\n+  ['message_delta', { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 2 } }],\n+  ['message_stop', { type: 'message_stop' }],\n+].map(([e, d]) => `event: ${e}\\ndata: ${JSON.stringify(d)}\\n\\n`).join('');\n+globalThis.fetch = async (url, init) => {\n+  seen.push({ url: String(url), headers: new Headers(init.headers), body: JSON.parse(String(init.body)) });\n+  return new Response(sse, { headers: { 'content-type': 'text/event-stream' } });\n+};\n+process.env.ANTHROPIC_API_KEY = 'dummy';\n+let out = '';\n+const w = process.stdout.write.bind(process.stdout);\n+process.stdout.write = (s) => { out += s; return true; };\n+const { streamResponse } = await import('../src/api.js');\n+await streamResponse({ systemPrompt: 'sys', userMessage: 'hi', provider: 'claude' });\n+process.stdout.write = w;\n+assert.strictEqual(seen.length, 1);\n+assert.strictEqual(seen[0].headers.get('anthropic-version'), '2026-10-21');\n+for (const k of ['temperature', 'top_p', 'top_k']) assert(!(k in seen[0].body));\n+assert.strictEqual(seen[0].body.system, 'sys');\n+assert.strictEqual(out.trim(), 'Hello');\n+console.log('ok');\n",
+        "checks": [
+          {
+            "name": "sdk1-proof",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.10723770000000002,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-xiaoshuntian-academic-paper-skill-anthropic-2026-10-21-sdk-typescript-1-0-0-Kt7UBP/transcript.jsonl",
+        "prBody": "## npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too [Verified]\n\n### Change\n\nBumped @anthropic-ai/sdk 0.55.1 -> 1.0.0 via npm (package.json ^1.0.0, lockfile rewritten). No source change needed: src/api.js streamAnthropic uses only model, max_tokens, system, messages and handles raw stream events by type. Added tests/anthropic-sdk1.test.mjs, which drives the real streamResponse with stubbed fetch and SSE.\n\nFiles touched:\n- `package-lock.json`\n- `package.json`\n- `tests/anthropic-sdk1.test.mjs`\n\n### Why\n\nSDK 1.0.0 sends anthropic-version 2026-10-21, rejects temperature/top_p/top_k and makes MessageParam a union. The call site was already compliant, so only the dependency bump and a proof test were needed.\n\n> * **api:** add support for new API version 2026-10-21\n\nSource: https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| sdk1-proof | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- sdk1-proof, added by the agent: `node tests/anthropic-sdk1.test.mjs` (fail (1) → pass)\n\nProvider validators: none run.\n\nTest of this change: `sdk1-proof`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Real API behaviour at 2026-10-21 and real streaming\n- Default model id claude-sonnet-4-6 validity\n- Baseline failure of the proof test only shows the test did not pass on old code (anthropic-version header would be 2023-06-01)\n- npm audit warnings and lockfile churn not addressed\n- SDK license changes from MIT to Apache-2.0\n- No provider validator was run.\n\n### Behaviour changes\n\n- anthropic-version header moves from 2023-06-01 to 2026-10-21\n- No temperature/top_p/top_k anywhere in the repo (grepped); none sent\n- No OpenTelemetry tracer is registered in the repo, so the SDK's auto-spans are inert; openTelemetry:false not set\n- No Bedrock/Vertex/Foundry SDKs or raw HTTP calls to Anthropic; the other providers use the OpenAI SDK and are unaffected\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1072\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": ["recipe-anthropic-sdk-major-50cc7085"],
+        "agentChecks": [
+          {
+            "name": "sdk1-proof",
+            "command": "node tests/anthropic-sdk1.test.mjs",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# xiaoshuntian/academic-paper-skill:anthropic:2026-10-21-sdk-typescript-1-0-0: verified, $0.1072\nChange: npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too (anthropic, sdk-major)\nBaseline checks: sdk1-proof fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=<97 chars> path=. glob=**/*.{js,mjs,cjs,ts,json} → package-lock.json:12:         \"@anthropic-ai/sdk\": \"^0.55.0\", | package-lock.json:23:     \"node_modules/@anthropic-ai/sdk\": { | package-lock.json:25:       \"resolved\": \"https://registry.npmjs.org/@anthropic-ai/sdk/-/sdk-0.55.1.tgz\",\n2. read_file path=src/api.js → 1\timport Anthropic from '@anthropic-ai/sdk'; | 2\timport OpenAI from 'openai'; | 3\t\n3. shell command=<134 chars> → exit code: 0 | --- stdout --- | To address all issues, run:\n4. shell command=<1925 chars> → exit code: 0 | --- stdout --- | README.md\n5. run_checks add=[{\"name\":\"sdk1-proof\",\"command\":\"node tests/anthropic-sdk1.test.mjs\"}] → registered sdk1-proof; on the original code it fails (1) | ## sdk1-proof: pass | command: node tests/anthropic-sdk1.test.mjs\n6. finish verdict=migrated summary=<330 chars> why=<204 chars> validators=[] unproven=<329 chars> behaviourChanges=<374 chars> proofTest=sdk1-proof → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: sdk1-proof fail (1) → pass\n\n## Result\nFiles changed: package-lock.json, package.json, tests/anthropic-sdk1.test.mjs\nVerdict: migrated. Bumped @anthropic-ai/sdk 0.55.1 -> 1.0.0 via npm (package.json ^1.0.0, lockfile rewritten). No source change needed: src/api.js streamAnthropic uses only model, max_tokens, system, messages and handles raw stream events by type. Added tests/anthropic-sdk1.test.mjs, which drives the real streamResponse with stubbed fetch and SSE.\nUnproven: Real API behaviour at 2026-10-21 and real streaming; Default model id claude-sonnet-4-6 validity; Baseline failure of the proof test only shows the test did not pass on old code (anthropic-version header would be 2023-06-01); npm audit warnings and lockfile churn not addressed; SDK license changes from MIT to Apache-2.0\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "Plain Node ESM CLI with only runtime dependencies (@anthropic-ai/sdk, commander, openai). There are no install, prepare, postinstall, build, or codegen scripts, and CONTRIBUTING says no special setup is needed. No checks were detected, and API keys are only read when the CLI runs, not at load or build time. Nothing needs preparing."
+        }
+      },
+      "review": {
+        "opinion": "looks-right",
+        "summary": "The only affected call site is src/api.js:95 (`client.messages.stream`). It sends only `model`, `max_tokens`, `system` (a string) and one `{role:'user', content: string}` message. It does not use `temperature`, `top_p` or `top_k`, and it imports no Bedrock, Vertex or Foundry SDK. So bumping the dependency to ^1.0.0 without code changes looks sufficient. The new test stubs `fetch` and checks three things: the `anthropic-version` header is 2026-10-21, none of the removed sampling params are sent, and text deltas still reach stdout. That is a reasonable proof of the request side. The response side is proven only against a hand-written SSE stream in the old event shape, not the live API. The `verified` grade is defensible for what the mock covers.",
+        "concerns": [
+          {
+            "file": "tests/anthropic-sdk1.test.mjs",
+            "issue": "The mocked SSE stream uses the pre-1.0 event shapes (`message_start`, `content_block_delta`/`text_delta`, etc.). If API version 2026-10-21 changes or adds streaming event types or content block types, the loop in src/api.js:streamAnthropic could silently drop output. The test cannot detect this. I could not confirm the 2026-10-21 streaming shape; check the SDK's 1.0.0 stream event types or run one live call.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/api.js",
+            "issue": "The default model `claude-sonnet-4-6` and `max_tokens: 8192` are not exercised against the real API under the new version. The mock accepts any model. Confirm the model is accepted under 2026-10-21.",
+            "severity": "low"
+          },
+          {
+            "file": "package.json",
+            "issue": "`engines.node` is still >=18.0.0. I could not confirm the minimum Node version @anthropic-ai/sdk 1.0.0 supports; check its package.json `engines` field. The lockfile also adds new transitive deps: @opentelemetry/api, json-schema-to-ts, standardwebhooks, and an optional zod peer.",
+            "severity": "low"
+          },
+          {
+            "file": "package-lock.json",
+            "issue": "The SDK license changes from MIT to Apache-2.0. This is compatible with this MIT project, but worth noting for anyone tracking licenses.",
+            "severity": "low"
+          },
+          {
+            "file": "tests/anthropic-sdk1.test.mjs",
+            "issue": "package.json has no `test` script. Unless CI invokes this file directly, it will not guard future changes.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Run one real `aps` call with the claude provider on SDK 1.0.0 and confirm streamed text prints correctly.",
+          "Check the @anthropic-ai/sdk 1.0.0 `engines` field against this package's Node >=18 claim.",
+          "Decide whether to add a `test` script so tests/anthropic-sdk1.test.mjs runs in CI."
+        ],
+        "costUsd": 0.061784,
+        "model": "claude-opus-5-5"
+      }
+    }
+  ],
+  "costUsd": 0.7519558,
+  "durationMs": 306203,
+  "matchReasoning": "xiaoshuntian/academic-paper-skill:anthropic:2026-11-30-retire-claude-sonnet-4-5: The repo streams Claude Messages through @anthropic-ai/sdk 0.55.1 and sends a configurable `model`. The usage map has no pinned Anthropic model value, so it is unclear whether claude-sonnet-4-5-20250929 is the default or a user-selected option. The migration agent should check src/api.js, config files and README defaults for 'claude-sonnet-4-5' and replace any match with claude-sonnet-5-5. The call uses only model, max_tokens, system and messages, with no thinking or tool_choice, so the Sonnet 5.5 behavior changes should not bite. If no Sonnet 4.5 reference exists, close this task as a no-op.\nxiaoshuntian/academic-paper-skill:anthropic:2026-10-21-sdk-typescript-1-0-0: The repo pins @anthropic-ai/sdk 0.55.1 (package-lock.json). SDK 1.0.0 is a breaking major that defaults to API version 2026-10-21, removes temperature/top_p/top_k and turns MessageParam into a union. Nothing in the source says the old SDK or the 2023-06-01 API version stop working, so this is an opportunistic upgrade, not a forced one. The current call site uses no removed parameters, no document blocks in assistant turns and no citations in user turns, so the upgrade should be mostly mechanical. The agent should bump the SDK, verify messages.stream event handling still works, check that no temperature or top_p is set anywhere, and review the OpenTelemetry default.\nanthropic:2026-10-21-api-version-2026-10-21: not affected: No task of its own: resolved inside xiaoshuntian/academic-paper-skill:anthropic:2026-10-21-sdk-typescript-1-0-0 (npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too). SDK 1.0.0 is what moves the anthropic-version header from 2023-06-01 to 2026-10-21. The repo on 0.55.1 keeps sending 2023-06-01 until this upgrade.\nanthropic:2026-10-21-sampling-params-removed: not affected: No task of its own: resolved inside xiaoshuntian/academic-paper-skill:anthropic:2026-10-21-sdk-typescript-1-0-0 (npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too). temperature, top_p and top_k only return 400 under API version 2026-10-21, which the repo adopts by moving to SDK 1.0.0. The recorded call site sends none of them, but response and option handling was not fully read, so the agent should confirm during the upgrade that none are passed.\nanthropic:2026-10-14-ts-sdk-otel-default: not affected: No task of its own: resolved inside xiaoshuntian/academic-paper-skill:anthropic:2026-10-21-sdk-typescript-1-0-0 (npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too). OpenTelemetry auto-instrumentation starts in 0.134.0, which this jump from 0.55.1 crosses. If the app registers a global tracer provider, decide during the upgrade whether to set openTelemetry:false.\nanthropic:2026-10-21-document-citations-user-assistant-errors: not affected: The repo sends plain system and messages text to messages.stream. Nothing indicates document blocks in assistant messages or citations on user text blocks.\nanthropic:2026-10-21-admin-api-field-renames: not affected: The repo calls only the Messages API. It does not use the Admin API or the Enterprise Analytics API.\nanthropic:2026-11-30-fast-mode-opus-4-8-removal: not affected: The call site never sends the `speed` parameter, and nothing indicates claude-opus-4-8 fast mode is used.\nanthropic:2026-10-07-haiku-5-5-breaking: not affected: There is no evidence the repo targets claude-haiku-5-5. Its call sends no budget_tokens, sampling params, prefill or computer tool.\nanthropic:2026-09-28-sonnet-5-5-breaking: not affected: The call site sends no thinking or tool_choice, so moving to claude-sonnet-5-5 would not hit these 400s.\nanthropic:2026-09-22-opus-5-5-breaking: not affected: The repo does not use claude-opus-5-5 and sends no thinking, tool_choice or computer tool.\nanthropic:2026-09-01-fable-5-1-tool-choice: not affected: The repo does not use claude-fable-5-1 or claude-mythos-5-1 and sends no tool_choice.\nanthropic:2026-08-27-ts-sdk-beta-files-skills: not affected: The repo does not call client.beta.files or client.beta.skills and does not use the BetaSkill type. It only uses messages.stream.\nanthropic:2026-10-07-text-completions-deprecated: not affected: The repo uses messages.stream, not client.completions.create.\nanthropic:2026-09-24-compliance-activity-names-removed: not affected: The repo does not use the Compliance API Activity Feed.",
+  "costByPart": {
+    "inventory": 0.054026000000000005,
+    "match": 0.096948,
+    "other": 0.358892,
+    "harness": 0.18030580000000002,
+    "review": 0.061784
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "LeviathanLevi/Coinbase-Pro-Crypto-Trading-Bot-CrypFinder",
+  "refit": {
+    "checks": "no-repo-checks",
+    "costUsd": 0.5907718,
+    "tasks": 4,
+    "verified": 4
+  },
+  "claude": {
+    "checks": "no-repo-checks",
+    "costUsd": 0.08727760000000001,
+    "prepCostUsd": 0.007424,
+    "diffLines": 68,
+    "finalText": "I changed the Coinbase endpoint URLs in the three strategy files and the doc links in the README. I didn't run the bot or any tests, and I didn't check the other dependencies.\n\n**What the repo uses:** Coinbase Pro's REST API and websocket feed, through the `coinbase-pro` npm package plus a custom client in `coinbaseProLibrary.js` that calls `/profiles`, `/fees` and `/profiles/transfer`. It also uses `axios`, `pino`, `dotenv`, `csv-parse` and `eslint`.\n\n**What changed:** Coinbase has discontinued Coinbase Pro. Its API now lives under the Coinbase Exchange hosts. I found this in a standard web search. The official Exchange sandbox docs list the new sandbox hosts. I didn't find official documentation for the production hosts or any shutdown date for the old ones. The production hosts rest on a third-party source plus the usual naming pattern, so check them before running with real funds.\n\n**What I changed:**\n- **Strategy files:** `momentumTrading.js`, `momentumTradingWithStopLoss.js` and `reverseMomentumTrading.js` each had four hard-coded legacy hosts. I replaced them:\n\n| Setting | Old host | New host |\n|---|---|---|\n| Production REST | `api.pro.coinbase.com` | `api.exchange.coinbase.com` |\n| Production websocket | `ws-feed.pro.coinbase.com` | `ws-feed.exchange.coinbase.com` |\n| Sandbox REST | `api-public.sandbox.pro.coinbase.com` | `api-public.sandbox.exchange.coinbase.com` |\n| Sandbox websocket | `ws-feed-public.sandbox.pro.coinbase.com` | `ws-feed-public.sandbox.exchange.coinbase.com` |\n\n- **README:** the sandbox and API docs links now point to the Coinbase Exchange docs.\n\n**What I left alone:**\n- The request signing and the `/profiles`, `/fees` and `/profiles/transfer` calls. I found nothing saying they changed.\n- The `coinbase-pro` package version. The package is deprecated but only needs the new host URLs.\n- The other dependencies.\n- Two README links that still point at the old Pro site (`pro.coinbase.com/trade/BTC-USD` and the Coinbase Pro help page for creating an API key). I didn't find replacements.\n\nSources:\n- [Coinbase Exchange sandbox docs](https://docs.cdp.coinbase.com/exchange/introduction/sandbox.md)",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-LeviathanLevi-Coinbase-Pro-Crypto-Trading-Bot-CrypFinder/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "Coinbase Pro API retired; hosts move to *.exchange.coinbase.com",
+          "correct": true,
+          "note": "Same host swap as A in the three strategies, plus a static test. README links point to a slightly different docs path, which is harmless."
+        },
+        {
+          "change": "MiCA-regulated Exchange customers must use MiCA-specific REST/WebSocket hosts",
+          "correct": false,
+          "note": "An opt-in COINBASE_MICA flag with env overrides is reasonable, since the default behaviour is unchanged. But the hard-coded MiCA hosts are 'api-us.dma.prime.coinbase.com' style names. A 'us' Prime DMA host for an EU MiCA regime looks inconsistent with the change it cites. A user setting the flag could be sent to the wrong endpoint. The env override does give an escape hatch."
+        },
+        {
+          "change": "POST /profiles/transfer now returns { transfer_id } instead of an empty body",
+          "correct": true,
+          "note": "The code calls this endpoint. Logging now uses JSON.stringify and pulls out transfer_id, which avoids '[object Object]'. The library already returns result.data. The change is small and consistent with the cited change."
+        },
+        {
+          "change": "Opt-in portfolio isolation: keys without cross portfolio access get limited /profiles results or 403/404 on transfer",
+          "correct": true,
+          "note": "The code uses GET /profiles and /profiles/transfer. B now fails fast on 403/404 with a clear message and documents the needed key permission. This is defensive and sensible for a change whose release date is still TBD, though treating every 404 as an access error is a little broad."
+        }
+      ],
+      "breaks": [
+        "Adds unused `const { apiURI, websocketURI } = require(\"../../hosts\").getHosts();` to the two analyzer files and deletes their explanatory comment. No API change required this, and it may trigger eslint no-unused-vars.",
+        "The MiCA hosts it adds look doubtful (US Prime DMA names) and could misroute anyone who opts in."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "Coinbase Pro API retired; REST and websocket hosts move from *.pro.coinbase.com to *.exchange.coinbase.com (production and sandbox)",
+          "correct": true,
+          "note": "All four hosts in the three strategy files point to the Exchange hosts. These hosts feed both the coinbase-pro SDK and the custom axios client. README doc links are updated too."
+        }
+      ],
+      "breaks": []
+    },
+    "better": "refit",
+    "why": "Both make the same correct required migration from Pro to Exchange hosts. B also finds two further changes to endpoints the repo calls: the transfer response body and portfolio-isolation 403/404 on /profiles. It handles both reasonably. Its MiCA support is opt-in but its host values are doubtful, and its edits to the analyzer files are unneeded noise. Still, B covers more real changes that affect the code without breaking default behaviour, so it does the job better.",
+    "costUsd": 0.092076
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "atrueempire/yk",
+  "taskId": "atrueempire/yk:anthropic:2026-10-21-sdk-typescript-1-0-0",
+  "title": "npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too",
+  "refit": {
+    "outcome": "verified",
+    "passesChecks": true,
+    "costUsd": 0.21168189999999998,
+    "diffLines": 539,
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The diff covers both Anthropic call sites: `app/api/chat/messages/anthropic/route.ts` and the `Provider.Anthropic` case in `app/api/chat/messages/route.ts`. It swaps `ai`'s `AnthropicStream`, which is typed against the 0.x SDK, for a small helper, `utils/provider/anthropic.ts`, that yields only `text_delta` text. That matches what `AnthropicStream` produced for `StreamingTextResponse`. Neither route sets temperature, top_p or top_k, so their removal has no effect here. Bedrock is only present as commented-out code, so the Bedrock/Vertex/Foundry part of the change does not apply. The new test is useful: it uses a mocked fetch and checks the `anthropic-version: 2026-10-21` header, the absence of sampling params and the text reassembly. It does not prove four things: the real API accepts the payloads this app sends; the user's `model_id` values work under the new version; the SDK runs in the `edge` runtime both routes declare; and the zod peer range is satisfied. Typecheck passing says little about the MessageParam union change, because `messages` is `any[]` at both call sites, so nothing checks the shapes. The `verified` grade is defensible for the mocked path but generous for a default API-version bump with no live call. Pre-existing and not caused by this PR: `messages: any[]` and the ignored `stream` flag in both routes.",
+      "concerns": [
+        {
+          "file": "pnpm-lock.yaml",
+          "issue": "`@anthropic-ai/sdk@1.0.0` declares the peer `zod: ^3.25.0 || ^4.0.0`, but the repo pins zod 3.23.8 (package.json) and the lock resolves the optional peer to 3.23.8. It is marked optional, but if any SDK code path imports zod helpers it could break at runtime. pnpm will also report an unmet peer.",
+          "severity": "medium"
+        },
+        {
+          "file": "app/api/chat/messages/route.ts",
+          "issue": "`messages` is `any[]` here and in anthropic/route.ts, so the passing typecheck does not show that client-sent messages fit the new MessageParam union. Payloads that 0.21 accepted may be rejected by API version 2026-10-21. I could not confirm what the union requires; check the SDK 1.0.0 `MessageParam` type and the 2026-10-21 changelog.",
+          "severity": "medium"
+        },
+        {
+          "file": "app/api/chat/messages/anthropic/route.ts",
+          "issue": "Both routes set `runtime = 'edge'`. SDK 1.0 adds `@opentelemetry/api`, `standardwebhooks` and `json-schema-to-ts` as dependencies and drops the node-fetch polyfills. `next build` passing shows the bundle compiles, not that the client works in the Edge runtime. The test runs under Node with an injected fetch.",
+          "severity": "medium"
+        },
+        {
+          "file": "test/anthropic-sdk.test.mjs",
+          "issue": "The test only covers a mocked happy-path stream. It does not cover an SSE `error` event, mid-stream failure, cancellation (`iterator.return`), or a real request. The model IDs users configure might not be accepted under the new default API version, and nothing checks that.",
+          "severity": "low"
+        },
+        {
+          "file": "pnpm-lock.yaml",
+          "issue": "There is lockfile churn beyond what the SDK bump needs. eslint-plugin-import/eslint-module-utils now resolve against @typescript-eslint/parser 7.5.0 instead of 6.21.0, and @types/node 18.19.33 was dropped. Lint is not among the checks, so `pnpm lint` behaviour could have shifted unnoticed.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Make one real streaming call through each route, ideally deployed or under `next dev` with the edge runtime, using the model IDs in the app config.",
+        "Confirm in the SDK 1.0.0 types and the 2026-10-21 changelog what MessageParam's union requires, and compare that with what the UI sends as `messages`.",
+        "Decide whether to bump zod to ≥3.25 to satisfy the SDK peer range, or confirm no SDK zod helpers are reachable.",
+        "Run `pnpm lint` to check that the eslint resolution changes in the lockfile don't break linting."
+      ],
+      "costUsd": 0.129164,
+      "model": "claude-opus-5-5"
+    }
+  },
+  "claude": {
+    "passesChecks": true,
+    "costUsd": 0.028460299999999994,
+    "prepCostUsd": 0.021778,
+    "diffLines": 14,
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-atrueempire-yk-anthropic-2026-10-21-sdk-typescript-1-0-0/transcript.jsonl",
+    "stopReason": "done",
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The diff only bumps @anthropic-ai/sdk from ^0.21.1 to ^1.0.0 in package.json. That is a major-version jump across many releases, and the PR touches no source. The match agent named no call sites, yet this is a multi-provider chat app ('chat-chat') that almost certainly calls the Anthropic SDK directly (e.g. a route or provider module calling `messages.create`/`stream`). Typecheck passing is weak evidence. If the SDK is called through loosely typed objects, spreads or `any`, removed `temperature`/`top_p`/`top_k` and the new `MessageParam` union would not surface as type errors. The default API version also changes to 2026-10-21 at runtime, which no check exercises. The build going from fail to pass is unexplained by a version bump alone and should be understood before trusting it. No lockfile change is shown. The 'verified' grade overstates what was proven: no call sites were audited and no live request was made. The @ai-sdk/anthropic and @aws-sdk/client-bedrock-runtime paths do not go through @anthropic-ai/sdk, so they are likely unaffected, but nobody confirmed that.",
+      "concerns": [
+        {
+          "file": "package.json",
+          "issue": "Major bump (0.21 → 1.0) with zero source changes and no call sites identified. Any direct use of @anthropic-ai/sdk that sends temperature/top_p/top_k (common in a chat UI with a temperature slider) may be rejected or behave differently under API version 2026-10-21. Typecheck won't catch this if params are built dynamically or typed loosely.",
+          "severity": "high"
+        },
+        {
+          "file": "package.json",
+          "issue": "The SDK now sends API version 2026-10-21 by default, which changes request/response semantics at runtime for every Anthropic call. No check makes a live or mocked request, so streaming and response-shape handling are unverified.",
+          "severity": "medium"
+        },
+        {
+          "file": "package.json",
+          "issue": "Build was failing before and passes after. A dependency bump alone shouldn't fix an unrelated build failure, so the before-failure may have been environmental, and the pass doesn't demonstrate SDK compatibility.",
+          "severity": "medium"
+        },
+        {
+          "file": "package-lock.json / pnpm-lock.yaml",
+          "issue": "No lockfile update appears in the diff. If one exists, CI may resolve differently from what was checked, and the 1.0.0 resolution should be committed.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "grep for '@anthropic-ai/sdk' imports and every messages.create/stream call; confirm none pass temperature/top_p/top_k or construct MessageParam in a now-invalid shape",
+        "Confirm in the SDK 1.0.0 types/CHANGELOG exactly which params were removed and how MessageParam's union is shaped (I could not confirm these from memory)",
+        "Explain why the build failed before the change and passes after",
+        "Run one real or recorded Anthropic chat request (streaming) against the bumped SDK",
+        "Check whether a lockfile exists and was regenerated",
+        "Consider downgrading the grade to needs-review given no call-site audit"
+      ],
+      "costUsd": 0.041156,
+      "model": "claude-opus-5-5"
+    }
+  }
+}

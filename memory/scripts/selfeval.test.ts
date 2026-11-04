@@ -67,13 +67,13 @@ describe('selfeval command', () => {
   });
 
   it('stops rerunning once less than a task needs is left of the cap', async () => {
-    const { made, runTask } = await parts(3, 1.5);
+    const { made, runTask } = await parts(3, 2.25);
 
     expect(await main([], () => made)).toBe(0);
 
     expect(runTask).toHaveBeenCalledTimes(1);
     expect(print.mock.calls.flat().join('\n')).toContain(
-      'Stopped before 1 of 2 tasks: $1.50 of the $3 cap is left, below the $2 a task needs',
+      'Stopped before 1 of 2 tasks: $0.75 of the $3 cap is left, below the $1 overshoot reserve a task needs',
     );
   });
 

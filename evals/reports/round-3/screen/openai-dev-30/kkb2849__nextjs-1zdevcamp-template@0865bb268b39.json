@@ -1,0 +1,41 @@
+{
+  "set": "openai-dev-30",
+  "repo": "kkb2849/nextjs-1zdevcamp-template",
+  "commit": "0865bb268b395abac07042d6d6e627f92f24b159",
+  "provider": "openai",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export DATABASE_URL='mysql://user:pass@localhost:3306/db' OPENAI_API_KEY='placeholder' NEXTAUTH_SECRET='placeholder' NEXTAUTH_URL='http://localhost:3000'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export DATABASE_URL='mysql://user:pass@localhost:3306/db' OPENAI_API_KEY='placeholder' NEXTAUTH_SECRET='placeholder' NEXTAUTH_URL='http://localhost:3000'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.02551799999999993,
+  "durationMs": 167803,
+  "install": {
+    "code": 0,
+    "tail": "added 480 packages in 2m"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "@prisma/client's postinstall was skipped, so the Prisma client types are not generated; tsc and next build import @prisma/client and need them.",
+        "code": 0
+      }
+    ],
+    "env": ["DATABASE_URL", "OPENAI_API_KEY", "NEXTAUTH_SECRET", "NEXTAUTH_URL"]
+  }
+}

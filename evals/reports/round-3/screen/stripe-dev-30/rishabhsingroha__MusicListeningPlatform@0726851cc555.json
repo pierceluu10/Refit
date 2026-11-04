@@ -1,0 +1,49 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "rishabhsingroha/MusicListeningPlatform",
+  "commit": "0726851cc55569983b1e14db7b64468395012191",
+  "provider": "stripe",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' STRIPE_SECRET_KEY='placeholder' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='placeholder' STRIPE_WEBHOOK_SECRET='placeholder' NEXT_PUBLIC_SITE_URL='http://localhost:3000'; npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "src/app/api/webHooks/route.ts: error TS2307: Cannot find module '@/libs/supabaseAdmin' or its corresponding type declarations."
+      ],
+      "tail": "src/app/api/webHooks/route.ts(9,8): error TS2307: Cannot find module '@/libs/supabaseAdmin' or its corresponding type declarations."
+    },
+    {
+      "name": "build",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' STRIPE_SECRET_KEY='placeholder' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='placeholder' STRIPE_WEBHOOK_SECRET='placeholder' NEXT_PUBLIC_SITE_URL='http://localhost:3000'; /tmp/bun/bin/bun run build",
+      "ok": false,
+      "failures": ["exit-nonzero: error: script \"build\" exited with code 1"],
+      "tail": "⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache\nAttention: Next.js now collects completely anonymous telemetry regarding usage.\nThis information is used to shape Next.js' roadmap and prioritize features.\nYou can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:\nhttps://nextjs.org/telemetry\n\n   ▲ Next.js 15.1.4\n\n   Creating an optimized production build ...\n\n$ next build\nFailed to compile.\n\n./src/app/api/webHooks/route.ts\nModule not found: Can't resolve '@/libs/supabaseAdmin'\n\nhttps://nextjs.org/docs/messages/module-not-found\n\n\n> Build failed because of webpack errors\nerror: script \"build\" exited with code 1"
+    }
+  ],
+  "costUsd": 0.07696200000000009,
+  "durationMs": 69783,
+  "install": {
+    "code": 0,
+    "tail": "bun install v1.4.4 (38afee6c8)\n\n+ @eslint/eslintrc@3.2.0\n+ @types/node@20.17.12\n+ @types/react@19.0.4\n+ @types/react-dom@19.0.2\n+ @types/uniqid@5.3.4\n+ eslint@9.17.0\n+ eslint-config-next@15.1.4\n+ postcss@8.4.49\n+ tailwindcss@3.4.17\n+ typescript@5.7.3\n+ @radix-ui/react-dialog@1.1.4\n+ @radix-ui/react-slider@1.2.2\n+ @stripe/stripe-js@5.5.0\n+ @supabase/auth-helpers-nextjs@0.10.0\n+ @supabase/auth-helpers-react@0.5.0\n+ @supabase/auth-ui-react@0.4.7\n+ @supabase/auth-ui-shared@0.1.8\n+ @supabase/supabase-js@2.47.12\n+ next@15.1.4\n+ query-string@9.1.1\n+ react@19.0.0\n+ react-dom@19.0.0\n+ react-hook-form@7.54.2\n+ react-hot-toast@2.5.1\n+ react-icons@5.4.0\n+ react-spinners@0.15.0\n+ stripe@17.5.0\n+ supabase@2.2.1\n+ tailwind-merge@2.6.0\n+ uniqid@5.4.0\n+ use-sound@4.0.3\n+ zustand@5.0.3\n\n454 packages installed [13.77s]"
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "STRIPE_SECRET_KEY",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "NEXT_PUBLIC_SITE_URL"
+    ]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "typecheck and build fail because src/app/api/webHooks/route.ts imports '@/libs/supabaseAdmin', a module missing from the repo (a code defect, not an external credential or service need)."
+  }
+}

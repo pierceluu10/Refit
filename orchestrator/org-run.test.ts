@@ -103,6 +103,7 @@ vi.mock('@anthropic-ai/sdk', () => ({
 
 // Each harness run spends 80% of what it was given.
 vi.mock('../harness/index.ts', () => ({
+  TURN_RESERVE_USD: 1,
   runTask: async (task: MigrationTask, _dir: string, { budgetUsd }: { budgetUsd: number }) => {
     seen.peak = Math.max(seen.peak, ++seen.running);
     seen.check();

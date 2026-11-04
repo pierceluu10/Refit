@@ -1,0 +1,95 @@
+{
+  "eligible": 9,
+  "verified": 9,
+  "score": 1,
+  "notAffected": 1,
+  "excluded": {
+    "red-baseline": 33,
+    "outside-authority": 6
+  },
+  "outsideAuthorityShare": 0.4,
+  "errors": 0,
+  "costUsd": 4.292699300000001,
+  "rows": [
+    {
+      "set": "anthropic-dev-30",
+      "repo": "saxllc/journey-intelligence",
+      "outcomes": ["verified"],
+      "costUsd": 0.34460060000000003,
+      "durationMs": 108161,
+      "status": "verified"
+    },
+    {
+      "set": "gemini-dev-15",
+      "repo": "XDTerminated/t2-chat-t3c-2025",
+      "outcomes": ["verified"],
+      "costUsd": 0.6364892999999999,
+      "durationMs": 517624,
+      "status": "verified"
+    },
+    {
+      "set": "gemini-dev-15",
+      "repo": "PRIYESHSINGH24/buddy_connect",
+      "outcomes": ["verified"],
+      "costUsd": 0.5343686999999999,
+      "durationMs": 399453,
+      "status": "verified"
+    },
+    {
+      "set": "gemini-dev-15",
+      "repo": "djnightmare9909/Dungeon-master-OS-WFGY",
+      "outcomes": ["verified"],
+      "costUsd": 0.49794459999999996,
+      "durationMs": 224384,
+      "status": "verified"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "bcrant/Tableau2Slack",
+      "outcomes": ["verified"],
+      "costUsd": 0.25660679999999997,
+      "durationMs": 88734,
+      "status": "verified"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "LeviathanLevi/Coinbase-Pro-Crypto-Trading-Bot-CrypFinder",
+      "outcomes": ["verified"],
+      "costUsd": 0.2793117,
+      "durationMs": 70908,
+      "status": "verified"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "hachanimohamedsaid/backend_AgentAi",
+      "outcomes": ["verified"],
+      "costUsd": 0.6417013,
+      "durationMs": 331537,
+      "status": "verified"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "AyeletHillel/fine-tune",
+      "outcomes": ["verified"],
+      "costUsd": 0.49994020000000006,
+      "durationMs": 139561,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "liamstamper/lamp-bot",
+      "outcomes": ["verified"],
+      "costUsd": 0.43337739999999997,
+      "durationMs": 294172,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "samiamjidkhan/dota2-helper",
+      "outcomes": ["not-affected"],
+      "costUsd": 0.1683587,
+      "durationMs": 58976,
+      "status": "not-affected"
+    }
+  ]
+}

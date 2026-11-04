@@ -1,0 +1,93 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "swharr/TrailblazerAI",
+  "taskId": "swharr/TrailblazerAI:anthropic:2026-10-21-api-version-2026-10-21",
+  "title": "New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01",
+  "refit": {
+    "outcome": "needs-review",
+    "passesChecks": true,
+    "costUsd": 0.1165481,
+    "diffLines": 383,
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The PR moves the Node app from @anthropic-ai/sdk ^0.71.2 to ^1.4.0, adds a mocked-fetch script showing the SDK now sends anthropic-version: 2026-10-21, and caps the Python proxy at anthropic<1. Typecheck and build pass, but no application code changed. The quoted guide says it 'lists the code changes' needed to move from 2023-06-01 to 2026-10-21, and the match agent named no call sites. So no one has checked whether any src/ call to messages.create or stream relies on behaviour the new API version changes, such as response fields, stop reasons, defaults or beta params. A clean typecheck only shows the SDK's types still line up, not that responses keep their meaning at runtime. The Python proxy is pinned below 1 rather than migrated, so it keeps sending 2023-06-01. That is a scoping choice the PR should state. I could not confirm SDK 1.4.0's contents or the exact 2026-10-21 breaking changes from memory; check the quoted migration guide and the SDK's changelog and types. needs-review is the right grade.",
+      "concerns": [
+        {
+          "file": "package.json",
+          "issue": "This is a major SDK bump (0.71 → 1.x) that also switches the wire API version, with no matching code changes. The migration guide lists code changes, but no call sites were identified or reviewed. Runtime behaviour of every Anthropic call in src/ (response parsing, streaming events, tool use, stop_reason handling, any beta/header usage) is unverified. Typecheck passing does not cover semantic changes in the new API version.",
+          "severity": "high"
+        },
+        {
+          "file": "services/payi-proxy/requirements.txt",
+          "issue": "Pinning anthropic>=0.40.0,<1 keeps the payi proxy on API version 2023-06-01 instead of migrating it. The repo will run two Anthropic API versions side by side, and the PR should call that out. The cap could also conflict later if payi starts requiring anthropic>=1. No Python check was run for this change.",
+          "severity": "medium"
+        },
+        {
+          "file": "scripts/check-anthropic-version.mjs",
+          "issue": "The check stubs globalThis.fetch and only asserts the outgoing header. It makes no live call and does not exercise streaming or any app code path. It imports a hardcoded node_modules/.../index.mjs path, which is brittle across SDK layouts. It is also not wired into package.json scripts or CI, so it is a one-off.",
+          "severity": "low"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "The SDK licence changes from MIT to Apache-2.0, and the bump adds new transitive dependencies (@opentelemetry/api, standardwebhooks, fast-sha256 under Unlicense, @stablelib/base64). The lockfile also has unrelated churn: dozens of \"peer\": true flags were removed, probably from a different npm version regenerating it. Licence/compliance review may be needed, and the lockfile noise makes the diff harder to audit.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Read the 2026-10-21 migration guide's list of breaking changes and grep src/ for every @anthropic-ai/sdk import and call (messages.create, messages.stream, beta.*, countTokens, tool use). Confirm each is unaffected or needs changes.",
+        "Make one real call (and one streaming call, if the app streams) against the API with SDK 1.4.0 and confirm the responses parse as the app expects.",
+        "Decide whether payi-proxy should stay on 2023-06-01 with the <1 cap, or be migrated as well. Confirm that payi's own anthropic requirement is compatible with the cap.",
+        "Check the SDK 1.x changelog for removed or renamed exports beyond what typecheck caught, for example in dynamically imported or untyped JS files."
+      ],
+      "costUsd": 0.088148,
+      "model": "claude-opus-5-5"
+    }
+  },
+  "claude": {
+    "passesChecks": false,
+    "costUsd": 0.0565412,
+    "prepCostUsd": 0.015986,
+    "diffLines": 360,
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-swharr-TrailblazerAI-anthropic-2026-10-21-api-version-2026-10-21/transcript.jsonl",
+    "stopReason": "done",
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The PR changes only the dependency, moving @anthropic-ai/sdk from ^0.71.2 to ^1.0.0 (locked at 1.4.0). It makes no source changes. Typecheck and build both passed before and fail after (2 typecheck errors, 1 build error), so the SDK major bump breaks the app as it stands. The match agent named no call sites, so the code that uses the SDK was never found or migrated, even though the failing checks show it exists. I could not confirm from memory that SDK 1.x sends anthropic-version 2026-10-21 by default, or what its breaking API surface is; check the quoted migration guide and the 1.4.0 type definitions. The lockfile also drops the \"peer\": true flag on about 30 unrelated packages (react, next, prisma, typescript, zod and others), which looks like lockfile regeneration noise from a different npm version. The SDK's license changes from MIT to Apache-2.0, and it pulls in new transitive dependencies: @opentelemetry/api, standardwebhooks, fast-sha256 (Unlicense) and @stablelib/base64. The needs-review grade fits. This PR should not merge until the type and build errors are fixed in the Anthropic call sites.",
+      "concerns": [
+        {
+          "file": "package.json",
+          "issue": "Bumps @anthropic-ai/sdk across a major version (0.71 to 1.x) with no source changes. Typecheck and build both regress from pass to fail, so the affected SDK call sites still need migrating.",
+          "severity": "high"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "The match agent listed no affected call sites, but the failures prove some exist (the files constructing Anthropic clients or calling messages.create, likely under src/lib or the API routes). Those sites need finding and updating per the 2026-10-21 migration guide.",
+          "severity": "high"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "Removes \"peer\": true from many unrelated packages (next, react, prisma, typescript, zod, tailwindcss and others). This is churn from regenerating the lockfile with a different npm, not something the API change requires.",
+          "severity": "low"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "New SDK license (Apache-2.0) and new transitive dependencies (@opentelemetry/api, standardwebhooks, fast-sha256 under the Unlicense, @stablelib/base64) may need a license or supply-chain review.",
+          "severity": "low"
+        },
+        {
+          "file": "package.json",
+          "issue": "Even once the code compiles, nothing has checked the runtime behaviour under the new API version: response shapes, streaming, tool use and any default-parameter changes. The checks cover only typecheck and build.",
+          "severity": "medium"
+        }
+      ],
+      "checkFirst": [
+        "Run tsc and read the 2 typecheck errors and the 1 build error to find the Anthropic call sites that broke.",
+        "Read the migration-2026-10-21 guide and the SDK 1.4.0 types to confirm which request and response fields changed and that 1.x sends anthropic-version 2026-10-21.",
+        "Grep src/ for '@anthropic-ai/sdk' and 'anthropic-version' to find every client construction, including any hard-coded version headers or raw fetch calls.",
+        "Decide whether to revert the unrelated peer-flag churn in package-lock.json."
+      ],
+      "costUsd": 0.068488,
+      "model": "claude-opus-5-5"
+    }
+  }
+}

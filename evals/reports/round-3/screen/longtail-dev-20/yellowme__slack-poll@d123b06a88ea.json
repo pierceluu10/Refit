@@ -1,0 +1,41 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "yellowme/slack-poll",
+  "commit": "d123b06a88ea7f0611522318b48364af7cefca4d",
+  "provider": "slack",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "test",
+      "command": "export SLACK_VERIFICATION_TOKEN='placeholder' SLACK_ACCESS_TOKEN='placeholder'; corepack yarn@1 run test",
+      "ok": false,
+      "failures": [
+        "FAIL __tests__/status.js",
+        "FAIL services/__tests__/deletePoll.js",
+        "FAIL services/__tests__/updatePoll.js",
+        "FAIL services/__tests__/createPollAnswer.js",
+        "FAIL services/__tests__/fetchPoll.js",
+        "FAIL services/__tests__/createPoll.js",
+        "FAIL services/__tests__/fetchPollAnswers.js",
+        "FAIL __tests__/hook.js",
+        "FAIL __tests__/polls.js"
+      ],
+      "tail": "::memory: is invalid. Future versions of Node.js will throw an error.\n(Use `node --trace-deprecation ...` to show where the warning was created)\nFAIL __tests__/polls.js\n  ● Test suite failed to run\n\n    Please install sqlite3 package manually\n\n       5 |   function SequelizeMock() {\n       6 |     // eslint-disable-next-line no-new\n    >  7 |     return new sequelize.Sequelize('sqlite::memory:', {\n         |            ^\n       8 |       logging: false,\n       9 |     });\n      10 |   }\n\n      at ConnectionManager._loadDialectModule (node_modules/sequelize/lib/dialects/abstract/connection-manager.js:88:15)\n      at new ConnectionManager (node_modules/sequelize/lib/dialects/sqlite/connection-manager.js:22:21)\n      at new SqliteDialect (node_modules/sequelize/lib/dialects/sqlite/index.js:14:30)\n      at new Sequelize (node_modules/sequelize/lib/sequelize.js:324:20)\n      at new SequelizeMock (setupTests.js:7:12)\n      at Object.<anonymous> (db/index.js:4:19)\n      at Object.<anonymous> (app.js:9:12)\n      at Object.<anonymous> (__tests__/polls.js:3:13)\n      at processTicksAndRejections (node:internal/process/task_queues:103:5)\n\n(node:179) [DEP0170] DeprecationWarning: The URL sqlite::memory: is invalid. Future versions of Node.js will throw an error.\n(Use `node --trace-deprecation ...` to show where the warning was created)\nTest Suites: 9 failed, 9 total\nTests:       0 total\nSnapshots:   0 total\nTime:        30.582 s\nRan all test suites.\nerror Command failed with exit code 1."
+    }
+  ],
+  "costUsd": 0.08155799999999999,
+  "durationMs": 125313,
+  "install": {
+    "code": 0,
+    "tail": "yarn install v1.22.22\n[1/4] Resolving packages...\n[2/4] Fetching packages...\n[3/4] Linking dependencies...\n[4/4] Building fresh packages...\nDone in 48.50s.\n\nwarning \" > eslint-config-airbnb-base@14.1.0\" has incorrect peer dependency \"eslint@^5.16.0 || ^6.8.0\".\nwarning \" > eslint-plugin-import@2.20.2\" has incorrect peer dependency \"eslint@2.x - 6.x\".\nwarning Ignored scripts due to flag."
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["SLACK_VERIFICATION_TOKEN", "SLACK_ACCESS_TOKEN"]
+  },
+  "exclusion": {
+    "class": "outside-authority",
+    "reason": "The test suite fails with 'Please install sqlite3 package manually': the sqlite3 native module was not built because install ran with scripts ignored, so the in-memory SQLite tests cannot load in this sandbox."
+  }
+}

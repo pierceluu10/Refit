@@ -11,11 +11,12 @@ import {
   anyWatcher,
   cachedChanges,
   createDeps,
+  MAX_TASK_USD,
   MEMORY_USD,
-  MIN_TASK_USD,
   TASK_USD,
 } from './deps.ts';
 import { stubRunTask } from './stubs.ts';
+import { TURN_RESERVE_USD } from '../harness/index.ts';
 
 // The any-provider watcher, offline: it spends $0.30 of the ledger it is given and finds one change.
 const watched = vi.hoisted(() => ({ calls: [] as { provider: string; hints: unknown }[] }));
@@ -59,6 +60,7 @@ const ran = (task: MigrationTask, costUsd: number): RunRecord => ({
 });
 
 vi.mock('../harness/index.ts', () => ({
+  TURN_RESERVE_USD: 1,
   runTask: async (task: MigrationTask, _dir: string, deps: { budgetUsd: number }) => {
     harness.caps.push(deps.budgetUsd);
     return harness.run ? harness.run(task, deps.budgetUsd) : ran(task, 0.75);
@@ -123,16 +125,18 @@ describe('createDeps', () => {
 
     await deps.runTask(task('change'), '/unused');
     await deps.runTask(task('change'), '/unused');
+    await deps.runTask(task('change'), '/unused');
     const skipped = await deps.runTask(task('change'), '/unused');
 
     expect(Object.keys(deps.watchers)).toEqual(listProviderIds());
-    expect(harness.caps).toEqual([3, 2.25]);
-    expect(budget.spentUsd()).toBe(1.5);
-    // $1.50 left is below MIN_TASK_USD, so the third task never reaches the harness.
-    expect(MIN_TASK_USD).toBeGreaterThan(1.5);
+    // No $2 floor: the third task starts with $1.50 free, above the $1 overshoot reserve.
+    expect(harness.caps).toEqual([3, 2.25, 1.5]);
+    expect(budget.spentUsd()).toBe(2.25);
+    // $0.75 left is below TURN_RESERVE_USD, so the fourth task never reaches the harness.
+    expect(TURN_RESERVE_USD).toBeGreaterThan(0.75);
     expect(skipped).toMatchObject({ outcome: 'failed', costUsd: 0 });
     expect((skipped as { note?: string }).note).toMatch(
-      /not attempted: \$1\.50 of the run cap left/,
+      /not attempted: \$0\.75 of the run cap left/,
     );
   });
 
@@ -159,13 +163,20 @@ describe('createDeps', () => {
 
     expect(peak).toBeGreaterThan(1);
     expect(Math.max(...harness.caps.map(Number))).toBeLessThanOrEqual(TASK_USD);
-    expect(Math.min(...harness.caps.map(Number))).toBeGreaterThanOrEqual(MIN_TASK_USD - 1e-9);
+    expect(Math.min(...harness.caps.map(Number))).toBeGreaterThanOrEqual(TURN_RESERVE_USD - 1e-9);
     expect(worst).toBeLessThanOrEqual(cap + 1e-9);
     expect(budget.spentUsd()).toBeLessThanOrEqual(cap + 1e-9);
     expect(budget.heldUsd()).toBe(0);
     // Every task ran or was recorded as not attempted; none was dropped.
     expect(records).toHaveLength(6);
     expect(records.some((r) => r.outcome === 'failed')).toBe(true);
+  });
+
+  it('never gives one task more than MAX_TASK_USD, however big the run', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
+    const deps = createDeps({ budget: createBudget(2000), log: () => {} });
+    await deps.runTask(task('big'), '/unused');
+    expect(harness.caps).toEqual([MAX_TASK_USD]);
   });
 
   it('records a harness that throws as failed, counting its whole share once', async () => {

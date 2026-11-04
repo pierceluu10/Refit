@@ -1,0 +1,71 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "shagunmistry/FlowCraft",
+  "commit": "ae2e307c4e725bde23e9829d8d1bc97946338c8d",
+  "provider": "stripe",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export SUPABASE_URL='https://placeholder.supabase.co' SUPABASE_PRIVATE_KEY='placeholder' BLOG_ADMIN_ID='placeholder' NEXT_PUBLIC_ROOT_DOMAIN='http://localhost:3000' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='pk_test_placeholder' FLOWCRAFT_API_URL='http://localhost:8000' OPENAI_API_KEY='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_HOBBY_PLAN_ID='price_placeholder' STRIPE_HOBBY_MONTHLY_PLAN_ID='price_placeholder' STRIPE_HOBBY_YEARLY_PLAN_ID='price_placeholder' STRIPE_HOBBY_ANNUAL_PLAN_ID='price_placeholder' STRIPE_PRO_PLAN_ID='price_placeholder' STRIPE_PRO_MONTHLY_PLAN_ID='price_placeholder' STRIPE_PRO_YEARLY_PLAN_ID='price_placeholder' STRIPE_PRO_ANNUAL_PLAN_ID='price_placeholder' STRIPE_PREMIUM_PLAN_ID='price_placeholder' STRIPE_PREMIUM_MONTHLY_PLAN_ID='price_placeholder' STRIPE_PREMIUM_YEARLY_PLAN_ID='price_placeholder' STRIPE_PREMIUM_ANNUAL_PLAN_ID='price_placeholder' STRIPE_BUSINESS_PLAN_ID='price_placeholder' STRIPE_BUSINESS_MONTHLY_PLAN_ID='price_placeholder' STRIPE_BUSINESS_YEARLY_PLAN_ID='price_placeholder' STRIPE_BUSINESS_ANNUAL_PLAN_ID='price_placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export SUPABASE_URL='https://placeholder.supabase.co' SUPABASE_PRIVATE_KEY='placeholder' BLOG_ADMIN_ID='placeholder' NEXT_PUBLIC_ROOT_DOMAIN='http://localhost:3000' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='pk_test_placeholder' FLOWCRAFT_API_URL='http://localhost:8000' OPENAI_API_KEY='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_HOBBY_PLAN_ID='price_placeholder' STRIPE_HOBBY_MONTHLY_PLAN_ID='price_placeholder' STRIPE_HOBBY_YEARLY_PLAN_ID='price_placeholder' STRIPE_HOBBY_ANNUAL_PLAN_ID='price_placeholder' STRIPE_PRO_PLAN_ID='price_placeholder' STRIPE_PRO_MONTHLY_PLAN_ID='price_placeholder' STRIPE_PRO_YEARLY_PLAN_ID='price_placeholder' STRIPE_PRO_ANNUAL_PLAN_ID='price_placeholder' STRIPE_PREMIUM_PLAN_ID='price_placeholder' STRIPE_PREMIUM_MONTHLY_PLAN_ID='price_placeholder' STRIPE_PREMIUM_YEARLY_PLAN_ID='price_placeholder' STRIPE_PREMIUM_ANNUAL_PLAN_ID='price_placeholder' STRIPE_BUSINESS_PLAN_ID='price_placeholder' STRIPE_BUSINESS_MONTHLY_PLAN_ID='price_placeholder' STRIPE_BUSINESS_YEARLY_PLAN_ID='price_placeholder' STRIPE_BUSINESS_ANNUAL_PLAN_ID='price_placeholder'; corepack pnpm@9 run build",
+      "ok": false,
+      "failures": ["exit-nonzero: [timed out after 10 minutes]"],
+      "tail": "> flowcraft-shagunmistry@1.0.0 build /work\n> next build\n\n   ▲ Next.js 15.5.15\n   - Experiments (use with caution):\n     · optimizePackageImports\n\n   Creating an optimized production build ...\n ✓ Compiled successfully in 52s\n   Linting and checking validity of types ...\n\n<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (215kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)\nBrowserslist: browsers data (caniuse-lite) is 8 months old. Please run:\n  npx update-browserslist-db@latest\n  Why you should do it regularly: https://github.com/browserslist/update-db#readme\n\n[timed out after 10 minutes]"
+    },
+    {
+      "name": "test",
+      "command": "export SUPABASE_URL='https://placeholder.supabase.co' SUPABASE_PRIVATE_KEY='placeholder' BLOG_ADMIN_ID='placeholder' NEXT_PUBLIC_ROOT_DOMAIN='http://localhost:3000' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='pk_test_placeholder' FLOWCRAFT_API_URL='http://localhost:8000' OPENAI_API_KEY='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_HOBBY_PLAN_ID='price_placeholder' STRIPE_HOBBY_MONTHLY_PLAN_ID='price_placeholder' STRIPE_HOBBY_YEARLY_PLAN_ID='price_placeholder' STRIPE_HOBBY_ANNUAL_PLAN_ID='price_placeholder' STRIPE_PRO_PLAN_ID='price_placeholder' STRIPE_PRO_MONTHLY_PLAN_ID='price_placeholder' STRIPE_PRO_YEARLY_PLAN_ID='price_placeholder' STRIPE_PRO_ANNUAL_PLAN_ID='price_placeholder' STRIPE_PREMIUM_PLAN_ID='price_placeholder' STRIPE_PREMIUM_MONTHLY_PLAN_ID='price_placeholder' STRIPE_PREMIUM_YEARLY_PLAN_ID='price_placeholder' STRIPE_PREMIUM_ANNUAL_PLAN_ID='price_placeholder' STRIPE_BUSINESS_PLAN_ID='price_placeholder' STRIPE_BUSINESS_MONTHLY_PLAN_ID='price_placeholder' STRIPE_BUSINESS_YEARLY_PLAN_ID='price_placeholder' STRIPE_BUSINESS_ANNUAL_PLAN_ID='price_placeholder'; corepack pnpm@9 run test",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.31738200000000005,
+  "durationMs": 1164413,
+  "install": {
+    "code": 0,
+    "tail": "14.2.35\n+ @next/third-parties 16.2.2\n+ @stripe/stripe-js 3.5.0\n+ @supabase/ssr 0.5.2\n+ @supabase/supabase-js 2.102.1\n+ @tailwindcss/aspect-ratio 0.4.2\n+ @tailwindcss/forms 0.5.11\n+ @tailwindcss/typography 0.5.19\n+ @types/mdx 2.0.13\n+ @types/node 20.4.6\n+ @types/react 19.2.14\n+ @types/react-dom 19.2.3\n+ @vercel/analytics 1.6.1\n+ @xyflow/react 12.10.2\n+ autoprefixer 10.4.27\n+ bufferutil 4.1.0\n+ chart.js 4.5.1\n+ clsx 1.2.1\n+ dagre 0.8.5\n+ elkjs 0.9.3\n+ encoding 0.1.13\n+ framer-motion 11.18.2\n+ gpt3-tokenizer 1.1.5\n+ gray-matter 4.0.3\n+ html-to-image 1.11.13\n+ jspdf 4.2.1\n+ lottie-react 2.4.1\n+ lucide-react 0.469.0\n+ lumina-code-frame 1.1.1\n+ mermaid 11.14.0\n+ next 15.5.15\n+ next-mdx-remote 6.0.0\n+ next-themes 0.4.6\n+ nextjs-toploader 3.9.17\n+ openai 4.104.0\n+ openai-edge 1.2.3\n+ react 19.2.4\n+ react-aria 3.47.0\n+ react-chartjs-2 5.3.1\n+ react-colorful 5.6.1\n+ react-dom 19.2.4\n+ react-hot-toast 2.6.0\n+ react-markdown 10.1.0\n+ react-stately 3.45.0\n+ reactflow 11.11.4\n+ remark-gfm 4.0.1\n+ rss-to-json 2.1.1\n+ save-html-as-image 1.7.1\n+ stripe 14.25.0\n+ tailwind-merge 2.6.1\n+ tailwindcss 3.4.19\n+ typescript 5.1.6\n+ utf-8-validate 6.0.6\n+ valibot 0.8.0\n\ndevDependencies:\n+ @mermaid-js/mermaid-cli 11.12.0\n+ @next/bundle-analyzer 15.5.15\n+ @types/dagre 0.7.54\n+ @types/three 0.158.3\n+ eslint 8.57.1\n+ eslint-config-next 14.2.35\n+ prettier 3.8.1\n+ prettier-plugin-tailwindcss 0.5.14\n+ sharp 0.32.6\n+ tsx 4.21.0\n+ vitest 5.0.3\n+ web-worker 1.5.0\n+ yaml 2.8.3\n\nDone in 2m 2.9s using pnpm v9.15.9"
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "SUPABASE_URL",
+      "SUPABASE_PRIVATE_KEY",
+      "BLOG_ADMIN_ID",
+      "NEXT_PUBLIC_ROOT_DOMAIN",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "FLOWCRAFT_API_URL",
+      "OPENAI_API_KEY",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_HOBBY_PLAN_ID",
+      "STRIPE_HOBBY_MONTHLY_PLAN_ID",
+      "STRIPE_HOBBY_YEARLY_PLAN_ID",
+      "STRIPE_HOBBY_ANNUAL_PLAN_ID",
+      "STRIPE_PRO_PLAN_ID",
+      "STRIPE_PRO_MONTHLY_PLAN_ID",
+      "STRIPE_PRO_YEARLY_PLAN_ID",
+      "STRIPE_PRO_ANNUAL_PLAN_ID",
+      "STRIPE_PREMIUM_PLAN_ID",
+      "STRIPE_PREMIUM_MONTHLY_PLAN_ID",
+      "STRIPE_PREMIUM_YEARLY_PLAN_ID",
+      "STRIPE_PREMIUM_ANNUAL_PLAN_ID",
+      "STRIPE_BUSINESS_PLAN_ID",
+      "STRIPE_BUSINESS_MONTHLY_PLAN_ID",
+      "STRIPE_BUSINESS_YEARLY_PLAN_ID",
+      "STRIPE_BUSINESS_ANNUAL_PLAN_ID"
+    ]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "`next build` compiled successfully but hung in the 'Linting and checking validity of types' step until the 10-minute timeout; no credential, private registry or unsupported-toolchain requirement is shown, so the failure is in the repo's own build/type-check."
+  }
+}

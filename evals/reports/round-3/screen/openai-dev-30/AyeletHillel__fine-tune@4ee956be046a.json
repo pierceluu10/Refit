@@ -1,0 +1,35 @@
+{
+  "set": "openai-dev-30",
+  "repo": "AyeletHillel/fine-tune",
+  "commit": "4ee956be046af38a59475ea0a8a01e6191f1f01d",
+  "provider": "openai",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "corepack pnpm@8 run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.040363999999999955,
+  "durationMs": 37092,
+  "install": {
+    "code": 0,
+    "tail": "ERR_PNPM_OUTDATED_LOCKFILE  Cannot install with \"frozen-lockfile\" because pnpm-lock.yaml is not up to date with package.json\n\nNote that in CI environments this setting is true by default. If you still need to run install in such cases, use \"pnpm install --no-frozen-lockfile\"\n\n    Failure reason:\n    specifiers in the lockfile ({\"openai\":\"^4.2.0\",\"@types/node\":\"^20.5.3\",\"ts-node\":\"^10.9.1\",\"typescript\":\"^5.1.6\"}) don't match specs in package.json ({\"@types/node\":\"^20.5.3\",\"ts-node\":\"^10.9.1\",\"typescript\":\"^5.1.6\",\"dotenv\":\"^16.3.1\",\"openai\":\"^4.2.0\"})\nProgress: resolved 1, reused 0, downloaded 0, added 0\nProgress: resolved 4, reused 0, downloaded 4, added 0\nPackages: +48\n++++++++++++++++++++++++++++++++++++++++++++++++\nProgress: resolved 48, reused 0, downloaded 48, added 13\nProgress: resolved 48, reused 0, downloaded 48, added 39\nProgress: resolved 48, reused 0, downloaded 48, added 48, done\n\ndependencies:\n+ dotenv 16.6.1 (18.0.9 is available)\n+ openai 4.2.0\n\ndevDependencies:\n+ @types/node 20.5.3\n+ ts-node 10.9.1\n+ typescript 5.1.6\n\nDone in 3.4s"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

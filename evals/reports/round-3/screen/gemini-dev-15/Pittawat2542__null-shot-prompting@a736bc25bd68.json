@@ -1,0 +1,19 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "Pittawat2542/null-shot-prompting",
+  "commit": "a736bc25bd6867bdc3f82757db2b05895f2e9b63",
+  "provider": "gemini",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.053790000000000004,
+  "durationMs": 94907,
+  "install": {
+    "code": 0,
+    "tail": "ipt-location.\n  WARNING: The scripts convert-caffe2-to-onnx, convert-onnx-to-caffe2 and torchrun are installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The scripts hf, huggingface-cli and tiny-agents are installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script httpx is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script openai is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The scripts accelerate, accelerate-config, accelerate-estimate-memory and accelerate-launch are installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script transformers-cli is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip"
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["OPENAI_API_KEY", "PALM_API_KEY", "ANTHROPIC_API_KEY", "HF_ACCESS_TOKEN"]
+  }
+}

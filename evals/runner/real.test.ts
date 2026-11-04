@@ -17,15 +17,18 @@ const parts = vi.hoisted(() => ({
   refuseInventory: false,
   runTask: undefined as undefined | ((budget: Budget) => Promise<RunRecord>),
   matchCalls: [] as number[],
+  recorded: 0,
 }));
 
 // Each fake part spends a fixed amount from the run budget, as the real ones do.
 vi.mock('../../orchestrator/deps.ts', () => ({
-  MIN_TASK_USD: 2,
   WATCH_USD: 1.5,
   defaultWatchCache: '/unused',
   cachedChanges: (_dir: string, _key: string, call: () => Promise<unknown>) => call(),
   createDeps: ({ budget }: { budget: Budget }) => ({
+    recordRun: async () => {
+      parts.recorded += 1;
+    },
     inventory: async () => {
       if (parts.refuseInventory) throw new RunBudgetRefusal('AI budget: $0.40 of the $5 cap left');
       budget.chargeUsd(parts.inventoryUsd);
@@ -161,7 +164,8 @@ describe('loadRealPipeline', () => {
         cap: 1,
       },
     ]);
-    expect(charges.map(([, label]) => label)).toEqual(['inventory', 'watch']);
+    // The repo also uses Stripe, so Stripe's changelog is read too: every provider the inventory found.
+    expect(charges.map(([, label]) => label)).toEqual(['inventory', 'watch', 'watch']);
   });
 
   it('turns a run-budget refusal into the cap being reached, not a pipeline error', async () => {
@@ -174,23 +178,29 @@ describe('loadRealPipeline', () => {
     expect(refusal.runOver).toBe(true);
   });
 
-  it('reports a task the run cannot afford as unaffordable without starting it', async () => {
+  it('starts a task with less than $2 of the run free (no per-task floor)', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
     parts.inventoryUsd = 3.5;
     let started = false;
     parts.runTask = async () => {
       started = true;
-      throw new Error('should not start');
+      return {
+        taskId: 't',
+        outcome: 'needs-review',
+        diff: '+x',
+        checks: [],
+        costUsd: 1,
+        transcriptPath: 'x',
+      };
     };
     const { context } = repoFor('stripe');
     const pipeline = (await loadRealPipeline(5)).factory(context);
     await pipeline.inventory('/unused', 'acme/shop');
 
-    const refusal = await pipeline.runTask(task, '/unused').catch((error) => error);
-    expect(refusal).toBeInstanceOf(BudgetExceededError);
-    expect(refusal.runOver).toBe(false);
-    expect(refusal.message).toMatch(/\$1\.50 of the \$5 run cap left, below the \$2 a task needs/);
-    expect(started).toBe(false);
+    await pipeline.runTask(task, '/unused');
+    expect(started).toBe(true);
+    // Memory learns from every attempt, so recipes carry across iterations.
+    expect(parts.recorded).toBeGreaterThan(0);
   });
 
   it('reads the orchestrator’s not-attempted record as unaffordable too', async () => {
@@ -203,11 +213,11 @@ describe('loadRealPipeline', () => {
         checks: [],
         costUsd: 0,
         transcriptPath: '',
-        note: 'not attempted: $1.50 of the run cap left, below the $2 a task needs',
+        note: 'not attempted: $0.50 of the run cap left, below the $1 overshoot reserve a task needs',
       }) as RunRecord;
     const { context } = repoFor('stripe');
     const pipeline = (await loadRealPipeline(5)).factory(context);
-    await expect(pipeline.runTask(task, '/unused')).rejects.toThrow(/not attempted: \$1\.50/);
+    await expect(pipeline.runTask(task, '/unused')).rejects.toThrow(/not attempted: \$0\.50/);
   });
 });
 
@@ -234,7 +244,7 @@ describe('the review reserve', () => {
 
   it('never makes a task unaffordable to keep the reserve', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
-    parts.inventoryUsd = 2.9;
+    parts.inventoryUsd = 3.9;
     let heldDuringTask = -1;
     parts.runTask = async (budget) => {
       heldDuringTask = budget.heldUsd();

@@ -1,0 +1,44 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "BoomerAng9/acheevy-agent",
+  "commit": "980c9194530f7d7a29da8003647a2575e046809d",
+  "provider": "anthropic",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "pytest",
+      "command": "export PYTHONPATH='src'; (python3 -m pytest --version >/dev/null 2>&1 || python3 -m pip install -q --only-binary=:all: pytest) && python3 -m pytest -q",
+      "ok": false,
+      "failures": [
+        "ERROR tests/llm/context_manager/test_llm_compact.py",
+        "ERROR tests/llm/context_manager/test_llm_summarizing.py",
+        "ERROR tests/test_message_history.py",
+        "ERROR tests/tools/test_bash_tool.py",
+        "ERROR tests/tools/test_sequential_thinking_tool.py",
+        "ERROR tests/tools/test_str_replace_tool.py"
+      ],
+      "tail": "ckages have valid Python names.\nTraceback:\n/usr/local/lib/python3.12/importlib/__init__.py:90: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntests/tools/test_sequential_thinking_tool.py:7: in <module>\n    from ii_agent.tools.sequential_thinking_tool import (\nE   ModuleNotFoundError: No module named 'ii_agent.tools'\n____________ ERROR collecting tests/tools/test_str_replace_tool.py _____________\nImportError while importing test module '/work/tests/tools/test_str_replace_tool.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/local/lib/python3.12/importlib/__init__.py:90: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntests/tools/test_str_replace_tool.py:4: in <module>\n    from ii_agent.tools.str_replace_tool_relative import StrReplaceEditorTool\nE   ModuleNotFoundError: No module named 'ii_agent.tools'\n=========================== short test summary info ============================\nERROR tests/llm/context_manager/test_llm_compact.py\nERROR tests/llm/context_manager/test_llm_summarizing.py\nERROR tests/test_message_history.py\nERROR tests/tools/test_bash_tool.py\nERROR tests/tools/test_sequential_thinking_tool.py\nERROR tests/tools/test_str_replace_tool.py\n!!!!!!!!!!!!!!!!!!! Interrupted: 6 errors during collection !!!!!!!!!!!!!!!!!!!!\n6 errors in 0.32s"
+    }
+  ],
+  "costUsd": 0.08279600000000009,
+  "durationMs": 56210,
+  "install": {
+    "code": 0,
+    "tail": "installs only prebuilt wheels from requirements.txt; install other dependencies with pip --only-binary=:all:"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "python3 -m pip install -q -e .",
+        "why": "The tests import the repo's own ii_agent package, which is not installed. An editable install makes it importable and pulls in the project's Python dependencies.",
+        "code": 1
+      }
+    ],
+    "env": ["PYTHONPATH"]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "pytest failed at collection with ModuleNotFoundError: No module named 'ii_agent.tools' in 6 test modules; the repo's own imports are broken, with no external credentials, services or toolchain involved."
+  }
+}

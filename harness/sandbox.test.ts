@@ -91,6 +91,31 @@ describe('local sandbox', () => {
     expect(diff).not.toContain('node_modules');
   });
 
+  it('resets the working copy to its last snapshot', async () => {
+    await fs.writeFile(path.join(sandbox.dir, 'index.js'), 'console.log("changed");\n');
+    await sandbox.exec('mkdir -p dist && echo built > dist/out.js');
+    await sandbox.reset?.();
+    expect(await sandbox.diff()).toBe('');
+    expect(await fs.readFile(path.join(sandbox.dir, 'index.js'), 'utf8')).toContain('v1');
+  });
+
+  it('leaves a proof test under .refit-proof and compiled Python out of the diff', async () => {
+    await sandbox.exec(
+      'mkdir -p .refit-proof && echo "assert(true)" > .refit-proof/model.test.mjs',
+    );
+    await sandbox.exec(
+      'mkdir -p __pycache__ && printf "\\001\\002" > __pycache__/main.cpython-312.pyc',
+    );
+    expect(await sandbox.diff()).toBe('');
+  });
+
+  it('leaves a rebuilt tsbuildinfo out of the diff', async () => {
+    await sandbox.exec(
+      'echo \'{"v":2}\' > tsconfig.tsbuildinfo && mkdir -p app && echo x > app/b.tsbuildinfo',
+    );
+    expect(await sandbox.diff()).toBe('');
+  });
+
   it('has no git remotes and no .git in the working copy', async () => {
     const { code, stdout } = await sandbox.exec('git remote -v');
     expect(code).not.toBe(0);

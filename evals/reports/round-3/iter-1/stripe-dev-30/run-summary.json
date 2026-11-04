@@ -1,0 +1,15 @@
+{
+  "set": "stripe-dev-30",
+  "capUsd": 2000,
+  "meterSpentUsd": 15.88889235,
+  "budgetSpentUsd": 21.52814835,
+  "costByPart": {
+    "inventory": 1.0458417500000001,
+    "match": 3.3556040000000005,
+    "other": 6.089044,
+    "harness": 3.2575706,
+    "review": 2.140832
+  },
+  "startedAt": "2026-11-03T20:38:21.961Z",
+  "finishedAt": "2026-11-03T22:20:44.374Z"
+}

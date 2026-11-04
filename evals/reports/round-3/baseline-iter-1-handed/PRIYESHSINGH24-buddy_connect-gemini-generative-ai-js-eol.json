@@ -1,0 +1,103 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "PRIYESHSINGH24/buddy_connect",
+  "taskId": "PRIYESHSINGH24/buddy_connect:gemini:generative-ai-js-eol",
+  "title": "@google/generative-ai (npm) is deprecated and reaches end of life; migrate to @google/genai",
+  "refit": {
+    "outcome": "verified",
+    "passesChecks": true,
+    "costUsd": 0.12257540000000001,
+    "diffLines": 457,
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The port is mechanically sound. All four files that imported @google/generative-ai (app/api/ai/chat/route.ts, lib/ai-client.ts, lib/ai-utils.ts, lib/ai-advanced-utils.ts) move to `new GoogleGenAI({ apiKey })` + `ai.models.generateContent({ model, contents, config })` + `result.text`. The package is swapped in package.json and the lockfile. Typecheck and build passing after the old package was removed is good evidence that no other importer was missed, at least inside the TS project.\n\nThe main issue is a quiet change in failure behaviour. In the old SDK, `response.text()` threw when a response was blocked or had no text. Each helper's catch then returned its fallback. The new code reads `result.text ?? \"\"`, so a blocked or empty response now succeeds with an empty string:\n- `improvePostContent` and `optimizeProfileSummary` return \"\" instead of the user's original text.\n- The chat route returns 200 `{success:true, message:\"\"}` instead of a 500.\n- `lib/ai-client.ts` still turns an empty result into an error, so it is unaffected.\n\nI could not confirm `@google/genai@2.32.0` from memory. Check the SDK's published versions and types. Its `engines: node >=20` matches the repo's `>=20.11.0`.\n\nThe checks prove the code compiles and that the old identifiers are gone. They make no live call and use no mocked response, so neither response handling nor client construction without a key is exercised. 'verified' is generous; 'needs-review' fits better.\n\nPre-existing, not caused by this PR: the AbortController in `lib/ai-client.ts` `generateWithTimeout` was never passed to the request, so the timeout never actually cancels the call. The new SDK's `config.abortSignal` could fix that, but the PR leaves it unwired, which is fine.",
+      "concerns": [
+        {
+          "file": "lib/ai-utils.ts",
+          "issue": "`improvePostContent` (≈line 157) now returns \"\" when `result.text` is undefined. That happens on a safety block or empty candidate. Previously `response.text()` threw and the catch returned the original `postContent`. Callers may overwrite the user's post with an empty string. Other helpers that return \"\" or [] are unchanged in effect.",
+          "severity": "medium"
+        },
+        {
+          "file": "lib/ai-advanced-utils.ts",
+          "issue": "`optimizeProfileSummary` (≈line 133) has the same regression. A blocked or empty response now returns \"\" instead of falling back to the original `bio`.",
+          "severity": "medium"
+        },
+        {
+          "file": "app/api/ai/chat/route.ts",
+          "issue": "`result.text ?? \"\"` makes a blocked or empty model response a 200 with `message: \"\"`. Before, it went to the catch and returned the 500 'Failed to generate response'. The client may render an empty assistant bubble. Throwing or returning an error when the text is empty would preserve the old behaviour.",
+          "severity": "low"
+        },
+        {
+          "file": "lib/ai-utils.ts",
+          "issue": "Both lib/ai-utils.ts and lib/ai-advanced-utils.ts construct `new GoogleGenAI({ apiKey: process.env.AI_GATEWAY_API_KEY || \"\" })` at module load. The old constructor accepted \"\" silently. I could not confirm whether @google/genai's constructor throws or falls back to GEMINI_API_KEY/GOOGLE_API_KEY when apiKey is empty. If it throws, any route importing these modules fails on import when AI is unconfigured. That would also break the deliberate 503 'not configured' handling. Check the constructor in the SDK source.",
+          "severity": "medium"
+        },
+        {
+          "file": "scripts/check-genai-migration.mjs",
+          "issue": "The check is a grep plus `typeof ai.models.generateContent === 'function'` against a hard-coded list of four files. It does not exercise a response, the `config` (temperature/maxOutputTokens) mapping, or error and blocked paths. It would not catch another file importing the old SDK outside the list, though typecheck/build partly covers that. This does not support a 'verified' grade on runtime behaviour.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Decide whether blocked or empty responses should keep the old fallback behaviour. For example, throw on empty `result.text` in `improvePostContent`, `optimizeProfileSummary` and the chat route.",
+        "Confirm `new GoogleGenAI({ apiKey: \"\" })` does not throw at module import in Node. Load lib/ai-utils.ts with AI_GATEWAY_API_KEY unset and hit the chat route expecting a 503.",
+        "Confirm `@google/genai@2.32.0` exists and exposes `models.generateContent({model, contents, config:{temperature,maxOutputTokens}})` and the `.text` getter, using the SDK's .d.ts.",
+        "Run one live or mocked call through lib/ai-client.ts `generateContent` and one ai-utils helper to confirm text extraction and generation config work end to end."
+      ],
+      "costUsd": 0.142064,
+      "model": "claude-opus-5-5"
+    }
+  },
+  "claude": {
+    "passesChecks": true,
+    "costUsd": 0.0963894,
+    "prepCostUsd": 0.015512,
+    "diffLines": 433,
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-PRIYESHSINGH24-buddy_connect-gemini-generative-ai-js-eol/transcript.jsonl",
+    "stopReason": "done",
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The SDK swap is complete. All four files that imported @google/generative-ai (app/api/ai/chat/route.ts, lib/ai-utils.ts, lib/ai-advanced-utils.ts, lib/ai-client.ts) now use GoogleGenAI and ai.models.generateContent, and the old package is gone from package.json and the lockfile. Because typecheck passes, no other import of the old package can remain. The call shapes look right for @google/genai, but I could not confirm the ^2.32.0 version or the exact typings from memory; check node_modules/@google/genai's .d.ts.\n\nThe diff also changes behaviour beyond the API change:\n- The old `response.text()` threw on blocked or empty candidates, which sent each function to its catch-block fallback. The new code uses `result.text ?? \"\"`, which silently yields an empty string instead.\n- In lib/ai-client.ts, `abortSignal` is now wired to the timeout. Before, the controller was created but never used, so the timeout never fired.\n\nThe checks are only typecheck and build. No live generateContent call, blocked-response path or timeout path was exercised, so 'verified' overstates what was proven; needs-review fits better.\n\nPre-existing, not caused by this PR: the key comes from AI_GATEWAY_API_KEY. If that is actually a Vercel AI Gateway key rather than a Gemini API key, neither SDK would authenticate. Also, @google-ai/generativelanguage stays pinned to `latest`.",
+      "concerns": [
+        {
+          "file": "lib/ai-utils.ts",
+          "issue": "improvePostContent (~line 157): the old `result.response.text()` threw on a safety-blocked or empty response, so the catch returned the original `postContent`. Now `(result.text ?? \"\")` returns \"\", so a blocked response replaces the user's post with an empty string. The same pattern turns other blocked responses into \"\" or [] silently, without the console.error that used to log them.",
+          "severity": "medium"
+        },
+        {
+          "file": "lib/ai-advanced-utils.ts",
+          "issue": "optimizeProfileSummary (~line 133): it used to fall back to the original `bio` on a blocked response and now returns \"\". generateNetworkingStrategy and generateSalaryNegotiationGuide also return \"\" without logging an error.",
+          "severity": "medium"
+        },
+        {
+          "file": "app/api/ai/chat/route.ts",
+          "issue": "Line ~57: a blocked or empty model response used to throw and return a 500 with 'Failed to generate response'. Now the route returns 200 `{success: true, message: \"\"}`, so the client shows a blank assistant reply instead of an error.",
+          "severity": "medium"
+        },
+        {
+          "file": "lib/ai-client.ts",
+          "issue": "Adding `config.abortSignal: controller.signal` makes AI_TIMEOUT_MS (default 15s) take effect for the first time. Slow generations that used to succeed will now abort and be retried, possibly several times. As I understand the SDK, abort is client-side only, so the server-side request may still run and be billed. The fix is probably desirable, but it is a behaviour change the migration did not require and no check exercises it.",
+          "severity": "low"
+        },
+        {
+          "file": "lib/ai-utils.ts",
+          "issue": "The module-level `new GoogleGenAI({ apiKey: process.env.AI_GATEWAY_API_KEY || \"\" })` (also in lib/ai-advanced-utils.ts) passes an empty string when the key is unset. The old SDK accepted that and failed only at call time. I could not confirm whether @google/genai instead throws at construction, which would crash any route importing these modules, or falls back to GEMINI_API_KEY/GOOGLE_API_KEY from the environment. Either would differ from the old behaviour.",
+          "severity": "medium"
+        },
+        {
+          "file": "package.json",
+          "issue": "The grade is 'verified', but the only checks are typecheck and build, and there is no live call against the new SDK. I could not confirm the @google/genai ^2.32.0 version or its Node >=20 engine requirement from memory; the repo's engines field (>=20.11.0) does satisfy that requirement.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Run one real request through /api/ai/chat and one through lib/ai-client.generateContent with a valid key, and confirm text comes back.",
+        "Decide whether `result.text` being undefined (blocked or empty response) should throw to preserve the old fallbacks: postContent and bio returned, 500 from the chat route. If so, change `?? \"\"` to throw.",
+        "Check in node_modules/@google/genai how the GoogleGenAI constructor handles `apiKey: \"\"`: does it throw, or fall back to GEMINI_API_KEY/GOOGLE_API_KEY?",
+        "Confirm that `abortSignal` in GenerateContentConfig exists in the installed version's types, and that the 15s timeout is acceptable now that it is enforced."
+      ],
+      "costUsd": 0.137116,
+      "model": "claude-opus-5-5"
+    }
+  }
+}

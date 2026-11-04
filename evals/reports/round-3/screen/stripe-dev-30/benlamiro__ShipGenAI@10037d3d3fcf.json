@@ -1,0 +1,15 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "benlamiro/ShipGenAI",
+  "commit": "10037d3d3fcf47b5c637bc37ab9bb05872f6e6ab",
+  "provider": "stripe",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.049484,
+  "durationMs": 31747,
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

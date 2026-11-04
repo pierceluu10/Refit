@@ -1,0 +1,19 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "William-franklyn/data-visualization-library",
+  "commit": "4e3373e2f83bf2e337b4f751fe70cd099e65d2d2",
+  "provider": "anthropic",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.019287999999999972,
+  "durationMs": 21237,
+  "install": {
+    "code": 0,
+    "tail": "added 105 packages in 4s"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

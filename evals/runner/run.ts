@@ -111,22 +111,24 @@ export async function runRepo(
     }
     // Priority 1 is the most urgent task, so it reaches the dollar cap first.
     tasks = [...matched.tasks].sort((a, b) => a.priority - b.priority);
-    for (const [position, task] of tasks.entries()) {
+    // Every task is recorded first, in priority order; then they run at once (one per provider
+    // since the bundle, so independent), within the process's TASK_SLOTS.
+    const results = tasks.map((task): TaskResult => ({
+      taskId: task.id,
+      changeId: task.change.id,
+      kind: task.change.kind,
+      change: task.change,
+      ...matchContext(task),
+      attempted: false,
+    }));
+    result.tasks.push(...results);
+    const runOne = async (task: MigrationTask, taskResult: TaskResult) => {
       if (ledger.exhausted()) {
-        result.tasks.push(...tasks.slice(position).map((rest) => unrunTask(rest)));
-        break;
+        Object.assign(taskResult, unrunTask(task));
+        return;
       }
-      const taskResult: TaskResult = {
-        taskId: task.id,
-        changeId: task.change.id,
-        kind: task.change.kind,
-        change: task.change,
-        ...matchContext(task),
-        attempted: false,
-      };
-      result.tasks.push(taskResult);
       try {
-        const record = await pipeline.runTask(task, checkout.repoDir);
+        const record = await pipeline.runTask(task, checkout!.repoDir);
         taskResult.record = record;
         const verdict = judgeAttempt(record);
         taskResult.attempted = verdict.attempted;
@@ -135,7 +137,7 @@ export async function runRepo(
       } catch (error) {
         if (error instanceof BudgetExceededError) throw error;
         taskResult.noAttemptReason = `runTask threw: ${message(error)}`;
-        continue;
+        return;
       }
       const record = taskResult.record;
       // A second opinion needs a diff to read; an empty one would only spend.
@@ -146,7 +148,7 @@ export async function runRepo(
             task,
             record,
             meter,
-            repoDir: checkout.repoDir,
+            repoDir: checkout!.repoDir,
           });
         } catch (error) {
           if (error instanceof BudgetExceededError) throw error;
@@ -159,7 +161,17 @@ export async function runRepo(
           };
         }
       }
-    }
+    };
+    const settled = await Promise.allSettled(
+      tasks.map((task, i) => taskSlot(() => runOne(task, results[i] as TaskResult))),
+    );
+    // What the tasks started in the background (memory learning) finishes before the repo is
+    // recorded, so its cost is the repo's.
+    await pipeline.drain?.();
+    const failure = settled.find(
+      (outcome): outcome is PromiseRejectedResult => outcome.status === 'rejected',
+    );
+    if (failure) throw failure.reason;
   } catch (error) {
     if (error instanceof BudgetExceededError) {
       // The cap is a hard limit: tasks it stopped are reported as unrun, not as attempts. That
@@ -183,6 +195,23 @@ export async function runRepo(
     await checkout?.cleanup().catch(() => undefined);
   }
   return finish();
+}
+
+// Harness runs at once across the whole process. A repo's tasks run in parallel; this keeps the
+// sandboxes they install and build in within what one machine holds.
+const TASK_SLOTS = 6;
+let freeSlots = TASK_SLOTS;
+const waitingForSlot: (() => void)[] = [];
+async function taskSlot<T>(work: () => Promise<T>): Promise<T> {
+  if (freeSlots === 0) await new Promise<void>((resolve) => waitingForSlot.push(resolve));
+  else freeSlots -= 1;
+  try {
+    return await work();
+  } finally {
+    const next = waitingForSlot.shift();
+    if (next) next();
+    else freeSlots += 1;
+  }
 }
 
 /** Runs a set (or one shard of it) with bounded concurrency and writes one JSON per repo. */

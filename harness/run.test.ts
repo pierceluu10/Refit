@@ -6,6 +6,7 @@ import type { MigrationTask, ToolPack } from '../shared/types.ts';
 import { scriptedSession, type ScriptedTurn } from './fake-session.ts';
 import { ESCALATION_MODEL, MODEL, decideOutcome, runTask } from './run.ts';
 import { createSandbox } from './sandbox.ts';
+import type { Plan } from './prepare.ts';
 
 // Illustrative fixture task, not a real customer.
 const task: MigrationTask = {
@@ -84,6 +85,7 @@ const finishMigrated = (call: Parameters<ScriptedTurn>[0]) =>
     validators: [{ name: 'check_params', passed: true, detail: 'params accepted' }],
     unproven: [],
     behaviourChanges: [],
+    proofTest: 'test',
   });
 
 const fixIt: ScriptedTurn = async (call) => {
@@ -113,6 +115,7 @@ const deps = (turns: ScriptedTurn[], budgetUsd = 1) => ({
   session: scriptedSession(turns),
   createSandbox: (dir: string) => createSandbox(dir, { mode: 'local' }),
   loadToolPack: async () => toolPack,
+  planPreparation: async () => ({ steps: [], env: {}, reasoning: '' }),
   budgetUsd,
   // The fake session's costs are exact, so no overshoot reserve is needed.
   turnReserveUsd: 0,
@@ -174,27 +177,46 @@ describe('runTask with a fake model', () => {
   it('counts a check the agent registers toward proof', async () => {
     const addVerify: ScriptedTurn = async (call) => {
       const output = await call('run_checks', {
-        add: [{ name: 'verify', command: 'npm run verify' }],
+        add: [{ name: 'test', command: 'npm run verify' }],
       });
-      expect(output).toContain('registered verify; on the original code it passes');
+      expect(output).toContain('registered test; on the original code it passes');
       await fixIt(call, {} as never);
     };
     const record = await runTask(task, fixtureRepo({ verify: 'node check.js' }), deps([addVerify]));
     expect(record.outcome).toBe('verified');
-    expect(record.checks).toEqual([{ name: 'verify', before: 'pass', after: 'pass' }]);
+    expect(record.checks).toEqual([{ name: 'test', before: 'pass', after: 'pass' }]);
+  });
+
+  it('drops a check the agent added and gave up on, but never a detected one', async () => {
+    const giveUp: ScriptedTurn = async (call) => {
+      // Passes on the original code and fails after the edit: a new failure, until it is removed.
+      await call('run_checks', {
+        add: [
+          { name: 'test', command: 'true' },
+          { name: 'attempt', command: 'grep -q charges.create src/pay.js' },
+        ],
+      });
+      const out = await call('run_checks', { remove: ['attempt', 'nope'] });
+      expect(out).toContain('removed attempt');
+      expect(out).toContain('nope was not removed');
+      await fixIt(call, {} as never);
+    };
+    const record = await runTask(task, fixtureRepo({}), deps([giveUp]));
+    expect(record.outcome).toBe('verified');
+    expect(record.agentChecks.map((check) => check.name)).toEqual(['test']);
   });
 
   it('shows a vacuous agent-added check verbatim instead of hiding it', async () => {
     const addTrue: ScriptedTurn = async (call) => {
-      await call('run_checks', { add: [{ name: 'smoke', command: 'true' }] });
+      await call('run_checks', { add: [{ name: 'test', command: 'true' }] });
       await fixIt(call, {} as never);
     };
     const record = await runTask(task, fixtureRepo({}), deps([addTrue]));
     expect(record.outcome).toBe('verified');
     expect(record.agentChecks).toEqual([
-      { name: 'smoke', command: 'true', before: 'pass', after: 'pass' },
+      { name: 'test', command: 'true', before: 'pass', after: 'pass' },
     ]);
-    expect(record.prBody).toContain('- smoke, added by the agent: `true` (pass → pass)');
+    expect(record.prBody).toContain('- test, added by the agent: `true` (pass → pass)');
   });
 
   it('ends when the agent finishes with an explanation of what is still failing', async () => {
@@ -207,6 +229,7 @@ describe('runTask with a fake model', () => {
         validators: [],
         unproven: ['The test fails because the fixture needs a live key.'],
         behaviourChanges: [],
+        noProofTestReason: 'The only test needs a live key.',
       });
     };
     const record = await runTask(task, fixtureRepo(), deps([explain]));
@@ -293,6 +316,41 @@ describe('runTask with a fake model', () => {
     expect(record.models).toEqual([MODEL, ESCALATION_MODEL]);
   });
 
+  it('runs the agent’s own checks with the placeholder env', async () => {
+    const addEnvCheck: ScriptedTurn = async (call) => {
+      await call('run_checks', {
+        add: [{ name: 'test', command: 'node -e "process.exit(process.env.X ? 0 : 1)"' }],
+      });
+      await fixIt(call, {} as never);
+    };
+    const record = await runTask(task, fixtureRepo({}), {
+      ...deps([addEnvCheck]),
+      planPreparation: async (): Promise<Plan> => ({ steps: [], env: { X: '1' }, reasoning: '' }),
+    });
+    expect(record.agentChecks[0]).toMatchObject({ name: 'test', before: 'pass', after: 'pass' });
+    expect(record.outcome).toBe('verified');
+  });
+
+  it('plans again with the failing baseline in hand, and checks run with the placeholder env', async () => {
+    const seen: string[] = [];
+    const record = await runTask(
+      task,
+      fixtureRepo({ test: 'node -e "process.exit(process.env.WEBHOOK_SECRET ? 0 : 1)"' }),
+      {
+        ...deps([fixIt]),
+        planPreparation: async (evidence): Promise<Plan> => {
+          seen.push(evidence);
+          return evidence.includes('failed before any edit')
+            ? { steps: [], env: { WEBHOOK_SECRET: 'placeholder' }, reasoning: 'read at test time' }
+            : { steps: [], env: {}, reasoning: '' };
+        },
+      },
+    );
+    expect(seen).toHaveLength(2);
+    expect(record.checks[0]).toMatchObject({ name: 'test', before: 'pass', after: 'pass' });
+    expect(record.prBody).toContain('Checks ran with placeholder env: WEBHOOK_SECRET.');
+  });
+
   it('reports spend through chargeRun as it happens, even when the run then throws', async () => {
     const charges: [number, string][] = [];
     const run = runTask(task, fixtureRepo(), {
@@ -336,6 +394,7 @@ describe('decideOutcome', () => {
     validators: [],
     unproven: [],
     behaviourChanges: [],
+    proofTest: 'build',
   };
   const check = (ok: boolean) => ({
     name: 'build',
@@ -350,6 +409,28 @@ describe('decideOutcome', () => {
   it('needs a check that passes: checks failing alike before and after prove nothing', () => {
     expect(decideOutcome({ ...input, after: [check(false)] })).toBe('needs-review');
     expect(decideOutcome({ ...input, after: [check(true), check(false)] })).toBe('verified');
+  });
+
+  it('needs the agent’s test of the change to pass, or a reason none can be written', () => {
+    const untested = { ...report, proofTest: undefined };
+    expect(decideOutcome({ ...input, report: untested, after: [check(true)] })).toBe(
+      'needs-review',
+    );
+    expect(
+      decideOutcome({
+        ...input,
+        report: { ...untested, noProofTestReason: 'only a CSS change' },
+        after: [check(true)],
+      }),
+    ).toBe('verified');
+    const failingTest = { ...check(false), name: 'change-test' };
+    expect(
+      decideOutcome({
+        ...input,
+        report: { ...report, proofTest: 'change-test' },
+        after: [check(true), failingTest],
+      }),
+    ).toBe('needs-review');
   });
 
   it("is not verified while a provider check's latest call failed, even one the agent left out", () => {
@@ -369,5 +450,10 @@ describe('decideOutcome', () => {
     expect(decideOutcome({ ...input, after: [check(true)], validatorRuns: [lookup] })).toBe(
       'verified',
     );
+  });
+
+  it('verifies a proven change the agent still lists caveats for: those go to the PR', () => {
+    const caveats = { ...report, unproven: ['The Dashboard webhook version is not checked.'] };
+    expect(decideOutcome({ ...input, report: caveats, after: [check(true)] })).toBe('verified');
   });
 });

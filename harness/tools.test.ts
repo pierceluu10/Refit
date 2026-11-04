@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { AgentTool, MigrationTask, Recipe } from '../shared/types.ts';
-import { buildTools } from './tools.ts';
+import { buildTools, finishProblems, gitignoreProblems, privateHost } from './tools.ts';
 import type { ExecResult, FinishReport, Sandbox, ToolContext } from './types.ts';
 
 const task = { id: 't1', repo: 'acme/app' } as MigrationTask;
@@ -251,7 +251,7 @@ describe('web, memory, tool pack and finish', () => {
   it('finish records a leniently parsed report', async () => {
     const { call, finished } = setup();
     const out = await call('finish', {
-      verdict: 'migrated',
+      verdict: 'not-affected',
       summary: 'Moved to PaymentIntents',
       why: 'Charges API removed',
       validators: [{ name: 'tsc', passed: true, detail: 'clean' }, 'junk'],
@@ -259,7 +259,7 @@ describe('web, memory, tool pack and finish', () => {
     expect(out).toMatch(/re-run the checks/);
     expect(finished).toEqual([
       {
-        verdict: 'migrated',
+        verdict: 'not-affected',
         summary: 'Moved to PaymentIntents',
         why: 'Charges API removed',
         validators: [
@@ -270,6 +270,103 @@ describe('web, memory, tool pack and finish', () => {
         behaviourChanges: [],
       },
     ]);
+  });
+
+  it('finish refuses, at most twice, a report that would quietly miss verified', async () => {
+    const { call, finished } = setup();
+    const report = {
+      verdict: 'migrated',
+      summary: 'Moved to PaymentIntents',
+      why: 'Charges API removed',
+      validators: [{ name: 'stripe__stripe_check_params', passed: true, detail: 'clean' }],
+      proofTest: 'change-tset',
+    };
+    const first = await call('finish', report);
+    expect(first).toMatch(/^Not recorded yet/);
+    expect(first).toContain('proofTest "change-tset" is not a registered check');
+    expect(first).toContain('no call of it was recorded');
+    expect(finished).toEqual([]);
+    await call('finish', report);
+    expect(await call('finish', report)).toMatch(/re-run the checks/);
+    expect(finished).toHaveLength(1);
+  });
+
+  it('finishProblems names a checker whose latest call failed, and clears once it is re-run', () => {
+    const report = {
+      verdict: 'migrated' as const,
+      summary: 's',
+      why: 'w',
+      validators: [],
+      unproven: [],
+      behaviourChanges: [],
+      proofTest: 'change-test',
+    };
+    const checks = [{ name: 'change-test', command: 'node t.mjs' }];
+    const old = {
+      tool: 'openai__openai_check_request',
+      output: 'Status: deprecated',
+      passed: false,
+    };
+    const fixed = { ...old, output: 'Supported.', passed: true };
+    expect(finishProblems(report, checks, [old])).toEqual([
+      expect.stringContaining('latest openai__openai_check_request call reported problems'),
+    ]);
+    expect(finishProblems(report, checks, [old, fixed])).toEqual([]);
+  });
+
+  it('finishProblems names a claimed validator whose latest call did not pass', () => {
+    const lookup = {
+      tool: 'openai__openai_model_lookup',
+      output: '## gpt-4.1\nStatus: deprecated',
+      passed: false,
+    };
+    const report = {
+      verdict: 'migrated' as const,
+      summary: 's',
+      why: 'w',
+      validators: [{ name: 'openai__openai_model_lookup', passed: true, detail: 'checked' }],
+      unproven: [],
+      behaviourChanges: [],
+      proofTest: 'change-test',
+    };
+    expect(finishProblems(report, [{ name: 'change-test', command: 'true' }], [lookup])).toEqual([
+      expect.stringContaining("its latest call didn't pass"),
+    ]);
+  });
+
+  it('gitignoreProblems catches a secret ignore line the change drops', () => {
+    const joined = [
+      'diff --git a/.gitignore b/.gitignore',
+      '--- a/.gitignore',
+      '+++ b/.gitignore',
+      '@@ -1,2 +1,2 @@',
+      ' node_modules',
+      '-.env',
+      '\\ No newline at end of file',
+      '+.envdist',
+    ].join('\n');
+    expect(gitignoreProblems(joined)).toEqual([expect.stringContaining('drops `.env`')]);
+    const kept = joined.replace('+.envdist', '+.env\n+dist');
+    expect(gitignoreProblems(kept)).toEqual([]);
+  });
+
+  it('privateHost keeps fetch_url to the public web', () => {
+    for (const host of [
+      'localhost',
+      '127.0.0.1',
+      'host.docker.internal',
+      '10.0.0.5',
+      '172.20.1.1',
+      '192.168.1.2',
+      '169.254.169.254',
+      '[::1]',
+      'api.localhost',
+    ]) {
+      expect(privateHost(host), host).toBe(true);
+    }
+    for (const host of ['docs.stripe.com', '8.8.8.8', '172.32.0.1', 'platform.openai.com']) {
+      expect(privateHost(host), host).toBe(false);
+    }
   });
 
   it('every tool has an object input schema and never throws', async () => {

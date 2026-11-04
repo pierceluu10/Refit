@@ -1,0 +1,87 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "rainmana/cursorify",
+  "taskId": "rainmana/cursorify:anthropic:2026-10-21-sdk-typescript-1-0-0",
+  "title": "npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too",
+  "refit": {
+    "outcome": "verified",
+    "passesChecks": true,
+    "costUsd": 0.09530130000000002,
+    "diffLines": 276,
+    "review": {
+      "opinion": "looks-right",
+      "summary": "The only Anthropic call site in the shown files is `client.messages.create` in src/llmGenerator.ts (~L274), compiled to lib/llmGenerator.js (~L230). It sends no temperature/top_p/top_k and passes a plain string `content`, so the request shape survives the 1.0.0 change; typecheck passing supports that MessageParam still accepts it. The diff's code change replaces `response.content[0].text` with a concatenation of all `text` blocks. That is a sensible, type-safe narrowing of the content-block union. One behaviour change: if the response has no text block, `currentSummary` becomes '' instead of undefined, which makes `extractCursorrules` throw a clearer error. The version bump and lockfile look consistent. I could not confirm 1.0.0's exact dependency set or the 2026-10-21 default from memory; the CHANGELOG quote and the SDK's published package.json are the places to check. The new test exercises lib/providers/anthropic-provider.js, a module the diff doesn't touch and whose source wasn't shown. It asserts the anthropic-version header and the absence of temperature even when the caller passes `temperature: 0.7`. So either that provider already drops sampling params, or the SDK does; worth a look. The main generateWithClaude path in llmGenerator.ts is not exercised by any test, and no live call was made. Pre-existing and outside this change: the default model `claude-3-7-sonnet-latest` may not be served under the new API version, and `npm test` is still a no-op echo.",
+      "concerns": [
+        {
+          "file": "test/anthropic-request.test.mjs",
+          "issue": "The test covers AnthropicProvider (lib/providers/anthropic-provider.js), not generateWithClaude in src/llmGenerator.ts, which is the only code the diff changed. The new content-block join logic has no test coverage; it rests on typecheck alone.",
+          "severity": "medium"
+        },
+        {
+          "file": "test/anthropic-request.test.mjs",
+          "issue": "The test passes `temperature: 0.7` and asserts it is not sent, but the provider source is not in the diff or the shown files. If the provider drops it silently, a user-configured temperature is ignored with no warning. Confirm this is intended and documented. The test also is not wired into `npm test` (the script is still `echo 'No tests yet'`), and it leaves an unused `orig` variable.",
+          "severity": "low"
+        },
+        {
+          "file": "src/llmGenerator.ts",
+          "issue": "Behaviour change beyond a pure migration: all text blocks are now concatenated instead of taking only the first block. This is harmless for single-block replies. If the new API version returns extra blocks by default, the intermediate cursorrules_chunk_*.md files will contain all of their text.",
+          "severity": "low"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "The lockfile also renames the package and bin from rulefy to cursorify. That only syncs it with package.json, but it is unrelated to the SDK bump. The SDK's license also changes from MIT to Apache-2.0, which may matter for downstream consumers.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Open src/providers/anthropic-provider.ts and confirm how temperature/top_p/top_k are handled; it is not in the diff but the test depends on it.",
+        "Run one live request through generateWithClaude with the default model `claude-3-7-sonnet-latest` and confirm the model is accepted under API version 2026-10-21.",
+        "Check the @anthropic-ai/sdk 1.0.0 package.json for its engines field against this repo's `node >=18`, and confirm it relies on global fetch."
+      ],
+      "costUsd": 0.219328,
+      "model": "claude-opus-5-5"
+    }
+  },
+  "claude": {
+    "passesChecks": true,
+    "costUsd": 0.0466451,
+    "prepCostUsd": 0.006808,
+    "diffLines": 252,
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-rainmana-cursorify-anthropic-2026-10-21-sdk-typescript-1-0-0/transcript.jsonl",
+    "stopReason": "done",
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The PR bumps @anthropic-ai/sdk from ^0.20.0 to ^1.0.0 (the lockfile resolves 1.4.0). It changes the single response read in src/llmGenerator.ts:285, and the compiled lib/llmGenerator.js, from `response.content[0].text` to a type-narrowed read. The request side looks compatible with the changes listed: there is no temperature/top_p/top_k, no Bedrock/Vertex/Foundry client, and `messages` is a plain `{role:'user', content:string}` object, which typecheck accepts under the new MessageParam union. There is only one call site (generateWithClaude), and the diff covers it in both src and lib. The 'verified' grade claims more than the checks show. `npm test` is `echo 'No tests yet' && exit 0`, so it exercises nothing, and no live call was made. The main runtime change, the SDK now sending API version 2026-10-21 by default, therefore went unexercised. That includes whether the default model 'claude-3-7-sonnet-latest' and the response shape still behave under that version. Pre-existing and not caused by this PR: the default model alias is hardcoded and may be retired independently.",
+      "concerns": [
+        {
+          "file": "src/llmGenerator.ts",
+          "issue": "Lines 285-286 read only content[0]. If that block is not text (for example thinking or another block type the new API version might return first), currentSummary silently becomes ''. The code then writes an empty intermediate file, the next chunk's prompt gets an empty <current_rules>, and accumulated rules are lost. It only fails at the end, in extractCursorrules, with a misleading 'no <cursorrules> tags' error. The old code would have thrown sooner. Safer: concatenate all blocks where type === 'text', or throw a clear error when none exist. The same applies to lib/llmGenerator.js:241-242.",
+          "severity": "medium"
+        },
+        {
+          "file": "package.json",
+          "issue": "This is a major SDK bump that changes the default API version sent on every request (2026-10-21). Nothing in the checks makes a real messages.create call, so there is no evidence that the response shape, stop behaviour, or the 'claude-3-7-sonnet-latest' default model work under the new version. The 'verified' grade rests only on typecheck and build passing.",
+          "severity": "medium"
+        },
+        {
+          "file": "package.json",
+          "issue": "The SDK 1.x dependency tree changed: node-fetch and polyfills were dropped, and @opentelemetry/api, json-schema-to-ts and standardwebhooks were added. This suggests it relies on native fetch. The package declares engines node >=18. I could not confirm the SDK 1.x minimum Node version; check `engines` in node_modules/@anthropic-ai/sdk/package.json.",
+          "severity": "low"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "Unrelated churn from regenerating the lockfile: the root name changed rulefy→cursorify and the bin changed rulefy.cjs→cursorify.cjs. This matches package.json, so it is probably harmless, but it is outside the migration. The SDK licence also changed from MIT to Apache-2.0, which may matter for licence review.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Run the CLI once against the real API with a small repo (the non-'dummy-key' path) and confirm response.content[0] is a text block containing <cursorrules> under API version 2026-10-21.",
+        "Confirm that 'claude-3-7-sonnet-latest' is still accepted under the new API version, or pass an explicit model.",
+        "Decide whether a non-text first block should throw or fall back to joining all text blocks, rather than silently setting currentSummary to ''.",
+        "Check node_modules/@anthropic-ai/sdk/package.json engines against this package's node >=18 requirement."
+      ],
+      "costUsd": 0.209392,
+      "model": "claude-opus-5-5"
+    }
+  }
+}

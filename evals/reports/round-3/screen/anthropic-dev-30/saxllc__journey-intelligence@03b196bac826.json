@@ -1,0 +1,19 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "saxllc/journey-intelligence",
+  "commit": "03b196bac826b0444339ea78157dce86e6723308",
+  "provider": "anthropic",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.02161600000000008,
+  "durationMs": 22767,
+  "install": {
+    "code": 0,
+    "tail": "added 70 packages in 2s"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

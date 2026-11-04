@@ -1,0 +1,35 @@
+{
+  "set": "openai-dev-30",
+  "repo": "RaizenStyx/lore-forge",
+  "commit": "381a17d7c2104f966489421ec4f2f78442c9662e",
+  "provider": "openai",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export OPENAI_API_KEY='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export OPENAI_API_KEY='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.024691999999999936,
+  "durationMs": 129764,
+  "install": {
+    "code": 0,
+    "tail": "added 342 packages in 1m"
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["OPENAI_API_KEY"]
+  }
+}

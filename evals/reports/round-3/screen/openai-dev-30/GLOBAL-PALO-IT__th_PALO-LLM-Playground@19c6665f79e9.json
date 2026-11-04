@@ -1,0 +1,78 @@
+{
+  "set": "openai-dev-30",
+  "repo": "GLOBAL-PALO-IT/th_PALO-LLM-Playground",
+  "commit": "19c6665f79e9e498d9bc29be6e27ae3e9375a933",
+  "provider": "openai",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/playground' NEXT_PUBLIC_API_URL='http://localhost:3000' OPENAI_API_KEY='placeholder' LIVEKIT_API_KEY='placeholder' LIVEKIT_API_SECRET='placeholder' LIVEKIT_URL='wss://placeholder.livekit.cloud' NEO4J_URI='neo4j://localhost:7687' NEO4J_USER='neo4j' NEO4J_PASSWORD='placeholder'; npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        ".next/types/validator.ts: error TS2344: Type 'typeof import(\"/work/src/app/api/database/clients/[id]/route\")' does not satisfy the constraint 'RouteHandlerConfig<\"/api/database/clients/[id]\">'.",
+        ".next/types/validator.ts: error TS2344: Type 'typeof import(\"/work/src/app/api/database/payments/[id]/route\")' does not satisfy the constraint 'RouteHandlerConfig<\"/api/database/payments/[id]\">'.",
+        ".next/types/validator.ts: error TS2344: Type 'typeof import(\"/work/src/app/api/database/policies/[id]/route\")' does not satisfy the constraint 'RouteHandlerConfig<\"/api/database/policies/[id]\">'.",
+        ".next/types/validator.ts: error TS2344: Type 'typeof import(\"/work/src/app/api/pipeline/document/[id]/route\")' does not satisfy the constraint 'RouteHandlerConfig<\"/api/pipeline/document/[id]\">'.",
+        ".next/types/validator.ts: error TS2344: Type 'typeof import(\"/work/src/app/api/pipeline/enrichment/[id]/route\")' does not satisfy the constraint 'RouteHandlerConfig<\"/api/pipeline/enrichment/[id]\">'.",
+        ".next/types/validator.ts: error TS2344: Type 'typeof import(\"/work/src/app/api/pipeline/evaluation/[id]/route\")' does not satisfy the constraint 'RouteHandlerConfig<\"/api/pipeline/evaluation/[id]\">'.",
+        ".next/types/validator.ts: error TS2344: Type 'typeof import(\"/work/src/app/api/pipeline/translation/[id]/route\")' does not satisfy the constraint 'RouteHandlerConfig<\"/api/pipeline/translation/[id]\">'.",
+        "src/components/RAGChat/RAGChat.tsx: error TS2304: Cannot find name 'debugPrompt'.",
+        "tests/unit/lib/validateEnv.test.ts: error TS2345: Argument of type '{ OPENAI_API_KEY: string; }' is not assignable to parameter of type 'ProcessEnv'.",
+        "tests/unit/lib/validateEnv.test.ts: error TS2345: Argument of type '{}' is not assignable to parameter of type 'ProcessEnv'."
+      ],
+      "tail": "s missing in type '{}' but required in type 'ProcessEnv'.\ntests/unit/lib/validateEnv.test.ts(224,28): error TS2345: Argument of type '{}' is not assignable to parameter of type 'ProcessEnv'.\n  Property 'NODE_ENV' is missing in type '{}' but required in type 'ProcessEnv'.\ntests/unit/lib/validateEnv.test.ts(247,28): error TS2345: Argument of type '{ OPENAI_API_KEY: string; }' is not assignable to parameter of type 'ProcessEnv'.\n  Property 'NODE_ENV' is missing in type '{ OPENAI_API_KEY: string; }' but required in type 'ProcessEnv'.\ntests/unit/lib/zodFunction.test.ts(172,21): error TS2339: Property 'user' does not exist on type 'PromiseOrValue<{ user: { name: string; email: string; }; metadata: { tags: string[]; }; }>'.\n  Property 'user' does not exist on type 'Promise<{ user: { name: string; email: string; }; metadata: { tags: string[]; }; }>'.\ntests/unit/lib/zodFunction.test.ts(173,21): error TS2339: Property 'user' does not exist on type 'PromiseOrValue<{ user: { name: string; email: string; }; metadata: { tags: string[]; }; }>'.\n  Property 'user' does not exist on type 'Promise<{ user: { name: string; email: string; }; metadata: { tags: string[]; }; }>'.\ntests/unit/lib/zodFunction.test.ts(174,21): error TS2339: Property 'metadata' does not exist on type 'PromiseOrValue<{ user: { name: string; email: string; }; metadata: { tags: string[]; }; }>'.\n  Property 'metadata' does not exist on type 'Promise<{ user: { name: string; email: string; }; metadata: { tags: string[]; }; }>'."
+    },
+    {
+      "name": "build",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/playground' NEXT_PUBLIC_API_URL='http://localhost:3000' OPENAI_API_KEY='placeholder' LIVEKIT_API_KEY='placeholder' LIVEKIT_API_SECRET='placeholder' LIVEKIT_URL='wss://placeholder.livekit.cloud' NEO4J_URI='neo4j://localhost:7687' NEO4J_USER='neo4j' NEO4J_PASSWORD='placeholder'; npm run build",
+      "ok": false,
+      "failures": ["exit-nonzero: Next.js build worker exited with code: 1 and signal: null"],
+      "tail": "..\n\n[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`\n⚠ Invalid next.config.mjs options detected: \n⚠     Unrecognized key(s) in object: 'swcMinify'\n⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config\n[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`\nFailed to compile.\n\nType error: Type 'typeof import(\"/work/src/app/api/database/clients/[id]/route\")' does not satisfy the constraint 'RouteHandlerConfig<\"/api/database/clients/[id]\">'.\n  Types of property 'GET' are incompatible.\n    Type '(req: Request, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ id: string; name: string; email: string; phone: string | null; createdAt: Date; updatedAt: Date; }> | NextResponse<...>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.\n      Types of parameters '__1' and 'context' are incompatible.\n        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.\n          Types of property 'params' are incompatible.\n            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.\n\nNext.js build worker exited with code: 1 and signal: null"
+    },
+    {
+      "name": "test",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/playground' NEXT_PUBLIC_API_URL='http://localhost:3000' OPENAI_API_KEY='placeholder' LIVEKIT_API_KEY='placeholder' LIVEKIT_API_SECRET='placeholder' LIVEKIT_URL='wss://placeholder.livekit.cloud' NEO4J_URI='neo4j://localhost:7687' NEO4J_USER='neo4j' NEO4J_PASSWORD='placeholder'; npm run test",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.07230599999999976,
+  "durationMs": 154956,
+  "install": {
+    "code": 0,
+    "tail": "added 1408 packages in 37s\n\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "@prisma/client's postinstall was skipped, so the Prisma client types and runtime are not generated from prisma/schema.prisma; tsc, next build and jest need them.",
+        "code": 0
+      },
+      {
+        "command": "npx prisma generate",
+        "why": "The Prisma client is generated in a postinstall hook that was skipped; the code imports @prisma/client types and the schema models need generating before typecheck, build, and tests.",
+        "code": 0
+      }
+    ],
+    "env": [
+      "DATABASE_URL",
+      "NEXT_PUBLIC_API_URL",
+      "OPENAI_API_KEY",
+      "LIVEKIT_API_KEY",
+      "LIVEKIT_API_SECRET",
+      "LIVEKIT_URL",
+      "NEO4J_URI",
+      "NEO4J_USER",
+      "NEO4J_PASSWORD"
+    ]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "tsc --noEmit and npm run build fail on the repo's own code: Next.js route handlers use synchronous params instead of Promise<{id}>, RAGChat.tsx references an undefined 'debugPrompt', and tests have type errors, none needing external services or credentials."
+  }
+}

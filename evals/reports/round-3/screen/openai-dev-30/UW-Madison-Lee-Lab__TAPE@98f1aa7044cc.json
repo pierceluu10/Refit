@@ -1,0 +1,19 @@
+{
+  "set": "openai-dev-30",
+  "repo": "UW-Madison-Lee-Lab/TAPE",
+  "commit": "98f1aa7044cc8cea34583b2952dad9262587e95d",
+  "provider": "openai",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.16898599999999964,
+  "durationMs": 617832,
+  "install": {
+    "code": 124,
+    "tail": " (from -r requirements.txt (line 51))\n  Downloading dnspython-2.7.0-py3-none-any.whl.metadata (5.8 kB)\nCollecting docstring_parser==0.17.0 (from -r requirements.txt (line 52))\n  Downloading docstring_parser-0.17.0-py3-none-any.whl.metadata (3.5 kB)\nCollecting duckduckgo_search==8.1.1 (from -r requirements.txt (line 53))\n  Downloading duckduckgo_search-8.1.1-py3-none-any.whl.metadata (16 kB)\nCollecting einops==0.8.1 (from -r requirements.txt (line 54))\n  Downloading einops-0.8.1-py3-none-any.whl.metadata (13 kB)\nCollecting email-validator==2.3.0 (from -r requirements.txt (line 55))\n  Downloading email_validator-2.3.0-py3-none-any.whl.metadata (26 kB)\nCollecting exceptiongroup==1.3.0 (from -r requirements.txt (line 56))\n  Downloading exceptiongroup-1.3.0-py3-none-any.whl.metadata (6.7 kB)\nCollecting executing==2.2.0 (from -r requirements.txt (line 57))\n  Downloading executing-2.2.0-py2.py3-none-any.whl.metadata (8.9 kB)\nCollecting Farama-Notifications==0.0.4 (from -r requirements.txt (line 58))\n  Downloading Farama_Notifications-0.0.4-py3-none-any.whl.metadata (558 bytes)\n\nERROR: Could not find a version that satisfies the requirement fast_downward_textworld==20.6.3 (from versions: none)\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\nERROR: No matching distribution found for fast_downward_textworld==20.6.3\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

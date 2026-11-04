@@ -1,0 +1,19 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "samiamjidkhan/dota2-helper",
+  "commit": "91e32cce572510c11c7aa82388abac3cc163ce96",
+  "provider": "stripe",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.020033999999999996,
+  "durationMs": 25591,
+  "install": {
+    "code": 0,
+    "tail": "added 115 packages in 3s"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "4lbatr0s/jiro",
+  "commit": "313dbd324b09519252ab0791c8a5a2654be31ada",
+  "provider": "stripe",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export DATABASE_URL='mysql://user:pass@localhost:3306/db' KINDE_CLIENT_ID='placeholder' KINDE_CLIENT_SECRET='placeholder' KINDE_ISSUER_URL='https://jiro.kinde.com' KINDE_SITE_URL='http://localhost:3000' KINDE_POST_LOGOUT_REDIRECT_URL='http://localhost:3000' KINDE_POST_LOGIN_REDIRECT_URL='http://localhost:3000/dashboard' UPLOADTHING_SECRET='placeholder' UPLOADTHING_APP_ID='placeholder' PINECONE_API_KEY='placeholder' PINECONE_ENVIRONMENT='placeholder' PINECONE_INDEX='placeholder' OPENAI_API_KEY='placeholder' STRIPE_WEBHOOK_SECRET='placeholder' STRIPE_SECRET_KEY='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export DATABASE_URL='mysql://user:pass@localhost:3306/db' KINDE_CLIENT_ID='placeholder' KINDE_CLIENT_SECRET='placeholder' KINDE_ISSUER_URL='https://jiro.kinde.com' KINDE_SITE_URL='http://localhost:3000' KINDE_POST_LOGOUT_REDIRECT_URL='http://localhost:3000' KINDE_POST_LOGIN_REDIRECT_URL='http://localhost:3000/dashboard' UPLOADTHING_SECRET='placeholder' UPLOADTHING_APP_ID='placeholder' PINECONE_API_KEY='placeholder' PINECONE_ENVIRONMENT='placeholder' PINECONE_INDEX='placeholder' OPENAI_API_KEY='placeholder' STRIPE_WEBHOOK_SECRET='placeholder' STRIPE_SECRET_KEY='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.063882,
+  "durationMs": 161932,
+  "install": {
+    "code": 0,
+    "tail": "added 768 packages in 1m"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "The repo's postinstall runs prisma generate, which was skipped. It creates the @prisma/client types that the typecheck and build need.",
+        "code": 0
+      }
+    ],
+    "env": [
+      "DATABASE_URL",
+      "KINDE_CLIENT_ID",
+      "KINDE_CLIENT_SECRET",
+      "KINDE_ISSUER_URL",
+      "KINDE_SITE_URL",
+      "KINDE_POST_LOGOUT_REDIRECT_URL",
+      "KINDE_POST_LOGIN_REDIRECT_URL",
+      "UPLOADTHING_SECRET",
+      "UPLOADTHING_APP_ID",
+      "PINECONE_API_KEY",
+      "PINECONE_ENVIRONMENT",
+      "PINECONE_INDEX",
+      "OPENAI_API_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "STRIPE_SECRET_KEY"
+    ]
+  }
+}

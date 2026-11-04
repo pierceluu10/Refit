@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { failingCheckers, gradeValidators, runPassed } from './validators.ts';
 
+const unrunnable = {
+  tool: 'openweathermap__openapi_check',
+  output:
+    'openapi_check failed to run: https://openweathermap.org/api/one-call-4: could not parse it as JSON or YAML. Nothing was checked.',
+  passed: false,
+};
+
 describe('gradeValidators', () => {
   const claim = (name: string, passed = true) => ({ name, passed, detail: '' });
 
@@ -77,6 +84,37 @@ describe('gradeValidators', () => {
       '2099-01-01.madeup is not in the snapshot (retrieved 2026-11-01). It may be newer than the snapshot or mistyped.',
     ];
     for (const output of problems) expect(runPassed(output), output).toBe(false);
+  });
+});
+
+describe('openai_check_request', () => {
+  const output = (model: string) =>
+    [
+      'POST /v1/audio/transcriptions (createTranscription)',
+      'Endpoint note (models deprecated, 2027-02-26): whisper-1 shut down 2027-02-26; replacements gpt-transcribe.',
+      'Deprecated parameters: none found.',
+      'Unknown parameters: none.',
+      `Model ${model}. Run openai_model_lookup for replacement and dates.`,
+    ].join('\n\n');
+
+  it('passes a request on an active model, whatever the endpoint says of other models', () => {
+    expect(runPassed(output('gpt-transcribe: active'))).toBe(true);
+  });
+
+  it('fails a request whose own model is deprecated or shut down', () => {
+    expect(runPassed(output('whisper-1: deprecated (shutdown 2027-02-26)'))).toBe(false);
+    expect(runPassed(output('whisper-1: shut down (since 2027-02-26)'))).toBe(false);
+  });
+});
+
+describe('a validator that could not run', () => {
+  it('is no proof and does not hold back the grade', () => {
+    const [grade] = gradeValidators(
+      [{ name: 'openweathermap__openapi_check', passed: false, detail: 'could not run' }],
+      [unrunnable],
+    );
+    expect(grade).toMatchObject({ ran: false, passed: true });
+    expect(failingCheckers([unrunnable])).toEqual([]);
   });
 });
 

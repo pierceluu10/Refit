@@ -10,7 +10,8 @@ import { parseArgs, promisify } from 'node:util';
 import { gitCheckout } from '../../evals/runner/checkout.ts';
 import type { CheckoutRepo } from '../../evals/runner/types.ts';
 import { createBudget, type Budget } from '../../orchestrator/budget.ts';
-import { createDeps, MIN_TASK_USD } from '../../orchestrator/deps.ts';
+import { createDeps } from '../../orchestrator/deps.ts';
+import { TURN_RESERVE_USD } from '../../harness/index.ts';
 import type { RunTask } from '../../shared/types.ts';
 import { BudgetExceededError } from '../ai.ts';
 import { defaultMemory } from '../index.ts';
@@ -82,9 +83,9 @@ export async function main(
       size,
       prepareRepo: async (task, run) => {
         const left = budget.capUsd - budget.spentUsd();
-        if (left < MIN_TASK_USD) {
+        if (left < TURN_RESERVE_USD) {
           throw new BudgetExceededError(
-            `$${left.toFixed(2)} of the $${budget.capUsd} cap is left, below the $${MIN_TASK_USD} a task needs`,
+            `$${left.toFixed(2)} of the $${budget.capUsd} cap is left, below the $${TURN_RESERVE_USD} overshoot reserve a task needs`,
           );
         }
         // Fetching runs no repo code; only the harness runs it, in its sandbox.

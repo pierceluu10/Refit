@@ -1,5 +1,7 @@
 // Wires the runner to the real Aptitude modules through the orchestrator's createDeps, so the
 // benchmark runs what the loop runs, under one run budget. It refuses to start without a key.
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { TURN_RESERVE_USD } from '../../harness/index.ts';
 import {
   BudgetExceededError as RunBudgetRefusal,
   createBudget,
@@ -9,11 +11,11 @@ import {
   cachedChanges,
   createDeps,
   defaultWatchCache,
-  MIN_TASK_USD,
   providerWatcher,
   WATCH_USD,
 } from '../../orchestrator/deps.ts';
 import { unlistedProviders } from '../../orchestrator/loop.ts';
+import { bundleTasks } from '../../orchestrator/bundle.ts';
 import { MATCH_BATCH, type MatchedTask } from '../../orchestrator/match.ts';
 import { BudgetLedger as WatchLedger } from '../../providers/core/model.ts';
 import { listProviderIds } from '../../providers/core/registry.ts';
@@ -96,7 +98,7 @@ export function hintsFor(provider: string, usages: ApiUsage[]): ProviderHints {
 
 type NotedRecord = RunRecord & { note?: unknown };
 
-/** The record orchestrator/deps.ts returns when the run can't hold MIN_TASK_USD for a task. */
+/** The record orchestrator/deps.ts returns when the run can't hold a task's overshoot reserve. */
 export function unaffordableNote(record: NotedRecord): string | undefined {
   const note = typeof record.note === 'string' ? record.note : '';
   const nothingRan =
@@ -117,40 +119,52 @@ export async function loadRealPipeline(
       'Set ANTHROPIC_API_KEY for a real run. For a $0 check run "npm run smoke -w evals".',
     );
   }
-  const budget = createBudget(budgetUsd);
+  const runBudget = createBudget(budgetUsd);
+  // The repo and part a spending call runs for. Repos run at once, so each hold charges the meter of
+  // the call that took it when it settles, rather than a before-and-after read of the run's spend.
+  const charging = new AsyncLocalStorage<{ meter: Meter; label: string }>();
+  const budget: Budget = {
+    ...runBudget,
+    chargeUsd: (costUsd) => {
+      const spent = runBudget.chargeUsd(costUsd);
+      const context = charging.getStore();
+      context?.meter.charge(costUsd, context.label);
+      return spent;
+    },
+    reserve: async (label, maxUsd, minUsd) => {
+      const hold = await runBudget.reserve(label, maxUsd, minUsd);
+      const context = charging.getStore();
+      return {
+        usd: hold.usd,
+        settle: (spentUsd) => {
+          const left = hold.settle(spentUsd);
+          context?.meter.charge(spentUsd, context.label);
+          return left;
+        },
+      };
+    },
+  };
   const deps = createDeps({ budget });
   const folders = listProviderIds();
   const watchCache = options.watchCache ?? defaultWatchCache;
 
-  // One spending call at a time: each part may spend what is left of the run, so calls from
-  // repos running in parallel could each spend the same remainder.
-  let last: Promise<unknown> = Promise.resolve();
-  const oneAtATime = <T>(call: () => Promise<T>): Promise<T> => {
-    const run = last.then(call);
-    last = run.catch(() => {});
-    return run;
-  };
-  // Charges the repo's meter with what the call spent from the run budget. A part the run budget
-  // refuses is the cap being reached: what it stops is unrun, not an attempt.
-  const spending = <T>(
+  // Charges the repo's meter with what the call's holds settled. A part the run budget refuses is
+  // the cap being reached: what it stops is unrun, not an attempt.
+  const spending = async <T>(
     meter: Meter,
     label: string,
     call: () => Promise<T>,
     runOver = true,
-  ): Promise<T> =>
-    oneAtATime(async () => {
-      const before = budget.spentUsd();
-      try {
-        return await call();
-      } catch (error) {
-        if (error instanceof RunBudgetRefusal) {
-          throw new BudgetExceededError(error.message, { runOver });
-        }
-        throw error;
-      } finally {
-        meter.charge(budget.spentUsd() - before, label);
+  ): Promise<T> => {
+    try {
+      return await charging.run({ meter, label }, call);
+    } catch (error) {
+      if (error instanceof RunBudgetRefusal) {
+        throw new BudgetExceededError(error.message, { runOver });
       }
-    });
+      throw error;
+    }
+  };
 
   const checkout = gitCheckout();
   const review = createReviewer(anthropicModelClient({ budget }));
@@ -161,71 +175,81 @@ export async function loadRealPipeline(
     return anyWatcher(provider, hintsFor(provider, usages), budget, watchCache, options.watchAny);
   };
 
-  const factory: PipelineFactory = ({ entry, provider, meter }) => ({
-    checkout,
-    // Inventory is the first step that spends, so a provider nothing can watch stops before any
-    // spend, and so does one whose read already failed in this run.
-    inventory: async (repoDir, repo) => {
-      if (!providerFolder(provider, folders) && !options.watchAny) {
-        throw new Error(
-          `no changelog watcher for ${provider} yet: providers/ has no ${provider} folder and no any-provider watcher was passed`,
-        );
-      }
-      const read = changesByProvider.get(provider);
-      if (read) await read;
-      return spending(meter, 'inventory', () => deps.inventory(repoDir, repo));
-    },
-    watch: (usages) => {
-      // One watcher read per provider per run, so every repo is matched against the same changes.
-      // A refused read is not the end of the run: repos of providers already read can still go.
-      let changes = changesByProvider.get(provider);
-      if (!changes) {
-        changes = spending(meter, 'watch', () => watcherFor(provider, usages)(), false);
-        changesByProvider.set(provider, changes);
-      }
-      return changes;
-    },
-    // The loop's batching: each call judges at most MATCH_BATCH changes, and across calls the most
-    // urgent tasks go first.
-    match: (changes, usages) =>
-      spending(meter, 'match', async () => {
-        const tasks: MatchedTask[] = [];
-        const reasons: string[] = [];
-        for (let start = 0; start < changes.length; start += MATCH_BATCH) {
-          const result = await deps.match({
-            repo: entry.repo,
-            changes: changes.slice(start, start + MATCH_BATCH),
-            usages,
-          });
-          tasks.push(...result.tasks);
-          reasons.push(
-            ...result.notAffected.map((n) => `${n.changeId}: not affected: ${n.reasoning}`),
+  const factory: PipelineFactory = ({ entry, provider, meter }) => {
+    const learning: Promise<unknown>[] = [];
+    return {
+      checkout,
+      // Inventory is the first step that spends, so a provider nothing can watch stops before any
+      // spend, and so does one whose read already failed in this run.
+      inventory: async (repoDir, repo) => {
+        if (!providerFolder(provider, folders) && !options.watchAny) {
+          throw new Error(
+            `no changelog watcher for ${provider} yet: providers/ has no ${provider} folder and no any-provider watcher was passed`,
           );
         }
-        if (changes.length > MATCH_BATCH) tasks.sort((a, b) => urgencyRank(a) - urgencyRank(b));
-        tasks.forEach((task, index) => (task.priority = index + 1));
-        return {
-          tasks,
-          reasoning: [...tasks.map((task) => `${task.id}: ${task.reasoning}`), ...reasons].join(
-            '\n',
-          ),
-        };
-      }),
-    // The runner charges each record's costUsd to the meter itself. A task the run can't afford is
-    // not started: it, and what follows it in this repo, is reported unrun.
-    runTask: (task, repoDir) =>
-      oneAtATime(async () => {
+        const read = changesByProvider.get(provider);
+        if (read) await read;
+        return spending(meter, 'inventory', () => deps.inventory(repoDir, repo));
+      },
+      watch: async (usages) => {
+        // Every provider the inventory found, as the loop watches them, not only the set's: a repo on
+        // OpenAI and Gemini must see Gemini's changes too. One watcher read per provider per run, so
+        // every repo is matched against the same changes. A refused read is not the end of the run:
+        // repos of providers already read can still go.
+        const providers = [
+          ...new Set([provider, ...usages.map((usage) => usage.provider.toLowerCase())]),
+        ];
+        const reads = providers.map((name) => {
+          let changes = changesByProvider.get(name);
+          if (!changes) {
+            changes = spending(meter, 'watch', () => watcherFor(name, usages)(), false);
+            changesByProvider.set(name, changes);
+          }
+          // Only the set's provider can fail the repo; another's failed read adds no changes.
+          return name === provider ? changes : changes.catch(() => []);
+        });
+        return (await Promise.all(reads)).flat();
+      },
+      // The loop's batching: each call judges at most MATCH_BATCH changes, and across calls the most
+      // urgent tasks go first.
+      match: (changes, usages) =>
+        spending(meter, 'match', async () => {
+          // One call per provider (and per MATCH_BATCH of its changes), all at once: a repo on four
+          // providers waited on one long call over every change before.
+          const byProvider = new Map<string, typeof changes>();
+          for (const change of changes) {
+            byProvider.set(change.provider, [...(byProvider.get(change.provider) ?? []), change]);
+          }
+          const batches = [...byProvider.values()].flatMap((group) =>
+            Array.from({ length: Math.ceil(group.length / MATCH_BATCH) }, (_, i) =>
+              group.slice(i * MATCH_BATCH, (i + 1) * MATCH_BATCH),
+            ),
+          );
+          const results = await Promise.all(
+            batches.map((batch) => deps.match({ repo: entry.repo, changes: batch, usages })),
+          );
+          const tasks: MatchedTask[] = results.flatMap((result) => result.tasks);
+          const reasons = results.flatMap((result) =>
+            result.notAffected.map((n) => `${n.changeId}: not affected: ${n.reasoning}`),
+          );
+          if (batches.length > 1) tasks.sort((a, b) => urgencyRank(a) - urgencyRank(b));
+          tasks.forEach((task, index) => (task.priority = index + 1));
+          return {
+            // One harness run and one PR per repo and provider, as the loop does.
+            tasks: bundleTasks(tasks),
+            reasoning: [...tasks.map((task) => `${task.id}: ${task.reasoning}`), ...reasons].join(
+              '\n',
+            ),
+          };
+        }),
+      // The runner charges each record's costUsd to the meter itself. A task the run can't afford is
+      // not started: it, and what follows it in this repo, is reported unrun.
+      runTask: async (task, repoDir) => {
+        // The harness holds a share of what is free, so the advisory review's worst case is set aside
+        // first, when the run can spare it, and handed back as soon as the harness returns.
         const freeUsd = budget.capUsd - budget.spentUsd() - budget.heldUsd();
-        if (freeUsd < MIN_TASK_USD) {
-          throw new BudgetExceededError(
-            `$${freeUsd.toFixed(2)} of the $${budget.capUsd} run cap left, below the $${MIN_TASK_USD} a task needs`,
-            { runOver: false },
-          );
-        }
-        // The harness holds everything that is free, so the advisory review's worst case is set
-        // aside first, when the task can spare it, and handed back as soon as the harness returns.
         const spare =
-          freeUsd - MIN_TASK_USD >= REVIEW_RESERVE_USD
+          freeUsd - TURN_RESERVE_USD >= REVIEW_RESERVE_USD
             ? await budget.reserve(`the review of ${task.id}`, REVIEW_RESERVE_USD)
             : undefined;
         let record: RunRecord;
@@ -236,12 +260,27 @@ export async function loadRealPipeline(
         }
         const note = unaffordableNote(record);
         if (note) throw new BudgetExceededError(note, { runOver: false });
+        // Memory learns from the attempt, as the loop's recordRun does, so recipes carry across
+        // iterations. It runs beside the review, not before it; drain() waits for it before the repo
+        // is recorded. A failure to learn never touches the task.
+        learning.push(
+          spending(meter, 'memory', () => deps.recordRun(task, record, repoDir)).catch(
+            (error: unknown) =>
+              console.error(
+                `memory: ${task.id} not recorded: ${error instanceof Error ? error.message : error}`,
+              ),
+          ),
+        );
         return record;
-      }),
-    // Charges the meter itself; serialised with every other spending call.
-    review: (input) => oneAtATime(() => review(input)),
-  });
-  return { factory, spentUsd: () => budget.spentUsd() };
+      },
+      // Charges the meter itself.
+      review: (input) => review(input),
+      drain: async () => {
+        await Promise.allSettled(learning);
+      },
+    };
+  };
+  return { factory, spentUsd: () => runBudget.spentUsd() };
 }
 
 /**

@@ -1,0 +1,46 @@
+{
+  "set": "openai-dev-30",
+  "repo": "gvprime/pubragi",
+  "commit": "477430609c67000b5ab2799b5aff270a93da799f",
+  "provider": "openai",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "client/src/components/layout/header.tsx: error TS7016: Could not find a declaration file for module './fixed-mobile-menu'. '/work/client/src/components/layout/fixed-mobile-menu.jsx' implicitly has an 'any' type.",
+        "client/src/pages/resources.tsx: error TS2304: Cannot find name 'CheckCircle'.",
+        "server/db-storage.ts: error TS2769: No overload matches this call.",
+        "server/demo-routes.ts: error TS18046: 'error' is of type 'unknown'.",
+        "server/openai.ts: error TS2339: Property 'files' does not exist on type 'Assistants'.",
+        "server/routes.ts: error TS7006: Parameter 'f' implicitly has an 'any' type.",
+        "server/storage.ts: error TS2322: Type '{ id: number; role: string; stripeCustomerId: null; createdAt: Date; updatedAt: Date; email: string; password: string; username: string; fullName?: string | null | undefined; }' is not assignable to type '{ id: number; role: string | null; email: string; password: string; username: string; fullName: string | null; stripeCustomerId: string | null; createdAt: Date | null; updatedAt: Date | null; }'.",
+        "server/storage.ts: error TS2322: Type '{ createdAt: Date; updatedAt: Date; userId: number; stripeSubscriptionId: string; planId: number; currentPeriodEnd: Date; status?: string | undefined; id: number; }' is not assignable to type '{ id: number; status: string; createdAt: Date | null; updatedAt: Date | null; userId: number; stripeSubscriptionId: string; planId: number; currentPeriodEnd: Date; }'.",
+        "server/storage.ts: error TS2322: Type '{ id: number; createdAt: Date; updatedAt: Date; title: string; content: string; slug: string; authorId: number; category?: string | null | undefined; excerpt?: string | null | undefined; coverImage?: string | ... 1 more ... | undefined; publishedAt?: Date | ... 1 more ... | undefined; }' is not assignable to type '{ title: string; id: number; content: string; category: string | null; createdAt: Date | null; updatedAt: Date | null; slug: string; excerpt: string | null; coverImage: string | null; authorId: number; publishedAt: Date | null; }'.",
+        "server/storage.ts: error TS2322: Type '{ id: number; createdAt: Date; content: string; name: string; company: string; rating: number; position: string; avatar?: string | null | undefined; isActive?: boolean | null | undefined; }' is not assignable to type '{ id: number; content: string; name: string; company: string; rating: number; createdAt: Date | null; position: string; avatar: string | null; isActive: boolean | null; }'."
+      ],
+      "tail": "on: string; isActive: boolean | null; }'.\n  Types of property 'order' are incompatible.\n    Type 'number | null | undefined' is not assignable to type 'number | null'.\n      Type 'undefined' is not assignable to type 'number | null'.\nserver/storage.ts(310,23): error TS18047: 'a.order' is possibly 'null'.\nserver/storage.ts(310,33): error TS18047: 'b.order' is possibly 'null'.\nserver/storage.ts(319,11): error TS2322: Type '{ id: number; name: string; description: string; features: { [x: number]: string; length: number; toString: () => string; toLocaleString: { (): string; (locales: string | string[], options?: Intl.NumberFormatOptions & Intl.DateTimeFormatOptions): string; }; ... 37 more ...; readonly [Symbol.unscopables]: { ...; }; }...' is not assignable to type '{ id: number; name: string; order: number | null; description: string; features: string[]; isActive: boolean | null; price: number | null; interval: string | null; isPopular: boolean | null; }'.\n  Types of property 'order' are incompatible.\n    Type 'number | null | undefined' is not assignable to type 'number | null'.\n      Type 'undefined' is not assignable to type 'number | null'.\nserver/vite.ts(39,5): error TS2322: Type '{ middlewareMode: boolean; hmr: { server: Server<typeof IncomingMessage, typeof ServerResponse>; }; allowedHosts: boolean; }' is not assignable to type 'ServerOptions'.\n  Types of property 'allowedHosts' are incompatible.\n    Type 'boolean' is not assignable to type 'true | string[] | undefined'."
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.020279999999999965,
+  "durationMs": 86978,
+  "install": {
+    "code": 0,
+    "tail": "added 570 packages in 37s\n\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead\nnpm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is\nnpm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

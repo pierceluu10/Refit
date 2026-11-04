@@ -1,0 +1,58 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "brunobola-portfolio/GitHub-Repo-Manager",
+  "commit": "982052f27557a18b93e2fe6cc7bd0b3308b6778f",
+  "provider": "stripe",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "build",
+      "command": "export CI='true' NODE_OPTIONS='--max-old-space-size=6144'; npm run build",
+      "ok": false,
+      "failures": [
+        "failed: Build failed in",
+        "Error: ENOENT, No such file or directory '/work/dist/brand'"
+      ],
+      "tail": " client environment for production...\u001b[36m\u001b[39m\ntransforming...\n✓ 6330 modules transformed.\n\n\u001b[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:\n  - `__dirname` (vite.config.js:35:29). Use `import.meta.dirname` instead\nSet `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.\u001b[39m\n\u001b[31m✗\u001b[39m Build failed in 5.91s\n\u001b[31merror during build:\nError: ENOENT, No such file or directory '/work/dist/brand'\n    at copyDir (node:internal/fs/cp/cp-sync:145:22)\n    at onDir (node:internal/fs/cp/cp-sync:137:10)\n    at getStats (node:internal/fs/cp/cp-sync:68:12)\n    at cpSyncFn (node:internal/fs/cp/cp-sync:58:10)\n    at Object.cpSync (node:fs:3142:3)\n    at PluginContextImpl.closeBundle (file:///work/node_modules/.vite-temp/vite.config.js.timestamp-1793732719790-8cb7c88fd0803.mjs:55:7)\n    at PluginContextImpl.handler (file:///work/node_modules/vite/dist/node/chunks/node.js:34341:13)\n    at plugin (file:///work/node_modules/rolldown/dist/shared/bindingify-input-options-DrImMHKQ.mjs:1723:17)\n    at file:///work/node_modules/rolldown/dist/shared/bindingify-input-options-DrImMHKQ.mjs:1930:21\n    at plugin.<computed> (file:///work/node_modules/rolldown/dist/shared/bindingify-input-options-DrImMHKQ.mjs:2127:18) {\n  errno: 2,\n  code: 'PLUGIN_ERROR',\n  path: '/work/dist/brand',\n  syscall: 'cp',\n  pluginCode: 'ENOENT',\n  plugin: 'copy-brand-kit',\n  hook: 'closeBundle'\n}\u001b[39m"
+    },
+    {
+      "name": "test",
+      "command": "export CI='true' NODE_OPTIONS='--max-old-space-size=6144'; npm run test",
+      "ok": false,
+      "failures": [
+        "failed: typing in the ai-config step key field does not change the step (arrow keys move the cursor, not the tour)",
+        "failed: renders the provider picker and key field inline in the step",
+        "failed: Skip still works while the form has an in-progress selection",
+        "failed: demo mode: Test key shows the simulated success copy, labelled \"Demo: simulated\"",
+        "failed: passes over every tracked file (--all)",
+        "failed: actually enumerates files in --all mode (>= 500)",
+        "failed: actually enumerates files in --all mode (>= 250)",
+        "failed: populates mock repos in mock mode",
+        "failed: generates correct pagination in mock mode",
+        "failed: mock repos have realistic structure"
+      ],
+      "tail": "etail — unsaved Settings guard\u001b[2m > \u001b[22m\u001b[2mBack from a dirty Settings tab prompts, and Discard calls onBack\n\u001b[22m\u001b[39mAn update to ConfirmModal inside a test was not wrapped in act(...).\n\nWhen testing, code that causes React state updates should be wrapped into act(...):\n\nact(() => {\n  /* fire events that update state */\n});\n/* assert on the output */\n\nThis ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act\n\n\u001b[90mstderr\u001b[2m | tests/hooks/useWorkBoardBadgeCounts.test.jsx\u001b[2m > \u001b[22m\u001b[2museWorkBoardBadgeCounts\u001b[2m > \u001b[22m\u001b[2mhydrates from localStorage on first render before fetch resolves\n\u001b[22m\u001b[39mThe current testing environment is not configured to support act(...)\nThe current testing environment is not configured to support act(...)\n\n\u001b[90mstderr\u001b[2m | tests/components/Landing/PricingPreview.test.jsx\u001b[2m > \u001b[22m\u001b[2mPricingPreview — motion contract (no spring/translate hover)\u001b[2m > \u001b[22m\u001b[2muses the same CSS-only hover treatment as the in-app PricingCard (border/shadow, no transform)\n\u001b[22m\u001b[39mAn update to PricingPreview inside a test was not wrapped in act(...).\n\nWhen testing, code that causes React state updates should be wrapped into act(...):\n\nact(() => {\n  /* fire events that update state */\n});\n/* assert on the output */\n\nThis ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act\n\n\n[timed out after 10 minutes]"
+    }
+  ],
+  "costUsd": 0.783644,
+  "durationMs": 1811008,
+  "install": {
+    "code": 0,
+    "tail": "added 946 packages in 55s"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npm rebuild better-sqlite3",
+        "why": "better-sqlite3 is a native module whose install script was skipped; server tests that import the DB need its compiled binding (the repo's own postinstall checks and fixes this).",
+        "code": 0
+      }
+    ],
+    "env": ["CI", "NODE_OPTIONS"]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "build fails before any edit: failed: Build failed in"
+  }
+}

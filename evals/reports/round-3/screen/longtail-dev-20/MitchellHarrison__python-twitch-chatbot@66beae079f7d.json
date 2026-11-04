@@ -1,0 +1,19 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "MitchellHarrison/python-twitch-chatbot",
+  "commit": "66beae079f7df1a92532821cf27031d5da3aaeac",
+  "provider": "twitch",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.09983799999999995,
+  "durationMs": 140757,
+  "install": {
+    "code": 0,
+    "tail": " matching distribution found for ubuntu-advantage-tools==27.0\nERROR: Could not find a version that satisfies the requirement ubuntu-drivers-common==0.0.0 (from versions: none)\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\nERROR: No matching distribution found for ubuntu-drivers-common==0.0.0\nERROR: Could not find a version that satisfies the requirement ufw==0.36 (from versions: none)\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\nERROR: No matching distribution found for ufw==0.36\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\nERROR: Could not find a version that satisfies the requirement wadllib==1.3.5 (from versions: 1.3.8, 1.3.9, 2.0.0, 2.1.0)\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\nERROR: No matching distribution found for wadllib==1.3.5\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\nERROR: Could not find a version that satisfies the requirement xkit==0.0.0 (from versions: none)\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\nERROR: No matching distribution found for xkit==0.0.0"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}
