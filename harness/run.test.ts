@@ -609,6 +609,33 @@ describe('a repo session', () => {
     expect(kept.note).toContain("the list doesn't ask for these major upgrades");
   });
 
+  it('pushes back once on a requirement answered left, and keeps the answer if it stays', async () => {
+    const needsWork = { ...entry, requires: ['Handle stop_reason refusal.'] };
+    const seen: string[] = [];
+    const run = (second: Record<string, unknown>) =>
+      runTask(
+        repoTask('example/fixture-shop', scanOf([live('src/pay.js')]), [needsWork]),
+        fixtureRepo(),
+        {
+          ...deps([]),
+          session: scriptedSession([
+            both(fix, finish({ requirements: { r1: 'left' } })),
+            async (call, input) => {
+              seen.push(input.prompt);
+              await finish({ requirements: second })(call, input);
+            },
+          ]),
+          rescan,
+        },
+      );
+    expect((await run({ r1: 'done' })).outcome).toBe('verified');
+    expect(seen[0]).toContain('You answered these `left`');
+    expect(seen[0]).toContain('- Handle stop_reason refusal.');
+    const kept = await run({ r1: 'left' });
+    expect(kept.outcome).toBe('needs-review');
+    expect(kept.note).toContain('left 1 list requirement undone');
+  });
+
   it("calls it couldn't fix when every use is still there", async () => {
     const edit: ScriptedTurn = async (call) => {
       await call('write_file', { path: 'README.md', content: 'notes' });

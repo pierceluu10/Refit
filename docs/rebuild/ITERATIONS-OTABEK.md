@@ -476,7 +476,59 @@ Two things flattered the times in rounds 3 to 6, and I didn't log either at the 
 | Saved install, 2 CPUs | 417 s | fails |
 | Saved install, 4 CPUs | 264 s | passes |
 
-This is one repo, so it's rough. The install is about half its setup, and the build only passes with more CPU. If that holds, some repos I've called red are red because of the sandbox, and rounds have been leaving them out for that reason. `--cpus` is a cap, not a reservation, so the default is now 4. Round 7 measures it.
+This is one repo, so it's rough. The install is about half its setup, and the build only passes with more CPU. It's probably not common: of the 57 other red repos, 2 ended on a memory limit (`Aqura`, `bizzblox-social`), and most have real type or test failures. `--cpus` is a cap, not a reservation, so the default is now 4.
 
 Where the time goes on the 31 repos, on average: AI session 66 s, setup 45 s, checks after the edit 8 s, clone, scan and test bookkeeping 8 s.
+
+## O8 round 7: the last fresh repos, on true first runs
+
+Run 2026-11-05 from `rebuild/integration` at `dda535db`, lock in `evals/rounds/o8-7/`, prompt `rebuild-4`. Saved installs were cleared first, and all 10 repos did a full install on 4 CPUs. It cost $1.2928 of a $9 cap.
+
+| Measure | Result | Target |
+| --- | --- | --- |
+| Required changes | 23 of 23 | at least 70% |
+| Cost a repo | $0.13 average, $0.22 highest | about $0.50, never above $1 |
+| Time a repo | 10 of 10 under 5 minutes: 101 s median, 157 s highest | under 5 minutes |
+| Labels | 9 Fixed, 1 Needs a look | |
+| "Fixed" the hand-check agrees with | 9 of 9 | at least 90% |
+| Unneeded major upgrades | none | none |
+
+**Don't lean on 9 of 9.** These were the easiest repos of any round: 9 of them are one Shopify version move, and a $0 sweep found no dead GraphQL in any of them. Hand-checks across rounds 3 to 7 come to 29 of 37, 78%.
+
+**Reading every label:** all 9 Fixed labels hold. Each moved the version in the server config, the GraphQL config and the webhook TOML where the repo has them, and left a UI extension's version alone, as the list says. `shopify-festive-notifications` dropped its REST import, and nothing in it uses REST. Its `orders/create` handler reads no `checkout_id`. `LolaDesk`, Needs a look, is the right label: it also rewrote Stripe reads that its pinned version doesn't need, with fallbacks that keep them working, and its one rescan hit is one of those fallbacks.
+
+**The time result:** with full installs on 4 CPUs, these 10 repos averaged 107 s. Setup averaged 36 s and the session 55 s. The first-run estimate for rounds 3 to 6 on 2 CPUs was 149 s. They're different repos, so that's only a rough gain.
+
+### The reruns
+
+Round 7's repos had nothing for the new rules to catch, so 3 harder repos reran on the same code, for $0.4144. They aren't fresh and don't count.
+
+| Repo | What it did | Right? |
+| --- | --- | --- |
+| `weeklyhow-remix-app` | Ran the validator 3 times and moved to `productVariantsBulkUpdate` | Yes. The lock says 3 of 4 only because a help line on the page still names the old mutation |
+| `ksyp-7` | Wrote "The app sends no GraphQL documents" without searching. It has 2 | No, and it read Fixed |
+| `Shopify-Storefront-AI-agent` | Left `refusal` handling undone again. It said so in `unproven`, and left `requirementsLeft` empty | No, and it read Fixed |
+
+**So telling a session to look wasn't enough.** Two fixes changed that:
+
+- **Plain code reads the GraphQL.** It runs the provider's validator over the repo before the session and hands over what's rejected. It checks again afterwards, with one retry, and what stays gives Needs a look.
+- **The session answers each requirement.** The "requires" lines used to reach it joined into one paragraph. They're now numbered once each, and `finish` wants `done`, `not-applicable` or `left` for every one. An unanswered line counts as left.
+
+**To Pierce:** `Shopify-Storefront-AI-agent`'s `api_version = "2025-04"` went from a fix to `catalog` on the newer scanner, so its webhook version no longer moves. `productVariantUpdate` needs a list entry either way.
+
+### Second reruns: plain code in, `rebuild-5`
+
+Five repos on the new code, for $0.8316: the 3 above, plus `ListAI-V2` and `shop-chat-agent`. All 17 locks passed, at $0.17 average and 152 s at most. They aren't fresh and don't count.
+
+| Repo | Before | Now | Right? |
+| --- | --- | --- | --- |
+| `weeklyhow-remix-app` | Fixed, dead mutation in round 6 | Fixed, mutation rewritten | Yes |
+| `ksyp-7` | Fixed, dead mutation | Fixed, mutation rewritten | Yes |
+| `Shopify-Storefront-AI-agent` | Fixed, `refusal` undone | Needs a look, `refusal` undone | Yes, the label now tells the truth |
+| `ListAI-V2` | Needs a look | Needs a look | Yes, and its diff no longer carries build output |
+| `shop-chat-agent` | Fixed, with `refusal` handled | Needs a look, `refusal` undone | Honest, but worse: round 6's session did this work |
+
+Both plain-code fixes did what they were for. The last row is a new problem: `left` gave the session an easy way out, and sessions also marked advice such as "Review prompts" as left, which would put nearly every Anthropic move under Needs a look.
+
+**What changed, `rebuild-6`:** an answer of `left` now comes back once, with an instruction to do it if a code change can. `left` is only for what the code needs and no change here can do. Tuning and review advice is `not-applicable`.
 
