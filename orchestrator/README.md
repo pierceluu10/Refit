@@ -1,7 +1,9 @@
 # orchestrator
 
-Aptitude's end-to-end loop. For each repo it runs inventory → watch → match → harness → PR → record,
-and every change ends as an attempted task or a recorded verdict.
+Aptitude's end-to-end loop. With a scan (`createDeps({ scan, list })`) a repo runs scan → one session
+for every finding → rescan and label → PR → record. A clean scan stops at $0, and learning happens
+later, in batches (`memory/scripts/learn.ts`). Without a scan it runs the changelog path: inventory →
+watch → match → harness → PR → record. Every change ends as an attempted task or a recorded verdict.
 
 | File           | What it does                                                                        |
 | -------------- | ----------------------------------------------------------------------------------- |
@@ -13,6 +15,7 @@ and every change ends as an attempted task or a recorded verdict.
 | `agent-sdk.ts` | A second match transport, on the Claude Agent SDK, that can read the code           |
 | `queue.ts`     | An in-process queue with concurrency and retries, behind a replaceable interface    |
 | `stubs.ts`     | Offline stand-ins, and the stub for `anyProviderWatcher` until providers/ has it    |
+| `sweep.ts`     | The monthly AI sweep: what the scan missed, on a small sample of repos              |
 | `cli.ts`       | `aptitude run --repo <path> [--repo <path> ...] [--dry-run] [--out <file>]`         |
 
 ## For the app: `runRepoJob`

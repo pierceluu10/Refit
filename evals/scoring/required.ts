@@ -51,3 +51,24 @@ export function proveLock(dir: string, lock: RepoLock): string[] {
   }
   return problems;
 }
+
+/** Packages a diff moved across a major version in a package.json, for the "none unneeded" target. */
+export function majorUpgrades(diff: string): string[] {
+  const major = (range: string) => /(\d+)/.exec(range)?.[1];
+  const moved: string[] = [];
+  for (const section of diff.split(/^(?=diff --git )/m)) {
+    if (!/^diff --git a\/(?:.+\/)?package\.json /m.test(section)) continue;
+    const pairs = (sign: string) =>
+      new Map(
+        [...section.matchAll(new RegExp(`^\\${sign}\\s*"([^"]+)":\\s*"([^"]+)"`, 'gm'))].map(
+          (m) => [m[1] as string, m[2] as string],
+        ),
+      );
+    const before = pairs('-');
+    for (const [name, range] of pairs('+')) {
+      const old = before.get(name);
+      if (old && major(old) !== major(range)) moved.push(`${name} ${old} -> ${range}`);
+    }
+  }
+  return moved;
+}

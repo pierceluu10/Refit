@@ -10,9 +10,11 @@ import { repoTask } from '../../harness/findings.ts';
 import { liveSmoke } from '../../harness/smoke.ts';
 import { budgetFromEnv, runTask } from '../../harness/index.ts';
 import type { HarnessDeps, HarnessRunRecord } from '../../harness/index.ts';
-import { REPO_USD } from '../../orchestrator/deps.ts';
+import { createBudget } from '../../orchestrator/budget.ts';
+import { createDeps, REPO_USD } from '../../orchestrator/deps.ts';
+import { runRepo, type LoopDeps } from '../../orchestrator/loop.ts';
 import { loadToolPack } from '../../providers/toolkit/pack.ts';
-import { gradeChange, proveLock, type RepoLock } from '../scoring/required.ts';
+import { gradeChange, majorUpgrades, proveLock, type RepoLock } from '../scoring/required.ts';
 import { gitCheckout } from './checkout.ts';
 import { standinList, standinScan } from './standin-scan.ts';
 
@@ -21,6 +23,7 @@ export type SessionResult = {
   commit: string;
   outcome: HarnessRunRecord['outcome'] | 'clean' | 'error';
   required: { id: string; fixed: boolean; why: string }[];
+  majorUpgrades?: string[];
   costUsd: number;
   durationMs: number;
   record?: HarnessRunRecord;
@@ -81,6 +84,7 @@ export async function runRepoLock(
       ...base,
       outcome: record.outcome,
       required: gradeDiff(checkout.repoDir, lock, record.diff),
+      majorUpgrades: majorUpgrades(record.diff),
       costUsd: record.costUsd,
       durationMs: Date.now() - started,
       record,
@@ -99,11 +103,47 @@ export async function runRepoLock(
   }
 }
 
-async function main([lockFile, outDir]: string[]) {
-  if (!lockFile || !outDir) throw new Error('usage: session-run.ts <lock.json> <out-dir>');
+// The whole product on one locked repo: the loop's own scan, session, proof and record, with no PR.
+export async function runProductRepo(lock: RepoLock, deps: LoopDeps): Promise<SessionResult> {
+  const started = Date.now();
+  const checkout = await gitCheckout()({ repo: lock.repo, commit: lock.commit });
+  try {
+    const repo = { repo: lock.repo, dir: checkout.repoDir };
+    const [record] = await runRepo(repo, async () => [], deps, { dryRun: true });
+    const harness = record as unknown as HarnessRunRecord;
+    return {
+      repo: lock.repo,
+      commit: lock.commit,
+      outcome: record?.outcome ?? 'error',
+      required: gradeDiff(checkout.repoDir, lock, record?.diff ?? ''),
+      majorUpgrades: majorUpgrades(record?.diff ?? ''),
+      costUsd: record?.costUsd ?? 0,
+      durationMs: Date.now() - started,
+      record: harness,
+    };
+  } finally {
+    await checkout.cleanup();
+  }
+}
+
+async function main(argv: string[]) {
+  const product = argv.includes('--product');
+  const [lockFile, outDir] = argv.filter((arg) => arg !== '--product');
+  if (!lockFile || !outDir)
+    throw new Error('usage: session-run.ts <lock.json> <out-dir> [--product]');
   const capUsd = budgetFromEnv();
   const locks = JSON.parse(readFileSync(lockFile, 'utf8')) as RepoLock[];
   mkdirSync(outDir, { recursive: true });
+  const list = standinList();
+  const deps = product
+    ? createDeps({
+        budget: createBudget(capUsd),
+        login: !process.env.ANTHROPIC_API_KEY,
+        benchmark: true,
+        scan: async (dir) => standinScan(dir, list),
+        list: () => list,
+      })
+    : undefined;
   let spentUsd = 0;
   const results: SessionResult[] = [];
   // One at a time, so each repo's time is its own and the cap is checked between repos.
@@ -112,7 +152,7 @@ async function main([lockFile, outDir]: string[]) {
       console.log(`stopped before ${lock.repo}: $${spentUsd.toFixed(2)} of $${capUsd} spent`);
       break;
     }
-    const result = await runRepoLock(lock, outDir);
+    const result = deps ? await runProductRepo(lock, deps) : await runRepoLock(lock, outDir);
     spentUsd += result.costUsd;
     results.push(result);
     const fixed = result.required.filter((change) => change.fixed).length;

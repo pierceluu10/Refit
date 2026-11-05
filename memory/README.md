@@ -2,15 +2,14 @@
 
 Aptitude's self-learning (Otabek, O3 and O6). Memory is guidance the agent reads, never a rule that blocks it.
 
-| Piece             | Entry point                                       | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ----------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Run store         | `MemoryStore`, `JsonMemoryStore`                  | Every `RunRecord`, its transcript, the recipes it was shown, the commit it read and the human verdict, as local JSON under `APTITUDE_MEMORY_DIR`. Async, so Postgres can replace it.                                                                                                                                                                                                                                                                                                                                                                                                               |
-| Recipe extraction | `extractRecipe(run, deps)`                        | After a successful run (verified, or its PR merged or edited by a human), one AI pass distils the trajectory into a recipe (preconditions, steps, pitfalls, diff sketch) linked to the run and to the changes it migrated (`changeIds`, including any the match agent bundled into an upgrade task). The steps name the kinds of files and patterns touched, any codegen run before the checks, the checks run and the test written to prove the change. It or merges it into the same recipe from an earlier run. A failed or needs-review run can only add pitfalls to a recipe the model names. |
-| Retrieval         | `retrieveRecipes(task)`, `createRetriever(deps)`  | Up to 50 recipes, the model reads them all and picks and orders the ones that would help; above that, embeddings shortlist the top 10 first. Without a model, that order is used: recipes made from the task's own change first, recipes that failed more often than they verified last, then by embedding similarity. The judge is told which recipes came from the same change and how each has fared. Nothing is filtered out. `renderMemoryForPrompt(recipes)` gives the harness a prompt block.                                                                                               |
-| Skills            | `promoteSkills`, `recordRecipeOutcome`            | A recipe verified on 3+ repos becomes a skill (a reusable prompt block). A skill that fails twice after its promotion is demoted back to an ordinary recipe. Every failure also counts against the plain recipes its run was shown, and the retrieval judge sees that count. A failure is a PR a human closed, or a needs-review run on a repo whose checks all passed before the edit (see [Verdicts](#verdicts)).                                                                                                                                                                                |
-| Human verdicts    | `recordVerdict(prUrl, verdict)`                   | What a person did with an Aptitude PR: merged, closed or edited. See [Verdicts](#verdicts).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Dashboard runs    | `listRunViews(filter?)`                           | Stored runs as the shared `RunView`, newest first, each with a one-line summary. See [Runs for the dashboard](#runs-for-the-dashboard).                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| Self-eval         | `runSelfEval(deps)`, `memory/scripts/selfeval.ts` | Reruns a fixed set of past tasks with today's memory and reports whether the verified rate moved. See [Self-eval](#self-eval).                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Piece             | Entry point                                      | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ----------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Run store         | `MemoryStore`, `SqliteMemoryStore`               | Every `RunRecord`, its transcript, the recipes it was shown, the commit it read and what happened to its PR, one SQLite file per customer under `APTITUDE_MEMORY_DIR`                                                                                                                                                                                                                                                                                                                                |
+| Recipe extraction | `extractRecipe(run, deps)`, `learnPending(deps)` | After a fix, in a batch, one AI pass distils the run into a recipe. See [What memory learns from](#what-memory-learns-from)                                                                                                                                                                                                                                                                                                                                                                          |
+| Retrieval         | `retrieveRecipes(task)`, `createRetriever(deps)` | Up to 50 recipes, the model reads them all and picks and orders the ones that would help; above that, embeddings shortlist the top 10 first. Without a model, that order is used: recipes made from the task's own change first, recipes that failed more often than they verified last, then by embedding similarity. The judge is told which recipes came from the same change and how each has fared. Nothing is filtered out. `renderMemoryForPrompt(recipes)` gives the harness a prompt block. |
+| Skills            | `promoteSkills`, `recordRecipeOutcome`           | A recipe verified on 3+ repos becomes a skill (a reusable prompt block). A skill that fails twice after its promotion is demoted back to an ordinary recipe. Every failure also counts against the plain recipes its run was shown, and the retrieval judge sees that count. A failure is a PR a human closed, or a needs-review run on a repo whose checks all passed before the edit (see [Verdicts](#verdicts)).                                                                                  |
+| Human verdicts    | `recordVerdict(prUrl, verdict)`                  | What a person did with an Aptitude PR: merged, closed or edited. See [Verdicts](#verdicts).                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Dashboard runs    | `listRunViews(filter?)`                          | Stored runs as the shared `RunView`, newest first, each with a one-line summary. See [Runs for the dashboard](#runs-for-the-dashboard).                                                                                                                                                                                                                                                                                                                                                              |
 
 `harness/prompt.ts` renders recipes itself today, from the shared `Recipe` fields, so the agent sees neither an active skill's prompt, a diff sketch nor the closed-PR count. It sees them once it renders recipes with `renderMemoryForPrompt` (the harness's to change).
 
@@ -19,22 +18,6 @@ If the model's answer is degraded (a safety classifier interrupted it, it refuse
 The orchestrator calls `learnFromRun({ task, record, transcript, usedRecipeIds, commit })` after each run. `commit` is the commit the run's checkout was at (`git rev-parse HEAD` in it); it is optional, but without it the self-eval reruns that task on today's code.
 
 `learnFromRun` and `recordVerdict` store the run or the verdict at once, then learn one at a time within a process, because learning reads recipes, may ask the model and writes them back: runs from parallel tasks or repos would otherwise overwrite each other's counts. Two processes must not write one store at the same time until it moves to a database with row locks.
-
-## Where memory lives
-
-Memory is one folder, `APTITUDE_MEMORY_DIR`. Unset, it is `.aptitude/memory` under the directory the process was started in, which the root `.gitignore` ignores (`.aptitude/`).
-
-```text
-$APTITUDE_MEMORY_DIR/
-  runs/<run id>.json         one StoredRun per run: task, RunRecord, transcript, recipes shown, commit, verdict
-  recipes/<recipe id>.json   one MemoryRecipe per recipe, with its skill state and failure count
-  selfevals/<id>.json        one SelfEvalReport per self-eval
-  selfeval-tasks.json        the fixed task set the self-eval reruns
-```
-
-Every file is written atomically (a temp file, then a rename). Ids are escaped, so a file name never leaves its folder.
-
-Runs hold transcripts, which quote the target repo's code and the model's output. Keep the folder private: never commit it, and never put it inside a repo Aptitude migrates. In production, set `APTITUDE_MEMORY_DIR` to an absolute path on a persistent volume. The loop and the verdicts must use the same store, since a verdict finds its run by PR URL, and one process must own it: run the loop inside the app, through `runRepoJob`, not as a separate CLI process while the app serves webhooks.
 
 ## Verdicts
 
@@ -77,15 +60,37 @@ A verdict can take a minute or more: a merge can trigger a model call, and it wa
 
 Then, when there is one, what a human did with the PR ("A human merged the PR."). Secrets are redacted.
 
-## Self-eval
+## What memory learns from
 
-```bash
-APTITUDE_AI_BUDGET_USD=8 node memory/scripts/selfeval.ts --size 5
+A fix counts as a success only if its PR was merged and the rescan was clean. "Verified" alone creates and promotes nothing.
+
+| Standing | Needs                                                          | Can do                                                                                                                      |
+| -------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Merged   | Merged PR and a clean rescan                                   | Make or grow a recipe, and count its repo                                                                                   |
+| Low      | A clean rescan with no merge yet, or a benchmark's locked test | Make a low-confidence recipe, marked as such. A locked test also marks it `benchmarkOnly`, so it never counts for customers |
+| Against  | Closed or reverted                                             | Counts against the recipes it used, and takes its repo off the recipe it made                                               |
+
+`recordEvidence(runIdOrPr, evidence)` takes what the GitHub App sees (P7). A person's edits and closing comments reach the recipe's pitfalls the next time learning runs. Detection lessons (`lessons.ts`) go to the scanner as rules and fixtures. Repo habits (`habits.ts`) give the next run its proven setup and what the team rejected.
+
+Learning is off the fix path. Fix runs only store. `memory/scripts/learn.ts` reads stored runs later in half-price batches on Haiku, on its own budget, `APTITUDE_MEMORY_BUDGET_USD`:
+
+```sh
+APTITUDE_MEMORY_BUDGET_USD=0.50 node memory/scripts/learn.ts
 ```
 
-Run it from the repo root, with `ANTHROPIC_API_KEY` set and Docker running; it refuses to run without any of the three, and it forces the harness's Docker sandbox (`APTITUDE_SANDBOX=docker`), never the fallback to the host. It reruns the fixed task set (the oldest `--size` tasks the harness attempted, picked on the first run and kept) through the loop's own task path: today's recipes, the harness and the provider tool packs. Each rerun gets a fresh checkout of `github.com/<repo>` at the run's recorded commit, or at today's default branch when none was recorded, which the summary says. A rerun on today's code means little once the PR was merged, since that code already has the fix, so the orchestrator should pass `commit`. Fetching runs no repo code; only the harness runs it, in its sandbox.
+## The ladder
 
-Reruns open no PR and are not recorded as runs. The report is saved under `selfevals/` and printed: the verified rate before and after, each task's outcome, the change since the previous self-eval and what it spent. Reruns stop once less than the $2 a task needs is left of the cap, or when a harness throws (what it spent is then unknown), and the tasks left over are excluded from both rates.
+`ladder.ts` gives each list entry a level, replayed from its evidence in date order, so a late or repeated webhook can't skew it: **new**, **recipe** (a merged fix), **proven** (at least 3 merged fixes on different repos, few edits, no reverts) and **dropped**. A close or revert moves it down a level, and the evidence stays. A locked test moves only `benchmarkLevel`.
+
+A proven fix is plain code in `providers/<provider>/proven.ts`, with tests built from real fixes. It runs first, with no model, and still has to pass the rescan and the checks. If it breaks a check it's rolled back, and what it can't finish goes to Claude, so it can never block an attempt. At most `ROLLOUT_REPOS` repos may wait on a person at once.
+
+## Where it lives
+
+Each customer has one SQLite file, `customers/<owner>.sqlite`, so two processes can write at once and one customer's runs never reach another's file. `shared.sqlite` holds only scrubbed patterns and hashed evidence, and only from customers who agreed (`shared.ts`). The default is no. `shared.test.ts` proves the scrubbing.
+
+## Is it helping?
+
+`evals/runner/learning.ts` replaces the old self-eval, which reran past tasks on recipes they may have made. It runs fresh repos from the same commits with memory on and off, varies the order, labels each diff for a blind grader, and refuses a repo that fed the memory under test. `learningMetrics` tracks the share of fixes needing no model, PRs merged without edits, reverts and scanner misses.
 
 ## Keys and budget
 

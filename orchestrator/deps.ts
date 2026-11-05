@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { runTask, TURN_RESERVE_USD, type HarnessRunRecord } from '../harness/index.ts';
 import { isRepoTask, providersOf } from '../harness/findings.ts';
 import { modelPlan } from '../harness/prepare.ts';
+import { liveSmoke } from '../harness/smoke.ts';
 import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
 import { BudgetLedger as InventoryLedger, runInventory } from '../inventory/index.ts';
 import {
@@ -25,9 +26,11 @@ import { folderWatcher, listProviderIds } from '../providers/core/registry.ts';
 import { hintsFor, loadToolPack } from '../providers/toolkit/pack.ts';
 import { loadProvenFixes } from '../providers/toolkit/proven.ts';
 import type {
+  DeadApiEntry,
   ProviderChange,
   ProviderHints,
   RunRecord,
+  ScanRepo,
   ToolPack,
   WatchProvider,
 } from '../shared/types.ts';
@@ -185,11 +188,22 @@ export function createDeps({
   budget,
   log = (line: string) => console.error(line),
   watchCache = defaultWatchCache,
+  scan,
+  list,
+  login = false,
+  benchmark = false,
 }: {
   out?: string;
   budget?: Budget;
   log?: (line: string) => void;
   watchCache?: string;
+  // The plain-code scan and the list. With them a repo gets one session and a rescan.
+  scan?: ScanRepo;
+  list?: () => DeadApiEntry[];
+  // Run on the machine's logged-in Claude credentials: the Agent SDK needs no API key.
+  login?: boolean;
+  // Lets a locked test stand in for a merge on the ladder. Evals only, never for a customer.
+  benchmark?: boolean;
 }): LoopDeps {
   const queue = createMemoryQueue({
     concurrency: CONCURRENCY,
@@ -199,7 +213,7 @@ export function createDeps({
     // A refusal from the run budget is final, so another try would only hold a slot.
     shouldRetry: (error) => !(error instanceof BudgetExceededError),
   });
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.ANTHROPIC_API_KEY && !login) {
     log(
       'WARNING: ANTHROPIC_API_KEY is not set. Offline stubs stand in for every AI part; nothing is read, matched or migrated by a model.',
     );
@@ -217,7 +231,7 @@ export function createDeps({
       log,
     };
   }
-  if (!budget) throw new Error('ANTHROPIC_API_KEY is set, so pass a budget from createBudget().');
+  if (!budget) throw new Error('A real run needs a budget from createBudget().');
 
   // One cap for the whole run. Each part holds its share while it runs and settles to what it spent,
   // so parts running at once never spend the same remainder.
@@ -229,6 +243,7 @@ export function createDeps({
   const appendRecord = stubRecordRun(out);
 
   return {
+    ...(scan && { scan, list }),
     inventory: async (dir, repo) => {
       const hold = await budget.reserve(`the ${repo} inventory`, DEFAULT_RUN_CAP_USD);
       // Inventory charges its ledger only once the Agent SDK returns a result, so until it returns
@@ -301,6 +316,7 @@ export function createDeps({
           loadToolPack: (provider): Promise<ToolPack> =>
             loadToolPack(provider, { hints: hintsFor(task.usages) }),
           retrieveRecipes: async () => recipes,
+          ...(scan && { rescan: (at) => scan(at, task.repo), smoke: liveSmoke }),
           habitNotes: habitNotes(habits),
           provenFixes: async (repo) => {
             const runs = await ai.store.listRuns();
@@ -311,6 +327,7 @@ export function createDeps({
                 provenAllowed(
                   ladder.find((entry) => entry.entryId === id),
                   runs,
+                  { benchmark },
                 ),
               );
             return loadProvenFixes(providersOf(repo), allowed);

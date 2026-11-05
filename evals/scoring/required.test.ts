@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { gradeChange, proveLock, type RepoLock } from './required.ts';
+import { gradeChange, majorUpgrades, proveLock, type RepoLock } from './required.ts';
 
 const lock: RepoLock = {
   repo: 'acme/app',
@@ -46,5 +46,17 @@ describe('required changes', () => {
       'R1 passes at baseline',
       'R1: proof edit not found',
     ]);
+  });
+});
+
+describe('majorUpgrades', () => {
+  const diff = (old: string, next: string, file = 'package.json') =>
+    `diff --git a/${file} b/${file}\n-    "stripe": "${old}",\n+    "stripe": "${next}",\n`;
+
+  it('names a package moved across a major, and nothing else', () => {
+    expect(majorUpgrades(diff('^14.0.0', '^18.2.0'))).toEqual(['stripe ^14.0.0 -> ^18.2.0']);
+    expect(majorUpgrades(diff('^14.0.0', '^14.9.0'))).toEqual([]);
+    expect(majorUpgrades(diff('^14.0.0', '^18.2.0', 'src/a.ts'))).toEqual([]);
+    expect(majorUpgrades(diff('^14.0.0', '^18.2.0', 'web/package.json'))).toHaveLength(1);
   });
 });
