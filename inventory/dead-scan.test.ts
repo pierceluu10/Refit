@@ -2976,11 +2976,11 @@ describe('seen in P5, round 2: naming providers with no list file', () => {
   it('names a catalog provider by an environment key in code, and not by one in an example', async () => {
     const report = await scan({
       ...NODE,
-      'a.js': 'const url = process.env.SUPABASE_URL;\nconst other = process.env.ACME_URL;',
+      'a.js': 'const url = process.env.CONVEX_URL;\nconst other = process.env.ACME_URL;',
       '.env.example': 'CLERK_API_KEY=\n',
-      'README.md': 'Set SENTRY_API_KEY first.\n',
+      'README.md': 'Set KINDE_API_KEY first.\n',
     });
-    expect(report.unlistedProviders).toEqual(['supabase']);
+    expect(report.unlistedProviders).toEqual(['convex']);
   });
 
   it("names a domain behind S3's path style, and not a bucket with no domain", async () => {
@@ -4245,5 +4245,184 @@ describe('product runs: api_version in a Shopify extension', () => {
       expect(requires, entry.id).toMatch(/plain string.*SDK behaviour, not a Shopify promise/s);
       expect(requires, entry.id).toMatch(/don't bump an extension's api_version alone/);
     }
+  });
+});
+
+describe('the entries from the first read of unlisted providers', () => {
+  const NEXT_AT = (range: string) => ({ 'package.json': manifest({ '@sentry/nextjs': range }) });
+
+  it('Cohere: flags a retired model and leaves the live one beside it', async () => {
+    const report = await scan({
+      'requirements.txt': 'cohere==5.0.0\n',
+      'a.py': [
+        'import cohere',
+        'co = cohere.Client()',
+        'old = co.embed(texts=t, model="embed-english-v2.0")',
+        'new = co.embed(texts=t, model="embed-english-v3.0", input_type="search_document")',
+        'co.rerank(model="rerank-english-v2.0", query=q, documents=d)',
+        'co.rerank(model="rerank-v3.5", query=q, documents=d)',
+        'co.finetuning.list_finetuned_models()',
+      ].join('\n'),
+    });
+    expect(classesOf(report, 'CO-1.embed-english-v2.0'), explain(report)).toEqual(['live']);
+    expect(classesOf(report, 'CO-2.rerank-english-v2.0'), explain(report)).toEqual(['live']);
+    expect(classesOf(report, 'CO-3.finetuning'), explain(report)).toEqual(['live']);
+    expect(report.findings.map((one) => one.line).sort()).toEqual([3, 5, 7]);
+    expect(report.unlistedProviders).not.toContain('cohere');
+  });
+
+  it('Pinecone: flags the SSE URL on its host, and not the live URL or an app of its own', async () => {
+    const report = await scan({
+      'package.json': manifest({ '@pinecone-database/pinecone': '^6.0.0' }),
+      'a.ts': [
+        "import { Pinecone } from '@pinecone-database/pinecone';",
+        "export const dead = new URL('https://prod-1-data.ke.pinecone.io/mcp/assistants/docs/sse');",
+        "export const live = new URL('https://prod-1-data.ke.pinecone.io/mcp/assistants/docs');",
+      ].join('\n'),
+      'b.ts': "export const own = '/mcp/assistants/mine/sse';\n",
+    });
+    expect(classesOf(report, 'PI-1.assistant-mcp-sse', 'a.ts'), explain(report)).toEqual(['live']);
+    expect(classesOf(report, 'PI-1.assistant-mcp-sse', 'b.ts'), explain(report)).toEqual([]);
+    expect(report.findings.filter((one) => one.file === 'a.ts').map((one) => one.line)).toEqual([
+      2,
+    ]);
+  });
+
+  it('Sentry: flags sendDefaultPii only at 11, and leaves React Native and Python alone', async () => {
+    const init =
+      "import * as Sentry from '@sentry/nextjs';\nSentry.init({ sendDefaultPii: true });\n";
+    const at11 = await scan({ ...NEXT_AT('11.0.0'), 'a.ts': init });
+    expect(classesOf(at11, 'SN-1.sendDefaultPii'), explain(at11)).toEqual(['live']);
+    expect(at11.unlistedProviders).not.toContain('sentry');
+    const at10 = await scan({ ...NEXT_AT('10.20.0'), 'a.ts': init });
+    expect(classesOf(at10, 'SN-1.sendDefaultPii'), explain(at10)).toEqual([]);
+    expect(at10.quiet.map((one) => one.entryId)).toContain('SN-1.sendDefaultPii');
+    const open = await scan({ ...NEXT_AT('>=10.0.0'), 'a.ts': init });
+    expect(classesOf(open, 'SN-1.sendDefaultPii'), explain(open)).toEqual(['unclear']);
+    const native = await scan({
+      'package.json': manifest({ '@sentry/react-native': '^7.0.0' }),
+      'a.ts':
+        "import * as Sentry from '@sentry/react-native';\nSentry.init({ sendDefaultPii: true });\n",
+    });
+    expect(fixTargets(native), explain(native)).toEqual([]);
+    const python = await scan({
+      'requirements.txt': 'sentry-sdk==2.0.0\n',
+      'a.py': 'import sentry_sdk\nsentry_sdk.init(send_default_pii=True)\n',
+    });
+    expect(fixTargets(python), explain(python)).toEqual([]);
+  });
+
+  it('Supabase: flags logs.all on the Management API, and not the logs endpoint', async () => {
+    const report = await scan({
+      'a.ts': [
+        'const ref = process.env.REF;',
+        'await fetch(`https://api.supabase.com/v1/projects/${ref}/analytics/endpoints/logs.all?sql=x`);',
+        'await fetch(`https://api.supabase.com/v1/projects/${ref}/analytics/endpoints/logs?sql=x`);',
+        'await db.logs.all();',
+      ].join('\n'),
+    });
+    expect(classesOf(report, 'SU-1.logs.all'), explain(report)).toEqual(['live']);
+    expect(report.findings.map((one) => one.line)).toEqual([2]);
+    expect(report.unlistedProviders).not.toContain('supabase');
+  });
+
+  it('Upstash: sends serve options to a check at 1.0, and leaves live uses and 0.x alone', async () => {
+    const dead = [
+      "import { serve } from '@upstash/workflow/nextjs';",
+      'export const { POST } = serve(',
+      '  async (context) => {',
+      "    await context.run('a', go);",
+      '  },',
+      '  {',
+      '    retries: 3,',
+      '  },',
+      ');',
+    ].join('\n');
+    const liveUse = [
+      "import { serve } from '@upstash/workflow/nextjs';",
+      'export const { POST } = serve(async (context) => {',
+      "  await context.call('a', { url, retries: 3, flowControl: { key: 'k', rate: 1 } });",
+      '});',
+      'await client.trigger({ url, retries: 3 });',
+    ].join('\n');
+    const at = (range: string) => ({ 'package.json': manifest({ '@upstash/workflow': range }) });
+    const at1 = await scan({ ...at('1.0.0'), 'a.ts': dead, 'b.ts': liveUse });
+    expect(classesOf(at1, 'UP-1.serve-options', 'a.ts'), explain(at1)).toEqual(['unclear']);
+    expect(classesOf(at1, 'UP-1.serve-options', 'b.ts'), explain(at1)).toEqual([]);
+    const at0 = await scan({ ...at('0.2.0'), 'a.ts': dead });
+    expect(classesOf(at0, 'UP-1.serve-options'), explain(at0)).toEqual([]);
+    const report = await scan({
+      'package.json': manifest({ '@upstash/qstash': '^2.0.0' }),
+      'a.ts': [
+        "const old = await get('https://qstash.upstash.io/v2/globalParallelism');",
+        'export const waiting = old.waitListSize;',
+      ].join('\n'),
+      'b.ts': [
+        "const flow = await get('https://qstash.upstash.io/v2/flowControl/key');",
+        'export const waiting = flow.waitListSize;',
+      ].join('\n'),
+    });
+    expect(classesOf(report, 'UP-2.global-parallelism-wait-list', 'a.ts'), explain(report)).toEqual(
+      ['live'],
+    );
+    expect(classesOf(report, 'UP-2.global-parallelism-wait-list', 'b.ts'), explain(report)).toEqual(
+      [],
+    );
+  });
+
+  it('Vercel: flags the legacy domains calls and login flags, and not what replaced them', async () => {
+    const report = await scan({
+      'package.json': manifest({ '@vercel/sdk': '^1.0.0' }),
+      'a.ts': [
+        "import { Vercel } from '@vercel/sdk';",
+        "await fetch('https://api.vercel.com/v4/domains/price?name=a.com');",
+        'await fetch(`https://api.vercel.com/v1/domains/${d}/registry`);',
+        'await vercel.domains.checkDomainStatus({ name });',
+        "await fetch('https://api.vercel.com/v5/domains');",
+        'await fetch(`https://api.vercel.com/v1/registrar/domains/${d}/price`);',
+        'await vercel.domainsRegistrar.getDomainPrice({ domain });',
+      ].join('\n'),
+      'b.ts': "export const other = fetch('https://api.example.org/v4/domains/price');\n",
+      'deploy.yml': 'steps:\n  - run: vercel login --github\n  - run: vercel deploy\n',
+    });
+    const dead = report.details.filter((one) => one.entryId === 'VE-1.legacy-domains');
+    expect(
+      dead.filter((one) => one.file === 'a.ts').map((one) => [one.line, one.matchClass]),
+      explain(report),
+    ).toEqual([
+      [2, 'live'],
+      [3, 'unclear'],
+      [4, 'live'],
+    ]);
+    expect(
+      dead.filter((one) => one.file === 'b.ts'),
+      explain(report),
+    ).toEqual([]);
+    expect(classesOf(report, 'VE-2.cli-login-methods', 'deploy.yml'), explain(report)).toEqual([
+      'live',
+    ]);
+    expect(report.unlistedProviders).not.toContain('vercel');
+  });
+});
+
+describe('a saved browser session', () => {
+  // Shape from AB-Insightful/ab-insightful at c61723cf1d3c, seen by the other lane. The real file holds real cookies, so the values here are invented.
+  const SAVED = (name: string) =>
+    JSON.stringify(
+      [{ domain: 'admin.shopify.com', httpOnly: false, name, path: '/', value: 'invented' }],
+      null,
+      2,
+    );
+
+  it("doesn't flag a cookie name in a saved session, and does flag the same name read in code", async () => {
+    const report = await scan({
+      '.e2e-cookies.json': SAVED('_shopify_y'),
+      'storefront.json': JSON.stringify({ cookie: '_shopify_y' }, null, 2),
+      'read.ts': "export const visitor = cookies.get('_shopify_y');\n",
+    });
+    const id = 'SH-10.shopify_y-shopify_s';
+    expect(classesOf(report, id, '.e2e-cookies.json'), explain(report)).toEqual(['catalog']);
+    expect(classesOf(report, id, 'storefront.json'), explain(report)).toEqual(['live']);
+    expect(classesOf(report, id, 'read.ts'), explain(report)).toEqual(['live']);
   });
 });

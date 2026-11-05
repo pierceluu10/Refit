@@ -11,6 +11,7 @@ import {
   shutdownsArrived,
   type ProviderFile,
 } from './list.ts';
+import { textMatches, urlMatches } from './match.ts';
 
 const LIST_DATE = '2026-11-05';
 
@@ -61,11 +62,17 @@ describe('the kept list', () => {
     expect(files.map((one) => one.provider)).toEqual(
       expect.arrayContaining([
         'anthropic',
+        'cohere',
         'gemini',
         'google-analytics',
         'groq',
         'openai',
+        'pinecone',
+        'sentry',
         'stripe',
+        'supabase',
+        'upstash',
+        'vercel',
       ]),
     );
     expect(listProblems(files)).toEqual([]);
@@ -107,6 +114,165 @@ describe('the kept list', () => {
     const llama = list.entries.find((one) => one.id === 'GR-1.llama-3.3-70b-versatile');
     expect(llama?.replacementIds).toContain('openai/gpt-oss-120b');
     expect(llama?.context?.hosts).toContain('api.groq.com');
+  });
+});
+
+describe('the entries from the first read of unlisted providers', () => {
+  const list = loadDeadApis();
+  const hits = (id: string, text: string) => {
+    const found = list.entries.find((one) => one.id === id);
+    expect(found, id).toBeDefined();
+    return found!.matchers.some((matcher) =>
+      matcher.kind === 'url'
+        ? urlMatches(matcher, text)
+        : matcher.kind === 'string' || matcher.kind === 'regex'
+          ? textMatches(matcher, text)
+          : false,
+    );
+  };
+
+  it.each<[string, string, string[], string[]]>([
+    [
+      'cohere embed',
+      'CO-1.embed-english-v2.0',
+      ['co.embed(texts=t, model="embed-english-v2.0")'],
+      ['model="embed-english-v3.0"', 'model="cohere.embed-english-v2.0"', 'embed-v4.0'],
+    ],
+    [
+      'cohere multilingual, as Cohere spells it',
+      'CO-1.embed-multilingual-v2.0',
+      ['model: "embed-multilingual-v2.0"'],
+      ['model: "embed-multilingual-v3.0"', 'model: "embed-multilingual-light-v3.0"'],
+    ],
+    [
+      'cohere aya',
+      'CO-1.c4ai-aya-expanse-8b',
+      ['model="c4ai-aya-expanse-8b"'],
+      ['model="c4ai-aya-expanse-32b"', 'model="command-a-03-2025"'],
+    ],
+    [
+      'cohere rerank',
+      'CO-2.rerank-english-v2.0',
+      ['model="rerank-english-v2.0"'],
+      ['model="rerank-english-v3.0"', 'model="rerank-v3.5"'],
+    ],
+    [
+      'cohere fine-tuning',
+      'CO-3.finetuning',
+      [
+        'requests.get("https://api.cohere.com/v1/finetuning/finetuned-models")',
+        'co.finetuning.list_finetuned_models()',
+        'await cohere.finetuning.createFinetunedModel(body)',
+      ],
+      ['client.fine_tuning.jobs.create()', 'import { finetuning } from "./finetuning"', '/v1/chat'],
+    ],
+    [
+      'pinecone sse',
+      'PI-1.assistant-mcp-sse',
+      [
+        'new URL("https://prod-1-data.ke.pinecone.io/mcp/assistants/docs/sse")',
+        'const url = `${host}/mcp/assistants/${name}/sse`;',
+      ],
+      [
+        'new URL("https://prod-1-data.ke.pinecone.io/mcp/assistants/docs")',
+        '/mcp/assistants/docs/sse-logs',
+        '/mcp/sse',
+      ],
+    ],
+    [
+      'sentry',
+      'SN-1.sendDefaultPii',
+      ['Sentry.init({ sendDefaultPii: true });', 'if (options.sendDefaultPii) {'],
+      ['Sentry.init({ dataCollection: {} });', 'sentry_sdk.init(send_default_pii=True)'],
+    ],
+    [
+      'supabase',
+      'SU-1.logs.all',
+      ['`https://api.supabase.com/v1/projects/${ref}/analytics/endpoints/logs.all?sql=${q}`'],
+      [
+        '`https://api.supabase.com/v1/projects/${ref}/analytics/endpoints/logs?sql=${q}`',
+        'await db.logs.all()',
+        'http://analytics:4000/api/endpoints/query/logs.all',
+        '/analytics/endpoints/logs.allowed',
+      ],
+    ],
+    [
+      'upstash serve options',
+      'UP-1.serve-options',
+      [
+        'serve(async (context) => {\n  await context.run("a", go);\n}, {\n  retries: 3,\n});',
+        'serve<Payload>(async (context) => { go(); }, { failureUrl: url });',
+        'export const { POST } = serve(handler, { flowControl: { key: "k", rate: 1 } });',
+        'serve(handler, {\n  receiver,\n  retryDelay: "1000",\n});',
+      ],
+      [
+        'serve(async (context) => {\n  await context.call("a", { url, retries: 3 });\n});',
+        'await client.trigger({ url, retries: 3, retryDelay: "1000", failureUrl: u });',
+        'serve(handler);',
+        'Bun.serve({ fetch() {}, }, { retries: 3 });',
+        'serveMany({ a, b }, { retries: 3 });',
+      ],
+    ],
+    [
+      'upstash global parallelism',
+      'UP-2.global-parallelism-wait-list',
+      ['const r = await get("/v2/globalParallelism");\nreturn r.waitListSize;'],
+      [
+        'const r = await get("/v2/globalParallelism");\nreturn r.parallelismMax;',
+        'const r = await get("/v2/flowControl/k");\nreturn r.waitListSize;',
+      ],
+    ],
+    [
+      'vercel domains',
+      'VE-1.legacy-domains',
+      [
+        'fetch("https://api.vercel.com/v4/domains/price?name=a.com")',
+        'fetch(`https://api.vercel.com/v4/domains/status?name=${d}`)',
+        'fetch("https://api.vercel.com/v5/domains/buy", opts)',
+        'fetch(`https://api.vercel.com/v1/domains/${d}/registry`)',
+        'await vercel.domains.checkDomainPrice({ name })',
+        'await domainsBuyDomain(vercel, { body })',
+      ],
+      [
+        'fetch("https://api.vercel.com/v5/domains")',
+        'fetch(`https://api.vercel.com/v5/domains/${d}`)',
+        'fetch(`https://api.vercel.com/v1/registrar/domains/${d}/price`)',
+        'await vercel.domainsRegistrar.getDomainPrice({ domain })',
+        'await vercel.domains.getDomain({ domain })',
+      ],
+    ],
+    [
+      'vercel login',
+      'VE-2.cli-login-methods',
+      ['vercel login --github', 'npx vercel login --oob', 'vercel login me@example.com'],
+      ['vercel login', 'vercel login && vercel deploy', 'vercel deploy --github'],
+    ],
+  ])('%s: hits the dead use and not the live one beside it', (_name, id, dead, live) => {
+    for (const line of dead) expect(hits(id, line), line).toBe(true);
+    for (const line of live) expect(hits(id, line), line).toBe(false);
+  });
+
+  it('gates the two SDK removals on the version that made them', () => {
+    const gate = (id: string) => list.entries.find((one) => one.id === id)?.appliesTo?.sdkSince;
+    expect(gate('SN-1.sendDefaultPii')).toContainEqual({
+      package: '@sentry/nextjs',
+      version: '11.0.0',
+      ecosystem: 'npm',
+    });
+    expect(gate('SN-1.sendDefaultPii')?.map((one) => one.package)).not.toContain(
+      '@sentry/react-native',
+    );
+    expect(gate('UP-1.serve-options')).toEqual([
+      { package: '@upstash/workflow', version: '1.0.0', ecosystem: 'npm' },
+    ]);
+  });
+
+  it('asks a fix to drop what must go, in words a fix can find', () => {
+    const requires = (id: string) =>
+      list.entries.find((one) => one.id === id)?.requires.join('\n') ?? '';
+    expect(requires('SN-1.sendDefaultPii')).toMatch(/Remove sendDefaultPii/);
+    expect(requires('UP-1.serve-options')).toMatch(/Remove retries/);
+    expect(requires('VE-2.cli-login-methods')).toMatch(/Remove --github/);
   });
 });
 

@@ -1,0 +1,40 @@
+{
+  "provider": "supabase",
+  "officialHosts": ["supabase.com"],
+  "entries": [
+    {
+      "id": "SU-1.logs.all",
+      "provider": "supabase",
+      "what": "The Supabase Management API logs.all analytics endpoint is removed and answers 410 Gone.",
+      "diedOn": "2026-09-23",
+      "source": {
+        "url": "https://supabase.com/changelog/48235-migration-of-supabase-management-api-logs-all-analytics-endpoint-to-logs-endpoint",
+        "checkedOn": "2026-11-05",
+        "quote": "The `logs.all` Management API endpoint is being removed on 23rd September 2026 (Wednesday), two months from this announcement."
+      },
+      "lookFor": [
+        "A request to .../analytics/endpoints/logs.all on api.supabase.com. Exclude logs.all elsewhere, such as a self-hosted Logflare /endpoints/query/logs.all or an app's own logs.all()."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/analytics/endpoints/logs\\.all\\b"
+        }
+      ],
+      "replacement": "GET /v1/projects/{ref}/analytics/endpoints/logs",
+      "replacementIds": ["/v1/projects/{ref}/analytics/endpoints/logs"],
+      "requires": [
+        "Convert the SQL to the ClickHouse dialect: the new endpoint accepts nothing else.",
+        "Query the one logs table and filter by source_name in the WHERE clause, instead of selecting a source table such as edge_logs.",
+        "Nested fields move from the metadata array to a flat log_attributes map, so the CROSS JOIN unnest() joins go away.",
+        "The range is at most 24 hours, and only the last minute is queried without iso_timestamp_start and iso_timestamp_end.",
+        "A repo that pins @supabase/mcp-server-supabase needs v0.10.0 or later: its get_logs tool called logs.all."
+      ],
+      "context": {
+        "packages": ["@supabase/supabase-js", "supabase"],
+        "hosts": ["api.supabase.com", "supabase.co"]
+      }
+    }
+  ],
+  "future": []
+}

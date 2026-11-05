@@ -1,0 +1,77 @@
+{
+  "provider": "upstash",
+  "officialHosts": ["upstash.com"],
+  "entries": [
+    {
+      "id": "UP-1.serve-options",
+      "provider": "upstash",
+      "what": "retries, flowControl, retryDelay and failureUrl are gone from the options of serve() in @upstash/workflow, and move to client.trigger().",
+      "diedOn": "2026-01-19",
+      "source": {
+        "url": "https://upstash.com/docs/workflow/howto/migrations.md",
+        "checkedOn": "2026-11-05",
+        "quote": "The `retries`, `flowControl`, `retryDelay`, and `failureUrl` options have been removed from `serve()` and should now be passed in `client.trigger()`."
+      },
+      "lookFor": [
+        "retries, flowControl, retryDelay or failureUrl in the options object that is serve()'s second argument, the one after the workflow function. The same names on client.trigger() or on context.call() and context.invoke() inside the function are live, and so is another helper's own options, such as p-retry's."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?<![\\w$.])serve(?:<[^>()]*>)?\\s*\\((?:\\s*[\\w$.]+\\s*,|[\\s\\S]{0,20000}?\\}\\s*,)\\s*\\{[^{}]*?\\b(?:retries|retryDelay|flowControl|failureUrl)\\s*:",
+          "ambiguous": true
+        }
+      ],
+      "versions": "A break only at @upstash/workflow 1.0.0 or later. The Python SDK keeps these options on its serve decorator.",
+      "appliesTo": {
+        "describe": "A break only at @upstash/workflow 1.0.0 or later. The Python SDK keeps these options on its serve decorator.",
+        "sdkSince": [
+          {
+            "package": "@upstash/workflow",
+            "version": "1.0.0",
+            "ecosystem": "npm"
+          }
+        ]
+      },
+      "replacement": "The same options passed to client.trigger().",
+      "replacementIds": ["client.trigger"],
+      "requires": [
+        "Remove retries, flowControl, retryDelay and failureUrl from the serve() options, and add them to every client.trigger() that starts this workflow, including one in another repo.",
+        "A workflow started by something other than client.trigger() no longer gets these settings from serve(), so say in the PR what starts it."
+      ],
+      "context": {
+        "packages": ["@upstash/workflow"]
+      }
+    },
+    {
+      "id": "UP-2.global-parallelism-wait-list",
+      "provider": "upstash",
+      "what": "GET /v2/globalParallelism on QStash no longer returns waitListSize. The changelog dates this February 2026, with no day.",
+      "diedOn": "2026-02-28",
+      "source": {
+        "url": "https://upstash.com/docs/qstash/overall/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "`GET /v2/globalParallelism` now returns `{ parallelismMax, parallelismCount }` instead of the old `{ waitListSize }` shape."
+      },
+      "lookFor": [
+        "waitListSize read off the response of /v2/globalParallelism. waitListSize on /v2/flowControl is live."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/v2/globalParallelism\\b[\\s\\S]{0,500}?\\bwaitListSize\\b"
+        }
+      ],
+      "replacement": "parallelismMax and parallelismCount on the same endpoint, which measure something else. The wait list of a flow control key is on GET /v2/flowControl.",
+      "replacementIds": ["parallelismMax", "parallelismCount"],
+      "requires": [
+        "There's no global wait list any more, so decide what the code wanted it for: it can't be swapped for one of the new fields."
+      ],
+      "context": {
+        "packages": ["@upstash/qstash", "qstash"],
+        "hosts": ["upstash.io"]
+      }
+    }
+  ],
+  "future": []
+}

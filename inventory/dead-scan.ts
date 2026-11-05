@@ -200,6 +200,7 @@ const PUBLISH_SETTINGS: { name: RegExp; setting: RegExp }[] = [
 ];
 const MINIFIED_NAME = /[.-]min\.\w+$|[.-]bundle\.\w+$|\.map$/;
 const TYPE_DECLARATIONS = /\.d\.[cm]?ts$/;
+const SAVED_COOKIE_KEY = /"httpOnly"\s*:/;
 const GENERATED_HEAD = /@generated\b|\bDO NOT EDIT\b|__commonJS\b|__create = Object\.create\b/;
 const GENERATED_TAIL = /[#@] sourceMappingURL=/;
 const GENERATED_HEAD_CHARS = 2_000;
@@ -640,6 +641,16 @@ function harmlessUse({ source, entry, matcher, offset, read }: Hit): string | un
   return undefined;
 }
 
+// A browser session saved to JSON for a test run, as Playwright and Puppeteer write it.
+function isSavedCookie(source: Source, offset: number): boolean {
+  if (source.mode !== 'json') return false;
+  const record = enclosing(source.code, offset);
+  return (
+    record?.char === '{' &&
+    SAVED_COOKIE_KEY.test(source.text.slice(record.open, closeOf(source.code, record.open)))
+  );
+}
+
 function placeOf(hit: Hit, span: Span | undefined, repo: Repo): Classed | Place | undefined {
   const { source, entry, name, offset } = hit;
   const dotFolder = dotFolderOf(source.file);
@@ -663,6 +674,13 @@ function placeOf(hit: Hit, span: Span | undefined, repo: Repo): Classed | Place 
   const served = repo.published.some((folder) => source.file.startsWith(`${folder}/`));
   if (isTestPath(source.file) && !served) {
     return { matchClass: 'test', reason: 'a test, fixture, example or docs path' };
+  }
+  if (isSavedCookie(source, offset)) {
+    return {
+      matchClass: 'catalog',
+      ruledOut: true,
+      reason: 'a saved browser cookie, read by nothing',
+    };
   }
   const harmless = harmlessUse(hit);
   if (harmless) return { matchClass: 'catalog', ruledOut: true, reason: harmless };

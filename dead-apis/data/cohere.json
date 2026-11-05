@@ -1,0 +1,236 @@
+{
+  "provider": "cohere",
+  "officialHosts": ["cohere.com"],
+  "entries": [
+    {
+      "id": "CO-1.embed-english-v2.0",
+      "provider": "cohere",
+      "what": "Cohere retired the embed-english-v2.0 embedding model.",
+      "diedOn": "2026-04-04",
+      "source": {
+        "url": "https://docs.cohere.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "Effective April 4th, 2026, the following models will be retired: embed-english-v2.0 embed-english-light-v2.0 embed-multilingual-v2.0 c4ai-aya-expanse-8b c4ai-aya-vision-8b"
+      },
+      "lookFor": [
+        "embed-english-v2.0 passed as the model to Cohere embed. Exclude a list that only records names, and cohere.embed-english-v2.0 on Bedrock."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "embed-english-v2.0"
+        }
+      ],
+      "replacement": "embed-english-v3.0 or embed-v4.0",
+      "replacementIds": ["embed-english-v3.0", "embed-v4.0"],
+      "requires": [
+        "Set input_type on the call: the API reference says it is required for embedding models v3 and higher, and the v2 models ran without it.",
+        "Re-embed what's stored. Reading, not on the page: vectors from different models aren't comparable, and the dimension can differ, so check the size of the vector index too."
+      ],
+      "context": {
+        "packages": ["cohere-ai", "@ai-sdk/cohere", "cohere"],
+        "hosts": ["api.cohere.com", "api.cohere.ai"]
+      }
+    },
+    {
+      "id": "CO-1.embed-english-light-v2.0",
+      "provider": "cohere",
+      "what": "Cohere retired the embed-english-light-v2.0 embedding model.",
+      "diedOn": "2026-04-04",
+      "source": {
+        "url": "https://docs.cohere.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "Effective April 4th, 2026, the following models will be retired: embed-english-v2.0 embed-english-light-v2.0 embed-multilingual-v2.0 c4ai-aya-expanse-8b c4ai-aya-vision-8b"
+      },
+      "lookFor": [
+        "embed-english-light-v2.0 passed as the model to Cohere embed. Exclude a list that only records names, and cohere.embed-english-light-v2.0 on Bedrock."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "embed-english-light-v2.0"
+        }
+      ],
+      "replacement": "embed-english-v3.0 or embed-v4.0",
+      "replacementIds": ["embed-english-v3.0", "embed-v4.0"],
+      "requires": [
+        "Set input_type on the call: the API reference says it is required for embedding models v3 and higher, and the v2 models ran without it.",
+        "Re-embed what's stored. Reading, not on the page: vectors from different models aren't comparable, and the dimension can differ, so check the size of the vector index too."
+      ],
+      "context": {
+        "packages": ["cohere-ai", "@ai-sdk/cohere", "cohere"],
+        "hosts": ["api.cohere.com", "api.cohere.ai"]
+      }
+    },
+    {
+      "id": "CO-1.embed-multilingual-v2.0",
+      "provider": "cohere",
+      "what": "Cohere retired the embed-multilingual-v2.0 embedding model. Cohere itself spells it multilingual.",
+      "diedOn": "2026-04-04",
+      "source": {
+        "url": "https://docs.cohere.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "Effective April 4th, 2026, the following models will be retired: embed-english-v2.0 embed-english-light-v2.0 embed-multilingual-v2.0 c4ai-aya-expanse-8b c4ai-aya-vision-8b"
+      },
+      "lookFor": [
+        "embed-multilingual-v2.0 passed as the model to Cohere embed. Exclude a list that only records names, and cohere.embed-multilingual-v2.0 on Bedrock."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "embed-multilingual-v2.0"
+        }
+      ],
+      "replacement": "embed-multilingual-v3.0 or embed-v4.0",
+      "replacementIds": ["embed-multilingual-v3.0", "embed-v4.0"],
+      "requires": [
+        "Set input_type on the call: the API reference says it is required for embedding models v3 and higher, and the v2 models ran without it.",
+        "Re-embed what's stored. Reading, not on the page: vectors from different models aren't comparable, and the dimension can differ, so check the size of the vector index too."
+      ],
+      "context": {
+        "packages": ["cohere-ai", "@ai-sdk/cohere", "cohere"],
+        "hosts": ["api.cohere.com", "api.cohere.ai"]
+      }
+    },
+    {
+      "id": "CO-1.c4ai-aya-expanse-8b",
+      "provider": "cohere",
+      "what": "Cohere retired the c4ai-aya-expanse-8b chat model.",
+      "diedOn": "2026-04-04",
+      "source": {
+        "url": "https://docs.cohere.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "Effective April 4th, 2026, the following models will be retired: embed-english-v2.0 embed-english-light-v2.0 embed-multilingual-v2.0 c4ai-aya-expanse-8b c4ai-aya-vision-8b"
+      },
+      "lookFor": ["c4ai-aya-expanse-8b passed as the model to Cohere chat."],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "c4ai-aya-expanse-8b"
+        }
+      ],
+      "replacement": "The chat alternatives the page names: command-r7b-12-2024, command-a-03-2025 or command-a-reasoning-08-2025.",
+      "replacementIds": ["command-r7b-12-2024", "command-a-03-2025", "command-a-reasoning-08-2025"],
+      "requires": [],
+      "context": {
+        "packages": ["cohere-ai", "@ai-sdk/cohere", "cohere"],
+        "hosts": ["api.cohere.com", "api.cohere.ai"]
+      }
+    },
+    {
+      "id": "CO-1.c4ai-aya-vision-8b",
+      "provider": "cohere",
+      "what": "Cohere retired the c4ai-aya-vision-8b chat and image model.",
+      "diedOn": "2026-04-04",
+      "source": {
+        "url": "https://docs.cohere.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "Effective April 4th, 2026, the following models will be retired: embed-english-v2.0 embed-english-light-v2.0 embed-multilingual-v2.0 c4ai-aya-expanse-8b c4ai-aya-vision-8b"
+      },
+      "lookFor": ["c4ai-aya-vision-8b passed as the model to Cohere chat."],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "c4ai-aya-vision-8b"
+        }
+      ],
+      "replacement": "The chat alternatives the page names: command-r7b-12-2024, command-a-03-2025 or command-a-reasoning-08-2025.",
+      "replacementIds": ["command-r7b-12-2024", "command-a-03-2025", "command-a-reasoning-08-2025"],
+      "requires": [
+        "It took images, and the page's alternatives aren't named as vision models. Reading, not on the page: Cohere's models page lists command-a-vision-07-2025 as live and able to process images, so check which fits before moving a call that sends images."
+      ],
+      "context": {
+        "packages": ["cohere-ai", "@ai-sdk/cohere", "cohere"],
+        "hosts": ["api.cohere.com", "api.cohere.ai"]
+      }
+    },
+    {
+      "id": "CO-2.rerank-english-v2.0",
+      "provider": "cohere",
+      "what": "Cohere shut down the rerank-english-v2.0 rerank model.",
+      "diedOn": "2025-04-30",
+      "source": {
+        "url": "https://docs.cohere.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "2025-04-30 rerank-english-v2.0 $1.00 / 1K searches rerank-v3.5"
+      },
+      "lookFor": ["rerank-english-v2.0 passed as the model to Cohere rerank."],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "rerank-english-v2.0"
+        }
+      ],
+      "replacement": "rerank-v3.5",
+      "replacementIds": ["rerank-v3.5"],
+      "requires": [
+        "Reading, not on the page: relevance scores come from a different model, so re-check any hard-coded score threshold."
+      ],
+      "context": {
+        "packages": ["cohere-ai", "@ai-sdk/cohere", "cohere"],
+        "hosts": ["api.cohere.com", "api.cohere.ai"]
+      }
+    },
+    {
+      "id": "CO-2.rerank-multilingual-v2.0",
+      "provider": "cohere",
+      "what": "Cohere shut down the rerank-multilingual-v2.0 rerank model.",
+      "diedOn": "2025-04-30",
+      "source": {
+        "url": "https://docs.cohere.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "2025-04-30 rerank-multilingual-v2.0 $1.00 / 1K searches rerank-v3.5"
+      },
+      "lookFor": ["rerank-multilingual-v2.0 passed as the model to Cohere rerank."],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "rerank-multilingual-v2.0"
+        }
+      ],
+      "replacement": "rerank-v3.5",
+      "replacementIds": ["rerank-v3.5"],
+      "requires": [
+        "Reading, not on the page: relevance scores come from a different model, so re-check any hard-coded score threshold."
+      ],
+      "context": {
+        "packages": ["cohere-ai", "@ai-sdk/cohere", "cohere"],
+        "hosts": ["api.cohere.com", "api.cohere.ai"]
+      }
+    },
+    {
+      "id": "CO-3.finetuning",
+      "provider": "cohere",
+      "what": "Cohere retired fine-tuning on the dashboard and the API, and fine-tuned models are no longer accessible.",
+      "diedOn": "2025-09-15",
+      "source": {
+        "url": "https://docs.cohere.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "Fine-tuning for the command-light, command, command-r, classify, and rerank models is being retired. This covers both the Cohere dashboard and API. Previously fine-tuned models will no longer be accessible."
+      },
+      "lookFor": [
+        "A request to /v1/finetuning/... on the Cohere API, or a call on the SDK's finetuning client such as co.finetuning.list_finetuned_models(...)."
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "/v1/finetuning*",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\.finetuning\\.(?:list_finetuned_models|create_finetuned_model|get_finetuned_model|update_finetuned_model|delete_finetuned_model|list_events|list_training_step_metrics|listFinetunedModels|createFinetunedModel|getFinetunedModel|updateFinetunedModel|deleteFinetunedModel|listEvents|listTrainingStepMetrics)\\("
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added. The page says to migrate to the recommended alternatives and names no fine-tuning replacement.",
+      "requires": [
+        "A model id that a fine-tune produced stops resolving too, so find where the app stores or passes it and pick a base model in its place."
+      ],
+      "context": {
+        "packages": ["cohere-ai", "@ai-sdk/cohere", "cohere"],
+        "hosts": ["api.cohere.com", "api.cohere.ai"]
+      }
+    }
+  ],
+  "future": []
+}
