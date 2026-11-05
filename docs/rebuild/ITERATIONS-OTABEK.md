@@ -252,3 +252,26 @@ One session gives one PR per repo by construction. The PR body lists each entry,
 **The label rules, replayed:** the tighter rules came after round 1. Replayed over rounds 1 and 2 with no spend, 5 of 10 repos stay Fixed, and the hand-check agrees with all 5. It's a replay, so round 3 is the real test.
 
 **Quiet repos, round 2:** $0.42 for 2 repos that already read both Stripe shapes. The scan flagged them, and neither session left them alone. `gridster` reordered its reads to prefer the new field and removed two debug reads, which is harmless, and landed on Needs a look. `actors-copilot` made the same small change plus Gemini test renames, then failed a check it had added itself, so it ended as Couldn't fix with no PR. Nothing bad would ship, but false alarms cost about $0.20 each. It's mostly a scanner cause: a field read behind a `??` fallback isn't dead. Sent to Pierce.
+
+## Regression check: the 3 test repos on the real scanner
+
+**When:** 2026-11-05, 05:31 to 05:40. **Commit:** `0a1384c4` on `rebuild/integration`. **Locks:** `evals/rounds/regression/`. **Spend:** $0.74 of a $4 cap.
+
+This is the first run on Pierce's scanner instead of the stand-in. These repos have been seen, so it's a check and never the score.
+
+| Repo | Required fixed | Label | Cost | Time | Refit on 2026-11-04 |
+| --- | --- | --- | --- | --- | --- |
+| `mantou132/Spotify-Lyrics` | 2 of 2 | Fixed | $0.2293 | 166 s | $4.28, 587 s, `ga.ts` untouched |
+| `MuhammadTanveerAbbas/Clario-ai` | 6 of 6 | Needs a look | $0.2255 | 182 s | $4.46, 694 s |
+| `MFaizanali2/Code-Review-Agent` | 5 of 5 | Needs a look | $0.2814 | 137 s | $3.70, 723 s |
+| **Total** | **13 of 13** | | **$0.7362** | | **$12.44** |
+
+The 2026-11-04 numbers are from `TEST-2026-11-04.md`. That test ran several tasks per repo and graded them by hand, so the cost and time compare, but the 13 locks are this run's.
+
+**Reading every label:**
+
+- **`Spotify-Lyrics`, Fixed. I agree.** It moved both send paths to GA4's `/mp/collect` with a JSON body and read the IDs from config, and its test checks the URL and the body. The PR says what a person must set, and that the secret ships inside the extension, as the list asks.
+- **`Clario-ai`, Needs a look.** The one rescan hit is `?? invoice?.subscription`, the fallback `ST-2`'s `requires` asks for. That's a scanner case, sent to Pierce on his draft PR. The label stands, because it comes from the rescan and not from the session's word.
+- **`Code-Review-Agent`, Needs a look. That label was too cautious.** The session dropped `temperature`, `top_p` and `top_k` from the Anthropic and Gemini calls. The rule tripped on `LLMConfig`, a typed config next to the edit, and the list allows a shared config to hold them. `requiredRemovals` now skips a typed field or parameter.
+
+The Docker baseline and session each took 1 to 1.5 minutes, so all 3 repos beat the 5-minute target.

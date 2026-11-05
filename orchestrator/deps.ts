@@ -75,7 +75,7 @@ const WATCH_CALL_USD = 0.5;
 // One recipe retrieval or extraction; memory refuses an Opus call whose worst case passes its cap. A
 // 150KB transcript's worst case was $1.06 in round 3's first iteration, so $1 lost that recipe.
 export const MEMORY_USD = 2;
-// The scan's one small check, well above its worst case of about $0.06 at 300 unclear matches.
+// The scan's one small check. Its worst case is about $0.18: 300 unclear matches at full context.
 const CHECK_USD = 0.25;
 // Parts in flight at once. The run budget's holds, not this, keep the spend under the cap.
 const CONCURRENCY = 4;

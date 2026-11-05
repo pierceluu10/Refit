@@ -131,6 +131,9 @@ export function isRework(diff: string, findings: Finding[]): boolean {
 const REWORK_LINES = 20;
 const REWORK_LINES_PER_FINDING = 3;
 
+// A typed field or parameter holds a setting without sending it, and the list allows a shared config.
+const DECLARES = /\b(?:temperature|top_p|top_k)\??\s*:\s*(?:float|int|number|Optional)\b/i;
+
 // What an entry says the move requires taking out, and the fix's own hunks still set: the lines
 // around the edit, since a whole file can set it for another provider.
 export function requiredRemovals(entries: DeadApiEntry[], diff: string): string[] {
@@ -143,7 +146,9 @@ export function requiredRemovals(entries: DeadApiEntry[], diff: string): string[
   for (const section of diff.split(/^(?=diff --git )/m)) {
     const file = /^diff --git a\/.+? b\/(.+)$/m.exec(section)?.[1];
     if (!file || !CODE_FILE.test(file) || TEST_FILE.test(file)) continue;
-    const kept = section.split('\n').filter((line) => /^[ +](?!\+\+)/.test(line));
+    const kept = section
+      .split('\n')
+      .filter((line) => /^[ +](?!\+\+)/.test(line) && !DECLARES.test(line));
     for (const name of new Set(names.map((found) => found.toLowerCase()))) {
       if (kept.some((line) => new RegExp(`\\b${name}\\b`, 'i').test(line))) {
         left.add(`${name} in ${file}`);

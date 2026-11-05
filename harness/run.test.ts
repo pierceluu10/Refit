@@ -705,6 +705,8 @@ describe('a repo session', () => {
     ]);
     expect(requiredRemovals([entry], diff('  temperature: 0.2,'))).toEqual([]);
     expect(requiredRemovals([removes], diff('  stream: true,'))).toEqual([]);
+    expect(requiredRemovals([removes], diff('  temperature: float = 0.3'))).toEqual([]);
+    expect(requiredRemovals([removes], diff('  temperature?: number;'))).toEqual([]);
     expect(requiredRemovals([removes], diff('  temperature: 0.2,', 'src/a.test.ts'))).toEqual([]);
     // A line the fix took out doesn't count.
     expect(requiredRemovals([removes], 'diff --git a/a.ts b/a.ts\n-  temperature: 0,\n')).toEqual(
