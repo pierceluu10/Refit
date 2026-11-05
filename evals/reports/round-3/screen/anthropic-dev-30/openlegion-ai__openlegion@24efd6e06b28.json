@@ -1,0 +1,37 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "openlegion-ai/openlegion",
+  "commit": "24efd6e06b28768cbbcd9275f43c479b3df37b18",
+  "provider": "anthropic",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "pytest",
+      "command": "(python3 -m pytest --version >/dev/null 2>&1 || python3 -m pip install -q --only-binary=:all: pytest) && python3 -m pytest -q",
+      "ok": false,
+      "failures": ["exit-nonzero: [timed out after 10 minutes]"],
+      "tail": "................................................. [ 82%]\n........................................................................ [ 83%]\n........................................................................ [ 83%]\n........................................................................ [ 84%]\n........................................................................ [ 85%]\n........................................................................ [ 86%]\n........................................................................ [ 86%]\n........................................................................ [ 87%]\n........................................................................ [ 88%]\n........................................................................ [ 89%]\n...............................................................\n/tmp/.local/lib/python3.12/site-packages/pytest_asyncio/plugin.py:300: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the \"fixture\" caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to \"function\" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n\n[timed out after 10 minutes]"
+    }
+  ],
+  "costUsd": 0.12419800000000047,
+  "durationMs": 671272,
+  "install": {
+    "code": 0,
+    "tail": "installs only prebuilt wheels from requirements.txt; install other dependencies with pip --only-binary=:all:"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "python3 -m pip install -q -e \".[dev]\" || python3 -m pip install -q -e .",
+        "why": "pytest had to be installed by the harness, so the project and its dependencies were never installed. That explains the 178 collection errors, which are likely import errors. This installs the repo's own package and its declared dependencies, including the dev extras if they exist.",
+        "code": 0
+      }
+    ],
+    "env": []
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "pytest timed out after 10 minutes at ~89% with no failures or missing credentials/services shown; the repo's own test suite hangs or runs too slowly as it stands."
+  }
+}

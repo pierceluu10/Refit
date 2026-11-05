@@ -1,0 +1,62 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "doganarif/build-it",
+  "commit": "7c1a3e5fff4f12e106658cc2a1fc409e00c455d4",
+  "provider": "stripe",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "build",
+      "command": "export DATABASE_URL='file:./dev.db' AUTH_SECRET='placeholder-auth-secret' AUTH_URL='http://localhost:3000' STRIPE_SECRET_KEY='placeholder' STRIPE_WEBHOOK_SECRET='placeholder' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='placeholder' LEMONSQUEEZY_API_KEY='placeholder' LEMONSQUEEZY_WEBHOOK_SECRET='placeholder' NEXT_PUBLIC_LEMONSQUEEZY_STORE_ID='placeholder' NEXT_PUBLIC_PAYMENT_PROVIDER='stripe' EMAIL_FROM='noreply@example.com' EMAIL_PROVIDER='sendgrid' SENDGRID_API_KEY='placeholder' RESEND_API_KEY='placeholder' OPENAI_API_KEY='placeholder' GOOGLE_CLIENT_ID='placeholder' GOOGLE_CLIENT_SECRET='placeholder' GITHUB_CLIENT_ID='placeholder' GITHUB_CLIENT_SECRET='placeholder'; npm run build",
+      "ok": false,
+      "failures": ["exit-nonzero: > Build failed because of webpack errors"],
+      "tail": "> buildit@0.1.0 build\n> next build\n\n   ▲ Next.js 15.2.4\n\n   Creating an optimized production build ...\n\nFailed to compile.\n\n./components/PaymentForm.jsx\nModule not found: Can't resolve '@stripe/stripe-js'\n\nhttps://nextjs.org/docs/messages/module-not-found\n\nImport trace for requested module:\n./app/payment-example/page.jsx\n\n./components/PaymentForm.jsx\nModule not found: Can't resolve '@stripe/react-stripe-js'\n\nhttps://nextjs.org/docs/messages/module-not-found\n\nImport trace for requested module:\n./app/payment-example/page.jsx\n\n\n> Build failed because of webpack errors"
+    }
+  ],
+  "costUsd": 0.11810399999999999,
+  "durationMs": 104041,
+  "install": {
+    "code": 0,
+    "tail": "RESOLVE could not resolve\nnpm error\nnpm error While resolving: lucide-react@0.307.0\nnpm error Found: react@19.1.0\nnpm error node_modules/react\nnpm error   react@\"^19.0.0\" from the root project\nnpm error   peer react@\"^18 || ^19 || ^19.0.0-rc\" from @ai-sdk/react@1.2.5\nnpm error   node_modules/@ai-sdk/react\nnpm error     @ai-sdk/react@\"^1.2.5\" from the root project\nnpm error     @ai-sdk/react@\"1.2.5\" from ai@4.2.10\nnpm error     node_modules/ai\nnpm error       ai@\"^4.2.10\" from the root project\nnpm error   40 more (@floating-ui/react-dom, @radix-ui/react-arrow, ...)\nnpm error\nnpm error Could not resolve dependency:\nnpm error peer react@\"^16.5.1 || ^17.0.0 || ^18.0.0\" from lucide-react@0.307.0\nnpm error node_modules/lucide-react\nnpm error   lucide-react@\"^0.307.0\" from the root project\nnpm error\nnpm error Conflicting peer dependency: react@18.3.1\nnpm error node_modules/react\nnpm error   peer react@\"^16.5.1 || ^17.0.0 || ^18.0.0\" from lucide-react@0.307.0\nnpm error   node_modules/lucide-react\nnpm error     lucide-react@\"^0.307.0\" from the root project\nnpm error\nnpm error Fix the upstream dependency conflict, or retry\nnpm error this command with --force or --legacy-peer-deps\nnpm error to accept an incorrect (and potentially broken) dependency resolution.\nnpm error\nnpm error\nnpm error For a full report see:\nnpm error /tmp/.npm/_logs/2026-11-03T18_56_59_491Z-eresolve-report.txt\nnpm error A complete log of this run can be found in: /tmp/.npm/_logs/2026-11-03T18_56_59_491Z-debug-0.log"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "@prisma/client's postinstall was skipped, so the Prisma client must be generated from prisma/schema.prisma before next build imports it",
+        "code": 0
+      },
+      {
+        "command": "npx prisma generate",
+        "why": "Install scripts were off, so the Prisma client was never generated. Code importing @prisma/client needs it to build.",
+        "code": 0
+      }
+    ],
+    "env": [
+      "DATABASE_URL",
+      "AUTH_SECRET",
+      "AUTH_URL",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "LEMONSQUEEZY_API_KEY",
+      "LEMONSQUEEZY_WEBHOOK_SECRET",
+      "NEXT_PUBLIC_LEMONSQUEEZY_STORE_ID",
+      "NEXT_PUBLIC_PAYMENT_PROVIDER",
+      "EMAIL_FROM",
+      "EMAIL_PROVIDER",
+      "SENDGRID_API_KEY",
+      "RESEND_API_KEY",
+      "OPENAI_API_KEY",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
+      "GITHUB_CLIENT_ID",
+      "GITHUB_CLIENT_SECRET"
+    ]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "npm install hits an ERESOLVE peer conflict (lucide-react@0.307.0 wants react <=18 but root uses react 19), and the build then fails because @stripe/stripe-js and @stripe/react-stripe-js are imported but not resolved; these are the repo's own dependency declarations, not credentials or a private registry."
+  }
+}

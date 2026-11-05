@@ -1,0 +1,176 @@
+[
+  {
+    "repo": "4lbatr0s/jiro",
+    "commit": "313dbd324b09519252ab0791c8a5a2654be31ada",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "openai-1",
+        "file": "src/app/api/message/route.ts",
+        "dead": "gpt-3\\.5-turbo",
+        "alive": ["gpt-5\\.6-terra"],
+        "proof": {
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "openai-requires",
+        "file": "src/app/api/message/route.ts",
+        "dead": "temperature\\s*:",
+        "alive": [],
+        "proof": {
+          "from": "temperature: 0,",
+          "to": ""
+        }
+      }
+    ]
+  },
+  {
+    "repo": "liamstamper/lamp-bot",
+    "commit": "3bd2634ceeb9c820666f2369ddf3ceea8651da98",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "groq-1",
+        "file": "lib/webhook/promptModel.ts",
+        "dead": "llama-3\\.3-70b-versatile",
+        "alive": ["openai/gpt-oss-120b"],
+        "proof": {
+          "from": "llama-3.3-70b-versatile",
+          "to": "openai/gpt-oss-120b"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "groq-1",
+        "file": "lib/ai/modelChoices.ts",
+        "dead": "llama-3\\.3-70b-versatile",
+        "alive": ["openai/gpt-oss-120b"],
+        "proof": {
+          "from": "llama-3.3-70b-versatile",
+          "to": "openai/gpt-oss-120b"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "groq-2",
+        "file": "lib/ai/modelChoices.ts",
+        "dead": "llama-3\\.1-8b-instant",
+        "alive": ["openai/gpt-oss-20b"],
+        "proof": {
+          "from": "llama-3.1-8b-instant",
+          "to": "openai/gpt-oss-20b"
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "groq-1",
+        "file": "app/(content)/dashboard/ai-configuration/components/AIConfigurationClient.tsx",
+        "dead": "llama-3\\.3-70b-versatile",
+        "alive": ["openai/gpt-oss-120b"],
+        "proof": {
+          "from": "llama-3.3-70b-versatile",
+          "to": "openai/gpt-oss-120b"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "Anassarwar14/Chat-Nest-AI",
+    "commit": "38dd23e1031c5fdad36e3a830092f00d519baac6",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "groq-1",
+        "file": "app/api/chat/[chatId]/route.ts",
+        "dead": "llama-3\\.3-70b-versatile",
+        "alive": ["openai/gpt-oss-120b"],
+        "proof": {
+          "from": "llama-3.3-70b-versatile",
+          "to": "openai/gpt-oss-120b"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "adeojoemmanuel/EDD-Kafka-Rest-Api",
+    "commit": "55e43330f26066273a71b0563e301bf8d6343420",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "openai-24",
+        "file": "src/openai-chat/src/service/chat.service.ts",
+        "dead": "text-davinci-003",
+        "alive": ["gpt-5\\.6-terra"],
+        "proof": {
+          "from": "text-davinci-003",
+          "to": "gpt-5.6-terra"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "openai-requires",
+        "file": "src/openai-chat/src/service/chat.service.ts",
+        "dead": "openai\\.completions\\.create",
+        "alive": [],
+        "proof": {
+          "from": "openai.completions.create",
+          "to": "openai.chat.completions.create"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "smartflow-systems/smartflow-hub",
+    "commit": "acfbd7674b90954d535c14f8a0e0102548029f50",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "anthropic-1",
+        "file": "src/lib/ai.ts",
+        "dead": "claude-sonnet-4-20250514",
+        "alive": ["claude-sonnet-5-5"],
+        "proof": {
+          "from": "claude-sonnet-4-20250514",
+          "to": "claude-sonnet-5-5"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "nfindler/playbook-pipeline",
+    "commit": "e15ab69fb1155650127f0c777d3734c0ae4c8b71",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "anthropic-2",
+        "file": "scripts/step6_synthesis.py",
+        "dead": "claude-opus-4-20250514",
+        "alive": ["claude-opus-4-8"],
+        "proof": {
+          "from": "claude-opus-4-20250514",
+          "to": "claude-opus-4-8"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "souravdas2003/Chatbot-Using-Anthropic-Api-Key",
+    "commit": "f8b31e4f9bb420210fc9883017a8ca950042ab8e",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "anthropic-7",
+        "file": "server.js",
+        "dead": "claude-3-haiku-20240307",
+        "alive": ["claude-haiku-4-5-20251001"],
+        "proof": {
+          "from": "claude-3-haiku-20240307",
+          "to": "claude-haiku-4-5-20251001"
+        }
+      }
+    ]
+  }
+]

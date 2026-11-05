@@ -80,7 +80,7 @@ describe('messagesApiModel', () => {
 describe('costOf', () => {
   it('prices cache writes, cache reads and web searches', async () => {
     const { costOf } = await import('./model.ts');
-    // Sonnet 5.5: $2 in, $10 out; writes 1.25x, reads 0.1x; $0.01 a search.
+    // Sonnet 5.5: $2 in, $10 out; writes 1.25x, reads 0.05x; $0.01 a search.
     expect(
       costOf('claude-sonnet-5-5', {
         inputTokens: 1_000_000,
@@ -89,7 +89,7 @@ describe('costOf', () => {
         cacheReadTokens: 1_000_000,
         webSearches: 3,
       }),
-    ).toBeCloseTo(2 + 1 + 2.5 + 0.2 + 0.03);
+    ).toBeCloseTo(2 + 1 + 2.5 + 0.1 + 0.03);
     // Opus 5.5 reads cost $0.20 per million.
     expect(
       costOf('claude-opus-5-5', { inputTokens: 0, outputTokens: 0, cacheReadTokens: 1_000_000 }),

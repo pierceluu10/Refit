@@ -5,6 +5,14 @@
 //   node evals/runner/cli.ts matrix --set <dev set> --budget-usd <total cap>
 //   node evals/runner/cli.ts score --in <dir> [--reviews evals/reviews.json] [--report <file>]
 //   node evals/runner/cli.ts review --in <dir> --budget-usd <cap> [--only <task id part>] [--out <file>]
+//   node evals/runner/cli.ts run ... [--repos owner/a,owner/b]   (only these repos of the set)
+//   node evals/runner/cli.ts screen --sets <a,b,...> --budget-usd <cap> --concurrency <n> [--out <dir>] [--exclusions <file>]
+//   node evals/runner/cli.ts score3 --in <results dir> --screen <dir> [--report <file>]
+//
+// A set named `sealed:<provider>` is that provider's sealed set (runner/sealed-run.ts), for round
+// 3's one sealed run: `screen --sets sealed:stripe,...` opens it once, and `run` resumes it.
+//
+// `run --screen <dir>` runs only the repos that screen found green (evals only, never the product).
 //
 // `run` refuses to start without an explicit dollar cap and concurrency. It uses the real
 // modules and fails before spending anything if one hasn't merged yet. For a $0 check of the
@@ -22,7 +30,9 @@ import {
   writeReviews,
 } from '../scoring/reviews.ts';
 import { createBudget } from '../../orchestrator/budget.ts';
-import { MIN_TASK_USD, WATCH_USD } from '../../orchestrator/deps.ts';
+import { WATCH_USD } from '../../orchestrator/deps.ts';
+import { TURN_RESERVE_USD } from '../../harness/index.ts';
+import { anyProviderWatcher } from '../../providers/core/any-watcher.ts';
 import { anthropicModelClient } from '../reviewer/model.ts';
 import { createReviewer } from '../reviewer/reviewer.ts';
 import { formatRereviews, rereview } from '../reviewer/rereview.ts';
@@ -32,11 +42,14 @@ import { BudgetLedger } from './budget.ts';
 import { ConfigError, parseFlags, parseRunConfig } from './config.ts';
 import { loadRealPipeline, type AnyProviderWatcher } from './real.ts';
 import { runSet } from './run.ts';
+import { exclusionsOf, readScreen, screenFile, screenSet } from './screen.ts';
+import { openSealedSet } from './sealed-run.ts';
+import { formatRound3, scoreRound3 } from '../scoring/round3.ts';
+import { existsSync, readFileSync } from 'node:fs';
+import type { BaselineRecord } from './screen.ts';
 
-// Watches providers with no folder in providers/ (the Anthropic, Gemini and long-tail sets). Unset
-// until F4's anyProviderWatcher merges; then this line becomes
-//   import { anyProviderWatcher as watchAny } from '../../providers/core/any-watcher.ts';
-const watchAny: AnyProviderWatcher | undefined = undefined;
+// Watches providers with no folder in providers/ (the Anthropic, Gemini and long-tail sets).
+const watchAny: AnyProviderWatcher = anyProviderWatcher;
 
 /** The providers a set's repos use: the set's own, or each entry's in a mixed set. */
 export function setProviders(set: Pick<DevSet, 'provider' | 'repos'>): string[] {
@@ -52,9 +65,9 @@ export function setProviders(set: Pick<DevSet, 'provider' | 'repos'>): string[] 
 /**
  * GitHub Actions matrix. One `watch` job reads each of the set's providers once (WATCH_USD each)
  * and hands its cache to every shard, so a shard pays for no read of its own; the rest of the cap
- * is split evenly across one shard per repo. A shard's share must leave a task MIN_TASK_USD free
- * after its inventory and match, and a share below MIN_TASK_USD can never start a task, so the
- * plan refuses it rather than spend on repos whose tasks are bound to be unrun.
+ * is split evenly across one shard per repo. A share below a task's overshoot reserve
+ * (TURN_RESERVE_USD) can never start a task, so the plan refuses it rather than spend on repos
+ * whose tasks are bound to be unrun.
  */
 export function planMatrix(setName: string, totalBudgetUsd: number) {
   if (!Number.isFinite(totalBudgetUsd) || totalBudgetUsd <= 0) {
@@ -64,9 +77,9 @@ export function planMatrix(setName: string, totalBudgetUsd: number) {
   const watchBudgetUsd = WATCH_USD * setProviders(set).length;
   const shardBudgetUsd =
     Math.floor(((totalBudgetUsd - watchBudgetUsd) / set.repos.length) * 10_000) / 10_000;
-  if (shardBudgetUsd < MIN_TASK_USD) {
+  if (shardBudgetUsd < TURN_RESERVE_USD) {
     throw new ConfigError(
-      `$${totalBudgetUsd} less $${watchBudgetUsd.toFixed(2)} for the watch job leaves $${Math.max(shardBudgetUsd, 0).toFixed(2)} for each of ${set.repos.length} shards, below the $${MIN_TASK_USD} a task needs free, so no task could start. In the first benchmark (evals/reports/2026-11-03.md) a repo spent $0.17 to $0.66 on inventory and matching before its first task.`,
+      `$${totalBudgetUsd} less $${watchBudgetUsd.toFixed(2)} for the watch job leaves $${Math.max(shardBudgetUsd, 0).toFixed(2)} for each of ${set.repos.length} shards, below the $${TURN_RESERVE_USD} overshoot reserve a task needs free, so no task could start. In the first benchmark (evals/reports/2026-11-03.md) a repo spent $0.17 to $0.66 on inventory and matching before its first task.`,
     );
   }
   return {
@@ -77,12 +90,43 @@ export function planMatrix(setName: string, totalBudgetUsd: number) {
   };
 }
 
+// `sealed:<provider>` names that provider's sealed set, opened once, for round 3's sealed run. The
+// screen opens it; a later run of the same set resumes that opening.
+const SEALED_DIR = 'evals/reports/round-3/sealed';
+function loadSet(name: string, { opening = false, resume = false } = {}): DevSet {
+  if (!name.startsWith('sealed:')) return loadDevSet(name);
+  return openSealedSet(name.slice('sealed:'.length), SEALED_DIR, { resume: resume || !opening });
+}
+
 export async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
   const flags = parseFlags(rest);
+  if (command === 'run' && typeof flags.set === 'string' && flags.set.includes(',')) {
+    // Several sets in one process, at once, so the memory store they share has one writer.
+    const codes = await Promise.all(
+      flags.set
+        .split(',')
+        .map((set) => main(['run', ...rest.map((arg) => (arg === flags.set ? set : arg))])),
+    );
+    return Math.max(...codes);
+  }
   if (command === 'run') {
     const config = parseRunConfig(flags);
-    const set = loadDevSet(config.set);
+    const full = loadSet(config.set);
+    // The screen's green repos only: a red baseline can't prove a fix, so it is never run.
+    const screenDir = typeof flags.screen === 'string' ? flags.screen : undefined;
+    const green = (entry: (typeof full.repos)[number]) => {
+      const file = screenDir && screenFile(screenDir, full.name, entry);
+      if (!file || !existsSync(file)) return !screenDir;
+      return !(JSON.parse(readFileSync(file, 'utf8')) as BaselineRecord).exclusion;
+    };
+    // --repos owner/a,owner/b runs only those repos of the set (a rerun of chosen repos).
+    const only = typeof flags.repos === 'string' ? new Set(flags.repos.split(',')) : undefined;
+    const set = {
+      ...full,
+      repos: full.repos.filter((entry) => green(entry) && (!only || only.has(entry.repo))),
+    };
+    console.log(`${set.name}: running ${set.repos.length} of ${full.repos.length} repos`);
     const startedAt = new Date().toISOString();
     const real = await loadRealPipeline(config.budgetUsd, {
       watchAny,
@@ -169,6 +213,56 @@ export async function main(argv: string[]): Promise<number> {
     console.log(`Spent $${budget.spentUsd().toFixed(4)} of a $${budgetUsd} cap`);
     return 0;
   }
+  if (command === 'screen') {
+    if (typeof flags.sets !== 'string') throw new ConfigError('--sets <a,b,...> is required');
+    const budgetUsd = typeof flags['budget-usd'] === 'string' ? Number(flags['budget-usd']) : NaN;
+    const concurrency = typeof flags.concurrency === 'string' ? Number(flags.concurrency) : NaN;
+    if (!Number.isFinite(budgetUsd) || budgetUsd <= 0) {
+      throw new ConfigError('--budget-usd is required and must be above zero');
+    }
+    if (!Number.isInteger(concurrency) || concurrency < 1) {
+      throw new ConfigError('--concurrency must be a positive integer');
+    }
+    if (!process.env.ANTHROPIC_API_KEY) throw new Error('Set ANTHROPIC_API_KEY to screen.');
+    const outDir = resolve(
+      typeof flags.out === 'string' ? flags.out : 'evals/reports/round-3/screen',
+    );
+    const budget = createBudget(budgetUsd);
+    const deps = {
+      checkout: gitCheckout(),
+      budget,
+      classify: anthropicModelClient({ budget, model: 'claude-sonnet-5-5' }),
+    };
+    for (const name of flags.sets.split(',')) {
+      const set = loadSet(name, { opening: true, resume: flags.resume === true });
+      const records = await screenSet(set, outDir, concurrency, deps);
+      const green = records.filter((record) => !record.exclusion).length;
+      console.log(`${name}: ${green} of ${records.length} green`);
+    }
+    const exclusions = exclusionsOf(readScreen(outDir));
+    const exclusionsFile = resolve(
+      typeof flags.exclusions === 'string'
+        ? flags.exclusions
+        : 'evals/reports/round-3/exclusions.json',
+    );
+    writeFileSync(exclusionsFile, `${JSON.stringify(exclusions, null, 2)}\n`);
+    console.log(
+      `Spent $${budget.spentUsd().toFixed(4)}; ${exclusions.length} exclusions in ${exclusionsFile}`,
+    );
+    return 0;
+  }
+  if (command === 'score3') {
+    if (typeof flags.in !== 'string') throw new ConfigError('--in <results dir> is required');
+    if (typeof flags.screen !== 'string') throw new ConfigError('--screen <dir> is required');
+    const score = scoreRound3(readResults(resolve(flags.in)), readScreen(resolve(flags.screen)));
+    const report = formatRound3(score, `Round 3: ${flags.in}`);
+    console.log(report);
+    if (typeof flags.report === 'string') writeFileSync(resolve(flags.report), report);
+    if (typeof flags.json === 'string') {
+      writeFileSync(resolve(flags.json), `${JSON.stringify(score, null, 2)}\n`);
+    }
+    return 0;
+  }
   if (command === 'matrix') {
     if (typeof flags.set !== 'string') throw new ConfigError('--set is required');
     const budget = typeof flags['budget-usd'] === 'string' ? Number(flags['budget-usd']) : NaN;
@@ -192,7 +286,7 @@ Hand-check log: ${added.length} new entries, ${hand.pending} pending, ${hand.agr
     return score.attemptedRate === 1 ? 0 : 1;
   }
   console.error(
-    'usage: cli.ts run|watch|matrix|score|review (see the header of evals/runner/cli.ts)',
+    'usage: cli.ts run|watch|matrix|score|review|screen|score3 (see the header of evals/runner/cli.ts)',
   );
   return 2;
 }

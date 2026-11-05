@@ -1,0 +1,65 @@
+{
+  "set": "openai-dev-30",
+  "repo": "AyeletHillel/fine-tune",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 0.4096449,
+    "tasks": 3,
+    "verified": 3
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.0943822,
+    "prepCostUsd": 0.003944,
+    "diffLines": 128,
+    "finalText": "I changed the fine-tuning base model from `gpt-3.5-turbo` to `gpt-4.1-mini-2025-04-14`, because OpenAI shut `gpt-3.5-turbo` down on October 23, 2026. I haven't run the script, built the project or tested the new model against the API.\n\n**What the repo uses:** the OpenAI Node SDK (`openai ^4.2.0`) and `dotenv`. The OpenAI calls are `files.create`, `files.retrieve`, `fineTuning.jobs.create`, `fineTuning.jobs.retrieve` and `fineTuning.jobs.listEvents`.\n\n**What I found** (from OpenAI's deprecations page and fine-tuning guide):\n- **Retired model:** `gpt-3.5-turbo` (`gpt-3.5-turbo-0125`) was shut down on October 23, 2026, so `fineTuning.jobs.create` with that model would fail. OpenAI's suggested substitute is `gpt-5.6-terra`. I didn't use it because I couldn't confirm it can be fine-tuned. The fine-tuning guide does list `gpt-4.1-mini-2025-04-14`, so I used that.\n- **Fine-tuning access:** since July 2, 2026, organizations that haven't used a fine-tuned model in the past 60 days can't create new jobs. From January 6, 2027, no customer can. The script may fail on your account regardless of the model, and no code change fixes that.\n- **Fine-tuning API:** the endpoints and parameters the code uses (`/v1/fine_tuning/jobs`, `training_file`, `model`) are still current.\n- **SDK version:** I found no deprecation that affects the SDK calls, so I left `package.json` and the lockfiles alone. The latest `openai` release is 7.49.0, but I didn't check whether moving to it would break anything.\n\n**What I changed:**\n- `src/index.ts`: both `model` values now use `gpt-4.1-mini-2025-04-14`.\n- `dist/index.js`: the same edit, so the built output matches the source.\n- `README.md`: the title is now \"Fine-tuning GPT models\", with a note about the shutdown and the fine-tuning restrictions.\n\nSources:\n- [OpenAI deprecations page (markdown version)](https://developers.openai.com/api/docs/deprecations.md)\n- [OpenAI supervised fine-tuning guide (markdown version)](https://developers.openai.com/api/docs/guides/supervised-fine-tuning.md)",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-AyeletHillel-fine-tune/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "gpt-3.5-turbo shut down Oct 23, 2026 (fine-tuning base model retired)",
+          "correct": false,
+          "note": "Both fineTuning.jobs.create calls now use 'gpt-5.6-terra'. That is the general replacement on the deprecations list, but nothing shows it is a fine-tunable base model, so jobs may still be rejected. The separate PRs also conflict: the createJob PR still sends gpt-3.5-turbo."
+        },
+        {
+          "change": "Self-serve fine-tuning job creation ends Jan 6, 2027",
+          "correct": false,
+          "note": "The wrapper hard-codes a date cutoff that throws even for accounts that still have non-self-serve access. It also turns every 400/403 error, such as a bad training file or invalid params, into FineTuningUnavailableError with a misleading message. It ignores the July 2026 restriction for inactive organizations."
+        },
+        {
+          "change": "openai npm 7.x requires Node 22",
+          "correct": false,
+          "note": "The repo pins ^4.2.0, and nothing forces it onto v7. Moving to ^7.49.0 and adding engines node>=22 is an optional major upgrade, not an API change affecting the code. It adds a Node 22 requirement for users."
+        }
+      ],
+      "breaks": [
+        "The createJob wrapper relabels ordinary 400 validation errors as 'fine-tuning unavailable', hiding the real cause.",
+        "The date cutoff blocks job creation for accounts that still have non-self-serve access.",
+        "It imposes a Node >=22 requirement and a major SDK bump that no change required.",
+        "The PRs are inconsistent: the createJob PR keeps the retired gpt-3.5-turbo.",
+        "It adds stray test files (test-model.mjs, test/sdk.test.js) that are not wired into any test script."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "gpt-3.5-turbo shut down Oct 23, 2026 (fine-tuning base model retired)",
+          "correct": true,
+          "note": "Both create calls and dist now use gpt-4.1-mini-2025-04-14, which the fine-tuning guide lists as fine-tunable. The reason for not using gpt-5.6-terra is explained."
+        },
+        {
+          "change": "Fine-tuning access restrictions (July 2026 for inactive orgs, Jan 6, 2027 for all)",
+          "correct": true,
+          "note": "Documented in the README and the explanation. This is correctly treated as an account and policy restriction that code cannot fix."
+        }
+      ],
+      "breaks": []
+    },
+    "better": "claude",
+    "why": "B picks a base model that is documented as fine-tunable, keeps the change minimal and documents the access restrictions correctly. A picks a model of uncertain fine-tunability and adds a wrapper that mislabels ordinary 400 errors and hard-blocks by date. It also makes an unrequired major SDK bump with a Node 22 requirement.",
+    "costUsd": 0.103732
+  }
+}

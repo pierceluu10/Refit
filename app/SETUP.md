@@ -96,19 +96,22 @@ apply there, so Aptitude can't push branches or open PRs on those installations.
 
 Put these in `app/.env` (gitignored; `npm run dev` loads it). Never commit or print them.
 
-| Variable                      | Value                                                                            |
-| ----------------------------- | -------------------------------------------------------------------------------- |
-| `GITHUB_APP_ID`               | `5275879`                                                                        |
-| `GITHUB_APP_PRIVATE_KEY_FILE` | Path to the `.pem`                                                               |
-| `GITHUB_APP_PRIVATE_KEY`      | PEM contents instead of a file, for hosts that only take env vars                |
-| `GITHUB_WEBHOOK_SECRET`       | The webhook secret from step 1                                                   |
-| `PORT`                        | Default `3000`                                                                   |
-| `HOST`                        | Default `127.0.0.1`                                                              |
-| `SMEE_URL`                    | Dev tunnel only                                                                  |
-| `APTITUDE_QUEUE_FILE`         | Job queue file; default `.aptitude/queue.json` (a persistent path in production) |
-| `APTITUDE_MEMORY_DIR`         | memory/'s store; absolute path on a persistent volume in production              |
-| `APTITUDE_AI_BUDGET_USD`      | Run cap for the loop; required once `ANTHROPIC_API_KEY` is set                   |
-| `ANTHROPIC_API_KEY`           | Real model runs; without it the loop and memory use offline stubs                |
+| Variable                      | Value                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| `GITHUB_APP_ID`               | `5275879`                                                                                         |
+| `GITHUB_APP_PRIVATE_KEY_FILE` | Path to the `.pem`                                                                                |
+| `GITHUB_APP_PRIVATE_KEY`      | PEM contents instead of a file, for hosts that only take env vars                                 |
+| `GITHUB_WEBHOOK_SECRET`       | The webhook secret from step 1                                                                    |
+| `PORT`                        | Default `3000`                                                                                    |
+| `HOST`                        | Default `127.0.0.1`                                                                               |
+| `SMEE_URL`                    | Dev tunnel only                                                                                   |
+| `APTITUDE_QUEUE_FILE`         | Job queue file; default `.aptitude/queue.json` (a persistent path in production)                  |
+| `APTITUDE_TRIGGER_DIR`        | Scan state and the trigger record; default `.aptitude/triggers` (a persistent path in production) |
+| `APTITUDE_APP_DIR`            | Consent settings and fix facts; default `.aptitude/app` (a persistent path in production)         |
+| `APTITUDE_SPEND_LOG`          | Keeps the AI check's spend across restarts; without it each restart starts from $0                |
+| `APTITUDE_MEMORY_DIR`         | memory/'s store; absolute path on a persistent volume in production                               |
+| `APTITUDE_AI_BUDGET_USD`      | Run cap for the loop; required once `ANTHROPIC_API_KEY` is set                                    |
+| `ANTHROPIC_API_KEY`           | Real model runs; without it the loop and memory use offline stubs                                 |
 
 Jobs run the harness in Docker, so the host needs Docker running.
 

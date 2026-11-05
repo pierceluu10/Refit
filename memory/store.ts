@@ -2,7 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
-import type { HumanVerdict, MemoryRecipe, SelfEvalReport, StoredRun } from './types.ts';
+import type { RepoHabits } from './habits.ts';
+import type { LadderEntry } from './ladder.ts';
+import type { DetectionLesson } from './lessons.ts';
+import type { FixEvidence, HumanVerdict, MemoryRecipe, StoredRun } from './types.ts';
 
 // Everything memory/ persists. Async throughout so a Postgres implementation can drop in.
 export interface MemoryStore {
@@ -20,18 +23,55 @@ export interface MemoryStore {
   // merged PR can't be reopened, and a late 'edited' never replaces 'closed': GitHub can deliver an
   // event after a later one, and a redelivery can replay an old one.
   recordVerdict(runIdOrPr: string, verdict: HumanVerdict): Promise<StoredRun | undefined>;
+  addEvidence(runIdOrPr: string, evidence: FixEvidence): Promise<StoredRun | undefined>;
 
   saveRecipe(recipe: MemoryRecipe): Promise<void>;
   getRecipe(id: string): Promise<MemoryRecipe | undefined>;
   listRecipes(): Promise<MemoryRecipe[]>;
 
-  saveSelfEval(report: SelfEvalReport): Promise<void>;
-  listSelfEvals(): Promise<SelfEvalReport[]>;
-  getSelfEvalTaskIds(): Promise<string[] | undefined>;
-  setSelfEvalTaskIds(ids: string[]): Promise<void>;
+  getHabits(repo: string): Promise<RepoHabits | undefined>;
+  saveHabits(habits: RepoHabits): Promise<void>;
+  saveLadder(entry: LadderEntry): Promise<void>;
+  listLadder(): Promise<LadderEntry[]>;
+  saveLesson(lesson: DetectionLesson): Promise<void>;
+  listLessons(): Promise<DetectionLesson[]>;
 }
 
-type Collection = 'runs' | 'recipes' | 'selfevals';
+// The plain verdict the app sends today, as evidence, until its P7 evidence arrives.
+const verdictEvidence = (verdict: HumanVerdict, at = new Date().toISOString()): FixEvidence =>
+  verdict === 'merged'
+    ? { merged: { at } }
+    : verdict === 'closed'
+      ? { closed: { at } }
+      : { edited: true };
+
+// A merge or close happens once, at the earliest time anyone reports, since a webhook can arrive late.
+// Its diff or comment can come later, and a plain verdict never wipes one.
+function sameEvent<T extends { at: string }>(old?: T, fresh?: T): T | undefined {
+  if (!old || !fresh) return old ?? fresh;
+  return { ...fresh, ...old, at: old.at < fresh.at ? old.at : fresh.at };
+}
+
+// What's known so far plus what just arrived. A later revert replaces an earlier one.
+function withEvidence(old: FixEvidence = {}, fresh: FixEvidence): FixEvidence {
+  const merged = sameEvent(old.merged, fresh.merged);
+  const closed = sameEvent(old.closed, fresh.closed);
+  return {
+    ...fresh,
+    ...old,
+    ...(fresh.reverted ? { reverted: fresh.reverted } : {}),
+    ...(merged ? { merged } : {}),
+    ...(closed ? { closed } : {}),
+  };
+}
+
+// A repo session's record carries its last rescan.
+const rescanEvidence = (record: RunRecord) => {
+  const { rescan } = record as RunRecord & { rescan?: { clean: boolean } };
+  return rescan ? { evidence: { rescanClean: rescan.clean } } : {};
+};
+
+export type Collection = 'runs' | 'recipes' | 'habits' | 'ladder' | 'lessons';
 
 // Local JSON: one file per item under <dir>/<collection>/, written atomically.
 export class JsonMemoryStore implements MemoryStore {
@@ -62,6 +102,7 @@ export class JsonMemoryStore implements MemoryStore {
       transcript: transcript ?? (await readTranscript(record.transcriptPath)),
       usedRecipeIds,
       ...(commit && { commit }),
+      ...rescanEvidence(record),
     };
     await this.write('runs', run.id, run);
     return run;
@@ -80,18 +121,47 @@ export class JsonMemoryStore implements MemoryStore {
   }
 
   async recordVerdict(runIdOrPr: string, verdict: HumanVerdict) {
-    const run =
+    const run = await this.findRun(runIdOrPr);
+    if (!run) return undefined;
+    return this.update<StoredRun>('runs', run.id, (latest = run) => {
+      const current = latest.record.humanVerdict;
+      if (current === 'merged' || (current === 'closed' && verdict === 'edited')) return latest;
+      return {
+        ...latest,
+        record: { ...latest.record, humanVerdict: verdict },
+        evidence: withEvidence(latest.evidence, verdictEvidence(verdict)),
+      };
+    });
+  }
+
+  async addEvidence(runIdOrPr: string, evidence: FixEvidence) {
+    const run = await this.findRun(runIdOrPr);
+    if (!run) return undefined;
+    return this.update<StoredRun>('runs', run.id, (latest = run) => ({
+      ...latest,
+      evidence: withEvidence(latest.evidence, evidence),
+    }));
+  }
+
+  // One read-change-write. A store that several processes share makes this a transaction.
+  protected async update<T>(
+    collection: Collection,
+    id: string,
+    change: (value: T | undefined) => T,
+  ): Promise<T> {
+    const value = change(await this.read<T>(collection, id));
+    await this.write(collection, id, value);
+    return value;
+  }
+
+  private async findRun(runIdOrPr: string) {
+    return (
       (await this.getRun(runIdOrPr)) ??
       (await this.listRuns())
         .filter((candidate) => candidate.record.pr === runIdOrPr)
         .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))
-        .at(-1);
-    if (!run) return undefined;
-    const current = run.record.humanVerdict;
-    if (current === 'merged' || (current === 'closed' && verdict === 'edited')) return run;
-    run.record = { ...run.record, humanVerdict: verdict };
-    await this.write('runs', run.id, run);
-    return run;
+        .at(-1)
+    );
   }
 
   saveRecipe(recipe: MemoryRecipe) {
@@ -106,34 +176,43 @@ export class JsonMemoryStore implements MemoryStore {
     return this.list<MemoryRecipe>('recipes');
   }
 
-  saveSelfEval(report: SelfEvalReport) {
-    return this.write('selfevals', report.id, report);
+  getHabits(repo: string) {
+    return this.read<RepoHabits>('habits', repo);
   }
 
-  listSelfEvals() {
-    return this.list<SelfEvalReport>('selfevals');
+  saveHabits(habits: RepoHabits) {
+    return this.write('habits', habits.repo, habits);
   }
 
-  async getSelfEvalTaskIds() {
-    return readJson<string[]>(join(this.dir, 'selfeval-tasks.json'));
+  saveLadder(entry: LadderEntry) {
+    return this.write('ladder', entry.entryId, entry);
   }
 
-  async setSelfEvalTaskIds(ids: string[]) {
-    await mkdir(this.dir, { recursive: true });
-    await atomicWrite(join(this.dir, 'selfeval-tasks.json'), ids);
+  listLadder() {
+    return this.list<LadderEntry>('ladder');
   }
 
-  private async write(collection: Collection, id: string, value: unknown) {
+  // Keyed by what it says, so a redelivered webhook or a rerun adds nothing.
+  saveLesson(lesson: DetectionLesson) {
+    const { kind, entryId, repo, file, why } = lesson;
+    return this.write('lessons', [kind, entryId, repo, file, why].join('\n').slice(0, 200), lesson);
+  }
+
+  listLessons() {
+    return this.list<DetectionLesson>('lessons');
+  }
+
+  protected async write(collection: Collection, id: string, value: unknown) {
     await mkdir(join(this.dir, collection), { recursive: true });
     await atomicWrite(join(this.dir, collection, `${fileName(id)}.json`), value);
   }
 
-  private read<T>(collection: Collection, id: string) {
+  protected read<T>(collection: Collection, id: string): Promise<T | undefined> {
     return readJson<T>(join(this.dir, collection, `${fileName(id)}.json`));
   }
 
   // Sorted by file name, which is stable across runs; callers sort by date where order matters.
-  private async list<T>(collection: Collection): Promise<T[]> {
+  protected async list<T>(collection: Collection): Promise<T[]> {
     let names: string[];
     try {
       names = (await readdir(join(this.dir, collection))).filter((name) => name.endsWith('.json'));

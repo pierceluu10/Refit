@@ -1,10 +1,18 @@
-import type { MigrationTask } from '../shared/types.ts';
+import type { MigrationTask, ProviderChange } from '../shared/types.ts';
 import { cosine, type Embedder, type Model } from './ai.ts';
 import type { MemoryStore } from './store.ts';
 import type { MemoryRecipe } from './types.ts';
 
+// The task's change and any the match agent bundled into it (one task per upgrade).
+export function taskChanges(task: MigrationTask): ProviderChange[] {
+  const { alsoResolves = [] } = task as MigrationTask & {
+    alsoResolves?: { change: ProviderChange }[];
+  };
+  return [task.change, ...alsoResolves.map((bundled) => bundled.change)];
+}
+
 export function describeTask(task: MigrationTask): string {
-  const { change } = task;
+  const [change, ...bundled] = taskChanges(task);
   const lines = [
     `Provider: ${change.provider}`,
     `Kind: ${change.kind}`,
@@ -14,6 +22,7 @@ export function describeTask(task: MigrationTask): string {
     `Affects fields: ${change.affects.fields?.join(', ') ?? ''}`,
     `Affects versions: ${change.affects.versions?.join(', ') ?? ''}`,
     `Affects SDK: ${change.affects.sdk ?? ''}`,
+    ...bundled.map((other) => `Also resolves: ${other.kind}: ${other.title}`),
   ];
   for (const usage of task.usages) {
     const sdk = usage.sdk ? ` ${usage.sdk.name}@${usage.sdk.version}` : '';
@@ -58,6 +67,8 @@ const PICK_SCHEMA = {
 const PICK_SYSTEM = `You advise an engineer who is about to migrate code for an API change.
 From notes left by past verified migrations, choose the ones worth reading before starting.
 A note from another provider can still help when the migration has the same shape.
+A note made from this very same change is usually the best head start.
+Weigh each note's track record: one whose later runs failed more often than it verified is probably stale or wrong, so prefer another unless it clearly fits.
 Order picks from most to least useful and say in one sentence why each helps.
 Return an empty list only if none of the notes would help.`;
 
@@ -93,10 +104,14 @@ export function createRetriever(deps: {
       }),
     );
 
+    // Order is evidence for the judge and the fallback when there is none, never a filter: the same
+    // change first, a recipe that failed more often than it verified last, then by similarity.
+    const tier = (recipe: MemoryRecipe) =>
+      (sameChange(recipe, task) ? 0 : 1) + (losing(recipe) ? 2 : 0);
     return (
       recipes
         .map((recipe) => ({ recipe, score: cosine(taskVector, recipe.embedding!.vector) }))
-        .sort((a, b) => b.score - a.score)
+        .sort((a, b) => tier(a.recipe) - tier(b.recipe) || b.score - a.score)
         // A small store goes to the model whole; embeddings only shortlist once it is too big to read.
         .slice(0, recipes.length <= judgeAllUpTo ? recipes.length : candidates)
         .map(({ recipe }) => recipe)
@@ -109,6 +124,7 @@ export function createRetriever(deps: {
         `### ${recipe.id}`,
         `Provider: ${recipe.provider}, kind: ${recipe.kind}`,
         `Active skill: ${recipe.skill?.status === 'active' ? 'yes' : 'no'}; ${track(recipe)}`,
+        `Made from this same change: ${sameChange(recipe, task) ? 'yes' : 'no'}`,
         `Preconditions: ${recipe.preconditions}`,
         `Steps: ${recipe.steps}`,
         `Pitfalls: ${recipe.pitfalls}`,
@@ -149,11 +165,15 @@ export function createRetriever(deps: {
   };
 }
 
+const sameChange = (recipe: MemoryRecipe, task: MigrationTask) =>
+  taskChanges(task).some((change) => recipe.changeIds?.includes(change.id));
+const losing = (recipe: MemoryRecipe) => (recipe.failedRunIds?.length ?? 0) > recipe.verifiedRepos;
+
 // How a recipe has fared, for a model to weigh. A count to read, never a filter.
 function track(recipe: MemoryRecipe): string {
   const failed = recipe.failedRunIds?.length ?? 0;
   const against = failed
-    ? `; ${failed} later PR${failed === 1 ? '' : 's'} that used it closed by a human without merging`
+    ? `; ${failed} later run${failed === 1 ? '' : 's'} that used it failed (could not verify on a repo whose checks passed before the edit, or a human closed the PR)`
     : '';
   return `verified on ${recipe.verifiedRepos} repos${against}`;
 }
@@ -182,4 +202,17 @@ export function renderMemoryForPrompt(recipes: MemoryRecipe[]): string {
       ),
   ];
   return blocks.join('\n\n');
+}
+
+// A repo session's recipes: a plain lookup by list entry, so memory costs a fix nothing and can't
+// delay it. A merged recipe comes before a low-confidence one, and a losing one stays out.
+export async function recipesForEntries(
+  entryIds: string[],
+  store: Pick<MemoryStore, 'listRecipes'>,
+  limit = 3,
+): Promise<MemoryRecipe[]> {
+  const matches = (await store.listRecipes()).filter(
+    (recipe) => recipe.changeIds?.some((id) => entryIds.includes(id)) && !losing(recipe),
+  );
+  return matches.sort((a, b) => b.verifiedRepos - a.verifiedRepos).slice(0, limit);
 }

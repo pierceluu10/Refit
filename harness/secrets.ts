@@ -2,17 +2,20 @@
 
 const SECRET_NAME = /KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|PRIVATE|AUTH|SESSION/i;
 
+// No leading word boundary, except on `sk-`, which ends ordinary words: a key glued to text still counts.
 const SECRET_PATTERNS = [
   /\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{20,}/g, // Anthropic, OpenAI
-  /\b[sr]k_(?:live|test)_[A-Za-z0-9]{16,}/g, // Stripe
-  /\bwhsec_[A-Za-z0-9]{16,}/g,
-  /\bgh[pousr]_[A-Za-z0-9]{30,}/g, // GitHub
-  /\bgithub_pat_[A-Za-z0-9_]{30,}/g,
-  /\bxox[abpors]-[A-Za-z0-9-]{10,}/g, // Slack
-  /\bAKIA[0-9A-Z]{16}\b/g, // AWS
-  /\bshp(?:at|ca|pa|ss)_[a-fA-F0-9]{32}\b/g, // Shopify
+  /[sr]k_(?:live|test)_[A-Za-z0-9]{16,}/g, // Stripe
+  /whsec_[A-Za-z0-9]{16,}/g,
+  /gh[pousr]_[A-Za-z0-9]{30,}/g, // GitHub
+  /github_pat_[A-Za-z0-9_]{30,}/g,
+  /xox[abpors]-[A-Za-z0-9-]{10,}/g, // Slack
+  /AKIA[0-9A-Z]{16}\b/g, // AWS
+  /shp(?:at|ca|pa|ss)_[a-fA-F0-9]{32}\b/g, // Shopify
   /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
 ];
+// shortcut: as with NAMED_SECRET below, a value with no digit stays, so `Bearer authentication` reads on.
+const BEARER = /\b([Bb]earer\s+)(?=[\w+/=.~-]*\d)[\w+/=.~-]{8,}/g;
 
 export function secretValues(env: NodeJS.ProcessEnv = process.env): string[] {
   return Object.entries(env)
@@ -23,14 +26,50 @@ export function secretValues(env: NodeJS.ProcessEnv = process.env): string[] {
 // NAME=value, NAME: value and "NAME": "value" where NAME mentions a key, token, secret or password.
 // shortcut: only values with a digit and 8+ token characters count, so code like `apiKey: getApiKey()`
 // or `process.env.API_KEY` stays readable; a digit-free secret slips through.
+// A reference to an env var is no secret, digits in its name or not (`process.env.R2_ACCESS_KEY_ID`
+// was redacted in round 3, and the PR diff no longer matched the file).
+// The value sits on the name's line: an empty KEY= must not swallow the next line.
 const NAMED_SECRET =
-  /(\b[\w.-]*(?:KEY|TOKEN|SECRET|PASSWORD)[\w.-]*["']?\s*[:=]\s*["']?)(?=[\w+/=.~-]*\d)([\w+/=.~-]{8,})/gi;
+  /(\b[\w.-]*(?:KEY|TOKEN|SECRET|PASSWORD)[\w.-]*["']?[ \t]*[:=][ \t]*["']?)(?!process\.env\.|import\.meta\.env\.|os\.environ|Deno\.env\.)(?=[\w+/=.~-]*\d)([\w+/=.~-]{8,})/gi;
 
 export function redactSecrets(text: string, env: NodeJS.ProcessEnv = process.env): string {
   let out = text;
   for (const value of secretValues(env)) out = out.split(value).join('[redacted]');
   for (const pattern of SECRET_PATTERNS) out = out.replace(pattern, '[redacted]');
-  return out.replace(NAMED_SECRET, '$1[redacted]');
+  return out.replace(BEARER, '$1[redacted]').replace(NAMED_SECRET, '$1[redacted]');
+}
+
+/**
+ * Recorded diffs pass the scrubber, which also rewrites lines the change didn't touch, so the patch
+ * no longer matches the file. Context and removed lines are the repo's own text, so whatever applies
+ * a diff restores them from the original file. An added line the scrubber rewrote stays as recorded,
+ * since that is what the PR would carry.
+ */
+export function unredact(diff: string, original: (file: string) => string[] | undefined): string {
+  let lines: string[] | undefined;
+  let at = 0;
+  return diff
+    .split('\n')
+    .map((line) => {
+      const file = line.match(/^--- a\/(.+)$/)?.[1];
+      if (file !== undefined) {
+        lines = original(file);
+        return line;
+      }
+      if (line.startsWith('--- ')) lines = undefined;
+      const hunk = line.match(/^@@ -(\d+)/);
+      if (hunk) {
+        at = Number(hunk[1]) - 1;
+        return line;
+      }
+      if (line.startsWith(' ') || (line.startsWith('-') && !line.startsWith('---'))) {
+        const real = lines?.[at];
+        at += 1;
+        return line.includes('[redacted]') && real !== undefined ? `${line[0]}${real}` : line;
+      }
+      return line;
+    })
+    .join('\n');
 }
 
 // Environment for untrusted code: the host's env minus anything that looks like a credential.

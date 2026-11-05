@@ -1,0 +1,5 @@
+{
+  "name": "infinite-code",
+  "description": "Excerpt of kousalyaChintha/InfiniteCode, package.json, seen in P5.",
+  "dependencies": { "@google/genai": "^1.0.0" }
+}

@@ -1,0 +1,5 @@
+{
+  "status": "clean",
+  "problems": [],
+  "checked": ["typecheck", "build", "syntax dist/index.js"]
+}

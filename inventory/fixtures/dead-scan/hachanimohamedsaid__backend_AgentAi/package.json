@@ -1,0 +1,7 @@
+{
+  "//": "Excerpt of hachanimohamedsaid/backend_AgentAi at 387ace95142d, package.json.",
+  "name": "backend",
+  "dependencies": {
+    "openai": "^6.17.0"
+  }
+}

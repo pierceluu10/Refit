@@ -1,5 +1,6 @@
 import type {
   ApiUsage,
+  DeadApiEntry,
   InventoryRepo,
   MigrationTask,
   OpenPullRequest,
@@ -7,8 +8,12 @@ import type {
   ProviderHints,
   RunRecord,
   RunTask,
+  ScanRepo,
+  ScanResult,
   WatchProvider,
 } from '../shared/types.ts';
+import { redactSecrets } from '../harness/secrets.ts';
+import { repoTask } from '../harness/findings.ts';
 import { MATCH_BATCH, type MatchChanges, type MatchedTask } from './match.ts';
 import type { Queue } from './queue.ts';
 
@@ -20,6 +25,10 @@ export type RecordRun = (task: MigrationTask, record: RunRecord, repoDir: string
 export type LoopRecord = RunRecord & { note?: string };
 
 export type LoopDeps = {
+  // Plain code: what in this repo is on the dead-API list. With a scan the repo gets one session for
+  // every finding, and a clean scan stops at $0. Without one it takes the changelog path below.
+  scan?: ScanRepo;
+  list?: () => DeadApiEntry[];
   inventory: InventoryRepo;
   // Head starts, never the limit: a watcher for each provider with a folder in providers/, by id.
   watchers: Record<string, WatchProvider>;
@@ -48,7 +57,8 @@ export type RunSummary = {
   errors: string[];
 };
 
-const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
+const errorText = (error: unknown) =>
+  redactSecrets(error instanceof Error ? error.message : String(error));
 
 const record = (taskId: string, outcome: RunRecord['outcome'], note: string): LoopRecord => ({
   taskId,
@@ -189,6 +199,26 @@ export async function runRepo(
     return result;
   }
 
+  if (deps.scan) {
+    const scanned = repoTask(repo, { findings: [], unlistedProviders: [], clean: true }, []);
+    let scan: ScanResult;
+    try {
+      scan = await queue.add(`${repo}:scan`, () => (deps.scan as ScanRepo)(dir, repo));
+    } catch (error) {
+      const failure = `scan failed after retries: ${errorText(error)}`;
+      state.errors.push(`${repo}: ${failure}`);
+      log(`ERROR ${repo}: ${failure}`);
+      return [await finish(scanned, record(scanned.id, 'failed', `not attempted: ${failure}`))];
+    }
+    const unlisted = scan.unlistedProviders;
+    if (unlisted.length) log(`${repo}: providers not on the list yet: ${unlisted.join(', ')}`);
+    if (scan.clean) {
+      const note = 'The scan found nothing on the dead-API list in this repo.';
+      return [await finish(scanned, record(scanned.id, 'not-affected', note))];
+    }
+    return [await attempt(repoTask(repo, scan, deps.list?.() ?? []))];
+  }
+
   let usages: ApiUsage[] = [];
   let changes: ProviderChange[];
   const notAttempted = (batch: ProviderChange[], failure: string) =>
@@ -262,9 +292,10 @@ export async function runRepo(
   if (batches.length > 1) tasks.sort((a, b) => urgencyRank(a) - urgencyRank(b));
   tasks.forEach((task, i) => (task.priority = i + 1));
 
-  const capReached = () => opts.capUsd !== undefined && state.costUsd >= opts.capUsd;
+  return Promise.all([...verdicts, ...tasks.map(attempt)]);
 
-  async function attempt(task: MatchedTask): Promise<LoopRecord> {
+  async function attempt(task: MigrationTask): Promise<LoopRecord> {
+    const capReached = () => opts.capUsd !== undefined && state.costUsd >= opts.capUsd;
     let result: LoopRecord;
     try {
       result = await queue.add(task.id, async () =>
@@ -298,6 +329,4 @@ export async function runRepo(
     }
     return finish(task, result);
   }
-
-  return Promise.all([...verdicts, ...tasks.map(attempt)]);
 }

@@ -17,7 +17,7 @@ const PYTHON_IMAGE = 'python:3.12-bookworm';
 const PYTHON_MANIFESTS = ['requirements.txt', 'pyproject.toml', 'setup.py', 'setup.cfg', 'Pipfile'];
 const EXCLUDED = new Set(['.git', 'node_modules']);
 // Hard limit 4: real env files (and direnv's .envrc) never enter the sandbox; templates (.env.example etc.) do.
-const ENV_TEMPLATE = /^\.env\.(?:example|sample|template|dist)$/;
+const ENV_TEMPLATE = /^\.env(?:\.[\w-]+)*\.(?:example|sample|template|dist)$/;
 export const isRealEnvFile = (name: string) =>
   (name === '.env' || name === '.envrc' || name.startsWith('.env.')) && !ENV_TEMPLATE.test(name);
 
@@ -32,6 +32,9 @@ const SANDBOX_ENV = {
   COREPACK_ENABLE_AUTO_PIN: '0',
   // CI makes Yarn 2+ refuse any lockfile change, which would block the agent's `yarn add`.
   YARN_ENABLE_IMMUTABLE_INSTALLS: 'false',
+  // The sandbox has one Node release; a repo pinned to an old one still gets its checks run.
+  YARN_IGNORE_ENGINES: 'true',
+  npm_config_engine_strict: 'false',
   // pnpm puts its store at the mount's root when home is on another disk: the copy, and so the diff.
   npm_config_store_dir: '/tmp/aptitude-pnpm-store',
 };
@@ -61,10 +64,58 @@ export async function createSandbox(
     await git('config', 'user.email', 'aptitude@localhost');
     await git('add', '-A');
     await git('commit', '-q', '--allow-empty', '--no-verify', '-m', 'baseline');
-    const baseline = (await git('rev-parse', 'HEAD')).trim();
+    let baseline = (await git('rev-parse', 'HEAD')).trim();
+    const given = baseline;
+    const leftOut = new Set<string>();
+    const leftOutFolders = new Set<string>();
+    const snapshot = async () => {
+      await git('add', '-A');
+      await git('commit', '-q', '--allow-empty', '--no-verify', '-m', 'prepared');
+      baseline = (await git('rev-parse', 'HEAD')).trim();
+    };
+    // Back to the last snapshot: tracked files restored, new files gone (node_modules is kept, as
+    // git excludes it). What running the checks built doesn't then collide with a diff applied after.
+    const reset = async () => {
+      await git('checkout', '-q', '-f', baseline, '--', '.');
+      await git('clean', '-fdq');
+    };
+    // tsc rewrites a committed *.tsbuildinfo whenever the checks build, so it is no change of the
+    // agent's: left in, a task that changed nothing read as a diff (round 3, liamstamper/lamp-bot).
     const diff = async () => {
       await git('add', '-A', '-N');
-      return git('diff', '--no-color', '--no-ext-diff', baseline);
+      return git(
+        'diff',
+        '--no-color',
+        '--no-ext-diff',
+        baseline,
+        '--',
+        '.',
+        ':(exclude,glob)**/*.tsbuildinfo',
+        // Python bytecode the checks compile (round 3, bcrant/Tableau2Slack), and nothing to review.
+        ':(exclude,glob)**/__pycache__/**',
+        ':(exclude,glob)**/*.pyc',
+        // A proof test for a repo with no test setup: run by the harness, kept out of the PR.
+        ':(exclude).refit-proof',
+        ...[...leftOut, ...leftOutFolders].map((file) => `:(exclude,literal)${file}`),
+      );
+    };
+    // Output in a folder the repo doesn't have goes whole: the next build can name its files
+    // differently (round 6, chandandadhekar/ListAI-V2's hashed assets under build/).
+    const leaveOut = async (files: string[]) => {
+      const folders = await git('ls-tree', '-r', '-d', '-z', '--name-only', given);
+      const tracked = new Set(folders.split('\0'));
+      for (const file of files) {
+        leftOut.add(file);
+        const parts = file.split('/').slice(0, -1);
+        const made = parts.findIndex((_, i) => !tracked.has(parts.slice(0, i + 1).join('/')));
+        if (made >= 0) leftOutFolders.add(parts.slice(0, made + 1).join('/'));
+      }
+    };
+    const keep = (file: string) => {
+      leftOut.delete(file);
+      for (const folder of leftOutFolders) {
+        if (file.startsWith(`${folder}/`)) leftOutFolders.delete(folder);
+      }
     };
     const remove = () => fs.rm(root, { recursive: true, force: true });
 
@@ -75,6 +126,10 @@ export async function createSandbox(
         mode,
         exec: (command, opts) => run('sh', ['-c', command], { cwd: dir, env, ...opts }),
         diff,
+        snapshot,
+        reset,
+        leaveOut,
+        keep,
         dispose: remove,
       };
     }
@@ -87,12 +142,25 @@ export async function createSandbox(
     // prettier-ignore
     const started = await run('docker', [
       'run', '-d', '--rm', '--name', name, ...user,
-      '--memory', '4g', '--cpus', '2', '--security-opt', 'no-new-privileges',
+      '--memory', '4g', '--cpus', process.env.APTITUDE_SANDBOX_CPUS ?? '4', '--security-opt', 'no-new-privileges',
       ...Object.entries(SANDBOX_ENV).flatMap(([key, value]) => ['-e', `${key}=${value}`]),
       '-e', 'HOME=/tmp',
       '-v', `${dir}:/work`, '-w', '/work', image, 'sleep', 'infinity',
     ]);
     if (started.code !== 0) throw new Error(`docker run ${image} failed: ${started.stderr.trim()}`);
+    // Repo scripts call pnpm and yarn by name, and the image has only corepack. Its shims go on a
+    // PATH every command sets, since sh -l resets PATH. Best effort: the Python image has no corepack.
+    await run(
+      'docker',
+      [
+        'exec',
+        name,
+        'sh',
+        '-c',
+        'mkdir -p /tmp/bin && corepack enable --install-directory /tmp/bin',
+      ],
+      { timeoutMs: 60_000 },
+    );
     return {
       dir,
       mode,
@@ -103,9 +171,19 @@ export async function createSandbox(
         // timeout too, a little after the host gives up.
         const seconds = String(Math.ceil(timeoutMs / 1000) + 2);
         const args = ['exec', '-w', '/work', name, 'timeout', '-s', 'KILL', seconds];
-        return run('docker', [...args, 'sh', '-lc', command], { timeoutMs });
+        return run(
+          'docker',
+          [...args, 'sh', '-lc', `export PATH=/tmp/bin:/tmp/bun/bin:$PATH; ${command}`],
+          {
+            timeoutMs,
+          },
+        );
       },
       diff,
+      snapshot,
+      reset,
+      leaveOut,
+      keep,
       dispose: async () => {
         await run('docker', ['rm', '-f', name], { timeoutMs: 60_000 });
         await remove();

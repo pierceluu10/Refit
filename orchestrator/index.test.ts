@@ -77,6 +77,20 @@ const opener = () =>
 describe('runRepoJob', () => {
   afterEach(() => vi.unstubAllEnvs());
 
+  it('uses a scan the caller already ran, rather than scanning again', async () => {
+    const { deps } = fakeDeps();
+    const scan = vi.fn(async () => ({ findings: [], unlistedProviders: [], clean: true }));
+    const ran = { findings: [], unlistedProviders: [], clean: true };
+    const records = await createRunRepoJob({ ...deps, scan })({
+      repo: 'acme/shop',
+      dir: '/checkout/acme-shop',
+      openPullRequest: opener(),
+      scan: ran,
+    });
+    expect(scan).not.toHaveBeenCalled();
+    expect(records.map((record) => record.outcome)).toEqual(['not-affected']);
+  });
+
   it('runs the loop on one repo and gives the PR opener every shippable task', async () => {
     const { deps, recorded } = fakeDeps();
     const openPullRequest = opener();
@@ -170,6 +184,7 @@ describe('runRepoJob', () => {
     vi.stubEnv('APTITUDE_AI_BUDGET_USD', '8');
     const budgets: unknown[] = [];
     vi.doMock('./deps.ts', () => ({
+      deadApiScan: () => ({}),
       createDeps: ({ budget }: { budget: unknown }) => {
         budgets.push(budget);
         return fakeDeps().deps;

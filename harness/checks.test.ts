@@ -9,9 +9,10 @@ import {
   failureSignatures,
   installCommand,
   packageManagerVersion,
+  runChecksAfter,
   type PackageManager,
 } from './checks.ts';
-import type { CheckRun } from './types.ts';
+import type { CheckRun, Sandbox } from './types.ts';
 
 const dirs: string[] = [];
 async function fixture(files: Record<string, string>): Promise<string> {
@@ -135,6 +136,58 @@ describe('compareChecks', () => {
   });
 });
 
+describe('compareChecks on type errors', () => {
+  const run = (failures: string[]): CheckRun => ({
+    name: 'typecheck',
+    command: 'tsc',
+    ok: false,
+    output: '',
+    failures,
+  });
+
+  it('matches a type error by file and code when tsc reorders the types it prints', () => {
+    const before = run([
+      "a.ts: error TS2322: Type '{ id: number; name: string; }' is not assignable.",
+    ]);
+    const after = run([
+      "a.ts: error TS2322: Type '{ name: string; id: number; }' is not assignable.",
+    ]);
+    expect(compareChecks([before], [after])[0]?.newFailures).toEqual([]);
+  });
+
+  it('still counts one more error of the same code in the same file', () => {
+    const before = run(['a.ts: error TS2322: one']);
+    const after = run(['a.ts: error TS2322: one', 'a.ts: error TS2322: two']);
+    expect(compareChecks([before], [after])[0]?.newFailures).toEqual(['a.ts: error TS2322: two']);
+  });
+});
+
+describe('runChecksAfter', () => {
+  const pass: CheckRun = { name: 'test', command: 'npm test', ok: true, output: '', failures: [] };
+  // A sandbox whose exec answers from a script, one exit code per call.
+  const scripted = (codes: number[]): Sandbox => ({
+    dir: '/work',
+    mode: 'local',
+    exec: async () => {
+      const code = codes.shift() ?? 0;
+      return { code, stdout: code ? 'FAIL src/pay.test.ts' : 'ok', stderr: '', timedOut: false };
+    },
+    diff: async () => '',
+    dispose: async () => {},
+  });
+  const checks = [{ name: 'test', command: 'npm test' }];
+
+  it('takes the rerun when a new failure does not repeat', async () => {
+    const [run] = await runChecksAfter(scripted([1, 0]), checks, [pass]);
+    expect(run?.ok).toBe(true);
+  });
+
+  it('keeps a failure that repeats', async () => {
+    const [run] = await runChecksAfter(scripted([1, 1]), checks, [pass]);
+    expect(run?.failures).toEqual(['FAIL src/pay.test.ts']);
+  });
+});
+
 describe('detectPackageManager and detectChecks', () => {
   it('detects package managers from lockfiles', async () => {
     expect(await detectPackageManager(await fixture({ 'pnpm-lock.yaml': '' }))).toBe('pnpm');
@@ -176,7 +229,7 @@ describe('detectPackageManager and detectChecks', () => {
       'tsconfig.json': '{}',
     });
     expect(await detectChecks(dir, 'npm')).toEqual([
-      { name: 'typecheck', command: 'npx --no-install tsc --noEmit' },
+      { name: 'typecheck', command: 'npx --no-install tsc --noEmit', fallback: true },
     ]);
   });
 
@@ -264,7 +317,7 @@ describe('installCommand', () => {
 
   it('prefers a frozen install and falls back to a plain one', () => {
     expect(installCommand('npm')).toBe(
-      'npm ci --ignore-scripts --no-audit --no-fund || npm install --ignore-scripts --no-audit --no-fund',
+      'npm ci --ignore-scripts --no-audit --no-fund || { rm -rf node_modules; npm install --ignore-scripts --no-audit --no-fund || npm install --ignore-scripts --no-audit --no-fund --legacy-peer-deps || npm install --ignore-scripts --no-audit --no-fund --force; }',
     );
     expect(installCommand('pnpm')).toBe(
       'corepack pnpm install --frozen-lockfile --ignore-scripts || corepack pnpm install --no-frozen-lockfile --ignore-scripts',
@@ -273,7 +326,7 @@ describe('installCommand', () => {
 
   it("runs the repo's own release, so the lockfile keeps its format", () => {
     expect(installCommand('npm', '8')).toBe(
-      'npx -y npm@8 ci --ignore-scripts --no-audit --no-fund || npx -y npm@8 install --ignore-scripts --no-audit --no-fund',
+      'npx -y npm@8 ci --ignore-scripts --no-audit --no-fund || { rm -rf node_modules; npx -y npm@8 install --ignore-scripts --no-audit --no-fund || npx -y npm@8 install --ignore-scripts --no-audit --no-fund --legacy-peer-deps || npx -y npm@8 install --ignore-scripts --no-audit --no-fund --force; }',
     );
     expect(installCommand('pnpm', '8.15.9')).toMatch(
       /^corepack pnpm@8\.15\.9 install --frozen-lockfile/,

@@ -1,0 +1,274 @@
+[
+  {
+    "repo": "hachanimohamedsaid/backend_AgentAi",
+    "commit": "387ace95142de78a7d8dd3a1378b9aba5aeb3048",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "gemini-1",
+        "file": "src/ai/dispatch-email-llm.service.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-2.0-flash",
+          "to": "gemini-3.6-flash"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "gemini-1",
+        "file": "src/ai/task-assignment-llm.service.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-2.0-flash",
+          "to": "gemini-3.6-flash"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "gemini-1",
+        "file": "src/pm/proposal-plan-generator.service.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-2.0-flash",
+          "to": "gemini-3.6-flash"
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "openai-15",
+        "file": "src/realtime/realtime-voice.service.ts",
+        "dead": "gpt-4o-realtime-preview",
+        "alive": ["gpt-realtime-1\\.5", "gpt-realtime-mini"],
+        "proof": {
+          "from": "gpt-4o-realtime-preview",
+          "to": "gpt-realtime-1.5"
+        }
+      },
+      {
+        "id": "R5",
+        "entryId": "OA-3",
+        "file": "src/realtime/realtime-voice.service.ts",
+        "dead": "realtime=v1",
+        "alive": [],
+        "proof": {
+          "from": "'OpenAI-Beta': 'realtime=v1',",
+          "to": ""
+        }
+      }
+    ]
+  },
+  {
+    "repo": "Devanshjain2110/QueryPDF",
+    "commit": "66283a61d344b1785604f935ac85f437ab8e6ffe",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "openai-1",
+        "file": "src/app/api/message/route.ts",
+        "dead": "gpt-3\\.5-turbo",
+        "alive": ["gpt-5\\.6-terra"],
+        "proof": {
+          "from": "gpt-3.5-turbo",
+          "to": "gpt-5.6-terra"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "openai-requires",
+        "file": "src/app/api/message/route.ts",
+        "dead": "temperature\\s*:",
+        "alive": [],
+        "proof": {
+          "from": "temperature : 0,",
+          "to": ""
+        }
+      }
+    ]
+  },
+  {
+    "repo": "swharr/TrailblazerAI",
+    "commit": "1478d62902cef9593c784096f55d23d15e5b87e3",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "anthropic-1",
+        "file": "src/app/api/trail-finder/search/route.ts",
+        "dead": "claude-sonnet-4-20250514",
+        "alive": ["claude-sonnet-5-5"],
+        "proof": {
+          "from": "claude-sonnet-4-20250514",
+          "to": "claude-sonnet-5-5"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "anthropic-1",
+        "file": "src/app/api/admin/ai-providers/route.ts",
+        "dead": "claude-sonnet-4-20250514",
+        "alive": ["claude-sonnet-5-5"],
+        "proof": {
+          "from": "claude-sonnet-4-20250514",
+          "to": "claude-sonnet-5-5"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "gemini-1",
+        "file": "src/app/api/admin/ai-providers/route.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-2.0-flash",
+          "to": "gemini-3.6-flash"
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "anthropic-1",
+        "file": "services/payi-proxy/models.py",
+        "dead": "claude-sonnet-4-20250514",
+        "alive": ["claude-sonnet-5-5"],
+        "proof": {
+          "from": "claude-sonnet-4-20250514",
+          "to": "claude-sonnet-5-5"
+        }
+      },
+      {
+        "id": "R5",
+        "entryId": "anthropic-1",
+        "file": "src/app/analyze/page.tsx",
+        "dead": "claude-sonnet-4-20250514",
+        "alive": ["claude-sonnet-5-5"],
+        "proof": {
+          "from": "claude-sonnet-4-20250514",
+          "to": "claude-sonnet-5-5"
+        }
+      },
+      {
+        "id": "R6",
+        "entryId": "anthropic-1",
+        "file": "src/app/api/analyze/route.ts",
+        "dead": "claude-sonnet-4-20250514",
+        "alive": ["claude-sonnet-5-5"],
+        "proof": {
+          "from": "claude-sonnet-4-20250514",
+          "to": "claude-sonnet-5-5"
+        }
+      },
+      {
+        "id": "R7",
+        "entryId": "gemini-1",
+        "file": "src/app/api/analyze/route.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-2.0-flash",
+          "to": "gemini-3.6-flash"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "Miguel07Alm/text2question",
+    "commit": "ce789503da89a1a7cc488c96e0717727b5abb4ec",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "gemini-1",
+        "file": "src/app/[lang]/page.tsx",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-2.0-flash",
+          "to": "gemini-3.6-flash"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "gemini-1",
+        "file": "src/app/api/chat/route.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-2.0-flash",
+          "to": "gemini-3.6-flash"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "gemini-1",
+        "file": "src/app/api/check-answer/route.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-2.0-flash",
+          "to": "gemini-3.6-flash"
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "gemini-1",
+        "file": "src/types/types.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-2.0-flash",
+          "to": "gemini-3.6-flash"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "RaizenStyx/lore-forge",
+    "commit": "381a17d7c2104f966489421ec4f2f78442c9662e",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "openai-10",
+        "file": "src/app/api/generate-starter/route.ts",
+        "dead": "gpt-3\\.5-turbo-instruct",
+        "alive": ["gpt-5\\.6-terra"],
+        "proof": {
+          "from": "gpt-3.5-turbo-instruct",
+          "to": "gpt-5.6-terra"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "openai-10",
+        "file": "src/app/api/generate-full/route.ts",
+        "dead": "gpt-3\\.5-turbo-instruct",
+        "alive": ["gpt-5\\.6-terra"],
+        "proof": {
+          "from": "gpt-3.5-turbo-instruct",
+          "to": "gpt-5.6-terra"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "openai-requires",
+        "file": "src/app/api/generate-starter/route.ts",
+        "dead": "\\.completions\\.create\\((?![\\s\\S]*messages)",
+        "alive": [],
+        "proof": {
+          "from": "openai.completions.create({",
+          "to": "openai.chat.completions.create({ messages: [],"
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "openai-requires",
+        "file": "src/app/api/generate-full/route.ts",
+        "dead": "\\.completions\\.create\\((?![\\s\\S]*messages)",
+        "alive": [],
+        "proof": {
+          "from": "openai.completions.create({",
+          "to": "openai.chat.completions.create({ messages: [],"
+        }
+      }
+    ]
+  }
+]

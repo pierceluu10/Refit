@@ -1,0 +1,19 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "outlook/ALTAR",
+  "commit": "dcf907b88e8f676e8207efa6bc24321429c1608d",
+  "provider": "azure-ad-graph",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.013587999999999989,
+  "durationMs": 27476,
+  "install": {
+    "code": 0,
+    "tail": "common-1.1.28 azure-core-1.41.0 azure-keyvault-4.2.0 azure-keyvault-certificates-4.12.0 azure-keyvault-keys-4.11.3 azure-keyvault-secrets-4.12.0 certifi-2026.10.23 cffi-2.1.1 charset_normalizer-3.5.2 cheroot-11.1.2 cryptography-50.0.2 idna-3.20 isodate-0.7.2 jaraco.functools-4.6.0 more_itertools-11.2.1 msrest-0.7.1 msrestazure-0.6.4.post1 multipart-2.0.1 oauthlib-4.0.1 pycparser-3.12 python-dateutil-2.9.0.post0 requests-2.34.2 requests-oauthlib-2.0.0 six-1.17.0 typing-extensions-4.16.0 urllib3-2.8.0 web.py-0.76\n\nWARNING: urllib3 2.8.0 does not provide the extra 'secure'\n  WARNING: The script idna is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script normalizer is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script cffi-gen-src is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script cheroot is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "provider": "heygen",
+  "officialHosts": ["api.heygen.com", "developers.heygen.com", "registry.npmjs.org/@heygen"],
+  "entries": [
+    {
+      "id": "HG-1.streaming-rest",
+      "provider": "heygen",
+      "what": "HeyGen's Streaming API paths /v1/streaming.create_token, /v1/streaming.new and /v1/streaming.start are gone from api.heygen.com, so an avatar session can't start. Checked on 2026-11-05: an unauthenticated POST returns the host's 404 page, the same as a path that never existed, while /v2/avatars on that host answers with a JSON error. HeyGen's Streaming docs pages now 404, so no shutdown date could be read and the date is only the day it was checked.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://api.heygen.com/v1/streaming.create_token",
+        "checkedOn": "2026-11-05",
+        "quote": "The requested URL was not found on the server."
+      },
+      "lookFor": ["A request to api.heygen.com under /v1/streaming."],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/v1/streaming\\.[a-z_]+"
+        }
+      ],
+      "replacement": "LiveAvatar, which HeyGen's docs point real-time avatars at: https://developers.heygen.com/live-avatar.md",
+      "requires": [
+        "LiveAvatar has its own API, documented at docs.liveavatar.com, so this is a rewrite of the session flow and not a new path."
+      ],
+      "context": {
+        "packages": ["@heygen/streaming-avatar"],
+        "hosts": ["api.heygen.com"]
+      }
+    },
+    {
+      "id": "HG-2.streaming-avatar-sdk",
+      "provider": "heygen",
+      "what": "The @heygen/streaming-avatar package is deprecated, and it defaults to https://api.heygen.com and calls /v1/streaming.new there, which HG-1 covers. createStartAvatar fails with it unless a basePath points somewhere else.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://registry.npmjs.org/@heygen/streaming-avatar",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecated. Migrate to @heygen/liveavatar-web-sdk"
+      },
+      "lookFor": [
+        "An import or dependency of @heygen/streaming-avatar, or a call of createStartAvatar on it."
+      ],
+      "matchers": [
+        {
+          "kind": "package",
+          "value": "@heygen/streaming-avatar",
+          "ecosystem": "npm"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bcreateStartAvatar\\b"
+        }
+      ],
+      "replacement": "@heygen/liveavatar-web-sdk, as the package's own notice says.",
+      "requires": [
+        "Run npm i @heygen/liveavatar-web-sdk, as the notice says, and move the session flow to LiveAvatar's API."
+      ],
+      "context": {
+        "packages": ["@heygen/streaming-avatar"],
+        "hosts": ["api.heygen.com"]
+      }
+    }
+  ],
+  "future": []
+}

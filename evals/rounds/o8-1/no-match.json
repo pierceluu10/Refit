@@ -1,0 +1,17 @@
+[
+  {
+    "repo": "rickkxu/stylescout",
+    "commit": "1fbbe767d5eb38b4c7603765e42f073dc8bdbfd0",
+    "required": []
+  },
+  {
+    "repo": "ducknife/Music_Agent",
+    "commit": "061858e6864f1f4461e766464f1690dce1879fd7",
+    "required": []
+  },
+  {
+    "repo": "InnovateTechWorld/remotion-auto-explainer",
+    "commit": "4834b7f154fb8875f322bfbc056e65c9590db2c5",
+    "required": []
+  }
+]

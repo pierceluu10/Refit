@@ -7,29 +7,40 @@ import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
 import { listProviderIds } from '../providers/core/registry.ts';
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
 import { BudgetExceededError, createBudget } from './budget.ts';
-import {
-  anyWatcher,
-  cachedChanges,
-  createDeps,
-  MEMORY_USD,
-  MIN_TASK_USD,
-  TASK_USD,
-} from './deps.ts';
+import { anyWatcher, cachedChanges, createDeps, deadApiScan, REPO_USD } from './deps.ts';
 import { stubRunTask } from './stubs.ts';
+import { TURN_RESERVE_USD } from '../harness/index.ts';
+import { makeRepo } from '../inventory/test-fixtures.ts';
+import type { ModelClient } from '../providers/core/model.ts';
 
 // The any-provider watcher, offline: it spends $0.30 of the ledger it is given and finds one change.
-const watched = vi.hoisted(() => ({ calls: [] as { provider: string; hints: unknown }[] }));
+// Its report says the read finished, unless a test sets `endedEarly`.
+const watched = vi.hoisted(() => ({
+  calls: [] as { provider: string; hints: unknown }[],
+  endedEarly: false,
+}));
 vi.mock('../providers/core/any-watcher.ts', () => ({
   anyProviderWatcher:
     (
       provider: string,
       hints: unknown,
-      { budget }: { budget: { charge: (model: string, usage: object) => void } },
+      {
+        budget,
+        onReport,
+      }: {
+        budget: { charge: (model: string, usage: object) => void };
+        onReport?: (report: object) => void;
+      },
     ) =>
     async () => {
       watched.calls.push({ provider, hints });
       // 100k input and 10k output tokens on Sonnet: $0.30.
       budget.charge('claude-sonnet-5-5', { inputTokens: 100_000, outputTokens: 10_000 });
+      onReport?.({
+        model: 'claude-sonnet-5-5',
+        turns: 3,
+        issues: watched.endedEarly ? [{ message: 'run ended early: budget' }] : [],
+      });
       return [
         {
           provider,
@@ -59,6 +70,7 @@ const ran = (task: MigrationTask, costUsd: number): RunRecord => ({
 });
 
 vi.mock('../harness/index.ts', () => ({
+  TURN_RESERVE_USD: 1,
   runTask: async (task: MigrationTask, _dir: string, deps: { budgetUsd: number }) => {
     harness.caps.push(deps.budgetUsd);
     return harness.run ? harness.run(task, deps.budgetUsd) : ran(task, 0.75);
@@ -123,22 +135,24 @@ describe('createDeps', () => {
 
     await deps.runTask(task('change'), '/unused');
     await deps.runTask(task('change'), '/unused');
+    await deps.runTask(task('change'), '/unused');
     const skipped = await deps.runTask(task('change'), '/unused');
 
     expect(Object.keys(deps.watchers)).toEqual(listProviderIds());
-    expect(harness.caps).toEqual([3, 2.25]);
-    expect(budget.spentUsd()).toBe(1.5);
-    // $1.50 left is below MIN_TASK_USD, so the third task never reaches the harness.
-    expect(MIN_TASK_USD).toBeGreaterThan(1.5);
+    // Each repo's fix holds at most REPO_USD, and the third still has its full $1 free.
+    expect(harness.caps).toEqual([REPO_USD, REPO_USD, REPO_USD]);
+    expect(budget.spentUsd()).toBe(2.25);
+    // $0.75 left is below TURN_RESERVE_USD, so the fourth task never reaches the harness.
+    expect(TURN_RESERVE_USD).toBeGreaterThan(0.75);
     expect(skipped).toMatchObject({ outcome: 'failed', costUsd: 0 });
     expect((skipped as { note?: string }).note).toMatch(
-      /not attempted: \$1\.50 of the run cap left/,
+      /not attempted: \$0\.75 of the run cap left/,
     );
   });
 
   it('runs tasks at once and never lets spend plus holds pass the cap', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
-    const cap = 13;
+    const cap = 4;
     const budget = createBudget(cap);
     const deps = createDeps({ budget, log: () => {} });
     let running = 0;
@@ -158,14 +172,21 @@ describe('createDeps', () => {
     );
 
     expect(peak).toBeGreaterThan(1);
-    expect(Math.max(...harness.caps.map(Number))).toBeLessThanOrEqual(TASK_USD);
-    expect(Math.min(...harness.caps.map(Number))).toBeGreaterThanOrEqual(MIN_TASK_USD - 1e-9);
+    expect(Math.max(...harness.caps.map(Number))).toBeLessThanOrEqual(REPO_USD);
+    expect(Math.min(...harness.caps.map(Number))).toBeGreaterThanOrEqual(TURN_RESERVE_USD - 1e-9);
     expect(worst).toBeLessThanOrEqual(cap + 1e-9);
     expect(budget.spentUsd()).toBeLessThanOrEqual(cap + 1e-9);
     expect(budget.heldUsd()).toBe(0);
     // Every task ran or was recorded as not attempted; none was dropped.
     expect(records).toHaveLength(6);
     expect(records.some((r) => r.outcome === 'failed')).toBe(true);
+  });
+
+  it('never gives one repo more than REPO_USD, however big the run', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
+    const deps = createDeps({ budget: createBudget(2000), log: () => {} });
+    await deps.runTask(task('big'), '/unused');
+    expect(harness.caps).toEqual([REPO_USD]);
   });
 
   it('records a harness that throws as failed, counting its whole share once', async () => {
@@ -179,21 +200,13 @@ describe('createDeps', () => {
     };
     // Through the queue, as the loop runs it: the failure comes back as a record, so no retry.
     const record = await deps.queue.add('task', () => deps.runTask(task('c'), '/unused'));
-    expect(record).toMatchObject({ outcome: 'failed', costUsd: TASK_USD });
+    expect(record).toMatchObject({ outcome: 'failed', costUsd: REPO_USD });
     expect((record as { note?: string }).note).toMatch(
       /runTask failed: harness crashed; its spend is unknown/,
     );
     expect(calls).toBe(1);
-    expect(budget.spentUsd()).toBe(TASK_USD);
+    expect(budget.spentUsd()).toBe(REPO_USD);
     expect(budget.heldUsd()).toBe(0);
-  });
-
-  it('lets a task in a big run hold a fair share of what is free', async () => {
-    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
-    const deps = createDeps({ budget: createBudget(100), log: () => {} });
-    await deps.runTask(task('c'), '/unused');
-    // A quarter of the free $100, since four parts run at once.
-    expect(harness.caps).toEqual([25]);
   });
 
   it('counts an inventory that throws without a result as having spent its whole hold', async () => {
@@ -248,7 +261,7 @@ describe('recordRun', () => {
     running.settle(0);
   });
 
-  it('holds its share of the run to learn from an attempt', async () => {
+  it('stores an attempt without spending from the run', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
     const budget = createBudget(3);
     const out = join(await mkdtemp(join(tmpdir(), 'aptitude-deps-')), 'runs.jsonl');
@@ -274,7 +287,8 @@ describe('recordRun', () => {
     );
 
     await deps.recordRun(task('c'), attempt, checkout);
-    expect(memory.caps).toEqual([MEMORY_USD]);
+    // Learning is off the fix path: a fix run only stores, and spends nothing of the run.
+    expect(budget.spentUsd()).toBe(0);
     expect(budget.heldUsd()).toBe(0);
     // The commit the run read, for memory's self-eval.
     expect(memory.commits).toEqual([git('rev-parse', 'HEAD')]);
@@ -300,6 +314,24 @@ describe('anyWatcher', () => {
     await watch();
     expect(watched.calls).toHaveLength(1);
     expect(budget.spentUsd()).toBeCloseTo(0.3);
+    // Another run, in another process, with the same cache folder: still one read.
+    await anyWatcher('resend', { packages: ['resend'] }, createBudget(3), cache)();
+    expect(watched.calls).toHaveLength(1);
+  });
+
+  it('never caches a read that ended early, so the next caller reads again', async () => {
+    watched.calls = [];
+    watched.endedEarly = true;
+    const budget = createBudget(3);
+    const cache = await mkdtemp(join(tmpdir(), 'aptitude-watch-test-'));
+    const watch = anyWatcher('notion', {}, budget, cache);
+    // The early read's changes still go to its caller.
+    expect(await watch()).toHaveLength(1);
+    watched.endedEarly = false;
+    await watch();
+    await watch();
+    expect(watched.calls).toHaveLength(2);
+    expect(budget.spentUsd()).toBeCloseTo(0.6);
   });
 });
 
@@ -333,5 +365,39 @@ describe('cachedChanges', () => {
     const watch = vi.fn(async () => []);
     await cachedChanges(dir, 'meta', watch);
     expect(watch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('deadApiScan', () => {
+  const client: ModelClient & { calls: number } = {
+    model: 'claude-haiku-5-5',
+    calls: 0,
+    async complete() {
+      this.calls += 1;
+      return {
+        content: [{ type: 'text', text: '[{"id": 1, "verdict": "live", "reason": "It posts."}]' }],
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100_000, outputTokens: 1000 },
+      };
+    },
+  };
+
+  it('spends from the run cap only when the scan is unsure', async () => {
+    const budget = createBudget(1);
+    const { scan } = deadApiScan(budget, { client });
+    const sure = await makeRepo({ 'package.json': '{}', 'a.ts': 'export const a = 1;' });
+    expect((await scan(sure, 'acme/sure')).clean).toBe(true);
+    expect(client.calls).toBe(0);
+    expect(budget.spentUsd()).toBe(0);
+
+    const unsure = await makeRepo({
+      'package.json': JSON.stringify({ dependencies: { openai: '^6.0.0' } }, null, 2),
+      'a.ts': "fetch('/v1/edits');",
+    });
+    const report = await scan(unsure, 'acme/unsure');
+    expect(client.calls).toBe(1);
+    expect(report.findings.map((finding) => finding.matchClass)).toEqual(['live']);
+    expect(budget.spentUsd()).toBeGreaterThan(0);
+    expect(budget.heldUsd()).toBe(0);
   });
 });

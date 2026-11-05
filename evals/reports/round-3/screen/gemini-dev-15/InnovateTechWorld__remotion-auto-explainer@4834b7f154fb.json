@@ -1,0 +1,37 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "InnovateTechWorld/remotion-auto-explainer",
+  "commit": "4834b7f154fb8875f322bfbc056e65c9590db2c5",
+  "provider": "gemini",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "src/Composition.tsx: error TS2739: Type '{ script: any; audioPath: any; }' is missing the following properties from type '{ script: any[]; audioPath: string; logoPath: string; durationInFrames: number; }': logoPath, durationInFrames"
+      ],
+      "tail": "src/Composition.tsx(4,11): error TS2739: Type '{ script: any; audioPath: any; }' is missing the following properties from type '{ script: any[]; audioPath: string; logoPath: string; durationInFrames: number; }': logoPath, durationInFrames"
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.03795599999999988,
+  "durationMs": 57539,
+  "install": {
+    "code": 0,
+    "tail": "added 628 packages in 30s\n\nnpm warn deprecated querystring@0.2.0: The querystring API is considered Legacy. new code should use the URLSearchParams API instead."
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

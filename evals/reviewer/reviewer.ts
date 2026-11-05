@@ -17,7 +17,7 @@ export type AdvisoryReview = {
   model: string;
 };
 
-export const REVIEWER_PROMPT_VERSION = 'reviewer-v2';
+export const REVIEWER_PROMPT_VERSION = 'reviewer-v3';
 
 export const REVIEWER_SYSTEM = `You are a senior engineer giving a second opinion on a pull request that Aptitude, an AI migration agent, opened after an external API changed.
 
@@ -30,6 +30,8 @@ Read the change, the quoted source, the diff and the checks. Think about:
 Your knowledge of provider APIs may be older than this change: the PR exists because an API moved on. When the diff uses a parameter, field, model or version you don't recognise, say you could not confirm it and where to check it (the quoted source, the SDK's types); don't call it invented or wrong on memory alone.
 
 The prompt may include the repository files the diff touches and the call sites the match agent named, as they were before the change. Read them before raising a concern about code the diff doesn't show.
+
+A concern is about this change. A problem in code the diff doesn't touch and the change doesn't affect was there before; mention it once in the summary as pre-existing, not as a concern.
 
 Your review is advisory. It never changes the grade; a human reads it next to the PR. Be concrete: name files and lines. If you are unsure, say what you'd need to know.
 

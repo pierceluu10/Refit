@@ -1,0 +1,193 @@
+[
+  {
+    "repo": "tungbinzzz/instagram-app-shopify",
+    "commit": "e1b0e4a05c0a4207a348625e4f0f81d18210e6f5",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "SH-1.before-2025-04",
+        "file": "app/shopify.server.js",
+        "dead": "ApiVersion\\.October24",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October24",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.before-2025-04",
+        "file": "shopify.app.toml",
+        "dead": "api_version = \"2024-10\"",
+        "alive": ["2026-10"],
+        "proof": {
+          "from": "api_version = \"2024-10\"",
+          "to": "api_version = \"2026-10\""
+        }
+      }
+    ]
+  },
+  {
+    "repo": "sabbir-noyon/wishkit-app-shopify",
+    "commit": "2ae31f5db616baf7071212119018b1723a494022",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "SH-1.2025-10",
+        "file": "app/shopify.server.ts",
+        "dead": "ApiVersion\\.October25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October25",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.2025-10",
+        "file": ".graphqlrc.ts",
+        "dead": "ApiVersion\\.October25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October25",
+          "to": "ApiVersion.October26"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "ksyp-7/shopify-theme-app-extension-vite-react",
+    "commit": "cbe05e07ea6a2be54c6b0fb40a64f4afd7574b0e",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "SH-1.before-2025-04",
+        "file": "app/shopify.server.js",
+        "dead": "ApiVersion\\.April24",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.April24",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.before-2025-04",
+        "file": "shopify.app.toml",
+        "dead": "api_version = \"2024-04\"",
+        "alive": ["2026-10"],
+        "proof": {
+          "from": "api_version = \"2024-04\"",
+          "to": "api_version = \"2026-10\""
+        }
+      }
+    ]
+  },
+  {
+    "repo": "diegocsrdias/postmedia",
+    "commit": "d5de2c5b16d3f0b40105fc194b73bf6c8139dccc",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "OA-1.gpt-image-1",
+        "file": "api/_lib/openai.js",
+        "dead": "\\|\\| 'gpt-image-1'",
+        "alive": ["gpt-image-2\\.5"],
+        "proof": {
+          "from": "|| 'gpt-image-1'",
+          "to": "|| 'gpt-image-2.5-flare'"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "OA-1.gpt-image-1",
+        "file": ".env.example",
+        "dead": "OPENAI_IMAGE_MODEL=gpt-image-1",
+        "alive": ["gpt-image-2\\.5"],
+        "proof": {
+          "from": "OPENAI_IMAGE_MODEL=gpt-image-1",
+          "to": "OPENAI_IMAGE_MODEL=gpt-image-2.5-flare"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "imran-farooq7/next-gen-ai-yt",
+    "commit": "7e7ab76d9395a6188bcb93be4fa65d742ed676fa",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "GE-2.gemini-1.5-*",
+        "file": "lib/actions.ts",
+        "dead": "gemini-1\\.5-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-1.5-flash",
+          "to": "gemini-3.6-flash"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "Cap-go/videoclub",
+    "commit": "25e7aea8e85816874cb83a84eff9fd003f383abf",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "MG-1.v18.0",
+        "file": "worker/lib/video.ts",
+        "dead": "graph\\.facebook\\.com/v18\\.0",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "graph.facebook.com/v18.0",
+          "to": "graph.facebook.com/v27.0"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "newfold-labs/wp-module-facebook",
+    "commit": "f5296c4cfbd93cd67fcc9ad742208a17d926229c",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "MG-1.v18.0",
+        "file": "src/utils/constants.js",
+        "dead": "graph\\.facebook\\.com/v18\\.0",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "graph.facebook.com/v18.0",
+          "to": "graph.facebook.com/v27.0"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "hridoyhossain1001/buykori-client-portal",
+    "commit": "73db26d64aee6ebc9047799fc327e2f101ecf8a1",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "MG-1.v18.0",
+        "file": "server.ts",
+        "dead": "graph\\.facebook\\.com/v18\\.0/pixel_id/events",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "graph.facebook.com/v18.0/pixel_id/events",
+          "to": "graph.facebook.com/v27.0/pixel_id/events"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "MG-1.v18.0",
+        "file": "src/lib/mock-data.ts",
+        "dead": "graph\\.facebook\\.com/v18\\.0/pixel_id/events",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "graph.facebook.com/v18.0/pixel_id/events",
+          "to": "graph.facebook.com/v27.0/pixel_id/events"
+        }
+      }
+    ]
+  }
+]

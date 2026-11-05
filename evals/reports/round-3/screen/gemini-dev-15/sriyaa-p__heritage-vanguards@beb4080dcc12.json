@@ -1,0 +1,38 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "sriyaa-p/heritage-vanguards",
+  "commit": "beb4080dcc12b5a2a5a340a188b6741b14b72935",
+  "provider": "gemini",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "pytest",
+      "command": "export GEMINI_API_KEY='placeholder' ENV='development' UPLOADS_DIR='/tmp/uploads'; (python3 -m pytest --version >/dev/null 2>&1 || python3 -m pip install -q --only-binary=:all: pytest) && python3 -m pytest -q",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.021994000000000014,
+  "durationMs": 638848,
+  "install": {
+    "code": 124,
+    "tail": "to suppress this warning, use --no-warn-script-location.\n  WARNING: The script alembic is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script typer is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script jsonschema is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The scripts hf and tiny-agents are installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script fastapi is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The scripts torchfrtrace and torchrun are installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script mcp is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location."
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "if [ -f backend/requirements.txt ]; then python3 -m pip install -q --only-binary=:all: -r backend/requirements.txt; fi",
+        "why": "The backend's Python dependencies were never installed, which causes the missing google.genai import. Wheels only, so no build scripts run.",
+        "code": 0
+      },
+      {
+        "command": "python3 -m pip install -q --only-binary=:all: 'mcp<2' google-genai pytest-asyncio",
+        "why": "backend/mcp_server.py uses mcp.server.fastmcp, which was removed in mcp 2.x, so mcp must be pinned below 2. google-genai provides `from google import genai`. pytest-asyncio is needed by the async tests.",
+        "code": 0
+      }
+    ],
+    "env": ["GEMINI_API_KEY", "ENV", "UPLOADS_DIR"]
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "SIGKITTEN/claude-code",
+  "commit": "f75d8f2591afe01cc2fe493651e182f1afcfc458",
+  "provider": "anthropic",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "src/ProjectOnboarding.tsx: error TS2353: Object literal may only specify known properties, and 'hasCompletedProjectOnboarding' does not exist in type '(currentConfig: ProjectConfig) => ProjectConfig'.",
+        "src/ProjectOnboarding.tsx: error TS2353: Object literal may only specify known properties, and 'lastReleaseNotesSeen' does not exist in type '(currentConfig: GlobalConfig) => GlobalConfig'.",
+        "src/ProjectOnboarding.tsx: error TS2554: Expected 1 arguments, but got 0.",
+        "src/ProjectOnboarding.tsx: error TS2339: Property 'secondaryText' does not exist on type 'Theme'.",
+        "src/ProjectOnboarding.tsx: error TS2339: Property 'secondaryBorder' does not exist on type 'Theme'.",
+        "src/QueryEngine.ts: error TS2724: '\"src/entrypoints/agentSdkTypes.js\"' has no exported member named 'PermissionMode'. Did you mean 'Permission'?",
+        "src/QueryEngine.ts: error TS2305: Module '\"src/entrypoints/agentSdkTypes.js\"' has no exported member 'SDKCompactBoundaryMessage'.",
+        "src/QueryEngine.ts: error TS2460: Module '\"src/entrypoints/agentSdkTypes.js\"' declares 'SDKMessage' locally, but it is exported as 'SDKControlRequest'.",
+        "src/QueryEngine.ts: error TS2305: Module '\"src/entrypoints/agentSdkTypes.js\"' has no exported member 'SDKPermissionDenial'.",
+        "src/QueryEngine.ts: error TS2305: Module '\"src/entrypoints/agentSdkTypes.js\"' has no exported member 'SDKStatus'."
+      ],
+      "tail": "Parameter 'b' implicitly has an 'any' type.\nsrc/utils/toolResultStorage.ts(716,30): error TS7006: Parameter 'block' implicitly has an 'any' type.\nsrc/utils/toolSearch.ts(27,30): error TS2307: Cannot find module '../types/message.js' or its corresponding type declarations.\nsrc/utils/transcriptSearch.ts(1,40): error TS2307: Cannot find module '../types/message.js' or its corresponding type declarations.\nsrc/utils/transcriptSearch.ts(87,43): error TS7006: Parameter 'm' implicitly has an 'any' type.\nsrc/utils/transcriptSearch.ts(100,25): error TS7006: Parameter 'b' implicitly has an 'any' type.\nsrc/utils/transcriptSearch.ts(109,40): error TS7006: Parameter 'm' implicitly has an 'any' type.\nsrc/utils/ultraplan/ccrSession.ts(11,15): error TS2460: Module '\"../../entrypoints/agentSdkTypes.js\"' declares 'SDKMessage' locally, but it is exported as 'SDKControlRequest'.\nsrc/utils/ultraplan/ccrSession.ts(97,35): error TS2550: Property 'findLast' does not exist on type 'string[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.\nsrc/utils/ultraplan/ccrSession.ts(97,44): error TS7006: Parameter 'c' implicitly has an 'any' type.\nsrc/utils/withResolvers.ts(5,37): error TS2304: Cannot find name 'PromiseWithResolvers'.\nsrc/utils/worktree.ts(606,17): error TS2307: Cannot find module './postCommitAttribution.js' or its corresponding type declarations.\nsrc/utils/worktree.ts(610,18): error TS7006: Parameter 'error' implicitly has an 'any' type."
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "ok": false,
+      "failures": ["exit-nonzero: sh: 1: bun: not found"],
+      "tail": "> claude-code@2.1.88 build\n> bun run build.ts\n\n\nsh: 1: bun: not found"
+    }
+  ],
+  "costUsd": 0.11268000000000011,
+  "durationMs": 175496,
+  "install": {
+    "code": 0,
+    "tail": "pm error\nnpm error Usage:\nnpm error npm ci\nnpm error\nnpm error Options:\nnpm error [--install-strategy <hoisted|nested|shallow|linked>] [--legacy-bundling]\nnpm error [--global-style] [--omit <dev|optional|peer> [--omit <dev|optional|peer> ...]]\nnpm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]\nnpm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]\nnpm error [--no-bin-links] [--no-fund] [--dry-run]\nnpm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]\nnpm error [-ws|--workspaces] [--include-workspace-root] [--install-links]\nnpm error\nnpm error aliases: clean-install, ic, install-clean, isntall-clean\nnpm error\nnpm error Run \"npm help ci\" for more info\nnpm error A complete log of this run can be found in: /tmp/.npm/_logs/2026-11-03T20_00_18_663Z-debug-0.log\nnpm warn ERESOLVE overriding peer dependency\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead\nnpm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated @opentelemetry/sdk-trace-base@2.12.0: Use @opentelemetry/sdk-trace package\nnpm warn deprecated @opentelemetry/sdk-trace-base@1.30.1: Use @opentelemetry/sdk-trace package\nnpm warn deprecated @opentelemetry/sdk-trace-base@1.30.1: Use @opentelemetry/sdk-trace package"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npm install --no-save --ignore-scripts bun-types",
+        "why": "tsconfig lists 'bun-types' in compilerOptions.types, but it is not in package.json, so tsc cannot find the type definitions. Installing it without saving fixes the typecheck.",
+        "code": 0
+      }
+    ],
+    "env": []
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "typecheck (tsc --noEmit) fails on the repo's own code: missing modules (../types/message.js, postCommitAttribution.js), missing exports from agentSdkTypes.js, wrong config types, and implicit-any/lib target errors; the bun-not-found build failure is secondary and the typecheck failures are not environmental."
+  }
+}

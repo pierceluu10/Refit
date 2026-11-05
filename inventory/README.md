@@ -7,7 +7,29 @@ response.
 
 ## How it works
 
-- `agent.ts` runs a Claude agent on the Claude Agent SDK (`claude-sonnet-5-5`). The model decides
+- `scan.ts` runs first, with ordinary code and no AI. It reads the manifests, lockfiles, imports
+  and API hosts.
+  - For a known SDK (`catalog.ts`) that is imported, made into a client and called, it builds the
+    `ApiUsage` itself. That includes a client the repo exports, or makes in its own
+    `createClient()`-style factory, and uses in other files. It also does this for a fetch to a
+    known API host.
+  - Everything it can't settle becomes a lead:
+    - dependencies it doesn't know;
+    - files that import an SDK where it saw no call;
+    - HTTP calls to unknown hosts or runtime URLs;
+    - unknown hosts;
+    - service-like env names;
+    - GraphQL;
+    - webhook signals;
+    - other languages.
+  - The catalog is a shortcut, never a gate: an unknown package or host always goes to the agent.
+- The agent then starts with the scan's usages recorded and its leads in the task prompt
+  (`scanEvidence`). It settles the leads and hunts for what no scan sees. It always runs, so the
+  scan is never the only way usage is found.
+- `cache.ts` keeps a finished report by repo, commit and `INVENTORY_VERSION` (prompt plus scan),
+  for clean git checkouts only. An unchanged repo then costs $0. The folder is
+  `APTITUDE_INVENTORY_CACHE`, default `$TMPDIR/aptitude-inventory`, or `cacheDir: false` for none.
+- `agent.ts` runs the Claude agent on the Claude Agent SDK (`claude-sonnet-5-5`). The model decides
   what to read, follows clients and wrappers across files, and decides when it is done. On large
   repositories it maps the repo and dispatches `area-reader` subagents (`claude-haiku-5-5`) in
   parallel, then reviews and merges what they recorded.

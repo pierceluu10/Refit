@@ -3,24 +3,45 @@ import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { runTask, type HarnessRunRecord } from '../harness/index.ts';
+import { runTask, TURN_RESERVE_USD, type HarnessRunRecord } from '../harness/index.ts';
+import { isRepoTask, providersOf } from '../harness/findings.ts';
+import { modelPlan } from '../harness/prepare.ts';
+import { liveSmoke } from '../harness/smoke.ts';
+import { entriesInForce, loadDeadApis } from '../dead-apis/list.ts';
+import { utcDay } from '../dead-apis/proposals.ts';
 import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
+import { checkUnclear } from '../inventory/dead-check.ts';
+import { scanDeadApis } from '../inventory/dead-scan.ts';
 import { BudgetLedger as InventoryLedger, runInventory } from '../inventory/index.ts';
 import {
   Budget as MemoryBudget,
   createRetriever,
   defaultAi,
   defaultMemory,
+  habitNotes,
+  knownPlan,
   learnFromRun,
+  provenAllowed,
+  recipesForEntries,
 } from '../memory/index.ts';
-import { anyProviderWatcher } from '../providers/core/any-watcher.ts';
-import { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
+import { anyProviderWatcher, type AnyWatchReport } from '../providers/core/any-watcher.ts';
+import { BudgetLedger as WatchLedger, type ModelClient } from '../providers/core/model.ts';
 import { folderWatcher, listProviderIds } from '../providers/core/registry.ts';
+import {
+  defaultWatchDir,
+  noteRepoProviders,
+  readOutcome,
+  readThroughCache,
+  refreshTime,
+} from '../providers/core/watch-cache.ts';
 import { hintsFor, loadToolPack } from '../providers/toolkit/pack.ts';
+import { loadProvenFixes } from '../providers/toolkit/proven.ts';
 import type {
+  DeadApiEntry,
   ProviderChange,
   ProviderHints,
   RunRecord,
+  ScanRepo,
   ToolPack,
   WatchProvider,
 } from '../shared/types.ts';
@@ -40,20 +61,22 @@ import {
 // Run records go outside the target repo; Aptitude never writes into a repo except through a PR.
 export const defaultOut = join(tmpdir(), 'aptitude-runs.jsonl');
 
-// Provider changelogs change at most daily, so one read per provider per UTC day serves every run.
-export const defaultWatchCache = join(tmpdir(), 'aptitude-watch');
+// Provider changelogs change at most daily, so one read per provider per UTC day serves every run,
+// in every process pointed at the same folder: APTITUDE_WATCH_CACHE (providers/core/watch-cache.ts).
+export const defaultWatchCache = defaultWatchDir();
 
-// Below this, a harness run cannot get past its overshoot reserve (TURN_RESERVE_USD) to edit.
-export const MIN_TASK_USD = 2;
-// The most one task holds of a small run, so several tasks run at once. In a big run a task may hold
-// a fair share of what is free instead: a CONCURRENCY-th of it. What it leaves goes back to the run.
-export const TASK_USD = 5;
+// The cap on one repo's fix: one session for everything the scan found. What it leaves goes back to
+// the run.
+export const REPO_USD = 1;
 // One provider read. The six folder reads cost about $2.60 together on 2026-11-01's dev run.
 export const WATCH_USD = 1.5;
 // A watcher's ledger checks its cap only before a call, so its hold keeps one call's worst case spare.
 const WATCH_CALL_USD = 0.5;
-// One recipe retrieval or extraction; memory refuses an Opus call whose worst case (about $0.40) passes its cap.
-export const MEMORY_USD = 1;
+// One recipe retrieval or extraction; memory refuses an Opus call whose worst case passes its cap. A
+// 150KB transcript's worst case was $1.06 in round 3's first iteration, so $1 lost that recipe.
+export const MEMORY_USD = 2;
+// The scan's one small check. Its worst case is about $0.18: 300 unclear matches at full context.
+const CHECK_USD = 0.25;
 // Parts in flight at once. The run budget's holds, not this, keep the spend under the cap.
 const CONCURRENCY = 4;
 
@@ -101,26 +124,46 @@ async function held<L extends { readonly spentUsd: number }, T>(
   }
 }
 
-// A provider read, cached for the UTC day, holding WATCH_USD of the run while it reads.
+type ReportedWatcher = (
+  ledger: WatchLedger,
+  hints: ProviderHints,
+  onReport: (report: AnyWatchReport) => void,
+) => WatchProvider;
+
+// A provider read, cached for the UTC day in cacheDir, holding WATCH_USD of the run while it reads.
+// Only a finished read is cached (its report says the agent submitted and was not cut short).
 function readOncePerDay(
-  key: string,
+  provider: string,
+  hints: ProviderHints,
   label: string,
   budget: Budget,
   cacheDir: string,
-  watcher: (ledger: WatchLedger) => WatchProvider,
+  watcher: ReportedWatcher,
 ): WatchProvider {
-  return (since) => {
-    const day = new Date().toISOString().slice(0, 10);
-    return cachedChanges(cacheDir, `${key}-${since ?? 'latest'}-${day}`, () =>
-      held(
-        budget,
-        label,
-        WATCH_USD,
-        (capUsd) => new WatchLedger(capUsd - WATCH_CALL_USD),
-        (ledger) => watcher(ledger)(since),
-      ),
-    );
-  };
+  return (since) =>
+    readThroughCache({
+      dir: cacheDir,
+      provider,
+      hints,
+      since,
+      refreshBefore: refreshTime(provider),
+      read: (readHints) =>
+        held(
+          budget,
+          label,
+          WATCH_USD,
+          (capUsd) => new WatchLedger(capUsd - WATCH_CALL_USD),
+          async (ledger) => {
+            let report: AnyWatchReport | undefined;
+            try {
+              const changes = await watcher(ledger, readHints, (r) => (report = r))(since);
+              return { changes, ...readOutcome(report), costUsd: ledger.spentUsd };
+            } catch (error) {
+              return { changes: [], finished: false, costUsd: ledger.spentUsd, error };
+            }
+          },
+        ),
+    });
 }
 
 // One provider folder's changelog watcher.
@@ -129,20 +172,27 @@ export function providerWatcher(
   budget: Budget,
   cacheDir = defaultWatchCache,
 ): WatchProvider {
-  return readOncePerDay(id, `the ${id} watcher`, budget, cacheDir, (ledger) =>
-    folderWatcher(id, { budget: ledger }),
+  return readOncePerDay(id, {}, `the ${id} watcher`, budget, cacheDir, (ledger, _hints, onReport) =>
+    folderWatcher(id, { budget: ledger, onReport }),
   );
 }
 
-// A watcher for a provider the inventory found that has no folder in providers/, led by its hints.
+// A watcher for a provider the inventory found that has no folder in providers/, led by its hints
+// (and by the hints of every other caller today, so one read serves them all).
 export function anyWatcher(
   provider: string,
   hints: ProviderHints,
   budget: Budget,
   cacheDir = defaultWatchCache,
 ): WatchProvider {
-  return readOncePerDay(`any-${provider}`, `the ${provider} watcher`, budget, cacheDir, (ledger) =>
-    anyProviderWatcher(provider, hints, { budget: ledger }),
+  return readOncePerDay(
+    provider,
+    hints,
+    `the ${provider} watcher`,
+    budget,
+    cacheDir,
+    (ledger, readHints, onReport) =>
+      anyProviderWatcher(provider, readHints, { budget: ledger, onReport }),
   );
 }
 
@@ -163,6 +213,29 @@ async function headCommit(dir: string): Promise<string | undefined> {
   }
 }
 
+// What a real run scans with. The first scan's check spends from the run's cap, and only when the scan
+// is unsure; the rescan is plain code. storeDir feeds the unlisted-provider queue, which evals leave alone.
+export function deadApiScan(
+  budget: Budget,
+  { client, storeDir }: { client?: ModelClient; storeDir?: string } = {},
+): { scan: ScanRepo; rescan: ScanRepo; list: () => DeadApiEntry[] } {
+  return {
+    scan: async (dir, repo) => {
+      const report = await scanDeadApis(dir, repo, { storeDir });
+      if (!report.details.some((detail) => detail.matchClass === 'unclear')) return report;
+      return held(
+        budget,
+        `the ${repo} scan check`,
+        CHECK_USD,
+        (capUsd) => new InventoryLedger({ capUsd }),
+        (ledger) => checkUnclear(report, dir, { client, openLedger: async () => ledger }),
+      );
+    },
+    rescan: (dir, repo) => scanDeadApis(dir, repo, { storeDir }),
+    list: () => entriesInForce(loadDeadApis(), utcDay(new Date())),
+  };
+}
+
 const failed = (taskId: string, costUsd: number, note: string): RunRecord & { note: string } => ({
   taskId,
   outcome: 'failed',
@@ -179,11 +252,24 @@ export function createDeps({
   budget,
   log = (line: string) => console.error(line),
   watchCache = defaultWatchCache,
+  scan,
+  rescan = scan,
+  list,
+  login = false,
+  benchmark = false,
 }: {
   out?: string;
   budget?: Budget;
   log?: (line: string) => void;
   watchCache?: string;
+  // The plain-code scan and the list (deadApiScan). With them a repo gets one session and a rescan.
+  scan?: ScanRepo;
+  rescan?: ScanRepo;
+  list?: () => DeadApiEntry[];
+  // Run on the machine's logged-in Claude credentials: the Agent SDK needs no API key.
+  login?: boolean;
+  // Lets a locked test stand in for a merge on the ladder. Evals only, never for a customer.
+  benchmark?: boolean;
 }): LoopDeps {
   const queue = createMemoryQueue({
     concurrency: CONCURRENCY,
@@ -193,7 +279,7 @@ export function createDeps({
     // A refusal from the run budget is final, so another try would only hold a slot.
     shouldRetry: (error) => !(error instanceof BudgetExceededError),
   });
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.ANTHROPIC_API_KEY && !login) {
     log(
       'WARNING: ANTHROPIC_API_KEY is not set. Offline stubs stand in for every AI part; nothing is read, matched or migrated by a model.',
     );
@@ -211,18 +297,19 @@ export function createDeps({
       log,
     };
   }
-  if (!budget) throw new Error('ANTHROPIC_API_KEY is set, so pass a budget from createBudget().');
+  if (!budget) throw new Error('A real run needs a budget from createBudget().');
 
   // One cap for the whole run. Each part holds its share while it runs and settles to what it spent,
   // so parts running at once never spend the same remainder.
-  const memory = (memoryBudget: MemoryBudget) => ({
-    ...defaultMemory(),
+  const memory = (memoryBudget: MemoryBudget, repo: string) => ({
+    ...defaultMemory(repo),
     ...defaultAi(process.env, memoryBudget),
   });
   const providerIds = listProviderIds();
   const appendRecord = stubRecordRun(out);
 
   return {
+    ...(scan && { scan, list }),
     inventory: async (dir, repo) => {
       const hold = await budget.reserve(`the ${repo} inventory`, DEFAULT_RUN_CAP_USD);
       // Inventory charges its ledger only once the Agent SDK returns a result, so until it returns
@@ -233,6 +320,12 @@ export function createDeps({
         ledger = new InventoryLedger({ capUsd: hold.usd });
         const { usages } = await runInventory(dir, repo, { ledger });
         spentUsd = ledger.spentUsd;
+        // The watch cache splits each day's read over the repos whose inventory named the provider.
+        await noteRepoProviders(
+          watchCache,
+          repo,
+          usages.map((usage) => usage.provider),
+        ).catch(() => {});
         return usages;
       } finally {
         hold.settle(Math.max(spentUsd, ledger?.spentUsd ?? 0));
@@ -242,36 +335,50 @@ export function createDeps({
       providerIds.map((id) => [id, providerWatcher(id, budget, watchCache)]),
     ),
     watchAny: (provider, hints) => anyWatcher(provider, hints, budget, watchCache),
+    // Opus: on Sonnet, round 3's second iteration missed dota2-helper's stripe-node 23 upgrade and
+    // over-matched the Coinbase bot (10 changes, where Opus found 4), to save about $0.07 a repo.
     match: createMatchAgent({ budget }),
     runTask: async (task, dir) => {
-      const freeUsd = budget.capUsd - budget.spentUsd() - budget.heldUsd();
       let hold: Hold;
       try {
-        hold = await budget.reserve(
-          `task ${task.id}`,
-          Math.max(TASK_USD, freeUsd / CONCURRENCY),
-          MIN_TASK_USD,
-        );
+        // A task starts whenever the run has room for the harness's overshoot reserve.
+        hold = await budget.reserve(`task ${task.id}`, REPO_USD, TURN_RESERVE_USD);
       } catch (error) {
         if (!(error instanceof BudgetExceededError)) throw error;
         const leftUsd = budget.capUsd - budget.spentUsd();
         return failed(
           task.id,
           0,
-          `not attempted: $${leftUsd.toFixed(2)} of the run cap left, below the $${MIN_TASK_USD} a task needs`,
+          `not attempted: $${leftUsd.toFixed(2)} of the run cap left, below the $${TURN_RESERVE_USD} overshoot reserve a task needs`,
         );
       }
       let spentUsd = 0;
       try {
-        // Recipes come first, from what the hold has above the harness's minimum.
+        // Recipes come first. A repo session's are a plain lookup, so memory spends nothing of its
+        // cap; a changelog task's come from what the hold has above the overshoot reserve.
         const ai = memory(
-          new MemoryBudget(Math.max(Math.min(MEMORY_USD, hold.usd - MIN_TASK_USD), 0)),
+          new MemoryBudget(
+            isRepoTask(task) ? 0 : Math.max(Math.min(MEMORY_USD, hold.usd - TURN_RESERVE_USD), 0),
+          ),
+          task.repo,
         );
-        const recipes = await createRetriever(ai)(task).catch((error) => {
+        const recipes = await (
+          isRepoTask(task)
+            ? recipesForEntries(
+                task.entries.map((entry) => entry.id),
+                ai.store,
+              )
+            : createRetriever(ai)(task)
+        ).catch((error) => {
           log(`memory: no recipes for ${task.id}: ${error}`);
           return [];
         });
         const recipesUsd = ai.budget.spentUsd;
+        const habits = await ai.store.getHabits(task.repo).catch(() => undefined);
+        const proved = knownPlan(habits);
+        // The first plan is the repo's proven setup. A second means the checks still failed, so a
+        // model reads what went wrong.
+        let planned = false;
         // shortcut: a harness that throws reports no spend, so until it returns its whole share counts as spent; charge it live through the harness's chargeRun (O5) once that lands.
         spentUsd = hold.usd;
         const record = await runTask(task, dir, {
@@ -281,6 +388,29 @@ export function createDeps({
           loadToolPack: (provider): Promise<ToolPack> =>
             loadToolPack(provider, { hints: hintsFor(task.usages) }),
           retrieveRecipes: async () => recipes,
+          ...(rescan && { rescan: (at) => rescan(at, task.repo), smoke: liveSmoke }),
+          habitNotes: habitNotes(habits),
+          provenFixes: async (repo) => {
+            const runs = await ai.store.listRuns();
+            const ladder = await ai.store.listLadder();
+            const allowed = repo.entries
+              .map((entry) => entry.id)
+              .filter((id) =>
+                provenAllowed(
+                  ladder.find((entry) => entry.entryId === id),
+                  runs,
+                  { benchmark },
+                ),
+              );
+            return loadProvenFixes(providersOf(repo), allowed);
+          },
+          ...(proved && {
+            planPreparation: (evidence, ledger) => {
+              if (planned) return modelPlan(evidence, ledger);
+              planned = true;
+              return Promise.resolve(proved);
+            },
+          }),
         });
         spentUsd = recipesUsd + record.costUsd;
         return record;
@@ -314,22 +444,9 @@ export function createDeps({
         usedRecipeIds: recipeIds,
         commit: await headCommit(dir),
       };
-      const learn = (memoryBudget: MemoryBudget) => learnFromRun(run, memory(memoryBudget));
-      // A record with no transcript was never attempted, so it is stored with nothing to distill.
-      // Learning from an attempt waits for its share of the run; when the run can never free it,
-      // the run is still stored, with nothing to spend.
-      const learned = !record.transcriptPath
-        ? await learn(new MemoryBudget(0))
-        : await held(
-            budget,
-            `learning from ${task.id}`,
-            MEMORY_USD,
-            (capUsd) => new MemoryBudget(capUsd),
-            learn,
-          ).catch((error: unknown) => {
-            if (error instanceof BudgetExceededError) return learn(new MemoryBudget(0));
-            throw error;
-          });
+      // Stored with no model: learning reads stored runs later, in batches, on its own budget, so it
+      // can't delay a fix or spend from a repo's cap (memory/scripts/learn.ts).
+      const learned = await learnFromRun(run, { ...defaultMemory(task.repo), model: undefined });
       if (learned.error) log(`memory: stored ${task.id} but learned no recipe: ${learned.error}`);
     },
     queue,

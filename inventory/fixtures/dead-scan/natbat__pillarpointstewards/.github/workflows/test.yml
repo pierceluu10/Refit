@@ -1,0 +1,15 @@
+# Excerpt of natbat/pillarpointstewards, .github/workflows/test.yml, seen in P5.
+name: Test
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Deploy
+        uses: superfly/flyctl-actions/setup-flyctl@master

@@ -1,0 +1,61 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "palashb01/DocuChat",
+  "commit": "4f222d3a5131129ebeb7f4239c96bdd6392e38da",
+  "provider": "stripe",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' OPENAI_API_KEY='placeholder' PINECONE_API_KEY='placeholder' PINECONE_ENVIRONMENT='placeholder' PINECONE_INDEX='placeholder' STRIPE_SECRET_KEY='placeholder' UPLOADTHING_SECRET='placeholder' UPLOADTHING_APP_ID='placeholder' KINDE_CLIENT_ID='placeholder' KINDE_CLIENT_SECRET='placeholder' KINDE_ISSUER_URL='https://placeholder.kinde.com' KINDE_SITE_URL='http://localhost:3000' KINDE_POST_LOGOUT_REDIRECT_URL='http://localhost:3000' KINDE_POST_LOGIN_REDIRECT_URL='http://localhost:3000'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' OPENAI_API_KEY='placeholder' PINECONE_API_KEY='placeholder' PINECONE_ENVIRONMENT='placeholder' PINECONE_INDEX='placeholder' STRIPE_SECRET_KEY='placeholder' UPLOADTHING_SECRET='placeholder' UPLOADTHING_APP_ID='placeholder' KINDE_CLIENT_ID='placeholder' KINDE_CLIENT_SECRET='placeholder' KINDE_ISSUER_URL='https://placeholder.kinde.com' KINDE_SITE_URL='http://localhost:3000' KINDE_POST_LOGOUT_REDIRECT_URL='http://localhost:3000' KINDE_POST_LOGIN_REDIRECT_URL='http://localhost:3000'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.08101599999999998,
+  "durationMs": 130986,
+  "install": {
+    "code": 0,
+    "tail": "added 655 packages in 30s\n\nnpm warn deprecated crypto@1.0.1: This package is no longer supported. It's now a built-in Node module. If you've depended on crypto, you should switch to the one that's built-in."
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "The postinstall hook (prisma generate) was skipped because install scripts are off. Typecheck needs the generated @prisma/client types. The build script runs it too, but typecheck runs first.",
+        "code": 0
+      },
+      {
+        "command": "npx prisma generate",
+        "why": "The postinstall hook did not run because install scripts are off. This generates the Prisma client that typecheck needs. The build script also runs it.",
+        "code": 0
+      }
+    ],
+    "env": [
+      "DATABASE_URL",
+      "OPENAI_API_KEY",
+      "PINECONE_API_KEY",
+      "PINECONE_ENVIRONMENT",
+      "PINECONE_INDEX",
+      "STRIPE_SECRET_KEY",
+      "UPLOADTHING_SECRET",
+      "UPLOADTHING_APP_ID",
+      "KINDE_CLIENT_ID",
+      "KINDE_CLIENT_SECRET",
+      "KINDE_ISSUER_URL",
+      "KINDE_SITE_URL",
+      "KINDE_POST_LOGOUT_REDIRECT_URL",
+      "KINDE_POST_LOGIN_REDIRECT_URL"
+    ]
+  }
+}

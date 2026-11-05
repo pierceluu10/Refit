@@ -4,8 +4,20 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { LocalEmbedder, type JsonRequest, type Model } from './ai.ts';
 import { makeRecord, makeTask } from './fixtures/tasks.ts';
-import { createRetriever, learnFromRun, recordVerdict, renderMemoryForPrompt } from './index.ts';
+import {
+  createRetriever,
+  learnFromRun,
+  habitNotes,
+  recordEvidence,
+  recordHabits,
+  recordVerdict,
+  renderMemoryForPrompt,
+} from './index.ts';
 import { JsonMemoryStore } from './store.ts';
+
+// A needs-review run on a repo already failing its checks: only a human verdict says anything about
+// the recipes it used.
+const redBaseline = [{ name: 'tsc', before: 'fail (2)', after: 'fail (2)' }];
 
 // Fake model: extraction merges into the first stored recipe; skill writing returns a fixed block.
 function fakeModel(store: JsonMemoryStore): Model {
@@ -38,7 +50,11 @@ describe('learnFromRun end to end', () => {
 
     for (const repo of ['example-org/a', 'example-org/b', 'example-org/c']) {
       await learnFromRun(
-        { task: makeTask({ repo }), record: makeRecord(), transcript: 'ok' },
+        {
+          task: makeTask({ repo }),
+          record: makeRecord({ humanVerdict: 'merged' }),
+          transcript: 'ok',
+        },
         deps,
       );
     }
@@ -56,7 +72,10 @@ describe('learnFromRun end to end', () => {
     );
     await learnFromRun({ ...used, record: makeRecord({ outcome: 'failed' }) }, deps);
     for (const pr of [first, second]) {
-      await learnFromRun({ ...used, record: makeRecord({ outcome: 'needs-review', pr }) }, deps);
+      await learnFromRun(
+        { ...used, record: makeRecord({ outcome: 'needs-review', checks: redBaseline, pr }) },
+        deps,
+      );
     }
     await recordVerdict(first, 'closed', deps);
     expect((await store.getRecipe(recipe.id))?.skill?.status).toBe('active');
@@ -72,7 +91,14 @@ describe('learnFromRun end to end', () => {
 
     await Promise.all(
       ['example-org/a', 'example-org/b', 'example-org/c'].map((repo) =>
-        learnFromRun({ task: makeTask({ repo }), record: makeRecord(), transcript: 'ok' }, deps),
+        learnFromRun(
+          {
+            task: makeTask({ repo }),
+            record: makeRecord({ humanVerdict: 'merged' }),
+            transcript: 'ok',
+          },
+          deps,
+        ),
       ),
     );
 
@@ -98,7 +124,11 @@ describe('learnFromRun end to end', () => {
     const pr = 'https://github.com/example-org/shop/pull/9';
 
     const first = await learnFromRun(
-      { task: makeTask(), record: makeRecord({ outcome: 'needs-review', pr }), transcript: '' },
+      {
+        task: makeTask(),
+        record: makeRecord({ outcome: 'needs-review', checks: redBaseline, pr }),
+        transcript: '',
+      },
       deps,
     );
     expect(first.recipe).toBeUndefined();
@@ -123,7 +153,7 @@ describe('recordVerdict', () => {
     const { store, deps } = await setup();
     let last;
     for (const repo of ['example-org/a', 'example-org/b', 'example-org/c']) {
-      const record = makeRecord({ outcome: 'needs-review', pr: prFor(repo) });
+      const record = makeRecord({ outcome: 'needs-review', checks: redBaseline, pr: prFor(repo) });
       await learnFromRun({ task: makeTask({ repo }), record, transcript: 'ok' }, deps);
       last = await recordVerdict(prFor(repo), 'merged', deps);
     }
@@ -134,25 +164,92 @@ describe('recordVerdict', () => {
     expect(recipe.skill?.status).toBe('active');
   });
 
-  it('counts a PR a human edited as a success and distils it', async () => {
+  it('does not count an edit as a success on its own; the merge after it does, and keeps the edit', async () => {
     const { deps } = await setup();
     const pr = prFor('example-org/shop');
     await learnFromRun(
-      { task: makeTask(), record: makeRecord({ outcome: 'needs-review', pr }), transcript: '' },
+      {
+        task: makeTask(),
+        record: makeRecord({ outcome: 'needs-review', checks: redBaseline, pr }),
+        transcript: '',
+      },
       deps,
     );
 
     const edited = await recordVerdict(pr, 'edited', deps);
+    expect(edited?.recipe).toBeUndefined();
 
-    expect(edited?.run.record.humanVerdict).toBe('edited');
-    expect(edited?.recipe?.repos).toEqual(['example-org/shop']);
+    const merged = await recordVerdict(pr, 'merged', deps);
+    expect(merged?.run.evidence).toMatchObject({ edited: true, merged: {} });
+    expect(merged?.recipe?.repos).toEqual(['example-org/shop']);
+  });
+
+  it('counts a revert against the fix: its repo leaves the recipe and its recipes hear of it', async () => {
+    const { store, deps } = await setup();
+    const repo = 'example-org/a';
+    const record = makeRecord({ pr: prFor(repo), humanVerdict: 'merged' });
+    await learnFromRun({ task: makeTask({ repo }), record, transcript: 'ok' }, deps);
+    const [made] = await store.listRecipes();
+    expect(made.verifiedRepos).toBe(1);
+
+    const at = '2026-11-04T00:00:00.000Z';
+    await recordEvidence(prFor(repo), { reverted: { at, via: 'rescan' } }, deps);
+
+    const after = await store.getRecipe(made.id);
+    expect(after).toMatchObject({ verifiedRepos: 0, confidence: 'low' });
+  });
+
+  it('sends what a person changed back to learning, and a redelivery changes nothing', async () => {
+    const { store, deps } = await setup();
+    const pr = prFor('example-org/shop');
+    const record = makeRecord({ pr, humanVerdict: 'merged' });
+    await learnFromRun({ task: makeTask(), record, transcript: 'ok' }, deps);
+    const at = '2026-11-04T00:00:00.000Z';
+    const evidence = { merged: { at, humanDiff: 'diff --git a/x b/x\n-a\n+b\n' } };
+
+    const first = await recordEvidence(pr, evidence, deps);
+    expect(first?.run.extraction).toBeUndefined();
+    expect(first?.run.evidence?.merged?.humanDiff).toContain('+b');
+
+    const later = { merged: { at: '2026-11-05T00:00:00.000Z', humanDiff: 'other' } };
+    const redelivered = await recordEvidence(pr, later, deps);
+    expect(redelivered?.run.evidence?.merged).toEqual(evidence.merged);
+    expect(await store.listRuns()).toHaveLength(1);
+  });
+
+  it('keeps the earliest time, and a plain verdict never wipes a diff', async () => {
+    const { deps } = await setup();
+    const pr = prFor('example-org/shop');
+    await learnFromRun(
+      { task: makeTask(), record: makeRecord({ pr, outcome: 'needs-review' }), transcript: 'ok' },
+      deps,
+    );
+    const mergedAt = '2026-11-04T00:00:00.000Z';
+    await deps.store.addEvidence(pr, { merged: { at: '2026-11-04T09:00:00.000Z' } });
+    const sent = await deps.store.addEvidence(pr, { merged: { at: mergedAt, humanDiff: 'd' } });
+    expect(sent?.evidence?.merged).toEqual({ at: mergedAt, humanDiff: 'd' });
+    const after = await deps.store.recordVerdict(pr, 'merged');
+    expect(after?.evidence?.merged).toEqual({ at: mergedAt, humanDiff: 'd' });
+  });
+
+  it('keeps repeated edits through later runs, for the customer alone', async () => {
+    const { store, deps } = await setup();
+    const repo = 'example-org/shop';
+    await recordHabits({ repo, edits: { repeatedFiles: ['src/pay.ts'] } }, deps);
+    const record = makeRecord({ pr: prFor(repo) });
+    await learnFromRun({ task: makeTask({ repo }), record, transcript: 'ok' }, deps);
+    const habits = await store.getHabits(repo);
+    expect(habits?.repeatedEdits).toEqual(['src/pay.ts']);
+    expect(habitNotes(habits)).toContain(
+      'People keep changing this file after our PRs, so read it closely: `src/pay.ts`',
+    );
   });
 
   it('counts a closed PR against the recipes its run used and takes its repo off the recipe it made', async () => {
     const { store, deps } = await setup();
     const verified = { outcome: 'verified' as const };
     for (const repo of ['example-org/a', 'example-org/b']) {
-      const record = makeRecord({ ...verified, pr: prFor(repo) });
+      const record = makeRecord({ ...verified, pr: prFor(repo), humanVerdict: 'merged' });
       await learnFromRun({ task: makeTask({ repo }), record, transcript: 'ok' }, deps);
     }
     const [made] = await store.listRecipes();
@@ -162,20 +259,21 @@ describe('recordVerdict', () => {
     await learnFromRun(
       {
         task: makeTask({ repo: 'example-org/c' }),
-        record: makeRecord({ outcome: 'needs-review', pr: usedPr }),
+        record: makeRecord({ outcome: 'needs-review', checks: redBaseline, pr: usedPr }),
         transcript: '',
         usedRecipeIds: [made.id],
       },
       deps,
     );
     await recordVerdict(usedPr, 'closed', deps);
-    await recordVerdict(prFor('example-org/b'), 'closed', deps);
+    const at = '2026-11-04T00:00:00.000Z';
+    await recordEvidence(prFor('example-org/b'), { reverted: { at, via: 'revert' } }, deps);
 
     const recipe = await store.getRecipe(made.id);
     expect(recipe?.failedRunIds).toHaveLength(1);
     expect(recipe?.repos).toEqual(['example-org/a']);
     expect(renderMemoryForPrompt([recipe!])).toContain(
-      'verified on 1 repos; 1 later PR that used it closed by a human without merging',
+      'verified on 1 repos; 1 later run that used it failed',
     );
   });
 
@@ -183,7 +281,11 @@ describe('recordVerdict', () => {
     const { store, deps } = await setup();
     for (const repo of ['example-org/a', 'example-org/b', 'example-org/c']) {
       await learnFromRun(
-        { task: makeTask({ repo }), record: makeRecord(), transcript: 'ok' },
+        {
+          task: makeTask({ repo }),
+          record: makeRecord({ humanVerdict: 'merged' }),
+          transcript: 'ok',
+        },
         deps,
       );
     }
@@ -193,7 +295,7 @@ describe('recordVerdict', () => {
     const demoted = [];
     for (const repo of ['example-org/d', 'example-org/e']) {
       const pr = prFor(repo);
-      const record = makeRecord({ outcome: 'needs-review', pr });
+      const record = makeRecord({ outcome: 'needs-review', checks: redBaseline, pr });
       const task = makeTask({ repo });
       await learnFromRun({ task, record, transcript: '', usedRecipeIds: [skill.id] }, deps);
       demoted.push(...((await recordVerdict(pr, 'closed', deps))?.demoted ?? []));
@@ -207,7 +309,11 @@ describe('recordVerdict', () => {
     const { store, deps } = await setup();
     const pr = prFor('example-org/shop');
     await learnFromRun(
-      { task: makeTask(), record: makeRecord({ outcome: 'needs-review', pr }), transcript: '' },
+      {
+        task: makeTask(),
+        record: makeRecord({ outcome: 'needs-review', checks: redBaseline, pr }),
+        transcript: '',
+      },
       deps,
     );
 
@@ -223,7 +329,11 @@ describe('recordVerdict', () => {
     const { store, deps } = await setup();
     const pr = prFor('example-org/shop');
     const { run } = await learnFromRun(
-      { task: makeTask(), record: makeRecord({ outcome: 'needs-review', pr }), transcript: '' },
+      {
+        task: makeTask(),
+        record: makeRecord({ outcome: 'needs-review', checks: redBaseline, pr }),
+        transcript: '',
+      },
       { store, embedder: deps.embedder },
     );
     let release = () => {};

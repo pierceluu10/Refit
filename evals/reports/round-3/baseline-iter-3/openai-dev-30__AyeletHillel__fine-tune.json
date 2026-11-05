@@ -1,0 +1,64 @@
+{
+  "set": "openai-dev-30",
+  "repo": "AyeletHillel/fine-tune",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 0.2718362,
+    "tasks": 1,
+    "verified": 1
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.1287083,
+    "prepCostUsd": 0.003974,
+    "diffLines": 126,
+    "finalText": "I switched the fine-tuning model from `gpt-3.5-turbo` to `gpt-4.1-mini-2025-04-14`, because OpenAI shut `gpt-3.5-turbo` down on 2026-10-23. I didn't run or build anything, and I haven't confirmed the new model works for your account or your `input.jsonl`.\n\n**What the repo uses:** the OpenAI API through the `openai` Node SDK (`^4.2.0`). It calls `files.create`, `files.retrieve`, and `fineTuning.jobs.create`, `retrieve` and `listEvents`. It also uses `dotenv`, which isn't an external API.\n\n**What I changed:**\n- **`src/index.ts` and `dist/index.js`:** both `fineTuning.jobs.create` calls now use `gpt-4.1-mini-2025-04-14`. I edited `dist/` by hand rather than rebuilding it.\n- **`README.md`:** the title now says GPT-4.1 mini, and I added a short note on the shutdown and the dates below.\n\n**Why this model:** the fine-tuning guide lists only three fine-tunable models, `gpt-4.1`, `gpt-4.1-mini` and `gpt-4.1-nano`. `gpt-4.1-nano` shut down on the same day as `gpt-3.5-turbo`. Of the other two, `gpt-4.1-mini` is the cheaper, closer replacement for `gpt-3.5-turbo`.\n\n**Deprecations coming within 90 days (not fixed in code):**\n- **2027-01-06:** existing customers can no longer create new fine-tuning jobs. After that date this script's `jobs.create` will fail for every model.\n- **2027-01-14:** `gpt-4.1-mini-2025-04-14` and its fine-tuned versions shut down. I picked it anyway because it is the best option available today, but this script will have no working fine-tune target after those dates.\n\n**Not touched:**\n- **OpenAI SDK version:** I found no required SDK upgrade for these calls.\n- **Other retirements:** the Evals dashboard and API, Agent Builder, and the `v1/prompts` API, all scheduled to shut down 2026-11-30, are not used by this repo.\n\nSources:\n- [OpenAI deprecations](https://platform.openai.com/docs/deprecations)\n- [Supervised fine-tuning guide](https://platform.openai.com/docs/guides/supervised-fine-tuning)",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-AyeletHillel-fine-tune/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "gpt-3.5-turbo shut down 2026-10-23; the fine-tuning base model must be replaced",
+          "correct": false,
+          "note": "It switched to gpt-5.6-terra, and its own comment says this model is unverified as a fine-tuning base and its model page lists inference only. The fine-tuning guide lists only gpt-4.1 / gpt-4.1-mini / gpt-4.1-nano as fine-tunable, so jobs.create would likely be rejected."
+        },
+        {
+          "change": "New self-serve fine-tuning jobs end 2027-01-06",
+          "correct": true,
+          "note": "It adds a date guard that throws FineTuningUnavailableError without calling the API. This is reasonable handling for an upcoming cutoff the code cannot otherwise work around."
+        },
+        {
+          "change": "openai SDK 7 / Node 22",
+          "correct": true,
+          "note": "It correctly judged that no bump is required."
+        }
+      ],
+      "breaks": [
+        "Choosing a model that is likely not fine-tunable makes jobs.create fail right away.",
+        "Adding dist to .gitignore was not required, though it is harmless."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "gpt-3.5-turbo shut down 2026-10-23; the fine-tuning base model must be replaced",
+          "correct": true,
+          "note": "It switched to gpt-4.1-mini-2025-04-14, which the fine-tuning guide lists as fine-tunable. It noted that gpt-4.1-nano was also retired."
+        },
+        {
+          "change": "New fine-tuning jobs end 2027-01-06, and gpt-4.1-mini shuts down 2027-01-14",
+          "correct": true,
+          "note": "It named both clearly. No working fine-tune target exists beyond those dates, so naming them is the appropriate handling."
+        }
+      ],
+      "breaks": [
+        "It added a hand-edited, previously untracked dist/index.js build artifact to the repo. This was not required."
+      ]
+    },
+    "better": "claude",
+    "why": "B picks a model the docs say is fine-tunable, so the script works today, and it names the upcoming cutoffs. A's replacement model is admittedly unverified for fine-tuning and likely breaks job creation, even though its cutoff guard is a nice touch.",
+    "costUsd": 0.047592
+  }
+}

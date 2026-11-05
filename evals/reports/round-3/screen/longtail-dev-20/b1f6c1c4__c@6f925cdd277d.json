@@ -1,0 +1,19 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "b1f6c1c4/c",
+  "commit": "6f925cdd277d55e5f5b6c2b44f434c75a42563f4",
+  "provider": "monday",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.025785999999999976,
+  "durationMs": 29300,
+  "install": {
+    "code": 0,
+    "tail": "added 126 packages in 2.156s\n\n(node:48) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

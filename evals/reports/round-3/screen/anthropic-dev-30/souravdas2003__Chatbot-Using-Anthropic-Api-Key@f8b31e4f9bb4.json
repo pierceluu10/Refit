@@ -1,0 +1,33 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "souravdas2003/Chatbot-Using-Anthropic-Api-Key",
+  "commit": "f8b31e4f9bb420210fc9883017a8ca950042ab8e",
+  "provider": "anthropic",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "build",
+      "command": "npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.040901999999999994,
+  "durationMs": 77906,
+  "install": {
+    "code": 0,
+    "tail": "added 160 packages in 11s\n\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "cd client && npm install --ignore-scripts",
+        "why": "The root postinstall (cd client && npm install) did not run, so the client dependencies, including react-scripts, are missing. The root build runs react-scripts build in client.",
+        "code": 0
+      }
+    ],
+    "env": []
+  }
+}

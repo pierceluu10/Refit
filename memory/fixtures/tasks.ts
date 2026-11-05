@@ -32,7 +32,9 @@ export function makeTask(overrides: Partial<MigrationTask> = {}): MigrationTask 
 }
 
 export function makeRecord(overrides: Partial<RunRecord> = {}): RunRecord {
+  const rescan = { findings: [], unlistedProviders: [], clean: true };
   return {
+    ...{ rescan },
     taskId: 'task-stripe-charges',
     outcome: 'verified',
     diff: '- stripe.charges.create({ amount, source })\n+ stripe.paymentIntents.create({ amount, payment_method, confirm: true })',

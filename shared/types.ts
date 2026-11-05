@@ -101,6 +101,7 @@ export type RunRepoJob = (input: {
   dir: string; // a fresh checkout to read; repo code never runs on the host
   openPullRequest: OpenPullRequest;
   dryRun?: boolean; // stop before opening PRs
+  scan?: ScanResult; // this checkout's scan, when the caller already ran it
 }) => Promise<RunRecord[]>;
 
 // Where to look for a provider's changes. The inventory fills it (P5); the watchers read it (F4).
@@ -119,3 +120,83 @@ export type RunView = {
   summary: string; // one line: what changed, or why nothing did
   finishedAt: string;
 };
+
+// Rebuild contracts (2026-11-05). Additive only. The list and scanner live in dead-apis/ and inventory/.
+
+// What the scanner matches for one entry, as defined in dead-apis/match.ts. `string` is a whole token,
+// so gpt-4 doesn't hit gpt-4o and embedding-001 doesn't hit gemini-embedding-001; `*` is a wildcard
+// within the token. `regex` is for shapes a token can't say, `url` a host and path, `field` a property
+// read on an object from that provider, `package` a dependency name. `ambiguous` means a hit is common
+// words or the same shape as the app's own code, so it goes to the small AI check and never to a fix.
+export type DeadApiMatcher =
+  | {
+      kind: 'string';
+      value: string;
+      caseSensitive?: boolean;
+      ambiguous?: boolean;
+      /** The name alone, so a router's anthropic/claude-3-haiku isn't Anthropic's claude-3-haiku. */
+      bare?: boolean;
+    }
+  | { kind: 'regex'; value: string; ambiguous?: boolean }
+  | { kind: 'url'; value: string; ambiguous?: boolean }
+  | { kind: 'field'; value: string; on?: string[]; ambiguous?: boolean }
+  | { kind: 'package'; value: string; ecosystem?: 'npm' | 'python' };
+
+// A version gate. An entry with none applies to every version. A pin never clears an entry alone:
+// the scanner compares the version the code runs at against `since`.
+export type DeadApiVersions = {
+  describe: string;
+  apiVersionSince?: string; // the provider's dated API version that removed it, e.g. 2025-03-31.basil
+  sdkSince?: { package: string; version: string; ecosystem?: 'npm' | 'python' }[];
+  // The other way round: versions below this are the dead ones, such as an SDK whose old default host is gone.
+  sdkUntil?: { package: string; version: string; ecosystem?: 'npm' | 'python' }[];
+};
+
+export type DeadApiEntry = {
+  id: string;
+  provider: string;
+  what: string; // what died
+  diedOn: string; // ISO date
+  source: { url: string; checkedOn: string; quote?: string };
+  lookFor: string[]; // the same as `matchers`, in words a fix session can read
+  matchers: DeadApiMatcher[];
+  versions?: string; // `appliesTo.describe`, kept flat for prompts
+  appliesTo?: DeadApiVersions;
+  replacement: string; // must appear on the provider's own page, or say what the page says instead
+  replacementIds?: string[]; // model ids or paths named in `replacement`, so a chain can be checked
+  requires: string[]; // what else moving to the replacement requires
+  // Where the entry counts: the same model name on another host isn't this provider's model.
+  context?: { packages?: string[]; hosts?: string[] };
+};
+
+// Announced but still working. Never flagged as a break.
+export type FutureShutdown = {
+  id: string;
+  provider: string;
+  what: string;
+  diesOn: string; // ISO date
+  earliest?: boolean; // the provider calls the date "earliest possible", so it doesn't turn on by itself
+  source: { url: string; checkedOn: string; quote?: string };
+  matchers: DeadApiMatcher[];
+  appliesTo?: DeadApiVersions;
+  replacement?: string;
+  replacementIds?: string[];
+  requires?: string[];
+  context?: DeadApiEntry['context'];
+};
+
+export type MatchClass = 'live' | 'catalog' | 'test' | 'comment' | 'unclear';
+
+export type Finding = {
+  entryId: string;
+  file: string;
+  line: number;
+  matchClass: MatchClass;
+  version?: string; // the version the code runs at, when an entry has a version gate
+};
+
+// `clean` means nothing on the list needs a fix. Unlisted providers are not "clean" evidence:
+// they go to the queue, so an unknown provider never reads as nothing to do.
+export type ScanResult = { findings: Finding[]; unlistedProviders: string[]; clean: boolean };
+
+export type ScanRepo = (repoDir: string, repo: string) => Promise<ScanResult>;

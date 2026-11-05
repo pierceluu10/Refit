@@ -1,34 +1,58 @@
+import { join } from 'node:path';
 import type { MigrationTask, RetrieveRecipes, RunRecord, RunView } from '../shared/types.ts';
 import { defaultAi, type Embedder, type Model } from './ai.ts';
 import { extractRecipe, succeeded } from './extract.ts';
+import { mergeHabits } from './habits.ts';
+import { ladderFrom } from './ladder.ts';
+import { lessonsFrom } from './lessons.ts';
 import { createRetriever } from './retrieve.ts';
 import { promoteSkills, recordRecipeOutcome } from './skills.ts';
-import { JsonMemoryStore, type MemoryStore } from './store.ts';
-import type { HumanVerdict, MemoryRecipe, StoredRun } from './types.ts';
+import { customerStores, SqliteMemoryStore } from './sqlite-store.ts';
+import { type MemoryStore } from './store.ts';
+import type { FixEvidence, HumanVerdict, MemoryRecipe, StoredRun } from './types.ts';
 import { toRunView } from './views.ts';
 
 export * from './ai.ts';
 export { extractRecipe, succeeded } from './extract.ts';
-export { createRetriever, renderMemoryForPrompt } from './retrieve.ts';
-export { runSelfEval } from './selfeval.ts';
+export { habitNotes, knownPlan, type RepoHabits } from './habits.ts';
+export { ladderFrom, provenAllowed, type LadderEntry, type Level } from './ladder.ts';
+export { lessonsFrom, type DetectionLesson } from './lessons.ts';
+export { learningMetrics, type LearningMetrics } from './metrics.ts';
+export { createRetriever, recipesForEntries, renderMemoryForPrompt } from './retrieve.ts';
+export { scrubFor, shareLearning, sharedStore } from './shared.ts';
 export { promoteSkills, recordRecipeOutcome } from './skills.ts';
+export { customerStores, SqliteMemoryStore } from './sqlite-store.ts';
 export { JsonMemoryStore, type MemoryStore } from './store.ts';
 export type * from './types.ts';
 export { toRunView } from './views.ts';
 
 export type MemoryDeps = { store: MemoryStore; embedder: Embedder; model?: Model };
 
-let defaults: MemoryDeps | undefined;
+const byOwner = new Map<string, MemoryDeps>();
 
-// Built on first use so importing memory/ never reads the environment.
-export function defaultMemory(): MemoryDeps {
-  defaults ??= { store: JsonMemoryStore.fromEnv(), ...defaultAi() };
-  return defaults;
+// The owner a repo name, PR URL or run id belongs to.
+export function ownerOf(repoOrPr: string): string {
+  return /^(?:https:\/\/github\.com\/)?([^/\s]+)\//.exec(repoOrPr)?.[1] ?? '';
+}
+
+export const memoryDir = (env: NodeJS.ProcessEnv = process.env) =>
+  env.APTITUDE_MEMORY_DIR ?? join(process.cwd(), '.aptitude', 'memory');
+
+// One store per customer, built on first use so importing memory/ never reads the environment.
+// Runs, transcripts, habits and recipes stay in it; only scrubbed patterns ever leave (shared.ts).
+export function defaultMemory(repoOrPr = ''): MemoryDeps {
+  const owner = ownerOf(repoOrPr);
+  let deps = byOwner.get(owner);
+  if (!deps) {
+    deps = { store: SqliteMemoryStore.forOwner(memoryDir(), owner), ...defaultAi() };
+    byOwner.set(owner, deps);
+  }
+  return deps;
 }
 
 // The RetrieveRecipes entry point from shared/types.ts; harness/prompt.ts injects what it returns.
 export const retrieveRecipes: RetrieveRecipes = (task: MigrationTask) =>
-  createRetriever(defaultMemory())(task);
+  createRetriever(defaultMemory(task.repo))(task);
 
 type Learned = {
   run: StoredRun;
@@ -49,6 +73,14 @@ function oneAtATime<T>(task: () => Promise<T>): Promise<T> {
   return result;
 }
 
+// The plain-code half of learning: repo habits and the ladder, both facts from the run.
+async function keepHabits(run: StoredRun, store: MemoryStore) {
+  const at = new Date().toISOString();
+  await store.saveHabits(mergeHabits(await store.getHabits(run.task.repo), run, at));
+  for (const entry of ladderFrom(await store.listRuns(), at)) await store.saveLadder(entry);
+  for (const lesson of lessonsFrom(run)) await store.saveLesson(lesson);
+}
+
 // Called by the orchestrator after every run. The run is stored first, so a failed AI pass loses nothing.
 // `commit` is the commit the run read; the self-eval reruns the task on it.
 export async function learnFromRun(
@@ -59,13 +91,14 @@ export async function learnFromRun(
     usedRecipeIds?: string[];
     commit?: string;
   },
-  deps: MemoryDeps = defaultMemory(),
+  deps: MemoryDeps = defaultMemory(input.task.repo),
 ): Promise<Learned> {
   // Stored before it waits its turn, so a restart while it waits loses nothing.
   const recorded = await deps.store.recordRun(input);
   return oneAtATime(async () => {
     // Read again: a verdict may have reached the run while it waited.
     const run = (await deps.store.getRun(recorded.id)) ?? recorded;
+    await keepHabits(run, deps.store);
     return learn(run, await recordRecipeOutcome(run, deps), deps);
   });
 }
@@ -77,7 +110,7 @@ export async function learnFromRun(
 export async function recordVerdict(
   runIdOrPr: string,
   verdict: HumanVerdict,
-  deps: MemoryDeps = defaultMemory(),
+  deps: MemoryDeps = defaultMemory(runIdOrPr),
 ): Promise<Learned | undefined> {
   const recorded = await deps.store.recordVerdict(runIdOrPr, verdict);
   if (!recorded) return undefined;
@@ -85,8 +118,72 @@ export async function recordVerdict(
     const run = (await deps.store.getRun(recorded.id)) ?? recorded;
     const demoted = await recordRecipeOutcome(run, deps);
     const distilled = run.extraction?.status === 'done' && run.extraction.mode === 'recipe';
-    return learn(run, demoted, deps, succeeded(run.record) && !distilled);
+    return learn(run, demoted, deps, succeeded(run) && !distilled);
   });
+}
+
+// What really happened to a PR, from the GitHub App. Stored at once. A person's edits or closing
+// comment reach the recipe the next time learning runs; a revert counts against it now.
+export async function recordEvidence(
+  runIdOrPr: string,
+  evidence: FixEvidence,
+  deps: MemoryDeps = defaultMemory(runIdOrPr),
+): Promise<Learned | undefined> {
+  const recorded = await deps.store.addEvidence(runIdOrPr, evidence);
+  if (!recorded) return undefined;
+  return oneAtATime(async () => {
+    const stored = (await deps.store.getRun(recorded.id)) ?? recorded;
+    const teaches = evidence.merged?.humanDiff || evidence.closed?.comment;
+    const { extraction: _learned, ...unlearned } = stored;
+    const run = teaches ? unlearned : stored;
+    if (teaches) await deps.store.saveRun(run);
+    await keepHabits(run, deps.store);
+    const demoted = await recordRecipeOutcome(run, deps);
+    return { run, promoted: await promoteSkills(deps), demoted };
+  });
+}
+
+// What a repo's team keeps doing to our PRs, from the GitHub App, for the customer's own store. A
+// rejection's reason already arrives with its evidence, so only the repeated edits are new here.
+export async function recordHabits(
+  { repo, edits }: { repo: string; edits: { repeatedFiles: string[] } },
+  deps: Pick<MemoryDeps, 'store'> = defaultMemory(repo),
+): Promise<void> {
+  const old = await deps.store.getHabits(repo);
+  await deps.store.saveHabits({
+    repo,
+    checks: [],
+    rejected: [],
+    ...old,
+    updatedAt: new Date().toISOString(),
+    repeatedEdits: edits.repeatedFiles,
+  });
+}
+
+// Reads stored runs that haven't taught anything yet, in batches, on memory's own budget. Passes go
+// one run per provider, so each sees the recipes the last one wrote, and a run that fails is left for
+// the next call. A pass runs at once on purpose: a batch model answers its calls together.
+export async function learnPending(
+  deps: MemoryDeps & { model: Model },
+  { limit = 50 }: { limit?: number } = {},
+): Promise<{ learned: number; failed: number }> {
+  const stored = (await deps.store.listRuns())
+    .filter((run) => run.extraction?.status !== 'done' && run.record.outcome !== 'not-affected')
+    .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))
+    .slice(0, limit);
+  let pending = stored;
+  let learned = 0;
+  let failed = 0;
+  while (pending.length > 0) {
+    const pass = [...new Map(pending.map((run) => [run.task.change.provider, run])).values()];
+    pending = pending.filter((run) => !pass.includes(run));
+    const results = await Promise.all(pass.map((run) => learn(run, [], deps)));
+    for (const result of results) {
+      if (result.error) failed += 1;
+      else learned += 1;
+    }
+  }
+  return { learned, failed };
 }
 
 // The runs the dashboard shows, newest first. The app serves them at GET /api/runs.
@@ -94,9 +191,15 @@ export async function recordVerdict(
 // Postgres once the store holds thousands of runs.
 export async function listRunViews(
   filter: { repo?: string; limit?: number } = {},
-  store: MemoryStore = defaultMemory().store,
+  store?: MemoryStore,
 ): Promise<RunView[]> {
-  const runs = (await store.listRuns())
+  const stores = store
+    ? [store]
+    : filter.repo
+      ? [defaultMemory(filter.repo).store]
+      : customerStores(memoryDir());
+  const runs = (await Promise.all(stores.map((one) => one.listRuns())))
+    .flat()
     .filter((run) => filter.repo === undefined || run.task.repo === filter.repo)
     .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt) || b.id.localeCompare(a.id));
   return runs.slice(0, filter.limit ?? runs.length).map(toRunView);

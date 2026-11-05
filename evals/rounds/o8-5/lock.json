@@ -1,0 +1,259 @@
+[
+  {
+    "repo": "lnmjkessel-code/v13",
+    "commit": "a12f77fdb5f45289da604759f589ee62b4b40924",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "SH-1.2025-10",
+        "file": "app/shopify.server.ts",
+        "dead": "ApiVersion\\.October25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October25",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.2025-10",
+        "file": ".graphqlrc.ts",
+        "dead": "ApiVersion\\.October25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October25",
+          "to": "ApiVersion.October26"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "Naqi-Haider/Hype-Counter",
+    "commit": "475aebb5d1f3ceda2ec1d432e6963aef57056cb2",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "SH-1.2025-10",
+        "file": "app/shopify.server.js",
+        "dead": "ApiVersion\\.October25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October25",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.2025-10",
+        "file": ".graphqlrc.js",
+        "dead": "ApiVersion\\.October25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October25",
+          "to": "ApiVersion.October26"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "AB-Insightful/ab-insightful",
+    "commit": "c61723cf1d3ca4fe39e4f453d57e71da3c820403",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "SH-1.2025-10",
+        "file": "app/shopify.server.js",
+        "dead": "ApiVersion\\.October25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October25",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.2025-10",
+        "file": ".graphqlrc.js",
+        "dead": "ApiVersion\\.October25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October25",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "SH-1.before-2025-04",
+        "file": "app/services/appEmbed.server.js",
+        "dead": "admin/api/2025-01",
+        "alive": ["2026-10", "apiVersion"],
+        "proof": {
+          "from": "admin/api/2025-01",
+          "to": "admin/api/2026-10"
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "SH-10.shopify_y-shopify_s",
+        "file": "extensions/ab-insightful-embed/assets/ab-insightful-embed.js",
+        "dead": "getCookie\\(\"_shopify_y\"\\)",
+        "alive": [],
+        "proof": {
+          "from": "getCookie(\"_shopify_y\")",
+          "to": "getOrCreateVisitorId()"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "stellalphatic/voiceify",
+    "commit": "6a6ae20b55ac1d2802ac192419d7d6a02fdd5db2",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "MG-1.v19.0",
+        "file": "apps/web/src/lib/connectors/catalog.ts",
+        "dead": "url: 'https://graph\\.facebook\\.com/v19\\.0/",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "url: 'https://graph.facebook.com/v19.0/",
+          "to": "url: 'https://graph.facebook.com/v27.0/"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "saurabhbisht95/ai-career-coach",
+    "commit": "9cb184c4efca809ced17dfd06da7de4705995fb4",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "GE-2.gemini-1.5-*",
+        "file": "actions/cover-letter.js",
+        "dead": "gemini-1\\.5-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-1.5-flash",
+          "to": "gemini-3.6-flash"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "GE-2.gemini-1.5-*",
+        "file": "actions/dashboard.js",
+        "dead": "gemini-1\\.5-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-1.5-flash",
+          "to": "gemini-3.6-flash"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "GE-2.gemini-1.5-*",
+        "file": "actions/interview.js",
+        "dead": "gemini-1\\.5-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-1.5-flash",
+          "to": "gemini-3.6-flash"
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "GE-2.gemini-1.5-*",
+        "file": "actions/resume.js",
+        "dead": "gemini-1\\.5-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-1.5-flash",
+          "to": "gemini-3.6-flash"
+        }
+      },
+      {
+        "id": "R5",
+        "entryId": "GE-2.gemini-1.5-*",
+        "file": "lib/inngest/functions.js",
+        "dead": "gemini-1\\.5-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-1.5-flash",
+          "to": "gemini-3.6-flash"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "ownerofstudio37/websitefors37",
+    "commit": "4724ddaeb40090a138d4faf085c4e56d8a5e860a",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "MG-1.v17.0",
+        "file": "app/api/meta-leads/route.ts",
+        "dead": "graph\\.facebook\\.com/v17\\.0",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "graph.facebook.com/v17.0",
+          "to": "graph.facebook.com/v27.0"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "AmandaOrg/udara",
+    "commit": "1c466ec79d9e52ce4954e31aa5a158b48d256894",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "MG-1.v19.0",
+        "file": "src/whatsapp/whatsapp.service.ts",
+        "dead": "graph\\.facebook\\.com/v19\\.0",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "graph.facebook.com/v19.0",
+          "to": "graph.facebook.com/v27.0"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "OR-1.meta-llama-llama-3.3-70b-instruct-free",
+        "file": "src/ai/providers/openrouter-llm.service.ts",
+        "dead": "llama-3\\.3-70b-instruct:free",
+        "alive": [],
+        "proof": {
+          "from": "meta-llama/llama-3.3-70b-instruct:free",
+          "to": "openrouter/free"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "ingridandrade-ctrl/arthea",
+    "commit": "2d796c3b7a2aeeed53c440d77d7a14484a272f25",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "AN-1.claude-sonnet-4-20250514",
+        "file": "src/app/api/ai/config/route.ts",
+        "dead": "\"claude-sonnet-4-20250514\"",
+        "alive": ["claude-sonnet-5-5"],
+        "proof": {
+          "from": "\"claude-sonnet-4-20250514\"",
+          "to": "\"claude-sonnet-5-5\""
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "AN-1.claude-sonnet-4-20250514",
+        "file": "src/app/(dashboard)/sistema/integracoes/ia/page.tsx",
+        "dead": "id: \"claude-sonnet-4-20250514\"",
+        "alive": [],
+        "proof": {
+          "from": "{ id: \"claude-sonnet-4-20250514\"",
+          "to": "{ id: \"claude-sonnet-5-5\""
+        }
+      }
+    ]
+  }
+]

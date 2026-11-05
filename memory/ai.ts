@@ -1,6 +1,7 @@
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import Anthropic from '@anthropic-ai/sdk';
 import { tmpdir } from 'node:os';
+import { MODEL_PRICES } from '../shared/prices.ts';
 
 export class BudgetExceededError extends Error {}
 
@@ -55,10 +56,10 @@ export interface Embedder {
   embed(texts: string[]): Promise<number[][]>;
 }
 
-export const MODEL = 'claude-opus-5-5';
-// Source: Claude API pricing for claude-opus-5-5, $4 / $20 per million tokens, 2026-10-06.
-const INPUT_USD_PER_TOKEN = 4 / 1_000_000;
-const OUTPUT_USD_PER_TOKEN = 20 / 1_000_000;
+// Sonnet, not Opus: distilling a transcript into a recipe was 41% of round 3's first iteration on Opus.
+export const MODEL = 'claude-sonnet-5-5';
+const INPUT_USD_PER_TOKEN = MODEL_PRICES[MODEL].input / 1_000_000;
+const OUTPUT_USD_PER_TOKEN = MODEL_PRICES[MODEL].output / 1_000_000;
 
 // Plain fields, not parameter properties: node runs these files by stripping types, and can't strip those.
 export class AnthropicModel implements Model {
@@ -107,10 +108,12 @@ function worstCaseUsd({ system, prompt, schema, maxTokens }: Required<JsonReques
 export class AgentSdkModel implements Model {
   private readonly budget: Budget;
   private readonly run: typeof query;
+  private readonly model: string;
 
-  constructor(budget: Budget, run: typeof query = query) {
+  constructor(budget: Budget, run: typeof query = query, model = MODEL) {
     this.budget = budget;
     this.run = run;
+    this.model = model;
   }
 
   async json<T>({ system, prompt, schema, maxTokens = 16_000 }: JsonRequest): Promise<T> {
@@ -120,7 +123,7 @@ export class AgentSdkModel implements Model {
     for await (const message of this.run({
       prompt,
       options: {
-        model: MODEL,
+        model: this.model,
         systemPrompt: system,
         outputFormat: { type: 'json_schema', schema },
         tools: [],

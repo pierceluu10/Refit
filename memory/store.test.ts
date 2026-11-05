@@ -75,7 +75,7 @@ describe('JsonMemoryStore', () => {
   it('returns empty lists before anything is stored', async () => {
     const store = await tempStore();
     expect(await store.listRuns()).toEqual([]);
-    expect(await store.getSelfEvalTaskIds()).toBeUndefined();
+    expect(await store.listRecipes()).toEqual([]);
   });
 });
 

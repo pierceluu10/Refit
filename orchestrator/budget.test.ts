@@ -140,6 +140,17 @@ describe('pricing', () => {
     expect(costOf('claude-opus-5-5', usage(100_000, 10_000))).toBeCloseTo(0.6);
   });
 
+  it('prices cache reads at the published rate for each model', () => {
+    const reads = {
+      ...usage(0, 0),
+      cache_read_input_tokens: 1_000_000,
+      cache_creation_input_tokens: 0,
+    };
+    expect(costOf('claude-sonnet-5-5', reads)).toBeCloseTo(0.1);
+    expect(costOf('claude-opus-5-5', reads)).toBeCloseTo(0.2);
+    expect(costOf('claude-haiku-5-5', reads)).toBeCloseTo(0.05);
+  });
+
   it('prices the worst case as every input token plus a full max_tokens of output', () => {
     expect(worstCaseUsd('claude-opus-5-5', 25_000, 10_000)).toBeCloseTo(0.3);
   });

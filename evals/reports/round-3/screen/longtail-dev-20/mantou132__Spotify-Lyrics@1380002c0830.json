@@ -1,0 +1,48 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "mantou132/Spotify-Lyrics",
+  "commit": "1380002c0830fc672f2a00ed497013056851f31b",
+  "provider": "google-analytics",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "corepack yarn@1.22.22 run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "test",
+      "command": "corepack yarn@1.22.22 run test",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.025402,
+  "durationMs": 111646,
+  "install": {
+    "code": 0,
+    "tail": "yarn install v1.22.22\n[1/4] Resolving packages...\n[2/4] Fetching packages...\n[3/4] Linking dependencies...\n[4/4] Building fresh packages...\nDone in 70.98s.\n\nwarning Ignored scripts due to flag."
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "cd functions && corepack yarn@1.22.22 install --ignore-scripts",
+        "why": "The root \"install\" script (yarn --cwd functions) did not run, and the typecheck (tsc --noEmit) may include functions/ sources that need firebase-admin and firebase-functions types.",
+        "code": 0
+      }
+    ],
+    "env": []
+  }
+}

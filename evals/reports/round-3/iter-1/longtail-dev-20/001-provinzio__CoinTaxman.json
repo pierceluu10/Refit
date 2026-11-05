@@ -1,0 +1,111 @@
+{
+  "set": "longtail-dev-20",
+  "index": 1,
+  "repo": "provinzio/CoinTaxman",
+  "commit": "9c72666b989094a24c89220446825d90706da655",
+  "provider": "coinbase-pro",
+  "usages": 4,
+  "changes": 10,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "provinzio/CoinTaxman:coinbase-pro:2024-09-11-pro-api-deprecated",
+      "changeId": "coinbase-pro:2024-09-11-pro-api-deprecated",
+      "kind": "product-shutdown",
+      "change": {
+        "provider": "coinbase-pro",
+        "id": "coinbase-pro:2024-09-11-pro-api-deprecated",
+        "kind": "product-shutdown",
+        "title": "Coinbase Pro API (api.pro.coinbase.com) deprecated; callers must move to the Exchange API (api.exchange.coinbase.com)",
+        "source": {
+          "url": "https://docs.cdp.coinbase.com/exchange/changes/changelog.md",
+          "quote": "The Pro API ([https://api.pro.coinbase.com](https://api.pro.coinbase.com)) has been deprecated. For REST API access, leverage the [Exchange API]"
+        },
+        "affects": {
+          "operations": ["api.pro.coinbase.com"]
+        },
+        "effectiveDate": "2024-09-11"
+      },
+      "reasoning": "Usage 1 calls the Coinbase Pro REST API, host api.pro.coinbase.com per the usage hints. Coinbase deprecated that host on 2024-09-11 and directs callers to the Exchange API at api.exchange.coinbase.com. The candles endpoint exists on the Exchange API with the same path and the same start/end/granularity params. The fix should be to swap the base URL and update the docs reference from docs.pro.coinbase.com. The migration agent should confirm three things: the response shape is still [time, low, high, open, close, volume], the granularity values are unchanged, and the 300-candle limit is unchanged. The deadline has already passed, so this may already be broken.",
+      "callSites": [
+        {
+          "file": "src/price_data.py",
+          "line": 242,
+          "why": "Fetches historical candles via GET /products/{pair}/candles on api.pro.coinbase.com, the host Coinbase has deprecated. Price lookups for Coinbase-sourced transactions will fail or return errors once the host stops serving."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "provinzio/CoinTaxman:coinbase-pro:2024-09-11-pro-api-deprecated",
+        "outcome": "verified",
+        "diff": "diff --git a/src/price_data.py b/src/price_data.py\nindex 6880eeb..8cac111 100644\n--- a/src/price_data.py\n+++ b/src/price_data.py\n@@ -203,7 +203,7 @@ class PriceData:\n     ) -> decimal.Decimal:\n         \"\"\"Retrieve price from Coinbase Pro official REST API.\n \n-        Documentation: https://docs.pro.coinbase.com\n+        Documentation: https://docs.cdp.coinbase.com/exchange/reference\n \n         Args:\n             base_asset (str): Base asset.\n@@ -217,7 +217,7 @@ class PriceData:\n                    (0 if price couldn't be determined)\n         \"\"\"\n \n-        root_url = \"https://api.pro.coinbase.com\"\n+        root_url = \"https://api.exchange.coinbase.com\"\n         pair = f\"{base_asset}-{quote_asset}\"\n \n         minutes_offset = 0\ndiff --git a/tests/test_coinbase_host.py b/tests/test_coinbase_host.py\nnew file mode 100644\nindex 0000000..2c9baa7\n--- /dev/null\n+++ b/tests/test_coinbase_host.py\n@@ -0,0 +1,37 @@\n+import datetime\n+import sys\n+from pathlib import Path\n+from unittest import mock\n+\n+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / \"src\"))\n+\n+import locale  # noqa: E402\n+\n+locale.setlocale = lambda *a, **k: \"C\"  # sandbox lacks the configured locale\n+\n+import price_data  # noqa: E402\n+\n+\n+def test_coinbase_uses_exchange_host():\n+    urls = []\n+\n+    def fake_get(url, *a, **k):\n+        urls.append(url)\n+        r = mock.Mock()\n+        r.text = \"[]\"\n+        return r\n+\n+    t = datetime.datetime(2021, 1, 1, tzinfo=datetime.timezone.utc)\n+    with mock.patch.object(price_data.requests, \"get\", fake_get):\n+        price_data.PriceData()._get_price_coinbase_pro(\"BTC\", t, \"EUR\", 60)\n+\n+    assert urls\n+    for u in urls:\n+        assert u.startswith(\"https://api.exchange.coinbase.com/products/BTC-EUR/candles?\")\n+        assert \"granularity=60\" in u\n+        assert \"pro.coinbase\" not in u\n+\n+\n+if __name__ == \"__main__\":\n+    test_coinbase_uses_exchange_host()\n+    print(\"ok\")\n",
+        "checks": [
+          {
+            "name": "coinbase-host-test",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.09235730000000002,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-provinzio-CoinTaxman-coinbase-pro-2024-09-11-pro-api-deprecated-hbvtAq/transcript.jsonl",
+        "prBody": "## Coinbase Pro API (api.pro.coinbase.com) deprecated; callers must move to the Exchange API (api.exchange.coinbase.com) [Verified]\n\n### Change\n\nIn src/price_data.py, the candles request now goes to https://api.exchange.coinbase.com instead of https://api.pro.coinbase.com. The path and the start, end and granularity params are unchanged. I also updated the docstring link. I added tests/test_coinbase_host.py, which mocks requests.get and checks the request URL.\n\nFiles touched:\n- `src/price_data.py`\n- `tests/test_coinbase_host.py`\n\n### Why\n\nCoinbase shut down the Pro API host on 2024-09-11 and directs callers to the Exchange API.\n\n> The Pro API ([https://api.pro.coinbase.com](https://api.pro.coinbase.com)) has been deprecated. For REST API access, leverage the [Exchange API]\n\nSource: https://docs.cdp.coinbase.com/exchange/changes/changelog.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| coinbase-host-test | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- coinbase-host-test, added by the agent: `python tests/test_coinbase_host.py` (fail (1) → pass)\n\nProvider validators: none run.\n\nTest of this change: `coinbase-host-test`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container python:3.12-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- I did not run openapi_check against the Exchange spec.\n- I did not confirm from the docs that the candle response is still [time, low, high, open, close, volume], that granularity 60 is still accepted, or that the 300-candle limit is unchanged.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Requests go to api.exchange.coinbase.com. The candles endpoint is public, so no credentials are needed. A live call would be needed to confirm the response shape and the 300-candle limit.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0924\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [],
+        "agentChecks": [
+          {
+            "name": "coinbase-host-test",
+            "command": "python tests/test_coinbase_host.py",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# provinzio/CoinTaxman:coinbase-pro:2024-09-11-pro-api-deprecated: verified, $0.0924\nChange: Coinbase Pro API (api.pro.coinbase.com) deprecated; callers must move to the Exchange API (api.exchange.coinbase.com) (coinbase-pro, product-shutdown)\nBaseline checks: coinbase-host-test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=pro\\.coinbase|exchange\\.coinbase → src/price_data.py:206:         Documentation: https://docs.pro.coinbase.com | src/price_data.py:220:         root_url = \"https://api.pro.coinbase.com\"\n2. list_files depth=2 → .github/ |   workflows/ | .gitignore\n3. read_file path=src/price_data.py offset=198 limit=70 → 198\t        self, | 199\t        base_asset: str, | 200\t        utc_time: datetime.datetime,\n4. edit_file path=src/price_data.py old=        root_url = \"https://api.pro.coinbase.com\" new=        root_url = \"https://api.exchange.coinbase.com\" → edited src/price_data.py (1 replacement)\n5. edit_file path=src/price_data.py old=https://docs.pro.coinbase.com new=https://docs.cdp.coinbase.com/exchange/reference → edited src/price_data.py (1 replacement)\n6. shell command=<95 chars> → exit code: 0 | --- stdout --- | # CoinTaxman\n7. shell command=<102 chars> → exit code: 0 | --- stdout --- | 38:class FallbackPriceNotFound(Exception):\n8. write_file path=tests/test_coinbase_host.py content=<859 chars> → wrote tests/test_coinbase_host.py (859 bytes)\n9. run_checks add=[{\"name\":\"coinbase-host-test\",\"command\":\"python tests/test_coinbase_host.py\"}] → registered coinbase-host-test; on the original code it fails (1) | ## coinbase-host-test: fail | command: python tests/test_coinbase_host.py\n10. edit_file path=tests/test_coinbase_host.py old=import price_data  # noqa: E402 new=<139 chars> → edited tests/test_coinbase_host.py (1 replacement)\n11. run_checks  → ## coinbase-host-test: pass | command: python tests/test_coinbase_host.py\n12. finish verdict=migrated summary=<319 chars> why=<90 chars> validators=[] unproven=<248 chars> behaviourChanges=<191 chars> proofTest=coinbase-host-test → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: coinbase-host-test fail (1) → pass\n\n## Result\nFiles changed: src/price_data.py, tests/test_coinbase_host.py\nVerdict: migrated. In src/price_data.py, the candles request now goes to https://api.exchange.coinbase.com instead of https://api.pro.coinbase.com. The path and the start, end and granularity params are unchanged. I also updated the docstring link. I added tests/test_coinbase_host.py, which mocks requests.get and checks the request URL.\nUnproven: I did not run openapi_check against the Exchange spec.; I did not confirm from the docs that the candle response is still [time, low, high, open, close, volume], that granularity 60 is still accepted, or that the 300-candle limit is unchanged.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "This is a pure Python project. Its checks (flake8, mypy, isort) need no codegen or build step, and the Makefile has no generate or build-preparation target. The `install` target only installs requirements, which the sandbox has already handled, and the `build` target builds a Docker image, which isn't needed. Nothing is required."
+        }
+      },
+      "review": {
+        "opinion": "looks-right",
+        "summary": "The only affected call site, `_get_price_coinbase_pro` in src/price_data.py (around line 220), now builds its URL from https://api.exchange.coinbase.com instead of api.pro.coinbase.com. `_get_price_coinbase` delegates to it, so both platforms are covered. The path, query parameters (start, end, granularity=60) and response parsing are unchanged. That matches the Exchange API candles endpoint as I know it ([time, low, high, open, close, volume], so indices 3 and 4 are still open and close), but I could not confirm it against the quoted changelog. The new test mocks `requests.get` and asserts only the host and path. It never makes a live call and never exercises candle parsing with real data. 'verified' is reasonable for a host swap, but no check proves the live endpoint behaves the same.",
+        "concerns": [
+          {
+            "file": "tests/test_coinbase_host.py",
+            "issue": "`requests.get` is mocked to return '[]', so the test checks the URL string only. It never covers the bisect and open/close parsing path, or any live behaviour of api.exchange.coinbase.com: status codes, rate limits, whether it needs a User-Agent, or whether old historical pairs return the same data.",
+            "severity": "low"
+          },
+          {
+            "file": "tests/test_coinbase_host.py",
+            "issue": "The file monkeypatches `locale.setlocale` globally at import time. That may leak into other tests in the same pytest session. The `@misc.delayed` decorator may also add real sleeps to the test.",
+            "severity": "low"
+          },
+          {
+            "file": "src/price_data.py",
+            "issue": "The docstring, log messages and the method name still say 'Coinbase Pro'. This is harmless, but the file was truncated in the prompt, so I could not confirm there are no other api.pro.coinbase.com references elsewhere in the repo (README, other modules).",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Grep the whole repo for 'pro.coinbase' to confirm no other hosts or docs links remain.",
+          "Run one live request against https://api.exchange.coinbase.com/products/BTC-EUR/candles?start=...&end=...&granularity=60 and confirm the response shape is still [time, low, high, open, close, volume].",
+          "Confirm the test's global locale patch doesn't affect other tests in the suite."
+        ],
+        "costUsd": 0.05232,
+        "model": "claude-opus-5-5"
+      }
+    }
+  ],
+  "costUsd": 0.5366602,
+  "durationMs": 133221,
+  "matchReasoning": "provinzio/CoinTaxman:coinbase-pro:2024-09-11-pro-api-deprecated: Usage 1 calls the Coinbase Pro REST API, host api.pro.coinbase.com per the usage hints. Coinbase deprecated that host on 2024-09-11 and directs callers to the Exchange API at api.exchange.coinbase.com. The candles endpoint exists on the Exchange API with the same path and the same start/end/granularity params. The fix should be to swap the base URL and update the docs reference from docs.pro.coinbase.com. The migration agent should confirm three things: the response shape is still [time, low, high, open, close, volume], the granularity values are unchanged, and the 300-candle limit is unchanged. The deadline has already passed, so this may already be broken.\ncoinbase-pro:2025-10-20-tls-1-2-required: not affected: The repo calls Coinbase through Python requests, which negotiates TLS 1.2/1.3 by default on any supported Python/OpenSSL. Nothing in the repo forces TLS 1.0/1.1, so no edit is needed, including after the move to api.exchange.coinbase.com.\ncoinbase-pro:2025-12-11-mica-urls: not affected: This applies to authenticated Exchange customers subject to MiCA, who must use MiCA-specific trading hosts. The repo makes only unauthenticated public market-data calls (candles) and uses no account, FIX or WebSocket connections.\ncoinbase-pro:2026-02-02-address-book-evm-network: not affected: The repo never calls the address book or currencies endpoints. Its only Coinbase call is public candles.\ncoinbase-pro:2025-10-fix-dc-execution-reports: not affected: The repo uses no FIX Drop Copy or FIX Order Entry sessions. It makes only REST HTTP calls through requests.\ncoinbase-pro:2026-03-12-fix-remove-sendersubid: not affected: The repo does not use FIX, so no FIX execution reports or SenderSubID values are read.\ncoinbase-pro:2026-09-25-fix-cancelbatch-reject: not affected: The repo places and cancels no orders and uses no FIX OrderCancelBatch messages.\ncoinbase-pro:2026-10-13-transfer-profile-response: not affected: The repo never calls the transfer-funds-between-profiles endpoint. It only reads public candle data.\ncoinbase-pro:2026-portfolio-isolation-api-keys: not affected: The repo uses no API keys and does not call GET /profiles or GET /accounts/all. The candles call is unauthenticated public data.\ncoinbase-pro:2025-01-travel-rule-fields-removed: not affected: The repo never calls POST /withdrawals/crypto or any withdrawal endpoint.",
+  "costByPart": {
+    "inventory": 0.034248,
+    "watch": 0.1266469,
+    "match": 0.05664,
+    "other": 0.174448,
+    "harness": 0.09235730000000002,
+    "review": 0.05232
+  }
+}

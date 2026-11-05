@@ -1,0 +1,52 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "jorkun/vue3-migration-extension",
+  "commit": "c4c833402c21ff623e4d9e383dbd2c6c73a5b7dc",
+  "provider": "anthropic",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "exit-nonzero: npm error A complete log of this run can be found in: _logs/2026-11-03T20_09_18_997Z-debug-0.log"
+      ],
+      "tail": "npm error npx canceled due to missing packages and no YES option: [\"tsc@2.0.4\"]\nnpm error A complete log of this run can be found in: /tmp/.npm/_logs/2026-11-03T20_09_18_997Z-debug-0.log"
+    },
+    {
+      "name": "test",
+      "command": "npm run test",
+      "ok": false,
+      "failures": ["Error: Cannot find module '/work/out/test/runTest.js'"],
+      "tail": "> jup-vue3-migration-assistant@1.0.0 test\n> node ./out/test/runTest.js\n\n\nnode:internal/modules/cjs/loader:1433\n  throw err;\n  ^\n\nError: Cannot find module '/work/out/test/runTest.js'\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)\n    at Function._load (node:internal/modules/cjs/loader:1216:25)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n    at node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.23.4"
+    }
+  ],
+  "costUsd": 0.3741460000000003,
+  "durationMs": 628389,
+  "install": {
+    "code": 124,
+    "tail": "npm error Exit handler never called!\nnpm error This is an error with npm itself. Please report this error at:\nnpm error   <https://github.com/npm/cli/issues>\nnpm error A complete log of this run can be found in: /tmp/.npm/_logs/2026-11-03T19_59_08_436Z-debug-0.log\nnpm error Exit handler never called!\nnpm error This is an error with npm itself. Please report this error at:\nnpm error   <https://github.com/npm/cli/issues>\nnpm error A complete log of this run can be found in: /tmp/.npm/_logs/2026-11-03T20_04_04_876Z-debug-0.log"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npm install --no-save --ignore-scripts typescript",
+        "why": "typecheck failed because the tsc binary is not in node_modules/.bin, so npx tried to fetch the unrelated 'tsc' package. Installing typescript without saving it makes the local tsc available.",
+        "code": 217
+      },
+      {
+        "command": "npx --no-install tsc -p ./",
+        "why": "The test script runs ./out/test/runTest.js, which doesn't exist until the TypeScript sources are compiled. This is the standard VS Code extension build into out/.",
+        "code": 1
+      }
+    ],
+    "env": []
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "npm install crashed with an npm-internal error (timeout, exit 124), so tsc was never installed and typecheck failed; the test script then failed because ./out/test/runTest.js was never compiled. This is a missing install/build artifact, not a credential, private registry, or unsupported toolchain, although the VS Code extension test runner may later need a downloaded VS Code."
+  }
+}

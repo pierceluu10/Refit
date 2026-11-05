@@ -1,0 +1,733 @@
+{
+  "set": "gemini-dev-15",
+  "index": 2,
+  "repo": "WeWake1/BSOMS",
+  "commit": "8053651d1cf4db4b11d3cdc7621654115deff84e",
+  "provider": "gemini",
+  "usages": 4,
+  "changes": 23,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "WeWake1/BSOMS:gemini:2026-03-gemini-3-pro-preview-shutdown",
+      "changeId": "gemini:2026-03-gemini-3-pro-preview-shutdown",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-03-gemini-3-pro-preview-shutdown",
+        "kind": "model-retirement",
+        "title": "gemini-3-pro-preview shut down Mar 9 2026 and now points to gemini-3.1-pro-preview",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The Gemini 3 Pro Preview model has been [shut down](/docs/deprecations)."
+        },
+        "affects": {
+          "operations": ["gemini-3-pro-preview"]
+        },
+        "effectiveDate": "2026-03-09"
+      },
+      "reasoning": "Uncertain: TEXT_MODEL's value is unknown. gemini-3-pro-preview was shut down on 2026-03-09 and now aliases to gemini-3.1-pro-preview, so nothing hard-fails, but behaviour may have shifted. The migration agent should resolve TEXT_MODEL and, if it is this model, pin gemini-3.1-pro-preview explicitly. Otherwise close the task with no change.",
+      "callSites": [
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 44,
+          "why": "generateContent uses model TEXT_MODEL, whose value the scan did not resolve; if it is gemini-3-pro-preview, requests are already being served by gemini-3.1-pro-preview."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "WeWake1/BSOMS:gemini:2026-03-gemini-3-pro-preview-shutdown",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.07630630000000001,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-WeWake1-BSOMS-gemini-2026-03-gemini-3-pro-preview-shutdown-apVqUZ/transcript.jsonl",
+        "prBody": "## gemini-3-pro-preview shut down Mar 9 2026 and now points to gemini-3.1-pro-preview [Not affected]\n\n### Change\n\nNo code changes. The repo does not reference gemini-3-pro-preview. TEXT_MODEL is 'gemma-4-31b-it' and LIVE_MODEL is 'gemini-3.1-flash-live-preview' (both in lib/gemini-tools.ts). A repo-wide search found no other gemini-3-pro ids.\n\nNo files changed.\n\n### Why\n\nThe retired model gemini-3-pro-preview is not used. The inventory's uncertain TEXT_MODEL resolved to a different model.\n\n> The Gemini 3 Pro Preview model has been [shut down](/docs/deprecations).\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n\nNew failures: 0\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\nNothing known.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0763\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-openai-model-retirement-6816ef95",
+          "recipe-gemini-sdk-major-3e966223"
+        ],
+        "agentChecks": [],
+        "summary": "# WeWake1/BSOMS:gemini:2026-03-gemini-3-pro-preview-shutdown: not-affected, $0.0763\nChange: gemini-3-pro-preview shut down Mar 9 2026 and now points to gemini-3.1-pro-preview (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-|TEXT_MODEL|LIVE_MODEL glob=**/*.{ts,tsx,js,mjs,md,json} → app/api/chat/route.ts:4: import { SYSTEM_INSTRUCTION, TOOL_DECLARATIONS, TEXT_MODEL, executeTool } from '@/lib/gemini-tools'; | app/api/chat/route.ts:45:         model: TEXT_MODEL, | docs/WHATSAPP_INTEGRATION_PLAN.md:83: **Modify** `lib/gem…\n2. finish verdict=not-affected summary=<230 chars> why=<119 chars> validators=[] unproven=[] behaviourChanges=[] → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass\n\n## Result\nFiles changed: none\nVerdict: not-affected. No code changes. The repo does not reference gemini-3-pro-preview. TEXT_MODEL is 'gemma-4-31b-it' and LIVE_MODEL is 'gemini-3.1-flash-live-preview' (both in lib/gemini-tools.ts). A repo-wide search found no other gemini-3-pro ids.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "NEXT_PUBLIC_SUPABASE_URL": "https://placeholder.supabase.co",
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY": "placeholder",
+            "SUPABASE_SERVICE_ROLE_KEY": "placeholder",
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or workspace builds are needed: package.json has no postinstall/prepare/generate scripts, and next-pwa is configured at build time. The build may instantiate Supabase clients or the Gemini client while collecting page data, so placeholder env vars from .env.example are set so the modules load."
+        }
+      }
+    },
+    {
+      "taskId": "WeWake1/BSOMS:gemini:2026-06-01-gemini-2-0-shutdown",
+      "changeId": "gemini:2026-06-01-gemini-2-0-shutdown",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-06-01-gemini-2-0-shutdown",
+        "kind": "model-retirement",
+        "title": "gemini-2.0-flash and flash-lite models shut down June 1 2026",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The following Gemini 2.0 models are now [shut down](/docs/deprecations):"
+        },
+        "affects": {
+          "operations": [
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-001",
+            "gemini-2.0-flash-lite",
+            "gemini-2.0-flash-lite-001"
+          ]
+        },
+        "effectiveDate": "2026-06-01"
+      },
+      "reasoning": "Uncertain: the model constants were not resolved by the scan. gemini-2.0-flash and flash-lite are common defaults for chat and were shut down on 2026-06-01. If either constant names one of them, the chat API or the live voice feature is broken now. The migration agent should check TEXT_MODEL and LIVE_MODEL and move any 2.0 model to a supported one.",
+      "callSites": [
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 44,
+          "why": "generateContent passes model TEXT_MODEL (value unresolved); if it is a gemini-2.0-flash variant, chat requests fail after shutdown."
+        },
+        {
+          "file": "hooks/useGeminiLive.ts",
+          "line": 203,
+          "why": "live.connect passes LIVE_MODEL (value unresolved); if it is a gemini-2.0-flash variant, the live session fails."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "WeWake1/BSOMS:gemini:2026-06-01-gemini-2-0-shutdown",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.06805820000000001,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-WeWake1-BSOMS-gemini-2026-06-01-gemini-2-0-shutdown-B7Ksdk/transcript.jsonl",
+        "prBody": "## gemini-2.0-flash and flash-lite models shut down June 1 2026 [Not affected]\n\n### Change\n\nNo code changes. TEXT_MODEL is 'gemma-4-31b-it' and LIVE_MODEL is 'gemini-3.1-flash-live-preview', both in lib/gemini-tools.ts. A repo-wide search for \"2.0-flash\" found no matches, so no retired model ID is used.\n\nNo files changed.\n\n### Why\n\nThe retired models are gemini-2.0-flash and gemini-2.0-flash-lite (including the -001 variants). This repo does not reference any of them.\n\n> The following Gemini 2.0 models are now [shut down](/docs/deprecations):\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n\nNew failures: 0\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Whether gemma-4-31b-it and gemini-3.1-flash-live-preview are available to the API key, or have their own retirement dates, was not checked.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0681\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-openai-model-retirement-6816ef95",
+          "recipe-gemini-sdk-major-3e966223"
+        ],
+        "agentChecks": [],
+        "summary": "# WeWake1/BSOMS:gemini:2026-06-01-gemini-2-0-shutdown: not-affected, $0.0681\nChange: gemini-2.0-flash and flash-lite models shut down June 1 2026 (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-|TEXT_MODEL|LIVE_MODEL glob=**/*.{ts,tsx,js,mjs,md,json} → app/api/chat/route.ts:4: import { SYSTEM_INSTRUCTION, TOOL_DECLARATIONS, TEXT_MODEL, executeTool } from '@/lib/gemini-tools'; | app/api/chat/route.ts:45:         model: TEXT_MODEL, | docs/WHATSAPP_INTEGRATION_PLAN.md:83: **Modify** `lib/gem…\n2. search pattern=2\\.0-flash → no matches\n3. finish verdict=not-affected summary=<212 chars> why=<138 chars> validators=[] unproven=<143 chars> behaviourChanges=[] → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass\n\n## Result\nFiles changed: none\nVerdict: not-affected. No code changes. TEXT_MODEL is 'gemma-4-31b-it' and LIVE_MODEL is 'gemini-3.1-flash-live-preview', both in lib/gemini-tools.ts. A repo-wide search for \"2.0-flash\" found no matches, so no retired model ID is used.\nUnproven: Whether gemma-4-31b-it and gemini-3.1-flash-live-preview are available to the API key, or have their own retirement dates, was not checked.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "NEXT_PUBLIC_SUPABASE_URL": "https://placeholder.supabase.co",
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY": "placeholder",
+            "SUPABASE_SERVICE_ROLE_KEY": "placeholder",
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or workspace builds are needed: package.json has no postinstall, prepare or generate scripts, and it's a single Next.js project. The build may load Supabase clients and the Gemini client at build time (page data collection), so placeholder env vars from .env.example are provided to keep it from failing on missing values."
+        }
+      }
+    },
+    {
+      "taskId": "WeWake1/BSOMS:gemini:2026-07-21-sampling-params-deprecated",
+      "changeId": "gemini:2026-07-21-sampling-params-deprecated",
+      "kind": "field-removed",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-07-21-sampling-params-deprecated",
+        "kind": "field-removed",
+        "title": "Sampling parameters temperature, top_p, top_k deprecated for Gemini 3.6+ models",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The sampling parameters `temperature`, `top_p`\nand `top_k` are now deprecated."
+        },
+        "affects": {
+          "fields": ["temperature", "top_p", "top_k"]
+        },
+        "effectiveDate": "2026-07-21"
+      },
+      "reasoning": "Uncertain: the contents of geminiConfig and the value of TEXT_MODEL are unknown. If geminiConfig sets sampling parameters and the model is, or is rerouted to, Gemini 3.6+, those parameters are deprecated. The migration agent should inspect geminiConfig and remove sampling params when targeting 3.6+ models.",
+      "callSites": [
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 44,
+          "why": "generateContent passes config: geminiConfig, which may set temperature, top_p or top_k; these are deprecated for Gemini 3.6+ models."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "WeWake1/BSOMS:gemini:2026-07-21-sampling-params-deprecated",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.08019010000000001,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-WeWake1-BSOMS-gemini-2026-07-21-sampling-params-deprecated-jnuwv3/transcript.jsonl",
+        "prBody": "## Sampling parameters temperature, top_p, top_k deprecated for Gemini 3.6+ models [Not affected]\n\n### Change\n\nNo code changes made. The repo never sets temperature, top_p/topP or top_k/topK. geminiConfig in app/api/chat/route.ts holds only systemInstruction and tools. The live-token and live.connect configs have no sampling params either. A repo-wide search for those names, outside build output, found nothing.\n\nNo files changed.\n\n### Why\n\nThe deprecation only affects requests that send sampling parameters, and none of this repo's Gemini calls do. The text model is gemma-4-31b-it and the live model is gemini-3.1-flash-live-preview.\n\n> The sampling parameters `temperature`, `top_p`\n> and `top_k` are now deprecated.\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n\nNew failures: 0\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- I did not open app/api/live-token/route.ts or the live.connect config in hooks/useGeminiLive.ts. I judged them from the repo-wide search for sampling-parameter names, which found nothing.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0802\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-gemini-other-9e8975ad",
+          "recipe-anthropic-sdk-major-50cc7085"
+        ],
+        "agentChecks": [],
+        "summary": "# WeWake1/BSOMS:gemini:2026-07-21-sampling-params-deprecated: not-affected, $0.0802\nChange: Sampling parameters temperature, top_p, top_k deprecated for Gemini 3.6+ models (gemini, field-removed)\nBaseline checks: typecheck pass, build pass\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=app/api/chat/route.ts → 1\timport { NextRequest, NextResponse } from 'next/server'; | 2\timport { GoogleGenAI } from '@google/genai'; | 3\timport { createClient } from '@/lib/supabase/server';\n2. search pattern=temperature|topP|top_p|topK|top_k|gemini- glob=**/*.{ts,tsx,js,mjs} → app/api/chat/route.ts:4: import { SYSTEM_INSTRUCTION, TOOL_DECLARATIONS, TEXT_MODEL, executeTool } from '@/lib/gemini-tools'; | components/dashboard/order-card.tsx:245:         <div className=\"relative inline-block\" onClick={(e) => canChang…\n3. search pattern=generationConfig|TEXT_MODEL =|liveConnectConstraints|lockAdditionalFields → .next/server/app/(dashboard)/dashboard/page.js:12: }`.trim(),document.head.prepend(n),o=HTMLElement.prototype.focus,HTMLElement.prototype.focus=function(e){let t=tx(),r=null!=t&&nF(t);o.call(this,{...e,preventScroll:!0}),e&&e.preventScroll|…\n4. finish verdict=not-affected summary=<303 chars> why=<195 chars> validators=[] unproven=<191 chars> behaviourChanges=[] noProofTestReason=No code was changed, so there is nothing for a test to prove. → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass\n\n## Result\nFiles changed: none\nVerdict: not-affected. No code changes made. The repo never sets temperature, top_p/topP or top_k/topK. geminiConfig in app/api/chat/route.ts holds only systemInstruction and tools. The live-token and live.connect configs have no sampling params either. A repo-wide search for those names, outside build output, found nothing.\nUnproven: I did not open app/api/live-token/route.ts or the live.connect config in hooks/useGeminiLive.ts. I judged them from the repo-wide search for sampling-parameter names, which found nothing.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "NEXT_PUBLIC_SUPABASE_URL": "https://placeholder.supabase.co",
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY": "placeholder",
+            "SUPABASE_SERVICE_ROLE_KEY": "placeholder",
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or workspace builds are needed: package.json has no postinstall/prepare/generate scripts, and next build and tsc run directly. The only environmental need is placeholder env vars so Supabase clients and the Gemini client can load at build time, as listed in .env.example."
+        }
+      }
+    },
+    {
+      "taskId": "WeWake1/BSOMS:gemini:2026-10-08-3-5-3-7-flash-reroute",
+      "changeId": "gemini:2026-10-08-3-5-3-7-flash-reroute",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-10-08-3-5-3-7-flash-reroute",
+        "kind": "model-retirement",
+        "title": "gemini-3.7-flash and gemini-3.5-flash deprecated, auto-routed to gemini-3.8-flash / gemini-3.6-flash",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "API requests to\n`gemini-3.7-flash` are automatically routed to `gemini-3.8-flash`."
+        },
+        "affects": {
+          "operations": ["gemini-3.7-flash", "gemini-3.5-flash"]
+        },
+        "effectiveDate": "2026-10-08"
+      },
+      "reasoning": "Uncertain: TEXT_MODEL's value is unknown. If it is gemini-3.5-flash or gemini-3.7-flash, requests are silently rerouted to gemini-3.6-flash or gemini-3.8-flash, and behaviour may change. The migration agent should check the constant and pin the replacement model explicitly.",
+      "callSites": [
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 44,
+          "why": "TEXT_MODEL (unresolved) could be gemini-3.5-flash or gemini-3.7-flash, which are now auto-routed to a different model."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "WeWake1/BSOMS:gemini:2026-10-08-3-5-3-7-flash-reroute",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.056774200000000004,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-WeWake1-BSOMS-gemini-2026-10-08-3-5-3-7-flash-reroute-NU0jFD/transcript.jsonl",
+        "prBody": "## gemini-3.7-flash and gemini-3.5-flash deprecated, auto-routed to gemini-3.8-flash / gemini-3.6-flash [Not affected]\n\n### Change\n\nNo code changes. The repo never names gemini-3.5-flash or gemini-3.7-flash. TEXT_MODEL in lib/gemini-tools.ts is 'gemma-4-31b-it', and LIVE_MODEL is 'gemini-3.1-flash-live-preview'. A repo-wide search for `gemini-`, TEXT_MODEL and LIVE_MODEL found no other model ids.\n\nNo files changed.\n\n### Why\n\nThe deprecation auto-routes only gemini-3.5-flash and gemini-3.7-flash. The repo uses neither, so its requests are not rerouted.\n\n> API requests to\n> `gemini-3.7-flash` are automatically routed to `gemini-3.8-flash`.\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n\nNew failures: 0\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- I did not check whether gemma-4-31b-it or gemini-3.1-flash-live-preview have their own deprecation notices. They are outside this change.\n- I did not run the checks or write a proof test, because nothing changed.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0568\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-openai-model-retirement-6816ef95"
+        ],
+        "agentChecks": [],
+        "summary": "# WeWake1/BSOMS:gemini:2026-10-08-3-5-3-7-flash-reroute: not-affected, $0.0568\nChange: gemini-3.7-flash and gemini-3.5-flash deprecated, auto-routed to gemini-3.8-flash / gemini-3.6-flash (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-|TEXT_MODEL|LIVE_MODEL glob=**/*.{ts,tsx,js,mjs,json,md} → app/api/chat/route.ts:4: import { SYSTEM_INSTRUCTION, TOOL_DECLARATIONS, TEXT_MODEL, executeTool } from '@/lib/gemini-tools'; | app/api/chat/route.ts:45:         model: TEXT_MODEL, | docs/WHATSAPP_INTEGRATION_PLAN.md:83: **Modify** `lib/gem…\n2. finish verdict=not-affected summary=<267 chars> why=<128 chars> validators=[] unproven=<216 chars> behaviourChanges=[] → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass\n\n## Result\nFiles changed: none\nVerdict: not-affected. No code changes. The repo never names gemini-3.5-flash or gemini-3.7-flash. TEXT_MODEL in lib/gemini-tools.ts is 'gemma-4-31b-it', and LIVE_MODEL is 'gemini-3.1-flash-live-preview'. A repo-wide search for `gemini-`, TEXT_MODEL and LIVE_MODEL found no other model ids.\nUnproven: I did not check whether gemma-4-31b-it or gemini-3.1-flash-live-preview have their own deprecation notices. They are outside this change.; I did not run the checks or write a proof test, because nothing changed.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "NEXT_PUBLIC_SUPABASE_URL": "https://placeholder.supabase.co",
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY": "placeholder",
+            "SUPABASE_SERVICE_ROLE_KEY": "placeholder",
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or workspace builds are needed: the scripts are plain next dev/build/start/lint, with no postinstall or prepare hooks. next-pwa generates the service worker during the build itself. The only environmental need is placeholder env vars so Supabase and Gemini clients can load at build time, as read from .env.example."
+        }
+      }
+    },
+    {
+      "taskId": "WeWake1/BSOMS:gemini:2026-10-26-store-default",
+      "changeId": "gemini:2026-10-26-store-default",
+      "kind": "other",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-10-26-store-default",
+        "kind": "other",
+        "title": "Generate Content API: new paid-tier projects now store requests by default (store=true); opt out with store=false",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "now store requests by default\n(`store=true`), matching the Interactions API."
+        },
+        "affects": {
+          "operations": ["generateContent", "streamGenerateContent", "batchGenerateContent"],
+          "fields": ["store"]
+        },
+        "effectiveDate": "2026-10-26"
+      },
+      "reasoning": "The repo calls generateContent, which now defaults to store=true for new paid-tier projects. The chat route sends order and customer data. It is unknown whether this project is a new paid-tier one. The migration agent should consider setting store=false in geminiConfig if retention is not wanted. This is a behavioural and privacy change, not a breakage.",
+      "callSites": [
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 44,
+          "why": "generateContent is called with business order data; new paid-tier projects now store requests by default unless store=false is set."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "WeWake1/BSOMS:gemini:2026-10-26-store-default",
+        "outcome": "verified",
+        "diff": "diff --git a/app/api/chat/route.ts b/app/api/chat/route.ts\nindex ceb0d3f..2f10b0d 100644\n--- a/app/api/chat/route.ts\n+++ b/app/api/chat/route.ts\n@@ -33,6 +33,8 @@ export async function POST(req: NextRequest) {\n     const geminiConfig = {\n       systemInstruction: SYSTEM_INSTRUCTION,\n       tools: [{ functionDeclarations: TOOL_DECLARATIONS }],\n+      // Opt out of default request storage (store=true for new paid-tier projects)\n+      httpOptions: { extraBody: { store: false } },\n     };\n \n     // Function calling loop — Gemini may call tools before returning a text answer\ndiff --git a/scripts/check-gemini-store.mjs b/scripts/check-gemini-store.mjs\nnew file mode 100644\nindex 0000000..1db986a\n--- /dev/null\n+++ b/scripts/check-gemini-store.mjs\n@@ -0,0 +1,7 @@\n+import fs from 'node:fs';\n+const src = fs.readFileSync(new URL('../app/api/chat/route.ts', import.meta.url), 'utf8');\n+if (!/extraBody:\\s*\\{\\s*store:\\s*false\\s*\\}/.test(src)) {\n+  console.error('chat route does not send store:false');\n+  process.exit(1);\n+}\n+console.log('ok');\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "gemini-store",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.0693395,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-WeWake1-BSOMS-gemini-2026-10-26-store-default-8gr8LU/transcript.jsonl",
+        "prBody": "## Generate Content API: new paid-tier projects now store requests by default (store=true); opt out with store=false [Verified]\n\n### Change\n\nThe chat route's generateContent calls now send store=false via config.httpOptions.extraBody, because @google/genai 1.51.0 has no typed store on GenerateContentConfig. Live-token and live.connect are not generateContent and were left alone.\n\nFiles touched:\n- `app/api/chat/route.ts`\n- `scripts/check-gemini-store.mjs`\n\n### Why\n\nThe changelog says new paid-tier projects now store requests by default (store=true). The chat route sends order and customer data, so it opts out explicitly.\n\n> now store requests by default\n> (`store=true`), matching the Interactions API.\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| gemini-store | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- gemini-store, added by the agent: `export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' GEMINI_API_KEY='placeholder'; node scripts/check-gemini-store.mjs` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY.\n\nTest of this change: `gemini-store`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Whether the API accepts store in the body via extraBody was not checked against a live call.\n- The proof test only checks the source text; it does not mock fetch.\n- Whether the project is a new paid-tier one is unknown.\n- The account-level opt-out in the dashboard is an alternative that code cannot verify.\n- I did not run the provider validators (openapi_check and similar).\n- No provider validator was run.\n\n### Behaviour changes\n\n- Chat requests now carry store:false, so Google should not retain them.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0693\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": ["recipe-gemini-other-9e8975ad"],
+        "agentChecks": [
+          {
+            "name": "gemini-store",
+            "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' GEMINI_API_KEY='placeholder'; node scripts/check-gemini-store.mjs",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# WeWake1/BSOMS:gemini:2026-10-26-store-default: verified, $0.0693\nChange: Generate Content API: new paid-tier projects now store requests by default (store=true); opt out with store=false (gemini, other)\nBaseline checks: typecheck pass, build pass, gemini-store fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=app/api/chat/route.ts → 1\timport { NextRequest, NextResponse } from 'next/server'; | 2\timport { GoogleGenAI } from '@google/genai'; | 3\timport { createClient } from '@/lib/supabase/server';\n2. shell command=<157 chars> → exit code: 0 | --- stdout --- | 3:  \"version\": \"1.51.0\",\n3. edit_file path=app/api/chat/route.ts old=      tools: [{ functionDeclarations: TOOL_DECLARATIONS }],\n    }; new=<202 chars> → edited app/api/chat/route.ts (1 replacement)\n4. write_file path=scripts/check-gemini-store.mjs content=<272 chars> → wrote scripts/check-gemini-store.mjs (272 bytes)\n5. run_checks add=[{\"name\":\"gemini-store\",\"command\":\"node scripts/check-gemini-store.mjs\"}] → registered gemini-store; on the original code it fails (1) | ## typecheck: pass | command: export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder'…\n6. finish verdict=migrated summary=<240 chars> why=<158 chars> validators=[] unproven=<380 chars> behaviourChanges=[\"Chat requests now carry store:false, so Google should not retain them.\"] proofTest=gemini-store noProofTestReason= → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, gemini-store fail (1) → pass\n\n## Result\nFiles changed: app/api/chat/route.ts, scripts/check-gemini-store.mjs\nVerdict: migrated. The chat route's generateContent calls now send store=false via config.httpOptions.extraBody, because @google/genai 1.51.0 has no typed store on GenerateContentConfig. Live-token and live.connect are not generateContent and were left alone.\nUnproven: Whether the API accepts store in the body via extraBody was not checked against a live call.; The proof test only checks the source text; it does not mock fetch.; Whether the project is a new paid-tier one is unknown.; The account-level opt-out in the dashboard is an alternative that code cannot verify.; I did not run the provider validators (openapi_check and similar).\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "NEXT_PUBLIC_SUPABASE_URL": "https://placeholder.supabase.co",
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY": "placeholder",
+            "SUPABASE_SERVICE_ROLE_KEY": "placeholder",
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or workspace builds are needed: the scripts have no postinstall/prepare hooks and there is no Prisma, GraphQL or protobuf setup. next build only needs the Supabase and Gemini env vars to load, so placeholders are provided. The next-pwa service worker is generated by the build itself."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff opts the text chat path out of storage by adding `httpOptions: { extraBody: { store: false } }` to the `generateContent` config in app/api/chat/route.ts. That is a plausible approach, but it has not been shown to work. The only new check is a regex the agent wrote, and it passes whenever the string is present. Nothing shows the SDK serialises `store` where the API expects it, or that the API accepts it. The Live call sites the match agent named (authTokens.create, live.connect) are left unchanged with no stated reason. The 'verified' grade overstates what the checks prove.",
+        "concerns": [
+          {
+            "file": "app/api/chat/route.ts",
+            "issue": "Line ~37: `extraBody` merges `store: false` into the raw request body. I could not confirm from the quoted changelog that `store` is a top-level field of the generateContent request body rather than nested elsewhere. If it is placed wrongly or not recognised, the API may silently ignore it, so requests would still be stored. It could also reject it with a 400, which would break every chat request because the catch returns 500. Confirm the field location in the Generate Content API reference and check how @google/genai's HttpOptions.extraBody is merged for models.generateContent.",
+            "severity": "high"
+          },
+          {
+            "file": "scripts/check-gemini-store.mjs",
+            "issue": "The check only greps the source for `extraBody: { store: false }`. It proves the text exists, not that it reaches the wire or has any effect. No request is captured, mocked or sent live. The 'verified' grade rests on this check, so it should be needs-review.",
+            "severity": "medium"
+          },
+          {
+            "file": "hooks/useGeminiLive.ts",
+            "issue": "`live.connect` (line ~203) was named as affected but is not changed. The changelog wording covers the Generate Content API. Whether the Live API sessions also default to storage is not addressed. If it does, voice transcripts of order-DB queries may be stored with no opt-out.",
+            "severity": "medium"
+          },
+          {
+            "file": "app/api/live-token/route.ts",
+            "issue": "`authTokens.create` (line ~25) is untouched, and the PR gives no reason. If storage for Live sessions is governed by the ephemeral token's constraints, the opt-out would need to go there.",
+            "severity": "low"
+          },
+          {
+            "file": "app/api/chat/route.ts",
+            "issue": "The field is sent unconditionally, including for free-tier or older projects where storage was never the default. Confirm the API accepts `store` on all tiers and the pinned API version (the default v1beta here), rather than erroring.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Confirm in the Gemini API reference that `store` is a top-level generateContent request field, and that it is accepted on the API version the SDK uses by default.",
+          "Check that @google/genai's HttpOptions.extraBody is applied to the models.generateContent request body in the installed SDK version. Ideally capture one outgoing request to see it.",
+          "Decide whether Live API sessions (live.connect via ephemeral tokens) also store by default, and whether they need an opt-out.",
+          "Downgrade the grade to needs-review unless a live or mocked request test confirms `store: false` is sent and accepted."
+        ],
+        "costUsd": 0.05994,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "WeWake1/BSOMS:gemini:2026-11-17-preview-shutdowns",
+      "changeId": "gemini:2026-11-17-preview-shutdowns",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-11-17-preview-shutdowns",
+        "kind": "model-retirement",
+        "title": "Shutdown Nov 17 2026: gemini-3.1-flash-tts-preview, gemini-2.5-flash/pro-preview-tts, gemini-3.1-flash-live-preview, gemini-2.5-flash-native-audio-preview-12-2025",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/deprecations.md.txt",
+          "quote": "`gemini-3.1-flash-live-preview`\n* March 11, 2026\n* November 17, 2026\n* `gemini-3.8-live`"
+        },
+        "affects": {
+          "operations": [
+            "gemini-3.1-flash-tts-preview",
+            "gemini-2.5-flash-preview-tts",
+            "gemini-2.5-pro-preview-tts",
+            "gemini-3.1-flash-live-preview",
+            "gemini-2.5-flash-native-audio-preview-12-2025"
+          ]
+        },
+        "effectiveDate": "2026-11-17"
+      },
+      "reasoning": "The repo uses the Gemini Live API (live.connect with ephemeral auth tokens). It very likely targets one of the preview live or native-audio models shutting down on 2026-11-17 (replacement gemini-3.8-live), though LIVE_MODEL's value is unresolved. After shutdown the voice feature would fail to connect. The migration agent should resolve LIVE_MODEL, check whether the token config also pins it, and move both to the replacement.",
+      "callSites": [
+        {
+          "file": "hooks/useGeminiLive.ts",
+          "line": 203,
+          "why": "live.connect uses LIVE_MODEL on the v1alpha Live API; the current live models gemini-3.1-flash-live-preview and gemini-2.5-flash-native-audio-preview-12-2025 shut down on 2026-11-17."
+        },
+        {
+          "file": "app/api/live-token/route.ts",
+          "line": 25,
+          "why": "authTokens.create config may pin the live model in its constraints and would need the same model update."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "WeWake1/BSOMS:gemini:2026-11-17-preview-shutdowns",
+        "outcome": "verified",
+        "diff": "diff --git a/lib/gemini-tools.ts b/lib/gemini-tools.ts\nindex 79c1e23..75bb3a7 100644\n--- a/lib/gemini-tools.ts\n+++ b/lib/gemini-tools.ts\n@@ -4,9 +4,9 @@ import * as queries from '@/lib/supabase/chatbot-queries';\n \n export const TEXT_MODEL = 'gemma-4-31b-it';\n \n-// Live (audio-to-audio) model — Gemini 3.1 Flash Live, native audio-to-audio.\n-// If the API key lacks preview access, fall back to 'gemini-live-2.5-flash-preview'.\n-export const LIVE_MODEL = 'gemini-3.1-flash-live-preview';\n+// Live (audio-to-audio) model — Gemini 3.8 Live, native audio-to-audio.\n+// Replaces gemini-3.1-flash-live-preview, which shuts down 2026-11-17.\n+export const LIVE_MODEL = 'gemini-3.8-live';\n \n export const SYSTEM_INSTRUCTION =\n   'You are an order management assistant for OrderFlow. You have access to a live database of orders. ' +\ndiff --git a/scripts/check-live-model.mjs b/scripts/check-live-model.mjs\nnew file mode 100644\nindex 0000000..31b0cbb\n--- /dev/null\n+++ b/scripts/check-live-model.mjs\n@@ -0,0 +1,5 @@\n+import { readFileSync } from 'node:fs';\n+const s = readFileSync('lib/gemini-tools.ts', 'utf8');\n+if (!/LIVE_MODEL = 'gemini-3\\.8-live'/.test(s)) { console.error('LIVE_MODEL not migrated'); process.exit(1); }\n+if (/gemini-3\\.1-flash-live-preview'/.test(s)) { console.error('retired id still set'); process.exit(1); }\n+console.log('ok');\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "live-model",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.0879021,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-WeWake1-BSOMS-gemini-2026-11-17-preview-shutdowns-fx1LqI/transcript.jsonl",
+        "prBody": "## Shutdown Nov 17 2026: gemini-3.1-flash-tts-preview, gemini-2.5-flash/pro-preview-tts, gemini-3.1-flash-live-preview, gemini-2.5-flash-native-audio-preview-12-2025 [Verified]\n\n### Change\n\nChanged LIVE_MODEL in lib/gemini-tools.ts from gemini-3.1-flash-live-preview to gemini-3.8-live. The ephemeral token config in app/api/live-token/route.ts does not pin a model, so it needed no change. Added scripts/check-live-model.mjs as the proof check.\n\nFiles touched:\n- `lib/gemini-tools.ts`\n- `scripts/check-live-model.mjs`\n\n### Why\n\ngemini-3.1-flash-live-preview shuts down on 2026-11-17, so live.connect would fail after that date.\n\n> `gemini-3.1-flash-live-preview`\n> * March 11, 2026\n> * November 17, 2026\n> * `gemini-3.8-live`\n\nSource: https://ai.google.dev/gemini-api/docs/deprecations.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| live-model | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- live-model, added by the agent: `export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' GEMINI_API_KEY='placeholder'; node scripts/check-live-model.mjs` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY.\n\nTest of this change: `live-model`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Did not check whether gemini-3.8-live supports the same config as the old model: voice, tools, response modalities and v1alpha with ephemeral tokens.\n- The proof script only checks the source text, not what goes over the wire.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Voice sessions now use gemini-3.8-live, so audio quality, latency, tool-calling behaviour and cost may differ.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0879\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-gemini-other-9e8975ad",
+          "recipe-openai-model-retirement-6816ef95"
+        ],
+        "agentChecks": [
+          {
+            "name": "live-model",
+            "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' GEMINI_API_KEY='placeholder'; node scripts/check-live-model.mjs",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# WeWake1/BSOMS:gemini:2026-11-17-preview-shutdowns: verified, $0.0879\nChange: Shutdown Nov 17 2026: gemini-3.1-flash-tts-preview, gemini-2.5-flash/pro-preview-tts, gemini-3.1-flash-live-preview, gemini-2.5-flash-native-audio-preview-12-2025 (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass, live-model fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=LIVE_MODEL|TEXT_MODEL|gemini-|v1alpha glob=**/*.{ts,tsx,md,json,example} → app/api/chat/route.ts:4: import { SYSTEM_INSTRUCTION, TOOL_DECLARATIONS, TEXT_MODEL, executeTool } from '@/lib/gemini-tools'; | app/api/chat/route.ts:45:         model: TEXT_MODEL, | app/api/live-token/route.ts:11: // Ephemeral tokens are G…\n2. read_file path=lib/gemini-tools.ts limit=15 → 1\timport { Type } from '@google/genai'; | 2\timport type { FunctionDeclaration } from '@google/genai'; | 3\timport * as queries from '@/lib/supabase/chatbot-queries';\n3. read_file path=app/api/live-token/route.ts → 1\timport { NextResponse } from 'next/server'; | 2\timport { GoogleGenAI } from '@google/genai'; | 3\timport { createClient } from '@/lib/supabase/server';\n4. edit_file path=lib/gemini-tools.ts old=<223 chars> new=<189 chars> → edited lib/gemini-tools.ts (1 replacement)\n5. write_file path=scripts/check-live-model.mjs content=<332 chars> → wrote scripts/check-live-model.mjs (332 bytes)\n6. run_checks add=[{\"name\":\"live-model\",\"command\":\"node scripts/check-live-model.mjs\"}] → registered live-model; on the original code it fails (1) | ## typecheck: pass | command: export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' G…\n7. finish verdict=migrated summary=<255 chars> why=<99 chars> validators=[] unproven=<230 chars> behaviourChanges=<114 chars> proofTest=live-model → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, live-model fail (1) → pass\n\n## Result\nFiles changed: lib/gemini-tools.ts, scripts/check-live-model.mjs\nVerdict: migrated. Changed LIVE_MODEL in lib/gemini-tools.ts from gemini-3.1-flash-live-preview to gemini-3.8-live. The ephemeral token config in app/api/live-token/route.ts does not pin a model, so it needed no change. Added scripts/check-live-model.mjs as the proof check.\nUnproven: Did not check whether gemini-3.8-live supports the same config as the old model: voice, tools, response modalities and v1alpha with ephemeral tokens.; The proof script only checks the source text, not what goes over the wire.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "NEXT_PUBLIC_SUPABASE_URL": "https://placeholder.supabase.co",
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY": "placeholder",
+            "SUPABASE_SERVICE_ROLE_KEY": "placeholder",
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or workspace builds are needed: package.json has no postinstall/prepare/generate scripts and it is a single package. The build only needs the Supabase and Gemini env vars set to placeholders so that modules which read them at import time can load. Type errors are ignored in next build, and next-pwa generates its service worker during build."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The edit is minimal and probably correct. The only live model reference is `LIVE_MODEL` in `lib/gemini-tools.ts`, and `hooks/useGeminiLive.ts:203` reads that constant, so changing it to `gemini-3.8-live` covers the Live path. The new ID matches the replacement named in the quoted deprecation table. `app/api/chat/route.ts` uses `TEXT_MODEL` (`gemma-4-31b-it`), and `app/api/live-token/route.ts` does not name a model, so neither needs a change. The 'verified' grade is overstated, though. The only check that flipped is `live-model`, a script the agent wrote that greps the source for the new string. It proves the edit was made, not that the model accepts this session. Typecheck and build cannot catch a wrong model ID because it is a plain string. Nothing opened a real Live session against `gemini-3.8-live` with the existing config (v1alpha ephemeral token, AUDIO modality, Puck voice, input/output transcription, function tools, `sendRealtimeInput` audio at 16 kHz). I could not confirm from memory that `gemini-3.8-live` is available on v1alpha with ephemeral tokens or supports every one of those features; the quoted deprecations page and the Live API model docs are where to check.",
+        "concerns": [
+          {
+            "file": "scripts/check-live-model.mjs",
+            "issue": "The check is circular: it regex-matches the exact string the diff inserted, so it passes whether or not the model exists or works. It does not justify a 'verified' grade. The grade should be needs-review unless a live connect smoke test ran.",
+            "severity": "medium"
+          },
+          {
+            "file": "hooks/useGeminiLive.ts",
+            "issue": "The `live.connect` config at about line 203 was not exercised against the new model. That covers `responseModalities` AUDIO, the `prebuiltVoiceConfig` 'Puck' voice, input/output audio transcription, tool calling over the socket via `sendToolResponse`, and the `audio/pcm;rate=16000` input format. A replacement model can differ in voices, transcription or tool support, and any failure only appears at runtime as the 'Voice connection error' path.",
+            "severity": "medium"
+          },
+          {
+            "file": "app/api/live-token/route.ts",
+            "issue": "Ephemeral tokens are minted on v1alpha. I could not confirm that `gemini-3.8-live` is served on v1alpha or accepts ephemeral-token auth; if it is v1beta-only, sessions will fail at runtime.",
+            "severity": "medium"
+          },
+          {
+            "file": "lib/gemini-tools.ts",
+            "issue": "The diff removes the old fallback comment (`gemini-live-2.5-flash-preview`). That is harmless, but it is worth confirming no other code or env config still references the retired IDs.",
+            "severity": "low"
+          },
+          {
+            "file": "scripts/check-live-model.mjs",
+            "issue": "The diff adds a one-off migration script to the repo; it is unclear whether it is wired into CI or is just scaffolding to remove.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Start a voice session in a dev or staging deployment and confirm that `ai.live.connect` with `model: 'gemini-3.8-live'` opens, streams audio back, emits transcriptions and completes a tool call such as get_orders_summary.",
+          "Check the Gemini Live API model docs to confirm that `gemini-3.8-live` is available on v1alpha with ephemeral tokens and supports the 'Puck' prebuilt voice, transcription and function calling.",
+          "Grep the repo, env files and docs for any remaining `gemini-3.1-flash-live-preview` or other retired preview IDs (TTS, native-audio) named in this shutdown."
+        ],
+        "costUsd": 0.07358,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "WeWake1/BSOMS:gemini:2026-12-01-gemini-2-5-flash-reroute",
+      "changeId": "gemini:2026-12-01-gemini-2-5-flash-reroute",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-12-01-gemini-2-5-flash-reroute",
+        "kind": "model-retirement",
+        "title": "gemini-2.5-flash deprecated; from Dec 1 2026 requests route to gemini-3.5-flash-lite with breaking API changes",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/deprecations.md.txt",
+          "quote": "Effective December 1, 2026, all API requests to `gemini-2.5-flash`\nwill automatically route to"
+        },
+        "affects": {
+          "operations": ["gemini-2.5-flash", "gemini-3.5-flash-lite"],
+          "fields": ["thinking_budget", "thinking_level"]
+        },
+        "effectiveDate": "2026-12-01"
+      },
+      "reasoning": "Uncertain: TEXT_MODEL's value is unknown, but gemini-2.5-flash is a very common chat choice. From 2026-12-01 its requests route to gemini-3.5-flash-lite with breaking API differences. The migration agent should check TEXT_MODEL and geminiConfig (thinkingBudget), migrate the model, and switch to thinkingLevel if needed.",
+      "callSites": [
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 44,
+          "why": "If TEXT_MODEL is gemini-2.5-flash, requests reroute to gemini-3.5-flash-lite with breaking changes (thinking_level replaces thinking_budget) that geminiConfig may hit."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "WeWake1/BSOMS:gemini:2026-12-01-gemini-2-5-flash-reroute",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.059773200000000005,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-WeWake1-BSOMS-gemini-2026-12-01-gemini-2-5-flash-reroute-BCg7bN/transcript.jsonl",
+        "prBody": "## gemini-2.5-flash deprecated; from Dec 1 2026 requests route to gemini-3.5-flash-lite with breaking API changes [Not affected]\n\n### Change\n\nNo code changes. The repo never sends the model ID gemini-2.5-flash, and it never sets thinkingBudget or thinkingLevel.\n\nNo files changed.\n\n### Why\n\nTEXT_MODEL in lib/gemini-tools.ts is 'gemma-4-31b-it'. Gemma is not on the gemini-2.5-flash reroute. LIVE_MODEL is 'gemini-3.1-flash-live-preview', which is also not gemini-2.5-flash. The only mention of 2.5 is a comment naming a fallback Live ID, 'gemini-live-2.5-flash-preview', which the code never uses. A search for 'thinking' found nothing.\n\n> Effective December 1, 2026, all API requests to `gemini-2.5-flash`\n> will automatically route to\n\nSource: https://ai.google.dev/gemini-api/docs/deprecations.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n\nNew failures: 0\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- I ran no checks and no provider validators, because nothing changed.\n\n### Behaviour changes\n\n- None. Separate from this change: LIVE_MODEL 'gemini-3.1-flash-live-preview' may be on a different retirement notice. The recipe notes say it shuts down 2026-11-17. I did not check this against the deprecations page, so someone should.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0598\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": ["recipe-gemini-model-retirement-84ad9a3f", "recipe-gemini-other-9e8975ad"],
+        "agentChecks": [],
+        "summary": "# WeWake1/BSOMS:gemini:2026-12-01-gemini-2-5-flash-reroute: not-affected, $0.0598\nChange: gemini-2.5-flash deprecated; from Dec 1 2026 requests route to gemini-3.5-flash-lite with breaking API changes (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-|TEXT_MODEL|LIVE_MODEL|thinkingBudget|temperature path=. glob=**/*.{ts,tsx,js,mjs,json} → app/api/chat/route.ts:4: import { SYSTEM_INSTRUCTION, TOOL_DECLARATIONS, TEXT_MODEL, executeTool } from '@/lib/gemini-tools'; | app/api/chat/route.ts:45:         model: TEXT_MODEL, | hooks/useGeminiLive.ts:5: import { LIVE_MODEL, SYSTEM_INS…\n2. search pattern=thinking|2\\.5-flash glob=**/*.{ts,tsx,md,env*} → lib/gemini-tools.ts:8: // If the API key lacks preview access, fall back to 'gemini-live-2.5-flash-preview'.\n3. finish verdict=not-affected summary=<119 chars> why=<346 chars> validators=[] unproven=[\"I ran no checks and no provider validators, because nothing changed.\"] behaviourChanges=<238 chars> → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass\n\n## Result\nFiles changed: none\nVerdict: not-affected. No code changes. The repo never sends the model ID gemini-2.5-flash, and it never sets thinkingBudget or thinkingLevel.\nUnproven: I ran no checks and no provider validators, because nothing changed.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "NEXT_PUBLIC_SUPABASE_URL": "https://placeholder.supabase.co",
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY": "placeholder",
+            "SUPABASE_SERVICE_ROLE_KEY": "placeholder",
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or workspace builds are needed: the repo has no postinstall/prepare scripts, and next build and tsc work on the installed dependencies. The only environmental need is placeholder env vars, since Supabase clients and the Gemini client may be constructed at build time when Next collects page data."
+        }
+      }
+    },
+    {
+      "taskId": "WeWake1/BSOMS:gemini:2026-12-01-gemini-2-5-pro-reroute",
+      "changeId": "gemini:2026-12-01-gemini-2-5-pro-reroute",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-12-01-gemini-2-5-pro-reroute",
+        "kind": "model-retirement",
+        "title": "gemini-2.5-pro deprecated; from Dec 1 2026 requests route to gemini-3.8-flash with breaking API changes (thought_signature validation, thinking_level replaces thinking_budget, sampling params and prefill removed)",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "Effective December 1, 2026, all API\nrequests to `gemini-2.5-pro` will automatically route to"
+        },
+        "affects": {
+          "operations": ["gemini-2.5-pro", "gemini-3.8-flash"],
+          "fields": ["thinking_budget", "thinking_level", "temperature", "top_p", "top_k"]
+        },
+        "effectiveDate": "2026-12-01"
+      },
+      "reasoning": "Uncertain: TEXT_MODEL's value is unknown. If it is gemini-2.5-pro, the reroute on 2026-12-01 changes the model and rejects temperature/top_p/top_k and thinking_budget. The migration agent should check TEXT_MODEL and geminiConfig and migrate accordingly.",
+      "callSites": [
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 44,
+          "why": "If TEXT_MODEL is gemini-2.5-pro, requests reroute to gemini-3.8-flash, where sampling params, prefill and thinking_budget are removed; geminiConfig may use these."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "WeWake1/BSOMS:gemini:2026-12-01-gemini-2-5-pro-reroute",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.0647403,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-WeWake1-BSOMS-gemini-2026-12-01-gemini-2-5-pro-reroute-Ze2xG5/transcript.jsonl",
+        "prBody": "## gemini-2.5-pro deprecated; from Dec 1 2026 requests route to gemini-3.8-flash with breaking API changes (thought_signature validation, thinking_level replaces thinking_budget, sampling params and prefill removed) [Not affected]\n\n### Change\n\nNo code changes. TEXT_MODEL is 'gemma-4-31b-it' and LIVE_MODEL is 'gemini-3.1-flash-live-preview'. Nothing in the repo references gemini-2.5-pro, thinkingBudget, temperature, topP or topK. The chat route's config holds only systemInstruction and tools.\n\nNo files changed.\n\n### Why\n\nThe 2026-12-01 reroute of gemini-2.5-pro to gemini-3.8-flash only affects requests that name gemini-2.5-pro. This repo has none, so the reroute and its parameter changes don't reach it.\n\n> Effective December 1, 2026, all API\n> requests to `gemini-2.5-pro` will automatically route to\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n\nNew failures: 0\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- LIVE_MODEL 'gemini-3.1-flash-live-preview' is in a separate notice that shuts it down on 2026-11-17, replaced by gemini-3.8-live. That is a different deadline and I did not migrate it here. lib/gemini-tools.ts needs it changed, and the Live config and ephemeral-token flow need a manual voice test.\n- The chat route replays function-call history across turns. I did not check it against thought_signature validation, which matters only if TEXT_MODEL moves to a Gemini 3.x model.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0647\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": ["recipe-gemini-model-retirement-84ad9a3f", "recipe-gemini-other-9e8975ad"],
+        "agentChecks": [],
+        "summary": "# WeWake1/BSOMS:gemini:2026-12-01-gemini-2-5-pro-reroute: not-affected, $0.0647\nChange: gemini-2.5-pro deprecated; from Dec 1 2026 requests route to gemini-3.8-flash with breaking API changes (thought_signature validation, thinking_level replaces thinking_budget, sampling params and prefill removed) (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-|TEXT_MODEL|LIVE_MODEL|thinkingBudget|temperature|topP|topK|geminiConfig glob=**/*.{ts,tsx} → app/api/chat/route.ts:4: import { SYSTEM_INSTRUCTION, TOOL_DECLARATIONS, TEXT_MODEL, executeTool } from '@/lib/gemini-tools'; | app/api/chat/route.ts:33:     const geminiConfig = { | app/api/chat/route.ts:45:         model: TEXT_MODEL,\n2. read_file path=app/api/chat/route.ts limit=60 → 1\timport { NextRequest, NextResponse } from 'next/server'; | 2\timport { GoogleGenAI } from '@google/genai'; | 3\timport { createClient } from '@/lib/supabase/server';\n3. search pattern=2\\.5-pro|thinking glob=!node_modules/** → no matches\n4. finish verdict=not-affected summary=<252 chars> why=<185 chars> validators=[] unproven=<482 chars> behaviourChanges=[] → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass\n\n## Result\nFiles changed: none\nVerdict: not-affected. No code changes. TEXT_MODEL is 'gemma-4-31b-it' and LIVE_MODEL is 'gemini-3.1-flash-live-preview'. Nothing in the repo references gemini-2.5-pro, thinkingBudget, temperature, topP or topK. The chat route's config holds only systemInstruction and tools.\nUnproven: LIVE_MODEL 'gemini-3.1-flash-live-preview' is in a separate notice that shuts it down on 2026-11-17, replaced by gemini-3.8-live. That is a different deadline and I did not migrate it here. lib/gemini-tools.ts needs it changed, and the Live config and ephemeral-token flow need a manual voice test.; The chat route replays function-call history across turns. I did not check it against thought_signature validation, which matters only if TEXT_MODEL moves to a Gemini 3.x model.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "NEXT_PUBLIC_SUPABASE_URL": "https://placeholder.supabase.co",
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY": "placeholder",
+            "SUPABASE_SERVICE_ROLE_KEY": "placeholder",
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or workspace builds are needed: the scripts are plain next dev/build/start/lint and there are no postinstall/prepare hooks. Next build may load Supabase and Gemini clients at import time, so placeholder env vars from .env.example are provided so the build can load."
+        }
+      }
+    },
+    {
+      "taskId": "WeWake1/BSOMS:gemini:2027-gemini-3-1-flash-lite-and-2-5-flash-image",
+      "changeId": "gemini:2027-gemini-3-1-flash-lite-and-2-5-flash-image",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2027-gemini-3-1-flash-lite-and-2-5-flash-image",
+        "kind": "model-retirement",
+        "title": "Future shutdowns: gemini-3.1-flash-lite (May 7 2027), gemini-2.5-flash-image (Mar 15 2027)",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/deprecations.md.txt",
+          "quote": "* `gemini-3.1-flash-lite`\n* May 7, 2026\n* May 7, 2027\n* `gemini-3.5-flash-lite`"
+        },
+        "affects": {
+          "operations": ["gemini-3.1-flash-lite", "gemini-2.5-flash-image"]
+        },
+        "effectiveDate": "2027-03-15"
+      },
+      "reasoning": "Uncertain: only the gemini-3.1-flash-lite part could apply, since the repo does no image generation. If TEXT_MODEL is gemini-3.1-flash-lite, move it to gemini-3.5-flash-lite before May 2027. The migration agent should check the constant.",
+      "callSites": [
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 44,
+          "why": "TEXT_MODEL (unresolved) could be gemini-3.1-flash-lite, which shuts down on 2027-05-07."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "WeWake1/BSOMS:gemini:2027-gemini-3-1-flash-lite-and-2-5-flash-image",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.0534429,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-WeWake1-BSOMS-gemini-2027-gemini-3-1-flash-lite-and-2-5-flash-image-3paov9/transcript.jsonl",
+        "prBody": "## Future shutdowns: gemini-3.1-flash-lite (May 7 2027), gemini-2.5-flash-image (Mar 15 2027) [Not affected]\n\n### Change\n\nNo code changes. TEXT_MODEL in lib/gemini-tools.ts is 'gemma-4-31b-it'. LIVE_MODEL is 'gemini-3.1-flash-live-preview'. A repo-wide search found no 'gemini-3.1-flash-lite' and no 'gemini-2.5-flash-image'.\n\nNo files changed.\n\n### Why\n\nThe two retiring ids, gemini-3.1-flash-lite (May 2027) and gemini-2.5-flash-image (Mar 2027), appear nowhere in the repo. The repo also does no image generation.\n\n> * `gemini-3.1-flash-lite`\n> * May 7, 2026\n> * May 7, 2027\n> * `gemini-3.5-flash-lite`\n\nSource: https://ai.google.dev/gemini-api/docs/deprecations.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n\nNew failures: 0\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- I did not check whether gemini-3.1-flash-live-preview is covered by a separate shutdown notice (the playbook mentions a 2026-11-17 shutdown for Live preview ids). That is a different change and I left it alone.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0534\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": ["recipe-gemini-model-retirement-84ad9a3f", "recipe-gemini-other-9e8975ad"],
+        "agentChecks": [],
+        "summary": "# WeWake1/BSOMS:gemini:2027-gemini-3-1-flash-lite-and-2-5-flash-image: not-affected, $0.0534\nChange: Future shutdowns: gemini-3.1-flash-lite (May 7 2027), gemini-2.5-flash-image (Mar 15 2027) (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-[0-9]|TEXT_MODEL|LIVE_MODEL glob=**/*.{ts,tsx,js,json,md,example} → app/api/chat/route.ts:4: import { SYSTEM_INSTRUCTION, TOOL_DECLARATIONS, TEXT_MODEL, executeTool } from '@/lib/gemini-tools'; | app/api/chat/route.ts:45:         model: TEXT_MODEL, | hooks/useGeminiLive.ts:5: import { LIVE_MODEL, SYSTEM_INS…\n2. finish verdict=not-affected summary=<203 chars> why=<161 chars> validators=[] unproven=<214 chars> behaviourChanges=[] → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass\n\n## Result\nFiles changed: none\nVerdict: not-affected. No code changes. TEXT_MODEL in lib/gemini-tools.ts is 'gemma-4-31b-it'. LIVE_MODEL is 'gemini-3.1-flash-live-preview'. A repo-wide search found no 'gemini-3.1-flash-lite' and no 'gemini-2.5-flash-image'.\nUnproven: I did not check whether gemini-3.1-flash-live-preview is covered by a separate shutdown notice (the playbook mentions a 2026-11-17 shutdown for Live preview ids). That is a different change and I left it alone.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "NEXT_PUBLIC_SUPABASE_URL": "https://placeholder.supabase.co",
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY": "placeholder",
+            "SUPABASE_SERVICE_ROLE_KEY": "placeholder",
+            "GEMINI_API_KEY": "placeholder"
+          },
+          "reasoning": "No codegen or workspace builds are needed: the repo has no postinstall/prepare/generate scripts and is a single Next.js package. The build only needs the Supabase and Gemini env vars set so modules that read them at load time do not throw, so I'm providing placeholders from .env.example."
+        }
+      }
+    }
+  ],
+  "costUsd": 1.6431399,
+  "durationMs": 2197900,
+  "matchReasoning": "WeWake1/BSOMS:gemini:2026-03-gemini-3-pro-preview-shutdown: Uncertain: TEXT_MODEL's value is unknown. gemini-3-pro-preview was shut down on 2026-03-09 and now aliases to gemini-3.1-pro-preview, so nothing hard-fails, but behaviour may have shifted. The migration agent should resolve TEXT_MODEL and, if it is this model, pin gemini-3.1-pro-preview explicitly. Otherwise close the task with no change.\nWeWake1/BSOMS:gemini:2026-06-01-gemini-2-0-shutdown: Uncertain: the model constants were not resolved by the scan. gemini-2.0-flash and flash-lite are common defaults for chat and were shut down on 2026-06-01. If either constant names one of them, the chat API or the live voice feature is broken now. The migration agent should check TEXT_MODEL and LIVE_MODEL and move any 2.0 model to a supported one.\nWeWake1/BSOMS:gemini:2026-07-21-sampling-params-deprecated: Uncertain: the contents of geminiConfig and the value of TEXT_MODEL are unknown. If geminiConfig sets sampling parameters and the model is, or is rerouted to, Gemini 3.6+, those parameters are deprecated. The migration agent should inspect geminiConfig and remove sampling params when targeting 3.6+ models.\nWeWake1/BSOMS:gemini:2026-10-08-3-5-3-7-flash-reroute: Uncertain: TEXT_MODEL's value is unknown. If it is gemini-3.5-flash or gemini-3.7-flash, requests are silently rerouted to gemini-3.6-flash or gemini-3.8-flash, and behaviour may change. The migration agent should check the constant and pin the replacement model explicitly.\nWeWake1/BSOMS:gemini:2026-10-26-store-default: The repo calls generateContent, which now defaults to store=true for new paid-tier projects. The chat route sends order and customer data. It is unknown whether this project is a new paid-tier one. The migration agent should consider setting store=false in geminiConfig if retention is not wanted. This is a behavioural and privacy change, not a breakage.\nWeWake1/BSOMS:gemini:2026-11-17-preview-shutdowns: The repo uses the Gemini Live API (live.connect with ephemeral auth tokens). It very likely targets one of the preview live or native-audio models shutting down on 2026-11-17 (replacement gemini-3.8-live), though LIVE_MODEL's value is unresolved. After shutdown the voice feature would fail to connect. The migration agent should resolve LIVE_MODEL, check whether the token config also pins it, and move both to the replacement.\nWeWake1/BSOMS:gemini:2026-12-01-gemini-2-5-flash-reroute: Uncertain: TEXT_MODEL's value is unknown, but gemini-2.5-flash is a very common chat choice. From 2026-12-01 its requests route to gemini-3.5-flash-lite with breaking API differences. The migration agent should check TEXT_MODEL and geminiConfig (thinkingBudget), migrate the model, and switch to thinkingLevel if needed.\nWeWake1/BSOMS:gemini:2026-12-01-gemini-2-5-pro-reroute: Uncertain: TEXT_MODEL's value is unknown. If it is gemini-2.5-pro, the reroute on 2026-12-01 changes the model and rejects temperature/top_p/top_k and thinking_budget. The migration agent should check TEXT_MODEL and geminiConfig and migrate accordingly.\nWeWake1/BSOMS:gemini:2027-gemini-3-1-flash-lite-and-2-5-flash-image: Uncertain: only the gemini-3.1-flash-lite part could apply, since the repo does no image generation. If TEXT_MODEL is gemini-3.1-flash-lite, move it to gemini-3.5-flash-lite before May 2027. The migration agent should check the constant.\ngemini:genai-js-2-0-0-interactions: not affected: The 2.0.0 breaking changes are limited to the Interactions API, which the repo never calls. It uses generateContent, live.connect and authTokens.create, which the changelog states are unaffected.\ngemini:genai-js-1-0-0-lyria: not affected: The repo is already on @google/genai 1.51.0 and makes no Lyria music calls.\ngemini:genai-js-1-46-0-interactions-breaking: not affected: The repo is already past 1.46.0 at 1.51.0, and the breaking changes only touch the Interactions API, which it does not use.\ngemini:genai-js-0x-breaking-0-9-0: not affected: These 0.x breaking changes were absorbed long ago; the repo pins @google/genai 1.51.0.\ngemini:generative-ai-js-eol: not affected: The repo uses @google/genai, not the deprecated @google/generative-ai package.\ngemini:2026-05-interactions-steps-schema: not affected: The repo does not call /v1beta/interactions. It uses generateContent and the Live API only.\ngemini:2025-12-19-total-thought-tokens: not affected: This field rename is in the Interactions API, which the repo does not use.\ngemini:2026-10-22-veo-omni-shutdown: not affected: The repo does no video generation and does not use the omni preview model; its call sites are text chat and Live voice.\ngemini:2026-10-23-deep-research-pro-shutdown: not affected: The repo does not use Interactions or managed agents such as deep-research.\ngemini:2026-09-antigravity-agent-tools: not affected: The repo does not use the antigravity agent or the Interactions API.\ngemini:2026-08-17-imagen-4-shutdown: not affected: The repo makes no Imagen or image-generation calls.\ngemini:2026-06-30-veo-2-3-shutdown: not affected: The repo makes no Veo video-generation calls.\ngemini:2026-06-25-image-preview-shutdown: not affected: The repo makes no image-generation calls; its chat route is text and its Live usage is audio.\ngemini:2026-05-embedding-lifecycle: not affected: The repo makes no embedContent or embedding-model calls.",
+  "costByPart": {
+    "inventory": 0.10290110000000001,
+    "match": 0.167092,
+    "other": 0.6231,
+    "harness": 0.6165268,
+    "review": 0.13352
+  }
+}

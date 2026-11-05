@@ -1,0 +1,303 @@
+[
+  {
+    "repo": "brunaszarin/spotlight-manager",
+    "commit": "831dcf922acd48387571ace353bf1ba08cf6e089",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "SH-1.2025-10",
+        "file": "app/shopify.server.ts",
+        "dead": "ApiVersion\\.October25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October25",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.2025-10",
+        "file": ".graphqlrc.ts",
+        "dead": "ApiVersion\\.October25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October25",
+          "to": "ApiVersion.October26"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "speedcubing-ireland/speedcubingireland.com",
+    "commit": "1b6869ad195d4b2508c37d724e932cb7a2e82315",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "SH-1.2025-04",
+        "file": "utils/shopify.ts",
+        "dead": "ApiVersion\\.April25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.April25",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.2025-04",
+        "file": "utils/shopify.ts",
+        "dead": "rest/admin/2025-04",
+        "alive": [],
+        "proof": {
+          "from": "@shopify/shopify-api/rest/admin/2025-04",
+          "to": "./rest-resources"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "polidario/weeklyhow-remix-app",
+    "commit": "d0b9792920071daf5f19ae079ba0194427af3435",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "SH-1.before-2025-04",
+        "file": "app/shopify.server.ts",
+        "dead": "ApiVersion\\.April24",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.April24",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.before-2025-04",
+        "file": "app/shopify.server.ts",
+        "dead": "rest/admin/2024-04",
+        "alive": [],
+        "proof": {
+          "from": "@shopify/shopify-api/rest/admin/2024-04",
+          "to": "./rest-resources"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "SH-1.before-2025-04",
+        "file": "shopify.app.toml",
+        "dead": "api_version = \"2024-04\"",
+        "alive": ["2026-10"],
+        "proof": {
+          "from": "api_version = \"2024-04\"",
+          "to": "api_version = \"2026-10\""
+        }
+      }
+    ]
+  },
+  {
+    "repo": "Ganapathi1618/Nextjs-Fastrill-ai",
+    "commit": "e329242f6c5fd315fd17aaef974e2366fa38be75",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "MG-1.v18.0",
+        "file": "app/dashboard/page.js",
+        "dead": "facebook\\.com/v18\\.0/dialog/oauth",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "facebook.com/v18.0/dialog/oauth",
+          "to": "facebook.com/v27.0/dialog/oauth"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "MG-1.v18.0",
+        "file": "app/dashboard/settings/page.js",
+        "dead": "facebook\\.com/v18\\.0/dialog/oauth",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "facebook.com/v18.0/dialog/oauth",
+          "to": "facebook.com/v27.0/dialog/oauth"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "MG-1.v18.0",
+        "file": "app/onboarding/page.js",
+        "dead": "facebook\\.com/v18\\.0/dialog/oauth",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "facebook.com/v18.0/dialog/oauth",
+          "to": "facebook.com/v27.0/dialog/oauth"
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "MG-1.v18.0",
+        "file": "scripts/diagnose-whatsapp.js",
+        "dead": "graph\\.facebook\\.com/v18\\.0",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "graph.facebook.com/v18.0",
+          "to": "graph.facebook.com/v27.0"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "chandandadhekar/ListAI-V2",
+    "commit": "4918509b1a3bd7e1d6b99b838e43d70328b62145",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "SH-1.before-2025-04",
+        "file": "app/routes/api.edit.jsx",
+        "dead": "admin/api/2024-10",
+        "alive": ["2026-10", "apiVersion"],
+        "proof": {
+          "from": "admin/api/2024-10",
+          "to": "admin/api/2026-10"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "OA-1.gpt-3.5-turbo",
+        "file": "app/routes/api/Enhancedescription.tsx",
+        "dead": "model: \"gpt-3\\.5-turbo\"",
+        "alive": ["gpt-5\\.6"],
+        "proof": {
+          "from": "model: \"gpt-3.5-turbo\"",
+          "to": "model: \"gpt-5.6-terra\""
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "OA-1.gpt-3.5-turbo",
+        "file": "app/routes/products.tsx",
+        "dead": "model: \"gpt-3\\.5-turbo\"",
+        "alive": ["gpt-5\\.6"],
+        "proof": {
+          "from": "model: \"gpt-3.5-turbo\"",
+          "to": "model: \"gpt-5.6-terra\""
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "SH-1.before-2025-04",
+        "file": "app/shopify.server.ts",
+        "dead": "ApiVersion\\.July24",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.July24",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R5",
+        "entryId": "SH-1.before-2025-04",
+        "file": "app/shopify.server.ts",
+        "dead": "rest/admin/2024-07",
+        "alive": [],
+        "proof": {
+          "from": "@shopify/shopify-api/rest/admin/2024-07",
+          "to": "./rest-resources"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "jahmedabeer/Shopify-Storefront-AI-agent",
+    "commit": "b31263a477f7f8e859fba4c063c45747c6c5c2c5",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "AN-1.claude-3-5-sonnet-20241022",
+        "file": "app/services/config.server.js",
+        "dead": "claude-3-5-sonnet-latest",
+        "alive": ["claude-sonnet-5-5"],
+        "proof": {
+          "from": "claude-3-5-sonnet-latest",
+          "to": "claude-sonnet-5-5"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.before-2025-04",
+        "file": "app/shopify.server.js",
+        "dead": "ApiVersion\\.January25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.January25",
+          "to": "ApiVersion.October26"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "Shopify/shop-chat-agent",
+    "commit": "3ea3f21d312b89e67b10170561f852b6ddbb6764",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "AN-1.claude-sonnet-4-20250514",
+        "file": "app/services/config.server.js",
+        "dead": "claude-sonnet-4-20250514",
+        "alive": ["claude-sonnet-5-5"],
+        "proof": {
+          "from": "claude-sonnet-4-20250514",
+          "to": "claude-sonnet-5-5"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.2025-10",
+        "file": "app/shopify.server.js",
+        "dead": "ApiVersion\\.October25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October25",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "SH-1.2025-10",
+        "file": ".graphqlrc.js",
+        "dead": "ApiVersion\\.October25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October25",
+          "to": "ApiVersion.October26"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "jadenScali/Aeo-Optimizer",
+    "commit": "c666f310a1377c583251afe092911b8765672649",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "SH-1.2025-10",
+        "file": "app/shopify.server.ts",
+        "dead": "ApiVersion\\.October25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October25",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.2025-10",
+        "file": ".graphqlrc.ts",
+        "dead": "ApiVersion\\.October25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October25",
+          "to": "ApiVersion.October26"
+        }
+      }
+    ]
+  }
+]

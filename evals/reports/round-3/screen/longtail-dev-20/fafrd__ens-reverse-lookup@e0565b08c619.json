@@ -1,0 +1,57 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "fafrd/ens-reverse-lookup",
+  "commit": "e0565b08c619e63d8fdae07c4a02d02fd7be6b06",
+  "provider": "thegraph",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "node_modules/@cloudflare/workers-types/index.d.ts: error TS6200: Definitions of the following identifiers conflict with those in another file: DOMException, WorkerGlobalScopeEventMap, WorkerGlobalScope, console, BufferSource, CompileError, RuntimeError, ValueType, Global, ImportValue, ModuleImports, Imports, ExportValue, Exports, Instance, Memory, ImportExportKind, Module, TableKind, Table, self, crypto, caches, performance, origin, PromiseRejectionEvent, Event, EventListener, EventListenerOrEventListenerObject, EventTarget, AbortController, AbortSignal, ExtendableEvent, CustomEvent, Blob, File, CacheStorage, Cache, Crypto, SubtleCrypto, CryptoKey, TextDecoder, TextEncoder, ErrorEvent, FormData, FetchEvent, HeadersInit, Headers, BodyInit, RequestInfo, ReadableStreamReadResult, ReadableStream, ReadableStreamDefaultReader, ReadableStreamBYOBReader, view, desiredSize, byobRequest, signal, WritableStream, WritableStreamDefaultWriter, TransformStream, CompressionStream, DecompressionStream, TextEncoderStream, TextDecoderStream, ByteLengthQueuingStrategy, CountQueuingStrategy, URL, URLSearchParams, CloseEvent, MessageEvent, WebSocketEventMap, EventSource",
+        "node_modules/@cloudflare/workers-types/index.d.ts: error TS2403: Subsequent variable declarations must have the same type. Variable 'onmessage' must be of type '((this: DedicatedWorkerGlobalScope, ev: MessageEvent<any>) => any) | null', but here has type 'never'.",
+        "node_modules/@cloudflare/workers-types/index.d.ts: error TS2508: No base constructor has the specified number of type arguments.",
+        "node_modules/@cloudflare/workers-types/index.d.ts: error TS2717: Subsequent property declarations must have the same type. Property 'value' must be of type 'T', but here has type 'keyof ValueTypeMap'.",
+        "node_modules/@cloudflare/workers-types/index.d.ts: error TS2315: Type 'EventListenerOrEventListenerObject' is not generic.",
+        "node_modules/@cloudflare/workers-types/index.d.ts: error TS2717: Subsequent property declarations must have the same type. Property 'transfer' must be of type 'Transferable[] | undefined', but here has type 'any[] | undefined'.",
+        "node_modules/@cloudflare/workers-types/index.d.ts: error TS2315: Type 'EventListener' is not generic.",
+        "node_modules/@cloudflare/workers-types/index.d.ts: error TS2687: All declarations of 'kty' must have identical modifiers.",
+        "node_modules/@cloudflare/workers-types/index.d.ts: error TS2717: Subsequent property declarations must have the same type. Property 'kty' must be of type 'string | undefined', but here has type 'string'.",
+        "node_modules/@cloudflare/workers-types/index.d.ts: error TS2717: Subsequent property declarations must have the same type. Property 'body' must be of type 'ReadableStream<Uint8Array<ArrayBufferLike>> | null', but here has type 'ReadableStream<any> | null'."
+      ],
+      "tail": " is not assignable to type '(id: number | undefined) => void'.\n            Types of parameters 'timeoutId' and 'id' are incompatible.\n              Type 'number | undefined' is not assignable to type 'number | null'.\n                Type 'undefined' is not assignable to type 'number | null'.\nnode_modules/webauthn-p256/_types/credential.d.ts(10,28): error TS2304: Cannot find name 'CredentialCreationOptions'.\nnode_modules/webauthn-p256/_types/credential.d.ts(71,54): error TS2304: Cannot find name 'CredentialCreationOptions'.\nnode_modules/webauthn-p256/_types/sign.d.ts(9,25): error TS2304: Cannot find name 'CredentialRequestOptions'.\nnode_modules/webauthn-p256/_types/sign.d.ts(14,10): error TS2304: Cannot find name 'PublicKeyCredential'.\nnode_modules/webauthn-p256/_types/sign.d.ts(38,12): error TS2304: Cannot find name 'PublicKeyCredentialRequestOptions'.\nnode_modules/webauthn-p256/_types/sign.d.ts(39,24): error TS2304: Cannot find name 'PublicKeyCredentialRequestOptions'.\nnode_modules/webauthn-p256/_types/sign.d.ts(41,57): error TS2304: Cannot find name 'CredentialRequestOptions'.\nnode_modules/webauthn-p256/_types/types.d.ts(27,67): error TS2536: Type '_K' cannot be used to index type 'fallback'.\nnode_modules/webauthn-p256/_types/types.d.ts(73,24): error TS2304: Cannot find name 'AuthenticatorResponse'.\nnode_modules/webauthn-p256/_types/types.d.ts(74,34): error TS2552: Cannot find name 'AuthenticationExtensionsClientOutputs'. Did you mean 'AuthenticationExtensionsClientInputs'?"
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "test",
+      "command": "npm run test",
+      "ok": false,
+      "failures": ["FAIL test/handler.test.ts", "failed: handle GET"],
+      "tail": "> ens-reverse-lookup@1.0.0 test\n> jest --config jestconfig.json --verbose\n\n  console.log\n    Request: https://www.test.com/\n\n      at handleRequest (src/handler.ts:21:11)\n\n\nFAIL test/handler.test.ts (5.948 s)\n  handle\n    ✕ handle GET (32 ms)\n\n  ● handle › handle GET\n\n    expect(received).toEqual(expected) // deep equality\n\n    Expected: \"request method: GET\"\n    Received: \"Usage: /ens/0x5295b474F3A0bB39418456c96D6FCf13901A4aA1\"\n\n    \u001b[0m \u001b[90m 14 |\u001b[39m     expect(result\u001b[33m.\u001b[39mstatus)\u001b[33m.\u001b[39mtoEqual(\u001b[35m200\u001b[39m)\n     \u001b[90m 15 |\u001b[39m     \u001b[36mconst\u001b[39m text \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m result\u001b[33m.\u001b[39mtext()\n    \u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 16 |\u001b[39m     expect(text)\u001b[33m.\u001b[39mtoEqual(\u001b[32m'request method: GET'\u001b[39m)\n     \u001b[90m    |\u001b[39m                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n     \u001b[90m 17 |\u001b[39m   })\n     \u001b[90m 18 |\u001b[39m })\n     \u001b[90m 19 |\u001b[39m\u001b[0m\n\n      at Object.<anonymous> (test/handler.test.ts:16:18)\n\nTest Suites: 1 failed, 1 total\nTests:       1 failed, 1 total\nSnapshots:   0 total\nTime:        6.199 s\nRan all test suites."
+    }
+  ],
+  "costUsd": 0.10772599999999997,
+  "durationMs": 89719,
+  "install": {
+    "code": 0,
+    "tail": "added 736 packages in 39s\n\nnpm warn deprecated url-search-params@0.10.2: now available as @ungap/url-search-params\nnpm warn deprecated sourcemap-codec@1.4.8: Please use @jridgewell/sourcemap-codec instead\nnpm warn deprecated rollup-plugin-inject@3.0.2: This package has been deprecated and is no longer maintained. Please use @rollup/plugin-inject.\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "typecheck (tsc --noEmit) fails on conflicting type definitions between @cloudflare/workers-types and DOM libs, and the jest test 'handle GET' fails because the handler returns a usage string instead of 'request method: GET' - both are repo code/config problems, not external dependencies."
+  }
+}

@@ -1,0 +1,377 @@
+{
+  "provider": "openrouter",
+  "officialHosts": ["openrouter.ai"],
+  "entries": [
+    {
+      "id": "OR-1.nvidia-nemotron-3-super-120b-a12b-free",
+      "provider": "openrouter",
+      "what": "OpenRouter has no endpoint for nvidia/nemotron-3-super-120b-a12b:free, so requests through OpenRouter fail. Checked on 2026-11-05: its endpoints list is empty and /api/v1/models no longer lists it. OpenRouter published no retirement notice, so the true date is on or before this one.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/nvidia/nemotron-3-super-120b-a12b:free/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"endpoints\":[]"
+      },
+      "lookFor": [
+        "The model ID nvidia/nemotron-3-super-120b-a12b:free in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "nvidia/nemotron-3-super-120b-a12b:free"
+        }
+      ],
+      "replacement": "nvidia/nemotron-3-super-120b-a12b, the same model without the free tier, which still has providers.",
+      "replacementIds": ["nvidia/nemotron-3-super-120b-a12b"],
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "id": "OR-1.mistralai-mistral-7b-instruct",
+      "provider": "openrouter",
+      "what": "OpenRouter has no endpoint for mistralai/mistral-7b-instruct, so requests through OpenRouter fail. Checked on 2026-11-05: its endpoints list is empty and /api/v1/models no longer lists it. OpenRouter published no retirement notice, so the true date is on or before this one.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/mistralai/mistral-7b-instruct/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"endpoints\":[]"
+      },
+      "lookFor": [
+        "The model ID mistralai/mistral-7b-instruct in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistralai/mistral-7b-instruct"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "id": "OR-1.deepseek-deepseek-chat-v3-0324-free",
+      "provider": "openrouter",
+      "what": "OpenRouter has no endpoint for deepseek/deepseek-chat-v3-0324:free, so requests through OpenRouter fail. Checked on 2026-11-05: its endpoints list is empty and /api/v1/models no longer lists it. OpenRouter published no retirement notice, so the true date is on or before this one.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/deepseek/deepseek-chat-v3-0324:free/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"endpoints\":[]"
+      },
+      "lookFor": [
+        "The model ID deepseek/deepseek-chat-v3-0324:free in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "deepseek/deepseek-chat-v3-0324:free"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "id": "OR-1.meta-llama-llama-3.3-70b-instruct-free",
+      "provider": "openrouter",
+      "what": "OpenRouter has no endpoint for meta-llama/llama-3.3-70b-instruct:free, so requests through OpenRouter fail. Checked on 2026-11-05: its endpoints list is empty and /api/v1/models no longer lists it. OpenRouter published no retirement notice, so the true date is on or before this one.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/meta-llama/llama-3.3-70b-instruct:free/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"endpoints\":[]"
+      },
+      "lookFor": [
+        "The model ID meta-llama/llama-3.3-70b-instruct:free in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "meta-llama/llama-3.3-70b-instruct:free"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "id": "OR-1.meta-llama-llama-4-maverick-free",
+      "provider": "openrouter",
+      "what": "OpenRouter has no endpoint for meta-llama/llama-4-maverick:free, so requests through OpenRouter fail. Checked on 2026-11-05: its endpoints list is empty and /api/v1/models no longer lists it. OpenRouter published no retirement notice, so the true date is on or before this one.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/meta-llama/llama-4-maverick:free/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"endpoints\":[]"
+      },
+      "lookFor": [
+        "The model ID meta-llama/llama-4-maverick:free in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "meta-llama/llama-4-maverick:free"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "id": "OR-1.meta-llama-llama-4-scout-free",
+      "provider": "openrouter",
+      "what": "OpenRouter has no endpoint for meta-llama/llama-4-scout:free, so requests through OpenRouter fail. Checked on 2026-11-05: its endpoints list is empty and /api/v1/models no longer lists it. OpenRouter published no retirement notice, so the true date is on or before this one.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/meta-llama/llama-4-scout:free/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"endpoints\":[]"
+      },
+      "lookFor": [
+        "The model ID meta-llama/llama-4-scout:free in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "meta-llama/llama-4-scout:free"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "id": "OR-1.qwen-qwen3-32b-free",
+      "provider": "openrouter",
+      "what": "OpenRouter has no endpoint for qwen/qwen3-32b:free, so requests through OpenRouter fail. Checked on 2026-11-05: its endpoints list is empty and /api/v1/models no longer lists it. OpenRouter published no retirement notice, so the true date is on or before this one.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/qwen/qwen3-32b:free/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"endpoints\":[]"
+      },
+      "lookFor": [
+        "The model ID qwen/qwen3-32b:free in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "qwen/qwen3-32b:free"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "id": "OR-1.qwen-qwq-32b-free",
+      "provider": "openrouter",
+      "what": "OpenRouter has no endpoint for qwen/qwq-32b:free, so requests through OpenRouter fail. Checked on 2026-11-05: its endpoints list is empty and /api/v1/models no longer lists it. OpenRouter published no retirement notice, so the true date is on or before this one.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/qwen/qwq-32b:free/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"endpoints\":[]"
+      },
+      "lookFor": [
+        "The model ID qwen/qwq-32b:free in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "qwen/qwq-32b:free"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "id": "OR-1.anthropic-claude-3.5-sonnet",
+      "provider": "openrouter",
+      "what": "OpenRouter has no endpoint for anthropic/claude-3.5-sonnet, so requests through OpenRouter fail. Checked on 2026-11-05: its endpoints list is empty and /api/v1/models no longer lists it. OpenRouter published no retirement notice, so the true date is on or before this one.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/anthropic/claude-3.5-sonnet/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"endpoints\":[]"
+      },
+      "lookFor": [
+        "The model ID anthropic/claude-3.5-sonnet in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "anthropic/claude-3.5-sonnet",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "id": "OR-1.anthropic-claude-3.7-sonnet",
+      "provider": "openrouter",
+      "what": "OpenRouter has no endpoint for anthropic/claude-3.7-sonnet, so requests through OpenRouter fail. Checked on 2026-11-05: its endpoints list is empty and /api/v1/models no longer lists it. OpenRouter published no retirement notice, so the true date is on or before this one.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/anthropic/claude-3.7-sonnet/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"endpoints\":[]"
+      },
+      "lookFor": [
+        "The model ID anthropic/claude-3.7-sonnet in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "anthropic/claude-3.7-sonnet",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "id": "OR-1.deepseek-deepseek-r1",
+      "provider": "openrouter",
+      "what": "OpenRouter has no endpoint for deepseek/deepseek-r1, so requests through OpenRouter fail. Checked on 2026-11-05: its endpoints list is empty and /api/v1/models no longer lists it. OpenRouter published no retirement notice, so the true date is on or before this one.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/deepseek/deepseek-r1/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"endpoints\":[]"
+      },
+      "lookFor": [
+        "The model ID deepseek/deepseek-r1 in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "deepseek/deepseek-r1",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "id": "OR-1.openai-gpt-5-chat",
+      "provider": "openrouter",
+      "what": "OpenRouter has no endpoint for openai/gpt-5-chat, so requests through OpenRouter fail. Checked on 2026-11-05: its endpoints list is empty and /api/v1/models no longer lists it. OpenRouter published no retirement notice, so the true date is on or before this one.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/openai/gpt-5-chat/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"endpoints\":[]"
+      },
+      "lookFor": [
+        "The model ID openai/gpt-5-chat in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "openai/gpt-5-chat",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "id": "OR-2.anthropic-claude-4-sonnet",
+      "provider": "openrouter",
+      "what": "OpenRouter does not know the id anthropic/claude-4-sonnet, so requests with it fail. Checked on 2026-11-05: its endpoints path returns 404 and /api/v1/models does not list it. OpenRouter published no notice and no chat call was made, and the id may never have been valid, so the date is only the day it was checked.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/anthropic/claude-4-sonnet/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"message\":\"Not Found\",\"code\":404"
+      },
+      "lookFor": [
+        "The model ID anthropic/claude-4-sonnet in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "anthropic/claude-4-sonnet"
+        }
+      ],
+      "replacement": "anthropic/claude-sonnet-4, which still answers on the same endpoint.",
+      "replacementIds": ["anthropic/claude-sonnet-4"],
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "id": "OR-2.deepseek-deepseek-r1-qwen3-8b",
+      "provider": "openrouter",
+      "what": "OpenRouter does not know the id deepseek/deepseek-r1-qwen3-8b, so requests with it fail. Checked on 2026-11-05: its endpoints path returns 404 and /api/v1/models does not list it. OpenRouter published no notice and no chat call was made, and the id may never have been valid, so the date is only the day it was checked.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/deepseek/deepseek-r1-qwen3-8b/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"message\":\"Not Found\",\"code\":404"
+      },
+      "lookFor": [
+        "The model ID deepseek/deepseek-r1-qwen3-8b in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "deepseek/deepseek-r1-qwen3-8b"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    }
+  ],
+  "future": []
+}

@@ -7,7 +7,11 @@ import type {
   RunRecord,
   ToolPack,
 } from '../shared/types.ts';
-import type { BudgetLedger, ChargeRun } from './ledger.ts';
+import type { RepoTask, ScanResult } from './findings.ts';
+import type { BudgetLedger, CacheTally, ChargeRun } from './ledger.ts';
+import type { ProvenFix } from './proven.ts';
+import type { SmokeResult } from './smoke.ts';
+import type { PlanPreparation, Preparation } from './prepare.ts';
 
 export type ExecResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
 
@@ -17,12 +21,20 @@ export type Sandbox = {
   mode: 'docker' | 'local';
   // Runs a shell command inside the sandbox with the working copy as cwd. Never throws.
   exec(command: string, options?: { timeoutMs?: number }): Promise<ExecResult>;
-  // Unified diff of the working copy against the snapshot taken at creation.
+  // Unified diff of the working copy against the snapshot taken at creation (or the last snapshot()).
   diff(): Promise<string>;
+  // Takes a new snapshot, so what the harness's own preparation wrote stays out of the PR.
+  snapshot?(): Promise<void>;
+  // Puts the working copy back to the last snapshot (or creation): edits undone, new files removed.
+  reset?(): Promise<void>;
+  // Keeps files out of the diff, and takes one back when the session edits it.
+  leaveOut?(files: string[]): Promise<void>;
+  keep?(file: string): void;
   dispose(): Promise<void>;
 };
 
-export type CheckCommand = { name: string; command: string };
+// `fallback`: the harness's own default (a bare tsc), not a check the repo defines.
+export type CheckCommand = { name: string; command: string; fallback?: true };
 
 export type CheckRun = {
   name: string;
@@ -47,6 +59,15 @@ export type FinishReport = {
   validators: { name: string; passed: boolean; detail: string }[];
   unproven: string[];
   behaviourChanges: string[];
+  // A repo session: what a person must set for the fix to work, and findings it read as false alarms.
+  personMustDo?: string[];
+  falseAlarms?: { entryId: string; file: string; why: string }[];
+  // What an entry's `requires` lines ask of this code that the session left undone.
+  requirementsLeft?: string[];
+  requirementsDone?: string[];
+  // The registered check that tests this change, or why no test of it can be written.
+  proofTest?: string;
+  noProofTestReason?: string;
 };
 
 // A ToolPack call as the harness saw it. This, not the agent's report, is validator proof.
@@ -59,9 +80,15 @@ export type ToolContext = {
   retrieveRecipes: RetrieveRecipes;
   checks: CheckCommand[];
   onFinish: (report: FinishReport) => void;
+  requirements?: () => string[]; // a repo session's numbered "requires" lines
   onToolPackCall?: (run: ValidatorRun) => void;
+  // What the session's own check run found, so the harness needn't repeat a pass on the same code.
+  onChecksRun?: (runs: CheckRun[]) => Promise<void>;
+  passedOnThisCode?: () => Promise<CheckRun[]>;
   // Registers an agent-named check: the harness runs it on the baseline and returns that run.
   addCheck?: (check: CheckCommand) => Promise<CheckRun>;
+  // Drops a check the agent added (never a detected one); false when there is none by that name.
+  removeCheck?: (name: string) => boolean;
   fetch?: typeof fetch;
 };
 
@@ -100,7 +127,19 @@ export type HarnessDeps = {
   turnReserveUsd?: number; // defaults to TURN_RESERVE_USD
   // Called for every model call's spend as it happens, so the run budget sees it even if the harness throws.
   chargeRun?: ChargeRun;
+  // A repo session's proof: the same plain-code scan, over the sandbox's working copy. It only reads.
+  rescan?: (dir: string) => Promise<ScanResult>;
+  // The session's first model. Defaults to Sonnet.
+  model?: string;
+  // Plain-code fixes the ladder allows here. They run before any session.
+  provenFixes?: (task: RepoTask) => Promise<ProvenFix[]>;
+  // What earlier runs learned about this repo, for the kickoff message.
+  habitNotes?: string[];
+  // The optional live smoke call. It runs on the host, after the session.
+  smoke?: (task: RepoTask) => Promise<SmokeResult[]>;
   fetch?: typeof fetch;
+  // Names the repo's codegen before the baseline; defaults to one Sonnet call (prepare.ts).
+  planPreparation?: PlanPreparation;
 };
 
 export type HarnessRunRecord = RunRecord & {
@@ -110,9 +149,22 @@ export type HarnessRunRecord = RunRecord & {
   recipeIds: string[]; // the recipes injected into the prompt, for memory's learnFromRun
   // Checks the agent registered itself; they count toward proof, so reviewers see their exact commands.
   agentChecks: { name: string; command: string; before: string; after: string }[];
+  // Why a repo session got its label, in a line, and what the last rescan found.
+  note?: string;
+  // List entries a proven fix handled, with no model.
+  provenFixes?: string[];
+  report?: FinishReport;
+  rescan?: ScanResult;
+  smoke?: SmokeResult[];
+  // Input tokens by how they were billed: a healthy session reads far more than it writes.
+  cache?: CacheTally;
+  // Where the time went: install to baseline, the agent, and the re-checks after it.
+  timing?: { setupMs: number; sessionMs: number; checksMs: number };
   // Every tool call in order with what it returned, and the checks after each iteration: a short
   // stand-in for the transcript, for memory's recipe extraction.
   summary: string;
+  // The codegen and placeholder env the harness used before the baseline.
+  preparation?: Preparation;
 };
 
 export type { Recipe };

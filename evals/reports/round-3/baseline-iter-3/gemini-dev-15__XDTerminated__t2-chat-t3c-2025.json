@@ -1,0 +1,111 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "XDTerminated/t2-chat-t3c-2025",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 1.8425512000000002,
+    "tasks": 4,
+    "verified": 4
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.2720575,
+    "prepCostUsd": 0.035912,
+    "diffLines": 354,
+    "finalText": "I replaced model IDs that the providers have already shut down or will shut down within 90 days. `tsc --noEmit` passes, but I did not run the app or call any of the APIs.\n\n**Gemini** (checked against Google's deprecations page)\n- **Shut down:**\n  - `gemini-2.0-flash-exp`, `gemini-2.0-flash-lite-exp` and `gemini-2.0-flash-thinking-exp` are replaced.\n  - `gemini-2.5-flash-preview-05-20` and `gemini-2.5-pro-preview-06-05` are replaced.\n  - `gemini-2.0-flash-preview-image-generation` is replaced. It shut down on 2025-11-14.\n- **New Gemini list in `models.ts`:**\n  - `gemini-3.6-flash` is now the default.\n  - `gemini-3.8-flash` replaces the Pro model.\n  - `gemini-2.5-flash-lite` replaces the lite model. Google says it is not deprecated.\n  - `gemini-nano-banana-2.1` is the image model.\n- **Title generation:** `generate-title/route.ts` now uses `gemini-2.5-flash-lite`.\n- **Old chats:** `mapToGeminiModelName` maps the old IDs onto the new ones, so stored chats keep working.\n- **Other files:** I updated the thinking-model lists in `ChatContext.tsx`, `api/chat/route.ts`, `gemini-api.ts` and `model-helpers.ts`. The image model name also changed in `google-gemini-api.ts`.\n\n**Groq** (checked against Groq's deprecations page)\n- Shut down: `deepseek-r1-distill-llama-70b`, `meta-llama/llama-4-maverick-17b-128e-instruct` and `qwen/qwen3-32b`.\n- Replaced with `openai/gpt-oss-120b`, `openai/gpt-oss-20b` and `qwen/qwen3.8-27b`. The thinking-model lists are updated to match.\n\n**OpenRouter** (checked against its live `/models` list)\n- Most of the listed IDs no longer exist.\n- Paid models are now `anthropic/claude-sonnet-4.5`, `deepseek/deepseek-chat-v3.1`, `deepseek/deepseek-r1-0528` and `openai/gpt-4o`.\n- The free list is cut to the two Gemma 4 `:free` models still listed, because the others are gone.\n\n**Not changed, please review**\n- **Untested on Gemini 3.x:** Google notes breaking changes in the Gemini 3.x migration guides. I kept the existing `thinkingBudget` and `includeThoughts` config, and I did not check it against 3.x.\n- **Image generation:** `gemini-api.ts` calls the image model through the legacy SDK without `responseModalities`. I only changed the model name, so image generation may still fail.\n- **Deprecated SDK:** `@google/generative-ai` is still used for the title route, plain chat and image calls. Migrating those to `@google/genai` is a separate job.\n- **OpenRouter image model:** `black-forest-labs/flux-schnell` is not in the OpenRouter list. I did not replace it. The right fix is probably OpenRouter's chat-completions image output, which needs a code change.\n- **Later deprecation:** `gemini-2.5-flash` and `gemini-2.5-pro` start routing to other models on 2026-12-01. This code doesn't use those IDs any more.\n\nSources:\n- https://ai.google.dev/gemini-api/docs/deprecations\n- https://console.groq.com/docs/deprecations\n- https://openrouter.ai/api/v1/models",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-XDTerminated-t2-chat-t3c-2025/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "Gemini 2.0 flash family shut down",
+          "correct": true,
+          "note": "Internal IDs are kept and mapped to gemini-2.5-flash-lite at the API call. Title route updated."
+        },
+        {
+          "change": "Gemini 2.5 preview IDs shut down",
+          "correct": true,
+          "note": "Mapped to gemini-2.5-flash and gemini-2.5-pro. B notes these reroute on 2026-12-01."
+        },
+        {
+          "change": "Gemini image-generation model shut down",
+          "correct": true,
+          "note": "Switched to gemini-2.5-flash-image through @google/genai with responseModalities. This is more robust than A's handling."
+        },
+        {
+          "change": "@google/generative-ai deprecated",
+          "correct": true,
+          "note": "All three call sites migrated to @google/genai and the old package removed. Not strictly needed within 90 days, but the migration is done properly."
+        },
+        {
+          "change": "Groq maverick and qwen3-32b shut down",
+          "correct": true,
+          "note": "Replaced with openai/gpt-oss-120b and qwen/qwen3.6-27b. gpt-oss-120b is not marked as a thinking model."
+        },
+        {
+          "change": "Clerk 7 major release",
+          "correct": true,
+          "note": "Upgrade plus the needed source edits. Not required by any shutdown; it is optional and carries some risk."
+        },
+        {
+          "change": "uploadthing url deprecated in favour of ufsUrl",
+          "correct": true,
+          "note": "Optional. Handled with a fallback to url."
+        }
+      ],
+      "breaks": [
+        "Misses the Groq deepseek-r1-distill-llama-70b shutdown, so that model is still listed.",
+        "Misses the removed OpenRouter model IDs, so the paid and free lists still contain dead IDs.",
+        "Upgrades Clerk by a major version when no breaking change required it."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "Gemini 2.0 flash, flash-lite and thinking exp models shut down",
+          "correct": true,
+          "note": "Replaced in models.ts, the thinking lists and the title route. Old IDs are remapped in mapToGeminiModelName. The new IDs (gemini-3.6-flash, gemini-3.8-flash) can't be confirmed, but the code matches what A cites."
+        },
+        {
+          "change": "gemini-2.5-flash-preview-05-20 and gemini-2.5-pro-preview-06-05 shut down",
+          "correct": true,
+          "note": "Removed from the model list. Stored chats with these IDs are remapped to the new models."
+        },
+        {
+          "change": "gemini-2.0-flash-preview-image-generation shut down",
+          "correct": true,
+          "note": "Model name replaced in the SDK path and the REST path, and isImageGenerationModel updated. The legacy SDK call still has no responseModalities, which A itself flags as a risk. Old chats using the image ID get remapped, but isImageGenerationModel no longer matches them, so those chats are no longer routed to image generation."
+        },
+        {
+          "change": "Groq deepseek-r1-distill-llama-70b shut down",
+          "correct": true,
+          "note": "Replaced with openai/gpt-oss-120b in the model list and the thinking lists. B misses this one."
+        },
+        {
+          "change": "Groq llama-4-maverick-17b-128e-instruct shut down",
+          "correct": true,
+          "note": "Replaced with openai/gpt-oss-20b."
+        },
+        {
+          "change": "Groq qwen/qwen3-32b shut down",
+          "correct": true,
+          "note": "Replaced with qwen/qwen3.8-27b, a cited ID that can't be confirmed."
+        },
+        {
+          "change": "OpenRouter model IDs removed",
+          "correct": true,
+          "note": "Paid and free lists updated against the live /models list. flux-schnell is left in place and flagged."
+        }
+      ],
+      "breaks": [
+        "Old stored chats on the image-generation ID are no longer detected by isImageGenerationModel.",
+        "The FREE_MODELS list is cut to two entries, which reduces options, though A says the others are gone."
+      ]
+    },
+    "better": "claude",
+    "why": "A covers more of the model shutdowns that break the code now: the Groq deepseek distill model and the dead OpenRouter IDs, both of which B leaves broken. B's Gemini handling is more robust (it migrates the SDK and adds responseModalities for images), but it misses whole providers' breakages and adds an unnecessary major Clerk upgrade.",
+    "costUsd": 0.144032
+  }
+}

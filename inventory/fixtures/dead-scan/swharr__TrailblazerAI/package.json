@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@google/generative-ai": "^0.21.0",
+    "next-auth": "^5.0.0",
+    "openai": "^4.0.0"
+  }
+}

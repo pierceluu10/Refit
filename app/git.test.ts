@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { GitError, InvalidRepoError, cloneRepo, filesFromDiff } from './git.ts';
+import { GitError, InvalidRepoError, cloneRepo, filesFromDiff, treeOfCheckout } from './git.ts';
 
 let repo: string;
 const git = (...args: string[]) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
@@ -45,6 +45,13 @@ describe('filesFromDiff', () => {
     expect(git('status', '--porcelain')).toBe('');
   });
 
+  it('restores a redacted removed line, so the patch still applies', async () => {
+    const diff = harnessDiff().replace(/^-export const version.*$/m, '-[redacted]');
+    expect(diff).toContain('-[redacted]');
+    const changes = await filesFromDiff(repo, diff);
+    expect(changes.map((change) => change.path)).toContain('billing.ts');
+  });
+
   it("throws GitError when the diff doesn't apply", async () => {
     const diff = harnessDiff().replace('2024-06-20', '1999-01-01');
     await expect(filesFromDiff(repo, diff)).rejects.toThrow(GitError);
@@ -58,4 +65,16 @@ describe('cloneRepo', () => {
       await expect(cloneRepo('token', name, repo)).rejects.toThrow(InvalidRepoError);
     },
   );
+});
+
+describe('treeOfCheckout', () => {
+  it("reads the checkout's tree, which an empty commit doesn't change", async () => {
+    const tree = await treeOfCheckout(repo);
+    expect(tree).toBe(git('rev-parse', 'HEAD^{tree}').trim());
+    git('commit', '-q', '--allow-empty', '-m', 'nothing');
+    expect(await treeOfCheckout(repo)).toBe(tree);
+    writeFileSync(join(repo, 'billing.ts'), 'changed\n');
+    git('commit', '-q', '-am', 'something');
+    expect(await treeOfCheckout(repo)).not.toBe(tree);
+  });
 });

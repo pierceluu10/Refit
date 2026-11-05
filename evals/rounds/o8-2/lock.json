@@ -1,0 +1,182 @@
+[
+  {
+    "repo": "mattogodoy/nametag",
+    "commit": "a3a31ab7bcac080ecd0b019e06b1171b9eb0d3fe",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "ST-1.current_period_start",
+        "file": "app/api/webhooks/stripe/route.ts",
+        "dead": "= subscriptionData\\.current_period_start as number \\| undefined;",
+        "alive": ["items"],
+        "proof": [
+          {
+            "from": "= subscriptionData.current_period_start as number | undefined;",
+            "to": "= (stripeSubscription.items.data[0] as unknown as Record<string, unknown>)?.current_period_start as number | undefined;"
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "ST-1.current_period_end",
+        "file": "app/api/webhooks/stripe/route.ts",
+        "dead": "= subscriptionData\\.current_period_end as number \\| undefined;",
+        "alive": ["items"],
+        "proof": [
+          {
+            "from": "= subscriptionData.current_period_end as number | undefined;",
+            "to": "= (stripeSubscription.items.data[0] as unknown as Record<string, unknown>)?.current_period_end as number | undefined;"
+          }
+        ]
+      },
+      {
+        "id": "R3",
+        "entryId": "ST-3.payment_intent",
+        "file": "app/api/webhooks/stripe/route.ts",
+        "dead": "= invoiceData\\.payment_intent as string \\| null;",
+        "alive": ["payments", "confirmation_secret"],
+        "proof": [
+          {
+            "from": "= invoiceData.payment_intent as string | null;",
+            "to": "= (invoiceData.payments as { data?: { payment?: { payment_intent?: string } }[] } | undefined)?.data?.[0]?.payment?.payment_intent ?? null;"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "anvveber/hyperion",
+    "commit": "206a9e4c36c7e2a9056ee0460dc7359e71708d00",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "ST-1.current_period_start",
+        "file": "app/api/webhooks/stripe/route.ts",
+        "dead": "= subscriptionData\\.current_period_start as number \\| undefined;",
+        "alive": ["items"],
+        "proof": [
+          {
+            "from": "= subscriptionData.current_period_start as number | undefined;",
+            "to": "= (stripeSubscription.items.data[0] as unknown as Record<string, unknown>)?.current_period_start as number | undefined;"
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "ST-1.current_period_end",
+        "file": "app/api/webhooks/stripe/route.ts",
+        "dead": "= subscriptionData\\.current_period_end as number \\| undefined;",
+        "alive": ["items"],
+        "proof": [
+          {
+            "from": "= subscriptionData.current_period_end as number | undefined;",
+            "to": "= (stripeSubscription.items.data[0] as unknown as Record<string, unknown>)?.current_period_end as number | undefined;"
+          }
+        ]
+      },
+      {
+        "id": "R3",
+        "entryId": "ST-3.payment_intent",
+        "file": "app/api/webhooks/stripe/route.ts",
+        "dead": "= invoiceData\\.payment_intent as string \\| null;",
+        "alive": ["payments", "confirmation_secret"],
+        "proof": [
+          {
+            "from": "= invoiceData.payment_intent as string | null;",
+            "to": "= (invoiceData.payments as { data?: { payment?: { payment_intent?: string } }[] } | undefined)?.data?.[0]?.payment?.payment_intent ?? null;"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "0-CYBERDYNE-SYSTEMS-0/quorum",
+    "commit": "0286c081bb5f98d30c2189147d36183ed5b902d0",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "AN-1.claude-3-haiku-20240307",
+        "file": "client/src/types/index.ts",
+        "dead": "claude-3-haiku-20240307",
+        "alive": ["claude-haiku-4-5-20251001"],
+        "proof": [
+          {
+            "from": "claude-3-haiku-20240307",
+            "to": "claude-haiku-4-5-20251001"
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "OA-1.gpt-3.5-turbo",
+        "file": "client/src/types/index.ts",
+        "dead": "\"gpt-3\\.5-turbo\"",
+        "alive": ["gpt-5\\.6-terra"],
+        "proof": [
+          {
+            "from": "\"gpt-3.5-turbo\"",
+            "to": "\"gpt-5.6-terra\""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "atrueempire/yk",
+    "commit": "96f0cce204821c1d276d9116f0c0146969880a54",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "OA-1.gpt-4",
+        "file": "app/api/search/google/route.ts",
+        "dead": "openai\\.chat\\('gpt-4'\\)",
+        "alive": ["gpt-5\\.6-sol"],
+        "proof": [
+          {
+            "from": "openai.chat('gpt-4')",
+            "to": "openai.chat('gpt-5.6-sol')"
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "AN-1.claude-3-opus-20240229",
+        "file": "config/provider/anthropic.ts",
+        "dead": "id: 'claude-3-opus-20240229'",
+        "alive": [],
+        "proof": [
+          {
+            "from": "id: 'claude-3-opus-20240229'",
+            "to": "id: 'claude-opus-4-8'"
+          }
+        ]
+      },
+      {
+        "id": "R3",
+        "entryId": "GE-2.gemini-pro",
+        "file": "config/provider/google.ts",
+        "dead": "id: 'gemini-pro'",
+        "alive": [],
+        "proof": [
+          {
+            "from": "id: 'gemini-pro'",
+            "to": "id: 'gemini-3.6-flash'"
+          }
+        ]
+      },
+      {
+        "id": "R4",
+        "entryId": "GR-7.mixtral-8x7b-32768",
+        "file": "config/provider/groq.ts",
+        "dead": "id: 'mixtral-8x7b-32768'",
+        "alive": [],
+        "proof": [
+          {
+            "from": "id: 'mixtral-8x7b-32768'",
+            "to": "id: 'openai/gpt-oss-120b'"
+          }
+        ]
+      }
+    ]
+  }
+]

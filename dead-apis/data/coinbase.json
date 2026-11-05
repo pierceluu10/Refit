@@ -1,0 +1,57 @@
+{
+  "provider": "coinbase",
+  "officialHosts": ["docs.cdp.coinbase.com"],
+  "entries": [
+    {
+      "id": "CB-1.pro-rest",
+      "provider": "coinbase",
+      "what": "The Coinbase Pro REST API at api.pro.coinbase.com. An unauthenticated GET /products on 2026-11-05 returned 503 with the body Coinbase Pro API is deprecated.",
+      "diedOn": "2024-09-11",
+      "source": {
+        "url": "https://docs.cdp.coinbase.com/exchange/changes/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "has been deprecated."
+      },
+      "lookFor": ["A request to api.pro.coinbase.com, or a client pointed at it"],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "api.pro.coinbase.com*"
+        }
+      ],
+      "replacement": "The Advanced Trade API for retail accounts, or the Exchange APIs for institutional clients.",
+      "requires": [
+        "Pro API keys don't work with Advanced Trade, so new keys are needed and the code has to change with them."
+      ],
+      "context": {
+        "hosts": ["pro.coinbase.com"]
+      }
+    },
+    {
+      "id": "CB-2.pro-websocket",
+      "provider": "coinbase",
+      "what": "The Coinbase Pro price feed at ws-feed.pro.coinbase.com. The source covers the Pro product as a whole and doesn't name this host. A handshake on 2026-11-05 returned HTTP 530.",
+      "diedOn": "2023-12-01",
+      "source": {
+        "url": "https://docs.cdp.coinbase.com/coinbase-app/advanced-trade-apis/faq",
+        "checkedOn": "2026-11-05",
+        "quote": "Coinbase Pro has been disabled for use and all customers have been migrated as of December 1, 2023."
+      },
+      "lookFor": ["A WebSocket connection to ws-feed.pro.coinbase.com"],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "ws-feed.pro.coinbase.com*"
+        }
+      ],
+      "replacement": "The Advanced Trade API for retail accounts, or the Exchange APIs for institutional clients.",
+      "requires": [
+        "Pro API keys don't work with Advanced Trade, so new keys are needed and the code has to change with them."
+      ],
+      "context": {
+        "hosts": ["pro.coinbase.com"]
+      }
+    }
+  ],
+  "future": []
+}

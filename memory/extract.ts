@@ -1,8 +1,9 @@
 import { randomBytes } from 'node:crypto';
 import { DegradedOutputError, type JsonRequest, type Model } from './ai.ts';
+import { taskChanges } from './retrieve.ts';
+import type { RunRecord } from '../shared/types.ts';
 import type { MemoryStore } from './store.ts';
 import type { MemoryRecipe, StoredRun } from './types.ts';
-import type { RunRecord } from '../shared/types.ts';
 
 type Lesson = { sameAsRecipeId: string | null; pitfalls: string };
 
@@ -35,11 +36,11 @@ const LESSON_SCHEMA = {
   properties: { sameAsRecipeId: { type: ['string', 'null'] }, pitfalls: text },
 };
 
-const SYSTEM = `You distil a successful API migration run into a recipe: advice a future engineer reads before migrating a DIFFERENT repository for a similar change. It is guidance, not a rule; they will adapt it to their code. A run succeeded if its checks verified it or a human merged or edited its PR.
+const SYSTEM = `You distil a successful API migration run into a recipe: advice a future engineer reads before migrating a DIFFERENT repository for a similar change. It is guidance, not a rule; they will adapt it to their code. A run succeeded if a rescan showed the dead API gone and a human merged its PR. If the input shows what the human changed before merging, that change shows what the run got wrong: put it in pitfalls, in general terms.
 
 You get the task, the agent's diff, the checks, the run's outcome and the agent's transcript. Write:
 - preconditions: what the code looks like when this recipe applies (SDK, version, call shapes).
-- steps: what to do, in order. Generalise away repository-specific names (files, variables, business logic) but keep exact provider API names, parameters, versions and model ids.
+- steps: what to do, in order. Generalise away repository-specific names (files, variables, business logic) but keep exact provider API names, parameters, versions and model ids. Cover the whole path to a verified fix: which kinds of files and code patterns it touched (for example "the webhook handler that reads subscription.current_period_end"), any codegen or setup it had to run before the checks could pass (prisma generate and the like), which checks it ran, and the test it wrote to prove the change: what the test asserts and where such a test lives.
 - pitfalls: what went wrong or nearly did, including every dead end the agent hit in the transcript and how it got out.
 - diffSketch: a short generic before/after diff of the core change.
 
@@ -49,13 +50,26 @@ const LESSON_SYSTEM = `You read an API migration run that did not succeed: it fa
 
 If the run hit a dead end, a wrong assumption or a missed check that an engineer following one of those recipes should know about, set sameAsRecipeId to that recipe's id. Return that recipe's pitfalls with this run's lesson added, keeping what was already there, and say the lesson comes from a run that did not succeed. Otherwise set sameAsRecipeId to null and pitfalls to an empty string.`;
 
-const MAX_TRANSCRIPT_CHARS = 600_000;
+// Head and tail of a long transcript; past this the middle is mostly tool output the recipe doesn't need.
+const MAX_TRANSCRIPT_CHARS = 150_000;
+const MAX_DIFF_CHARS = 60_000;
+// A lockfile's hunks are the package manager's output, not the change; a recipe learns nothing from them.
+const LOCKFILE =
+  /(?:^|\/)(?:package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?|npm-shrinkwrap\.json|poetry\.lock|Pipfile\.lock|uv\.lock|Cargo\.lock|go\.sum|composer\.lock|Gemfile\.lock)$/;
 
-// A human merging or editing the PR is the strongest success signal; closing it outweighs passing checks.
-export function succeeded({ outcome, humanVerdict }: RunRecord): boolean {
-  if (humanVerdict === 'merged' || humanVerdict === 'edited') return true;
-  return outcome === 'verified' && humanVerdict !== 'closed';
+// Where a fix stands. 'merged' is the only success: its PR was merged and the rescan was clean. A
+// fix with a clean rescan and no merge yet, or a benchmark's locked-test pass, can only make a
+// low-confidence recipe. A close or revert counts against it. "Verified" alone says nothing.
+export type Standing = 'merged' | 'low' | 'against' | 'none';
+
+export function standing({ evidence = {}, record }: StoredRun): Standing {
+  if (evidence.closed || evidence.reverted || record.humanVerdict === 'closed') return 'against';
+  if (!evidence.rescanClean) return 'none';
+  if (evidence.merged || record.humanVerdict === 'merged') return 'merged';
+  return record.outcome === 'verified' || evidence.lockedTest ? 'low' : 'none';
 }
+
+export const succeeded = (run: StoredRun): boolean => standing(run) === 'merged';
 
 // A successful run becomes a new or merged recipe. Any other attempt can only add pitfalls to a recipe the
 // model names. Returns the recipe it saved, if any; this never blocks a run.
@@ -63,7 +77,8 @@ export async function extractRecipe(
   run: StoredRun,
   deps: { store: MemoryStore; model: Model; now?: () => Date },
 ): Promise<MemoryRecipe | undefined> {
-  const success = succeeded(run.record);
+  const stand = standing(run);
+  const success = stand === 'merged' || stand === 'low';
   if (!success && run.record.outcome === 'not-affected') return undefined;
   const { provider, kind } = run.task.change;
   const existing = (await deps.store.listRecipes()).filter(
@@ -105,14 +120,19 @@ export async function extractRecipe(
   let recipe: MemoryRecipe | undefined;
   if (same) {
     const { embedding: _staleEmbedding, ...kept } = same;
-    // Only a successful run counts as another repo the recipe was verified on.
-    const repos = success ? [...new Set([...same.repos, run.task.repo])] : same.repos;
+    // Only a merged fix counts as another repo the recipe was verified on.
+    const repos = stand === 'merged' ? [...new Set([...same.repos, run.task.repo])] : same.repos;
     recipe = {
       ...kept,
       ...guidance,
+      ...(success && { changeIds: [...new Set([...(same.changeIds ?? []), ...changeIds(run)])] }),
       sourceRuns: [...new Set([...same.sourceRuns, run.id])],
       repos,
       verifiedRepos: repos.length,
+      confidence: repos.length > 0 ? 'merged' : 'low',
+      ...(repos.length === 0 && same.benchmarkOnly && run.evidence?.lockedTest
+        ? { benchmarkOnly: true }
+        : { benchmarkOnly: false }),
       updatedAt: now,
     };
   } else if (success) {
@@ -121,9 +141,12 @@ export async function extractRecipe(
       provider,
       kind,
       ...(guidance as Omit<Extraction, 'sameAsRecipeId'>),
+      changeIds: changeIds(run),
       sourceRuns: [run.id],
-      repos: [run.task.repo],
-      verifiedRepos: 1,
+      repos: stand === 'merged' ? [run.task.repo] : [],
+      verifiedRepos: stand === 'merged' ? 1 : 0,
+      confidence: stand === 'merged' ? 'merged' : 'low',
+      benchmarkOnly: stand === 'low' && run.evidence?.lockedTest === true,
       createdAt: now,
       updatedAt: now,
     };
@@ -136,6 +159,37 @@ export async function extractRecipe(
     at: now,
   });
   return recipe;
+}
+
+// A repo session's changes are its list entries.
+const changeIds = (run: StoredRun) => {
+  const { entries } = run.task as { entries?: { id: string }[] };
+  return entries?.map((entry) => entry.id) ?? taskChanges(run.task).map((change) => change.id);
+};
+
+// What the harness's record carries beyond shared RunRecord, read here so a recipe can name the
+// codegen, checks and proof test that got the fix verified. Each is absent on older records.
+type HarnessFields = {
+  preparation?: { steps?: { command: string; why: string; code: number }[] };
+  agentChecks?: { name: string; command: string }[];
+  prBody?: string;
+};
+
+function whatTheRunDid(run: StoredRun): string {
+  const { diff } = run.record;
+  const { preparation, agentChecks = [], prBody } = run.record as RunRecord & HarnessFields;
+  const files = [...diff.matchAll(/^diff --git a\/(\S+) b\//gm)].map((match) => match[1]);
+  const steps = preparation?.steps ?? [];
+  return [
+    `Files changed: ${files.join(', ') || 'none'}`,
+    `Codegen and setup run before the baseline: ${steps.length ? '' : 'none recorded'}`,
+    ...steps.map((step) => `- \`${step.command}\` (exit ${step.code}): ${step.why}`),
+    `Checks the agent added, its proof test among them: ${agentChecks.length ? '' : 'none recorded'}`,
+    ...agentChecks.map((check) => `- ${check.name}: \`${check.command}\``),
+    prBody ? `The PR body it wrote:\n${prBody}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 // One retry when the answer comes back degraded; any other error goes straight up.
@@ -164,10 +218,15 @@ function buildPrompt(run: StoredRun, existing: MemoryRecipe[]): string {
     title: change.title,
     source: change.source,
     affects: change.affects,
+    alsoResolves: taskChanges(run.task)
+      .slice(1)
+      .map(({ id, title }) => ({ id, title })),
     usages,
   };
   const { outcome: harnessOutcome, humanVerdict } = run.record;
-  const outcome = `Harness outcome: ${harnessOutcome}. Human verdict on the PR: ${humanVerdict ?? 'none yet'}. If a human edited the PR, only the agent's diff is shown, not theirs.`;
+  const outcome = `Harness outcome: ${harnessOutcome}. Human verdict on the PR: ${humanVerdict ?? 'none yet'}.`;
+  const humanDiff = run.evidence?.merged?.humanDiff;
+  const closed = run.evidence?.closed?.comment;
   const recipes = existing.map(({ id, kind, preconditions, steps, pitfalls }) => ({
     id,
     kind,
@@ -178,12 +237,31 @@ function buildPrompt(run: StoredRun, existing: MemoryRecipe[]): string {
   return [
     `## Task\n${JSON.stringify(task, null, 2)}`,
     `## Outcome\n${outcome}`,
-    // shortcut: a human's final diff isn't recorded yet; pass it here once the GitHub App sends it.
-    `## Agent's diff\n${run.record.diff}`,
+    `## Agent's diff\n${diffForPrompt(run.record.diff)}`,
+    humanDiff ? `## What the human changed before merging\n${diffForPrompt(humanDiff)}` : '',
+    closed ? `## Why the human closed the PR\n${closed}` : '',
     `## Checks (before -> after)\n${JSON.stringify(run.record.checks, null, 2)}`,
+    `## What the run did\n${whatTheRunDid(run)}`,
     `## Transcript\n${transcriptForPrompt(run.transcript)}`,
     `## Existing recipes for ${change.provider}\n${recipes.length ? JSON.stringify(recipes, null, 2) : 'None yet.'}`,
-  ].join('\n\n');
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+export function diffForPrompt(diff: string): string {
+  const files = diff.split(/(?=^diff --git )/m);
+  const kept = files.filter((file) => {
+    const path = file.match(/^diff --git a\/(\S+)/)?.[1];
+    return !path || !LOCKFILE.test(path);
+  });
+  const dropped = files.length - kept.length;
+  const text = kept.join('');
+  const capped =
+    text.length <= MAX_DIFF_CHARS
+      ? text
+      : `${text.slice(0, MAX_DIFF_CHARS)}\n[... ${text.length - MAX_DIFF_CHARS} more characters of diff not shown ...]`;
+  return dropped ? `${capped}\n[${dropped} lockfile diff(s) left out]` : capped;
 }
 
 // shortcut: keeps the head and tail of a huge transcript and drops the middle; summarise the middle with a cheap model pass if dead ends there get lost.

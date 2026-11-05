@@ -22,14 +22,39 @@ describe('redactSecrets', () => {
     );
   });
 
+  it('never takes the next line for the value of an empty key', () => {
+    const text = 'OPENROUTER_API_KEY=\nOPENROUTER_MODEL=deepseek/deepseek-chat-v3.1:free\n';
+    expect(redactSecrets(text, {})).toBe(text);
+    const diff = '-GITHUB_TOKEN=\n-GITHUB_MODEL=openai/gpt-4o-mini-2024\n';
+    expect(redactSecrets(diff, {})).toBe(diff);
+  });
+
   it('leaves code that reads keys alone', () => {
     const code = [
       'apiKey: await getApiKey(),',
       'const key = process.env.OPENAI_API_KEY;',
       'primaryKey: 1,',
       'OPENAI_API_KEY=your-key-here',
+      'accessKeyId: process.env.R2_ACCESS_KEY_ID,',
+      'const token = import.meta.env.VITE_S3_TOKEN;',
     ].join('\n');
     expect(redactSecrets(code, env)).toBe(code);
+  });
+
+  it('redacts a key glued to a word, and leaves ordinary words ending in sk- alone', () => {
+    expect(redactSecrets('xsk_live_abcdefghijklmnop1234', {})).toBe('x[redacted]');
+    const word = 'task-abcdefghijklmnopqrstuvwx';
+    expect(redactSecrets(word, {})).toBe(word);
+  });
+
+  it('redacts a bearer value, and leaves one built in code or plain words alone', () => {
+    expect(redactSecrets('Authorization: Bearer abc123.def-456_xyz', {})).toBe(
+      'Authorization: Bearer [redacted]',
+    );
+    expect(redactSecrets('`Bearer ${token}`', {})).toBe('`Bearer ${token}`');
+    expect(redactSecrets('Use Bearer authentication here', {})).toBe(
+      'Use Bearer authentication here',
+    );
   });
 
   it('still redacts known prefixes and env values', () => {

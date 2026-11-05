@@ -98,8 +98,8 @@ describe('run config', () => {
   });
 
   it('refuses a plan whose shards could never afford a task', () => {
-    expect(() => planMatrix('stripe-dev-30', 40)).toThrow(
-      /leaves \$1\.28 for each of 30 shards, below the \$2 a task needs free/,
+    expect(() => planMatrix('stripe-dev-30', 5)).toThrow(
+      /leaves \$0\.12 for each of 30 shards, below the \$0\.15 overshoot reserve a task needs free/,
     );
   });
 
@@ -269,7 +269,15 @@ describe('runSet', () => {
     // The next repo still starts: its inventory and match may fit where a task did not.
     expect(second?.verdict).toBe('tasks');
     expect(second?.tasks.map((task) => task.unrun)).toEqual(['budget', 'budget']);
-    expect(started).toEqual(['a/one#0', 'a/one#1', 'b/two#0', 'c/three#0']);
+    // A repo's tasks start at once, so each one the cap can't afford is tried and reported unrun.
+    expect([...started].sort()).toEqual([
+      'a/one#0',
+      'a/one#1',
+      'b/two#0',
+      'b/two#1',
+      'c/three#0',
+      'c/three#1',
+    ]);
   });
 
   it('stops starting repos once the run budget refuses a part every repo needs', async () => {

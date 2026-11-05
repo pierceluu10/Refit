@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { unredact } from '../harness/secrets.ts';
 import { REPO_PATTERN } from './types.ts';
 import type { FileChange } from './types.ts';
 
@@ -60,6 +61,9 @@ export async function cloneRepo(token: string, repo: string, dir: string): Promi
   );
 }
 
+export const treeOfCheckout = async (dir: string): Promise<string> =>
+  (await git(['rev-parse', 'HEAD^{tree}'], { cwd: dir })).trim();
+
 // Applies the harness's diff to a scratch index, never the checkout's files, and reads back each file.
 // shortcut: text files only; a binary or mode-only change needs `git diff --binary` from the harness first.
 export async function filesFromDiff(repoDir: string, diff: string): Promise<FileChange[]> {
@@ -67,7 +71,13 @@ export async function filesFromDiff(repoDir: string, diff: string): Promise<File
   const options = { cwd: repoDir, env: { GIT_INDEX_FILE: join(scratch, 'index') } };
   try {
     await git(['read-tree', 'HEAD'], options);
-    await git(['apply', '--cached', '--whitespace=nowarn', '-'], { ...options, input: diff });
+    const originals = new Map<string, string[] | undefined>();
+    for (const [, file] of diff.matchAll(/^--- a\/(.+)$/gm)) {
+      const text = await git(['show', `HEAD:${file}`], { cwd: repoDir }).catch(() => undefined);
+      originals.set(file as string, text?.split('\n'));
+    }
+    const input = unredact(diff, (file) => originals.get(file));
+    await git(['apply', '--cached', '--whitespace=nowarn', '-'], { ...options, input });
     const status = await git(
       ['diff', '--cached', '--name-status', '--no-renames', '-z', 'HEAD'],
       options,

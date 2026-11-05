@@ -72,8 +72,12 @@ export async function packageManagerVersion(
 
 // The command that runs that release: npx for npm, corepack for pnpm and yarn. The Docker image
 // has no pnpm binary, so pnpm always goes through corepack.
+const BUN = '/tmp/bun/bin/bun';
+
 export function packageManagerBinary(pm: PackageManager, version?: string): string {
   if (pm === 'npm') return version ? `npx -y npm@${version}` : 'npm';
+  // The Node image has no bun; installCommand fetches bun's own release into the container's /tmp.
+  if (pm === 'bun') return BUN;
   if (pm === 'pnpm' || (pm === 'yarn' && version)) {
     return `corepack ${pm}${version ? `@${version}` : ''}`;
   }
@@ -86,7 +90,11 @@ export function installCommand(pm: PackageManager, version?: string): string {
   const bin = packageManagerBinary(pm, version);
   switch (pm) {
     case 'npm':
-      return `${bin} ci --ignore-scripts --no-audit --no-fund || ${bin} install --ignore-scripts --no-audit --no-fund`;
+      // A peer conflict the repo's own lockfile settled (or its pinned npm tolerated) stops a fresh
+      // resolve, and a direct dependency built for another platform (a win32 binding) stops any
+      // install here, so the fallbacks accept each, as the repo's own install did on its machine.
+      // A failed ci can leave a half-written node_modules that a later install trips on (ENOTEMPTY).
+      return `${bin} ci --ignore-scripts --no-audit --no-fund || { rm -rf node_modules; ${bin} install --ignore-scripts --no-audit --no-fund || ${bin} install --ignore-scripts --no-audit --no-fund --legacy-peer-deps || ${bin} install --ignore-scripts --no-audit --no-fund --force; }`;
     // The sandbox sets CI, which makes pnpm and Yarn 2+ install frozen by default, so each fallback
     // unfreezes explicitly: after a dependency change only an unfrozen install can update the lockfile.
     case 'pnpm':
@@ -99,7 +107,7 @@ export function installCommand(pm: PackageManager, version?: string): string {
       return `if yarn --version | grep -q '^1\\.'; then ${classic}; else ${berry}; fi`;
     }
     case 'bun':
-      return 'bun install --frozen-lockfile --ignore-scripts || bun install --ignore-scripts';
+      return `(test -x ${BUN} || curl -fsSL https://bun.sh/install | BUN_INSTALL=/tmp/bun bash >/dev/null 2>&1); ${bin} install --frozen-lockfile --ignore-scripts || ${bin} install --ignore-scripts`;
     case 'pip':
       // One requirement without a wheel (PyAudio, say) fails the whole file, so the fallback installs
       // the rest one at a time and names what it could not.
@@ -136,7 +144,7 @@ export async function detectChecks(
     const typecheck = ['typecheck', 'type-check', 'tsc'].find((name) => scripts[name]);
     if (typecheck) checks.push({ name: 'typecheck', command: `${runner} run ${typecheck}` });
     else if (await exists(path.join(dir, 'tsconfig.json'))) {
-      checks.push({ name: 'typecheck', command: 'npx --no-install tsc --noEmit' });
+      checks.push({ name: 'typecheck', command: 'npx --no-install tsc --noEmit', fallback: true });
     }
     if (scripts.build) checks.push({ name: 'build', command: `${runner} run build` });
     if (scripts.test && !scripts.test.includes('no test specified')) {
@@ -182,6 +190,29 @@ export async function runChecks(sandbox: Sandbox, checks: CheckCommand[]): Promi
     });
   }
   return runs;
+}
+
+// A check that newly fails runs once more, and a failure counts only if it repeats: a flaky test or
+// a build that timed out on a busy machine isn't the change's fault, and a real break fails again.
+export async function runChecksAfter(
+  sandbox: Sandbox,
+  checks: CheckCommand[],
+  before: CheckRun[],
+): Promise<CheckRun[]> {
+  const after = await runChecks(sandbox, checks);
+  const failing = compareChecks(before, after)
+    .filter((comparison) => comparison.newFailures.length > 0)
+    .map((comparison) => comparison.name);
+  if (failing.length === 0) return after;
+  const again = await runChecks(
+    sandbox,
+    checks.filter((check) => failing.includes(check.name)),
+  );
+  return after.map((run) => {
+    const rerun = again.find((candidate) => candidate.name === run.name);
+    const cleared = rerun && compareChecks(before, [rerun])[0]?.newFailures.length === 0;
+    return cleared ? rerun : run;
+  });
 }
 
 const ANSI = /\x1b\[[0-9;?]*[A-Za-z]/g;
@@ -235,17 +266,31 @@ function summary(run: CheckRun | undefined): string {
   return run.ok ? 'pass' : `fail (${run.failures.length})`;
 }
 
+// tsc prints types in its messages, and a dependency bump can reorder their properties, so a type
+// error is matched by file and code (counting repeats) rather than by its text.
+function failureKey(failure: string): string {
+  const match = failure.match(/^(.+?): error (TS\d+):/);
+  return match ? `${match[1]} ${match[2]}` : failure;
+}
+
 export function compareChecks(before: CheckRun[], after: CheckRun[]): CheckComparison[] {
   const names = [...new Set([...before, ...after].map((run) => run.name))];
   return names.map((name) => {
     const old = before.find((run) => run.name === name);
     const now = after.find((run) => run.name === name);
-    const known = new Set(old?.failures ?? []);
+    const known = new Map<string, number>();
+    for (const failure of old?.failures ?? []) {
+      known.set(failureKey(failure), (known.get(failureKey(failure)) ?? 0) + 1);
+    }
     return {
       name,
       before: summary(old),
       after: summary(now),
-      newFailures: (now?.failures ?? []).filter((failure) => !known.has(failure)),
+      newFailures: (now?.failures ?? []).filter((failure) => {
+        const left = known.get(failureKey(failure)) ?? 0;
+        known.set(failureKey(failure), left - 1);
+        return left <= 0;
+      }),
     };
   });
 }

@@ -8,6 +8,7 @@ import {
   packageManagerNote,
   renderRecipes,
 } from './prompt.ts';
+import { repoTask, type DeadApiEntry, type ScanResult } from './findings.ts';
 import type { CheckRun } from './types.ts';
 
 // Illustrative fixture, not a real customer repo.
@@ -81,7 +82,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-01.10');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-05.rebuild-7');
   });
 
   it('puts the sections in the plan order', () => {
@@ -110,7 +111,13 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('guidance, not rules');
     expect(prompt).toContain('Webhook handlers read the old name too');
     expect(prompt).toContain('verified on 3 repos');
-    expect(prompt).toContain('`fetch_url`: Fetch a docs page');
+    expect(prompt).toContain('`fetch_url`, `finish`');
+    expect(prompt).not.toContain('Fetch a docs page');
+    expect(prompt).toContain('within 90 days of today');
+    expect(prompt).toContain(
+      "A well-supported 'not affected' is as good an outcome as a migration",
+    );
+    expect(prompt).toContain('`.refit-proof/`');
     expect(prompt).toContain('Docker container, network off');
     expect(prompt).toContain('$5.00');
     expect(prompt).toContain("'not-affected'");
@@ -170,7 +177,7 @@ describe('buildSystemPrompt', () => {
     ).toBe(true);
     expect(rendered).toContain('Rename source everywhere, webhooks included.');
     expect(rendered).toContain(
-      '#### recipe-7 (stripe / field-renamed, verified on 3 repos; 1 later PR that used it closed by a human without merging)',
+      '#### recipe-7 (stripe / field-renamed, verified on 3 repos; 1 later run that used it did not verify or had its PR closed without merging)',
     );
     expect(rendered).toContain('```diff\n- source\n+ payment_source\n```');
   });
@@ -259,5 +266,100 @@ describe('buildRetryMessage', () => {
     });
     expect(message).toContain('no new failures');
     expect(message).not.toContain('finish');
+  });
+});
+
+describe('renderRecipes', () => {
+  it('marks a recipe no merged PR backs yet', () => {
+    const recipe = {
+      id: 'r1',
+      provider: 'openai',
+      kind: 'other' as const,
+      preconditions: '',
+      steps: '',
+      pitfalls: '',
+      sourceRuns: [],
+      verifiedRepos: 0,
+      confidence: 'low' as const,
+    };
+    expect(renderRecipes([recipe])).toContain('low confidence: no merged PR backs it yet');
+  });
+});
+
+describe('a repo session', () => {
+  const entry = (id: string): DeadApiEntry => ({
+    id,
+    provider: 'anthropic',
+    what: `${id} model`,
+    diedOn: '2026-06-15',
+    source: { url: 'https://example.com/deprecations', checkedOn: '2026-11-04' },
+    lookFor: [id],
+    matchers: [],
+    replacement: 'claude-sonnet-5-5',
+    requires: ['Drop `temperature`.'],
+  });
+  const scan = (file: string): ScanResult => ({
+    findings: [{ entryId: 'AN-1', file, line: 7, matchClass: 'live', version: '0.30.0' }],
+    unlistedProviders: [],
+    clean: false,
+  });
+  const system = (task: MigrationTask) =>
+    buildSystemPrompt({
+      task,
+      toolPack: { provider: 'anthropic', tools: [], playbooks: {} },
+      recipes: [],
+      tools: [{ name: 'finish', description: '' }],
+      budgetUsd: 1,
+      sandboxNote: 'Docker',
+    });
+
+  it('gives the session the fix rules', () => {
+    const prompt = system(repoTask('acme/a', scan('a.py'), [entry('AN-1')]));
+    for (const rule of [
+      '"Out of scope" is not an answer',
+      'No major upgrade unless a list entry requires it',
+      'read it from config',
+      'Change defaults and live paths, not only tests',
+      'Replacements come from the list entry',
+      "Don't edit an existing test just to make it pass",
+    ]) {
+      expect(prompt).toContain(rule);
+    }
+  });
+
+  it('keeps the system prompt the same across repos, so its cached prefix is shared', () => {
+    const a = system(repoTask('acme/a', scan('a.py'), [entry('AN-1')]));
+    const b = system(repoTask('other/b', scan('b.py'), [entry('AN-1')]));
+    expect(a).toBe(b);
+    expect(a).not.toContain('acme/a');
+  });
+
+  it('puts every entry and finding in the kickoff message', () => {
+    const task = repoTask('acme/a', scan('src/a.py'), [entry('AN-1'), entry('AN-9')]);
+    const kickoff = buildKickoffMessage([], undefined, undefined, [], task);
+    expect(kickoff).toContain('acme/a');
+    expect(kickoff).toContain('### AN-1: AN-1 model');
+    expect(kickoff).toContain('src/a.py:7 (live, version 0.30.0)');
+    expect(kickoff).toContain('Replacement: claude-sonnet-5-5');
+    expect(kickoff).toContain('Drop `temperature`.');
+    expect(kickoff).not.toContain('AN-9');
+  });
+
+  it('numbers each requirement once, so the session can answer for every one', () => {
+    const task = repoTask('acme/a', scan('src/a.py'), [entry('AN-1')]);
+    const second = { ...entry('AN-1'), id: 'AN-2', requires: ['Drop `temperature`.', 'New line.'] };
+    const both = { ...task, entries: [...task.entries, second] };
+    const kickoff = buildKickoffMessage([], undefined, undefined, [], both);
+    expect(kickoff.match(/\[r1\] Drop `temperature`\./g)).toHaveLength(1);
+    expect(kickoff).toContain('[r2] New line.');
+  });
+
+  it('names what the provider validator rejects', () => {
+    const task = repoTask('acme/a', scan('src/a.py'), [entry('AN-1')]);
+    const kickoff = buildKickoffMessage([], undefined, undefined, [], task, [
+      'app/a.tsx: Field "productVariantUpdate" does not exist on type Mutation.',
+    ]);
+    expect(kickoff).toContain('Each is part of this fix');
+    expect(kickoff).toContain('app/a.tsx: Field "productVariantUpdate"');
   });
 });

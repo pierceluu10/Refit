@@ -26,6 +26,7 @@ export function streamMeter(ledger: BudgetLedger, defaultModel: string) {
       if (event.type === 'message_start') {
         const { model, usage } = event.message;
         open.set(key, { model: model || defaultModel, usage: { ...usage }, costUsd: 0 });
+        ledger.noteInput(usage);
       } else if (event.type === 'message_delta') {
         const call = open.get(key);
         // message_delta counts are cumulative for the message; null means unchanged.
@@ -64,6 +65,13 @@ export function toSdkTool(agentTool: AgentTool, repoDir: string) {
   }));
 }
 
+// One call's output is what the query can overshoot its grant by, so it stays below TURN_RESERVE_USD
+// at Sonnet's $10 per million. Edits are small and a file write this long is rare; a cut-off call
+// makes the agent split its work.
+const MAX_OUTPUT_TOKENS = '12000';
+// Medium on Sonnet: the recommended start for agentic coding, and most of a session is small edits.
+const effortFor = (model: string) => (model.includes('opus') ? 'high' : 'medium');
+
 export const claudeAgentSession: AgentSession = async (input) => {
   input.ledger.assertCanSpend();
   const server = createSdkMcpServer({
@@ -82,6 +90,8 @@ export const claudeAgentSession: AgentSession = async (input) => {
       prompt: input.prompt,
       options: {
         model: input.model,
+        effort: effortFor(input.model),
+        env: { ...process.env, CLAUDE_CODE_MAX_OUTPUT_TOKENS: MAX_OUTPUT_TOKENS },
         systemPrompt: input.systemPrompt,
         // Built-in file and shell tools stay off: repo code runs only through the sandboxed tools.
         tools: ['WebSearch'],

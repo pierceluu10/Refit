@@ -1,0 +1,19 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "xiaoshuntian/academic-paper-skill",
+  "commit": "0120d7f37daec0c9e71d902f67b6fb048de54c45",
+  "provider": "anthropic",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.013155999999999946,
+  "durationMs": 20427,
+  "install": {
+    "code": 0,
+    "tail": "added 39 packages in 3s\n\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

@@ -2,6 +2,7 @@ import { cpSync, lstatSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve, sep } from 'node:path';
 import { query, type CanUseTool, type SDKResultMessage } from '@anthropic-ai/claude-agent-sdk';
+import { isText, type ModelClient } from '../providers/core/model.ts';
 import type { Budget } from './budget.ts';
 import type { AskModel } from './match.ts';
 
@@ -105,5 +106,47 @@ export function agentSdk(opts: { budget: Budget; model?: string }): AskModel {
       throw new Error('Agent SDK match run returned no structured output.');
     }
     return { output: result.structured_output, costUsd };
+  };
+}
+
+// One model call on the logged-in credentials, for what expects a ModelClient on a run with no API key.
+export function sdkModel(model: string): ModelClient {
+  return {
+    model,
+    complete: async ({ system, messages }) => {
+      const prompt = messages
+        .flatMap((message) => message.content)
+        .filter(isText)
+        .map((block) => block.text)
+        .join('\n');
+      let result: SDKResultMessage | undefined;
+      for await (const message of query({
+        prompt,
+        options: {
+          model,
+          systemPrompt: system,
+          tools: [],
+          maxTurns: 1,
+          settingSources: [],
+          persistSession: false,
+        },
+      })) {
+        if (message.type === 'result') result = message;
+      }
+      if (result?.subtype !== 'success') {
+        throw new Error(`Agent SDK call ended with ${result?.subtype ?? 'no result'}.`);
+      }
+      const { usage } = result;
+      return {
+        content: [{ type: 'text', text: result.result }],
+        stopReason: 'end_turn',
+        usage: {
+          inputTokens: usage.input_tokens,
+          outputTokens: usage.output_tokens,
+          cacheWriteTokens: usage.cache_creation_input_tokens ?? 0,
+          cacheReadTokens: usage.cache_read_input_tokens ?? 0,
+        },
+      };
+    },
   };
 }

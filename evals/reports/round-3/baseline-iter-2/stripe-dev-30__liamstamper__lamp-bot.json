@@ -1,0 +1,61 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "liamstamper/lamp-bot",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 0.21064539999999998,
+    "tasks": 1,
+    "verified": 1
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.19120790000000001,
+    "prepCostUsd": 0.014832,
+    "diffLines": 137,
+    "finalText": "I replaced the model IDs that are retired or about to be. I didn't run a build, type-check or any API calls.\n\n**What changed upstream** (both from the vendors' own deprecation pages):\n- **Groq:** `llama-3.3-70b-versatile` and `llama-3.1-8b-instant` shut down on 2026-08-16, so they already fail. Groq recommends `openai/gpt-oss-120b` and `openai/gpt-oss-20b` instead.\n- **OpenAI:** `gpt-4o-2024-08-06` and `gpt-4.1-mini-2025-04-14` are removed on 2027-01-14. OpenAI recommends `gpt-6-luna` for both.\n\n**What I changed:**\n- **`lib/ai/modelChoices.ts`:**\n  - The model list is now `gpt-6-luna`, `openai/gpt-oss-120b` and `openai/gpt-oss-20b`.\n  - OpenAI named the same replacement for both old GPT models, so I merged them into one entry.\n  - Plan restrictions are unchanged: the 20b model is the one available on the free plan, as the 8b llama model was.\n- **`lib/webhook/promptModel.ts` and `AIConfigurationClient.tsx`:** the hardcoded `llama-3.3-70b-versatile` and `gpt-4o` defaults now point to `openai/gpt-oss-120b` and `gpt-6-luna`. The existing routing still sends `openai/gpt-oss-*` to Groq, because only IDs starting with `gpt-` go to OpenAI.\n- **`lib/ai/modelPromptingService.ts`:** the OpenAI call now sends `reasoning_effort: \"none\"` along with `temperature`. This comes from LiteLLM's blog post on GPT-6, not OpenAI's docs, which said `temperature` is only accepted when reasoning is off. Please check it against OpenAI's API reference. I cast the request to `any` because the installed `openai` SDK (^4.95) likely doesn't type `\"none\"`.\n\n**What I found no reason to change:** Stripe (the API version is pinned) and the other SDKs. I didn't check them individually.\n\n**Still open:**\n- Prompt configs already saved in the database may hold the old model IDs and will fail until they're migrated or re-selected. I didn't write a migration.\n- The `.next/` build output still has the old IDs and needs a rebuild.\n\nSources:\n- [Groq deprecations](https://console.groq.com/docs/deprecations.md)\n- [OpenAI deprecations](https://platform.openai.com/docs/deprecations.md)\n- [LiteLLM GPT-6 Sol/Luna](https://docs.litellm.ai/blog/gpt_6_sol_luna)",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-liamstamper-lamp-bot/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "Stripe.js: deprecated methods removed, initCheckout renamed, elements.update returns a Promise",
+          "correct": true,
+          "note": "Correctly concluded that the code only uses PaymentElement and confirmPayment, so no change is needed."
+        }
+      ],
+      "breaks": [
+        "Committed a tsconfig.tsbuildinfo build artifact.",
+        "Missed the Groq model retirements, which already break the webhook default model and the model list."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "Groq retired llama-3.3-70b-versatile and llama-3.1-8b-instant (2026-08-16), replaced by openai/gpt-oss-120b / gpt-oss-20b",
+          "correct": true,
+          "note": "Updated modelChoices, the promptModel default and the token-usage record, plus the AIConfigurationClient test/default IDs. Routing still sends openai/gpt-oss-* to Groq, so the swap is consistent. Prompt configs already saved in the DB still hold the old IDs and need migrating; the explanation acknowledges this."
+        },
+        {
+          "change": "OpenAI removing gpt-4o-2024-08-06 and gpt-4.1-mini-2025-04-14 (2027-01-14), replacement gpt-6-luna",
+          "correct": true,
+          "note": "Merged the two entries into a single gpt-6-luna entry and updated the UI defaults. The removal date is in the future, so this is proactive but consistent with the cited deprecation page."
+        },
+        {
+          "change": "GPT-6 accepts temperature only when reasoning is disabled; send reasoning_effort: 'none'",
+          "correct": true,
+          "note": "Added reasoning_effort: 'none' with an `as any` cast. The source is a LiteLLM blog post rather than OpenAI's docs, but the code matches what it cites. runOpenAiChat could also receive non-GPT-6 models, but after this change the list only contains gpt-6-luna for OpenAI, so that is acceptable."
+        }
+      ],
+      "breaks": [
+        "Removed gpt-4.1-mini as a distinct choice; users lose a cheaper tier.",
+        "The `as any` cast removes type checking on the whole request object.",
+        "Committed a tsconfig.tsbuildinfo build artifact."
+      ]
+    },
+    "better": "claude",
+    "why": "A fixes the Groq llama retirements, which have already happened and break the webhook default path, and it updates every hardcoded reference consistently. B made no code changes and missed those retirements entirely.",
+    "costUsd": 0.135712
+  }
+}

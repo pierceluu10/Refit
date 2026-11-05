@@ -3,7 +3,7 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DegradedOutputError, type JsonRequest, type Model } from './ai.ts';
-import { extractRecipe } from './extract.ts';
+import { diffForPrompt, extractRecipe } from './extract.ts';
 import { makeRecipe, makeRecord, makeTask } from './fixtures/tasks.ts';
 import { JsonMemoryStore } from './store.ts';
 
@@ -57,7 +57,7 @@ describe('extractRecipe', () => {
   });
 
   it('creates a new recipe linked to its run from one strict-schema model pass', async () => {
-    const { store, run } = await setup();
+    const { store, run } = await setup({ humanVerdict: 'merged' });
     await store.saveRecipe(makeRecipe({ id: 'recipe-shopify', provider: 'shopify' }));
     const { model, requests } = fakeModel();
 
@@ -87,7 +87,7 @@ describe('extractRecipe', () => {
   });
 
   it('merges into the recipe the model names, deduping repos and dropping the stale embedding', async () => {
-    const { store, run } = await setup();
+    const { store, run } = await setup({ humanVerdict: 'merged' });
     const skill = {
       status: 'active' as const,
       prompt: 'skill',
@@ -112,13 +112,68 @@ describe('extractRecipe', () => {
     });
     expect(sameRepo).not.toHaveProperty('embedding');
 
-    const other = await setup({ repo: 'example-org/billing' });
+    const other = await setup({ humanVerdict: 'merged', repo: 'example-org/billing' });
     await other.store.saveRecipe(sameRepo!);
     const newRepo = await extractRecipe(other.run, { store: other.store, model, now: () => NOW });
 
     expect(newRepo?.repos).toEqual(['example-org/shop', 'example-org/billing']);
     expect(newRepo?.verifiedRepos).toBe(2);
     expect(await other.store.listRecipes()).toHaveLength(1);
+  });
+
+  it('records the changes a recipe was made from, the bundled ones too, and merges them', async () => {
+    const { store, run } = await setup();
+    const bundled = { ...run.task.change, id: 'stripe-sources-removed' };
+    const upgrade = {
+      ...run,
+      task: { ...run.task, alsoResolves: [{ change: bundled, why: 'x' }] },
+    };
+    const recipe = await extractRecipe(upgrade, {
+      store,
+      model: fakeModel().model,
+      now: () => NOW,
+    });
+    expect(recipe?.changeIds).toEqual([
+      'stripe-charges-to-payment-intents',
+      'stripe-sources-removed',
+    ]);
+
+    const other = await setup({ humanVerdict: 'merged', repo: 'example-org/billing' });
+    await other.store.saveRecipe({ ...recipe!, changeIds: ['stripe-older-change'] });
+    const merged = await extractRecipe(other.run, {
+      store: other.store,
+      model: fakeModel(recipe!.id).model,
+      now: () => NOW,
+    });
+    expect(merged?.changeIds).toEqual(['stripe-older-change', 'stripe-charges-to-payment-intents']);
+  });
+
+  it('asks for the files, codegen, checks and test that got the fix verified', async () => {
+    const { store, run } = await setup();
+    const { model, requests } = fakeModel();
+    await extractRecipe(run, { store, model, now: () => NOW });
+    expect(requests[0].system).toMatch(/codegen.*checks.*the test it wrote/s);
+  });
+
+  it("hands the model the run's files, codegen, added checks, PR body and bundled changes", async () => {
+    const { store, run } = await setup();
+    const bundled = { ...run.task.change, id: 'stripe-sources-removed', title: 'Sources removed' };
+    const record = {
+      ...run.record,
+      diff: 'diff --git a/src/webhook.ts b/src/webhook.ts\n--- a/src/webhook.ts\n+++ b/src/webhook.ts\n',
+      preparation: { steps: [{ command: 'npx prisma generate', why: 'postinstall', code: 0 }] },
+      agentChecks: [{ name: 'proof', command: 'npx vitest run test/webhook.test.ts' }],
+      prBody: '## Proof\nproof passes',
+    };
+    const task = { ...run.task, alsoResolves: [{ change: bundled, why: 'x' }] };
+    const { model, requests } = fakeModel();
+    await extractRecipe({ ...run, record, task }, { store, model, now: () => NOW });
+    const { prompt } = requests[0];
+    expect(prompt).toContain('Files changed: src/webhook.ts');
+    expect(prompt).toContain('- `npx prisma generate` (exit 0): postinstall');
+    expect(prompt).toContain('- proof: `npx vitest run test/webhook.test.ts`');
+    expect(prompt).toContain('## Proof\nproof passes');
+    expect(prompt).toContain('"title": "Sources removed"');
   });
 
   it('creates a new recipe when the model names an unknown recipe id', async () => {
@@ -134,6 +189,17 @@ describe('extractRecipe', () => {
     expect(await store.listRecipes()).toHaveLength(2);
   });
 
+  it('leaves lockfile hunks out of the diff it shows the model', () => {
+    const diff = [
+      'diff --git a/src/pay.ts b/src/pay.ts\n+paymentIntents.create\n',
+      'diff --git a/package-lock.json b/package-lock.json\n+"stripe": "23.0.0"\n',
+    ].join('');
+    const shown = diffForPrompt(diff);
+    expect(shown).toContain('paymentIntents.create');
+    expect(shown).not.toContain('"stripe": "23.0.0"');
+    expect(shown).toContain('[1 lockfile diff(s) left out]');
+  });
+
   it('keeps the head and tail of a huge transcript and tells the model what was elided', async () => {
     const transcript = `HEAD-MARKER${'x'.repeat(700_000)}TAIL-MARKER`;
     const { store, run } = await setup({ transcript });
@@ -144,8 +210,8 @@ describe('extractRecipe', () => {
     const { prompt } = requests[0];
     expect(prompt).toContain('HEAD-MARKER');
     expect(prompt).toContain('TAIL-MARKER');
-    expect(prompt).toContain(`${transcript.length - 600_000} characters elided`);
-    expect(prompt.length).toBeLessThan(610_000);
+    expect(prompt).toContain(`${transcript.length - 150_000} characters elided`);
+    expect(prompt.length).toBeLessThan(160_000);
   });
 
   it('retries once when the answer is degraded and marks the run done', async () => {
@@ -243,5 +309,44 @@ describe('extractRecipe', () => {
       status: 'done',
       mode: 'pitfalls',
     });
+  });
+
+  it('makes only a low-confidence recipe from a clean rescan with no merge, and no repo counts', async () => {
+    const { store, run } = await setup();
+    const { model } = fakeModel();
+    const recipe = await extractRecipe(run, { store, model, now: () => NOW });
+    expect(recipe).toMatchObject({ confidence: 'low', verifiedRepos: 0, repos: [] });
+    expect(recipe?.benchmarkOnly).toBe(false);
+  });
+
+  it('labels a recipe from a locked test benchmark-only', async () => {
+    const { store, run } = await setup({ outcome: 'needs-review' });
+    const { model } = fakeModel();
+    const benchmark = { ...run, evidence: { rescanClean: true, lockedTest: true } };
+    const recipe = await extractRecipe(benchmark, { store, model, now: () => NOW });
+    expect(recipe).toMatchObject({ confidence: 'low', benchmarkOnly: true, verifiedRepos: 0 });
+  });
+
+  it('learns nothing from "verified" with no rescan', async () => {
+    const { store, run } = await setup();
+    const { model } = fakeModel();
+    expect(await extractRecipe({ ...run, evidence: {} }, { store, model })).toBeUndefined();
+    expect(model.json).not.toHaveBeenCalled();
+  });
+
+  it('feeds what a person changed before merging into the model', async () => {
+    const { store, run } = await setup({ humanVerdict: 'merged' });
+    const { model, requests } = fakeModel();
+    const merged = {
+      ...run,
+      evidence: {
+        rescanClean: true,
+        edited: true,
+        merged: { at: NOW.toISOString(), humanDiff: 'diff --git a/x b/x\n-bad\n+good\n' },
+      },
+    };
+    await extractRecipe(merged, { store, model, now: () => NOW });
+    expect(requests[0].prompt).toContain('What the human changed before merging');
+    expect(requests[0].prompt).toContain('+good');
   });
 });

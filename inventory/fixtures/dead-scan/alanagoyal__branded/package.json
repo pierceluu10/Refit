@@ -1,0 +1,8 @@
+{
+  "//": "Excerpt of alanagoyal/branded at cf8f84cc8bfc, package.json.",
+  "name": "branded",
+  "dependencies": {
+    "@stripe/stripe-js": "^3.3.0",
+    "stripe": "^15.1.0"
+  }
+}

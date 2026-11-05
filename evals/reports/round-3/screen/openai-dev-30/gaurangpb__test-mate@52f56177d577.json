@@ -1,0 +1,42 @@
+{
+  "set": "openai-dev-30",
+  "repo": "gaurangpb/test-mate",
+  "commit": "52f56177d577c76d80a3577acda439b29882779a",
+  "provider": "openai",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "test",
+      "command": "export OPENAI_API_KEY='placeholder' ADO_MOCK_MODE='true'; npm run test",
+      "ok": false,
+      "failures": [
+        "FAIL src/routes/__tests__/generate.test.js",
+        "FAIL src/services/__tests__/adoService.test.js",
+        "failed: should create test cases successfully",
+        "failed: should create test cases with tags when addTags is true",
+        "failed: should handle creation failures",
+        "FAIL src/utils/__tests__/styleGuideLoader.test.js",
+        "failed: should load and return style guide from file",
+        "failed: should handle invalid JSON gracefully",
+        "failed: should handle file read errors gracefully",
+        "failed: should find style guide in subdirectory"
+      ],
+      "tail": "[90m 62 |\u001b[39m\n    \u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 63 |\u001b[39m       expect(response\u001b[33m.\u001b[39mbody)\u001b[33m.\u001b[39mtoEqual({\n     \u001b[90m    |\u001b[39m                             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n     \u001b[90m 64 |\u001b[39m         configured\u001b[33m:\u001b[39m \u001b[36mfalse\u001b[39m\u001b[33m,\u001b[39m\n     \u001b[90m 65 |\u001b[39m         mockMode\u001b[33m:\u001b[39m \u001b[36mfalse\u001b[39m\u001b[33m,\u001b[39m\n     \u001b[90m 66 |\u001b[39m         config\u001b[33m:\u001b[39m \u001b[36mnull\u001b[39m\u001b[0m\n\n      at Object.toEqual (src/routes/__tests__/config.test.js:63:29)\n\nPASS src/middleware/__tests__/common.test.js\n  Common Middleware\n    configureSsl\n      ✓ should enable SSL verification by default (1 ms)\n      ✓ should disable SSL verification when REJECT_UNAUTHORIZED is false (1 ms)\n      ✓ should enable SSL verification when REJECT_UNAUTHORIZED is true\n    errorHandler\n      ✓ should handle errors and return 500\n      ✓ should show error message in development\n      ✓ should show generic message in production\n      ✓ should call next if headers already sent\n    requestLogger\n      ✓ should log request and response (11 ms)\n      ✓ should log request duration (11 ms)\n\nTest Suites: 4 failed, 7 passed, 11 total\nTests:       8 failed, 128 passed, 136 total\nSnapshots:   0 total\nTime:        8.062 s\nRan all test suites.\nJest did not exit one second after the test run has completed.\n\n'This usually means that there are asynchronous operations that weren't stopped in your tests. Consider running Jest with `--detectOpenHandles` to troubleshoot this issue.\n\n[timed out after 10 minutes]"
+    }
+  ],
+  "costUsd": 0.2437699999999995,
+  "durationMs": 635082,
+  "install": {
+    "code": 0,
+    "tail": "added 423 packages in 18s\n\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead\nnpm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported"
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["OPENAI_API_KEY", "ADO_MOCK_MODE"]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "npm run test fails 8 tests across 4 suites (adoService, styleGuideLoader, generate, config) with assertion mismatches in the repo's own code and tests, with mocked OpenAI and ADO config and no real credentials or external service needed."
+  }
+}

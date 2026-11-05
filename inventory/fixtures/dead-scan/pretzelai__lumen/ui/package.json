@@ -1,0 +1,7 @@
+{
+  "//": "Excerpt of pretzelai/lumen at c689c56b3241, ui/package.json.",
+  "name": "ui",
+  "dependencies": {
+    "stripe": "^17.7.0"
+  }
+}

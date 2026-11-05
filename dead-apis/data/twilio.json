@@ -1,0 +1,865 @@
+{
+  "provider": "twilio",
+  "officialHosts": [
+    "twilio.com",
+    "github.com/twilio",
+    "raw.githubusercontent.com/twilio",
+    "api.github.com/repos/twilio"
+  ],
+  "entries": [
+    {
+      "id": "TW-1.programmable-fax",
+      "provider": "twilio",
+      "what": "Programmable Fax was disabled for all accounts, so calls to the Fax API fail.",
+      "diedOn": "2021-12-17",
+      "source": {
+        "url": "https://support.twilio.com/hc/en-us/articles/223136667-Fax-Support-on-Twilio",
+        "checkedOn": "2026-11-05",
+        "quote": "Fax API calls will fail if made after December 17, 2021."
+      },
+      "lookFor": [
+        "fax.twilio.com in a URL",
+        "client.fax.v1.faxes or client.fax.faxes in a Twilio helper library"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "fax.twilio.com*"
+        },
+        {
+          "kind": "regex",
+          "value": "(?:\\.|->)fax(?:\\.|->)(?:v1(?:\\.|->))?faxes\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "No Twilio API replaces it. Twilio's migration guide points to FAX.PLUS (https://support.twilio.com/hc/en-us/articles/4407687336859-Programmable-Fax-Migration-Guide-for-FAX-PLUS), and its end-of-life notice names mFax by Documo.",
+      "requires": [
+        "Moving means another vendor's API and credentials, such as the FAX.PLUS REST API, not an edit to the Twilio call.",
+        "Fax numbers have to move too: the FAX.PLUS guide says to decide whether to port existing numbers or take new ones."
+      ]
+    },
+    {
+      "id": "TW-2.api-2008",
+      "provider": "twilio",
+      "what": "The 2008 version of the Twilio REST API is gone. Requests fail with 404. Voice endpoints under it went first, on May 2, 2022.",
+      "diedOn": "2023-12-15",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/reminder--end-of-life-for-twilio-2008-api",
+        "checkedOn": "2026-11-05",
+        "quote": "any requests sent to Twilio’s 2008 API will fail with 404 responses"
+      },
+      "lookFor": [
+        "api.twilio.com/2008-08-01 in a URL",
+        "the API version string 2008-08-01 in Twilio code. The same date elsewhere isn't this."
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "api.twilio.com/2008-08-01*"
+        },
+        {
+          "kind": "string",
+          "value": "2008-08-01",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The 2010 version of the API, 2010-04-01.",
+      "replacementIds": ["2010-04-01"],
+      "requires": [
+        "Change the version in every URL. Twilio's upgrade guide link now lands on the docs home, so what else changed isn't on a live page: read each parameter and response field against https://www.twilio.com/docs/usage/api."
+      ],
+      "context": {
+        "packages": ["twilio"],
+        "hosts": ["api.twilio.com"]
+      }
+    },
+    {
+      "id": "TW-3.voice-feedback",
+      "provider": "twilio",
+      "what": "The Voice Feedback API, both call feedback and feedback summaries. Message feedback (/Messages/{Sid}/Feedback) is a different resource and isn't covered.",
+      "diedOn": "2023-12-31",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/voice-feedback-api-eol",
+        "checkedOn": "2026-11-05",
+        "quote": "Twilio will end-of-life (EOL) the Voice Feedback API"
+      },
+      "lookFor": [
+        "/Calls/{Sid}/Feedback or /Calls/FeedbackSummary in a URL",
+        "client.calls(sid).feedback, client.calls.feedbackSummaries or client.calls.feedback_summaries in a Twilio helper library"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/Calls/[^/\\s'\"`]+/Feedback\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "/Calls/FeedbackSummary\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "calls\\([^)]{0,500}\\)(?:\\.|->)feedback\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "(?:\\.|->)(?:feedbackSummaries|feedback_summaries)\\b"
+        }
+      ],
+      "replacement": "The Voice Insights Call Annotations API: https://insights.twilio.com/v1/Voice/{CallSid}/Annotation.",
+      "replacementIds": ["insights.twilio.com/v1/Voice/{CallSid}/Annotation"],
+      "requires": [
+        "Annotations are a different shape from feedback: fields include answeredBy, connectivityIssue, qualityIssues, spam, callScore, comment and incident. Map the old quality score and issues onto them. Full list: https://www.twilio.com/docs/voice/voice-insights/api/call/call-annotation-resource.",
+        "The host changes to insights.twilio.com, keyed by CallSid. The helper library call moves to client.insights."
+      ]
+    },
+    {
+      "id": "TW-4.live",
+      "provider": "twilio",
+      "what": "Twilio Live is gone, including its PlayerStreamer and MediaProcessor APIs on media.twilio.com. Those hosts and the package name are from twilio-node 3.84.0 and npm, not the guide. Programmable Video is not affected.",
+      "diedOn": "2023-11-30",
+      "source": {
+        "url": "https://support.twilio.com/hc/en-us/articles/10623861544987-Twilio-Live-Migration-Guide",
+        "checkedOn": "2026-11-05",
+        "quote": "any API calls within the Live product will fail"
+      },
+      "lookFor": [
+        "media.twilio.com/v1/PlayerStreamers or /v1/MediaProcessors in a URL",
+        "client.media.playerStreamer or client.media.mediaProcessor in a Twilio helper library",
+        "@twilio/live-player-sdk as a dependency or import"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "media.twilio.com/v1/PlayerStreamers*"
+        },
+        {
+          "kind": "url",
+          "value": "media.twilio.com/v1/MediaProcessors*"
+        },
+        {
+          "kind": "regex",
+          "value": "(?:\\.|->)media(?:\\.|->)(?:v1(?:\\.|->))?(?:playerStreamer|mediaProcessor|player_streamer|media_processor)\\b",
+          "ambiguous": true
+        },
+        {
+          "kind": "package",
+          "value": "@twilio/live-player-sdk",
+          "ecosystem": "npm"
+        }
+      ],
+      "replacement": "Twilio has no replacement of its own. Its migration guide recommends Mux.",
+      "requires": [
+        "Moving means another vendor's platform, not an edit to the Twilio call.",
+        "Programmable Video isn't a drop-in: the guide says it tops out at 50 participants in a Group Room, so it doesn't suit audiences of 50 or more."
+      ]
+    },
+    {
+      "id": "TW-5.client-insights-preview",
+      "provider": "twilio",
+      "what": "The Client Insights preview API stopped responding.",
+      "diedOn": "2020-05-01",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/client-insights-preview-api-end-of-life",
+        "checkedOn": "2026-11-05",
+        "quote": "will no longer respond to API requests"
+      },
+      "lookFor": ["preview.twilio.com/insights in a URL"],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "preview.twilio.com/insights*"
+        }
+      ],
+      "replacement": "The Voice Insights Summary, Events and Metrics APIs, such as https://insights.twilio.com/v1/Voice/{CallSid}/Summary.",
+      "replacementIds": ["insights.twilio.com/v1/Voice/{CallSid}/Summary"],
+      "requires": [
+        "/Calls/Report has no replacement: the page says the Reports API is not being directly replaced.",
+        "Responses come from a different API, so re-check every field the code reads."
+      ]
+    },
+    {
+      "id": "TW-6.preview-sync",
+      "provider": "twilio",
+      "what": "The Sync API endpoint at preview.twilio.com/sync. Requests fail with a 400.",
+      "diedOn": "2025-03-10",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/preview-twilio-com-sync-api-endpoint-will-end-of-life-on-march-1",
+        "checkedOn": "2026-11-05",
+        "quote": "any requests sent to this endpoint will result in a 400 error"
+      },
+      "lookFor": [
+        "preview.twilio.com/Sync in a URL",
+        "client.preview.sync in a Twilio helper library"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "preview.twilio.com/Sync*"
+        },
+        {
+          "kind": "regex",
+          "value": "(?:\\.|->)preview(?:\\.|->)[Ss]ync\\b"
+        }
+      ],
+      "replacement": "sync.twilio.com, with the base URL https://sync.twilio.com/v1.",
+      "replacementIds": ["sync.twilio.com"],
+      "requires": [
+        "Twilio says to replace the URL and test. A helper library call moves from client.preview.sync to client.sync: that part is a reading, not on the page."
+      ]
+    },
+    {
+      "id": "TW-7.region-domains",
+      "provider": "twilio",
+      "what": "The api.REGION.twilio.com domains for ie1, au1, br1, de1, jp1, sg1 and us2. They processed everything in US1 whatever the region code said. api.us1.twilio.com and api.dublin.ie1.twilio.com are still valid. Unauthenticated probes on 2026-11-05: api.br1, api.jp1 and api.us2 return 410 Gone, but api.ie1, api.au1, api.de1 and api.sg1 return 401, the same as live api.twilio.com. So those four still reach the auth layer, and a 401 can't show whether a signed-in call succeeds: they go to the small check until a signed-in call settles it. Moving off all seven is still right, since the guide says they stop working.",
+      "diedOn": "2026-04-28",
+      "source": {
+        "url": "https://www.twilio.com/docs/global-infrastructure/api-domain-migration-guide",
+        "checkedOn": "2026-11-05",
+        "quote": "will stop working on April 28, 2026"
+      },
+      "lookFor": [
+        "api.ie1.twilio.com, api.au1.twilio.com, api.br1.twilio.com, api.de1.twilio.com, api.jp1.twilio.com, api.sg1.twilio.com or api.us2.twilio.com in code, config, allowlists or firewall rules"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "api.ie1.twilio.com*",
+          "ambiguous": true
+        },
+        {
+          "kind": "url",
+          "value": "api.au1.twilio.com*",
+          "ambiguous": true
+        },
+        {
+          "kind": "url",
+          "value": "api.br1.twilio.com*"
+        },
+        {
+          "kind": "url",
+          "value": "api.de1.twilio.com*",
+          "ambiguous": true
+        },
+        {
+          "kind": "url",
+          "value": "api.jp1.twilio.com*"
+        },
+        {
+          "kind": "url",
+          "value": "api.sg1.twilio.com*",
+          "ambiguous": true
+        },
+        {
+          "kind": "url",
+          "value": "api.us2.twilio.com*"
+        }
+      ],
+      "replacement": "api.twilio.com for US processing. For processing in Ireland or Australia, api.dublin.ie1.twilio.com or api.sydney.au1.twilio.com.",
+      "replacementIds": [
+        "api.twilio.com",
+        "api.dublin.ie1.twilio.com",
+        "api.sydney.au1.twilio.com"
+      ],
+      "requires": [
+        "For api.twilio.com, existing credentials keep working.",
+        "Processing outside the US needs region-specific API credentials and data migration, and only IE1 and AU1 exist. Moving to them changes where data lives, so don't pick one just because the old domain named it.",
+        "Update DNS allowlists, proxies and firewall rules as well as code."
+      ]
+    },
+    {
+      "id": "TW-7.region-only-sdk",
+      "provider": "twilio",
+      "what": "A Twilio helper library set up with a region and no edge. Twilio marks it deprecated with the domains above, and says it routes to US1, not the named region. twilio-node builds the hostname from it, so region ie1 with no edge calls api.ie1.twilio.com, a domain the guide says stopped working on this date, though it still answered 401 to an unauthenticated probe on 2026-11-05: that link is read from twilio-node's BaseTwilio.ts, not the page. It reads TWILIO_REGION as the same setting.",
+      "diedOn": "2026-04-28",
+      "source": {
+        "url": "https://www.twilio.com/docs/global-infrastructure/api-domain-migration-guide",
+        "checkedOn": "2026-11-05",
+        "quote": "specifying only the region parameter without the edge parameter routes requests to US1"
+      },
+      "lookFor": [
+        "region set to ie1, au1, br1, de1, jp1, sg1 or us2 on a Twilio client with no edge beside it, including TWILIO_REGION and setRegion. Not a break when an edge is set too, or when the region belongs to something else."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bregion['\"]?\\s*[:=]\\s*['\"](?:ie1|au1|br1|de1|jp1|sg1|us2)['\"]",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\bTWILIO_REGION['\"]?\\s*[:=]\\s*['\"]?(?:ie1|au1|br1|de1|jp1|sg1|us2)\\b",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\b[Ss]etRegion\\(\\s*\"(?:ie1|au1|br1|de1|jp1|sg1|us2)\"",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "Drop the region to process in the US, or set both edge and region: edge dublin with region ie1, or edge sydney with region au1.",
+      "requires": [
+        "Twilio says to update to the latest helper library first: older versions may not support edge properly.",
+        "Setting edge and region really does move processing, so it needs region-specific credentials and data migration. If the code never needed that, drop the region instead."
+      ],
+      "context": {
+        "packages": ["twilio"],
+        "hosts": ["api.twilio.com"]
+      }
+    },
+    {
+      "id": "TW-8.transcription-formats",
+      "provider": "twilio",
+      "what": "Recording Transcription responses as .csv and .html. Requests return a 404.",
+      "diedOn": "2025-09-22",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/end-of-life-for-recording-transcriptions-csv-html-response-formats",
+        "checkedOn": "2026-11-05",
+        "quote": "for .csv and .html response formats will return an HTTP 404 error"
+      },
+      "lookFor": ["a /Transcriptions or /Transcriptions/{Sid} URL ending in .csv or .html"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/Transcriptions(?:/[^/\\s'\"`]+?)?\\.(?:csv|html)\\b"
+        }
+      ],
+      "replacement": "The same resource as .json or .xml, or .txt for only the transcription text.",
+      "requires": [
+        "The code reading the response has to change with the format: it was parsing CSV or HTML."
+      ]
+    },
+    {
+      "id": "TW-9.max-price",
+      "provider": "twilio",
+      "what": "The MaxPrice parameter on Messaging. It isn't rejected, it just stops doing anything, so a price cap in the code silently no longer caps and error 30010 no longer comes back.",
+      "diedOn": "2024-06-03",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/end-of-life--eol--of-twilio-messaging-maxprice-api-parameter",
+        "checkedOn": "2026-11-05",
+        "quote": "the value will have no effect and error code 30010 will not be returned"
+      },
+      "lookFor": [
+        "MaxPrice, maxPrice or max_price passed when sending a Twilio message",
+        "handling for error code 30010",
+        "Not the app's own price fields, which are far more common under these names."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "MaxPrice",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "maxPrice",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "max_price",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\.(?:MaxPrice|maxPrice|max_price)\\b",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\b30010\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "Remove the parameter and review the messaging geographic permissions settings, so only countries you intend to send to are allowed.",
+      "requires": [
+        "The replacement is an account setting in Console, not code: removing the parameter alone leaves nothing limiting spend, so say so in the PR.",
+        "Any handling for error 30010 is dead code once it can't fire."
+      ],
+      "context": {
+        "packages": ["twilio"],
+        "hosts": ["api.twilio.com"]
+      }
+    },
+    {
+      "id": "TW-10.whatsapp-template-body",
+      "provider": "twilio",
+      "what": "WhatsApp templates sent as text in Body. From the page: brownouts April 1 to 21, 2025, then no more sending. The error 63016 page dates the failure from April 1, 2025. Free-form replies inside the 24-hour customer service window still work with Body.",
+      "diedOn": "2025-04-22",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/legacy-whatsapp-",
+        "checkedOn": "2026-11-05",
+        "quote": "will no longer be able to be sent"
+      },
+      "lookFor": [
+        "a Twilio message to or from whatsapp:+... whose Body holds a template, or that starts a conversation. Not a reply inside the 24-hour window, which is what a send is when it comes from the handler of an inbound message, back to the number that just wrote. Not code that only reads an inbound From."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "['\"`]whatsapp:(?!//)",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "Content Template Builder templates, sent with ContentSid and ContentVariables.",
+      "requires": [
+        "Create the template in Content Template Builder or the Content API and get it approved. The code then needs its HX content SID, which only exists once someone has done this in the account.",
+        "Remove Body and MediaUrl when sending a content template, and pass placeholder values as ContentVariables: Twilio's example uses JSON.stringify({ 1: \"Name\" }).",
+        "Twilio's template feature table lists a Messaging Service as required, and its example passes messagingServiceSid.",
+        "twilio/list-picker and twilio/location can't start a business-initiated conversation."
+      ],
+      "context": {
+        "packages": ["twilio"],
+        "hosts": ["api.twilio.com"]
+      }
+    },
+    {
+      "id": "TW-11.voice-js-1x",
+      "provider": "twilio",
+      "what": "Voice JavaScript SDK 1.x, the twilio-client package. No longer maintained or supported, and the earlier reminder said calls using 1.x may fail to connect. Twilio moved this date twice: the npm deprecation notice still says April 1, 2025.",
+      "diedOn": "2025-09-10",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/final-end-of-life-date-announcement-for-twilio-voice-js-sdk-1-x",
+        "checkedOn": "2026-11-05",
+        "quote": "version 1.x will no longer be maintained or supported"
+      },
+      "lookFor": [
+        "twilio-client as a dependency or import",
+        "a <script> from sdk.twilio.com/js/client",
+        "Device.setup(token), the 1.x way of starting a device. A device.setup of the app's own isn't this."
+      ],
+      "matchers": [
+        {
+          "kind": "package",
+          "value": "twilio-client",
+          "ecosystem": "npm"
+        },
+        {
+          "kind": "url",
+          "value": "sdk.twilio.com/js/client*"
+        },
+        {
+          "kind": "regex",
+          "value": "\\b[Dd]evice\\.setup\\(",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "@twilio/voice-sdk, Voice JS SDK 2.x.",
+      "replacementIds": ["@twilio/voice-sdk"],
+      "requires": [
+        "Device.setup() is gone: create one with new Device(token, options). The signaling connection is lazy, so to take incoming calls call await device.register(). Changes listed in https://github.com/twilio/twilio-voice.js/blob/master/CHANGELOG.md, section 2.0.0-preview.1.",
+        "Connection is renamed Call, and device.connect() now returns a Promise of a Call.",
+        "The ready and offline events are replaced by registered, registering and unregistered. Device.activeCall is gone, so keep a reference to the call yourself.",
+        "Refresh the token with device.updateToken before it expires: the lazy connection fails on an expired token.",
+        "From 2.0 the SDK is no longer on a CDN, so a <script> tag has to become an npm install and a build step."
+      ]
+    },
+    {
+      "id": "TW-12.programmable-chat",
+      "provider": "twilio",
+      "what": "The Programmable Chat API and its SDK, twilio-chat, which Twilio's docs now call deprecated with no support. They don't say requests fail, the page wrote the date as an intent, and unauthenticated probes of chat.twilio.com and ip-messaging.twilio.com on 2026-11-05 still return 401, the same as live conversations.twilio.com, so treat the API as unsupported, not proven dead. The hard cut is narrower: Twilio's notice (https://www.twilio.com/en-us/changelog/end-of-life--eol--for-outdated-sync-and-chat-sdk-versions) ends support for Chat JavaScript below 3.0.0 on March 31, 2025, when SDKs may fail to connect with errors such as 404 HOST_NOT_FOUND. Inside Flex it was allowed to continue until June 1, 2026, so this date is earlier than a Flex app's.",
+      "diedOn": "2022-07-25",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/programmable-chat-end-of-life-notice",
+        "checkedOn": "2026-11-05",
+        "quote": "We intend to sunset the Programmable Chat API on July 25, 2022"
+      },
+      "lookFor": [
+        "chat.twilio.com or ip-messaging.twilio.com in a URL",
+        "twilio-chat as a dependency or import. Below 3.0.0 is the hard cut; 3.0.0 or later is unsupported, not cut off",
+        "client.chat.v2.services, client.chat.services, or the ipMessaging equivalents in a Twilio helper library. Not client.chat.completions and other AI clients."
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "chat.twilio.com*",
+          "ambiguous": true
+        },
+        {
+          "kind": "url",
+          "value": "ip-messaging.twilio.com*",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "(?:\\.|->)(?:chat|ipMessaging|ip_messaging)(?:\\.|->)(?:v[12](?:\\.|->))?(?:services|credentials)\\b",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\"twilio-chat\"\\s*:\\s*\"[\\^~]?[0-2](?:\\.|\")"
+        },
+        {
+          "kind": "regex",
+          "value": "\"twilio-chat\"\\s*:\\s*\"(?![\\^~]?[0-2](?:\\.|\"))",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "(?:from\\s+|require\\(\\s*)['\"]twilio-chat['\"]",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "Twilio Conversations (classic), with the @twilio/conversations SDK. Guide: https://www.twilio.com/docs/conversations-classic/migrating-chat-conversations.",
+      "replacementIds": ["@twilio/conversations"],
+      "requires": [
+        "Names change: Channels become Conversations, Members become Participants and Chat Services become Conversation Services. Messages, Users and Roles keep their names.",
+        "All Conversations are private. Public Chat Channels aren't visible in Conversations until moved with the Chat Channel Migration API, so code that lists or joins public channels has to change.",
+        "Roles lose the inviteMember permission. A Participant with sufficient permissions adds others instead.",
+        "Data carries over with the same SIDs: a Conversation SID equals the Chat Channel SID (CH...).",
+        "Adding SMS or WhatsApp Participants to a former Chat Channel needs the Conversation updated with a Messaging Service SID."
+      ]
+    },
+    {
+      "id": "TW-13.flex-webchat-2",
+      "provider": "twilio",
+      "what": "Programmable Chat in Flex, and Webchat 2.0 with it (@twilio/flex-webchat-ui, assets.flex.twilio.com/releases/flex-webchat-ui). After the date it may stop working as expected and gets no fixes.",
+      "diedOn": "2026-06-01",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/programmable-chat-in-flex-reaching-end-of-life-on-june-1--2026",
+        "checkedOn": "2026-11-05",
+        "quote": "Programmable Chat in Flex is reaching end of life (EOL) on June 1, 2026"
+      },
+      "lookFor": [
+        "@twilio/flex-webchat-ui as a dependency or import",
+        "a <script> from assets.flex.twilio.com/releases/flex-webchat-ui"
+      ],
+      "matchers": [
+        {
+          "kind": "package",
+          "value": "@twilio/flex-webchat-ui",
+          "ecosystem": "npm"
+        },
+        {
+          "kind": "url",
+          "value": "assets.flex.twilio.com/releases/flex-webchat-ui*"
+        }
+      ],
+      "replacement": "Flex Conversations, with Webchat 3.x.x.",
+      "requires": [
+        "Flex Conversations needs Flex UI 2.x.x, so a Flex UI 1.x project has to move that first (see TW-14.flex-ui-1x).",
+        "It is built on Twilio Conversations rather than Chat, so code reading Chat Channels has to change. Guide linked from the page: Migration Guide from Programmable Chat to Conversations."
+      ]
+    },
+    {
+      "id": "TW-14.flex-ui-1x",
+      "provider": "twilio",
+      "what": "Flex UI 1.x.x, last line 1.34.x. No fixes of any kind, and Twilio says an end-of-life version may not work as intended. 1.31.x and older went on July 31, 2023.",
+      "diedOn": "2024-06-30",
+      "source": {
+        "url": "https://www.twilio.com/docs/flex/flex-ui-eol-reference",
+        "checkedOn": "2026-11-05",
+        "quote": "1.x.x is no longer supported. Please upgrade to UI 2.x.x"
+      },
+      "lookFor": [
+        "@twilio/flex-ui pinned to 1.x in package.json. A plugin's package.json doesn't always match what the account actually runs: the running version is set in Console."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\"@twilio/flex-ui\"\\s*:\\s*\"[\\^~]?1(?:\\.|\")",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "Flex UI 2.x.x. 2.18.x is the line the page marks Supported.",
+      "requires": [
+        "This is a major upgrade: plugins have to be checked against 2.x. Flex Conversations also requires 2.x.x.",
+        "Twilio recommends turning on automatic minor updates in Console, which keeps the instance on a supported version."
+      ]
+    },
+    {
+      "id": "TW-14.flex-ui-2.16-and-older",
+      "provider": "twilio",
+      "what": "Flex UI 2.0.x to 2.16.x. Each line has its own date on the page: 2.16.x is the newest, on October 31, 2026, and 2.15.x went on August 31, 2026. The page still labels 2.16.x maintained, though its date has passed.",
+      "diedOn": "2026-10-31",
+      "source": {
+        "url": "https://www.twilio.com/docs/flex/flex-ui-eol-reference",
+        "checkedOn": "2026-11-05",
+        "quote": "Twilio doesn't provide any further changes to that version"
+      },
+      "lookFor": [
+        "@twilio/flex-ui pinned to 2.0 through 2.16 in package.json. A caret range can resolve newer, and the running version is set in Console, so read both."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\"@twilio/flex-ui\"\\s*:\\s*\"[\\^~]?2\\.(?:\\d|1[0-6])(?:\\.|\")",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "Flex UI 2.18.x, which the page marks Supported.",
+      "requires": [
+        "Update on the Flex UI versions page in Console as well as in package.json. Twilio recommends turning on automatic minor updates, which keeps the instance on a supported version."
+      ]
+    },
+    {
+      "id": "TW-15.frontline",
+      "provider": "twilio",
+      "what": "Twilio Frontline is retired. The host and helper library names are from twilio-node and twilio-python, which still ship them, not the page. frontline-api.twilio.com still answered 401 to an unauthenticated probe on 2026-11-05, the same as a live host, which can't show whether a signed-in call succeeds, so that host goes to the small check.",
+      "diedOn": "2026-09-30",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/frontline-is-entering-eol--here-s-what-that-means-for-customers",
+        "checkedOn": "2026-11-05",
+        "quote": "officially retiring the product on September 30, 2026"
+      },
+      "lookFor": [
+        "frontline-api.twilio.com in a URL",
+        "client.frontlineApi or client.frontline_api in a Twilio helper library"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "frontline-api.twilio.com*",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "(?:\\.|->)(?:frontlineApi|frontline_api)\\b"
+        }
+      ],
+      "replacement": "Twilio Flex for contact center workflows, or a partner the page names: SpokePhone, Quo (previously OpenPhone) or Fastcall.",
+      "requires": [
+        "None of these is a drop-in API. It is a product decision, so a fix can only remove or isolate the Frontline calls and say what's left in the PR."
+      ]
+    },
+    {
+      "id": "TW-16.functions-node18",
+      "provider": "twilio",
+      "what": "Twilio Functions on Node.js v18 or earlier. New deployments fail. Already-deployed Functions keep running until modified. Twilio's docs list v20 and earlier as end of life.",
+      "diedOn": "2025-11-10",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/node-js-v18-support-ending-for-twilio-functions-and-assets",
+        "checkedOn": "2026-11-05",
+        "quote": "Deployments using Node.js v18 after this date will fail"
+      },
+      "lookFor": [
+        "runtime set to node18 or older in .twilioserverlessrc, in a twilio serverless:deploy --runtime flag or on a Build. Not a runtime setting for another platform."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bruntime['\"]?\\s*[:=]?\\s*['\"]?node(?:1[0-8])(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "node22 (Maintenance LTS) or node24 (Active LTS, the default for v2 Services).",
+      "replacementIds": ["node22", "node24"],
+      "requires": [
+        "Twilio says to check that npm dependencies support the new version before deploying. Full guide: https://www.twilio.com/docs/serverless/functions-assets/node-upgrade.",
+        "Set the runtime explicitly: .twilioserverlessrc \"runtime\", the Serverless Toolkit --runtime flag, or the runtime parameter when creating a Build. A Service whose most recent Build used an unsupported runtime fails with Error 82007 when no runtime is given, rather than falling back.",
+        "node24 needs @twilio/runtime-handler 2.1.2 or later. The platform upgrades 1.2.0 or later at build time, and an earlier version fails the build. node24 is v2 Services only: Functions (Classic) runs on node22."
+      ],
+      "context": {
+        "packages": ["twilio", "twilio-run", "@twilio/runtime-handler"]
+      }
+    },
+    {
+      "id": "TW-16.functions-node20",
+      "provider": "twilio",
+      "what": "Twilio Functions on Node.js v20. New deployments fail. Existing Functions keep running on it until redeployed.",
+      "diedOn": "2026-06-11",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/twilio-functions--node-js-v22-becomes-the-default-runtime-on-jun",
+        "checkedOn": "2026-11-05",
+        "quote": "New deployments using Node.js v20 after this date will fail"
+      },
+      "lookFor": [
+        "runtime set to node20 in .twilioserverlessrc, in a twilio serverless:deploy --runtime flag or on a Build. Not a runtime setting for another platform."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bruntime['\"]?\\s*[:=]?\\s*['\"]?node20(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "node22 (Maintenance LTS) or node24 (Active LTS, the default for v2 Services).",
+      "replacementIds": ["node22", "node24"],
+      "requires": [
+        "Twilio says to check that npm dependencies support the new version before deploying. Full guide: https://www.twilio.com/docs/serverless/functions-assets/node-upgrade.",
+        "Set the runtime explicitly: .twilioserverlessrc \"runtime\", the Serverless Toolkit --runtime flag, or the runtime parameter when creating a Build. A Service whose most recent Build used an unsupported runtime fails with Error 82007 when no runtime is given, rather than falling back.",
+        "node24 needs @twilio/runtime-handler 2.1.2 or later. The platform upgrades 1.2.0 or later at build time, and an earlier version fails the build. node24 is v2 Services only: Functions (Classic) runs on node22."
+      ],
+      "context": {
+        "packages": ["twilio", "twilio-run", "@twilio/runtime-handler"]
+      }
+    },
+    {
+      "id": "TW-17.conference-participant",
+      "provider": "twilio",
+      "what": "The conference_participant attribute on the Voice Insights Call Summary, in the REST API and Event Streams. Every call now returns attributes: null, so code reading it gets nothing or throws. Twilio's Call Summary reference still shows the field in an example.",
+      "diedOn": "2026-08-01",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/voice-insights-removal-conference-participant-field",
+        "checkedOn": "2026-11-05",
+        "quote": "is being removed from the REST API and Event Streams August 1, 2026"
+      },
+      "lookFor": [
+        "conference_participant read off a Voice Insights summary. Not an app's own field with that name."
+      ],
+      "matchers": [
+        {
+          "kind": "field",
+          "value": "conference_participant",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The Conference Insights API or Conference Insights Event Streams.",
+      "requires": [
+        "attributes itself becomes null, so attributes.conference_participant throws unless guarded.",
+        "Conference Insights is keyed by conference, not call, so the lookup changes as well as the field name. (A reading: the page names only the API.)"
+      ],
+      "context": {
+        "packages": ["twilio"],
+        "hosts": ["insights.twilio.com"]
+      }
+    },
+    {
+      "id": "TW-18.authy-sandbox",
+      "provider": "twilio",
+      "what": "The Authy API Sandbox, a mock API for tests. The rest of the Authy API continues. The host isn't on the page: it comes from twilio/authy-python's history.",
+      "diedOn": "2021-09-30",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/end-of-life-notice-for-authy-api-s-sandbox-feature",
+        "checkedOn": "2026-11-05",
+        "quote": "discontinuing the Authy API’s Sandbox on September 30, 2021"
+      },
+      "lookFor": ["sandbox-api.authy.com in a URL, usually in a test suite"],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "sandbox-api.authy.com*"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [
+        "Twilio names no substitute. Its own Authy libraries replaced the sandbox with mocks in their tests, so tests have to stop calling it rather than point somewhere new."
+      ]
+    },
+    {
+      "id": "TW-19.sync-js-old",
+      "provider": "twilio",
+      "what": "Sync JavaScript SDK before 3.x. The page lists 0.X, 1.X and 2.X as End of Life, 2.X last, and says continued operation isn't guaranteed. Twilio's notice (https://www.twilio.com/en-us/changelog/end-of-life--eol--for-outdated-sync-and-chat-sdk-versions) ends support for versions below 0.8.1 on March 31, 2025, when SDKs may fail to connect with errors such as 404 HOST_NOT_FOUND. So below 0.8.1 is the hard cut, and 0.8.1 to 2.x is end of life but may still work.",
+      "diedOn": "2023-07-16",
+      "source": {
+        "url": "https://www.twilio.com/docs/sync/versioning-and-support-lifecycle",
+        "checkedOn": "2026-11-05",
+        "quote": "its continued operation is not guaranteed"
+      },
+      "lookFor": [
+        "twilio-sync pinned to 0.x, 1.x or 2.x in package.json. Later versions are fine, so this isn't a package match."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\"twilio-sync\"\\s*:\\s*\"[\\^~]?0\\.[0-7](?:\\.|\")"
+        },
+        {
+          "kind": "regex",
+          "value": "\"twilio-sync\"\\s*:\\s*\"[\\^~]?(?:0\\.(?:[89]|\\d{2,})|[12])(?:\\.|\")",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "Sync JavaScript SDK 3.X, the line the page marks Latest, or newer.",
+      "requires": [
+        "Major versions have breaking changes: see the JavaScript SDK changelog linked from the page."
+      ]
+    },
+    {
+      "id": "TW-20.conversations-js-1x",
+      "provider": "twilio",
+      "what": "Conversations (classic) JavaScript SDK 1.x. The page lists it as End of Life and says continued operation isn't guaranteed.",
+      "diedOn": "2023-10-19",
+      "source": {
+        "url": "https://www.twilio.com/docs/conversations-classic/versioning-and-support-lifecycle",
+        "checkedOn": "2026-11-05",
+        "quote": "its continued operation is not guaranteed"
+      },
+      "lookFor": [
+        "@twilio/conversations pinned to 0.x or 1.x in package.json. The page lists only 1.X: 0.x is a reading. Later versions are fine, so this isn't a package match."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\"@twilio/conversations\"\\s*:\\s*\"[\\^~]?[01](?:\\.|\")"
+        }
+      ],
+      "replacement": "Conversations (classic) JavaScript SDK 2.X, the line the page marks Latest, or newer.",
+      "requires": [
+        "Major versions have breaking changes: see the JavaScript SDK changelog linked from the page."
+      ]
+    },
+    {
+      "id": "TW-21.voice-mobile-1x",
+      "provider": "twilio",
+      "what": "Programmable Voice Mobile SDK 1.x for iOS and Android. Apps using it can no longer connect to make or receive VoIP calls. The Gradle and CocoaPods names are a reading: the page doesn't give them.",
+      "diedOn": "2020-07-31",
+      "source": {
+        "url": "https://www.twilio.com/en-us/changelog/programmable-voice-mobile-sdk-1-x-eol-announcement",
+        "checkedOn": "2026-11-05",
+        "quote": "will no longer be able to connect to Twilio to make or receive VoIP calls"
+      },
+      "lookFor": ["com.twilio:voice-android at 1.x in Gradle", "TwilioVoice at 1.x in a Podfile"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "com\\.twilio:voice-android:1\\."
+        },
+        {
+          "kind": "regex",
+          "value": "\\bpod\\s+['\"]TwilioVoice['\"]\\s*,\\s*['\"](?:~>\\s*)?1\\."
+        }
+      ],
+      "replacement": "The latest Twilio Voice iOS and Android SDKs.",
+      "requires": [
+        "A new build has to reach users: Twilio says to release the app in the App Store or Play Store and have users update."
+      ]
+    }
+  ],
+  "future": [
+    {
+      "id": "TW-30.notify",
+      "provider": "twilio",
+      "what": "Twilio Notify. Twilio's support article says: \"Twilio Notify will reach end of life on January 31, 2027 for existing customers\". Its docs say it stopped supporting Notify in October 2022, and the 2024 changelog said December 31, 2025. The support article has the latest date.",
+      "diesOn": "2027-01-31",
+      "source": {
+        "url": "https://support.twilio.com/hc/en-us/articles/9198083260571-How-to-transition-off-Notify",
+        "checkedOn": "2026-11-05"
+      },
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "notify.twilio.com*"
+        },
+        {
+          "kind": "regex",
+          "value": "(?:\\.|->)notify(?:\\.|->)(?:v1(?:\\.|->))?services\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "For bulk SMS, the Bulk Messaging API (public beta). For push, the Push API private beta, or Verify, Conversations or Segment, which the support article suggests by use case.",
+      "requires": [
+        "Bulk Messaging is a public beta with no SLA, so say so in the PR.",
+        "There's no general push API to move to yet: Twilio points to a private beta sign-up."
+      ]
+    },
+    {
+      "id": "TW-31.flex-ui-2.17",
+      "provider": "twilio",
+      "what": "Flex UI 2.17.x. The page marks it maintained until its end-of-life date.",
+      "diesOn": "2027-02-28",
+      "source": {
+        "url": "https://www.twilio.com/docs/flex/flex-ui-eol-reference",
+        "checkedOn": "2026-11-05"
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\"@twilio/flex-ui\"\\s*:\\s*\"[\\^~]?2\\.17(?:\\.|\")",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "Flex UI 2.18.x, which the page marks Supported.",
+      "requires": ["Update on the Flex UI versions page in Console as well as in package.json."]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "set": "openai-dev-30",
+  "repo": "edwinsatya/llm-output-guard",
+  "commit": "8538718cdeca93f3e58f0da62f49aa34fe7b1904",
+  "provider": "openai",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "test",
+      "command": "npm run test",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.06058399999999997,
+  "durationMs": 83867,
+  "install": {
+    "code": 0,
+    "tail": "added 274 packages in 15s\n\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

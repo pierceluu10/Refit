@@ -1,0 +1,13 @@
+{
+  "status": "clean",
+  "problems": [],
+  "checked": [
+    "syntax demo/server.js",
+    "syntax scripts/generate-cache.js",
+    "syntax scripts/generate-chunks.js",
+    "syntax scripts/generate-ekyc-chunks.js",
+    "syntax scripts/seed-cache.js",
+    "syntax scripts/seed-umang-chunks.js",
+    "syntax src/rhetorical.js"
+  ]
+}

@@ -1,5 +1,6 @@
 import type { Model } from './ai.ts';
 import { succeeded } from './extract.ts';
+import type { RunRecord } from '../shared/types.ts';
 import type { MemoryStore } from './store.ts';
 import type { MemoryRecipe, StoredRun } from './types.ts';
 
@@ -81,9 +82,7 @@ export async function recordRecipeOutcome(
   run: StoredRun,
   { store, now = () => new Date() }: { store: MemoryStore; now?: () => Date },
 ): Promise<MemoryRecipe[]> {
-  // Only a person closing the PR says the guidance was wrong. A harness 'failed' means nothing was
-  // attempted (the model was down, the budget ran out) or the PR couldn't be opened.
-  const failed = run.record.humanVerdict === 'closed';
+  const failed = failedWith(run);
   const demoted: MemoryRecipe[] = [];
   for (const id of new Set(run.usedRecipeIds)) {
     const recipe = await store.getRecipe(id);
@@ -117,6 +116,22 @@ export async function recordRecipeOutcome(
   return demoted;
 }
 
+// What says the guidance a run was shown was wrong or stale: a person closing or reverting it, or a
+// needs-review run on a repo whose checks all passed before the edit, so the environment is not what
+// kept it from verifying. A harness 'failed' says nothing: nothing was attempted (the model was down,
+// the budget ran out) or the PR couldn't be opened.
+export function failedWith({ record, evidence }: StoredRun): boolean {
+  if (evidence?.closed || evidence?.reverted) return true;
+  if (record.humanVerdict) return record.humanVerdict === 'closed';
+  // The repo's own checks only: one the agent added, like its proof test, runs a test that does
+  // not exist before the edit, so its baseline fails whatever the environment.
+  const { agentChecks = [] } = record as RunRecord & { agentChecks?: { name: string }[] };
+  const added = new Set(agentChecks.map((check) => check.name));
+  const ran = record.checks.filter((check) => check.before !== 'not run' && !added.has(check.name));
+  const green = ran.length > 0 && ran.every((check) => check.before === 'pass');
+  return record.outcome === 'needs-review' && green;
+}
+
 function tally(ids: string[], id: string, failed: boolean): string[] {
   return failed ? [...new Set([...ids, id])] : ids.filter((other) => other !== id);
 }
@@ -137,7 +152,7 @@ async function recountRepo(
   const verified = [run, ...others].some(
     (source) =>
       source?.task.repo === run.task.repo &&
-      succeeded(source.record) &&
+      succeeded(source) &&
       source.extraction?.status === 'done' &&
       source.extraction.mode === 'recipe' &&
       source.extraction.recipeId === id,
@@ -151,6 +166,7 @@ async function recountRepo(
     ...recipe,
     repos,
     verifiedRepos: repos.length,
+    confidence: repos.length > 0 ? 'merged' : 'low',
     updatedAt: now().toISOString(),
   });
 }

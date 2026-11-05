@@ -1,0 +1,19 @@
+{
+  "set": "longtail-dev-20",
+  "index": 0,
+  "repo": "mantou132/Spotify-Lyrics",
+  "commit": "1380002c0830fc672f2a00ed497013056851f31b",
+  "provider": "google-analytics",
+  "usages": 10,
+  "changes": 4,
+  "verdict": "not-affected",
+  "tasks": [],
+  "costUsd": 0.2873318,
+  "durationMs": 87676,
+  "matchReasoning": "google-analytics:2027-empty-field-not-set-to-blank: not affected: The repo only sends tracking hits to www.google-analytics.com via raw GET (src/common/ga.ts:22, safari i18n.js:37), which is the Measurement Protocol. It never calls the GA Data API (runReport, batchRunReports, etc.) or reads dimension values, so the change from \"(not set)\" to \"\" for empty dimensions does not reach it.\ngoogle-analytics:2026-09-14-properties-chat-alpha: not affected: The new v1alpha properties.chat method and its OAuth scope are additions to the Data API. The repo only sends unauthenticated collection hits to www.google-analytics.com and uses no Data API or OAuth scopes.\ngoogle-analytics:2026-09-14-data-truncation-reasons: not affected: dataTruncationReasons is added to ResponseMetaData in Data API report responses. The repo never requests or parses GA reports; it only fires tracking GETs whose responses it ignores.\ngoogle-analytics:2026-04-23-conversion-reporting-alpha: not affected: ConversionSpec is an optional addition to the v1alpha runReport request. The repo does not call runReport or getMetadata; its GA usage is only Measurement Protocol hits from ga.ts and i18n.js.",
+  "costByPart": {
+    "inventory": 0.09994720000000001,
+    "watch": 0.1486526,
+    "match": 0.038732
+  }
+}

@@ -1,0 +1,146 @@
+[
+  {
+    "repo": "kkb2849/nextjs-1zdevcamp-template",
+    "commit": "0865bb268b395abac07042d6d6e627f92f24b159",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "OA-2",
+        "file": "src/app/api/openai/assistant/route.ts",
+        "dead": "beta\\.(assistants|threads)",
+        "alive": ["responses\\.(create|stream|retrieve)", "conversations\\."],
+        "proof": [
+          {
+            "from": "beta.assistants",
+            "to": "responses"
+          },
+          {
+            "from": "beta.threads",
+            "to": "responses"
+          },
+          {
+            "from": "openai.",
+            "to": "openai.responses.create; openai."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "Jeffansah/whop-ai-chat",
+    "commit": "b2cc335859a12d359ac662e3ff3f10b8b6bfe227",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "OA-2",
+        "file": "convex/ai/testAI.ts",
+        "dead": "beta\\.(assistants|threads)",
+        "alive": ["responses\\.(create|stream|retrieve)", "conversations\\."],
+        "proof": [
+          {
+            "from": "beta.assistants",
+            "to": "responses"
+          },
+          {
+            "from": "beta.threads",
+            "to": "responses"
+          },
+          {
+            "from": "openai.",
+            "to": "openai.responses.create; openai."
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "OA-2",
+        "file": "convex/ai/assistants.ts",
+        "dead": "beta\\.(assistants|threads)",
+        "alive": ["responses\\.(create|stream|retrieve)", "conversations\\."],
+        "proof": [
+          {
+            "from": "beta.assistants",
+            "to": "responses"
+          },
+          {
+            "from": "beta.threads",
+            "to": "responses"
+          },
+          {
+            "from": "openai.",
+            "to": "openai.responses.create; openai."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "ioiuea/assistant-api-openai",
+    "commit": "8b57e1392ca74ba85f495a431ec3610c4c58d98f",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "OA-2",
+        "file": "app/api/assistant/create/route.ts",
+        "dead": "beta\\.(assistants|threads)",
+        "alive": ["responses\\.(create|stream|retrieve)", "conversations\\."],
+        "proof": [
+          {
+            "from": "beta.assistants",
+            "to": "responses"
+          },
+          {
+            "from": "beta.threads",
+            "to": "responses"
+          },
+          {
+            "from": "openai.",
+            "to": "openai.responses.create; openai."
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "OA-2",
+        "file": "app/api/message/list/route.ts",
+        "dead": "beta\\.(assistants|threads)",
+        "alive": ["responses\\.(create|stream|retrieve)", "conversations\\."],
+        "proof": [
+          {
+            "from": "beta.assistants",
+            "to": "responses"
+          },
+          {
+            "from": "beta.threads",
+            "to": "responses"
+          },
+          {
+            "from": "openai.",
+            "to": "openai.responses.create; openai."
+          }
+        ]
+      },
+      {
+        "id": "R3",
+        "entryId": "OA-2",
+        "file": "app/api/run/cancel/route.ts",
+        "dead": "beta\\.(assistants|threads)",
+        "alive": ["responses\\.(create|stream|retrieve)", "conversations\\."],
+        "proof": [
+          {
+            "from": "beta.assistants",
+            "to": "responses"
+          },
+          {
+            "from": "beta.threads",
+            "to": "responses"
+          },
+          {
+            "from": "openai.",
+            "to": "openai.responses.create; openai."
+          }
+        ]
+      }
+    ]
+  }
+]

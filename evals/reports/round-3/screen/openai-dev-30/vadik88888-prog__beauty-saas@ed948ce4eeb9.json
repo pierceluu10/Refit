@@ -1,0 +1,41 @@
+{
+  "set": "openai-dev-30",
+  "repo": "vadik88888-prog/beauty-saas",
+  "commit": "ed948ce4eeb901db6d2bfe42ad8b1c6ba6674f87",
+  "provider": "openai",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' OPENAI_API_KEY='placeholder' TELEGRAM_BOT_TOKEN='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' OPENAI_API_KEY='placeholder' TELEGRAM_BOT_TOKEN='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.07333599999999985,
+  "durationMs": 110924,
+  "install": {
+    "code": 0,
+    "tail": "added 667 packages in 34s\n\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead\nnpm warn deprecated @telegram-apps/types@2.0.3: This package is not supported anymore. Use @tma.js/types instead\nnpm warn deprecated @telegram-apps/transformers@2.2.6: This package is not supported anymore. Use @tma.js/transfomers instead\nnpm warn deprecated @telegram-apps/bridge@2.11.0: This package is not supported anymore. Use @tma.js/bridge instead"
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "OPENAI_API_KEY",
+      "TELEGRAM_BOT_TOKEN"
+    ]
+  }
+}

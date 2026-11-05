@@ -1,0 +1,19 @@
+{
+  "set": "openai-dev-30",
+  "repo": "etecnos/simple-AI-personal-assistant-Greek-verion",
+  "commit": "511c090c3ba791500e8f3df760613565840574d4",
+  "provider": "openai",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.04739999999999989,
+  "durationMs": 55999,
+  "install": {
+    "code": 0,
+    "tail": "ory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script httpx2 is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n  WARNING: The script sprc is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\nERROR: Could not find a version that satisfies the requirement pyaudio (from versions: none)\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\nERROR: No matching distribution found for pyaudio\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n  WARNING: The script normalizer is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip"
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["OPENAI_API_KEY"]
+  }
+}

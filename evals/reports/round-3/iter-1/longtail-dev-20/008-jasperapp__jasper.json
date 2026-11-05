@@ -1,0 +1,18 @@
+{
+  "set": "longtail-dev-20",
+  "index": 8,
+  "repo": "jasperapp/jasper",
+  "commit": "a7cbefefaa79dd764099217a3946b8210423b0ed",
+  "provider": "google-analytics",
+  "usages": 4,
+  "changes": 4,
+  "verdict": "not-affected",
+  "tasks": [],
+  "costUsd": 0.08865870000000001,
+  "durationMs": 28644,
+  "matchReasoning": "google-analytics:2027-empty-field-not-set-to-blank: not affected: The repo only sends hits to the GA Measurement Protocol (GET /collect in GARepo.ts:251). It never calls the GA Data API, so it has no runReport or other report calls and no dimensionFilter comparing to (not set).\ngoogle-analytics:2026-09-14-properties-chat-alpha: not affected: This is a new v1alpha Data API method with its own OAuth scope. The repo only uses the Measurement Protocol /collect endpoint and never calls properties.chat or any Data API method.\ngoogle-analytics:2026-09-14-data-truncation-reasons: not affected: The new ResponseMetaData field appears only in Data API report responses. The repo's only GA call is a Measurement Protocol /collect hit, which reads no report response.\ngoogle-analytics:2026-04-23-conversion-reporting-alpha: not affected: ConversionSpec is an optional addition to the v1alpha Data API RunReportRequest. The repo never calls runReport or getMetadata and only uses the Measurement Protocol /collect endpoint.",
+  "costByPart": {
+    "inventory": 0.062346700000000005,
+    "match": 0.026312
+  }
+}

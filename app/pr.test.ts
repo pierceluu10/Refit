@@ -219,7 +219,29 @@ describe('createOpenPullRequest', () => {
     return { dir, diff };
   }
 
-  it("opens a draft on aptitude/<slug> with the record's diff and prBody", async () => {
+  it('keeps a needs-a-look fix a draft', async () => {
+    const { dir, diff } = checkout();
+    try {
+      const github = fakeGitHub({ [OPEN_PULLS]: { body: [] } });
+      const record: RunRecord = {
+        taskId: 'task-1',
+        outcome: 'needs-review',
+        diff,
+        checks: [],
+        costUsd: 0,
+        transcriptPath: '',
+      };
+      await createOpenPullRequest(tokens, INSTALLATION, github.fetchImpl)(TASK, record, dir);
+      const pull = github.calls.find(
+        (call) => call.method === 'POST' && call.path === `${REPO}/pulls`,
+      );
+      expect(pull?.body).toMatchObject({ draft: true });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("opens a PR on aptitude/<slug> with the record's diff and prBody, a draft unless fixed", async () => {
     const { dir, diff } = checkout();
     try {
       const github = fakeGitHub({ [OPEN_PULLS]: { body: [] } });
@@ -248,11 +270,115 @@ describe('createOpenPullRequest', () => {
         body: 'Illustrative PR body from the harness.',
         head: 'aptitude/task-1',
         base: 'main',
-        draft: true,
+        draft: false,
       });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  describe('remembering what it opened', () => {
+    const record = (diff: string, rescan?: RunRecord & object) =>
+      ({
+        taskId: 'task-1',
+        outcome: 'verified',
+        diff,
+        checks: [],
+        costUsd: 0,
+        transcriptPath: '',
+        ...rescan,
+      }) as RunRecord;
+    const finding = (entryId: string, matchClass: string) => ({
+      entryId,
+      file: 'billing.ts',
+      line: 1,
+      matchClass,
+    });
+    const LISTED = {
+      ...TASK,
+      entries: [{ id: 'fixed' }, { id: 'left-live' }, { id: 'left-comment' }],
+    };
+
+    it('keeps the commit and the entries the last rescan no longer finds live', async () => {
+      const { dir, diff } = checkout();
+      try {
+        const remembered: unknown[] = [];
+        const open = createOpenPullRequest(
+          tokens,
+          INSTALLATION,
+          fakeGitHub({
+            [OPEN_PULLS]: { body: [] },
+          }).fetchImpl,
+          async (fix) => void remembered.push(fix),
+        );
+        const rescan = {
+          rescan: {
+            findings: [finding('left-live', 'live'), finding('left-comment', 'comment')],
+          },
+        } as unknown as RunRecord;
+        await open(LISTED, record(diff, rescan), dir);
+        expect(remembered).toEqual([
+          {
+            repo: 'acme/shop',
+            number: 9,
+            url: 'https://github.com/acme/shop/pull/9',
+            sha: 'new-commit',
+            entryIds: ['fixed', 'left-comment'],
+          },
+        ]);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('a task with no list entries remembers none', async () => {
+      const { dir, diff } = checkout();
+      try {
+        const remembered: { entryIds: string[] }[] = [];
+        const github = fakeGitHub({ [OPEN_PULLS]: { body: [] } });
+        const open = createOpenPullRequest(
+          tokens,
+          INSTALLATION,
+          github.fetchImpl,
+          async (fix) => void remembered.push(fix),
+        );
+        await open(TASK, record(diff), dir);
+        expect(remembered[0].entryIds).toEqual([]);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('a failure to remember still returns the PR it opened', async () => {
+      const { dir, diff } = checkout();
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const github = fakeGitHub({ [OPEN_PULLS]: { body: [] } });
+        const open = createOpenPullRequest(tokens, INSTALLATION, github.fetchImpl, async () => {
+          throw new Error('disk full');
+        });
+        expect(await open(TASK, record(diff), dir)).toBe('https://github.com/acme/shop/pull/9');
+        expect(logged.mock.calls.flat().join(' ')).toContain('disk full');
+      } finally {
+        logged.mockRestore();
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('an already open PR is not remembered again', async () => {
+      const remembered: unknown[] = [];
+      const github = fakeGitHub({
+        [OPEN_PULLS]: { body: [{ html_url: 'https://github.com/acme/shop/pull/7' }] },
+      });
+      const open = createOpenPullRequest(
+        tokens,
+        INSTALLATION,
+        github.fetchImpl,
+        async (fix) => void remembered.push(fix),
+      );
+      await open(TASK, record(''), '/not-used');
+      expect(remembered).toEqual([]);
+    });
   });
 
   it('returns the open PR for the same task instead of opening another', async () => {

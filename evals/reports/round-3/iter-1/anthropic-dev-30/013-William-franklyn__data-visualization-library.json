@@ -1,0 +1,178 @@
+{
+  "set": "anthropic-dev-30",
+  "index": 13,
+  "repo": "William-franklyn/data-visualization-library",
+  "commit": "4e3373e2f83bf2e337b4f751fe70cd099e65d2d2",
+  "provider": "anthropic",
+  "usages": 3,
+  "changes": 15,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "William-franklyn/data-visualization-library:anthropic:2026-11-30-retire-claude-sonnet-4-5",
+      "changeId": "anthropic:2026-11-30-retire-claude-sonnet-4-5",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "anthropic",
+        "id": "anthropic:2026-11-30-retire-claude-sonnet-4-5",
+        "kind": "model-retirement",
+        "title": "claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5",
+        "source": {
+          "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations.md",
+          "quote": "| November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |"
+        },
+        "affects": {
+          "operations": ["claude-sonnet-4-5-20250929"]
+        },
+        "effectiveDate": "2026-11-30"
+      },
+      "reasoning": "api/ai.js pins claude-opus-5, which this retirement does not touch. mcp/insights.js reads its model from CLAUDE_MODEL, and the scan did not record that value or its default. Because a retired model would make every insights request fail, this is filed as a task rather than skipped. The migration agent should resolve CLAUDE_MODEL, including the code default and any .env or example config. If it names claude-sonnet-4-5-20250929, replace it with claude-sonnet-5-5. Before doing so, check the Sonnet 5.5 breaking changes: thinking cannot be disabled and forced tool_choice returns 400. The call site sends a thinking field. If CLAUDE_MODEL names a different model, close this task with no change.",
+      "callSites": [
+        {
+          "file": "mcp/insights.js",
+          "line": 24,
+          "why": "messages.create takes its model from the CLAUDE_MODEL setting, whose value the scan did not resolve. If it is or defaults to claude-sonnet-4-5-20250929, these calls fail once the model retires on 2026-11-30."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "William-franklyn/data-visualization-library:anthropic:2026-11-30-retire-claude-sonnet-4-5",
+        "outcome": "not-affected",
+        "diff": "",
+        "checks": [],
+        "costUsd": 0.0747035,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-William-franklyn-data-visualization-library-anthropic-2026-11-30-retire-claude-sonnet-4-5-ldQB98/transcript.jsonl",
+        "prBody": "## claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 [Not affected]\n\n### Change\n\nNo change made. mcp/insights.js sets CLAUDE_MODEL as a constant 'claude-opus-5'; it is not read from the environment. api/ai.js uses claude-opus-5 at lines 44 and 69. A search of the repo found no reference to claude-sonnet-4-5-20250929.\n\nNo files changed.\n\n### Why\n\nThe retirement covers only claude-sonnet-4-5-20250929, and nothing in the repo names that model.\n\n> | November 30, 2026 | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |\n\nSource: https://platform.claude.com/docs/en/about-claude/model-deprecations.md\n\n### Proof\n\nNo checks were run.\n\nNew failures: 0\n\nProvider validators: none run.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- I did not check whether claude-opus-5 has its own retirement date.\n- No checks were run.\n\n### Behaviour changes\n\nNone intended.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0747\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-anthropic-model-retirement-9b5d480a",
+          "recipe-anthropic-sdk-major-50cc7085",
+          "recipe-openai-model-retirement-58a73d88"
+        ],
+        "agentChecks": [],
+        "summary": "# William-franklyn/data-visualization-library:anthropic:2026-11-30-retire-claude-sonnet-4-5: not-affected, $0.0747\nChange: claude-sonnet-4-5-20250929 retires on the Claude API Nov 30, 2026; use claude-sonnet-5-5 (anthropic, model-retirement)\nBaseline checks: none\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=mcp/insights.js → 1\t'use strict'; | 2\t | 3\tconst OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';\n2. search pattern=CLAUDE_MODEL|claude-sonnet|claude-opus → api/ai.js:44:             model: 'claude-opus-5', | api/ai.js:69:             model: 'claude-opus-5', | docs/script.js:8:    (claude-opus-5); otherwise it falls back to OpenRouter using AI_MODEL below.\n3. finish verdict=not-affected summary=<237 chars> why=<96 chars> validators=[] unproven=[\"I did not check whether claude-opus-5 has its own retirement date.\"] behaviourChanges=[] noProofTestReason=No code changed. → Recorded the \"not-affected\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: none\n\n## Result\nFiles changed: none\nVerdict: not-affected. No change made. mcp/insights.js sets CLAUDE_MODEL as a constant 'claude-opus-5'; it is not read from the environment. api/ai.js uses claude-opus-5 at lines 44 and 69. A search of the repo found no reference to claude-sonnet-4-5-20250929.\nUnproven: I did not check whether claude-opus-5 has its own retirement date.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "No codegen, build, postinstall or prepare steps exist: package.json has only a placeholder test script and an agent start script, and the dependencies are plain JS libraries. The API keys are only needed at runtime by generate_insights, not for load or build, so nothing needs preparing."
+        }
+      }
+    },
+    {
+      "taskId": "William-franklyn/data-visualization-library:anthropic:2026-10-21-sdk-typescript-1-0-0",
+      "changeId": "anthropic:2026-10-21-sdk-typescript-1-0-0",
+      "kind": "sdk-major",
+      "change": {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-21-sdk-typescript-1-0-0",
+        "kind": "sdk-major",
+        "title": "npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too",
+        "source": {
+          "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md",
+          "quote": "* **api:** add support for new API version 2026-10-21"
+        },
+        "affects": {
+          "fields": ["temperature", "top_p", "top_k", "MessageParam"],
+          "versions": ["<1.0.0", "1.0.0"],
+          "sdk": "@anthropic-ai/sdk"
+        }
+      },
+      "reasoning": "The repo pins @anthropic-ai/sdk 0.122.0 in package-lock.json, inside the affected range (<1.0.0). Nothing breaks today, because old SDKs keep sending 2023-06-01, but the 1.0.0 major is the path to the new API version. Neither Anthropic call site sends temperature, top_p or top_k; the temperature in mcp/insights.js goes to the OpenRouter request. The code is JavaScript, so the MessageParam union change is a typing change only. During the upgrade, the migration agent should check two things. First, that the request bodies built in api/ai.js do not pass sampling params or document/citation blocks through from the client. Second, that the thinking and output_config shapes still validate under 2026-10-21. Any Bedrock or Vertex SDK packages would also need v1, but none are recorded in this repo.\nThis task also resolves these changes. Handle each in the same change, and say in the PR how:\n- anthropic:2026-10-21-api-version-2026-10-21 (api-version): New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01. The repo's SDK (0.122.0) keeps sending anthropic-version 2023-06-01. The move to 2026-10-21 happens through the SDK 1.0.0 upgrade, which sends the new version by default, so the version bump and the SDK bump are one edit.\n  Source: https://platform.claude.com/docs/en/api/migration-2026-10-21.md\n  \"This guide lists the code changes for moving from API version `2023-06-01` to `2026-10-21`.\"\n- anthropic:2026-10-14-ts-sdk-otel-default (other): TypeScript SDK 0.134.0 auto-creates OpenTelemetry spans and trace headers if a global tracer provider exists (unsure if affects; opt out with openTelemetry:false). This only applies once the SDK moves past 0.134.0, which the 1.0.0 upgrade does. While upgrading, check whether a global OpenTelemetry tracer provider is registered. If one is and the spans are unwanted, pass openTelemetry:false to the client.\n  Source: https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md\n  \"If your app registers a global tracer provider, the SDK will create spans with it after upgrading, and they'll be exported with the rest of your traces.\"",
+      "callSites": [
+        {
+          "file": "api/ai.js",
+          "line": 43,
+          "why": "Calls messages.create through @anthropic-ai/sdk 0.122.0. After 1.0.0 it runs on API version 2026-10-21, and the MessageParam typing changes for the messages it builds."
+        },
+        {
+          "file": "mcp/insights.js",
+          "line": 24,
+          "why": "Calls messages.create through @anthropic-ai/sdk 0.122.0, which the 1.0.0 upgrade will move to API version 2026-10-21."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "William-franklyn/data-visualization-library:anthropic:2026-10-21-sdk-typescript-1-0-0",
+        "outcome": "verified",
+        "diff": "diff --git a/package-lock.json b/package-lock.json\nindex 55689a3..a43e4c5 100644\n--- a/package-lock.json\n+++ b/package-lock.json\n@@ -9,7 +9,7 @@\n             \"version\": \"1.0.0\",\n             \"license\": \"MIT\",\n             \"dependencies\": {\n-                \"@anthropic-ai/sdk\": \"^0.122.0\",\n+                \"@anthropic-ai/sdk\": \"^1.0.0\",\n                 \"@modelcontextprotocol/sdk\": \"^1.30.0\",\n                 \"chart.js\": \"^4.0.0\",\n                 \"dotenv\": \"^17.4.2\",\n@@ -24,11 +24,12 @@\n             }\n         },\n         \"node_modules/@anthropic-ai/sdk\": {\n-            \"version\": \"0.122.0\",\n-            \"resolved\": \"https://registry.npmjs.org/@anthropic-ai/sdk/-/sdk-0.122.0.tgz\",\n-            \"integrity\": \"sha512-GGPNftt0caaz9MDlmNQGHX8855Ojaduyy5pm9Sm1h7HalCn0cWNb5/bweadJF+4yzbal+QL6ztBa09WAAOzLmQ==\",\n-            \"license\": \"MIT\",\n+            \"version\": \"1.0.0\",\n+            \"resolved\": \"https://registry.npmjs.org/@anthropic-ai/sdk/-/sdk-1.0.0.tgz\",\n+            \"integrity\": \"sha512-I1KiDtqRl1F9mZgRJxTYiLxeM/jgLve/8YBeNpNBkPRttOFgABJQcDm70RFFGmOruTujiBbaCA+Vhx2Q8l0qPA==\",\n+            \"license\": \"Apache-2.0\",\n             \"dependencies\": {\n+                \"@opentelemetry/api\": \"^1.4.1\",\n                 \"json-schema-to-ts\": \"^3.1.1\",\n                 \"standardwebhooks\": \"^1.0.0\"\n             },\n@@ -111,6 +112,15 @@\n                 }\n             }\n         },\n+        \"node_modules/@opentelemetry/api\": {\n+            \"version\": \"1.10.0\",\n+            \"resolved\": \"https://registry.npmjs.org/@opentelemetry/api/-/api-1.10.0.tgz\",\n+            \"integrity\": \"sha512-lMkyes8iHrG+mk6WH7X70MdCLI2RS0FwNBY1PyQ8UemaijE2m5mv5A0Niy3HtbYTFrgkUEQjFMXmSAk2hQDuPQ==\",\n+            \"license\": \"Apache-2.0\",\n+            \"engines\": {\n+                \"node\": \">=8.0.0\"\n+            }\n+        },\n         \"node_modules/@stablelib/base64\": {\n             \"version\": \"1.0.1\",\n             \"resolved\": \"https://registry.npmjs.org/@stablelib/base64/-/base64-1.0.1.tgz\",\ndiff --git a/package.json b/package.json\nindex e0bb070..63fb102 100644\n--- a/package.json\n+++ b/package.json\n@@ -26,7 +26,7 @@\n     \"author\": \"William Frank Mahunda <williamfranklyn2020@gmail.com>\",\n     \"license\": \"MIT\",\n     \"dependencies\": {\n-        \"@anthropic-ai/sdk\": \"^0.122.0\",\n+        \"@anthropic-ai/sdk\": \"^1.0.0\",\n         \"@modelcontextprotocol/sdk\": \"^1.30.0\",\n         \"chart.js\": \"^4.0.0\",\n         \"dotenv\": \"^17.4.2\",\ndiff --git a/test/sdk.test.js b/test/sdk.test.js\nnew file mode 100644\nindex 0000000..e42e75e\n--- /dev/null\n+++ b/test/sdk.test.js\n@@ -0,0 +1,53 @@\n+'use strict';\n+// Drives the real call sites (api/ai.js and mcp/insights.js) with a stubbed fetch.\n+const assert = require('assert');\n+const Module = require('module');\n+\n+const seen = [];\n+const stubFetch = async (url, init) => {\n+  seen.push({ url: String(url), body: JSON.parse(String(init.body)), headers: new Headers(init.headers) });\n+  return new Response(\n+    JSON.stringify({\n+      id: 'm', type: 'message', role: 'assistant', model: 'claude-opus-5',\n+      content: [{ type: 'text', text: 'hi' }], stop_reason: 'end_turn', stop_sequence: null,\n+      usage: { input_tokens: 1, output_tokens: 1 },\n+    }),\n+    { headers: { 'content-type': 'application/json' } }\n+  );\n+};\n+\n+// Inject fetch into every Anthropic client the app builds.\n+const origLoad = Module._load;\n+Module._load = function (request, ...rest) {\n+  const mod = origLoad.call(this, request, ...rest);\n+  if (request === '@anthropic-ai/sdk') {\n+    const Base = mod.default || mod;\n+    const Wrapped = function (opts) { return new Base({ ...(opts || {}), fetch: stubFetch }); };\n+    Wrapped.prototype = Base.prototype;\n+    return Wrapped;\n+  }\n+  return mod;\n+};\n+\n+(async () => {\n+  process.env.ANTHROPIC_API_KEY = 'dummy';\n+  const handler = require('../api/ai.js');\n+  const { generateInsights } = require('../mcp/insights.js');\n+\n+  let out;\n+  const res = { status(c) { this.code = c; return this; }, json(o) { out = o; return this; } };\n+  await handler({ method: 'POST', body: { messages: [{ role: 'user', content: 'x' }], temperature: 0.9 } }, res);\n+  assert.strictEqual(res.code, 200, JSON.stringify(out));\n+  assert.strictEqual(out.choices[0].message.content, 'hi');\n+\n+  const r = await generateInsights({ labels: ['a'], series: [1] });\n+  assert.strictEqual(r.text, 'hi');\n+\n+  assert.strictEqual(seen.length, 2);\n+  for (const s of seen) {\n+    assert.strictEqual(s.headers.get('anthropic-version'), '2026-10-21');\n+    for (const k of ['temperature', 'top_p', 'top_k']) assert(!(k in s.body), k);\n+    assert.strictEqual(s.body.model, 'claude-opus-5');\n+  }\n+  console.log('ok');\n+})().catch((e) => { console.error(e); process.exit(1); });\n",
+        "checks": [
+          {
+            "name": "sdk-proof",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.11088889999999997,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-William-franklyn-data-visualization-library-anthropic-2026-10-21-sdk-typescript-1-0-0-21KBFC/transcript.jsonl",
+        "prBody": "## npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too [Verified]\n\n### Change\n\nBumped @anthropic-ai/sdk 0.122.0 -> ^1.0.0 via npm (installed 1.0.0). No code changes needed: both call sites (api/ai.js, mcp/insights.js) send no temperature/top_p/top_k, no document/citation blocks, and already read content by filtering text blocks. Added test/sdk.test.js, which drives both real call sites with a stubbed fetch and asserts anthropic-version 2026-10-21 and no sampling params in the body (the client's temperature in the request is not forwarded). OTel: no tracer provider registered, so left default. No Bedrock/Vertex/Foundry packages, no raw HTTP to api.anthropic.com. The `temperature` in mcp/insights.js goes to OpenRouter only. License of the SDK changes MIT -> Apache-2.0.\n\nFiles touched:\n- `package-lock.json`\n- `package.json`\n- `test/sdk.test.js`\n\n### Why\n\nSDK 1.0.0 sends API version 2026-10-21 by default, which rejects sampling params; the repo needed the bump and confirmation that its requests are compliant.\n\n> * **api:** add support for new API version 2026-10-21\n\nSource: https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| sdk-proof | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- sdk-proof, added by the agent: `node test/sdk.test.js` (fail (1) → pass)\n\nProvider validators: none run.\n\nTest of this change: `sdk-proof`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Real API behaviour at 2026-10-21 for thinking:{type:'adaptive'} and output_config:{effort:'low'}\n- Pinned model id claude-opus-5 validity\n- Baseline failure of the proof test is just a missing-file/old-SDK failure\n- npm audit reports 9 unrelated vulnerabilities, not addressed\n- Package-lock churn beyond the SDK was not individually reviewed\n- No provider validator was run.\n\n### Behaviour changes\n\n- Requests now carry anthropic-version 2026-10-21 instead of 2023-06-01\n- SDK license MIT -> Apache-2.0\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1109\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": ["recipe-anthropic-sdk-major-50cc7085", "recipe-openai-sdk-major-032de36f"],
+        "agentChecks": [
+          {
+            "name": "sdk-proof",
+            "command": "node test/sdk.test.js",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# William-franklyn/data-visualization-library:anthropic:2026-10-21-sdk-typescript-1-0-0: verified, $0.1109\nChange: npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too (anthropic, sdk-major)\nBaseline checks: sdk-proof fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=api/ai.js → 1\t// Generic chat-completion proxy for the web demo (docs/script.js). Prefers | 2\t// Claude when ANTHROPIC_API_KEY is set (same priority as mcp/insights.js's | 3\t// generate_insights tool); otherwise falls back to the original OpenRouter\n2. read_file path=mcp/insights.js → 1\t'use strict'; | 2\t | 3\tconst OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';\n3. shell command=<208 chars> → exit code: 0 | --- stdout --- | {\n4. shell command=<113 chars> → exit code: 0 | --- stdout --- | added 1 package, changed 1 package, and audited 107 packages in 11s\n5. write_file path=test/sdk.test.js content=<2084 chars> → wrote test/sdk.test.js (2084 bytes)\n6. run_checks add=[{\"name\":\"sdk-proof\",\"command\":\"node test/sdk.test.js\"}] → registered sdk-proof; on the original code it fails (1) | ## sdk-proof: pass | command: node test/sdk.test.js\n7. diff  → package-lock.json: +15 -5 | package.json: +1 -1 | test/sdk.test.js: +53 -0\n8. finish verdict=migrated summary=<698 chars> why=<156 chars> validators=[] unproven=<346 chars> behaviourChanges=<105 chars> proofTest=sdk-proof → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: sdk-proof fail (1) → pass\n\n## Result\nFiles changed: package-lock.json, package.json, test/sdk.test.js\nVerdict: migrated. Bumped @anthropic-ai/sdk 0.122.0 -> ^1.0.0 via npm (installed 1.0.0). No code changes needed: both call sites (api/ai.js, mcp/insights.js) send no temperature/top_p/top_k, no document/citation blocks, and already read content by filtering text blocks. Added test/sdk.test.js, which drives both real call sites with a stubbed fetch and asserts anthropic-version 2026-10-21 and no sampling params in the body (the client's temperature in the request is not forwarded). OTel: no tracer provider registered, so left default. No Bedrock/Vertex/Foundry packages, no raw HTTP to api.anthropic.com. The `temperature` in mcp/insights.js goes to OpenRouter only. License of the SDK changes MIT -> Apache-2.0.\nUnproven: Real API behaviour at 2026-10-21 for thinking:{type:'adaptive'} and output_config:{effort:'low'}; Pinned model id claude-opus-5 validity; Baseline failure of the proof test is just a missing-file/old-SDK failure; npm audit reports 9 unrelated vulnerabilities, not addressed; Package-lock churn beyond the SDK was not individually reviewed\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "No codegen, build, or lifecycle scripts exist in package.json (only a placeholder test and an agent start script), and no checks were detected. Plain JavaScript with installed dependencies needs no preparation. The API keys are only read by generate_insights at runtime, not at load or build."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The only change is the @anthropic-ai/sdk bump from ^0.122.0 to ^1.0.0. Neither call site is edited. That is plausible, because api/ai.js:43 and mcp/insights.js:24 already omit temperature/top_p/top_k, pass plain {role, content} messages, and filter response blocks by type === 'text'. The new test does confirm both call sites send anthropic-version 2026-10-21 and no sampling params. But it replaces the SDK's CommonJS export with a wrapper that tries `mod.default || mod`, so it never proves that the app's own `const Anthropic = require('@anthropic-ai/sdk'); new Anthropic()` still works against 1.0.0. Every request also goes to a stubbed fetch, so nothing shows the live 2026-10-21 API accepts `thinking: {type:'adaptive'}` and `output_config: {effort:'low'}`. Given that, 'verified' rests on a weaker check than it looks.",
+        "concerns": [
+          {
+            "file": "test/sdk.test.js",
+            "issue": "The Module._load hook returns a wrapper built from `mod.default || mod` whenever the app requires '@anthropic-ai/sdk'. This hides a real risk in a major bump: api/ai.js:27 and mcp/insights.js:23 call `new Anthropic()` directly on the result of `require()`. If 1.0.0's CJS entry exports a namespace object rather than a constructible class, production breaks with 'Anthropic is not a constructor', yet this test still passes.",
+            "severity": "medium"
+          },
+          {
+            "file": "api/ai.js",
+            "issue": "`thinking: { type: 'adaptive' }`, `output_config: { effort: 'low' }` and model 'claude-opus-5' are sent unchanged under the new default API version 2026-10-21. The test's fetch stub accepts any body, so server acceptance is unproven. I could not confirm these parameters are valid under 2026-10-21; check the 1.0.0 SDK's MessageCreateParams types and the API version notes. The same applies to mcp/insights.js:24.",
+            "severity": "medium"
+          },
+          {
+            "file": "api/ai.js",
+            "issue": "Response handling only checks stop_reason === 'refusal' and keeps text blocks. If 2026-10-21 changes stop_reason values or the response content shape, the stubbed response in the test (shaped like the old API) would not catch it.",
+            "severity": "low"
+          },
+          {
+            "file": "package.json",
+            "issue": "The new test is not wired into a script; `test` still echoes an error and exits 1. The check only runs if CI calls test/sdk.test.js explicitly.",
+            "severity": "low"
+          },
+          {
+            "file": "package-lock.json",
+            "issue": "The SDK's license changes from MIT to Apache-2.0, and it pulls in a new transitive dependency, @opentelemetry/api@1.10.0. This is not forced by the code changes; flag it for license and dependency review.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Run `node -e \"const A=require('@anthropic-ai/sdk'); new A({apiKey:'x'})\"` with 1.0.0 installed to confirm the plain CJS require is still constructible, without the test's `.default` fallback.",
+          "Check the 1.0.0 SDK's MessageCreateParams types or the 2026-10-21 changelog for `thinking.type: 'adaptive'` and `output_config.effort`.",
+          "Make one live call per call site (api/ai.js handler, generateInsights) against the real API with 1.0.0 before trusting the 'verified' grade.",
+          "Confirm the Apache-2.0 license and the new @opentelemetry/api dependency are acceptable for this MIT project."
+        ],
+        "costUsd": 0.06498,
+        "model": "claude-opus-5-5"
+      }
+    }
+  ],
+  "costUsd": 0.7393569999999999,
+  "durationMs": 273638,
+  "matchReasoning": "William-franklyn/data-visualization-library:anthropic:2026-11-30-retire-claude-sonnet-4-5: api/ai.js pins claude-opus-5, which this retirement does not touch. mcp/insights.js reads its model from CLAUDE_MODEL, and the scan did not record that value or its default. Because a retired model would make every insights request fail, this is filed as a task rather than skipped. The migration agent should resolve CLAUDE_MODEL, including the code default and any .env or example config. If it names claude-sonnet-4-5-20250929, replace it with claude-sonnet-5-5. Before doing so, check the Sonnet 5.5 breaking changes: thinking cannot be disabled and forced tool_choice returns 400. The call site sends a thinking field. If CLAUDE_MODEL names a different model, close this task with no change.\nWilliam-franklyn/data-visualization-library:anthropic:2026-10-21-sdk-typescript-1-0-0: The repo pins @anthropic-ai/sdk 0.122.0 in package-lock.json, inside the affected range (<1.0.0). Nothing breaks today, because old SDKs keep sending 2023-06-01, but the 1.0.0 major is the path to the new API version. Neither Anthropic call site sends temperature, top_p or top_k; the temperature in mcp/insights.js goes to the OpenRouter request. The code is JavaScript, so the MessageParam union change is a typing change only. During the upgrade, the migration agent should check two things. First, that the request bodies built in api/ai.js do not pass sampling params or document/citation blocks through from the client. Second, that the thinking and output_config shapes still validate under 2026-10-21. Any Bedrock or Vertex SDK packages would also need v1, but none are recorded in this repo.\nanthropic:2026-10-21-api-version-2026-10-21: not affected: No task of its own: resolved inside William-franklyn/data-visualization-library:anthropic:2026-10-21-sdk-typescript-1-0-0 (npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too). The repo's SDK (0.122.0) keeps sending anthropic-version 2023-06-01. The move to 2026-10-21 happens through the SDK 1.0.0 upgrade, which sends the new version by default, so the version bump and the SDK bump are one edit.\nanthropic:2026-10-14-ts-sdk-otel-default: not affected: No task of its own: resolved inside William-franklyn/data-visualization-library:anthropic:2026-10-21-sdk-typescript-1-0-0 (npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too). This only applies once the SDK moves past 0.134.0, which the 1.0.0 upgrade does. While upgrading, check whether a global OpenTelemetry tracer provider is registered. If one is and the spans are unwanted, pass openTelemetry:false to the client.\nanthropic:2026-10-21-sampling-params-removed: not affected: Neither Anthropic messages.create call (api/ai.js:43, mcp/insights.js:24) sends temperature, top_p or top_k. The only temperature in the repo is on the OpenRouter request in mcp/insights.js:48, which goes to openrouter.ai.\nanthropic:2026-10-21-document-citations-user-assistant-errors: not affected: The repo's Anthropic calls send chart and insight prompts. Nothing recorded places document blocks in assistant messages or citations on user text blocks.\nanthropic:2026-10-21-admin-api-field-renames: not affected: The repo calls only the Messages API. It makes no Admin API or Enterprise Analytics calls whose response fields could be renamed.\nanthropic:2026-11-30-fast-mode-opus-4-8-removal: not affected: The repo uses claude-opus-5, not claude-opus-4-8, and no call site sends speed: \"fast\".\nanthropic:2026-10-07-haiku-5-5-breaking: not affected: No call site uses claude-haiku-5-5. The pinned model is claude-opus-5, so the Haiku 5.5 restrictions do not apply.\nanthropic:2026-09-28-sonnet-5-5-breaking: not affected: No call site uses claude-sonnet-5-5 today. These restrictions only matter if CLAUDE_MODEL is migrated to it, and the sonnet-4-5 retirement task covers that check.\nanthropic:2026-09-22-opus-5-5-breaking: not affected: The repo pins claude-opus-5, not claude-opus-5-5. The Opus 5.5 thinking and tool_choice restrictions do not apply to its current calls.\nanthropic:2026-09-01-fable-5-1-tool-choice: not affected: No call site uses claude-fable-5-1 or claude-mythos-5-1, and no tool_choice field is sent.\nanthropic:2026-08-27-ts-sdk-beta-files-skills: not affected: The repo is already on SDK 0.122.0 and uses only messages.create, never client.beta.files or client.beta.skills.\nanthropic:2026-10-07-text-completions-deprecated: not affected: The repo calls messages.create, not client.completions.create, so deprecating Text Completions does not touch it.\nanthropic:2026-09-24-compliance-activity-names-removed: not affected: The repo does not call the Compliance API Activity Feed.",
+  "costByPart": {
+    "inventory": 0.0364366,
+    "match": 0.1079,
+    "other": 0.344448,
+    "harness": 0.1855924,
+    "review": 0.06498
+  }
+}

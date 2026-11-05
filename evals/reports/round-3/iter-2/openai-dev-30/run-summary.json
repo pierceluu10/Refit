@@ -1,0 +1,15 @@
+{
+  "set": "openai-dev-30",
+  "capUsd": 150,
+  "meterSpentUsd": 1.1416415000000002,
+  "budgetSpentUsd": 1.6120975,
+  "costByPart": {
+    "inventory": 0,
+    "match": 0.213198,
+    "memory": 0.407676,
+    "harness": 0.4241235,
+    "review": 0.09664400000000001
+  },
+  "startedAt": "2026-11-03T22:38:20.944Z",
+  "finishedAt": "2026-11-03T22:43:52.492Z"
+}

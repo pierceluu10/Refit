@@ -1,0 +1,35 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "zhangsgithub04/lddebate",
+  "commit": "80e650c1a1ce0cd4639ab5df9f8bc04ba2d97362",
+  "provider": "gemini",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export GOOGLE_API_KEY='placeholder' MONGODB_URI='mongodb://localhost:27017/placeholder' JWT_SECRET='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export GOOGLE_API_KEY='placeholder' MONGODB_URI='mongodb://localhost:27017/placeholder' JWT_SECRET='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.050344000000000166,
+  "durationMs": 85261,
+  "install": {
+    "code": 0,
+    "tail": "added 431 packages in 29s"
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["GOOGLE_API_KEY", "MONGODB_URI", "JWT_SECRET"]
+  }
+}

@@ -54,6 +54,27 @@ describe('local sandbox', () => {
     );
   });
 
+  it('leaves out a folder the checks made, even files a later build names differently', async () => {
+    const write = async (file: string) => {
+      await fs.mkdir(path.dirname(path.join(sandbox.dir, file)), { recursive: true });
+      await fs.writeFile(path.join(sandbox.dir, file), 'output\n');
+    };
+    await write('build/assets/page-aaa.js');
+    await write('src/generated.js');
+    await sandbox.leaveOut?.(['build/assets/page-aaa.js', 'src/generated.js']);
+    await write('build/assets/page-bbb.js');
+    await write('src/new.js');
+    const diff = await sandbox.diff();
+    expect(diff).toContain('src/new.js');
+    expect(diff).not.toContain('build/');
+    expect(diff).not.toContain('src/generated.js');
+
+    // What the session writes there on purpose comes back.
+    sandbox.keep?.('build/assets/mine.js');
+    await write('build/assets/mine.js');
+    expect(await sandbox.diff()).toContain('build/assets/mine.js');
+  });
+
   it('runs commands in the copy and reports exit codes', async () => {
     const ok = await sandbox.exec('pwd && ls');
     expect(ok.code).toBe(0);
@@ -91,6 +112,31 @@ describe('local sandbox', () => {
     expect(diff).not.toContain('node_modules');
   });
 
+  it('resets the working copy to its last snapshot', async () => {
+    await fs.writeFile(path.join(sandbox.dir, 'index.js'), 'console.log("changed");\n');
+    await sandbox.exec('mkdir -p dist && echo built > dist/out.js');
+    await sandbox.reset?.();
+    expect(await sandbox.diff()).toBe('');
+    expect(await fs.readFile(path.join(sandbox.dir, 'index.js'), 'utf8')).toContain('v1');
+  });
+
+  it('leaves a proof test under .refit-proof and compiled Python out of the diff', async () => {
+    await sandbox.exec(
+      'mkdir -p .refit-proof && echo "assert(true)" > .refit-proof/model.test.mjs',
+    );
+    await sandbox.exec(
+      'mkdir -p __pycache__ && printf "\\001\\002" > __pycache__/main.cpython-312.pyc',
+    );
+    expect(await sandbox.diff()).toBe('');
+  });
+
+  it('leaves a rebuilt tsbuildinfo out of the diff', async () => {
+    await sandbox.exec(
+      'echo \'{"v":2}\' > tsconfig.tsbuildinfo && mkdir -p app && echo x > app/b.tsbuildinfo',
+    );
+    expect(await sandbox.diff()).toBe('');
+  });
+
   it('has no git remotes and no .git in the working copy', async () => {
     const { code, stdout } = await sandbox.exec('git remote -v');
     expect(code).not.toBe(0);
@@ -123,13 +169,19 @@ describe('env files', () => {
       '.env.example',
       '.env.sample',
     ];
-    for (const name of [...names, '.env.template', '.env.dist']) {
+    for (const name of [...names, '.env.template', '.env.dist', '.env.production.template']) {
       await fs.writeFile(path.join(repoDir, name), 'API_KEY=x\n');
     }
     await fs.writeFile(path.join(repoDir, 'src', '.env'), 'API_KEY=x\n');
     sandbox = await createSandbox(repoDir, { mode: 'local' });
     const copied = (await fs.readdir(sandbox.dir)).filter((name) => name.startsWith('.env'));
-    expect(copied.sort()).toEqual(['.env.dist', '.env.example', '.env.sample', '.env.template']);
+    expect(copied.sort()).toEqual([
+      '.env.dist',
+      '.env.example',
+      '.env.production.template',
+      '.env.sample',
+      '.env.template',
+    ]);
     await expect(fs.access(path.join(sandbox.dir, 'src', '.env'))).rejects.toThrow();
   });
 });

@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 
 const DEFAULT_PORT = 3000;
 const DEFAULT_QUEUE_FILE = '.aptitude/queue.json';
+const DEFAULT_TRIGGER_DIR = '.aptitude/triggers';
+const DEFAULT_DATA_DIR = '.aptitude/app';
 
 export class MissingConfigError extends Error {
   constructor(variable: string) {
@@ -16,7 +18,13 @@ export type AppConfig = {
   webhookSecret: string;
   port: number;
   queueFile: string;
+  triggerDir: string;
+  dataDir: string;
 };
+
+// Where the app keeps installation settings and what it has seen of each fix.
+export const appDataDir = (env: NodeJS.ProcessEnv = process.env) =>
+  env.APTITUDE_APP_DIR || DEFAULT_DATA_DIR;
 
 function required(env: NodeJS.ProcessEnv, variable: string): string {
   const value = env[variable];
@@ -30,6 +38,10 @@ function readPrivateKey(env: NodeJS.ProcessEnv): string {
   throw new MissingConfigError('GITHUB_APP_PRIVATE_KEY or GITHUB_APP_PRIVATE_KEY_FILE');
 }
 
+// Apart from readConfig, because reading the trigger record needs none of the App's secrets.
+export const readTriggerDir = (env: NodeJS.ProcessEnv = process.env): string =>
+  env.APTITUDE_TRIGGER_DIR || DEFAULT_TRIGGER_DIR;
+
 export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   return {
     appId: required(env, 'GITHUB_APP_ID'),
@@ -37,5 +49,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     webhookSecret: required(env, 'GITHUB_WEBHOOK_SECRET'),
     port: env.PORT ? Number(env.PORT) : DEFAULT_PORT,
     queueFile: env.APTITUDE_QUEUE_FILE || DEFAULT_QUEUE_FILE,
+    triggerDir: readTriggerDir(env),
+    dataDir: appDataDir(env),
   };
 }

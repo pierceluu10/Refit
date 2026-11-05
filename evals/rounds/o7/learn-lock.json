@@ -1,0 +1,130 @@
+[
+  {
+    "repo": "kousalyaChintha/InfiniteCode",
+    "commit": "7c1cf590f549584a4fa3f4f4000687bc2f18e092",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "openai-1",
+        "file": "src/pages/Settings.jsx",
+        "dead": "[\"']gpt-3\\.5-turbo[\"']",
+        "alive": ["gpt-5\\.6-terra"],
+        "proof": [
+          {
+            "from": "gpt-3.5-turbo",
+            "to": "gpt-5.6-terra"
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "gemini-1",
+        "file": "src/components/LeftPanel.jsx",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": [
+          {
+            "from": "gemini-2.0-flash",
+            "to": "gemini-3.6-flash"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "mohammadpurl/next-livekit-streaming",
+    "commit": "9f2253c00ed7bcdd9f3017f7f6fb1676753d981f",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "OA-2",
+        "file": "app/api/chat/route.ts",
+        "dead": "beta\\.(assistants|threads)",
+        "alive": ["responses\\.(create|stream|retrieve)", "conversations\\."],
+        "proof": [
+          {
+            "from": "beta.assistants",
+            "to": "responses"
+          },
+          {
+            "from": "beta.threads",
+            "to": "responses"
+          },
+          {
+            "from": "openai.",
+            "to": "openai.responses.create; openai."
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "OA-2",
+        "file": "app/openai-assistant.ts",
+        "dead": "beta\\.(assistants|threads)",
+        "alive": ["responses\\.(create|stream|retrieve)", "conversations\\."],
+        "proof": [
+          {
+            "from": "beta.assistants",
+            "to": "responses"
+          },
+          {
+            "from": "beta.threads",
+            "to": "responses"
+          },
+          {
+            "from": "openai.",
+            "to": "openai.responses.create; openai."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "gvprime/pubragi",
+    "commit": "477430609c67000b5ab2799b5aff270a93da799f",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "OA-2",
+        "file": "main.py",
+        "dead": "beta\\.(assistants|threads)",
+        "alive": ["responses\\.(create|stream|retrieve)", "conversations\\."],
+        "proof": [
+          {
+            "from": "beta.assistants",
+            "to": "responses"
+          },
+          {
+            "from": "beta.threads",
+            "to": "responses"
+          },
+          {
+            "from": "openai.",
+            "to": "openai.responses.create; openai."
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "OA-2",
+        "file": "document_chat_api.py",
+        "dead": "beta\\.(assistants|threads)",
+        "alive": ["responses\\.(create|stream|retrieve)", "conversations\\."],
+        "proof": [
+          {
+            "from": "beta.assistants",
+            "to": "responses"
+          },
+          {
+            "from": "beta.threads",
+            "to": "responses"
+          },
+          {
+            "from": "openai.",
+            "to": "openai.responses.create; openai."
+          }
+        ]
+      }
+    ]
+  }
+]

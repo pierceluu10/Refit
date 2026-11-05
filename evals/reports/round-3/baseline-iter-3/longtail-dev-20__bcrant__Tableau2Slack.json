@@ -1,0 +1,52 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "bcrant/Tableau2Slack",
+  "refit": {
+    "checks": "no-repo-checks",
+    "costUsd": 0.2610895,
+    "tasks": 1,
+    "verified": 1
+  },
+  "claude": {
+    "checks": "no-repo-checks",
+    "costUsd": 0.08325779999999997,
+    "prepCostUsd": 0.004348,
+    "diffLines": 105,
+    "finalText": "I changed the code for two breaking API changes and bumped the pinned dependencies. I only compile-checked `Tableau2Slack.py`, so none of this has been run against real Slack or Tableau accounts.\n\n**What I changed and why**\n\n1. **Slack file upload (already broken).** Slack retired the `files.upload` method that the script called through `files_upload`. The changelog gives March 11, 2025 in one place and November 12, 2025 in another, but either date is past. I couldn't confirm the final shutdown from these results.\n   - `Tableau2Slack.py` now calls `files_upload_v2`, which Slack's docs name as the replacement. It uses the `channel=` parameter and no longer passes `filetype`.\n   - The new call needs a channel ID rather than a name like `#tableau-test`. I added a `slackUploadChannel` environment variable for it. The bot must be a member of that channel.\n   - `slackclient` is the old package name, so imports now come from `slack_sdk`, and `WebClient` takes `token=`.\n2. **Tableau Cloud sign-in.** Tableau's docs say that when MFA is enabled on Tableau Cloud, REST API sign-in needs a personal access token instead of a username and password.\n   - The script now uses `TSC.PersonalAccessTokenAuth` with two new variables, `tabTokenName` and `tabTokenValue`. These replace `tabAcct` and `tabPwd`.\n   - I didn't confirm that this specific account has MFA on. If it doesn't, the old sign-in may still work, but a token works either way.\n3. **Pinned versions.** `requirements.txt` had 2019–2020 pins. I replaced them with minimum versions: `slack_sdk >= 3.33.0`, `tableauserverclient >= 0.34`, and newer floors for `requests`, `pytz`, `python-dotenv` and `nest-asyncio`. I chose these floors from memory and didn't check them against release notes.\n4. **`example.env`.** I updated it for the new variables.\n\n**You need to do**\n- Create a Tableau personal access token and set `tabTokenName` and `tabTokenValue` in your `.env`.\n- Set `slackUploadChannel` to the channel ID.\n- Check that the Slack bot has the `files:write` scope.\n\n**Not edited**\n- Tableau Cloud also accepts Unified Access Tokens from REST API 3.27 (December 2025). That is an option, not a requirement.\n- `datetime.utcnow()` is deprecated in newer Python. It isn't an external API, so I left it.\n\nSources:\n- [Slack changelog on files.upload retirement](https://docs.slack.dev/changelog/2024-04-a-better-way-to-upload-files-is-here-to-stay)\n- [Tableau REST API authentication methods](https://help.tableau.com/current/api/rest_api/de-de/REST/rest_api_ref_authentication.htm)\n- [Tableau Server Client sign-in docs](https://tableau.github.io/server-client-python/docs/sign-in-out)",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-bcrant-Tableau2Slack/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "Slack files.upload retired; migrate to files_upload_v2 via slack_sdk (package rename from slackclient)",
+          "correct": true,
+          "note": "Switches to slack_sdk imports and calls files_upload_v2 with a channel ID env var. It parses the response robustly via file or files[0]. The pin is slack_sdk>=3.19,<4, and 3.19 is where v2 was introduced. Adds an AST/import test."
+        }
+      ],
+      "breaks": []
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "Slack files.upload retired; migrate to files_upload_v2 via slack_sdk (package rename from slackclient)",
+          "correct": true,
+          "note": "Switches the imports to slack_sdk, calls files_upload_v2 with a channel ID from a new env var, and drops filetype. For a single file, slack_sdk's files_upload_v2 also fills response['file'], so the unchanged img['file']['url_private'] still works. The pin is moved to slack_sdk>=3.33.0."
+        },
+        {
+          "change": "Tableau Cloud MFA: REST API sign-in needs a personal access token instead of username/password",
+          "correct": true,
+          "note": "Replaces TableauAuth with PersonalAccessTokenAuth and adds new env vars. This is consistent with Tableau's MFA enforcement on Tableau Cloud. It drops password auth entirely, so users must create a PAT. The TSC floor is raised so the class is available."
+        }
+      ],
+      "breaks": [
+        "Commits a compiled __pycache__/Tableau2Slack.cpython-312.pyc binary to the repo.",
+        "Loosens all pins to unbounded floors chosen from memory (requests, pytz, dotenv, nest-asyncio), beyond what the changes need."
+      ]
+    },
+    "better": "claude",
+    "why": "Both migrate the retired Slack upload correctly. A also handles the Tableau Cloud MFA sign-in requirement, which breaks username/password REST sign-in, by moving to personal access tokens. B misses this and leaves auth and the very old TSC 0.11 pin untouched. A's committed .pyc file and loose pins are minor noise compared with the missed auth break in B.",
+    "costUsd": 0.05628
+  }
+}

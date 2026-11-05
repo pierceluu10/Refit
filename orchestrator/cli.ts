@@ -4,7 +4,8 @@ import { basename, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { createBudget } from './budget.ts';
-import { createDeps, defaultOut } from './deps.ts';
+import { PROPOSED_DIR } from '../dead-apis/proposals.ts';
+import { createDeps, deadApiScan, defaultOut } from './deps.ts';
 import type { RunRecord } from '../shared/types.ts';
 import { runOrg, type RunSummary } from './loop.ts';
 
@@ -74,7 +75,8 @@ export async function main(argv: string[]): Promise<number> {
   try {
     // The run-level dollar cap is a hard limit: createBudget throws without APTITUDE_AI_BUDGET_USD.
     const budget = process.env.ANTHROPIC_API_KEY ? createBudget() : undefined;
-    const deps = createDeps({ out: args.out, budget });
+    const scan = budget && deadApiScan(budget, { storeDir: PROPOSED_DIR });
+    const deps = createDeps({ out: args.out, budget, ...scan });
     // SECURITY: nothing here runs the repo's code or scripts on this host; runTask hands it to the harness sandbox.
     // One org run, so the changelogs are watched once for every repo.
     const summary = await runOrg({ name: args.name, repos: args.repos }, deps, {

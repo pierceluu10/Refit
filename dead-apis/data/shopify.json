@@ -1,0 +1,1326 @@
+{
+  "provider": "shopify",
+  "officialHosts": ["shopify.dev", "help.shopify.com"],
+  "entries": [
+    {
+      "id": "SH-1.2025-10",
+      "provider": "shopify",
+      "what": "API version 2025-10 stopped being accessible at 15:00 UTC on October 16, 2026. A request naming it does not fail outright. Shopify falls forward and answers at the oldest accessible stable version, 2026-01 today, and the X-Shopify-API-Version response header then differs from the version asked for. Webhook payloads fall forward the same way. So the break is silent: shapes change under the code, a GraphQL selection of something removed since its version returns an error, and REST fields go missing. Polaris UI extensions are different: the page says older versions keep working, without reference docs, and Shopify CLI refuses to deploy a version older than 12 months. A public app still using unsupported resources after the upgrade deadline is also delisted from the App Store.",
+      "diedOn": "2026-10-16",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning",
+        "checkedOn": "2026-11-05",
+        "quote": "2025-10 | October 1, 2025 | October 16, 2026 15:00 UTC | Unsupported"
+      },
+      "lookFor": [
+        "2025-10 in a REST or GraphQL path: /admin/api/<version>/..., /api/<version>/graphql.json, /customer/api/<version>/graphql",
+        "2025-10 set as apiVersion, api_version, API_VERSION, SHOPIFY_API_VERSION or a Session argument, or named by the ApiVersion enum of @shopify/shopify-api. A bare version setting can belong to another vendor, so check it is Shopify. A date-versioned string with a day, such as 2024-10-21, is not this.",
+        "2025-10 in a REST resources import, @shopify/shopify-api/rest/admin/<version>. Its classes send /admin/api/<version>/... whatever version the app config sets.",
+        "api_version in shopify.app.toml (webhooks fall forward). In shopify.extension.toml a UI extension's api_version isn't a break by itself: see what."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\badmin/api/2025-10(?![-\\d])"
+        },
+        {
+          "kind": "regex",
+          "value": "/api/2025-10/graphql\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bApiVersion\\.October25\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"]2025-10['\\\"]"
+        },
+        {
+          "kind": "regex",
+          "value": "[aA][pP][iI][-_ ]?[vV][eE][rR][sS][iI][oO][nN]['\\\"`]?\\s*(?:=>|[:=,(])\\s*['\\\"`]?2025-10(?![-\\d])",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "shopify-api/rest/admin/2025-10(?![-\\d])"
+        }
+      ],
+      "replacement": "2026-10, the latest stable version the page lists. Accessible until October 16, 2027 15:00 UTC.",
+      "replacementIds": ["2026-10"],
+      "requires": [
+        "The app already runs at 2026-01 by falling forward, so these are the changes the move to 2026-10 adds. Read each version crossed: https://shopify.dev/changelog/release-notes/2026-04, https://shopify.dev/changelog/release-notes/2026-07, https://shopify.dev/changelog/release-notes/2026-10. A pin below 2026-01 also has code written for an older shape: https://shopify.dev/changelog/release-notes/2026-01 lists Shop.draftOrders removed, groupObjects dropped from bulkOperationRunMutation, and cartDiscountCodesUpdate now requiring discountCodes.",
+        "2026-04: inventorySetQuantities, inventoryAdjustQuantities, inventoryMoveQuantities, inventorySetOnHandQuantities and productVariantsBulkUpdate must send changeFromQuantity (the expected quantity, or null to opt out). Remove compareQuantity and ignoreCompareQuantity.",
+        "2026-04: the notes say idempotency is mandatory for specific mutations, naming inventory adjustments and refunds. inventoryAdjustQuantities takes its required key through the @idempotent directive; read each mutation reference for the others, since a missing key fails the call.",
+        "2026-04: FulfillmentService.permitsSkuSharing is gone, including from fulfillmentServiceCreate and fulfillmentServiceUpdate. inventoryActivate no longer defaults available or onHand to zero when they are omitted.",
+        "2026-04 webhooks: checkouts/create and checkouts/update lose id (use token), and orders/* topics lose checkout_id (use checkout_token).",
+        "2026-07: inventorySetScheduledChanges is removed with no replacement. Replace DraftOrderLineItem.grams with weight, which returns value and unit. visibleToStorefrontApi is removed from MetaobjectFieldDefinition and its create and update inputs. Collections move to Collection.sources from only Collection.ruleSet.",
+        "2026-10: changing the shipping address on an unfulfilled order with orderUpdate or the REST order update endpoint now recalculates taxes. Re-read taxLines, totalTaxSet and totals afterward and handle the balance difference.",
+        "2026-10: DraftOrderDiscountNotAppliedWarning.priceRule and the PriceRule object are removed from the GraphQL schema: select discountTitle and discountCode. Segment query functions use MATCHES and NOT MATCHES instead of = true and = false. A query filtering by a metafield that is not valid for filtering now returns an error. CustomerPhoneNumber.smsMarketingConsent replaces the flat SMS consent fields, and checkout and customer account UI extension metafield declarations need an owner_type. Carrier services no longer add rates to the General shipping profile by default.",
+        "Webhook payloads follow the subscription version, so change [webhooks] api_version in shopify.app.toml or the subscription too, and read handlers against the new shape. After the move, check the X-Shopify-API-Version response header equals the version asked for.",
+        "Code naming the version by the ApiVersion enum needs an @shopify package new enough to hold that value. This is a reading: the page does not say it.",
+        "The lighter path: passing the version as a plain string, apiVersion: \"2026-10\", needs no package upgrade. @shopify/shopify-api 11.0.0 and 12.2.0 hand the value through unchecked (lib/clients/admin/rest/client.ts in https://github.com/Shopify/shopify-app-js), and a test with a mocked fetch saw it reach /admin/api/2026-10/ for GraphQL and REST. That is SDK behaviour, not a Shopify promise: it shows what the SDK sends, not what Shopify answers, so check the X-Shopify-API-Version response header. TypeScript needs a cast, since the config's type is the ApiVersion enum.",
+        "A REST resources import, @shopify/shopify-api/rest/admin/<version>, pins its classes to that version whatever the app config sets, so it has to move too. The folder must ship in the package: 15.0.1 stops at rest/admin/2026-07 and 12.2.0 at rest/admin/2025-10. This is read from the packages, not from Shopify's page.",
+        "A UI extension's api_version in shopify.extension.toml moves with its @shopify/ui-extensions package: Shopify's upgrade guide changes both, api_version = \"2026-04\" with @shopify/ui-extensions 2026.4.x (https://shopify.dev/docs/api/checkout-ui-extensions/2026-10/upgrading-to-2026-10). Older Polaris extensions keep working, so don't bump an extension's api_version alone."
+      ]
+    },
+    {
+      "id": "SH-1.2025-07",
+      "provider": "shopify",
+      "what": "API version 2025-07 stopped being accessible at 15:00 UTC on July 16, 2026. A request naming it does not fail outright. Shopify falls forward and answers at the oldest accessible stable version, 2026-01 today, and the X-Shopify-API-Version response header then differs from the version asked for. Webhook payloads fall forward the same way. So the break is silent: shapes change under the code, a GraphQL selection of something removed since its version returns an error, and REST fields go missing. Polaris UI extensions are different: the page says older versions keep working, without reference docs, and Shopify CLI refuses to deploy a version older than 12 months. A public app still using unsupported resources after the upgrade deadline is also delisted from the App Store.",
+      "diedOn": "2026-07-16",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning",
+        "checkedOn": "2026-11-05",
+        "quote": "2025-07 | July 1, 2025 | July 16, 2026 15:00 UTC | Unsupported"
+      },
+      "lookFor": [
+        "2025-07 in a REST or GraphQL path: /admin/api/<version>/..., /api/<version>/graphql.json, /customer/api/<version>/graphql",
+        "2025-07 set as apiVersion, api_version, API_VERSION, SHOPIFY_API_VERSION or a Session argument, or named by the ApiVersion enum of @shopify/shopify-api. A bare version setting can belong to another vendor, so check it is Shopify. A date-versioned string with a day, such as 2024-10-21, is not this.",
+        "2025-07 in a REST resources import, @shopify/shopify-api/rest/admin/<version>. Its classes send /admin/api/<version>/... whatever version the app config sets.",
+        "api_version in shopify.app.toml (webhooks fall forward). In shopify.extension.toml a UI extension's api_version isn't a break by itself: see what."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\badmin/api/2025-07(?![-\\d])"
+        },
+        {
+          "kind": "regex",
+          "value": "/api/2025-07/graphql\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bApiVersion\\.July25\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"]2025-07['\\\"]"
+        },
+        {
+          "kind": "regex",
+          "value": "[aA][pP][iI][-_ ]?[vV][eE][rR][sS][iI][oO][nN]['\\\"`]?\\s*(?:=>|[:=,(])\\s*['\\\"`]?2025-07(?![-\\d])",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "shopify-api/rest/admin/2025-07(?![-\\d])"
+        }
+      ],
+      "replacement": "2026-10, the latest stable version the page lists. Accessible until October 16, 2027 15:00 UTC.",
+      "replacementIds": ["2026-10"],
+      "requires": [
+        "The app already runs at 2026-01 by falling forward, so these are the changes the move to 2026-10 adds. Read each version crossed: https://shopify.dev/changelog/release-notes/2026-04, https://shopify.dev/changelog/release-notes/2026-07, https://shopify.dev/changelog/release-notes/2026-10. A pin below 2026-01 also has code written for an older shape: https://shopify.dev/changelog/release-notes/2026-01 lists Shop.draftOrders removed, groupObjects dropped from bulkOperationRunMutation, and cartDiscountCodesUpdate now requiring discountCodes.",
+        "2026-04: inventorySetQuantities, inventoryAdjustQuantities, inventoryMoveQuantities, inventorySetOnHandQuantities and productVariantsBulkUpdate must send changeFromQuantity (the expected quantity, or null to opt out). Remove compareQuantity and ignoreCompareQuantity.",
+        "2026-04: the notes say idempotency is mandatory for specific mutations, naming inventory adjustments and refunds. inventoryAdjustQuantities takes its required key through the @idempotent directive; read each mutation reference for the others, since a missing key fails the call.",
+        "2026-04: FulfillmentService.permitsSkuSharing is gone, including from fulfillmentServiceCreate and fulfillmentServiceUpdate. inventoryActivate no longer defaults available or onHand to zero when they are omitted.",
+        "2026-04 webhooks: checkouts/create and checkouts/update lose id (use token), and orders/* topics lose checkout_id (use checkout_token).",
+        "2026-07: inventorySetScheduledChanges is removed with no replacement. Replace DraftOrderLineItem.grams with weight, which returns value and unit. visibleToStorefrontApi is removed from MetaobjectFieldDefinition and its create and update inputs. Collections move to Collection.sources from only Collection.ruleSet.",
+        "2026-10: changing the shipping address on an unfulfilled order with orderUpdate or the REST order update endpoint now recalculates taxes. Re-read taxLines, totalTaxSet and totals afterward and handle the balance difference.",
+        "2026-10: DraftOrderDiscountNotAppliedWarning.priceRule and the PriceRule object are removed from the GraphQL schema: select discountTitle and discountCode. Segment query functions use MATCHES and NOT MATCHES instead of = true and = false. A query filtering by a metafield that is not valid for filtering now returns an error. CustomerPhoneNumber.smsMarketingConsent replaces the flat SMS consent fields, and checkout and customer account UI extension metafield declarations need an owner_type. Carrier services no longer add rates to the General shipping profile by default.",
+        "Webhook payloads follow the subscription version, so change [webhooks] api_version in shopify.app.toml or the subscription too, and read handlers against the new shape. After the move, check the X-Shopify-API-Version response header equals the version asked for.",
+        "Code naming the version by the ApiVersion enum needs an @shopify package new enough to hold that value. This is a reading: the page does not say it.",
+        "The lighter path: passing the version as a plain string, apiVersion: \"2026-10\", needs no package upgrade. @shopify/shopify-api 11.0.0 and 12.2.0 hand the value through unchecked (lib/clients/admin/rest/client.ts in https://github.com/Shopify/shopify-app-js), and a test with a mocked fetch saw it reach /admin/api/2026-10/ for GraphQL and REST. That is SDK behaviour, not a Shopify promise: it shows what the SDK sends, not what Shopify answers, so check the X-Shopify-API-Version response header. TypeScript needs a cast, since the config's type is the ApiVersion enum.",
+        "A REST resources import, @shopify/shopify-api/rest/admin/<version>, pins its classes to that version whatever the app config sets, so it has to move too. The folder must ship in the package: 15.0.1 stops at rest/admin/2026-07 and 12.2.0 at rest/admin/2025-10. This is read from the packages, not from Shopify's page.",
+        "A UI extension's api_version in shopify.extension.toml moves with its @shopify/ui-extensions package: Shopify's upgrade guide changes both, api_version = \"2026-04\" with @shopify/ui-extensions 2026.4.x (https://shopify.dev/docs/api/checkout-ui-extensions/2026-10/upgrading-to-2026-10). Older Polaris extensions keep working, so don't bump an extension's api_version alone."
+      ]
+    },
+    {
+      "id": "SH-1.2025-04",
+      "provider": "shopify",
+      "what": "API version 2025-04 stopped being accessible at 15:00 UTC on April 16, 2026. A request naming it does not fail outright. Shopify falls forward and answers at the oldest accessible stable version, 2026-01 today, and the X-Shopify-API-Version response header then differs from the version asked for. Webhook payloads fall forward the same way. So the break is silent: shapes change under the code, a GraphQL selection of something removed since its version returns an error, and REST fields go missing. Polaris UI extensions are different: the page says older versions keep working, without reference docs, and Shopify CLI refuses to deploy a version older than 12 months. A public app still using unsupported resources after the upgrade deadline is also delisted from the App Store.",
+      "diedOn": "2026-04-16",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning",
+        "checkedOn": "2026-11-05",
+        "quote": "2025-04 | April 1, 2025 | April 16, 2026 15:00 UTC | Unsupported"
+      },
+      "lookFor": [
+        "2025-04 in a REST or GraphQL path: /admin/api/<version>/..., /api/<version>/graphql.json, /customer/api/<version>/graphql",
+        "2025-04 set as apiVersion, api_version, API_VERSION, SHOPIFY_API_VERSION or a Session argument, or named by the ApiVersion enum of @shopify/shopify-api. A bare version setting can belong to another vendor, so check it is Shopify. A date-versioned string with a day, such as 2024-10-21, is not this.",
+        "2025-04 in a REST resources import, @shopify/shopify-api/rest/admin/<version>. Its classes send /admin/api/<version>/... whatever version the app config sets.",
+        "api_version in shopify.app.toml (webhooks fall forward). In shopify.extension.toml a UI extension's api_version isn't a break by itself: see what."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\badmin/api/2025-04(?![-\\d])"
+        },
+        {
+          "kind": "regex",
+          "value": "/api/2025-04/graphql\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bApiVersion\\.April25\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"]2025-04['\\\"]"
+        },
+        {
+          "kind": "regex",
+          "value": "[aA][pP][iI][-_ ]?[vV][eE][rR][sS][iI][oO][nN]['\\\"`]?\\s*(?:=>|[:=,(])\\s*['\\\"`]?2025-04(?![-\\d])",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "shopify-api/rest/admin/2025-04(?![-\\d])"
+        }
+      ],
+      "replacement": "2026-10, the latest stable version the page lists. Accessible until October 16, 2027 15:00 UTC.",
+      "replacementIds": ["2026-10"],
+      "requires": [
+        "The app already runs at 2026-01 by falling forward, so these are the changes the move to 2026-10 adds. Read each version crossed: https://shopify.dev/changelog/release-notes/2026-04, https://shopify.dev/changelog/release-notes/2026-07, https://shopify.dev/changelog/release-notes/2026-10. A pin below 2026-01 also has code written for an older shape: https://shopify.dev/changelog/release-notes/2026-01 lists Shop.draftOrders removed, groupObjects dropped from bulkOperationRunMutation, and cartDiscountCodesUpdate now requiring discountCodes.",
+        "2026-04: inventorySetQuantities, inventoryAdjustQuantities, inventoryMoveQuantities, inventorySetOnHandQuantities and productVariantsBulkUpdate must send changeFromQuantity (the expected quantity, or null to opt out). Remove compareQuantity and ignoreCompareQuantity.",
+        "2026-04: the notes say idempotency is mandatory for specific mutations, naming inventory adjustments and refunds. inventoryAdjustQuantities takes its required key through the @idempotent directive; read each mutation reference for the others, since a missing key fails the call.",
+        "2026-04: FulfillmentService.permitsSkuSharing is gone, including from fulfillmentServiceCreate and fulfillmentServiceUpdate. inventoryActivate no longer defaults available or onHand to zero when they are omitted.",
+        "2026-04 webhooks: checkouts/create and checkouts/update lose id (use token), and orders/* topics lose checkout_id (use checkout_token).",
+        "2026-07: inventorySetScheduledChanges is removed with no replacement. Replace DraftOrderLineItem.grams with weight, which returns value and unit. visibleToStorefrontApi is removed from MetaobjectFieldDefinition and its create and update inputs. Collections move to Collection.sources from only Collection.ruleSet.",
+        "2026-10: changing the shipping address on an unfulfilled order with orderUpdate or the REST order update endpoint now recalculates taxes. Re-read taxLines, totalTaxSet and totals afterward and handle the balance difference.",
+        "2026-10: DraftOrderDiscountNotAppliedWarning.priceRule and the PriceRule object are removed from the GraphQL schema: select discountTitle and discountCode. Segment query functions use MATCHES and NOT MATCHES instead of = true and = false. A query filtering by a metafield that is not valid for filtering now returns an error. CustomerPhoneNumber.smsMarketingConsent replaces the flat SMS consent fields, and checkout and customer account UI extension metafield declarations need an owner_type. Carrier services no longer add rates to the General shipping profile by default.",
+        "Webhook payloads follow the subscription version, so change [webhooks] api_version in shopify.app.toml or the subscription too, and read handlers against the new shape. After the move, check the X-Shopify-API-Version response header equals the version asked for.",
+        "Code naming the version by the ApiVersion enum needs an @shopify package new enough to hold that value. This is a reading: the page does not say it.",
+        "The lighter path: passing the version as a plain string, apiVersion: \"2026-10\", needs no package upgrade. @shopify/shopify-api 11.0.0 and 12.2.0 hand the value through unchecked (lib/clients/admin/rest/client.ts in https://github.com/Shopify/shopify-app-js), and a test with a mocked fetch saw it reach /admin/api/2026-10/ for GraphQL and REST. That is SDK behaviour, not a Shopify promise: it shows what the SDK sends, not what Shopify answers, so check the X-Shopify-API-Version response header. TypeScript needs a cast, since the config's type is the ApiVersion enum.",
+        "A REST resources import, @shopify/shopify-api/rest/admin/<version>, pins its classes to that version whatever the app config sets, so it has to move too. The folder must ship in the package: 15.0.1 stops at rest/admin/2026-07 and 12.2.0 at rest/admin/2025-10. This is read from the packages, not from Shopify's page.",
+        "A UI extension's api_version in shopify.extension.toml moves with its @shopify/ui-extensions package: Shopify's upgrade guide changes both, api_version = \"2026-04\" with @shopify/ui-extensions 2026.4.x (https://shopify.dev/docs/api/checkout-ui-extensions/2026-10/upgrading-to-2026-10). Older Polaris extensions keep working, so don't bump an extension's api_version alone."
+      ]
+    },
+    {
+      "id": "SH-1.before-2025-04",
+      "provider": "shopify",
+      "what": "Every API version older than 2025-04. The page names 2024-10 as retired and its table starts at 2025-04, with no dates for older versions. The date here is the latest they can have gone, the day 2025-04 itself retired, not their real retirement dates. A request naming it does not fail outright. Shopify falls forward and answers at the oldest accessible stable version, 2026-01 today, and the X-Shopify-API-Version response header then differs from the version asked for. Webhook payloads fall forward the same way. So the break is silent: shapes change under the code, a GraphQL selection of something removed since its version returns an error, and REST fields go missing. Polaris UI extensions are different: the page says older versions keep working, without reference docs, and Shopify CLI refuses to deploy a version older than 12 months. A public app still using unsupported resources after the upgrade deadline is also delisted from the App Store.",
+      "diedOn": "2026-04-16",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning",
+        "checkedOn": "2026-11-05",
+        "quote": "a request targeting a retired 2024-10 is served by the oldest accessible stable version instead"
+      },
+      "lookFor": [
+        "A version from 2019-04 to 2025-01 in a REST or GraphQL path: /admin/api/<version>/..., /api/<version>/graphql.json, /customer/api/<version>/graphql",
+        "A version from 2019-04 to 2025-01 set as apiVersion, api_version, API_VERSION, SHOPIFY_API_VERSION or a Session argument, or named by the ApiVersion enum of @shopify/shopify-api. A bare version setting can belong to another vendor, so check it is Shopify. A date-versioned string with a day, such as 2024-10-21, is not this.",
+        "A version from 2019-04 to 2025-01 in a REST resources import, @shopify/shopify-api/rest/admin/<version>. Its classes send /admin/api/<version>/... whatever version the app config sets.",
+        "api_version in shopify.app.toml (webhooks fall forward). In shopify.extension.toml a UI extension's api_version isn't a break by itself: see what."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\badmin/api/(?:20(?:19|2[0-4])-(?:01|04|07|10)|2025-01)(?![-\\d])"
+        },
+        {
+          "kind": "regex",
+          "value": "/api/(?:20(?:19|2[0-4])-(?:01|04|07|10)|2025-01)/graphql\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bApiVersion\\.(?:(?:January|April|July|October)(?:19|2[0-4])|January25)\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"](?:20(?:19|2[0-4])-(?:01|04|07|10)|2025-01)['\\\"]"
+        },
+        {
+          "kind": "regex",
+          "value": "[aA][pP][iI][-_ ]?[vV][eE][rR][sS][iI][oO][nN]['\\\"`]?\\s*(?:=>|[:=,(])\\s*['\\\"`]?(?:20(?:19|2[0-4])-(?:01|04|07|10)|2025-01)(?![-\\d])",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "shopify-api/rest/admin/(?:20(?:19|2[0-4])-(?:01|04|07|10)|2025-01)(?![-\\d])"
+        }
+      ],
+      "replacement": "2026-10, the latest stable version the page lists. Accessible until October 16, 2027 15:00 UTC.",
+      "replacementIds": ["2026-10"],
+      "requires": [
+        "The app already runs at 2026-01 by falling forward, so these are the changes the move to 2026-10 adds. Read each version crossed: https://shopify.dev/changelog/release-notes/2026-04, https://shopify.dev/changelog/release-notes/2026-07, https://shopify.dev/changelog/release-notes/2026-10. A pin below 2026-01 also has code written for an older shape: https://shopify.dev/changelog/release-notes/2026-01 lists Shop.draftOrders removed, groupObjects dropped from bulkOperationRunMutation, and cartDiscountCodesUpdate now requiring discountCodes.",
+        "2026-04: inventorySetQuantities, inventoryAdjustQuantities, inventoryMoveQuantities, inventorySetOnHandQuantities and productVariantsBulkUpdate must send changeFromQuantity (the expected quantity, or null to opt out). Remove compareQuantity and ignoreCompareQuantity.",
+        "2026-04: the notes say idempotency is mandatory for specific mutations, naming inventory adjustments and refunds. inventoryAdjustQuantities takes its required key through the @idempotent directive; read each mutation reference for the others, since a missing key fails the call.",
+        "2026-04: FulfillmentService.permitsSkuSharing is gone, including from fulfillmentServiceCreate and fulfillmentServiceUpdate. inventoryActivate no longer defaults available or onHand to zero when they are omitted.",
+        "2026-04 webhooks: checkouts/create and checkouts/update lose id (use token), and orders/* topics lose checkout_id (use checkout_token).",
+        "2026-07: inventorySetScheduledChanges is removed with no replacement. Replace DraftOrderLineItem.grams with weight, which returns value and unit. visibleToStorefrontApi is removed from MetaobjectFieldDefinition and its create and update inputs. Collections move to Collection.sources from only Collection.ruleSet.",
+        "2026-10: changing the shipping address on an unfulfilled order with orderUpdate or the REST order update endpoint now recalculates taxes. Re-read taxLines, totalTaxSet and totals afterward and handle the balance difference.",
+        "2026-10: DraftOrderDiscountNotAppliedWarning.priceRule and the PriceRule object are removed from the GraphQL schema: select discountTitle and discountCode. Segment query functions use MATCHES and NOT MATCHES instead of = true and = false. A query filtering by a metafield that is not valid for filtering now returns an error. CustomerPhoneNumber.smsMarketingConsent replaces the flat SMS consent fields, and checkout and customer account UI extension metafield declarations need an owner_type. Carrier services no longer add rates to the General shipping profile by default.",
+        "Webhook payloads follow the subscription version, so change [webhooks] api_version in shopify.app.toml or the subscription too, and read handlers against the new shape. After the move, check the X-Shopify-API-Version response header equals the version asked for.",
+        "Code naming the version by the ApiVersion enum needs an @shopify package new enough to hold that value. This is a reading: the page does not say it.",
+        "The lighter path: passing the version as a plain string, apiVersion: \"2026-10\", needs no package upgrade. @shopify/shopify-api 11.0.0 and 12.2.0 hand the value through unchecked (lib/clients/admin/rest/client.ts in https://github.com/Shopify/shopify-app-js), and a test with a mocked fetch saw it reach /admin/api/2026-10/ for GraphQL and REST. That is SDK behaviour, not a Shopify promise: it shows what the SDK sends, not what Shopify answers, so check the X-Shopify-API-Version response header. TypeScript needs a cast, since the config's type is the ApiVersion enum.",
+        "A REST resources import, @shopify/shopify-api/rest/admin/<version>, pins its classes to that version whatever the app config sets, so it has to move too. The folder must ship in the package: 15.0.1 stops at rest/admin/2026-07 and 12.2.0 at rest/admin/2025-10. This is read from the packages, not from Shopify's page.",
+        "A UI extension's api_version in shopify.extension.toml moves with its @shopify/ui-extensions package: Shopify's upgrade guide changes both, api_version = \"2026-04\" with @shopify/ui-extensions 2026.4.x (https://shopify.dev/docs/api/checkout-ui-extensions/2026-10/upgrading-to-2026-10). Older Polaris extensions keep working, so don't bump an extension's api_version alone."
+      ]
+    },
+    {
+      "id": "SH-2.storefront-checkout",
+      "provider": "shopify",
+      "what": "The Storefront API Checkout mutations are shut off, so a checkout can't be created or completed through them. The migration guide names checkoutCreate, checkoutLineItemsReplace, checkoutCustomerAssociateV2, checkoutDiscountCodeApplyV2, checkoutShippingAddressUpdateV2 and checkoutUserErrors. The other names here come from the mutation files in Shopify's own js-buy-sdk at v2.22.0, not from the page. Their reference pages return 404 at 2026-01. The JS Buy SDK and Buy Button had a later grace period: see SH-3.",
+      "diedOn": "2025-04-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/checkout-apis-will-be-shut-down-april-1-2025",
+        "checkedOn": "2026-11-05",
+        "quote": "are deprecated and will be shut off on April 1, 2025"
+      },
+      "lookFor": [
+        "A GraphQL document or helper calling one of these checkout mutations, or reading checkoutUserErrors. checkoutCreate can also be an app function of its own name, so check it is a Storefront API call. cartCreate, cartLinesAdd and checkoutUrl are the replacement, not this."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "checkoutCreate",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "checkoutLineItemsAdd"
+        },
+        {
+          "kind": "string",
+          "value": "checkoutLineItemsUpdate"
+        },
+        {
+          "kind": "string",
+          "value": "checkoutLineItemsRemove"
+        },
+        {
+          "kind": "string",
+          "value": "checkoutLineItemsReplace"
+        },
+        {
+          "kind": "string",
+          "value": "checkoutCustomerAssociateV2"
+        },
+        {
+          "kind": "string",
+          "value": "checkoutDiscountCodeApplyV2"
+        },
+        {
+          "kind": "string",
+          "value": "checkoutDiscountCodeRemove"
+        },
+        {
+          "kind": "string",
+          "value": "checkoutShippingAddressUpdateV2"
+        },
+        {
+          "kind": "string",
+          "value": "checkoutEmailUpdateV2"
+        },
+        {
+          "kind": "string",
+          "value": "checkoutAttributesUpdateV2"
+        },
+        {
+          "kind": "string",
+          "value": "checkoutGiftCardsAppend"
+        },
+        {
+          "kind": "string",
+          "value": "checkoutGiftCardRemoveV2"
+        },
+        {
+          "kind": "string",
+          "value": "checkoutUserErrors"
+        }
+      ],
+      "replacement": "The Storefront Cart API. The page also offers Checkout Sheet Kit for mobile apps.",
+      "replacementIds": [
+        "cartCreate",
+        "cartLinesAdd",
+        "cartLinesUpdate",
+        "cartDiscountCodesUpdate"
+      ],
+      "requires": [
+        "Guide with before and after requests: https://shopify.dev/docs/storefronts/headless/building-with-the-storefront-api/cart/migrate-to-cart-api/migrate-your-app.",
+        "cartCreate replaces checkoutCreate, and input lines carry merchandiseId where line items carried variantId.",
+        "cartLinesUpdate behaves like checkoutLineItemsReplace, and cartLinesAdd adds to what is there. They take a cartId, so store that instead of the checkout id.",
+        "Send the buyer to cart.checkoutUrl: the cart does not complete a purchase itself.",
+        "Errors come back as userErrors, not checkoutUserErrors.",
+        "cartDiscountCodesUpdate takes stackable codes, unlike checkoutDiscountCodeApplyV2."
+      ]
+    },
+    {
+      "id": "SH-2.rest-checkouts",
+      "provider": "shopify",
+      "what": "The REST Admin API Checkout endpoints are shut off. The Abandoned checkouts resource (GET checkouts.json and checkouts/count.json) is excepted and still works.",
+      "diedOn": "2025-04-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/checkout-apis-will-be-shut-down-april-1-2025",
+        "checkedOn": "2026-11-05",
+        "quote": "are deprecated and will be shut off on April 1, 2025"
+      },
+      "lookFor": [
+        "A call under /admin/api/<version>/checkouts/<token>, or a POST or PUT to checkouts.json. A GET of checkouts.json or checkouts/count.json is Abandoned checkouts and is not a break."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\badmin/api/[^/\\s'\\\"`]+/checkouts/(?!count\\b)"
+        },
+        {
+          "kind": "regex",
+          "value": "\\badmin/api/[^/\\s'\\\"`]+/checkouts\\.json\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The Storefront Cart API. The page also offers Checkout Sheet Kit for mobile apps.",
+      "requires": [
+        "The Cart API is GraphQL only and client or server side, so a REST call becomes a Storefront API call with a Storefront token: https://shopify.dev/docs/storefronts/headless/building-with-the-storefront-api/cart/migrate-to-cart-api.",
+        "Send the buyer to cart.checkoutUrl: the cart does not complete a purchase itself."
+      ]
+    },
+    {
+      "id": "SH-3.js-buy-sdk",
+      "provider": "shopify",
+      "what": "JS Buy SDK before v3.0 can't complete purchases: its .checkout interface sat on the Checkout APIs. v3.0, the last version, keeps working on Cart API for most uses, with limits, and is deprecated.",
+      "diedOn": "2025-07-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/now-available-js-buy-sdk-v30",
+        "checkedOn": "2026-11-05",
+        "quote": "Critical Deadline: July 1, 2025 11:00 AM ET"
+      },
+      "lookFor": [
+        "shopify-buy below 3.0.0 in package.json, or the js-buy-sdk CDN script at a version other than v3. An import or ShopifyBuy.buildClient only counts once the installed version is below 3.0.0: read the lockfile."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "[\\\"']shopify-buy[\\\"']\\s*:\\s*[\\\"'][~^]?[0-2]\\."
+        },
+        {
+          "kind": "regex",
+          "value": "sdks\\.shopifycdn\\.com/js-buy-sdk/(?!v3/|3\\.)"
+        },
+        {
+          "kind": "regex",
+          "value": "from\\s+[\\\"']shopify-buy[\\\"']|require\\([\\\"']shopify-buy[\\\"']\\)",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\bShopifyBuy\\.buildClient\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "JS Buy SDK v3.0 or the Storefront API Client. The page offers both and says to choose what suits: upgrading to v3.0 extends the grace period, and the Storefront API Client is the other option.",
+      "requires": [
+        "The Storefront API Client is the @shopify/storefront-api-client package. It sends queries: there is no client.checkout interface, so calls become Cart API operations. The changelog post links the migration guide.",
+        "The v3.0 stopgap replaces .checkout with a Cart-based equivalent with limits inherent to the Cart API. Check the use case against its upgrade guide before relying on it."
+      ]
+    },
+    {
+      "id": "SH-3.buy-button-js",
+      "provider": "shopify",
+      "what": "Buy Button JS below v3.0 can't complete purchases: it sat on the Checkout APIs.",
+      "diedOn": "2025-08-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/buy-button-js-must-be-upgraded-to-the-latest-version",
+        "checkedOn": "2026-11-05",
+        "quote": "checkout functionality will stop working on older versions of Buy Button JS on August 1, 2025 11:00 AM ET"
+      },
+      "lookFor": [
+        "@shopify/buy-button-js below 3 in package.json, or a numbered path under sdks.shopifycdn.com/buy-button/. The latest path is fine."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "[\\\"']@shopify/buy-button-js[\\\"']\\s*:\\s*[\\\"'][~^]?[0-2]\\."
+        },
+        {
+          "kind": "regex",
+          "value": "sdks\\.shopifycdn\\.com/buy-button/(?!latest/|3\\.)"
+        }
+      ],
+      "replacement": "The latest major version of Buy Button JS (v3.0).",
+      "requires": [
+        "npm: set @shopify/buy-button-js to ^3.0.4. Script tag: replace the version in the sdks.shopifycdn.com/buy-button path with latest. Steps: https://shopify.dev/docs/storefronts/headless/additional-sdks/buy-button#using-the-latest-version."
+      ]
+    },
+    {
+      "id": "SH-4.checkout-liquid",
+      "provider": "shopify",
+      "what": "checkout.liquid and additional scripts are sunset for the Thank you and Order status pages. The page also calls checkout.liquid unsupported for the Information, Shipping and Payment steps, and gives no date for those. A committed layout normally renders all of them, so the date here is the only one the page gives.",
+      "diedOn": "2025-08-28",
+      "source": {
+        "url": "https://shopify.dev/docs/storefronts/themes/architecture/layouts/checkout-liquid",
+        "checkedOn": "2026-11-05",
+        "quote": "checkout.liquid and additional scripts were sunset for the Thank you and Order status pages on August 28, 2025"
+      },
+      "lookFor": [
+        "A file named checkout.liquid, usually layout/checkout.liquid, or a reference to one.",
+        "Liquid objects that only exist in that layout: checkout_scripts, checkout_stylesheets, content_for_order_summary, alternative_payment_methods.",
+        "Additional-scripts JavaScript reading Shopify.Checkout.step, Shopify.Checkout.page or Shopify.Checkout.OrderStatus."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "checkout.liquid"
+        },
+        {
+          "kind": "regex",
+          "value": "\\{\\{-?\\s*(?:checkout_scripts|checkout_stylesheets|content_for_order_summary|alternative_payment_methods)\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bShopify\\.Checkout\\.(?:OrderStatus|step|page)\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "Shopify Extensions in Checkout, as the page says.",
+      "requires": [
+        "This is a rebuild, not an edit: the Liquid layout has no in-place equivalent. Start from https://shopify.dev/docs/apps/build/checkout/technologies.",
+        "For the Thank you and Order status pages, UI goes to customer account UI extensions, which only work on upgraded stores, and tracking goes to web pixels, which work on any store but cannot render UI: https://shopify.dev/docs/apps/build/online-store/script-tag-deprecation/order-status."
+      ]
+    },
+    {
+      "id": "SH-5.shopify-scripts",
+      "provider": "shopify",
+      "what": "Shopify Scripts no longer run: Scripts still published on a store were deactivated. The repo's Ruby source then does nothing. Editing and publishing stopped on April 15, 2026, per https://shopify.dev/changelog/shopify-scripts-will-be-deprecated-on-june-30-2026.",
+      "diedOn": "2026-06-30",
+      "source": {
+        "url": "https://help.shopify.com/en/manual/checkout-settings/script-editor/transitioning-to-functions",
+        "checkedOn": "2026-11-05",
+        "quote": "As of June 30, 2026, Shopify Scripts has been deprecated."
+      },
+      "lookFor": [
+        "A Ruby file that reads Input.cart, Input.shipping_rates or Input.payment_gateways and assigns the matching Output. The same words elsewhere are not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bInput\\.(?:cart|shipping_rates|payment_gateways)\\b",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\bOutput\\.(?:cart|shipping_rates|payment_gateways)\\s*=(?!=)",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "Shopify Functions, through an installed app built on Functions or a custom build.",
+      "requires": [
+        "A Function is not the Ruby script moved over: it is a separate app extension built and deployed through an app, so the logic is rewritten rather than edited in place.",
+        "The Shopify Scripts customizations report in the admin lists which customizations can move to Functions or public apps.",
+        "Several product discounts on one cart line need DiscountAutomaticBasic.combinesWith set: https://shopify.dev/changelog/release-notes/2026-04.",
+        "Custom Functions-based apps must be created through the Dev Dashboard and then connected to the store: apps created in the Shopify admin lack the App Bridge support Functions-based apps need."
+      ]
+    },
+    {
+      "id": "SH-6.script-tag-writes",
+      "provider": "shopify",
+      "what": "scriptTagCreate and scriptTagUpdate return an error, and POST and PUT to the ScriptTag REST resource fail, on every API version. Pinning an older version doesn't defer it. Reads and deletes keep working, and existing script tags run until March 1, 2027: see the future entry SH-6.storefront-script-tags.",
+      "diedOn": "2026-10-01",
+      "source": {
+        "url": "https://shopify.dev/docs/apps/build/online-store/script-tag-deprecation/storefront",
+        "checkedOn": "2026-11-05",
+        "quote": "You can't create or update script tags."
+      },
+      "lookFor": [
+        "A call to scriptTagCreate or scriptTagUpdate.",
+        "A POST or PUT to /script_tags.json or /script_tags/<id>.json. A GET or DELETE on that path still works and is not a break."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "scriptTagCreate"
+        },
+        {
+          "kind": "string",
+          "value": "scriptTagUpdate"
+        },
+        {
+          "kind": "regex",
+          "value": "/script_tags\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "An app embed block, shipped in a theme app extension. For analytics or conversion data, the page says use a web pixel instead.",
+      "requires": [
+        "An app embed block is enabled per theme by the merchant in the theme editor, so an install no longer turns the script on by itself: https://shopify.dev/docs/apps/build/online-store/theme-app-extensions/migrate.",
+        "Delete script tags the app already made: scriptTagDelete keeps working."
+      ]
+    },
+    {
+      "id": "SH-6.order-status-script-tags",
+      "provider": "shopify",
+      "what": "Script tags with a display_scope of order_status or all no longer run on the Order status page: since August 28, 2025 for Plus stores and August 26, 2026 for all others. Apps have not been able to create them since February 1, 2025.",
+      "diedOn": "2026-08-26",
+      "source": {
+        "url": "https://shopify.dev/docs/apps/build/online-store/script-tag-deprecation/order-status",
+        "checkedOn": "2026-11-05",
+        "quote": "Script tags stop running on the Order status page for all other stores."
+      },
+      "lookFor": [
+        "A script tag created with display_scope order_status or all, or displayScope ORDER_STATUS or ALL. The value all can be some other setting, so check it is a script tag."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bdisplay_scope\\W{1,4}order_status\\b|\\bdisplayScope\\W{1,4}ORDER_STATUS\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bdisplay_?[sS]cope\\W{1,4}(?:all|ALL)\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "Customer account UI extensions to render content, and web pixels to track analytics, conversions or customer behavior.",
+      "requires": [
+        "Web pixels work on any store but cannot render UI. Customer account UI extensions can, but only on upgraded stores, so a visual customization has no replacement until the store upgrades."
+      ]
+    },
+    {
+      "id": "SH-7.global-catalog-rest",
+      "provider": "shopify",
+      "what": "The Global Catalog REST API (Catalog API) has stopped serving traffic.",
+      "diedOn": "2026-11-02",
+      "source": {
+        "url": "https://shopify.dev/changelog/global-catalog-rest-api-stops-serving-traffic-on-november-2-2026",
+        "checkedOn": "2026-11-05",
+        "quote": "stops serving traffic on November 2, 2026"
+      },
+      "lookFor": ["A call to discover.shopifyapps.com, such as /global/v2/search."],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "discover.shopifyapps.com*"
+        }
+      ],
+      "replacement": "Global Catalog MCP, which implements the Universal Commerce Protocol (UCP).",
+      "replacementIds": ["catalog.shopify.com/api/ucp/mcp"],
+      "requires": [
+        "The endpoint moves to https://catalog.shopify.com/api/ucp/mcp and speaks MCP, with tools search_catalog, lookup_catalog and get_product. Request and response shapes follow the UCP specification, so parsing changes too: https://shopify.dev/docs/agents/catalog/global-catalog.",
+        "Every request must include a meta.ucp-agent.profile URL pointing to an agent profile.",
+        "A saved catalog no longer has its own endpoint URL: pass its ID as catalog.catalog_id."
+      ]
+    },
+    {
+      "id": "SH-8.metafieldDelete",
+      "provider": "shopify",
+      "what": "The metafieldDelete mutation is gone from the GraphQL Admin API from 2025-01. No version gate: every request now runs at 2026-01 or later, because older pins fall forward, so this fails whatever the code pins. Its reference page returns 404 at 2026-01.",
+      "diedOn": "2025-01-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/remove-metafielddelete-in-favor-of-metafieldsdelete",
+        "checkedOn": "2026-11-05",
+        "quote": "As of 2025-01 the metafieldDelete Admin API method is being removed."
+      },
+      "lookFor": [
+        "A GraphQL document calling metafieldDelete. metafieldsDelete is the replacement and is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "metafieldDelete"
+        }
+      ],
+      "replacement": "metafieldsDelete, as the page lists it.",
+      "replacementIds": ["metafieldsDelete"],
+      "requires": [
+        "The input changes shape: metafieldsDelete takes an array of identifiers made of ownerId, namespace and key. The page says the Metafield GID is not an option, so code holding only the GID must first read or keep the owner, namespace and key.",
+        "The payload returns deletedMetafields, each with key, namespace and ownerId, so code reading the old payload changes too."
+      ]
+    },
+    {
+      "id": "SH-9.private-metafields",
+      "provider": "shopify",
+      "what": "PrivateMetafield is gone from the GraphQL Admin API from 2025-01. No version gate: every request now runs at 2026-01 or later, because older pins fall forward. The privateMetafieldUpsert and privateMetafieldDelete reference pages return 404 at 2026-01.",
+      "diedOn": "2025-01-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/privatemetafield-is-now-deprecated",
+        "checkedOn": "2026-11-05",
+        "quote": "Starting in API version 2025-01, PrivateMetafield will be removed from the GraphQL Admin API."
+      },
+      "lookFor": [
+        "privateMetafieldUpsert, privateMetafieldDelete, privateMetafield or privateMetafields in a GraphQL document, or the PrivateMetafield type."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "privateMetafieldUpsert"
+        },
+        {
+          "kind": "string",
+          "value": "privateMetafieldDelete"
+        },
+        {
+          "kind": "string",
+          "value": "privateMetafield"
+        },
+        {
+          "kind": "string",
+          "value": "privateMetafields"
+        },
+        {
+          "kind": "string",
+          "value": "PrivateMetafield"
+        }
+      ],
+      "replacement": "App-data metafields. Where the metafield is needed per resource, the page points to app-reserved namespaces.",
+      "requires": [
+        "Data already stored as private metafields has to be read out or rewritten in the new namespace. The page does not give a copy path, so check the migration guide it links."
+      ]
+    },
+    {
+      "id": "SH-10.shopify_y-shopify_s",
+      "provider": "shopify",
+      "what": "Shopify no longer sets the _shopify_y and _shopify_s cookies on merchant storefronts, so a read returns nothing. For Hydrogen the dev docs give April 30, 2026, spelled shopify_y and shopify_s, and say a storefront keeps working but visitor and session attribution stops being reliable. The date here is the earlier of the two.",
+      "diedOn": "2026-01-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/shopifyy-and-shopifys-cookies-will-no-longer-be-set",
+        "checkedOn": "2026-11-05",
+        "quote": "Starting on January 1st, 2026 Shopify will no longer set the following cookies on merchant storefronts"
+      },
+      "lookFor": [
+        "_shopify_y or _shopify_s read from document.cookie or a cookie library. shopify_y and shopify_s without the underscore are the Hydrogen spelling, and a project could use those names itself, so check."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "_shopify_y"
+        },
+        {
+          "kind": "string",
+          "value": "_shopify_s"
+        },
+        {
+          "kind": "string",
+          "value": "shopify_y",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "shopify_s",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\._shopify_[ys]\\b"
+        }
+      ],
+      "replacement": "For _shopify_y, the clientId property of a Standard or DOM event in Web Pixels. For _shopify_s the page says Shopify will not offer a replacement value, and a session-length cookie of your own is equivalent. On Hydrogen, uniqueToken replaces _y and visitToken replaces _s.",
+      "requires": [
+        "Cookie reads have no drop-in equivalent: the value moves to an API that may be asynchronous or only available in a pixel, so the code around the read changes too. This is a reading of the replacement pages.",
+        "event.clientId exists only inside a web pixel, so code outside a pixel has to move into one, and it needs customer consent.",
+        "Hydrogen on Oxygen: run the Hydrogen CLI upgrade command. Other hosts: https://shopify.dev/docs/storefronts/headless/hydrogen/migrate/cookies."
+      ]
+    },
+    {
+      "id": "SH-10.landing-referrer-cookies",
+      "provider": "shopify",
+      "what": "Shopify no longer sets the _landing_page and _orig_referrer cookies on merchant storefronts, so a read returns nothing.",
+      "diedOn": "2025-09-15",
+      "source": {
+        "url": "https://shopify.dev/changelog/trackingconsent-landingpage-origreferrer-cookies-will-no-longer-be-set",
+        "checkedOn": "2026-11-05",
+        "quote": "Starting on September 15th, 2025, Shopify will no longer set the following cookies on merchant storefronts"
+      },
+      "lookFor": [
+        "_landing_page or _orig_referrer read as a cookie on a Shopify storefront. An app can set its own cookie of the same name, so check it isn't that."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "_landing_page",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "_orig_referrer",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "window.location.href for the landing page and document.referrer for the referrer, kept through the session with the Web Pixels API. In the GraphQL Admin API, order customerJourneySummary lastVisit landingPage and referrerUrl.",
+      "requires": [
+        "Cookie reads have no drop-in equivalent: the value moves to an API that may be asynchronous or only available in a pixel, so the code around the read changes too. This is a reading of the replacement pages."
+      ]
+    },
+    {
+      "id": "SH-10.tracking-consent-cookie",
+      "provider": "shopify",
+      "what": "Shopify no longer sets the _tracking_consent cookie on merchant storefronts, so a read returns nothing. Consent logic built on it can read as no consent or as always consenting: check which.",
+      "diedOn": "2025-09-15",
+      "source": {
+        "url": "https://shopify.dev/changelog/trackingconsent-landingpage-origreferrer-cookies-will-no-longer-be-set",
+        "checkedOn": "2026-11-05",
+        "quote": "Starting on September 15th, 2025, Shopify will no longer set the following cookies on merchant storefronts"
+      },
+      "lookFor": ["_tracking_consent read from document.cookie or a cookie library."],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "_tracking_consent"
+        }
+      ],
+      "replacement": "The Customer Privacy API.",
+      "requires": [
+        "Cookie reads have no drop-in equivalent: the value moves to an API that may be asynchronous or only available in a pixel, so the code around the read changes too. This is a reading of the replacement pages."
+      ]
+    },
+    {
+      "id": "SH-10.shopify-country-cookie",
+      "provider": "shopify",
+      "what": "Shopify no longer sets the _shopify_country cookie on merchant storefronts or checkout, so a read returns nothing.",
+      "diedOn": "2025-08-15",
+      "source": {
+        "url": "https://shopify.dev/changelog/shopifycountry-cookie-no-longer-set",
+        "checkedOn": "2026-11-05",
+        "quote": "Starting on August 15th, 2025, Shopify will no longer set the _shopify_country cookie on merchant storefronts or checkout."
+      },
+      "lookFor": ["_shopify_country read from document.cookie or a cookie library."],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "_shopify_country"
+        }
+      ],
+      "replacement": "The Customer Privacy API's getRegion method.",
+      "requires": [
+        "Load it first with window.Shopify.loadFeatures and the consent-tracking-api feature, then call getRegion in the callback, so a synchronous cookie read becomes asynchronous."
+      ]
+    },
+    {
+      "id": "SH-11.compareQuantity",
+      "provider": "shopify",
+      "what": "compareQuantity and ignoreCompareQuantity are removed from inventorySetQuantities in 2026-04, and changeFromQuantity becomes mandatory at runtime though the schema does not mark it required.",
+      "diedOn": "2026-04-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/release-notes/2026-04",
+        "checkedOn": "2026-11-05",
+        "quote": "Remove compareQuantity and ignoreCompareQuantity from mutation inputs."
+      },
+      "lookFor": [
+        "compareQuantity or ignoreCompareQuantity in an inventorySetQuantities input. An app can have its own variable called compareQuantity, so check."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "compareQuantity",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "ignoreCompareQuantity"
+        }
+      ],
+      "versions": "A break only if the code runs at 2026-04 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2026-04, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2026-04. Do not upgrade to fix it; this is what an upgrade to 2026-04 has to carry.",
+      "appliesTo": {
+        "describe": "A break only if the code runs at 2026-04 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2026-04, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2026-04. Do not upgrade to fix it; this is what an upgrade to 2026-04 has to carry.",
+        "apiVersionSince": "2026-04"
+      },
+      "replacement": "changeFromQuantity, passing the expected current quantity, or null to opt out.",
+      "replacementIds": ["changeFromQuantity"],
+      "requires": [
+        "Calling without changeFromQuantity errors at runtime, so every call needs it, not only those that sent compareQuantity. Pass the expected quantity to keep the concurrency check, or an explicit null to skip it."
+      ]
+    },
+    {
+      "id": "SH-11.permitsSkuSharing",
+      "provider": "shopify",
+      "what": "permitsSkuSharing is removed from FulfillmentService, fulfillmentServiceCreate and fulfillmentServiceUpdate in 2026-04. SKU sharing is on for all fulfillment services.",
+      "diedOn": "2026-04-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/removing-permitsskusharing-field-from-fulfillment-service",
+        "checkedOn": "2026-11-05",
+        "quote": "we've removed the permitsSkuSharing field"
+      },
+      "lookFor": ["permitsSkuSharing read or sent."],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "permitsSkuSharing"
+        }
+      ],
+      "versions": "A break only if the code runs at 2026-04 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2026-04, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2026-04. Do not upgrade to fix it; this is what an upgrade to 2026-04 has to carry.",
+      "appliesTo": {
+        "describe": "A break only if the code runs at 2026-04 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2026-04, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2026-04. Do not upgrade to fix it; this is what an upgrade to 2026-04 has to carry.",
+        "apiVersionSince": "2026-04"
+      },
+      "replacement": "None listed on the provider page when this was added: the field is dropped, and SKU sharing is on for all fulfillment services.",
+      "requires": [
+        "Remove the reads and writes, then review logic that assumes an item is stocked at only one location."
+      ]
+    },
+    {
+      "id": "SH-11.webhook-checkout_id",
+      "provider": "shopify",
+      "what": "checkout_id is removed from orders/* webhook payloads in 2026-04: orders/cancelled, create, fulfilled, link_requested, paid, partially_fulfilled and updated. id is removed from checkouts/create and checkouts/update as well. That one is too common a name to match, so read those handlers by hand.",
+      "diedOn": "2026-04-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/removed-checkout-id-from-checkouts-and-orders-webhooks",
+        "checkedOn": "2026-11-05",
+        "quote": "The checkout_id field has been removed from the following webhook topics"
+      },
+      "lookFor": [
+        "checkout_id read from an order webhook payload. Not an app's own column of that name, not checkout_token, and not order.checkout_id from a REST order read, which the REST Order reference at latest still shows. Read the id in a checkouts/create or checkouts/update handler too."
+      ],
+      "matchers": [
+        {
+          "kind": "field",
+          "value": "checkout_id",
+          "on": ["order", "payload", "webhook", "body", "data", "params"],
+          "ambiguous": true
+        }
+      ],
+      "versions": "A break only if the code runs at 2026-04 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2026-04, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2026-04. Do not upgrade to fix it; this is what an upgrade to 2026-04 has to carry.",
+      "appliesTo": {
+        "describe": "A break only if the code runs at 2026-04 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2026-04, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2026-04. Do not upgrade to fix it; this is what an upgrade to 2026-04 has to carry.",
+        "apiVersionSince": "2026-04"
+      },
+      "replacement": "checkout_token on orders webhooks, and token on checkout webhooks.",
+      "replacementIds": ["checkout_token"],
+      "requires": [
+        "Anything stored or joined on the numeric checkout id needs its key moving to the token value, including rows already saved. (A reading: the page only says the field is removed.)"
+      ]
+    },
+    {
+      "id": "SH-11.checkout-accounts-webhook",
+      "provider": "shopify",
+      "what": "The checkout_and_accounts_configurations/update webhook topic is removed.",
+      "diedOn": "2026-01-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/release-notes/2026-01",
+        "checkedOn": "2026-11-05",
+        "quote": "The checkout_and_accounts_configurations/update webhook is removed on January 1, 2026."
+      },
+      "lookFor": [
+        "A subscription or handler for the checkout_and_accounts_configurations/update topic."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "checkout_and_accounts_configurations/update"
+        }
+      ],
+      "replacement": "The GraphQL Admin API checkoutProfiles query and its typOspPagesActive field.",
+      "replacementIds": ["checkoutProfiles"],
+      "requires": [
+        "This turns a pushed event into a query the app makes itself, so a handler becomes a poll or a read at the moment the value is needed."
+      ]
+    },
+    {
+      "id": "SH-11.marketCurrencySettingsUpdate",
+      "provider": "shopify",
+      "what": "marketCurrencySettingsUpdate does nothing on any version: the page says every call has returned the UNIFIED_MARKETS_ENABLED user error since 2025-04 became inaccessible, which the versioning page dates April 16, 2026. It comes back as a user error, so code that does not read userErrors thinks it worked. The mutation and its types then leave the schema in 2027-01, where the request is rejected at validation.",
+      "diedOn": "2026-04-16",
+      "source": {
+        "url": "https://shopify.dev/changelog/removing-marketcurrencysettingsupdate-mutation",
+        "checkedOn": "2026-11-05",
+        "quote": "The mutation already returns an error for every request"
+      },
+      "lookFor": ["A call to marketCurrencySettingsUpdate, or use of its payload and error types."],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "marketCurrencySettingsUpdate"
+        },
+        {
+          "kind": "string",
+          "value": "MarketCurrencySettingsUpdatePayload"
+        },
+        {
+          "kind": "string",
+          "value": "MarketCurrencySettingsUserError"
+        },
+        {
+          "kind": "string",
+          "value": "MarketCurrencySettingsUserErrorCode"
+        }
+      ],
+      "replacement": "marketCreate and marketUpdate, as the release notes list them.",
+      "replacementIds": ["marketCreate", "marketUpdate"],
+      "requires": [
+        "marketCreate and marketUpdate accept currency settings directly, so the call changes shape, not only its name: https://shopify.dev/changelog/removing-marketcurrencysettingsupdate-mutation."
+      ]
+    },
+    {
+      "id": "SH-11.inventorySetScheduledChanges",
+      "provider": "shopify",
+      "what": "The inventorySetScheduledChanges mutation is removed in 2026-07, with no replacement. Its reference page at 2026-10 says the type is not supported in this version.",
+      "diedOn": "2026-07-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/release-notes/2026-07",
+        "checkedOn": "2026-11-05",
+        "quote": "mutation is removed with no replacement"
+      },
+      "lookFor": ["A call to inventorySetScheduledChanges."],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "inventorySetScheduledChanges"
+        }
+      ],
+      "versions": "A break only if the code runs at 2026-07 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2026-07, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2026-07. Do not upgrade to fix it; this is what an upgrade to 2026-07 has to carry.",
+      "appliesTo": {
+        "describe": "A break only if the code runs at 2026-07 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2026-07, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2026-07. Do not upgrade to fix it; this is what an upgrade to 2026-07 has to carry.",
+        "apiVersionSince": "2026-07"
+      },
+      "replacement": "None listed on the provider page when this was added. It suggests inventoryAdjustQuantities for immediate adjustments, or other inventory tools.",
+      "requires": [
+        "inventoryAdjustQuantities is immediate, so a scheduled change now needs its own scheduling in the app, which is a behaviour decision. Say so in the PR.",
+        "inventoryAdjustQuantities itself needs changeFromQuantity (2026-04 notes) and, as of 2026-04, an idempotency key through the @idempotent directive (its reference), so a call copied from older code fails."
+      ]
+    },
+    {
+      "id": "SH-11.lastIncompleteCheckout",
+      "provider": "shopify",
+      "what": "Customer.lastIncompleteCheckout and the Customer Account API Checkout type subtree are removed in 2026-10. The field already returned null.",
+      "diedOn": "2026-10-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/customer-account-api-last-incomplete-checkout-and-checkout-types-removed",
+        "checkedOn": "2026-11-05",
+        "quote": "the deprecated Customer.lastIncompleteCheckout field is removed"
+      },
+      "lookFor": ["lastIncompleteCheckout selected in a Customer Account API query."],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "lastIncompleteCheckout"
+        }
+      ],
+      "versions": "A break only if the code runs at 2026-10 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2026-10, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2026-10. Do not upgrade to fix it; this is what an upgrade to 2026-10 has to carry.",
+      "appliesTo": {
+        "describe": "A break only if the code runs at 2026-10 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2026-10, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2026-10. Do not upgrade to fix it; this is what an upgrade to 2026-10 has to carry.",
+        "apiVersionSince": "2026-10"
+      },
+      "replacement": "None in the Customer Account API, the page says. It points to Storefront API cart flows for active cart state, and Customer.orders for completed purchases.",
+      "requires": [
+        "The field already returned null, so code that branched on it was already taking the empty path. Removing the selection changes nothing a buyer sees, unless a cart flow is added."
+      ]
+    },
+    {
+      "id": "SH-11.ITEM_NOT_STOCKED_AT_LOCATION",
+      "provider": "shopify",
+      "what": "The ITEM_NOT_STOCKED_AT_LOCATION error code is removed from the inventory mutations and InventorySetQuantitiesUserErrorCode in 2026-10. It was no longer being emitted.",
+      "diedOn": "2026-10-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/removal-of-itemnotstockedatlocation-error",
+        "checkedOn": "2026-11-05",
+        "quote": "can no longer occur, and this error is no longer emitted"
+      },
+      "lookFor": [
+        "ITEM_NOT_STOCKED_AT_LOCATION compared against an error code, or in generated types."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "ITEM_NOT_STOCKED_AT_LOCATION"
+        }
+      ],
+      "versions": "A break only if the code runs at 2026-10 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2026-10, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2026-10. Do not upgrade to fix it; this is what an upgrade to 2026-10 has to carry.",
+      "appliesTo": {
+        "describe": "A break only if the code runs at 2026-10 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2026-10, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2026-10. Do not upgrade to fix it; this is what an upgrade to 2026-10 has to carry.",
+        "apiVersionSince": "2026-10"
+      },
+      "replacement": "None listed on the provider page when this was added: inventory quantities can now be adjusted at any location, so the page says the logic can go.",
+      "requires": [
+        "Generated types that name the value stop compiling after a schema refresh. An item can now be adjusted at a location it was not stocked at, so review code that relied on this error as a guard."
+      ]
+    },
+    {
+      "id": "SH-12.pre_tax_price",
+      "provider": "shopify",
+      "what": "pre_tax_price and pre_tax_price_set on order line items are removed from the REST Admin API. They only existed on stores with the Avalara AvaTax 1.0 integration. The post says 'are being removed' with no separate effective date, so the date is the post's. The 2026-01 and 2026-10 REST Order references no longer list them.",
+      "diedOn": "2026-03-23",
+      "source": {
+        "url": "https://shopify.dev/changelog/removal-of-pretaxprice-from-the-order-rest-admin-api",
+        "checkedOn": "2026-11-05",
+        "quote": "are being removed"
+      },
+      "lookFor": [
+        "pre_tax_price or pre_tax_price_set read from a Shopify REST order line item. Other commerce code uses this name for its own value, so check."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "pre_tax_price",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "pre_tax_price_set",
+          "ambiguous": true
+        },
+        {
+          "kind": "field",
+          "value": "pre_tax_price",
+          "ambiguous": true
+        },
+        {
+          "kind": "field",
+          "value": "pre_tax_price_set",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The GraphQL Admin API, for order line item pricing data. The post names no specific field.",
+      "requires": [
+        "This is a move from REST to GraphQL for that data, not a field rename. The post names no field. The 2026-07 notes define LineItem.priceAfterAllDiscountsBeforeTaxesSet as equivalent to REST current_subtotal_price_set: totals after discounts, excluding taxes, refunded quantities and removed quantities. Whether that equals pre_tax_price is a reading, so say so in the PR."
+      ]
+    }
+  ],
+  "future": [
+    {
+      "id": "SH-1.2026-01",
+      "provider": "shopify",
+      "what": "API version 2026-01 stops being accessible at 15:00 UTC on January 16, 2027. Requests then fall forward to the oldest accessible stable version and do not fail outright. So the break will be silent.",
+      "diesOn": "2027-01-16",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning",
+        "checkedOn": "2026-11-05"
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\badmin/api/2026-01(?![-\\d])"
+        },
+        {
+          "kind": "regex",
+          "value": "/api/2026-01/graphql\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bApiVersion\\.January26\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"]2026-01['\\\"]"
+        },
+        {
+          "kind": "regex",
+          "value": "[aA][pP][iI][-_ ]?[vV][eE][rR][sS][iI][oO][nN]['\\\"`]?\\s*(?:=>|[:=,(])\\s*['\\\"`]?2026-01(?![-\\d])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The latest stable version the page lists on that date. Today that is 2026-10. 2027-01 is a release candidate and not recommended for production.",
+      "requires": [
+        "Read the release notes for every version crossed: https://shopify.dev/changelog/release-notes."
+      ]
+    },
+    {
+      "id": "SH-1.2026-04",
+      "provider": "shopify",
+      "what": "API version 2026-04 stops being accessible at 15:00 UTC on April 16, 2027. Requests then fall forward to the oldest accessible stable version and do not fail outright. So the break will be silent.",
+      "diesOn": "2027-04-16",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning",
+        "checkedOn": "2026-11-05"
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\badmin/api/2026-04(?![-\\d])"
+        },
+        {
+          "kind": "regex",
+          "value": "/api/2026-04/graphql\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bApiVersion\\.April26\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"]2026-04['\\\"]"
+        },
+        {
+          "kind": "regex",
+          "value": "[aA][pP][iI][-_ ]?[vV][eE][rR][sS][iI][oO][nN]['\\\"`]?\\s*(?:=>|[:=,(])\\s*['\\\"`]?2026-04(?![-\\d])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The latest stable version the page lists on that date. Today that is 2026-10. 2027-01 is a release candidate and not recommended for production.",
+      "requires": [
+        "Read the release notes for every version crossed: https://shopify.dev/changelog/release-notes."
+      ]
+    },
+    {
+      "id": "SH-1.2026-07",
+      "provider": "shopify",
+      "what": "API version 2026-07 stops being accessible at 15:00 UTC on July 16, 2027. Requests then fall forward to the oldest accessible stable version and do not fail outright. So the break will be silent.",
+      "diesOn": "2027-07-16",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning",
+        "checkedOn": "2026-11-05"
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\badmin/api/2026-07(?![-\\d])"
+        },
+        {
+          "kind": "regex",
+          "value": "/api/2026-07/graphql\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bApiVersion\\.July26\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"]2026-07['\\\"]"
+        },
+        {
+          "kind": "regex",
+          "value": "[aA][pP][iI][-_ ]?[vV][eE][rR][sS][iI][oO][nN]['\\\"`]?\\s*(?:=>|[:=,(])\\s*['\\\"`]?2026-07(?![-\\d])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The latest stable version the page lists on that date. Today that is 2026-10. 2027-01 is a release candidate and not recommended for production.",
+      "requires": [
+        "Read the release notes for every version crossed: https://shopify.dev/changelog/release-notes."
+      ]
+    },
+    {
+      "id": "SH-1.2026-10",
+      "provider": "shopify",
+      "what": "API version 2026-10 stops being accessible at 15:00 UTC on October 16, 2027. Requests then fall forward to the oldest accessible stable version and do not fail outright. So the break will be silent.",
+      "diesOn": "2027-10-16",
+      "source": {
+        "url": "https://shopify.dev/docs/api/usage/versioning",
+        "checkedOn": "2026-11-05"
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\badmin/api/2026-10(?![-\\d])"
+        },
+        {
+          "kind": "regex",
+          "value": "/api/2026-10/graphql\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bApiVersion\\.October26\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"]2026-10['\\\"]"
+        },
+        {
+          "kind": "regex",
+          "value": "[aA][pP][iI][-_ ]?[vV][eE][rR][sS][iI][oO][nN]['\\\"`]?\\s*(?:=>|[:=,(])\\s*['\\\"`]?2026-10(?![-\\d])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The latest stable version the page lists on that date. Today that is 2026-10. 2027-01 is a release candidate and not recommended for production.",
+      "requires": [
+        "Read the release notes for every version crossed: https://shopify.dev/changelog/release-notes."
+      ]
+    },
+    {
+      "id": "SH-6.storefront-script-tags",
+      "provider": "shopify",
+      "what": "Shopify stops injecting script tags into storefronts, so a script tag's JavaScript stops loading. Creating and updating them is already dead: see SH-6.script-tag-writes.",
+      "diesOn": "2027-03-01",
+      "source": {
+        "url": "https://shopify.dev/docs/apps/build/online-store/script-tag-deprecation/storefront",
+        "checkedOn": "2026-11-05"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "scriptTags",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "write_script_tags"
+        },
+        {
+          "kind": "string",
+          "value": "read_script_tags"
+        },
+        {
+          "kind": "regex",
+          "value": "\\b(?:ShopifyAPI::|shopify\\.)ScriptTag\\b"
+        }
+      ],
+      "replacement": "An app embed block, shipped in a theme app extension. For analytics or conversion data, a web pixel.",
+      "requires": [
+        "An app embed block is enabled per theme by the merchant in the theme editor, so an install no longer turns the script on by itself."
+      ]
+    },
+    {
+      "id": "SH-12.non-expiring-offline-tokens",
+      "provider": "shopify",
+      "what": "Public apps on non-expiring offline access tokens: delisted and blocked from new installs on January 1, 2027, merchants warned from January 15, and Admin API requests return HTTP 403 from April 1, 2027. The date is the 403. An earlier May 2026 post said authentication errors from January 1. The October 2026 post replaces that. Custom apps and apps created by merchants are excluded.",
+      "diesOn": "2027-04-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/migrate-to-expiring-offline-access-tokens-before-january-2027",
+        "checkedOn": "2026-11-05"
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\badmin/oauth/access_token\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "Expiring offline access tokens. Set expiring to 1 on the token exchange or authorization code grant.",
+      "requires": [
+        "A public app sending expiring=1 is fine, and a custom app is excluded, so read the grant call and the app type.",
+        "The token now expires in 60 minutes, and it comes with a refresh_token that lasts 90 days when issued. So token storage needs the new fields, and background jobs and webhooks need a server-side refresh before each use: https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens.",
+        "Existing installs migrate in code, with no merchant reinstall. Shopify's app templates and official API libraries already handle refresh."
+      ]
+    },
+    {
+      "id": "SH-13.automaticDiscounts",
+      "provider": "shopify",
+      "what": "The automaticDiscounts query and the DiscountAutomaticConnection and DiscountAutomaticEdge types are removed in 2027-01. A request including it on 2027-01 returns a validation error. Apps on 2026-10 and earlier keep working while those versions are supported.",
+      "diesOn": "2027-01-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/automaticdiscounts-query-is-removed-in-api-version-2027-01",
+        "checkedOn": "2026-11-05"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "automaticDiscounts",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "DiscountAutomaticConnection"
+        },
+        {
+          "kind": "string",
+          "value": "DiscountAutomaticEdge"
+        }
+      ],
+      "versions": "A break only if the code runs at 2027-01 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2027-01, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2027-01. Do not upgrade to fix it; this is what an upgrade to 2027-01 has to carry.",
+      "appliesTo": {
+        "describe": "A break only if the code runs at 2027-01 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2027-01, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2027-01. Do not upgrade to fix it; this is what an upgrade to 2027-01 has to carry.",
+        "apiVersionSince": "2027-01"
+      },
+      "replacement": "discountNodes with a method:automatic filter. The release notes warn off automaticDiscountNodes, also deprecated.",
+      "replacementIds": ["discountNodes"],
+      "requires": [
+        "The results come back as discount nodes, so the selection under the query changes too."
+      ]
+    },
+    {
+      "id": "SH-13.metafieldInteger",
+      "provider": "shopify",
+      "what": "The metafieldInteger collection source condition inputs and CollectionSourceInclusionConditionMetafieldInteger types are removed in 2027-01.",
+      "diesOn": "2027-01-01",
+      "source": {
+        "url": "https://shopify.dev/changelog/metafieldinteger-collection-condition-removed-in-api-version-2027-01",
+        "checkedOn": "2026-11-05"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "metafieldInteger"
+        },
+        {
+          "kind": "string",
+          "value": "CollectionSourceInclusionConditionMetafieldInteger"
+        }
+      ],
+      "versions": "A break only if the code runs at 2027-01 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2027-01, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2027-01. Do not upgrade to fix it; this is what an upgrade to 2027-01 has to carry.",
+      "appliesTo": {
+        "describe": "A break only if the code runs at 2027-01 or later, set in the request path, apiVersion, api_version or the webhook subscription version. A request naming a retired version runs at the oldest accessible stable version, 2026-01 today, which is before 2027-01, so a retired pin does not hit this yet. That changes when the oldest accessible version moves: 2026-01 goes on January 16, 2027. Not a break: the code runs below 2027-01. Do not upgrade to fix it; this is what an upgrade to 2027-01 has to carry.",
+        "apiVersionSince": "2027-01"
+      },
+      "replacement": "metafieldInt and CollectionSourceInclusionConditionMetafieldInt.",
+      "replacementIds": ["metafieldInt"],
+      "requires": [
+        "The value field changes type from Int to String, so send integer metafield condition values as strings."
+      ]
+    }
+  ]
+}

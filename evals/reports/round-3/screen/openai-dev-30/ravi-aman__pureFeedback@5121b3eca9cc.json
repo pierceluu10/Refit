@@ -1,0 +1,46 @@
+{
+  "set": "openai-dev-30",
+  "repo": "ravi-aman/pureFeedback",
+  "commit": "5121b3eca9cc48cbcbed94e52130e08e8a62d22c",
+  "provider": "openai",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export MONGODB_URI='mongodb://localhost:27017/placeholder' NEXTAUTH_SECRET='placeholder' NEXTAUTH_URL='http://localhost:3000' RESEND_API_KEY='placeholder' OPENAI_API_KEY='placeholder'; npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "src/app/(app)/dashboard/page.tsx: error TS2322: Type 'unknown' is not assignable to type 'Key | null | undefined'.",
+        "src/app/(app)/layout.tsx: error TS1261: Already included file name '/work/src/components/NavBar.tsx' differs from file name '/work/src/components/Navbar.tsx' only in casing.",
+        "src/app/(auth)/verify/[username]/page.tsx: error TS1149: File name '/work/src/schemas/verifySchema.ts' differs from already included file name '/work/src/schemas/verifyschema.ts' only in casing.",
+        "src/app/api/checkUniqueUser/route.ts: error TS1261: Already included file name '/work/src/schemas/signUpSchema.ts' differs from file name '/work/src/schemas/signupSchema.ts' only in casing.",
+        "src/components/MessageCard.tsx: error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.",
+        "src/helpers/sendVerificationEmail.ts: error TS1261: Already included file name '/work/emails/VerificationEmail.tsx' differs from file name '/work/emails/verificationEmail.tsx' only in casing."
+      ],
+      "tail": "'\n    Matched by include pattern '**/*.tsx' in '/work/tsconfig.json'\nsrc/app/(auth)/verify/[username]/page.tsx(4,33): error TS1149: File name '/work/src/schemas/verifySchema.ts' differs from already included file name '/work/src/schemas/verifyschema.ts' only in casing.\n  The file is in the program because:\n    Matched by include pattern '**/*.ts' in '/work/tsconfig.json'\n    Imported via '@/schemas/verifySchema' from file '/work/src/app/(auth)/verify/[username]/page.tsx'\nsrc/app/api/checkUniqueUser/route.ts(4,29): error TS1261: Already included file name '/work/src/schemas/signUpSchema.ts' differs from file name '/work/src/schemas/signupSchema.ts' only in casing.\n  The file is in the program because:\n    Imported via \"@/schemas/signUpSchema\" from file '/work/src/app/api/checkUniqueUser/route.ts'\n    Imported via \"@/schemas/signUpSchema\" from file '/work/src/app/(auth)/signUp/page.tsx'\n    Matched by include pattern '**/*.ts' in '/work/tsconfig.json'\nsrc/components/MessageCard.tsx(40,21): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.\nsrc/helpers/sendVerificationEmail.ts(2,31): error TS1261: Already included file name '/work/emails/VerificationEmail.tsx' differs from file name '/work/emails/verificationEmail.tsx' only in casing.\n  The file is in the program because:\n    Imported via \"../../emails/VerificationEmail\" from file '/work/src/helpers/sendVerificationEmail.ts'\n    Matched by include pattern '**/*.tsx' in '/work/tsconfig.json'"
+    },
+    {
+      "name": "build",
+      "command": "export MONGODB_URI='mongodb://localhost:27017/placeholder' NEXTAUTH_SECRET='placeholder' NEXTAUTH_URL='http://localhost:3000' RESEND_API_KEY='placeholder' OPENAI_API_KEY='placeholder'; npm run build",
+      "ok": false,
+      "failures": ["exit-nonzero: 189 | />"],
+      "tail": "> next-auth@0.1.0 build\n> next build\n\n⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache\nAttention: Next.js now collects completely anonymous telemetry regarding usage.\nThis information is used to shape Next.js' roadmap and prioritize features.\nYou can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:\nhttps://nextjs.org/telemetry\n\n  ▲ Next.js 14.2.4\n\n   Creating an optimized production build ...\n ✓ Compiled successfully\n   Linting and checking validity of types ...\n\nBrowserslist: caniuse-lite is outdated. Please run:\n  npx update-browserslist-db@latest\n  Why you should do it regularly: https://github.com/browserslist/update-db#readme\nFailed to compile.\n\n./src/app/(app)/dashboard/page.tsx:186:17\nType error: Type 'unknown' is not assignable to type 'Key | null | undefined'.\n\n\u001b[0m \u001b[90m 184 |\u001b[39m             messages\u001b[33m.\u001b[39mmap((message\u001b[33m,\u001b[39m index) \u001b[33m=>\u001b[39m (\u001b[0m\n\u001b[0m \u001b[90m 185 |\u001b[39m               \u001b[33m<\u001b[39m\u001b[33mMessageCard\u001b[39m\u001b[0m\n\u001b[0m\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 186 |\u001b[39m                 key\u001b[33m=\u001b[39m{message\u001b[33m.\u001b[39m_id}\u001b[0m\n\u001b[0m \u001b[90m     |\u001b[39m                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 187 |\u001b[39m                 message\u001b[33m=\u001b[39m{message}\u001b[0m\n\u001b[0m \u001b[90m 188 |\u001b[39m                 onMessageDelete\u001b[33m=\u001b[39m{handleDeleteMessage}\u001b[0m\n\u001b[0m \u001b[90m 189 |\u001b[39m               \u001b[33m/\u001b[39m\u001b[33m>\u001b[39m\u001b[0m"
+    }
+  ],
+  "costUsd": 0.043345999999999885,
+  "durationMs": 158309,
+  "install": {
+    "code": 0,
+    "tail": "added 780 packages in 1m\n\nnpm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated npmlog@5.0.1: This package is no longer supported.\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated gauge@3.0.2: This package is no longer supported.\nnpm warn deprecated are-we-there-yet@2.0.0: This package is no longer supported.\nnpm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead\nnpm warn deprecated @humanwhocodes/config-array@0.11.14: Use @eslint/config-array instead\nnpm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported\nnpm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported"
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["MONGODB_URI", "NEXTAUTH_SECRET", "NEXTAUTH_URL", "RESEND_API_KEY", "OPENAI_API_KEY"]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "typecheck and next build fail on the repo's own code: TS2322/TS2345 'unknown' type errors in dashboard/page.tsx and MessageCard.tsx, plus filename casing conflicts (NavBar/Navbar, verifySchema/verifyschema), none needing external services."
+  }
+}
