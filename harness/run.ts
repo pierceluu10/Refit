@@ -22,6 +22,7 @@ import {
   leftOf,
   providersOf,
   requiredRemovals,
+  unneededMajors,
   type RepoTask,
   type ScanResult,
 } from './findings.ts';
@@ -413,6 +414,7 @@ export async function runTask(
     let previousNewFailures = Infinity;
     let silentErrors = 0;
     let rescanRetries = 0;
+    let majorsTold = false;
     if (provenDone) {
       report = {
         verdict: 'migrated',
@@ -485,11 +487,15 @@ export async function runTask(
       });
       iterations.push({ model, stopReason: result.stopReason, steps, comparisons });
       const retryRescan = left.length > 0 && rescanRetries < MAX_RESCAN_RETRIES;
-      if (newFailures === 0 && report && !retryRescan) break;
+      // One chance to undo a major upgrade nobody asked for. One it keeps gets Needs a look.
+      const majors: string[] =
+        isRepoTask(task) && !majorsTold ? unneededMajors(await sandbox.diff(), task.entries) : [];
+      const retryFix = retryRescan || majors.length > 0;
+      if (newFailures === 0 && report && !retryFix) break;
       const finished = report as FinishReport | undefined;
       // Plain code feeds a failure back at least once: a session rarely runs the checks itself.
       const toldOnce = iteration > 0 || newFailures === 0;
-      if (toldOnce && !retryRescan && finishedThisIteration && finished?.unproven.length) break;
+      if (toldOnce && !retryFix && finishedThisIteration && finished?.unproven.length) break;
       // Loop-safety net: a model call that keeps erroring without spending anything is down, not stuck.
       silentErrors =
         result.stopReason === 'error' && ledger.spentUsd === spentBefore ? silentErrors + 1 : 0;
@@ -504,10 +510,9 @@ export async function runTask(
       const escalated = stuck && model !== ESCALATION_MODEL;
       if (escalated) model = model === MODEL ? ESCALATION_MODEL : MODEL;
       previousNewFailures = newFailures;
-      if (retryRescan) {
-        rescanRetries += 1;
-        report = undefined;
-      }
+      if (retryRescan) rescanRetries += 1;
+      if (retryFix) report = undefined;
+      majorsTold ||= majors.length > 0;
       prompt = buildRetryMessage({
         comparisons,
         after,
@@ -516,6 +521,7 @@ export async function runTask(
         left: retryRescan
           ? left.map(({ entryId, file, line }) => `${entryId} at ${file}:${line}`)
           : [],
+        majors,
       });
     }
 
@@ -541,6 +547,7 @@ export async function runTask(
             rework: isRework(diff, task.findings),
             codeRan: await checksRunCode(sandbox.dir, after, agentChecks, changedFiles),
             stillSet: requiredRemovals(task.entries, diff),
+            majors: unneededMajors(diff, task.entries),
           })
         : undefined;
     const smoke =
