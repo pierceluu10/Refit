@@ -6,6 +6,8 @@ import { createMatchAgent } from './match.ts';
 // Illustrative fixtures for the made-up repo example/shop, not real customer data.
 import changesJson from './fixtures/changes.json';
 import usagesJson from './fixtures/usages.json';
+// Real recorded changes with usage maps rebuilt from the 2026-11-03 benchmark; see its note.
+import round3 from './fixtures/round-3.json';
 
 const changes = changesJson as ProviderChange[];
 const usages = usagesJson as ApiUsage[];
@@ -128,6 +130,31 @@ describe('createMatchAgent', () => {
     await expect(match({ repo, changes, usages })).rejects.toThrow(/max_tokens/);
   });
 
+  it('judges each half of a batch whose answer was cut off, rather than none of it', async () => {
+    const create = vi.fn(async (params: Anthropic.MessageCreateParamsNonStreaming) => {
+      const prompt = params.messages[0].content as string;
+      const ids = changes.map((c) => c.id).filter((id) => prompt.includes(`"id": "${id}"`));
+      const output = {
+        tasks: [],
+        notAffected: ids.map((changeId) => ({ changeId, reasoning: '-' })),
+      };
+      return {
+        stop_reason: ids.length === changes.length ? 'max_tokens' : 'end_turn',
+        content: [{ type: 'text', text: JSON.stringify(output) }],
+        usage,
+      };
+    });
+    const client = { messages: { create } } as unknown as Pick<Anthropic, 'messages'>;
+    const budget = createBudget(2);
+    const result = await createMatchAgent({ client, budget })({ repo, changes, usages });
+
+    expect(create).toHaveBeenCalledTimes(3);
+    expect(result.notAffected.map((n) => n.changeId)).toEqual(changes.map((c) => c.id));
+    // The cut-off call was billed too.
+    expect(result.costUsd).toBeCloseTo(0.24, 10);
+    expect(budget.spentUsd()).toBeCloseTo(0.24, 10);
+  });
+
   it('sends every change with hints and does not filter on overlap', async () => {
     const { client, create } = fakeClient(agentOutput);
     await createMatchAgent({ client, budget: createBudget(2) })({ repo, changes, usages });
@@ -141,5 +168,90 @@ describe('createMatchAgent', () => {
     // The Shopify change has no string overlap with the repo's REST call, yet it still reaches the model.
     expect(prompt).toContain('shopify-rest-products-deprecated: usage 2 (same provider)');
     for (const change of changes) expect(prompt).toContain(`"id": "${change.id}"`);
+  });
+
+  describe('one task per upgrade', () => {
+    const jiro = round3.repos[0];
+    const stripe = round3.changes.stripe as ProviderChange[];
+    const upgrade = 'stripe:node-v23-0-0';
+    const bundled = [
+      'stripe:2026-09-30-endive-api-version',
+      'stripe:2026-09-30-endive-checkout-remove-payment-method-types',
+      'stripe:node-v23-drop-node18',
+    ];
+    const answer = (extraTasks: object[] = []) => ({
+      tasks: [
+        {
+          changeId: upgrade,
+          alsoResolves: bundled.map((changeId) => ({
+            changeId,
+            why: `the v23 bump forces ${changeId}`,
+          })),
+          usageIndexes: [0],
+          callSites: [
+            { file: 'src/trpc/controller/index.ts', line: 102, why: 'payment_method_types' },
+          ],
+          reasoning: 'Upgrade stripe-node 14 to 23, which pins Endive.',
+          urgency: 'medium',
+          deadline: '',
+        },
+        ...extraTasks,
+      ],
+      notAffected: stripe
+        .filter((c) => c.id !== upgrade && !bundled.includes(c.id))
+        .map((c) => ({ changeId: c.id, reasoning: 'not used' })),
+    });
+    const run = (output: unknown) =>
+      createMatchAgent({ ask: async () => ({ output, costUsd: 0 }), budget: createBudget(2) })({
+        repo: jiro.repo,
+        changes: stripe,
+        usages: jiro.usages as ApiUsage[],
+      });
+
+    it('makes one task that carries every change the upgrade resolves', async () => {
+      const result = await run(answer());
+      expect(result.tasks).toHaveLength(1);
+      const [task] = result.tasks;
+      expect(task.change.id).toBe(upgrade);
+      expect(task.alsoResolves?.map((b) => b.change.id)).toEqual(bundled);
+      expect(task.deadline).toBe('2026-09-30');
+      // The harness reads the bundled changes, with their sources, in the task's notes.
+      for (const id of bundled) {
+        const change = stripe.find((c) => c.id === id)!;
+        expect(task.notes).toContain(id);
+        expect(task.notes).toContain(change.source.url);
+      }
+      // Each bundled change keeps a verdict that names the task resolving it, so the loop makes no
+      // second task for it.
+      for (const id of bundled) {
+        expect(result.notAffected.find((n) => n.changeId === id)?.reasoning).toMatch(
+          `resolved inside ${task.id}`,
+        );
+      }
+      expect(result.tasks.length + result.notAffected.length).toBe(stripe.length);
+    });
+
+    it('keeps a change its own task when the model also bundled it', async () => {
+      const own = {
+        changeId: bundled[0],
+        alsoResolves: [],
+        usageIndexes: [0],
+        callSites: [],
+        reasoning: 'Needs its own edit.',
+        urgency: 'low',
+        deadline: '',
+      };
+      const result = await run(answer([own]));
+      expect(result.tasks.map((t) => t.change.id)).toEqual([upgrade, bundled[0]]);
+      expect(result.tasks[0].alsoResolves?.map((b) => b.change.id)).toEqual(bundled.slice(1));
+    });
+
+    it('tells the model to make one task per upgrade and keep independent changes apart', async () => {
+      const { client, create } = fakeClient(answer());
+      await createMatchAgent({ client, budget: createBudget(2) })({ repo, changes, usages });
+      const params = create.mock.calls[0][0];
+      expect(params.system).toContain('One task per upgrade');
+      expect(params.system).toContain('Twelve retired models the repo names are twelve tasks.');
+    });
   });
 });

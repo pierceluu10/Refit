@@ -36,8 +36,10 @@ export type MemoryRecipe = Recipe & {
   updatedAt: string;
   embedding?: { model: string; vector: number[] };
   skill?: Skill;
-  // Runs that were shown this recipe and whose PR a human closed. Retrieval shows the count.
+  // Runs that were shown this recipe and failed (see failedWith). Retrieval shows the count.
   failedRunIds?: string[];
+  // The provider changes its runs migrated, so the next repo with the same change finds it first.
+  changeIds?: string[];
 };
 
 export type SelfEvalReport = {

@@ -114,9 +114,43 @@ describe('createRetriever', () => {
     });
 
     expect((await retrieve(makeTask())).map((recipe) => recipe.id)).toEqual([struggling.id]);
-    expect(requests[0].prompt).toContain(
-      'verified on 1 repos; 2 later PRs that used it closed by a human without merging',
+    expect(requests[0].prompt).toContain('verified on 1 repos; 2 later runs that used it failed');
+  });
+
+  it('puts a recipe from the same change first and one that keeps failing last, and tells the judge', async () => {
+    const similar = makeRecipe({ id: 'recipe-similar' });
+    const same = makeRecipe({
+      id: 'recipe-same-change',
+      provider: 'twilio',
+      steps: 'unrelated words',
+      changeIds: ['stripe-charges-to-payment-intents'],
+    });
+    const losing = makeRecipe({ id: 'recipe-losing', failedRunIds: ['a', 'b'] });
+    const store = await storeWith(similar, same, losing);
+    const ids = (await createRetriever({ store, embedder: new LocalEmbedder() })(makeTask())).map(
+      (recipe) => recipe.id,
     );
+    expect(ids).toEqual(['recipe-same-change', 'recipe-similar', 'recipe-losing']);
+
+    const { model, requests } = fakeModel([]);
+    await createRetriever({ store, embedder: new LocalEmbedder(), model })(makeTask());
+    expect(requests[0].prompt).toMatch(
+      /### recipe-same-change[^#]*Made from this same change: yes/,
+    );
+    expect(requests[0].prompt).toMatch(/### recipe-similar[^#]*Made from this same change: no/);
+  });
+
+  it('counts a recipe from a change bundled into the task as the same change', async () => {
+    const task = makeTask();
+    const bundled = { ...task.change, id: 'stripe-api-version', title: 'New API version' };
+    const upgrade = { ...task, alsoResolves: [{ change: bundled, why: 'the bump' }] };
+    const recipe = makeRecipe({ changeIds: ['stripe-api-version'] });
+    const { model, requests } = fakeModel([]);
+    await createRetriever({ store: await storeWith(recipe), embedder: new LocalEmbedder(), model })(
+      upgrade,
+    );
+    expect(requests[0].prompt).toContain('Also resolves: endpoint-removed: New API version');
+    expect(requests[0].prompt).toContain('Made from this same change: yes');
   });
 
   it('shows the model every recipe while the store is small, and a shortlist once it is not', async () => {

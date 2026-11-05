@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { DegradedOutputError, type JsonRequest, type Model } from './ai.ts';
+import { taskChanges } from './retrieve.ts';
 import type { MemoryStore } from './store.ts';
 import type { MemoryRecipe, StoredRun } from './types.ts';
 import type { RunRecord } from '../shared/types.ts';
@@ -39,7 +40,7 @@ const SYSTEM = `You distil a successful API migration run into a recipe: advice 
 
 You get the task, the agent's diff, the checks, the run's outcome and the agent's transcript. Write:
 - preconditions: what the code looks like when this recipe applies (SDK, version, call shapes).
-- steps: what to do, in order. Generalise away repository-specific names (files, variables, business logic) but keep exact provider API names, parameters, versions and model ids.
+- steps: what to do, in order. Generalise away repository-specific names (files, variables, business logic) but keep exact provider API names, parameters, versions and model ids. Cover the whole path to a verified fix: which kinds of files and code patterns it touched (for example "the webhook handler that reads subscription.current_period_end"), any codegen or setup it had to run before the checks could pass (prisma generate and the like), which checks it ran, and the test it wrote to prove the change: what the test asserts and where such a test lives.
 - pitfalls: what went wrong or nearly did, including every dead end the agent hit in the transcript and how it got out.
 - diffSketch: a short generic before/after diff of the core change.
 
@@ -115,6 +116,7 @@ export async function extractRecipe(
     recipe = {
       ...kept,
       ...guidance,
+      ...(success && { changeIds: [...new Set([...(same.changeIds ?? []), ...changeIds(run)])] }),
       sourceRuns: [...new Set([...same.sourceRuns, run.id])],
       repos,
       verifiedRepos: repos.length,
@@ -126,6 +128,7 @@ export async function extractRecipe(
       provider,
       kind,
       ...(guidance as Omit<Extraction, 'sameAsRecipeId'>),
+      changeIds: changeIds(run),
       sourceRuns: [run.id],
       repos: [run.task.repo],
       verifiedRepos: 1,
@@ -141,6 +144,33 @@ export async function extractRecipe(
     at: now,
   });
   return recipe;
+}
+
+const changeIds = (run: StoredRun) => taskChanges(run.task).map((change) => change.id);
+
+// What the harness's record carries beyond shared RunRecord, read here so a recipe can name the
+// codegen, checks and proof test that got the fix verified. Each is absent on older records.
+type HarnessFields = {
+  preparation?: { steps?: { command: string; why: string; code: number }[] };
+  agentChecks?: { name: string; command: string }[];
+  prBody?: string;
+};
+
+function whatTheRunDid(run: StoredRun): string {
+  const { diff } = run.record;
+  const { preparation, agentChecks = [], prBody } = run.record as RunRecord & HarnessFields;
+  const files = [...diff.matchAll(/^diff --git a\/(\S+) b\//gm)].map((match) => match[1]);
+  const steps = preparation?.steps ?? [];
+  return [
+    `Files changed: ${files.join(', ') || 'none'}`,
+    `Codegen and setup run before the baseline: ${steps.length ? '' : 'none recorded'}`,
+    ...steps.map((step) => `- \`${step.command}\` (exit ${step.code}): ${step.why}`),
+    `Checks the agent added, its proof test among them: ${agentChecks.length ? '' : 'none recorded'}`,
+    ...agentChecks.map((check) => `- ${check.name}: \`${check.command}\``),
+    prBody ? `The PR body it wrote:\n${prBody}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 // One retry when the answer comes back degraded; any other error goes straight up.
@@ -169,6 +199,9 @@ function buildPrompt(run: StoredRun, existing: MemoryRecipe[]): string {
     title: change.title,
     source: change.source,
     affects: change.affects,
+    alsoResolves: taskChanges(run.task)
+      .slice(1)
+      .map(({ id, title }) => ({ id, title })),
     usages,
   };
   const { outcome: harnessOutcome, humanVerdict } = run.record;
@@ -186,6 +219,7 @@ function buildPrompt(run: StoredRun, existing: MemoryRecipe[]): string {
     // shortcut: a human's final diff isn't recorded yet; pass it here once the GitHub App sends it.
     `## Agent's diff\n${diffForPrompt(run.record.diff)}`,
     `## Checks (before -> after)\n${JSON.stringify(run.record.checks, null, 2)}`,
+    `## What the run did\n${whatTheRunDid(run)}`,
     `## Transcript\n${transcriptForPrompt(run.transcript)}`,
     `## Existing recipes for ${change.provider}\n${recipes.length ? JSON.stringify(recipes, null, 2) : 'None yet.'}`,
   ].join('\n\n');
