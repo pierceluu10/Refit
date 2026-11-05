@@ -3,9 +3,11 @@
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import type { DeadApiEntry, FutureShutdown } from '../shared/types.ts';
+import type { DeadApiEntry, DeadApiMatcher, FutureShutdown } from '../shared/types.ts';
+import { tokenMatches, urlMatches } from './match.ts';
 
 export const DATA_DIR = path.join(import.meta.dirname, 'data');
+export const NO_REPLACEMENT = 'None listed on the provider page when this was added';
 
 export type ProviderFile = {
   provider: string;
@@ -33,8 +35,12 @@ export class DeadApiListError extends Error {
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ENTRY_ID = /^[A-Z]{2}-\d+(\.[\w.*-]+)?$/;
 
+// The round trip refuses a day past the month's end, which Date.parse rolls over.
 const isDate = (value: unknown): value is string =>
-  typeof value === 'string' && ISO_DATE.test(value) && !Number.isNaN(Date.parse(value));
+  typeof value === 'string' &&
+  ISO_DATE.test(value) &&
+  !Number.isNaN(Date.parse(value)) &&
+  new Date(value).toISOString().startsWith(value);
 
 function sourceProblems(file: ProviderFile, id: string, url: unknown, checkedOn: unknown) {
   const problems: string[] = [];
@@ -53,8 +59,16 @@ function sourceProblems(file: ProviderFile, id: string, url: unknown, checkedOn:
   return problems;
 }
 
-const matcherKey = (provider: string, matcher: DeadApiEntry['matchers'][number]) =>
-  `${provider}|${matcher.kind}|${matcher.value}`;
+// A field is its owner's: current_period_start on subscription isn't the one on quote_line.
+export const matcherKey = (provider: string, matcher: DeadApiMatcher) =>
+  `${provider}|${matcher.kind}|${matcher.value}|${matcher.kind === 'field' ? [...(matcher.on ?? [])].sort().join() : ''}`;
+
+const isWildcard = (matcher: DeadApiMatcher): boolean =>
+  (matcher.kind === 'string' || matcher.kind === 'url') && matcher.value.includes('*');
+
+const wildcardCovers = (matcher: DeadApiMatcher, name: string): boolean =>
+  (matcher.kind === 'string' && tokenMatches(matcher, name)) ||
+  (matcher.kind === 'url' && urlMatches(matcher, name));
 
 /** Every problem in the list at once, so one bad run shows them all. */
 export function listProblems(files: ProviderFile[]): string[] {
@@ -62,6 +76,7 @@ export function listProblems(files: ProviderFile[]): string[] {
   const ids = new Set<string>();
   const deadMatchers = new Map<string, string>();
   const deadIds = new Set<string>();
+  const deadWildcards = new Map<string, DeadApiMatcher[]>();
   const futureIds = new Map<string, string>();
 
   const addId = (id: string) => {
@@ -92,6 +107,9 @@ export function listProblems(files: ProviderFile[]): string[] {
         deadMatchers.set(key, entry.id);
         if (matcher.kind === 'string' || matcher.kind === 'url') {
           deadIds.add(`${file.provider}|${matcher.value}`);
+        }
+        if (isWildcard(matcher)) {
+          deadWildcards.set(file.provider, [...(deadWildcards.get(file.provider) ?? []), matcher]);
         }
       }
     }
@@ -126,7 +144,10 @@ export function listProblems(files: ProviderFile[]): string[] {
     for (const entry of file.entries) {
       for (const replacement of entry.replacementIds ?? []) {
         const key = `${file.provider}|${replacement}`;
-        if (deadIds.has(key)) problems.push(`${entry.id}: replacement ${replacement} is dead`);
+        const dead =
+          deadIds.has(key) ||
+          deadWildcards.get(file.provider)?.some((one) => wildcardCovers(one, replacement));
+        if (dead) problems.push(`${entry.id}: replacement ${replacement} is dead`);
         const dying = futureIds.get(key);
         if (dying) problems.push(`${entry.id}: replacement ${replacement} is dying (${dying})`);
       }
@@ -174,7 +195,7 @@ export function entriesInForce(list: DeadApiList, today: string): DeadApiEntry[]
       matchers: shutdown.matchers,
       versions: shutdown.appliesTo?.describe,
       appliesTo: shutdown.appliesTo,
-      replacement: shutdown.replacement ?? 'None listed on the provider page when this was added',
+      replacement: shutdown.replacement ?? NO_REPLACEMENT,
       replacementIds: shutdown.replacementIds,
       requires: shutdown.requires ?? [],
       context: shutdown.context,

@@ -93,6 +93,15 @@ describe('url matchers', () => {
     expect(urlMatches(resource, 'https://api.openai.com/v1/threads/thread_1/runs')).toBe(true);
     expect(urlMatches(resource, '/v1/threads-old')).toBe(false);
   });
+
+  it('holds a bare host to the whole host, not a longer one or a path that spells it', () => {
+    const host = { kind: 'url', value: 'chat.twilio.com*' } as const;
+    expect(urlMatches(host, 'https://chat.twilio.com/v2/Services')).toBe(true);
+    expect(urlMatches(host, '"chat.twilio.com"')).toBe(true);
+    expect(urlMatches(host, 'https://chat.twilio.com.example.com/x')).toBe(false);
+    expect(urlMatches(host, 'https://flex.twilio.com/chat.twilio.com')).toBe(false);
+    expect(urlMatches(host, 'https://x.chat.twilio.com/')).toBe(true);
+  });
 });
 
 describe('a UA property id', () => {

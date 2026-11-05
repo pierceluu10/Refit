@@ -1,0 +1,2281 @@
+{
+  "provider": "github",
+  "officialHosts": ["docs.github.com", "github.blog", "github.com"],
+  "entries": [
+    {
+      "id": "GH-1.projects-rest",
+      "provider": "github",
+      "what": "The REST API for Projects (classic): /repos/{owner}/{repo}/projects, /orgs/{org}/projects, /users/{username}/projects, /user/projects, /projects/{id}, /projects/columns/... and /teams/{id}/projects. Unauthenticated probes on 2026-11-05 return a plain 404 for these paths, and they are gone from GitHub's OpenAPI description.",
+      "diedOn": "2025-04-01",
+      "source": {
+        "url": "https://github.blog/changelog/2024-05-23-sunset-notice-projects-classic/",
+        "checkedOn": "2026-11-05",
+        "quote": "The REST API for Projects (classic) will be sunset"
+      },
+      "lookFor": [
+        "REST calls to the classic project paths, in a URL or an Octokit route string",
+        "Octokit methods projects.get, update, delete, listForRepo, createForRepo, createForOrg, createForAuthenticatedUser, and the card, column and collaborator methods. Not projects.listForOrg or listForUser: current Octokit maps those to the live /projectsV2 paths, so check the Octokit version before calling them dead",
+        "Not /projectsV2 paths, and not https://github.com/orgs/{org}/projects, which is the live web page"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/repos/[^/\\s'\\\"`]+/[^/\\s'\\\"`]+/projects(?![\\w-])"
+        },
+        {
+          "kind": "regex",
+          "value": "api\\.github\\.com/(?:(?:orgs|users)/[^/\\s'\\\"`]+/projects(?![\\w-])|user/projects(?![\\w-])|projects/)"
+        },
+        {
+          "kind": "regex",
+          "value": "api\\.github\\.com/(?:orgs/[^/\\s'\\\"`]+/)?teams/[^/\\s'\\\"`]+/projects(?![\\w-])"
+        },
+        {
+          "kind": "regex",
+          "value": "\\b(?:GET|POST|PUT|PATCH|DELETE)\\s+/(?:(?:orgs|users)/[^/\\s'\\\"`]+/projects(?![\\w-])|user/projects(?![\\w-])|projects/)",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "/projects/columns(?:/|\\b)",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "/teams/[^/\\s'\\\"`]+/projects(?![\\w-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "['\\\"`]/(?:orgs|users)/[^/\\s'\\\"`]+/projects(?![\\w-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\b(?:\\w+\\.rest|octokit|github)\\.projects\\.(?:get|update|delete|listForRepo|createForRepo|createForOrg|createForAuthenticatedUser|createCard|createColumn|deleteCard|deleteColumn|getCard|getColumn|listCards|listColumns|moveCard|moveColumn|updateCard|updateColumn|addCollaborator|removeCollaborator|listCollaborators|getPermissionForUser)\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\.(?:get_projects|create_project)\\(",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page points to the new Projects. Their REST paths are GET /orgs/{org}/projectsV2 and GET /users/{username}/projectsV2, with /fields and /items under each project number. REST has no repo-level list: use repository.projectsV2 in GraphQL for that.",
+      "replacementIds": ["/projectsV2"],
+      "requires": [
+        "Not a rename. Reading, not on the page: classic columns and cards have no REST equivalent, so a card becomes an item and a column becomes a value of a single select field, usually Status.",
+        "Classic projects were migrated automatically on August 23, 2024, and only cards updated in the last year moved, so old project IDs and card IDs in config no longer point at anything. Say in the PR what a person must look up again.",
+        "Tokens need the project scope, or read:project for read-only use.",
+        "Say in the PR that this is unproven unless it was run against a real project."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-1.projects-graphql",
+      "provider": "github",
+      "what": "Classic project fields in GraphQL: Repository.projects, Organization.projects, User.projects, Issue.projectCards and PullRequest.projectCards. These five were checked with live queries on 2026-11-05: each returns a NOT_FOUND error saying Projects (classic) is being deprecated. The Project, ProjectCard and ProjectColumn types and mutations such as addProjectCard are still in the public schema with the same date, and Repository.viewerCanCreateProjects still answers, so they are left off this entry.",
+      "diedOn": "2025-04-01",
+      "source": {
+        "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+        "checkedOn": "2026-11-05",
+        "quote": "projects will be removed."
+      },
+      "lookFor": [
+        "projects(first: ...) on a repository, organization or user in a GitHub GraphQL query",
+        "projectCards(...) on an issue or pull request",
+        "Not projectsV2 or projectItems, which are live, and not the same field on another GraphQL API such as GitLab"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bprojectCards\\s*\\("
+        },
+        {
+          "kind": "regex",
+          "value": "\\bprojectCards\\b",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\bprojects\\s*\\(\\s*(?:first|last|after|before|orderBy|search|states)\\s*:",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "projectsV2 on Repository, Organization and User; projectItems on Issue and PullRequest. The page gives no replacement; these names are in the public schema.",
+      "replacementIds": ["projectsV2", "projectItems"],
+      "requires": [
+        "Reading, not on the page: ProjectV2 has items and fields, not columns and cards, so the selection set changes as well as the field name.",
+        "projectsV2 requires the read:project scope, or project to write. A token without it gets INSUFFICIENT_SCOPES, which a person must fix.",
+        "Say in the PR that this is unproven unless it was run against a real project."
+      ],
+      "context": {
+        "packages": ["octokit", "@octokit/graphql", "@octokit/core", "@actions/github"],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-2.source-imports",
+      "provider": "github",
+      "what": "The Source Imports REST API under /repos/{owner}/{repo}/import. The OpenAPI description still lists it, but a GET on 2026-11-05 returned 404 with \"This endpoint has been deprecated\".",
+      "diedOn": "2024-04-12",
+      "source": {
+        "url": "https://github.blog/changelog/2023-10-12-deprecation-source-imports-rest-api/",
+        "checkedOn": "2026-11-05",
+        "quote": "From 00:00 UTC on April 12, 2024, these endpoints will return an error."
+      },
+      "lookFor": [
+        "Calls to /repos/{owner}/{repo}/import, /import/authors, /import/large_files or /import/lfs",
+        "Octokit migrations.startImport, getImportStatus, updateImport, cancelImport, getCommitAuthors, mapCommitAuthor, getLargeFiles, setLfsPreference",
+        "PyGithub create_source_import and get_source_import. PyGithub still ships them"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/repos/[^/\\s'\\\"`]+/[^/\\s'\\\"`]+/import(?:/authors|/large_files|/lfs)?(?![\\w/-])"
+        },
+        {
+          "kind": "regex",
+          "value": "\\b(?:\\w+\\.rest|octokit|github)\\.migrations\\.(?:startImport|getImportStatus|updateImport|cancelImport|getCommitAuthors|mapCommitAuthor|getLargeFiles|setLfsPreference)\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bcreate_source_import\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bget_source_import\\b"
+        }
+      ],
+      "replacement": "No REST replacement is listed. The changelog sends you to the GitHub Importer page (https://github.com/new/import) and the docs page \"Programmatically importing repositories\" (https://docs.github.com/migrations/overview/programmatically-importing-repositories).",
+      "requires": [
+        "Not a drop-in change. Reading, not on the page: the usual path is creating an empty repository, then git clone --mirror from the source and git push --mirror, which needs credentials on both sides.",
+        "Import progress polling goes away, so remove any code that waits on import status."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-2.classroom",
+      "provider": "github",
+      "what": "The GitHub Classroom REST API: /classrooms, /classrooms/{id}, /classrooms/{id}/assignments, /assignments/{id}, /assignments/{id}/accepted_assignments and /assignments/{id}/grades. A GET /classrooms on 2026-11-05 returned 410 Gone.",
+      "diedOn": "2026-08-28",
+      "source": {
+        "url": "https://docs.github.com/en/rest/classroom/classroom",
+        "checkedOn": "2026-11-05",
+        "quote": "This operation is no longer available as of August 28, 2026."
+      },
+      "lookFor": [
+        "Requests to api.github.com/classrooms or api.github.com/assignments",
+        "Route strings like GET /classrooms. Bare /classrooms and /assignments/{id} paths are common in a school app's own routes, so read the host"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "api\\.github\\.com/(?:classrooms|assignments/)"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bGET\\s+/(?:classrooms|assignments/)",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "['\\\"`]/classrooms(?:/|['\\\"`])",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "/assignments/[^/\\s'\\\"`]+/(?:grades|accepted_assignments)(?![\\w-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "None listed as an API. The changelog says GitHub Classroom is deprecated in favor of selected partner solutions, named in the GitHub Educator Community Discussion.",
+      "requires": [
+        "No equivalent to move to, so the fix is removing the feature or moving to a partner product, which a person has to choose. Say so in the PR.",
+        "Some Classroom data is being permanently deleted; repositories and accounts are not affected."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-2.security-managers",
+      "provider": "github",
+      "what": "The security manager REST API. The changelog says 2025-12-31 on GitHub.com; the docs say starting January 1, 2026, and this entry uses the docs date. Both have passed, but the API hasn't gone: on 2026-11-05 GET /orgs/{org}/security-managers answered 200 with the headers Sunset: Thu, 01 Jan 2026 and Deprecation: Sun, 01 Dec 2024, and the docs and OpenAPI description still list the paths. It's past its sunset and still answering, so hits go to the small check and a fix should say so.",
+      "diedOn": "2026-01-01",
+      "source": {
+        "url": "https://docs.github.com/en/rest/orgs/security-managers",
+        "checkedOn": "2026-11-05",
+        "quote": "will be removed starting January 1, 2026"
+      },
+      "lookFor": [
+        "Calls to /orgs/{org}/security-managers and /orgs/{org}/security-managers/teams/{team_slug}",
+        "Octokit orgs.listSecurityManagerTeams, addSecurityManagerTeam, removeSecurityManagerTeam"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/orgs/[^/\\s'\\\"`]+/security-managers(?![\\w-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\b(?:\\w+\\.rest|octokit|github)\\.orgs\\.(?:listSecurityManagerTeams|addSecurityManagerTeam|removeSecurityManagerTeam)\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The organization roles endpoints: GET /orgs/{org}/organization-roles, then PUT or DELETE /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}.",
+      "replacementIds": ["/orgs/{org}/organization-roles"],
+      "requires": [
+        "Look up the role_id of the security manager role first: it is a numeric ID from GET /orgs/{org}/organization-roles, not a name."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-2.security-product-enablement",
+      "provider": "github",
+      "what": "POST /orgs/{org}/{security_product}/{enablement}, the call that enables or disables a security product for all repos in an org. The changelog gives only July 2025; 2025-07-22 is the removalDate in GitHub's OpenAPI description, which still lists the path. This wasn't confirmed live, because the check would be a real write.",
+      "diedOn": "2025-07-22",
+      "source": {
+        "url": "https://github.blog/changelog/2024-07-22-deprecation-of-api-endpoint-to-enable-or-disable-a-security-feature-for-an-organization/",
+        "checkedOn": "2026-11-05",
+        "quote": "before being removed in July of 2025"
+      },
+      "lookFor": [
+        "/orgs/{org}/advanced_security/enable_all and the same for dependency_graph, dependabot_alerts, dependabot_security_updates, code_scanning_default_setup, secret_scanning, secret_scanning_push_protection, with enable_all or disable_all",
+        "Octokit orgs.enableOrDisableSecurityProductOnAllOrgRepos"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/orgs/[^/\\s'\\\"`]+/(?:dependency_graph|dependabot_alerts|dependabot_security_updates|advanced_security|code_scanning_default_setup|secret_scanning|secret_scanning_push_protection)/(?:enable_all|disable_all)\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\b(?:\\w+\\.rest|octokit|github)\\.orgs\\.(?:enableOrDisableSecurityProductOnAllOrgRepos)\\b"
+        }
+      ],
+      "replacement": "Code security configurations: the configurations API at /orgs/{org}/code-security/configurations.",
+      "replacementIds": ["/orgs/{org}/code-security/configurations"],
+      "requires": [
+        "A different model: create a configuration, attach it to repositories, and optionally set it as the default, rather than flipping one product.",
+        "The page warns that the old call conflicts with unenforced configurations and can remove one from a repository, so check what is already attached."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-2.tag-protection",
+      "provider": "github",
+      "what": "The tag protection REST API at /repos/{owner}/{repo}/tags/protection. It answered with null data from the page's date, and a GET on 2026-11-05 returned 404 on a repository the token owns. It is gone from the OpenAPI description.",
+      "diedOn": "2024-08-30",
+      "source": {
+        "url": "https://github.blog/changelog/2024-05-29-sunset-notice-tag-protections/",
+        "checkedOn": "2026-11-05",
+        "quote": "The tag protection rule API will begin responding with NULL data"
+      },
+      "lookFor": [
+        "Calls to /repos/{owner}/{repo}/tags/protection",
+        "Octokit repos.listTagProtection, createTagProtection, deleteTagProtection"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/repos/[^/\\s'\\\"`]+/[^/\\s'\\\"`]+/tags/protection(?![\\w-])"
+        },
+        {
+          "kind": "regex",
+          "value": "\\b(?:\\w+\\.rest|octokit|github)\\.repos\\.(?:listTagProtection|createTagProtection|deleteTagProtection)\\b"
+        }
+      ],
+      "replacement": "Repository rulesets: /repos/{owner}/{repo}/rulesets with target tag.",
+      "replacementIds": ["/repos/{owner}/{repo}/rulesets"],
+      "requires": [
+        "Existing tag protection rules were migrated to a tag ruleset, so code that creates a rule may now duplicate one. Check for an existing ruleset first."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-2.billing-product-endpoints",
+      "provider": "github",
+      "what": "Product-specific billing endpoints under /settings/billing/actions, /packages and /shared-storage, for enterprises, organizations and users. The page gives no cutoff date, only that they are no longer supported, so diedOn is the date of the post. The paths are gone from the OpenAPI description, but this wasn't confirmed live: without billing access the routes answer 401 or 404 either way.",
+      "diedOn": "2025-09-26",
+      "source": {
+        "url": "https://github.blog/changelog/2025-09-26-product-specific-billing-apis-are-closing-down/",
+        "checkedOn": "2026-11-05",
+        "quote": "are no longer supported"
+      },
+      "lookFor": [
+        "Paths ending /settings/billing/actions, /settings/billing/packages or /settings/billing/shared-storage",
+        "Octokit billing.getGithubActionsBillingOrg, getGithubPackagesBillingOrg, getSharedStorageBillingOrg and the same with User"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/(?:orgs|users|enterprises)/[^/\\s'\\\"`]+/settings/billing/(?:actions|packages|shared-storage)(?![\\w-])"
+        },
+        {
+          "kind": "regex",
+          "value": "\\b(?:\\w+\\.rest|octokit|github)\\.billing\\.(?:getGithubActionsBillingOrg|getGithubActionsBillingUser|getGithubPackagesBillingOrg|getGithubPackagesBillingUser|getSharedStorageBillingOrg|getSharedStorageBillingUser)\\b"
+        }
+      ],
+      "replacement": "The consolidated usage endpoint: GET /organizations/{org}/settings/billing/usage or GET /users/{username}/settings/billing/usage. Note the org path starts /organizations, not /orgs.",
+      "replacementIds": [
+        "/organizations/{org}/settings/billing/usage",
+        "/users/{username}/settings/billing/usage"
+      ],
+      "requires": [
+        "A different response: usageItems, each with a product, SKU and unit type, so the code that reads the result changes too.",
+        "The old endpoints had one call per product. To reproduce the old values, filter the usage items by product."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-2.copilot-metrics",
+      "provider": "github",
+      "what": "The legacy Copilot Metrics API at /orgs/{org}/copilot/metrics, /orgs/{org}/team/{team_slug}/copilot/metrics and /enterprises/{enterprise}/copilot/metrics. Gone from the OpenAPI description, and an unauthenticated probe returns a plain 404. Current Octokit still generates the methods, so a typecheck will not catch this.",
+      "diedOn": "2026-04-02",
+      "source": {
+        "url": "https://github.blog/changelog/2026-01-29-closing-down-notice-of-legacy-copilot-metrics-apis/",
+        "checkedOn": "2026-11-05",
+        "quote": "The Copilot Metrics API will sunset on April 2nd, 2026."
+      },
+      "lookFor": [
+        "Paths ending /copilot/metrics, on an org, team or enterprise",
+        "Octokit copilot.copilotMetricsForOrganization and copilotMetricsForTeam",
+        "Not /copilot/metrics/reports/..., which is the live replacement"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/(?:orgs|enterprises)/[^/\\s'\\\"`]+(?:/team/[^/\\s'\\\"`]+)?/copilot/metrics(?![\\w/-])"
+        },
+        {
+          "kind": "regex",
+          "value": "\\b(?:\\w+\\.rest|octokit|github)\\.copilot\\.(?:copilotMetricsForOrganization|copilotMetricsForTeam)\\b"
+        }
+      ],
+      "replacement": "The Copilot usage metrics endpoints: GET /orgs/{org}/copilot/metrics/reports/organization-1-day, .../organization-28-day/latest, and the same under /enterprises/{enterprise}/copilot/metrics/reports/enterprise-1-day and enterprise-28-day/latest.",
+      "replacementIds": [
+        "/orgs/{org}/copilot/metrics/reports/organization-1-day",
+        "/enterprises/{enterprise}/copilot/metrics/reports/enterprise-1-day"
+      ],
+      "requires": [
+        "A different shape: the response holds download_links to report files, not the metrics themselves, so the code must fetch those files and parse them.",
+        "The Copilot usage metrics policy must be enabled for the enterprise, which a person has to set.",
+        "No team-level report is listed in the same form. Use user-teams-1-day and say in the PR that the numbers need checking."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-2.copilot-usage",
+      "provider": "github",
+      "what": "The beta Copilot /usage endpoints at /orgs/{org}/copilot/usage, /orgs/{org}/team/{team_slug}/copilot/usage and /enterprises/{enterprise}/copilot/usage. The page says only \"through February\", so 2025-02-28 is read from that. Gone from the OpenAPI description, and an unauthenticated probe returns a plain 404.",
+      "diedOn": "2025-02-28",
+      "source": {
+        "url": "https://github.blog/changelog/2025-02-21-deprecation-of-beta-github-copilot-usage-api-endpoint/",
+        "checkedOn": "2026-11-05",
+        "quote": "This endpoint will be accessible through February"
+      },
+      "lookFor": ["Paths ending /copilot/usage, on an org, team or enterprise"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/(?:orgs|enterprises)/[^/\\s'\\\"`]+(?:/team/[^/\\s'\\\"`]+)?/copilot/usage(?![\\w/-])"
+        }
+      ],
+      "replacement": "The page names the /metrics endpoints, which have since closed too (GH-2.copilot-metrics). Move straight to /copilot/metrics/reports/organization-1-day or enterprise-1-day.",
+      "replacementIds": [
+        "/orgs/{org}/copilot/metrics/reports/organization-1-day",
+        "/enterprises/{enterprise}/copilot/metrics/reports/enterprise-1-day"
+      ],
+      "requires": [
+        "A different shape: the response holds download_links to report files, so the code must fetch and parse them.",
+        "The Copilot usage metrics policy must be enabled for the enterprise, which a person has to set."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-2.oauth-authorizations",
+      "provider": "github",
+      "what": "The OAuth Authorizations API at /authorizations and /applications/grants. An unauthenticated GET /authorizations on 2026-11-05 returns a plain 404.",
+      "diedOn": "2020-11-13",
+      "source": {
+        "url": "https://developer.github.com/changes/2020-02-14-deprecating-oauth-auth-endpoint/",
+        "checkedOn": "2026-11-05",
+        "quote": "November 13, 2020 at 16:00 UTC"
+      },
+      "lookFor": [
+        "Requests to api.github.com/authorizations, often with basic auth to mint a token",
+        "api.github.com/applications/grants",
+        "A bare /authorizations path may be the app's own route, so read the host"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "api.github.com/authorizations*"
+        },
+        {
+          "kind": "url",
+          "value": "api.github.com/applications/grants*"
+        },
+        {
+          "kind": "regex",
+          "value": "\\b(?:GET|POST|PUT|PATCH|DELETE)\\s+/authorizations\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "['\\\"`]/authorizations(?:/|['\\\"`])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The web application flow or the device flow for OAuth apps, per the page.",
+      "requires": [
+        "Username and password can no longer mint tokens. The user has to go through a browser flow, or supply a token, so the login path in the app changes.",
+        "The device flow needs no client_secret and suits headless tools."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-2.oauth-app-token-paths",
+      "provider": "github",
+      "what": "The OAuth Application API versions with the access token in the path: /applications/{client_id}/tokens/{access_token} and /applications/{client_id}/grants/{access_token}. They are gone from the OpenAPI description, but this wasn't confirmed live: an unauthenticated probe gets 401, and a real check needs an OAuth app's client credentials.",
+      "diedOn": "2021-08-11",
+      "source": {
+        "url": "https://github.blog/changelog/2021-08-10-sunset-notice-oauth-application-api/",
+        "checkedOn": "2026-11-05",
+        "quote": "on August 11 2021 at 14:00 UTC, GitHub will be removing the OAuth Application API"
+      },
+      "lookFor": [
+        "Paths like /applications/{client_id}/tokens/{token} and /applications/{client_id}/grants/{token}",
+        "Not /applications/{client_id}/token or /grant, singular, which are the live versions"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "api\\.github\\.com/applications/[^/\\s'\\\"`]+/(?:tokens|grants)/"
+        },
+        {
+          "kind": "regex",
+          "value": "/applications/[^/\\s'\\\"`]+/(?:tokens|grants)/",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The versions with the token in the request body: POST, PATCH or DELETE /applications/{client_id}/token and DELETE /applications/{client_id}/grant.",
+      "replacementIds": ["/applications/{client_id}/token", "/applications/{client_id}/grant"],
+      "requires": [
+        "The verbs change as well as the path: check is POST /token, reset is PATCH /token, delete is DELETE /token, each with {\"access_token\": ...} in the JSON body.",
+        "Still uses basic auth with client_id and client_secret."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-2.reactions-delete-legacy",
+      "provider": "github",
+      "what": "The general-purpose DELETE /reactions/{reaction_id}. The page gives no separate cutoff date, so diedOn is the date of the post saying it has been removed.",
+      "diedOn": "2022-02-11",
+      "source": {
+        "url": "https://github.blog/changelog/2022-02-11-legacy-delete-reactions-rest-api-removed/",
+        "checkedOn": "2026-11-05",
+        "quote": "The old endpoint has been removed"
+      },
+      "lookFor": [
+        "DELETE requests to /reactions/{id} on api.github.com",
+        "Not paths like /repos/{owner}/{repo}/issues/{n}/reactions/{id}, which are live"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "api\\.github\\.com/reactions/"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bDELETE\\s+/reactions/",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "A delete endpoint per target, such as DELETE /repos/{owner}/{repo}/issues/{issue_number}/reactions/{reaction_id}, and the same for issue comments, pull request comments, commit comments and releases.",
+      "replacementIds": ["/repos/{owner}/{repo}/issues/{issue_number}/reactions/{reaction_id}"],
+      "requires": [
+        "The new path needs to know what the reaction is on, so code holding only a reaction ID must carry the owner, repo and target too."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-2.code-of-conduct-preview",
+      "provider": "github",
+      "what": "The Codes of Conduct API preview, sent with the scarlet-witch-preview media type, including GET /repos/{owner}/{repo}/community/code_of_conduct, which is gone from the OpenAPI description.",
+      "diedOn": "2021-12-06",
+      "source": {
+        "url": "https://github.blog/changelog/2021-10-06-deprecation-notice-codes-of-conduct-api-preview/",
+        "checkedOn": "2026-11-05",
+        "quote": "the fields behind this API preview will no longer be accessible"
+      },
+      "lookFor": ["The scarlet-witch-preview Accept header", "Calls to /community/code_of_conduct"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "scarlet-witch-preview"
+        },
+        {
+          "kind": "regex",
+          "value": "/community/code_of_conduct(?![\\w-])"
+        }
+      ],
+      "replacement": "GET /repos/{owner}/{repo}/community/profile, per the page's \"Get community profile metrics\".",
+      "replacementIds": ["/repos/{owner}/{repo}/community/profile"],
+      "requires": ["Read the code of conduct from files.code_of_conduct in the profile response."],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-3.query-param-auth",
+      "provider": "github",
+      "what": "API authentication through query parameters: access_token=, and client_id with client_secret on api.github.com. Credentials sent this way get a client error.",
+      "diedOn": "2021-09-08",
+      "source": {
+        "url": "https://github.blog/changelog/2021-08-31-sunset-notice-api-authentication-via-query-parameters/",
+        "checkedOn": "2026-11-05",
+        "quote": "on September 8th 2021 at 14:00 UTC, GitHub will stop supporting API Authentication via Query Parameters"
+      },
+      "lookFor": [
+        "api.github.com URLs with ?access_token= or &client_secret=",
+        "The same parameter added to a request URL built from a variable",
+        "Not https://github.com/login/oauth/access_token, which is the live OAuth exchange and takes client_secret"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "api\\.github\\.com[^\\s'\\\"`]*[?&](?:access_token|client_secret)="
+        },
+        {
+          "kind": "regex",
+          "value": "[?&]access_token=",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The Authorization header: Authorization: token <token>. For an OAuth app's client_id and client_secret, basic auth.",
+      "requires": [
+        "Move the secret out of the URL, and check it wasn't also logged: a token that sat in URLs may be in old logs and worth rotating, which a person must do."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-3.org-security-fields",
+      "provider": "github",
+      "what": "Security default fields on Get and Update an organization: advanced_security_enabled_for_new_repositories, dependabot_alerts_enabled_for_new_repositories, dependabot_security_updates_enabled_for_new_repositories, dependency_graph_enabled_for_new_repositories, secret_scanning_enabled_for_new_repositories, secret_scanning_push_protection_enabled_for_new_repositories and secret_scanning_validity_checks_enabled. They were already ignored from July 2024, and the OpenAPI description still lists six of them as deprecated.",
+      "diedOn": "2026-04-21",
+      "source": {
+        "url": "https://github.blog/changelog/2026-04-21-deprecation-of-security-related-organization-api-fields/",
+        "checkedOn": "2026-11-05",
+        "quote": "as they are no longer available"
+      },
+      "lookFor": [
+        "Any of the seven field names, read from GET /orgs/{org} or sent to PATCH /orgs/{org}"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\b(?:advanced_security|dependabot_alerts|dependabot_security_updates|dependency_graph|secret_scanning|secret_scanning_push_protection)_enabled_for_new_repositories\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bsecret_scanning_validity_checks_enabled\\b"
+        }
+      ],
+      "replacement": "Code security configurations: /orgs/{org}/code-security/configurations.",
+      "replacementIds": ["/orgs/{org}/code-security/configurations"],
+      "requires": [
+        "Set a default configuration for new repositories to replicate what the fields did.",
+        "Old settings were saved to a configuration called Legacy, which still applies, so read that before creating a new one."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-3.code_scanning_upload",
+      "provider": "github",
+      "what": "resources.code_scanning_upload in the GET /rate_limit response.",
+      "diedOn": "2026-05-19",
+      "source": {
+        "url": "https://github.blog/changelog/2026-05-19-removal-of-code_scanning_upload-field-from-rate_limit-api-endpoint/",
+        "checkedOn": "2026-11-05",
+        "quote": "we have removed the code_scanning_upload field"
+      },
+      "lookFor": ["code_scanning_upload read from a rate limit response"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bcode_scanning_upload\\b"
+        }
+      ],
+      "replacement": "No replacement field is needed, per the page. Use resources.core: code scanning uploads count against the core limit.",
+      "requires": [
+        "A read of the missing field gives undefined, so a check like remaining > 0 may silently stop passing: remove it, don't just rename it."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-3.events-push-payload",
+      "provider": "github",
+      "what": "Commit summaries and counts in PushEvent payloads from the Activity Events API: payload.commits, payload.size and payload.distinct_size. A live GET /events on 2026-11-05 shows a PushEvent payload holding only before, head, push_id, ref and repository_id. The page also says fields are trimmed from pull request events and author_association is removed from several types.",
+      "diedOn": "2025-10-07",
+      "source": {
+        "url": "https://github.blog/changelog/2025-08-08-upcoming-changes-to-github-events-api-payloads/",
+        "checkedOn": "2026-11-05",
+        "quote": "we’ll officially implement the above changes"
+      },
+      "lookFor": [
+        "event.payload.commits, payload.size or payload.distinct_size on results from /users/{username}/events, /repos/{owner}/{repo}/events, /orgs/{org}/events or /events",
+        "A push webhook payload also has payload.commits and is live, as does github.event.commits in Actions, so read where the object comes from"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bdistinct_size\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bpayload\\W{1,4}commits\\b",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\bpayload\\W{1,4}size\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page says to get removed fields from the main REST API. Reading, not on the page: GET /repos/{owner}/{repo}/compare/{before}...{head}, using the before and head still in the payload.",
+      "requires": [
+        "A missing commits field is undefined, so a commit counter silently reads 0 or throws. Check for it instead of assuming an array.",
+        "One extra request per push event counts against the rate limit, so a profile stats tool may need caching or fewer events.",
+        "Pull request events lost fields too: fetch the pull request by number if the code reads title or body from the event."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-3.dependabot-offset-pagination",
+      "provider": "github",
+      "what": "Offset pagination on the Dependabot alerts list endpoints: page, first and last. Checked 2026-11-05 on a repo with no alerts: page=1 returns 400 'Pagination using the `page` parameter is not supported.', while first=1 and last=1 return 200 with an empty list, the same as an unknown parameter, so only page is shown to fail outright.",
+      "diedOn": "2025-10-14",
+      "source": {
+        "url": "https://github.blog/changelog/2025-10-14-dependabot-alerts-api-pagination-parameters-deprecated/",
+        "checkedOn": "2026-11-05",
+        "quote": "We’ve removed offset-based pagination parameters"
+      },
+      "lookFor": [
+        "/dependabot/alerts URLs with page=, first= or last=",
+        "A page: option passed to Octokit dependabot.listAlertsForRepo, listAlertsForOrg or listAlertsForEnterprise. The line matcher can't see this one, so read those calls"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/dependabot/alerts\\?[^\\s'\\\"`]*\\b(?:page|first|last)="
+        }
+      ],
+      "replacement": "Cursor pagination: before, after and per_page.",
+      "requires": [
+        "A page counter becomes following the cursor in the Link header. octokit.paginate already does this, so prefer it."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-4.rate",
+      "provider": "github",
+      "what": "The top-level rate property of GET /rate_limit, at REST version 2026-03-10.",
+      "diedOn": "2026-03-10",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "checkedOn": "2026-11-05",
+        "quote": "Remove deprecated rate property from rate limit endpoint"
+      },
+      "lookFor": [
+        "data.rate.remaining, .limit, .reset or .used from a GET /rate_limit response",
+        "Octokit rateLimit.get results"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bdata\\W{1,4}rate\\W{1,4}(?:limit|remaining|reset|used)\\b",
+          "ambiguous": true
+        },
+        {
+          "kind": "field",
+          "value": "rate",
+          "on": ["rateLimit", "rate_limit", "ratelimit", "RateLimit"],
+          "ambiguous": true
+        }
+      ],
+      "versions": "A break only for requests sent with X-GitHub-Api-Version: 2026-03-10 or later. A request with no header gets 2022-11-28 today, where this still works, and 2022-11-28 ends support on March 10, 2028 (GH-9.rest-2022-11-28). A pin to 2022-11-28 is fine until then.",
+      "appliesTo": {
+        "describe": "A break only for requests sent with X-GitHub-Api-Version: 2026-03-10 or later. A request with no header gets 2022-11-28 today, where this still works, and 2022-11-28 ends support on March 10, 2028 (GH-9.rest-2022-11-28). A pin to 2022-11-28 is fine until then.",
+        "apiVersionSince": "2026-03-10"
+      },
+      "replacement": "resources.core, which holds the same values.",
+      "replacementIds": ["resources.core"],
+      "requires": ["Same fields under a new path, so only the read changes."],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-4.merge_commit_sha",
+      "provider": "github",
+      "what": "merge_commit_sha on pull request objects, at REST version 2026-03-10.",
+      "diedOn": "2026-03-10",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "checkedOn": "2026-11-05",
+        "quote": "property is removed from pull request payloads"
+      },
+      "lookFor": ["merge_commit_sha read from a pull request object"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bmerge_commit_sha\\b",
+          "ambiguous": true
+        }
+      ],
+      "versions": "A break only for requests sent with X-GitHub-Api-Version: 2026-03-10 or later. A request with no header gets 2022-11-28 today, where this still works, and 2022-11-28 ends support on March 10, 2028 (GH-9.rest-2022-11-28). A pin to 2022-11-28 is fine until then.",
+      "appliesTo": {
+        "describe": "A break only for requests sent with X-GitHub-Api-Version: 2026-03-10 or later. A request with no header gets 2022-11-28 today, where this still works, and 2022-11-28 ends support on March 10, 2028 (GH-9.rest-2022-11-28). A pin to 2022-11-28 is fine until then.",
+        "apiVersionSince": "2026-03-10"
+      },
+      "replacement": "None listed on the provider page when this was added. Reading, not on the page: the merged event from GET /repos/{owner}/{repo}/issues/{issue_number}/events carries a commit_id.",
+      "requires": [
+        "A missing value is undefined, so code that passes it on to a checkout or a status call fails later, not at the read. Say in the PR what was tested."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-4.assignee",
+      "provider": "github",
+      "what": "The singular assignee field on Issue and Pull Request endpoints, read and written, at REST version 2026-03-10.",
+      "diedOn": "2026-03-10",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "checkedOn": "2026-11-05",
+        "quote": "Remove deprecated singular \"assignee\" field"
+      },
+      "lookFor": [
+        "issue.assignee or pull_request.assignee read from a response",
+        "assignee: sent when creating or updating an issue"
+      ],
+      "matchers": [
+        {
+          "kind": "field",
+          "value": "assignee",
+          "on": [
+            "issue",
+            "pr",
+            "pull",
+            "pullRequest",
+            "pull_request",
+            "pull_request_data",
+            "issueData"
+          ],
+          "ambiguous": true
+        }
+      ],
+      "versions": "A break only for requests sent with X-GitHub-Api-Version: 2026-03-10 or later. A request with no header gets 2022-11-28 today, where this still works, and 2022-11-28 ends support on March 10, 2028 (GH-9.rest-2022-11-28). A pin to 2022-11-28 is fine until then.",
+      "appliesTo": {
+        "describe": "A break only for requests sent with X-GitHub-Api-Version: 2026-03-10 or later. A request with no header gets 2022-11-28 today, where this still works, and 2022-11-28 ends support on March 10, 2028 (GH-9.rest-2022-11-28). A pin to 2022-11-28 is fine until then.",
+        "apiVersionSince": "2026-03-10"
+      },
+      "replacement": "The assignees array, for both reading and writing.",
+      "replacementIds": ["assignees"],
+      "requires": [
+        "One value becomes a list: decide what to do with zero or several, and don't just take the first without checking it exists."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-4.has_downloads",
+      "provider": "github",
+      "what": "has_downloads on the Repository response, at REST version 2026-03-10. The page lists the response only: sending it in a create or update request isn't covered here.",
+      "diedOn": "2026-03-10",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "checkedOn": "2026-11-05",
+        "quote": "Remove deprecated has_downloads property from Repository response"
+      },
+      "lookFor": ["has_downloads read from a repository object"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bhas_downloads\\b",
+          "ambiguous": true
+        }
+      ],
+      "versions": "A break only for requests sent with X-GitHub-Api-Version: 2026-03-10 or later. A request with no header gets 2022-11-28 today, where this still works, and 2022-11-28 ends support on March 10, 2028 (GH-9.rest-2022-11-28). A pin to 2022-11-28 is fine until then.",
+      "appliesTo": {
+        "describe": "A break only for requests sent with X-GitHub-Api-Version: 2026-03-10 or later. A request with no header gets 2022-11-28 today, where this still works, and 2022-11-28 ends support on March 10, 2028 (GH-9.rest-2022-11-28). A pin to 2022-11-28 is fine until then.",
+        "apiVersionSince": "2026-03-10"
+      },
+      "replacement": "None listed on the provider page when this was added.",
+      "requires": [
+        "Remove the read: a missing value is undefined, which is falsy, so a check silently flips."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-4.use_squash_pr_title_as_default",
+      "provider": "github",
+      "what": "use_squash_pr_title_as_default on repository settings endpoints, at REST version 2026-03-10.",
+      "diedOn": "2026-03-10",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "checkedOn": "2026-11-05",
+        "quote": "This property has been replaced by squash_merge_commit_title"
+      },
+      "lookFor": ["use_squash_pr_title_as_default read from or sent to a repository"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\buse_squash_pr_title_as_default\\b",
+          "ambiguous": true
+        }
+      ],
+      "versions": "A break only for requests sent with X-GitHub-Api-Version: 2026-03-10 or later. A request with no header gets 2022-11-28 today, where this still works, and 2022-11-28 ends support on March 10, 2028 (GH-9.rest-2022-11-28). A pin to 2022-11-28 is fine until then.",
+      "appliesTo": {
+        "describe": "A break only for requests sent with X-GitHub-Api-Version: 2026-03-10 or later. A request with no header gets 2022-11-28 today, where this still works, and 2022-11-28 ends support on March 10, 2028 (GH-9.rest-2022-11-28). A pin to 2022-11-28 is fine until then.",
+        "apiVersionSince": "2026-03-10"
+      },
+      "replacement": "squash_merge_commit_title.",
+      "replacementIds": ["squash_merge_commit_title"],
+      "requires": [
+        "A boolean becomes an enum, PR_TITLE or COMMIT_OR_PR_TITLE. Reading, not on the page: true maps to PR_TITLE."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-4.cvss",
+      "provider": "github",
+      "what": "The cvss property on advisory APIs, at REST version 2026-03-10. The 2025-03-27 changelog said it would go from the REST API on April 1, 2025 and from GraphQL on October 1, 2025, but on 2026-11-05 GET /advisories and securityAdvisories in GraphQL both still return it at the default version, so only the versioned removal is listed.",
+      "diedOn": "2026-03-10",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecate cvss property in favor of cvss_severities for advisory APIs"
+      },
+      "lookFor": [
+        "advisory.cvss.score or .vector_string from /advisories, /security-advisories or Dependabot alerts",
+        "Not cvss_severities"
+      ],
+      "matchers": [
+        {
+          "kind": "field",
+          "value": "cvss",
+          "on": ["advisory", "security_advisory", "securityAdvisory", "ghsa"],
+          "ambiguous": true
+        }
+      ],
+      "versions": "A break only for requests sent with X-GitHub-Api-Version: 2026-03-10 or later. A request with no header gets 2022-11-28 today, where this still works, and 2022-11-28 ends support on March 10, 2028 (GH-9.rest-2022-11-28). A pin to 2022-11-28 is fine until then.",
+      "appliesTo": {
+        "describe": "A break only for requests sent with X-GitHub-Api-Version: 2026-03-10 or later. A request with no header gets 2022-11-28 today, where this still works, and 2022-11-28 ends support on March 10, 2028 (GH-9.rest-2022-11-28). A pin to 2022-11-28 is fine until then.",
+        "apiVersionSince": "2026-03-10"
+      },
+      "replacement": "cvss_severities, which holds cvss_v3 and cvss_v4.",
+      "replacementIds": ["cvss_severities"],
+      "requires": [
+        "Pick which score to use: cvss_v4 may be present without cvss_v3, or the reverse, and either can be missing."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-4.beta-media-type",
+      "provider": "github",
+      "what": "The beta media type, at REST version 2026-03-10.",
+      "diedOn": "2026-03-10",
+      "source": {
+        "url": "https://docs.github.com/en/rest/about-the-rest-api/breaking-changes",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecate support for the beta media type"
+      },
+      "lookFor": ["Accept: application/vnd.github.beta+json or application/vnd.github.beta"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "application/vnd\\.github\\.beta\\b"
+        }
+      ],
+      "versions": "A break only for requests sent with X-GitHub-Api-Version: 2026-03-10 or later. A request with no header gets 2022-11-28 today, where this still works, and 2022-11-28 ends support on March 10, 2028 (GH-9.rest-2022-11-28). A pin to 2022-11-28 is fine until then.",
+      "appliesTo": {
+        "describe": "A break only for requests sent with X-GitHub-Api-Version: 2026-03-10 or later. A request with no header gets 2022-11-28 today, where this still works, and 2022-11-28 ends support on March 10, 2028 (GH-9.rest-2022-11-28). A pin to 2022-11-28 is fine until then.",
+        "apiVersionSince": "2026-03-10"
+      },
+      "replacement": "Not named as such on the page. Reading: Accept: application/vnd.github+json, the current media type in the docs.",
+      "requires": [
+        "The beta type changed payloads: emails was a flat array of strings, and user and master_branch stand for owner and default_branch. Code written against it must move to those shapes too."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-5.pushedDate",
+      "provider": "github",
+      "what": "Commit.pushedDate in GraphQL. It is still in the public schema, but returned null on 2026-11-05 for two commits checked, including a commit from July 2026, so code doesn't fail, it just gets null.",
+      "diedOn": "2023-07-01",
+      "source": {
+        "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+        "checkedOn": "2026-11-05",
+        "quote": "pushedDate will be removed."
+      },
+      "lookFor": ["pushedDate in a GitHub GraphQL query or read from its result"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bpushedDate\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added: its reason is only that pushedDate is no longer supported. Reading, not on the page: committedDate, which is a different moment from a push.",
+      "replacementIds": ["committedDate"],
+      "requires": [
+        "committedDate is set by the committer and can be older than the push, so code ordering or filtering by push time changes meaning. Say so in the PR."
+      ],
+      "context": {
+        "packages": ["octokit", "@octokit/graphql", "@octokit/core", "@actions/github"],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-6.artifacts-v1-v2",
+      "provider": "github",
+      "what": "v1 and v2 of actions/upload-artifact and actions/download-artifact. Using them fails the workflow on github.com, even though the tags still exist.",
+      "diedOn": "2024-06-30",
+      "source": {
+        "url": "https://github.blog/changelog/2024-02-13-deprecation-notice-v1-and-v2-of-the-artifact-actions/",
+        "checkedOn": "2026-11-05",
+        "quote": "will result in a workflow failure"
+      },
+      "lookFor": [
+        "uses: actions/upload-artifact@v1 or @v2, and the same for download-artifact, including pins like @v2.3.1",
+        "A full SHA pin to these versions fails too, but can't be matched from the text, so check SHA pins by hand"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "actions/upload-artifact@v1"
+        },
+        {
+          "kind": "string",
+          "value": "actions/upload-artifact@v1.*"
+        },
+        {
+          "kind": "string",
+          "value": "actions/upload-artifact@v2"
+        },
+        {
+          "kind": "string",
+          "value": "actions/upload-artifact@v2.*"
+        },
+        {
+          "kind": "string",
+          "value": "actions/download-artifact@v1"
+        },
+        {
+          "kind": "string",
+          "value": "actions/download-artifact@v1.*"
+        },
+        {
+          "kind": "string",
+          "value": "actions/download-artifact@v2"
+        },
+        {
+          "kind": "string",
+          "value": "actions/download-artifact@v2.*"
+        }
+      ],
+      "versions": "github.com only. The page says this does not affect existing GitHub Enterprise Server versions.",
+      "appliesTo": {
+        "describe": "github.com only. The page says this does not affect existing GitHub Enterprise Server versions."
+      },
+      "replacement": "v4 of actions/upload-artifact and actions/download-artifact. Later majors exist; the page names v4.",
+      "replacementIds": ["actions/upload-artifact@v4", "actions/download-artifact@v4"],
+      "requires": [
+        "Move upload and download together in the same change: v4 can't read artifacts from older versions.",
+        "v4 artifacts are immutable and names must be unique within a run, so a matrix that uploads to one name needs a name per job, and download needs merge-multiple or per-name handling.",
+        "Hidden files are ignored by default in current releases, so an upload that relied on them needs include-hidden-files."
+      ]
+    },
+    {
+      "id": "GH-6.artifacts-v3",
+      "provider": "github",
+      "what": "v3 of actions/upload-artifact and actions/download-artifact. Using it fails the workflow on github.com.",
+      "diedOn": "2025-01-30",
+      "source": {
+        "url": "https://github.blog/changelog/2024-04-16-deprecation-notice-v3-of-the-artifact-actions/",
+        "checkedOn": "2026-11-05",
+        "quote": "will no longer be able to use v3 of actions/upload-artifact or actions/download-artifact"
+      },
+      "lookFor": [
+        "uses: actions/upload-artifact@v3 or actions/download-artifact@v3, including pins like @v3.1.2"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "actions/upload-artifact@v3"
+        },
+        {
+          "kind": "string",
+          "value": "actions/upload-artifact@v3.*"
+        },
+        {
+          "kind": "string",
+          "value": "actions/download-artifact@v3"
+        },
+        {
+          "kind": "string",
+          "value": "actions/download-artifact@v3.*"
+        }
+      ],
+      "versions": "github.com only.",
+      "appliesTo": {
+        "describe": "github.com only."
+      },
+      "replacement": "v4 of actions/upload-artifact and actions/download-artifact. Later majors exist; the page names v4.",
+      "replacementIds": ["actions/upload-artifact@v4", "actions/download-artifact@v4"],
+      "requires": [
+        "Move upload and download together in the same change: v4 can't read artifacts from older versions.",
+        "v4 artifacts are immutable and names must be unique within a run, so a matrix that uploads to one name needs a name per job, and download needs merge-multiple or per-name handling.",
+        "Hidden files are ignored by default in current releases, so an upload that relied on them needs include-hidden-files."
+      ]
+    },
+    {
+      "id": "GH-6.cache-v1-v2",
+      "provider": "github",
+      "what": "v1 and v2 of actions/cache. Using them fails the workflow on github.com.",
+      "diedOn": "2025-03-01",
+      "source": {
+        "url": "https://github.blog/changelog/2024-09-16-notice-of-upcoming-deprecations-and-changes-in-github-actions-services/",
+        "checkedOn": "2026-11-05",
+        "quote": "The action and cache package will be fully retired on March 1st."
+      },
+      "lookFor": ["uses: actions/cache@v1 or @v2, including pins like @v2.1.7"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "actions/cache@v1"
+        },
+        {
+          "kind": "string",
+          "value": "actions/cache@v1.*"
+        },
+        {
+          "kind": "string",
+          "value": "actions/cache@v2"
+        },
+        {
+          "kind": "string",
+          "value": "actions/cache@v2.*"
+        }
+      ],
+      "versions": "github.com only. The page says this does not affect GitHub Enterprise Server.",
+      "appliesTo": {
+        "describe": "github.com only. The page says this does not affect GitHub Enterprise Server."
+      },
+      "replacement": "actions/cache@v4, or v3. Later majors exist; the page names v3 and v4.",
+      "replacementIds": ["actions/cache@v4"],
+      "requires": [
+        "Usually only the version changes, and caches saved by old versions may miss once."
+      ]
+    },
+    {
+      "id": "GH-6.cache-old-pins",
+      "provider": "github",
+      "what": "Pinned actions/cache releases older than v3.4.0 and v4.2.0. The major tags v3 and v4 moved forward, but an exact pin to an older release uses the retired cache service. The source page gives the service's end date, not these versions: the cutoff is from the actions/cache README (https://github.com/actions/cache), \"please use the SHAs of versions v4.2.0 or v3.4.0\", and its package data agrees, since v3.3.3 and v4.1.2 use @actions/cache ^3.2.3 and v3.4.0 and v4.2.0 use ^4.0.0. The README's own date, February 1, 2025, was superseded by this later notice.",
+      "diedOn": "2025-04-15",
+      "source": {
+        "url": "https://github.blog/changelog/2025-03-20-notification-of-upcoming-breaking-changes-in-github-actions/",
+        "checkedOn": "2026-11-05",
+        "quote": "turning it off completely on April 15th, 2025"
+      },
+      "lookFor": [
+        "uses: actions/cache@v3.0.0 to v3.3.x, or v4.0.x and v4.1.x",
+        "A full SHA pin to these fails too, but can't be matched from the text"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?<![\\w./-])actions/cache(?:/save|/restore)?@v(?:3\\.[0-3]|4\\.[01])(?:\\.\\d+)?(?![\\w.])"
+        }
+      ],
+      "versions": "github.com only.",
+      "appliesTo": {
+        "describe": "github.com only."
+      },
+      "replacement": "actions/cache@v5, the major the README now leads with, which declares using: node24. The v3 and v4 tags were fixed for this service but declare node20, which is itself gone (GH-6.node20).",
+      "replacementIds": ["actions/cache@v5"],
+      "requires": [
+        "Usually only the version changes, but actions/cache@v5 needs Actions Runner 2.327.1 or later, so check any self-hosted runner."
+      ]
+    },
+    {
+      "id": "GH-6.toolkit-cache",
+      "provider": "github",
+      "what": "@actions/cache on npm before 4.0.0, for actions that call the cache service directly.",
+      "diedOn": "2025-03-01",
+      "source": {
+        "url": "https://github.blog/changelog/2024-12-05-notice-of-upcoming-releases-and-breaking-changes-for-github-actions/",
+        "checkedOn": "2026-11-05",
+        "quote": "prior to 4.0.0"
+      },
+      "lookFor": ["A package.json dependency on @actions/cache at a 0, 1, 2 or 3 version"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\\"@actions/cache\\\":\\s*\\\"[\\^~]?[0-3]\\."
+        }
+      ],
+      "versions": "github.com only.",
+      "appliesTo": {
+        "describe": "github.com only."
+      },
+      "replacement": "@actions/cache 4.0.0 or later.",
+      "requires": [
+        "An action bundles its dependencies, so rebuild and commit the dist folder too, or the old package keeps running."
+      ]
+    },
+    {
+      "id": "GH-6.pages-actions",
+      "provider": "github",
+      "what": "GitHub Pages deploy actions that depend on the retired artifact actions: actions/upload-pages-artifact before v3 and actions/deploy-pages before v4.",
+      "diedOn": "2025-01-30",
+      "source": {
+        "url": "https://github.blog/changelog/2024-12-05-deprecation-notice-github-pages-actions-to-require-artifacts-actions-v4-on-github-com/",
+        "checkedOn": "2026-11-05",
+        "quote": "Update your workflows before January 30, 2025 to avoid deployment failures."
+      },
+      "lookFor": [
+        "uses: actions/upload-pages-artifact@v1 or @v2",
+        "uses: actions/deploy-pages@v1, @v2 or @v3"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "actions/upload-pages-artifact@v1"
+        },
+        {
+          "kind": "string",
+          "value": "actions/upload-pages-artifact@v1.*"
+        },
+        {
+          "kind": "string",
+          "value": "actions/upload-pages-artifact@v2"
+        },
+        {
+          "kind": "string",
+          "value": "actions/upload-pages-artifact@v2.*"
+        },
+        {
+          "kind": "string",
+          "value": "actions/deploy-pages@v1"
+        },
+        {
+          "kind": "string",
+          "value": "actions/deploy-pages@v1.*"
+        },
+        {
+          "kind": "string",
+          "value": "actions/deploy-pages@v2"
+        },
+        {
+          "kind": "string",
+          "value": "actions/deploy-pages@v2.*"
+        },
+        {
+          "kind": "string",
+          "value": "actions/deploy-pages@v3"
+        },
+        {
+          "kind": "string",
+          "value": "actions/deploy-pages@v3.*"
+        }
+      ],
+      "versions": "github.com only.",
+      "appliesTo": {
+        "describe": "github.com only."
+      },
+      "replacement": "actions/upload-pages-artifact@v3 and actions/deploy-pages@v4. Later majors exist; the page names these.",
+      "replacementIds": ["actions/upload-pages-artifact@v3", "actions/deploy-pages@v4"],
+      "requires": ["Move both in the same change: they share the artifact format."]
+    },
+    {
+      "id": "GH-6.set-env-add-path",
+      "provider": "github",
+      "what": "The set-env and add-path workflow commands. Workflow runs using them fail.",
+      "diedOn": "2020-11-16",
+      "source": {
+        "url": "https://github.blog/changelog/2020-11-09-github-actions-removing-set-env-and-add-path-commands-on-november-16/",
+        "checkedOn": "2026-11-05",
+        "quote": "we will disable those commands and start failing workflow runs that use them on November 16, 2020"
+      },
+      "lookFor": [
+        "echo \"::set-env name=X::value\" and echo \"::add-path::/some/dir\"",
+        "@actions/core below 1.2.6 emits them too, in a bundled action"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "::(?:set-env|add-path)\\b"
+        }
+      ],
+      "replacement": "Environment files: append NAME=value to $GITHUB_ENV, and a path to $GITHUB_PATH. Toolkit users take @actions/core 1.2.6 or later.",
+      "replacementIds": ["GITHUB_ENV", "GITHUB_PATH"],
+      "requires": [
+        "The value only exists from the next step, same as before.",
+        "Multi-line values need the delimiter syntax in $GITHUB_ENV."
+      ]
+    },
+    {
+      "id": "GH-6.short-sha",
+      "provider": "github",
+      "what": "Referencing an action by a shortened commit SHA, such as actions/checkout@5a4ac90.",
+      "diedOn": "2021-02-15",
+      "source": {
+        "url": "https://github.blog/changelog/2021-01-21-github-actions-short-sha-deprecation/",
+        "checkedOn": "2026-11-05",
+        "quote": "remove support for referencing actions using the shortened version of a git commit SHA"
+      },
+      "lookFor": ["uses: owner/repo@ followed by 7 to 39 hex characters"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\buses:\\s*['\\\"]?[\\w./-]+@[0-9a-f]{7,39}\\b"
+        }
+      ],
+      "replacement": "The full 40-character commit SHA.",
+      "requires": [
+        "Look up the full SHA from the action's repository. Don't guess it, and keep the same commit unless upgrading on purpose."
+      ]
+    },
+    {
+      "id": "GH-6.node12",
+      "provider": "github",
+      "what": "Actions declaring using: node12. The page gives Node 16 as the replacement, which has since gone too.",
+      "diedOn": "2023-08-14",
+      "source": {
+        "url": "https://github.blog/changelog/2023-07-17-github-actions-removal-of-node12-from-the-actions-runner/",
+        "checkedOn": "2026-11-05",
+        "quote": "we will remove Node12 from the Actions runner on the 14th of August 2023"
+      },
+      "lookFor": [
+        "using: node12 in an action. In an action.yml or action.yaml, under runs. Workflows that use the action can't change this: they need a newer release of it."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "^\\s*using:\\s*['\\\"]?node12['\\\"]?\\s*(?:#.*)?$"
+        }
+      ],
+      "replacement": "using: node24. The page names node16, which is also gone (GH-6.node16).",
+      "replacementIds": ["node24"],
+      "requires": [
+        "Rebuild and test the action under Node 24, and commit the bundled dist if it has one.",
+        "Publish a new release: the change reaches users through the action's tag.",
+        "Node 24 is incompatible with macOS 13.4 and earlier and has no official ARM32 support, so self-hosted runners there are unsupported."
+      ]
+    },
+    {
+      "id": "GH-6.node16",
+      "provider": "github",
+      "what": "Actions declaring using: node16. The page gives Node 20 as the replacement, which has since gone too. This doesn't make the action fail: actions/runner's HandlerFactory.cs says \"Keep accepting legacy action manifests, but execute all JavaScript actions using node24\", so it loads and runs on Node 24 whatever it was written for. That was read from the source, not run, so don't call it a hard failure in a PR.",
+      "diedOn": "2024-11-12",
+      "source": {
+        "url": "https://github.blog/changelog/2024-09-25-end-of-life-for-actions-node16/",
+        "checkedOn": "2026-11-05",
+        "quote": "we will no longer include Node16 in the Actions runner"
+      },
+      "lookFor": [
+        "using: node16 in an action. In an action.yml or action.yaml, under runs. Workflows that use the action can't change this: they need a newer release of it."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "^\\s*using:\\s*['\\\"]?node16['\\\"]?\\s*(?:#.*)?$"
+        }
+      ],
+      "replacement": "using: node24. The page names node20, which is also gone (GH-6.node20).",
+      "replacementIds": ["node24"],
+      "requires": [
+        "Rebuild and test the action under Node 24, and commit the bundled dist if it has one.",
+        "Publish a new release: the change reaches users through the action's tag.",
+        "Node 24 is incompatible with macOS 13.4 and earlier and has no official ARM32 support, so self-hosted runners there are unsupported."
+      ]
+    },
+    {
+      "id": "GH-6.node20",
+      "provider": "github",
+      "what": "Actions declaring using: node20. Runners use Node 24 for JavaScript actions and the opt-out is gone, so these run on Node 24 whether or not they were written for it.",
+      "diedOn": "2026-09-23",
+      "source": {
+        "url": "https://github.blog/changelog/2026-09-23-node-20-is-no-longer-available-in-github-actions/",
+        "checkedOn": "2026-11-05",
+        "quote": "Node 20 is no longer available on GitHub Actions runners"
+      },
+      "lookFor": [
+        "using: node20 in an action. In an action.yml or action.yaml, under runs. Workflows that use the action can't change this: they need a newer release of it.",
+        "ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION set in a workflow: the opt-out no longer works"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "^\\s*using:\\s*['\\\"]?node20['\\\"]?\\s*(?:#.*)?$"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION\\b"
+        }
+      ],
+      "replacement": "using: node24.",
+      "replacementIds": ["node24"],
+      "requires": [
+        "Rebuild and test the action under Node 24, and commit the bundled dist if it has one.",
+        "Publish a new release: the change reaches users through the action's tag.",
+        "Node 24 is incompatible with macOS 13.4 and earlier and has no official ARM32 support, so self-hosted runners there are unsupported."
+      ]
+    },
+    {
+      "id": "GH-7.ubuntu-16.04",
+      "provider": "github",
+      "what": "The ubuntu-16.04 hosted runner image.",
+      "diedOn": "2021-09-20",
+      "source": {
+        "url": "https://github.blog/changelog/2021-04-29-github-actions-ubuntu-16-04-lts-virtual-environment-will-be-removed-on-september-20-2021/",
+        "checkedOn": "2026-11-05",
+        "quote": "will be removed from GitHub Actions on September 20, 2021"
+      },
+      "lookFor": [
+        "runs-on: ubuntu-16.04 in a workflow, or that label in a matrix of operating systems. A job with self-hosted in runs-on is not affected, nor is the same name in a README or a Dockerfile, so read the context around a matrix hit"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "runs-on:(?!.*self-hosted).*(?<![\\w.-])(?:[Uu]buntu-16\\.04)(?![\\w.-])"
+        },
+        {
+          "kind": "string",
+          "value": "ubuntu-16.04",
+          "caseSensitive": false,
+          "ambiguous": true
+        }
+      ],
+      "replacement": "ubuntu-latest, per the page, or a pin to ubuntu-24.04.",
+      "replacementIds": ["ubuntu-latest", "ubuntu-24.04"],
+      "requires": [
+        "Newer images remove and change preinstalled tools, so a step relying on one may fail, and needs an explicit setup step. Say in the PR which steps were not run.",
+        "ubuntu-latest moves to Ubuntu 26.04 between October 19 and November 19, 2026, so pin ubuntu-24.04 if a build is sensitive to that."
+      ]
+    },
+    {
+      "id": "GH-7.ubuntu-18.04",
+      "provider": "github",
+      "what": "The ubuntu-18.04 hosted runner image. The 2022 changelog title says 12/1/22, but GitHub moved it: its note says the schedule was extended until April 2023, and the source here gives the final date.",
+      "diedOn": "2023-04-03",
+      "source": {
+        "url": "https://github.com/actions/runner-images/issues/6002",
+        "checkedOn": "2026-11-05",
+        "quote": "will be fully unsupported by 2023/04/03"
+      },
+      "lookFor": [
+        "runs-on: ubuntu-18.04 in a workflow, or that label in a matrix of operating systems. A job with self-hosted in runs-on is not affected, nor is the same name in a README or a Dockerfile, so read the context around a matrix hit"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "runs-on:(?!.*self-hosted).*(?<![\\w.-])(?:[Uu]buntu-18\\.04)(?![\\w.-])"
+        },
+        {
+          "kind": "string",
+          "value": "ubuntu-18.04",
+          "caseSensitive": false,
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The changelog names ubuntu-20.04, ubuntu-22.04 or ubuntu-latest, and ubuntu-20.04 has since gone. Use ubuntu-latest or ubuntu-24.04.",
+      "replacementIds": ["ubuntu-latest", "ubuntu-24.04"],
+      "requires": [
+        "Newer images remove and change preinstalled tools, so a step relying on one may fail, and needs an explicit setup step. Say in the PR which steps were not run.",
+        "ubuntu-latest moves to Ubuntu 26.04 between October 19 and November 19, 2026, so pin ubuntu-24.04 if a build is sensitive to that."
+      ]
+    },
+    {
+      "id": "GH-7.ubuntu-20.04",
+      "provider": "github",
+      "what": "The ubuntu-20.04 hosted runner image.",
+      "diedOn": "2025-04-15",
+      "source": {
+        "url": "https://github.blog/changelog/2025-01-15-github-actions-ubuntu-20-runner-image-brownout-dates-and-other-breaking-changes/",
+        "checkedOn": "2026-11-05",
+        "quote": "This image will be fully retired by April 15, 2025"
+      },
+      "lookFor": [
+        "runs-on: ubuntu-20.04 in a workflow, or that label in a matrix of operating systems. A job with self-hosted in runs-on is not affected, nor is the same name in a README or a Dockerfile, so read the context around a matrix hit"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "runs-on:(?!.*self-hosted).*(?<![\\w.-])(?:[Uu]buntu-20\\.04)(?![\\w.-])"
+        },
+        {
+          "kind": "string",
+          "value": "ubuntu-20.04",
+          "caseSensitive": false,
+          "ambiguous": true
+        }
+      ],
+      "replacement": "ubuntu-22.04 or ubuntu-24.04, per the page.",
+      "replacementIds": ["ubuntu-22.04", "ubuntu-24.04"],
+      "requires": [
+        "Newer images remove and change preinstalled tools, so a step relying on one may fail, and needs an explicit setup step. Say in the PR which steps were not run.",
+        "ubuntu-latest moves to Ubuntu 26.04 between October 19 and November 19, 2026, so pin ubuntu-24.04 if a build is sensitive to that."
+      ]
+    },
+    {
+      "id": "GH-7.macos-10.15",
+      "provider": "github",
+      "what": "The macos-10.15 hosted runner image.",
+      "diedOn": "2022-08-30",
+      "source": {
+        "url": "https://github.blog/changelog/2022-07-20-github-actions-the-macos-10-15-actions-runner-image-is-being-deprecated-and-will-be-removed-by-8-30-22/",
+        "checkedOn": "2026-11-05",
+        "quote": "will be fully unsupported by 8/30/22"
+      },
+      "lookFor": [
+        "runs-on: macos-10.15 in a workflow, or that label in a matrix of operating systems. A job with self-hosted in runs-on is not affected, nor is the same name in a README or a Dockerfile, so read the context around a matrix hit"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "runs-on:(?!.*self-hosted).*(?<![\\w.-])(?:[Mm]ac[Oo][Ss]-10\\.15)(?![\\w.-])"
+        },
+        {
+          "kind": "string",
+          "value": "macos-10.15",
+          "caseSensitive": false,
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names macos-11, macos-12 or macos-latest, of which only macos-latest is left. Use macos-latest or macos-15.",
+      "replacementIds": ["macos-latest", "macos-15"],
+      "requires": [
+        "macos-15 and macos-latest are arm64. A build that needs x86_64 uses macos-15-intel or macos-26-intel, both listed as x64 in the actions/runner-images README. GitHub's 2025-09-19 changelog said x86_64 ends when the macOS 15 image retires in Fall 2027, which macos-26-intel appears to contradict, so recheck before relying on either.",
+        "Xcode versions differ per image, so check any pinned xcode-select path."
+      ]
+    },
+    {
+      "id": "GH-7.macos-11",
+      "provider": "github",
+      "what": "The macos-11 hosted runner image.",
+      "diedOn": "2024-06-28",
+      "source": {
+        "url": "https://github.blog/changelog/2024-05-20-actions-upcoming-changes-to-github-hosted-macos-runners/",
+        "checkedOn": "2026-11-05",
+        "quote": "The macOS 11 runner image will be removed on 6/28/2024."
+      },
+      "lookFor": [
+        "runs-on: macos-11 in a workflow, or that label in a matrix of operating systems. A job with self-hosted in runs-on is not affected, nor is the same name in a README or a Dockerfile, so read the context around a matrix hit"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "runs-on:(?!.*self-hosted).*(?<![\\w.-])(?:[Mm]ac[Oo][Ss]-11)(?![\\w.-])"
+        },
+        {
+          "kind": "string",
+          "value": "macos-11",
+          "caseSensitive": false,
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names macos-14, macos-13, macos-12 or macos-latest, of which only macos-latest is left. Use macos-latest or macos-15.",
+      "replacementIds": ["macos-latest", "macos-15"],
+      "requires": [
+        "macos-15 and macos-latest are arm64. A build that needs x86_64 uses macos-15-intel or macos-26-intel, both listed as x64 in the actions/runner-images README. GitHub's 2025-09-19 changelog said x86_64 ends when the macOS 15 image retires in Fall 2027, which macos-26-intel appears to contradict, so recheck before relying on either.",
+        "Xcode versions differ per image, so check any pinned xcode-select path."
+      ]
+    },
+    {
+      "id": "GH-7.macos-12",
+      "provider": "github",
+      "what": "The macos-12 hosted runner image.",
+      "diedOn": "2024-12-03",
+      "source": {
+        "url": "https://github.com/actions/runner-images/issues/10721",
+        "checkedOn": "2026-11-05",
+        "quote": "will be fully unsupported by 12/3/24 for GitHub"
+      },
+      "lookFor": [
+        "runs-on: macos-12 in a workflow, or that label in a matrix of operating systems. A job with self-hosted in runs-on is not affected, nor is the same name in a README or a Dockerfile, so read the context around a matrix hit"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "runs-on:(?!.*self-hosted).*(?<![\\w.-])(?:[Mm]ac[Oo][Ss]-12)(?![\\w.-])"
+        },
+        {
+          "kind": "string",
+          "value": "macos-12",
+          "caseSensitive": false,
+          "ambiguous": true
+        }
+      ],
+      "replacement": "macos-latest or macos-15. The source names no replacement that is still live.",
+      "replacementIds": ["macos-latest", "macos-15"],
+      "requires": [
+        "macos-15 and macos-latest are arm64. A build that needs x86_64 uses macos-15-intel or macos-26-intel, both listed as x64 in the actions/runner-images README. GitHub's 2025-09-19 changelog said x86_64 ends when the macOS 15 image retires in Fall 2027, which macos-26-intel appears to contradict, so recheck before relying on either.",
+        "Xcode versions differ per image, so check any pinned xcode-select path."
+      ]
+    },
+    {
+      "id": "GH-7.macos-13",
+      "provider": "github",
+      "what": "The macos-13 hosted runner images: macos-13, macos-13-large and macos-13-xlarge.",
+      "diedOn": "2025-12-04",
+      "source": {
+        "url": "https://github.blog/changelog/2025-09-19-github-actions-macos-13-runner-image-is-closing-down/",
+        "checkedOn": "2026-11-05",
+        "quote": "will be retired by December 4th, 2025"
+      },
+      "lookFor": [
+        "runs-on: macos-13 in a workflow, or that label in a matrix of operating systems. A job with self-hosted in runs-on is not affected, nor is the same name in a README or a Dockerfile, so read the context around a matrix hit"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "runs-on:(?!.*self-hosted).*(?<![\\w.-])(?:[Mm]ac[Oo][Ss]-13|[Mm]ac[Oo][Ss]-13-large|[Mm]ac[Oo][Ss]-13-xlarge)(?![\\w.-])"
+        },
+        {
+          "kind": "string",
+          "value": "macos-13",
+          "caseSensitive": false,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "macos-13-large",
+          "caseSensitive": false,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "macos-13-xlarge",
+          "caseSensitive": false,
+          "ambiguous": true
+        }
+      ],
+      "replacement": "macos-15 or macos-latest for arm64, and macos-15-intel for x86_64. The page also names macos-14, which has since gone.",
+      "replacementIds": ["macos-15", "macos-latest", "macos-15-intel"],
+      "requires": [
+        "macos-15 and macos-latest are arm64. A build that needs x86_64 uses macos-15-intel or macos-26-intel, both listed as x64 in the actions/runner-images README. GitHub's 2025-09-19 changelog said x86_64 ends when the macOS 15 image retires in Fall 2027, which macos-26-intel appears to contradict, so recheck before relying on either.",
+        "Xcode versions differ per image, so check any pinned xcode-select path."
+      ]
+    },
+    {
+      "id": "GH-7.macos-14",
+      "provider": "github",
+      "what": "The macos-14 hosted runner images: macos-14, macos-14-large and macos-14-xlarge.",
+      "diedOn": "2026-11-02",
+      "source": {
+        "url": "https://github.blog/changelog/2026-10-01-github-actions-macos-14-runner-image-retirement/",
+        "checkedOn": "2026-11-05",
+        "quote": "will be retired on November 2, 2026"
+      },
+      "lookFor": [
+        "runs-on: macos-14 in a workflow, or that label in a matrix of operating systems. A job with self-hosted in runs-on is not affected, nor is the same name in a README or a Dockerfile, so read the context around a matrix hit"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "runs-on:(?!.*self-hosted).*(?<![\\w.-])(?:[Mm]ac[Oo][Ss]-14|[Mm]ac[Oo][Ss]-14-large|[Mm]ac[Oo][Ss]-14-xlarge)(?![\\w.-])"
+        },
+        {
+          "kind": "string",
+          "value": "macos-14",
+          "caseSensitive": false,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "macos-14-large",
+          "caseSensitive": false,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "macos-14-xlarge",
+          "caseSensitive": false,
+          "ambiguous": true
+        }
+      ],
+      "replacement": "macos-latest or macos-15, and macos-latest-xlarge or macos-15-xlarge for the larger labels.",
+      "replacementIds": ["macos-latest", "macos-15", "macos-latest-xlarge", "macos-15-xlarge"],
+      "requires": [
+        "macos-15 and macos-latest are arm64. A build that needs x86_64 uses macos-15-intel or macos-26-intel, both listed as x64 in the actions/runner-images README. GitHub's 2025-09-19 changelog said x86_64 ends when the macOS 15 image retires in Fall 2027, which macos-26-intel appears to contradict, so recheck before relying on either.",
+        "Xcode versions differ per image, so check any pinned xcode-select path."
+      ]
+    },
+    {
+      "id": "GH-7.windows-2016",
+      "provider": "github",
+      "what": "The windows-2016 hosted runner image.",
+      "diedOn": "2022-03-15",
+      "source": {
+        "url": "https://github.blog/changelog/2021-10-19-github-actions-the-windows-2016-runner-image-will-be-removed-from-github-hosted-runners-on-march-15-2022/",
+        "checkedOn": "2026-11-05",
+        "quote": "will be removed from GitHub Actions on March 15, 2022"
+      },
+      "lookFor": [
+        "runs-on: windows-2016 in a workflow, or that label in a matrix of operating systems. A job with self-hosted in runs-on is not affected, nor is the same name in a README or a Dockerfile, so read the context around a matrix hit"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "runs-on:(?!.*self-hosted).*(?<![\\w.-])(?:[Ww]indows-2016)(?![\\w.-])"
+        },
+        {
+          "kind": "string",
+          "value": "windows-2016",
+          "caseSensitive": false,
+          "ambiguous": true
+        }
+      ],
+      "replacement": "windows-latest, per the page, or a pin to windows-2025.",
+      "replacementIds": ["windows-latest", "windows-2025"],
+      "requires": [
+        "Preinstalled Visual Studio versions differ per image, so check any build pinned to one, and say in the PR which steps were not run."
+      ]
+    },
+    {
+      "id": "GH-7.windows-2019",
+      "provider": "github",
+      "what": "The windows-2019 hosted runner image.",
+      "diedOn": "2025-06-30",
+      "source": {
+        "url": "https://github.blog/changelog/2025-04-15-upcoming-breaking-changes-and-releases-for-github-actions/",
+        "checkedOn": "2026-11-05",
+        "quote": "This image will be fully retired by June 30, 2025"
+      },
+      "lookFor": [
+        "runs-on: windows-2019 in a workflow, or that label in a matrix of operating systems. A job with self-hosted in runs-on is not affected, nor is the same name in a README or a Dockerfile, so read the context around a matrix hit"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "runs-on:(?!.*self-hosted).*(?<![\\w.-])(?:[Ww]indows-2019)(?![\\w.-])"
+        },
+        {
+          "kind": "string",
+          "value": "windows-2019",
+          "caseSensitive": false,
+          "ambiguous": true
+        }
+      ],
+      "replacement": "windows-2022 or windows-2025, per the page.",
+      "replacementIds": ["windows-2022", "windows-2025"],
+      "requires": [
+        "Preinstalled Visual Studio versions differ per image, so check any build pinned to one, and say in the PR which steps were not run."
+      ]
+    },
+    {
+      "id": "GH-8.git-protocol",
+      "provider": "github",
+      "what": "The unencrypted Git protocol on GitHub: git://github.com/... URLs, in remotes, submodules, package manifests and install scripts. The post's timeline gives March 15, 2022 for the change becoming permanent, and the changelog of that day (https://github.blog/changelog/2022-03-15-removed-unencrypted-git-protocol-and-certain-ssh-keys/) says \"Permanently disabled the unencrypted Git protocol\".",
+      "diedOn": "2022-03-15",
+      "source": {
+        "url": "https://github.blog/security/application-security/improving-git-protocol-security-github/",
+        "checkedOn": "2026-11-05",
+        "quote": "unencrypted Git protocol will be permanently disabled"
+      },
+      "lookFor": [
+        "git://github.com/ and git+git://github.com/ URLs, including in package.json and .gitmodules",
+        "A lockfile holding one needs regenerating, and a transitive dependency may be what wrote it",
+        "Not git@github.com: or ssh://git@github.com, which are SSH and live",
+        "Not a git config insteadOf line that rewrites git://github.com/ to https: that is the workaround, and it works"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?<![iI]nstead[oO]f\\s*=?\\s*['\"]?)git://github\\.com(?![\\w-]|\\.[\\w-])"
+        }
+      ],
+      "replacement": "https://github.com/... URLs. The post says to make sure a URL starts with ssh://, https:// or git@github.com.",
+      "requires": [
+        "Regenerate any lockfile holding the old URL, instead of editing only the manifest.",
+        "An SSH URL also works, but needs a key on the machine, so prefer https for public dependencies."
+      ]
+    },
+    {
+      "id": "GH-8.subversion",
+      "provider": "github",
+      "what": "Subversion access to github.com repositories, often svn export used to download one folder.",
+      "diedOn": "2024-01-08",
+      "source": {
+        "url": "https://github.blog/changelog/2024-01-08-subversion-has-been-sunset/",
+        "checkedOn": "2026-11-05",
+        "quote": "has now removed support for the Subversion protocol on github.com"
+      },
+      "lookFor": ["svn export, checkout, co, ls, list, info or cat against a github.com URL"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bsvn\\s+(?:export|checkout|co|ls|list|info|cat)\\b.*github\\.com"
+        }
+      ],
+      "replacement": "The page lists no replacement for this: it mentions only that GitHub Importer migrates Subversion repositories to Git. Reading, not on the page: git clone --depth 1, with a sparse checkout, or the repository tarball.",
+      "requires": [
+        "Paths change: svn URLs contain /trunk/ or /branches/name/, which don't exist in a git clone. The default branch is the usual match for trunk."
+      ]
+    },
+    {
+      "id": "GH-8.github-models",
+      "provider": "github",
+      "what": "GitHub Models: the playground, catalog, inference API and bring your own key, at models.github.ai. An unauthenticated request there on 2026-11-05 still gets a 200 with a bare OK body, so don't treat a 200 as alive.",
+      "diedOn": "2026-07-30",
+      "source": {
+        "url": "https://github.blog/changelog/2026-07-30-github-models-is-now-retired/",
+        "checkedOn": "2026-11-05",
+        "quote": "As of July 30, 2026, GitHub Models is now retired."
+      },
+      "lookFor": [
+        "https://models.github.ai, usually as a baseURL for an OpenAI or Azure client with a GitHub token as the key"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "models.github.ai*"
+        }
+      ],
+      "replacement": "Microsoft Foundry for model access, or GitHub Copilot for AI-powered workflows on GitHub, per the page.",
+      "requires": [
+        "A new provider account, endpoint and key, which a person has to set up and say in the PR: a GITHUB_TOKEN no longer gets AI access this way.",
+        "Model IDs change: a Foundry deployment has its own name. Read it from config.",
+        "The billing moves too, so name it in the PR."
+      ]
+    },
+    {
+      "id": "GH-8.github-models-azure-endpoint",
+      "provider": "github",
+      "what": "The original GitHub Models endpoint at models.inference.ai.azure.com, which no longer connected in a check on 2026-11-05.",
+      "diedOn": "2025-10-17",
+      "source": {
+        "url": "https://github.blog/changelog/2025-07-17-deprecation-of-azure-endpoint-for-github-models/",
+        "checkedOn": "2026-11-05",
+        "quote": "we will remove support on October 17, 2025"
+      },
+      "lookFor": [
+        "https://models.inference.ai.azure.com, usually as a baseURL for an OpenAI or Azure client with a GitHub token as the key"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "models.inference.ai.azure.com*"
+        }
+      ],
+      "replacement": "The page names models.github.ai, which has since retired too (GH-8.github-models). Use Microsoft Foundry, or GitHub Copilot for workflows on GitHub, as the retirement post says.",
+      "requires": [
+        "A new provider account, endpoint and key, which a person has to set up and say in the PR: a GITHUB_TOKEN no longer gets AI access this way.",
+        "Model IDs change: a Foundry deployment has its own name. Read it from config.",
+        "The billing moves too, so name it in the PR."
+      ]
+    },
+    {
+      "id": "GH-8.github-jobs",
+      "provider": "github",
+      "what": "The GitHub Jobs site and its JSON and Atom APIs at jobs.github.com, such as /positions.json. The host no longer connected in a check on 2026-11-05.",
+      "diedOn": "2021-08-19",
+      "source": {
+        "url": "https://github.blog/changelog/2021-04-19-deprecation-notice-github-jobs-site/",
+        "checkedOn": "2026-11-05",
+        "quote": "on August 19th, will sunset the site entirely"
+      },
+      "lookFor": ["Requests to jobs.github.com, common in old tutorial projects"],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "jobs.github.com*"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added.",
+      "requires": [
+        "Nothing to move to on GitHub, so another job board API has to be chosen, with its own key and shape. A person decides, so say so in the PR."
+      ]
+    },
+    {
+      "id": "GH-8.gh-copilot-extension",
+      "provider": "github",
+      "what": "The gh-copilot extension for GitHub CLI, with gh copilot suggest and gh copilot explain.",
+      "diedOn": "2025-10-25",
+      "source": {
+        "url": "https://github.blog/changelog/2025-09-25-upcoming-deprecation-of-gh-copilot-cli-extension/",
+        "checkedOn": "2026-11-05",
+        "quote": "which will stop working on October 25, 2025"
+      },
+      "lookFor": [
+        "gh extension install github/gh-copilot",
+        "gh copilot suggest or gh copilot explain in scripts and docs"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gh-copilot"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bgh\\s+copilot\\s+(?:suggest|explain)\\b"
+        }
+      ],
+      "replacement": "The GitHub Copilot CLI. The page also names the gh-models extension for free plan users, but that depends on GitHub Models, which has since retired (GH-8.github-models).",
+      "requires": [
+        "A different tool, with its own install and a fully agentic interface: a script parsing suggest output has to be rewritten, not renamed.",
+        "The page says it wasn't available on the free plan, so a person has to confirm the plan."
+      ]
+    }
+  ],
+  "future": [
+    {
+      "id": "GH-9.sbom-export",
+      "provider": "github",
+      "what": "The synchronous SBOM export GET /repos/{owner}/{repo}/dependency-graph/sbom goes away. Not a break today.",
+      "diesOn": "2026-11-13",
+      "source": {
+        "url": "https://github.blog/changelog/2026-05-12-synchronous-sbom-api-deprecated/",
+        "checkedOn": "2026-11-05",
+        "quote": "slated for removal in six months, on November 13, 2026"
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "/dependency-graph/sbom(?![\\w/-])"
+        },
+        {
+          "kind": "regex",
+          "value": "\\b(?:\\w+\\.rest|octokit|github)\\.dependencyGraph\\.(?:exportSbom)\\b"
+        }
+      ],
+      "replacement": "/{owner}/{repo}/dependency-graph/sbom/generate-report, which returns a URL to poll until the report is ready.",
+      "replacementIds": ["/repos/{owner}/{repo}/dependency-graph/sbom/generate-report"],
+      "requires": ["A synchronous call becomes a poll loop, with a timeout, and then a download."],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-9.rest-2022-11-28",
+      "provider": "github",
+      "what": "REST API version 2022-11-28 ends support. Requests pinning it through X-GitHub-Api-Version then get 410 Gone. Requests with no header use it today and then move to the next oldest supported version, so they change too, but a text match can't see a missing header. Not a break today.",
+      "diesOn": "2028-03-10",
+      "source": {
+        "url": "https://github.com/github/docs/blob/main/data/tables/rest-api-versions.yml",
+        "checkedOn": "2026-11-05",
+        "quote": "end_of_support: 'March 10, 2028'"
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "X-GitHub-Api-Version['\\\"]?\\s*[:=,]\\s*['\\\"]?2022-11-28"
+        }
+      ],
+      "replacement": "X-GitHub-Api-Version: 2026-03-10.",
+      "replacementIds": ["2026-03-10"],
+      "requires": [
+        "Read the breaking changes for 2026-03-10: removed fields include merge_commit_sha, the singular assignee and rate on GET /rate_limit, and workflow dispatch returns 200 instead of 204."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-9.artifact-databaseid",
+      "provider": "github",
+      "what": "GraphQL Artifact.databaseId is scheduled for removal. Not a break today. This is marked earliest because several past dates on this page were not enforced, such as PullRequest.databaseId at 2024-07-01, which still answers.",
+      "diesOn": "2027-01-01",
+      "earliest": true,
+      "source": {
+        "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+        "checkedOn": "2026-11-05",
+        "quote": "databaseId will be removed. Use fullDatabaseId instead."
+      },
+      "matchers": [
+        {
+          "kind": "field",
+          "value": "databaseId",
+          "on": ["artifact", "Artifact"],
+          "ambiguous": true
+        }
+      ],
+      "replacement": "fullDatabaseId.",
+      "replacementIds": ["fullDatabaseId"],
+      "requires": [
+        "fullDatabaseId is a string, not an integer, because it holds 64-bit IDs. Code that stores or compares it as a number changes too."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-9.check-annotation-databaseid",
+      "provider": "github",
+      "what": "GraphQL CheckAnnotation.databaseId is scheduled for removal. Not a break today. This is marked earliest because several past dates on this page were not enforced.",
+      "diesOn": "2027-01-01",
+      "earliest": true,
+      "source": {
+        "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+        "checkedOn": "2026-11-05",
+        "quote": "databaseId will be removed. Use fullDatabaseId instead."
+      },
+      "matchers": [
+        {
+          "kind": "field",
+          "value": "databaseId",
+          "on": ["annotation", "checkAnnotation", "CheckAnnotation"],
+          "ambiguous": true
+        }
+      ],
+      "replacement": "fullDatabaseId.",
+      "replacementIds": ["fullDatabaseId"],
+      "requires": [
+        "fullDatabaseId is a string, not an integer, because it holds 64-bit IDs. Code that stores or compares it as a number changes too."
+      ],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    },
+    {
+      "id": "GH-9.triage-plus",
+      "provider": "github",
+      "what": "GraphQL RepositoryPermission.TRIAGE_PLUS is scheduled for removal. Not a break today. This is marked earliest because several past dates on this page were not enforced.",
+      "diesOn": "2027-04-01",
+      "earliest": true,
+      "source": {
+        "url": "https://docs.github.com/en/graphql/overview/breaking-changes",
+        "checkedOn": "2026-11-05",
+        "quote": "TRIAGE_PLUS will be removed. Use MODERATE instead."
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bTRIAGE_PLUS\\b"
+        }
+      ],
+      "replacement": "MODERATE.",
+      "replacementIds": ["MODERATE"],
+      "requires": ["Check any comparison or switch on the permission value as well as the query."],
+      "context": {
+        "packages": [
+          "octokit",
+          "@octokit/rest",
+          "@octokit/core",
+          "@octokit/request",
+          "@actions/github",
+          "PyGithub",
+          "pygithub"
+        ],
+        "hosts": ["api.github.com"]
+      }
+    }
+  ]
+}

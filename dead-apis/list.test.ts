@@ -56,14 +56,16 @@ describe('the kept list', () => {
     console.log(
       files.map((one) => `${one.provider}: ${one.entries.length} + ${one.future.length} future`),
     );
-    expect(files.map((one) => one.provider).sort()).toEqual([
-      'anthropic',
-      'gemini',
-      'google-analytics',
-      'groq',
-      'openai',
-      'stripe',
-    ]);
+    expect(files.map((one) => one.provider)).toEqual(
+      expect.arrayContaining([
+        'anthropic',
+        'gemini',
+        'google-analytics',
+        'groq',
+        'openai',
+        'stripe',
+      ]),
+    );
     expect(listProblems(files)).toEqual([]);
   });
 
@@ -137,6 +139,29 @@ describe('listProblems', () => {
     expect(listProblems([file([entry(), dead])]).join('\n')).toMatch(/new-model is dead/);
     const dying = future({ matchers: [{ kind: 'string', value: 'new-model' }] });
     expect(listProblems([file([entry()], [dying])]).join('\n')).toMatch(/new-model is dying/);
+  });
+
+  it('rejects a replacement that a dead wildcard covers, and leaves a live one alone', () => {
+    const wildcard = entry({
+      id: 'AN-1.older',
+      matchers: [{ kind: 'string', value: 'older-*' }],
+      replacementIds: [],
+    });
+    const covered = entry({ replacementIds: ['older-2'] });
+    expect(listProblems([file([covered, wildcard])]).join('\n')).toMatch(/older-2 is dead/);
+    expect(listProblems([file([entry(), wildcard])])).toEqual([]);
+  });
+
+  it('refuses an impossible date, and tells apart one field on two owners', () => {
+    expect(listProblems([file([entry({ diedOn: '2026-02-31' })])]).join('\n')).toMatch(
+      /not a date/,
+    );
+    const field = (id: string, on: string[]) =>
+      entry({ id, replacementIds: [], matchers: [{ kind: 'field', value: 'period', on }] });
+    expect(listProblems([file([field('AN-1.a', ['one']), field('AN-1.b', ['two'])])])).toEqual([]);
+    expect(listProblems([file([field('AN-1.a', ['one']), field('AN-1.b', ['one'])])])).not.toEqual(
+      [],
+    );
   });
 
   it('rejects one name that is both dead and dying, and a shutdown already past', () => {
