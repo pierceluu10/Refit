@@ -1,14 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import { App } from '../App';
 import { AgentDemo } from '../components/AgentDemo';
+import { Premiere } from './directions/Premiere';
 
-describe('homepage', () => {
+describe('Premiere direction', () => {
   it('renders the headline, both signups, the six steps and the closing section', () => {
     render(
-      <MemoryRouter initialEntries={['/']}>
-        <App />
+      <MemoryRouter>
+        <Premiere />
       </MemoryRouter>,
     );
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Refit fixed it.');

@@ -4,7 +4,7 @@ import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-rou
 import { PagePosition } from './components/Layout';
 import { Demo } from './pages/Demo';
 import { Docs } from './pages/Docs';
-import { Premiere } from './pages/directions/Premiere';
+import { Launch } from './pages/launch/Launch';
 import { Workspace } from './pages/Workspace';
 
 // The other design directions, loaded on demand so the homepage doesn't carry their fonts and
@@ -21,7 +21,7 @@ export function App() {
       </a>
       <PagePosition />
       <Routes>
-        <Route path="/" element={<Premiere />} />
+        <Route path="/" element={<Launch />} />
         <Route path="/demo" element={<Demo />} />
         <Route path="/docs" element={<Docs />} />
         <Route path="/sample/*" element={<Workspace />} />

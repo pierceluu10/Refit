@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 
 function NavigationProbe() {
@@ -26,10 +26,16 @@ function renderRoute(path: string) {
   );
 }
 
+// The launch page's script needs WebGL and video, which jsdom doesn't have.
+vi.mock('./pages/launch/page.js', () => ({ startLaunchPage: vi.fn() }));
+
 describe('workspace navigation', () => {
   it('sets the home tab title after the React app loads', () => {
     renderRoute('/');
     expect(document.title).toBe('Refit: Keep your integrations current');
+    expect(
+      document.querySelector('#main-content')?.shadowRoot?.querySelector('h1'),
+    ).toHaveTextContent('Agents that handle your integrations.');
   });
 
   it('redirects old /app links to the same sample workspace page', () => {
