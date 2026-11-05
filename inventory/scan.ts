@@ -56,9 +56,13 @@ function isEnvFile(name: string): boolean {
 }
 
 // Real env files are never read: their values would be secrets. Templates are fine.
+export function isSecretEnvFile(name: string): boolean {
+  return isEnvFile(name) && !/example|sample|template/i.test(name);
+}
+
 function scannable(file: string): boolean {
   const name = path.posix.basename(file);
-  if (isEnvFile(name)) return /example|sample|template/i.test(name);
+  if (isEnvFile(name)) return !isSecretEnvFile(name);
   if (/(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lock)$/.test(file)) return false;
   const ext = path.posix.extname(name);
   return JS_LIKE.has(ext) || ext === '.py' || OTHER_CODE.has(ext) || CONFIG.has(ext);

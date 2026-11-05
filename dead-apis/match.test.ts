@@ -88,6 +88,9 @@ describe('url matchers', () => {
     expect(urlMatches(matcher, 'https://api.openai.com/v1/edits')).toBe(true);
     expect(urlMatches(matcher, '"/v1/edits?x=1"')).toBe(true);
     expect(urlMatches(matcher, '/v1/edits-foo')).toBe(false);
+    expect(urlMatches(matcher, '`/v1/edits/${id}`')).toBe(false);
+    expect(urlMatches(matcher, '/v1/edits/{id}')).toBe(false);
+    expect(urlMatches(matcher, '/v1/edits/:id')).toBe(false);
     expect(urlMatches(matcher, '/v1/edits/thing')).toBe(false);
     const resource = { kind: 'url', value: '/v1/threads*' } as const;
     expect(urlMatches(resource, 'https://api.openai.com/v1/threads/thread_1/runs')).toBe(true);

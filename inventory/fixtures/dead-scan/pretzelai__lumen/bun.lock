@@ -1,0 +1,6 @@
+{
+  "lockfileVersion": 1,
+  "packages": {
+    "stripe": ["stripe@17.7.0", "", { "dependencies": { "qs": "^6.11.0" } }, "sha512-excerpt"],
+  }
+}

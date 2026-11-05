@@ -1,0 +1,7 @@
+{
+  "//": "Excerpt of Small-Web-Co/tinypivot at 69caa7e03901, package.json.",
+  "name": "tinypivot-monorepo",
+  "dependencies": {
+    "stripe": "^22.1.1"
+  }
+}

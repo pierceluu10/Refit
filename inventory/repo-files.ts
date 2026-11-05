@@ -34,6 +34,15 @@ const SKIPPED_DIRECTORIES = new Set([
 ]);
 const MAX_TEXT_FILE_BYTES = 1_000_000;
 const BINARY_SNIFF_BYTES = 8000;
+const NO_ACCESS = new Set(['EACCES', 'EPERM']);
+
+// A file or folder a working copy locked is unreadable, not a reason to fail on everything else.
+function noAccessIsEmpty<T>(empty: T) {
+  return (error: NodeJS.ErrnoException): T => {
+    if (NO_ACCESS.has(error.code ?? '')) return empty;
+    throw error;
+  };
+}
 
 export async function resolveInside(repoDir: string, relative: string): Promise<string> {
   const root = await realpath(repoDir);
@@ -56,7 +65,7 @@ export async function* walkFiles(repoDir: string, start = '.'): AsyncGenerator<s
   const pending = [await resolveInside(root, start)];
   while (pending.length > 0) {
     const directory = pending.pop() as string;
-    const entries = await readdir(directory, { withFileTypes: true });
+    const entries = await readdir(directory, { withFileTypes: true }).catch(noAccessIsEmpty([]));
     entries.sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
       const absolute = path.join(directory, entry.name);
@@ -80,7 +89,8 @@ export async function readText(repoDir: string, relative: string): Promise<strin
   const absolute = await resolveInside(repoDir, relative);
   const info = await lstat(absolute);
   if (!info.isFile() || info.size > MAX_TEXT_FILE_BYTES) return undefined;
-  const buffer = await readFile(absolute);
+  const buffer = await readFile(absolute).catch(noAccessIsEmpty(undefined));
+  if (!buffer) return undefined;
   if (buffer.subarray(0, BINARY_SNIFF_BYTES).includes(0)) return undefined;
   return buffer.toString('utf8');
 }

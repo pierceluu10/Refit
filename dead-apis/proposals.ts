@@ -78,6 +78,7 @@ const HTTP_CALL =
   /^(?:(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+)?(\/[^\s?#]*|https:\/\/[^\s?#]+)(?:[?#]\S*)?$/i;
 const PATH_PARAM = /\{[^}/]+\}|<[^>/]+>|:[A-Za-z_]\w*/g;
 const PATH_PARAM_REGEX = '[^/\\s]+';
+const WHOLE_RESOURCE = '/*';
 const PATH_PARAM_SAMPLE = 'id';
 const OPERATION_NAME = /^[\w.:@/-]+$/;
 const FIELD_NAME = /^\w+$/;
@@ -104,6 +105,9 @@ const REPLACEMENT_FILLER = new Set([
   'either',
 ]);
 const NAME_SHAPE = /[A-Z\d_/-]/;
+const DEPRECATED = /\bdeprecat/i;
+const ENDS =
+  /\b(?:remov|no longer|end[- ]of[- ]life|eol|sunset|shut|retir|stop|discontinu|unsupported|fail|4\d\d\b)/i;
 const EARLIEST_WORDING = /\b(?:earliest|no earlier than|not before)\b/i;
 const GITHUB_RELEASES = /^https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+\/releases\b/;
 const FEED_URL = /(?:\.(?:xml|rss|atom)|\/feed\/?)(?:[?#]|$)/i;
@@ -161,9 +165,12 @@ export async function readJsonOr<T>(file: string, missing: T): Promise<T> {
 // A matcher, and how a person would write what it looks for: a regex for /v1/x/{id} reads as that path.
 type Named = { matcher: DeadApiMatcher; label: string };
 
+// A trailing /* means everything under the path, so longer paths match too, and a bare one doesn't stop at it.
 function templateMatcher(address: string): DeadApiMatcher {
-  const pattern = address.split(PATH_PARAM).map(escapeRegex).join(PATH_PARAM_REGEX);
-  return { kind: 'regex', value: `${pattern}(?![\\w/-])` };
+  const whole = address.endsWith(WHOLE_RESOURCE);
+  const base = whole ? address.slice(0, -WHOLE_RESOURCE.length) : address;
+  const pattern = base.split(PATH_PARAM).map(escapeRegex).join(PATH_PARAM_REGEX);
+  return { kind: 'regex', value: `${pattern}${whole ? '(?![\\w-])' : '(?![\\w/-])'}` };
 }
 
 function operationMatcher(operation: string): Named | undefined {
@@ -338,7 +345,13 @@ function proposeChange(change: ProviderChange, context: ProposeContext): Proposa
   const handWritten = new Map(
     (file?.future ?? []).flatMap((shutdown) => shutdown.matchers.map((one) => [key(one), one])),
   );
-  const matchers = fresh.map((named) => handWritten.get(key(named.matcher)) ?? named.matcher);
+  // 15 of 20 read matchers failed a hand-check, so until a person writes one, a hit gets the small AI
+  // check and never goes straight to a fix.
+  const matchers = fresh.map(
+    (named) =>
+      handWritten.get(key(named.matcher)) ??
+      (named.matcher.kind === 'package' ? named.matcher : { ...named.matcher, ambiguous: true }),
+  );
 
   const named = replacementOf(change);
   const replacement = named ?? moved?.replacement ?? REPLACEMENT_NOT_NAMED;
@@ -360,8 +373,7 @@ function proposeChange(change: ProviderChange, context: ProposeContext): Proposa
     replacement,
     requires: moved?.requires?.length ? moved.requires : [REQUIRES_UNCHECKED],
   };
-  // FutureShutdown's type has no quote yet, so the variable stops an excess-property error. The quote
-  // has to travel with it, because entriesInForce turns this source into a live entry's on its day.
+  // The quote has to travel with a shutdown, because entriesInForce turns this source into a live entry's on its day.
   const source = { url: change.source.url, checkedOn: today, ...(quote ? { quote } : {}) };
   const date = latestDay(change.effectiveDate ?? '');
   const earliest = EARLIEST_WORDING.test(`${change.title} ${quote}`);
@@ -507,6 +519,10 @@ function pageProblem(
   page: FetchedPage,
 ): string | undefined {
   if (!containsQuote(page.text, quote)) return `the quote isn't on ${page.url}`;
+  // Deprecated can go on working for years, and dated from the notice it would flag working code.
+  if (DEPRECATED.test(quote) && !ENDS.test(quote)) {
+    return `the quote says deprecated with no end: ${quote}`;
+  }
   // A name the model made up, or a live one beside the dead one, would flag working code: the quote
   // has to name it. A package comes from the change's sdk, so the page is enough for that.
   const keys = new Set(draft.matchers.map((one) => matcherKey(draft.provider, one)));

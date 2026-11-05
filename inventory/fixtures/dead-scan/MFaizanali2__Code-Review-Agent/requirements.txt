@@ -1,0 +1,4 @@
+# Excerpt of MFaizanali2/Code-Review-Agent at 32fd5bb17d89, requirements.txt.
+google-genai>=1.0.0
+openai>=1.12.0
+anthropic>=0.18.0

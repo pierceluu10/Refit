@@ -1,0 +1,6 @@
+{
+  "name": "api",
+  "dependencies": {
+    "stripe": "^17.7.0"
+  }
+}

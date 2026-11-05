@@ -15,7 +15,8 @@
       "lookFor": [
         "Requests to google-analytics.com/collect or google-analytics.com/batch, on any subdomain such as www or ssl",
         "The hit parameter tid=UA-... in a query string or form body. v=1 alone isn't matched, since a cache-buster like style.css?v=1 looks the same, and neither is an object shaped like { v: 1, tid: ... } or a tid built from a variable: those are found through the host URL, so read the code around that hit",
-        "Not /g/collect or /mp/collect, and not tid=G-...: those are GA4 and still live"
+        "Not /g/collect or /mp/collect, and not tid=G-...: those are GA4 and still live",
+        "A bare /collect or /batch built onto a host held elsewhere, as in GA + '/collect'. It has the shape of an app's own route, so it needs reading. /debug/collect is the same protocol's validation endpoint"
       ],
       "matchers": [
         {
@@ -25,6 +26,20 @@
         {
           "kind": "url",
           "value": "google-analytics.com/batch"
+        },
+        {
+          "kind": "url",
+          "value": "google-analytics.com/debug/collect"
+        },
+        {
+          "kind": "url",
+          "value": "/collect",
+          "ambiguous": true
+        },
+        {
+          "kind": "url",
+          "value": "/batch",
+          "ambiguous": true
         },
         {
           "kind": "regex",

@@ -166,7 +166,7 @@ export type FutureShutdown = {
   what: string;
   diesOn: string; // ISO date
   earliest?: boolean; // the provider calls the date "earliest possible", so it doesn't turn on by itself
-  source: { url: string; checkedOn: string };
+  source: { url: string; checkedOn: string; quote?: string };
   matchers: DeadApiMatcher[];
   appliesTo?: DeadApiVersions;
   replacement?: string;

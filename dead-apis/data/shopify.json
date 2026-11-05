@@ -32,7 +32,7 @@
         },
         {
           "kind": "regex",
-          "value": "shopify\\.Session\\([^)]*['\\\"]2025-10['\\\"]"
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"]2025-10['\\\"]"
         },
         {
           "kind": "regex",
@@ -85,7 +85,7 @@
         },
         {
           "kind": "regex",
-          "value": "shopify\\.Session\\([^)]*['\\\"]2025-07['\\\"]"
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"]2025-07['\\\"]"
         },
         {
           "kind": "regex",
@@ -138,7 +138,7 @@
         },
         {
           "kind": "regex",
-          "value": "shopify\\.Session\\([^)]*['\\\"]2025-04['\\\"]"
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"]2025-04['\\\"]"
         },
         {
           "kind": "regex",
@@ -191,7 +191,7 @@
         },
         {
           "kind": "regex",
-          "value": "shopify\\.Session\\([^)]*['\\\"](?:20(?:19|2[0-4])-(?:01|04|07|10)|2025-01)['\\\"]"
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"](?:20(?:19|2[0-4])-(?:01|04|07|10)|2025-01)['\\\"]"
         },
         {
           "kind": "regex",
@@ -1045,7 +1045,7 @@
         },
         {
           "kind": "regex",
-          "value": "shopify\\.Session\\([^)]*['\\\"]2026-01['\\\"]"
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"]2026-01['\\\"]"
         },
         {
           "kind": "regex",
@@ -1082,7 +1082,7 @@
         },
         {
           "kind": "regex",
-          "value": "shopify\\.Session\\([^)]*['\\\"]2026-04['\\\"]"
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"]2026-04['\\\"]"
         },
         {
           "kind": "regex",
@@ -1119,7 +1119,7 @@
         },
         {
           "kind": "regex",
-          "value": "shopify\\.Session\\([^)]*['\\\"]2026-07['\\\"]"
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"]2026-07['\\\"]"
         },
         {
           "kind": "regex",
@@ -1156,7 +1156,7 @@
         },
         {
           "kind": "regex",
-          "value": "shopify\\.Session\\([^)]*['\\\"]2026-10['\\\"]"
+          "value": "shopify\\.Session\\([^)]{0,500}['\\\"]2026-10['\\\"]"
         },
         {
           "kind": "regex",
