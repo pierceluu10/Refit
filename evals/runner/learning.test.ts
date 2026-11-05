@@ -25,7 +25,7 @@ const lock = (repo: string): RepoLock => ({
   required: [
     {
       id: 'R1',
-      entryId: 'gemini-1',
+      entryId: 'GE-1.gemini-2.0-flash',
       file: 'a.ts',
       dead: 'x',
       alive: [],
@@ -46,14 +46,16 @@ function round(repos: string[]) {
   const dir = mkdtempSync(join(tmpdir(), 'aptitude-learning-'));
   const results = repos.map((repo) => {
     const scan = {
-      findings: [{ entryId: 'gemini-1', file: 'a.ts', line: 1, matchClass: 'live' as const }],
+      findings: [
+        { entryId: 'GE-1.gemini-2.0-flash', file: 'a.ts', line: 1, matchClass: 'live' as const },
+      ],
       unlistedProviders: [],
       clean: false,
     };
     mkdirSync(join(dir, repo.replace('/', '__')));
     writeFileSync(
       join(dir, repo.replace('/', '__'), 'task.json'),
-      JSON.stringify(repoTask(repo, scan, [entry('gemini-1'), entry('other')])),
+      JSON.stringify(repoTask(repo, scan, [entry('GE-1.gemini-2.0-flash'), entry('other')])),
     );
     return {
       repo,
@@ -91,7 +93,7 @@ describe('the memory test', () => {
     expect(await feed([round(repos)], repos.map(lock), store)).toBe(3);
 
     const ladder = await store.listLadder();
-    expect(ladder.find((e) => e.entryId === 'gemini-1')).toMatchObject({
+    expect(ladder.find((e) => e.entryId === 'GE-1.gemini-2.0-flash')).toMatchObject({
       level: 'new',
       benchmarkLevel: 'proven',
     });
@@ -99,13 +101,13 @@ describe('the memory test', () => {
     const task = repoTask(
       'acme/fresh',
       {
-        findings: [{ entryId: 'gemini-1', file: 'a.ts', line: 1, matchClass: 'live' }],
+        findings: [{ entryId: 'GE-1.gemini-2.0-flash', file: 'a.ts', line: 1, matchClass: 'live' }],
         unlistedProviders: [],
         clean: false,
       },
-      [entry('gemini-1')],
+      [entry('GE-1.gemini-2.0-flash')],
     );
     const fixes = await memoryOn(store).provenFixes(task);
-    expect(fixes.map((fix) => fix.entryId)).toEqual(['gemini-1']);
+    expect(fixes.map((fix) => fix.entryId)).toEqual(['GE-1.gemini-2.0-flash']);
   });
 });
