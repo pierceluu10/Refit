@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { runTask, TURN_RESERVE_USD, type HarnessRunRecord } from '../harness/index.ts';
-import { isRepoTask } from '../harness/findings.ts';
+import { isRepoTask, providersOf } from '../harness/findings.ts';
 import { modelPlan } from '../harness/prepare.ts';
 import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
 import { BudgetLedger as InventoryLedger, runInventory } from '../inventory/index.ts';
@@ -16,12 +16,14 @@ import {
   habitNotes,
   knownPlan,
   learnFromRun,
+  provenAllowed,
   recipesForEntries,
 } from '../memory/index.ts';
 import { anyProviderWatcher } from '../providers/core/any-watcher.ts';
 import { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
 import { folderWatcher, listProviderIds } from '../providers/core/registry.ts';
 import { hintsFor, loadToolPack } from '../providers/toolkit/pack.ts';
+import { loadProvenFixes } from '../providers/toolkit/proven.ts';
 import type {
   ProviderChange,
   ProviderHints,
@@ -219,8 +221,8 @@ export function createDeps({
 
   // One cap for the whole run. Each part holds its share while it runs and settles to what it spent,
   // so parts running at once never spend the same remainder.
-  const memory = (memoryBudget: MemoryBudget) => ({
-    ...defaultMemory(),
+  const memory = (memoryBudget: MemoryBudget, repo: string) => ({
+    ...defaultMemory(repo),
     ...defaultAi(process.env, memoryBudget),
   });
   const providerIds = listProviderIds();
@@ -271,6 +273,7 @@ export function createDeps({
           new MemoryBudget(
             isRepoTask(task) ? 0 : Math.max(Math.min(MEMORY_USD, hold.usd - TURN_RESERVE_USD), 0),
           ),
+          task.repo,
         );
         const recipes = await (
           isRepoTask(task)
@@ -299,6 +302,19 @@ export function createDeps({
             loadToolPack(provider, { hints: hintsFor(task.usages) }),
           retrieveRecipes: async () => recipes,
           habitNotes: habitNotes(habits),
+          provenFixes: async (repo) => {
+            const runs = await ai.store.listRuns();
+            const ladder = await ai.store.listLadder();
+            const allowed = repo.entries
+              .map((entry) => entry.id)
+              .filter((id) =>
+                provenAllowed(
+                  ladder.find((entry) => entry.entryId === id),
+                  runs,
+                ),
+              );
+            return loadProvenFixes(providersOf(repo), allowed);
+          },
           ...(proved && {
             planPreparation: (evidence, ledger) => {
               if (planned) return modelPlan(evidence, ledger);
@@ -341,7 +357,7 @@ export function createDeps({
       };
       // Stored with no model: learning reads stored runs later, in batches, on its own budget, so it
       // can't delay a fix or spend from a repo's cap (memory/scripts/learn.ts).
-      const learned = await learnFromRun(run, { ...defaultMemory(), model: undefined });
+      const learned = await learnFromRun(run, { ...defaultMemory(task.repo), model: undefined });
       if (learned.error) log(`memory: stored ${task.id} but learned no recipe: ${learned.error}`);
     },
     queue,

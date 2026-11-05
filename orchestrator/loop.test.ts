@@ -301,6 +301,7 @@ describe('runOrg with a scan', () => {
     diedOn: '2026-06-15',
     source: { url: 'https://example.com/deprecations', checkedOn: '2026-11-04' },
     lookFor: ['claude-sonnet-4-20250514'],
+    matchers: [],
     replacement: 'claude-sonnet-5-5',
     requires: [],
   };

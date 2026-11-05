@@ -43,6 +43,7 @@ function modelRules(): Rule[] {
         lookFor: names,
         replacement: cells[3],
         requires,
+        matchers: [],
         patterns: names.map(quoted),
       });
     }
@@ -69,6 +70,7 @@ const FIXED: Rule[] = [
     ],
     replacement:
       'GA4. Server or extension hits use Measurement Protocol: POST https://www.google-analytics.com/mp/collect?measurement_id=G-XXXX&api_secret=SECRET with JSON holding client_id and events [{name, params}]. Web pages use the Google tag (gtag.js) with a G- ID.',
+    matchers: [],
     requires: [
       'A GA4 measurement ID and API secret nobody has yet: read them from config and say what a person must set.',
       'The API secret is private; never put it in client code.',
@@ -132,6 +134,7 @@ const FIXED: Rule[] = [
     versions: `at or after ${since}.basil`,
     replacement,
     requires: require ? [require] : [],
+    matchers: [],
     patterns: [pattern],
     stripeSince: since,
   })),

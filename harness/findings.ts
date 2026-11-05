@@ -1,26 +1,7 @@
 // What the scan hands the fix session: every live finding in a repo and the list entries behind them.
-import type { MigrationTask } from '../shared/types.ts';
+import type { DeadApiEntry, Finding, MigrationTask, ScanResult } from '../shared/types.ts';
 
-// shortcut: local stub of P1's contract; swap these three for shared/types.ts when rebuild/pierce lands.
-export type DeadApiEntry = {
-  id: string;
-  provider: string;
-  what: string; // what died
-  diedOn: string;
-  source: { url: string; checkedOn: string };
-  lookFor: string[];
-  versions?: string;
-  replacement: string;
-  requires: string[];
-};
-export type Finding = {
-  entryId: string;
-  file: string;
-  line: number;
-  matchClass: 'live' | 'catalog' | 'test' | 'comment' | 'unclear';
-  version?: string;
-};
-export type ScanResult = { findings: Finding[]; unlistedProviders: string[]; clean: boolean };
+export type { DeadApiEntry, Finding, ScanResult };
 
 export type RepoTask = MigrationTask & { findings: Finding[]; entries: DeadApiEntry[] };
 

@@ -3,6 +3,7 @@ import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
 import type { RepoHabits } from './habits.ts';
+import type { LadderEntry } from './ladder.ts';
 import type {
   FixEvidence,
   HumanVerdict,
@@ -35,6 +36,8 @@ export interface MemoryStore {
 
   getHabits(repo: string): Promise<RepoHabits | undefined>;
   saveHabits(habits: RepoHabits): Promise<void>;
+  saveLadder(entry: LadderEntry): Promise<void>;
+  listLadder(): Promise<LadderEntry[]>;
 
   saveSelfEval(report: SelfEvalReport): Promise<void>;
   listSelfEvals(): Promise<SelfEvalReport[]>;
@@ -63,7 +66,7 @@ const rescanEvidence = (record: RunRecord) => {
   return rescan ? { evidence: { rescanClean: rescan.clean } } : {};
 };
 
-type Collection = 'runs' | 'recipes' | 'selfevals' | 'habits';
+export type Collection = 'runs' | 'recipes' | 'selfevals' | 'habits' | 'ladder';
 
 // Local JSON: one file per item under <dir>/<collection>/, written atomically.
 export class JsonMemoryStore implements MemoryStore {
@@ -115,21 +118,36 @@ export class JsonMemoryStore implements MemoryStore {
   async recordVerdict(runIdOrPr: string, verdict: HumanVerdict) {
     const run = await this.findRun(runIdOrPr);
     if (!run) return undefined;
-    const current = run.record.humanVerdict;
-    if (current === 'merged' || (current === 'closed' && verdict === 'edited')) return run;
-    run.record = { ...run.record, humanVerdict: verdict };
-    run.evidence = { ...run.evidence, ...verdictEvidence(verdict) };
-    await this.write('runs', run.id, run);
-    return run;
+    return this.update<StoredRun>('runs', run.id, (latest = run) => {
+      const current = latest.record.humanVerdict;
+      if (current === 'merged' || (current === 'closed' && verdict === 'edited')) return latest;
+      return {
+        ...latest,
+        record: { ...latest.record, humanVerdict: verdict },
+        evidence: { ...latest.evidence, ...verdictEvidence(verdict) },
+      };
+    });
   }
 
   async addEvidence(runIdOrPr: string, evidence: FixEvidence) {
     const run = await this.findRun(runIdOrPr);
     if (!run) return undefined;
     // A close or merge is once; a redelivered webhook keeps the first.
-    run.evidence = { ...evidence, ...run.evidence, ...keepNew(run.evidence, evidence) };
-    await this.write('runs', run.id, run);
-    return run;
+    return this.update<StoredRun>('runs', run.id, (latest = run) => ({
+      ...latest,
+      evidence: { ...evidence, ...latest.evidence, ...keepNew(latest.evidence, evidence) },
+    }));
+  }
+
+  // One read-change-write. A store that several processes share makes this a transaction.
+  protected async update<T>(
+    collection: Collection,
+    id: string,
+    change: (value: T | undefined) => T,
+  ): Promise<T> {
+    const value = change(await this.read<T>(collection, id));
+    await this.write(collection, id, value);
+    return value;
   }
 
   private async findRun(runIdOrPr: string) {
@@ -162,6 +180,14 @@ export class JsonMemoryStore implements MemoryStore {
     return this.write('habits', habits.repo, habits);
   }
 
+  saveLadder(entry: LadderEntry) {
+    return this.write('ladder', entry.entryId, entry);
+  }
+
+  listLadder() {
+    return this.list<LadderEntry>('ladder');
+  }
+
   saveSelfEval(report: SelfEvalReport) {
     return this.write('selfevals', report.id, report);
   }
@@ -179,17 +205,17 @@ export class JsonMemoryStore implements MemoryStore {
     await atomicWrite(join(this.dir, 'selfeval-tasks.json'), ids);
   }
 
-  private async write(collection: Collection, id: string, value: unknown) {
+  protected async write(collection: Collection, id: string, value: unknown) {
     await mkdir(join(this.dir, collection), { recursive: true });
     await atomicWrite(join(this.dir, collection, `${fileName(id)}.json`), value);
   }
 
-  private read<T>(collection: Collection, id: string) {
+  protected read<T>(collection: Collection, id: string): Promise<T | undefined> {
     return readJson<T>(join(this.dir, collection, `${fileName(id)}.json`));
   }
 
   // Sorted by file name, which is stable across runs; callers sort by date where order matters.
-  private async list<T>(collection: Collection): Promise<T[]> {
+  protected async list<T>(collection: Collection): Promise<T[]> {
     let names: string[];
     try {
       names = (await readdir(join(this.dir, collection))).filter((name) => name.endsWith('.json'));

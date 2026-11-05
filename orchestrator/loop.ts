@@ -1,5 +1,6 @@
 import type {
   ApiUsage,
+  DeadApiEntry,
   InventoryRepo,
   MigrationTask,
   OpenPullRequest,
@@ -7,9 +8,11 @@ import type {
   ProviderHints,
   RunRecord,
   RunTask,
+  ScanRepo,
+  ScanResult,
   WatchProvider,
 } from '../shared/types.ts';
-import { repoTask, type DeadApiEntry, type ScanResult } from '../harness/findings.ts';
+import { repoTask } from '../harness/findings.ts';
 import { MATCH_BATCH, type MatchChanges, type MatchedTask } from './match.ts';
 import type { Queue } from './queue.ts';
 
@@ -20,12 +23,9 @@ export type RecordRun = (task: MigrationTask, record: RunRecord, repoDir: string
 // verdict, or the error behind a failure. transcriptPath stays '' when no transcript exists.
 export type LoopRecord = RunRecord & { note?: string };
 
-// Plain code: what in this repo is on the dead-API list. Costs no model.
-export type ScanRepo = (dir: string, repo: string) => Promise<ScanResult>;
-
 export type LoopDeps = {
-  // With a scan the repo gets one session for every finding, and a clean scan stops at $0. Without
-  // one it takes the changelog path below.
+  // Plain code: what in this repo is on the dead-API list. With a scan the repo gets one session for
+  // every finding, and a clean scan stops at $0. Without one it takes the changelog path below.
   scan?: ScanRepo;
   list?: () => DeadApiEntry[];
   inventory: InventoryRepo;

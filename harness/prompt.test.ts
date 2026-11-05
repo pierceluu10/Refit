@@ -277,6 +277,7 @@ describe('a repo session', () => {
     diedOn: '2026-06-15',
     source: { url: 'https://example.com/deprecations', checkedOn: '2026-11-04' },
     lookFor: [id],
+    matchers: [],
     replacement: 'claude-sonnet-5-5',
     requires: ['Drop `temperature`.'],
   });

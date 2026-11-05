@@ -9,6 +9,7 @@ const entry = (provider: string, replacement: string): DeadApiEntry => ({
   diedOn: '2026-01-01',
   source: { url: 'https://example.com', checkedOn: '2026-11-04' },
   lookFor: [],
+  matchers: [],
   replacement,
   requires: [],
 });

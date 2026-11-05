@@ -9,6 +9,7 @@ import type {
 } from '../shared/types.ts';
 import type { RepoTask, ScanResult } from './findings.ts';
 import type { BudgetLedger, CacheTally, ChargeRun } from './ledger.ts';
+import type { ProvenFix } from './proven.ts';
 import type { SmokeResult } from './smoke.ts';
 import type { PlanPreparation, Preparation } from './prepare.ts';
 
@@ -118,6 +119,8 @@ export type HarnessDeps = {
   chargeRun?: ChargeRun;
   // A repo session's proof: the same plain-code scan, over the sandbox's working copy. It only reads.
   rescan?: (dir: string) => Promise<ScanResult>;
+  // Plain-code fixes the ladder allows here. They run before any session.
+  provenFixes?: (task: RepoTask) => Promise<ProvenFix[]>;
   // What earlier runs learned about this repo, for the kickoff message.
   habitNotes?: string[];
   // The optional live smoke call. It runs on the host, after the session.
@@ -136,6 +139,8 @@ export type HarnessRunRecord = RunRecord & {
   agentChecks: { name: string; command: string; before: string; after: string }[];
   // Why a repo session got its label, in a line, and what the last rescan found.
   note?: string;
+  // List entries a proven fix handled, with no model.
+  provenFixes?: string[];
   report?: FinishReport;
   rescan?: ScanResult;
   smoke?: SmokeResult[];

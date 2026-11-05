@@ -475,6 +475,7 @@ describe('a repo session', () => {
     diedOn: '2026-01-01',
     source: { url: 'https://example.com/changelog', checkedOn: '2026-11-04' },
     lookFor: ['charges.create'],
+    matchers: [],
     replacement: 'paymentIntents.create',
     requires: [],
   };
@@ -611,5 +612,90 @@ describe('a repo session', () => {
     expect(checksTouchChange(['a.py'], ['pytest'], undefined)).toBe(true);
     expect(checksTouchChange(['a.ts'], ['build'], undefined)).toBe(true);
     expect(checksTouchChange(['config.yaml'], ['build'], undefined)).toBe(false);
+  });
+
+  describe('with a proven fix', () => {
+    const swap = {
+      entryId: entry.id,
+      apply: (text: string) =>
+        text.replace('stripe.charges.create', 'stripe.paymentIntents.create'),
+    };
+    const unused: ScriptedTurn = async () => {
+      throw new Error('no session should run');
+    };
+
+    it('fixes the repo with no model when the rescan and checks pass', async () => {
+      const models: string[] = [];
+      const record = await runTask(repoTaskFor([live('src/pay.js')]), fixtureRepo(), {
+        ...deps([unused]),
+        session: async (input) => {
+          models.push(input.model);
+          return { finalText: '', stopReason: 'done' };
+        },
+        rescan,
+        provenFixes: async () => [swap],
+      });
+      expect(models).toEqual([]);
+      expect(record).toMatchObject({ outcome: 'verified', costUsd: 0, models: [] });
+      expect(record.provenFixes).toEqual([entry.id]);
+      expect(record.prBody).toContain('No model ran.');
+    });
+
+    it('rolls back a fix that breaks a check and hands the whole list to Claude', async () => {
+      const breaks = { entryId: entry.id, apply: () => 'export function createPayment( {' };
+      const seen: string[] = [];
+      const record = await runTask(repoTaskFor([live('src/pay.js')]), fixtureRepo(), {
+        ...deps([]),
+        session: scriptedSession([
+          async (call, input) => {
+            seen.push(await call('read_file', { path: 'src/pay.js' }));
+            await both(fix, finish())(call, input);
+          },
+        ]),
+        rescan,
+        provenFixes: async () => [breaks],
+      });
+      expect(seen[0]).toContain('stripe.charges.create');
+      expect(record).toMatchObject({ outcome: 'verified' });
+      expect(record.provenFixes).toBeUndefined();
+    });
+
+    it('sends what a fix left to Claude, without what it already fixed', async () => {
+      const dir = fixtureRepo();
+      writeFileSync(join(dir, 'src/refund.js'), 'export const r = (s) => s.charges.list();\n');
+      const rescanBoth = async (at: string) =>
+        scanOf(
+          ['src/pay.js', 'src/refund.js'].flatMap((file) =>
+            readFileSync(join(at, file), 'utf8').includes('charges') ? [live(file)] : [],
+          ),
+        );
+      const onlyPay = {
+        entryId: entry.id,
+        apply: (text: string, file: string) =>
+          file === 'src/pay.js'
+            ? text.replace('stripe.charges.create', 'stripe.paymentIntents.create')
+            : undefined,
+      };
+      const kickoffs: string[] = [];
+      const record = await runTask(repoTaskFor([live('src/pay.js'), live('src/refund.js')]), dir, {
+        ...deps([]),
+        session: scriptedSession([
+          async (call, input) => {
+            kickoffs.push(input.prompt);
+            await call('edit_file', {
+              path: 'src/refund.js',
+              old: 's.charges.list',
+              new: 's.paymentIntents.list',
+            });
+            await finish()(call, input);
+          },
+        ]),
+        rescan: rescanBoth,
+        provenFixes: async () => [onlyPay],
+      });
+      expect(kickoffs[0]).toContain('src/refund.js:2');
+      expect(kickoffs[0]).not.toContain('src/pay.js:2');
+      expect(record).toMatchObject({ outcome: 'verified', provenFixes: [entry.id] });
+    });
   });
 });

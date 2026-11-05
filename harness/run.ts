@@ -20,11 +20,13 @@ import {
   labelFix,
   liveFindings,
   providersOf,
+  type RepoTask,
   type ScanResult,
 } from './findings.ts';
 import { installWithLayer } from './install-layers.ts';
 import { BudgetLedger, budgetFromEnv } from './ledger.ts';
 import { filesFromDiff, writePrBody } from './pr.ts';
+import { applyProvenFixes } from './proven.ts';
 import {
   PROMPT_VERSION,
   buildKickoffMessage,
@@ -316,6 +318,40 @@ export async function runTask(
     const installOutput = install && `${install.stdout}\n${install.stderr}`.trim();
 
     timing.setupMs = Date.now() - started;
+    let after = before;
+    let comparisons = compareChecks(before, after);
+    let rescan: ScanResult | undefined;
+    let provenEntries: string[] = [];
+    // A proven fix runs first. It still answers to the checks and the rescan: one that breaks a check
+    // is rolled back, and what it leaves goes to Claude, so it can never block an attempt.
+    const proven = isRepoTask(task) && sandbox.reset ? await deps.provenFixes?.(task) : undefined;
+    if (proven?.length && isRepoTask(task)) {
+      const applied = await applyProvenFixes(sandbox.dir, task, proven);
+      if (applied.files.length) {
+        const checked = await runChecksAfter(sandbox, checks, before);
+        const failed = newFailureCount(compareChecks(before, checked)) > 0;
+        log({ type: 'harness', phase: 'proven-fix', applied, failed });
+        if (failed) await sandbox.reset?.();
+        else {
+          provenEntries = applied.entryIds;
+          after = checked;
+          comparisons = compareChecks(before, after);
+          rescan = await deps.rescan?.(sandbox.dir);
+        }
+      }
+    }
+    const left = rescan ? liveFindings(rescan) : [];
+    const provenDone = provenEntries.length > 0 && rescan !== undefined && left.length === 0;
+    // What a proven fix left is the session's list.
+    const sessionTask: RepoTask | undefined = !isRepoTask(task)
+      ? undefined
+      : rescan
+        ? {
+            ...task,
+            findings: left,
+            entries: task.entries.filter((e) => left.some((f) => f.entryId === e.id)),
+          }
+        : task;
     const session = deps.session ?? claudeAgentSession;
     let model = MODEL;
     let prompt = buildKickoffMessage(
@@ -323,19 +359,31 @@ export async function runTask(
       installOutput,
       packageManagerNote(pm, pmVersion),
       [...preparationNotes(preparation), ...(deps.habitNotes ?? [])],
-      isRepoTask(task) ? task : undefined,
+      sessionTask,
     );
     let sessionId: string | undefined;
-    let after = before;
-    let comparisons = compareChecks(before, after);
     let previousNewFailures = Infinity;
     let silentErrors = 0;
-    let rescan: ScanResult | undefined;
     let rescanRetries = 0;
+    if (provenDone) {
+      report = {
+        verdict: 'migrated',
+        summary: `Plain-code proven fixes handled ${provenEntries.join(', ')}. No model ran.`,
+        why: 'The list marks these APIs dead, and these fixes have a record of merged PRs.',
+        validators: [],
+        unproven: [],
+        behaviourChanges: [],
+        noProofTestReason: 'A proven fix has no session to write a test.',
+      };
+    }
 
     // Ends when the checks pass, the agent finishes with an explanation, or the budget runs out.
     const reserveUsd = deps.turnReserveUsd ?? TURN_RESERVE_USD;
-    for (let iteration = 0; iteration < (deps.maxIterations ?? Infinity); iteration++) {
+    for (
+      let iteration = 0;
+      !provenDone && iteration < (deps.maxIterations ?? Infinity);
+      iteration++
+    ) {
       const callReserveUsd = model === MODEL ? reserveUsd : reserveUsd * ESCALATED_RESERVE_FACTOR;
       if (ledger.remainingUsd <= callReserveUsd) break;
       if (!models.includes(model)) models.push(model);
@@ -509,6 +557,7 @@ export async function runTask(
       summary,
       preparation,
       ...(label ? { note: label.reason } : {}),
+      ...(provenEntries.length ? { provenFixes: provenEntries } : {}),
       ...(finalReport ? { report: finalReport } : {}),
       ...(rescan ? { rescan } : {}),
       ...(smoke?.length ? { smoke } : {}),

@@ -5,7 +5,15 @@
 //   APTITUDE_MEMORY_BUDGET_USD=0.50 node memory/scripts/learn.ts
 import Anthropic from '@anthropic-ai/sdk';
 import { query } from '@anthropic-ai/claude-agent-sdk';
-import { AgentSdkModel, Budget, defaultMemory, learnPending, type Model } from '../index.ts';
+import {
+  AgentSdkModel,
+  Budget,
+  customerStores,
+  defaultMemory,
+  learnPending,
+  memoryDir,
+  type Model,
+} from '../index.ts';
 import { BatchModel, LEARN_MODEL } from '../batch.ts';
 
 export function learnModel(env: NodeJS.ProcessEnv, budget: Budget): Model {
@@ -22,10 +30,17 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<void> 
     );
     return;
   }
-  const { store, embedder } = defaultMemory();
-  const result = await learnPending({ store, embedder, model: learnModel(env, budget) });
+  const { embedder } = defaultMemory();
+  let learned = 0;
+  let failed = 0;
+  // One customer at a time: a recipe never mixes two customers' runs.
+  for (const store of customerStores(memoryDir(env))) {
+    const result = await learnPending({ store, embedder, model: learnModel(env, budget) });
+    learned += result.learned;
+    failed += result.failed;
+  }
   console.log(
-    `learn: ${result.learned} run(s) learned from, ${result.failed} failed, $${budget.spentUsd.toFixed(4)} of $${budget.capUsd} spent`,
+    `learn: ${learned} run(s) learned from, ${failed} failed, $${budget.spentUsd.toFixed(4)} of $${budget.capUsd} spent`,
   );
 }
 

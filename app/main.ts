@@ -34,7 +34,7 @@ const queue = await createFileQueue(
 
 const verdict: RecordVerdict = async (pr, human) => {
   const learned = await recordVerdict(pr, human, {
-    ...defaultMemory(),
+    ...defaultMemory(pr),
     ...defaultAi(process.env, new Budget(VERDICT_BUDGET_USD)),
   });
   console.log(`verdict ${human} ${pr}${learned ? '' : ' (no stored run has this PR)'}`);
