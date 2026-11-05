@@ -1,8 +1,8 @@
 // runTask: sandbox → baseline checks → agent → re-check → iterate (escalating when stuck) → record.
 import { appendFileSync } from 'node:fs';
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import path, { join } from 'node:path';
 import type { MigrationTask, RetrieveRecipes, RunTask, ToolPack } from '../shared/types.ts';
 import { claudeAgentSession } from './agent.ts';
 import {
@@ -17,9 +17,11 @@ import {
 import {
   checksTouchChange,
   isRepoTask,
+  isRework,
   labelFix,
   liveFindings,
   providersOf,
+  requiredRemovals,
   type RepoTask,
   type ScanResult,
 } from './findings.ts';
@@ -38,7 +40,7 @@ import { createSandbox, sandboxEnvNote } from './sandbox.ts';
 import { preparationNotes, prepareRepo, runSteps, withEnv } from './prepare.ts';
 import { redactSecrets } from './secrets.ts';
 import { summarizeRun, type IterationSummary, type Step } from './summary.ts';
-import { buildTools } from './tools.ts';
+import { buildTools, resolveInSandbox } from './tools.ts';
 import type { PlanPreparation } from './prepare.ts';
 import type {
   CheckCommand,
@@ -80,6 +82,33 @@ function mergePacks(packs: ToolPack[]): ToolPack {
     tools: [...tools.values()],
     playbooks: {},
   };
+}
+
+// Does a check the session added import the code that changed? Reading the source as text doesn't
+// run it. The script is the command itself, or a file the command names.
+async function checksRunCode(
+  dir: string,
+  after: CheckRun[],
+  added: CheckCommand[],
+  changed: string[],
+): Promise<boolean> {
+  const names = changed.map((file) => path.basename(file).replace(/\.\w+$/, ''));
+  for (const check of added) {
+    if (!after.some((run) => run.name === check.name && run.ok)) continue;
+    const scripts = check.command.split(/\s+/).filter((word) => /\.\w+$/.test(word));
+    const texts = await Promise.all(
+      scripts.map((script) =>
+        resolveInSandbox(dir, script)
+          .then((target) => readFile(target, 'utf8'))
+          .catch(() => ''),
+      ),
+    );
+    for (const text of [check.command, ...texts]) {
+      const imports = text.split('\n').filter((line) => /\b(import|require|from)\b/.test(line));
+      if (names.some((name) => imports.some((line) => line.includes(name)))) return true;
+    }
+  }
+  return false;
 }
 
 // Install layers stay within one owner.
@@ -475,6 +504,7 @@ export async function runTask(
       finalReport?.proofTest && after.some((run) => run.name === finalReport.proofTest)
         ? finalReport.proofTest
         : undefined;
+    const changedFiles = filesFromDiff(diff);
     const fixLabel =
       rescan && isRepoTask(task) && !(finalReport?.verdict === 'not-affected' && !diff.trim())
         ? labelFix({
@@ -483,10 +513,13 @@ export async function runTask(
             newFailures: newFailureCount(comparisons),
             changed: diff.trim() !== '',
             touched: checksTouchChange(
-              filesFromDiff(diff),
+              changedFiles,
               after.filter((run) => run.ok).map((run) => run.name),
               proofTest,
             ),
+            rework: isRework(diff, task.findings),
+            codeRan: await checksRunCode(sandbox.dir, after, agentChecks, changedFiles),
+            stillSet: requiredRemovals(task.entries, diff),
           })
         : undefined;
     const smoke =

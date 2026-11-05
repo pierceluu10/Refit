@@ -88,3 +88,49 @@ No paid run. These are unit-tested, and fed real records from O2 and O3:
 
 - 12 runs went in. `gemini-1` reached `proven` on `benchmarkLevel` from 3 locked repos, and stayed `new` for customers.
 - `backend_AgentAi` counted for `gemini-1` but not for the header it missed, because a locked test only counts for the entries it covered.
+
+## O7: does memory help?
+
+**When:** 2026-11-05, 02:06 to 03:18. **Commits:** `ef439ded` for the locks, `68c3b475` for the runner. **Locks:** `evals/rounds/o7/`. **Spend:** $3.70: $0.62 on the learn repos, $0.09 of that on a run lost to my own bug, $0.75 on the proven arm, $2.16 on the recipes arm, and $0.16 writing recipes. The blind grader was a fresh subagent and isn't in this figure.
+
+**Result: the target isn't met on what the locks show.** Memory on cost more and fixed the same. A blind read leans slightly the other way, on too few repos to prove anything.
+
+| Eligible repos | Fixed, locks (on / off) | Cost (on / off) | Blind: fully fixed (on / off) | Blind: better |
+| --- | --- | --- | --- | --- |
+| Proven arm, 3 repos | 7 of 7 / 7 of 7 | $0.30 / $0.25 | 3 of 3 / 2 of 3 | On 1, level 2 |
+| Recipes arm, 3 repos | 3 of 6 / 3 of 6 | $1.21 / $0.96 | 1 of 3 / 1 of 3 | On 2, off 1 |
+| **Total, 6 repos** | **10 of 13 / 10 of 13** | **$1.51 / $1.21, 25% more** | **4 of 6 / 3 of 6** | **On 3, off 1, level 2** |
+
+The target was more fixed, or at least 30% less cost. By the locks it's a tie at 25% more cost. By the blind read it's one more repo fully fixed, which on 6 repos is noise until repeated.
+
+**Excluded:** `jackstonemedia/StoneAIOMainSystem`, whose baseline was red. It fixed 1 of 1 in both arms, at $0.10 each.
+
+**Proven fixes, on their own:**
+
+| Repo | With memory | Without | What happened |
+| --- | --- | --- | --- |
+| `palashb01/DocuChat` | $0.0028 | $0.0620 | Finished with no session. 95% less, and the two diffs are byte-identical |
+| `PRIYESHSINGH24/buddy_connect` | $0.2189 | $0.1324 | Fixed 3 of 4 files, and Claude finished the file that sets `temperature`. It cost more, but the blind read preferred it, because Claude removed the setting the other run left |
+| `AyeletHillel/fine-tune` | $0.0786 | $0.0587 | Rightly handed to Claude: it's fine-tuning, so the fix stood aside. The extra cost is noise |
+
+So a proven fix helps a lot when it finishes the repo, and doesn't help when it only does part of it. Its guards stop it finishing most repos, and those guards are what keep it safe.
+
+**Recipes:** on the Assistants API, which the list describes poorly, recipes cost 27% more. The blind read preferred them on 2 of 3 repos. One of those 3 runs had a recipe and still left `temperature` on the production path. Three repos is a first signal only, the same size as the one `LIST-TEST.md` warned about.
+
+**What I decided:** I'm stopping at the two proven fixes I've written. No more until real merges exist. The ladder, evidence and habits stay, because they're what real merges would feed.
+
+**Limits:**
+
+- All the "merges" are locked tests, so `benchmark: true` let these fixes run. Nothing here counts for customers.
+- The recipes came from 2 repos, and `LIST-TEST.md` says recipe text isn't worth more spend.
+- The Assistants locks turned out too narrow. `alive` wanted `responses.create`, but real fixes used `responses.cancel` and helper files. All the "misses" I read were this, in both arms, so I left them as locked and scored them that way. The blind read is the better measure there.
+- `learn-lock.json`'s first run lost $0.09 to my own bug: an edit adding the Assistants entry to the stand-in hadn't applied.
+
+**What the blind read found about labels:** all 12 runs said Fixed, and it fully agreed on 7. The other 5 were "partly": real defects like a random UUID passed as a thread id, and `temperature` left on a model that rejects it. See `evals/rounds/o7/results/grades.md`. That's a far worse number than O3's 10 of 11 and it's the most useful thing this round found. A clean rescan says nothing about whether a rework works. So Fixed now also needs:
+
+- for a rework, a check that imports the changed code
+- nothing left in the fix's own hunks that the entry says to remove
+
+Replayed over these runs with no spend, every Assistants rework becomes Needs a look, and the 3 Fixed that remain are all ones the blind read agrees with.
+
+**The AI sweep and the tracked numbers** are built (`orchestrator/sweep.ts`, `evals/runner/sweep-run.ts`, `memory/metrics.ts`), and not measured yet against the real scanner.

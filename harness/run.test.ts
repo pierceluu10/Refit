@@ -6,8 +6,10 @@ import type { MigrationTask, ToolPack } from '../shared/types.ts';
 import { scriptedSession, type ScriptedTurn } from './fake-session.ts';
 import {
   checksTouchChange,
+  isRework,
   labelFix,
   repoTask,
+  requiredRemovals,
   type DeadApiEntry,
   type Finding,
   type ScanResult,
@@ -605,6 +607,63 @@ describe('a repo session', () => {
       touched: checksTouchChange(['a.py'], ['typecheck', 'build'], undefined),
     });
     expect(label.outcome).toBe('needs-review');
+  });
+
+  it('calls a rework needs a look unless a check runs the new code', () => {
+    const rework = { rework: true, codeRan: false };
+    const base = {
+      findings: [live('a.ts')],
+      rescan: scanOf([]),
+      newFailures: 0,
+      changed: true,
+      touched: true,
+    };
+    expect(labelFix({ ...base, ...rework }).outcome).toBe('needs-review');
+    expect(labelFix({ ...base, rework: true, codeRan: true }).outcome).toBe('verified');
+  });
+
+  it('calls a fix needs a look when a file still sets what the entry says to remove', () => {
+    const label = labelFix({
+      findings: [live('a.ts')],
+      rescan: scanOf([]),
+      newFailures: 0,
+      changed: true,
+      touched: true,
+      stillSet: ['temperature in a.ts'],
+    });
+    expect(label.outcome).toBe('needs-review');
+    expect(label.reason).toContain('temperature in a.ts');
+  });
+
+  it('tells a rename from a rework by how much code the fix added', () => {
+    const added = (lines: number, file = 'src/a.ts') =>
+      `diff --git a/${file} b/${file}\n${'+x\n'.repeat(lines)}`;
+    expect(isRework(added(5), [live('a.ts')])).toBe(false);
+    expect(isRework(added(21), [live('a.ts')])).toBe(true);
+    expect(
+      isRework(
+        added(60),
+        Array.from({ length: 25 }, () => live('a.ts')),
+      ),
+    ).toBe(false);
+    // A long test isn't a rework of the code.
+    expect(isRework(added(200, 'src/a.test.ts'), [live('a.ts')])).toBe(false);
+  });
+
+  it('finds what an entry says to remove near the edit, only when the entry says so', () => {
+    const diff = (line: string, file = 'src/a.ts') =>
+      `diff --git a/${file} b/${file}\n-  model: "old",\n+  model: "new",\n ${line}\n`;
+    const removes = { ...entry, requires: ['Remove temperature, top_p and top_k.'] };
+    expect(requiredRemovals([removes], diff('  temperature: 0.2,'))).toEqual([
+      'temperature in src/a.ts',
+    ]);
+    expect(requiredRemovals([entry], diff('  temperature: 0.2,'))).toEqual([]);
+    expect(requiredRemovals([removes], diff('  stream: true,'))).toEqual([]);
+    expect(requiredRemovals([removes], diff('  temperature: 0.2,', 'src/a.test.ts'))).toEqual([]);
+    // A line the fix took out doesn't count.
+    expect(requiredRemovals([removes], 'diff --git a/a.ts b/a.ts\n-  temperature: 0,\n')).toEqual(
+      [],
+    );
   });
 
   it('counts a passing proof test, or a check in the language that changed', () => {

@@ -86,6 +86,47 @@ export function checksTouchChange(
   return js || py;
 }
 
+const CODE_FILE = /\.(ts|tsx|js|jsx|mjs|cjs|vue|svelte|py)$/;
+const TEST_FILE = /(^|\/)(tests?|__tests__|spec|\.refit-proof)(\/|$)|\.(test|spec)\.\w+$/;
+
+// A rename touches about a line per finding. Far more than that means the calls themselves changed,
+// which a clean rescan can't vouch for: the blind read of O7 rejected half the "Fixed" reworks.
+export function isRework(diff: string, findings: Finding[]): boolean {
+  let added = 0;
+  for (const section of diff.split(/^(?=diff --git )/m)) {
+    const file = /^diff --git a\/.+? b\/(.+)$/m.exec(section)?.[1];
+    if (!file || !CODE_FILE.test(file) || TEST_FILE.test(file)) continue;
+    added += section.split('\n').filter((line) => /^\+(?!\+\+)/.test(line)).length;
+  }
+  const live = findings.filter((finding) => finding.matchClass === 'live').length;
+  return added > Math.max(REWORK_LINES, live * REWORK_LINES_PER_FINDING);
+}
+
+const REWORK_LINES = 20;
+const REWORK_LINES_PER_FINDING = 3;
+
+// What an entry says the move requires taking out, and the fix's own hunks still set: the lines
+// around the edit, since a whole file can set it for another provider.
+export function requiredRemovals(entries: DeadApiEntry[], diff: string): string[] {
+  const left = new Set<string>();
+  const names = entries.flatMap((entry) =>
+    entry.requires.flatMap((line) =>
+      /\bremove\b/i.test(line) ? (line.match(/\b(temperature|top_p|top_k)\b/gi) ?? []) : [],
+    ),
+  );
+  for (const section of diff.split(/^(?=diff --git )/m)) {
+    const file = /^diff --git a\/.+? b\/(.+)$/m.exec(section)?.[1];
+    if (!file || !CODE_FILE.test(file) || TEST_FILE.test(file)) continue;
+    const kept = section.split('\n').filter((line) => /^[ +](?!\+\+)/.test(line));
+    for (const name of new Set(names.map((found) => found.toLowerCase()))) {
+      if (kept.some((line) => new RegExp(`\\b${name}\\b`, 'i').test(line))) {
+        left.add(`${name} in ${file}`);
+      }
+    }
+  }
+  return [...left];
+}
+
 export type FixLabel = { outcome: 'verified' | 'needs-review' | 'failed'; reason: string };
 
 // The label from plain facts: the rescan and the checks, never the session's own words.
@@ -95,6 +136,9 @@ export function labelFix(input: {
   newFailures: number;
   changed: boolean;
   touched: boolean;
+  rework?: boolean;
+  codeRan?: boolean; // a passing check imports the code that changed
+  stillSet?: string[]; // what the entry says to remove and a changed file still has
 }): FixLabel {
   const before = input.findings.filter((finding) => finding.matchClass === 'live').length;
   const left = liveFindings(input.rescan).length;
@@ -114,6 +158,18 @@ export function labelFix(input: {
     return {
       outcome: 'needs-review',
       reason: 'The rescan is clean, but no check that passes touches the changed code.',
+    };
+  }
+  if (input.rework && !input.codeRan) {
+    return {
+      outcome: 'needs-review',
+      reason: 'The rescan is clean, but this reworks the calls and no test runs the new code.',
+    };
+  }
+  if (input.stillSet?.length) {
+    return {
+      outcome: 'needs-review',
+      reason: `The rescan is clean, but the list says to remove what's still here: ${input.stillSet.join(', ')}.`,
     };
   }
   return { outcome: 'verified', reason: 'The rescan is clean and the checks are no worse.' };
