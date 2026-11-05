@@ -1,0 +1,6 @@
+{
+  "name": "common-saas-template",
+  "dependencies": {
+    "next": "^15.0.0"
+  }
+}

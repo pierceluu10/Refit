@@ -1,0 +1,64 @@
+{
+  "provider": "riot",
+  "officialHosts": ["developer.riotgames.com", "www.riotgames.com"],
+  "entries": [
+    {
+      "id": "RI-1.summoner-by-name",
+      "provider": "riot",
+      "what": "GET /lol/summoner/v4/summoners/by-name/{name} is gone from Riot's summoner-v4 reference, which lists only by-puuid. Riot said it would be removed but no dated notice was found, so diedOn is the day the reference was read without it.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://developer.riotgames.com/api-details/summoner-v4",
+        "checkedOn": "2026-11-05",
+        "quote": "GET /lol/summoner/v4/summoners/by-puuid/{encryptedPUUID} Get a summoner by PUUID."
+      },
+      "lookFor": ["A request to /lol/summoner/v4/summoners/by-name/..."],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "/lol/summoner/v4/summoners/by-name*"
+        }
+      ],
+      "replacement": "ACCOUNT-V1 /riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine} for a PUUID, then summoner-v4 by-puuid.",
+      "replacementIds": ["/riot/account/v1/accounts/by-riot-id"],
+      "requires": [
+        "Names become a game name and a tag line, so a lookup by summoner name alone has no direct replacement.",
+        "The API routes ACCOUNT-V1 by region (americas, asia, europe), not by platform such as na1."
+      ],
+      "context": {
+        "hosts": ["api.riotgames.com"]
+      }
+    },
+    {
+      "id": "RI-2.summoner-name-fields",
+      "provider": "riot",
+      "what": "SummonerDTO no longer has name or accountId: the reference lists profileIconId, revisionDate, puuid and summonerLevel. No dated notice was found, so diedOn is the day the reference was read. A field called name on an app's own summoner row reads the same, so these need reading.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://www.riotgames.com/en/DevRel/summoner-names-to-riot-id",
+        "checkedOn": "2026-11-05",
+        "quote": "In future releases, we will remove summoner names from the API altogether."
+      },
+      "lookFor": ["A read of .name or .accountId off a summoner object from summoner-v4"],
+      "matchers": [
+        {
+          "kind": "field",
+          "value": "name",
+          "on": ["summoner"]
+        },
+        {
+          "kind": "field",
+          "value": "accountId",
+          "on": ["summoner"]
+        }
+      ],
+      "replacement": "puuid from SummonerDTO, and gameName and tagLine from ACCOUNT-V1.",
+      "replacementIds": ["puuid"],
+      "requires": ["Rows stored under a summoner name or accountId need a migration to puuid."],
+      "context": {
+        "hosts": ["api.riotgames.com"]
+      }
+    }
+  ],
+  "future": []
+}

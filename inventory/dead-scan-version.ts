@@ -430,6 +430,15 @@ export function gateFor(entry: DeadApiEntry, source: Source, facts: VersionFacts
     const pin = pinFor(facts, entry.provider, source);
     // Another package's pin only answers for a package with no SDK of its own.
     if (pin.fromRepo && sdk) return sdk;
+    // Pins that differ but all predate the removal agree on the only thing that matters here.
+    const newest = pin.conflict?.reduce((a, b) => (dateOf(a) > dateOf(b) ? a : b));
+    if (newest && dateOf(newest) < dateOf(since)) {
+      return {
+        state: 'below',
+        version: newest,
+        reason: `every pin predates the removal: ${(pin.conflict ?? []).join(', ')}, removal at ${since}`,
+      };
+    }
     if (pin.conflict) {
       return {
         state: 'unknown',
@@ -457,10 +466,16 @@ export function gateFor(entry: DeadApiEntry, source: Source, facts: VersionFacts
           };
     }
   }
+  const unversioned = entry.appliesTo?.sdkSince?.find((spec) => {
+    const declared = declaredRange(facts, spec.package, spec.ecosystem ?? 'npm', source.file);
+    return declared !== undefined && 'range' in declared;
+  });
   return (
     sdk ?? {
       state: 'unknown',
-      reason: 'no API version set in code and no installed SDK version found',
+      reason: unversioned
+        ? `no installed SDK version found: ${unversioned.package} is declared with no version, so a fresh install takes the newest, past the removal at ${unversioned.version}, and an environment built earlier may still work`
+        : 'no API version set in code and no installed SDK version found',
     }
   );
 }

@@ -1,0 +1,66 @@
+{
+  "provider": "moonshot",
+  "officialHosts": ["platform.kimi.com", "platform.kimi.ai", "platform.moonshot.cn"],
+  "entries": [
+    {
+      "id": "KM-1.moonshot-v1",
+      "provider": "moonshot",
+      "what": "The moonshot-v1 models. Moonshot's Chinese models page lists them as taken offline with no date, so diedOn is the day it was read. The English page lists the same ids as Deprecated, so the two official pages differ in wording.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://platform.kimi.com/docs/models",
+        "checkedOn": "2026-11-05",
+        "quote": "已下线模型"
+      },
+      "lookFor": ["A moonshot-v1 model id sent to api.moonshot.cn or api.moonshot.ai"],
+      "matchers": [
+        { "kind": "string", "value": "moonshot-v1-8k" },
+        { "kind": "string", "value": "moonshot-v1-32k" },
+        { "kind": "string", "value": "moonshot-v1-128k" },
+        { "kind": "string", "value": "moonshot-v1-auto" },
+        { "kind": "string", "value": "moonshot-v1-8k-vision-preview" },
+        { "kind": "string", "value": "moonshot-v1-32k-vision-preview" },
+        { "kind": "string", "value": "moonshot-v1-128k-vision-preview" }
+      ],
+      "replacement": "None named per model: the page lists kimi-k3 and kimi-k3.1-pro as its current models.",
+      "replacementIds": ["kimi-k3", "kimi-k3.1-pro"],
+      "requires": [
+        "Check the context window and price of the model chosen: the page maps no old id to a new one."
+      ],
+      "context": {
+        "hosts": ["moonshot.cn", "moonshot.ai"]
+      }
+    },
+    {
+      "id": "KM-2.kimi-offline",
+      "provider": "moonshot",
+      "what": "Older Kimi models on Moonshot's own API, listed as taken offline with no date, so diedOn is the day the page was read. Groq and aggregators host some of the same names, so a hit needs reading.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://platform.kimi.com/docs/models",
+        "checkedOn": "2026-11-05",
+        "quote": "已下线模型"
+      },
+      "lookFor": ["One of these Kimi ids sent to api.moonshot.cn or api.moonshot.ai"],
+      "matchers": [
+        { "kind": "string", "value": "kimi-k2.5", "ambiguous": true },
+        { "kind": "string", "value": "kimi-k2-0905-preview", "ambiguous": true },
+        { "kind": "string", "value": "kimi-k2-0711-preview", "ambiguous": true },
+        { "kind": "string", "value": "kimi-k2-turbo-preview", "ambiguous": true },
+        { "kind": "string", "value": "kimi-k2-thinking", "ambiguous": true },
+        { "kind": "string", "value": "kimi-k2-thinking-turbo", "ambiguous": true },
+        { "kind": "string", "value": "kimi-latest", "ambiguous": true },
+        { "kind": "string", "value": "kimi-thinking-preview", "ambiguous": true }
+      ],
+      "replacement": "None named per model: the page lists kimi-k3 and kimi-k3.1-pro as its current models.",
+      "replacementIds": ["kimi-k3", "kimi-k3.1-pro"],
+      "requires": [
+        "Check the context window and price of the model chosen: the page maps no old id to a new one."
+      ],
+      "context": {
+        "hosts": ["moonshot.cn", "moonshot.ai"]
+      }
+    }
+  ],
+  "future": []
+}

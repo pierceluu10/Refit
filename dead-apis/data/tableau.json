@@ -1,0 +1,28 @@
+{
+  "provider": "tableau",
+  "officialHosts": ["help.tableau.com"],
+  "entries": [
+    {
+      "id": "TB-1.password-sign-in",
+      "provider": "tableau",
+      "what": "A user name and password sign-in to Tableau Cloud. MFA has been required there since 2022-02-01 (help.tableau.com/current/online/en-us/security_auth.htm), and with MFA on Tableau authentication a REST sign-in needs a PAT. The same call still works against an on-premise Tableau Server, so this depends on the target.",
+      "diedOn": "2022-02-01",
+      "source": {
+        "url": "https://help.tableau.com/current/api/rest_api/en-us/REST/rest_api_ref_authentication.htm",
+        "checkedOn": "2026-11-05",
+        "quote": "You must use a PAT, instead of user name and password, to make a REST API sign in request to Tableau Cloud."
+      },
+      "lookFor": ["TableauAuth( from tableauserverclient, when the server is a Tableau Cloud site"],
+      "matchers": [{ "kind": "regex", "value": "\\bTableauAuth\\s*\\(", "ambiguous": true }],
+      "replacement": "A personal access token (PAT), or a unified access token.",
+      "requires": [
+        "Someone has to create the token and store it as a secret: it replaces the password in the environment."
+      ],
+      "context": {
+        "packages": ["tableauserverclient"],
+        "hosts": ["online.tableau.com"]
+      }
+    }
+  ],
+  "future": []
+}

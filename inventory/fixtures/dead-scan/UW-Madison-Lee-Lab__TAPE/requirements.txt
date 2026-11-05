@@ -1,0 +1,3 @@
+# Excerpt of UW-Madison-Lee-Lab/TAPE, requirements.txt, seen in P5.
+openai
+anthropic

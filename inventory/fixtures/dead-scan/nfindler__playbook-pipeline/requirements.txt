@@ -1,0 +1,2 @@
+# Excerpt of nfindler/playbook-pipeline, seen in P5.
+anthropic

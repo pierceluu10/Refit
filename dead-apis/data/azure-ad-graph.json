@@ -1,0 +1,33 @@
+{
+  "provider": "azure-ad-graph",
+  "officialHosts": ["learn.microsoft.com/en-us/graph"],
+  "entries": [
+    {
+      "id": "AG-1.graph-windows-net",
+      "provider": "azure-ad-graph",
+      "what": "Azure AD Graph at graph.windows.net, including tokens requested for that resource.",
+      "diedOn": "2025-08-31",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/graph/migrate-azure-ad-graph-overview",
+        "checkedOn": "2026-11-05",
+        "quote": "August 31, 2025: End of extended access to Azure AD Graph. Azure AD Graph will be fully retired."
+      },
+      "lookFor": ["A request to graph.windows.net, or a token requested for that resource"],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "graph.windows.net*"
+        }
+      ],
+      "replacement": "Microsoft Graph.",
+      "replacementIds": ["graph.microsoft.com"],
+      "requires": [
+        "Paths, response shapes and app permissions differ, so the token's resource and the app's permissions have to move too."
+      ],
+      "context": {
+        "hosts": ["graph.windows.net"]
+      }
+    }
+  ],
+  "future": []
+}
